@@ -375,7 +375,7 @@ Navigator::task_main()
 		orb_check(_vehicle_command_sub, &updated);
 
 		if (updated) {
-			vehicle_command_s cmd = {};
+			vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
@@ -479,15 +479,24 @@ Navigator::task_main()
 				int land_start = _mission.find_offboard_land_start();
 
 				if (land_start != -1) {
-					vehicle_command_s cmd_mission_start = {};
-					cmd_mission_start.timestamp = hrt_absolute_time();
-					cmd_mission_start.target_system = get_vstatus()->system_id;
-					cmd_mission_start.target_component = get_vstatus()->component_id;
-					cmd_mission_start.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
-					cmd_mission_start.param1 = land_start;
-					cmd_mission_start.param2 = 0;
+					struct vehicle_command_s vcmd = {};
+					vcmd.timestamp = hrt_absolute_time(),
+					     vcmd.param1 = (float)land_start,
+						  vcmd.param2 = 0.0f,
+						       vcmd.param3 = 0.0f,
+							    vcmd.param4 = 0.0f,
+								 vcmd.param5 = 0.0,
+								      vcmd.param6 = 0.0,
+									   vcmd.param7 = 0.0f,
+										vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
+					vcmd.target_system = (uint8_t)get_vstatus()->system_id;
+					vcmd.target_component = (uint8_t)get_vstatus()->component_id;
+					vcmd.source_system = (uint8_t)get_vstatus()->system_id;
+					vcmd.source_component = (uint8_t)get_vstatus()->component_id;
+					vcmd.confirmation = false;
+					vcmd.from_external = false;
 
-					publish_vehicle_cmd(cmd_mission_start);
+					publish_vehicle_cmd(vcmd);
 
 				} else {
 					PX4_WARN("planned landing not available");
