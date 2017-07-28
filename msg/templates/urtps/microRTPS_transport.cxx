@@ -96,7 +96,7 @@ uint16_t Transport_node::crc16(uint8_t const *buffer, size_t len)
     return crc;
 }
 
-ssize_t Transport_node::read(char* topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transport_node::read(uint8_t* topic_ID, char out_buffer[], size_t buffer_len)
 {
     if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK()) return -1;
 
@@ -181,7 +181,7 @@ ssize_t Transport_node::read(char* topic_ID, char out_buffer[], size_t buffer_le
     return len;
 }
 
-ssize_t Transport_node::write(const char topic_ID, char buffer[], size_t length)
+ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
 {
     if (!fds_OK()) return -1;
 
