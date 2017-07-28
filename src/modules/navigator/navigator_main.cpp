@@ -479,22 +479,21 @@ Navigator::task_main()
 				int land_start = _mission.find_offboard_land_start();
 
 				if (land_start != -1) {
-					struct vehicle_command_s vcmd = {};
-					vcmd.timestamp = hrt_absolute_time(),
-					     vcmd.param1 = (float)land_start,
-						  vcmd.param2 = 0.0f,
-						       vcmd.param3 = 0.0f,
-							    vcmd.param4 = 0.0f,
-								 vcmd.param5 = 0.0,
-								      vcmd.param6 = 0.0,
-									   vcmd.param7 = 0.0f,
-										vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
-					vcmd.target_system = (uint8_t)get_vstatus()->system_id;
-					vcmd.target_component = (uint8_t)get_vstatus()->component_id;
-					vcmd.source_system = (uint8_t)get_vstatus()->system_id;
-					vcmd.source_component = (uint8_t)get_vstatus()->component_id;
-					vcmd.confirmation = false;
-					vcmd.from_external = false;
+					struct vehicle_command_s vcmd = {
+						.timestamp = hrt_absolute_time(),
+						.param5 = 0.0f,
+						.param6 = 0.0f,
+						.param1 = (float)land_start,
+						.param2 = 0.0f,
+						.param3 = 0.0f,
+						.param4 = 0.0f,
+						.param7 = 0.0f,
+						.command = vehicle_command_s::VEHICLE_CMD_MISSION_START,
+						.target_system = (uint8_t)get_vstatus()->system_id,
+						.target_component = (uint8_t)get_vstatus()->component_id,
+						.source_system = (uint8_t)get_vstatus()->system_id,
+						.source_component = (uint8_t)get_vstatus()->component_id
+					};
 
 					publish_vehicle_cmd(vcmd);
 
