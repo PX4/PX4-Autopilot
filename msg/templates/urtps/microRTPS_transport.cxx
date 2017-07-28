@@ -86,388 +86,417 @@ Transport_node::~Transport_node()
 
 uint16_t Transport_node::crc16_byte(uint16_t crc, const uint8_t data)
 {
-    return (crc >> 8) ^ crc16_table[(crc ^ data) & 0xff];
+	return (crc >> 8) ^ crc16_table[(crc ^ data) & 0xff];
 }
 
 uint16_t Transport_node::crc16(uint8_t const *buffer, size_t len)
 {
-    uint16_t crc = 0;
-    while (len--) crc = crc16_byte(crc, *buffer++);
-    return crc;
+	uint16_t crc = 0;
+
+	while (len--) {
+		crc = crc16_byte(crc, *buffer++);
+	}
+
+	return crc;
 }
 
-ssize_t Transport_node::read(uint8_t* topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
-    if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK()) return -1;
+	if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK()) {
+		return -1;
+	}
 
-    *topic_ID = 255;
+	*topic_ID = 255;
 
-    ssize_t len = node_read((void*)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos);
-    if (len <= 0)
-    {
-        int errsv = errno;
-        if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv)
-        {
-            printf("Read fail %d\n", errsv);
-        }
-        return len;
-    }
-    rx_buff_pos += len;
+	ssize_t len = node_read((void *)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos);
 
-    // We read some
-    size_t header_size = sizeof(struct Header);
-    if (rx_buff_pos < header_size) return 0; //but not enough
+	if (len <= 0) {
+		int errsv = errno;
 
-    uint32_t msg_start_pos = 0;
-    for (msg_start_pos = 0; msg_start_pos <= rx_buff_pos - header_size; ++msg_start_pos)
-    {
-        if ('>' == rx_buffer[msg_start_pos] && memcmp(rx_buffer + msg_start_pos, ">>>", 3) == 0)
-        {
-            break;
-        }
-    }
+		if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv) {
+			printf("Read fail %d\n", errsv);
+		}
 
-    // Start not found
-    if (msg_start_pos > rx_buff_pos - header_size)
-    {
-        printf("                                 (↓↓ %u)\n", msg_start_pos);
-        // All we've checked so far is garbage, drop it - but save unchecked bytes
-        memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-        rx_buff_pos = rx_buff_pos - msg_start_pos;
-        return -1;
-    }
+		return len;
+	}
 
-    /*
-     * [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
-     */
+	rx_buff_pos += len;
 
-    struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
-    uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
-    // The message won't fit the buffer.
-    if (buffer_len < header_size + payload_len) return -EMSGSIZE;
-    // We do not have a complete message yet
-    if(msg_start_pos + header_size + payload_len > rx_buff_pos)
-    {
-        // If there's garbage at the beginning, drop it
-        if (msg_start_pos > 0)
-        {
-            printf("                                 (↓ %u)\n", msg_start_pos);
-            memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-            rx_buff_pos -= msg_start_pos;
-        }
-        return 0;
-    }
+	// We read some
+	size_t header_size = sizeof(struct Header);
 
-    uint16_t read_crc = ((uint16_t)header->crc_h << 8) | header->crc_l;
-    uint16_t calc_crc = crc16((uint8_t*)rx_buffer + msg_start_pos + header_size, payload_len);
-    if (read_crc != calc_crc)
-    {
-        printf("BAD CRC %u != %u\n", read_crc, calc_crc);
-        printf("                                 (↓ %lu)\n", (unsigned long)(header_size + payload_len));
-        len = -1;
-    }
-    else
-    {
-        // copy message to outbuffer and set other return values
-        memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
-        *topic_ID = header->topic_ID;
-        len = payload_len + header_size;
-    }
+	// but not enough
+	if (rx_buff_pos < header_size) {
+		return 0;
+	}
 
-    // discard message from rx_buffer
-    rx_buff_pos -= header_size + payload_len;
-    memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
+	uint32_t msg_start_pos = 0;
 
-    return len;
+	for (msg_start_pos = 0; msg_start_pos <= rx_buff_pos - header_size; ++msg_start_pos) {
+		if ('>' == rx_buffer[msg_start_pos] && memcmp(rx_buffer + msg_start_pos, ">>>", 3) == 0) {
+			break;
+		}
+	}
+
+	// Start not found
+	if (msg_start_pos > rx_buff_pos - header_size) {
+		printf("                                 (↓↓ %u)\n", msg_start_pos);
+		// All we've checked so far is garbage, drop it - but save unchecked bytes
+		memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
+		rx_buff_pos = rx_buff_pos - msg_start_pos;
+		return -1;
+	}
+
+	/*
+	 * [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
+	 */
+
+	struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
+	uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
+
+	// The message won't fit the buffer.
+	if (buffer_len < header_size + payload_len) {
+		return -EMSGSIZE;
+	}
+
+	// We do not have a complete message yet
+	if (msg_start_pos + header_size + payload_len > rx_buff_pos) {
+		// If there's garbage at the beginning, drop it
+		if (msg_start_pos > 0) {
+			printf("                                 (↓ %u)\n", msg_start_pos);
+			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
+			rx_buff_pos -= msg_start_pos;
+		}
+
+		return 0;
+	}
+
+	uint16_t read_crc = ((uint16_t)header->crc_h << 8) | header->crc_l;
+	uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
+
+	if (read_crc != calc_crc) {
+		printf("BAD CRC %u != %u\n", read_crc, calc_crc);
+		printf("                                 (↓ %lu)\n", (unsigned long)(header_size + payload_len));
+		len = -1;
+
+	} else {
+		// copy message to outbuffer and set other return values
+		memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
+		*topic_ID = header->topic_ID;
+		len = payload_len + header_size;
+	}
+
+	// discard message from rx_buffer
+	rx_buff_pos -= header_size + payload_len;
+	memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
+
+	return len;
 }
 
 ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
 {
-    if (!fds_OK()) return -1;
+	if (!fds_OK()) {
+		return -1;
+	}
 
-    static struct Header header
-    {
-        .marker = {'>','>','>'},
-        .topic_ID = 0u,
-        .seq = 0u,
-        .payload_len_h = 0u,
-        .payload_len_l = 0u,
-        .crc_h = 0u,
-        .crc_l = 0u
+	static struct Header header = {
+		.marker = {'>', '>', '>'},
+		.topic_ID = 0u,
+		.seq = 0u,
+		.payload_len_h = 0u,
+		.payload_len_l = 0u,
+		.crc_h = 0u,
+		.crc_l = 0u
 
-    };
-    static uint8_t seq = 0;
+	};
 
-    // [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
+	static uint8_t seq = 0;
 
-    uint16_t crc = crc16((uint8_t*)buffer, length);
+	// [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
-    header.topic_ID = topic_ID;
-    header.seq = seq++;
-    header.payload_len_h = (length >> 8) & 0xff;
-    header.payload_len_l = length & 0xff;
-    header.crc_h = (crc >> 8) & 0xff;
-    header.crc_l = crc & 0xff;
+	uint16_t crc = crc16((uint8_t *)buffer, length);
 
-    ssize_t len = node_write(&header, sizeof(header));
-    if (len != sizeof(header)) goto err;
-    len = node_write(buffer, length);
-    if (len != ssize_t(length)) goto err;
+	header.topic_ID = topic_ID;
+	header.seq = seq++;
+	header.payload_len_h = (length >> 8) & 0xff;
+	header.payload_len_l = length & 0xff;
+	header.crc_h = (crc >> 8) & 0xff;
+	header.crc_l = crc & 0xff;
 
-    return len + sizeof(header);
+	ssize_t len = node_write(&header, sizeof(header));
+
+	if (len != sizeof(header)) {
+		goto err;
+	}
+
+	len = node_write(buffer, length);
+
+	if (len != ssize_t(length)) {
+		goto err;
+	}
+
+	return len + sizeof(header);
 
 err:
-    //int errsv = errno;
-    //if (len == -1 ) printf("                               => Writing error '%d'\n", errsv);
-    //else            printf("                               => Wrote '%ld' != length(%lu) error '%d'\n", (long)len, (unsigned long)length, errsv);
+	//int errsv = errno;
+	//if (len == -1 ) printf("                               => Writing error '%d'\n", errsv);
+	//else            printf("                               => Wrote '%ld' != length(%lu) error '%d'\n", (long)len, (unsigned long)length, errsv);
 
-    return len;
+	return len;
 }
 
 UART_node::UART_node(const char *_uart_name, uint32_t _baudrate, uint32_t _poll_ms):
-        uart_fd(-1),
-        baudrate(_baudrate),
-        poll_ms(_poll_ms)
+	uart_fd(-1),
+	baudrate(_baudrate),
+	poll_ms(_poll_ms)
 
 {
-    if (nullptr != _uart_name) strcpy(uart_name, _uart_name);
+	if (nullptr != _uart_name) {
+		strcpy(uart_name, _uart_name);
+	}
 }
 
 UART_node::~UART_node()
 {
-    close();
+	close();
 }
 
 int UART_node::init()
 {
-    // Open a serial port
-    uart_fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	// Open a serial port
+	uart_fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-    if (uart_fd < 0)
-    {
-        printf("failed to open device: %s (%d)\n", uart_name, errno);
-        return -errno;
-    }
+	if (uart_fd < 0) {
+		printf("failed to open device: %s (%d)\n", uart_name, errno);
+		return -errno;
+	}
 
-    // If using shared UART, no need to set it up
-    if (baudrate == 0) {
-        return uart_fd;
-    }
+	// If using shared UART, no need to set it up
+	if (baudrate == 0) {
+		return uart_fd;
+	}
 
-    // Try to set baud rate
-    struct termios uart_config;
-    int termios_state;
-    // Back up the original uart configuration to restore it after exit
-    if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0)
-    {
-        int errno_bkp = errno;
-        printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
-        close();
-        return -errno_bkp;
-    }
+	// Try to set baud rate
+	struct termios uart_config;
+	int termios_state;
 
-    // Clear ONLCR flag (which appends a CR for every LF)
-    uart_config.c_oflag &= ~ONLCR;
+	// Back up the original uart configuration to restore it after exit
+	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
+		int errno_bkp = errno;
+		printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
+		close();
+		return -errno_bkp;
+	}
 
-    // USB serial is indicated by /dev/ttyACM0
-    if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0)
-    {
-        // Set baud rate
-        if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0)
-        {
-            int errno_bkp = errno;
-            printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
-            close();
-            return -errno_bkp;
-        }
-    }
+	// Clear ONLCR flag (which appends a CR for every LF)
+	uart_config.c_oflag &= ~ONLCR;
 
-    if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0)
-    {
-        int errno_bkp = errno;
-        printf("ERR SET CONF %s (%d)\n", uart_name, errno);
-        close();
-        return -errno_bkp;
-    }
+	// USB serial is indicated by /dev/ttyACM0
+	if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0) {
+		// Set baud rate
+		if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0) {
+			int errno_bkp = errno;
+			printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
+			close();
+			return -errno_bkp;
+		}
+	}
 
-    char aux[64];
-    bool flush = false;
-    while (0 < ::read(uart_fd, (void*)&aux, 64))
-    {
-        //printf("%s ", aux);
-        flush = true;
-        usleep(1000);
-    }
-    if (flush)
-    {
-        printf("flush\n");
-    }
-    else
-    {
-        printf("no flush\n");
-    }
+	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
+		int errno_bkp = errno;
+		printf("ERR SET CONF %s (%d)\n", uart_name, errno);
+		close();
+		return -errno_bkp;
+	}
 
-    poll_fd[0].fd = uart_fd;
-    poll_fd[0].events = POLLIN;
+	char aux[64];
+	bool flush = false;
 
-    return uart_fd;
+	while (0 < ::read(uart_fd, (void *)&aux, 64)) {
+		//printf("%s ", aux);
+		flush = true;
+		usleep(1000);
+	}
+
+	if (flush) {
+		printf("flush\n");
+
+	} else {
+		printf("no flush\n");
+	}
+
+	poll_fd[0].fd = uart_fd;
+	poll_fd[0].events = POLLIN;
+
+	return uart_fd;
 }
 
 bool UART_node::fds_OK()
 {
-    return (-1 != uart_fd);
+	return (-1 != uart_fd);
 }
 
 uint8_t UART_node::close()
 {
-    if (-1 != uart_fd)
-    {
-        printf("Close UART\n");
-        ::close(uart_fd);
-        uart_fd = -1;
-        memset(&poll_fd, 0, sizeof(poll_fd));
-    }
-    return 0;
+	if (-1 != uart_fd) {
+		printf("Close UART\n");
+		::close(uart_fd);
+		uart_fd = -1;
+		memset(&poll_fd, 0, sizeof(poll_fd));
+	}
+
+	return 0;
 }
 
 ssize_t UART_node::node_read(void *buffer, size_t len)
 {
-    if (nullptr == buffer || !fds_OK()) return -1;
-    ssize_t ret = 0;
-    int r = poll(poll_fd, 1, poll_ms);
-    if (r == 1 && (poll_fd[0].revents & POLLIN))
-    {
-        ret = ::read(uart_fd, buffer, len);
-    }
-    return ret;
+	if (nullptr == buffer || !fds_OK()) {
+		return -1;
+	}
+
+	ssize_t ret = 0;
+	int r = poll(poll_fd, 1, poll_ms);
+
+	if (r == 1 && (poll_fd[0].revents & POLLIN)) {
+		ret = ::read(uart_fd, buffer, len);
+	}
+
+	return ret;
 }
 
 ssize_t UART_node::node_write(void *buffer, size_t len)
 {
-    if (nullptr == buffer || !fds_OK()) return -1;
-    return ::write(uart_fd, buffer, len);
+	if (nullptr == buffer || !fds_OK()) {
+		return -1;
+	}
+
+	return ::write(uart_fd, buffer, len);
 }
 
 
 UDP_node::UDP_node(uint16_t _udp_port_recv, uint16_t _udp_port_send):
-        sender_fd(-1),
-        receiver_fd(-1),
-        udp_port_recv(_udp_port_recv),
-        udp_port_send(_udp_port_send)
+	sender_fd(-1),
+	receiver_fd(-1),
+	udp_port_recv(_udp_port_recv),
+	udp_port_send(_udp_port_send)
 {
 }
 
 UDP_node::~UDP_node()
 {
-    close();
+	close();
 }
 
 int UDP_node::init()
 {
-    if (0 > init_receiver(udp_port_recv) || 0 > init_sender(udp_port_send))
-    {
-        return -1;
-    }
-    return 0;
+	if (0 > init_receiver(udp_port_recv) || 0 > init_sender(udp_port_send)) {
+		return -1;
+	}
+
+	return 0;
 }
 
 bool UDP_node::fds_OK()
 {
-    return (-1 != sender_fd && -1 != receiver_fd);
+	return (-1 != sender_fd && -1 != receiver_fd);
 }
 
 int UDP_node::init_receiver(uint16_t udp_port)
 {
 #ifndef __PX4_NUTTX
-    // udp socket data
-    memset((char *)&receiver_inaddr, 0, sizeof(receiver_inaddr));
-    receiver_inaddr.sin_family = AF_INET;
-    receiver_inaddr.sin_port = htons(udp_port);
-    receiver_inaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	// udp socket data
+	memset((char *)&receiver_inaddr, 0, sizeof(receiver_inaddr));
+	receiver_inaddr.sin_family = AF_INET;
+	receiver_inaddr.sin_port = htons(udp_port);
+	receiver_inaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if ((receiver_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-        printf("create socket failed\n");
-        return -1;
-    }
+	if ((receiver_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		printf("create socket failed\n");
+		return -1;
+	}
 
-    printf("Trying to connect...\n");
+	printf("Trying to connect...\n");
 
-    if (bind(receiver_fd, (struct sockaddr *)&receiver_inaddr, sizeof(receiver_inaddr)) < 0)
-    {
-        printf("bind failed\n");
-        return -1;
-    }
+	if (bind(receiver_fd, (struct sockaddr *)&receiver_inaddr, sizeof(receiver_inaddr)) < 0) {
+		printf("bind failed\n");
+		return -1;
+	}
 
-    printf("connected to server!\n");
+	printf("connected to server!\n");
 #endif /* __PX4_NUTTX */
 
-    return 0;
+	return 0;
 }
 
 int UDP_node::init_sender(uint16_t udp_port)
 {
 #ifndef __PX4_NUTTX
-    if ((sender_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-        printf("create socket failed\n");
-        return -1;
-    }
 
-    memset((char *) &sender_outaddr, 0, sizeof(sender_outaddr));
-    sender_outaddr.sin_family = AF_INET;
-    sender_outaddr.sin_port = htons(udp_port);
+	if ((sender_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		printf("create socket failed\n");
+		return -1;
+	}
 
-    if (inet_aton("127.0.0.1" , &sender_outaddr.sin_addr) == 0)
-    {
-        printf("inet_aton() failed\n");
-        return -1;
-    }
+	memset((char *) &sender_outaddr, 0, sizeof(sender_outaddr));
+	sender_outaddr.sin_family = AF_INET;
+	sender_outaddr.sin_port = htons(udp_port);
+
+	if (inet_aton("127.0.0.1", &sender_outaddr.sin_addr) == 0) {
+		printf("inet_aton() failed\n");
+		return -1;
+	}
+
 #endif /* __PX4_NUTTX */
 
-    return 0;
+	return 0;
 }
 
 uint8_t UDP_node::close()
 {
 #ifndef __PX4_NUTTX
-    if (sender_fd != -1)
-    {
-        printf("Close sender socket\n");
-        shutdown(sender_fd, SHUT_RDWR);
-        ::close(sender_fd);
-        sender_fd = -1;
-    }
 
-    if (receiver_fd != -1)
-    {
-        printf("Close receiver socket\n");
-        shutdown(receiver_fd, SHUT_RDWR);
-        ::close(receiver_fd);
-        receiver_fd = -1;
-    }
+	if (sender_fd != -1) {
+		printf("Close sender socket\n");
+		shutdown(sender_fd, SHUT_RDWR);
+		::close(sender_fd);
+		sender_fd = -1;
+	}
+
+	if (receiver_fd != -1) {
+		printf("Close receiver socket\n");
+		shutdown(receiver_fd, SHUT_RDWR);
+		::close(receiver_fd);
+		receiver_fd = -1;
+	}
+
 #endif /* __PX4_NUTTX */
-    return 0;
+	return 0;
 }
 
 ssize_t UDP_node::node_read(void *buffer, size_t len)
 {
-    if (nullptr == buffer || !fds_OK()) return -1;
-    int ret = 0;
+	if (nullptr == buffer || !fds_OK()) {
+		return -1;
+	}
+
+	int ret = 0;
 #ifndef __PX4_NUTTX
-    // Blocking call
-    static socklen_t addrlen = sizeof(receiver_outaddr);
-    ret = recvfrom(receiver_fd, buffer, len, 0, (struct sockaddr*) &receiver_outaddr, &addrlen);
+	// Blocking call
+	static socklen_t addrlen = sizeof(receiver_outaddr);
+	ret = recvfrom(receiver_fd, buffer, len, 0, (struct sockaddr *) &receiver_outaddr, &addrlen);
 #endif /* __PX4_NUTTX */
-    return ret;
+	return ret;
 }
 
 ssize_t UDP_node::node_write(void *buffer, size_t len)
 {
-    if (nullptr == buffer || !fds_OK()) return -1;
-    int ret = 0;
+	if (nullptr == buffer || !fds_OK()) {
+		return -1;
+	}
+
+	int ret = 0;
 #ifndef __PX4_NUTTX
-    ret = sendto(sender_fd, buffer, len, 0, (struct sockaddr *)&sender_outaddr, sizeof(sender_outaddr));
+	ret = sendto(sender_fd, buffer, len, 0, (struct sockaddr *)&sender_outaddr, sizeof(sender_outaddr));
 #endif /* __PX4_NUTTX */
-    return ret;
+	return ret;
 }
