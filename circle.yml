@@ -12,18 +12,16 @@ checkout:
 
 dependencies:
   pre:
-    # PX4 OSX instructions 2017-04-28: https://dev.px4.io/en/setup/dev_env_mac.html
+    # PX4 OSX instructions 2017-07-28: https://dev.px4.io/en/setup/dev_env_mac.html
 
-    # After installing Homebrew, copy these commands to your shell:
+    # After installing Homebrew, run these commands in your shell to install the common tools:
     - brew tap PX4/px4
-    - brew update
-    - brew install cmake genromfs gcc-arm-none-eabi ninja fastrtps
+    - brew install px4-dev
 
-    # Then install the required python packages:
-    - sudo -H easy_install pip
-    - sudo -H pip install empy jinja2
+    # Install pip if you don't already have it and use it to install the required packages:
+    - sudo easy_install pip
+    - sudo -H pip install pyserial empy pandas jinja2
 
 test:
   override:
-    - make tests
-    - make px4fmu-v3_default
+    - make quick_check
