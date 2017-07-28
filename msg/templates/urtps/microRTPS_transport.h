@@ -45,8 +45,8 @@ public:
 
     virtual int init() {return 0;}
     virtual uint8_t close() {return 0;}
-    ssize_t read(char* topic_ID, char out_buffer[], size_t buffer_len);
-    ssize_t write(const char topic_ID, char buffer[], size_t length);
+    ssize_t read(uint8_t* topic_ID, char out_buffer[], size_t buffer_len);
+    ssize_t write(const uint8_t topic_ID, char buffer[], size_t length);
 
 protected:
     virtual ssize_t node_read(void *buffer, size_t len) = 0;
