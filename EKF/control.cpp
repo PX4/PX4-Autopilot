@@ -115,7 +115,6 @@ void Ekf::controlFusionModes()
 
 	// control use of observations for aiding
 	controlMagFusion();
-	controlExternalVisionFusion();
 	controlOpticalFlowFusion();
 	controlGpsFusion();
 	controlAirDataFusion();
@@ -123,9 +122,12 @@ void Ekf::controlFusionModes()
 	controlDragFusion();
 	controlHeightFusion();
 
-	// for efficiency, fusion of direct state observations for position and velocity is performed sequentially
-	// in a single function using sensor data from multiple sources (GPS, external vision, baro, range finder, etc)
+	// For efficiency, fusion of direct state observations for position and velocity is performed sequentially
+	// in a single function using sensor data from multiple sources (GPS, baro, range finder, etc)
 	controlVelPosFusion();
+
+	// Additional data from an external vision sensor can also be fused.
+	controlExternalVisionFusion();
 
 	// report dead reckoning if we are no longer fusing measurements that constrain velocity drift
 	_is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > _params.no_aid_timeout_max)
@@ -143,20 +145,27 @@ void Ekf::controlExternalVisionFusion()
 		if ((_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_pos && _control_status.flags.tilt_align && _control_status.flags.yaw_align) {
 			// check for a exernal vision measurement that has fallen behind the fusion time horizon
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
-				// turn on use of external vision measurements for position and height
-				setControlEVHeight();
+				// turn on use of external vision measurements for position
+				_control_status.flags.ev_pos = true;
 				ECL_INFO("EKF commencing external vision position fusion");
-				// reset the position, height and velocity
-				resetPosition();
-				resetVelocity();
-				resetHeight();
-				_control_status.flags.ev_pos=true;
+
+				// reset the position if we are not already aiding using GPS, else use a relative position
+				// method for fusing the position data
+				if (_control_status.flags.gps) {
+					_hpos_odometry = true;
+
+				} else {
+					resetPosition();
+					resetVelocity();
+					_hpos_odometry = false;
+
+				}
 			}
 		}
 
 		// external vision yaw aiding selection logic
 		if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
-			// check for a exernal vision measurement that has fallen behind the fusion time horizon
+			// don't start using EV data unless daa is arriving frequently
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// reset the yaw angle to the value from the observaton quaternion
 				// get the roll, pitch, yaw estimates from the quaternion states
@@ -207,11 +216,18 @@ void Ekf::controlExternalVisionFusion()
 			}
 		}
 
-		// determine if we should use the height observation
+		// determine if we should start using the height observations
 		if (_params.vdist_sensor_type == VDIST_SENSOR_EV) {
-			setControlEVHeight();
-			_fuse_height = true;
+			// don't start using EV data unless daa is arriving frequently
+			if (!_control_status.flags.ev_hgt && (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL)) {
+				setControlEVHeight();
+				resetHeight();
+			}
+		}
 
+		// determine if we should use the vertical position observation
+		if (_control_status.flags.ev_hgt) {
+			_fuse_height = true;
 		}
 
 		// determine if we should use the horizontal position observations
@@ -224,11 +240,24 @@ void Ekf::controlExternalVisionFusion()
 			_ev_sample_delayed.posNED(0) -= pos_offset_earth(0);
 			_ev_sample_delayed.posNED(1) -= pos_offset_earth(1);
 			_ev_sample_delayed.posNED(2) -= pos_offset_earth(2);
+
+			// if GPS data is being used, then use an incremental position fusion method for EV data
+			if (_control_status.flags.gps) {
+				_hpos_odometry = true;
+			}
+		}
+
+		// Fuse available NED position data into the main filter
+		if (_fuse_height || _fuse_pos) {
+			fuseVelPosHeight();
+			_fuse_pos = _fuse_height = false;
+
 		}
 
 		// determine if we should use the yaw observation
 		if (_control_status.flags.ev_yaw) {
 			fuseHeading();
+
 		}
 	}
 
@@ -245,7 +274,6 @@ void Ekf::controlExternalVisionFusion()
 
 		}
 	}
-
 }
 
 void Ekf::controlOpticalFlowFusion()

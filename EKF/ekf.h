@@ -238,6 +238,12 @@ private:
 	bool _fuse_hor_vel{false};	///< true when gps horizontal velocity measurement should be fused
 	bool _fuse_vert_vel{false};	///< true when gps vertical velocity measurement should be fused
 
+	// variables used when position data is being fused using a relative position odometry model
+	bool _hpos_odometry{false};		///< true when the NE position data is being fused using an odometry assumption
+	Vector2f _hpos_meas_prev;		///< previous value of NE position measurement fused using odometry assumption (m)
+	Vector2f _hpos_pred_prev;		///< previous value of NE position state used by odometry fusion (m)
+	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
+
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 	bool _mag_data_ready{false};	///< true when new magnetometer data has fallen behind the fusion time horizon and is available to be fused
