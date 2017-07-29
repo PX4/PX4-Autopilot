@@ -1922,11 +1922,12 @@ protected:
 
 			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
-			mavlink_vibration_t msg = {};
-
-			msg.vibration_x = est.vibe[0];
-			msg.vibration_y = est.vibe[1];
-			msg.vibration_z = est.vibe[2];
+			mavlink_vibration_t msg = {
+				.time_usec = est.timestamp,
+				.vibration_x = est.vibe[0],
+				.vibration_y = est.vibe[1],
+				.vibration_z = est.vibe[2]
+			};
 
 			mavlink_msg_vibration_send_struct(_mavlink->get_channel(), &msg);
 
