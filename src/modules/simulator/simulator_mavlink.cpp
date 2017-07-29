@@ -1123,9 +1123,6 @@ int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
 
 	struct vehicle_local_position_s vision_position = {};
 
-	// Use the estimator type to identify the simple vision estimate
-	vision_position.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
-
 	vision_position.timestamp = timestamp;
 	vision_position.x = ev_mavlink->x;
 	vision_position.y = ev_mavlink->y;
