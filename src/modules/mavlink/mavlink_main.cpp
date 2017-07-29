@@ -1424,9 +1424,9 @@ Mavlink::adjust_stream_rates(const float multiplier)
 		unsigned interval = stream->get_interval();
 		interval /= multiplier;
 
-		/* allow max ~2000 Hz */
-		if (interval < 1600) {
-			interval = 500;
+		/* allow max ~1000 Hz */
+		if (interval < 1000) {
+			interval = 1000;
 		}
 
 		/* set new interval */
@@ -2038,8 +2038,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
-		//camera trigger is rate limited at the source, do not limit here
-		configure_stream("CAMERA_TRIGGER", 500.0f);
+		// camera trigger is not limited,
+		// 30 Hz is just an estimation for bandwidth required
+		configure_stream("CAMERA_TRIGGER", 30.0f);
 		configure_stream("CAMERA_IMAGE_CAPTURED", 5.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
 		break;
@@ -2092,8 +2093,12 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("WIND_COV", 10.0f);
-		configure_stream("CAMERA_TRIGGER", 500.0f);
+		// camera trigger is not limited,
+		// 30 Hz is just an estimation for bandwidth required
+		configure_stream("CAMERA_TRIGGER", 30.0f);
 		configure_stream("CAMERA_IMAGE_CAPTURED", 5.0f);
+		configure_stream("CAMERA_TRIGGER", 30.0f);
+		configure_stream("MISSION_ITEM", 50.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
 		break;
@@ -2109,9 +2114,9 @@ Mavlink::task_main(int argc, char *argv[])
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
 
-	/* hard limit to 500 Hz at max */
-	if (_main_loop_delay < 2000) {
-		_main_loop_delay = 2000;
+	/* hard limit to ~800 Hz at max */
+	if (_main_loop_delay < 1250) {
+		_main_loop_delay = 1250;
 	}
 
 	/* hard limit to 100 Hz at least */
