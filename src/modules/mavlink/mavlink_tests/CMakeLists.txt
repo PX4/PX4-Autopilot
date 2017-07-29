@@ -38,6 +38,7 @@ px4_add_module(
 	MAIN mavlink_tests
 	STACK_MAIN 5000
 	COMPILE_FLAGS
+		-Wno-sign-compare # TODO: fix all sign-compare
 		-DMAVLINK_FTP_UNIT_TEST
 		-DMavlinkStream=MavlinkStreamTest
 		-DMavlinkFTP=MavlinkFTPTest
