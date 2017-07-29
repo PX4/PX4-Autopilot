@@ -204,6 +204,12 @@ then
 		set FMU_ARGS "-t"
 	fi
 
+	if param compare SYS_HITL 1
+	then
+		# Enable HITL mode
+		set HIL yes
+	fi
+
 	#
 	# Set USE_IO flag
 	#
