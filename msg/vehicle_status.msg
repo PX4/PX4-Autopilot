@@ -60,6 +60,7 @@ uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual co
 
 bool data_link_lost				# datalink to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events
+
 bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish
 
