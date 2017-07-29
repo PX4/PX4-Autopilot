@@ -479,7 +479,7 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 {
 	if (_session_info.fd >= 0) {
-		warnx("FTP: Open failed - out of sessions\n");
+		PX4_ERR("FTP: Open failed - out of sessions\n");
 		return kErrNoSessionsAvailable;
 	}
 
@@ -537,12 +537,12 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 	// We have to test seek past EOF ourselves, lseek will allow seek past EOF
 	if (payload->offset >= _session_info.file_size) {
-		warnx("request past EOF");
+		PX4_ERR("request past EOF");
 		return kErrEOF;
 	}
 
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
-		warnx("seek fail");
+		PX4_ERR("seek fail");
 		return kErrFailErrno;
 	}
 
@@ -550,7 +550,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 	if (bytes_read < 0) {
 		// Negative return indicates error other than eof
-		warnx("read fail %d", bytes_read);
+		PX4_ERR("read fail %d", bytes_read);
 		return kErrFailErrno;
 	}
 
@@ -590,7 +590,7 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
 		// Unable to see to the specified location
-		warnx("seek fail");
+		PX4_ERR("seek fail");
 		return kErrFailErrno;
 	}
 
@@ -598,7 +598,7 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 
 	if (bytes_written < 0) {
 		// Negative return indicates error other than eof
-		warnx("write fail %d", bytes_written);
+		PX4_ERR("write fail %d", bytes_written);
 		return kErrFailErrno;
 	}
 
@@ -910,7 +910,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 			break;
 
 		} else if (bytes_read < 0) {
-			warnx("cp: read");
+			PX4_ERR("cp: read");
 			op_errno = errno;
 			break;
 		}
@@ -918,7 +918,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 		bytes_written = ::write(dst_fd, _work_buffer2, bytes_read);
 
 		if (bytes_written != bytes_read) {
-			warnx("cp: short write");
+			PX4_ERR("cp: short write");
 			op_errno = errno;
 			break;
 		}
