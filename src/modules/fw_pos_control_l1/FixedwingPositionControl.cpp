@@ -842,7 +842,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 			// we want the plane to keep tracking the desired flight path until we start flaring
 			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
-			if (!_land_noreturn_horizontal &&
+			if ((_parameters.land_heading_hold_horizontal_distance > 0.0f) && !_land_noreturn_horizontal &&
 			    ((wp_distance < _parameters.land_heading_hold_horizontal_distance) || _land_noreturn_vertical)) {
 
 				if (pos_sp_prev.valid) {
