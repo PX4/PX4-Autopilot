@@ -99,7 +99,7 @@ public:
 	bool task_should_exit = false;
 	int uart_fd = -1;
 
-	int param_read_interval_s;
+	int32_t param_read_interval_s;
 
 	hrt_abstime last_signal_check = 0;
 	uint8_t signal_quality = 0;
