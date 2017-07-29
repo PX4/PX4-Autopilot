@@ -99,7 +99,7 @@ MavlinkStream::update(const hrt_abstime t)
 
 	// Send the message if it is due or
 	// if it will overrun the next scheduled send interval
-	// by 40% of the interval time. This helps to avoid
+	// by 30% of the interval time. This helps to avoid
 	// sending a scheduled message on average slower than
 	// scheduled. Doing this at 50% would risk sending
 	// the message too often as the loop runtime of the app
@@ -107,7 +107,7 @@ MavlinkStream::update(const hrt_abstime t)
 	// This method is not theoretically optimal but a suitable
 	// stopgap as it hits its deadlines well (0.5 Hz, 50 Hz and 250 Hz)
 
-	if (interval == 0 || (dt > (interval - (_mavlink->get_main_loop_delay() / 10) * 4))) {
+	if (interval == 0 || (dt > (interval - (_mavlink->get_main_loop_delay() / 10) * 3))) {
 		// interval expired, send message
 		bool sent = true;
 #ifndef __PX4_QURT
