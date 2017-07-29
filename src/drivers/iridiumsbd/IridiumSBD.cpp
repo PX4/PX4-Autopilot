@@ -276,7 +276,7 @@ void IridiumSBD::standby_loop(void)
 	// check for incoming SBDRING, handled inside read_at_command()
 	read_at_command();
 
-	if (param_read_interval_s != 0 && (hrt_absolute_time() - last_read_time) / 1000000 > param_read_interval_s) {
+	if (param_read_interval_s != 0 && ((int64_t)(hrt_absolute_time() - last_read_time) > param_read_interval_s * 1000000)) {
 		rx_session_pending = true;
 	}
 
@@ -456,7 +456,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 {
 	if (verbose) { PX4_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, tx_buf_write_idx); }
 
-	if (buflen > SATCOM_TX_BUF_LEN - tx_buf_write_idx) {
+	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN - tx_buf_write_idx) {
 		return PX4_ERROR;
 	}
 
