@@ -247,7 +247,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	/* Making sure the other peripherals are not selected */
 
-	for (int cs = 0;  arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
+	for (size_t cs = 0; arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
 		if (spi1selects_gpio[cs] != 0) {
 			stm32_gpiowrite(spi1selects_gpio[cs], 1);
 		}
@@ -357,7 +357,7 @@ __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_BARO);
 
 	/* Making sure the other peripherals are not selected */
-	for (int cs = 0; arraySize(spi4selects_gpio) > 1 && cs < arraySize(spi4selects_gpio); cs++) {
+	for (size_t cs = 0; arraySize(spi4selects_gpio) > 1 && cs < arraySize(spi4selects_gpio); cs++) {
 		stm32_gpiowrite(spi4selects_gpio[cs], 1);
 	}
 
@@ -391,7 +391,7 @@ __EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL1);
 
 	/* Making sure the other peripherals are not selected */
-	for (int cs = 0; arraySize(spi5selects_gpio) > 1 && cs < arraySize(spi5selects_gpio); cs++) {
+	for (size_t cs = 0; arraySize(spi5selects_gpio) > 1 && cs < arraySize(spi5selects_gpio); cs++) {
 		stm32_gpiowrite(spi5selects_gpio[cs], 1);
 	}
 
@@ -425,7 +425,7 @@ __EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL2);
 
 	/* Making sure the other peripherals are not selected */
-	for (int cs = 0; arraySize(spi6selects_gpio) > 1 && cs < arraySize(spi6selects_gpio); cs++) {
+	for (size_t cs = 0; arraySize(spi6selects_gpio) > 1 && cs < arraySize(spi6selects_gpio); cs++) {
 		stm32_gpiowrite(spi6selects_gpio[cs], 1);
 	}
 
@@ -452,7 +452,7 @@ __EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 __EXPORT void board_spi_reset(int ms)
 {
 	/* disable SPI bus */
-	for (int cs = 0;  arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
+	for (size_t cs = 0;  arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
 		if (spi1selects_gpio[cs] != 0) {
 			stm32_configgpio(_PIN_OFF(spi1selects_gpio[cs]));
 		}
@@ -487,7 +487,7 @@ __EXPORT void board_spi_reset(int ms)
 	usleep(100);
 
 	/* reconfigure the SPI pins */
-	for (int cs = 0;  arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
+	for (size_t cs = 0; arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
 		if (spi1selects_gpio[cs] != 0) {
 			stm32_configgpio(spi1selects_gpio[cs]);
 		}
