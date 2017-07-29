@@ -341,30 +341,41 @@ void Ekf::alignOutputFilter()
 }
 
 // Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
-// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
+// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle only.
 bool Ekf::realignYawGPS()
 {
 	// Need at least 5 m/s of GPS horizontal speed and ratio of velocity error to velocity < 0.15  for a reliable alignment
 	float gpsSpeed = sqrtf(sq(_gps_sample_delayed.vel(0)) + sq(_gps_sample_delayed.vel(1)));
 	if ((gpsSpeed > 5.0f) && (_gps_sample_delayed.sacc < (0.15f * gpsSpeed))) {
+		// check for excessive GPS velocity innovations
+		bool badVelInnov = ((_vel_pos_test_ratio[0] > 1.0f) || (_vel_pos_test_ratio[1] > 1.0f)) && _control_status.flags.gps;
+
+		// calculate GPS course over ground angle
+		float gpsCOG = atan2f(_gps_sample_delayed.vel(1),_gps_sample_delayed.vel(0));
+
 		// calculate course yaw angle
-		float velYaw = atan2f(_state.vel(1),_state.vel(0));
+		float ekfGOG = atan2f(_state.vel(1),_state.vel(0));
 
-		// calculate course yaw angle from GPS velocity
-		float gpsYaw = atan2f(_gps_sample_delayed.vel(1),_gps_sample_delayed.vel(0));
-
-		// Check the EKF and GPS course for consistency
-		float courseYawError = gpsYaw - velYaw;
-		courseYawError = wrap_pi(courseYawError);
+		// Check the EKF and GPS course over ground for consistency
+		float courseYawError = gpsCOG - ekfGOG;
 
 		// If the angles disagree and horizontal GPS velocity innovations are large or no previous yaw alignment, we declare the magnetic yaw as bad
-		bool badVelInnov = ((_vel_pos_test_ratio[0] > 1.0f) || (_vel_pos_test_ratio[1] > 1.0f)) && _control_status.flags.gps;
 		bool badYawErr = fabsf(courseYawError) > 0.5f;
-		bool badMagYaw = (badYawErr && badVelInnov) || !_control_status.flags.yaw_align;
+		bool badMagYaw = (badYawErr && badVelInnov);
 
-		// correct yaw angle using GPS ground course if compass yaw bad
 		if (badMagYaw) {
+			_num_bad_flight_yaw_events ++;
+		}
+
+		// correct yaw angle using GPS ground course if compass yaw bad or yaw is previously not aligned
+		if (badMagYaw || !_control_status.flags.yaw_align) {
 			ECL_WARN("EKF bad yaw corrected using GPS course");
+
+			// declare the magnetomer as failed if a bad yaw has occurred more than once
+			if (_flt_mag_align_complete && (_num_bad_flight_yaw_events >= 2)) {
+				ECL_WARN("EKF stopping magnetometer use");
+				_control_status.flags.mag_fault = true;
+			}
 
 			// save a copy of the quaternion state for later use in calculating the amount of reset change
 			Quatf quat_before_reset = _state.quat_nominal;
@@ -376,50 +387,32 @@ bool Ekf::realignYawGPS()
 			// update transformation matrix from body to world frame using the current state estimate
 			_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
-			// Use the best conditioned of a 321 or 312 Euler sequence to avoid gimbal lock
-			if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
-				// get quaternion from existing filter states and calculate roll, pitch and yaw angles
-				Eulerf euler321(_state.quat_nominal);
+			// get quaternion from existing filter states and calculate roll, pitch and yaw angles
+			Eulerf euler321(_state.quat_nominal);
 
-				// calculate new filter quaternion states using previous Roll/Pitch and yaw angle corrected
-				// for ground course discrepancy
+			// apply yaw correction
+			if (!_flt_mag_align_complete) {
+				// This is our first flight aligment so we can assume that the recent change in velocity has occurred due to a
+				// forward direction takeoff or launch and therefore the inertial and GPS ground course discrepancy is due to yaw error
 				euler321(2) += courseYawError;
-				_state.quat_nominal = Quatf(euler321);
+				_flt_mag_align_complete = true;
 
-				// update transformation matrix from body to world frame using the current state estimate
-				_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+			} else if (_control_status.flags.wind) {
+				// we have previously aligned yaw in-flight and have wind estimates so set the yaw such that the vehicle nose is
+				// aligned with the wind relative GPS velocity vector
+				euler321(2) = atan2f((_gps_sample_delayed.vel(1) - _state.wind_vel(1)) , (_gps_sample_delayed.vel(0) - _state.wind_vel(0)));
 
 			} else {
-				// Calculate the 312 sequence euler angles that rotate from earth to body frame
-				// See http://www.atacolorado.com/eulersequences.doc
-				Vector3f euler312;
-				euler312(0) = atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1));  // first rotation (yaw)
-				euler312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
-				euler312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2));  // third rotation (pitch)
+				// we don't have wind estimates, so align yaw to the GPS velocity vector
+				euler321(2) = atan2f(_gps_sample_delayed.vel(1) , _gps_sample_delayed.vel(0));
 
-				// correct yaw angle for ground course discrepancy
-				euler312(0) += courseYawError;
-
-				// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
-				float c2 = cosf(euler312(2));
-				float s2 = sinf(euler312(2));
-				float s1 = sinf(euler312(1));
-				float c1 = cosf(euler312(1));
-				float s0 = sinf(euler312(0));
-				float c0 = cosf(euler312(0));
-
-				_R_to_earth(0, 0) = c0 * c2 - s0 * s1 * s2;
-				_R_to_earth(1, 1) = c0 * c1;
-				_R_to_earth(2, 2) = c2 * c1;
-				_R_to_earth(0, 1) = -c1 * s0;
-				_R_to_earth(0, 2) = s2 * c0 + c2 * s1 * s0;
-				_R_to_earth(1, 0) = c2 * s0 + s2 * s1 * c0;
-				_R_to_earth(1, 2) = s0 * s2 - s1 * c0 * c2;
-				_R_to_earth(2, 0) = -s2 * c1;
-				_R_to_earth(2, 1) = s1;
-
-				_state.quat_nominal = Quatf(_R_to_earth);
 			}
+
+			// calculate new filter quaternion states using corected yaw angle
+			_state.quat_nominal = Quatf(euler321);
+
+			// update transformation matrix from body to world frame using the current state estimate
+			_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
 			// reset the velocity and posiiton states as they will be inaccurate due to bad yaw
 			resetVelocity();
@@ -465,6 +458,7 @@ bool Ekf::realignYawGPS()
 			_state_reset_status.quat_counter++;
 
 			// the alignment using GPS has been successful
+			_control_status.flags.yaw_align = true;
 			return true;
 
 		} else {
