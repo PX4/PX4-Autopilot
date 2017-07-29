@@ -2006,7 +2006,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("ADSB_VEHICLE");
-		configure_stream("COLLISION", 2.0f);
+		configure_stream("COLLISION");
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream("VISION_POSITION_ESTIMATE", 1.0f);
@@ -2033,9 +2033,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("RC_CHANNELS", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream("ALTITUDE", 10.0f);
-		configure_stream("GPS_RAW_INT", 5.0f);
+		configure_stream("GPS_RAW_INT");
 		configure_stream("ADSB_VEHICLE");
-		configure_stream("COLLISION", 10.0f);
+		configure_stream("COLLISION");
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VISION_POSITION_ESTIMATE", 10.0f);
@@ -2090,9 +2090,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_0", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
 		configure_stream("ALTITUDE", 10.0f);
-		configure_stream("GPS_RAW_INT", 10.0f);
+		configure_stream("GPS_RAW_INT");
 		configure_stream("ADSB_VEHICLE");
-		configure_stream("COLLISION", 20.0f);
+		configure_stream("COLLISION");
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VISION_POSITION_ESTIMATE", 10.0f);
@@ -2101,6 +2101,8 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("LOCAL_POSITION_NED", 30.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
+		configure_stream("SYSTEM_TIME", 1.0f);
+		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
