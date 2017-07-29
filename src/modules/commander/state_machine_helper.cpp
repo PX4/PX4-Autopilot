@@ -482,7 +482,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 	} else {
 		switch (new_state) {
 		case vehicle_status_s::HIL_STATE_OFF:
-			/* we're in HIL and unexpected things can happen if we dis HITL. Sable HIL now */
+			/* The system is in HITL mode and unexpected things can happen if we disable HITL without rebooting. */
 			mavlink_log_critical(mavlink_log_pub, "Set SYS_HITL to 0 and reboot to disable HITL.");
 			ret = TRANSITION_DENIED;
 			break;

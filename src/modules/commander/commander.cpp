@@ -156,16 +156,11 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 
 #define INAIR_RESTART_HOLDOFF_INTERVAL	500000
 
-#define HIL_ID_MIN 1000
-#define HIL_ID_MAX 1999
-
 /* Controls the probation period which is the amount of time required for position and velocity checks to pass before the validity can be changed from false to true*/
 #define POSVEL_PROBATION_TAKEOFF 30E6		/**< probation duration set at takeoff (usec) */
 #define POSVEL_PROBATION_MIN 1E6		/**< minimum probation duration (usec) */
 #define POSVEL_PROBATION_MAX 100E6		/**< maximum probation duration (usec) */
 #define POSVEL_VALID_PROBATION_FACTOR 10	/**< the rate at which the probation duration is increased while checks are failing */
-
-static bool startup_in_hil = false;
 
 /*
  * Probation times for position and velocity validity checks to pass if failed
@@ -694,9 +689,9 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 
 	// For HIL platforms, require that simulated sensors are connected
 	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
-		startup_in_hil && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+		status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 
-		mavlink_log_critical(mavlink_log_pub_local, "HIL platform: Connect to simulator before arming");
+		mavlink_log_critical(mavlink_log_pub_local, "HITL: Connect to simulator before arming.");
 		return TRANSITION_DENIED;
 	}
 
@@ -1291,9 +1286,14 @@ int commander_thread_main(int argc, char *argv[])
 	argv += 1;
 #endif
 
+	/* vehicle status topic */
+	status = {};
+
+	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+
 	if (argc > 2) {
-		if (!strcmp(argv[2],"-hil")) {
-			startup_in_hil = true;
+		if (!strcmp(argv[2],"--hil")) {
+			status.hil_state = vehicle_status_s::HIL_STATE_ON;
 		} else {
 			PX4_ERR("Argument %s not supported, abort.", argv[2]);
 			thread_should_exit = true;
@@ -1401,9 +1401,6 @@ int commander_thread_main(int argc, char *argv[])
 		PX4_ERR("Failed to register power notification callback");
 	}
 
-	/* vehicle status topic */
-	memset(&status, 0, sizeof(status));
-
 	// We want to accept RC inputs as default
 	status_flags.rc_input_blocked = false;
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
@@ -1413,11 +1410,6 @@ int commander_thread_main(int argc, char *argv[])
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
 
-	if (startup_in_hil) {
-		status.hil_state = vehicle_status_s::HIL_STATE_ON;
-	} else {
-		status.hil_state = vehicle_status_s::HIL_STATE_OFF;
-	}
 	status.failsafe = false;
 
 	/* neither manual nor offboard control commands have been received */
@@ -1703,7 +1695,7 @@ int commander_thread_main(int argc, char *argv[])
 	arm_mission_required = (arm_mission_required_param == 1);
 
 	status.rc_input_mode = rc_in_off;
-	if (startup_in_hil) {
+	if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 		// HIL configuration selected: real sensors will be disabled
 		status_flags.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
@@ -1960,7 +1952,7 @@ int commander_thread_main(int argc, char *argv[])
 					telemetry_preflight_checks_reported[i] = hotplug_timeout;
 
 					/* provide RC and sensor status feedback to the user */
-					if (startup_in_hil) {
+					if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 						/* HIL configuration: check only RC input */
 						(void)Commander::preflightCheck(&mavlink_log_pub, false, false, false, false, false,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
