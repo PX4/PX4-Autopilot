@@ -400,17 +400,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		goto out;
 	}
 
-	//check for MAVLINK terminate command
-	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
-		/* This is the link shutdown command, terminate mavlink */
-		warnx("terminated by remote");
-		fflush(stdout);
-		usleep(50000);
-
-		/* terminate other threads and this thread */
-		_mavlink->_task_should_exit = true;
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		/* send autopilot version message */
 		_mavlink->send_autopilot_capabilites();
 
