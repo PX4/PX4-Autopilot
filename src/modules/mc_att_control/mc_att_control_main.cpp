@@ -57,6 +57,8 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/FOAWDifferentiator.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/tailsitter_recovery/tailsitter_recovery.h>
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -193,6 +195,12 @@ private:
 	float				_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
+	float _raw_diff;
+	float _raw_diff_gyro_lpf;
+	float _rates_lpf;
+	float _rates_lpf_prev;
+	float _foaw_diff_gyro_lpf;
+
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
 
 	math::Matrix<3, 3>	_board_rotation = {};	/**< rotation matrix for the orientation that the board is mounted */
@@ -284,6 +292,12 @@ private:
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
+
+	math::FOAWDifferentiator _foaw_rollrate;
+	math::FOAWDifferentiator _foaw_pitchrate;
+	math::FOAWDifferentiator _foaw_yawrate;
+	math::FOAWDifferentiator _diff_gyo_lpf;
+	math::LowPassFilter2p _gyro_filter;
 
 	/**
 	 * Update our local parameter cache.
@@ -425,8 +439,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-	_ts_opt_recovery(nullptr)
+	_ts_opt_recovery(nullptr),
 
+	_foaw_rollrate(0.004f, 0.025f), // FOWA differentiator (dt, noise amplitude)
+	_foaw_pitchrate(0.004f, 0.025f),
+	_foaw_yawrate(0.004f, 0.025f),
+	_diff_gyo_lpf(0.004f, 0.0075f),
+	_gyro_filter(250.0f, 100.0f)
 {
 	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) {
 		_sensor_gyro_sub[i] = -1;
@@ -464,6 +483,15 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_rates_int.zero();
 	_thrust_sp = 0.0f;
 	_att_control.zero();
+	_raw_diff = 0.0f;
+	_raw_diff_gyro_lpf = 0.0f;
+
+	_raw_diff = 0.0f;
+	_raw_diff_gyro_lpf = 0.0f;
+
+	_rates_lpf = 0.0f;
+	_rates_lpf_prev = 0.0f;
+	_foaw_diff_gyro_lpf = 0.0f;
 
 	_I.identity();
 	_board_rotation.identity();
@@ -1020,14 +1048,28 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
+	math::Vector<3> derivative;
+	_foaw_rollrate.set_sample_time(dt);
+	_foaw_pitchrate.set_sample_time(dt);
+	_foaw_yawrate.set_sample_time(dt);
+	derivative(0) = _foaw_rollrate.apply(rates(0));
+	derivative(1) = _foaw_pitchrate.apply(rates(1));
+	derivative(2) = _foaw_yawrate.apply(rates(2));
 
 	_att_control = rates_p_scaled.emult(rates_err) +
-		       _rates_int +
-		       rates_d_scaled.emult(_rates_prev - rates) / dt +
+		       _rates_int -
+		       rates_d_scaled.emult(derivative) +
 		       _params.rate_ff.emult(_rates_sp);
+
+	_rates_lpf = _gyro_filter.apply(rates(0));
+	_raw_diff = (rates(0) - _rates_prev(0)) / dt;
+	_raw_diff_gyro_lpf = (_rates_lpf - _rates_lpf_prev) / dt;
 
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
+	_rates_lpf_prev = _rates_lpf;
+
+	_foaw_diff_gyro_lpf = _diff_gyo_lpf.apply(_rates_lpf);
 
 	/* update integral only if motors are providing enough thrust to be effective */
 	if (_thrust_sp > MIN_TAKEOFF_THRUST) {
@@ -1268,6 +1310,15 @@ MulticopterAttitudeControl::task_main()
 				_controller_status.pitch_rate_integ = _rates_int(1);
 				_controller_status.yaw_rate_integ = _rates_int(2);
 				_controller_status.timestamp = hrt_absolute_time();
+
+				_controller_status.raw_derivative = _raw_diff;
+				_controller_status.rollrate_foaw_derivative = _foaw_rollrate.get_last_derivative();
+				_controller_status.pitchrate_foaw_derivative = _foaw_pitchrate.get_last_derivative();
+				_controller_status.yawrate_foaw_derivative = _foaw_yawrate.get_last_derivative();
+				_controller_status.rates_lpf = _rates_lpf;
+				_controller_status.raw_derivative_rates_lpf = _raw_diff_gyro_lpf;
+				_controller_status.window_size = _diff_gyo_lpf.get_last_window_size();
+				_controller_status.foaw_gyro_lpf = _foaw_diff_gyro_lpf;
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub != nullptr) {
