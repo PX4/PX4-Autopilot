@@ -404,7 +404,7 @@ int main(int argc, char **argv)
 		path_sym_links.push_back("posix-configs");
 		path_sym_links.push_back("test_data");
 
-		for (int i = 0; i < path_sym_links.size(); i++) {
+		for (unsigned i = 0; i < path_sym_links.size(); i++) {
 			string path_sym_link = path_sym_links[i];
 			//cout << "path sym link: " << path_sym_link << endl;
 			string src_path = data_path + "/" + path_sym_link;
