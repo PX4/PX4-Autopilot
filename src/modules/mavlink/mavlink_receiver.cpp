@@ -1796,10 +1796,7 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 		tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
 
 		if (px4_clock_settime(CLOCK_REALTIME, &tv)) {
-			warn("failed setting clock");
-
-		} else {
-			warnx("[timesync] UTC time synced.");
+			PX4_ERR("failed setting clock");
 		}
 	}
 
@@ -1833,7 +1830,11 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew
 			_time_offset = offset_ns;
-			warnx("[timesync] Hard setting offset.");
+
+			// Provide a warning only if not syncing initially
+			if (_time_offset != 0) {
+				PX4_ERR("[timesync] Hard setting offset.");
+			}
 
 		} else {
 			smooth_time_offset(offset_ns);
