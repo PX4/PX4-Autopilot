@@ -225,6 +225,7 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
 	(void)param_find("SYS_AUTOCONFIG");
+	(void)param_find("SYS_HITL");
 	(void)param_find("PWM_RATE");
 	(void)param_find("PWM_MIN");
 	(void)param_find("PWM_MAX");

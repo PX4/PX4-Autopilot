@@ -65,6 +65,18 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 
 /**
+ * Enable HITL mode on next boot
+ *
+ * Set to 1 to enable HITL on next boot. The system will automatically
+ * reset it on reboot.
+ *
+ * @value 0 HITL off
+ * @value 1 HITL on
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_HITL, 0);
+
+/**
  * Set usage of IO board
  *
  * Can be used to use a standard startup script but with a FMU only set-up. Set to 0 to force the FMU only set-up.

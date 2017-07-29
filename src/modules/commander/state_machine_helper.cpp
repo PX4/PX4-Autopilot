@@ -44,6 +44,7 @@
 #include <math.h>
 
 #include <px4_posix.h>
+#include <px4_shutdown.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -481,8 +482,8 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 	} else {
 		switch (new_state) {
 		case vehicle_status_s::HIL_STATE_OFF:
-			/* we're in HIL and unexpected things can happen if we disable HIL now */
-			mavlink_log_critical(mavlink_log_pub, "Not switching off HIL (safety)");
+			/* we're in HIL and unexpected things can happen if we dis HITL. Sable HIL now */
+			mavlink_log_critical(mavlink_log_pub, "Set SYS_HITL to 0 and reboot to disable HITL.");
 			ret = TRANSITION_DENIED;
 			break;
 
@@ -492,17 +493,25 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 			    || current_status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
 
 				ret = TRANSITION_CHANGED;
-				mavlink_log_critical(mavlink_log_pub, "Switched to ON hil state");
+
+				int32_t hitl_on = 0;
+				param_get(param_find("SYS_HITL"), &hitl_on);
+
+				if (hitl_on) {
+					mavlink_log_info(mavlink_log_pub, "Enabled Hardware-in-the-loop simulation.");
+				} else {
+					mavlink_log_critical(mavlink_log_pub, "Set parameter SYS_HITL to 1 before starting HITL.");
+				}
 
 			} else {
-				mavlink_log_critical(mavlink_log_pub, "Not switching to HIL when armed");
+				mavlink_log_critical(mavlink_log_pub, "Not switching to HITL when armed.");
 				ret = TRANSITION_DENIED;
 			}
 
 			break;
 
 		default:
-			warnx("Unknown HIL state");
+			PX4_WARN("Unknown HIL state");
 			break;
 		}
 	}
