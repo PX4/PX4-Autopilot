@@ -36,6 +36,7 @@ px4_add_module(
 	STACK_MAIN 4096
 	STACK_MAX 2450
 	COMPILE_FLAGS
+		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		commander.cpp
 		state_machine_helper.cpp

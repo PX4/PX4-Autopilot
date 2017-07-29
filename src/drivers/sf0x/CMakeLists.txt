@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__sf0x
 	MAIN sf0x
 	COMPILE_FLAGS
+		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		sf0x.cpp
 		sf0x_parser.cpp

@@ -79,7 +79,7 @@ px4_add_module(
 	STACK_MAIN 10000
 	STACK_MAX 10000
 	COMPILE_FLAGS
-		${MODULE_CFLAGS}
+		-Wno-sign-compare # TODO: fix all sign-compare
 		-Wno-unused-result
 		-Wno-float-equal
 		-Wno-missing-declarations
