@@ -1905,20 +1905,18 @@ protected:
 
 		if (_est_sub->update(&_est_time, &est)) {
 
-			mavlink_estimator_status_t est_msg = {};
-
-			est_msg.time_usec = est.timestamp;
-			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
-			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
-			est_msg.mag_ratio = est.mag_test_ratio;
-			est_msg.vel_ratio = est.vel_test_ratio;
-			est_msg.pos_horiz_ratio = est.pos_test_ratio;
-			est_msg.pos_vert_ratio = est.hgt_test_ratio;
-			est_msg.hagl_ratio = est.hagl_test_ratio;
-			est_msg.tas_ratio = est.tas_test_ratio;
-			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;
-			est_msg.pos_vert_accuracy = est.pos_vert_accuracy;
-			est_msg.flags = est.solution_status_flags;
+			mavlink_estimator_status_t est_msg = {
+				.time_usec = est.timestamp,
+				.vel_ratio = est.vel_test_ratio,
+				.pos_horiz_ratio = est.pos_test_ratio,
+				.pos_vert_ratio = est.hgt_test_ratio,
+				.mag_ratio = est.mag_test_ratio,
+				.hagl_ratio = est.hagl_test_ratio,
+				.tas_ratio = est.tas_test_ratio,
+				.pos_horiz_accuracy = est.pos_horiz_accuracy,
+				.pos_vert_accuracy = est.pos_vert_accuracy,
+				.flags = est.solution_status_flags
+			};
 
 			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
@@ -2813,7 +2811,7 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct vehicle_attitude_setpoint_s att_sp = {};
+		struct vehicle_attitude_setpoint_s att_sp;
 
 		if (_att_sp_sub->update(&_att_sp_time, &att_sp)) {
 
@@ -2896,7 +2894,7 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct rc_input_values rc = {};
+		struct rc_input_values rc;
 
 		if (_rc_sub->update(&_rc_time, &rc)) {
 
@@ -3001,7 +2999,7 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct manual_control_setpoint_s manual = {};
+		struct manual_control_setpoint_s manual;
 
 		if (_manual_sub->update(&_manual_time, &manual)) {
 			mavlink_manual_control_t msg = {};
@@ -3078,7 +3076,7 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct optical_flow_s flow = {};
+		struct optical_flow_s flow;
 
 		if (_flow_sub->update(&_flow_time, &flow)) {
 			mavlink_optical_flow_rad_t msg = {};
@@ -3155,7 +3153,7 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct debug_key_value_s debug = {};
+		struct debug_key_value_s debug;
 
 		if (_debug_sub->update(&_debug_time, &debug)) {
 			mavlink_named_value_float_t msg = {};
@@ -3225,8 +3223,8 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct fw_pos_ctrl_status_s _fw_pos_ctrl_status = {};
-		struct tecs_status_s _tecs_status = {};
+		struct fw_pos_ctrl_status_s _fw_pos_ctrl_status;
+		struct tecs_status_s _tecs_status;
 
 		const bool updated_fw_pos_ctrl_status = _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status);
 		const bool updated_tecs = _tecs_status_sub->update(&_tecs_status);
@@ -3299,26 +3297,28 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct vehicle_status_s status = {};
-		(void)_status_sub->update(&status);
+		struct vehicle_status_s status;
 
-		mavlink_command_long_t msg = {};
+		if (_status_sub->update(&status)) {
 
-		msg.target_system = 0;
-		msg.target_component = MAV_COMP_ID_ALL;
-		msg.command = MAV_CMD_DO_CONTROL_VIDEO;
-		msg.confirmation = 0;
-		msg.param1 = 0;
-		msg.param2 = 0;
-		msg.param3 = 0;
-		/* set camera capture ON/OFF depending on arming state */
-		msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED
-			      || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ? 1 : 0;
-		msg.param5 = 0;
-		msg.param6 = 0;
-		msg.param7 = 0;
+			mavlink_command_long_t msg = {};
 
-		mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg);
+			msg.target_system = 0;
+			msg.target_component = MAV_COMP_ID_ALL;
+			msg.command = MAV_CMD_DO_CONTROL_VIDEO;
+			msg.confirmation = 0;
+			msg.param1 = 0;
+			msg.param2 = 0;
+			msg.param3 = 0;
+			/* set camera capture ON/OFF depending on arming state */
+			msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				      || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ? 1 : 0;
+			msg.param5 = 0;
+			msg.param6 = 0;
+			msg.param7 = 0;
+
+			mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg);
+		}
 
 		return true;
 	}
@@ -3373,7 +3373,7 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct distance_sensor_s dist_sensor = {};
+		struct distance_sensor_s dist_sensor;
 
 		if (_distance_sensor_sub->update(&_dist_sensor_time, &dist_sensor)) {
 
@@ -3475,8 +3475,8 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct vehicle_status_s status = {};
-		struct vehicle_land_detected_s land_detected = {};
+		struct vehicle_status_s status;
+		struct vehicle_land_detected_s land_detected;
 		bool updated = false;
 
 		if (_status_sub->update(&status)) {
@@ -3728,11 +3728,9 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct wind_estimate_s wind_estimate = {};
+		struct wind_estimate_s wind_estimate;
 
-		bool updated = _wind_estimate_sub->update(&_wind_estimate_time, &wind_estimate);
-
-		if (updated) {
+		if (_wind_estimate_sub->update(&_wind_estimate_time, &wind_estimate)) {
 
 			mavlink_wind_cov_t msg = {};
 
@@ -3811,11 +3809,9 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct mount_orientation_s mount_orientation = {};
+		struct mount_orientation_s mount_orientation;
 
-		bool updated = _mount_orientation_sub->update(&_mount_orientation_time, &mount_orientation);
-
-		if (updated) {
+		if (_mount_orientation_sub->update(&_mount_orientation_time, &mount_orientation)) {
 
 			mavlink_mount_orientation_t msg = {};
 
