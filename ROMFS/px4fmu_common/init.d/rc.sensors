@@ -1,7 +1,9 @@
 #!nsh
 #
-# Standard startup script for PX4FMU v1, v2, v3, v4 onboard sensor drivers.
+# Standard startup script for sensor drivers.
 #
+
+gps start
 
 if ver hwcmp PX4FMU_V1
 then
@@ -66,8 +68,6 @@ if ver hwcmp PX4FMU_V2
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
-
-	# External I2C bus
 	lis3mdl -X start
 
 	# Internal I2C bus
@@ -146,39 +146,47 @@ then
 	# External I2C bus
 	hmc5883 -C -T -X start
 
-	lis3mdl -R 2 start
-
-	# Internal SPI bus is rotated 90 deg yaw
-	hmc5883 -C -T -S -R 2 start
-
-	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20608 start
-
-	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20602 start
-
-	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
-	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
-	# will prevent the incorrect driver from a successful initialization.
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
-
-	# Internal SPI bus BMI160
-	bmi160 start
+	if hmc5883 -C -T -S -R 2 start
+	then
+		# hmc5883 internal SPI bus is rotated 90 deg yaw
+	else
+		lis3mdl -R 2 start
+	fi
 
 	# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
 
-	# Internal SPI bus BMI055_ACC
-	bmi055 -A start
+	if mpu6000 -R 2 -T 20602 start
+	then
+		# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	else
+		if mpu6000 -R 2 -T 20608 start
+		then
+			# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
+		else
+			# Internal SPI bus BMI055_ACC
+			bmi055 -A start
 
-	# Internal SPI bus BMI055_GYR
-	bmi055 -G start
+			# Internal SPI bus BMI055_GYR
+			bmi055 -G start
 
-	# expansion i2c used for BMM150 rotated by 90deg
-	bmm150 -R 2 start
+			# expansion i2c used for BMM150 rotated by 90deg
+			bmm150 -R 2 start
+		fi
+	fi
+
+	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
+	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
+	# will prevent the incorrect driver from a successful initialization.
+
+	if mpu9250 -R 2 start
+	then
+		# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
+	else
+		# Internal SPI bus BMI160
+		bmi160 start
+	fi
 
 	# expansion i2c used for BMP280
 	bmp280 -I start
@@ -200,7 +208,7 @@ then
 		then
 			hmc5883 -C -X start
 		else
-		# auto-detect the primary, prefer external
+			# auto-detect the primary, prefer external
 			hmc5883 start
 		fi
 	fi
@@ -210,8 +218,10 @@ if ver hwcmp MINDPX_V2
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
+
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 12 start
+
 	mpu6000 -s -R 8 start
 	mpu9250 -s -R 8 start
 	lsm303d -R 10 start
@@ -230,16 +240,13 @@ fi
 if ver hwcmp AEROFC_V1
 then
 	ms5611 -T 0 start
-
 	mpu9250 -s -R 14 start
 
 	# Possible external compasses
 	hmc5883 -X start
 
 	ist8310 -C -b 1 -R 4 start
-
 	aerofc_adc start
-
 	ll40ls start i2c
 fi
 
@@ -290,25 +297,34 @@ fi
 # Optional drivers
 #
 
-sdp3x_airspeed start
-sdp3x_airspeed start -b 2
-
-# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
-# detected as MS5525 because the chip manufacturer was so
-# clever to assign the same I2C address and skip a WHO_AM_I
-# register.
-if [ $BOARD_FMUV3 == 21 ]
+if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
 then
-	ms5525_airspeed start -b 2
-else
-	ms5525_airspeed start
+	if param compare CBRK_AIRSPD_CHK 0
+	then
+		if param compare FW_ARSP_MODE 0
+		then
+			sdp3x_airspeed start
+			sdp3x_airspeed start -b 2
+
+			# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
+			# detected as MS5525 because the chip manufacturer was so
+			# clever to assign the same I2C address and skip a WHO_AM_I
+			# register.
+			if [ $BOARD_FMUV3 == 21 ]
+			then
+				ms5525_airspeed start -b 2
+			else
+				ms5525_airspeed start
+			fi
+
+			ms4525_airspeed start
+			ms4525_airspeed start -b 2
+
+			ets_airspeed start
+			ets_airspeed start -b 1
+		fi
+	fi
 fi
-
-ms4525_airspeed start
-ms4525_airspeed start -b 2
-
-ets_airspeed start
-ets_airspeed start -b 1
 
 # Sensors on the PWM interface bank
 if param compare SENS_EN_LL40LS 1
@@ -353,6 +369,4 @@ fi
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 20000
-if sensors start
-then
-fi
+sensors start
