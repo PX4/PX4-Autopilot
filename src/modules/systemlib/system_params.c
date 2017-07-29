@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,11 +67,12 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 /**
  * Enable HITL mode on next boot
  *
- * Set to 1 to enable HITL on next boot. The system will automatically
- * reset it on reboot.
+ * While enabled the system will boot in HITL mode and not enable all sensors and checks.
+ * When disabled the same vehicle can be normally flown outdoors.
  *
- * @value 0 HITL off
- * @value 1 HITL on
+ * @boolean
+ * @reboot_required true
+ *
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_HITL, 0);

@@ -470,7 +470,7 @@ then
 	# Needs to be this early for in-air-restarts
 	if [ $OUTPUT_MODE == hil ]
 	then
-	    commander start -hil
+	    commander start --hil
 	else
 	    commander start
 	fi
