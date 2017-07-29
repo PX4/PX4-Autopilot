@@ -37,6 +37,7 @@ px4_add_module(
 	PRIORITY "SCHED_PRIORITY_MAX-30"
 	STACK_MAIN 2200
 	COMPILE_FLAGS
+		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		logger.cpp
 		log_writer.cpp

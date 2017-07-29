@@ -35,6 +35,7 @@ px4_add_module(
 	MAIN dataman
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		dataman.cpp
 	DEPENDS
