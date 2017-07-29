@@ -165,6 +165,8 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define POSVEL_PROBATION_MAX 100E6		/**< maximum probation duration (usec) */
 #define POSVEL_VALID_PROBATION_FACTOR 10	/**< the rate at which the probation duration is increased while checks are failing */
 
+static bool startup_in_hil = false;
+
 /*
  * Probation times for position and velocity validity checks to pass if failed
  * Signed integers are used because these can become negative values before constraints are applied
@@ -343,14 +345,6 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	}
 	return PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
 }
-
-/**
- * check whether autostart ID is in the reserved range for HIL setups
- */
-static bool is_hil_setup(int id) {
-	return (id >= HIL_ID_MIN) && (id <= HIL_ID_MAX);
-}
-
 
 int commander_main(int argc, char *argv[])
 {
@@ -700,7 +694,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 
 	// For HIL platforms, require that simulated sensors are connected
 	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
-		is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+		startup_in_hil && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
 
 		mavlink_log_critical(mavlink_log_pub_local, "HIL platform: Connect to simulator before arming");
 		return TRANSITION_DENIED;
@@ -1288,8 +1282,6 @@ int commander_thread_main(int argc, char *argv[])
 	bool was_falling = false;
 	bool was_armed = false;
 
-	bool startup_in_hil = false;
-
 	// XXX for now just set sensors as initialized
 	status_flags.condition_system_sensors_initialized = true;
 
@@ -1711,7 +1703,7 @@ int commander_thread_main(int argc, char *argv[])
 	arm_mission_required = (arm_mission_required_param == 1);
 
 	status.rc_input_mode = rc_in_off;
-	if (is_hil_setup(autostart_id)) {
+	if (startup_in_hil) {
 		// HIL configuration selected: real sensors will be disabled
 		status_flags.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
@@ -1968,7 +1960,7 @@ int commander_thread_main(int argc, char *argv[])
 					telemetry_preflight_checks_reported[i] = hotplug_timeout;
 
 					/* provide RC and sensor status feedback to the user */
-					if (is_hil_setup(autostart_id)) {
+					if (startup_in_hil) {
 						/* HIL configuration: check only RC input */
 						(void)Commander::preflightCheck(&mavlink_log_pub, false, false, false, false, false,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
