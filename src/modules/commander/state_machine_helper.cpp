@@ -502,6 +502,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 					mavlink_log_info(mavlink_log_pub, "Enabled Hardware-in-the-loop simulation.");
 				} else {
 					mavlink_log_critical(mavlink_log_pub, "Set parameter SYS_HITL to 1 before starting HITL.");
+					ret = TRANSITION_DENIED;
 				}
 
 			} else {
@@ -520,7 +521,6 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 	if (ret == TRANSITION_CHANGED) {
 		current_status->hil_state = new_state;
 		current_status->timestamp = hrt_absolute_time();
-		// XXX also set lockdown here
 		orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 	}
 
@@ -1043,7 +1043,9 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		checkAirspeed = true;
 	}
 
-	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, true, true, true, true,
+	bool sensor_checks = (status->hil_state == vehicle_status_s::HIL_STATE_OFF);
+
+	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, sensor_checks, sensor_checks, sensor_checks, sensor_checks,
 			    checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
 			    !arm_without_gps, true, status->is_vtol, reportFailures, prearm, time_since_boot);
 

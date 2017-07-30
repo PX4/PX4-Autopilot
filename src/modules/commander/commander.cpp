@@ -2004,7 +2004,7 @@ int commander_thread_main(int argc, char *argv[])
 
 					/* provide RC and sensor status feedback to the user */
 					if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
-						/* HIL configuration: check only RC input */
+						/* HITL configuration: check only RC input */
 						(void)Commander::preflightCheck(&mavlink_log_pub, false, false, false, false, false,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
 								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
