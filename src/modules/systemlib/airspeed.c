@@ -45,6 +45,93 @@
 #include <geo/geo.h>
 #include "airspeed.h"
 
+/**
+ * Calculate indicated airspeed.
+ *
+ * Note that the indicated airspeed is not the true airspeed because it
+ * lacks the air density compensation. Use the calc_true_airspeed functions to get
+ * the true airspeed.
+ *
+ * @param differential_pressure total_ pressure - static pressure
+ * @return indicated airspeed in m/s
+ */
+float calc_indicated_airspeed_corrected(enum AIRSPEED_PITOT_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
+					float tube_len, float differential_pressure, float pressure_ambient, float temperature_celsius)
+{
+
+	// air density in kg/m3
+	double rho_air = get_air_density(pressure_ambient, temperature_celsius);
+
+	double dp = fabsf(differential_pressure);
+	// additional dp through pitot tube
+	float dp_pitot;
+	float dp_tube;
+	float dv;
+
+	switch (smodel) {
+
+	case AIRSPEED_SENSOR_MODEL_MEMBRANE: {
+			dp_pitot = 0.0f;
+			dp_tube = 0.0f;
+			dv = 0.0f;
+		}
+		break;
+
+	case AIRSPEED_SENSOR_MODEL_SDP3X: {
+			//
+			double flow_SDP33 = (300.805 - 300.878 / (0.00344205 * dp * 0.68698 * 0.68698 + 1)) * 1.29 / rho_air;
+
+			switch (pmodel) {
+			case AIRSPEED_PITOT_MODEL_HB:
+				dp_pitot = 28557670.0 - 28557670.0 / (1 + (flow_SDP33 / 5027611.0) * 1.227924 * 1.227924);
+				break;
+
+			default:
+				dp_pitot = 0.0f;
+				break;
+			}
+
+			// pressure drop through tube
+			dp_tube = flow_SDP33 * 0.000746124 * (double)tube_len * rho_air;
+
+			// speed at pitot-tube tip due to flow through sensor
+			dv = 0.0331582 * flow_SDP33;
+		}
+		break;
+
+	default: {
+			dp_pitot = 0.0f;
+			dp_tube = 0.0f;
+			dv = 0.0f;
+		}
+		break;
+	}
+
+	// if (!PX4_ISFINITE(dp_tube)) {
+	// 	dp_tube = 0.0f;
+	// }
+
+	// if (!PX4_ISFINITE(dp_pitot)) {
+	// 	dp_pitot = 0.0f;
+	// }
+
+	// if (!PX4_ISFINITE(dv)) {
+	// 	dv = 0.0f;
+	// }
+
+	// sum of all pressure drops
+	float dp_tot = (float)dp + dp_tube + dp_pitot;
+
+	// computed airspeed without correction for inflow-speed at tip of pitot-tube
+	float airspeed_uncorrected = sqrtf(2 * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+
+	// corrected airspeed
+	float airspeed_corrected = airspeed_uncorrected + dv;
+
+	// return result with correct sign
+	return (differential_pressure > 0.0f) ? airspeed_corrected : -airspeed_corrected;
+}
+
 
 /**
  * Calculate indicated airspeed.
@@ -58,6 +145,7 @@
  */
 float calc_indicated_airspeed(float differential_pressure)
 {
+
 
 	if (differential_pressure > 0.0f) {
 		return sqrtf((2.0f * differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);

@@ -157,6 +157,10 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 
 	parameter_handles.vibe_thresh = param_find("ATT_VIBE_THRESH");
 
+	parameter_handles.air_pmodel = param_find("CAL_AIR_PMODEL");
+	parameter_handles.air_smodel = param_find("CAL_AIR_SMODEL");
+	parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
+
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
 	(void)param_find("RC_CHAN_CNT");
@@ -487,6 +491,10 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.baro_qnh, &(parameters.baro_qnh));
 
 	param_get(parameter_handles.vibe_thresh, &parameters.vibration_warning_threshold);
+
+	param_get(parameter_handles.air_pmodel, &parameters.air_pmodel);
+	param_get(parameter_handles.air_smodel, &parameters.air_smodel);
+	param_get(parameter_handles.air_tube_length, &parameters.air_tube_length);
 
 	return ret;
 }

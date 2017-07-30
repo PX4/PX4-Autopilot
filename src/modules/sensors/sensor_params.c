@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -813,6 +813,35 @@ PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
+
+/**
+ * Airspeed sensor pitot model
+ *
+ * @value 0 HB Pitot
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_AIR_PMODEL, 0);
+
+/**
+ * Airspeed sensor model
+ *
+ * @value 0 Membrane sensor
+ * @value 1 Sensirion SDP3x
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_AIR_SMODEL, 0);
+
+/**
+ * Airspeed sensor tube length
+ * @min 0.01
+ * @max 0.5
+ * @unit meter
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.15);
 
 /**
  * Differential pressure sensor offset
