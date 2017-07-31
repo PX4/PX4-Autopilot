@@ -82,6 +82,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/sensor_baro.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -182,6 +183,9 @@ private:
 	math::LowPassFilter2p _lp_roll_rate;	///< Low pass filter applied to roll rates published on the control_state message
 	math::LowPassFilter2p _lp_pitch_rate;	///< Low pass filter applied to pitch rates published on the control_state message
 	math::LowPassFilter2p _lp_yaw_rate;	///< Low pass filter applied to yaw rates published on the control_state message
+
+	// Used to correct baro data for positional errors
+	Vector3f _vel_body_wind = {};	// XYZ velocity relative to wind in body frame (m/s)
 
 	Ekf _ekf;
 
@@ -319,6 +323,22 @@ private:
 	control::BlockParamFloat
 	_mag_bias_alpha;	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
+	// Multi-rotor drag specific force fusion
+	control::BlockParamExtFloat
+	_drag_noise;	///< observation noise variance for drag specific force measurements (m/sec**2)**2
+	control::BlockParamExtFloat _bcoef_x;		///< ballistic coefficient along the X-axis (kg/m**2)
+	control::BlockParamExtFloat _bcoef_y;		///< ballistic coefficient along the Y-axis (kg/m**2)
+
+	// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
+	// Coef = Ps_error / Pdynamic, where Pdynamic = 1/2 * density * TAS**2
+	control::BlockParamFloat _aspd_max;		///< upper limit on airspeed used for correction  (m/s**2)
+	control::BlockParamFloat
+	_K_pstatic_coef_xp;	///< static pressure position error coefficient along the positive X body axis
+	control::BlockParamFloat
+	_K_pstatic_coef_xn;	///< static pressure position error coefficient along the negative X body axis
+	control::BlockParamFloat _K_pstatic_coef_y;	///< static pressure position error coefficient along the Y body axis
+	control::BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
+
 };
 
 Ekf2::Ekf2():
@@ -430,8 +450,15 @@ Ekf2::Ekf2():
 	_mag_bias_z(this, "EKF2_MAGBIAS_Z", false),
 	_mag_bias_id(this, "EKF2_MAGBIAS_ID", false),
 	_mag_bias_saved_variance(this, "EKF2_MAGB_VREF", false),
-	_mag_bias_alpha(this, "EKF2_MAGB_K", false)
-
+	_mag_bias_alpha(this, "EKF2_MAGB_K", false),
+	_drag_noise(this, "EKF2_DRAG_NOISE", false, _params->drag_noise),
+	_bcoef_x(this, "EKF2_BCOEF_X", false, _params->bcoef_x),
+	_bcoef_y(this, "EKF2_BCOEF_Y", false, _params->bcoef_y),
+	_aspd_max(this, "EKF2_ASPD_MAX", false),
+	_K_pstatic_coef_xp(this, "EKF2_PCOEF_XP", false),
+	_K_pstatic_coef_xn(this, "EKF2_PCOEF_XN", false),
+	_K_pstatic_coef_y(this, "EKF2_PCOEF_Y", false),
+	_K_pstatic_coef_z(this, "EKF2_PCOEF_Z", false)
 {
 
 }
@@ -463,6 +490,7 @@ void Ekf2::run()
 	int vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
+	int sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 
 	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = sensors_sub;
@@ -484,6 +512,8 @@ void Ekf2::run()
 	vehicle_attitude_s ev_att = {};
 	vehicle_status_s vehicle_status = {};
 	sensor_selection_s sensor_selection = {};
+	sensor_baro_s sensor_baro = {};
+	sensor_baro.pressure = 1013.5; // initialise pressure to sea level
 
 	while (!should_exit()) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -683,7 +713,36 @@ void Ekf2::run()
 				uint32_t balt_time_ms = _balt_time_sum_ms / _balt_sample_count;
 
 				if (balt_time_ms - _balt_time_ms_last_used > (uint32_t)_params->sensor_interval_min_ms) {
+					// take mean across sample period
 					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
+
+					// estimate air density assuming typical 20degC ambient temperature
+					orb_copy(ORB_ID(sensor_baro), sensor_baro_sub, &sensor_baro);
+					const float pressure_to_density = 100.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+					float rho = pressure_to_density * sensor_baro.pressure;
+					_ekf.set_air_density(rho);
+
+					// calculate static pressure error = Pmeas - Ptruth
+					// model position error sensitivity as a body fixed ellipse with different scale in the positive and negtive X direction
+					float max_airspeed_sq = _aspd_max.get();
+					max_airspeed_sq *= max_airspeed_sq;
+					float K_pstatic_coef_x;
+
+					if (_vel_body_wind(0) >= 0.0f) {
+						K_pstatic_coef_x = _K_pstatic_coef_xp.get();
+
+					} else {
+						K_pstatic_coef_x = _K_pstatic_coef_xn.get();
+					}
+
+					float pstatic_err = 0.5f * rho * (K_pstatic_coef_x * fminf(_vel_body_wind(0) * _vel_body_wind(0), max_airspeed_sq) +
+									  _K_pstatic_coef_y.get() * fminf(_vel_body_wind(1) * _vel_body_wind(1), max_airspeed_sq) +
+									  _K_pstatic_coef_z.get() * fminf(_vel_body_wind(2) * _vel_body_wind(2), max_airspeed_sq));
+
+					// correct baro measurement using pressure error estimate and assuming sea level gravity
+					balt_data_avg += pstatic_err / (rho * 9.80665f);
+
+					// push to estimator
 					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, balt_data_avg);
 					_balt_time_ms_last_used = balt_time_ms;
 					_balt_time_sum_ms = 0;
@@ -825,6 +884,12 @@ void Ekf2::run()
 				ctrl_state.y_vel = v_b(1);
 				ctrl_state.z_vel = v_b(2);
 
+				// Calculate velocity relative to wind in body frame
+				float velNE_wind[2] = {};
+				_ekf.get_wind_velocity(velNE_wind);
+				v_n(0) -= velNE_wind[0];
+				v_n(1) -= velNE_wind[1];
+				_vel_body_wind = R_to_body * v_n;
 
 				// Local Position NED
 				float position[3];
@@ -856,23 +921,40 @@ void Ekf2::run()
 				ctrl_state.airspeed_valid = false;
 
 				// use estimated velocity for airspeed estimate
+				// TODO move this out of the estimators and put it into a dedicated air data consolidation algorithm
 				if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
 					// use measured airspeed
 					if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && now - airspeed.timestamp < 1e6
 					    && airspeed.timestamp > 0) {
 						ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
 						ctrl_state.airspeed_valid = true;
+
+					} else {
+						// This airspeed mode requires a measurement which we no longer have, so wind relative speed
+						// is used as a surrogate and the validity is set to false.
+						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
+						ctrl_state.airspeed_valid = false;
+
 					}
 
 				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
 					if (_ekf.local_position_is_valid()) {
-						ctrl_state.airspeed = sqrtf(velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2]);
+						// This airspeed mode uses an estimate which is calculated from the wind relative speed
+						// TODO modify the ecl EKF to provide a boolean validity with the wind speed estimate and
+						// use that to set the validity of the estimated airspeed.
+						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
 						ctrl_state.airspeed_valid = true;
+
 					}
 
 				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
-					// do nothing, airspeed has been declared as non-valid above, controllers
-					// will handle this assuming always trim airspeed
+					// This airspeed mode has disabled airspeed use and controllers will handle this.
+					// We still return wind relative speed as a surrogate and set the validity to zero.
+					if (_ekf.local_position_is_valid()) {
+						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
+						ctrl_state.airspeed_valid = false;
+
+					}
 				}
 
 				// publish control state data
@@ -1161,6 +1243,7 @@ void Ekf2::run()
 				_ekf.get_beta_innov(&innovations.beta_innov);
 				_ekf.get_flow_innov(&innovations.flow_innov[0]);
 				_ekf.get_hagl_innov(&innovations.hagl_innov);
+				_ekf.get_drag_innov(&innovations.drag_innov[0]);
 
 				_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
 				_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
@@ -1169,6 +1252,7 @@ void Ekf2::run()
 				_ekf.get_beta_innov_var(&innovations.beta_innov_var);
 				_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
 				_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
+				_ekf.get_drag_innov_var(&innovations.drag_innov_var[0]);
 
 				_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
 
