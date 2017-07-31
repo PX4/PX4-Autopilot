@@ -42,6 +42,7 @@
  */
 
 #include "sPort_data.h"
+#include "common.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -379,4 +380,20 @@ void sPort_send_GPS_FIX(int uart)
 	uint32_t fixtype = (int)(s_port_subscription_data->gps_position.fix_type);
 	uint32_t t2 = satcount * 10 + fixtype;
 	sPort_send_data(uart, SMARTPORT_ID_DIY_GPSFIX, t2);
+}
+
+
+void sPort_send_flight_mode(int uart)
+{
+	struct s_port_subscription_data_s *subs = s_port_subscription_data;
+	int16_t telem_flight_mode = get_telemetry_flight_mode(subs->vehicle_status.nav_state);
+
+	sPort_send_data(uart, FRSKY_ID_TEMP1, telem_flight_mode); // send flight mode as TEMP1. This matches with OpenTX & APM
+
+}
+
+void sPort_send_GPS_info(int uart)
+{
+	struct s_port_subscription_data_s *subs = s_port_subscription_data;
+	sPort_send_data(uart, FRSKY_ID_TEMP2, subs->gps_position.satellites_used * 10 + subs->gps_position.fix_type);
 }

@@ -54,8 +54,9 @@
 #define SMARTPORT_POLL_6    0x00
 #define SMARTPORT_POLL_7    0x83
 #define SMARTPORT_POLL_8    0xBA
+#define SMARTPORT_SENSOR_ID_SP2UR     0xC6 // Sensor ID  6
 
-/* FrSky SmartPort sensor IDs. See more here: https://github.com/opentx/opentx/blob/master/radio/src/telemetry/frsky.h#L109 */
+/* FrSky SmartPort sensor IDs. See more here: https://github.com/opentx/opentx/blob/2.2/radio/src/telemetry/frsky.h */
 #define SMARTPORT_ID_RSSI          0xf101
 #define SMARTPORT_ID_RXA1          0xf102	// supplied by RX
 #define SMARTPORT_ID_RXA2          0xf103	// supplied by RX
@@ -100,6 +101,8 @@ void sPort_send_GPS_ALT(int uart);
 void sPort_send_GPS_SPD(int uart);
 void sPort_send_GPS_CRS(int uart);
 void sPort_send_GPS_TIME(int uart);
+void sPort_send_flight_mode(int uart);
+void sPort_send_GPS_info(int uart);
 
 void sPort_send_NAV_STATE(int uart);
 void sPort_send_GPS_FIX(int uart);
