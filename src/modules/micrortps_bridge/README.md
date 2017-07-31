@@ -129,22 +129,22 @@ src/modules/micrortps_bridge/micrortps_agent
 ├── idl
 │   ├── sensor_baro_.idl
 │   └── sensor_combined_.idl
-├── microRTPS_agent.cxx
-├── microRTPS_transport.cxx
+├── microRTPS_agent.cpp
+├── microRTPS_transport.cpp
 ├── microRTPS_transport.h
-├── RtpsTopics.cxx
+├── RtpsTopics.cpp
 ├── RtpsTopics.h
-├── sensor_baro_.cxx
+├── sensor_baro_.cpp
 ├── sensor_baro_.h
-├── sensor_baro_Publisher.cxx
+├── sensor_baro_Publisher.cpp
 ├── sensor_baro_Publisher.h
-├── sensor_baro_PubSubTypes.cxx
+├── sensor_baro_PubSubTypes.cpp
 ├── sensor_baro_PubSubTypes.h
-├── sensor_combined_.cxx
+├── sensor_combined_.cpp
 ├── sensor_combined_.h
-├── sensor_combined_PubSubTypes.cxx
+├── sensor_combined_PubSubTypes.cpp
 ├── sensor_combined_PubSubTypes.h
-├── sensor_combined_Subscriber.cxx
+├── sensor_combined_Subscriber.cpp
 └── sensor_combined_Subscriber.h
  2 directories, 20 files
 ```
@@ -154,7 +154,7 @@ $ tree src/modules/micrortps_bridge/micrortps_client
 src/modules/micrortps_bridge/micrortps_client
 ├── CMakeLists.txt
 ├── microRTPS_client.cpp
-├── microRTPS_transport.cxx
+├── microRTPS_transport.cpp
 └── microRTPS_transport.h
  0 directories, 4 files
 ```

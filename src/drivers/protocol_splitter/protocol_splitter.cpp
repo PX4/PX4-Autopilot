@@ -33,10 +33,11 @@
 
 /**
  * @file protocol_splitter.cpp
- * NuttX Driver to split mavlink 2 and another protocol on a serial port.
+ * NuttX Driver to split mavlink 2 and another RTPS on a serial port.
  * Makes sure the two protocols can be read & written simultanously by 2 processes.
  * It will create two devices:
- * /dev/mavlink
+ *    /dev/mavlink
+ *    /dev/rtps
  */
 
 #include <drivers/device/device.h>
