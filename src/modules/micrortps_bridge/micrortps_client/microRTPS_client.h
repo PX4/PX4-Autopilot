@@ -56,24 +56,23 @@
 #define DEFAULT_RECV_PORT 2019
 #define DEFAULT_SEND_PORT 2020
 
-void* send(void *data);
+void *send(void *data);
 void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &received, int &loop);
 
 struct options {
-    enum class eTransports
-    {
-        UART,
-        UDP
-    };
-    eTransports transport = options::eTransports::UART;
-    char device[64] = DEVICE;
-    int update_time_ms = UPDATE_TIME_MS;
-    int loops = LOOPS;
-    int sleep_ms = SLEEP_MS;
-    uint32_t baudrate = BAUDRATE;
-    int poll_ms = POLL_MS;
-    uint16_t recv_port = DEFAULT_RECV_PORT;
-    uint16_t send_port = DEFAULT_SEND_PORT;
+	enum class eTransports {
+		UART,
+		UDP
+	};
+	eTransports transport = options::eTransports::UART;
+	char device[64] = DEVICE;
+	int update_time_ms = UPDATE_TIME_MS;
+	int loops = LOOPS;
+	int sleep_ms = SLEEP_MS;
+	uint32_t baudrate = BAUDRATE;
+	int poll_ms = POLL_MS;
+	uint16_t recv_port = DEFAULT_RECV_PORT;
+	uint16_t send_port = DEFAULT_SEND_PORT;
 };
 
 extern struct options _options;
