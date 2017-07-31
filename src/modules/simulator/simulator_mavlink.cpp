@@ -295,6 +295,39 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			perf_set_elapsed(_perf_sim_delay, timestamp - sim_timestamp);
 			perf_count(_perf_sim_interval);
 
+			hrt_abstime curr_sitl_time = hrt_absolute_time();
+			hrt_abstime curr_sim_time = imu.time_usec;
+
+			if (_last_sim_timestamp > 0 && _last_sitl_timestamp > 0
+			    && _last_sitl_timestamp < curr_sitl_time
+			    && _last_sim_timestamp < curr_sim_time) {
+
+				hrt_abstime dt_sitl = curr_sitl_time - _last_sitl_timestamp;
+				hrt_abstime dt_sim = curr_sim_time - _last_sim_timestamp;
+
+				_realtime_factor = dt_sim / dt_sitl;
+
+				// calculate how much the system needs to be delayed
+				hrt_abstime sysdelay = dt_sitl - dt_sim;
+
+				if (_initialized
+				    && _realtime_factor < 1.0f
+				    && dt_sitl < 1e4
+				    && dt_sim < 1e4) {
+
+					// the correct delay is exactly the scale between
+					// the last two intervals
+					px4_sim_start_delay();
+					hrt_start_delay();
+					usleep(sysdelay);
+					hrt_stop_delay();
+					px4_sim_stop_delay();
+				}
+			}
+
+			_last_sitl_timestamp = curr_sitl_time;
+			_last_sim_timestamp = curr_sim_time;
+
 			if (publish) {
 				publish_sensor_topics(&imu);
 			}
@@ -736,7 +769,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 		return;
 	}
 
-	_initialized = true;
 	// reset system time
 	(void)hrt_reset();
 
@@ -755,7 +787,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 
 	bool sim_delay = false;
 
-	const unsigned max_wait_ms = 6;
+	const unsigned max_wait_ms = 3;
 
 	//send MAV_CMD_SET_MESSAGE_INTERVAL for HIL_STATE_QUATERNION ground truth
 	mavlink_command_long_t cmd_long = {};
@@ -763,6 +795,8 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
 	cmd_long.param2 = 5e3;
 	send_mavlink_message(MAVLINK_MSG_ID_COMMAND_LONG, &cmd_long, 200);
+
+	_initialized = true;
 
 	// wait for new mavlink messages to arrive
 	while (true) {
