@@ -261,6 +261,7 @@ private:
 	uint64_t _time_last_of_fuse{0};		///< time the last fusion of optical flow measurements were performed (uSec)
 	uint64_t _time_last_arsp_fuse{0};	///< time the last fusion of airspeed measurements were performed (uSec)
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
+	uint64_t _time_last_rng_ready{0};	///< time the last range finder measurement was ready (uSec)
 	Vector2f _last_known_posNE;		///< last known local NE position vector (m)
 	float _last_disarmed_posD{0.0f};	///< vertical position recorded at arming (m)
 	float _imu_collection_time_adj{0.0f};	///< the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
@@ -381,6 +382,11 @@ private:
 
 	// variables used to control range aid functionality
 	bool _in_range_aid_mode;		///< true when range finder is to be used as the height reference instead of the primary height sensor
+
+	// variables used to check for "stuck" rng data
+	bool _rng_stuck{false};		///< true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
+	float _rng_check_min_val{0.0f};		///< minimum value for new rng measurement when being stuck
+	float _rng_check_max_val{0.0f};		///< maximum value for new rng measurement when being stuck
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
@@ -517,6 +523,9 @@ private:
 	void controlHeightFusion();
 
 	bool rangeAidConditionsMet(bool in_range_aid_mode);
+
+	// check for "stuck" range finder measurements when rng was not valid for certain period
+	void checkForStuckRange();
 
 	// return the square of two floating point numbers - used in auto coded sections
 	inline float sq(float var)
