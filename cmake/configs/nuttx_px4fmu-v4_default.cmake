@@ -207,8 +207,6 @@ set(config_module_list
 	examples/ekf_att_pos_estimator
 )
 
-set(GENERATE_RTPS_BRIDGE on)
-
 set(config_rtps_send_topics
    sensor_combined
    )

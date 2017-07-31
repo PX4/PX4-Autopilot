@@ -31,7 +31,26 @@
 #
 ############################################################################
 
-if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
+find_program(FASTRTPSGEN fastrtpsgen)
+if(NOT FASTRTPSGEN)
+	message(WARNING "WARNING: Unable to find fastrtpsgen")
+	set(GENERATE_RTPS_BRIDGE off)
+else()
+	set(GENERATE_RTPS_BRIDGE on)
+endif()
+
+if(GENERATE_RTPS_BRIDGE MATCHES "off")
+
+    message(WARNING "WARNING: Building PX4 without RTPS bridge support")
+    px4_add_module(
+	MODULE modules__micrortps_bridge__micrortps_client
+	MAIN micrortps_client
+	SRCS
+		microRTPS_client_dummy.cpp
+	DEPENDS
+		platforms__common
+	)
+else()
     include_directories(.)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -72,8 +91,6 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
             set(receive_topic_opt "-r")
         endif()
 
-	message("SEND ${send_topic_files_opt}")
-	message("RECV ${receive_topic_files_opt}")
         add_custom_command(OUTPUT ${topic_bridge_files_out}
             COMMAND ${PYTHON_EXECUTABLE}
             ${PX4_SOURCE_DIR}/Tools/generate_microRTPS_bridge.py
@@ -87,7 +104,6 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
             VERBATIM
             )
     endif()
-endif()
 
 px4_add_module(
 	MODULE modules__micrortps_bridge__micrortps_client
@@ -101,4 +117,5 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
+endif()
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
