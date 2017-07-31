@@ -460,21 +460,25 @@ void Ekf::fuseHeading()
 		Eulerf euler321(_state.quat_nominal);
 		predicted_hdg = euler321(2); // we will need the predicted heading to calculate the innovation
 
-		// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
-		euler321(2) = 0.0f;
-		Dcmf R_to_earth(euler321);
-
 		// calculate the observed yaw angle
 		if (_control_status.flags.mag_hdg) {
+			// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
+			euler321(2) = 0.0f;
+			Dcmf R_to_earth(euler321);
+
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+
 			// the angle of the projection onto the horizontal gives the yaw angle
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+
 		} else if (_control_status.flags.ev_yaw) {
-			// convert the observed quaternion to a rotation matrix
-			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
-			// calculate the yaw angle for a 312 sequence
-			measured_hdg = atan2f(R_to_earth_ev(1, 0) , R_to_earth_ev(0, 0));
+			// calculate the yaw angle for a 321 sequence
+			// Expressions obtained from yaw_input_321.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw321.m
+			float Tbn_1_0 = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)+_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
+			float Tbn_0_0 = sq(_ev_sample_delayed.quat(0))+sq(_ev_sample_delayed.quat(1))-sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
+			measured_hdg = atan2f(Tbn_1_0,Tbn_0_0);
+
 		} else {
 			// there is no yaw observation
 			return;
@@ -511,51 +515,61 @@ void Ekf::fuseHeading()
 		H_YAW[2] = t8*t14*(-q1*t3+q1*t4+q1*t5+q1*t6-q0*q2*q3*2.0f)*2.0f;
 		H_YAW[3] = t8*t14*(q0*t3-q0*t4+q0*t5+q0*t6-q1*q2*q3*2.0f)*2.0f;
 
-		// Calculate the 312 sequence euler angles that rotate from earth to body frame
-		// See http://www.atacolorado.com/eulersequences.doc
-		Vector3f euler312;
-		euler312(0) = atan2f(-_R_to_earth(0, 1) , _R_to_earth(1, 1)); // first rotation (yaw)
-		euler312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
-		euler312(2) = atan2f(-_R_to_earth(2, 0) , _R_to_earth(2, 2)); // third rotation (pitch)
+		/* Calculate the 312 sequence euler angles that rotate from earth to body frame
+		 * Derived from https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
+		 * Body to nav frame transformation using a yaw-roll-pitch rotation sequence is given by:
+		 *
+		[ cos(pitch)*cos(yaw) - sin(pitch)*sin(roll)*sin(yaw), -cos(roll)*sin(yaw), cos(yaw)*sin(pitch) + cos(pitch)*sin(roll)*sin(yaw)]
+		[ cos(pitch)*sin(yaw) + cos(yaw)*sin(pitch)*sin(roll),  cos(roll)*cos(yaw), sin(pitch)*sin(yaw) - cos(pitch)*cos(yaw)*sin(roll)]
+		[                               -cos(roll)*sin(pitch),           sin(roll),                                cos(pitch)*cos(roll)]
+		*/
+		float yaw = atan2f(-_R_to_earth(0, 1) , _R_to_earth(1, 1)); // first rotation (yaw)
+		float roll = asinf(_R_to_earth(2, 1)); // second rotation (roll)
+		float pitch = atan2f(-_R_to_earth(2, 0) , _R_to_earth(2, 2)); // third rotation (pitch)
 
-		predicted_hdg = euler312(0); // we will need the predicted heading to calculate the innovation
-
-		// Set the first rotation (yaw) to zero and rotate the measurements into earth frame
-		euler312(0) = 0.0f;
-
-		// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
-		float c2 = cosf(euler312(2));
-		float s2 = sinf(euler312(2));
-		float s1 = sinf(euler312(1));
-		float c1 = cosf(euler312(1));
-		float s0 = sinf(euler312(0));
-		float c0 = cosf(euler312(0));
-
-		Dcmf R_to_earth;
-		R_to_earth(0, 0) = c0 * c2 - s0 * s1 * s2;
-		R_to_earth(1, 1) = c0 * c1;
-		R_to_earth(2, 2) = c2 * c1;
-		R_to_earth(0, 1) = -c1 * s0;
-		R_to_earth(0, 2) = s2 * c0 + c2 * s1 * s0;
-		R_to_earth(1, 0) = c2 * s0 + s2 * s1 * c0;
-		R_to_earth(1, 2) = s0 * s2 - s1 * c0 * c2;
-		R_to_earth(2, 0) = -s2 * c1;
-		R_to_earth(2, 1) = s1;
+		predicted_hdg = yaw; // we will need the predicted heading to calculate the innovation
 
 		// calculate the observed yaw angle
 		if (_control_status.flags.mag_hdg) {
+			// Set the first rotation (yaw) to zero and rotate the measurements into earth frame
+			yaw = 0.0f;
+
+			// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
+			// Equations from Tbn_312.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
+			Dcmf R_to_earth;
+			float sy = sin(yaw);
+			float cy = cos(yaw);
+			float sp = sin(pitch);
+			float cp = cos(pitch);
+			float sr = sin(roll);
+			float cr = cos(roll);
+			R_to_earth(0,0) = cy*cp-sy*sp*sr;
+			R_to_earth(0,1) = -sy*cr;
+			R_to_earth(0,2) = cy*sp+sy*cp*sr;
+			R_to_earth(1,0) = sy*cp+cy*sp*sr;
+			R_to_earth(1,1) = cy*cr;
+			R_to_earth(1,2) = sy*sp-cy*cp*sr;
+			R_to_earth(2,0) = -sp*cr;
+			R_to_earth(2,1) = sr;
+			R_to_earth(2,2) = cp*cr;
+
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+
 			// the angle of the projection onto the horizontal gives the yaw angle
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+
 		} else if (_control_status.flags.ev_yaw) {
-			// convert the observed quaternion to a rotation matrix
-			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
-			measured_hdg = atan2f(-R_to_earth_ev(0, 1) , R_to_earth_ev(1, 1));
+			// Values from yaw_input_312.c file produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
+			float Tbn_0_1_neg = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)-_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
+			float Tbn_1_1 = sq(_ev_sample_delayed.quat(0))-sq(_ev_sample_delayed.quat(1))+sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
+			measured_hdg = atan2f(Tbn_0_1_neg,Tbn_1_1);
+
 		} else {
 			// there is no yaw observation
 			return;
+
 		}
 	}
 
