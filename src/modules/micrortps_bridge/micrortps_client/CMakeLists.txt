@@ -33,6 +33,7 @@
 
 if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
     include_directories(.)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
     # Do not delete everything in the current dir
     set(msg_out_path ${CMAKE_CURRENT_BINARY_DIR})
@@ -95,6 +96,8 @@ px4_add_module(
 	SRCS
 		microRTPS_transport.cpp
 		microRTPS_client.cpp
+		microRTPS_client.h
+		microRTPS_client_main.cpp
 	DEPENDS
 		platforms__common
 	)
