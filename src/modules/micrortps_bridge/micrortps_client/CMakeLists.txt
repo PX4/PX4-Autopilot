@@ -35,8 +35,6 @@ find_program(FASTRTPSGEN fastrtpsgen)
 if(NOT FASTRTPSGEN)
 	message(WARNING "WARNING: Unable to find fastrtpsgen")
 	set(GENERATE_RTPS_BRIDGE off)
-else()
-	set(GENERATE_RTPS_BRIDGE on)
 endif()
 
 if(GENERATE_RTPS_BRIDGE MATCHES "off")
