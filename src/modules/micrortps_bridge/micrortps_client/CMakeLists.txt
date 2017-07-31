@@ -49,17 +49,17 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
     endforeach()
 
     foreach(topic ${config_rtps_send_topics})
-        list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.cxx)
+        list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.cpp)
         list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.h)
     endforeach()
 
     foreach(topic ${config_rtps_receive_topics})
-        list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Subscriber.cxx)
+        list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Subscriber.cpp)
         list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Subscriber.h)
     endforeach()
 
     if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_topics}" STREQUAL "")
-        set(topic_bridge_files_out microRTPS_client.cpp microRTPS_transport.cxx microRTPS_transport.h)
+        set(topic_bridge_files_out microRTPS_client.cpp microRTPS_transport.cpp microRTPS_transport.h)
 
 	set(send_topic_files_opt)
         if (NOT "${send_topic_files}" STREQUAL "")
@@ -93,7 +93,7 @@ px4_add_module(
 	MAIN micrortps_client
 	STACK_MAIN 4096
 	SRCS
-		microRTPS_transport.cxx
+		microRTPS_transport.cpp
 		microRTPS_client.cpp
 	DEPENDS
 		platforms__common
