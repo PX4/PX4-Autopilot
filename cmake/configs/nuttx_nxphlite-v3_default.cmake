@@ -10,82 +10,89 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/airspeed
+	drivers/blinkm
+#NOT Supported	drivers/bma180
+#NOT Supported	drivers/bmi160
+	drivers/bmp280
+	drivers/boards/nxphlite-v3
+	drivers/bst
+	drivers/camera_trigger
 	drivers/device
+	drivers/ets_airspeed
+	drivers/frsky_telemetry
+	drivers/fxos8700cq
+	drivers/gps
+	drivers/hmc5883
+	drivers/hott
+	drivers/hott/hott_sensors
+	drivers/hott/hott_telemetry
+	drivers/iridiumsbd
 	drivers/kinetis
 	drivers/kinetis/adc
 	drivers/kinetis/tone_alarm
+	drivers/l3gd20
 	drivers/led
-	drivers/px4fmu
-	drivers/boards/nxphlite-v3
-	drivers/rgbled
-	drivers/fxos8700cq
+	drivers/lis3mdl
+	drivers/ll40ls
+	drivers/lsm303d
+	drivers/mb12xx
+	drivers/mkblctrl
+	drivers/mpl3115a2
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/hmc5883
+	drivers/ms4525_airspeed
+	drivers/ms5525_airspeed
 	drivers/ms5611
-	drivers/mpl3115a2
-	drivers/mb12xx
-	drivers/srf02
+	drivers/oreoled
+# NOT Portable YET drivers/pwm_input
+	drivers/pwm_out_sim
+	drivers/px4flow
+	drivers/px4fmu
+	drivers/rgbled
+	drivers/sdp3x_airspeed
 	drivers/sf0x
 	drivers/sf1xx
-	drivers/ll40ls
-	drivers/trone
-	drivers/gps
-	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
-	drivers/blinkm
-	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/meas_airspeed
-	drivers/frsky_telemetry
-	modules/sensors
-	drivers/mkblctrl
-	drivers/px4flow
-	drivers/oreoled
-	drivers/vmount
-# NOT Portable YET drivers/pwm_input
-	drivers/camera_trigger
-	drivers/bst
 	drivers/snapdragon_rc_pwm
-	drivers/lis3mdl
-	drivers/bmp280
-#No External SPI drivers/bma180
-#No External SPI 	drivers/bmi160
+	drivers/srf02
 	drivers/tap_esc
+	drivers/trone
+	drivers/vmount
+	modules/sensors
 
 	#
 	# System commands
 	#
 	systemcmds/bl_update
+	systemcmds/config
+	systemcmds/dumpfile
+	systemcmds/esc_calib
+## Needs bbsrm 	systemcmds/hardfault_log
+	systemcmds/led_control
 	systemcmds/mixer
+	systemcmds/motor_ramp
+	systemcmds/mtd
+	systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
-	systemcmds/esc_calib
-## Needs bbsrm 	systemcmds/hardfault_log
 	systemcmds/reboot
-	systemcmds/topic_listener
-	systemcmds/top
-	systemcmds/config
-	systemcmds/nshterm
-	systemcmds/mtd
-	systemcmds/dumpfile
-	systemcmds/ver
 	systemcmds/sd_bench
-	systemcmds/motor_ramp
+	systemcmds/top
+	systemcmds/topic_listener
 	systemcmds/usb_connected
+	systemcmds/ver
 
 	#
 	# Testing
 	#
 	drivers/sf0x/sf0x_tests
-### NOT Portable YET drivers/test_ppm
+### NOT Portable YET 	drivers/test_ppm
+	#lib/rc/rc_tests
 	modules/commander/commander_tests
-	modules/mc_pos_control/mc_pos_control_tests
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
+	modules/mc_pos_control/mc_pos_control_tests
 	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
@@ -95,21 +102,21 @@ set(config_module_list
 	#
 	modules/commander
 	modules/events
-	modules/load_mon
-	modules/navigator
-	modules/mavlink
 	modules/gpio_led
-##NO CAN YET	modules/uavcan
 	modules/land_detector
+	modules/load_mon
+	modules/mavlink
+	modules/navigator
+#NO UAVCAN YET	modules/uavcan
 	modules/camera_feedback
 
 	#
-	# Estimation modules (EKF/ SO3 / other filters)
+	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	modules/position_estimator_inav
 	modules/ekf2
 	modules/local_position_estimator
+	modules/position_estimator_inav
 
 	#
 	# Vehicle Control
@@ -125,17 +132,17 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/sdlog2
 	modules/logger
+	modules/sdlog2
 
 	#
 	# Library modules
 	#
+	modules/dataman
 	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
-	modules/dataman
 
 	#
 	# Libraries
@@ -175,27 +182,32 @@ set(config_module_list
 	examples/rover_steering_control
 
 	#
+	# Segway
+	#
+	examples/segway
+
+	#
 	# Demo apps
 	#
-	#examples/math_demo
+
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
 	examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
+	examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values
-	#examples/px4_mavlink_debug
+	examples/px4_mavlink_debug
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
 	examples/fixedwing_control
 
 	# Hardware test
-	#examples/hwtest
+	examples/hwtest
 
 	# EKF
 	examples/ekf_att_pos_estimator
