@@ -554,8 +554,8 @@ void Ekf2::run()
 		if (range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), range_finder_sub, &range_finder);
 
-			if (range_finder.min_distance > range_finder.current_distance
-			    || range_finder.max_distance < range_finder.current_distance) {
+			if (range_finder.min_distance >= range_finder.current_distance
+			    || range_finder.max_distance <= range_finder.current_distance) {
 				range_finder_updated = false;
 			}
 		}
