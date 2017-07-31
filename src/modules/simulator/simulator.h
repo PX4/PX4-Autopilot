@@ -247,6 +247,7 @@ private:
 		_dist_pub(nullptr),
 		_battery_pub(nullptr),
 		_initialized(false),
+		_realtime_factor(1.0),
 		_system_type(0)
 #ifndef __PX4_QURT
 		,
@@ -328,6 +329,9 @@ private:
 	orb_advert_t _battery_pub;
 
 	bool _initialized;
+	double _realtime_factor;		///< How fast the simulation runs in comparison to real system time
+	hrt_abstime _last_sim_timestamp;
+	hrt_abstime _last_sitl_timestamp;
 
 	// Lib used to do the battery calculations.
 	Battery _battery;
