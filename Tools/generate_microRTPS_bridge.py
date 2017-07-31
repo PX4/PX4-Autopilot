@@ -32,6 +32,11 @@
 #
 ################################################################################
 
+# This script can generate the client and agent code based on a set of topics
+# to sent and set to receive. It uses fastrtpsgen to generate the code from the
+# IDL for the topic messages. The PX4 msg definitions are used to create the IDL
+# used by fastrtpsgen using templates.
+
 import sys, os, argparse, shutil
 import px_generate_uorb_topic_files
 import subprocess, glob
