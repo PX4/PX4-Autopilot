@@ -116,12 +116,12 @@ urtps_templates_dir = msg_folder + "/templates/urtps"
 
 uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
 uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
-uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cxx.template'
-uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cxx.template'
+uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cpp.template'
+uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cpp.template'
 uRTPS_AGENT_CMAKELIST_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.template'
-uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cxx.template'
+uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cpp.template'
 uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
-uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cxx.template'
+uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cpp.template'
 uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.template'
 
 def generate_agent(out_dir):
@@ -160,7 +160,7 @@ def generate_agent(out_dir):
         if ret:
             raise Exception("fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
 
-    os.system("rm " + agent_out_dir + "/fastrtpsgen/*PubSubMain.cxx "
+    os.system("rm " + agent_out_dir + "/fastrtpsgen/*PubSubMain.cpp "
                     + agent_out_dir + "/fastrtpsgen/makefile* "
                     + agent_out_dir + "/fastrtpsgen/*Publisher* "
                     + agent_out_dir + "/fastrtpsgen/*Subscriber*")
