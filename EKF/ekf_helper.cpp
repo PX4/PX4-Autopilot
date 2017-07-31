@@ -372,7 +372,7 @@ bool Ekf::realignYawGPS()
 			ECL_WARN("EKF bad yaw corrected using GPS course");
 
 			// declare the magnetomer as failed if a bad yaw has occurred more than once
-			if (_flt_mag_align_complete && (_num_bad_flight_yaw_events >= 2)) {
+			if (_flt_mag_align_complete && (_num_bad_flight_yaw_events >= 2) && !_control_status.flags.mag_fault) {
 				ECL_WARN("EKF stopping magnetometer use");
 				_control_status.flags.mag_fault = true;
 			}
