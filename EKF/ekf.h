@@ -516,7 +516,7 @@ private:
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion();
 
-    bool rangeAidConditionsMet(bool in_range_aid_mode);
+	bool rangeAidConditionsMet(bool in_range_aid_mode);
 
 	// return the square of two floating point numbers - used in auto coded sections
 	inline float sq(float var)
