@@ -48,7 +48,7 @@ __BEGIN_DECLS
 #    if defined(CONFIG_ARCH_CHIP_STM32)
 #      include <stm32.h>
 #      define PX4_FLASH_BASE  STM32_FLASH_BASE
-#      if defined(CONFIG_STM32_STM32F40XX)
+#      if defined(CONFIG_STM32_STM32F4XXX)
 #        include <stm32_bbsram.h>
 #        define PX4_BBSRAM_SIZE STM32_BBSRAM_SIZE
 #        define PX4_BBSRAM_GETDESC_IOCTL STM32_BBSRAM_GETDESC_IOCTL
