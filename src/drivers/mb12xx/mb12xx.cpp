@@ -573,7 +573,7 @@ MB12XX::collect()
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
-	report.id = _cycle_counter;
+	report.id = _index_counter;
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic != nullptr) {
