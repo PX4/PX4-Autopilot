@@ -55,6 +55,7 @@
 #include <unistd.h>
 
 #include <px4_tasks.h>
+#include <px4_module.h>
 #include <systemlib/err.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
@@ -145,10 +146,13 @@ static int set_uart_speed(int uart, struct termios *uart_config, speed_t speed)
  */
 static void usage()
 {
-	fprintf(stderr,
-		"usage: frsky_telemetry start [-d <devicename>]\n"
-		"       frsky_telemetry stop\n"
-		"       frsky_telemetry status\n");
+	PRINT_MODULE_DESCRIPTION("FrSky Telemetry support. Auto-detects D or S.PORT protocol.");
+
+	PRINT_MODULE_USAGE_NAME("frsky_telemetry", "communication");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
 	exit(1);
 }
 
