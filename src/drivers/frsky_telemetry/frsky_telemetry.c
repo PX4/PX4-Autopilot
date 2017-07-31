@@ -64,6 +64,7 @@
 
 #include "sPort_data.h"
 #include "frsky_data.h"
+#include "common.h"
 
 
 /* thread state */
@@ -80,7 +81,44 @@ static void usage(void);
 static int frsky_telemetry_thread_main(int argc, char *argv[]);
 __EXPORT int frsky_telemetry_main(int argc, char *argv[]);
 
-#define DEBUG
+
+uint16_t get_telemetry_flight_mode(int px4_flight_mode)
+{
+	// map the flight modes (see https://github.com/ilihack/LuaPilot_Taranis_Telemetry/blob/master/SCRIPTS/TELEMETRY/LuaPil.lua#L790)
+	switch (px4_flight_mode) {
+	case 0: return 18; // manual
+
+	case 1: return 23; // alt control
+
+	case 2: return 22; // pos control
+
+	case 3: return 27; // mission
+
+	case 4: return 26; // loiter
+
+	case 5:
+	case 6:
+	case 7: return 28; // rtl
+
+	case 10: return 19; // acro
+
+	case 14: return 24; // offboard
+
+	case 15: return 20; // stabilized
+
+	case 16: return 21; // rattitude
+
+	case 17: return 25; // takeoff
+
+	case 8:
+	case 9:
+	case 18: return 29; // land
+
+	case 19: return 30; // follow target
+	}
+
+	return -1;
+}
 
 /**
  * Opens the UART device and sets all required serial parameters.
@@ -484,6 +522,22 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastGPS_FIX = now;
 					/* send T2 */
 					sPort_send_GPS_FIX(uart);
+				}
+
+				break;
+
+			case SMARTPORT_SENSOR_ID_SP2UR: {
+					static int elementCount = 0;
+
+					switch (elementCount++ % 2) {
+					case 0:
+						sPort_send_flight_mode(uart);
+						break;
+
+					default:
+						sPort_send_GPS_info(uart);
+						break;
+					}
 				}
 
 				break;
