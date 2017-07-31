@@ -35,6 +35,7 @@
 import sys, os, argparse, shutil
 import px_generate_uorb_topic_files
 import subprocess, glob
+import errno    
 
 def get_absolute_path(arg_parse_dir):
     root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -154,23 +155,42 @@ def generate_agent(out_dir):
                     px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELIST_TEMPL_FILE)
 
     # Final steps to install agent
-    os.system("mkdir -p " + agent_out_dir + "/fastrtpsgen")
+    mkdir_p(agent_out_dir + "/fastrtpsgen")
+    os.chdir(agent_out_dir + "/fastrtpsgen")
     for idl_file in glob.glob( agent_out_dir + "/idl/*.idl"):
-        ret = os.system("cd " + agent_out_dir + "/fastrtpsgen && " + fastrtpsgen_path + " -example x64Linux2.6gcc " + idl_file)
+        ret = os.system(fastrtpsgen_path + " -example x64Linux2.6gcc " + idl_file)
         if ret:
             raise Exception("fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
 
-    os.system("rm " + agent_out_dir + "/fastrtpsgen/*PubSubMain.cpp "
-                    + agent_out_dir + "/fastrtpsgen/makefile* "
-                    + agent_out_dir + "/fastrtpsgen/*Publisher* "
-                    + agent_out_dir + "/fastrtpsgen/*Subscriber*")
-    os.system("cp " + agent_out_dir + "/fastrtpsgen/* " + agent_out_dir)
-    os.system("rm -rf " + agent_out_dir + "/fastrtpsgen/")
-    os.system("cp " + urtps_templates_dir + "/microRTPS_transport.* " + agent_out_dir)
-    os.system("mv " + agent_out_dir + "/microRTPS_agent_CMakeLists.txt " + agent_out_dir + "/CMakeLists.txt")
-    os.system("mkdir -p " + agent_out_dir + "/build")
+    rm_wildcard(agent_out_dir + "/fastrtpsgen/*PubSubMain.cpp")
+    rm_wildcard(agent_out_dir + "/fastrtpsgen/makefile*")
+    rm_wildcard(agent_out_dir + "/fastrtpsgen/*Publisher*")
+    rm_wildcard(agent_out_dir + "/fastrtpsgen/*Subscriber*")
+    cp_wildcard(agent_out_dir + "/fastrtpsgen/*", agent_out_dir)
+    if os.path.isdir(agent_out_dir + "/fastrtpsgen"):
+        shutil.rmtree(agent_out_dir + "/fastrtpsgen")
+    cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", agent_out_dir)
+    os.rename(agent_out_dir + "/microRTPS_agent_CMakeLists.txt", agent_out_dir + "/CMakeLists.txt")
+    mkdir_p(agent_out_dir + "/build")
 
     return 0
+
+def rm_wildcard(pattern):
+    for f in glob.glob(pattern):
+        os.remove(f)
+
+def cp_wildcard(pattern, destdir):
+    for f in glob.glob(pattern):
+        shutil.copy(f, destdir)
+
+def mkdir_p(dirpath):
+    try:
+        os.makedirs(dirpath)
+    except OSError as e:
+        if e.errno == errno.EEXIST and os.path.isdir(dirpath):
+            pass
+        else:
+            raise
 
 def generate_client(out_dir):
 
@@ -178,7 +198,7 @@ def generate_client(out_dir):
                     px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_CLIENT_TEMPL_FILE)
 
     # Final steps to install client
-    os.system("cp " + urtps_templates_dir + "/microRTPS_transport.* " + client_out_dir)
+    cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", client_out_dir)
 
     return 0
 
