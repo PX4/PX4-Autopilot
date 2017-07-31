@@ -10,6 +10,7 @@ void linux_ina219::start() {
 	//param_get(param_find("PWM_MAX"), &rpi_pca9685_pwm_out::_pwm_max);
 
 	linux_ina219::ina219 = new linux_ina219::INA219(linux_ina219::__ina219_bus,INA219_ADDRESS);
+	linux_ina219::ina219->calibration32v1a();
 	__battery_status_pub = orb_advertise(ORB_ID(battery_status),
 			&__battery_status_data);
 
@@ -34,12 +35,6 @@ void linux_ina219::start() {
 void linux_ina219::stop() {
 	if (linux_ina219::__is_running) {
 		linux_ina219::__should_exit = true;
-		while (__is_running) {
-			usleep(200000);
-			PX4_INFO(".");
-		}
-		PX4_INFO("Stoped");
-		linux_ina219::__should_exit = false;
 		linux_ina219::__is_running = false;
 		return;
 	}
