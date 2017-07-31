@@ -59,7 +59,7 @@
 
 __EXPORT int bl_update_main(int argc, char *argv[]);
 
-#if defined (CONFIG_STM32_STM32F40XX)
+#if defined (CONFIG_STM32_STM32F4XXX)
 static int setopt(void);
 
 static void print_usage(const char *reason)
@@ -81,7 +81,7 @@ static void print_usage(const char *reason)
 int
 bl_update_main(int argc, char *argv[])
 {
-#if !defined (CONFIG_STM32_STM32F40XX)
+#if !defined (CONFIG_STM32_STM32F4XXX)
 	PX4_ERR("Not supported on this HW");
 	return 1;
 }
@@ -243,4 +243,4 @@ setopt(void)
 	PX4_ERR("option bits setting failed; readback 0x%04x", *optcr);
 	return 1;
 }
-#endif // CONFIG_STM32_STM32F40XX
+#endif // CONFIG_STM32_STM32F4XXX
