@@ -248,7 +248,12 @@ void frsky_send_frame2(int uart)
 		time_t time_gps = global_pos->time_utc_usec / 1000000ULL;
 		struct tm *tm_gps = gmtime(&time_gps);
 
-		course = (global_pos->yaw + M_PI_F) / M_PI_F * 180.0f;
+		course = global_pos->yaw / M_PI_F * 180.0f;
+
+		if (course < 0.f) { // course is in range [0, 360], 0=north, CW
+			course += 360.f;
+		}
+
 		lat    = frsky_format_gps(fabsf(global_pos->lat));
 		lat_ns = (global_pos->lat < 0) ? 'S' : 'N';
 		lon    = frsky_format_gps(fabsf(global_pos->lon));
