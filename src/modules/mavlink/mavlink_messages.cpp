@@ -3256,7 +3256,6 @@ protected:
 
 			msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
 
-			/* TODO: use correct ID here */
 			msg.id = dist_sensor.id;
 
 			switch (dist_sensor.type) {
