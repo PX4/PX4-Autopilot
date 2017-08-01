@@ -125,7 +125,7 @@ float linux_ina219::INA219::getBusVoltage(){
 	  status = this->write16(INA219_REG_CALIBRATION, &__ina219_calValue, sizeof(__ina219_calValue));
 	  status = this->read16(INA219_REG_BUSVOLTAGE, &value,sizeof(value));
 	  // Shift to the right 3 to drop CNVR and OVF and multiply by LSB
-	  result = (int16_t)((value >> 4)*4);
+	  result = (int16_t)((value >> 3)*4);
 	  if(0>status)
 		  return -1;
 	  return result*0.001;
