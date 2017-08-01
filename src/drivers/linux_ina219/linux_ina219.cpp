@@ -63,7 +63,7 @@ void linux_ina219::running(int argc,char**argv) {
 	//float a;
 	//a = linux_ina219::ina219->getCurrentMa();
 	//a = 1.0;
-	v = linux_ina219::ina219->getCurrent();
+	v = linux_ina219::ina219->getBusVoltage();
 	linux_ina219::__battery_status_data.timestamp = hrt_absolute_time(); // required for logger
 	linux_ina219::__battery_status_data.voltage_v = v;
 	linux_ina219::__battery_status_data.voltage_filtered_v = v;
