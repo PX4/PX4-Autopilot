@@ -30,11 +30,12 @@ void linux_ina219::INA219::calibration32v2a() {
 
 	// Set Config register to take into account the settings above
 	uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
-	INA219_CONFIG_GAIN_8_320MV |
+	INA219_CONFIG_GAIN_4_160MV |
 	INA219_CONFIG_BADCRES_12BIT |
 	//INA219_CONFIG_SADCRES_12BIT_1S_532US |
-	INA219_CONFIG_SADCRES_12BIT_4S_2130US |
-	INA219_CONFIG_MODE_BVOLT_CONTINUOUS;
+	//INA219_CONFIG_SADCRES_12BIT_4S_2130US |
+	INA219_CONFIG_SADCRES_12BIT_128S_69MS |
+	INA219_CONFIG_MODE_POWERDOWN;
 	this->write16(INA219_REG_CONFIG, &config, sizeof(config));
 }
 //-----------------------------------------------------------------------------------------------------------//
@@ -124,7 +125,7 @@ float linux_ina219::INA219::getBusVoltage(){
 	  status = this->write16(INA219_REG_CALIBRATION, &__ina219_calValue, sizeof(__ina219_calValue));
 	  status = this->read16(INA219_REG_BUSVOLTAGE, &value,sizeof(value));
 	  // Shift to the right 3 to drop CNVR and OVF and multiply by LSB
-	  result = (int16_t)((value >> 3)*4 );
+	  result = (int16_t)((value >> 3)*4);
 	  if(0>status)
 		  return -1;
 	  return result*0.001;
