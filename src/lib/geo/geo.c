@@ -178,8 +178,8 @@ __EXPORT int map_projection_reproject(const struct map_projection_reference_s *r
 		return -1;
 	}
 
-	double x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
-	double y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
+	double x_rad = (double)x / CONSTANTS_RADIUS_OF_EARTH;
+	double y_rad = (double)y / CONSTANTS_RADIUS_OF_EARTH;
 	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
 	double sin_c = sin(c);
 	double cos_c = cos(c);
