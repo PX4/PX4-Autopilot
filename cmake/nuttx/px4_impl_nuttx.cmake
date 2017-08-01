@@ -319,7 +319,8 @@ function(px4_nuttx_add_export)
 	add_custom_command(OUTPUT ${nuttx_configure_stamp} ${nuttx_build_src}/nuttx/.config
 		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/*.mk ${nuttx_build_src}/nuttx/
 		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_build_src}/nuttx/configs
-		COMMAND cd ${nuttx_build_src}/nuttx/tools && sh configure.sh ${CONFIG}/${config_nuttx_config}
+		COMMAND ${CP} ${nuttx_build_src}/nuttx/configs/${CONFIG}/${config_nuttx_config}/defconfig ${nuttx_build_src}/nuttx/.config
+		COMMAND ${CP} ${nuttx_build_src}/nuttx/configs/${CONFIG}/${config_nuttx_config}/Make.defs ${nuttx_build_src}/nuttx/
 		COMMAND cmake -E touch ${nuttx_configure_stamp}
 		DEPENDS nuttx_patch_${CONFIG} ${nuttx-configs}
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
