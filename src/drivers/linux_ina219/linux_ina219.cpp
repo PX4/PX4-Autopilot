@@ -58,6 +58,7 @@ void linux_ina219::usage() {
 }
 //---------------------------------------------------------------------------------------------//
 void linux_ina219::running(int argc,char**argv) {
+	PX4_INFO("持续测量");
 	//float v;
 	float sv;
 	//float a;
