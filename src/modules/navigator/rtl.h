@@ -75,7 +75,7 @@ private:
 	void		advance_rtl();
 
 	/**
-	 * Get rtl altitude
+	 * Get RTL altitude
 	 */
 	float 		get_rtl_altitude();
 
@@ -89,7 +89,7 @@ private:
 		RTL_STATE_LOITER,
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
-	} _rtl_state;
+	} _rtl_state{RTL_STATE_NONE};
 
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_min_loiter_alt;
