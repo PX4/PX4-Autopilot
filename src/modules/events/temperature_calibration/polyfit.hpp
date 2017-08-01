@@ -140,7 +140,7 @@ public:
 		}
 
 		for (unsigned i = 0; i < _forder; i++) {
-			res[i] = 0.0f;
+			res[i] = 0.0;
 
 			for (int j = 0; j < _forder; j++) {
 				res[i] += IVTV(i, j) * (double)_VTY(j);
@@ -158,7 +158,7 @@ private:
 
 	void update_VTY(double x, double y)
 	{
-		double temp = 1.0f;
+		double temp = 1.0;
 		PF_DEBUG("O %.6f\n", (double)x);
 
 		for (int8_t i = _forder - 1; i >= 0; i--) {
