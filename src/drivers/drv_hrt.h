@@ -186,6 +186,11 @@ __EXPORT extern	void	hrt_start_delay(void);
  */
 __EXPORT extern void	hrt_stop_delay(void);
 
+/**
+ * Stop to delay the HRT, but with an exact delta time.
+ */
+__EXPORT extern void	hrt_stop_delay_delta(hrt_abstime delta);
+
 #endif
 
 __END_DECLS
