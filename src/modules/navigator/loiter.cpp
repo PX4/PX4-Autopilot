@@ -153,10 +153,23 @@ Loiter::reposition()
 		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current.velocity_valid = false;
-		pos_sp_triplet->previous.yaw = _navigator->get_global_position()->yaw;
-		pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
-		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
-		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
+
+		// if previous is not valid set it to current position
+		// without a previous setpoint the controllers will not
+		// perform cross-track correction
+		if (pos_sp_triplet->previous.valid) {
+			memcpy(&pos_sp_triplet->previous, &rep->previous, sizeof(rep->previous));
+
+		} else {
+			pos_sp_triplet->previous.yaw = _navigator->get_global_position()->yaw;
+			pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
+			pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
+			pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
+			pos_sp_triplet->previous.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+			pos_sp_triplet->previous.acceptance_radius = _navigator->get_acceptance_radius();
+			pos_sp_triplet->previous.valid = true;
+		}
+
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
 		pos_sp_triplet->next.valid = false;
 

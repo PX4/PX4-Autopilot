@@ -385,15 +385,14 @@ Navigator::task_main()
 				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
 				struct position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
-				// store current position as previous position and goal as next
-				rep->previous.yaw = get_global_position()->yaw;
-				rep->previous.lat = get_global_position()->lat;
-				rep->previous.lon = get_global_position()->lon;
-				rep->previous.alt = get_global_position()->alt;
-
+				// Store current position as previous position and the user-selected position
+				// as the current (goal) position
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+				rep->current.acceptance_radius = get_acceptance_radius();
+				rep->current.valid = true;
+				rep->next.valid = false;
 
 				// Go on and check which changes had been requested
 				if (PX4_ISFINITE(cmd.param4)) {
@@ -432,18 +431,54 @@ Navigator::task_main()
 					rep->current.alt = get_global_position()->alt;
 				}
 
+				// Check if the distance is sufficient to calculate a stable vector
+				// between the current and the goal position
+				float distance = get_distance_to_next_waypoint(rep->previous.lat, rep->previous.lon, rep->current.lat,
+						 rep->current.lon);
+
+				if (distance > 2.0f * get_acceptance_radius()) {
+
+					// Get the vector between the current and the goal position
+					float v_next_n, v_next_e;
+					get_vector_to_next_waypoint(get_global_position()->lat, get_global_position()->lon,
+								    rep->current.lat, rep->current.lon, &v_next_n, &v_next_e);
+
+					// Add the current speed and give the vehicle 2 seconds
+					// to adjust speed, so the vehicle can intercept the line
+					v_next_n = -v_next_n + 2.0f * get_global_position()->vel_n;
+					v_next_e = -v_next_e + 2.0f * get_global_position()->vel_e;
+
+					// Ensure the system tracks the line segment immediately by moving
+					// the previous tracking position further behind
+					double lat_res, lon_res;
+					add_vector_to_global_position(get_global_position()->lat, get_global_position()->lon,
+								      v_next_n, v_next_e, &lat_res, &lon_res);
+					rep->previous.lat = lat_res;
+					rep->previous.lon = lon_res;
+
+				} else {
+					rep->previous.lat = get_global_position()->lat;
+					rep->previous.lon = get_global_position()->lon;
+				}
+
+				rep->previous.yaw = get_global_position()->yaw;
+				rep->previous.alt = get_global_position()->alt;
+				rep->previous.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+				rep->previous.acceptance_radius = get_acceptance_radius();
 				rep->previous.valid = true;
-				rep->current.valid = true;
-				rep->next.valid = false;
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
 				struct position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
-				// store current position as previous position and goal as next
+				// Store current position as previous position and the user-selected position
+				// as the current (goal) position
 				rep->previous.yaw = get_global_position()->yaw;
 				rep->previous.lat = get_global_position()->lat;
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;
+				rep->previous.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+				rep->previous.acceptance_radius = get_acceptance_radius();
+				rep->previous.valid = true;
 
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction = 1;
