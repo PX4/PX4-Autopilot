@@ -66,7 +66,7 @@ void linux_ina219::running(int argc,char**argv) {
 	//a = 1.0;
 	v = linux_ina219::ina219->getBusVoltage();
 	sv = linux_ina219::ina219->getShuntVoltage();
-	PX4_INFO("V: %f, SV: %f",v,sv);
+	printf("V: %f, SV: %f",v,sv);
 	linux_ina219::__battery_status_data.timestamp = hrt_absolute_time(); // required for logger
 	linux_ina219::__battery_status_data.voltage_v = v;
 	linux_ina219::__battery_status_data.voltage_filtered_v = v;
