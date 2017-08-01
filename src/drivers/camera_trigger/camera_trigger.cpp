@@ -486,7 +486,7 @@ CameraTrigger::test()
 	struct vehicle_command_s cmd = {};
 	cmd.timestamp = hrt_absolute_time();
 	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
-	cmd.param5 = 1.0f;
+	cmd.param5 = 1.0;
 
 	orb_advert_t pub;
 	pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
