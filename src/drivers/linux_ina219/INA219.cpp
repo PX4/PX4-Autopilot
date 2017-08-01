@@ -32,8 +32,9 @@ void linux_ina219::INA219::calibration32v2a() {
 	uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
 	INA219_CONFIG_GAIN_8_320MV |
 	INA219_CONFIG_BADCRES_12BIT |
-	INA219_CONFIG_SADCRES_12BIT_1S_532US |
-	INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
+	//INA219_CONFIG_SADCRES_12BIT_1S_532US |
+	INA219_CONFIG_SADCRES_12BIT_4S_2130US |
+	INA219_CONFIG_MODE_BVOLT_CONTINUOUS;
 	this->write16(INA219_REG_CONFIG, &config, sizeof(config));
 }
 //-----------------------------------------------------------------------------------------------------------//
