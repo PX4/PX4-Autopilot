@@ -83,7 +83,7 @@ bool RtpsTopics::init()
 }
 
 @[if send_topics]@
-void RtpsTopics::publish(char topic_ID, char data_buffer[], size_t len)
+void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 {
     switch (topic_ID)
     {
@@ -106,7 +106,7 @@ void RtpsTopics::publish(char topic_ID, char data_buffer[], size_t len)
 @[end if]@
 @[if recv_topics]@
 
-bool RtpsTopics::hasMsg(char *topic_ID)
+bool RtpsTopics::hasMsg(uint8_t *topic_ID)
 {
     if (nullptr == topic_ID) return false;
 
@@ -134,7 +134,7 @@ bool RtpsTopics::hasMsg(char *topic_ID)
     return true;
 }
 
-bool RtpsTopics::getMsg(const char topic_ID, eprosima::fastcdr::Cdr &scdr)
+bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
 {
     bool ret = false;
     switch (topic_ID)

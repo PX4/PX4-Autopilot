@@ -229,7 +229,7 @@ int main(int argc, char** argv)
     int received = 0, loop = 0;
     int length = 0, total_read = 0;
     bool receiving = false;
-    char topic_ID = 255;
+    uint8_t topic_ID = 255;
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 @[end if]@
 

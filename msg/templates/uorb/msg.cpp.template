@@ -84,18 +84,18 @@ ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size),
 @{
 
 def print_info(field):
-    print "type: ", field.type, "name: ", field.name, "base_type: ", \
+    print("type: ", field.type, "name: ", field.name, "base_type: ", \
           field.base_type, "field.is_array:", ('0', '1')[field.is_array], " array_len: ", field.array_len, \
-          "is_builtin:", ('0', '1')[field.is_builtin], "is_header:", ('0', '1')[field.is_header]
+          "is_builtin:", ('0', '1')[field.is_builtin], "is_header:", ('0', '1')[field.is_header])
 
 def print_level_info(fields):
     for field in fields:
         print_info(field)
         if (not field.is_builtin):
-            print "\n"
+            print("\n")
             children_fields = get_children_fields(field.base_type, search_path)
             print_level_info(children_fields)
-            print "\n"
+            print("\n")
 
 def walk_through_parsed_fields():
     print_level_info(spec.parsed_fields())
@@ -111,9 +111,9 @@ def add_serialize_functions(fields, scope_name):
         if (not field.is_header):
             if (field.is_builtin):
                 if (not field.is_array):
-                    print "\tserialize"+str(get_serialization_type_name(field.type))+"(input->"+scope_name+str(field.name)+", microCDRWriter);"
+                    print("\tserialize"+str(get_serialization_type_name(field.type))+"(input->"+scope_name+str(field.name)+", microCDRWriter);")
                 else:
-                    print "\tserialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);"
+                    print("\tserialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);")
             else:
                 name = field.name
                 children_fields = get_children_fields(field.base_type, search_path)
@@ -129,10 +129,10 @@ def add_deserialize_functions(fields, scope_name):
         if (not field.is_header):
             if (field.is_builtin):
                 if (not field.is_array):
-                    print "\tdeserialize"+str(get_serialization_type_name(field.type))+"(&output->"+scope_name+str(field.name)+", microCDRReader);"
+                    print("\tdeserialize"+str(get_serialization_type_name(field.type))+"(&output->"+scope_name+str(field.name)+", microCDRReader);")
                 else:
                     for i in xrange(field.array_len):
-                        print "\tdeserialize"+str(get_serialization_type_name(field.base_type))+"(&output->"+scope_name+str(field.name)+ str('[%d]' %i) +", microCDRReader);"
+                        print("\tdeserialize"+str(get_serialization_type_name(field.base_type))+"(&output->"+scope_name+str(field.name)+ str('[%d]' %i) +", microCDRReader);")
             else:
                 name = field.name
                 children_fields = get_children_fields(field.base_type, search_path)

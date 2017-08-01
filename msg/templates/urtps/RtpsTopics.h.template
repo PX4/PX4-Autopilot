@@ -64,11 +64,11 @@ class RtpsTopics {
 public:
     bool init();
 @[if send_topics]@
-    void publish(char topic_ID, char data_buffer[], size_t len);
+    void publish(uint8_t topic_ID, char data_buffer[], size_t len);
 @[end if]@
 @[if recv_topics]@
-    bool hasMsg(char *topic_ID);
-    bool getMsg(const char topic_ID, eprosima::fastcdr::Cdr &scdr);
+    bool hasMsg(uint8_t *topic_ID);
+    bool getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr);
 @[end if]@
 
 private:
