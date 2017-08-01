@@ -259,7 +259,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					break;
 
 				case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-					control_data_set_lon_lat(vehicle_command.param2, vehicle_command.param1, vehicle_command.param3);
+					control_data_set_lon_lat((double)vehicle_command.param2, (double)vehicle_command.param1, vehicle_command.param3);
 
 					*control_data = &_control_data;
 					break;
