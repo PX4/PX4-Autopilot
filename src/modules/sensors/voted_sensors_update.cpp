@@ -51,7 +51,7 @@ using namespace sensors;
 using namespace DriverFramework;
 
 
-const double VotedSensorsUpdate::_msl_pressure = 101.325f;
+const double VotedSensorsUpdate::_msl_pressure = 101.325;
 
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
 	: _parameters(parameters), _hil_enabled(hil_enabled)
