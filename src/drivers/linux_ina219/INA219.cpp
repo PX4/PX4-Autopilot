@@ -117,10 +117,10 @@ float linux_ina219::INA219::getCurrent(){
 //---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getBusVoltage(){
 	  uint16_t value;
-	  uint16_t result;
+	  //uint16_t result;
 	  int status = this->read16(INA219_REG_BUSVOLTAGE, &value,sizeof(value));
 	  // Shift to the right 3 to drop CNVR and OVF and multiply by LSB
-	  result = (int16_t)((value >> 3) * 4);
+	  //result = (int16_t)((value >> 3) * 4);
 	  if(0>status)
 		  return -1;
 	  return value*0.001;
