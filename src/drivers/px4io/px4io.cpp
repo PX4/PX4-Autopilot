@@ -792,8 +792,6 @@ PX4IO::init()
 
 		} while (true);
 
-		/* send command to arm system via command API */
-		vehicle_command_s cmd;
 		/* send this to itself */
 		param_t sys_id_param = param_find("MAV_SYS_ID");
 		param_t comp_id_param = param_find("MAV_COMP_ID");
@@ -809,23 +807,25 @@ PX4IO::init()
 			errx(1, "PRM CMPID");
 		}
 
-		cmd.target_system = sys_id;
-		cmd.target_component = comp_id;
-		cmd.source_system = sys_id;
-		cmd.source_component = comp_id;
-		/* request arming */
-		cmd.param1 = 1.0f;
-		cmd.param2 = 0;
-		cmd.param3 = 0;
-		cmd.param4 = 0;
-		cmd.param5 = 0;
-		cmd.param6 = 0;
-		cmd.param7 = 0;
-		cmd.timestamp = hrt_absolute_time();
-		cmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
-
-		/* ask to confirm command */
-		cmd.confirmation =  1;
+		/* send command to arm system via command API */
+		struct vehicle_command_s cmd = {
+			.timestamp = hrt_absolute_time(),
+			.param5 = 0.0f,
+			.param6 = 0.0f,
+			/* request arming */
+			.param1 = 1.0f,
+			.param2 = 0.0f,
+			.param3 = 0.0f,
+			.param4 = 0.0f,
+			.param7 = 0.0f,
+			.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+			.target_system = (uint8_t)sys_id,
+			.target_component = (uint8_t)comp_id,
+			.source_system = (uint8_t)sys_id,
+			.source_component = (uint8_t)comp_id,
+			/* ask to confirm command */
+			.confirmation = 1
+		};
 
 		/* send command once */
 		orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);

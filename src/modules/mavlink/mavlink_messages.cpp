@@ -462,10 +462,7 @@ protected:
 
 		if (_cmd_sub->update(&_cmd_time, &cmd)) {
 
-			/* only send commands for other systems/components, don't forward broadcast commands */
-			if ((cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) &&
-			    (cmd.target_system != 0)) {
-
+			if (!cmd.from_external) {
 				if (_mavlink->verbose()) {
 					PX4_INFO("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 				}
@@ -1413,19 +1410,19 @@ protected:
 
 				mavlink_msg_camera_trigger_send_struct(_mavlink->get_channel(), &msg);
 
-				vehicle_command_s cmd{};
-
-				cmd.target_system = mavlink_system.sysid;
-				cmd.target_component = MAV_COMP_ID_CAMERA;
-				cmd.command = MAV_CMD_IMAGE_START_CAPTURE;
-				cmd.confirmation = 0;
-				cmd.param1 = 0; // all cameras
-				cmd.param2 = 0; // duration 0 because only taking one picture
-				cmd.param3 = 1; // only take one
-				cmd.param4 = NAN;
-				cmd.param5 = NAN;
-				cmd.param6 = NAN;
-				cmd.param7 = NAN;
+				struct vehicle_command_s cmd = {
+					.timestamp = 0,
+					.param5 = NAN,
+					.param6 = NAN,
+					.param1 = 0.0f, // all cameras
+					.param2 = 0.0f, // duration 0 because only taking one picture
+					.param3 = 1.0f, // only take one
+					.param4 = NAN,
+					.param7 = NAN,
+					.command = MAV_CMD_IMAGE_START_CAPTURE,
+					.target_system = mavlink_system.sysid,
+					.target_component = MAV_COMP_ID_CAMERA
+				};
 
 				MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
 

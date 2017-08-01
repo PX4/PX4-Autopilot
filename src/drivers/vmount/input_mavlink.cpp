@@ -285,10 +285,11 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 
 void InputMavlinkCmdMount::_ack_vehicle_command(uint16_t command)
 {
-	vehicle_command_ack_s vehicle_command_ack;
-	vehicle_command_ack.timestamp = hrt_absolute_time();
-	vehicle_command_ack.command = command;
-	vehicle_command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+	vehicle_command_ack_s vehicle_command_ack = {
+		.timestamp = hrt_absolute_time(),
+		.command = command,
+		.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED
+	};
 
 	if (_vehicle_command_ack_pub == nullptr) {
 		_vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,

@@ -377,7 +377,7 @@ Navigator::task_main()
 		orb_check(_vehicle_command_sub, &updated);
 
 		if (updated) {
-			vehicle_command_s cmd = {};
+			vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
@@ -481,14 +481,20 @@ Navigator::task_main()
 				int land_start = _mission.find_offboard_land_start();
 
 				if (land_start != -1) {
-					vehicle_command_s vcmd = {};
-					vcmd.target_system = get_vstatus()->system_id;
-					vcmd.target_component = get_vstatus()->component_id;
-					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
-					vcmd.param1 = land_start;
-					vcmd.param2 = 0;
+					struct vehicle_command_s vcmd = {
+						.timestamp = hrt_absolute_time(),
+						.param5 = 0.0f,
+						.param6 = 0.0f,
+						.param1 = (float)land_start,
+						.param2 = 0.0f,
+						.param3 = 0.0f,
+						.param4 = 0.0f,
+						.param7 = 0.0f,
+						.command = vehicle_command_s::VEHICLE_CMD_MISSION_START,
+						.target_system = (uint8_t)get_vstatus()->system_id,
+						.target_component = (uint8_t)get_vstatus()->component_id
+					};
 
-					vcmd.timestamp = hrt_absolute_time();
 					publish_vehicle_cmd(vcmd);
 
 				} else {

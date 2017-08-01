@@ -439,39 +439,25 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			_mavlink->request_stop_ulog_streaming();
 		}
 
-		struct vehicle_command_s vcmd;
-
-		memset(&vcmd, 0, sizeof(vcmd));
-
-		vcmd.timestamp = hrt_absolute_time();
-
-		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
-		vcmd.param1 = cmd_mavlink.param1;
-
-		vcmd.param2 = cmd_mavlink.param2;
-
-		vcmd.param3 = cmd_mavlink.param3;
-
-		vcmd.param4 = cmd_mavlink.param4;
-
-		vcmd.param5 = cmd_mavlink.param5;
-
-		vcmd.param6 = cmd_mavlink.param6;
-
-		vcmd.param7 = cmd_mavlink.param7;
-
-		// XXX do proper translation
-		vcmd.command = cmd_mavlink.command;
-
-		vcmd.target_system = cmd_mavlink.target_system;
-
-		vcmd.target_component = cmd_mavlink.target_component;
-
-		vcmd.source_system = msg->sysid;
-
-		vcmd.source_component = msg->compid;
-
-		vcmd.confirmation =  cmd_mavlink.confirmation;
+		struct vehicle_command_s vcmd = {
+			.timestamp = hrt_absolute_time(),
+			.param5 = cmd_mavlink.param5,
+			.param6 = cmd_mavlink.param6,
+			/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
+			.param1 = cmd_mavlink.param1,
+			.param2 = cmd_mavlink.param2,
+			.param3 = cmd_mavlink.param3,
+			.param4 = cmd_mavlink.param4,
+			.param7 = cmd_mavlink.param7,
+			// XXX do proper translation
+			.command = cmd_mavlink.command,
+			.target_system = cmd_mavlink.target_system,
+			.target_component = cmd_mavlink.target_component,
+			.source_system = msg->sysid,
+			.source_component = msg->compid,
+			.confirmation = cmd_mavlink.confirmation,
+			.from_external = 1
+		};
 
 		if (_cmd_pub == nullptr) {
 			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -484,15 +470,11 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 out:
 
 	if (send_ack) {
-		vehicle_command_ack_s command_ack;
-		command_ack.command = cmd_mavlink.command;
-
-		if (ret == PX4_OK) {
-			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-
-		} else {
-			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
-		}
+		vehicle_command_ack_s command_ack = {
+			.timestamp = 0,
+			.command = cmd_mavlink.command,
+			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED)
+		};
 
 		if (_command_ack_pub == nullptr) {
 			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
@@ -548,38 +530,26 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 		send_ack = false;
 
-		struct vehicle_command_s vcmd;
-
-		memset(&vcmd, 0, sizeof(vcmd));
-
-		vcmd.timestamp = hrt_absolute_time();
-
-		/* Copy the content of mavlink_command_int_t cmd_mavlink into command_t cmd */
-		vcmd.param1 = cmd_mavlink.param1;
-
-		vcmd.param2 = cmd_mavlink.param2;
-
-		vcmd.param3 = cmd_mavlink.param3;
-
-		vcmd.param4 = cmd_mavlink.param4;
-
-		/* these are coordinates as 1e7 scaled integers to work around the 32 bit floating point limits */
-		vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
-
-		vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
-
-		vcmd.param7 = cmd_mavlink.z;
-
-		// XXX do proper translation
-		vcmd.command = cmd_mavlink.command;
-
-		vcmd.target_system = cmd_mavlink.target_system;
-
-		vcmd.target_component = cmd_mavlink.target_component;
-
-		vcmd.source_system = msg->sysid;
-
-		vcmd.source_component = msg->compid;
+		struct vehicle_command_s vcmd = {
+			.timestamp = hrt_absolute_time(),
+			/* these are coordinates as 1e7 scaled integers to work around the 32 bit floating point limits */
+			.param5 = ((double)cmd_mavlink.x) / 1e7,
+			.param6 = ((double)cmd_mavlink.y) / 1e7,
+			/* Copy the content of mavlink_command_int_t cmd_mavlink into command_t cmd */
+			.param1 = cmd_mavlink.param1,
+			.param2 = cmd_mavlink.param2,
+			.param3 = cmd_mavlink.param3,
+			.param4 = cmd_mavlink.param4,
+			.param7 = cmd_mavlink.z,
+			// XXX do proper translation
+			.command = cmd_mavlink.command,
+			.target_system = cmd_mavlink.target_system,
+			.target_component = cmd_mavlink.target_component,
+			.source_system = msg->sysid,
+			.source_component = msg->compid,
+			.confirmation = 0,
+			.from_external = 1
+		};
 
 		if (_cmd_pub == nullptr) {
 			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -592,15 +562,11 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 out:
 
 	if (send_ack) {
-		vehicle_command_ack_s command_ack;
-		command_ack.command = cmd_mavlink.command;
-
-		if (ret == PX4_OK) {
-			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-
-		} else {
-			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
-		}
+		vehicle_command_ack_s command_ack = {
+			.timestamp = 0,
+			.command = cmd_mavlink.command,
+			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED)
+		};
 
 		if (_command_ack_pub == nullptr) {
 			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
@@ -620,6 +586,22 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 
 	MavlinkCommandSender::instance().handle_mavlink_command_ack(ack, msg->sysid, msg->compid);
 
+	vehicle_command_ack_s command_ack = {
+		.timestamp = hrt_absolute_time(),
+		.command = ack.command,
+		.result = ack.result,
+		.from_external = 1
+	};
+
+	if (_command_ack_pub == nullptr) {
+		_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+						       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
+	}
+
+	// TODO: move it to the same place that sent the command
 	if (ack.result != MAV_RESULT_ACCEPTED && ack.result != MAV_RESULT_IN_PROGRESS) {
 		if (msg->compid == MAV_COMP_ID_CAMERA) {
 			PX4_WARN("Got unsuccessful result %d from camera", ack.result);
@@ -745,26 +727,27 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	mavlink_set_mode_t new_mode;
 	mavlink_msg_set_mode_decode(msg, &new_mode);
 
-	struct vehicle_command_s vcmd;
-	memset(&vcmd, 0, sizeof(vcmd));
-
 	union px4_custom_mode custom_mode;
 	custom_mode.data = new_mode.custom_mode;
-	/* copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
-	vcmd.param1 = new_mode.base_mode;
-	vcmd.param2 = custom_mode.main_mode;
-	vcmd.param3 = custom_mode.sub_mode;
-	vcmd.param4 = 0;
-	vcmd.param5 = 0;
-	vcmd.param6 = 0;
-	vcmd.param7 = 0;
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	vcmd.target_system = new_mode.target_system;
-	vcmd.target_component = MAV_COMP_ID_ALL;
-	vcmd.source_system = msg->sysid;
-	vcmd.source_component = msg->compid;
-	vcmd.confirmation = 1;
-	vcmd.timestamp = hrt_absolute_time();
+
+	struct vehicle_command_s vcmd = {
+		.timestamp = hrt_absolute_time(),
+		.param5 = 0,
+		.param6 = 0,
+		/* copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
+		.param1 = (float)new_mode.base_mode,
+		.param2 = (float)custom_mode.main_mode,
+		.param3 = (float)custom_mode.sub_mode,
+		.param4 = 0,
+		.param7 = 0,
+		.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE,
+		.target_system = new_mode.target_system,
+		.target_component = MAV_COMP_ID_ALL,
+		.source_system = msg->sysid,
+		.source_component = msg->compid,
+		.confirmation = 1,
+		.from_external = 1
+	};
 
 	if (_cmd_pub == nullptr) {
 		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
