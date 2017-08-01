@@ -109,6 +109,7 @@ public:
 	void calibration32v1a();
 	void calibration32v2a();
 	void calibration16v400ma();
+	float getShuntVoltage();
 	float getBusVoltage();
 	float getCurrentMa();
 	~INA219();

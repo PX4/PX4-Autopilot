@@ -91,6 +91,15 @@ int linux_ina219::INA219::open_fd() {
 	return this->__device_fd;
 }
 //---------------------------------------------------------------------------------------------------------//
+float linux_ina219::INA219::getShuntVoltage(){
+	  uint16_t value;
+	  uint16_t result;
+	  int status = this->read16(INA219_REG_SHUNTVOLTAGE, &value,sizeof(value));
+	  if(0>status)
+		  return -1;
+	  return value;
+}
+//---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getBusVoltage(){
 	  uint16_t value;
 	  uint16_t result;

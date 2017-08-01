@@ -17,6 +17,7 @@ BAT_A_PER_V
 	//param_get(param_find("PWM_MAX"), &rpi_pca9685_pwm_out::_pwm_max);
 
 	linux_ina219::ina219 = new linux_ina219::INA219(linux_ina219::__ina219_bus,INA219_ADDRESS);
+	linux_ina219::ina219->calibration32v1a();
 	//linux_ina219::ina219->calibration16v400ma();
 	__battery_status_pub = orb_advertise(ORB_ID(battery_status),
 			&__battery_status_data);
@@ -62,7 +63,7 @@ void linux_ina219::running(int argc,char**argv) {
 	//float a;
 	//a = linux_ina219::ina219->getCurrentMa();
 	//a = 1.0;
-	v = linux_ina219::ina219->getBusVoltage();
+	v = linux_ina219::ina219->getShuntVoltage();
 	linux_ina219::__battery_status_data.timestamp = hrt_absolute_time(); // required for logger
 	linux_ina219::__battery_status_data.voltage_v = v;
 	linux_ina219::__battery_status_data.voltage_filtered_v = v;
