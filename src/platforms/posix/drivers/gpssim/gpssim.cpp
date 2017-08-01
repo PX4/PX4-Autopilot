@@ -288,7 +288,7 @@ GPSSIM::receive(int timeout)
 	_report_gps_pos.fix_type = gps.fix_type;
 	_report_gps_pos.satellites_used = gps.satellites_visible;
 
-	usleep(200000);
+	usleep(120000);
 	return 1;
 }
 
