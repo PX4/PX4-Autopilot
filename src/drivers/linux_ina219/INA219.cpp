@@ -99,6 +99,22 @@ float linux_ina219::INA219::getShuntVoltage(){
 	  return (float)value;
 }
 //---------------------------------------------------------------------------------------------------------//
+float linux_ina219::INA219::getCurrent(){
+	 uint16_t value;
+
+	  // Sometimes a sharp load will reset the INA219, which will
+	  // reset the cal register, meaning CURRENT and POWER will
+	  // not be available ... avoid this by always setting a cal
+	  // value even if it's an unfortunate extra step
+	  this->write16(INA219_REG_CALIBRATION, &__ina219_calValue, sizeof(__ina219_calValue));
+
+	  // Now we can safely read the CURRENT register!
+	  this->read16(INA219_REG_CURRENT, &value, sizeof(value));
+	  return (float)value;
+}
+
+
+//---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getBusVoltage(){
 	  uint16_t value;
 	  uint16_t result;
