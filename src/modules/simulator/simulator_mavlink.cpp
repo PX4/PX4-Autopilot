@@ -284,49 +284,69 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			mavlink_hil_sensor_t imu;
 			mavlink_msg_hil_sensor_decode(msg, &imu);
 
+			bool compensation_enabled = (imu.time_usec > 0);
+
 			// set temperature to a decent value
 			imu.temperature = 32.0f;
 
-			uint64_t sim_timestamp = imu.time_usec;
 			struct timespec ts;
-			px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-			uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
-
-			perf_set_elapsed(_perf_sim_delay, timestamp - sim_timestamp);
-			perf_count(_perf_sim_interval);
+			// clock_gettime(CLOCK_MONOTONIC, &ts);
+			// uint64_t host_time = ts_to_abstime(&ts);
 
 			hrt_abstime curr_sitl_time = hrt_absolute_time();
 			hrt_abstime curr_sim_time = imu.time_usec;
 
-			if (_last_sim_timestamp > 0 && _last_sitl_timestamp > 0
+			if (compensation_enabled && _initialized
+			    && _last_sim_timestamp > 0 && _last_sitl_timestamp > 0
 			    && _last_sitl_timestamp < curr_sitl_time
 			    && _last_sim_timestamp < curr_sim_time) {
 
-				hrt_abstime dt_sitl = curr_sitl_time - _last_sitl_timestamp;
-				hrt_abstime dt_sim = curr_sim_time - _last_sim_timestamp;
+				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+				uint64_t timestamp = ts_to_abstime(&ts);
 
-				_realtime_factor = dt_sim / dt_sitl;
+				perf_set_elapsed(_perf_sim_delay, timestamp - curr_sim_time);
+				perf_count(_perf_sim_interval);
+
+				int64_t dt_sitl = curr_sitl_time - _last_sitl_timestamp;
+				int64_t dt_sim = curr_sim_time - _last_sim_timestamp;
+
+				double curr_factor = ((double)dt_sim / (double)dt_sitl);
+
+				if (curr_factor < 5.0) {
+					_realtime_factor = _realtime_factor * 0.99 + 0.01 * curr_factor;
+				}
 
 				// calculate how much the system needs to be delayed
-				hrt_abstime sysdelay = dt_sitl - dt_sim;
+				int64_t sysdelay = dt_sitl - dt_sim;
 
-				if (_initialized
-				    && _realtime_factor < 1.0f
-				    && dt_sitl < 1e4
-				    && dt_sim < 1e4) {
+				unsigned min_delay = 200;
+
+				if (dt_sitl < 1e5
+				    && dt_sim < 1e5
+				    && sysdelay > min_delay + 100) {
 
 					// the correct delay is exactly the scale between
 					// the last two intervals
 					px4_sim_start_delay();
 					hrt_start_delay();
-					usleep(sysdelay);
-					hrt_stop_delay();
+
+					unsigned exact_delay = sysdelay / _realtime_factor;
+					unsigned usleep_delay = (sysdelay - min_delay) / _realtime_factor;
+
+					// extend by the realtime factor to avoid drift
+					usleep(usleep_delay);
+					hrt_stop_delay_delta(exact_delay);
 					px4_sim_stop_delay();
 				}
 			}
 
+			hrt_abstime now = hrt_absolute_time();
+
 			_last_sitl_timestamp = curr_sitl_time;
 			_last_sim_timestamp = curr_sim_time;
+
+			// correct timestamp
+			imu.time_usec = now;
 
 			if (publish) {
 				publish_sensor_topics(&imu);
@@ -335,8 +355,6 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			update_sensors(&imu);
 
 			// battery simulation
-			hrt_abstime now = hrt_absolute_time();
-
 			const float discharge_interval_us = 60 * 1000 * 1000;
 
 			bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
@@ -787,7 +805,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 
 	bool sim_delay = false;
 
-	const unsigned max_wait_ms = 3;
+	const unsigned max_wait_ms = 4;
 
 	//send MAV_CMD_SET_MESSAGE_INTERVAL for HIL_STATE_QUATERNION ground truth
 	mavlink_command_long_t cmd_long = {};
@@ -809,8 +827,8 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 				// we do not want to spam the console by default
 				// PX4_WARN("mavlink sim timeout for %d ms", max_wait_ms);
 				sim_delay = true;
-				hrt_start_delay();
 				px4_sim_start_delay();
+				hrt_start_delay();
 			}
 
 			continue;

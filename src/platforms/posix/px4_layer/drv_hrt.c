@@ -332,6 +332,28 @@ void	hrt_start_delay()
 	pthread_mutex_unlock(&_hrt_mutex);
 }
 
+void	hrt_stop_delay_delta(hrt_abstime delta)
+{
+	pthread_mutex_lock(&_hrt_mutex);
+
+	uint64_t delta_measured = _hrt_absolute_time_internal() - _start_delay_time;
+
+	if (delta_measured < delta) {
+		//PX4_WARN("Slim slowdown inaccurate: (slowdown delay: %" PRIu64 " us, true: %" PRIu64 " us)", delta, delta_measured);
+		delta = delta_measured;
+	}
+
+	_delay_interval += delta;
+	_start_delay_time = 0;
+
+	if (delta > 100000) {
+		PX4_WARN("Computer load temporarily too high for real-time simulation. (slowdown delay: %" PRIu64 " us)", delta);
+	}
+
+	pthread_mutex_unlock(&_hrt_mutex);
+
+}
+
 void	hrt_stop_delay()
 {
 	pthread_mutex_lock(&_hrt_mutex);
@@ -340,7 +362,7 @@ void	hrt_stop_delay()
 	_start_delay_time = 0;
 
 	if (delta > 100000) {
-		PX4_INFO("Computer load temporarily too high for real-time simulation. (slowdown delay: %" PRIu64 " us)", delta);
+		PX4_WARN("Computer load temporarily too high for real-time simulation. (slowdown delay: %" PRIu64 " us)", delta);
 	}
 
 	pthread_mutex_unlock(&_hrt_mutex);
