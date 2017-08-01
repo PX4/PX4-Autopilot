@@ -161,8 +161,10 @@ int linux_ina219::INA219::read16(uint8_t reg, uint16_t *value, size_t length) {
 
 	} while (_retry_count++ < _retries);
 	//未能读取切换到寄存器地址，直接返回
-	if (-1==result)
+	if (-1==result){
+		PX4_INFO("未能切换到寄存器地址");
 		return result;
+	}
 	//将输入读入value变量中
 	ssize_t bytes_read = 0;
 	bytes_read = ::read(this->__device_fd, (uint8_t*) value, length);
