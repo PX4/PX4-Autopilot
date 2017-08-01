@@ -119,7 +119,7 @@ __END_DECLS
  * Private Functions
  ****************************************************************************/
 
-static int _bootloader_force_pin_callback(int irq, void *context)
+static int _bootloader_force_pin_callback(int irq, void *context, void *args)
 {
 	if (stm32_gpioread(GPIO_FORCE_BOOTLOADER)) {
 		board_reset(0);
@@ -149,7 +149,7 @@ static int _bootloader_force_pin_callback(int irq, void *context)
 __EXPORT void stm32_boardinitialize(void)
 {
 	stm32_configgpio(GPIO_FORCE_BOOTLOADER);
-	_bootloader_force_pin_callback(0, NULL);
+	_bootloader_force_pin_callback(0, NULL, NULL);
 
 	/* configure LEDs */
 	board_autoled_initialize();
@@ -175,7 +175,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	int result;
 
 	/* the interruption subsystem is not initialized when stm32_boardinitialize() is called */
-	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback);
+	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback, NULL);
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
