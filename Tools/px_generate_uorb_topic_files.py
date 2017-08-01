@@ -165,7 +165,7 @@ def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
 def generate_uRTPS_general(filename_send_msgs, filename_received_msgs,
                            outputdir, templatedir, includepath, template_name):
         """
-        Generates source file by UART msg content
+        Generates source file by msg content
         """
         em_globals_list = []
         if filename_send_msgs:

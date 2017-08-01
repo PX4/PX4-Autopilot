@@ -74,8 +74,8 @@ if len(sys.argv) <= 1:
 # Parse arguments
 args = parser.parse_args()
 msg_folder = get_absolute_path(args.msgdir)
-msg_files_send = args.send
-msg_files_receive = args.receive
+msg_files_send = [get_absolute_path(msg) for msg in args.send]
+msg_files_receive = [get_absolute_path(msg) for msg in args.receive]
 agent = args.agent
 client = args.client
 del_tree = args.del_tree
@@ -162,22 +162,22 @@ def generate_agent(out_dir):
     # Final steps to install agent
     mkdir_p(agent_out_dir + "/fastrtpsgen")
     os.chdir(agent_out_dir + "/fastrtpsgen")
-    for idl_file in glob.glob( agent_out_dir + "/idl/*.idl"):
-        ret = os.system(fastrtpsgen_path + " -example x64Linux2.6gcc " + idl_file)
+    for idl_file in glob.glob(agent_out_dir + "/idl/*.idl"):
+        ret = subprocess.call(fastrtpsgen_path + " -d " + agent_out_dir + "/fastrtpsgen -example x64Linux2.6gcc " + idl_file, shell=True)
         if ret:
             raise Exception("fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
-
-    rm_wildcard(agent_out_dir + "/fastrtpsgen/*PubSubMain.cpp")
+    rm_wildcard(agent_out_dir + "/fastrtpsgen/*PubSubMain*")
     rm_wildcard(agent_out_dir + "/fastrtpsgen/makefile*")
     rm_wildcard(agent_out_dir + "/fastrtpsgen/*Publisher*")
     rm_wildcard(agent_out_dir + "/fastrtpsgen/*Subscriber*")
+    for f in glob.glob(agent_out_dir + "/fastrtpsgen/*.cxx"):
+        os.rename(f, f.replace(".cxx", ".cpp"))
     cp_wildcard(agent_out_dir + "/fastrtpsgen/*", agent_out_dir)
     if os.path.isdir(agent_out_dir + "/fastrtpsgen"):
         shutil.rmtree(agent_out_dir + "/fastrtpsgen")
     cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", agent_out_dir)
     os.rename(agent_out_dir + "/microRTPS_agent_CMakeLists.txt", agent_out_dir + "/CMakeLists.txt")
     mkdir_p(agent_out_dir + "/build")
-
     return 0
 
 def rm_wildcard(pattern):
