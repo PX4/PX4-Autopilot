@@ -43,6 +43,7 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
+#include <px4_module.h>
 
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 
@@ -53,17 +54,23 @@ struct options _options;
 
 static void usage(const char *name)
 {
-	PX4_INFO("usage: %s start|stop [options]\n\n"
-		 "  -t <transport>          [UART|UDP] Default UART\n"
-		 "  -d <device>             UART device. Default /dev/ttyACM0\n"
-		 "  -u <update_time_ms>     Time in ms for uORB subscribed topics update. Default 0\n"
-		 "  -l <loops>              How many iterations will this program have. -1 for infinite. Default 10000\n"
-		 "  -w <sleep_time_ms>      Time in ms for which each iteration sleep. Default 1ms\n"
-		 "  -b <baudrate>           UART device baudrate. Default 460800\n"
-		 "  -p <poll_ms>            Time in ms to poll over UART. Default 1ms\n"
-		 "  -r <reception port>     UDP port for receiving. Default 2019\n"
-		 "  -s <sending port>       UDP port for sending. Default 2020\n",
-		 name);
+	PRINT_MODULE_USAGE_NAME("micrortps_client", "communication");
+	PRINT_MODULE_USAGE_COMMAND("start");
+
+	PRINT_MODULE_USAGE_PARAM_STRING('t', "UART", "UART|UDP", "Transport protocol", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyACM0", "<file:dev>", "Select Serial Device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', 1, 1, 1000, "Poll timeout for UART in ms", true);
+	PRINT_MODULE_USAGE_PARAM_INT('u', 0, 0, 10000,
+				     "Interval in ms to limit the update rate of all sent topics (0=unlimited)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('l', 10000, -1, 100000, "Limit number of iterations until the program exits (-1=infinite)",
+				     true);
+	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000, "Time in ms for which each iteration sleeps", true);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 2019, 0, 65536, "Select UDP Network Port for receiving (local)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('s', 2020, 0, 65536, "Select UDP Network Port for sending (remote)", true);
+
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
 }
 
 static int parse_options(int argc, char *argv[])
@@ -98,6 +105,16 @@ static int parse_options(int argc, char *argv[])
 			usage(argv[1]);
 			return -1;
 		}
+	}
+
+	if (_options.sleep_ms < 1) {
+		_options.sleep_ms = 1;
+		PX4_ERR("sleep time too low, using 1 ms");
+	}
+
+	if (_options.poll_ms < 1) {
+		_options.poll_ms = 1;
+		PX4_ERR("poll timeout too low, using 1 ms");
 	}
 
 	return 0;
