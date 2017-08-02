@@ -131,9 +131,11 @@ public:
 	struct fw_pos_ctrl_status_s *get_fw_pos_ctrl_status() { return &_fw_pos_ctrl_status; }
 	struct home_position_s *get_home_position() { return &_home_pos; }
 	struct mission_result_s *get_mission_result() { return &_mission_result; }
+
 	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
 	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
+
 	struct vehicle_attitude_setpoint_s *get_att_sp() { return &_att_sp; }
 	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
 	struct vehicle_gps_position_s *get_gps_position() { return &_gps_pos; }
@@ -143,8 +145,6 @@ public:
 
 	bool home_position_valid() { return (_home_pos.timestamp > 0); }
 
-	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
-	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 	Geofence	&get_geofence() { return _geofence; }
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
@@ -215,13 +215,10 @@ public:
 	float		get_acceptance_radius(float mission_item_radius);
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	void		increment_mission_instance_count() { _mission_instance_count++; }
-
 	void 		set_mission_failure(const char *reason);
 
 	bool		is_planned_mission() { return _navigation_mode == &_mission; }
-
-	bool		abort_landing();
+	bool		planned_mission_landing() { return is_planned_mission() && _mission_result.landing; }
 
 private:
 
@@ -236,8 +233,6 @@ private:
 	int		_home_pos_sub{-1};		/**< home position subscription */
 	int		_land_detected_sub{-1};		/**< vehicle land detected subscription */
 	int		_local_pos_sub{-1};		/**< local position subscription */
-	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
-	int		_onboard_mission_sub{-1};	/**< onboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
@@ -264,8 +259,6 @@ private:
 	vehicle_local_position_s			_local_pos;		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
-	int		_mission_instance_count{-1};	/**< instance count for the current mission */
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
@@ -273,10 +266,10 @@ private:
 
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
-	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
 
 	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
+
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */

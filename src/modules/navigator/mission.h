@@ -69,7 +69,7 @@ class Mission : public MissionBlock
 {
 public:
 	Mission(Navigator *navigator, const char *name);
-	~Mission() override = default;
+	~Mission() override;
 
 	void on_inactive() override;
 	void on_activation() override;
@@ -88,20 +88,19 @@ public:
 		MISSION_YAWMODE_MAX = 4
 	};
 
-	bool set_current_offboard_mission_index(unsigned index);
+	bool set_current_mission_index(unsigned index);
 
 	int find_offboard_land_start();
 
-private:
-	/**
-	 * Update onboard mission topic
-	 */
-	void update_onboard_mission();
+	bool land();
 
+	void abort_landing();
+
+private:
 	/**
 	 * Update offboard mission topic
 	 */
-	void update_offboard_mission();
+	bool update_mission();
 
 	/**
 	 * Move on to next mission item or switch to loiter
@@ -163,11 +162,6 @@ private:
 	 */
 	void cruising_speed_sp_update();
 
-	/**
-	 * Abort landing
-	 */
-	void do_abort_landing();
-
 	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
 
 	/**
@@ -176,7 +170,7 @@ private:
 	 *
 	 * @return true if current mission item available
 	 */
-	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
+	bool prepare_mission_items(struct mission_item_s *mission_item,
 				   struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
@@ -185,12 +179,12 @@ private:
 	 *
 	 * @return true if successful
 	 */
-	bool read_mission_item(bool onboard, int offset, struct mission_item_s *mission_item);
+	bool read_mission_item(int offset, mission_item_s *mission_item);
 
 	/**
 	 * Save current offboard mission state to dataman
 	 */
-	void save_offboard_mission_state();
+	void save_mission_state();
 
 	/**
 	 * Inform about a changed mission item after a DO_JUMP
@@ -205,7 +199,7 @@ private:
 	/**
 	 * Set the current offboard mission item
 	 */
-	void set_current_offboard_mission_item();
+	void set_current_mission_item();
 
 	/**
 	 * Set that the mission is finished if one exists or that none exists
@@ -215,13 +209,12 @@ private:
 	/**
 	 * Check whether a mission is ready to go
 	 */
-	void check_mission_valid(bool force);
-
+	bool mission_valid(const mission_s &mission);
 
 	/**
 	 * Reset offboard mission
 	 */
-	void reset_offboard_mission(struct mission_s &mission);
+	void reset_mission(struct mission_s &mission);
 
 	/**
 	 * Returns true if we need to reset the mission
@@ -240,25 +233,25 @@ private:
 	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_force_vtol;
 	control::BlockParamFloat _param_fw_climbout_diff;
+	control::BlockParamInt _param_rtl_land_type;
 
-	struct mission_s _onboard_mission {};
-	struct mission_s _offboard_mission {};
+	int		_onboard_mission_sub{-1};	/**< onboard mission subscription */
+	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
 
-	int _current_onboard_mission_index{-1};
-	int _current_offboard_mission_index{-1};
+	mission_s _mission{};
+
+	unsigned _current_mission_index{0};
+
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+
+	int _land_start_index{INT16_MAX};
 
 	enum {
 		MISSION_TYPE_NONE,
-		MISSION_TYPE_ONBOARD,
 		MISSION_TYPE_OFFBOARD
 	} _mission_type{MISSION_TYPE_NONE};
 
-	bool _inited{false};
-	bool _home_inited{false};
 	bool _need_mission_reset{false};
-
-	MissionFeasibilityChecker _missionFeasibilityChecker; /**< class that checks if a mission is feasible */
 
 	float _min_current_sp_distance_xy{FLT_MAX}; /**< minimum distance which was achieved to the current waypoint  */
 
