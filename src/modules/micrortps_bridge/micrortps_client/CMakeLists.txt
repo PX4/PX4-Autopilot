@@ -32,26 +32,22 @@
 ############################################################################
 
 if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
+
     find_program(FASTRTPSGEN fastrtpsgen
                  PATHS $ENV{FASTRTPSGEN_DIR})
     if(NOT FASTRTPSGEN)
-        message(WARNING "WARNING: Unable to find fastrtpsgen")
-        set(GENERATE_RTPS_BRIDGE off)
+        message(WARNING "WARNING: Unable to find fastrtpsgen. Building PX4 without RTPS bridge support")
+        px4_add_module(
+            MODULE modules__micrortps_bridge__micrortps_client
+            MAIN micrortps_client
+            SRCS
+                microRTPS_client_dummy.cpp
+            DEPENDS
+                platforms__common
+        )
+        return()
     endif()
-endif()
 
-if(GENERATE_RTPS_BRIDGE MATCHES "off")
-
-    message(WARNING "WARNING: Building PX4 without RTPS bridge support")
-    px4_add_module(
-	MODULE modules__micrortps_bridge__micrortps_client
-	MAIN micrortps_client
-	SRCS
-		microRTPS_client_dummy.cpp
-	DEPENDS
-		platforms__common
-	)
-else()
     include_directories(.)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -106,17 +102,19 @@ else()
         )
     endif()
 
-px4_add_module(
-	MODULE modules__micrortps_bridge__micrortps_client
-	MAIN micrortps_client
-	STACK_MAIN 4096
-	SRCS
-		microRTPS_transport.cpp
-		microRTPS_client.cpp
-		microRTPS_client.h
-		microRTPS_client_main.cpp
-	DEPENDS
-		platforms__common
-	)
 endif()
+
+px4_add_module(
+    MODULE modules__micrortps_bridge__micrortps_client
+    MAIN micrortps_client
+    STACK_MAIN 4096
+    SRCS
+        microRTPS_transport.cpp
+        microRTPS_client.cpp
+        microRTPS_client.h
+        microRTPS_client_main.cpp
+    DEPENDS
+        platforms__common
+    )
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
