@@ -106,14 +106,15 @@ void* send(void* /*unused*/)
         if (updated)
         {
             // obtained data for the file descriptor
-            struct @(topic)_s data = {};
+            struct @(topic)_s data;
             // copy raw data into local buffer
-            orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data);
-            serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
-            if (0 < (read = transport_node->write((char)@(message_id(topic)), data_buffer, length)))
-            {
-                total_sent += read;
-                ++sent;
+            if (orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data) == 0) {
+                serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
+                if (0 < (read = transport_node->write((char)@(message_id(topic)), data_buffer, length)))
+                {
+                    total_sent += read;
+                    ++sent;
+                }
             }
         }
 @[end for]@
@@ -207,7 +208,7 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
 @[end if]@
 
         // loop forever if informed loop number is negative
-        if (_options.loops > 0 && loop >= _options.loops) break;
+        if (_options.loops >= 0 && loop >= _options.loops) break;
 
         usleep(_options.sleep_ms*1000);
         ++loop;
