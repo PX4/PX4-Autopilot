@@ -261,6 +261,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 {
 	RawGPSData gps = {};
+	gps.timestamp = gps_sim->time_usec;
 	gps.lat = gps_sim->lat;
 	gps.lon = gps_sim->lon;
 	gps.alt = gps_sim->alt;
