@@ -78,12 +78,17 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_PITOT_MODEL pmodel, enum A
 		break;
 
 	case AIRSPEED_SENSOR_MODEL_SDP3X: {
-			//
-			double flow_SDP33 = (300.805 - 300.878 / (0.00344205 * dp * 0.68698 * 0.68698 + 1)) * 1.29 / rho_air;
+			// flow through sensor
+			double flow_SDP33 = (300.805 - 300.878 / (0.00344205 * pow(dp, 0.68698) + 1)) * 1.29 / rho_air;
+
+			// for too small readings the compensation might result in a negative flow which causes numerical issues
+			if (flow_SDP33 < 0.0) {
+				flow_SDP33 = 0.0;
+			}
 
 			switch (pmodel) {
 			case AIRSPEED_PITOT_MODEL_HB:
-				dp_pitot = 28557670.0 - 28557670.0 / (1 + (flow_SDP33 / 5027611.0) * 1.227924 * 1.227924);
+				dp_pitot = 28557670.0 - 28557670.0 / (1 + pow((flow_SDP33 / 5027611.0), 1.227924));
 				break;
 
 			default:
