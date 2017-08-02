@@ -55,6 +55,8 @@ def get_absolute_path(arg_parse_dir):
 
     return dir
 
+default_client_out = get_absolute_path("src/modules/micrortps_bridge/micrortps_client")
+default_agent_out = get_absolute_path("src/modules/micrortps_bridge/micrortps_agent")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--send", dest='send', metavar='*.msg', type=str, nargs='+', help="Topics to be sended")
@@ -62,8 +64,8 @@ parser.add_argument("-r", "--receive", dest='receive', metavar='*.msg', type=str
 parser.add_argument("-a", "--agent", dest='agent', action="store_true", help="Flag for generate the agent, by default is true if -c is not specified")
 parser.add_argument("-c", "--client", dest='client', action="store_true", help="Flag for generate the client, by default is true if -a is not specified")
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, nargs=1, help="Topics message dir, by default msg/", default="msg")
-parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default="src/modules/micrortps_bridge/micrortps_agent")
-parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default="src/modules/micrortps_bridge/micrortps_client")
+parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default=default_agent_out)
+parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default=default_client_out)
 parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?', help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
 parser.add_argument("--delete-tree", dest='del_tree', action="store_true", help="Delete dir tree output dir(s)")
 
@@ -74,8 +76,15 @@ if len(sys.argv) <= 1:
 # Parse arguments
 args = parser.parse_args()
 msg_folder = get_absolute_path(args.msgdir)
-msg_files_send = [get_absolute_path(msg) for msg in args.send]
-msg_files_receive = [get_absolute_path(msg) for msg in args.receive]
+msg_files_send = []
+if args.send:
+    msg_files_send = [get_absolute_path(msg) for msg in args.send]
+else:
+    msg_files_send = []
+if args.receive:
+    msg_files_receive = [get_absolute_path(msg) for msg in args.receive]
+else:
+    msg_files_receive = []
 agent = args.agent
 client = args.client
 del_tree = args.del_tree
@@ -199,11 +208,23 @@ def mkdir_p(dirpath):
 
 def generate_client(out_dir):
 
+    # Rename work in the default path
+    if default_client_out != out_dir:
+        def_file = default_client_out + "/microRTPS_client.cpp"
+        if os.path.isfile(def_file):
+            os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
+        def_file = default_client_out + "/microRTPS_transport.cpp"
+        if os.path.isfile(def_file):
+            os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
+        def_file = default_client_out + "/microRTPS_transport.h"
+        if os.path.isfile(def_file):
+            os.rename(def_file, def_file.replace(".h", ".h_"))
+
     px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, uorb_templates_dir,
                     px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_CLIENT_TEMPL_FILE)
 
     # Final steps to install client
-    cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", client_out_dir)
+    cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", out_dir)
 
     return 0
 
