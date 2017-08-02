@@ -191,6 +191,17 @@ int micrortps_client_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "status")) {
+		if (_rtps_task == -1) {
+			PX4_INFO("Not running");
+
+		} else {
+			PX4_INFO("Running");
+		}
+
+		return 0;
+	}
+
 	if (!strcmp(argv[1], "stop")) {
 		if (_rtps_task == -1) {
 			PX4_INFO("Not running");
