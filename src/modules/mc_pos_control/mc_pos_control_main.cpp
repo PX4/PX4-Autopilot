@@ -64,6 +64,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <float.h>
 #include <lib/geo/geo.h>
@@ -72,6 +73,7 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+
 
 /**
  * Multicopter position control app start / stop handling function
@@ -118,6 +120,7 @@ private:
 	int		_local_pos_sub;			/**< vehicle local position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_home_pos_sub; 			/**< home position */
+	int 	_sonar_sub;
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 
@@ -133,6 +136,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct home_position_s				_home_pos; 				/**< home position */
+	struct distance_sensor_s _sonar_measurament; /**<sonar neasurament message>*/
 
 	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
 	control::BlockParamFloat _manual_thr_max; /**< maximal throttle output when flying in manual mode */
@@ -239,6 +243,8 @@ private:
 	bool _hold_offboard_z = false;
 	bool _limit_vel_xy = false;
 
+	bool _obstacle_ahead_sp = false;
+
 	math::Vector<3> _thrust_int;
 
 	math::Vector<3> _pos;
@@ -249,6 +255,7 @@ private:
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
+	math::Vector<3> stop_sp;		/*<setpoint for obstacle avoidance>*/
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -257,6 +264,8 @@ private:
 
 	bool _in_takeoff = false; /**< flag for smooth velocity setpoint takeoff ramp */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
+	float last_obstacle_dist = 0.0f; /*<distance from obstacle >*/
+
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -265,6 +274,9 @@ private:
 	uint8_t _vz_reset_counter;
 	uint8_t _vxy_reset_counter;
 	uint8_t _heading_reset_counter;
+
+
+
 
 	matrix::Dcmf _R_setpoint;
 
@@ -380,6 +392,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_home_pos_sub(-1),
+	_sonar_sub(-1),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -395,6 +408,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos_sp_triplet{},
 	_local_pos_sp{},
 	_home_pos{},
+	_sonar_measurament{},
+
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
@@ -753,6 +768,12 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+	}
+
+	orb_check(_sonar_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurament);
 	}
 }
 
@@ -1408,6 +1429,32 @@ void MulticopterPositionControl::control_auto(float dt)
 	_limit_vel_xy = (!next_setpoint_valid || (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
 			&& (sqrtf(dist(0) * dist(0) + dist(1) * dist(1)) <= _target_threshold_xy.get());
 
+
+	if (_sonar_measurament.current_distance < _sonar_measurament.max_distance) {
+		if (!_vehicle_land_detected.landed && !in_auto_takeoff()) {
+			if (_obstacle_ahead_sp == false) {
+				stop_sp = _pos;
+				last_obstacle_dist = _sonar_measurament.current_distance;
+				_obstacle_ahead_sp = true;
+			}
+
+
+			if (_obstacle_ahead_sp == true && _sonar_measurament.current_distance < 0.6f) {
+				stop_sp(0) = prev_sp(0);
+				stop_sp(1) = prev_sp(1);
+			}
+
+			_curr_pos_sp(0) = stop_sp(0);
+			_curr_pos_sp(1) = stop_sp(1);
+		}
+
+	} else {
+		if (_obstacle_ahead_sp == true) {
+			_curr_pos_sp(0) = stop_sp(0);
+			_curr_pos_sp(1) = stop_sp(1);
+		}
+	}
+
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
@@ -1661,7 +1708,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
-
 		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
 		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
 			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
@@ -1673,6 +1719,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 			warn_rate_limited("Caught invalid pos_sp in x and y");
 
 		}
+
 	}
 
 	limit_altitude();
@@ -2172,6 +2219,7 @@ MulticopterPositionControl::task_main()
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
+	_sonar_sub = orb_subscribe(ORB_ID(distance_sensor));
 
 	parameters_update(true);
 
