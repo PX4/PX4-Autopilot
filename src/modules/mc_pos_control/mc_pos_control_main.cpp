@@ -474,8 +474,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* set trigger time for manual direction change detection */
 	_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TRIGGER_TIME_US);
 
-	memset(&_ref_pos, 0, sizeof(_ref_pos));
-
 	_params.pos_p.zero();
 	_params.vel_p.zero();
 	_params.vel_i.zero();
@@ -490,7 +488,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
 	_curr_pos_sp.zero();
-	_stick_input_xy_prev = matrix::Vector2f(0.0f, 0.0f);
+	_stick_input_xy_prev = {};
 
 	_R.identity();
 	_R_setpoint.identity();
@@ -638,7 +636,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.rc_flt_smp_rate, &(_params.rc_flt_smp_rate));
 		_params.rc_flt_smp_rate = math::max(1.0f, _params.rc_flt_smp_rate);
 		/* since we use filter to detect manual direction change, take half the cutoff of the stick filtering */
-		param_get(_params_handles.rc_flt_cutoff * 0.7f, &(_params.rc_flt_cutoff));
+		param_get(_params_handles.rc_flt_cutoff, &(_params.rc_flt_cutoff));
 		/* make sure the filter is in its stable region -> fc < fs/2 */
 		_params.rc_flt_cutoff = math::constrain(_params.rc_flt_cutoff, 0.1f, (_params.rc_flt_smp_rate / 2.0f) - 1.f);
 
