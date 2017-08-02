@@ -39,6 +39,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_tasks.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -70,7 +71,6 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
