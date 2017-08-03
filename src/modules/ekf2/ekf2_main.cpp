@@ -846,18 +846,28 @@ void Ekf2::run()
 			float velocity[3];
 			_ekf.get_velocity(velocity);
 
+			float position[3];
+			_ekf.get_position(position);
+
 			float pos_d_deriv;
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
+
+			float velNE_wind[2];
+			_ekf.get_wind_velocity(velNE_wind);
+
+			// In-run bias estimates
+			float gyro_bias[3];
+			_ekf.get_gyro_bias(gyro_bias);
+			float accel_bias[3];
+			_ekf.get_accel_bias(accel_bias);
 
 			// Calculate wind-compensated velocity in body frame
 			Vector3f v_wind_comp(velocity);
 			matrix::Dcm<float> R_to_body(q.inversed());
-			float velNE_wind[2] = {};
-			_ekf.get_wind_velocity(velNE_wind);
 			v_wind_comp(0) -= velNE_wind[0];
 			v_wind_comp(1) -= velNE_wind[1];
 			_vel_body_wind = R_to_body * v_wind_comp; // TODO : move this elsewhere
-				
+
 			// use estimated velocity for airspeed estimate
 			// TODO move this out of the estimators and put it into a dedicated air data consolidation algorithm
 			// if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
@@ -895,12 +905,6 @@ void Ekf2::run()
 			// 	}
 			// }
 
-			// In-run bias estimates
-			float gyro_bias[3] = {};
-			_ekf.get_gyro_bias(gyro_bias);
-			float accel_bias[3] = {};
-			_ekf.get_accel_bias(accel_bias);
-
 			{
 				// generate vehicle attitude quaternion data
 				struct vehicle_attitude_s att = {};
@@ -924,15 +928,13 @@ void Ekf2::run()
 
 			// generate vehicle local position data
 			struct vehicle_local_position_s lpos = {};
-			float pos[3] = {};
 
 			lpos.timestamp = now;
 
 			// Position of body origin in local NED frame
-			_ekf.get_position(pos);
-			lpos.x = (_ekf.local_position_is_valid()) ? pos[0] : 0.0f;
-			lpos.y = (_ekf.local_position_is_valid()) ? pos[1] : 0.0f;
-			lpos.z = pos[2];
+			lpos.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
+			lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
+			lpos.z = position[2];
 
 			// Velocity of body origin in local NED frame (m/s)
 			lpos.vx = velocity[0];
@@ -960,7 +962,7 @@ void Ekf2::run()
 			float terrain_vpos;
 			lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 			_ekf.get_terrain_vert_pos(&terrain_vpos);
-			lpos.dist_bottom = terrain_vpos - pos[2]; // Distance to bottom surface (ground) in meters
+			lpos.dist_bottom = terrain_vpos - position[2]; // Distance to bottom surface (ground) in meters
 
 			// constrain the distance to ground to _params->rng_gnd_clearance
 			if (lpos.dist_bottom < _params->rng_gnd_clearance) {
@@ -1003,7 +1005,7 @@ void Ekf2::run()
 				global_pos.delta_lat_lon[1] = est_lon - lon_pre_reset;
 				global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
 
-				global_pos.alt = -pos[2] + lpos.ref_alt; // Altitude AMSL in meters
+				global_pos.alt = -position[2] + lpos.ref_alt; // Altitude AMSL in meters
 				_ekf.get_posD_reset(&global_pos.delta_alt, &global_pos.alt_reset_counter);
 				// global altitude has opposite sign of local down position
 				global_pos.delta_alt *= -1.0f;
