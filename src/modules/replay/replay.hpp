@@ -315,6 +315,7 @@ private:
 	uint16_t _airspeed_msg_id = msg_id_invalid;
 	uint16_t _vehicle_vision_position_msg_id = msg_id_invalid;
 	uint16_t _vehicle_vision_attitude_msg_id = msg_id_invalid;
+	uint16_t _vehicle_land_detected_msg_id = msg_id_invalid;
 
 	int _topic_counter = 0;
 };
