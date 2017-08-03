@@ -35,7 +35,7 @@ void linux_ina219::INA219::calibration32v2a() {
 	//INA219_CONFIG_SADCRES_12BIT_1S_532US |
 	//INA219_CONFIG_SADCRES_12BIT_4S_2130US |
 	INA219_CONFIG_SADCRES_12BIT_128S_69MS |
-	INA219_CONFIG_MODE_BVOLT_CONTINUOUS;
+	INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
 	this->write16(INA219_REG_CONFIG, &config, sizeof(config));
 }
 //-----------------------------------------------------------------------------------------------------------//
@@ -99,7 +99,7 @@ float linux_ina219::INA219::getShuntVoltage(){
 	  int status = this->read16(INA219_REG_SHUNTVOLTAGE, &value,sizeof(value));
 	  if(0>status)
 		  return -1;
-	  return value*0.00001;
+	  return value*0.01;
 }
 //---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getCurrent(){
