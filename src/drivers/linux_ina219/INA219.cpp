@@ -95,11 +95,11 @@ int linux_ina219::INA219::open_fd() {
 //---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getShuntVoltage(){
 	  uint16_t value;
-	  this->write16(INA219_REG_CALIBRATION, &__ina219_calValue, sizeof(__ina219_calValue));
+	  //this->write16(INA219_REG_CALIBRATION, &__ina219_calValue, sizeof(__ina219_calValue));
 	  int status = this->read16(INA219_REG_SHUNTVOLTAGE, &value,sizeof(value));
 	  if(0>status)
 		  return -1;
-	  return (float)value;
+	  return (float)value*0.00001;
 }
 //---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getCurrent(){
