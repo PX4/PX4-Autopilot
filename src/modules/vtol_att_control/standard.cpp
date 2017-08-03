@@ -348,6 +348,12 @@ void Standard::update_transition_state()
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 
+		if (_params_handles_standard.reverse_output > FLT_EPSILON) {
+			_pusher_throttle = _params_standard.reverse_throttle * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
+					   (_params_standard.front_trans_dur * 1000000.0f);
+			_pusher_throttle = math::constrain(_pusher_throttle, 0.0f, _params_standard.reverse_throttle);
+		}
+
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_dur > FLT_EPSILON) {
 			float weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
