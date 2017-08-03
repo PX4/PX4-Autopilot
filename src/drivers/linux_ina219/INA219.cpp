@@ -99,7 +99,7 @@ float linux_ina219::INA219::getShuntVoltage(){
 	  int status = this->read16(INA219_REG_SHUNTVOLTAGE, &value,sizeof(value));
 	  if(0>status)
 		  return -1;
-	  return (float)value*0.00001;
+	  return value*0.00001;
 }
 //---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getCurrent(){
