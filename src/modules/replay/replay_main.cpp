@@ -976,6 +976,10 @@ void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_vision_attitude)) {
 		_vehicle_vision_attitude_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_land_detected)) {
+		_vehicle_land_detected_msg_id = msg_id;
+
 	}
 
 	// the main loop should only handle publication of the following topics, the sensor topics are
@@ -1001,6 +1005,7 @@ bool ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std
 				  _vehicle_vision_position_msg_id); // vision position
 	handle_sensor_publication(ekf2_timestamps.vision_attitude_timestamp_rel,
 				  _vehicle_vision_attitude_msg_id); // vision attitude
+	handle_sensor_publication(0, _vehicle_land_detected_msg_id); // land detection
 
 	// sensor_combined: publish last because ekf2 is polling on this
 	if (!findTimestampAndPublish(ekf2_timestamps.timestamp / 100, _sensors_combined_msg_id, replay_file)) {
@@ -1079,6 +1084,7 @@ void ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_airspeed_msg_id, "airspeed");
 	print_sensor_statistics(_vehicle_vision_position_msg_id, "vehicle_vision_position");
 	print_sensor_statistics(_vehicle_vision_attitude_msg_id, "vehicle_vision_attitude");
+	print_sensor_statistics(_vehicle_land_detected_msg_id, "vehicle_land_detected");
 
 	orb_unsubscribe(_vehicle_attitude_sub);
 	_vehicle_attitude_sub = -1;
