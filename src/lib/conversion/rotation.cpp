@@ -61,12 +61,12 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 	case ROTATION_NONE:
 	case ROTATION_MAX:
 		return;
-	case ROTATION_YAW_30: {
+	case ROTATION_YAW_23: {
 		//tmp = HALF_SQRT_3 * (x - y);
 		//y   = HALF_SQRT_3 * (x + y);
 		//x = tmp;
-		x = x*0.866025404f-y*0.5f;
-		y = x*0.5f+y*0.866025404f;
+		x = x*0.920504853f-y*0.390731128f;
+		y = x*0.390731128f+y*0.920504853f;
 		return;
 	}
 	case ROTATION_YAW_45: {
