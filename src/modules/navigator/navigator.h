@@ -135,6 +135,7 @@ public:
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	struct vehicle_roi_s *get_vroi() { return &_vroi; }
 
 	bool home_position_valid() { return (_home_pos.timestamp > 0); }
 
@@ -237,6 +238,7 @@ private:
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
+	int		_vehicle_roi_sub{-1};		/**< vehicle ROI subscription */
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mission_result_pub{nullptr};
@@ -257,6 +259,7 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */
 
@@ -304,6 +307,7 @@ private:
 	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
+	void		vehicle_roi_update();
 
 	/**
 	 * Shim for calling task_main from task_create.
