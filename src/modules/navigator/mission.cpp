@@ -1018,6 +1018,12 @@ Mission::heading_sp_update()
 			point_to_latlon[0] = _navigator->get_home_position()->lat;
 			point_to_latlon[1] = _navigator->get_home_position()->lon;
 
+		} else if (_param_yawmode.get() == MISSION_YAWMODE_TO_ROI
+			   && _navigator->get_vroi()->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
+			/* target location is ROI */
+			point_to_latlon[0] = _navigator->get_vroi()->lat;
+			point_to_latlon[1] = _navigator->get_vroi()->lon;
+
 		} else {
 			/* target location is next (current) waypoint */
 			point_to_latlon[0] = pos_sp_triplet->current.lat;
