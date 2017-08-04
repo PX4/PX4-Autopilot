@@ -51,7 +51,7 @@ get_rot_matrix(enum Rotation rot, math::Matrix<3, 3> *rot_matrix)
 }
 
 #define HALF_SQRT_2 0.70710678118654757f
-#define HALF_SQRT_3 0.353553390593274f
+#define HALF_SQRT_3 0.629960524947437
 
 __EXPORT void
 rotate_3f(enum Rotation rot, float &x, float &y, float &z)
