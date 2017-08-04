@@ -51,7 +51,6 @@ get_rot_matrix(enum Rotation rot, math::Matrix<3, 3> *rot_matrix)
 }
 
 #define HALF_SQRT_2 0.70710678118654757f
-#define HALF_SQRT_3 0.629960524947437f
 
 __EXPORT void
 rotate_3f(enum Rotation rot, float &x, float &y, float &z)
@@ -63,9 +62,11 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 	case ROTATION_MAX:
 		return;
 	case ROTATION_YAW_30: {
-		tmp = HALF_SQRT_3 * (x - y);
-		y   = HALF_SQRT_3 * (x + y);
-		x = tmp;
+		//tmp = HALF_SQRT_3 * (x - y);
+		//y   = HALF_SQRT_3 * (x + y);
+		//x = tmp;
+		x = x*0.866025404f-y*0.5f;
+		y = x*0.5f+y*0.866025404f;
 		return;
 	}
 	case ROTATION_YAW_45: {
