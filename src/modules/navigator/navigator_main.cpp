@@ -219,6 +219,12 @@ Navigator::params_update()
 }
 
 void
+Navigator::vehicle_roi_update()
+{
+	orb_copy(ORB_ID(vehicle_roi), _vehicle_roi_sub, &_vroi);
+}
+
+void
 Navigator::task_main_trampoline(int argc, char *argv[])
 {
 	navigator::g_navigator->task_main();
@@ -251,6 +257,7 @@ Navigator::task_main()
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	_vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -262,6 +269,7 @@ Navigator::task_main()
 	home_position_update(true);
 	fw_pos_ctrl_status_update(true);
 	params_update();
+	vehicle_roi_update();
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1] = {};
@@ -370,6 +378,13 @@ Navigator::task_main()
 
 		if (updated) {
 			home_position_update();
+		}
+
+		/* ROI updated */
+		orb_check(_vehicle_roi_sub, &updated);
+
+		if (updated) {
+			vehicle_roi_update();
 		}
 
 		orb_check(_vehicle_command_sub, &updated);

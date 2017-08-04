@@ -136,6 +136,7 @@ public:
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	struct vehicle_roi_s *get_vroi() { return &_vroi; }
 
 	bool home_position_valid() { return (_home_pos.timestamp > 0); }
 
@@ -238,6 +239,7 @@ private:
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
+	int		_vehicle_roi_sub{-1};		/**< vehicle ROI subscription */
 
 	orb_advert_t	_att_sp_pub{nullptr};
 	orb_advert_t	_geofence_result_pub{nullptr};
@@ -245,20 +247,21 @@ private:
 	orb_advert_t	_pos_sp_triplet_pub{nullptr};
 	orb_advert_t	_vehicle_cmd_pub{nullptr};
 
-	fw_pos_ctrl_status_s				_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
+	fw_pos_ctrl_status_s			_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
 	geofence_result_s				_geofence_result{};
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
-	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
-	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
-	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
+	position_setpoint_triplet_s		_pos_sp_triplet{};	/**< triplet of position setpoints */
+	position_setpoint_triplet_s		_reposition_triplet{};	/**< triplet for non-mission direct position command */
+	position_setpoint_triplet_s		_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	sensor_combined_s				_sensor_combined{};	/**< sensor values */
-	vehicle_attitude_setpoint_s			_att_sp{};
-	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
-	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
-	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
-	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
+	vehicle_attitude_setpoint_s		_att_sp{};
+	vehicle_global_position_s		_global_pos{};		/**< global vehicle position */
+	vehicle_gps_position_s			_gps_pos{};		/**< gps position */
+	vehicle_land_detected_s			_land_detected{};	/**< vehicle land_detected */
+	vehicle_local_position_s		_local_pos;		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */
 
@@ -306,6 +309,7 @@ private:
 	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
+	void		vehicle_roi_update();
 
 	/**
 	 * Shim for calling task_main from task_create.
