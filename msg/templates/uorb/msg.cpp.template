@@ -121,7 +121,7 @@ def add_serialize_functions(fields, scope_name):
                 if (not field.is_array):
                     add_serialize_functions(children_fields, name + '.')
                 else:
-                    for i in xrange(field.array_len):
+                    for i in range(field.array_len):
                         add_serialize_functions(children_fields, name + ('[%d].' %i))
 
 def add_deserialize_functions(fields, scope_name):
@@ -131,7 +131,7 @@ def add_deserialize_functions(fields, scope_name):
                 if (not field.is_array):
                     print("\tdeserialize"+str(get_serialization_type_name(field.type))+"(&output->"+scope_name+str(field.name)+", microCDRReader);")
                 else:
-                    for i in xrange(field.array_len):
+                    for i in range(field.array_len):
                         print("\tdeserialize"+str(get_serialization_type_name(field.base_type))+"(&output->"+scope_name+str(field.name)+ str('[%d]' %i) +", microCDRReader);")
             else:
                 name = field.name
@@ -140,7 +140,7 @@ def add_deserialize_functions(fields, scope_name):
                 if (not field.is_array):
                     add_deserialize_functions(children_fields, name + '.')
                 else:
-                    for i in xrange(field.array_len):
+                    for i in range(field.array_len):
                         add_deserialize_functions(children_fields, name + ('[%d].' %i))
 
 def add_code_to_serialize():
