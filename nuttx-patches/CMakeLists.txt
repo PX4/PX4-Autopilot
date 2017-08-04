@@ -44,12 +44,10 @@ set(nuttx_patches
 	00010-BACKPORT-stm32-flash-F4-dcache-corruption-fix-no-HSI-on.patch
 	00011-BACKPORT-priority-restoration-fix.patch
 	00012-BACKPORT-stack-coloration-overreach-fix.patch
-#	00013-BACKPORT-stm32-serial-dma-hotfix.patch
 	00014-BACKPORT-i2c-hotfix.patch
 	00015-BACKPORT-stm32f7-DTCM.patch
 	00016-BACKPORT-fix-CRTSCTS-defines.patch
 	00017-BACKPORT-cdcacm.patch
-#	00018-BACKPORT-stm32-serial-break.patch
 	00019-BACKPORT-stm32-rcc-keep-HSI-on.patch
 	00021-BACKPORT-stm32f3x-add-BKP.patch
 	00022-BACKPORT-stm32-bkp-reference-fix.patch
@@ -78,6 +76,6 @@ file(GLOB patches_found *.patch)
 foreach(patch_file ${patches_found})
 	list (FIND px4_nuttx_patches ${patch_file} _index)
 	if (${_index} EQUAL -1)
-#		message(FATAL_ERROR "${patch_file} missing from nuttx-patches/CMakeLists.txt")
+		message(FATAL_ERROR "${patch_file} missing from nuttx-patches/CMakeLists.txt")
 	endif()
 endforeach()
