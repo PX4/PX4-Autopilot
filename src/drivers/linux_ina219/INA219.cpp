@@ -25,9 +25,9 @@ void linux_ina219::INA219::calibration32v2a() {
 	__ina219_currentDivider_mA = 10; // Current LSB = 100uA per bit (1000/100 = 10)
 	__ina219_powerDivider_mW = 2;     // Power LSB = 1mW per bit (2/1)
 	__ina219_calValue = 4096;
+	this->write16(INA219_REG_CONFIG,&0x8000,sizeof(0x8000));
 	// Set Calibration register to 'Cal' calculated above
 	this->write16(INA219_REG_CALIBRATION, &__ina219_calValue,sizeof(__ina219_calValue));
-
 	// Set Config register to take into account the settings above
 	uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
 	INA219_CONFIG_GAIN_4_160MV |
