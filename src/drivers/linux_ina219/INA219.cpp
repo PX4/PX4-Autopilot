@@ -33,7 +33,7 @@ void linux_ina219::INA219::calibration32v2a() {
 	INA219_CONFIG_GAIN_4_160MV |
 	INA219_CONFIG_BADCRES_12BIT |
 	INA219_CONFIG_SADCRES_12BIT_1S_532US |
-	INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
+	INA219_CONFIG_MODE_SANDBVOLT_TRIGGERED;
 	this->write16(INA219_REG_CONFIG, &config, sizeof(config));
 }
 //-----------------------------------------------------------------------------------------------------------//
