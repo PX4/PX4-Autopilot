@@ -32,10 +32,8 @@ void linux_ina219::INA219::calibration32v2a() {
 	uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
 	INA219_CONFIG_GAIN_4_160MV |
 	INA219_CONFIG_BADCRES_12BIT |
-	//INA219_CONFIG_SADCRES_12BIT_1S_532US |
-	//INA219_CONFIG_SADCRES_12BIT_4S_2130US |
-	INA219_CONFIG_SADCRES_12BIT_128S_69MS |
-	INA219_CONFIG_MODE_BVOLT_CONTINUOUS;
+	INA219_CONFIG_SADCRES_12BIT_1S_532US |
+	INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
 	this->write16(INA219_REG_CONFIG, &config, sizeof(config));
 }
 //-----------------------------------------------------------------------------------------------------------//
@@ -69,7 +67,7 @@ void linux_ina219::INA219::calibration16v400ma(){
 	                    INA219_CONFIG_GAIN_1_40MV |
 	                    INA219_CONFIG_BADCRES_12BIT |
 	                    INA219_CONFIG_SADCRES_12BIT_1S_532US |
-	INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
+						INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
 	this->write16(INA219_REG_CONFIG, &config,sizeof(config));
 }
 //-----------------------------------------------------------------------------------------------------------//
@@ -92,37 +90,33 @@ int linux_ina219::INA219::open_fd() {
 	}
 	return this->__device_fd;
 }
+
 //---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getShuntVoltage(){
 	  uint16_t value;
-	  //this->write16(INA219_REG_CALIBRATION, &__ina219_calValue, sizeof(__ina219_calValue));
 	  int status = this->read16(INA219_REG_SHUNTVOLTAGE, &value,sizeof(value));
 	  if(0>status)
 		  return -1;
-	  return value*0.01;
+	  return (value*0.01)/1000;
 }
 //---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getCurrent(){
-	 uint16_t value;
-
+	  uint16_t value;
 	  // Sometimes a sharp load will reset the INA219, which will
 	  // reset the cal register, meaning CURRENT and POWER will
 	  // not be available ... avoid this by always setting a cal
 	  // value even if it's an unfortunate extra step
 	  this->write16(INA219_REG_CALIBRATION, &__ina219_calValue, sizeof(__ina219_calValue));
-
+	  usleep(1000*800);
 	  // Now we can safely read the CURRENT register!
 	  this->read16(INA219_REG_CURRENT, &value, sizeof(value));
 	  return (float)value;
 }
-
-
 //---------------------------------------------------------------------------------------------------------//
 float linux_ina219::INA219::getBusVoltage(){
 	  uint16_t value;
 	  uint16_t result;
 	  int status;
-	  status = this->write16(INA219_REG_CALIBRATION, &__ina219_calValue, sizeof(__ina219_calValue));
 	  status = this->read16(INA219_REG_BUSVOLTAGE, &value,sizeof(value));
 	  // Shift to the right 3 to drop CNVR and OVF and multiply by LSB
 	  result = (int16_t)((value >> 3)*4);
