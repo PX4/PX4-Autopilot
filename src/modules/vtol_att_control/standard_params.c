@@ -72,3 +72,15 @@ PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.0f);
+
+/**
+ * Back transition MC motor ramp up time
+ *
+ * This sets the duration during wich the MC motors ramp up to the commanded thrust during the back transition stage.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 20.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
