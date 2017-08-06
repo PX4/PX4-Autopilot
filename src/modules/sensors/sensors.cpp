@@ -337,7 +337,9 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.timestamp = _diff_pres.timestamp;
 
 		/* push data into validator */
-		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count,
+		float airspeed_input[3] = { _diff_pres.differential_pressure_raw_pa, _diff_pres.temperature, 0.0f };
+
+		_airspeed_validator.put(_airspeed.timestamp, airspeed_input, _diff_pres.error_count,
 					ORB_PRIO_HIGH);
 
 		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
