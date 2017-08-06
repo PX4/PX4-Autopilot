@@ -71,16 +71,6 @@ void VtolLandDetector::_update_topics()
 	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
 
-bool VtolLandDetector::_get_ground_contact_state()
-{
-	return MulticopterLandDetector::_get_ground_contact_state();
-}
-
-bool VtolLandDetector::_get_maybe_landed_state()
-{
-	return MulticopterLandDetector::_get_maybe_landed_state();
-}
-
 bool VtolLandDetector::_get_landed_state()
 {
 	// this is returned from the mutlicopter land detector
@@ -104,11 +94,6 @@ bool VtolLandDetector::_get_landed_state()
 	_was_in_air = !landed;
 
 	return landed;
-}
-
-bool VtolLandDetector::_get_freefall_state()
-{
-	return MulticopterLandDetector::_get_freefall_state();
 }
 
 void VtolLandDetector::_update_params()

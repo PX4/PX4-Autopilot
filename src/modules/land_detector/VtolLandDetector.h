@@ -54,19 +54,11 @@ public:
 	VtolLandDetector();
 
 protected:
-	virtual void _initialize_topics() override;
+	void _initialize_topics() override;
+	void _update_params() override;
+	void _update_topics() override;
+	bool _get_landed_state() override;
 
-	virtual void _update_params() override;
-
-	virtual void _update_topics() override;
-
-	virtual bool _get_landed_state() override;
-
-	virtual bool _get_maybe_landed_state() override;
-
-	virtual bool  _get_ground_contact_state() override;
-
-	virtual bool _get_freefall_state() override;
 
 private:
 	struct {
