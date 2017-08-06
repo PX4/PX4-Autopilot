@@ -344,10 +344,29 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
 
+		enum AIRSPEED_SENSOR_MODEL smodel;
+
+		switch ((_diff_pres.device_id >> 16) & 0xFF) {
+		case DRV_DIFF_PRESS_DEVTYPE_SDP31:
+
+		/* fallthrough */
+		case DRV_DIFF_PRESS_DEVTYPE_SDP32:
+
+		/* fallthrough */
+		case DRV_DIFF_PRESS_DEVTYPE_SDP33:
+			/* fallthrough */
+			smodel = AIRSPEED_SENSOR_MODEL_SDP3X;
+			break;
+
+		default:
+			smodel = AIRSPEED_SENSOR_MODEL_MEMBRANE;
+			break;
+		}
+
 		/* don't risk to feed negative airspeed into the system */
 		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
 						   calc_indicated_airspeed_corrected((enum AIRSPEED_PITOT_MODEL)_parameters.air_pmodel,
-								   (enum AIRSPEED_SENSOR_MODEL)_parameters.air_smodel, _parameters.air_tube_length,
+								   smodel, _parameters.air_tube_length,
 								   _diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
 								   air_temperature_celsius));
 

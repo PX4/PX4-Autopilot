@@ -824,16 +824,6 @@ PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
 PARAM_DEFINE_INT32(CAL_AIR_PMODEL, 0);
 
 /**
- * Airspeed sensor model
- *
- * @value 0 Membrane sensor
- * @value 1 Sensirion SDP3x
- *
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_AIR_SMODEL, 0);
-
-/**
  * Airspeed sensor tube length
  * @min 0.01
  * @max 0.5
