@@ -51,7 +51,7 @@ measairspeedsim start
 pwm_out_sim mode_pwm
 sensors start
 commander start
-land_detector start multicopter
+land_detector start vtol
 navigator start
 ekf2 start
 vtol_att_control start
