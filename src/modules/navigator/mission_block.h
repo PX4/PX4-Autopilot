@@ -67,7 +67,26 @@ public:
 	MissionBlock(const MissionBlock &) = delete;
 	MissionBlock &operator=(const MissionBlock &) = delete;
 
-	static bool item_contains_position(const mission_item_s &item);
+	/**
+	 * Check if the mission item contains a navigation position
+	 *
+	 * @return false if mission item should not be part of the trajectory
+	 */
+	static bool item_contains_position(const mission_item_s *item);
+
+	/**
+	 * Check if the mission item contains a gate condition
+	 *
+	 * @return true if mission item is neither a position nor a command
+	 */
+	static bool item_contains_gate(const struct mission_item_s *item);
+
+	/**
+	 * Check if the mission item contains a marker
+	 *
+	 * @return true if mission item is neither a position nor a command
+	 */
+	static bool item_contains_marker(const struct mission_item_s *item);
 
 protected:
 	/**
