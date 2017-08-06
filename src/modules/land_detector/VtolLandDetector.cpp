@@ -78,9 +78,7 @@ bool VtolLandDetector::_get_ground_contact_state()
 
 bool VtolLandDetector::_get_maybe_landed_state()
 {
-
-	// TODO
-	return false;
+	return MulticopterLandDetector::_get_maybe_landed_state();
 }
 
 bool VtolLandDetector::_get_landed_state()
