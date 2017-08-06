@@ -831,7 +831,7 @@ PARAM_DEFINE_INT32(CAL_AIR_PMODEL, 0);
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.15);
+PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
 
 /**
  * Differential pressure sensor offset
