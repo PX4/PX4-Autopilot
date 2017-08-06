@@ -112,6 +112,9 @@ public:
 	// get the wind velocity in m/s
 	void get_wind_velocity(float *wind);
 
+	// get the true airspeed in m/s
+	void get_true_airspeed(float *tas);
+
 	// get the diagonal elements of the covariance matrix
 	void get_covariances(float *covariances);
 
