@@ -537,12 +537,12 @@ void Ekf::fuseHeading()
 			// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
 			// Equations from Tbn_312.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
 			Dcmf R_to_earth;
-			float sy = sin(yaw);
-			float cy = cos(yaw);
-			float sp = sin(pitch);
-			float cp = cos(pitch);
-			float sr = sin(roll);
-			float cr = cos(roll);
+			float sy = sinf(yaw);
+			float cy = cosf(yaw);
+			float sp = sinf(pitch);
+			float cp = cosf(pitch);
+			float sr = sinf(roll);
+			float cr = cosf(roll);
 			R_to_earth(0,0) = cy*cp-sy*sp*sr;
 			R_to_earth(0,1) = -sy*cr;
 			R_to_earth(0,2) = cy*sp+sy*cp*sr;
