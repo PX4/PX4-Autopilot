@@ -148,9 +148,10 @@ private:
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
-	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
-	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
-	control::BlockParamFloat _min_cruise_speed; /**< minimum cruising speed when passing waypoint */
+	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto & fast manual brake */
+	control::BlockParamFloat _acceleration_hor_manual; /**< maximum velocity setpoint slewrate for manual acceleration */
+	control::BlockParamFloat _acceleration_z_max_up; /** max acceleration up */
+	control::BlockParamFloat _acceleration_z_max_down; /** max acceleration down */
 	control::BlockParamFloat _cruise_speed_90; /**<speed when angle is 90 degrees between prev-current/current-next*/
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
@@ -187,8 +188,6 @@ private:
 		param_t mc_att_yaw_p;
 		param_t hold_max_xy;
 		param_t hold_max_z;
-		param_t acc_up_max;
-		param_t acc_down_max;
 		param_t alt_mode;
 		param_t opt_recover;
 	}		_params_handles;		/**< handles for interesting parameters */
@@ -207,8 +206,6 @@ private:
 		float mc_att_yaw_p;
 		float hold_max_xy;
 		float hold_max_z;
-		float acc_up_max;
-		float acc_down_max;
 		float vel_max_xy;
 		float vel_cruise_xy;
 		float vel_max_up;
@@ -409,8 +406,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_z_vel_man_expo(this, "Z_MAN_EXPO"),
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
-	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
-	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
+	_acceleration_hor_manual(this, "ACC_HOR_MAN", true),
+	_acceleration_z_max_up(this, "ACC_UP_MAX", true),
+	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
 	_cruise_speed_90(this, "CRUISE_90", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
 	_min_cruise_speed(this, "CRUISE_MIN", true),
@@ -499,8 +497,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
-	_params_handles.acc_up_max = param_find("MPC_ACC_UP_MAX");
-	_params_handles.acc_down_max = param_find("MPC_ACC_DOWN_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
@@ -605,10 +601,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.hold_max_xy = math::max(0.f, v);
 		param_get(_params_handles.hold_max_z, &v);
 		_params.hold_max_z = math::max(0.f, v);
-		param_get(_params_handles.acc_up_max, &v);
-		_params.acc_up_max = v;
-		param_get(_params_handles.acc_down_max, &v);
-		_params.acc_down_max = v;
 
 		/* make sure that vel_cruise_xy is always smaller than vel_max */
 		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
@@ -870,10 +862,10 @@ MulticopterPositionControl::limit_altitude()
 	if (!_run_alt_control && _vel_sp(2) <= 0.0f) {
 
 		/* time to travel to reach zero velocity */
-		float delta_t = -_vel(2) / _params.acc_down_max;
+		float delta_t = -_vel(2) / _acceleration_z_max_down.get();
 
 		/* predicted position */
-		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f * _params.acc_down_max * delta_t *delta_t;
+		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f * _acceleration_z_max_down.get()  * delta_t *delta_t;
 
 		if (pos_z_next <= -_vehicle_land_detected.alt_max) {
 			_pos_sp(2) = -_vehicle_land_detected.alt_max;
@@ -1060,7 +1052,7 @@ MulticopterPositionControl::control_manual(float dt)
 		if (smooth_alt_transition) {
 
 			/* get max acceleration */
-			float max_acc_z = (_vel(2) < 0.0f ? _params.acc_down_max : -_params.acc_up_max);
+			float max_acc_z = (_vel(2) < 0.0f ? _acceleration_z_max_down.get() : -_acceleration_z_max_up.get());
 
 			/* time to travel from current velocity to zero velocity */
 			float delta_t = fabsf(_vel(2) / max_acc_z);
@@ -1346,7 +1338,7 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	}
 
 	/* limit vertical acceleration */
-	float max_acc_z = acc(2) < 0.0f ? -_params.acc_up_max : _params.acc_down_max;
+	float max_acc_z = acc(2) < 0.0f ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
 
 	if (fabsf(acc(2)) > fabsf(max_acc_z)) {
 		_vel_sp(2) = max_acc_z * dt + _vel_sp_prev(2);
