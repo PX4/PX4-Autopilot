@@ -285,7 +285,7 @@ test_mount(int argc, char *argv[])
 	fsync(fileno(stderr));
 	usleep(20000);
 
-	px4_close(cmd_fd);
+	close(cmd_fd);
 
 	/* we always reboot for the next test if we get here */
 	PX4_INFO("Iteration done, rebooting..");
