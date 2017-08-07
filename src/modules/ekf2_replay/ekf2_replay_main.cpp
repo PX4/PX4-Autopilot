@@ -1049,6 +1049,8 @@ void Ekf2Replay::task_main()
 		PX4_INFO("TAS innov RMS = %6.3f", (double)sqrtf(_tasInnovSumSq / _numInnovSamples));
 	}
 
+	free(path_to_replay_log);
+
 }
 
 void Ekf2Replay::task_main_trampoline(int argc, char *argv[])

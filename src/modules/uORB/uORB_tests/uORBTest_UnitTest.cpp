@@ -89,6 +89,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 	const unsigned maxruns = 1000;
 	unsigned timingsgroup = 0;
 
+	// timings has to be on the heap to keep frame size below 2048 bytes
 	unsigned *timings = new unsigned[maxruns];
 
 	for (unsigned i = 0; i < maxruns; i++) {
@@ -129,6 +130,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 
 		if (f == nullptr) {
 			warnx("Error opening file!\n");
+			delete[] timings;
 			return uORB::ERROR;
 		}
 
