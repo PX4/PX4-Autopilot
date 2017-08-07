@@ -238,7 +238,6 @@ private:
 
 	bool _hold_offboard_xy = false;
 	bool _hold_offboard_z = false;
-	bool _limit_vel_xy = false;
 
 	math::Vector<3> _thrust_int;
 	math::Vector<3> _pos;
