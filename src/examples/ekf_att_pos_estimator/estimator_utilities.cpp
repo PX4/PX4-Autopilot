@@ -64,6 +64,7 @@ ekf_debug(const char *fmt, ...)
 
     va_start(args, fmt);
     ekf_debug_print(fmt, args);
+    va_end(args);
 }
 
 #else
