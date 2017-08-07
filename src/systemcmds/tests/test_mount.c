@@ -273,7 +273,7 @@ test_mount(int argc, char *argv[])
 			px4_close(fd);
 
 			if (ret) {
-				px4_close(cmd_fd);
+				close(cmd_fd);
 				PX4_ERR("UNLINKING FILE FAILED");
 				return 1;
 			}
