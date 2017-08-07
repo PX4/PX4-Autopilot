@@ -985,10 +985,10 @@ void AttitudePositionEstimatorEKF::publishWindEstimate()
 	_wind.windspeed_north = _ekf->states[14];
 	_wind.windspeed_east = _ekf->states[15];
 
-	// XXX we need to do something smart about the covariance here
-	// but we default to the estimate covariance for now
-	_wind.covariance_north = _ekf->P[14][14];
-	_wind.covariance_east = _ekf->P[15][15];
+	// XXX we need to do something smart about the variance here
+	// but we default to the estimated variance for now
+	_wind.variance_north = _ekf->P[14][14];
+	_wind.variance_east = _ekf->P[15][15];
 
 	/* lazily publish the wind estimate only once available */
 	if (_wind_pub != nullptr) {
