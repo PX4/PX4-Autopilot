@@ -984,6 +984,8 @@ void AttitudePositionEstimatorEKF::publishWindEstimate()
 	_wind.timestamp = _global_pos.timestamp;
 	_wind.windspeed_north = _ekf->states[14];
 	_wind.windspeed_east = _ekf->states[15];
+	Vector3f vrel = Vector3f((_ekf->states[4] - _ekf->states[14]) , (_ekf->states[5] - _ekf->states[15]) , _ekf->states[6]);
+	_wind.true_airspeed = vrel.length();
 
 	// XXX we need to do something smart about the covariance here
 	// but we default to the estimate covariance for now
