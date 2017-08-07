@@ -102,7 +102,9 @@ err(int exitcode, const char *fmt, ...)
 	va_list	args;
 
 	va_start(args, fmt);
-	verr(exitcode, fmt, args);
+	warnerr_core(errno, fmt, args);
+	va_end(args);
+	exit(exitcode);
 }
 
 void
@@ -118,7 +120,9 @@ errc(int exitcode, int errcode, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	verrc(exitcode, errcode, fmt, args);
+	warnerr_core(errcode, fmt, args);
+	va_end(args);
+	exit(exitcode);
 }
 
 void
@@ -134,7 +138,9 @@ errx(int exitcode, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	verrx(exitcode, fmt, args);
+	warnerr_core(NOCODE, fmt, args);
+	va_end(args);
+	exit(exitcode);
 }
 
 void
