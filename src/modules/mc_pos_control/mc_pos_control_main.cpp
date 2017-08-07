@@ -75,13 +75,8 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-
-#define TILT_COS_MAX	0.7f
 #define SIGMA_SINGLE_OP			0.000001f
-#define SIGMA_NORM				0.001f
-#define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
-#define ONE_G	9.8066f
-
+#define SIGMA_NORM			0.001f
 /**
  * Multicopter position control app start / stop handling function
  *
