@@ -118,15 +118,15 @@ sd_bench_main(int argc, char *argv[])
 		}
 	}
 
+	if (block_size <= 0 || num_runs <= 0) {
+		PX4_ERR("invalid argument");
+		return -1;
+	}
+
 	int bench_fd = open(BENCHMARK_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666);
 
 	if (bench_fd < 0) {
 		PX4_ERR("Can't open benchmark file %s", BENCHMARK_FILE);
-		return -1;
-	}
-
-	if (block_size <= 0 || num_runs <= 0) {
-		PX4_ERR("invalid argument");
 		return -1;
 	}
 
@@ -135,6 +135,7 @@ sd_bench_main(int argc, char *argv[])
 
 	if (!block) {
 		PX4_ERR("Failed to allocate memory block");
+		close(bench_fd);
 		return -1;
 	}
 
