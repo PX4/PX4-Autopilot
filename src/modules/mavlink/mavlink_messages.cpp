@@ -3745,7 +3745,7 @@ protected:
 			msg.wind_y = wind_estimate.windspeed_east;
 			msg.wind_z = 0.0f;
 
-			msg.var_horiz = wind_estimate.covariance_north + wind_estimate.covariance_east;
+			msg.var_horiz = wind_estimate.variance_north + wind_estimate.variance_east;
 			msg.var_vert = 0.0f;
 
 			struct vehicle_global_position_s global_pos = {};
