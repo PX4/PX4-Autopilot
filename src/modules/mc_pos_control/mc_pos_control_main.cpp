@@ -1403,7 +1403,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	if (_pos_sp_triplet.current.valid) {
 
-		math::Vector<3> curr_pos_sp = _curr_pos_sp;
+		math::Vector<3> curr_pos_sp;
 
 		//only project setpoints if they are finite, else use current position
 		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) &&
@@ -1411,21 +1411,21 @@ void MulticopterPositionControl::control_auto(float dt)
 			/* project setpoint to local frame */
 			map_projection_project(&_ref_pos,
 					       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
-					       &_curr_pos_sp.data[0], &_curr_pos_sp.data[1]);
+					       &curr_pos_sp.data[0], &curr_pos_sp.data[1]);
 
 			_pos_first_nonfinite = true;
 
 		} else { // use current position if NAN -> e.g. land
 			if (_pos_first_nonfinite) {
-				_curr_pos_sp.data[0] = _pos(0);
-				_curr_pos_sp.data[1] = _pos(1);
+				curr_pos_sp.data[0] = _pos(0);
+				curr_pos_sp.data[1] = _pos(1);
 				_pos_first_nonfinite = false;
 			}
 		}
 
 		// only project setpoints if they are finite, else use current position
 		if (PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
-			_curr_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
+			curr_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
 
 		}
 
@@ -1912,7 +1912,6 @@ void MulticopterPositionControl::control_auto(float dt)
 		_vel_sp.zero();
 		_run_pos_control = false;
 		_run_alt_control = false;
-
 	}
 }
 
@@ -2032,7 +2031,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		} else {
 			_vel_sp(2) = 0.0f;
 			warn_rate_limited("Caught invalid pos_sp in z");
-
 		}
 	}
 
