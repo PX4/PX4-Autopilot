@@ -450,7 +450,7 @@ void
 MK::play_beep(int count)
 {
 	tune_control_s tune = {};
-	tune.tune_id = tune_control_s::TUNE_ID_SINGLE_BEEP;
+	tune.tune_id = static_cast<int>(TuneID::SINGLE_BEEP);
 
 	for (int i = 0; i < count; i++) {
 		orb_publish(ORB_ID(tune_control), _tune_control_sub, &tune);
