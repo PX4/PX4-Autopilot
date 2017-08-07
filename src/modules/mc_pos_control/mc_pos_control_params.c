@@ -272,13 +272,13 @@ PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_VEL_MAN_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
 
 /**
  * Maximum horizontal velocity
  *
- * Maximum horizontal velocity. If higher speeds
- * are commanded they will be capped to this velocity.
+ * Maximum horizontal velocity in AUTO mode. If higher speeds
+ * are commanded in a mission they will be capped to this velocity.
  *
  * @unit m/s
  * @min 0.0
