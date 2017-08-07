@@ -1199,8 +1199,8 @@ void Ekf2::run()
 				wind_estimate.timestamp = now;
 				wind_estimate.windspeed_north = status.states[22];
 				wind_estimate.windspeed_east = status.states[23];
-				wind_estimate.covariance_north = status.covariances[22];
-				wind_estimate.covariance_east = status.covariances[23];
+				wind_estimate.variance_north = status.covariances[22];
+				wind_estimate.variance_east = status.covariances[23];
 
 				if (_wind_pub == nullptr) {
 					_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
