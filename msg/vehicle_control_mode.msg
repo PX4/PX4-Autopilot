@@ -1,6 +1,4 @@
 
-						# is set whenever the writing thread stores new data
-
 bool flag_armed
 
 bool flag_external_manual_override_ok		# external override non-fatal for system. Only true for fixed wing
