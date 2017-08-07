@@ -410,6 +410,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_z_max_up(this, "ACC_UP_MAX", true),
 	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
 	_cruise_speed_90(this, "CRUISE_90", true),
+	_velocity_hor_manual(this, "VEL_MANUAL", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
 	_min_cruise_speed(this, "CRUISE_MIN", true),
 	_nav_rad(this, "NAV_ACC_RAD", false),
