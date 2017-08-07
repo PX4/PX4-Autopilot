@@ -317,7 +317,7 @@ int uORBTest::UnitTest::test_multi()
 	/* this routine tests the multi-topic support */
 	test_note("try multi-topic support");
 
-	struct orb_test t, u;
+	struct orb_test t {}, u {};
 	t.val = 0;
 	int instance0;
 	_pfd[0] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
@@ -536,7 +536,7 @@ int uORBTest::UnitTest::test_multi_reversed()
 		return test_fail("sub. id2: ret: %d", sfd2);
 	}
 
-	struct orb_test t, u;
+	struct orb_test t {}, u {};
 
 	t.val = 0;
 
