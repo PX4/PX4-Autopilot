@@ -158,7 +158,7 @@ test_mount(int argc, char *argv[])
 		}
 
 		if (it_left_abort == 0) {
-			px4_close(cmd_fd);
+			close(cmd_fd);
 			(void)unlink(cmd_filename);
 			return 0;
 		}
