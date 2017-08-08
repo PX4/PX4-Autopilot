@@ -309,7 +309,7 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 
 
 /**
- * QuadChute Max Pith
+ * QuadChute Max Pitch
  *
  * Maximum pitch angle before QuadChute engages
  * Above this the vehicle will transition back to MC mode and enter failsafe RTL
