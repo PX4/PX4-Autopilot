@@ -50,6 +50,7 @@ VtolLandDetector::VtolLandDetector() :
 	_paramHandle(),
 	_params(),
 	_airspeedSub(-1),
+	_vehicle_status_sub(-1),
 	_airspeed{},
 	_was_in_air(false),
 	_airspeed_filtered(0)
@@ -62,6 +63,7 @@ void VtolLandDetector::_initialize_topics()
 	MulticopterLandDetector::_initialize_topics();
 
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 }
 
 void VtolLandDetector::_update_topics()
@@ -69,10 +71,27 @@ void VtolLandDetector::_update_topics()
 	MulticopterLandDetector::_update_topics();
 
 	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
+	_orb_update(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+}
+
+bool VtolLandDetector::_get_maybe_landed_state()
+{
+
+	// Only trigger in RW mode
+	if (!_vehicle_status.is_rotary_wing) {
+		return false;
+	}
+
+	return MulticopterLandDetector::_get_maybe_landed_state();
 }
 
 bool VtolLandDetector::_get_landed_state()
 {
+	// Only trigger in RW mode
+	if (!_vehicle_status.is_rotary_wing) {
+		return false;
+	}
+
 	// this is returned from the mutlicopter land detector
 	bool landed = MulticopterLandDetector::_get_landed_state();
 

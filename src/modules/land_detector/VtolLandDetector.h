@@ -58,6 +58,7 @@ protected:
 	void _update_params() override;
 	void _update_topics() override;
 	bool _get_landed_state() override;
+	bool _get_maybe_landed_state() override;
 
 
 private:
@@ -70,8 +71,10 @@ private:
 	} _params;
 
 	int _airspeedSub;
+	int _vehicle_status_sub;
 
-	struct airspeed_s _airspeed;
+	struct airspeed_s		_airspeed;
+	struct vehicle_status_s	_vehicle_status;
 
 	bool _was_in_air; /**< indicates whether the vehicle was in the air in the previous iteration */
 	float _airspeed_filtered; /**< low pass filtered airspeed */
