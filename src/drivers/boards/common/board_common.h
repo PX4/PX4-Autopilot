@@ -84,7 +84,7 @@
  *
  * The PX4_xxxx_BUS_FIRST_CS and PX4_xxxxx_BUS_LAST_CS
  * #define PX4_SENSORS_BUS_FIRST_CS  PX4_SPIDEV_ICM_20689
-*  #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
+ *  #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
  *
  *
  */
@@ -93,6 +93,31 @@
 #define PX4_SPI_BUS_ID(bd)        (((bd) >> 4) & 0xf)
 #define PX4_SPI_DEV_ID(bd)        ((bd) & 0xf)
 
+/* I2C PX4 clock configuration
+ *
+ * A board may override BOARD_NUMBER_I2C_BUSES and BOARD_I2C_BUS_CLOCK_INIT
+ * simply by defining the #defines.
+ *
+ * If none are provided the default number of I2C busses  will be taken from
+ * the px4 micro hal and the init will be from the legacy values of 100K.
+ */
+#if !defined(BOARD_NUMBER_I2C_BUSES)
+# define BOARD_NUMBER_I2C_BUSES PX4_NUMBER_I2C_BUSES
+#endif
+
+#if !defined(BOARD_I2C_BUS_CLOCK_INIT)
+#  if (BOARD_NUMBER_I2C_BUSES) == 1
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 2
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 3
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 4
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
+#  else
+#    error BOARD_NUMBER_I2C_BUSES not supported
+#  endif
+#endif
 /* ADC defining tools
  * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
  */
