@@ -443,8 +443,13 @@ void Ekf::controlGpsFusion()
 
 			if (do_reset) {
 				// Reset states to the last GPS measurement
-				resetPosition();
-				resetVelocity();
+				if (_control_status.flags.fixed_wing) {
+					// if flying a fixed wing aircraft, do a complete reset that includes yaw, velocity and position
+					realignYawGPS();
+				} else {
+					resetVelocity();
+					resetPosition();
+				}
 				ECL_WARN("EKF GPS fusion timeout - reset to GPS");
 
 				// Reset the timeout counters
@@ -1052,6 +1057,7 @@ void Ekf::controlMagFusion()
 	if (!_control_status.flags.in_air) {
 		_last_on_ground_posD = _state.pos(2);
 		_flt_mag_align_complete = false;
+		_num_bad_flight_yaw_events = 0;
 	}
 
 	// check for new magnetometer data that has fallen behind the fusion time horizon
@@ -1059,7 +1065,11 @@ void Ekf::controlMagFusion()
 
 		// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
 		// or the more accurate 3-axis fusion
-		if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
+		if (_control_status.flags.mag_fault) {
+			// do no magnetometer fusion at all
+			_control_status.flags.mag_hdg = false;
+			_control_status.flags.mag_3D = false;
+		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
 			// Check if height has increased sufficiently to be away from ground magnetic anomalies
 			bool height_achieved = (_last_on_ground_posD - _state.pos(2)) > 1.5f;
 
