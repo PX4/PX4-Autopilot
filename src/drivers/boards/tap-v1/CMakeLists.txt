@@ -42,7 +42,6 @@ px4_add_module(
 		../common/board_dma_alloc.c
 		tap_init.c
 		tap_pwr.c
-		tap_i2c.cpp
 		tap_sdio.c
 		tap_timer_config.c
 		tap_spi.c
