@@ -123,7 +123,6 @@ void MulticopterLandDetector::_initialize_topics()
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -137,7 +136,6 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
 	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
-	_orb_update(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -194,11 +192,6 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		_arming_time = now;
 	}
 
-	// Only trigger in RW mode
-	if (!_vehicle_status.is_rotary_wing) {
-		return false;
-	}
-
 	// If in manual flight mode never report landed if the user has more than idle throttle
 	// Check if user commands throttle and if so, report no ground contact based on
 	// the user intent to take off (even if the system might physically still have
@@ -247,11 +240,6 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
 		return true;
-	}
-
-	// Only trigger in RW mode
-	if (!_vehicle_status.is_rotary_wing) {
-		return false;
 	}
 
 	// If we control manually and are still landed, we want to stay idle until the pilot rises the throttle for takeoff
