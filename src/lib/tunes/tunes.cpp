@@ -100,7 +100,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 
 		// tunes that have a high priority
 		case static_cast<int>(TuneID::STARTUP):
-		case static_cast<int>(TuneID::ERROR):
+		case static_cast<int>(TuneID::ERROR_TUNE):
 		case static_cast<int>(TuneID::NOTIFY_POSITIVE):
 		case static_cast<int>(TuneID::NOTIFY_NEUTRAL):
 		case static_cast<int>(TuneID::NOTIFY_NEGATIVE):
