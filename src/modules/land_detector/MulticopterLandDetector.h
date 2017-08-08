@@ -126,16 +126,18 @@ private:
 	int _ctrl_state_sub;
 	int _vehicle_control_mode_sub;
 	int _battery_sub;
+	int _vehicle_status_sub;
 
-	struct vehicle_local_position_s		_vehicleLocalPosition;
-	struct vehicle_local_position_setpoint_s _vehicleLocalPositionSetpoint;
-	struct actuator_controls_s		_actuators;
-	struct actuator_armed_s			_arming;
-	struct vehicle_attitude_s		_vehicleAttitude;
-	struct manual_control_setpoint_s	_manual;
-	struct control_state_s			_ctrl_state;
-	struct vehicle_control_mode_s		_control_mode;
-	struct battery_status_s _battery;
+	struct vehicle_local_position_s				_vehicleLocalPosition;
+	struct vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint;
+	struct actuator_controls_s					_actuators;
+	struct actuator_armed_s						_arming;
+	struct vehicle_attitude_s					_vehicleAttitude;
+	struct manual_control_setpoint_s			_manual;
+	struct control_state_s						_ctrl_state;
+	struct vehicle_control_mode_s				_control_mode;
+	struct battery_status_s						_battery;
+	struct vehicle_status_s						_vehicle_status;
 
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
 	uint64_t _arming_time;
