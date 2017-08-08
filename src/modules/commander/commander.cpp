@@ -36,19 +36,13 @@
  *
  * Main state machine / business logic
  *
- * @author Petri Tanskanen	<petri.tanskanen@inf.ethz.ch>
- * @author Lorenz Meier		<lorenz@px4.io>
- * @author Thomas Gubler	<thomas@px4.io>
- * @author Julian Oes		<julian@oes.ch>
- * @author Anton Babushkin	<anton@px4.io>
- * @author Sander Smeets	<sander@droneslab.com>
  */
 
 #include "Commander.hpp"
 
-#include <cmath>	// NAN
+#include <cfloat>
+#include <cmath>
 
-/* commander module headers */
 #include "accelerometer_calibration.h"
 #include "airspeed_calibration.h"
 #include "baro_calibration.h"
@@ -62,37 +56,26 @@
 #include "rc_calibration.h"
 #include "state_machine_helper.h"
 
-/* PX4 headers */
+#include <board_config.h>
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <geo/geo.h>
+#include <matrix/math.hpp>
 #include <navigator/navigation.h>
-#include <px4_defines.h>
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_shutdown.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/err.h>
+#include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
-#include <float.h>
-#include <systemlib/hysteresis/hysteresis.h>
-
-#include <board_config.h>
-
-#include <sys/stat.h>
-#include <string.h>
-#include <math.h>
-#include <poll.h>
-#include <float.h>
-#include <matrix/math.hpp>
-
-#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -103,9 +86,8 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/power_button_state.h>
-#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/power_button_state.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
@@ -116,7 +98,9 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/uORB.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -130,8 +114,6 @@ typedef enum VEHICLE_MODE_FLAG
 	VEHICLE_MODE_FLAG_SAFETY_ARMED=128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. | */
 	VEHICLE_MODE_FLAG_ENUM_END=129, /*  | */
 } VEHICLE_MODE_FLAG;
-
-Commander *commander::g_control;
 
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
@@ -168,17 +150,12 @@ static int64_t lvel_probation_time_us = POSVEL_PROBATION_TAKEOFF;
 
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
-
 static orb_advert_t power_button_state_pub = nullptr;
 
 /* System autostart ID */
 static int autostart_id;
 
-/* flags */
-static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
-static volatile bool thread_running = false;		/**< daemon status flag */
-static int daemon_task;					/**< Handle of daemon task / thread */
 
 static bool _usb_telemetry_active = false;
 static hrt_abstime commander_boot_timestamp = 0;
@@ -237,36 +214,7 @@ static bool arm_mission_required = false;
 
 static bool _last_condition_global_position_valid = false;
 
-/**
- * The daemon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- *
- * The actual stack size should be set in the call
- * to task_create().
- *
- * @ingroup apps
- */
 extern "C" __EXPORT int commander_main(int argc, char *argv[]);
-
-/**
- * Print the correct usage.
- */
-void usage(const char *reason);
-
-/**
- * React to commands that are sent e.g. from the mavlink module.
- */
-bool handle_command(struct vehicle_status_s *status, struct vehicle_command_s *cmd,
-		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
-		    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
-		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi,
-		    orb_advert_t *roi_pub,
-		    bool *changed);
-
-/**
- * Mainloop of commander.
- */
 
 void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
 			 battery_status_s *battery_local, const cpuload_s *cpuload_local);
@@ -278,16 +226,12 @@ void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool
 transition_result_t set_main_state_rc(struct vehicle_status_s *status, vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
 
 void reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
-
 void check_posvel_validity(bool data_valid, float data_accuracy, float required_accuracy, uint64_t data_timestamp_us, hrt_abstime *last_fail_time_us, int64_t *probation_time_us, bool *valid_state, bool *validity_changed);
 
 bool stabilization_required();
 
 void print_reject_mode(const char *msg);
-
 void print_reject_arm(const char *msg);
-
-void print_status();
 
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const char *armedBy);
 
@@ -341,73 +285,29 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	return ret;
 }
 
+static void publish_vehicle_command(uint32_t command, float param1 = NAN, float param2 = NAN, float param3 = NAN, float param4 = NAN, double param5 = NAN, double param6 = NAN, float param7 = NAN)
+{
+	vehicle_command_s cmd = {};
+
+	cmd.timestamp = hrt_absolute_time();
+	cmd.target_system = status.system_id;
+	cmd.target_component = status.component_id;
+	cmd.command = command;
+	cmd.param1 = param1;
+	cmd.param2 = param2;
+	cmd.param3 = param3;
+	cmd.param4 = param4;
+	cmd.param5 = param5;
+	cmd.param6 = param6;
+	cmd.param7 = param7;
+	cmd.confirmation = 0;
+
+	orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+	orb_unadvertise(h);
+}
+
 int commander_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		usage("missing command");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			PX4_WARN("already running");
-			/* this is not an error */
-			return 0;
-		}
-
-		thread_should_exit = false;
-		daemon_task = px4_task_spawn_cmd("commander",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT + 40,
-					     3000,
-					     (px4_main_t)&Commander::task_main_trampoline,
-					     (char * const *)&argv[0]);
-
-		static unsigned constexpr max_wait_us = 1000000;
-		static unsigned constexpr max_wait_steps = 2000;
-
-		unsigned i;
-		for (i = 0; i < max_wait_steps; i++) {
-			usleep(max_wait_us / max_wait_steps);
-			if (thread_running) {
-				break;
-			}
-		}
-
-		return !(i < max_wait_steps);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-
-		if (!thread_running) {
-			PX4_WARN("commander already stopped");
-			return 0;
-		}
-
-		thread_should_exit = true;
-
-		while (thread_running) {
-			usleep(200000);
-			PX4_WARN(".");
-		}
-
-		PX4_WARN("terminated.");
-
-		return 0;
-	}
-
-	/* commands needing the app to run below */
-	if (!thread_running) {
-		PX4_WARN("\tcommander not started");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		print_status();
-		return 0;
-	}
-
 	if (!strcmp(argv[1], "calibrate")) {
 		if (argc > 2) {
 			int calib_ret = OK;
@@ -469,26 +369,7 @@ int commander_main(int argc, char *argv[])
 		if (status_flags.condition_local_position_valid) {
 
 			if (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "command line")) {
-
-				vehicle_command_s cmd = {};
-				cmd.target_system = status.system_id;
-				cmd.target_component = status.component_id;
-
-				cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
-				cmd.param1 = NAN; /* minimum pitch */
-				/* param 2-3 unused */
-				cmd.param2 = NAN;
-				cmd.param3 = NAN;
-				cmd.param4 = NAN;
-				cmd.param5 = NAN;
-				cmd.param6 = NAN;
-				cmd.param7 = NAN;
-
-				cmd.timestamp = hrt_absolute_time();
-
-				orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-				(void)orb_unadvertise(h);
-
+				publish_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF);
 			} else {
 				PX4_WARN("arming failed");
 			}
@@ -501,45 +382,14 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "land")) {
-
-		vehicle_command_s cmd = {};
-		cmd.target_system = status.system_id;
-		cmd.target_component = status.component_id;
-
-		cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-		/* param 2-3 unused */
-		cmd.param2 = NAN;
-		cmd.param3 = NAN;
-		cmd.param4 = NAN;
-		cmd.param5 = NAN;
-		cmd.param6 = NAN;
-		cmd.param7 = NAN;
-
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
-
+		publish_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_LAND);
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "transition")) {
 
-		vehicle_command_s cmd = {};
-		cmd.target_system = status.system_id;
-		cmd.target_component = status.component_id;
-
-		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
-		/* transition to the other mode */
-		cmd.param1 = (status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		/* param 2-3 unused */
-		cmd.param2 = NAN;
-		cmd.param3 = NAN;
-		cmd.param4 = NAN;
-		cmd.param5 = NAN;
-		cmd.param6 = NAN;
-		cmd.param7 = NAN;
-
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
+		publish_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
+				(status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 
 		return 0;
 	}
@@ -588,38 +438,19 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "lockdown")) {
 
 		if (argc < 3) {
-			usage("not enough arguments, missing [on, off]");
+			PX4_WARN("not enough arguments, missing [on, off]");
 			return 1;
 		}
 
-		vehicle_command_s cmd = {};
-		cmd.target_system = status.system_id;
-		cmd.target_component = status.component_id;
-
-		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
-		/* if the comparison matches for off (== 0) set 0.0f, 2.0f (on) else */
-		cmd.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f; /* lockdown */
-
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
+		publish_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION, strcmp(argv[2], "off") ? 2.0f : 0.0f /* lockdown */);
 
 		return 0;
 	}
 
-	usage("unrecognized command");
-	return 1;
+	return Commander::main(argc, argv);
 }
 
-void usage(const char *reason)
-{
-	if (reason && *reason > 0) {
-		PX4_INFO("%s", reason);
-	}
-
-	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm|takeoff|land|transition|mode}\n");
-}
-
-void print_status()
+int Commander::print_status()
 {
 	PX4_WARN("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
 	PX4_WARN("safety: USB enabled: %s, power state valid: %s", (status_flags.usb_connected) ? "[OK]" : "[NO]",
@@ -669,6 +500,8 @@ void print_status()
 	}
 
 	PX4_WARN("arming: %s", armed_str);
+
+	return 0;
 }
 
 static orb_advert_t status_pub;
@@ -711,12 +544,12 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 }
 
 bool
-Commander::handle_command(struct vehicle_status_s *status_local,
-		    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
-		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
-		    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
-		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
-		    struct vehicle_roi_s *roi, orb_advert_t *roi_pub, bool *changed)
+Commander::handle_command(vehicle_status_s *status_local,
+		    vehicle_command_s *cmd, actuator_armed_s *armed_local,
+		    home_position_s *home, vehicle_global_position_s *global_pos,
+		    vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
+		    orb_advert_t *command_ack_pub, vehicle_command_ack_s *command_ack,
+		    vehicle_roi_s *roi, orb_advert_t *roi_pub, bool *changed)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -1222,26 +1055,8 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 }
 
 void
-Commander::task_main_trampoline(int argc, char *argv[])
+Commander::run()
 {
-	commander::g_control = new Commander();
-
-	if (commander::g_control == nullptr) {
-		PX4_WARN("OUT OF MEM");
-		return;
-	}
-
-	/* only returns on exit */
-	commander::g_control->commander_thread_main(argc, argv);
-	delete commander::g_control;
-	commander::g_control = nullptr;
-}
-
-int Commander::commander_thread_main(int argc, char *argv[])
-{
-	/* not yet initialized */
-	commander_initialized = false;
-
 	bool sensor_fail_tune_played = false;
 	bool arm_tune_played = false;
 	bool was_landed = true;
@@ -1251,28 +1066,10 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	// XXX for now just set sensors as initialized
 	status_flags.condition_system_sensors_initialized = true;
 
-#ifdef __PX4_NUTTX
-	/* NuttX indicates 3 arguments when only 2 are present */
-	argc -= 1;
-	argv += 1;
-#endif
-
 	/* vehicle status topic */
 	status = {};
 
 	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
-
-	if (argc > 2) {
-		if (!strcmp(argv[2],"--hil")) {
-			status.hil_state = vehicle_status_s::HIL_STATE_ON;
-		} else {
-			PX4_ERR("Argument %s not supported, abort.", argv[2]);
-			thread_should_exit = true;
-		}
-	}
-
-	/* pthread for slow low prio thread */
-	pthread_t commander_low_prio_thread;
 
 	/* initialize */
 	if (led_init() != OK) {
@@ -1509,10 +1306,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
-	/* now initialized */
-	commander_initialized = true;
-	thread_running = true;
-
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
 	status.is_rotary_wing = is_rotary_wing() || is_vtol();
 	status.is_vtol = is_vtol();
@@ -1552,8 +1345,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	int32_t rc_arm_hyst = _param_rc_arm_hyst.get();
 	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 
-	transition_result_t arming_ret;
-
 	/* Thresholds for engine failure detection */
 	hrt_abstime timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
@@ -1565,6 +1356,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	bool have_taken_off_since_arming = false;
 
 	/* initialize low priority thread */
+	pthread_t commander_low_prio_thread;
 	pthread_attr_t commander_low_prio_attr{};
 	pthread_attr_init(&commander_low_prio_attr);
 	pthread_attr_setstacksize(&commander_low_prio_attr, PX4_STACK_ADJUSTED(3000));
@@ -1582,8 +1374,8 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, nullptr);
 	pthread_attr_destroy(&commander_low_prio_attr);
 
-	while (!thread_should_exit) {
-		arming_ret = TRANSITION_NOT_CHANGED;
+	while (!should_exit()) {
+		transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
 
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
@@ -1636,7 +1428,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 			arm_without_gps = _param_arm_without_gps.get();
 			arm_mission_required = _param_arm_mission_required.get();
 
-			/* Autostart id */
 			autostart_id = _param_autostart_id.get();
 
 			/* EPH / EPV */
@@ -1825,6 +1616,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 										  _param_arm_without_gps.get(),
 										  _param_arm_mission_required.get(),
 										  hrt_elapsed_time(&commander_boot_timestamp))) {
+
 					arming_state_changed = true;
 				}
 			}
@@ -1967,6 +1759,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 		} else if (internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 			&& internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
 			&& internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+
 			// reset flag again when we switched out of it
 			warning_action_on = false;
 		}
@@ -1990,6 +1783,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 				/* if battery voltage is getting lower, warn using buzzer, etc. */
 				if (battery.warning == battery_status_s::BATTERY_WARNING_LOW &&
 				   !low_battery_voltage_actions_done) {
+
 					low_battery_voltage_actions_done = true;
 					if (armed.armed) {
 						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAND ADVISED");
@@ -2001,6 +1795,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 				} else if (!status_flags.usb_connected &&
 					   battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
 					   !critical_battery_voltage_actions_done) {
+
 					critical_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
@@ -2016,7 +1811,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 							} else {
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
 							}
-
 						} else if (_param_low_bat_act.get() == 2) {
 							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
@@ -2025,7 +1819,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 							} else {
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
 							}
-
 						} else {
 							mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURN TO LAUNCH ADVISED!");
 						}
@@ -2036,6 +1829,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 				} else if (!status_flags.usb_connected &&
 					   battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY &&
 					   !emergency_battery_voltage_actions_done) {
+
 					emergency_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
@@ -2044,10 +1838,10 @@ int Commander::commander_thread_main(int argc, char *argv[])
 						int ret_val = px4_shutdown_request(false, false);
 						if (ret_val) {
 							mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+
 						} else {
 							while(1) { usleep(1); }
 						}
-
 					} else {
 						if (_param_low_bat_act.get() == 2 || _param_low_bat_act.get() == 3) {
 							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
@@ -2057,7 +1851,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 							} else {
 								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING FAILED");
 							}
-
 						} else {
 							mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
 						}
@@ -2417,8 +2210,9 @@ int Commander::commander_thread_main(int argc, char *argv[])
 					}
 				}
 				stick_off_counter++;
-			/* do not reset the counter when holding the arm button longer than needed */
+
 			} else if (!(_param_arm_switch_is_button.get() == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) {
+				/* do not reset the counter when holding the arm button longer than needed */
 				stick_off_counter = 0;
 			}
 
@@ -2892,6 +2686,8 @@ int Commander::commander_thread_main(int argc, char *argv[])
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}
 
+	thread_should_exit = true;
+
 	/* wait for threads to complete */
 	int ret = pthread_join(commander_low_prio_thread, nullptr);
 
@@ -2915,10 +2711,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	px4_close(param_changed_sub);
 	px4_close(battery_sub);
 	px4_close(land_detector_sub);
-
-	thread_running = false;
-
-	return 0;
 }
 
 void
@@ -4224,3 +4016,65 @@ Commander::is_vtol() const {
 			_param_mav_type.get() == VEHICLE_TYPE_VTOL_RESERVED4 ||
 			_param_mav_type.get() == VEHICLE_TYPE_VTOL_RESERVED5);
 }
+
+int Commander::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int Commander::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_USAGE_NAME("commander", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
+	PRINT_MODULE_USAGE_COMMAND("calibrate");
+	PRINT_MODULE_USAGE_COMMAND("check");
+	PRINT_MODULE_USAGE_COMMAND("arm");
+	PRINT_MODULE_USAGE_COMMAND("disarm");
+	PRINT_MODULE_USAGE_COMMAND("takeoff");
+	PRINT_MODULE_USAGE_COMMAND("land");
+	PRINT_MODULE_USAGE_COMMAND("transition");
+	PRINT_MODULE_USAGE_COMMAND("mode");
+
+	return 0;
+}
+
+int Commander::task_spawn(int argc, char *argv[])
+{
+	_task_id = px4_task_spawn_cmd("commander",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_DEFAULT + 40,
+				      3000,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
+
+	if (_task_id < 0) {
+		_task_id = -1;
+		return -errno;
+	}
+
+	return 0;
+}
+
+Commander*Commander::instantiate(int argc, char *argv[])
+{
+	Commander *instance = new Commander();
+
+	if (instance) {
+		if (argc >= 2 && !strcmp(argv[1], "--hil")) {
+			instance->enable_hil();
+		}
+	}
+
+	return instance;
+}
+
+void Commander::enable_hil()
+{
+	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+};

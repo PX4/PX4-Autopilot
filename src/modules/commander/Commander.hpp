@@ -35,15 +35,21 @@
 #define COMMANDER_HPP_
 
 #include <controllib/blocks.hpp>
+#include <px4_module.h>
 
 // publications
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/Publication.hpp>
 
 // subscriptions
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/Subscription.hpp>
 
 using control::BlockParamBool;
@@ -52,7 +58,7 @@ using control::BlockParamInt;
 using uORB::Publication;
 using uORB::Subscription;
 
-class Commander : public control::SuperBlock
+class Commander : public control::SuperBlock, public ModuleBase<Commander>
 {
 public:
 	Commander() :
@@ -99,10 +105,27 @@ public:
 		updateParams();
 	}
 
-	~Commander() = default;
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	static void	task_main_trampoline(int argc, char *argv[]);
-	int commander_thread_main(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static Commander *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/**
+	 * Diagnostics - print some basic information
+	 */
+	int print_status() override;
+
+	void enable_hil();
 
 private:
 
@@ -175,19 +198,16 @@ private:
 	// actuator_controls_0
 	// battery_status
 	// cpuload
-	// differential_pressure
 	// geofence_result
 	// manual_control_setpoint
 	// mission_result
 	// offboard_control_mode
 	// parameter_update
-	// position_setpoint_triplet
 	// safety
 	// sensor_combined
 	// subsystem_info
 	// system_power
 	// telemetry_status
-	// vehicle_attitude
 	// vehicle_command
 	// vehicle_global_position
 	// vehicle_gps_position
@@ -195,13 +215,12 @@ private:
 	// vehicle_local_position
 	// vtol_vehicle_status
 
-	bool handle_command(struct vehicle_status_s *status_local,
-			    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
-			    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
-			    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
-			    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
-			    struct vehicle_roi_s *roi, orb_advert_t *roi_pub, bool *changed);
-
+	bool handle_command(vehicle_status_s *status_local,
+			    vehicle_command_s *cmd, actuator_armed_s *armed_local,
+			    home_position_s *home, vehicle_global_position_s *global_pos,
+			    vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
+			    orb_advert_t *command_ack_pub, vehicle_command_ack_s *command_ack,
+			    vehicle_roi_s *roi, orb_advert_t *roi_pub, bool *changed);
 
 	static constexpr int32_t VEHICLE_TYPE_QUADROTOR = 2;
 	static constexpr int32_t VEHICLE_TYPE_COAXIAL = 3;
@@ -222,12 +241,6 @@ private:
 	bool is_rotary_wing() const;
 	bool is_vtol() const;
 
-
 };
-
-namespace commander
-{
-extern Commander *g_control;
-} // namespace commander
 
 #endif /* COMMANDER_HPP_ */
