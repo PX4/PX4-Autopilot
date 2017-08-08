@@ -966,7 +966,7 @@ PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);
 
 
 /**
- * RC Channel 1 Minimum
+ * RC channel 1 minimum
  *
  * Minimum value for RC channel 1
  *
@@ -978,7 +978,7 @@ PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);
 PARAM_DEFINE_FLOAT(RC1_MIN, 1000.0f);
 
 /**
- * RC Channel 1 Trim
+ * RC channel 1 trim
  *
  * Mid point value (same as min for throttle)
  *
@@ -990,7 +990,7 @@ PARAM_DEFINE_FLOAT(RC1_MIN, 1000.0f);
 PARAM_DEFINE_FLOAT(RC1_TRIM, 1500.0f);
 
 /**
- * RC Channel 1 Maximum
+ * RC channel 1 maximum
  *
  * Maximum value for RC channel 1
  *
@@ -1002,7 +1002,7 @@ PARAM_DEFINE_FLOAT(RC1_TRIM, 1500.0f);
 PARAM_DEFINE_FLOAT(RC1_MAX, 2000.0f);
 
 /**
- * RC Channel 1 Reverse
+ * RC channel 1 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1013,7 +1013,7 @@ PARAM_DEFINE_FLOAT(RC1_MAX, 2000.0f);
 PARAM_DEFINE_FLOAT(RC1_REV, 1.0f);
 
 /**
- * RC Channel 1 dead zone
+ * RC channel 1 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1025,7 +1025,7 @@ PARAM_DEFINE_FLOAT(RC1_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC1_DZ, 10.0f);
 
 /**
- * RC Channel 2 Minimum
+ * RC channel 2 minimum
  *
  * Minimum value for this channel.
  *
@@ -1037,7 +1037,7 @@ PARAM_DEFINE_FLOAT(RC1_DZ, 10.0f);
 PARAM_DEFINE_FLOAT(RC2_MIN, 1000.0f);
 
 /**
- * RC Channel 2 Trim
+ * RC channel 2 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1049,7 +1049,7 @@ PARAM_DEFINE_FLOAT(RC2_MIN, 1000.0f);
 PARAM_DEFINE_FLOAT(RC2_TRIM, 1500.0f);
 
 /**
- * RC Channel 2 Maximum
+ * RC channel 2 maximum
  *
  * Maximum value for this channel.
  *
@@ -1061,7 +1061,7 @@ PARAM_DEFINE_FLOAT(RC2_TRIM, 1500.0f);
 PARAM_DEFINE_FLOAT(RC2_MAX, 2000.0f);
 
 /**
- * RC Channel 2 Reverse
+ * RC channel 2 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1072,7 +1072,7 @@ PARAM_DEFINE_FLOAT(RC2_MAX, 2000.0f);
 PARAM_DEFINE_FLOAT(RC2_REV, 1.0f);
 
 /**
- * RC Channel 2 dead zone
+ * RC channel 2 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1084,7 +1084,7 @@ PARAM_DEFINE_FLOAT(RC2_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC2_DZ, 10.0f);
 
 /**
- * RC Channel 3 Minimum
+ * RC channel 3 minimum
  *
  * Minimum value for this channel.
  *
@@ -1096,7 +1096,7 @@ PARAM_DEFINE_FLOAT(RC2_DZ, 10.0f);
 PARAM_DEFINE_FLOAT(RC3_MIN, 1000);
 
 /**
- * RC Channel 3 Trim
+ * RC channel 3 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1108,7 +1108,7 @@ PARAM_DEFINE_FLOAT(RC3_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC3_TRIM, 1500);
 
 /**
- * RC Channel 3 Maximum
+ * RC channel 3 maximum
  *
  * Maximum value for this channel.
  *
@@ -1120,7 +1120,7 @@ PARAM_DEFINE_FLOAT(RC3_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC3_MAX, 2000);
 
 /**
- * RC Channel 3 Reverse
+ * RC channel 3 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1130,7 +1130,7 @@ PARAM_DEFINE_FLOAT(RC3_MAX, 2000);
  */
 PARAM_DEFINE_FLOAT(RC3_REV, 1.0f);
 /**
- * RC Channel 3 dead zone
+ * RC channel 3 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1142,7 +1142,7 @@ PARAM_DEFINE_FLOAT(RC3_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC3_DZ, 10.0f);
 
 /**
- * RC Channel 4 Minimum
+ * RC channel 4 minimum
  *
  * Minimum value for this channel.
  *
@@ -1154,7 +1154,7 @@ PARAM_DEFINE_FLOAT(RC3_DZ, 10.0f);
 PARAM_DEFINE_FLOAT(RC4_MIN, 1000);
 
 /**
- * RC Channel 4 Trim
+ * RC channel 4 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1166,7 +1166,7 @@ PARAM_DEFINE_FLOAT(RC4_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC4_TRIM, 1500);
 
 /**
- * RC Channel 4 Maximum
+ * RC channel 4 maximum
  *
  * Maximum value for this channel.
  *
@@ -1178,7 +1178,7 @@ PARAM_DEFINE_FLOAT(RC4_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC4_MAX, 2000);
 
 /**
- * RC Channel 4 Reverse
+ * RC channel 4 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1189,7 +1189,7 @@ PARAM_DEFINE_FLOAT(RC4_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC4_REV, 1.0f);
 
 /**
- * RC Channel 4 dead zone
+ * RC channel 4 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1201,7 +1201,7 @@ PARAM_DEFINE_FLOAT(RC4_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC4_DZ, 10.0f);
 
 /**
- * RC Channel 5 Minimum
+ * RC channel 5 minimum
  *
  * Minimum value for this channel.
  *
@@ -1213,7 +1213,7 @@ PARAM_DEFINE_FLOAT(RC4_DZ, 10.0f);
 PARAM_DEFINE_FLOAT(RC5_MIN, 1000);
 
 /**
- * RC Channel 5 Trim
+ * RC channel 5 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1225,7 +1225,7 @@ PARAM_DEFINE_FLOAT(RC5_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC5_TRIM, 1500);
 
 /**
- * RC Channel 5 Maximum
+ * RC channel 5 maximum
  *
  * Maximum value for this channel.
  *
@@ -1237,7 +1237,7 @@ PARAM_DEFINE_FLOAT(RC5_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC5_MAX, 2000);
 
 /**
- * RC Channel 5 Reverse
+ * RC channel 5 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1248,7 +1248,7 @@ PARAM_DEFINE_FLOAT(RC5_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC5_REV, 1.0f);
 
 /**
- * RC Channel 5 dead zone
+ * RC channel 5 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1259,7 +1259,7 @@ PARAM_DEFINE_FLOAT(RC5_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC5_DZ,  10.0f);
 
 /**
- * RC Channel 6 Minimum
+ * RC channel 6 minimum
  *
  * Minimum value for this channel.
  *
@@ -1271,7 +1271,7 @@ PARAM_DEFINE_FLOAT(RC5_DZ,  10.0f);
 PARAM_DEFINE_FLOAT(RC6_MIN, 1000);
 
 /**
- * RC Channel 6 Trim
+ * RC channel 6 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1283,7 +1283,7 @@ PARAM_DEFINE_FLOAT(RC6_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC6_TRIM, 1500);
 
 /**
- * RC Channel 6 Maximum
+ * RC channel 6 maximum
  *
  * Maximum value for this channel.
  *
@@ -1295,7 +1295,7 @@ PARAM_DEFINE_FLOAT(RC6_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC6_MAX, 2000);
 
 /**
- * RC Channel 6 Reverse
+ * RC channel 6 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1306,7 +1306,7 @@ PARAM_DEFINE_FLOAT(RC6_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC6_REV, 1.0f);
 
 /**
- * RC Channel 6 dead zone
+ * RC channel 6 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1317,7 +1317,7 @@ PARAM_DEFINE_FLOAT(RC6_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC6_DZ, 10.0f);
 
 /**
- * RC Channel 7 Minimum
+ * RC channel 7 minimum
  *
  * Minimum value for this channel.
  *
@@ -1329,7 +1329,7 @@ PARAM_DEFINE_FLOAT(RC6_DZ, 10.0f);
 PARAM_DEFINE_FLOAT(RC7_MIN, 1000);
 
 /**
- * RC Channel 7 Trim
+ * RC channel 7 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1341,7 +1341,7 @@ PARAM_DEFINE_FLOAT(RC7_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC7_TRIM, 1500);
 
 /**
- * RC Channel 7 Maximum
+ * RC channel 7 maximum
  *
  * Maximum value for this channel.
  *
@@ -1353,7 +1353,7 @@ PARAM_DEFINE_FLOAT(RC7_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC7_MAX, 2000);
 
 /**
- * RC Channel 7 Reverse
+ * RC channel 7 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1364,7 +1364,7 @@ PARAM_DEFINE_FLOAT(RC7_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC7_REV, 1.0f);
 
 /**
- * RC Channel 7 dead zone
+ * RC channel 7 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1375,7 +1375,7 @@ PARAM_DEFINE_FLOAT(RC7_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC7_DZ, 10.0f);
 
 /**
- * RC Channel 8 Minimum
+ * RC channel 8 minimum
  *
  * Minimum value for this channel.
  *
@@ -1387,7 +1387,7 @@ PARAM_DEFINE_FLOAT(RC7_DZ, 10.0f);
 PARAM_DEFINE_FLOAT(RC8_MIN, 1000);
 
 /**
- * RC Channel 8 Trim
+ * RC channel 8 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1399,7 +1399,7 @@ PARAM_DEFINE_FLOAT(RC8_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC8_TRIM, 1500);
 
 /**
- * RC Channel 8 Maximum
+ * RC channel 8 maximum
  *
  * Maximum value for this channel.
  *
@@ -1411,7 +1411,7 @@ PARAM_DEFINE_FLOAT(RC8_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC8_MAX, 2000);
 
 /**
- * RC Channel 8 Reverse
+ * RC channel 8 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1422,7 +1422,7 @@ PARAM_DEFINE_FLOAT(RC8_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC8_REV, 1.0f);
 
 /**
- * RC Channel 8 dead zone
+ * RC channel 8 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1433,7 +1433,7 @@ PARAM_DEFINE_FLOAT(RC8_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC8_DZ, 10.0f);
 
 /**
- * RC Channel 9 Minimum
+ * RC channel 9 minimum
  *
  * Minimum value for this channel.
  *
@@ -1445,7 +1445,7 @@ PARAM_DEFINE_FLOAT(RC8_DZ, 10.0f);
 PARAM_DEFINE_FLOAT(RC9_MIN, 1000);
 
 /**
- * RC Channel 9 Trim
+ * RC channel 9 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1457,7 +1457,7 @@ PARAM_DEFINE_FLOAT(RC9_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC9_TRIM, 1500);
 
 /**
- * RC Channel 9 Maximum
+ * RC channel 9 maximum
  *
  * Maximum value for this channel.
  *
@@ -1469,7 +1469,7 @@ PARAM_DEFINE_FLOAT(RC9_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC9_MAX, 2000);
 
 /**
- * RC Channel 9 Reverse
+ * RC channel 9 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1480,7 +1480,7 @@ PARAM_DEFINE_FLOAT(RC9_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC9_REV, 1.0f);
 
 /**
- * RC Channel 9 dead zone
+ * RC channel 9 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1491,7 +1491,7 @@ PARAM_DEFINE_FLOAT(RC9_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC9_DZ, 0.0f);
 
 /**
- * RC Channel 10 Minimum
+ * RC channel 10 minimum
  *
  * Minimum value for this channel.
  *
@@ -1503,7 +1503,7 @@ PARAM_DEFINE_FLOAT(RC9_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC10_MIN, 1000);
 
 /**
- * RC Channel 10 Trim
+ * RC channel 10 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1515,7 +1515,7 @@ PARAM_DEFINE_FLOAT(RC10_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC10_TRIM, 1500);
 
 /**
- * RC Channel 10 Maximum
+ * RC channel 10 maximum
  *
  * Maximum value for this channel.
  *
@@ -1527,7 +1527,7 @@ PARAM_DEFINE_FLOAT(RC10_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC10_MAX, 2000);
 
 /**
- * RC Channel 10 Reverse
+ * RC channel 10 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1538,7 +1538,7 @@ PARAM_DEFINE_FLOAT(RC10_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC10_REV, 1.0f);
 
 /**
- * RC Channel 10 dead zone
+ * RC channel 10 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1549,7 +1549,7 @@ PARAM_DEFINE_FLOAT(RC10_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC10_DZ, 0.0f);
 
 /**
- * RC Channel 11 Minimum
+ * RC channel 11 minimum
  *
  * Minimum value for this channel.
  *
@@ -1561,7 +1561,7 @@ PARAM_DEFINE_FLOAT(RC10_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC11_MIN, 1000);
 
 /**
- * RC Channel 11 Trim
+ * RC channel 11 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1573,7 +1573,7 @@ PARAM_DEFINE_FLOAT(RC11_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC11_TRIM, 1500);
 
 /**
- * RC Channel 11 Maximum
+ * RC channel 11 maximum
  *
  * Maximum value for this channel.
  *
@@ -1585,7 +1585,7 @@ PARAM_DEFINE_FLOAT(RC11_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC11_MAX, 2000);
 
 /**
- * RC Channel 11 Reverse
+ * RC channel 11 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1596,7 +1596,7 @@ PARAM_DEFINE_FLOAT(RC11_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC11_REV, 1.0f);
 
 /**
- * RC Channel 11 dead zone
+ * RC channel 11 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1607,7 +1607,7 @@ PARAM_DEFINE_FLOAT(RC11_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC11_DZ, 0.0f);
 
 /**
- * RC Channel 12 Minimum
+ * RC channel 12 minimum
  *
  * Minimum value for this channel.
  *
@@ -1619,7 +1619,7 @@ PARAM_DEFINE_FLOAT(RC11_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC12_MIN, 1000);
 
 /**
- * RC Channel 12 Trim
+ * RC channel 12 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1631,7 +1631,7 @@ PARAM_DEFINE_FLOAT(RC12_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC12_TRIM, 1500);
 
 /**
- * RC Channel 12 Maximum
+ * RC channel 12 maximum
  *
  * Maximum value for this channel.
  *
@@ -1643,7 +1643,7 @@ PARAM_DEFINE_FLOAT(RC12_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC12_MAX, 2000);
 
 /**
- * RC Channel 12 Reverse
+ * RC channel 12 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1654,7 +1654,7 @@ PARAM_DEFINE_FLOAT(RC12_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC12_REV, 1.0f);
 
 /**
- * RC Channel 12 dead zone
+ * RC channel 12 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1665,7 +1665,7 @@ PARAM_DEFINE_FLOAT(RC12_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC12_DZ, 0.0f);
 
 /**
- * RC Channel 13 Minimum
+ * RC channel 13 minimum
  *
  * Minimum value for this channel.
  *
@@ -1677,7 +1677,7 @@ PARAM_DEFINE_FLOAT(RC12_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC13_MIN, 1000);
 
 /**
- * RC Channel 13 Trim
+ * RC channel 13 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1689,7 +1689,7 @@ PARAM_DEFINE_FLOAT(RC13_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC13_TRIM, 1500);
 
 /**
- * RC Channel 13 Maximum
+ * RC channel 13 maximum
  *
  * Maximum value for this channel.
  *
@@ -1701,7 +1701,7 @@ PARAM_DEFINE_FLOAT(RC13_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC13_MAX, 2000);
 
 /**
- * RC Channel 13 Reverse
+ * RC channel 13 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1712,7 +1712,7 @@ PARAM_DEFINE_FLOAT(RC13_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC13_REV, 1.0f);
 
 /**
- * RC Channel 13 dead zone
+ * RC channel 13 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1723,7 +1723,7 @@ PARAM_DEFINE_FLOAT(RC13_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC13_DZ, 0.0f);
 
 /**
- * RC Channel 14 Minimum
+ * RC channel 14 minimum
  *
  * Minimum value for this channel.
  *
@@ -1735,7 +1735,7 @@ PARAM_DEFINE_FLOAT(RC13_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC14_MIN, 1000);
 
 /**
- * RC Channel 14 Trim
+ * RC channel 14 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1747,7 +1747,7 @@ PARAM_DEFINE_FLOAT(RC14_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC14_TRIM, 1500);
 
 /**
- * RC Channel 14 Maximum
+ * RC channel 14 maximum
  *
  * Maximum value for this channel.
  *
@@ -1759,7 +1759,7 @@ PARAM_DEFINE_FLOAT(RC14_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC14_MAX, 2000);
 
 /**
- * RC Channel 14 Reverse
+ * RC channel 14 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1770,7 +1770,7 @@ PARAM_DEFINE_FLOAT(RC14_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC14_REV, 1.0f);
 
 /**
- * RC Channel 14 dead zone
+ * RC channel 14 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1781,7 +1781,7 @@ PARAM_DEFINE_FLOAT(RC14_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC14_DZ, 0.0f);
 
 /**
- * RC Channel 15 Minimum
+ * RC channel 15 minimum
  *
  * Minimum value for this channel.
  *
@@ -1793,7 +1793,7 @@ PARAM_DEFINE_FLOAT(RC14_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC15_MIN, 1000);
 
 /**
- * RC Channel 15 Trim
+ * RC channel 15 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1805,7 +1805,7 @@ PARAM_DEFINE_FLOAT(RC15_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC15_TRIM, 1500);
 
 /**
- * RC Channel 15 Maximum
+ * RC channel 15 maximum
  *
  * Maximum value for this channel.
  *
@@ -1817,7 +1817,7 @@ PARAM_DEFINE_FLOAT(RC15_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC15_MAX, 2000);
 
 /**
- * RC Channel 15 Reverse
+ * RC channel 15 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1828,7 +1828,7 @@ PARAM_DEFINE_FLOAT(RC15_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC15_REV, 1.0f);
 
 /**
- * RC Channel 15 dead zone
+ * RC channel 15 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1839,7 +1839,7 @@ PARAM_DEFINE_FLOAT(RC15_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC15_DZ, 0.0f);
 
 /**
- * RC Channel 16 Minimum
+ * RC channel 16 minimum
  *
  * Minimum value for this channel.
  *
@@ -1851,7 +1851,7 @@ PARAM_DEFINE_FLOAT(RC15_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC16_MIN, 1000);
 
 /**
- * RC Channel 16 Trim
+ * RC channel 16 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1863,7 +1863,7 @@ PARAM_DEFINE_FLOAT(RC16_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC16_TRIM, 1500);
 
 /**
- * RC Channel 16 Maximum
+ * RC channel 16 maximum
  *
  * Maximum value for this channel.
  *
@@ -1875,7 +1875,7 @@ PARAM_DEFINE_FLOAT(RC16_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC16_MAX, 2000);
 
 /**
- * RC Channel 16 Reverse
+ * RC channel 16 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1886,7 +1886,7 @@ PARAM_DEFINE_FLOAT(RC16_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC16_REV, 1.0f);
 
 /**
- * RC Channel 16 dead zone
+ * RC channel 16 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1897,7 +1897,7 @@ PARAM_DEFINE_FLOAT(RC16_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC16_DZ, 0.0f);
 
 /**
- * RC Channel 17 Minimum
+ * RC channel 17 minimum
  *
  * Minimum value for this channel.
  *
@@ -1909,7 +1909,7 @@ PARAM_DEFINE_FLOAT(RC16_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC17_MIN, 1000);
 
 /**
- * RC Channel 17 Trim
+ * RC channel 17 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1921,7 +1921,7 @@ PARAM_DEFINE_FLOAT(RC17_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC17_TRIM, 1500);
 
 /**
- * RC Channel 17 Maximum
+ * RC channel 17 maximum
  *
  * Maximum value for this channel.
  *
@@ -1933,7 +1933,7 @@ PARAM_DEFINE_FLOAT(RC17_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC17_MAX, 2000);
 
 /**
- * RC Channel 17 Reverse
+ * RC channel 17 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -1944,7 +1944,7 @@ PARAM_DEFINE_FLOAT(RC17_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC17_REV, 1.0f);
 
 /**
- * RC Channel 17 dead zone
+ * RC channel 17 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -1955,7 +1955,7 @@ PARAM_DEFINE_FLOAT(RC17_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC17_DZ, 0.0f);
 
 /**
- * RC Channel 18 Minimum
+ * RC channel 18 minimum
  *
  * Minimum value for this channel.
  *
@@ -1967,7 +1967,7 @@ PARAM_DEFINE_FLOAT(RC17_DZ, 0.0f);
 PARAM_DEFINE_FLOAT(RC18_MIN, 1000);
 
 /**
- * RC Channel 18 Trim
+ * RC channel 18 trim
  *
  * Mid point value (has to be set to the same as min for throttle channel).
  *
@@ -1979,7 +1979,7 @@ PARAM_DEFINE_FLOAT(RC18_MIN, 1000);
 PARAM_DEFINE_FLOAT(RC18_TRIM, 1500);
 
 /**
- * RC Channel 18 Maximum
+ * RC channel 18 maximum
  *
  * Maximum value for this channel.
  *
@@ -1991,7 +1991,7 @@ PARAM_DEFINE_FLOAT(RC18_TRIM, 1500);
 PARAM_DEFINE_FLOAT(RC18_MAX, 2000);
 
 /**
- * RC Channel 18 Reverse
+ * RC channel 18 reverse
  *
  * Set to -1 to reverse channel.
  *
@@ -2002,7 +2002,7 @@ PARAM_DEFINE_FLOAT(RC18_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
 
 /**
- * RC Channel 18 dead zone
+ * RC channel 18 dead zone
  *
  * The +- range of this value around the trim value will be considered as zero.
  *
@@ -2219,7 +2219,7 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
  *
  * The RC mapping index indicates which channel is used for failsafe
  * If 0, whichever channel is mapped to throttle is used
- * otherwise the value indicates the specific rc channel to use
+ * otherwise the value indicates the specific RC channel to use
  *
  * @min 0
  * @max 18
@@ -2738,7 +2738,7 @@ PARAM_DEFINE_INT32(RC_MAP_STAB_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_MAN_SW, 0);
 
 /**
- * AUX1 Passthrough RC Channel
+ * AUX1 Passthrough RC channel
  *
  * Default function: Camera pitch
  *
@@ -2768,7 +2768,7 @@ PARAM_DEFINE_INT32(RC_MAP_MAN_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 
 /**
- * AUX2 Passthrough RC Channel
+ * AUX2 Passthrough RC channel
  *
  * Default function: Camera roll
  *
@@ -2798,7 +2798,7 @@ PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
 
 /**
- * AUX3 Passthrough RC Channel
+ * AUX3 Passthrough RC channel
  *
  * Default function: Camera azimuth / yaw
  *
@@ -2828,7 +2828,7 @@ PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
 PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 
 /**
- * AUX4 Passthrough RC Channel
+ * AUX4 Passthrough RC channel
  *
  * @min 0
  * @max 18
@@ -2856,7 +2856,7 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 PARAM_DEFINE_INT32(RC_MAP_AUX4, 0);
 
 /**
- * AUX5 Passthrough RC Channel
+ * AUX5 Passthrough RC channel
  *
  * @min 0
  * @max 18
