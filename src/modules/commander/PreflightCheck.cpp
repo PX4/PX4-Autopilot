@@ -75,7 +75,7 @@
 
 using namespace DriverFramework;
 
-namespace Commander
+namespace Preflight
 {
 
 static int check_calibration(DevHandle &h, const char* param_template, int &devid)
@@ -469,12 +469,12 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	int sub = orb_subscribe(ORB_ID(estimator_status));
 	bool updated;
 	orb_check(sub,&updated);
-	struct estimator_status_s status;
+	struct estimator_status_s status = {};
 	orb_copy(ORB_ID(estimator_status), sub, &status);
 	orb_unsubscribe(sub);
 
 	bool success = true; // start with a pass and change to a fail if any test fails
-	float test_limit; // pass limit re-used for each test
+	float test_limit = 0.0f;; // pass limit re-used for each test
 
 	// check vertical position innovation test ratio
 	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);

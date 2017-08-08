@@ -99,14 +99,13 @@ protected:
 	T _val;
 };
 
+template <>
+void BlockParam<bool>::update();
+
 typedef BlockParam<float> BlockParamFloat;
 typedef BlockParam<int32_t> BlockParamInt;
+typedef BlockParam<bool> BlockParamBool;
 typedef BlockParam<float &> BlockParamExtFloat;
 typedef BlockParam<int32_t &> BlockParamExtInt;
-
-template class __EXPORT BlockParam<float>;
-template class __EXPORT BlockParam<int32_t>;
-template class __EXPORT BlockParam<float &>;
-template class __EXPORT BlockParam<int32_t &>;
 
 } // namespace control

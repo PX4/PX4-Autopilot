@@ -82,11 +82,41 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 };
 
 template <>
+BlockParam<bool>::BlockParam(Block *block, const char *name, bool parent_prefix) :
+	BlockParamBase(block, name, parent_prefix),
+	_val()
+{
+	update();
+
+	if (param_type(_handle) != PARAM_TYPE_INT32) {
+		PX4_ERR("param type mismatch: %s", name);
+	}
+}
+
+template <>
+void BlockParam<bool>::update()
+{
+	int32_t tmp = 0;
+	param_get(_handle, &tmp);
+
+	if (tmp == 1) {
+		_val = true;
+
+	} else {
+		_val = false;
+	}
+}
+
+template <>
 BlockParam<int32_t>::BlockParam(Block *block, const char *name, bool parent_prefix) :
 	BlockParamBase(block, name, parent_prefix),
 	_val()
 {
 	update();
+
+	if (param_type(_handle) != PARAM_TYPE_INT32) {
+		PX4_ERR("param type mismatch: %s", name);
+	}
 }
 
 template <>
@@ -95,6 +125,10 @@ BlockParam<float>::BlockParam(Block *block, const char *name, bool parent_prefix
 	_val()
 {
 	update();
+
+	if (param_type(_handle) != PARAM_TYPE_FLOAT) {
+		PX4_ERR("param type mismatch: %s", name);
+	}
 }
 
 template <>
@@ -103,6 +137,10 @@ BlockParam<int32_t &>::BlockParam(Block *block, const char *name, bool parent_pr
 	_val(extern_val)
 {
 	update();
+
+	if (param_type(_handle) != PARAM_TYPE_INT32) {
+		PX4_ERR("param type mismatch: %s", name);
+	}
 }
 
 template <>
@@ -111,6 +149,10 @@ BlockParam<float &>::BlockParam(Block *block, const char *name, bool parent_pref
 	_val(extern_val)
 {
 	update();
+
+	if (param_type(_handle) != PARAM_TYPE_FLOAT) {
+		PX4_ERR("param type mismatch: %s", name);
+	}
 }
 
 } // namespace control
