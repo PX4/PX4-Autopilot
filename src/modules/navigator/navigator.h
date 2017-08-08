@@ -130,7 +130,6 @@ public:
 	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
 	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
-	struct vehicle_attitude_setpoint_s *get_att_sp() { return &_att_sp; }
 	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
 	struct vehicle_gps_position_s *get_gps_position() { return &_gps_pos; }
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
@@ -239,7 +238,6 @@ private:
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 
-	orb_advert_t	_att_sp_pub{nullptr};
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mission_result_pub{nullptr};
 	orb_advert_t	_pos_sp_triplet_pub{nullptr};
