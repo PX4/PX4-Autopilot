@@ -92,9 +92,9 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  *
  * @unit m
  * @min 0
- * @max 1000
+ * @max 10000
  * @decimal 1
- * @increment 0.5
+ * @increment 100
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
