@@ -436,8 +436,6 @@ then
 		then
 			set FMU_MODE serial
 		fi
-	else
-		gps start
 	fi
 
 	set DATAMAN_OPT ""
