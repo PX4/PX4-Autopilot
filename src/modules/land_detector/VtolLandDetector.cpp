@@ -46,14 +46,7 @@
 namespace land_detector
 {
 
-VtolLandDetector::VtolLandDetector() :
-	_paramHandle(),
-	_params(),
-	_airspeedSub(-1),
-	_vehicle_status_sub(-1),
-	_airspeed{},
-	_was_in_air(false),
-	_airspeed_filtered(0)
+VtolLandDetector::VtolLandDetector()
 {
 	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
 }
@@ -76,7 +69,6 @@ void VtolLandDetector::_update_topics()
 
 bool VtolLandDetector::_get_maybe_landed_state()
 {
-
 	// Only trigger in RW mode
 	if (!_vehicle_status.is_rotary_wing) {
 		return false;
