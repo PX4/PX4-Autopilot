@@ -195,3 +195,19 @@ PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);
  * @group PWM Outputs
  */
 PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
+
+/**
+ * Run the FMU as a task to reduce latency
+ *
+ * If true, the FMU will run in a separate task instead of on the work queue.
+ * Set this if low latency is required, for example for racing.
+ *
+ * This is a trade-off between RAM usage and latency: running as a task, it
+ * requires a separate stack and directly polls on the control topics, whereas
+ * running on the work queue, it runs at a fixed update rate.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_FMU_TASK, 0);
