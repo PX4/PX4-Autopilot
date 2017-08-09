@@ -349,30 +349,3 @@ PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1500);
-
-/**
- * Thrust to PWM model parameter
- *
- * Parameter used to model the relationship between static thrust and motor
- * input PWM. Model is: thrust = (1-factor)*PWM + factor * PWM^2
- *
- * @min 0.0
- * @max 1.0
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);
-
-/**
- * Minimum motor rise time (slew rate limit).
- *
- * Minimum time allowed for the motor input signal to pass through
- * a range of 1000 PWM units. A value x means that the motor signal
- * can only go from 1000 to 2000 PWM in maximum x seconds.
- *
- * Zero means that slew rate limiting is disabled.
- *
- * @min 0.0
- * @unit s/(1000*PWM)
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
