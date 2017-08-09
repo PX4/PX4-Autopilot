@@ -124,7 +124,7 @@ SPI::init()
 	}
 
 	/* tell the workd where we are */
-	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", _bus, _device, _frequency / 1000);
+	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", _bus, PX4_SPI_DEV_ID(_device), _frequency / 1000);
 
 out:
 	return ret;
