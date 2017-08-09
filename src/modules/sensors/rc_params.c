@@ -1229,6 +1229,7 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
  * @value 16 Channel 16
  * @value 17 Channel 17
  * @value 18 Channel 18
+ * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
 
