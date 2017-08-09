@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * override request by the pilot.
  *
  * @group Commander
- # @unit %
+ * @unit %
  * @min 5
  * @max 40
  * @decimal 0
