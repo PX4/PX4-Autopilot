@@ -81,15 +81,15 @@ struct ThreadData {
 static volatile ThreadData *g_thread_data = nullptr;
 
 struct Parameters {
-	int mnt_mode_in;
-	int mnt_mode_out;
-	int mnt_mav_sysid;
-	int mnt_mav_compid;
-	int mnt_ob_lock_mode;
-	int mnt_ob_norm_mode;
-	int mnt_man_pitch;
-	int mnt_man_roll;
-	int mnt_man_yaw;
+	int32_t mnt_mode_in;
+	int32_t mnt_mode_out;
+	int32_t mnt_mav_sysid;
+	int32_t mnt_mav_compid;
+	int32_t mnt_ob_lock_mode;
+	int32_t mnt_ob_norm_mode;
+	int32_t mnt_man_pitch;
+	int32_t mnt_man_roll;
+	int32_t mnt_man_yaw;
 
 	bool operator!=(const Parameters &p)
 	{
