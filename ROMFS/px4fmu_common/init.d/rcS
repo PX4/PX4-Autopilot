@@ -349,46 +349,44 @@ then
 		if [ -f /etc/extras/px4io-v2.bin ]
 		then
 			set IO_FILE /etc/extras/px4io-v2.bin
-		else
-			set IO_FILE /etc/extras/px4io-v1.bin
-		fi
 
-		if px4io checkcrc ${IO_FILE}
-		then
-			echo "[init] PX4IO CRC OK" >> $LOG_FILE
-
-			set IO_PRESENT yes
-		else
-			tone_alarm MLL32CP8MB
-
-			if px4io start
+			if px4io checkcrc ${IO_FILE}
 			then
-				# try to safe px4 io so motor outputs dont go crazy
-				if px4io safety_on
+				echo "[init] PX4IO CRC OK" >> $LOG_FILE
+
+				set IO_PRESENT yes
+			else
+				tone_alarm MLL32CP8MB
+
+				if px4io start
 				then
-					# success! no-op
-				else
-					# px4io did not respond to the safety command
-					px4io stop
+					# try to safe px4 io so motor outputs dont go crazy
+					if px4io safety_on
+					then
+						# success! no-op
+					else
+						# px4io did not respond to the safety command
+						px4io stop
+					fi
 				fi
-			fi
 
-			if px4io forceupdate 14662 ${IO_FILE}
-			then
-				usleep 10000
-				if px4io checkcrc ${IO_FILE}
+				if px4io forceupdate 14662 ${IO_FILE}
 				then
-					echo "PX4IO CRC OK after updating" >> $LOG_FILE
-					tone_alarm MLL8CDE
+					usleep 10000
+					if px4io checkcrc ${IO_FILE}
+					then
+						echo "PX4IO CRC OK after updating" >> $LOG_FILE
+						tone_alarm MLL8CDE
 
-					set IO_PRESENT yes
+						set IO_PRESENT yes
+					else
+						echo "PX4IO update failed" >> $LOG_FILE
+						tone_alarm ${TUNE_ERR}
+					fi
 				else
 					echo "PX4IO update failed" >> $LOG_FILE
 					tone_alarm ${TUNE_ERR}
 				fi
-			else
-				echo "PX4IO update failed" >> $LOG_FILE
-				tone_alarm ${TUNE_ERR}
 			fi
 		fi
 		unset IO_FILE
