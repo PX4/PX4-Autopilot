@@ -11,10 +11,15 @@ else
 	then
 		# Aero FC uses separate driver
 	else
-		# Configure all I2C buses to 100 KHz as they
-		# are all external or slow
-		fmu i2c 1 100000
-		fmu i2c 2 100000
+		if ver hwcmp CRAZYFLIE
+		then
+			# Crazyflie uses separate driver
+		else
+			# Configure all I2C buses to 100 KHz as they
+			# are all external or slow
+			fmu i2c 1 100000
+			fmu i2c 2 100000
+		fi
 
 		if ver hwcmp PX4FMU_V4
 		then
