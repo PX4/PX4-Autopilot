@@ -337,7 +337,7 @@ static int vmount_thread_main(int argc, char *argv[])
 					continue;
 				}
 
-				if (control_data_to_check != nullptr) {
+				if (control_data_to_check != nullptr || already_active) {
 					control_data = control_data_to_check;
 					last_active = i;
 				}
