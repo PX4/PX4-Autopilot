@@ -93,6 +93,8 @@ public:
 
 	virtual void get_wind_velocity(float *wind) = 0;
 
+	virtual void get_true_airspeed(float *tas) = 0;
+
 	virtual void get_covariances(float *covariances) = 0;
 
 	// gets the variances for the NED velocity states

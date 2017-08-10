@@ -225,6 +225,12 @@ void Ekf::get_wind_velocity(float *wind)
 	wind[1] = _state.wind_vel(1);
 }
 
+void Ekf::get_true_airspeed(float *tas)
+{
+	float tempvar = sqrtf(sq(_state.vel(0) - _state.wind_vel(0)) + sq(_state.vel(1) - _state.wind_vel(1)) + sq(_state.vel(2)));
+	memcpy(tas, &tempvar, sizeof(float));
+}
+
 /*
  * Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
 */
