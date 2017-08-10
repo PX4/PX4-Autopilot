@@ -44,6 +44,7 @@ if ver hwcmp NXPHLITE_V3
 then
 	# Internal I2C
 	mpl3115a2 -I start
+
 	# Internal SPI
 	fxos8700cq start -a 8 -R 0
 fi
@@ -142,16 +143,10 @@ fi
 if ver hwcmp PX4_SAME70XPLAINED_V1
 then
 	# External I2C bus
-	if hmc5883 -C -T -X start
-	then
-	fi
-
-	set BOARD_FMUV3 false
+	hmc5883 -C -T -X start
 
 	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	if mpu9250 -R 2 start
-	then
-	fi
+	mpu9250 -R 2 start
 fi
 
 if ver hwcmp PX4FMU_V4
