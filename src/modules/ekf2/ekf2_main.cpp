@@ -1201,14 +1201,28 @@ void Ekf2::run()
 				wind_estimate.windspeed_east = status.states[23];
 				wind_estimate.variance_north = status.covariances[22];
 				wind_estimate.variance_east = status.covariances[23];
-				_ekf.get_true_airspeed(&wind_estimate.true_airspeed);
 
-				if (_wind_pub == nullptr) {
-					_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+				// TODO: True airspeed is not published here
 
-				} else {
-					orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-				}
+				// if (_airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
+				// 	// use measured airspeed
+				// 	if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+				// 	&& _airspeed.timestamp > 0) {
+				// 		wind_estimate.true_airspeed = _airspeed.true_airspeed_m_s;
+				// 	}
+				// } else if (_airspeed_mode == control_state_s::AIRSPD_MODE_EST) {
+				// 	// use estimated body velocity as airspeed estimate
+				// 	if (hrt_absolute_time() - _gpos.timestamp < 1e6) {
+				// 		wind_estimate.true_airspeed = sqrtf(_gpos.vel_n * _gpos.vel_n + _gpos.vel_e * _gpos.vel_e + _gpos.vel_d * _gpos.vel_d);
+				// 	}
+				// }
+
+				// if (_wind_pub == nullptr) {
+				// 	_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+
+				// } else {
+				// 	orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+				// }
 			}
 
 			// publish estimator innovation data
