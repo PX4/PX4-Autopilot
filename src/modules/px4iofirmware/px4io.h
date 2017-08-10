@@ -115,9 +115,6 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
 #define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
 #define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-#define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
-#endif
 #define r_setup_rc_thr_failsafe	r_page_setup[PX4IO_P_SETUP_RC_THR_FAILSAFE_US]
 
 #define r_setup_pwm_reverse	r_page_setup[PX4IO_P_SETUP_PWM_REVERSE]
@@ -166,25 +163,6 @@ extern pwm_limit_t pwm_limit;
 #define LED_SAFETY(_s)			px4_arch_gpiowrite(GPIO_LED3, !(_s))
 #define LED_RING(_s)			px4_arch_gpiowrite(GPIO_LED4, (_s))
 
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-
-# define PX4IO_RELAY_CHANNELS		4
-# define POWER_SERVO(_s)		px4_arch_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
-# define POWER_ACC1(_s)			px4_arch_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
-# define POWER_ACC2(_s)			px4_arch_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
-# define POWER_RELAY1(_s)		px4_arch_gpiowrite(GPIO_RELAY1_EN, (_s))
-# define POWER_RELAY2(_s)		px4_arch_gpiowrite(GPIO_RELAY2_EN, (_s))
-
-# define OVERCURRENT_ACC		(!px4_arch_gpioread(GPIO_ACC_OC_DETECT))
-# define OVERCURRENT_SERVO		(!px4_arch_gpioread(GPIO_SERVO_OC_DETECT))
-
-# define PX4IO_ADC_CHANNEL_COUNT	2
-# define ADC_VBATT			4
-# define ADC_IN5			5
-
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 
 # define PX4IO_RELAY_CHANNELS		0
 # define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
@@ -194,8 +172,6 @@ extern pwm_limit_t pwm_limit;
 # define PX4IO_ADC_CHANNEL_COUNT	2
 # define ADC_VSERVO			4
 # define ADC_RSSI			5
-
-#endif
 
 #define BUTTON_SAFETY		px4_arch_gpioread(GPIO_BTN_SAFETY)
 
