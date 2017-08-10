@@ -87,8 +87,6 @@ int InputMavlinkROI::initialize()
 	return 0;
 }
 
-
-
 int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active)
 {
 	// already_active is unused, we don't care what happened previously.
@@ -174,6 +172,7 @@ void InputMavlinkROI::print_status()
 {
 	PX4_INFO("Input: Mavlink (ROI)");
 }
+
 
 InputMavlinkCmdMount::InputMavlinkCmdMount()
 {
