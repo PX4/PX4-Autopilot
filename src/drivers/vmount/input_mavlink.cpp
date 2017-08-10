@@ -177,6 +177,23 @@ void InputMavlinkROI::print_status()
 
 InputMavlinkCmdMount::InputMavlinkCmdMount()
 {
+	param_t handle = param_find("MAV_SYS_ID");
+
+	if (handle == PARAM_INVALID) {
+		_mav_sys_id = 1;
+
+	} else {
+		param_get(handle, &_mav_sys_id);
+	}
+
+	handle = param_find("MAV_COMP_ID");
+
+	if (handle == PARAM_INVALID) {
+		_mav_comp_id = 1;
+
+	} else {
+		param_get(handle, &_mav_comp_id);
+	}
 }
 
 InputMavlinkCmdMount::~InputMavlinkCmdMount()
@@ -219,6 +236,11 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 		if (polls[0].revents & POLLIN) {
 			vehicle_command_s vehicle_command;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &vehicle_command);
+
+			// process only if the command is for us
+			if (vehicle_command.target_system != _mav_sys_id || vehicle_command.target_component != _mav_comp_id) {
+				return 0;
+			}
 
 			for (int i = 0; i < 3; ++i) {
 				_control_data.stabilize_axis[i] = _stabilize[i];
