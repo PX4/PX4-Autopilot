@@ -36,7 +36,6 @@
  * @author Simon Wilks <simon@px4.io>
  * @author Lorenz Meier <lorenz@px4.io>
  *
- * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
 
 #include <px4_config.h>
@@ -86,6 +85,7 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const cha
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
 	_airspeed_pub(nullptr),
+	_airspeed_orb_class_instance(-1),
 	_subsys_pub(nullptr),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
@@ -138,20 +138,17 @@ Airspeed::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(AIRSPEED_BASE_DEVICE_PATH);
 
-	/* publication init */
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+	/* advertise sensor topic, measure manually to initialize valid report */
+	measure();
+	differential_pressure_s arp;
+	_reports->get(&arp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct differential_pressure_s arp;
-		measure();
-		_reports->get(&arp);
+	/* measurement will have generated a report, publish */
+	_airspeed_pub = orb_advertise_multi(ORB_ID(differential_pressure), &arp, &_airspeed_orb_class_instance,
+					    ORB_PRIO_HIGH - _class_instance);
 
-		/* measurement will have generated a report, publish */
-		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
-
-		if (_airspeed_pub == nullptr) {
-			PX4_WARN("uORB started?");
-		}
+	if (_airspeed_pub == nullptr) {
+		PX4_WARN("uORB started?");
 	}
 
 	ret = OK;

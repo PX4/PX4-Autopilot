@@ -118,6 +118,7 @@ MS5525::init_ms5525()
 		C6 = prom[6];
 
 		Tref = int64_t(C5) * (1UL << Q5);
+		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS5525;
 
 		return true;
 
@@ -255,6 +256,7 @@ MS5525::collect()
 		.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset,
 		.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw) - _diff_pres_offset,
 		.temperature = temperature_c,
+		.device_id = _device_id.devid
 	};
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {

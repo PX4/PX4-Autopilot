@@ -102,6 +102,20 @@ SDP3X::init_sdp3x()
 
 	_scale = (((uint16_t)val[6]) << 8) | val[7];
 
+	switch (_scale) {
+	case SDP3X_SCALE_PRESSURE_SDP31:
+		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP31;
+		break;
+
+	case SDP3X_SCALE_PRESSURE_SDP32:
+		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP32;
+		break;
+
+	case SDP3X_SCALE_PRESSURE_SDP33:
+		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP33;
+		break;
+	}
+
 	return true;
 }
 
@@ -141,6 +155,7 @@ SDP3X::collect()
 	report.temperature = temperature_c;
 	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
 	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
+	report.device_id = _device_id.devid;
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
