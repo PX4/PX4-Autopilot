@@ -189,12 +189,11 @@ RGBLED::probe()
 
 	/**
 	   this may look strange, but is needed. There is a serial
-	   EEPROM (Microchip-24aa01) on the PX4FMU-v1 that responds to
-	   a bunch of I2C addresses, including the 0x55 used by this
-	   LED device. So we need to do enough operations to be sure
-	   we are talking to the right device. These 3 operations seem
-	   to be enough, as the 3rd one consistently fails if no
-	   RGBLED is on the bus.
+	   EEPROM (Microchip-24aa01) that responds to a bunch of I2C
+	   addresses, including the 0x55 used by this LED device. So
+	   we need to do enough operations to be sure we are talking
+	   to the right device. These 3 operations seem to be enough,
+	   as the 3rd one consistently fails if no RGBLED is on the bus.
 	 */
 
 	unsigned prevretries = _retries;
