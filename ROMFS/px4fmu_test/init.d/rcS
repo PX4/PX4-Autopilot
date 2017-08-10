@@ -63,8 +63,6 @@ fi
 if [ -f /etc/extras/px4io-v2.bin ]
 then
 	set io_file /etc/extras/px4io-v2.bin
-else
-	set io_file /etc/extras/px4io-v1.bin
 fi
 
 if px4io start
