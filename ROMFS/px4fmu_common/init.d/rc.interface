@@ -121,10 +121,6 @@ then
 fi
 
 # This is a FMUv2+ thing
-if ver hwcmp PX4FMU_V1
-then
-	set MIXER_AUX none
-fi
 
 #MindPX has not aux mixer
 if ver hwcmp MINDPX_V2
