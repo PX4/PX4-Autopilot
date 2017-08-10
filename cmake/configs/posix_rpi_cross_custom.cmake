@@ -75,6 +75,7 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
+	drivers/linux_ina219
 	drivers/linux_sbus
 	drivers/linux_pwm_out
 	drivers/linux_gpio
