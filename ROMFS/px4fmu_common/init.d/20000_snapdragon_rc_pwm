@@ -5,7 +5,6 @@
 # @type custom
 # @class Tool
 #
-# @board px4fmu-v1 exclude
 # @board px4fmu-v2 exclude
 # @board px4fmu-v3 exclude
 # @board px4fmu-v4pro exclude
