@@ -68,8 +68,7 @@ namespace Commander
 * @param checkGNSS
 *   true if the GNSS receiver should be checked
 **/
-bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
-    bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS,
+bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool checkAirspeed, bool checkRC, bool checkGNSS,
     bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, hrt_abstime time_since_boot);
 
 static constexpr unsigned max_mandatory_gyro_count = 1;
