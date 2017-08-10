@@ -78,7 +78,6 @@ This repository contains code supporting these boards:
   * [Intel Aero](https://dev.px4.io/en/flight_controller/intel_aero.html)
   * [Raspberry PI with Navio 2](https://dev.px4.io/en/flight_controller/raspberry_pi.html)
   * [Parrot Bebop 2](https://dev.px4.io/en/advanced/parrot_bebop.html)
-  * FMUv1.x
   * FMUv2.x
     * [Pixhawk](https://dev.px4.io/en/flight_controller/pixhawk.html)
     * Pixhawk Mini
