@@ -815,14 +815,6 @@ then
 	fi
 
 	#
-	# Start up ARDrone Motor interface
-	#
-	if [ $OUTPUT_MODE == ardrone ]
-	then
-		ardrone_interface start -d /dev/ttyS1
-	fi
-
-	#
 	# Fixed wing setup
 	#
 	if [ $VEHICLE_TYPE == fw ]
