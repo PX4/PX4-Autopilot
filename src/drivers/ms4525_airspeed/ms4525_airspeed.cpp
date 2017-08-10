@@ -139,6 +139,7 @@ MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bu
 	_t_system_power(-1),
 	system_power{}
 {
+	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS4525;
 }
 
 int
@@ -247,6 +248,7 @@ MEASAirspeed::collect()
 	report.temperature = temperature;
 	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
 	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
+	report.device_id = _device_id.devid;
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		/* publish it */
