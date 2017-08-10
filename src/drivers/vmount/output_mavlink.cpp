@@ -104,9 +104,11 @@ int OutputMavlink::update(const ControlData *control_data)
 	vehicle_command.timestamp = t;
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
 
-	vehicle_command.param1 = _angle_outputs[0];
-	vehicle_command.param2 = _angle_outputs[1];
-	vehicle_command.param3 = _angle_outputs[2];
+	// vmount spec has roll, pitch on channels 0, 1, respectively; MAVLink spec has roll, pitch on channels 1, 0, respectively
+	// vmount uses radians, MAVLink uses degrees
+	vehicle_command.param1 = _angle_outputs[1] * M_RAD_TO_DEG_F;
+	vehicle_command.param2 = _angle_outputs[0] * M_RAD_TO_DEG_F;
+	vehicle_command.param3 = _angle_outputs[2] * M_RAD_TO_DEG_F;
 
 	orb_publish(ORB_ID(vehicle_command), _vehicle_command_pub, &vehicle_command);
 
