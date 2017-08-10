@@ -222,6 +222,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	g_thread_data = &thread_data;
 
 	int last_active = 0;
+	hrt_abstime last_output_update = 0;
 
 	while (!thread_should_exit) {
 
@@ -342,15 +343,20 @@ static int vmount_thread_main(int argc, char *argv[])
 				}
 			}
 
-			//update output
-			int ret = thread_data.output_obj->update(control_data);
+			hrt_abstime now = hrt_absolute_time();
+			if (now - last_output_update > 10000) { // rate-limit the update of outputs
+				last_output_update = now;
 
-			if (ret) {
-				PX4_ERR("failed to write output (%i)", ret);
-				break;
+				//update output
+				int ret = thread_data.output_obj->update(control_data);
+
+				if (ret) {
+					PX4_ERR("failed to write output (%i)", ret);
+					break;
+				}
+
+				thread_data.output_obj->publish();
 			}
-
-			thread_data.output_obj->publish();
 
 		} else {
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
