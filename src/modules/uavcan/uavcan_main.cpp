@@ -168,10 +168,7 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 	int rv = -1;
 
 	if (UavcanNode::instance()) {
-		if (!std::strncmp(px4_board_name(), "PX4FMU_V1", 9)) {
-			hwver.major = 1;
-
-		} else if (!std::strncmp(px4_board_name(), "PX4FMU_V2", 9)) {
+		if (!std::strncmp(px4_board_name(), "PX4FMU_V2", 9)) {
 			hwver.major = 2;
 
 		} else {
