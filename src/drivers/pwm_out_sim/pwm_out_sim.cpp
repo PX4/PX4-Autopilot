@@ -852,8 +852,6 @@ enum PortMode {
 	PORT_MODE_UNDEFINED = 0,
 	PORT1_MODE_UNSET,
 	PORT1_FULL_PWM,
-	PORT1_PWM_AND_SERIAL,
-	PORT1_PWM_AND_GPIO,
 	PORT2_MODE_UNSET,
 	PORT2_8PWM,
 	PORT2_12PWM,
@@ -885,18 +883,6 @@ hil_new_mode(PortMode new_mode)
 	case PORT1_FULL_PWM:
 		/* select 4-pin PWM mode */
 		servo_mode = PWMSim::MODE_8PWM;
-		break;
-
-	case PORT1_PWM_AND_SERIAL:
-		/* select 2-pin PWM mode */
-		servo_mode = PWMSim::MODE_2PWM;
-//		/* set RX/TX multi-GPIOs to serial mode */
-//		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
-		break;
-
-	case PORT1_PWM_AND_GPIO:
-		/* select 2-pin PWM mode */
-		servo_mode = PWMSim::MODE_2PWM;
 		break;
 
 	case PORT2_8PWM:
@@ -981,7 +967,7 @@ static void
 usage()
 {
 	PX4_WARN("unrecognized command, try:");
-	PX4_WARN("  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16");
+	PX4_WARN("  mode_pwm, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16");
 }
 
 int
@@ -1013,12 +999,6 @@ pwm_out_sim_main(int argc, char *argv[])
 	// this was all cut-and-pasted from the FMU driver; it's junk
 	if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT1_FULL_PWM;
-
-	} else if (!strcmp(verb, "mode_pwm_serial")) {
-		new_mode = PORT1_PWM_AND_SERIAL;
-
-	} else if (!strcmp(verb, "mode_pwm_gpio")) {
-		new_mode = PORT1_PWM_AND_GPIO;
 
 	} else if (!strcmp(verb, "mode_port2_pwm8")) {
 		new_mode = PORT2_8PWM;
