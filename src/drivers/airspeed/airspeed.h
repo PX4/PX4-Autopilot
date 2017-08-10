@@ -134,6 +134,8 @@ protected:
 	float			_diff_pres_offset;
 
 	orb_advert_t		_airspeed_pub;
+	int			_airspeed_orb_class_instance;
+
 	orb_advert_t		_subsys_pub;
 
 	int			_class_instance;
