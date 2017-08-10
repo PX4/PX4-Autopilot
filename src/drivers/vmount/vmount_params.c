@@ -72,14 +72,14 @@ PARAM_DEFINE_INT32(MNT_MODE_OUT, 0);
 *
 * @group Mount
 */
-PARAM_DEFINE_INT32(MNT_MAV_SYSID, 71);
+PARAM_DEFINE_INT32(MNT_MAV_SYSID, 1);
 
 /**
 * Mavlink Component ID (if MNT_MODE_OUT is MAVLINK)
 *
 * @group Mount
 */
-PARAM_DEFINE_INT32(MNT_MAV_COMPID, 67);
+PARAM_DEFINE_INT32(MNT_MAV_COMPID, 154);
 
 /**
 * Mixer value for selecting normal mode
