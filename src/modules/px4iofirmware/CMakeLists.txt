@@ -99,11 +99,7 @@ set(srcs
 	safety.c
 	)
 
-if(${config_io_board} STREQUAL "px4io-v1")
-	list(APPEND srcs
-		i2c.c
-		)
-elseif(${config_io_board} STREQUAL "px4io-v2")
+if(${config_io_board} STREQUAL "px4io-v2")
 	list(APPEND srcs
 		serial.c
 		${PX4_SOURCE_DIR}/src/modules/systemlib/hx_stream.c

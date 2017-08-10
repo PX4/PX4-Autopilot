@@ -64,11 +64,7 @@ bool update_mc_thrust_param;
  */
 static const uint16_t	r_page_config[] = {
 	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= PX4IO_PROTOCOL_VERSION,
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 2,
-#else
-	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 1,
-#endif
 	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= PX4IO_BL_VERSION,
 	[PX4IO_P_CONFIG_MAX_TRANSFER]		= PX4IO_MAX_TRANSFER_LEN,
 	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
@@ -156,23 +152,15 @@ uint16_t		r_page_direct_pwm[PX4IO_SERVO_COUNT];
  * Setup registers
  */
 volatile uint16_t	r_page_setup[] = {
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 	/* default to RSSI ADC functionality */
 	[PX4IO_P_SETUP_FEATURES]		= PX4IO_P_SETUP_FEATURES_ADC_RSSI,
-#else
-	[PX4IO_P_SETUP_FEATURES]		= 0,
-#endif
 	[PX4IO_P_SETUP_ARMING]			= (PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE),
 	[PX4IO_P_SETUP_PWM_RATES]		= 0,
 	[PX4IO_P_SETUP_PWM_DEFAULTRATE]		= 50,
 	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
 	[PX4IO_P_SETUP_SBUS_RATE]		= 72,
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-	[PX4IO_P_SETUP_RELAYS]			= 0,
-#else
 	/* this is unused, but we will pad it for readability (the compiler pads it automatically) */
 	[PX4IO_P_SETUP_RELAYS_PAD]		= 0,
-#endif
 #ifdef ADC_VSERVO
 	[PX4IO_P_SETUP_VSERVO_SCALE]		= 10000,
 #else
@@ -194,14 +182,11 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE
 };
 
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | \
 		PX4IO_P_SETUP_FEATURES_SBUS2_OUT | \
 		PX4IO_P_SETUP_FEATURES_ADC_RSSI | \
 		PX4IO_P_SETUP_FEATURES_PWM_RSSI)
-#else
-#define PX4IO_P_SETUP_FEATURES_VALID	0
-#endif
+
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
 		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 		PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
@@ -649,18 +634,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
 			break;
-
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-
-		case PX4IO_P_SETUP_RELAYS:
-			value &= PX4IO_P_SETUP_RELAYS_VALID;
-			r_setup_relays = value;
-			POWER_RELAY1((value & PX4IO_P_SETUP_RELAYS_POWER1) ? 1 : 0);
-			POWER_RELAY2((value & PX4IO_P_SETUP_RELAYS_POWER2) ? 1 : 0);
-			POWER_ACC1((value & PX4IO_P_SETUP_RELAYS_ACC1) ? 1 : 0);
-			POWER_ACC2((value & PX4IO_P_SETUP_RELAYS_ACC2) ? 1 : 0);
-			break;
-#endif
 
 		case PX4IO_P_SETUP_VBATT_SCALE:
 			r_page_setup[PX4IO_P_SETUP_VBATT_SCALE] = value;
