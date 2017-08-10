@@ -1106,7 +1106,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 
 	bool sensor_checks = (status->hil_state == vehicle_status_s::HIL_STATE_OFF);
 
-	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, sensor_checks, sensor_checks, sensor_checks, sensor_checks,
+	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, sensor_checks,
 			    checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
 			    arm_requirements & ARM_REQ_GPS_BIT, true, status->is_vtol, reportFailures, prearm, time_since_boot);
 
