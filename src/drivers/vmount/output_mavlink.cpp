@@ -52,6 +52,13 @@ OutputMavlink::OutputMavlink(const OutputConfig &output_config)
 {
 }
 
+OutputMavlink::~OutputMavlink()
+{
+	if (_vehicle_command_pub) {
+		orb_unadvertise(_vehicle_command_pub);
+	}
+}
+
 int OutputMavlink::update(const ControlData *control_data)
 {
 	vehicle_command_s vehicle_command = {

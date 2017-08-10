@@ -68,6 +68,10 @@ OutputBase::~OutputBase()
 	if (_vehicle_global_position_sub >= 0) {
 		orb_unsubscribe(_vehicle_global_position_sub);
 	}
+
+	if (_mount_orientation_pub) {
+		orb_unadvertise(_mount_orientation_pub);
+	}
 }
 
 int OutputBase::initialize()
