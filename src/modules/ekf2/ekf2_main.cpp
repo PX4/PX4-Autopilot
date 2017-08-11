@@ -558,7 +558,10 @@ void Ekf2::run()
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
 		}
 
-		orb_check(airspeed_sub, &airspeed_updated);
+		// Do not attempt to use airspeed if use has been disabled by the user.
+		if (_airspeed_disabled.get() == 0) {
+			orb_check(airspeed_sub, &airspeed_updated);
+		}
 
 		if (airspeed_updated) {
 			orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
