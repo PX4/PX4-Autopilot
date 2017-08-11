@@ -52,7 +52,7 @@ class EstimatorInterface
 
 public:
 	EstimatorInterface() = default;
-	~EstimatorInterface() = default;
+	virtual ~EstimatorInterface() = default;
 
 	virtual bool init(uint64_t timestamp) = 0;
 	virtual bool update() = 0;
