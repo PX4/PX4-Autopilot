@@ -136,7 +136,7 @@ private:
 		param_t	acc_comp;
 		param_t	bias_max;
 		param_t	ext_hdg_mode;
-		param_t airspeed_mode;
+		param_t airspeed_disabled;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	float		_w_accel = 0.0f;
@@ -148,7 +148,7 @@ private:
 	bool		_acc_comp = false;
 	float		_bias_max = 0.0f;
 	int		_ext_hdg_mode = 0;
-	int 	_airspeed_mode = 0;
+	int 	_airspeed_disabled = 0;
 
 	Vector<3>	_gyro;
 	Vector<3>	_accel;
@@ -212,7 +212,7 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_params_handles.acc_comp	= param_find("ATT_ACC_COMP");
 	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
 	_params_handles.ext_hdg_mode	= param_find("ATT_EXT_HDG_M");
-	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles.airspeed_disabled = param_find("FW_ARSP_MODE");
 }
 
 /**
@@ -520,7 +520,7 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 		_acc_comp = acc_comp_int != 0;
 		param_get(_params_handles.bias_max, &_bias_max);
 		param_get(_params_handles.ext_hdg_mode, &_ext_hdg_mode);
-		param_get(_params_handles.airspeed_mode, &_airspeed_mode);
+		param_get(_params_handles.airspeed_disabled, &_airspeed_disabled);
 	}
 }
 
