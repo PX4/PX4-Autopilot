@@ -305,7 +305,7 @@ private:
 	control::BlockParamExtFloat _ang_err_init;	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 	// airspeed mode parameter
-	control::BlockParamInt _airspeed_mode;
+	control::BlockParamInt _airspeed_disabled;
 
 	// EKF saved XYZ magnetometer bias values
 	control::BlockParamFloat _mag_bias_x;		///< X magnetometer bias (mGauss)
@@ -435,7 +435,7 @@ Ekf2::Ekf2():
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, _params->switch_on_gyro_bias),
 	_acc_bias_init(this, "EKF2_ABIAS_INIT", false, _params->switch_on_accel_bias),
 	_ang_err_init(this, "EKF2_ANGERR_INIT", false, _params->initial_tilt_err),
-	_airspeed_mode(this, "FW_ARSP_MODE", false),
+	_airspeed_disabled(this, "FW_ARSP_MODE", false),
 	_mag_bias_x(this, "EKF2_MAGBIAS_X", false),
 	_mag_bias_y(this, "EKF2_MAGBIAS_Y", false),
 	_mag_bias_z(this, "EKF2_MAGBIAS_Z", false),
