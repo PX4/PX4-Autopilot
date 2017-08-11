@@ -444,7 +444,7 @@ int vmount_main(int argc, char *argv[])
 		int vmount_task = px4_task_spawn_cmd("vmount",
 						     SCHED_DEFAULT,
 						     SCHED_PRIORITY_DEFAULT + 40,
-						     2000,
+						     1900,
 						     vmount_thread_main,
 						     (char *const *)argv + 1);
 
