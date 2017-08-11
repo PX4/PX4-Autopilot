@@ -136,7 +136,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
 	param_get(_parameter_handles.airspeed_trans, &(_parameters.airspeed_trans));
-	param_get(_parameter_handles.airspeed_mode, &(_parameters.airspeed_disabled));
+	param_get(_parameter_handles.airspeed_mode, &(_parameters.airspeed_mode));
 
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
 	param_get(_parameter_handles.pitch_limit_max, &(_parameters.pitch_limit_max));
@@ -323,7 +323,7 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 void
 FixedwingPositionControl::airspeed_poll()
 {
-	if (_sub_airspeed.updated()) {
+	if (!_parameters.airspeed_mode && _sub_airspeed.updated()) {
 		_sub_airspeed.update();
 		_airspeed_valid = PX4_ISFINITE(_sub_airspeed.get().indicated_airspeed_m_s)
 				  && PX4_ISFINITE(_sub_airspeed.get().true_airspeed_m_s);
@@ -1748,7 +1748,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 			_was_in_transition = true;
 
 			// set this to transition airspeed to init tecs correctly
-			if (_parameters.airspeed_disabled) {
+			if (_parameters.airspeed_mode) {
 				// some vtols fly without airspeed sensor
 				_asp_after_transition = _parameters.airspeed_trans;
 

@@ -285,7 +285,7 @@ private:
 		float airspeed_trim;
 		float airspeed_max;
 		float airspeed_trans;
-		int32_t airspeed_disabled;
+		int32_t airspeed_mode;
 
 		float pitch_limit_min;
 		float pitch_limit_max;
