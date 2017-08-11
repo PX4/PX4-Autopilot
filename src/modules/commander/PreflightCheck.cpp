@@ -172,8 +172,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool report_statu
 	int sensors_sub = orb_subscribe(ORB_ID(sensor_preflight));
 	sensor_preflight_s sensors = {};
 
-	if ((sensors_sub == -1) ||
-		(orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors) != PX4_OK)) {
+	if (orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors) != PX4_OK) {
 		goto out;
 	}
 
@@ -404,7 +403,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	differential_pressure_s differential_pressure = {};
 
 	if ((orb_copy(ORB_ID(differential_pressure), fd_diffpres, &differential_pressure) != PX4_OK) ||
-	    (hrt_elapsed_time(&differential_pressure.timestamp) > (500 * 1000))) {
+	    (hrt_elapsed_time(&differential_pressure.timestamp) > 1000000)) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
 		}
@@ -413,7 +412,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	}
 
 	if ((orb_copy(ORB_ID(airspeed), fd_airspeed, &airspeed) != PX4_OK) ||
-	    (hrt_elapsed_time(&airspeed.timestamp) > (500 * 1000))) {
+	    (hrt_elapsed_time(&airspeed.timestamp) > 1000000)) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
 		}
@@ -457,7 +456,6 @@ out:
 static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 {
 	bool success = true;
-
 	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
 
 	//Wait up to 2000ms to allow the driver to detect a GNSS receiver module
@@ -497,8 +495,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	int sub = orb_subscribe(ORB_ID(estimator_status));
 	estimator_status_s status = {};
 
-	if ((sub == -1) ||
-		(orb_copy(ORB_ID(estimator_status), sub, &status) != PX4_OK)) {
+	if (orb_copy(ORB_ID(estimator_status), sub, &status) != PX4_OK) {
 		goto out;
 	}
 
@@ -534,7 +531,8 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 
 	// If GPS aiding is required, declare fault condition if the EKF is not using GPS
 	if (enforce_gps_required) {
-		if (!(status.control_mode_flags & (1 << 2))) {
+		bool ekf_gps_fusion = status.control_mode_flags & (1 << 2);
+		if (!ekf_gps_fusion) {
 			if (report_fail) {
 				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
 			}
@@ -595,12 +593,17 @@ out:
 bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool checkAirspeed, bool checkRC, bool checkGNSS,
 		    bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, hrt_abstime time_since_boot)
 {
+
+	if (time_since_boot < 2000000) {
+		// the airspeed driver filter doesn't deliver the actual value yet
+		return true;
+	}
+
 #ifdef __PX4_QURT
 	// WARNING: Preflight checks are important and should be added back when
 	// all the sensors are supported
 	PX4_WARN("Preflight checks always pass on Snapdragon.");
 	checkSensors = false;
-	return true;
 #elif defined(__PX4_POSIX_RPI)
 	PX4_WARN("Preflight checks for mag, acc, gyro always pass on RPI");
 	checkSensors = false;
@@ -738,7 +741,11 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 	}
 
 	/* ---- IMU CONSISTENCY ---- */
-	imuConsistencyCheck(mavlink_log_pub, reportFailures);
+	if (checkSensors) {
+		if (!imuConsistencyCheck(mavlink_log_pub, reportFailures)) {
+			failed = true;
+		}
+	}
 
 	/* ---- AIRSPEED ---- */
 	if (checkAirspeed) {
@@ -769,7 +776,10 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 	int32_t estimator_type;
 	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
 	if (estimator_type == 2 && checkGNSS) {
-		if (!ekf2Check(mavlink_log_pub, true, reportFailures, checkGNSS)) {
+		// don't require GPS for the first 20s
+		bool enforce_gps_required = (time_since_boot > 20 * 1000000);
+
+		if (!ekf2Check(mavlink_log_pub, true, reportFailures, enforce_gps_required)) {
 			failed = true;
 		}
 	}
