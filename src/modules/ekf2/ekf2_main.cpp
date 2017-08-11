@@ -868,43 +868,6 @@ void Ekf2::run()
 			v_wind_comp(1) -= velNE_wind[1];
 			_vel_body_wind = R_to_body * v_wind_comp; // TODO : move this elsewhere
 
-			// use estimated velocity for airspeed estimate
-			// TODO move this out of the estimators and put it into a dedicated air data consolidation algorithm
-			// if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
-			// 	// use measured airspeed
-			// 	if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && now - airspeed.timestamp < 1e6
-			// 	    && airspeed.timestamp > 0) {
-			// 		ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
-			// 		ctrl_state.airspeed_valid = true;
-
-			// 	} else {
-			// 		// This airspeed mode requires a measurement which we no longer have, so wind relative speed
-			// 		// is used as a surrogate and the validity is set to false.
-			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-			// 		ctrl_state.airspeed_valid = false;
-
-			// 	}
-
-			// } else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
-			// 	if (_ekf.local_position_is_valid()) {
-			// 		// This airspeed mode uses an estimate which is calculated from the wind relative speed
-			// 		// TODO modify the ecl EKF to provide a boolean validity with the wind speed estimate and
-			// 		// use that to set the validity of the estimated airspeed.
-			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-			// 		ctrl_state.airspeed_valid = true;
-
-			// 	}
-
-			// } else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
-			// 	// This airspeed mode has disabled airspeed use and controllers will handle this.
-			// 	// We still return wind relative speed as a surrogate and set the validity to zero.
-			// 	if (_ekf.local_position_is_valid()) {
-			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-			// 		ctrl_state.airspeed_valid = false;
-
-			// 	}
-			// }
-
 			{
 				// generate vehicle attitude quaternion data
 				struct vehicle_attitude_s att = {};
