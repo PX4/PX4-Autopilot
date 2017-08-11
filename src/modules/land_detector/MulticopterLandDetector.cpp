@@ -93,7 +93,7 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_control_mode{},
 	_battery{},
 	_min_trust_start(0),
-	_arming_time(0)
+	_landed_time(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
@@ -180,16 +180,9 @@ bool MulticopterLandDetector::_get_freefall_state()
 
 bool MulticopterLandDetector::_get_ground_contact_state()
 {
-	// Time base for this function
-	const uint64_t now = hrt_absolute_time();
-
 	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
-		_arming_time = 0;
 		return true;
-
-	} else if (_arming_time == 0) {
-		_arming_time = now;
 	}
 
 	// If in manual flight mode never report landed if the user has more than idle throttle
@@ -199,18 +192,18 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const bool manual_control_idle = (_has_manual_control_present() && _manual.z < _params.manual_stick_down_threshold);
 	const bool manual_control_idle_or_auto = manual_control_idle || !_control_mode.flag_control_manual_enabled;
 
-	// Widen acceptance thresholds for landed state right after arming
+	// Widen acceptance thresholds for landed state right after landed
 	// so that motor spool-up and other effects do not trigger false negatives.
-	float armThresholdFactor = 1.0f;
+	float landThresholdFactor = 1.0f;
 
-	if (hrt_elapsed_time(&_arming_time) < LAND_DETECTOR_ARM_PHASE_TIME_US) {
-		armThresholdFactor = 2.5f;
+	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
+		landThresholdFactor = 2.5f;
 	}
 
 	// Check if we are moving vertically - this might see a spike after arming due to
 	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
 	// an accurate in-air indication.
-	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * armThresholdFactor;
+	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * landThresholdFactor;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
@@ -263,16 +256,16 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		_min_trust_start = 0;
 	}
 
-	float armThresholdFactor = 1.0f;
+	float landThresholdFactor = 1.0f;
 
-	// Widen acceptance thresholds for landed state right after arming
+	// Widen acceptance thresholds for landed state right after landed
 	// so that motor spool-up and other effects do not trigger false negatives.
-	if (hrt_elapsed_time(&_arming_time) < LAND_DETECTOR_ARM_PHASE_TIME_US) {
-		armThresholdFactor = 2.5f;
+	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
+		landThresholdFactor = 2.5f;
 	}
 
 	// Next look if all rotation angles are not moving.
-	float maxRotationScaled = _params.maxRotation_rad_s * armThresholdFactor;
+	float maxRotationScaled = _params.maxRotation_rad_s * landThresholdFactor;
 
 	bool rotating = (fabsf(_vehicleAttitude.rollspeed)  > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
@@ -304,6 +297,17 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 bool MulticopterLandDetector::_get_landed_state()
 {
+	// reset the landed_time
+	if (!_maybe_landed_hysteresis.get_state()) {
+
+		_landed_time = 0;
+
+	} else if (_landed_time == 0) {
+
+		_landed_time = hrt_absolute_time();
+
+	}
+
 	// if we have maybe_landed, the mc_pos_control goes into idle (thrust_sp = 0.0)
 	// therefore check if all other condition of the landed state remain true
 	return _maybe_landed_hysteresis.get_state();
