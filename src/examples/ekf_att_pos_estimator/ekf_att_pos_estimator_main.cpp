@@ -245,7 +245,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
 	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
 	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
-	_parameter_handles.airspeed_mode = param_find("FW_AIRSPD_MODE");
+	_parameter_handles.airspeed_disabled = param_find("FW_AIRSPD_MODE");
 
 	/* indicate consumers that the current position data is not valid */
 	_gps.eph = 10000.0f;
@@ -313,7 +313,7 @@ int AttitudePositionEstimatorEKF::parameters_update()
 	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
 	param_get(_parameter_handles.eas_noise, &(_parameters.eas_noise));
 	param_get(_parameter_handles.pos_stddev_threshold, &(_parameters.pos_stddev_threshold));
-	param_get(_parameter_handles.airspeed_mode, &_parameters.airspeed_mode);
+	param_get(_parameter_handles.airspeed_disabled, &_parameters.airspeed_disabled);
 
 	if (_ekf) {
 		// _ekf->yawVarScale = 1.0f;
