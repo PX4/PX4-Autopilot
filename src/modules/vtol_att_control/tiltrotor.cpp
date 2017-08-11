@@ -69,7 +69,7 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_params_handles_tiltrotor.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFFID");
-	_params_handles_tiltrotor.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles_tiltrotor.airspeed_disabled = param_find("FW_ARSP_MODE");
 	_params_handles_tiltrotor.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles_tiltrotor.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 }
@@ -133,7 +133,7 @@ Tiltrotor::parameters_update()
 	}
 
 	/* airspeed mode */
-	param_get(_params_handles_tiltrotor.airspeed_mode, &l);
+	param_get(_params_handles_tiltrotor.airspeed_disabled, &l);
 	_params_tiltrotor.airspeed_disabled = math::constrain(l, 0, 1);
 
 	param_get(_params_handles_tiltrotor.diff_thrust, &_params_tiltrotor.diff_thrust);

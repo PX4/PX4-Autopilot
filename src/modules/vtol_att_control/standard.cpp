@@ -70,7 +70,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
-	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles_standard.airspeed_disabled = param_find("FW_ARSP_MODE");
 	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
 }
 
@@ -120,7 +120,7 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.forward_thrust_scale, &_params_standard.forward_thrust_scale);
 
 	/* airspeed mode */
-	param_get(_params_handles_standard.airspeed_mode, &i);
+	param_get(_params_handles_standard.airspeed_disabled, &i);
 	_params_standard.airspeed_disabled = math::constrain(i, 0, 1);
 
 	/* pitch setpoint offset */

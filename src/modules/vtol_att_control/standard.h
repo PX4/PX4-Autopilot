@@ -90,7 +90,7 @@ private:
 		param_t front_trans_time_min;
 		param_t down_pitch_max;
 		param_t forward_thrust_scale;
-		param_t airspeed_mode;
+		param_t airspeed_disabled;
 		param_t pitch_setpoint_offset;
 	} _params_handles_standard;
 

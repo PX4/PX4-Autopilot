@@ -88,7 +88,7 @@ private:
 		param_t elevons_mc_lock;
 		param_t front_trans_dur_p2;
 		param_t fw_motors_off;
-		param_t airspeed_mode;
+		param_t airspeed_disabled;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
 	} _params_handles_tiltrotor;
