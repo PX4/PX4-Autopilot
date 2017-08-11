@@ -155,8 +155,8 @@ protected:
 	/** Time in us that ground contact condition have to hold before triggering contact ground */
 	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 350000;
 
-	/** Time interval in us in which wider acceptance thresholds are used after arming. */
-	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME_US = 2000000;
+	/** Time interval in us in which wider acceptance thresholds are used after landed. */
+	static constexpr uint64_t LAND_DETECTOR_LAND_PHASE_TIME_US = 2000000;
 
 	orb_advert_t _landDetectedPub;
 	struct vehicle_land_detected_s _landDetected;
