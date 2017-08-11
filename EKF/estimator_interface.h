@@ -298,6 +298,32 @@ public:
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	virtual void get_ekf_soln_status(uint16_t *status) = 0;
 
+	// Getter for the average imu update period in s
+	float get_dt_imu_avg()
+	{
+		return _dt_imu_avg;
+	}
+
+	// Getter for the imu sample on the delayed time horizon
+	imuSample get_imu_sample_delayed()
+	{
+		return _imu_sample_delayed;
+	}
+
+	// Getter for the baro sample on the delayed time horizon
+	baroSample get_baro_sample_delayed()
+	{
+		return _baro_sample_delayed;
+	}
+
+	// Getter for a flag indicating if the ekf should update (completed downsampling process)
+	bool get_imu_updated()
+	{
+		return _imu_updated;
+	}
+
+	static const unsigned FILTER_UPDATE_PERIOD_MS = 12;	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
+
 protected:
 
 	parameters _params;		// filter parameters
@@ -318,7 +344,6 @@ protected:
 	This can be adjusted to a value that is FILTER_UPDATE_PERIOD_MS longer than the maximum observation time delay.
 	*/
 	uint8_t _imu_buffer_length{0};
-	static const unsigned FILTER_UPDATE_PERIOD_MS = 12;	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
 
 	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
 
