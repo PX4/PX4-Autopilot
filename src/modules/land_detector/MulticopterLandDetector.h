@@ -138,7 +138,7 @@ private:
 	struct battery_status_s						_battery;
 
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
-	uint64_t _arming_time;
+	uint64_t _landed_time;
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();
