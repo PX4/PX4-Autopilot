@@ -72,7 +72,7 @@ def test_accel_z_bias_converges(z_bias):
     # Prepare data collection for plotting
     if pytest.ENABLE_PLOTTING:  # pylint: disable=no-member
         plot_data = namedtuple('PlotData', ['time', 'accel_bias', 'altitude'])
-        plot_data.time = np.array([i * dt_usec * 1e-3
+        plot_data.time = np.array([i * dt_usec * 1e-6
                                    for i in range(n_samples)])
         plot_data.accel_bias = np.zeros(n_samples)
         plot_data.altitude = np.zeros(n_samples)
@@ -150,7 +150,7 @@ def test_converges_to_baro_altitude(altitude):
                                             'baro',
                                             'altitude',
                                             'accel_z_bias'])
-        plot_data.time = np.array([i * dt_usec * 1e-3
+        plot_data.time = np.array([i * dt_usec * 1e-6
                                    for i in range(n_samples)])
         plot_data.baro = np.zeros(n_samples)
         plot_data.accel_z_bias = np.zeros(n_samples)
