@@ -212,9 +212,9 @@ __BEGIN_DECLS
 
 /* SPI Bus assignments */
 
-#define PX4_SPI_BUS_MEMORY                  0
-#define PX4_SPI_BUS_SENSORS                 1
-#define PX4_SPI_BUS_EXTERNAL                2
+#define PX4_SPI_BUS_MEMORY                  PX4_BUS_NUMBER_TO_PX4(0)
+#define PX4_SPI_BUS_SENSORS                 PX4_BUS_NUMBER_TO_PX4(1)
+#define PX4_SPI_BUS_EXTERNAL                PX4_BUS_NUMBER_TO_PX4(2)
 #define PX4_SPI_BUS_RAMTRON                 PX4_SPI_BUS_MEMORY
 #define PX4_SPI_BUS_EXT                     PX4_SPI_BUS_EXTERNAL
 
@@ -273,8 +273,8 @@ __BEGIN_DECLS
 
 #define GPIO_P_INT             (GPIO_PULLUP | PIN_PORTD | PIN11)
 
-#define PX4_I2C_BUS_EXPANSION               0
-#define PX4_I2C_BUS_ONBOARD                 1
+#define PX4_I2C_BUS_EXPANSION               PX4_BUS_NUMBER_TO_PX4(0)
+#define PX4_I2C_BUS_ONBOARD                 PX4_BUS_NUMBER_TO_PX4(1)
 
 #define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION
 
