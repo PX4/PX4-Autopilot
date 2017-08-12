@@ -278,10 +278,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure SPI-based devices */
 
-	spi0 = sam_spibus_initialize(0);
+	spi0 = px4_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi0) {
-		message("[boot] FAILED to initialize SPI port 0\n");
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -297,7 +297,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	up_udelay(20);
 
 #if defined(CONFIG_SAMV7_SPI1_MASTER)
-	spi1 = sam_spibus_initialize(1);
+	spi1 = px4_spibus_initialize(PX4_SPI_BUS_MEMORY);
 
 	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi1, 10000000);

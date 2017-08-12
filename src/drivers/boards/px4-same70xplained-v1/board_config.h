@@ -198,7 +198,7 @@ __BEGIN_DECLS
 #define GPIO_SPI_CS_BARO		(GPIO_OUTPUT | GPIO_CFG_DEFAULT | GPIO_OUTPUT_SET | GPIO_PORT_PIOD | GPIO_PIN11)
 #define GPIO_SPI_CS_MPU			(GPIO_OUTPUT | GPIO_CFG_DEFAULT | GPIO_OUTPUT_SET | GPIO_PORT_PIOD | GPIO_PIN27)
 
-#define PX4_SPI_BUS_SENSORS	1
+#define PX4_SPI_BUS_SENSORS PX4_BUS_NUMBER_TO_PX4(0)
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
@@ -209,9 +209,9 @@ __BEGIN_DECLS
 
 
 /* I2C busses */
-#define PX4_I2C_BUS_EXPANSION	1
+#define PX4_I2C_BUS_EXPANSION	PX4_BUS_NUMBER_TO_PX4(0)
 /* No Onboard Sensors #define PX4_I2C_BUS_ONBOARD		0 */
-#define PX4_I2C_BUS_LED			1
+#define PX4_I2C_BUS_LED			PX4_I2C_BUS_EXPANSION
 
 /* Devices on the onboard bus.
  *
