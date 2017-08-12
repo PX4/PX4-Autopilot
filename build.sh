@@ -35,9 +35,20 @@
 # Exit on any error.
 set -e
 
-# Build EKF shared library.
-mkdir Build -p
-cd Build
-cmake ../EKF
-make
-cd ..
+if [ -z ${RUN_PYTEST} ];
+then
+    # Build EKF shared library.
+    mkdir Build -p
+    cd Build
+    cmake ../EKF
+    make
+    cd ..
+else
+    # Build EKF shared library.
+    mkdir Build -p
+    cd Build
+    cmake -DPythonTests=1 ../EKF
+    make pytest
+    make pytest-benchmark
+    cd ..
+fi

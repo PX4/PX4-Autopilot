@@ -123,11 +123,15 @@ if(PythonTests)
   set_source_files_properties(../swig/ecl.i PROPERTIES CPLUSPLUS ON)
   set(swigged_sources ekf.h)
 
+  # Find numpy include
+  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDE_DIRS ERROR_QUIET)
+
   include_directories(
     ..
     ${MATRIX_DIR}
     ${EIGEN3_INCLUDE_DIR}
     ${PYTHON_INCLUDE_DIRS}
+    ${NUMPY_INCLUDE_DIRS}
     )
 
   set(SWIG_MODULE_ecl_EXTRA_DEPS ${swigged_sources})
