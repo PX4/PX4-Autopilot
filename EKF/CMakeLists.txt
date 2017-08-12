@@ -102,11 +102,11 @@ if(PythonTests)
   find_package(PythonInterp 3 REQUIRED)
 
   # Check for required python packages
-  set(ECL_TEST_PYTHON_PACKAGES
-    pytest
-    hypothesis
-    numpy
-    )
+  file(READ "${CMAKE_SOURCE_DIR}/tests/pytest/requirements.txt" ECL_TEST_PYTHON_PACKAGES)
+  # Strip version information and split into cmake list
+  string(REGEX REPLACE "\n" ";" ECL_TEST_PYTHON_PACKAGES "${ECL_TEST_PYTHON_PACKAGES}")
+  string(REGEX REPLACE "-" "_" ECL_TEST_PYTHON_PACKAGES "${ECL_TEST_PYTHON_PACKAGES}")
+  string(REGEX REPLACE "[>=]+[^;]*" "" ECL_TEST_PYTHON_PACKAGES "${ECL_TEST_PYTHON_PACKAGES}")
 
   foreach(package ${ECL_TEST_PYTHON_PACKAGES})
     execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import ${package}" RESULT_VARIABLE PytestAvailable OUTPUT_QUIET ERROR_QUIET)
