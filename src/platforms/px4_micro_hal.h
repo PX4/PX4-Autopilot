@@ -40,6 +40,16 @@ __BEGIN_DECLS
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
 
+/* For historical reasons (NuttX STM32 numbering) PX4 bus numbering is 1 based
+ * All PX4 code, including, board code is written to assuming 1 based numbering.
+ * The following macros are used to allow the board config to define the bus
+ * numbers in terms of the NuttX driver numbering. 1,2,3 for one based numbering
+ * schemes or 0,1,2 for zero based schemes.
+ */
+
+#define PX4_BUS_NUMBER_TO_PX4(x)        ((x)+PX4_BUS_OFFSET)  /* Use to define Zero based to match Nuttx Driver but provide 1 based to PX4 */
+#define PX4_BUS_NUMBER_FROM_PX4(x)      ((x)-PX4_BUS_OFFSET)  /* Use to map PX4 1 based to NuttX driver 0 based */
+
 #  define px4_enter_critical_section()       enter_critical_section()
 #  define px4_leave_critical_section(flags)  leave_critical_section(flags)
 
@@ -119,7 +129,8 @@ __BEGIN_DECLS
 
 #    define px4_savepanic(fileno, context, length)  stm32_bbsram_savepanic(fileno, context, length)
 
-#    define px4_spibus_initialize(port_1based)      stm32_spibus_initialize(port_1based)
+#    define PX4_BUS_OFFSET       0                  /* STM buses are 1 based no adjustment needed */
+#    define px4_spibus_initialize(bus_num_1based)   stm32_spibus_initialize(bus_num_1based)
 
 #    define px4_i2cbus_initialize(bus_num_1based)   stm32_i2cbus_initialize(bus_num_1based)
 #    define px4_i2cbus_uninitialize(pdev)           stm32_i2cbus_uninitialize(pdev)
@@ -187,10 +198,12 @@ __BEGIN_DECLS
 
 /* bus_num is zero based on kinetis and must be translated from the legacy one based */
 
-#    define px4_spibus_initialize(port_0based)       kinetis_spibus_initialize(port_0based)
+#    define PX4_BUS_OFFSET       1                  /* Kinetis buses are 0 based and adjustment is needed */
 
-#    define px4_i2cbus_initialize(bus_num_0based)    kinetis_i2cbus_initialize(bus_num_0based)
-#    define px4_i2cbus_uninitialize(pdev)            kinetis_i2cbus_uninitialize(pdev)
+#    define px4_spibus_initialize(bus_num_1based)   kinetis_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+
+#    define px4_i2cbus_initialize(bus_num_1based)   kinetis_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#    define px4_i2cbus_uninitialize(pdev)           kinetis_i2cbus_uninitialize(pdev)
 
 #    define px4_arch_configgpio(pinset)             kinetis_pinconfig(pinset)
 #    define px4_arch_unconfiggpio(pinset)
@@ -246,10 +259,11 @@ __BEGIN_DECLS
 
 /* bus_num is zero based on same70 and must be translated from the legacy one based */
 
-#    define px4_spibus_initialize(port_1based)       sam_spibus_initialize(port_1based-1)
+#    define PX4_BUS_OFFSET       1                  /* Same70 buses are 0 based and adjustment is needed */
+#    define px4_spibus_initialize(bus_num_1based)   sam_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
-#    define px4_i2cbus_initialize(bus_num_1based)    sam_i2cbus_initialize(bus_num_1based-1)
-#    define px4_i2cbus_uninitialize(pdev)            sam_i2cbus_uninitialize(pdev)
+#    define px4_i2cbus_initialize(bus_num_1based)   sam_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#    define px4_i2cbus_uninitialize(pdev)           sam_i2cbus_uninitialize(pdev)
 
 #    define px4_arch_configgpio(pinset)             sam_configgpio(pinset)
 #    define px4_arch_unconfiggpio(pinset)           sam_unconfiggpio(pinset)
