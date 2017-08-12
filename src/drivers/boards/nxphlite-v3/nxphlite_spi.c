@@ -153,7 +153,7 @@ __EXPORT int nxphlite_spi_bus_initialize(void)
 {
 	/* Configure SPI-based devices */
 
-	spi_sensors = kinetis_spibus_initialize(PX4_SPI_BUS_SENSORS);
+	spi_sensors = px4_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi_sensors) {
 		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
@@ -173,7 +173,7 @@ __EXPORT int nxphlite_spi_bus_initialize(void)
 
 	/* Get the SPI port for the Memory */
 
-	spi_memory = kinetis_spibus_initialize(PX4_SPI_BUS_MEMORY);
+	spi_memory = px4_spibus_initialize(PX4_SPI_BUS_MEMORY);
 
 	if (!spi_memory) {
 		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_MEMORY);
@@ -193,7 +193,7 @@ __EXPORT int nxphlite_spi_bus_initialize(void)
 
 	/* Configure EXTERNAL SPI-based devices */
 
-	spi_ext = kinetis_spibus_initialize(PX4_SPI_BUS_EXTERNAL);
+	spi_ext = px4_spibus_initialize(PX4_SPI_BUS_EXTERNAL);
 
 	if (!spi_ext) {
 		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL);
