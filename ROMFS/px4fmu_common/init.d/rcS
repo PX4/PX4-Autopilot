@@ -296,11 +296,13 @@ then
 	if ver hwcmp PX4FMU_V4
 	then
 		set MIXER_AUX none
+		param set SYS_FMU_TASK 1
 	fi
 
 	if ver hwcmp PX4FMU_V5
 	then
 		set MIXER_AUX none
+		param set SYS_FMU_TASK 1
 	fi
 
 	if ver hwcmp AEROFC_V1
