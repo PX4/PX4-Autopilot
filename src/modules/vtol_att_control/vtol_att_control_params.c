@@ -250,9 +250,10 @@ PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
 
 /**
  * Thottle output during back transition
- * This is only enabled when VT_B_REV_OUT is enabled and is used for active breaking with reverse thrust
+ * For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active breaking
+ * For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a positive value to apply active breaking
  *
- * @min 0
+ * @min -1
  * @max 1
  * @increment 0.01
  * @decimal 2
