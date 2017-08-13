@@ -352,7 +352,7 @@ void Standard::update_transition_state()
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 
-		if (_params_handles_standard.reverse_output > FLT_EPSILON) {
+		if (_params_handles_standard.reverse_throttle > FLT_EPSILON || _params_handles_standard.reverse_throttle < 0.01f) {
 			_pusher_throttle = _params_standard.reverse_throttle * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
 					   (_params_standard.front_trans_dur * 1000000.0f);
 			_pusher_throttle = math::constrain(_pusher_throttle, -1.0f, _params_standard.reverse_throttle);
