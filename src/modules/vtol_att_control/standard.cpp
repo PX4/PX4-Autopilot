@@ -366,7 +366,6 @@ void Standard::update_mc_state()
 	// Do not engage pusher assist during a failsafe event
 	// There could be a problem with the fixed wing drive
 	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
-		_pusher_throttle = 0.0f;
 		return;
 	}
 
