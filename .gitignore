@@ -63,6 +63,7 @@ GTAGS
 *.files
 *.includes
 src/modules/micrortps_bridge/micrortps_agent/
+src/modules/micrortps_bridge/micrortps_listener/
 
 # uavcan firmware
 ROMFS/px4fmu_common/uavcan/
