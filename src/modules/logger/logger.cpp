@@ -543,7 +543,6 @@ void Logger::add_common_topics()
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
 	add_topic("commander_state", 100);
-	add_topic("control_state", 100);
 	add_topic("cpuload");
 	add_topic("differential_pressure", 50);
 	add_topic("distance_sensor");

@@ -44,7 +44,6 @@ set(msg_file_names
 	camera_capture.msg
 	collision_report.msg
 	commander_state.msg
-	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
 	differential_pressure.msg
@@ -91,6 +90,7 @@ set(msg_file_names
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_selection.msg
+	sensor_corrected.msg
 	sensor_gyro.msg
 	sensor_mag.msg
 	sensor_preflight.msg

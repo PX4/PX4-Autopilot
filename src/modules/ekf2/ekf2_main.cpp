@@ -66,11 +66,12 @@
 #include <controllib/blocks.hpp>
 
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/sensor_corrected.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/estimator_status.h>
@@ -149,8 +150,6 @@ private:
 	uint32_t _balt_time_ms_last_used =
 		0;	///< time stamp of the last averaged barometric altitude measurement sent to the EKF (mSec)
 
-	float _acc_hor_filt = 0.0f; 	///< low-pass filtered horizontal acceleration (m/sec**2)
-
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _last_magcal_us = 0;	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
 	hrt_abstime _total_cal_time_us = 0;	///< accumulated calibration time since the last save
@@ -171,18 +170,13 @@ private:
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
-	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
 	orb_advert_t _wind_pub;
 	orb_advert_t _estimator_status_pub;
 	orb_advert_t _estimator_innovations_pub;
 	orb_advert_t _replay_pub;
 	orb_advert_t _ekf2_timestamps_pub;
-
-	/* Low pass filter for attitude rates */
-	math::LowPassFilter2p _lp_roll_rate;	///< Low pass filter applied to roll rates published on the control_state message
-	math::LowPassFilter2p _lp_pitch_rate;	///< Low pass filter applied to pitch rates published on the control_state message
-	math::LowPassFilter2p _lp_yaw_rate;	///< Low pass filter applied to yaw rates published on the control_state message
+	orb_advert_t _sensor_corrected_pub;
 
 	// Used to correct baro data for positional errors
 	Vector3f _vel_body_wind = {};	// XYZ velocity relative to wind in body frame (m/s)
@@ -347,16 +341,13 @@ Ekf2::Ekf2():
 	_publish_replay_mode(0),
 	_att_pub(nullptr),
 	_lpos_pub(nullptr),
-	_control_state_pub(nullptr),
 	_vehicle_global_position_pub(nullptr),
 	_wind_pub(nullptr),
 	_estimator_status_pub(nullptr),
 	_estimator_innovations_pub(nullptr),
 	_replay_pub(nullptr),
 	_ekf2_timestamps_pub(nullptr),
-	_lp_roll_rate(250.0f, 30.0f),
-	_lp_pitch_rate(250.0f, 30.0f),
-	_lp_yaw_rate(250.0f, 20.0f),
+	_sensor_corrected_pub(nullptr),
 	_params(_ekf.getParamHandle()),
 	_obs_dt_min_ms(this, "EKF2_MIN_OBS_DT", false, _params->sensor_interval_min_ms),
 	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),
@@ -855,117 +846,64 @@ void Ekf2::run()
 			float velocity[3];
 			_ekf.get_velocity(velocity);
 
+			float position[3];
+			_ekf.get_position(position);
+
 			float pos_d_deriv;
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
 
-			float gyro_rad[3];
+			float velNE_wind[2];
+			_ekf.get_wind_velocity(velNE_wind);
 
-			{
-				// generate control state data
-				control_state_s ctrl_state = {};
-				float gyro_bias[3] = {};
-				_ekf.get_gyro_bias(gyro_bias);
-				ctrl_state.timestamp = now;
-				gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
-				gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
-				gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
-				ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad[0]);
-				ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad[1]);
-				ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
-				ctrl_state.roll_rate_bias = gyro_bias[0];
-				ctrl_state.pitch_rate_bias = gyro_bias[1];
-				ctrl_state.yaw_rate_bias = gyro_bias[2];
+			// In-run bias estimates
+			float gyro_bias[3];
+			_ekf.get_gyro_bias(gyro_bias);
+			float accel_bias[3];
+			_ekf.get_accel_bias(accel_bias);
 
-				// Velocity in body frame
-				Vector3f v_n(velocity);
-				matrix::Dcm<float> R_to_body(q.inversed());
-				Vector3f v_b = R_to_body * v_n;
-				ctrl_state.x_vel = v_b(0);
-				ctrl_state.y_vel = v_b(1);
-				ctrl_state.z_vel = v_b(2);
+			// Calculate wind-compensated velocity in body frame
+			Vector3f v_wind_comp(velocity);
+			matrix::Dcm<float> R_to_body(q.inversed());
+			v_wind_comp(0) -= velNE_wind[0];
+			v_wind_comp(1) -= velNE_wind[1];
+			_vel_body_wind = R_to_body * v_wind_comp; // TODO : move this elsewhere
 
-				// Calculate velocity relative to wind in body frame
-				float velNE_wind[2] = {};
-				_ekf.get_wind_velocity(velNE_wind);
-				v_n(0) -= velNE_wind[0];
-				v_n(1) -= velNE_wind[1];
-				_vel_body_wind = R_to_body * v_n;
+			// use estimated velocity for airspeed estimate
+			// TODO move this out of the estimators and put it into a dedicated air data consolidation algorithm
+			// if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
+			// 	// use measured airspeed
+			// 	if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && now - airspeed.timestamp < 1e6
+			// 	    && airspeed.timestamp > 0) {
+			// 		ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
+			// 		ctrl_state.airspeed_valid = true;
 
-				// Local Position NED
-				float position[3];
-				_ekf.get_position(position);
-				ctrl_state.x_pos = position[0];
-				ctrl_state.y_pos = position[1];
-				ctrl_state.z_pos = position[2];
+			// 	} else {
+			// 		// This airspeed mode requires a measurement which we no longer have, so wind relative speed
+			// 		// is used as a surrogate and the validity is set to false.
+			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
+			// 		ctrl_state.airspeed_valid = false;
 
-				// Attitude quaternion
-				q.copyTo(ctrl_state.q);
+			// 	}
 
-				_ekf.get_quat_reset(&ctrl_state.delta_q_reset[0], &ctrl_state.quat_reset_counter);
+			// } else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
+			// 	if (_ekf.local_position_is_valid()) {
+			// 		// This airspeed mode uses an estimate which is calculated from the wind relative speed
+			// 		// TODO modify the ecl EKF to provide a boolean validity with the wind speed estimate and
+			// 		// use that to set the validity of the estimated airspeed.
+			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
+			// 		ctrl_state.airspeed_valid = true;
 
-				// Acceleration data
-				matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
+			// 	}
 
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-				ctrl_state.x_acc = acceleration(0) - accel_bias[0];
-				ctrl_state.y_acc = acceleration(1) - accel_bias[1];
-				ctrl_state.z_acc = acceleration(2) - accel_bias[2];
+			// } else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
+			// 	// This airspeed mode has disabled airspeed use and controllers will handle this.
+			// 	// We still return wind relative speed as a surrogate and set the validity to zero.
+			// 	if (_ekf.local_position_is_valid()) {
+			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
+			// 		ctrl_state.airspeed_valid = false;
 
-				// compute lowpass filtered horizontal acceleration
-				acceleration = R_to_body.transpose() * acceleration;
-				_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) +
-						acceleration(1) * acceleration(1));
-				ctrl_state.horz_acc_mag = _acc_hor_filt;
-
-				ctrl_state.airspeed_valid = false;
-
-				// use estimated velocity for airspeed estimate
-				// TODO move this out of the estimators and put it into a dedicated air data consolidation algorithm
-				if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
-					// use measured airspeed
-					if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && now - airspeed.timestamp < 1e6
-					    && airspeed.timestamp > 0) {
-						ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
-						ctrl_state.airspeed_valid = true;
-
-					} else {
-						// This airspeed mode requires a measurement which we no longer have, so wind relative speed
-						// is used as a surrogate and the validity is set to false.
-						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-						ctrl_state.airspeed_valid = false;
-
-					}
-
-				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
-					if (_ekf.local_position_is_valid()) {
-						// This airspeed mode uses an estimate which is calculated from the wind relative speed
-						// TODO modify the ecl EKF to provide a boolean validity with the wind speed estimate and
-						// use that to set the validity of the estimated airspeed.
-						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-						ctrl_state.airspeed_valid = true;
-
-					}
-
-				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
-					// This airspeed mode has disabled airspeed use and controllers will handle this.
-					// We still return wind relative speed as a surrogate and set the validity to zero.
-					if (_ekf.local_position_is_valid()) {
-						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-						ctrl_state.airspeed_valid = false;
-
-					}
-				}
-
-				// publish control state data
-				if (_control_state_pub == nullptr) {
-					_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-				} else {
-					orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
-				}
-			}
-
+			// 	}
+			// }
 
 			{
 				// generate vehicle attitude quaternion data
@@ -973,10 +911,11 @@ void Ekf2::run()
 				att.timestamp = now;
 
 				q.copyTo(att.q);
+				_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-				att.rollspeed = gyro_rad[0];
-				att.pitchspeed = gyro_rad[1];
-				att.yawspeed = gyro_rad[2];
+				att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
+				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
+				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {
@@ -989,15 +928,13 @@ void Ekf2::run()
 
 			// generate vehicle local position data
 			struct vehicle_local_position_s lpos = {};
-			float pos[3] = {};
 
 			lpos.timestamp = now;
 
 			// Position of body origin in local NED frame
-			_ekf.get_position(pos);
-			lpos.x = (_ekf.local_position_is_valid()) ? pos[0] : 0.0f;
-			lpos.y = (_ekf.local_position_is_valid()) ? pos[1] : 0.0f;
-			lpos.z = pos[2];
+			lpos.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
+			lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
+			lpos.z = position[2];
 
 			// Velocity of body origin in local NED frame (m/s)
 			lpos.vx = velocity[0];
@@ -1025,7 +962,7 @@ void Ekf2::run()
 			float terrain_vpos;
 			lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 			_ekf.get_terrain_vert_pos(&terrain_vpos);
-			lpos.dist_bottom = terrain_vpos - pos[2]; // Distance to bottom surface (ground) in meters
+			lpos.dist_bottom = terrain_vpos - position[2]; // Distance to bottom surface (ground) in meters
 
 			// constrain the distance to ground to _params->rng_gnd_clearance
 			if (lpos.dist_bottom < _params->rng_gnd_clearance) {
@@ -1033,7 +970,6 @@ void Ekf2::run()
 			}
 
 			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
-			lpos.surface_bottom_timestamp = now; // Time when new bottom surface found
 
 			bool dead_reckoning;
 			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
@@ -1058,7 +994,6 @@ void Ekf2::run()
 				struct vehicle_global_position_s global_pos = {};
 
 				global_pos.timestamp = now;
-				global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
 
 				double est_lat, est_lon, lat_pre_reset, lon_pre_reset;
 				map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &est_lat, &est_lon);
@@ -1070,7 +1005,7 @@ void Ekf2::run()
 				global_pos.delta_lat_lon[1] = est_lon - lon_pre_reset;
 				global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
 
-				global_pos.alt = -pos[2] + lpos.ref_alt; // Altitude AMSL in meters
+				global_pos.alt = -position[2] + lpos.ref_alt; // Altitude AMSL in meters
 				_ekf.get_posD_reset(&global_pos.delta_alt, &global_pos.alt_reset_counter);
 				// global altitude has opposite sign of local down position
 				global_pos.delta_alt *= -1.0f;
@@ -1095,9 +1030,9 @@ void Ekf2::run()
 					global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
 				}
 
-				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
-
 				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
+
+				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
 
 				if (_vehicle_global_position_pub == nullptr) {
 					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
@@ -1105,6 +1040,45 @@ void Ekf2::run()
 				} else {
 					orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
 				}
+			}
+
+			// publish all corrected sensor readings and bias estimates after mag calibration is updated above
+			{
+				struct sensor_corrected_s corr = {};
+
+				corr.timestamp = now;
+
+				corr.gyro_x = sensors.gyro_rad[0] - gyro_bias[0];
+				corr.gyro_y = sensors.gyro_rad[1] - gyro_bias[1];
+				corr.gyro_z = sensors.gyro_rad[2] - gyro_bias[2];
+
+				corr.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
+				corr.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
+				corr.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
+
+				corr.mag_x = sensors.magnetometer_ga[0] - (_last_valid_mag_cal[0] / 1000.0f); // mGauss -> Gauss
+				corr.mag_y = sensors.magnetometer_ga[1] - (_last_valid_mag_cal[1] / 1000.0f); // mGauss -> Gauss
+				corr.mag_z = sensors.magnetometer_ga[2] - (_last_valid_mag_cal[2] / 1000.0f); // mGauss -> Gauss
+
+				corr.gyro_x_bias = gyro_bias[0];
+				corr.gyro_y_bias = gyro_bias[1];
+				corr.gyro_z_bias = gyro_bias[2];
+
+				corr.accel_x_bias = accel_bias[0];
+				corr.accel_y_bias = accel_bias[1];
+				corr.accel_z_bias = accel_bias[2];
+
+				corr.mag_x_bias = _last_valid_mag_cal[0];
+				corr.mag_y_bias = _last_valid_mag_cal[1];
+				corr.mag_z_bias = _last_valid_mag_cal[2];
+
+				if (_sensor_corrected_pub == nullptr) {
+					_sensor_corrected_pub = orb_advertise(ORB_ID(sensor_corrected), &corr);
+
+				} else {
+					orb_publish(ORB_ID(sensor_corrected), _sensor_corrected_pub, &corr);
+				}
+
 			}
 
 			// publish estimator status
@@ -1191,13 +1165,13 @@ void Ekf2::run()
 					}
 				}
 
-				// Check and save the last valid calibration when we are disarmed
-				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-				    && (status.filter_fault_flags == 0)
+				// Check and update the last valid magnetometer calibration
+				if ((status.filter_fault_flags == 0)
 				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
 					control::BlockParamFloat *mag_biases[] = { &_mag_bias_x, &_mag_bias_y, &_mag_bias_z };
 
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
+						// update bias estimates
 						if (_valid_cal_available[axis_index]) {
 							// calculate weighting using ratio of variances and update stored bias values
 							float weighting = _mag_bias_saved_variance.get() / (_mag_bias_saved_variance.get() +
@@ -1205,15 +1179,19 @@ void Ekf2::run()
 							weighting = math::constrain(weighting, 0.0f, _mag_bias_alpha.get());
 							float mag_bias_saved = mag_biases[axis_index]->get();
 							_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
-							mag_biases[axis_index]->set(_last_valid_mag_cal[axis_index]);
-							mag_biases[axis_index]->commit_no_notification();
+
+							// Only save parameters when disarmed
+							if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+								mag_biases[axis_index]->set(_last_valid_mag_cal[axis_index]);
+								mag_biases[axis_index]->commit_no_notification();
+
+								// reset to prevent data being saved too frequently
+								_total_cal_time_us = 0;
+							}
 
 							_valid_cal_available[axis_index] = false;
 						}
 					}
-
-					// reset to prevent data being saved too frequently
-					_total_cal_time_us = 0;
 				}
 
 				// Publish wind estimate
@@ -1221,15 +1199,30 @@ void Ekf2::run()
 				wind_estimate.timestamp = now;
 				wind_estimate.windspeed_north = status.states[22];
 				wind_estimate.windspeed_east = status.states[23];
-				wind_estimate.covariance_north = status.covariances[22];
-				wind_estimate.covariance_east = status.covariances[23];
+				wind_estimate.variance_north = status.covariances[22];
+				wind_estimate.variance_east = status.covariances[23];
 
-				if (_wind_pub == nullptr) {
-					_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+				// TODO: True airspeed is not published here
 
-				} else {
-					orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-				}
+				// if (_airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
+				// 	// use measured airspeed
+				// 	if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+				// 	&& _airspeed.timestamp > 0) {
+				// 		wind_estimate.true_airspeed = _airspeed.true_airspeed_m_s;
+				// 	}
+				// } else if (_airspeed_mode == control_state_s::AIRSPD_MODE_EST) {
+				// 	// use estimated body velocity as airspeed estimate
+				// 	if (hrt_absolute_time() - _gpos.timestamp < 1e6) {
+				// 		wind_estimate.true_airspeed = sqrtf(_gpos.vel_n * _gpos.vel_n + _gpos.vel_e * _gpos.vel_e + _gpos.vel_d * _gpos.vel_d);
+				// 	}
+				// }
+
+				// if (_wind_pub == nullptr) {
+				// 	_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+
+				// } else {
+				// 	orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+				// }
 			}
 
 			// publish estimator innovation data

@@ -184,7 +184,7 @@ void
 GroundRoverAttitudeControl::task_main()
 {
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
+	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -204,7 +204,7 @@ GroundRoverAttitudeControl::task_main()
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _ctrl_state_sub;
+	fds[1].fd = _att_sub;
 	fds[1].events = POLLIN;
 
 	_task_running = true;
@@ -252,7 +252,7 @@ GroundRoverAttitudeControl::task_main()
 			}
 
 			/* load local copies */
-			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
 			vehicle_attitude_setpoint_poll();
 			vehicle_control_mode_poll();
@@ -264,10 +264,10 @@ GroundRoverAttitudeControl::task_main()
 				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 
-					Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));
+					Eulerf euler_angles(matrix::Quatf(_att.q));
 
 					/* Calculate the control output for the steering as yaw */
-					float yaw_u = pid_calculate(&_steering_ctrl, _att_sp.yaw_body, euler_angles.psi(), _ctrl_state.yaw_rate, deltaT);
+					float yaw_u = pid_calculate(&_steering_ctrl, _att_sp.yaw_body, euler_angles.psi(), _att.yawspeed, deltaT);
 
 					float angle_diff = 0.0f;
 
@@ -322,7 +322,7 @@ GroundRoverAttitudeControl::task_main()
 
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
-			_actuators.timestamp_sample = _ctrl_state.timestamp;
+			_actuators.timestamp_sample = _att.timestamp;
 
 			/* Only publish if any of the proper modes are enabled */
 			if (_vcontrol_mode.flag_control_attitude_enabled ||
