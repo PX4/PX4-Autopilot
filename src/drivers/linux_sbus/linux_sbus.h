@@ -63,18 +63,22 @@
 #define SBUS_SCALE_FACTOR ((SBUS_TARGET_MAX - SBUS_TARGET_MIN) / (SBUS_RANGE_MAX - SBUS_RANGE_MIN))
 #define SBUS_SCALE_OFFSET (int)(SBUS_TARGET_MIN - (SBUS_SCALE_FACTOR * SBUS_RANGE_MIN + 0.5f))
 
-namespace linux_sbus {
-class RcInput {
+namespace linux_sbus
+{
+class RcInput
+{
 public:
 	RcInput() :
-			_shouldExit(false), _isRunning(false), _work { }, _rcinput_pub(
-					nullptr), //D8R-II plus
-			_data { }, _sbusData { 0x0f, 0x01, 0x04, 0x20, 0x00, 0xff, 0x07,
-					0x40, 0x00, 0x02, 0x10, 0x80, 0x2c, 0x64, 0x21, 0x0b, 0x59,
-					0x08, 0x40, 0x00, 0x02, 0x10, 0x80, 0x00, 0x00 } {
+		_shouldExit(false), _isRunning(false), _work { }, _rcinput_pub(
+			nullptr), //D8R-II plus
+		_data { }, _sbusData { 0x0f, 0x01, 0x04, 0x20, 0x00, 0xff, 0x07,
+				       0x40, 0x00, 0x02, 0x10, 0x80, 0x2c, 0x64, 0x21, 0x0b, 0x59,
+				       0x08, 0x40, 0x00, 0x02, 0x10, 0x80, 0x00, 0x00 }
+	{
 		//memset(_ch_fd, 0, sizeof(_ch_fd));
 	}
-	~RcInput() {
+	~RcInput()
+	{
 		work_cancel(HPWORK, &_work);
 		_isRunning = false;
 		close(_device_fd);
@@ -89,7 +93,8 @@ public:
 	/* Trampoline for the work queue. */
 	static void cycle_trampoline(void *arg);
 
-	bool isRunning() {
+	bool isRunning()
+	{
 		return _isRunning;
 	}
 
