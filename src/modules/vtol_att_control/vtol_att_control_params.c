@@ -221,9 +221,10 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 
 /**
- * Deceleration during back transition
+ * Approximate deceleration during back transition
  *
- * The deceleration during a back transition in m/s/s
+ * The approximate deceleration during a back transition in m/s/s
+ * Used to calculate back transition distance in mission mode. A lower value will make the VTOL transition further from the destination waypoint.
  *
  * @unit m/s/s
  * @min 0.00
