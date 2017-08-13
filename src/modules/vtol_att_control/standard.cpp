@@ -185,14 +185,8 @@ void Standard::update_vtol_state()
 				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
 				_flag_enable_mc_motors = true;
 				_vtol_schedule.transition_start = hrt_absolute_time();
-
-				_pusher_throttle = _params_standard.reverse_throttle;
 				_reverse_output = _params_standard.reverse_output;
 
-				// prevent positive thrust without control channel activated
-				if (_pusher_throttle > FLT_EPSILON && _reverse_output < 0.01f) {
-					_pusher_throttle = 0.0f;
-				}
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
@@ -352,10 +346,16 @@ void Standard::update_transition_state()
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 
-		if (_params_handles_standard.reverse_throttle > FLT_EPSILON || _params_handles_standard.reverse_throttle < 0.01f) {
+		// Handle throttle reversal for active breaking
+		if (_params_handles_standard.reverse_throttle > FLT_EPSILON || _params_handles_standard.reverse_throttle < -0.01f) {
 			_pusher_throttle = _params_standard.reverse_throttle * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
 					   (_params_standard.front_trans_dur * 1000000.0f);
 			_pusher_throttle = math::constrain(_pusher_throttle, -1.0f, _params_standard.reverse_throttle);
+		}
+
+		// prevent positive thrust without airbrakes channel activated
+		if (_pusher_throttle > FLT_EPSILON && _params_handles_standard.reverse_output < 0.01f) {
+			_pusher_throttle = 0.0f;
 		}
 
 		// continually increase mc attitude control as we transition back to mc mode
