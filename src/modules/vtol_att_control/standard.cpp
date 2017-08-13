@@ -143,7 +143,7 @@ Standard::parameters_update()
 
 	/* reverse throttle */
 	param_get(_params_handles_standard.reverse_throttle, &v);
-	_params_standard.reverse_throttle = math::constrain(v, 0.0f, 1.0f);
+	_params_standard.reverse_throttle = math::constrain(v, -1.0f, 1.0f);
 
 	/* mpc cruise speed */
 	param_get(_params_handles_standard.mpc_xy_cruise, &_params_standard.mpc_xy_cruise);
@@ -186,13 +186,12 @@ void Standard::update_vtol_state()
 				_flag_enable_mc_motors = true;
 				_vtol_schedule.transition_start = hrt_absolute_time();
 
-				if (_params_handles_standard.reverse_output > FLT_EPSILON) {
-					_pusher_throttle = _params_standard.reverse_throttle;
-					_reverse_output = _params_standard.reverse_output;
+				_pusher_throttle = _params_standard.reverse_throttle;
+				_reverse_output = _params_standard.reverse_output;
 
-				} else {
+				// prevent positive thrust without control channel activated
+				if (_pusher_throttle > FLT_EPSILON && _reverse_output < 0.01f) {
 					_pusher_throttle = 0.0f;
-					_reverse_output = 0.0f;
 				}
 			}
 
