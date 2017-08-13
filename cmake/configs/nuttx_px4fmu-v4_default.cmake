@@ -215,7 +215,6 @@ set(config_rtps_receive_topics
    sensor_baro
    )
 
-
 set(config_extra_builtin_cmds
 	serdis
 	sercon
