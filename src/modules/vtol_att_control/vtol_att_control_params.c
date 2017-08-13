@@ -236,7 +236,9 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 PARAM_DEFINE_FLOAT(VT_B_DEC_MSS, 2.0f);
 
 /**
- * Output on reverse channel during back transition
+ * Output on airbrakes channel during back transition
+ * Used for airbrakes or with ESCs that have reverse thrust enabled on a seperate channel
+ * Airbrakes need to be enables for your selected model/mixer
  *
  * @min 0
  * @max 1
@@ -247,7 +249,8 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_MSS, 2.0f);
 PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
 
 /**
- * reverse thottle output during back transition
+ * Thottle output during back transition
+ * This is only enabled when VT_B_REV_OUT is enabled and is used for active breaking with reverse thrust
  *
  * @min 0
  * @max 1
