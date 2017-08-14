@@ -32,9 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskOrbit.hpp
+ * @file FlightTaskManual.hpp
  *
- * Flight task for orbiting in a circle around a target position
+ * Flight task for the normal, legacy, manual position controlled flight
+ * where stick inputs map basically to the velocity setpoint
  *
  * @author Matthias Grob <maetugr@gmail.com>
  */
@@ -43,11 +44,18 @@
 
 #include "FlightTask.hpp"
 
-class FlightTaskOrbit : public FlightTask
+class FlightTaskManual : public FlightTask
 {
 public:
-	FlightTaskOrbit() {};
-	virtual ~FlightTaskOrbit() {};
+	FlightTaskManual() :
+		_xy_vel_man_expo(nullptr, "MPC_XY_MAN_EXPO"),
+		_z_vel_man_expo(nullptr, "MPC_Z_MAN_EXPO"),
+		_hold_dz(nullptr, "MPC_HOLD_DZ"),
+		_velocity_hor_manual(nullptr, "MPC_VEL_MANUAL"),
+		_z_vel_max_up(nullptr, "MPC_Z_VEL_MAX_UP"),
+		_z_vel_max_down(nullptr, "MPC_Z_VEL_MAX_DN")
+	{};
+	virtual ~FlightTaskManual() {};
 
 	/**
 	 * Call once on the event where you switch to the task
@@ -77,35 +85,43 @@ public:
 	{
 		FlightTask::update();
 
-		r += _sticks(0) * _deltatime;
-		r = math::constrain(r, 0.5f, 4.f);
-		v -= _sticks(1) * _deltatime;
-		v = math::constrain(v, -7.f, 7.f);
-		altitude += _sticks(2) * _deltatime;
-		altitude = math::constrain(altitude, 2.f, 5.f);
+		matrix::Vector3f man_vel_sp;
+		man_vel_sp(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
+		man_vel_sp(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
+		man_vel_sp(2) = -math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
 
-		matrix::Vector2<float> target_to_position = matrix::Vector2f(_position.data()) - matrix::Vector2f();
-		// TODO: add local frame target position here
+		const float man_vel_hor_length = matrix::Vector2f(man_vel_sp.data()).length();
 
-		/* xy velocity to go around in a circle */
-		matrix::Vector2<float> velocity_xy = matrix::Vector2f(target_to_position(1), -target_to_position(0));
-		velocity_xy.normalize();
-		velocity_xy *= v;
+		/* saturate such that magnitude is never larger than 1 */
+		if (man_vel_hor_length > 1.0f) {
+			man_vel_sp(0) /= man_vel_hor_length;
+			man_vel_sp(1) /= man_vel_hor_length;
+		}
 
-		/* xy velocity adjustment to stay on the radius distance */
-		velocity_xy += (r - target_to_position.norm()) * target_to_position.normalized();
+		/* prepare yaw to rotate into NED frame */
+		float yaw_input_fame = 0;
+		//float yaw_input_fame = _yaw;
 
-		//printf("%f %f %f\n", (double)altitude, (double)r, (double)v);
+		/* setpoint in NED frame */
+		man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_fame)) * man_vel_sp;
 
-		_set_position_setpoint(matrix::Vector3f(NAN, NAN, -altitude));
-		_set_velocity_setpoint(matrix::Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
+		/* scale smaller than unit length vector to maximal manual speed (m/s) */
+		matrix::Vector3f vel_scale(_velocity_hor_manual.get(),
+					   _velocity_hor_manual.get(),
+					   (man_vel_sp(2) > 0.0f) ? _z_vel_max_down.get() : _z_vel_max_up.get());
+		man_vel_sp = man_vel_sp.emult(vel_scale);
+
+		_set_position_setpoint(matrix::Vector3f(NAN, NAN, NAN));
+		_set_velocity_setpoint(man_vel_sp);
 		return 0;
 	};
 
 private:
-
-	float r = 1.f; /* radius with which to orbit the target */
-	float v =  0.1f; /* linear velocity for orbiting in m/s */
-	float altitude = 2.f; /* altitude in meters */
+	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
+	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
+	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
+	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed */
+	control::BlockParamFloat _z_vel_max_up; /**< maximal vertical velocity when flying upwards with the stick */
+	control::BlockParamFloat _z_vel_max_down; /**< maximal vertical velocity when flying downwards with the stick */
 
 };
