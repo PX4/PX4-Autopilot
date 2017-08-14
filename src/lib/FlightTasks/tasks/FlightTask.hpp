@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightTask.h
+ * @file FlightTask.hpp
  *
  * Abstract base class for different advanced flight tasks like orbit, follow me, ...
  *
@@ -67,7 +67,7 @@ public:
 	 * Call once on the event of switching away from the task
 	 * 	@return 0 on success, >0 on error
 	 */
-	virtual int disable() = 0;
+	virtual int disable() { return 0; };
 
 	/**
 	 * To be called regularly in the control loop cycle to execute the task
@@ -167,10 +167,10 @@ private:
 	void _evaluate_sticks()
 	{
 		if (_manual_control_setpoint != NULL && hrt_elapsed_time(&_manual_control_setpoint->timestamp) < _timeout) {
-			_sticks(0) = _manual_control_setpoint->y; /* "roll" [-1,1] */
-			_sticks(1) = _manual_control_setpoint->x; /* "pitch" [-1,1] */
-			_sticks(2) = _manual_control_setpoint->r; /* "yaw" [-1,1] */
-			_sticks(3) = (_manual_control_setpoint->z - 0.5f) * 2.f; /* "thrust" resacaled from [0,1] to [-1,1] */
+			_sticks(0) = _manual_control_setpoint->x; /* NED x, "pitch" [-1,1] */
+			_sticks(1) = _manual_control_setpoint->y; /* NED y, "roll" [-1,1] */
+			_sticks(2) = (_manual_control_setpoint->z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
+			_sticks(3) = _manual_control_setpoint->r; /* "yaw" [-1,1] */
 
 		} else {
 			_sticks = matrix::Vector<float, 4>(); /* default is all zero */

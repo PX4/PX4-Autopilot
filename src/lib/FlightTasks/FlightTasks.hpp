@@ -42,6 +42,7 @@
 #pragma once
 
 #include "tasks/FlightTask.hpp"
+#include "tasks/FlightTaskManual.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 
 class FlightTasks
@@ -114,7 +115,12 @@ public:
 	 * Get result of the task execution
 	 * @return pointer to the setpoint for the position controller
 	 */
-	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return Orbit.get_position_setpoint(); };
+	const vehicle_local_position_setpoint_s *get_position_setpoint() const
+	{
+		//if (is_any_task_active()) {
+		return _tasks[_current_task]->get_position_setpoint();
+		//}
+	};
 
 	/**
 	 * Check if any task is active
@@ -123,10 +129,11 @@ public:
 	bool is_any_task_active() const { return _current_task > -1 && _current_task < _task_count; };
 
 private:
-	static const int _task_count = 1;
 	int _current_task = -1;
 
+	FlightTaskManual Manual;
 	FlightTaskOrbit Orbit;
-	FlightTask *_tasks[_task_count] = {&Orbit};
+	static const int _task_count = 2;
+	FlightTask *_tasks[_task_count] = {&Manual, &Orbit};
 
 };
