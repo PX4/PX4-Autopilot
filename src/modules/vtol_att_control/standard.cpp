@@ -369,6 +369,12 @@ void Standard::update_mc_state()
 		return;
 	}
 
+	// disable pusher assist when descending
+	if (PX4_ISFINITE(_attc->get_local_pos_sp()->vz) && _attc->get_local_pos_sp()->vz > 0.5f) {
+		return;
+	}
+
+
 	matrix::Dcmf R(matrix::Quatf(_v_att->q));
 	matrix::Dcmf R_sp(matrix::Quatf(_v_att_sp->q_d));
 	matrix::Eulerf euler(R);
