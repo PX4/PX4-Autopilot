@@ -369,8 +369,9 @@ void Standard::update_mc_state()
 		return;
 	}
 
-	// disable pusher assist when descending
-	if (PX4_ISFINITE(_attc->get_local_pos_sp()->vz) && _attc->get_local_pos_sp()->vz > 0.5f) {
+	// disable pusher assist during landing
+	if (_attc->get_pos_sp_triplet()->current.valid
+	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		return;
 	}
 
