@@ -49,12 +49,12 @@ class FlightTaskManual : public FlightTask
 public:
 	FlightTaskManual(SuperBlock *parent, const char *name) :
 		FlightTask(parent, name),
-		_xy_vel_man_expo(nullptr, "MPC_XY_MAN_EXPO"),
-		_z_vel_man_expo(nullptr, "MPC_Z_MAN_EXPO"),
-		_hold_dz(nullptr, "MPC_HOLD_DZ"),
-		_velocity_hor_manual(nullptr, "MPC_VEL_MANUAL"),
-		_z_vel_max_up(nullptr, "MPC_Z_VEL_MAX_UP"),
-		_z_vel_max_down(nullptr, "MPC_Z_VEL_MAX_DN"),
+		_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
+		_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
+		_hold_dz(parent, "MPC_HOLD_DZ", false),
+		_velocity_hor_manual(parent, "MPC_VEL_MANUAL", false),
+		_z_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
+		_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 		_sub_control_state(ORB_ID(control_state), 0, 0, &getSubscriptions())
 	{};
 	virtual ~FlightTaskManual() {};
