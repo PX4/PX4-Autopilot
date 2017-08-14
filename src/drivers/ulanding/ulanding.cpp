@@ -33,12 +33,40 @@
 
 /**
  * @file ulanding.cpp
+ * @author Jessica Stockham <jessica@aerotenna.com>
  * @author Roman Bapst <roman@uaventure.com>
  *
  * Driver for the uLanding radar from Aerotenna
  */
 
+#if defined(__PX4_POSIX)
+#include <px4_config.h>
+#include <px4_workqueue.h>
+#include <px4_defines.h>
+
+//this group added from hc_sr04
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <semaphore.h>
+#include <string.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <errno.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <vector>
+#include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
+#include <drivers/device/ringbuffer.h>
+#include <stdio.h>
+#include <uORB/uORB.h>
+#endif
+
 #include <termios.h>
+
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
@@ -46,18 +74,43 @@
 
 #include <uORB/topics/distance_sensor.h>
 
+#if defined(__PX4_POSIX)
+namespace ulanding
+{
+#endif
+
 #define ULANDING_MIN_DISTANCE		0.315f
 #define ULANDING_MAX_DISTANCE		50.0f
-#define RADAR_RANGE_DATA 		0x48
+#define RADAR_RANGE_DATA 	0x48
+#define ULANDING_VERSION	1
 
+#if defined(__PX4_POSIX_OCPOC)
+#define RADAR_DEFAULT_PORT		"/dev/ttyS6"	// default uLanding port on OCPOC
+#else
 #define RADAR_DEFAULT_PORT		"/dev/ttyS2"	// telem2 on Pixhawk
+#endif
+
+#if ULANDING_VERSION == 1
+uint8_t ulanding_hdr = 254;
+#define BUF_LEN 		18
+#else
+uint8_t ulanding_hdr = 72;
 #define BUF_LEN 		9
-#define SENS_VARIANCE 		0.045f * 0.045f		// assume standard deviation to be equal to sensor resolution. Static bench tests have shown that
-// the sensor ouput does not vary if the unit is not moved.
+#endif
+
+/* assume standard deviation to be equal to sensor resolution.
+   Static bench tests have shown that the sensor ouput does
+   not vary if the unit is not moved. */
+#define SENS_VARIANCE 		0.045f * 0.045f
+
 
 extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[]);
 
+#if defined(__PX4_POSIX)
+class Radar : public device::VDev
+#else
 class Radar : public device::CDev
+#endif
 {
 public:
 	Radar(const char *port = RADAR_DEFAULT_PORT);
@@ -83,7 +136,11 @@ private:
 	void task_main();
 
 	bool read_and_parse(uint8_t *buf, int len, float *range);
+#if defined(__PX4_POSIX)
+	bool is_header_byte(uint8_t c) {return (c == ulanding_hdr);};
+#else
 	bool is_header_byte(uint8_t c) {return ((c & 0x80) == 0x00 && (c & 0x7F) == RADAR_RANGE_DATA);};
+#endif
 };
 
 namespace radar
@@ -92,6 +149,16 @@ Radar	*g_dev;
 }
 
 Radar::Radar(const char *port) :
+#if defined(__PX4_POSIX)
+	VDev("Radar", RANGE_FINDER0_DEVICE_PATH),
+	_task_should_exit(false),
+	_task_handle(-1),
+	_class_instance(-1),
+	_orb_class_instance(-1),
+	_distance_sensor_topic(nullptr),
+	_head(0),
+	_tail(0)
+#else
 	CDev("Radar", RANGE_FINDER0_DEVICE_PATH),
 	_task_should_exit(false),
 	_task_handle(-1),
@@ -100,6 +167,8 @@ Radar::Radar(const char *port) :
 	_distance_sensor_topic(nullptr),
 	_head(0),
 	_tail(0)
+#endif
+
 {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port));
@@ -153,6 +222,93 @@ Radar::init()
 
 	do { /* create a scope to handle exit conditions using break */
 
+#if defined(__PX4_POSIX)
+		/* do regular vdev init */
+		ret = VDev::init();
+
+		if (ret != OK) {
+			PX4_WARN("vdev init failed");
+			break;
+		}
+
+		/* open fd */
+		int fd = ::open(_port, O_RDWR | O_NOCTTY);
+		PX4_INFO("passed open port");
+
+		if (fd < 0) {
+			PX4_WARN("failed to open serial device");
+			ret = 1;
+			break;
+		}
+
+		struct termios uart_config;
+
+		int termios_state;
+
+		/* fill the struct for the new configuration */
+		tcgetattr(fd, &uart_config);
+
+		// Input flags - Turn off input processing
+		//
+		// convert break to null byte, no CR to NL translation,
+		// no NL to CR translation, don't mark parity errors or breaks
+		// no input parity check, don't strip high bit off,
+		// no XON/XOFF software flow control
+		//
+		uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
+					 INLCR | PARMRK | INPCK | ISTRIP | IXON);
+
+		//
+		// Output flags - Turn off output processing
+		//
+		// no CR to NL translation, no NL to CR-NL translation,
+		// no NL to CR translation, no column 0 CR suppression,
+		// no Ctrl-D suppression, no fill characters, no case mapping,
+		// no local output processing
+		//
+		//// config.c_oflag &= ~(OCRNL | ONLCR | ONLRET |
+		//                     ONOCR | ONOEOT| OFILL | OLCUC | OPOST);
+
+		uart_config.c_oflag = 0;
+
+		/* clear ONLCR flag (which appends a CR for every LF) */
+		uart_config.c_oflag &= ~ONLCR;
+
+		/* no parity, one stop bit */
+		uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+		//
+		// No line processing
+		//
+		// echo off, echo newline off, canonical mode off,
+		// extended input processing off, signal chars off
+		//
+		uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+
+
+		unsigned speed = B115200;
+
+		/* set baud rate */
+		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+			PX4_WARN("ERR CFG: %d ISPD", termios_state);
+			ret = 1;
+			break;
+		}
+
+		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+			PX4_WARN("ERR CFG: %d OSPD\n", termios_state);
+			ret = 1;
+			break;
+		}
+
+		if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
+			PX4_WARN("ERR baud %d ATTR", termios_state);
+			ret = 1;
+			break;
+		}
+
+		::close(fd);
+#else
 		/* do regular cdev init */
 		ret = CDev::init();
 
@@ -215,7 +371,7 @@ Radar::init()
 		}
 
 		px4_close(fd);
-
+#endif
 		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 		struct distance_sensor_s ds_report = {};
@@ -290,25 +446,37 @@ bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
 	// check how many bytes are in the buffer, return if it's lower than the size of one package
 	int num_bytes = _head >= _tail ? (_head - _tail + 1) : (_head + 1 + BUF_LEN - _tail);
 
-	if (num_bytes < 3) {
+	if (num_bytes < BUF_LEN / 3) {
+		PX4_DEBUG("not enough bytes");
 		return false;
 	}
 
 	int index = _head;
 	uint8_t no_header_counter = 0;	// counter for bytes which are non header bytes
-	uint8_t byte1 = _buf[_head];
-	uint8_t byte2 = _buf[_head];
 
 	// go through the buffer backwards starting from the newest byte
 	// if we find a header byte and the previous two bytes weren't header bytes
 	// then we found the newest package.
 	for (unsigned i = 0; i < num_bytes; i++) {
 		if (is_header_byte(_buf[index])) {
-			if (no_header_counter >= 2) {
-				int raw = (byte1 & 0x7F);
-				raw += ((byte2 & 0x7F) << 7);
+			if (no_header_counter >= BUF_LEN / 3 - 1) {
+				if (ULANDING_VERSION == 1) {
+					if (((_buf[index + 1] + _buf[index + 2] + _buf[index + 3] + _buf[index + 4])) != (_buf[index + 5])
+					    || (_buf[index + 1] <= 0)) {
+						ret = false;
+						break;
+					}
 
-				*range = ((float)raw) * 0.045f;
+					int raw = _buf[index + 3] * 256 + _buf[index + 2];
+
+					*range = ((float)(raw / 100.)); // raw is in cm, converts range to meters;
+
+				} else {
+					int raw = (_buf[index + 1] & 0x7F);
+					raw += ((_buf[index + 2] & 0x7F) << 7);
+
+					*range = ((float)raw) * 0.045f;
+				}
 
 				// set the tail to one after the index because we neglect
 				// any data before the one we just read
@@ -324,9 +492,6 @@ bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
 			no_header_counter++;
 		}
 
-		byte2 = byte1;
-		byte1 = _buf[index];
-
 		index--;
 
 		if (index < 0) {
@@ -341,20 +506,40 @@ bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
 void
 Radar::task_main()
 {
+#if defined(__PX4_POSIX)
+	int fd = ::open(_port, O_RDWR | O_NOCTTY);
 
+	if (fd < 0) {
+		PX4_WARN("serial port not open");
+	}
+
+	if (!isatty(fd)) {
+		PX4_WARN("not a serial device");
+	}
+
+#else
 	int fd = px4_open(_port, O_RDWR | O_NOCTTY);
+#endif
 
 	// we poll on data from the serial port
+#if defined(__PX4_POSIX)
+	pollfd fds[1];
+#else
 	px4_pollfd_struct_t fds[1];
+#endif
 	fds[0].fd = fd;
 	fds[0].events = POLLIN;
 
-	// read buffer, one measurement consists of three bytes
+	// read buffer
 	uint8_t buf[BUF_LEN];
 
 	while (!_task_should_exit) {
 		// wait for up to 100ms for data
+#if defined(__PX4_POSIX)
+		int pret = ::poll(fds, (sizeof(fds) / sizeof(fds[0])), 100);
+#else
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+#endif
 
 		// timed out
 		if (pret == 0) {
@@ -370,7 +555,11 @@ Radar::task_main()
 
 		if (fds[0].revents & POLLIN) {
 			memset(&buf[0], 0, sizeof(buf));
+#if defined(__PX4_POSIX)
+			int len = ::read(fd, &buf[0], sizeof(buf));
+#else
 			int len = px4_read(fd, &buf[0], sizeof(buf));
+#endif
 
 			if (len <= 0) {
 				PX4_DEBUG("error reading radar");
@@ -395,18 +584,27 @@ Radar::task_main()
 				report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
 				report.id = 0;
 
-				// publish it
+				// publish radar data
 				orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 			}
 
 		}
 	}
 
+#if define__PX4_POSIX
+	::close(fd);
+#else
 	px4_close(fd);
+#endif
 }
 
 int ulanding_radar_main(int argc, char *argv[])
 {
+	if (argc <= 1) {
+		PX4_WARN("not enough arguments, usage: start [device_path], stop, info ");
+		return 1;
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
@@ -463,10 +661,14 @@ int ulanding_radar_main(int argc, char *argv[])
 		PX4_INFO("min distance %.2f m", (double)ULANDING_MIN_DISTANCE);
 		PX4_INFO("max distance %.2f m", (double)ULANDING_MAX_DISTANCE);
 		PX4_INFO("update rate: 500 Hz");
+
 		return 0;
 
 	}
 
-	PX4_WARN("unrecognized arguments, try: start [device_name], stop, info ");
+	PX4_WARN("unrecognized arguments, try: start [device_path], stop, info ");
 	return 1;
 }
+#if defined(__PX4_POSIX)
+}; //namespace
+#endif
