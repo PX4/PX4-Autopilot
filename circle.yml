@@ -5,6 +5,7 @@ machine:
 checkout:
   post:
     # workaround for known git bug where attempting to fetch a missing commit fails early on the first try
+    - git config --global url."git://".insteadOf https://
     - git submodule update --init --recursive || true
     - git submodule sync --recursive
     - git submodule deinit -f . && rm -rf .git/modules
