@@ -45,12 +45,13 @@
 #include "tasks/FlightTaskManual.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 
-class FlightTasks
+class FlightTasks : control::SuperBlock
 {
 public:
-	FlightTasks(control::SuperBlock *parent) :
-		Manual(parent, "MAN"),
-		Orbit(parent, "ORB")
+	FlightTasks() :
+		SuperBlock(nullptr, "TSK"),
+		Manual(this, "MAN"),
+		Orbit(this, "ORB")
 	{};
 	~FlightTasks() {};
 
