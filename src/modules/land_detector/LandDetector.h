@@ -146,18 +146,6 @@ protected:
 	/** Run main land detector loop at this rate in Hz. */
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
 
-	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 300000;
-
-	/** Time in us that almost landing conditions have to hold before triggering almost landed . */
-	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 250000;
-
-	/** Time in us that ground contact condition have to hold before triggering contact ground */
-	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 350000;
-
-	/** Time interval in us in which wider acceptance thresholds are used after landed. */
-	static constexpr uint64_t LAND_DETECTOR_LAND_PHASE_TIME_US = 2000000;
-
 	orb_advert_t _landDetectedPub;
 	struct vehicle_land_detected_s _landDetected;
 

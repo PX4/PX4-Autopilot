@@ -68,6 +68,9 @@ FixedwingLandDetector::FixedwingLandDetector() :
 	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
 	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
 	_paramHandle.maxIntVelocity = param_find("LNDFW_VELI_MAX");
+
+	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
+	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
 }
 
 void FixedwingLandDetector::_initialize_topics()
@@ -105,16 +108,15 @@ bool FixedwingLandDetector::_get_freefall_state()
 	// TODO
 	return false;
 }
+
 bool FixedwingLandDetector::_get_ground_contact_state()
 {
-
 	// TODO
 	return false;
 }
 
 bool FixedwingLandDetector::_get_maybe_landed_state()
 {
-
 	// TODO
 	return false;
 }
