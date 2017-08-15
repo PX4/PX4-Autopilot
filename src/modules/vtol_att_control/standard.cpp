@@ -75,7 +75,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
 	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
 	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
-	_params_handles_standard.reverse_throttle = param_find("VT_B_REV_THR");
+	_params_handles_standard.back_trans_throttle = param_find("VT_B_TRANS_THR");
 	_params_handles_standard.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 
 }
@@ -142,8 +142,8 @@ Standard::parameters_update()
 	_params_standard.reverse_output = math::constrain(v, 0.0f, 1.0f);
 
 	/* reverse throttle */
-	param_get(_params_handles_standard.reverse_throttle, &v);
-	_params_standard.reverse_throttle = math::constrain(v, -1.0f, 1.0f);
+	param_get(_params_handles_standard.back_trans_throttle, &v);
+	_params_standard.back_trans_throttle = math::constrain(v, -1.0f, 1.0f);
 
 	/* mpc cruise speed */
 	param_get(_params_handles_standard.mpc_xy_cruise, &_params_standard.mpc_xy_cruise);
@@ -347,15 +347,11 @@ void Standard::update_transition_state()
 		_v_att_sp->q_d_valid = true;
 
 		// Handle throttle reversal for active breaking
-		if (_params_handles_standard.reverse_throttle > FLT_EPSILON || _params_handles_standard.reverse_throttle < -0.01f) {
-			_pusher_throttle = _params_standard.reverse_throttle * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
+		if (_params_handles_standard.back_trans_throttle > FLT_EPSILON
+		    || _params_handles_standard.back_trans_throttle < -0.01f) {
+			_pusher_throttle = _params_standard.back_trans_throttle * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
 					   (_params_standard.front_trans_dur * 1000000.0f);
-			_pusher_throttle = math::constrain(_pusher_throttle, -1.0f, _params_standard.reverse_throttle);
-		}
-
-		// prevent positive thrust without airbrakes channel activated
-		if (_pusher_throttle > FLT_EPSILON && _params_handles_standard.reverse_output < 0.01f) {
-			_pusher_throttle = 0.0f;
+			_pusher_throttle = math::constrain(_pusher_throttle, -1.0f, _params_standard.back_trans_throttle);
 		}
 
 		// continually increase mc attitude control as we transition back to mc mode
