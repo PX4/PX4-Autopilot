@@ -106,7 +106,6 @@ protected:
 	 */
 	virtual void _update_topics() = 0;
 
-
 	/**
 	 * Update parameters.
 	 */
@@ -147,19 +146,17 @@ protected:
 	/** Run main land detector loop at this rate in Hz. */
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
 
-	orb_advert_t _landDetectedPub;
-	struct vehicle_land_detected_s _landDetected;
+	orb_advert_t _landDetectedPub{nullptr};
+	vehicle_land_detected_s _landDetected{};
 
-	int _parameterSub;
+	int _parameterSub{-1};
 
-	LandDetectionState _state;
+	LandDetectionState _state{LandDetectionState::LANDED};
 
-	systemlib::Hysteresis _freefall_hysteresis;
-	systemlib::Hysteresis _landed_hysteresis;
-	systemlib::Hysteresis _maybe_landed_hysteresis;
-	systemlib::Hysteresis _ground_contact_hysteresis;
-
-	float _altitude_max;
+	systemlib::Hysteresis _freefall_hysteresis{false};
+	systemlib::Hysteresis _landed_hysteresis{true};
+	systemlib::Hysteresis _maybe_landed_hysteresis{true};
+	systemlib::Hysteresis _ground_contact_hysteresis{true};
 
 private:
 	static void _cycle_trampoline(void *arg);
@@ -170,12 +167,12 @@ private:
 
 	void _update_state();
 
-	param_t _p_total_flight_time_high;
-	param_t _p_total_flight_time_low;
-	uint64_t _total_flight_time; ///< in microseconds
-	hrt_abstime _takeoff_time;
+	param_t _p_total_flight_time_high{PARAM_INVALID};
+	param_t _p_total_flight_time_low{PARAM_INVALID};
+	uint64_t _total_flight_time{0}; ///< in microseconds
+	hrt_abstime _takeoff_time{0};
 
-	struct work_s	_work;
+	struct work_s	_work {};
 
 	perf_counter_t	_cycle_perf;
 };
