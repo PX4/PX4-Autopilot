@@ -109,4 +109,4 @@ PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_B_REV_THR, 0.0f);
+PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
