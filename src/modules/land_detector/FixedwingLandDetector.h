@@ -73,6 +73,10 @@ protected:
 
 	virtual float _get_max_altitude() override;
 private:
+
+	/** Time in us that landing conditions have to hold before triggering a land. */
+	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
+
 	struct {
 		param_t maxVelocity;
 		param_t maxClimbRate;
