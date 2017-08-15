@@ -37,3 +37,6 @@
 [submodule "platforms/nuttx/NuttX"]
 	path = platforms/nuttx/NuttX
 	url = https://github.com/PX4/PX4NuttX.git
+[submodule "platforms/qurt/cmake/cmake_hexagon"]
+	path = platforms/qurt/cmake/cmake_hexagon
+	url = https://github.com/ATLFlight/cmake_hexagon
