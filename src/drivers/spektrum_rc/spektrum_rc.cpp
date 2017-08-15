@@ -50,8 +50,11 @@
 #include <uORB/topics/input_rc.h>
 
 // Snapdraogon: use J12 (next to J13, power module side)
+#if defined(__PX4_QURT)
+#define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-1"
+#else
 #define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-3"
-
+#endif
 #define UNUSED(x) (void)(x)
 
 extern "C" { __EXPORT int spektrum_rc_main(int argc, char *argv[]); }
