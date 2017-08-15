@@ -84,3 +84,29 @@ PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
+
+/**
+ * Output on airbrakes channel during back transition
+ * Used for airbrakes or with ESCs that have reverse thrust enabled on a seperate channel
+ * Airbrakes need to be enables for your selected model/mixer
+ *
+ * @min 0
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
+
+/**
+ * Thottle output during back transition
+ * For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active breaking
+ * For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a positive value to apply active breaking
+ *
+ * @min -1
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_REV_THR, 0.0f);
