@@ -46,6 +46,7 @@
 #include <px4_module.h>
 #include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
@@ -175,6 +176,8 @@ private:
 	hrt_abstime _takeoff_time;
 
 	struct work_s	_work;
+
+	perf_counter_t	_cycle_perf;
 };
 
 
