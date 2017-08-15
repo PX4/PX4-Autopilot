@@ -41,28 +41,15 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+
 #include <cmath>
-#include <drivers/drv_hrt.h>
 
 #include "FixedwingLandDetector.h"
-
 
 namespace land_detector
 {
 
-FixedwingLandDetector::FixedwingLandDetector() :
-	_paramHandle(),
-	_params(),
-	_controlStateSub(-1),
-	_armingSub(-1),
-	_airspeedSub(-1),
-	_controlState{},
-	_arming{},
-	_airspeed{},
-	_velocity_xy_filtered(0.0f),
-	_velocity_z_filtered(0.0f),
-	_airspeed_filtered(0.0f),
-	_accel_horz_lp(0.0f)
+FixedwingLandDetector::FixedwingLandDetector()
 {
 	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
