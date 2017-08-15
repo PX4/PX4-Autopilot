@@ -100,10 +100,12 @@ const struct {
 	{"uorb",		uorb_tests_main,	0},
 	{"hysteresis",		test_hysteresis,	0},
 #endif /* __PX4_DARWIN */
+#ifdef __PX4_NUTTX
 	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 	{"autodeclination",	test_autodeclination,	0},
-	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
+#endif
+	{"bson",		test_bson,	0},
 	{"dataman",		test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"file2",		test_file2,	OPT_NOJIGTEST},
 	{"float",		test_float,	0},

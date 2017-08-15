@@ -456,12 +456,19 @@ function(px4_add_common_flags)
 		${_optimization_flags}
 		)
 
+	if ("${BOARD_FILE_DIRS}" STREQUAL "")
+		set(BOARD_FILE_DIRS 
+			${PX4_SOURCE_DIR}/platforms/${OS}/src/drivers/boards/${BOARD}
+			${PX4_SOURCE_DIR}/src/drivers/boards
+		)
+	endif()
+
 	set(added_include_dirs
 		${PX4_BINARY_DIR}
 		${PX4_BINARY_DIR}/src
 		${PX4_BINARY_DIR}/src/modules
 		${PX4_SOURCE_DIR}/src
-		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
+		${BOARD_FILE_DIRS}
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include

@@ -146,7 +146,7 @@ define colorecho
 endef
 
 # Get a list of all config targets.
-ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
+ALL_CONFIG_TARGETS := $(basename $(shell find $(SRC_DIR)/platforms/*/cmake/configs ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
 # Strip off leading nuttx_
 NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
 
@@ -395,7 +395,7 @@ distclean: submodulesclean gazeboclean
 	$(if $(filter $(FIRST_ARG),$@), \
 		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
-CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
+CONFIGS:=$(shell ls platforms/*/cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 
 #help:
 #	@echo

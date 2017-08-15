@@ -4,12 +4,6 @@
 [submodule "mavlink/include/mavlink/v2.0"]
 	path = mavlink/include/mavlink/v2.0
 	url = https://github.com/mavlink/c_library_v2.git
-[submodule "NuttX"]
-	path = NuttX
-	url = https://github.com/PX4/PX4NuttX.git
-[submodule "src/modules/uavcan/libuavcan"]
-	path = src/modules/uavcan/libuavcan
-	url = https://github.com/UAVCAN/libuavcan.git
 [submodule "Tools/genmsg"]
 	path = Tools/genmsg
 	url = https://github.com/ros/genmsg.git
@@ -31,12 +25,15 @@
 [submodule "src/lib/ecl"]
 	path = src/lib/ecl
 	url = https://github.com/PX4/ecl.git
-[submodule "cmake/cmake_hexagon"]
-	path = cmake/cmake_hexagon
-	url = https://github.com/ATLFlight/cmake_hexagon
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
 [submodule "src/lib/micro-CDR"]
 	path = src/lib/micro-CDR
 	url = https://github.com/eProsima/micro-CDR.git
+[submodule "platforms/nuttx/src/modules/uavcan/libuavcan"]
+	path = platforms/nuttx/src/modules/uavcan/libuavcan
+	url = https://github.com/UAVCAN/libuavcan.git
+[submodule "platforms/nuttx/NuttX"]
+	path = platforms/nuttx/NuttX
+	url = https://github.com/PX4/PX4NuttX.git
