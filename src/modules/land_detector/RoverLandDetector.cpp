@@ -46,10 +46,6 @@
 namespace land_detector
 {
 
-RoverLandDetector::RoverLandDetector()
-{
-}
-
 void RoverLandDetector::_initialize_topics()
 {
 }
@@ -88,4 +84,4 @@ float RoverLandDetector::_get_max_altitude()
 	return 0.0f;
 }
 
-}
+} // namespace land_detector

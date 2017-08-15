@@ -114,4 +114,4 @@ void VtolLandDetector::_update_params()
 	param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
 }
 
-}
+} // namespace land_detector

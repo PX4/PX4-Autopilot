@@ -51,7 +51,7 @@
 namespace land_detector
 {
 
-class FixedwingLandDetector : public LandDetector
+class FixedwingLandDetector final : public LandDetector
 {
 public:
 	FixedwingLandDetector();
