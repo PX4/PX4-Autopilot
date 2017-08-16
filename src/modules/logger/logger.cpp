@@ -544,6 +544,9 @@ void Logger::add_common_topics()
 	add_topic("commander_state", 100);
 	add_topic("control_state", 100);
 	add_topic("cpuload");
+	add_topic("debug_key_value");
+	add_topic("debug_value");
+	add_topic("debug_vect");
 	add_topic("differential_pressure", 50);
 	add_topic("distance_sensor");
 	add_topic("ekf2_innovations", 50);
