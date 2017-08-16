@@ -33,13 +33,16 @@
 
 #include "version.h"
 
-#include "build_git_version.h" //generated from build_git_version.h.in
+#include "build_git_version.h" //generated from px_update_git_header.py
+#include "nuttx_version.h" //generated from CMakeLists.txt
 
 #include <string.h>
 
 #if !defined(CONFIG_CDCACM_PRODUCTID)
 # define CONFIG_CDCACM_PRODUCTID 0
 #endif
+
+extern uint32_t version_tag_to_number(const char *tag);
 
 uint32_t px4_board_version(void)
 {

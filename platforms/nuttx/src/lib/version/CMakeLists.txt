@@ -31,7 +31,20 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/src/lib/version)
+add_custom_command(
+	OUTPUT nuttx_version.h
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/platforms/${OS}/Tools/px_update_git_nuttx_header.py nuttx_version.h ${PX4_SOURCE_DIR} > ${PX4_BINARY_DIR}/git_nuttx_header.log
+	DEPENDS prebuild_targets
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	COMMENT "Generating OS specific git hash header"
+	)
+set_source_files_properties(nuttx_version.h PROPERTIES GENERATED TRUE)
+add_custom_target(ver_gen_nuttx ALL DEPENDS nuttx_version.h)
+
+include_directories(
+	${PX4_SOURCE_DIR}/src/lib/version
+	${CMAKE_CURRENT_BINARY_DIR}
+	)
 
 px4_add_module(
 	MODULE lib__version
@@ -41,6 +54,7 @@ px4_add_module(
 		version_nuttx.c
 	DEPENDS
 		ver_gen
+		ver_gen_nuttx
 		platforms__common
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
