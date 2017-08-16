@@ -12,4 +12,4 @@
 
 #define BOARD_OVERRIDE_UUID "SYSMEMID"
 
-#include "../common/board_common.h"
+#include "common/board_common.h"

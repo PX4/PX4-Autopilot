@@ -187,7 +187,7 @@ extern void stm32_spiinitialize(void);
 
 extern int board_sdio_initialize(void);
 
-#include "../common/board_common.h"
+#include "common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

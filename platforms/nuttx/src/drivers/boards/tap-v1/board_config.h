@@ -347,7 +347,7 @@ void board_pwr_init(int stage);
 
 bool board_pwr_button_down(void);
 
-#include "../common/board_common.h"
+#include "common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

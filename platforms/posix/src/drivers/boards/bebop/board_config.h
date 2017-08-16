@@ -49,4 +49,4 @@
 #define BOARD_HAS_NO_BOOTLOADER
 
 #include <system_config.h>
-#include "../common/board_common.h"
+#include "common/board_common.h"

@@ -51,4 +51,4 @@
 #define BOARD_MAX_LEDS 1 // Number external of LED's this board has
 
 #include <system_config.h>
-#include "../common/board_common.h"
+#include "common/board_common.h"

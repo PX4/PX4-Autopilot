@@ -762,7 +762,7 @@ extern void board_peripheral_reset(int ms);
 int nsh_archinitialize(void);
 #endif
 
-#include "../common/board_common.h"
+#include "common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

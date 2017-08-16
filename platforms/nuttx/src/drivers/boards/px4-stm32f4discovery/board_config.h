@@ -117,7 +117,7 @@ extern void stm32_spiinitialize(void);
 
 extern void stm32_usbinitialize(void);
 
-#include "../common/board_common.h"
+#include "common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

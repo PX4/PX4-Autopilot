@@ -299,7 +299,7 @@ extern void stm32_usbinitialize(void);
 
 extern void stm32_spiinitialize(void);
 
-#include "../common/board_common.h"
+#include "common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 __END_DECLS
