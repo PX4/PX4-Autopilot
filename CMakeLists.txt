@@ -128,14 +128,36 @@ execute_process(
 set(CONFIG "posix_sitl_default" CACHE STRING "desired configuration")
 
 string(REPLACE "_" ";" config_args ${CONFIG})
+list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+
 list(GET config_args 0 OS)
-list(GET config_args 1 BOARD)
-list(GET config_args 2 LABEL)
-set(target_name "${OS}-${BOARD}-${LABEL}")
 
-file(GLOB_RECURSE configs RELATIVE platforms/${OS}/cmake/configs "cmake/configs/*.cmake")
-set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
+if ("${OS}" STREQUAL "V")
+	# Vendor
+	list(GET config_args 1 VENDOR)
+	list(GET config_args 2 OS)
+	list(GET config_args 3 BOARD)
+	list(GET config_args 4 LABEL)
+	set(config_module "config_${LABEL}")
+	set(target_name "${VENDOR}-${OS}-${BOARD}-${LABEL}")
+	list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/vendor/${VENDOR}/${OS}/${BOARD}")
+	list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/vendor/${VENDOR}/${OS}/cmake")
+	list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/vendor/${VENDOR}/cmake")
+	include_directories(${CMAKE_SOURCE_DIR}/vendor/${VENDOR}/${OS}/${BOARD})
+	add_subdirectory(vendor/${VENDOR})
+else()
 
+	list(GET config_args 1 BOARD)
+	list(GET config_args 2 LABEL)
+	set(target_name "${OS}-${BOARD}-${LABEL}")
+
+	file(GLOB_RECURSE configs RELATIVE platforms/${OS}/cmake/configs "cmake/configs/*.cmake")
+	set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
+
+	set(config_module "configs/${CONFIG}")
+endif()
+
+list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/platforms/${OS}/cmake")
 set(THREADS "4" CACHE STRING "number of threads to use for external build processes")
 set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
@@ -144,10 +166,7 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/platforms/${OS}/cmake")
 message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
-set(config_module "configs/${CONFIG}")
 include(${config_module})
 
 include(common/coverage)

@@ -12,7 +12,7 @@ px4_qurt_generate_builtin_commands(
 	OUT ${PX4_BINARY_DIR}/apps
 	MODULE_LIST ${module_libraries})
 
-FASTRPC_STUB_GEN(px4muorb.idl)
+FASTRPC_STUB_GEN(${PX4_SOURCE_DIR}/src/modules/muorb/px4muorb.idl)
 
 # Enable build without HexagonSDK to check link dependencies
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")

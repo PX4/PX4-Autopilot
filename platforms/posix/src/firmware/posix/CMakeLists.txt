@@ -16,7 +16,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 	include(fastrpc)
 	include(linux_app)
 
-	FASTRPC_STUB_GEN(${PX4_SOURCE_DIR}/platforms/qurt/src/firmware/qurt/px4muorb.idl)
+	FASTRPC_STUB_GEN(${PX4_SOURCE_DIR}/src/modules/muorb/px4muorb.idl)
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(

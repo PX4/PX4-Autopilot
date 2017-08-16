@@ -2,7 +2,7 @@
 #
 # This cmake config builds for POSIX, so the part of the flight stack running
 # on the Linux side of the Snapdragon.
-include(configs/posix_sdflight_default)
+include(posix_sdflight_default)
 
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/platforms/qurt/cmake/cmake_hexagon/toolchain/Toolchain-arm-linux-gnueabihf.cmake)
 

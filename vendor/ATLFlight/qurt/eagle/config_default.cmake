@@ -4,7 +4,7 @@
 # the DSP side.
 
 # The config between different QURT builds is shared.
-include(configs/qurt_sdflight_default)
+include(qurt_sdflight_default)
 
 # This definition allows to differentiate the specific board.
 add_definitions(
