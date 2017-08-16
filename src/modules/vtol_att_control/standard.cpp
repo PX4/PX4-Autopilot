@@ -347,12 +347,10 @@ void Standard::update_transition_state()
 		_v_att_sp->q_d_valid = true;
 
 		// Handle throttle reversal for active breaking
-		if (_params_handles_standard.back_trans_throttle > FLT_EPSILON
-		    || _params_handles_standard.back_trans_throttle < -0.01f) {
-			_pusher_throttle = _params_standard.back_trans_throttle * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
-					   (_params_standard.front_trans_dur * 1000000.0f);
-			_pusher_throttle = math::constrain(_pusher_throttle, -1.0f, _params_standard.back_trans_throttle);
-		}
+		float thrscale = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_dur *
+				 1000000.0f);
+		thrscale = math::constrain(thrscale, 0.0f, 1.0f);
+		_pusher_throttle = thrscale * _params_standard.back_trans_throttle;
 
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_ramp > FLT_EPSILON) {
