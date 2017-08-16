@@ -248,8 +248,8 @@ parameters_metadata: posix_sitl_default
 	@python $(SRC_DIR)/Tools/px_process_params.py -s $(SRC_DIR)/src --markdown
 
 airframe_metadata:
-	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --markdown
-	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --xml
+	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/platform/nuttx/ROMFS/px4fmu_common/init.d --markdown
+	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/platform/nuttx/ROMFS/px4fmu_common/init.d --xml
 
 module_documentation:
 	@python $(SRC_DIR)/Tools/px_process_module_doc.py -v --markdown $(SRC_DIR)/modules --src-path $(SRC_DIR)/src

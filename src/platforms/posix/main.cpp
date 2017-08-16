@@ -399,8 +399,10 @@ int main(int argc, char **argv)
 
 	// create sym-links
 	if (symlinks_needed) {
+		string basepath(pwd() + "/platforms/posix");
+		mkpath(basepath.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
 		vector<string> path_sym_links;
-		path_sym_links.push_back("ROMFS");
+		path_sym_links.push_back("platforms/posix/ROMFS");
 		path_sym_links.push_back("platforms/posix/posix-configs");
 		path_sym_links.push_back("test_data");
 
