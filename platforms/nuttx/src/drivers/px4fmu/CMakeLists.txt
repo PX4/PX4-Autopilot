@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+include_directories(${PX4_SOURCE_DIR}/src/drivers/device)
+
 px4_add_module(
 	MODULE drivers__px4fmu
 	MAIN fmu

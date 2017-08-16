@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,16 @@
 #
 ############################################################################
 
-include_directories(
-	.
-	${PX4_SOURCE_DIR}/src/drivers/device)
-
-set(SRCS
-	${PX4_SOURCE_DIR}/src/drivers/device/ringbuffer.cpp
-	${PX4_SOURCE_DIR}/src/drivers/device/integrator.cpp
-	device_nuttx.cpp
-	cdev.cpp
-	i2c_nuttx.cpp
-	spi.cpp
-)
+include_directories(${PX4_SOURCE_DIR}/src/lib/version)
 
 px4_add_module(
-	MODULE drivers__device
-	SRCS ${SRCS}
+	MODULE lib__version
+	COMPILE_FLAGS
+	SRCS
+		${PX4_SOURCE_DIR}/src/lib/version/version.c
+		version_nuttx.c
 	DEPENDS
+		ver_gen
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

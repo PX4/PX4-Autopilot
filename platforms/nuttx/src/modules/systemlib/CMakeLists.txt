@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+include_directories(${PX4_SOURCE_DIR}/src/modules/systemlib)
+
 set(SRCS
 	${PX4_SOURCE_DIR}/src/modules/systemlib/perf_counter.c
 	${PX4_SOURCE_DIR}/src/modules/systemlib/conversions.c

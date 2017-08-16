@@ -626,6 +626,11 @@ function(px4_os_add_flags)
 		#message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
 
+	include_directories(
+		${PX4_SOURCE_DIR}/platforms/nuttx/src/drivers/device
+		${PX4_SOURCE_DIR}/src/drivers/device
+		)
+
 endfunction()
 
 #=============================================================================
