@@ -81,7 +81,6 @@ namespace ulanding
 
 #define ULANDING_MIN_DISTANCE		0.315f
 #define ULANDING_MAX_DISTANCE		50.0f
-#define RADAR_RANGE_DATA 	0x48
 #define ULANDING_VERSION	1
 
 #if defined(__PX4_POSIX_OCPOC)
@@ -91,10 +90,10 @@ namespace ulanding
 #endif
 
 #if ULANDING_VERSION == 1
-uint8_t ulanding_hdr = 254;
+#define ULANDING_HDR		254
 #define BUF_LEN 		18
 #else
-uint8_t ulanding_hdr = 72;
+#define ULANDING_HDR		72
 #define BUF_LEN 		9
 #endif
 
@@ -136,11 +135,8 @@ private:
 	void task_main();
 
 	bool read_and_parse(uint8_t *buf, int len, float *range);
-#if defined(__PX4_POSIX)
-	bool is_header_byte(uint8_t c) {return (c == ulanding_hdr);};
-#else
-	bool is_header_byte(uint8_t c) {return ((c & 0x80) == 0x00 && (c & 0x7F) == RADAR_RANGE_DATA);};
-#endif
+
+	bool is_header_byte(uint8_t c) {return (c == ULANDING_HDR);};
 };
 
 namespace radar
