@@ -3,7 +3,7 @@ include(nuttx/px4_impl_nuttx)
 px4_nuttx_configure(HWCLASS m3 CONFIG bootloader)
 
 set(px4_src_base ${CMAKE_SOURCE_DIR}/src/)
-set(px4_bootloader_base ${px4_src_base}drivers/bootloaders/)
+set(px4_bootloader_base ${CMAKE_SOURCE_DIR}/platforms/nuttx/src/drivers/bootloaders/)
 set(px4_module_base ${px4_src_base}modules/)
 
 #

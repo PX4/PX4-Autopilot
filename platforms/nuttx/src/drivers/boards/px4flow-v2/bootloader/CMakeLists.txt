@@ -39,7 +39,8 @@ add_definitions(
 )
 
 include_directories(${px4_bootloader_base}include)
-include_directories(${px4_module_base}systemlib)
+include_directories(${PX4_SOURCE_DIR}/platforms/nuttx/src/modules/systemlib)
+include_directories(${PX4_SOURCE_DIR}/src/modules/systemlib)
 include_directories(.)
 
 px4_add_module(
