@@ -58,5 +58,6 @@ class RCOutput():
         self.output = result;
 
     def Save(self, filename):
+        print("Writing to %s" % filename)
         with codecs.open(filename, 'w', 'utf-8') as f:
             f.write(self.output)

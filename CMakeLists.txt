@@ -133,7 +133,7 @@ list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 set(target_name "${OS}-${BOARD}-${LABEL}")
 
-file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
+file(GLOB_RECURSE configs RELATIVE platforms/${OS}/cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
 
 set(THREADS "4" CACHE STRING "number of threads to use for external build processes")
@@ -145,6 +145,7 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/platforms/${OS}/cmake")
 message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 set(config_module "configs/${CONFIG}")
 include(${config_module})
@@ -447,7 +448,11 @@ foreach(module ${config_module_list})
 		STRING(REGEX REPLACE "/" "__" EXT_MODULE_PREFIX ${EXT_MODULE})
 		add_subdirectory(${module} ${PX4_BINARY_DIR}/${EXT_MODULE_PREFIX})
 	else()
-		add_subdirectory(src/${module})
+		if (EXISTS ${PX4_SOURCE_DIR}/platforms/${OS}/src/${module}/CMakeLists.txt)
+			add_subdirectory(platforms/${OS}/src/${module})
+		else()
+			add_subdirectory(src/${module})
+		endif()
 	endif()
 	px4_mangle_name(${module} mangled_name)
 	list(APPEND module_libraries ${mangled_name})
@@ -456,10 +461,10 @@ endforeach()
 # Keep track of external shared libs required for modules
 set(module_external_libraries "${module_external_libraries}" CACHE INTERNAL "module_external_libraries")
 
-add_subdirectory(src/firmware/${OS})
+add_subdirectory(platforms/${OS}/src/firmware/${OS})
 
 if (config_io_board)
-	add_subdirectory(src/modules/px4iofirmware)
+	add_subdirectory(platforms/nuttx/src/modules/px4iofirmware)
 endif()
 
 #=============================================================================

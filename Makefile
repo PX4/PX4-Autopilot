@@ -146,7 +146,7 @@ define colorecho
 endef
 
 # Get a list of all config targets.
-ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
+ALL_CONFIG_TARGETS := $(basename $(shell find $(SRC_DIR)/platforms/*/cmake/configs ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
 # Strip off leading nuttx_
 NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
 
@@ -248,8 +248,8 @@ parameters_metadata: posix_sitl_default
 	@python $(SRC_DIR)/Tools/px_process_params.py -s $(SRC_DIR)/src --markdown
 
 airframe_metadata:
-	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --markdown
-	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --xml
+	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/platform/nuttx/ROMFS/px4fmu_common/init.d --markdown
+	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/platform/nuttx/ROMFS/px4fmu_common/init.d --xml
 
 module_documentation:
 	@python $(SRC_DIR)/Tools/px_process_module_doc.py -v --markdown $(SRC_DIR)/modules --src-path $(SRC_DIR)/src
@@ -395,7 +395,7 @@ distclean: submodulesclean gazeboclean
 	$(if $(filter $(FIRST_ARG),$@), \
 		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
-CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
+CONFIGS:=$(shell ls platforms/*/cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 
 #help:
 #	@echo

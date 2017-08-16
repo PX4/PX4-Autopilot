@@ -23,7 +23,7 @@ echo src_path: $src_path
 echo build_path: $build_path
 
 working_dir=`pwd`
-sitl_bin=$build_path/src/firmware/posix/px4
+sitl_bin=$build_path/platforms/posix/src/firmware/posix/px4
 rootfs=$build_path/tmp/rootfs
 
 if [ "$chroot" == "1" ]

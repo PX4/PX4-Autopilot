@@ -53,7 +53,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Process airframe documentation.")
     parser.add_argument("-a", "--airframes-path",
-                        default="../ROMFS/px4fmu_common",
+                        default="../platforms/nuttx/ROMFS/px4fmu_common",
                         metavar="PATH",
                         help="path to source files to scan for parameters")
     parser.add_argument("-x", "--xml",
