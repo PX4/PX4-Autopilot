@@ -404,8 +404,9 @@ int main(int argc, char **argv)
 		path_sym_links.push_back("platforms/posix/posix-configs");
 		path_sym_links.push_back("test_data");
 
-		string config_path(pwd()+"/platforms/posix");
+		string config_path(pwd() + "/platforms/posix");
 		int ret = mkpath(config_path.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+
 		if (ret != 0) {
 			PX4_ERR("Error creating path %s, %d", config_path.c_str(), ret);
 			return ret;
@@ -429,7 +430,7 @@ int main(int argc, char **argv)
 
 			} else {
 				PX4_INFO("Successfully created symlink %s -> %s",
-					  src_path.c_str(), dest_path.c_str());
+					 src_path.c_str(), dest_path.c_str());
 			}
 		}
 	}
