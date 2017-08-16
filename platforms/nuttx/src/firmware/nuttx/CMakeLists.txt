@@ -85,7 +85,7 @@ if(NOT ${BOARD} STREQUAL "sim")
 	if ("${romfs_used}" STREQUAL "y")
 
 		if (config_io_board)
-			set(extras "${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin")
+			set(extras "${CMAKE_BINARY_DIR}/platforms/nuttx/src/modules/px4iofirmware/${config_io_board}.bin")
 		endif()
 
 		message(STATUS "Adding ROMFS on ${BOARD}")
@@ -135,21 +135,21 @@ if(NOT ${BOARD} STREQUAL "sim")
 
 	add_custom_target(debug_io
 		COMMAND ${GDB}
-			${PX4_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
+			${PX4_BINARY_DIR}/platforms/nuttx/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
 	add_custom_target(debug_io_tui
 		COMMAND ${GDBTUI}
-			${PX4_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
+			${PX4_BINARY_DIR}/platforms/nuttx/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
 	add_custom_target(debug_io_ddd
 		COMMAND ${DDD} --debugger ${GDB}
-			${PX4_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
+			${PX4_BINARY_DIR}/platforms/nuttx/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)

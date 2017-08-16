@@ -464,7 +464,7 @@ set(module_external_libraries "${module_external_libraries}" CACHE INTERNAL "mod
 add_subdirectory(platforms/${OS}/src/firmware/${OS})
 
 if (config_io_board)
-	add_subdirectory(src/modules/px4iofirmware)
+	add_subdirectory(platforms/nuttx/src/modules/px4iofirmware)
 endif()
 
 #=============================================================================

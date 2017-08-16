@@ -73,11 +73,11 @@ link_directories(${link_dirs})
 add_definitions(${definitions})
 
 set(srcs
-	${PX4_SOURCE_DIR}/src/drivers/boards/${config_io_board}/px4io_init.c
-	${PX4_SOURCE_DIR}/src/drivers/boards/${config_io_board}/px4io_timer_config.c
-	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_hrt.c
-	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_io_timer.c
-	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_pwm_servo.c
+	${PX4_SOURCE_DIR}/platforms/nuttx/src/drivers/boards/${config_io_board}/px4io_init.c
+	${PX4_SOURCE_DIR}/platforms/nuttx/src/drivers/boards/${config_io_board}/px4io_timer_config.c
+	${PX4_SOURCE_DIR}/platforms/nuttx/src/drivers/stm32/drv_hrt.c
+	${PX4_SOURCE_DIR}/platforms/nuttx/src/drivers/stm32/drv_io_timer.c
+	${PX4_SOURCE_DIR}/platforms/nuttx/src/drivers/stm32/drv_pwm_servo.c
 	${PX4_SOURCE_DIR}/src/lib/rc/dsm.cpp
 	${PX4_SOURCE_DIR}/src/lib/rc/sbus.cpp
 	${PX4_SOURCE_DIR}/src/lib/rc/st24.cpp
@@ -90,7 +90,7 @@ set(srcs
 	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer_simple.cpp
 	${PX4_SOURCE_DIR}/src/modules/systemlib/perf_counter.c
 	${PX4_SOURCE_DIR}/src/modules/systemlib/pwm_limit/pwm_limit.c
-	${PX4_SOURCE_DIR}/src/modules/systemlib/up_cxxinitialize.c
+	${PX4_SOURCE_DIR}/platforms/nuttx/src/modules/systemlib/up_cxxinitialize.c
 	adc.c
 	controls.c
 	mixer.cpp
