@@ -150,9 +150,15 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 		}
 
 		// check whether the position setpoint got updated
-		if ((polls[1].revents & POLLIN) && _cur_roi_mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
-			_read_control_data_from_position_setpoint_sub();
-			*control_data = &_control_data;
+		if (polls[1].revents & POLLIN) {
+			if (_cur_roi_mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
+				_read_control_data_from_position_setpoint_sub();
+				*control_data = &_control_data;
+
+			} else { // must do an orb_copy() in *every* case
+				position_setpoint_triplet_s position_setpoint_triplet;
+				orb_copy(ORB_ID(position_setpoint_triplet), _position_setpoint_triplet_sub, &position_setpoint_triplet);
+			}
 		}
 	}
 
