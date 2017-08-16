@@ -70,7 +70,7 @@ set(config_module_list
 	#
 	drivers/gps
 	drivers/pwm_out_rc_in
-        drivers/spektrum_rc
+	drivers/spektrum_rc
 	drivers/qshell/qurt
 
 	#
@@ -91,7 +91,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
-        lib/rc
+	lib/rc
 	lib/version
 	lib/DriverFramework/framework
 	lib/micro-CDR
