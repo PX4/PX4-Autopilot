@@ -151,15 +151,9 @@ Radar	*g_dev;
 Radar::Radar(const char *port) :
 #if defined(__PX4_POSIX)
 	VDev("Radar", RANGE_FINDER0_DEVICE_PATH),
-	_task_should_exit(false),
-	_task_handle(-1),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_distance_sensor_topic(nullptr),
-	_head(0),
-	_tail(0)
 #else
 	CDev("Radar", RANGE_FINDER0_DEVICE_PATH),
+#endif
 	_task_should_exit(false),
 	_task_handle(-1),
 	_class_instance(-1),
@@ -167,7 +161,6 @@ Radar::Radar(const char *port) :
 	_distance_sensor_topic(nullptr),
 	_head(0),
 	_tail(0)
-#endif
 
 {
 	/* store port name */
