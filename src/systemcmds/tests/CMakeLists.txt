@@ -33,9 +33,7 @@
 
 set(srcs
 	test_adc.c
-	test_autodeclination.cpp
 	test_bson.c
-	test_conv.cpp
 	test_dataman.c
 	test_file.c
 	test_file2.c
@@ -49,7 +47,6 @@ set(srcs
 	test_led.c
 	test_mathlib.cpp
 	test_matrix.cpp
-	test_mixer.cpp
 	test_mount.c
 	test_param.c
 	test_parameters.cpp
