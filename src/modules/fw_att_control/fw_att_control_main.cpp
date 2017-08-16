@@ -1004,17 +1004,6 @@ FixedwingAttitudeControl::task_main()
 					orb_publish_auto(_attitude_setpoint_id, &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
 				}
 
-				float roll_sp = _att_sp.roll_body;
-				float pitch_sp = _att_sp.pitch_body;
-				float yaw_sp = _att_sp.yaw_body;
-				float throttle_sp = _att_sp.thrust;
-				float yaw_manual = 0.0f;
-
-				/* allow manual yaw in manual modes */
-				if (_vcontrol_mode.flag_control_manual_enabled) {
-					yaw_manual = _manual.r;
-				}
-
 				/* reset integrals where needed */
 				if (_att_sp.roll_reset_integral) {
 					_roll_ctrl.reset_integrator();
@@ -1040,6 +1029,11 @@ FixedwingAttitudeControl::task_main()
 					_yaw_ctrl.reset_integrator();
 					_wheel_ctrl.reset_integrator();
 				}
+
+				float roll_sp = _att_sp.roll_body;
+				float pitch_sp = _att_sp.pitch_body;
+				float yaw_sp = _att_sp.yaw_body;
+				float throttle_sp = _att_sp.thrust;
 
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
@@ -1125,8 +1119,10 @@ FixedwingAttitudeControl::task_main()
 						_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 								_parameters.trim_yaw;
 
-						/* add in manual rudder control */
-						_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
+						/* add in manual rudder control in manual modes */
+						if (_vcontrol_mode.flag_control_manual_enabled) {
+							_actuators.control[actuator_controls_s::INDEX_YAW] += _manual.r;
+						}
 
 						if (!PX4_ISFINITE(yaw_u)) {
 							_yaw_ctrl.reset_integrator();
