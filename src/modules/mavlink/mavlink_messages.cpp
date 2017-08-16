@@ -3220,7 +3220,7 @@ protected:
 		_debug_time(0)
 	{}
 
-	void send(const hrt_abstime t)
+	bool send(const hrt_abstime t)
 	{
 		struct debug_value_s debug = {};
 
@@ -3232,7 +3232,11 @@ protected:
 			msg.value = debug.value;
 
 			mavlink_msg_debug_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
 		}
+
+		return false;
 	}
 };
 
@@ -3283,7 +3287,7 @@ protected:
 		_debug_time(0)
 	{}
 
-	void send(const hrt_abstime t)
+	bool send(const hrt_abstime t)
 	{
 		struct debug_vect_s debug = {};
 
@@ -3299,7 +3303,11 @@ protected:
 			msg.z = debug.z;
 
 			mavlink_msg_debug_vect_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
 		}
+
+		return false;
 	}
 };
 
