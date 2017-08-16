@@ -15,7 +15,7 @@ set(px4_module_base ${px4_src_base}modules/)
 
 include(configs/uavcan_board_ident/zubaxgnss-v1)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/platforms/nuttx/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 set(config_module_list
 

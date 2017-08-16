@@ -28,7 +28,7 @@ include(configs/uavcan_board_ident/s2740vc-v1)
 # SW_MAJOR ${uavcanblid_sw_version_major}
 # SW_MINOR ${uavcanblid_sw_version_minor})
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/platforms/nuttx/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 set(config_module_list
 

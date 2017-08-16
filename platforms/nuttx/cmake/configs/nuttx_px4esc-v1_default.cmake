@@ -22,14 +22,14 @@ set(uavcanblid_sw_version_minor 1)
 include(configs/uavcan_board_ident/px4esc-v1)
 
 px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
- BIN ${CMAKE_CURRENT_BINARY_DIR}/src/firmware/nuttx/firmware_nuttx.bin
+ BIN ${CMAKE_CURRENT_BINARY_DIR}/platforms/nuttx/src/firmware/nuttx/firmware_nuttx.bin
  HWNAME ${uavcanblid_name}
  HW_MAJOR ${uavcanblid_hw_version_major}
  HW_MINOR ${uavcanblid_hw_version_minor}
  SW_MAJOR ${uavcanblid_sw_version_major}
  SW_MINOR ${uavcanblid_sw_version_minor})
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/platforms/nuttx/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 set(config_module_list
 
