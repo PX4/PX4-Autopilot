@@ -90,7 +90,7 @@ if(NOT ${BOARD} STREQUAL "sim")
 
 		message(STATUS "Adding ROMFS on ${BOARD}")
 		px4_nuttx_add_romfs(OUT romfs
-			ROOT platforms/nuttx/ROMFS/${config_romfs_root}
+			ROOT ROMFS/${config_romfs_root}
 			EXTRAS ${extras}
 			)
 		if (config_io_board)

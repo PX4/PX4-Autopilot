@@ -134,10 +134,12 @@ static int do_mkdir(const char *path, mode_t mode)
 		if (mkdir(path, mode) != 0 && errno != EEXIST) {
 			status = -1;
 		}
+		PX4_INFO("mkpath %s returned %d", path, status);
 
 	} else if (!S_ISDIR(st.st_mode)) {
 		errno = ENOTDIR;
 		status = -1;
+		PX4_INFO("S_ISDIR %s returned %d", path, status);
 	}
 
 	return (status);
@@ -399,10 +401,8 @@ int main(int argc, char **argv)
 
 	// create sym-links
 	if (symlinks_needed) {
-		string basepath(pwd() + "/platforms/posix");
-		mkpath(basepath.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
 		vector<string> path_sym_links;
-		path_sym_links.push_back("platforms/posix/ROMFS");
+		path_sym_links.push_back("ROMFS");
 		path_sym_links.push_back("platforms/posix/posix-configs");
 		path_sym_links.push_back("test_data");
 
@@ -412,20 +412,21 @@ int main(int argc, char **argv)
 			string src_path = data_path + "/" + path_sym_link;
 			string dest_path =  pwd() + "/" +  path_sym_link;
 
-			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+			PX4_INFO("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
 			if (dirExists(path_sym_link)) { continue; }
 
 			// create sym-links
 			int ret = symlink(src_path.c_str(), dest_path.c_str());
 
+			PX4_INFO("Creating symlink returned %d", ret);
 			if (ret != 0) {
 				PX4_ERR("Error creating symlink %s -> %s",
 					src_path.c_str(), dest_path.c_str());
 				return ret;
 
 			} else {
-				PX4_DEBUG("Successfully created symlink %s -> %s",
+				PX4_INFO("Successfully created symlink %s -> %s",
 					  src_path.c_str(), dest_path.c_str());
 			}
 		}

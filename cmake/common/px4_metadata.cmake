@@ -193,7 +193,7 @@ function(px4_generate_airframes_xml)
 
 	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/airframes.xml
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-			-a ${PX4_SOURCE_DIR}/platform/nuttx/ROMFS/${config_romfs_root}/init.d
+			-a ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d
 			--board CONFIG_ARCH_BOARD_${BOARD} --xml
 		DEPENDS ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		COMMENT "Creating airframes.xml"

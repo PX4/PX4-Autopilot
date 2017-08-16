@@ -1,5 +1,5 @@
 #!/bin/bash
-UAVCANFW=../platforms/nuttx/ROMFS/px4fmu_common/uavcan/fw
+UAVCANFW=../ROMFS/px4fmu_common/uavcan/fw
 ROMFS_REFIX=_
 echo Removing : $UAVCANFW
 rm -fr $UAVCANFW
