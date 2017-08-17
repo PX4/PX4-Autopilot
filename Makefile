@@ -146,9 +146,10 @@ define colorecho
 endef
 
 # Get a list of all config targets.
-PX4_CONFIG_TARGETS := $(basename $(shell find $(SRC_DIR)/platforms/*/cmake/configs ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::'))
+PX4_CONFIG_TARGETS := $(shell ls $(SRC_DIR)/platforms/*/boards/px4/*/config_*.cmake | sed -e "s:$(SRC_DIR)/platforms/\(.*\)/boards/px4/:\1_px4-:" -e "s~/config_\(.*\)\.cmake~/\1~" -e "s~/~_~g")
+OTHER_CONFIG_TARGETS := $(shell ls $(SRC_DIR)/platforms/*/boards/*/config_*.cmake | sed -e "s:$(SRC_DIR)/platforms/\(.*\)/boards/\(.*\):\1_\2:" -e "s~/config_\(.*\)\.cmake~/\1~" -e "s~/~_~g")
 VENDOR_CONFIG_TARGETS := $(shell ls vendor/*/*/*/config_*.cmake | sed -e "s~^vendor/\(.*\)\.cmake~V_\1~" -e "s~/config_~/~" -e "s~/~_~g")
-ALL_CONFIG_TARGETS := $(shell echo ${PX4_CONFIG_TARGETS} ${VENDOR_CONFIG_TARGETS} | sort)
+ALL_CONFIG_TARGETS := $(shell echo ${PX4_CONFIG_TARGETS} ${OTHER_CONFIG_TARGETS} ${VENDOR_CONFIG_TARGETS} | tr " " "\n" | sort)
 # Strip off leading nuttx_
 NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
 

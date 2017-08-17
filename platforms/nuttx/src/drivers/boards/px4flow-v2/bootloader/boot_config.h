@@ -51,7 +51,7 @@
  * todo:make this be pulled in from a targed's build
  * files in nuttx*/
 
-#include "../board_config.h"
+#include "board_config.h"
 #include "uavcan.h"
 #include <nuttx/compiler.h>
 #include <stdint.h>

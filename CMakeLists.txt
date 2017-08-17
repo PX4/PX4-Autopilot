@@ -130,9 +130,9 @@ set(CONFIG "posix_sitl_default" CACHE STRING "desired configuration")
 string(REPLACE "_" ";" config_args ${CONFIG})
 list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
 
-list(GET config_args 0 OS)
+list(GET config_args 0 TOKEN)
 
-if ("${OS}" STREQUAL "V")
+if ("${TOKEN}" STREQUAL "V")
 	# Vendor
 	list(GET config_args 1 VENDOR)
 	list(GET config_args 2 OS)
@@ -146,15 +146,21 @@ if ("${OS}" STREQUAL "V")
 	include_directories(${CMAKE_SOURCE_DIR}/vendor/${VENDOR}/${OS}/${BOARD})
 	add_subdirectory(vendor/${VENDOR})
 else()
-
+	list(GET config_args 0 OS)
 	list(GET config_args 1 BOARD)
 	list(GET config_args 2 LABEL)
 	set(target_name "${OS}-${BOARD}-${LABEL}")
 
-	file(GLOB_RECURSE configs RELATIVE platforms/${OS}/cmake/configs "cmake/configs/*.cmake")
-	set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
-
-	set(config_module "configs/${CONFIG}")
+	string(REGEX MATCH "^PX4-.*" px4tgt ${BOARD})
+	if (NOT "${px4tgt}" STREQUAL "")
+		string(REGEX REPLACE "^PX4-" "" px4board ${BOARD})
+		list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/platforms/${OS}/boards/px4/${px4board}")
+		include_directories("${PX4_SOURCE_DIR}/platforms/${OS}/boards/px4/${px4board}")
+	else()
+		list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/platforms/${OS}/boards/${BOARD}")
+		include_directories("${PX4_SOURCE_DIR}/platforms/${OS}/boards/${BOARD}")
+	endif()
+	set(config_module "config_${LABEL}")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/platforms/${OS}/cmake")
