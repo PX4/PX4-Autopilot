@@ -61,6 +61,7 @@ set(nuttx_patches
 	00030-BACKPORT-fix-arm-none-eabi-gcc-7-warnings-nuttx.patch
 	00031-BACKPORT-fix-arm-none-eabi-gcc-7-warnings-apps.patch
 	00032-BACKPORT-stm32f7-pinmap-FMC-I2C4-fixes.patch
+	00033-BACKPORT-stm32f7-sdmmc-dcache-fix.patch
 	90000-PENDING-wip-inflight-to-upstream.patch
 	)
 
