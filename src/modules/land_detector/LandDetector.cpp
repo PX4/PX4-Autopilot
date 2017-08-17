@@ -38,12 +38,14 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
+#include "LandDetector.h"
+
+#include <cfloat>
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
-#include <float.h>
-
-#include "LandDetector.h"
+#include "uORB/topics/parameter_update.h"
 
 
 namespace land_detector

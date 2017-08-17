@@ -34,6 +34,8 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 
+#include <cstring>
+
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 
 

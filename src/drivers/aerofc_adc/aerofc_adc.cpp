@@ -34,6 +34,8 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 
+#include <cstring>
+
 #include <arch/board/board.h>
 
 #include <nuttx/arch.h>

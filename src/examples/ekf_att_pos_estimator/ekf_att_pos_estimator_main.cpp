@@ -67,6 +67,7 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <platforms/px4_defines.h>
+#include <uORB/topics/parameter_update.h>
 
 static uint64_t IMUusec = 0;
 
