@@ -23,12 +23,6 @@ try:
 except:
     git_branch_name = ''
 git_version_short = git_version[0:16]
-nuttx_git_tag = subprocess.check_output('git describe --always --tags --match nuttx-*  --dirty'.split(),
-                                  cwd='NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip().replace("nuttx-","v")
-nuttx_git_tag = re.sub('-.*','.0',nuttx_git_tag)
-nuttx_git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
-                                      cwd='NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip()
-nuttx_git_version_short = nuttx_git_version[0:16]
 mavlink_git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
                                       cwd='mavlink/include/mavlink/v2.0', stderr=subprocess.STDOUT).decode('utf-8').strip()
 mavlink_git_version_short = mavlink_git_version[0:16]
@@ -43,19 +37,12 @@ header = """
 #define PX4_GIT_TAG_STR  "{git_tag}"
 #define PX4_GIT_BRANCH_NAME  "{git_branch_name}"
 
-#define NUTTX_GIT_VERSION_STR  "{nuttx_git_version}"
-#define NUTTX_GIT_VERSION_BINARY 0x{nuttx_git_version_short}
-#define NUTTX_GIT_TAG_STR  "{nuttx_git_tag}"
-
 #define MAVLINK_LIB_GIT_VERSION_STR  "{mavlink_git_version}"
 #define MAVLINK_LIB_GIT_VERSION_BINARY 0x{mavlink_git_version_short}
 """.format(git_tag=git_tag,
            git_version=git_version,
            git_version_short=git_version_short,
            git_branch_name=git_branch_name,
-           nuttx_git_version=nuttx_git_version,
-           nuttx_git_version_short=nuttx_git_version_short,
-           nuttx_git_tag=nuttx_git_tag,
            mavlink_git_version=mavlink_git_version,
            mavlink_git_version_short=mavlink_git_version_short)
 

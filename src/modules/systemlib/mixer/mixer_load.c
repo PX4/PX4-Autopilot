@@ -54,7 +54,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 	fp = fopen(fname, "r");
 
 	if (fp == NULL) {
-		warnx("file not found");
+		warnx("file not found: %s", fname);
 		return -1;
 	}
 
