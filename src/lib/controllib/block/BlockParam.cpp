@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Blockparam.cpp
+ * @file BlockParam.cpp
  *
  * Controller library code
  */
