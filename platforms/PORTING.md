@@ -1,13 +1,15 @@
 # Porting
 
-The variables ${PX4_SOURCE_DIR}, ${OS} and ${BOARD} are passed by the build system.
+The variables ${PX4_SOURCE_DIR}, ${OS}, ${LABE} and ${BOARD} are passed by the build system.
 
 ## Adding a New Board Config
 
 If the OS is currently supported, but you want to add a new board file, add the file to:
-${PX4_SOURCE_DIR}/platforms/${OS}/cmake/configs/${OS}\_${BOARD}_CONFIG
+```
+${PX4_SOURCE_DIR}/platforms/${OS}/boards/${BOARD}/config\_${LABEL}.cmake
+```
 
-You can create multiple config files for the same board (e.g test vs default).
+You can create multiple config files for the same board (e.g config_test.cmake vs config_default.cmake).
 
 If you have a SoC platform that has a single board but multiple builds of PX4 for different processors, and there are shared board files, the ${BOARD_FILE_DIRS} should be set to point to the locations of the board files. If you use src/drivers/boards/common/board_config.h you should add ${PX4_SOURCE_DIR}/src/drivers/boards to ${BOARD_FILE_DIRS} and include "common/board_config.h" in your custom board_config.h.
 
@@ -16,6 +18,11 @@ If not specified in the config file, ${BOARD_FILE_DIRS} defaults to:
 ```
 set(BOARD_FILE_DIRS ${PX4_SOURCE_DIR}platforms/${OS}/src/drivers/boards/${BOARD} \
     ${PX4_SOURCE_DIR}/src/drivers/boards)
+```
+
+The board_config.h file must go in:
+```
+${PX4_SOURCE_DIR}/platforms/${OS}/boards/${BOARD}
 ```
 ## Overriding a Driver or Module
 
@@ -32,8 +39,8 @@ Platforms must provide the following
 and one or more supported boards:
 
 * ${PX4_SOURCE_DIR}/platforms/${OS}/
-  - cmake/configs/${OS}\_${BOARD}_CONFIG
-  - src/drivers/${BOARD}/board_config.h
+  - boards/${BOARD}/config\_${LABEL}.cmake
+  - boards/${BOARD}/board_config.h
 
 and an implementation for the OS:
 
