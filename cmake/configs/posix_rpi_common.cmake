@@ -74,6 +74,7 @@ set(config_module_list
 	#
 	# PX4 drivers
 	#
+	drivers/linux_sbus
 	drivers/gps
 	drivers/navio_adc
 	drivers/navio_sysfs_rc_in

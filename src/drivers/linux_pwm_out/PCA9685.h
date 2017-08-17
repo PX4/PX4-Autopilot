@@ -87,10 +87,10 @@ public:
 	int send_output_pwm(const uint16_t *pwm, int num_outputs) override;
 
 
-	void init(int bus, int address);
+	int init(int bus, int address);
 	virtual ~PCA9685();
 
-	/// Sets PCA9685 mode to 00
+	/** Sets PCA9685 mode to 00 */
 	void reset();
 
 	/**
