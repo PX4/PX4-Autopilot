@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,51 +42,67 @@
 namespace uORB
 {
 
-SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
-				   unsigned interval, unsigned instance) :
+SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta, unsigned interval, unsigned instance) :
 	_meta(meta),
-	_instance(instance),
-	_handle()
+	_instance(instance)
 {
-	if (_instance > 0) {
-		_handle =  orb_subscribe_multi(
-				   getMeta(), instance);
+	if (instance > 0) {
+		_handle = orb_subscribe_multi(_meta, instance);
 
 	} else {
-		_handle =  orb_subscribe(getMeta());
+		_handle = orb_subscribe(_meta);
 	}
 
-	if (_handle < 0) { PX4_ERR("sub failed"); }
+	if (_handle < 0) {
+		PX4_ERR("%s sub failed", _meta->o_name);
+	}
 
 	if (interval > 0) {
-		orb_set_interval(getHandle(), interval);
+		orb_set_interval(_handle, interval);
 	}
 }
 
 bool SubscriptionBase::updated()
 {
 	bool isUpdated = false;
-	int ret = orb_check(_handle, &isUpdated);
 
-	if (ret != PX4_OK) { PX4_ERR("orb check failed"); }
+	if (orb_check(_handle, &isUpdated) != PX4_OK) {
+		PX4_ERR("%s check failed", _meta->o_name);
+	}
 
 	return isUpdated;
 }
 
-void SubscriptionBase::update(void *data)
+bool SubscriptionBase::update(void *data)
 {
-	if (updated()) {
-		int ret = orb_copy(_meta, _handle, data);
+	bool orb_updated = false;
 
-		if (ret != PX4_OK) { PX4_ERR("orb copy failed"); }
+	if (updated()) {
+		if (orb_copy(_meta, _handle, data) != PX4_OK) {
+			PX4_ERR("%s copy failed", _meta->o_name);
+
+		} else {
+			orb_updated = true;
+		}
 	}
+
+	return orb_updated;
 }
 
 SubscriptionBase::~SubscriptionBase()
 {
-	int ret = orb_unsubscribe(_handle);
+	if (orb_unsubscribe(_handle) != PX4_OK) {
+		PX4_ERR("%s unsubscribe failed", _meta->o_name);
+	}
+}
 
-	if (ret != PX4_OK) { PX4_ERR("orb unsubscribe failed"); }
+SubscriptionNode::SubscriptionNode(const struct orb_metadata *meta, unsigned interval, unsigned instance,
+				   List<SubscriptionNode *> *list)
+	: SubscriptionBase(meta, interval, instance)
+{
+	if (list != nullptr) {
+		list->add(this);
+	}
 }
 
 } // namespace uORB
