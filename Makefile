@@ -192,12 +192,12 @@ qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
 
 # px4fmu NuttX firmware
 px4fmu_firmware: \
-	check_px4fmu-v1_default \
-	check_px4fmu-v2_default \
-	check_px4fmu-v3_default \
-	check_px4fmu-v4_default \
-	check_px4fmu-v4pro_default \
-	check_px4fmu-v5_default \
+	check_px4-fmu-v1_default \
+	check_px4-fmu-v2_default \
+	check_px4-fmu-v3_default \
+	check_px4-fmu-v4_default \
+	check_px4-fmu-v4pro_default \
+	check_px4-fmu-v5_default \
 	sizes
 
 misc_qgc_extra_firmware: \
@@ -213,17 +213,17 @@ misc_qgc_extra_firmware: \
 # Other NuttX firmware
 alt_firmware: \
 	check_px4-stm32f4discovery_default \
-	check_px4cannode-v1_default \
-	check_px4esc-v1_default \
-	check_px4nucleoF767ZI-v1_default \
+	check_px4-cannode-v1_default \
+	check_px4-esc-v1_default \
+	check_px4-nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
 	sizes
 
 checks_bootloaders: \
 	check_esc35-v1_bootloader \
-	check_px4cannode-v1_bootloader \
-	check_px4esc-v1_bootloader \
-	check_px4flow-v2_bootloader \
+	check_px4-cannode-v1_bootloader \
+	check_px4-esc-v1_bootloader \
+	check_px4-flow-v2_bootloader \
 	check_s2740vc-v1_bootloader \
 # not fitting in flash	check_zubaxgnss-v1_bootloader \
 	sizes
@@ -235,7 +235,7 @@ sizes:
 check: check_posix_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: check_posix_sitl_default check_px4fmu-v3_default tests check_format
+quick_check: check_posix_sitl_default check_px4-fmu-v3_default tests check_format
 
 check_%:
 	@echo

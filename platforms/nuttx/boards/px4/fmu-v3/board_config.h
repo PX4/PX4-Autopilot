@@ -184,4 +184,4 @@
 /*----------------------------------------------------------*/
 /*           FMUv2 PixhawkMini SPI chip selects and DRDY    */
 /*----------------------------------------------------------*/
-#include "../px4fmu-v2/board_config.h"
+#include "../fmu-v2/board_config.h"
