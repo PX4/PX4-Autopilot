@@ -133,9 +133,7 @@ endif
 # describe how to build a cmake config
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
-+@echo $(SRC_DIR) $(BUILD_DIR)
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@echo cmake $(2)  -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS)
 +@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2)  -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS) || (rm -rf $(BUILD_DIR)); fi
 +@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
