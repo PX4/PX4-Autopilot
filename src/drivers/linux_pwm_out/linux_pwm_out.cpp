@@ -211,12 +211,18 @@ void task_main(int argc, char *argv[])
 		PX4_INFO("Starting PWM output in ocpoc_mmap mode");
 		pwm_out = new OcpocMmapPWMOut(_max_num_outputs);
 
-	} else { // navio
+	} else { /* navio */
 		PX4_INFO("Starting PWM output in Navio mode");
 		pwm_out = new NavioSysfsPWMOut(_device, _max_num_outputs);
 	}
 
-	if (pwm_out->init() != 0) {
+	/**
+	 * if the _protocol is "pca9685" and the driver is executed correctly，
+	 * the return value of "pwm_out->init()" will be higher than 0.
+	 */
+	bool check_pwm_device = (strcmp(_protocol, "pca9685") == 0) ? (0 > pwm_out->init()) : (pwm_out->init() != 0);
+
+	if (check_pwm_device) {
 		PX4_ERR("PWM output init failed");
 		delete pwm_out;
 		return;
@@ -494,7 +500,7 @@ int linux_pwm_out_main(int argc, char *argv[])
 		}
 	}
 
-	// gets the parameters for the esc's pwm
+	/** gets the parameters for the esc's pwm */
 	param_get(param_find("PWM_DISARMED"), &linux_pwm_out::_pwm_disarmed);
 	param_get(param_find("PWM_MIN"), &linux_pwm_out::_pwm_min);
 	param_get(param_find("PWM_MAX"), &linux_pwm_out::_pwm_max);
