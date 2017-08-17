@@ -22,6 +22,7 @@ set(CONFIG_SHMEM "1")
 set(config_module_list
 	drivers/device
 	drivers/blinkm
+	drivers/linux_sbus
 	drivers/pwm_out_sim
 	drivers/rgbled
 	drivers/led
