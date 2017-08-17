@@ -45,6 +45,7 @@
 #include <pthread.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
 

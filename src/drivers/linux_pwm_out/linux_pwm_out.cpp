@@ -43,6 +43,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/rc_channels.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>

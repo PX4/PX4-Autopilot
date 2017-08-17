@@ -4,7 +4,8 @@
 
 #include <systemlib/err.h>
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 
 extern "C" __EXPORT int sf0x_tests_main(int argc, char *argv[]);
