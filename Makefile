@@ -146,7 +146,10 @@ define colorecho
 endef
 
 # Get a list of all config targets.
-ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
+PX4_CONFIG_TARGETS := $(shell ls $(SRC_DIR)/platforms/*/boards/px4/*/config_*.cmake | sed -e "s:$(SRC_DIR)/platforms/\(.*\)/boards/px4/:\1_px4-:" -e "s~/config_\(.*\)\.cmake~/\1~" -e "s~/~_~g")
+OTHER_CONFIG_TARGETS := $(shell ls $(SRC_DIR)/platforms/*/boards/*/config_*.cmake | sed -e "s:$(SRC_DIR)/platforms/\(.*\)/boards/\(.*\):\1_\2:" -e "s~/config_\(.*\)\.cmake~/\1~" -e "s~/~_~g")
+VENDOR_CONFIG_TARGETS := $(shell ls vendor/*/*/*/config_*.cmake | sed -e "s~^vendor/\(.*\)\.cmake~V_\1~" -e "s~/config_~/~" -e "s~/~_~g")
+ALL_CONFIG_TARGETS := $(shell echo ${PX4_CONFIG_TARGETS} ${OTHER_CONFIG_TARGETS} ${VENDOR_CONFIG_TARGETS} | tr " " "\n" | sort)
 # Strip off leading nuttx_
 NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
 
@@ -170,10 +173,10 @@ posix: posix_sitl_default
 broadcast: posix_sitl_broadcast
 
 # Multi- config targets.
-eagle_default: posix_eagle_default qurt_eagle_default
-eagle_legacy_default: posix_eagle_legacy qurt_eagle_legacy
-excelsior_default: posix_excelsior_default qurt_excelsior_default
-excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
+eagle_default: V_ATLFlight_posix_eagle_default V_ATLFlight_qurt_eagle_default
+eagle_legacy_default: V_ATLFlight_posix_eagle_legacy V_ATLFlight_qurt_eagle_legacy
+excelsior_default: V_ATLFlight_posix_excelsior_default V_ATLFlight_qurt_excelsior_default
+excelsior_legacy_default: V_ATLFlight_posix_excelsior_legacy V_ATLFlight_qurt_excelsior_legacy
 
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
@@ -189,12 +192,12 @@ qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
 
 # px4fmu NuttX firmware
 px4fmu_firmware: \
-	check_px4fmu-v1_default \
-	check_px4fmu-v2_default \
-	check_px4fmu-v3_default \
-	check_px4fmu-v4_default \
-	check_px4fmu-v4pro_default \
-	check_px4fmu-v5_default \
+	check_px4-fmu-v1_default \
+	check_px4-fmu-v2_default \
+	check_px4-fmu-v3_default \
+	check_px4-fmu-v4_default \
+	check_px4-fmu-v4pro_default \
+	check_px4-fmu-v5_default \
 	sizes
 
 misc_qgc_extra_firmware: \
@@ -210,17 +213,17 @@ misc_qgc_extra_firmware: \
 # Other NuttX firmware
 alt_firmware: \
 	check_px4-stm32f4discovery_default \
-	check_px4cannode-v1_default \
-	check_px4esc-v1_default \
-	check_px4nucleoF767ZI-v1_default \
+	check_px4-cannode-v1_default \
+	check_px4-esc-v1_default \
+	check_px4-nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
 	sizes
 
 checks_bootloaders: \
 	check_esc35-v1_bootloader \
-	check_px4cannode-v1_bootloader \
-	check_px4esc-v1_bootloader \
-	check_px4flow-v2_bootloader \
+	check_px4-cannode-v1_bootloader \
+	check_px4-esc-v1_bootloader \
+	check_px4-flow-v2_bootloader \
 	check_s2740vc-v1_bootloader \
 # not fitting in flash	check_zubaxgnss-v1_bootloader \
 	sizes
@@ -232,7 +235,7 @@ sizes:
 check: check_posix_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: check_posix_sitl_default check_px4fmu-v3_default tests check_format
+quick_check: check_posix_sitl_default check_px4-fmu-v3_default tests check_format
 
 check_%:
 	@echo
@@ -394,8 +397,6 @@ distclean: submodulesclean gazeboclean
 %:
 	$(if $(filter $(FIRST_ARG),$@), \
 		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
-
-CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 
 #help:
 #	@echo

@@ -52,7 +52,17 @@
 #include <float.h>
 
 #include <unit_test/unit_test.h>
+#ifdef __PX4_NUTTX
 #include <px4iofirmware/protocol.h>
+#else
+
+#define REG_TO_SIGNED(_reg)     ((int16_t)(_reg))
+#define SIGNED_TO_REG(_signed)  ((uint16_t)(_signed))
+
+#define REG_TO_FLOAT(_reg)      ((float)REG_TO_SIGNED(_reg) / 10000.0f)
+#define FLOAT_TO_REG(_float)    SIGNED_TO_REG((int16_t)floorf((_float + 0.00005f) * 10000.0f))
+
+#endif
 
 int test_conv(int argc, char *argv[])
 {

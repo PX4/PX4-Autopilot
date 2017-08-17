@@ -2,7 +2,9 @@
 
 #include <drivers/drv_hrt.h>
 #include <geo/geo.h>
+#ifdef __PX4_NUTTX
 #include <px4iofirmware/px4io.h>
+#endif
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
 

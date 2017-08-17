@@ -35,6 +35,9 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
 
     find_program(FASTRTPSGEN fastrtpsgen
                  PATHS $ENV{FASTRTPSGEN_DIR})
+
+    message(STATUS "FASTRTPSGEN = ${FASTRTPSGEN}")
+
     if(NOT FASTRTPSGEN)
         message(WARNING "WARNING: Unable to find fastrtpsgen. Building PX4 without RTPS bridge support")
         px4_add_module(

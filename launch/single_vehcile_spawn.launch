@@ -10,7 +10,7 @@
     <arg name="est" default="lpe"/>
     <arg name="vehicle" default="iris"/>
     <arg name="ID" default="1"/>
-    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>
+    <arg name="rcS" default="$(find px4)/platforms/posix/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>
     <arg name="mavlink_udp_port" default="14560" />
 
 

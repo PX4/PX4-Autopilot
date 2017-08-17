@@ -33,13 +33,11 @@
 
 #include "version.h"
 
-#include "build_git_version.h" //generated from build_git_version.h.in
+#include "build_git_version.h" //generated from px_update_git_header.py
 
 #include <string.h>
 
-#if !defined(CONFIG_CDCACM_PRODUCTID)
-# define CONFIG_CDCACM_PRODUCTID 0
-#endif
+uint32_t version_tag_to_number(const char *tag);
 
 #if defined(__PX4_LINUX)
 #include <sys/utsname.h>
@@ -96,7 +94,7 @@ static uint32_t string_to_int(const char *tag, int start, int end)
  *            - linux: 7.9.3
  * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
  */
-static uint32_t version_tag_to_number(const char *tag)
+uint32_t version_tag_to_number(const char *tag)
 {
 	uint32_t ver = 0;
 	unsigned len = strlen(tag);
@@ -206,13 +204,10 @@ const char *px4_firmware_git_branch(void)
 	return PX4_GIT_BRANCH_NAME;
 }
 
+#if !defined(__PX4_NUTTX)
 uint32_t px4_board_version(void)
 {
-#if defined(__PX4_NUTTX)
-	return CONFIG_CDCACM_PRODUCTID;
-#else
 	return 1;
-#endif
 }
 
 uint32_t px4_os_version(void)
@@ -239,8 +234,6 @@ uint32_t px4_os_version(void)
 
 #elif defined(__PX4_QURT)
 	return 0; //TODO: implement version for QuRT
-#elif defined(__PX4_NUTTX)
-	return version_tag_to_number(NUTTX_GIT_TAG_STR);
 #else
 # error "px4_os_version not implemented for current OS"
 #endif
@@ -248,11 +241,7 @@ uint32_t px4_os_version(void)
 
 const char *px4_os_version_string(void)
 {
-#if defined(__PX4_NUTTX)
-	return NUTTX_GIT_VERSION_STR;
-#else
 	return NULL;
-#endif
 }
 
 const char *px4_os_name(void)
@@ -263,12 +252,11 @@ const char *px4_os_name(void)
 	return "Linux";
 #elif defined(__PX4_QURT)
 	return "QuRT";
-#elif defined(__PX4_NUTTX)
-	return "NuttX";
 #else
 # error "px4_os_name not implemented for current OS"
 #endif
 }
+#endif // Not Nuttx
 
 const char *px4_toolchain_name(void)
 {

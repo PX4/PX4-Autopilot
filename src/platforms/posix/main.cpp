@@ -401,8 +401,16 @@ int main(int argc, char **argv)
 	if (symlinks_needed) {
 		vector<string> path_sym_links;
 		path_sym_links.push_back("ROMFS");
-		path_sym_links.push_back("posix-configs");
+		path_sym_links.push_back("platforms/posix/posix-configs");
 		path_sym_links.push_back("test_data");
+
+		string config_path(pwd() + "/platforms/posix");
+		int ret = mkpath(config_path.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+
+		if (ret != 0) {
+			PX4_ERR("Error creating path %s, %d", config_path.c_str(), ret);
+			return ret;
+		}
 
 		for (int i = 0; i < path_sym_links.size(); i++) {
 			string path_sym_link = path_sym_links[i];
@@ -410,12 +418,10 @@ int main(int argc, char **argv)
 			string src_path = data_path + "/" + path_sym_link;
 			string dest_path =  pwd() + "/" +  path_sym_link;
 
-			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
-
 			if (dirExists(path_sym_link)) { continue; }
 
 			// create sym-links
-			int ret = symlink(src_path.c_str(), dest_path.c_str());
+			ret = symlink(src_path.c_str(), dest_path.c_str());
 
 			if (ret != 0) {
 				PX4_ERR("Error creating symlink %s -> %s",
@@ -423,8 +429,8 @@ int main(int argc, char **argv)
 				return ret;
 
 			} else {
-				PX4_DEBUG("Successfully created symlink %s -> %s",
-					  src_path.c_str(), dest_path.c_str());
+				PX4_INFO("Successfully created symlink %s -> %s",
+					 src_path.c_str(), dest_path.c_str());
 			}
 		}
 	}

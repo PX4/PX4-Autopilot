@@ -57,8 +57,13 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#ifdef __PX4_NUTTX
 #include <px4iofirmware/mixer.h>
 #include <px4iofirmware/protocol.h>
+#else
+#define PX4IO_MAX_MIXER_LENGHT          230
+#define PX4IO_MAX_TRANSFER_LEN          64
+#endif
 
 #include <uORB/topics/actuator_controls.h>
 
@@ -251,7 +256,7 @@ bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool v
 		bool ret = load_mixer(filename, buf, loaded, expected_count, chunk_size, verbose);
 
 		if (!ret) {
-			PX4_ERR("Mixer load failed with chunk size %u", chunk_size);
+			PX4_ERR("Mixer load failed with chunk size %u: %s", chunk_size, filename);
 			return ret;
 		}
 	}
