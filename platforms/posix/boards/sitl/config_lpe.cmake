@@ -1,6 +1,6 @@
-include(cmake/configs/posix_sitl_default.cmake)
+include(config_default)
 
 # This is already the default, but lets explicitly set it again to lpe.
 set(config_sitl_rcS_dir
-	posix-configs/SITL/init/lpe
+	platforms/posix/posix-configs/SITL/init/lpe
 	)

@@ -1,5 +1,5 @@
-include(cmake/configs/posix_sitl_default.cmake)
+include(config_default)
 
 set(config_sitl_rcS_dir
-	posix-configs/SITL/init/test
+	platforms/posix/posix-configs/SITL/init/test
 	)
