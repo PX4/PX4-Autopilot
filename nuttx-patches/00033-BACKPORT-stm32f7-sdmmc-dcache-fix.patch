@@ -1,0 +1,139 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_dma.c NuttX/nuttx/arch/arm/src/stm32f7/stm32_dma.c
+index a695a07..1d54daf 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_dma.c
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_dma.c
+@@ -860,6 +860,13 @@ size_t stm32_dmaresidual(DMA_HANDLE handle)
+  *   of the processor. Note that this only applies to memory addresses, it
+  *   will return false for any peripheral address.
+  *
++ * Input Parameters:
++ *
++ *   maddr - starting memory address
++ *   count - number of unit8 or uint16 or uint32 items as defined by MSIZE of
++ *           ccr.
++ *   ccr   - DMA stream configuration register
++ *
+  * Returned value:
+  *   True, if transfer is possible.
+  *
+@@ -877,7 +884,8 @@ bool stm32_dmacapable(uint32_t maddr, uint32_t count, uint32_t ccr)
+    * Transfers to/from memory performed by the DMA controller are
+    * required to be aligned to their size.
+    *
+-   * See ST RM0090 rev4, section 9.3.11
++   * See ST RM0410 DocID028270 Rev 2, section 8.3.11 Single and burst
++   * transfers
+    *
+    * Compute mend inline to avoid a possible non-constant integer
+    * multiply.
+@@ -911,6 +919,23 @@ bool stm32_dmacapable(uint32_t maddr, uint32_t count, uint32_t ccr)
+       return false;
+     }
+ 
++#  if defined(CONFIG_ARMV7M_DCACHE) && !defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
++  /* buffer alignment is required for DMA transfers with dcache in buffered
++   * mode (not write-through) because a) arch_invalidate_dcache could lose
++   * buffered writes and b) arch_flush_dcache could corrupt adjacent memory if
++   * the maddr and the mend+1, the next next address are not on
++   * ARMV7M_DCACHE_LINESIZE boundaries.
++   */
++
++  if ((maddr & (ARMV7M_DCACHE_LINESIZE-1)) != 0 ||
++      ((mend + 1) & (ARMV7M_DCACHE_LINESIZE-1)) != 0)
++    {
++      dmainfo("stm32_dmacapable: dcache unaligned maddr:0x%08x mend:0x%08x\n",
++              maddr, mend);
++      return false;
++    }
++#  endif
++
+   /* Verify that burst transfers do not cross a 1KiB boundary. */
+ 
+   if ((maddr / 1024) != (mend / 1024))
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_dma.h NuttX/nuttx/arch/arm/src/stm32f7/stm32_dma.h
+index b25cb84..e512b39 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_dma.h
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_dma.h
+@@ -241,6 +241,13 @@ size_t stm32_dmaresidual(DMA_HANDLE handle);
+  *   only applies to memory addresses, it will return false for any peripheral
+  *   address.
+  *
++ * Input Parameters:
++ *
++ *   maddr - starting memory address
++ *   count - number of unit8 or uint16 or uint32 items as defined by MSIZE of
++ *           ccr.
++ *   ccr   - DMA stream configuration register
++ *
+  * Returned value:
+  *   True, if transfer is possible.
+  *
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_sdmmc.c NuttX/nuttx/arch/arm/src/stm32f7/stm32_sdmmc.c
+index 2df98c1..7f81c97 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_sdmmc.c
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_sdmmc.c
+@@ -2848,13 +2848,6 @@ static int stm32_dmapreflight(FAR struct sdio_dev_s *dev,
+ 
+   DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
+ 
+-  /* Wide bus operation is required for DMA */
+-
+-  if (!priv->widebus)
+-    {
+-      return -EINVAL;
+-    }
+-
+   /* DMA must be possible to the buffer */
+ 
+   if (!stm32_dmacapable((uintptr_t)buffer, (buflen + 3) >> 2,
+@@ -2896,16 +2889,21 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
+   DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
+ #ifdef CONFIG_SDIO_PREFLIGHT
+   DEBUGASSERT(stm32_dmapreflight(dev, buffer, buflen) == 0);
+-#endif
+-
+-#ifdef CONFIG_ARMV7M_DCACHE
+-  /* buffer alignment is required for DMA transfers with dcache */
++#else
++#  if defined(CONFIG_ARMV7M_DCACHE) && !defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
++  /* buffer alignment is required for DMA transfers with dcache in buffered
++   * mode (not write-through) because the arch_invalidate_dcache could lose
++   * buffered buffered writes if the buffer alignment and sizes are not on
++   * ARMV7M_DCACHE_LINESIZE boundaries.
++   */
+ 
+   if (((uintptr_t)buffer & (ARMV7M_DCACHE_LINESIZE-1)) != 0 ||
+       (buflen & (ARMV7M_DCACHE_LINESIZE-1)) != 0)
+     {
+       return -EFAULT;
+     }
++#  endif
++
+ #endif
+ 
+   /* Reset the DPSM configuration */
+@@ -2981,16 +2979,20 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
+   DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
+ #ifdef CONFIG_SDIO_PREFLIGHT
+   DEBUGASSERT(stm32_dmapreflight(dev, buffer, buflen) == 0);
+-#endif
+-
+-#ifdef CONFIG_ARMV7M_DCACHE
+-  /* buffer alignment is required for DMA transfers with dcache */
++#else
++#  if defined(CONFIG_ARMV7M_DCACHE) && !defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
++  /* buffer alignment is required for DMA transfers with dcache in buffered
++   * mode (not write-through) because the arch_flush_dcache would corrupt adjacent
++   * memory if the buffer alignment and sizes are not on ARMV7M_DCACHE_LINESIZE
++   * boundaries.
++   */
+ 
+   if (((uintptr_t)buffer & (ARMV7M_DCACHE_LINESIZE-1)) != 0 ||
+       (buflen & (ARMV7M_DCACHE_LINESIZE-1)) != 0)
+     {
+       return -EFAULT;
+     }
++#  endif
+ #endif
+ 
+   /* Reset the DPSM configuration */
