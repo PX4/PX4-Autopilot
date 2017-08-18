@@ -26,7 +26,7 @@ else
 	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_3" ];
 	then
 	    echo "Error: you're using ${ASTYLE_VER}"
-	    echo "but should be using ${ASTYLE_VER_REQUIRED_1} or later instead"
+	    echo "but should be using ${ASTYLE_VER_REQUIRED_1}, ${ASTYLE_VER_REQUIRED_2}, or ${ASTYLE_VER_REQUIRED_3} instead"
 	    exit 1
 	fi
 fi
