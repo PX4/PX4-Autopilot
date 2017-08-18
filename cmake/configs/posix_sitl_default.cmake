@@ -145,6 +145,10 @@ set(config_module_list
 	examples/rover_steering_control
 
 	#
+	# HippoCampus example (AUV from TUHH)
+	examples/auv_hippocampus_example_app
+
+	#
 	# Segway
 	#
 	examples/segway
