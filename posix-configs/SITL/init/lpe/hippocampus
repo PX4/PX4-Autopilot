@@ -13,7 +13,7 @@ param set CAL_MAG0_ID 196616
 simulator start -s
 
 pwm_out_sim mode_pwm
-mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/uuv_quad_x.mix
+mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/uuv_quad_x.main.mix
 
 gyrosim start
 accelsim start
