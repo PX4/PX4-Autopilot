@@ -43,6 +43,8 @@
 #include <systemlib/printload.h>
 #include <px4_module.h>
 
+#include <uORB/topics/vehicle_command.h>
+
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
 #define TRY_SUBSCRIBE_INTERVAL 1000*1000	// interval in microseconds at which we try to subscribe to a topic
@@ -269,7 +271,7 @@ private:
 	void add_thermal_calibration_topics();
 	void add_system_identification_topics();
 
-	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result);
+	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
 
 	/**
 	 * initialize the output for the process load, so that ~1 second later it will be written to the log

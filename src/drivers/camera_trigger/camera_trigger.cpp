@@ -724,8 +724,13 @@ CameraTrigger::cycle_trampoline(void *arg)
 	if (updated && need_ack) {
 		vehicle_command_ack_s command_ack = {
 			.timestamp = 0,
+			.result_param2 = 0,
 			.command = cmd.command,
-			.result = (uint8_t)cmd_result
+			.result = (uint8_t)cmd_result,
+			.from_external = 0,
+			.result_param1 = 0,
+			.target_system = cmd.source_system,
+			.target_component = cmd.source_component
 		};
 
 		if (trig->_cmd_ack_pub == nullptr) {
