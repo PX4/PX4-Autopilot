@@ -12,6 +12,7 @@ import re
 raw_messages = glob.glob(sys.argv[1]+"/msg/*.msg")
 messages = []
 message_elements = []
+multi_topics = {}
 
 
 for index,m in enumerate(raw_messages):
@@ -21,7 +22,14 @@ for index,m in enumerate(raw_messages):
 	if("pwm_input" not in m and "position_setpoint" not in m):
 		temp_list = []
 		f = open(m,'r')
+		topics = []
 		for line in f.readlines():
+			# Some .msg files are used for several topics, indicated by '# TOPICS' at the
+			# beginning of the line. We add or statements for every listed topic to the
+			# generated Cpp code.
+			if line.startswith('# TOPICS'):
+				topics.extend(re.split('\s+', line.strip())[2:])
+
 			items = re.split('\s+', line.strip())
 
 			if ('float32[' in items[0]):
@@ -68,9 +76,11 @@ for index,m in enumerate(raw_messages):
 		f.close()
 		(m_head, m_tail) = os.path.split(m)
 		message = m_tail.split('.')[0]
-		if message != "actuator_controls":
-			messages.append(message)
-			message_elements.append(temp_list)
+		messages.append(message)
+		message_elements.append(temp_list)
+
+		if len(topics) > 0:
+		    multi_topics[message] = topics
 		#messages.append(m.split('/')[-1].split('.')[0])
 
 num_messages = len(messages);
@@ -169,7 +179,15 @@ print("\t\tID = ORB_ID(%s);" % messages[0])
 print("\t\tstruct %s_s container;" % messages[0])
 print("\t\tmemset(&container, 0, sizeof(container));")
 for index,m in enumerate(messages[1:]):
-	print("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {" % m)
+	if not m in multi_topics.keys():
+		# The .msg file did not contain a TOPICS list
+		print("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {" % m)
+	else:
+		# The .msg file has a topics list. Check for all topics and use OR to combine them.
+		print("\t} else if (strncmp(argv[1],\"%s\",50) == 0" % multi_topics[m][0])
+		for mt in multi_topics[m][1:]:
+			print("\t\t\t\t\t|| strncmp(argv[1],\"%s\",50) == 0" % mt)
+		print("\t) {")
 	print("\t\tsub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % m)
 	print("\t\tID = ORB_ID(%s);" % m)
 	print("\t\tstruct %s_s container;" % m)
