@@ -41,7 +41,6 @@
 #include "input_mavlink.h"
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_roi.h>
-#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
@@ -292,7 +291,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					break;
 				}
 
-				_ack_vehicle_command(vehicle_command.command);
+				_ack_vehicle_command(&vehicle_command);
 
 			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
 				_stabilize[0] = (uint8_t) vehicle_command.param2 == 1;
@@ -301,7 +300,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 				_control_data.type = ControlData::Type::Neutral; //always switch to neutral position
 
 				*control_data = &_control_data;
-				_ack_vehicle_command(vehicle_command.command);
+				_ack_vehicle_command(&vehicle_command);
 			}
 		}
 
@@ -310,12 +309,17 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 	return 0;
 }
 
-void InputMavlinkCmdMount::_ack_vehicle_command(uint16_t command)
+void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 {
 	vehicle_command_ack_s vehicle_command_ack = {
 		.timestamp = hrt_absolute_time(),
-		.command = command,
-		.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED
+		.result_param2 = 0,
+		.command = cmd->command,
+		.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED,
+		.from_external = 0,
+		.result_param1 = 0,
+		.target_system = cmd->source_system,
+		.target_component = cmd->source_component
 	};
 
 	if (_vehicle_command_ack_pub == nullptr) {

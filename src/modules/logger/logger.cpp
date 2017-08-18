@@ -49,7 +49,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 #include <drivers/drv_hrt.h>
@@ -867,22 +866,22 @@ void Logger::run()
 
 				if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 					if ((int)(command.param1 + 0.5f) != 0) {
-						ack_vehicle_command(vehicle_command_ack_pub, command.command,
+						ack_vehicle_command(vehicle_command_ack_pub, &command,
 								    vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
 					} else if (can_start_mavlink_log()) {
-						ack_vehicle_command(vehicle_command_ack_pub, command.command,
+						ack_vehicle_command(vehicle_command_ack_pub, &command,
 								    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 						start_log_mavlink();
 
 					} else {
-						ack_vehicle_command(vehicle_command_ack_pub, command.command,
+						ack_vehicle_command(vehicle_command_ack_pub, &command,
 								    vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 					}
 
 				} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
 					stop_log_mavlink();
-					ack_vehicle_command(vehicle_command_ack_pub, command.command,
+					ack_vehicle_command(vehicle_command_ack_pub, &command,
 							    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				}
 			}
@@ -1999,12 +1998,17 @@ int Logger::remove_directory(const char *dir)
 	return ret;
 }
 
-void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result)
+void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result)
 {
 	vehicle_command_ack_s vehicle_command_ack = {
 		.timestamp = hrt_absolute_time(),
-		.command = command,
-		.result = (uint8_t)result
+		.result_param2 = 0,
+		.command = cmd->command,
+		.result = (uint8_t)result,
+		.from_external = 0,
+		.result_param1 = 0,
+		.target_system = cmd->source_system,
+		.target_component = cmd->source_component
 	};
 
 	if (vehicle_command_ack_pub == nullptr) {

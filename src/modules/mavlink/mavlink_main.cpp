@@ -2207,6 +2207,10 @@ Mavlink::task_main(int argc, char *argv[])
 				mavlink_command_ack_t msg;
 				msg.result = command_ack.result;
 				msg.command = command_ack.command;
+				msg.progress = command_ack.result_param1;
+				msg.result_param2 = command_ack.result_param2;
+				msg.target_system = command_ack.target_system;
+				msg.target_component = command_ack.target_component;
 				current_command_ack = command_ack.command;
 
 				mavlink_msg_command_ack_send_struct(get_channel(), &msg);
