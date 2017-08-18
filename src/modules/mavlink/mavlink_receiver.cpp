@@ -472,8 +472,13 @@ out:
 	if (send_ack) {
 		vehicle_command_ack_s command_ack = {
 			.timestamp = 0,
+			.result_param2 = 0,
 			.command = cmd_mavlink.command,
-			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED)
+			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
+			.from_external = 0,
+			.result_param1 = 0,
+			.target_system = msg->sysid,
+			.target_component = msg->compid
 		};
 
 		if (_command_ack_pub == nullptr) {
@@ -564,8 +569,13 @@ out:
 	if (send_ack) {
 		vehicle_command_ack_s command_ack = {
 			.timestamp = 0,
+			.result_param2 = 0,
 			.command = cmd_mavlink.command,
-			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED)
+			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
+			.from_external = 0,
+			.result_param1 = 0,
+			.target_system = msg->sysid,
+			.target_component = msg->compid
 		};
 
 		if (_command_ack_pub == nullptr) {
@@ -588,9 +598,13 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 
 	vehicle_command_ack_s command_ack = {
 		.timestamp = hrt_absolute_time(),
+		.result_param2 = ack.result_param2,
 		.command = ack.command,
 		.result = ack.result,
-		.from_external = 1
+		.from_external = 1,
+		.result_param1 = ack.progress,
+		.target_system = ack.target_system,
+		.target_component = ack.target_component
 	};
 
 	if (_command_ack_pub == nullptr) {

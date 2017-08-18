@@ -41,8 +41,10 @@
 
 #include "input.h"
 #include "input_rc.h"
-#include <uORB/topics/vehicle_roi.h>
 #include <cstdint>
+
+#include <uORB/topics/vehicle_roi.h>
+#include <uORB/topics/vehicle_command.h>
 
 namespace vmount
 {
@@ -90,7 +92,7 @@ protected:
 	virtual int initialize();
 
 private:
-	void _ack_vehicle_command(uint16_t command);
+	void _ack_vehicle_command(vehicle_command_s *cmd);
 
 	int _vehicle_command_sub = -1;
 	orb_advert_t _vehicle_command_ack_pub = nullptr;

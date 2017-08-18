@@ -171,8 +171,13 @@ void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 	/* publish ACK */
 	struct vehicle_command_ack_s command_ack = {
 		.timestamp = hrt_absolute_time(),
+		.result_param2 = 0,
 		.command = cmd.command,
 		.result = (uint8_t)result,
+		.from_external = 0,
+		.result_param1 = 0,
+		.target_system = cmd.source_system,
+		.target_component = cmd.source_component
 	};
 
 	if (_command_ack_pub != nullptr) {
