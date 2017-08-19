@@ -122,6 +122,23 @@ void Simulator::write_airspeed_data(void *buf)
 	_airspeed.writeData(buf);
 }
 
+void Simulator::parameters_update(bool force)
+{
+	bool updated;
+	struct parameter_update_s param_upd;
+
+	orb_check(_param_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(parameter_update), _param_sub, &param_upd);
+	}
+
+	if (updated || force) {
+		// update C++ param system
+		updateParams();
+	}
+}
+
 int Simulator::start(int argc, char *argv[])
 {
 	int ret = 0;
