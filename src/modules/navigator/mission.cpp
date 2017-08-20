@@ -142,9 +142,31 @@ Mission::on_inactive()
 }
 
 void
+Mission::on_inactivation()
+{
+	// Disable camera trigger
+	vehicle_command_s cmd{};
+	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
+	// Pause trigger
+	cmd.param1 = -1.0f;
+	cmd.param3 = 1.0f;
+	cmd.timestamp = hrt_absolute_time();
+	_navigator->publish_vehicle_cmd(cmd);
+}
+
+void
 Mission::on_activation()
 {
 	set_mission_items();
+
+	// unpause triggering if it was paused
+	vehicle_command_s cmd{};
+	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
+	// unpause trigger
+	cmd.param1 = -1.0f;
+	cmd.param3 = 0.0f;
+	cmd.timestamp = hrt_absolute_time();
+	_navigator->publish_vehicle_cmd(cmd);
 }
 
 void
