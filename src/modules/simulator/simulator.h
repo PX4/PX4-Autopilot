@@ -46,6 +46,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/parameter_update.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_baro.h>
