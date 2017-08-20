@@ -623,7 +623,6 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().ref_alt = _altOrigin;
 		_pub_lpos.get().dist_bottom = _aglLowPass.getState();
 		_pub_lpos.get().dist_bottom_rate = - xLP(X_vz);
-		_pub_lpos.get().surface_bottom_timestamp = _timeStamp;
 		// we estimate agl even when we don't have terrain info
 		// if you are in terrain following mode this is important
 		// so that if terrain estimation fails there isn't a
@@ -687,7 +686,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
 	    PX4_ISFINITE(xLP(X_vz))) {
 		_pub_gpos.get().timestamp = _timeStamp;
-		_pub_gpos.get().time_utc_usec = _sub_gps.get().time_utc_usec;
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;
 		_pub_gpos.get().alt = alt;
@@ -701,10 +699,10 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().yaw = _eul(2);
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
+		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _estimatorInitialized & EST_TZ;
 		_pub_gpos.get().dead_reckoning = !(_estimatorInitialized & EST_XY);
-		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter;
 		_pub_gpos.update();
 		// TODO provide calculated values for these
 		_pub_gpos.get().evh = 0.0f;

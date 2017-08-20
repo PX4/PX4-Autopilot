@@ -70,13 +70,14 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_correction.h>
+#include <uORB/topics/sensor_corrected.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -128,7 +129,7 @@ private:
 	bool	_task_should_exit;		/**< if true, task_main() should exit */
 	int		_control_task;			/**< task handle */
 
-	int		_ctrl_state_sub;		/**< control state subscription */
+	int		_v_att_sub;		/**< vehicle attitude subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
 	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
 	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
@@ -138,8 +139,9 @@ private:
 	int		_vehicle_status_sub;	/**< vehicle status subscription */
 	int 	_motor_limits_sub;		/**< motor limits subscription */
 	int 	_battery_status_sub;	/**< battery status subscription */
-	int	_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
-	int	_sensor_correction_sub;	/**< sensor thermal correction subscription */
+	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
+	int		_sensor_correction_sub;	/**< sensor thermal correction subscription */
+	int		_sensor_corrected_sub;	/**< sensor in-run bias correction subscription */
 
 	unsigned _gyro_count;
 	int _selected_gyro;
@@ -153,7 +155,7 @@ private:
 
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
-	struct control_state_s				_ctrl_state;		/**< control state */
+	struct vehicle_attitude_s		_v_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
 	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
@@ -166,6 +168,7 @@ private:
 	struct battery_status_s				_battery_status;	/**< battery status */
 	struct sensor_gyro_s			_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
 	struct sensor_correction_s		_sensor_correction;		/**< sensor thermal corrections */
+	struct sensor_corrected_s		_sensor_corrected;		/**< sensor in-run bias corrections */
 
 	union {
 		struct {
@@ -353,12 +356,17 @@ private:
 	/**
 	 * Check for control state updates.
 	 */
-	void		control_state_poll();
+	void		vehicle_attitude_poll();
 
 	/**
 	 * Check for sensor thermal correction updates.
 	 */
 	void		sensor_correction_poll();
+
+	/**
+	 * Check for sensor in-run bias correction updates.
+	 */
+	void		sensor_corrected_poll();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -383,7 +391,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_control_task(-1),
 
 	/* subscriptions */
-	_ctrl_state_sub(-1),
+	_v_att_sub(-1),
 	_v_att_sp_sub(-1),
 	_v_control_mode_sub(-1),
 	_params_sub(-1),
@@ -393,6 +401,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_motor_limits_sub(-1),
 	_battery_status_sub(-1),
 	_sensor_correction_sub(-1),
+	_sensor_corrected_sub(-1),
 
 	/* gyro selection */
 	_gyro_count(1),
@@ -407,7 +416,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	_actuators_0_circuit_breaker_enabled(false),
 
-	_ctrl_state{},
+	_v_att{},
 	_v_att_sp{},
 	_v_rates_sp{},
 	_manual_control_sp{},
@@ -420,6 +429,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_battery_status{},
 	_sensor_gyro{},
 	_sensor_correction{},
+	_sensor_corrected{},
 
 	_saturation_status{},
 	/* performance counters */
@@ -802,14 +812,14 @@ MulticopterAttitudeControl::battery_status_poll()
 }
 
 void
-MulticopterAttitudeControl::control_state_poll()
+MulticopterAttitudeControl::vehicle_attitude_poll()
 {
 	/* check if there is a new message */
 	bool updated;
-	orb_check(_ctrl_state_sub, &updated);
+	orb_check(_v_att_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
 	}
 }
 
@@ -830,6 +840,19 @@ MulticopterAttitudeControl::sensor_correction_poll()
 	}
 }
 
+void
+MulticopterAttitudeControl::sensor_corrected_poll()
+{
+	/* check if there is a new message */
+	bool updated;
+	orb_check(_sensor_corrected_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(sensor_corrected), _sensor_corrected_sub, &_sensor_corrected);
+	}
+
+}
+
 /**
  * Attitude controller.
  * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
@@ -847,7 +870,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	math::Matrix<3, 3> R_sp = q_sp.to_dcm();
 
 	/* get current rotation matrix from control state quaternions */
-	math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+	math::Quaternion q_att(_v_att.q[0], _v_att.q[1], _v_att.q[2], _v_att.q[3]);
 	math::Matrix<3, 3> R = q_att.to_dcm();
 
 	/* all input data is ready, run controller itself */
@@ -1010,9 +1033,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	rates = _board_rotation * rates;
 
 	// correct for in-run bias errors
-	rates(0) -= _ctrl_state.roll_rate_bias;
-	rates(1) -= _ctrl_state.pitch_rate_bias;
-	rates(2) -= _ctrl_state.yaw_rate_bias;
+	rates(0) -= _sensor_corrected.gyro_x_bias;
+	rates(1) -= _sensor_corrected.gyro_y_bias;
+	rates(2) -= _sensor_corrected.gyro_z_bias;
 
 	math::Vector<3> rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_rate_p));
 	//math::Vector<3> rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_rate_i));
@@ -1086,9 +1109,9 @@ MulticopterAttitudeControl::task_main()
 	/*
 	 * do subscriptions
 	 */
+	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -1108,6 +1131,7 @@ MulticopterAttitudeControl::task_main()
 	}
 
 	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
+	_sensor_corrected_sub = orb_subscribe(ORB_ID(sensor_corrected));
 
 	/* initialize parameters cache */
 	parameters_update();
@@ -1163,8 +1187,9 @@ MulticopterAttitudeControl::task_main()
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
 			battery_status_poll();
-			control_state_poll();
+			vehicle_attitude_poll();
 			sensor_correction_poll();
+			sensor_corrected_poll();
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
@@ -1186,7 +1211,7 @@ MulticopterAttitudeControl::task_main()
 				} else {
 					vehicle_attitude_setpoint_poll();
 					_thrust_sp = _v_att_sp.thrust;
-					math::Quaternion q(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+					math::Quaternion q(_v_att.q[0], _v_att.q[1], _v_att.q[2], _v_att.q[3]);
 					math::Quaternion q_sp(&_v_att_sp.q_d[0]);
 					_ts_opt_recovery->setAttGains(_params.att_p, _params.yaw_ff);
 					_ts_opt_recovery->calcOptimalRates(q, q_sp, _v_att_sp.yaw_sp_move_rate, _rates_sp);
@@ -1255,7 +1280,7 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.control[7] = _v_att_sp.landing_gear;
 				_actuators.timestamp = hrt_absolute_time();
-				_actuators.timestamp_sample = _ctrl_state.timestamp;
+				_actuators.timestamp_sample = _v_att.timestamp;
 
 				/* scale effort by battery status */
 				if (_params.bat_scale_en && _battery_status.scale > 0.0f) {
@@ -1305,7 +1330,7 @@ MulticopterAttitudeControl::task_main()
 					_actuators.control[2] = 0.0f;
 					_actuators.control[3] = 0.0f;
 					_actuators.timestamp = hrt_absolute_time();
-					_actuators.timestamp_sample = _ctrl_state.timestamp;
+					_actuators.timestamp_sample = _v_att.timestamp;
 
 					if (!_actuators_0_circuit_breaker_enabled) {
 						if (_actuators_0_pub != nullptr) {
