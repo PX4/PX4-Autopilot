@@ -617,26 +617,4 @@ void VDev::showFiles()
 	pthread_mutex_unlock(&devmutex);
 }
 
-const char *VDev::topicList(unsigned int *next)
-{
-	for (; *next < PX4_MAX_DEV; (*next)++) {
-		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/obj/", 5) == 0) {
-			return devmap[(*next)++]->name;
-		}
-	}
-
-	return nullptr;
-}
-
-const char *VDev::devList(unsigned int *next)
-{
-	for (; *next < PX4_MAX_DEV; (*next)++) {
-		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/dev/", 5) == 0) {
-			return devmap[(*next)++]->name;
-		}
-	}
-
-	return nullptr;
-}
-
 } // namespace device
