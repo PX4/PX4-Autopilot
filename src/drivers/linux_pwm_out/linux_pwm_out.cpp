@@ -217,13 +217,7 @@ void task_main(int argc, char *argv[])
 		pwm_out = new NavioSysfsPWMOut(_device, _max_num_outputs);
 	}
 
-	/**
-	 * if the _protocol is "pca9685" and the driver is executed correctly，
-	 * the return value of "pwm_out->init()" will be higher than 0.
-	 */
-	bool check_pwm_device = (strcmp(_protocol, "pca9685") == 0) ? (0 > pwm_out->init()) : (pwm_out->init() != 0);
-
-	if (check_pwm_device) {
+	if (pwm_out->init() != 0) {
 		PX4_ERR("PWM output init failed");
 		delete pwm_out;
 		return;
