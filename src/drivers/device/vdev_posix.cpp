@@ -442,15 +442,5 @@ extern "C" {
 		return sim_delay;
 	}
 
-	const char *px4_get_device_names(unsigned int *handle)
-	{
-		return VDev::devList(handle);
-	}
-
-	const char *px4_get_topic_names(unsigned int *handle)
-	{
-		return VDev::topicList(handle);
-	}
-
 }
 
