@@ -48,7 +48,7 @@
 
 #define BUFFER_SIZE 1024
 #define UPDATE_TIME_MS 0
-#define LOOPS 10000
+#define LOOPS -1
 #define SLEEP_MS 1
 #define BAUDRATE 460800
 #define DEVICE "/dev/ttyACM0"
