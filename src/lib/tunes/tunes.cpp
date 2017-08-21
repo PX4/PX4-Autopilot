@@ -74,7 +74,7 @@ void Tunes::config_tone(bool repeat_flag)
 		_next = nullptr;
 
 	} else {
-		_tune = _start_tune;
+		_tune = _tune_start_ptr;
 		_next = _tune;
 	}
 
@@ -120,7 +120,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 			// TODO: come up with a better strategy
 			if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
 				_tune = _default_tunes[tune_control.tune_id];
-				_start_tune = _default_tunes[tune_control.tune_id];
+				_tune_start_ptr = _default_tunes[tune_control.tune_id];
 				_next = _tune;
 			}
 
@@ -140,7 +140,7 @@ void Tunes::set_string(const char *string)
 	// set tune string the first time
 	if (_tune == nullptr) {
 		_tune = string;
-		_start_tune = string;
+		_tune_start_ptr = string;
 		_next = _tune;
 	}
 }
