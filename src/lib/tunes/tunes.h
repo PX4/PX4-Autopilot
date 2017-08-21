@@ -101,7 +101,7 @@ private:
 
 	const char *_tune = nullptr; ///< current tune string
 	const char *_next = nullptr; ///< next note in the string
-	const char *_start_tune = nullptr; ///< pointer to repeat tune
+	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
 
 	unsigned _tempo;
 	unsigned _note_length;
