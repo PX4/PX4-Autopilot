@@ -326,8 +326,6 @@ public:
 	static void showFiles(void);
 	static void showDevices(void);
 	static void showTopics(void);
-	static const char *devList(unsigned int *next);
-	static const char *topicList(unsigned int *next);
 
 	/**
 	 * Get the device name.
