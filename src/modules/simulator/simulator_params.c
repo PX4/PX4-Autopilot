@@ -53,6 +53,7 @@ PARAM_DEFINE_INT32(SITL_UDP_PRT, 14560);
  * @min 1
  * @max 86400
  * @increment 1
+ * @unit s
  *
  * @group SITL
  */
