@@ -82,7 +82,7 @@ public:
 	 */
 	PCA9685(int bus, int address);
 
-	int init() override { return _fd >= 0; }
+	int init() override { return _fd >= 0 ? 0 : -1; }
 
 	int send_output_pwm(const uint16_t *pwm, int num_outputs) override;
 
