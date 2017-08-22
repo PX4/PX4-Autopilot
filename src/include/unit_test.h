@@ -53,15 +53,28 @@ class __EXPORT UnitTest
 {
 public:
 
-	UnitTest();
-	virtual ~UnitTest();
+	UnitTest() = default;
+	virtual ~UnitTest() = default;
 
 	/// @brief Override to run your unit tests. Unit tests should be called using ut_run_test macro.
 	/// @return true: all unit tests succeeded, false: one or more unit tests failed
 	virtual bool run_tests(void) = 0;
 
 	/// @brief Prints results from running of unit tests.
-	void print_results(void);
+	void print_results()
+	{
+		if (_tests_failed) {
+			PX4_ERR("SOME TESTS FAILED");
+
+		} else {
+			PX4_INFO("ALL TESTS PASSED");
+		}
+
+		PX4_INFO("  Tests passed :      %d", _tests_passed);
+		PX4_INFO("  Tests failed :      %d", _tests_failed);
+		PX4_INFO("  Tested assertions : %d", _assertions);
+	}
+
 
 /// @brief Macro to create a function which will run a unit test class and print results.
 #define ut_declare_test(test_function, test_class)	\
@@ -175,14 +188,21 @@ protected:
 	virtual void _init(void) { };		///< Run before each unit test. Override to provide custom behavior.
 	virtual void _cleanup(void) { };	///< Run after each unit test. Override to provide custom behavior.
 
-	void _print_assert(const char *msg, const char *test, const char *file, int line);
-	void _print_compare(const char *msg, const char *v1_text, int v1, const char *v2_text, int v2, const char *file,
-			    int line);
+	void _print_assert(const char *msg, const char *test, const char *file, int line)
+	{
+		PX4_ERR("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
+	}
 
-	int _tests_run;		///< The number of individual unit tests run
-	int _tests_failed;	///< The number of unit tests which failed
-	int _tests_passed;	///< The number of unit tests which passed
-	int _assertions;	///< Total number of assertions tested by all unit tests
+	void _print_compare(const char *msg, const char *v1_text, int v1, const char *v2_text, int v2, const char *file,
+			    int line)
+	{
+		PX4_ERR("Compare failed: %s - (%s:%d) (%s:%d) (%s:%d)", msg, v1_text, v1, v2_text, v2, file, line);
+	}
+
+	int _tests_run{0};		///< The number of individual unit tests run
+	int _tests_failed{0};	///< The number of unit tests which failed
+	int _tests_passed{0};	///< The number of unit tests which passed
+	int _assertions{0};	///< Total number of assertions tested by all unit tests
 };
 
 #endif /* UNIT_TEST_H_ */

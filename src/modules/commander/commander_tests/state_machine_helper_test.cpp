@@ -41,7 +41,7 @@
 #include "state_machine_helper_test.h"
 
 #include "../state_machine_helper.h"
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 class StateMachineHelperTest : public UnitTest
 {
