@@ -637,3 +637,35 @@ PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
+
+/**
+ * Loss of position failsafe activation delay.
+ *
+ * This sets number of micro seconds that the position checks need to be failed before the failsafe will activate.
+ *
+ * @reboot_required true
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1E6);
+
+/**
+ * Loss of position probation delay at takeoff.
+ *
+ * This sets number of micro seconds at takeoff that the EKF innovation checks need to pass for the positon to be declared good, if it has been declared bad.
+ * The probation period reduces by one second for every lapsed second of valid position down to a minimum of one second.
+ * When checks fail, the probation period is increased by COM_POS_FS_FACT seconds for every lapsed second up to a maximum of 100 seconds
+ *
+ * @reboot_required true
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30E6);
+
+/**
+ * Loss of position probation gain factor.
+ *
+ * This sets the rate that the loss of position probation time grows when position checks are failing.
+ *
+ * @reboot_required true
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
