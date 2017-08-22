@@ -1,4 +1,4 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <drivers/sf0x/sf0x_parser.h>
 

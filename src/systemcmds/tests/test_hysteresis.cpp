@@ -1,4 +1,4 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <systemlib/hysteresis/hysteresis.h>
 

@@ -1,5 +1,5 @@
 
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <matrix/math.hpp>
 #include <matrix/filter.hpp>

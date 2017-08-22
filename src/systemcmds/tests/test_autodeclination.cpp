@@ -1,4 +1,4 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <drivers/drv_hrt.h>
 #include <geo/geo.h>
