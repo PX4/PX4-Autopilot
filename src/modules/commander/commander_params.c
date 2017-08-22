@@ -641,8 +641,10 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
 /**
  * Loss of position failsafe activation delay.
  *
- * This sets number of micro seconds that the position checks need to be failed before the failsafe will activate.
+ * This sets number of uSec that the position checks need to be failed before the failsafe will activate.
+ * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5E6 and 10E6 should be used.
  *
+ * @unit uSec
  * @reboot_required true
  * @group Commander
  */
@@ -651,10 +653,13 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1E6);
 /**
  * Loss of position probation delay at takeoff.
  *
- * This sets number of micro seconds at takeoff that the EKF innovation checks need to pass for the positon to be declared good, if it has been declared bad.
- * The probation period reduces by one second for every lapsed second of valid position down to a minimum of one second.
- * When checks fail, the probation period is increased by COM_POS_FS_FACT seconds for every lapsed second up to a maximum of 100 seconds
+ * The probation delay is number of uSec that the EKF innovation checks need to pass for the positon to be declared good once it has been declared bad.
+ * The probation delay will be reset to this parameter value when takeoff is detected.
+ * After takeoff, if position checks are passing, the probation delay will reduce by one uSec for every lapsed uSec of valid position down to a minimum of 1E6 uSec.
+ * If position checks are failing, the probation delay will increase by COM_POS_FS_FACT micro seconds for every lapsed uSec up to a maximum of 100E6 uSec.
+ * The default value has been optimised for rotary wing applications. For fixed wing applications, a value of 1E6 should be used.
  *
+ * @unit uSec
  * @reboot_required true
  * @group Commander
  */
@@ -664,7 +669,9 @@ PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30E6);
  * Loss of position probation gain factor.
  *
  * This sets the rate that the loss of position probation time grows when position checks are failing.
+ * The default value has been optimised for rotary wing applications. For fixed wing applications a value of 2 should be used.
  *
+ * @unit uSec
  * @reboot_required true
  * @group Commander
  */
