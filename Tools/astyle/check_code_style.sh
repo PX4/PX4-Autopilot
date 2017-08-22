@@ -16,7 +16,7 @@ if [ -f "$FILE" ]; then
 		if [[ $PX4_ASTYLE_FIX -eq 1 ]]; then
 			${DIR}/fix_code_style.sh $FILE
 		else
-			echo $FILE 'bad formatting, please run "make format" or "./Tools/fix_code_style.sh' $FILE'"'
+			echo $FILE 'bad formatting, please run "make format" or "./Tools/astyle/fix_code_style.sh' $FILE'"'
 			exit 1
 		fi
 	fi
