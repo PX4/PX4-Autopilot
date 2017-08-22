@@ -300,12 +300,12 @@ s3put_coverage: tests_coverage
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
-	@$(SRC_DIR)/Tools/check_code_style_all.sh
+	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh
 	@git diff --check
 
 format:
 	$(call colorecho,"Formatting with astyle")
-	@$(SRC_DIR)/Tools/check_code_style_all.sh --fix
+	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh --fix
 
 # Testing
 # --------------------------------------------------------------------

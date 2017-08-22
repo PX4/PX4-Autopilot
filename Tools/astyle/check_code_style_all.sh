@@ -41,15 +41,15 @@ fi
 
 
 # install git pre-commit hook
-HOOK_FILE="$DIR/../.git/hooks/pre-commit"
+HOOK_FILE="$DIR/../../.git/hooks/pre-commit"
 if [ ! -f $HOOK_FILE ] && [ "$CI" != "true" ]; then
 	echo ""
 	echo -e "\033[31mNinja tip: add a git pre-commit hook to automatically check code style\033[0m"
-	echo -e "Would you like to install one now? (\033[94mcp ./Tools/pre-commit .git/hooks/pre-commit\033[0m): [y/\033[1mN\033[0m]"
+	echo -e "Would you like to install one now? (\033[94mcp ./Tools/astyle/pre-commit .git/hooks/pre-commit\033[0m): [y/\033[1mN\033[0m]"
 
 	read user_cmd
 	if [ "$user_cmd" == "y" ]; then
-		echo -e "copying ./Tools/pre-commit -> .git/hooks/pre-commit"
+		echo -e "copying ./Tools/astyle/pre-commit -> .git/hooks/pre-commit"
 		mkdir -p $DIR/../.git/hooks
 		cp $DIR/pre-commit $HOOK_FILE
 		echo -e "\033[94mGreat, hook installed!\033[0m (checking style now)"
