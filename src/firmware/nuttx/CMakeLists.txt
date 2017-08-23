@@ -69,7 +69,6 @@ target_link_libraries(firmware_nuttx
 	${startup_libs}
 	${module_libraries}
 	${df_driver_libs}
-	${config_extra_libs}
 	${nuttx_bootloader_wrapers}
 	${link_libs}
 	-Wl,--end-group)
