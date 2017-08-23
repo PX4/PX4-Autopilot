@@ -46,7 +46,6 @@ set(config_module_list
 	#modules/gpio_led
 	modules/land_detector
 
-	modules/dummy
 	modules/syslink
 
 	#
