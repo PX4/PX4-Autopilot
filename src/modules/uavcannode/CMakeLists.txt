@@ -53,14 +53,16 @@ add_definitions(
 		-DHW_VERSION_MINOR=${uavcanblid_hw_version_minor}
 		)
 
-add_subdirectory(../uavcan/libuavcan uavcannode_libuavcan)
+set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
+
+add_subdirectory(${LIBUAVCAN_DIR} uavcannode_libuavcan)
 add_dependencies(uavcan platforms__nuttx)
 
-include_directories(../../drivers/bootloaders/include)
-include_directories(../uavcan/libuavcan/libuavcan/include)
-include_directories(../uavcan/libuavcan/libuavcan/include/dsdlc_generated)
-include_directories(../uavcan/libuavcan/libuavcan_drivers/posix/include)
-include_directories(../uavcan/libuavcan/libuavcan_drivers/stm32/driver/include)
+include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders/include)
+include_directories(${LIBUAVCAN_DIR}/libuavcan/include)
+include_directories(${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated)
+include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include)
+include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include)
 
 px4_add_module(
 	MODULE modules__uavcannode
@@ -83,4 +85,6 @@ px4_add_module(
 		uavcan
 	)
 
-target_link_libraries(modules__uavcannode uavcan uavcan_stm32_driver)
+target_link_libraries(modules__uavcannode PUBLIC uavcan uavcan_stm32_driver)
+
+set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES uavcan_stm32_driver)

@@ -38,8 +38,8 @@ add_definitions(
 		-DHW_VERSION_MINOR=${uavcanblid_hw_version_minor}
 )
 
-include_directories(${px4_bootloader_base}include)
-include_directories(${px4_module_base}systemlib)
+include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders/include)
+include_directories(${PX4_SOURCE_DIR}/src/modules/systemlib)
 include_directories(.)
 
 px4_add_module(
@@ -48,18 +48,15 @@ px4_add_module(
 	SRCS
 		boot.c
 		../../common/stm32/board_identity.c
-		${px4_bootloader_base}src/uavcan/main.c
-		${px4_bootloader_base}src/common/boot_app_shared.c
-		${px4_bootloader_base}src/common/nuttx_stubs.c
-		${px4_bootloader_base}src/sched/timer.c
-		${px4_bootloader_base}src/fs/flash.c
-		${px4_bootloader_base}src/util/crc.c
-		${px4_bootloader_base}src/util/random.c
-		${px4_bootloader_base}src/arch/stm32/drivers/can/driver.c
-		${px4_bootloader_base}src/protocol/uavcan.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/uavcan/main.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/common/boot_app_shared.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/common/nuttx_stubs.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/sched/timer.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/fs/flash.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/util/crc.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/util/random.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/arch/stm32/drivers/can/driver.c
+		${PX4_SOURCE_DIR}/src/drivers/bootloaders/src/protocol/uavcan.c
 	DEPENDS
-		nuttx_export_${BOARD}
+		nuttx_build
 )
-
-
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

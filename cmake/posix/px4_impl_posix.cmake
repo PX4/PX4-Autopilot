@@ -37,10 +37,7 @@
 #
 # 	OS Specific Functions
 #
-#		* px4_posix_add_firmware
 #		* px4_posix_generate_builtin_commands
-#		* px4_posix_add_export
-#		* px4_posix_generate_romfs
 #
 # 	Required OS Interface Functions
 #
@@ -167,8 +164,10 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
-	set(added_include_dirs
+        set(added_include_dirs
+		src/modules/systemlib
 		src/platforms/posix/include
+		mavlink/include/mavlink
 		)
 
 	# This block sets added_definitions and added_cxx_flags.

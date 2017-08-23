@@ -182,11 +182,6 @@ set(config_module_list
 	lib/micro-CDR
 )
 
-set(config_extra_builtin_cmds
-	serdis
-	sercon
-	)
-
 set(config_rtps_send_topics
 	sensor_baro
 	)

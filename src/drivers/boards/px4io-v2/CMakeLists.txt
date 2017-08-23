@@ -34,8 +34,8 @@ px4_add_module(
 	MODULE drivers__boards__px4io-v2
 	COMPILE_FLAGS
 	SRCS
-		px4iov2_init.c
-		px4iov2_timer_config.c
+		px4io_init.c
+		px4io_timer_config.c
 	DEPENDS
 		platforms__common
 	)

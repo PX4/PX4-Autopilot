@@ -1,6 +1,9 @@
 include(nuttx/px4_impl_nuttx)
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4io-v2)
+set(config_nuttx_ld_script "ld_fullsize.script")
+
+set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
 	#
@@ -8,10 +11,9 @@ set(config_module_list
 	#
 	drivers/airspeed
 	drivers/blinkm
-	drivers/bma180
 	drivers/bmi160
 	drivers/bmp280
-	drivers/boards/px4fmu-v4pro
+	drivers/boards/px4fmu-v2
 	drivers/bst
 	drivers/camera_trigger
 	drivers/device
@@ -36,6 +38,7 @@ set(config_module_list
 	drivers/ms5525_airspeed
 	drivers/ms5611
 	drivers/oreoled
+	drivers/pca9685
 	drivers/pwm_input
 	drivers/pwm_out_sim
 	drivers/px4flow
@@ -93,6 +96,7 @@ set(config_module_list
 	#
 	# General system control
 	#
+	modules/camera_feedback
 	modules/commander
 	modules/events
 	modules/gpio_led
@@ -101,7 +105,6 @@ set(config_module_list
 	modules/mavlink
 	modules/navigator
 	modules/uavcan
-	modules/camera_feedback
 
 	#
 	# Estimation modules
@@ -131,11 +134,11 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/dataman
 	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
+	modules/dataman
 
 	# micro RTPS
 	modules/micrortps_bridge/micrortps_client
@@ -144,20 +147,21 @@ set(config_module_list
 	# Libraries
 	#
 	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/rc
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
+	lib/conversion
 	lib/launchdetection
 	lib/led
-	lib/mathlib
-	lib/mathlib/math/filter
+	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
-	lib/terrain_estimation
 	lib/version
+	lib/DriverFramework/framework
 	lib/micro-CDR
 
 	#
@@ -180,7 +184,7 @@ set(config_module_list
 	#
 	# Segway
 	#
-	#examples/segway
+	examples/segway
 
 	#
 	# Demo apps
@@ -188,33 +192,23 @@ set(config_module_list
 
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
-	#examples/px4_simple_app
+	examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
+	examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values
-	#examples/px4_mavlink_debug
+	examples/px4_mavlink_debug
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
-	#examples/fixedwing_control
+	examples/fixedwing_control
 
 	# Hardware test
-	#examples/hwtest
+	examples/hwtest
 
 	# EKF
-	#examples/ekf_att_pos_estimator
+	examples/ekf_att_pos_estimator
 )
-
-set(config_uavcan_num_ifaces 2)
-
-set(config_rtps_send_topics
-   sensor_combined
-   )
-
-set(config_rtps_receive_topics
-   sensor_baro
-   )

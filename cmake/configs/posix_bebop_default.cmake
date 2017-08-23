@@ -10,8 +10,6 @@ add_definitions(
 
 set(config_module_list
 
-  # examples/px4_simple_app
-
 	#
 	# Board support modules
 	#

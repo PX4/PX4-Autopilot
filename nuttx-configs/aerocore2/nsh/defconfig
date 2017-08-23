@@ -611,7 +611,7 @@ CONFIG_RAM_SIZE=262144
 # Board Selection
 #
 CONFIG_ARCH_BOARD_AEROCORE2=y
-CONFIG_ARCH_BOARD="AeroCore2"
+CONFIG_ARCH_BOARD="aerocore2"
 
 #
 # Custom Board Configuration
