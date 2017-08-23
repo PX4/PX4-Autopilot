@@ -121,12 +121,6 @@ set(config_extra_builtin_cmds
 set(config_io_board
 	)
 
-set(config_extra_libs
-	)
-
-set(config_io_extra_libs
-	)
-
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"

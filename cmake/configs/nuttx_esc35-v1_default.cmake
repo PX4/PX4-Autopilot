@@ -86,11 +86,6 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
-	)
-
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"

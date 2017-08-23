@@ -71,8 +71,3 @@ set(config_module_list
 
 
 )
-
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
-	)
