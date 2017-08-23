@@ -15,7 +15,7 @@
 
 
 
-    <arg name="cmd" default="$(find xacro)/xacro.py $(find px4)/Tools/sitl_gazebo/models/rotors_description/urdf/$(arg vehicle)_base.xacro rotors_description_dir:=$(find px4)/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(arg mavlink_udp_port) > $(arg vehicle)_$(arg ID).urdf ; 'gz sdf -p $(arg vehicle)_$(arg ID).urdf'" />
+    <arg name="cmd" default="$(find xacro)/xacro.py $(find px4)/Tools/sim_tools/sitl_gazebo/models/rotors_description/urdf/$(arg vehicle)_base.xacro rotors_description_dir:=$(find px4)/Tools/sim_tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(arg mavlink_udp_port) > $(arg vehicle)_$(arg ID).urdf ; 'gz sdf -p $(arg vehicle)_$(arg ID).urdf'" />
 
 
     <param command="$(arg cmd)" name="$(arg vehicle)_$(arg ID)_sdf" />

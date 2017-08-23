@@ -88,7 +88,7 @@ SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
 then
-	$src_path/Tools/jmavsim_run.sh -r 500 &
+	$src_path/Tools/sim_tools/jmavsim_run.sh -r 500 &
 	SIM_PID=`echo $!`
 	cd ../..
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
@@ -96,9 +96,9 @@ then
 	if [ -x "$(command -v gazebo)" ]
 	then
 		# Set the plugin path so Gazebo finds our model and sim
-		source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
+		source $src_path/Tools/sim_tools/setup_gazebo.bash ${src_path} ${build_path}
 
-		gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
+		gzserver --verbose ${src_path}/Tools/sim_tools/sitl_gazebo/worlds/${model}.world &
 		SIM_PID=`echo $!`
 
 		if [[ -n "$HEADLESS" ]]; then

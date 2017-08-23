@@ -19,7 +19,7 @@ BUILD_DIR=$2
 
 # setup Gazebo env and update package path
 export GAZEBO_PLUGIN_PATH=${BUILD_DIR}/build_gazebo:${GAZEBO_PLUGIN_PATH}
-export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:${SRC_DIR}/Tools/sitl_gazebo/models
+export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:${SRC_DIR}/Tools/sim_tools/sitl_gazebo/models
 # Disabling the remote model download seems only necessary with Gazebo 6
 #export GAZEBO_MODEL_DATABASE_URI=""
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SRC_DIR}/Tools/sitl_gazebo/Build/msgs/:${BUILD_DIR}/build_gazebo
