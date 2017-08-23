@@ -50,7 +50,7 @@ add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
 add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
 
 add_custom_target(run_config
-		COMMAND Tools/sitl_run.sh
+		COMMAND Tools/sim_tools/sitl_run.sh
 			$<TARGET_FILE:px4>
 			${config_sitl_rcS_dir}
 			${config_sitl_debugger}
@@ -65,7 +65,7 @@ add_custom_target(run_config
 
 # project to build sitl_gazebo if necessary
 ExternalProject_Add(sitl_gazebo
-	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/sitl_gazebo
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/sim_tools/sitl_gazebo
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
@@ -114,7 +114,7 @@ foreach(viewer ${viewers})
 			endif()
 
 			add_custom_target(${_targ_name}
-					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+					COMMAND ${PX4_SOURCE_DIR}/Tools/sim_tools/sitl_run.sh
 						$<TARGET_FILE:px4>
 						${config_sitl_rcS_dir}
 						${debugger}

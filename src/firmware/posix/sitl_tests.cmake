@@ -43,7 +43,7 @@ foreach(test_name ${tests})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
 	add_test(NAME ${test_name}
-		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+		COMMAND ${PX4_SOURCE_DIR}/Tools/sim_tools/sitl_run.sh
 			$<TARGET_FILE:px4>
 			posix-configs/SITL/init/test
 			none

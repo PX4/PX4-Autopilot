@@ -16,11 +16,11 @@
 [submodule "Tools/gencpp"]
 	path = Tools/gencpp
 	url = https://github.com/ros/gencpp.git
-[submodule "Tools/jMAVSim"]
-	path = Tools/jMAVSim
+[submodule "Tools/sim_tools/jMAVSim"]
+	path = Tools/sim_tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
-[submodule "Tools/sitl_gazebo"]
-	path = Tools/sitl_gazebo
+[submodule "Tools/sim_tools/sitl_gazebo"]
+	path = Tools/sim_tools/sitl_gazebo
 	url = https://github.com/PX4/sitl_gazebo.git
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
