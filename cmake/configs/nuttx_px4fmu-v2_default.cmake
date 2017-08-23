@@ -85,7 +85,6 @@ set(config_module_list
 	#modules/commander/commander_tests
 	#lib/controllib/controllib_test
 	#modules/mavlink/mavlink_tests
-	#modules/unit_test
 	#modules/uORB/uORB_tests
 	#systemcmds/tests
 
