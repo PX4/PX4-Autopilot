@@ -397,10 +397,3 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	return OK;
 }
-
-__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
-{
-#if defined(CONFIG_BOARD_RESET_ON_CRASH)
-	board_reset(0);
-#endif
-}

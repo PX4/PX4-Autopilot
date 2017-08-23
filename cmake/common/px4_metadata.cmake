@@ -73,7 +73,7 @@ function(px4_generate_messages)
 		REQUIRED MSG_FILES OS TARGET
 		ARGN ${ARGN})
 
-	if("${config_nuttx_config}" STREQUAL "bootloader")
+	if("${nuttx_config_type}" STREQUAL "bootloader")
 		# do nothing for bootloaders
 	else()
 
@@ -162,6 +162,12 @@ function(px4_generate_messages)
 			${msg_multi_files_out}
 			${msg_files_out}
 			)
+
+		target_include_directories(${TARGET}
+			PRIVATE ${PX4_SOURCE_DIR}/src/lib/micro-CDR/include
+			PRIVATE ${PX4_BINARY_DIR}/src/lib/micro-CDR/include/microcdr
+			)
+		target_link_libraries(${TARGET} PRIVATE lib__micro-CDR)
     endif()
 endfunction()
 

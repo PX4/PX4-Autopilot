@@ -32,14 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__boards__px4-same70xplained-v1
-	COMPILE_FLAGS
-		-Os
 	SRCS
-		../common/samv7/board_reset.c
-		../common/samv7/board_identity.c
-		../common/samv7/board_mcu_version.c
-		../common/board_crashdump.c
-		../common/board_dma_alloc.c
 		px4same70xplained_can.c
 		px4same70xplained_init.c
 		px4same70xplained_timer_config.c

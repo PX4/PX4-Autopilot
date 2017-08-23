@@ -168,6 +168,6 @@ fi
 sed -i -r -e 's%("(magic|description|summary)": ")([^"]*)(",).*%\1FIXME (was: \3)\4%' "Images/${newname}.prototype"
 
 echo "*** The following files contain a reference to $oldconfig (this might take a while):"
-find . -path './build_*' -o -path './.git' -o -name 'defconfig' -prune -o -type f -exec grep -l -- "$oldconfig" {} \;
+find . -path './build/*' -o -path './.git' -o -name 'defconfig' -prune -o -type f -exec grep -l -- "$oldconfig" {} \;
 echo "*** Run 'git diff' to check the changes that this script already made relative to the copied prototype files."
 echo "*** Use 'git status' to see other (added) files, that likely need fixing."

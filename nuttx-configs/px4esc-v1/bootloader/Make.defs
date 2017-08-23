@@ -59,11 +59,11 @@ OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
 MAXOPTIMIZATION		 = -Os
-ARCHCPUFLAGS = -mcpu=cortex-m4 \
-    -mthumb \
-    -march=armv7e-m \
-    -mfpu=fpv4-sp-d16 \
-    -mfloat-abi=hard
+ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
+			   -mthumb \
+			   -march=armv7e-m \
+			   -mfpu=fpv4-sp-d16 \
+			   -mfloat-abi=hard
 
 # Enable precise stack overflow tracking
 
