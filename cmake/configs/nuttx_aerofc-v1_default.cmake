@@ -120,9 +120,3 @@ set(config_extra_builtin_cmds
 
 set(config_io_board
 	)
-
-set(config_extra_libs
-	)
-
-set(config_io_extra_libs
-	)
