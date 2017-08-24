@@ -39,27 +39,9 @@
  */
 
 #include <px4_config.h>
+#include <drivers/device/device.h>
 
 #include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
-#include <arch/board/board.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
@@ -173,7 +155,7 @@ Airspeed::probe()
 }
 
 int
-Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
+Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -249,14 +231,14 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -288,7 +270,7 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-Airspeed::read(struct file *filp, char *buffer, size_t buflen)
+Airspeed::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(differential_pressure_s);
 	differential_pressure_s *abuf = reinterpret_cast<differential_pressure_s *>(buffer);

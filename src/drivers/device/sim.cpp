@@ -88,7 +88,7 @@ SIM::init()
 	ret = Device::init();
 
 	if (ret != PX4_OK) {
-		PX4_ERR("VDev::init failed");
+		PX4_ERR("CDev::init failed");
 		return ret;
 	}
 

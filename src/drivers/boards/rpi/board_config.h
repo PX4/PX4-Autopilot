@@ -50,5 +50,11 @@
 
 #define BOARD_MAX_LEDS 1 // Number external of LED's this board has
 
+/*
+ * I2C busses
+ */
+#define PX4_I2C_BUS_EXPANSION	1
+#define PX4_NUMBER_I2C_BUSES 1
+
 #include <system_config.h>
 #include "../common/board_common.h"

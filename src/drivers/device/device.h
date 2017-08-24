@@ -35,7 +35,16 @@
 
 #ifdef __PX4_NUTTX
 #include "device_nuttx.h"
+
+#include <nuttx/arch.h>
+#define ATOMIC_ENTER irqstate_t flags = px4_enter_critical_section()
+#define ATOMIC_LEAVE px4_leave_critical_section(flags)
+
 #elif defined (__PX4_POSIX)
 #include "vdev.h"
+
+#define ATOMIC_ENTER lock()
+#define ATOMIC_LEAVE unlock()
+
 #endif
 
