@@ -147,12 +147,10 @@ private:
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
 	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
-	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
 	bool		_debug;				/**< if set to true, print debug output */
 
 	float _flaps_applied;
 	float _flaperons_applied;
-
 
 	struct {
 		float p_tc;
@@ -162,19 +160,19 @@ private:
 		float p_rmax_pos;
 		float p_rmax_neg;
 		float p_integrator_max;
+
 		float r_tc;
 		float r_p;
 		float r_i;
 		float r_ff;
 		float r_integrator_max;
 		float r_rmax;
+
 		float y_p;
 		float y_i;
 		float y_ff;
 		float y_integrator_max;
-		float y_coordinated_min_speed;
 		float roll_to_yaw_ff;
-		int32_t y_coordinated_method;
 		float y_rmax;
 
 		bool w_en;
@@ -191,12 +189,15 @@ private:
 		float trim_roll;
 		float trim_pitch;
 		float trim_yaw;
+
 		float rollsp_offset_deg;		/**< Roll Setpoint Offset in deg */
 		float pitchsp_offset_deg;		/**< Pitch Setpoint Offset in deg */
 		float rollsp_offset_rad;		/**< Roll Setpoint Offset in rad */
 		float pitchsp_offset_rad;		/**< Pitch Setpoint Offset in rad */
+
 		float man_roll_max;				/**< Max Roll in rad */
 		float man_pitch_max;			/**< Max Pitch in rad */
+
 		float man_roll_scale;			/**< scale factor applied to roll actuator control in pure manual mode */
 		float man_pitch_scale;			/**< scale factor applied to pitch actuator control in pure manual mode */
 		float man_yaw_scale; 			/**< scale factor applied to yaw actuator control in pure manual mode */
@@ -225,19 +226,19 @@ private:
 		param_t p_rmax_pos;
 		param_t p_rmax_neg;
 		param_t p_integrator_max;
+
 		param_t r_tc;
 		param_t r_p;
 		param_t r_i;
 		param_t r_ff;
 		param_t r_integrator_max;
 		param_t r_rmax;
+
 		param_t y_p;
 		param_t y_i;
 		param_t y_ff;
 		param_t y_integrator_max;
-		param_t y_coordinated_min_speed;
 		param_t roll_to_yaw_ff;
-		param_t y_coordinated_method;
 		param_t y_rmax;
 
 		param_t w_en;
@@ -254,10 +255,13 @@ private:
 		param_t trim_roll;
 		param_t trim_pitch;
 		param_t trim_yaw;
+
 		param_t rollsp_offset_deg;
 		param_t pitchsp_offset_deg;
+
 		param_t man_roll_max;
 		param_t man_pitch_max;
+
 		param_t man_roll_scale;
 		param_t man_pitch_scale;
 		param_t man_yaw_scale;
@@ -292,47 +296,17 @@ private:
 	/**
 	 * Update our local parameter cache.
 	 */
-	int		parameters_update();
-
-	/**
-	 * Update control outputs
-	 *
-	 */
-	void		control_update();
+	void		parameters_update();
 
 	/**
 	 * Check for changes in vehicle control mode.
 	 */
 	void		vehicle_control_mode_poll();
-
-	/**
-	 * Check for changes in manual inputs.
-	 */
 	void		vehicle_manual_poll();
-
-	/**
-	 * Check for set triplet updates.
-	 */
 	void		vehicle_setpoint_poll();
-
-	/**
-	 * Check for global position updates.
-	 */
 	void		global_pos_poll();
-
-	/**
-	 * Check for vehicle status updates.
-	 */
 	void		vehicle_status_poll();
-
-	/**
-	 * Check for vehicle land detected updates.
-	 */
 	void		vehicle_land_detected_poll();
-
-	/**
-	 * Check for battery status updates.
-	 */
 	void		battery_status_poll();
 
 	/**
@@ -381,15 +355,10 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
-#if 0
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano")),
-#else
-	_nonfinite_input_perf(nullptr),
-	_nonfinite_output_perf(nullptr),
-#endif
+
 	/* states */
-	_setpoint_valid(false),
 	_debug(false),
 	_flaps_applied(0),
 	_flaperons_applied(0),
@@ -443,17 +412,16 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
 
-	_parameter_handles.y_coordinated_min_speed = param_find("FW_YCO_VMIN");
-	_parameter_handles.y_coordinated_method = param_find("FW_YCO_METHOD");
-
 	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
 	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
 	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
+
 	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
 	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
+
 	_parameter_handles.man_roll_scale = param_find("FW_MAN_R_SC");
 	_parameter_handles.man_pitch_scale = param_find("FW_MAN_P_SC");
 	_parameter_handles.man_yaw_scale = param_find("FW_MAN_Y_SC");
@@ -504,7 +472,7 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 	att_control::g_control = nullptr;
 }
 
-int
+void
 FixedwingAttitudeControl::parameters_update()
 {
 
@@ -520,7 +488,6 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.r_p, &(_parameters.r_p));
 	param_get(_parameter_handles.r_i, &(_parameters.r_i));
 	param_get(_parameter_handles.r_ff, &(_parameters.r_ff));
-
 	param_get(_parameter_handles.r_integrator_max, &(_parameters.r_integrator_max));
 	param_get(_parameter_handles.r_rmax, &(_parameters.r_rmax));
 
@@ -528,8 +495,6 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_i, &(_parameters.y_i));
 	param_get(_parameter_handles.y_ff, &(_parameters.y_ff));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
-	param_get(_parameter_handles.y_coordinated_min_speed, &(_parameters.y_coordinated_min_speed));
-	param_get(_parameter_handles.y_coordinated_method, &(_parameters.y_coordinated_method));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 	param_get(_parameter_handles.roll_to_yaw_ff, &(_parameters.roll_to_yaw_ff));
 
@@ -550,14 +515,17 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.trim_roll, &(_parameters.trim_roll));
 	param_get(_parameter_handles.trim_pitch, &(_parameters.trim_pitch));
 	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
+
 	param_get(_parameter_handles.rollsp_offset_deg, &(_parameters.rollsp_offset_deg));
 	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
 	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
 	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_deg);
+
 	param_get(_parameter_handles.man_roll_max, &(_parameters.man_roll_max));
 	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
+
 	param_get(_parameter_handles.man_roll_scale, &(_parameters.man_roll_scale));
 	param_get(_parameter_handles.man_pitch_scale, &(_parameters.man_pitch_scale));
 	param_get(_parameter_handles.man_yaw_scale, &(_parameters.man_yaw_scale));
@@ -600,8 +568,6 @@ FixedwingAttitudeControl::parameters_update()
 	_yaw_ctrl.set_k_i(_parameters.y_i);
 	_yaw_ctrl.set_k_ff(_parameters.y_ff);
 	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
-	_yaw_ctrl.set_coordinated_min_speed(_parameters.y_coordinated_min_speed);
-	_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	/* wheel control parameters */
@@ -610,8 +576,6 @@ FixedwingAttitudeControl::parameters_update()
 	_wheel_ctrl.set_k_ff(_parameters.w_ff);
 	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
 	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
-
-	return PX4_OK;
 }
 
 void
@@ -623,7 +587,6 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
-
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
@@ -637,7 +600,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 	orb_check(_manual_sub, &manual_updated);
 
 	if (manual_updated) {
-
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 }
@@ -651,7 +613,6 @@ FixedwingAttitudeControl::vehicle_setpoint_poll()
 
 	if (att_sp_updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
-		_setpoint_valid = true;
 	}
 }
 
@@ -863,17 +824,11 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			vehicle_setpoint_poll();
-
 			vehicle_control_mode_poll();
-
 			vehicle_manual_poll();
-
 			global_pos_poll();
-
 			vehicle_status_poll();
-
 			vehicle_land_detected_poll();
-
 			battery_status_poll();
 
 			// the position controller will not emit attitude setpoints in some modes
@@ -886,11 +841,8 @@ FixedwingAttitudeControl::task_main()
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_airframe.control[7] = 1.0f;
-				//warnx("_actuators_airframe.control[1] = 1.0f;");
-
 			} else {
 				_actuators_airframe.control[7] = 0.0f;
-				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
 			/* if we are in rotary wing mode, do nothing */
@@ -1054,8 +1006,6 @@ FixedwingAttitudeControl::task_main()
 				control_input.lock_integrator = lock_integrator;
 				control_input.groundspeed = groundspeed;
 				control_input.groundspeed_scaler = groundspeed_scaler;
-
-				_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 
 				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
