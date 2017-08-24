@@ -41,6 +41,9 @@
  *
  */
 
+#ifndef FIXEDWINGATTITUDECONTROL_HPP_
+#define FIXEDWINGATTITUDECONTROL_HPP_
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
@@ -283,7 +286,6 @@ private:
 	ECL_YawController				_yaw_ctrl;
 	ECL_WheelController			_wheel_ctrl;
 
-
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -311,3 +313,10 @@ private:
 	void		task_main();
 
 };
+
+namespace att_control
+{
+extern FixedwingAttitudeControl *g_control;
+} //namespace att_control
+
+#endif // FIXEDWINGATTITUDECONTROL_HPP_

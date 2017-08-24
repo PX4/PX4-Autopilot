@@ -36,6 +36,7 @@ px4_add_module(
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
+		FixedwingAttitudeControl.cpp
 		fw_att_control_main.cpp
 	DEPENDS
 		platforms__common
