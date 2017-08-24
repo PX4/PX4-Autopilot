@@ -78,7 +78,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class __EXPORT AirspeedSim : public device::VDev
+class __EXPORT AirspeedSim : public device::CDev
 {
 public:
 	AirspeedSim(int bus, int address, unsigned conversion_interval, const char *path);

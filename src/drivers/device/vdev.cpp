@@ -61,7 +61,7 @@ static map<string, void *> devmap;
 pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-VDev::VDev(const char *name,
+CDev::CDev(const char *name,
 	   const char *devname) :
 	// base class
 	Device(name),
@@ -75,12 +75,12 @@ VDev::VDev(const char *name,
 	_open_count(0),
 	_pollset(nullptr)
 {
-	PX4_DEBUG("VDev::VDev");
+	DEVICE_DEBUG("CDev::CDev");
 }
 
-VDev::~VDev()
+CDev::~CDev()
 {
-	PX4_DEBUG("VDev::~VDev");
+	DEVICE_DEBUG("CDev::~CDev");
 
 	if (_registered) {
 		unregister_driver(_devname);
@@ -92,9 +92,9 @@ VDev::~VDev()
 }
 
 int
-VDev::register_class_devname(const char *class_devname)
+CDev::register_class_devname(const char *class_devname)
 {
-	PX4_DEBUG("VDev::register_class_devname %s", class_devname);
+	DEVICE_DEBUG("CDev::register_class_devname %s", class_devname);
 
 	if (class_devname == nullptr) {
 		return -EINVAL;
@@ -121,9 +121,9 @@ VDev::register_class_devname(const char *class_devname)
 }
 
 int
-VDev::register_driver(const char *name, void *data)
+CDev::register_driver(const char *name, void *data)
 {
-	PX4_DEBUG("VDev::register_driver %s", name);
+	DEVICE_DEBUG("CDev::register_driver %s", name);
 	int ret = 0;
 
 	if (name == nullptr || data == nullptr) {
@@ -141,7 +141,7 @@ VDev::register_driver(const char *name, void *data)
 	}
 
 	devmap[name] = (void *)data;
-	PX4_DEBUG("Registered DEV %s", name);
+	DEVICE_DEBUG("Registered DEV %s", name);
 
 	pthread_mutex_unlock(&devmutex);
 
@@ -149,9 +149,9 @@ VDev::register_driver(const char *name, void *data)
 }
 
 int
-VDev::unregister_driver(const char *name)
+CDev::unregister_driver(const char *name)
 {
-	PX4_DEBUG("VDev::unregister_driver %s", name);
+	DEVICE_DEBUG("CDev::unregister_driver %s", name);
 	int ret = -EINVAL;
 
 	if (name == nullptr) {
@@ -161,7 +161,7 @@ VDev::unregister_driver(const char *name)
 	pthread_mutex_lock(&devmutex);
 
 	if (devmap.erase(name) > 0) {
-		PX4_DEBUG("Unregistered DEV %s", name);
+		DEVICE_DEBUG("Unregistered DEV %s", name);
 		ret = 0;
 	}
 
@@ -171,9 +171,9 @@ VDev::unregister_driver(const char *name)
 }
 
 int
-VDev::unregister_class_devname(const char *class_devname, unsigned class_instance)
+CDev::unregister_class_devname(const char *class_devname, unsigned class_instance)
 {
-	PX4_DEBUG("VDev::unregister_class_devname");
+	DEVICE_DEBUG("CDev::unregister_class_devname");
 	char name[32];
 	snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
 	int ret = -EINVAL;
@@ -182,7 +182,7 @@ VDev::unregister_class_devname(const char *class_devname, unsigned class_instanc
 	pthread_mutex_lock(&devmutex);
 
 	if (devmap.erase(name) > 0) {
-		PX4_DEBUG("Unregistered class DEV %s", name);
+		DEVICE_DEBUG("Unregistered class DEV %s", name);
 		ret = 0;
 	}
 
@@ -192,9 +192,9 @@ VDev::unregister_class_devname(const char *class_devname, unsigned class_instanc
 }
 
 int
-VDev::init()
+CDev::init()
 {
-	PX4_DEBUG("VDev::init");
+	DEVICE_DEBUG("CDev::init");
 
 	// base class init first
 	int ret = Device::init();
@@ -222,9 +222,9 @@ out:
  * Default implementations of the character device interface
  */
 int
-VDev::open(file_t *filep)
+CDev::open(file_t *filep)
 {
-	PX4_DEBUG("VDev::open");
+	DEVICE_DEBUG("CDev::open");
 	int ret = PX4_OK;
 
 	lock();
@@ -247,16 +247,16 @@ VDev::open(file_t *filep)
 }
 
 int
-VDev::open_first(file_t *filep)
+CDev::open_first(file_t *filep)
 {
-	PX4_DEBUG("VDev::open_first");
+	DEVICE_DEBUG("CDev::open_first");
 	return PX4_OK;
 }
 
 int
-VDev::close(file_t *filep)
+CDev::close(file_t *filep)
 {
-	PX4_DEBUG("VDev::close");
+	DEVICE_DEBUG("CDev::close");
 	int ret = PX4_OK;
 
 	lock();
@@ -280,37 +280,37 @@ VDev::close(file_t *filep)
 }
 
 int
-VDev::close_last(file_t *filep)
+CDev::close_last(file_t *filep)
 {
-	PX4_DEBUG("VDev::close_last");
+	DEVICE_DEBUG("CDev::close_last");
 	return PX4_OK;
 }
 
 ssize_t
-VDev::read(file_t *filep, char *buffer, size_t buflen)
+CDev::read(file_t *filep, char *buffer, size_t buflen)
 {
-	PX4_DEBUG("VDev::read");
+	DEVICE_DEBUG("CDev::read");
 	return -ENOSYS;
 }
 
 ssize_t
-VDev::write(file_t *filep, const char *buffer, size_t buflen)
+CDev::write(file_t *filep, const char *buffer, size_t buflen)
 {
-	PX4_DEBUG("VDev::write");
+	DEVICE_DEBUG("CDev::write");
 	return -ENOSYS;
 }
 
 off_t
-VDev::seek(file_t *filep, off_t offset, int whence)
+CDev::seek(file_t *filep, off_t offset, int whence)
 {
-	PX4_DEBUG("VDev::seek");
+	DEVICE_DEBUG("CDev::seek");
 	return -ENOSYS;
 }
 
 int
-VDev::ioctl(file_t *filep, int cmd, unsigned long arg)
+CDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 {
-	PX4_DEBUG("VDev::ioctl");
+	DEVICE_DEBUG("CDev::ioctl");
 	int ret = -ENOTTY;
 
 	switch (cmd) {
@@ -342,9 +342,9 @@ VDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 }
 
 int
-VDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
+CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 {
-	PX4_DEBUG("VDev::Poll %s", setup ? "setup" : "teardown");
+	DEVICE_DEBUG("CDev::Poll %s", setup ? "setup" : "teardown");
 	int ret = PX4_OK;
 
 	/*
@@ -358,7 +358,7 @@ VDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 		 * benefit.
 		 */
 		fds->priv = (void *)filep;
-		PX4_DEBUG("VDev::poll: fds->priv = %p", filep);
+		DEVICE_DEBUG("CDev::poll: fds->priv = %p", filep);
 
 		/*
 		 * Handle setup requests.
@@ -395,9 +395,9 @@ VDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 }
 
 void
-VDev::poll_notify(pollevent_t events)
+CDev::poll_notify(pollevent_t events)
 {
-	PX4_DEBUG("VDev::poll_notify events = %0x", events);
+	DEVICE_DEBUG("CDev::poll_notify events = %0x", events);
 
 	/* lock against poll() as well as other wakeups */
 	lock();
@@ -412,16 +412,16 @@ VDev::poll_notify(pollevent_t events)
 }
 
 void
-VDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
+CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
-	PX4_DEBUG("VDev::poll_notify_one");
+	DEVICE_DEBUG("CDev::poll_notify_one");
 	int value;
 	px4_sem_getvalue(fds->sem, &value);
 
 	/* update the reported event set */
 	fds->revents |= fds->events & events;
 
-	PX4_DEBUG(" Events fds=%p %0x %0x %0x %d", fds, fds->revents, fds->events, events, value);
+	DEVICE_DEBUG(" Events fds=%p %0x %0x %0x %d", fds, fds->revents, fds->events, events, value);
 
 	/* if the state is now interesting, wake the waiter if it's still asleep */
 	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
@@ -431,20 +431,20 @@ VDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 }
 
 pollevent_t
-VDev::poll_state(file_t *filep)
+CDev::poll_state(file_t *filep)
 {
-	PX4_DEBUG("VDev::poll_notify");
+	DEVICE_DEBUG("CDev::poll_notify");
 	/* by default, no poll events to report */
 	return 0;
 }
 
 int
-VDev::store_poll_waiter(px4_pollfd_struct_t *fds)
+CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 {
 	/*
 	 * Look for a free slot.
 	 */
-	PX4_DEBUG("VDev::store_poll_waiter");
+	DEVICE_DEBUG("CDev::store_poll_waiter");
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (nullptr == _pollset[i]) {
@@ -482,9 +482,9 @@ VDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 }
 
 int
-VDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
+CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 {
-	PX4_DEBUG("VDev::remove_poll_waiter");
+	DEVICE_DEBUG("CDev::remove_poll_waiter");
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (fds == _pollset[i]) {
@@ -499,9 +499,9 @@ VDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 	return -EINVAL;
 }
 
-VDev *VDev::getDev(const char *path)
+CDev *CDev::getDev(const char *path)
 {
-	PX4_DEBUG("VDev::getDev");
+	PX4_DEBUG("CDev::getDev");
 
 	pthread_mutex_lock(&devmutex);
 
@@ -509,7 +509,7 @@ VDev *VDev::getDev(const char *path)
 
 	if (item != devmap.end()) {
 		pthread_mutex_unlock(&devmutex);
-		return (VDev *)item->second;
+		return (CDev *)item->second;
 	}
 
 	pthread_mutex_unlock(&devmutex);
@@ -517,7 +517,7 @@ VDev *VDev::getDev(const char *path)
 	return nullptr;
 }
 
-void VDev::showDevices()
+void CDev::showDevices()
 {
 	int i = 0;
 	PX4_INFO("PX4 Devices:");
@@ -547,7 +547,7 @@ void VDev::showDevices()
 	} while (i == 0);
 }
 
-void VDev::showTopics()
+void CDev::showTopics()
 {
 	PX4_INFO("Devices:");
 
@@ -562,7 +562,7 @@ void VDev::showTopics()
 	pthread_mutex_unlock(&devmutex);
 }
 
-void VDev::showFiles()
+void CDev::showFiles()
 {
 	PX4_INFO("Files:");
 

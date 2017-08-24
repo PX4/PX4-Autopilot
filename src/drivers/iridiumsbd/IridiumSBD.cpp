@@ -514,11 +514,7 @@ int IridiumSBD::ioctl(struct file *filp, int cmd, unsigned long arg)
 	default: {
 
 			/* see if the parent class can make any use of it */
-#ifdef __PX4_NUTTX
 			return CDev::ioctl(filp, cmd, arg);
-#else
-			return VDev::ioctl(filp, cmd, arg);
-#endif
 		}
 	}
 }
