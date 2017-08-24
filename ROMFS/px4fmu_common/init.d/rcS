@@ -140,6 +140,10 @@ then
 		fi
 	fi
 
+	# FMUv5 may have both PWM I2C RGB LED support
+
+	rgbled_pwm start
+
 	# Currently unused, but might be useful down the road
 	#if pca8574 start
 	#then
