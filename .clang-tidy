@@ -9,6 +9,7 @@ Checks:          '*
 		,-clang-analyzer-core.UndefinedBinaryOperatorResult
 		,-clang-analyzer-core.uninitialized.Assign
 		,-clang-analyzer-core.VLASize
+		,-clang-analyzer-cplusplus.NewDelete
 		,-clang-analyzer-cplusplus.NewDeleteLeaks
 		,-clang-analyzer-deadcode.DeadStores
 		,-clang-analyzer-optin.cplusplus.VirtualCall
