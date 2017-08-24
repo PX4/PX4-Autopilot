@@ -42,22 +42,14 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 #ifdef POSIX_SHARED
-//#include <unistd.h>
-//#include <pthread.h>
+
+#include "ecl.h"
+
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
 #include <float.h>
-
-#ifndef __PX4_QURT
-#if defined(__cplusplus) && !defined(__PX4_NUTTX)
-#include <cmath>
-#define ISFINITE(x) std::isfinite(x)
-#else
-#define ISFINITE(x) isfinite(x)
-#endif
-#endif
 
 /****************************************************************************
  *
@@ -473,7 +465,7 @@ float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_ne
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) ,
+	float theta = atan2f(sin(d_lon) * cos(lat_next_rad),
 			     cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
 	theta = _wrap_pi(theta);
