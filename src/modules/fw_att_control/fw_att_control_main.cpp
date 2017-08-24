@@ -83,7 +83,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano")),
 
 	/* states */
-	_debug(false),
 	_flaps_applied(0),
 	_flaperons_applied(0),
 	_roll(0.0f),
@@ -753,10 +752,6 @@ FixedwingAttitudeControl::task_main()
 						if (!PX4_ISFINITE(roll_u)) {
 							_roll_ctrl.reset_integrator();
 							perf_count(_nonfinite_output_perf);
-
-							if (_debug && loop_counter % 10 == 0) {
-								warnx("roll_u %.4f", (double)roll_u);
-							}
 						}
 
 						float pitch_u = _pitch_ctrl.control_euler_rate(control_input);
@@ -766,21 +761,6 @@ FixedwingAttitudeControl::task_main()
 						if (!PX4_ISFINITE(pitch_u)) {
 							_pitch_ctrl.reset_integrator();
 							perf_count(_nonfinite_output_perf);
-
-							if (_debug && loop_counter % 10 == 0) {
-								warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
-								      " airspeed %.4f, airspeed_scaling %.4f,"
-								      " roll_sp %.4f, pitch_sp %.4f,"
-								      " _roll_ctrl.get_desired_rate() %.4f,"
-								      " _pitch_ctrl.get_desired_rate() %.4f"
-								      " att_sp.roll_body %.4f",
-								      (double)pitch_u, (double)_yaw_ctrl.get_desired_rate(),
-								      (double)airspeed, (double)airspeed_scaling,
-								      (double)roll_sp, (double)pitch_sp,
-								      (double)_roll_ctrl.get_desired_rate(),
-								      (double)_pitch_ctrl.get_desired_rate(),
-								      (double)_att_sp.roll_body);
-							}
 						}
 
 						float yaw_u = 0.0f;
@@ -804,10 +784,6 @@ FixedwingAttitudeControl::task_main()
 							_yaw_ctrl.reset_integrator();
 							_wheel_ctrl.reset_integrator();
 							perf_count(_nonfinite_output_perf);
-
-							if (_debug && loop_counter % 10 == 0) {
-								warnx("yaw_u %.4f", (double)yaw_u);
-							}
 						}
 
 						/* throttle passed through if it is finite and if no engine failure was detected */
@@ -822,19 +798,8 @@ FixedwingAttitudeControl::task_main()
 							_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
 						}
 
-
-						if (!PX4_ISFINITE(throttle_sp)) {
-							if (_debug && loop_counter % 10 == 0) {
-								warnx("throttle_sp %.4f", (double)throttle_sp);
-							}
-						}
-
 					} else {
 						perf_count(_nonfinite_input_perf);
-
-						if (_debug && loop_counter % 10 == 0) {
-							warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
-						}
 					}
 
 				} else {
@@ -933,7 +898,7 @@ FixedwingAttitudeControl::task_main()
 		perf_end(_loop_perf);
 	}
 
-	warnx("exiting.\n");
+	PX4_INFO("exiting.\n");
 
 	_control_task = -1;
 	_task_running = false;

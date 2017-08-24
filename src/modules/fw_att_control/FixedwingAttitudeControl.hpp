@@ -140,8 +140,6 @@ private:
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
 	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
-	bool		_debug;				/**< if set to true, print debug output */
-
 	float _flaps_applied;
 	float _flaperons_applied;
 
