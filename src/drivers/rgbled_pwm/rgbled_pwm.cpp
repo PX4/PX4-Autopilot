@@ -101,7 +101,7 @@ private:
 	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
 };
 
-extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
+extern "C" __EXPORT int rgbled_pwm_main(int argc, char *argv[]);
 extern int led_pwm_servo_set(unsigned channel, uint8_t  value);
 extern unsigned led_pwm_servo_get(unsigned channel);
 extern int led_pwm_servo_init(void);
@@ -114,10 +114,8 @@ namespace
 RGBLED_PWM *g_rgbled = nullptr;
 }
 
-void rgbled_usage();
-
 RGBLED_PWM::RGBLED_PWM() :
-	CDev("rgbled", RGBLED0_DEVICE_PATH),
+	CDev("rgbled_pwm", RGBLED_PWM0_DEVICE_PATH),
 	_work{},
 	_r(0),
 	_g(0),
@@ -282,14 +280,14 @@ RGBLED_PWM::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 	return OK;
 }
 
-void
+static void
 rgbled_usage()
 {
 	PX4_INFO("missing command: try 'start', 'status', 'stop'");
 }
 
 int
-rgbled_main(int argc, char *argv[])
+rgbled_pwm_main(int argc, char *argv[])
 {
 	int ch;
 
