@@ -42,7 +42,7 @@ int fw_att_control_main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcmp(argv[1], "start")) {
+	if (strcmp(argv[1], "start") == 0) {
 
 		if (att_control::g_control != nullptr) {
 			warnx("already running");
@@ -79,7 +79,7 @@ int fw_att_control_main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (!strcmp(argv[1], "stop")) {
+	if (strcmp(argv[1], "stop") == 0) {
 		if (att_control::g_control == nullptr) {
 			warnx("not running");
 			return 1;
@@ -90,15 +90,15 @@ int fw_att_control_main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (!strcmp(argv[1], "status")) {
-		if (att_control::g_control) {
+	if (strcmp(argv[1], "status") == 0) {
+		if (att_control::g_control != nullptr) {
 			warnx("running");
 			return 0;
 
-		} else {
-			warnx("not running");
-			return 1;
 		}
+
+		warnx("not running");
+		return 1;
 	}
 
 	warnx("unrecognized command");

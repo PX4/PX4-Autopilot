@@ -74,19 +74,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_pitch(0.0f),
 	_yaw(0.0f)
 {
-	/* safely initialize structs */
-	_actuators = {};
-	_actuators_airframe = {};
-	_att_sp = {};
-	_battery_status = {};
-	_ctrl_state = {};
-	_global_pos = {};
-	_manual = {};
-	_rates_sp = {};
-	_vcontrol_mode = {};
-	_vehicle_land_detected = {};
-	_vehicle_status = {};
-
 	_parameter_handles.p_tc = param_find("FW_P_TC");
 	_parameter_handles.p_p = param_find("FW_PR_P");
 	_parameter_handles.p_i = param_find("FW_PR_I");
@@ -347,7 +334,7 @@ FixedwingAttitudeControl::vehicle_status_poll()
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (!_rates_sp_id) {
+		if (_rates_sp_id == nullptr) {
 			if (_vehicle_status.is_vtol) {
 				_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
@@ -452,7 +439,7 @@ FixedwingAttitudeControl::task_main()
 
 		if (params_updated) {
 			/* read from param to clear updated flag */
-			parameter_update_s update;
+			parameter_update_s update{};
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 			/* update parameters from storage */
@@ -460,7 +447,7 @@ FixedwingAttitudeControl::task_main()
 		}
 
 		/* only run controller if attitude changed */
-		if (fds[0].revents & POLLIN) {
+		if ((fds[0].revents & POLLIN) != 0) {
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
@@ -778,7 +765,7 @@ FixedwingAttitudeControl::task_main()
 								throttle_sp : 0.0f;
 
 						/* scale effort by battery status */
-						if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
+						if ((_parameters.bat_scale_en == 1) && (_battery_status.scale > 0.0f) &&
 						    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
 							_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
 						}
@@ -825,7 +812,7 @@ FixedwingAttitudeControl::task_main()
 					/* publish the attitude rates setpoint */
 					orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
 
-				} else if (_rates_sp_id) {
+				} else if (_rates_sp_id != nullptr) {
 					/* advertise the attitude rates setpoint */
 					_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp);
 				}
@@ -864,7 +851,7 @@ FixedwingAttitudeControl::task_main()
 				if (_actuators_0_pub != nullptr) {
 					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 
-				} else if (_actuators_id) {
+				} else if (_actuators_id != nullptr) {
 					_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 				}
 

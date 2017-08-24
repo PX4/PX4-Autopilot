@@ -127,17 +127,17 @@ private:
 	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
 	orb_id_t _attitude_setpoint_id;
 
-	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
-	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
-	struct battery_status_s				_battery_status;	/**< battery status */
-	struct control_state_s				_ctrl_state;	/**< control state */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
-	struct vehicle_global_position_s		_global_pos;		/**< global position */
-	struct vehicle_land_detected_s			_vehicle_land_detected;	/**< vehicle land detected */
-	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
-	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
+	struct actuator_controls_s			_actuators {};		/**< actuator control inputs */
+	struct actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
+	struct battery_status_s				_battery_status {};	/**< battery status */
+	struct control_state_s				_ctrl_state {};	/**< control state */
+	struct manual_control_setpoint_s		_manual {};		/**< r/c channel data */
+	struct vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
+	struct vehicle_control_mode_s			_vcontrol_mode {};		/**< vehicle control mode */
+	struct vehicle_global_position_s		_global_pos {};		/**< global position */
+	struct vehicle_land_detected_s			_vehicle_land_detected {};	/**< vehicle land detected */
+	struct vehicle_rates_setpoint_s			_rates_sp {};	/* attitude rates setpoint */
+	struct vehicle_status_s				_vehicle_status {};	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
