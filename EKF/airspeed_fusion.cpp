@@ -150,8 +150,7 @@ void Ekf::fuseAirspeed()
 		if (_tas_test_ratio > 1.0f) {
 			_innov_check_fail_status.flags.reject_airspeed = true;
 			return;
-		}
-		else {
+		} else {
 			_innov_check_fail_status.flags.reject_airspeed = false;
 		}
 
