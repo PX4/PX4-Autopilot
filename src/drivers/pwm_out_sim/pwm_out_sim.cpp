@@ -82,11 +82,7 @@
 
 #include <systemlib/err.h>
 
-#ifdef __PX4_NUTTX
 class PWMSim : public device::CDev
-#else
-class PWMSim : public device::VDev
-#endif
 {
 	const uint32_t PWM_SIM_DISARMED_MAGIC = 900;
 	const uint32_t PWM_SIM_FAILSAFE_MAGIC = 600;
@@ -178,12 +174,7 @@ bool PWMSim::_lockdown = false;
 bool PWMSim::_failsafe = false;
 
 PWMSim::PWMSim() :
-#ifdef __PX4_NUTTX
-	CDev
-#else
-	VDev
-#endif
-	("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
+	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
 	_task(-1),
 	_mode(MODE_NONE),
 	_update_rate(50),
@@ -244,11 +235,7 @@ PWMSim::init()
 	ASSERT(_task == -1);
 
 	/* do regular cdev init */
-#ifdef __PX4_NUTTX
 	ret = CDev::init();
-#else
-	ret = VDev::init();
-#endif
 
 	if (ret != OK) {
 		return ret;
@@ -609,11 +596,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	/* if nobody wants it, let CDev have it */
 	if (ret == -ENOTTY) {
-#ifdef __PX4_NUTTX
 		ret = CDev::ioctl(filp, cmd, arg);
-#else
-		ret = VDev::ioctl(filp, cmd, arg);
-#endif
 	}
 
 	return ret;

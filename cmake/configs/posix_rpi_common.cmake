@@ -17,6 +17,9 @@ set(config_module_list
 	# Board support modules
 	#
 	drivers/device
+	drivers/airspeed
+	drivers/ms4525_airspeed
+
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_lsm9ds1_wrapper
