@@ -1971,8 +1971,8 @@ Mavlink::task_main(int argc, char *argv[])
 	pthread_mutex_init(&_send_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
-	if (_forwarding_on || _ftp_on) {
-		/* initialize message buffer if multiplexing is on or its needed for FTP.
+	if (_forwarding_on) {
+		/* initialize message buffer if multiplexing is on.
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
 		 */
@@ -2301,8 +2301,8 @@ Mavlink::task_main(int argc, char *argv[])
 			stream->update(t);
 		}
 
-		/* pass messages from other UARTs or FTP worker */
-		if (_forwarding_on || _ftp_on) {
+		/* pass messages from other UARTs */
+		if (_forwarding_on) {
 
 			bool is_part;
 			uint8_t *read_ptr;
@@ -2410,7 +2410,7 @@ Mavlink::task_main(int argc, char *argv[])
 		_socket_fd = -1;
 	}
 
-	if (_forwarding_on || _ftp_on) {
+	if (_forwarding_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
