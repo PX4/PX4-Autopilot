@@ -141,7 +141,7 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 
-	int                 _conversion_interval;
+	unsigned                 _conversion_interval;
 	enum Rotation       _sensor_rotation;
 
 	/**
