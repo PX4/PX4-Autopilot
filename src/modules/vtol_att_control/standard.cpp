@@ -454,7 +454,7 @@ void Standard::update_mc_state()
 		float roll_new = -asinf(body_z_sp(1));
 
 		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max))
-				   * _v_att_sp->thrust * _params_standard.forward_thrust_scale;
+				   * _params_standard.forward_thrust_scale;
 
 		// return the vehicle to level position
 		float pitch_new = 0.0f;
