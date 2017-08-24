@@ -43,6 +43,7 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
+	drivers/rgbled
 	drivers/rgbled_pwm
 	drivers/sdp3x_airspeed
 	drivers/sf0x
