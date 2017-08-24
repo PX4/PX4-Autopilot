@@ -1,5 +1,7 @@
 #! /bin/bash
 
+FIXDATE=n
+
 if [ $# -eq 0 ]
   then
     echo "Usage: $0 <path to defconfig>"
@@ -31,18 +33,18 @@ echo "Fix up Board Selection"
 sed -i -e "/$lead/,/$tail/{ /$lead/{p; r $chunk
         }; /$tail/p; d }" $defconf
 
-
-if grep --quiet CONFIG_START_YEAR $lastconf ; then
-  lead='^CONFIG_START_YEAR='
-  tail='^CONFIG_START_DAY='
-  cat $lastconf | sed -n "/$lead/,/$tail/p" > $chunk
-  lead='^# Clocks and Timers$'
-  echo "Fix up Clocks and Timers"
-  sed -i -e "/$lead/{N;{r $chunk
-    }}" $defconf
-else
- echo not found
+if [ "$FIXDATE" == "y" ] ; then
+  if grep --quiet CONFIG_START_YEAR $lastconf ; then
+    lead='^CONFIG_START_YEAR='
+    tail='^CONFIG_START_DAY='
+    cat $lastconf | sed -n "/$lead/,/$tail/p" > $chunk
+    lead='^# Clocks and Timers$'
+    echo "Fix up Clocks and Timers"
+    sed -i -e "/$lead/{N;{r $chunk
+      }}" $defconf
+  else
+  echo not found
+  fi
 fi
-
 rm $lastconf
 rm $chunk
