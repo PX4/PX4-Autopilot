@@ -2483,8 +2483,10 @@ MavlinkReceiver::receive_thread(void *arg)
 						/* handle packet with parameter component */
 						_parameters_manager.handle_message(&msg);
 
-						/* handle packet with ftp component */
-						_mavlink_ftp.handle_message(&msg);
+						if (_mavlink->ftp_enabled()) {
+							/* handle packet with ftp component */
+							_mavlink_ftp.handle_message(&msg);
+						}
 
 						/* handle packet with log component */
 						_mavlink_log_handler.handle_message(&msg);
@@ -2507,7 +2509,11 @@ MavlinkReceiver::receive_thread(void *arg)
 			_mission_manager.check_active_mission();
 			_mission_manager.send(t);
 			_parameters_manager.send(t);
-			_mavlink_ftp.send(t);
+
+			if (_mavlink->ftp_enabled()) {
+				_mavlink_ftp.send(t);
+			}
+
 			_mavlink_log_handler.send(t);
 			last_send_update = t;
 
