@@ -2604,7 +2604,7 @@ Mavlink::display_status()
 		       (double)_mavlink_ulog->maximum_data_rate() * 100.);
 	}
 
-	printf("\taccepting commands: %s\n", (accepting_commands()) ? "YES" : "NO");
+	printf("\taccepting commands: %s, FTP enabled: %s\n", accepting_commands() ? "YES" : "NO", _ftp_on ? "YES" : "NO");
 	printf("\tMAVLink version: %i\n", _protocol_version);
 
 	printf("\ttransport protocol: ");

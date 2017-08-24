@@ -476,6 +476,8 @@ public:
 
 	void set_uorb_main_fd(int fd, unsigned int interval);
 
+	bool ftp_enabled() const { return _ftp_on; }
+
 protected:
 	Mavlink			*next;
 
