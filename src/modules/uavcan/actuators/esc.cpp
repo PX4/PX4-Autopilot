@@ -168,9 +168,9 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	(void)_uavcan_pub_raw_cmd.broadcast(msg);
 
 	// Publish actuator outputs
-	if (_actuator_outputs_pub != nullptr)
-	{
+	if (_actuator_outputs_pub != nullptr) {
 		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
+
 	} else {
 		int instance;
 		_actuator_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &actuator_outputs,
