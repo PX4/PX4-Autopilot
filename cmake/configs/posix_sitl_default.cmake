@@ -11,6 +11,7 @@ set(config_module_list
 	drivers/vmount
 	drivers/linux_gpio
 	drivers/airspeed
+	drivers/ets_airspeed
 	drivers/ms4525_airspeed
 	drivers/ms5525_airspeed
 	drivers/sdp3x_airspeed
