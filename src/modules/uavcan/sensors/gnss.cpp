@@ -64,18 +64,21 @@ UavcanGnssBridge::~UavcanGnssBridge()
 int UavcanGnssBridge::init()
 {
 	int res = _pub_fix2.init(uavcan::TransferPriority::MiddleLower);
+
 	if (res < 0) {
 		PX4_WARN("GNSS fix2 pub failed %i", res);
 		return res;
 	}
 
 	res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
+
 	if (res < 0) {
 		PX4_WARN("GNSS fix sub failed %i", res);
 		return res;
 	}
 
 	res = _sub_fix2.start(Fix2CbBinder(this, &UavcanGnssBridge::gnss_fix2_sub_cb));
+
 	if (res < 0) {
 		PX4_WARN("GNSS fix2 sub failed %i", res);
 		return res;
@@ -95,7 +98,7 @@ unsigned UavcanGnssBridge::get_num_redundant_channels() const
 void UavcanGnssBridge::print_status() const
 {
 	printf("RX errors: %d, using old Fix: %d, receiver node id: ",
-		_sub_fix.getFailureCount(), int(_old_fix_subscriber_active));
+	       _sub_fix.getFailureCount(), int(_old_fix_subscriber_active));
 
 	if (_receiver_node_id < 0) {
 		printf("N/A\n");
@@ -128,36 +131,36 @@ void UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavc
 		_receiver_node_id = -1;
 	}
 
-	float pos_cov[9]{};
-	float vel_cov[9]{};
+	float pos_cov[9] {};
+	float vel_cov[9] {};
 	bool valid_covariances = true;
 
 	switch (msg.covariance.size()) {
 	// Scalar matrix
 	case 1: {
-		const auto x = msg.covariance[0];
+			const auto x = msg.covariance[0];
 
-		pos_cov[0] = x;
-		pos_cov[4] = x;
-		pos_cov[8] = x;
+			pos_cov[0] = x;
+			pos_cov[4] = x;
+			pos_cov[8] = x;
 
-		vel_cov[0] = x;
-		vel_cov[4] = x;
-		vel_cov[8] = x;
-		break;
-	}
+			vel_cov[0] = x;
+			vel_cov[4] = x;
+			vel_cov[8] = x;
+			break;
+		}
 
 	// Diagonal matrix (the most common case)
 	case 6: {
-		pos_cov[0] = msg.covariance[0];
-		pos_cov[4] = msg.covariance[1];
-		pos_cov[8] = msg.covariance[2];
+			pos_cov[0] = msg.covariance[0];
+			pos_cov[4] = msg.covariance[1];
+			pos_cov[8] = msg.covariance[2];
 
-		vel_cov[0] = msg.covariance[3];
-		vel_cov[4] = msg.covariance[4];
-		vel_cov[8] = msg.covariance[5];
-		break;
-	}
+			vel_cov[0] = msg.covariance[3];
+			vel_cov[4] = msg.covariance[4];
+			vel_cov[8] = msg.covariance[5];
+			break;
+		}
 
 	// Upper triangular matrix.
 	// This code has been carefully optimized by hand. We could use unpackSquareMatrix(), but it's slow.
@@ -169,26 +172,27 @@ void UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavc
 	//         16 18 19
 	//         17 19 20
 	case 21: {
-		pos_cov[0] = msg.covariance[0];
-		pos_cov[1] = msg.covariance[1];
-		pos_cov[2] = msg.covariance[2];
-		pos_cov[3] = msg.covariance[1];
-		pos_cov[4] = msg.covariance[6];
-		pos_cov[5] = msg.covariance[7];
-		pos_cov[6] = msg.covariance[2];
-		pos_cov[7] = msg.covariance[7];
-		pos_cov[8] = msg.covariance[11];
+			pos_cov[0] = msg.covariance[0];
+			pos_cov[1] = msg.covariance[1];
+			pos_cov[2] = msg.covariance[2];
+			pos_cov[3] = msg.covariance[1];
+			pos_cov[4] = msg.covariance[6];
+			pos_cov[5] = msg.covariance[7];
+			pos_cov[6] = msg.covariance[2];
+			pos_cov[7] = msg.covariance[7];
+			pos_cov[8] = msg.covariance[11];
 
-		vel_cov[0] = msg.covariance[15];
-		vel_cov[1] = msg.covariance[16];
-		vel_cov[2] = msg.covariance[17];
-		vel_cov[3] = msg.covariance[16];
-		vel_cov[4] = msg.covariance[18];
-		vel_cov[5] = msg.covariance[19];
-		vel_cov[6] = msg.covariance[17];
-		vel_cov[7] = msg.covariance[19];
-		vel_cov[8] = msg.covariance[20];
-	}
+			vel_cov[0] = msg.covariance[15];
+			vel_cov[1] = msg.covariance[16];
+			vel_cov[2] = msg.covariance[17];
+			vel_cov[3] = msg.covariance[16];
+			vel_cov[4] = msg.covariance[18];
+			vel_cov[5] = msg.covariance[19];
+			vel_cov[6] = msg.covariance[17];
+			vel_cov[7] = msg.covariance[19];
+			vel_cov[8] = msg.covariance[20];
+		}
+
 	/* FALLTHROUGH */
 
 	// Full matrix 6x6.
@@ -201,33 +205,34 @@ void UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavc
 	//          27 28 29
 	//          33 34 35
 	case 36: {
-		pos_cov[0] = msg.covariance[0];
-		pos_cov[1] = msg.covariance[1];
-		pos_cov[2] = msg.covariance[2];
-		pos_cov[3] = msg.covariance[6];
-		pos_cov[4] = msg.covariance[7];
-		pos_cov[5] = msg.covariance[8];
-		pos_cov[6] = msg.covariance[12];
-		pos_cov[7] = msg.covariance[13];
-		pos_cov[8] = msg.covariance[14];
+			pos_cov[0] = msg.covariance[0];
+			pos_cov[1] = msg.covariance[1];
+			pos_cov[2] = msg.covariance[2];
+			pos_cov[3] = msg.covariance[6];
+			pos_cov[4] = msg.covariance[7];
+			pos_cov[5] = msg.covariance[8];
+			pos_cov[6] = msg.covariance[12];
+			pos_cov[7] = msg.covariance[13];
+			pos_cov[8] = msg.covariance[14];
 
-		vel_cov[0] = msg.covariance[21];
-		vel_cov[1] = msg.covariance[22];
-		vel_cov[2] = msg.covariance[23];
-		vel_cov[3] = msg.covariance[27];
-		vel_cov[4] = msg.covariance[28];
-		vel_cov[5] = msg.covariance[29];
-		vel_cov[6] = msg.covariance[33];
-		vel_cov[7] = msg.covariance[34];
-		vel_cov[8] = msg.covariance[35];
-	}
+			vel_cov[0] = msg.covariance[21];
+			vel_cov[1] = msg.covariance[22];
+			vel_cov[2] = msg.covariance[23];
+			vel_cov[3] = msg.covariance[27];
+			vel_cov[4] = msg.covariance[28];
+			vel_cov[5] = msg.covariance[29];
+			vel_cov[6] = msg.covariance[33];
+			vel_cov[7] = msg.covariance[34];
+			vel_cov[8] = msg.covariance[35];
+		}
+
 	/* FALLTHROUGH */
 
 	// Either empty or invalid sized, interpret as zero matrix
 	default: {
-		valid_covariances = false;
-		break;	// Nothing to do
-	}
+			valid_covariances = false;
+			break;	// Nothing to do
+		}
 	}
 
 	process_fixx(msg, pos_cov, vel_cov, valid_covariances, valid_covariances);
@@ -235,10 +240,10 @@ void UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavc
 
 template <typename FixType>
 void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
-                                    const float (&pos_cov)[9],
-                                    const float (&vel_cov)[9],
-                                    const bool valid_pos_cov,
-                                    const bool valid_vel_cov)
+				    const float (&pos_cov)[9],
+				    const float (&vel_cov)[9],
+				    const bool valid_pos_cov,
+				    const bool valid_vel_cov)
 {
 	// This bridge does not support redundant GNSS receivers yet.
 	if (_receiver_node_id < 0) {
@@ -314,8 +319,8 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.vel_e_m_s = msg.ned_velocity[1];
 	report.vel_d_m_s = msg.ned_velocity[2];
 	report.vel_m_s = sqrtf(report.vel_n_m_s * report.vel_n_m_s +
-	                       report.vel_e_m_s * report.vel_e_m_s +
-	                       report.vel_d_m_s * report.vel_d_m_s);
+			       report.vel_e_m_s * report.vel_e_m_s +
+			       report.vel_d_m_s * report.vel_d_m_s);
 	report.cog_rad = atan2f(report.vel_e_m_s, report.vel_n_m_s);
 	report.vel_ned_valid = true;
 
@@ -325,27 +330,29 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	switch (msg.gnss_time_standard) {
 	case FixType::GNSS_TIME_STANDARD_UTC: {
-		report.time_utc_usec = gnss_ts_usec;
-		break;
-	}
+			report.time_utc_usec = gnss_ts_usec;
+			break;
+		}
 
 	case FixType::GNSS_TIME_STANDARD_GPS: {
-		if (msg.num_leap_seconds > 0) {
-			report.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds + 9;
+			if (msg.num_leap_seconds > 0) {
+				report.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds + 9;
+			}
+
+			break;
 		}
-		break;
-	}
 
 	case FixType::GNSS_TIME_STANDARD_TAI: {
-		if (msg.num_leap_seconds > 0) {
-			report.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds - 10;
+			if (msg.num_leap_seconds > 0) {
+				report.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds - 10;
+			}
+
+			break;
 		}
-		break;
-	}
 
 	default: {
-		break;
-	}
+			break;
+		}
 	}
 
 //TODO px4_clock_settime does nothing on the Snapdragon platform
@@ -375,7 +382,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	// Publish to a multi-topic
 	int32_t gps_orb_instance;
 	orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_pub, &report, &gps_orb_instance,
-				 ORB_PRIO_HIGH);
+			 ORB_PRIO_HIGH);
 
 	// Doing less time critical stuff here
 	if (_orb_to_uavcan_pub_timer.isRunning()) {
@@ -389,16 +396,19 @@ void UavcanGnssBridge::broadcast_from_orb(const uavcan::TimerEvent &)
 	if (_orb_sub_gnss < 0) {
 		// ORB subscription stops working if this is relocated into init()
 		_orb_sub_gnss = orb_subscribe(ORB_ID(vehicle_gps_position));
+
 		if (_orb_sub_gnss < 0) {
 			PX4_WARN("GNSS ORB sub errno %d", errno);
 			return;
 		}
+
 		PX4_WARN("GNSS ORB fd %d", _orb_sub_gnss);
 	}
 
 	{
 		bool updated = false;
 		const int res = orb_check(_orb_sub_gnss, &updated);
+
 		if (res < 0) {
 			PX4_WARN("GNSS ORB check err %d %d", res, errno);
 			return;
@@ -411,6 +421,7 @@ void UavcanGnssBridge::broadcast_from_orb(const uavcan::TimerEvent &)
 
 	auto orb_msg = ::vehicle_gps_position_s();
 	const int res = orb_copy(ORB_ID(vehicle_gps_position), _orb_sub_gnss, &orb_msg);
+
 	if (res < 0) {
 		PX4_WARN("GNSS ORB read errno %d", errno);
 		return;

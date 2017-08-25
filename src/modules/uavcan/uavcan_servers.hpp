@@ -166,7 +166,8 @@ private:
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
 	typedef uavcan::MethodBinder<UavcanServers *,
-		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &)> ExecuteOpcodeCallback;
+		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &)>
+		ExecuteOpcodeCallback;
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &)> RestartNodeCallback;
 	void cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
@@ -198,7 +199,8 @@ private:
 	uint8_t _esc_count = 0;
 
 	typedef uavcan::MethodBinder<UavcanServers *,
-		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::enumeration::Begin> &)> EnumerationBeginCallback;
+		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::enumeration::Begin> &)>
+		EnumerationBeginCallback;
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ReceivedDataStructure<uavcan::protocol::enumeration::Indication>&)>
 		EnumerationIndicationCallback;
@@ -208,11 +210,12 @@ private:
 	void cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
 
 	uavcan::Publisher<uavcan::equipment::indication::BeepCommand> _beep_pub;
-	uavcan::Subscriber<uavcan::protocol::enumeration::Indication, EnumerationIndicationCallback> _enumeration_indication_sub;
+	uavcan::Subscriber<uavcan::protocol::enumeration::Indication, EnumerationIndicationCallback>
+	_enumeration_indication_sub;
 	uavcan::ServiceClient<uavcan::protocol::enumeration::Begin, EnumerationBeginCallback> _enumeration_client;
 	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCallback> _enumeration_getset_client;
 	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> _enumeration_save_client;
 
-	void unpackFwFromROMFS(const char* sd_path, const char* romfs_path);
-	int copyFw(const char* dst, const char* src);
+	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
+	int copyFw(const char *dst, const char *src);
 };

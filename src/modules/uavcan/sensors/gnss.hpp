@@ -80,10 +80,10 @@ private:
 
 	template <typename FixType>
 	void process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
-	                  const float (&pos_cov)[9],
-	                  const float (&vel_cov)[9],
-	                  const bool valid_pos_cov,
-	                  const bool valid_vel_cov);
+			  const float (&pos_cov)[9],
+			  const float (&vel_cov)[9],
+			  const bool valid_pos_cov,
+			  const bool valid_vel_cov);
 
 	void broadcast_from_orb(const uavcan::TimerEvent &);
 
