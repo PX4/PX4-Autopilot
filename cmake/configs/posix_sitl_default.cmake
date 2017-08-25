@@ -12,6 +12,7 @@ set(config_module_list
 	drivers/linux_gpio
 	drivers/airspeed
 	drivers/ms4525_airspeed
+	drivers/ms5525_airspeed
 
 	modules/sensors
 	platforms/posix/drivers/accelsim

@@ -56,7 +56,7 @@ start(uint8_t i2c_bus)
 
 	if (g_dev != nullptr) {
 		PX4_ERR("already started");
-		exit(1);
+		goto fail;
 	}
 
 	g_dev = new MS5525(i2c_bus, I2C_ADDRESS_1_MS5525DSO, PATH_MS5525);
@@ -88,17 +88,17 @@ start(uint8_t i2c_bus)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(PATH_MS5525, O_RDONLY);
+	fd = px4_open(PATH_MS5525, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
 	}
 
-	exit(0);
+	return;
 
 fail:
 
@@ -108,7 +108,6 @@ fail:
 	}
 
 	PX4_WARN("no MS5525 airspeed sensor connected");
-	exit(1);
 }
 
 // stop the driver
@@ -120,10 +119,7 @@ void stop()
 
 	} else {
 		PX4_ERR("driver not running");
-		exit(1);
 	}
-
-	exit(0);
 }
 
 // perform some basic functional tests on the driver;
@@ -131,46 +127,46 @@ void stop()
 // and automatic modes.
 void test()
 {
-	int fd = open(PATH_MS5525, O_RDONLY);
+	int fd = px4_open(PATH_MS5525, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_WARN("%s open failed (try 'ms5525_airspeed start' if the driver is not running", PATH_MS5525);
-		exit(1);
+		return;
 	}
 
 	// do a simple demand read
 	differential_pressure_s report;
-	ssize_t sz = read(fd, &report, sizeof(report));
+	ssize_t sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
 		PX4_WARN("immediate read failed");
-		exit(1);
+		return;
 	}
 
 	PX4_WARN("single read");
 	PX4_WARN("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		PX4_WARN("failed to set 2Hz poll rate");
-		exit(1);
+		return;
 	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
+		px4_pollfd_struct_t fds;
 
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		int ret = poll(&fds, 1, 2000);
+		int ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
 			PX4_ERR("timed out");
 		}
 
 		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
+		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
 			PX4_ERR("periodic read failed");
@@ -182,33 +178,30 @@ void test()
 	}
 
 	/* reset the sensor polling to its default rate */
-	if (PX4_OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+	if (PX4_OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
 		PX4_WARN("failed to set default rate");
-		exit(1);
 	}
 }
 
 // reset the driver
 void reset()
 {
-	int fd = open(PATH_MS5525, O_RDONLY);
+	int fd = px4_open(PATH_MS5525, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("failed ");
-		exit(1);
+		return;
 	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
+	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("driver reset failed");
-		exit(1);
+		return;
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("driver poll restart failed");
-		exit(1);
+		return;
 	}
-
-	exit(0);
 }
 
 } // namespace ms5525_airspeed
@@ -266,5 +259,6 @@ ms5525_airspeed_main(int argc, char *argv[])
 	}
 
 	ms5525_airspeed_usage();
-	exit(0);
+
+	return PX4_OK;
 }
