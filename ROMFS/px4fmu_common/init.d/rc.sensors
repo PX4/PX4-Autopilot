@@ -296,6 +296,14 @@ then
 
 	# Possible external compasses
 	hmc5883 -C -T -X start
+
+	# Possible external compasses
+
+	ist8310 -C -b 1 start
+	ist8310 -C -b 2 start
+
+	# Possible internal compass
+	ist8310 -C -b 3 start
 fi
 
 if ver hwcmp AEROCORE2
