@@ -103,10 +103,13 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	struct mag_calibration_s mscale_null;
 	mscale_null.x_offset = 0.0f;
 	mscale_null.x_scale = 1.0f;
+	mscale_null.x_offdiag = 0.0f;
 	mscale_null.y_offset = 0.0f;
 	mscale_null.y_scale = 1.0f;
+	mscale_null.y_offdiag = 0.0f;
 	mscale_null.z_offset = 0.0f;
 	mscale_null.z_scale = 1.0f;
+	mscale_null.z_offdiag = 0.0f;
 
 	int result = PX4_OK;
 
@@ -824,6 +827,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					mscale.x_scale = diag_x[cur_mag];
 					mscale.y_scale = diag_y[cur_mag];
 					mscale.z_scale = diag_z[cur_mag];
+					mscale.x_offdiag = offdiag_x[cur_mag];
+					mscale.y_offdiag = offdiag_y[cur_mag];
+					mscale.z_offdiag = offdiag_z[cur_mag];
 
 #ifdef __PX4_NUTTX
 
@@ -866,6 +872,13 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
 					(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
 					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
+					(void)sprintf(str, "CAL_MAG%u_XODIAG", cur_mag);
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.x_offdiag)));
+					(void)sprintf(str, "CAL_MAG%u_YODIAG", cur_mag);
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.y_offdiag)));
+					(void)sprintf(str, "CAL_MAG%u_ZODIAG", cur_mag);
+					failed |= (PX4_OK != param_set_no_notification(param_find(str), &(mscale.z_offdiag)));
+
 #endif
 
 					if (failed) {
@@ -878,6 +891,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 #ifndef __PX4_QURT
 						calibration_log_info(mavlink_log_pub, "[cal] mag #%u scale: x:%.2f y:%.2f z:%.2f",
 								     cur_mag, (double)mscale.x_scale, (double)mscale.y_scale, (double)mscale.z_scale);
+						calibration_log_info(mavlink_log_pub, "[cal] mag #%u offdiag: x:%.2f y:%.2f z:%.2f",
+								     cur_mag, (double)mscale.x_offdiag, (double)mscale.y_offdiag, (double)mscale.z_offdiag);
 #endif
 						usleep(200000);
 					}
