@@ -42,6 +42,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -1568,26 +1569,27 @@ usage()
 int
 ist8310_main(int argc, char *argv[])
 {
-	int ch;
-
 	IST8310_BUS i2c_busid = IST8310_BUS_ALL;
 	int i2c_addr = IST8310_BUS_I2C_ADDR; /* 7bit */
 
 	enum Rotation rotation = ROTATION_NONE;
 	bool calibrate = false;
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
 
-	while ((ch = getopt(argc, argv, "R:Ca:b:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:Ca:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
-			i2c_addr = (int)strtol(optarg, NULL, 0);
+			i2c_addr = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
-			i2c_busid = (IST8310_BUS)strtol(optarg, NULL, 0);
+			i2c_busid = (IST8310_BUS)strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'C':
@@ -1600,12 +1602,12 @@ ist8310_main(int argc, char *argv[])
 		}
 	}
 
-	if (optind >= argc) {
+	if (myoptind >= argc) {
 		ist8310::usage();
 		exit(1);
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
