@@ -33,6 +33,15 @@ for index,m in enumerate(raw_messages):
 			elif ('uint64[' in items[0]):
 				num_floats = int(items[0].split("[")[1].split("]")[0])
 				temp_list.append(("uint64_array",items[1],num_floats))
+			elif ('uint16[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("uint16_array",items[1],num_floats))
+			elif ('int32[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("int32_array",items[1],num_floats))
+			elif ('int16[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("int16_array",items[1],num_floats))
 			elif(items[0] == "float32"):
 				temp_list.append(("float",items[1]))
 			elif(items[0] == "float64"):
@@ -200,6 +209,24 @@ for index,m in enumerate(messages[1:]):
 			print("\t\t\tprintf(\"%s: \");" % item[1])
 			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
 			print("\t\t\t\tprintf(\"%%\" PRIu64 \" \",container.%s[j]);" % item[1])
+			print("\t\t\t}")
+			print("\t\t\tprintf(\"\\n\");")
+		elif item[0] == "uint16_array":
+			print("\t\t\tprintf(\"%s: \");" % item[1])
+			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
+			print("\t\t\t\tprintf(\"%%u \",container.%s[j]);" % item[1])
+			print("\t\t\t}")
+			print("\t\t\tprintf(\"\\n\");")
+		elif item[0] == "int32_array":
+			print("\t\t\tprintf(\"%s: \");" % item[1])
+			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
+			print("\t\t\t\tprintf(\"%%d \",container.%s[j]);" % item[1])
+			print("\t\t\t}")
+			print("\t\t\tprintf(\"\\n\");")
+		elif item[0] == "int16_array":
+			print("\t\t\tprintf(\"%s: \");" % item[1])
+			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
+			print("\t\t\t\tprintf(\"%%d \",container.%s[j]);" % item[1])
 			print("\t\t\t}")
 			print("\t\t\tprintf(\"\\n\");")
 		elif item[0] == "int64":
