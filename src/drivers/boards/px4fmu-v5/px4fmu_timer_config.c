@@ -193,41 +193,98 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 	}
 };
 
+/* Support driving active low (preferred) or active high LED
+ * on both the onboard status LEDs or the [n]UI_LED_<color>[_EXTERNAL]
+ *
+ * Use open drain to drive the LED. This will ensure that
+ * if the LED has a 5 Volt supply that the LED will be
+ * off when high.
+ */
+#define CCER_C1_NUM_BITS   4
+#define ACTIVE_LOW(c)      (GTIM_CCER_CC1P << (((c)-1) * CCER_C1_NUM_BITS))
+#define ACTIVE_HIGH(c)     0
+
+#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
+#  define POLARITY(c)      ACTIVE_LOW(c)
+#  define DRIVE_TYPE(p)    ((p)|GPIO_OPENDRAIN)
+#else
+#  define POLARITY(c)      ACTIVE_HIGH((c))
+#  define DRIVE_TYPE(p)    (p)
+#endif
+
+#if defined(BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW)
+#  define UI_POLARITY(c)    ACTIVE_LOW(c)
+#  define UI_DRIVE_TYPE(p)  ((p)|GPIO_OPENDRAIN)
+#else
+#  define UI_POLARITY(c)    ACTIVE_HIGH((c))
+#  define UI_DRIVE_TYPE(p)  (p)
+#endif
+
 __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 	{
-		.gpio_out = LED_TIM3_CH4OUT,
+		.gpio_out = DRIVE_TYPE(LED_TIM3_CH4OUT),
 		.gpio_in  = 0,
 		.timer_index = 0,
 		.timer_channel = 4,
+		.masks = POLARITY(4),
 	},
 	{
-		.gpio_out = LED_TIM3_CH1OUT,
+		.gpio_out = DRIVE_TYPE(LED_TIM3_CH1OUT),
 		.gpio_in  = 0,
 		.timer_index = 0,
 		.timer_channel = 1,
+		.masks = POLARITY(1),
 	},
 	{
-		.gpio_out = LED_TIM3_CH2OUT,
+		.gpio_out = DRIVE_TYPE(LED_TIM3_CH2OUT),
 		.gpio_in  = 0,
 		.timer_index = 0,
 		.timer_channel = 2,
+		.masks = POLARITY(2),
 	},
+#if defined(BOARD_UI_LED_SWAP_RG)
 	{
-		.gpio_out = UILED_TIM5_CH1OUT,
-		.gpio_in  = 0,
-		.timer_index = 1,
-		.timer_channel = 1,
-	},
-	{
-		.gpio_out = UILED_TIM5_CH2OUT,
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH2OUT),
 		.gpio_in  = 0,
 		.timer_index = 1,
 		.timer_channel = 2,
+		.masks = UI_POLARITY(2),
 	},
 	{
-		.gpio_out = UILED_TIM5_CH3OUT,
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH1OUT),
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 1,
+		.masks = UI_POLARITY(1),
+	},
+	{
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH3OUT),
 		.gpio_in  = 0,
 		.timer_index = 1,
 		.timer_channel = 3,
+		.masks = UI_POLARITY(3),
+	},
+#else
+	{
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH1OUT),
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 1,
+		.masks = UI_POLARITY(1),
+	},
+	{
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH2OUT),
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 2,
+		.masks = UI_POLARITY(2),
+	},
+	{
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH3OUT),
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 3,
+		.masks = UI_POLARITY(3),
 	}
+#endif
 };
