@@ -43,7 +43,7 @@
 #include "mathlib.h"
 
 void Ekf::fuseDrag()
-{ 
+{
 	float SH_ACC[4] = {}; // Variable used to optimise calculations of measurement jacobian
 	float H_ACC[24] = {}; // Observation Jacobian
 	float SK_ACC[9] = {}; // Variable used to optimise calculations of the Kalman gain vector
@@ -85,7 +85,7 @@ void Ekf::fuseDrag()
 	rel_wind = earth_to_body * rel_wind;
 
 	// perform sequential fusion of XY specific forces
-	for (uint8_t axis_index = 0; axis_index <2; axis_index++) {
+	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
 		// calculate observation jacobiam and Kalman gain vectors
 		if (axis_index == 0) {
 			// Estimate the airspeed from the measured drag force and ballistic coefficient
@@ -94,7 +94,7 @@ void Ekf::fuseDrag()
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
 			// Limit lower value to prevent arithmetic exceptions
-			float Kacc = fmaxf(1e-1f,rho * BC_inv_x * airSpd);
+			float Kacc = fmaxf(1e-1f, rho * BC_inv_x * airSpd);
 
 			SH_ACC[0] = sq(q0) + sq(q1) - sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
@@ -149,11 +149,13 @@ void Ekf::fuseDrag()
 			// calculate the predicted acceleration and innovation measured along the X body axis
 			float drag_sign;
 			if (rel_wind(axis_index) >= 0.0f) {
-			    drag_sign = 1.0f;
+				drag_sign = 1.0f;
+
 			} else {
-			    drag_sign = -1.0f;
+				drag_sign = -1.0f;
 			}
-			float predAccel = -BC_inv_x * 0.5f*rho*sq(rel_wind(axis_index)) * drag_sign;
+
+			float predAccel = -BC_inv_x * 0.5f * rho * sq(rel_wind(axis_index)) * drag_sign;
 			_drag_innov[axis_index] = predAccel - mea_acc;
 			_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
 
@@ -164,7 +166,7 @@ void Ekf::fuseDrag()
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
 			// Limit lower value to prevent arithmetic exceptions
-			float Kacc = fmaxf(1e-1f,rho * BC_inv_y * airSpd);
+			float Kacc = fmaxf(1e-1f, rho * BC_inv_y * airSpd);
 
 			SH_ACC[0] = sq(q0) - sq(q1) + sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
@@ -221,11 +223,13 @@ void Ekf::fuseDrag()
 			// calculate the predicted acceleration and innovation measured along the Y body axis
 			float drag_sign;
 			if (rel_wind(axis_index) >= 0.0f) {
-			    drag_sign = 1.0f;
+				drag_sign = 1.0f;
+
 			} else {
-			    drag_sign = -1.0f;
+				drag_sign = -1.0f;
 			}
-			float predAccel = -BC_inv_y * 0.5f*rho*sq(rel_wind(axis_index)) * drag_sign;
+
+			float predAccel = -BC_inv_y * 0.5f * rho * sq(rel_wind(axis_index)) * drag_sign;
 			_drag_innov[axis_index] = predAccel - mea_acc;
 			_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
 
