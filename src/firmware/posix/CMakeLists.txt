@@ -2,6 +2,8 @@ include (common/px4_upload)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+
 px4_posix_generate_builtin_commands(
 	OUT apps
 	MODULE_LIST ${module_libraries})

@@ -1,110 +1,118 @@
 include(nuttx/px4_impl_nuttx)
 
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
+px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4io-v2)
+set(config_nuttx_ld_script "ld_fullsize.script")
 
-set(config_uavcan_num_ifaces 1)
+set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/airspeed
+	drivers/blinkm
+	drivers/bmi160
+	drivers/bmp280
+	drivers/boards/px4fmu-v2
+	drivers/bst
+	drivers/camera_trigger
 	drivers/device
+	drivers/ets_airspeed
+	drivers/frsky_telemetry
+	drivers/gps
+	drivers/hmc5883
+	drivers/hott
+	drivers/hott/hott_sensors
+	drivers/hott/hott_telemetry
+	drivers/iridiumsbd
+	drivers/l3gd20
+	drivers/led
+	drivers/lis3mdl
+	drivers/ll40ls
+	drivers/lsm303d
+	drivers/mb12xx
+	drivers/mkblctrl
+	drivers/mpu6000
+	drivers/mpu9250
+	drivers/ms4525_airspeed
+	drivers/ms5525_airspeed
+	drivers/ms5611
+	drivers/oreoled
+	drivers/pca9685
+	drivers/pwm_input
+	drivers/pwm_out_sim
+	drivers/px4flow
+	drivers/px4fmu
+	drivers/px4io
+	drivers/rgbled
+	drivers/sdp3x_airspeed
+	drivers/sf0x
+	drivers/sf1xx
+	drivers/snapdragon_rc_pwm
+	drivers/srf02
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
-	drivers/px4fmu
-	drivers/boards/mindpx-v2
-	drivers/rgbled
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/lsm303d
-	drivers/l3gd20
-	drivers/hmc5883
-	drivers/ms5611
-	drivers/mb12xx
-	drivers/srf02
-	drivers/srf02_i2c
-	#drivers/hc_sr04
-	drivers/sf0x
-	drivers/sf1xx
-	drivers/ll40ls
+	drivers/tap_esc
 	drivers/trone
-	drivers/gps
-	drivers/pwm_out_sim
-	#drivers/hott
-	#drivers/hott/hott_telemetry
-	#drivers/hott/hott_sensors
-	drivers/blinkm
-	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/sdp3x_airspeed
-	drivers/frsky_telemetry
-	modules/sensors
-	#drivers/mkblctrl
-	drivers/px4flow
-	#drivers/oreoled
 	drivers/vmount
-	drivers/pwm_input
-	drivers/camera_trigger
-	drivers/bst
-	drivers/snapdragon_rc_pwm
+	modules/sensors
 
 	#
 	# System commands
 	#
 	systemcmds/bl_update
+	systemcmds/config
+	systemcmds/dumpfile
+	systemcmds/esc_calib
+	systemcmds/hardfault_log
+	systemcmds/led_control
 	systemcmds/mixer
+	systemcmds/motor_ramp
+	systemcmds/mtd
+	systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
-	systemcmds/esc_calib
-	systemcmds/led_control
-	systemcmds/hardfault_log
 	systemcmds/reboot
-	systemcmds/topic_listener
-	systemcmds/top
-	systemcmds/config
-	systemcmds/nshterm
-	systemcmds/mtd
-	systemcmds/dumpfile
-	systemcmds/ver
 	systemcmds/sd_bench
-	systemcmds/motor_ramp
+	systemcmds/top
+	systemcmds/topic_listener
+	systemcmds/ver
 
 	#
-	# Tests
+	# Testing
 	#
 	drivers/sf0x/sf0x_tests
 	drivers/test_ppm
+	#lib/rc/rc_tests
 	modules/commander/commander_tests
-	modules/mc_pos_control/mc_pos_control_tests
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
+	modules/mc_pos_control/mc_pos_control_tests
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
 	#
 	# General system control
 	#
+	modules/camera_feedback
 	modules/commander
 	modules/events
-	modules/load_mon
-	modules/navigator
-	modules/mavlink
 	modules/gpio_led
-	modules/uavcan
 	modules/land_detector
+	modules/load_mon
+	modules/mavlink
+	modules/navigator
+	modules/uavcan
 
 	#
 	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	modules/position_estimator_inav
-	modules/local_position_estimator
 	modules/ekf2
+	modules/local_position_estimator
+	modules/position_estimator_inav
 
 	#
 	# Vehicle Control
@@ -120,8 +128,8 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/sdlog2
 	modules/logger
+	modules/sdlog2
 
 	#
 	# Library modules
@@ -131,6 +139,9 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
+
+	# micro RTPS
+	modules/micrortps_bridge/micrortps_client
 
 	#
 	# Libraries
@@ -151,46 +162,53 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-	platforms/nuttx
 	lib/micro-CDR
 
-	# had to add for cmake, not sure why wasn't in original config
+	#
+	# Platform
+	#
 	platforms/common
+	platforms/nuttx
 	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge
 	#
-	#modules/bottle_drop
+	modules/bottle_drop
 
 	#
 	# Rover apps
 	#
-	#examples/rover_steering_control
+	examples/rover_steering_control
+
+	#
+	# Segway
+	#
+	examples/segway
 
 	#
 	# Demo apps
 	#
-	#examples/math_demo
+
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
-	#examples/px4_simple_app
+	examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
+	examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values
-	#examples/px4_mavlink_debug
+	examples/px4_mavlink_debug
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
-	#examples/fixedwing_control
+	examples/fixedwing_control
 
 	# Hardware test
-	#examples/hwtest
+	examples/hwtest
 
 	# EKF
-	#examples/ekf_att_pos_estimator
+	examples/ekf_att_pos_estimator
 )
