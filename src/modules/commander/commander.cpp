@@ -146,7 +146,7 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 
 #define STICK_ON_OFF_LIMIT 0.9f
 
-#define POSITION_TIMEOUT		(1 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 1000ms */
+#define POSITION_TIMEOUT		1			/**< default number of seconds of position health check failure required to declare the position invalid */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
@@ -159,14 +159,14 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define INAIR_RESTART_HOLDOFF_INTERVAL	500000
 
 /* Controls the probation period which is the amount of time required for position and velocity checks to pass before the validity can be changed from false to true*/
-#define POSVEL_PROBATION_TAKEOFF 30E6		/**< probation duration set at takeoff (usec) */
+#define POSVEL_PROBATION_TAKEOFF 30		/**< probation duration set at takeoff (sec) */
 #define POSVEL_PROBATION_MIN 1E6		/**< minimum probation duration (usec) */
 #define POSVEL_PROBATION_MAX 100E6		/**< maximum probation duration (usec) */
 #define POSVEL_VALID_PROBATION_FACTOR 10	/**< the rate at which the probation duration is increased while checks are failing */
 
 /* Parameters controlling the sensitivity of the position failsafe */
-static int32_t posctl_nav_loss_delay = POSITION_TIMEOUT;
-static int32_t posctl_nav_loss_prob = POSVEL_PROBATION_TAKEOFF;
+static int32_t posctl_nav_loss_delay = POSITION_TIMEOUT * (1000 * 1000);
+static int32_t posctl_nav_loss_prob = POSVEL_PROBATION_TAKEOFF * (1000 * 1000);
 static int32_t posctl_nav_loss_gain = POSVEL_VALID_PROBATION_FACTOR;
 
 /*
@@ -1701,8 +1701,14 @@ int commander_thread_main(int argc, char *argv[])
 
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
+	/* Get parameter values controlloing activation of position failure failsafe and convert to required units*/
+	const int32_t sec_to_usec = (1000 * 1000);
+	int32_t init_param_val = POSITION_TIMEOUT;
 	param_get(param_find("COM_POS_FS_DELAY"), &posctl_nav_loss_delay);
+	posctl_nav_loss_delay = init_param_val * sec_to_usec; // convert to uSec
+	init_param_val = POSVEL_PROBATION_TAKEOFF;
 	param_get(param_find("COM_POS_FS_PROB"), &posctl_nav_loss_prob);
+	posctl_nav_loss_prob = init_param_val * sec_to_usec; // convert to uSec
 	param_get(param_find("COM_POS_FS_GAIN"), &posctl_nav_loss_gain);
 
 	/* now initialized */
