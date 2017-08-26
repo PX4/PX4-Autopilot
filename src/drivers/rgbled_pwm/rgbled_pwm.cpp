@@ -261,10 +261,17 @@ RGBLED_PWM::led()
 int
 RGBLED_PWM::send_led_rgb()
 {
-
+#if defined(BOARD_HAS_LED_PWM)
 	led_pwm_servo_set(0, _r);
 	led_pwm_servo_set(1, _g);
 	led_pwm_servo_set(2, _b);
+#endif
+
+#if defined(BOARD_HAS_UI_LED_PWM)
+	led_pwm_servo_set(3, _r);
+	led_pwm_servo_set(4, _g);
+	led_pwm_servo_set(5, _b);
+#endif
 
 	return (OK);
 }
