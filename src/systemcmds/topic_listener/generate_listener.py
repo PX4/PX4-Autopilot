@@ -199,7 +199,7 @@ for index,m in enumerate(messages[1:]):
 		elif item[0] == "uint64_array":
 			print("\t\t\tprintf(\"%s: \");" % item[1])
 			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\t\tprintf(\"%%\" PRIu64 \"\",container.%s[j]);" % item[1])
+			print("\t\t\t\tprintf(\"%%\" PRIu64 \" \",container.%s[j]);" % item[1])
 			print("\t\t\t}")
 			print("\t\t\tprintf(\"\\n\");")
 		elif item[0] == "int64":
