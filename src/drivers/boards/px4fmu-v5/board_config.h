@@ -54,8 +54,11 @@
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-/* Un-comment to support some RC00 polarities for test HW */
+/* Un-comment to support some RC00 polarities inversions
+ * on test HW as well as R and G LEDs on UI LED are swapped
+ */
 //#define PX4_FMUV5_RC00
+
 #define PX4_FMUV5_RC01
 #define BOARD_HAS_LTC4417
 
@@ -375,19 +378,22 @@
 
 #define DIRECT_INPUT_TIMER_CHANNELS  8
 
-#define BOARD_HAS_LED_PWM
+#define BOARD_HAS_LED_PWM              1
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
 
 #define LED_TIM3_CH1OUT   /* PC6   T3C1  GREEN */ GPIO_TIM3_CH1OUT_3
 #define LED_TIM3_CH2OUT   /* PC7   T3C2  BLUE  */ GPIO_TIM3_CH2OUT_3
 #define LED_TIM3_CH4OUT   /* PB1   T3C4  RED   */ GPIO_TIM3_CH4OUT_1
 
-#define BOARD_HAS_UILED_PWM
-#undef BOARD_UILED_PWM_DRIVE_ACTIVE_LOW
-
-#define UILED_TIM5_CH1OUT /* PH10  T5C1  RED   */ GPIO_TIM5_CH1OUT_2
-#define UILED_TIM5_CH2OUT /* PH11  T5C2  GREEN */ GPIO_TIM5_CH2OUT_2
-#define UILED_TIM5_CH3OUT /* PH12  T5C3  BLUE  */ GPIO_TIM5_CH3OUT_2
+#define BOARD_HAS_UI_LED_PWM            1
+#if defined(PX4_FMUV5_RC00)
+# define BOARD_UI_LED_SWAP_RG           1
+#else
+#  define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
+#endif
+#define UI_LED_TIM5_CH1OUT /* PH10  T5C1  RED   */ GPIO_TIM5_CH1OUT_2
+#define UI_LED_TIM5_CH2OUT /* PH11  T5C2  GREEN */ GPIO_TIM5_CH2OUT_2
+#define UI_LED_TIM5_CH3OUT /* PH12  T5C3  BLUE  */ GPIO_TIM5_CH3OUT_2
 
 
 /* User GPIOs
