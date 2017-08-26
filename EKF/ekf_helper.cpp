@@ -351,10 +351,10 @@ bool Ekf::realignYawGPS()
 		bool badVelInnov = ((_vel_pos_test_ratio[0] > 1.0f) || (_vel_pos_test_ratio[1] > 1.0f)) && _control_status.flags.gps;
 
 		// calculate GPS course over ground angle
-		float gpsCOG = atan2f(_gps_sample_delayed.vel(1),_gps_sample_delayed.vel(0));
+		float gpsCOG = atan2f(_gps_sample_delayed.vel(1), _gps_sample_delayed.vel(0));
 
 		// calculate course yaw angle
-		float ekfGOG = atan2f(_state.vel(1),_state.vel(0));
+		float ekfGOG = atan2f(_state.vel(1), _state.vel(0));
 
 		// Check the EKF and GPS course over ground for consistency
 		float courseYawError = gpsCOG - ekfGOG;
@@ -444,10 +444,10 @@ bool Ekf::realignYawGPS()
 			// add the reset amount to the output observer buffered data
 			outputSample output_states;
 			unsigned output_length = _output_buffer.get_length();
-			for (unsigned i=0; i < output_length; i++) {
+			for (unsigned i = 0; i < output_length; i++) {
 				output_states = _output_buffer.get_from_index(i);
 				output_states.quat_nominal *= _state_reset_status.quat_change;
-				_output_buffer.push_to_index(i,output_states);
+				_output_buffer.push_to_index(i, output_states);
 			}
 
 			// apply the change in attitude quaternion to our newest quaternion estimate
@@ -527,10 +527,10 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		// add the reset amount to the output observer buffered data
 		outputSample output_states;
 		unsigned output_length = _output_buffer.get_length();
-		for (unsigned i=0; i < output_length; i++) {
+		for (unsigned i = 0; i < output_length; i++) {
 			output_states = _output_buffer.get_from_index(i);
 			output_states.quat_nominal *= _state_reset_status.quat_change;
-			_output_buffer.push_to_index(i,output_states);
+			_output_buffer.push_to_index(i, output_states);
 		}
 
 		// apply the change in attitude quaternion to our newest quaternion estimate
@@ -664,7 +664,7 @@ void Ekf::calcMagDeclination()
 	// set source of magnetic declination for internal use
 	if (_flt_mag_align_complete) {
 		// Use value consistent with earth field state
-		_mag_declination = atan2f(_state.mag_I(1),_state.mag_I(0));
+		_mag_declination = atan2f(_state.mag_I(1), _state.mag_I(0));
 	} else if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
 		if (_NED_origin_initialised) {

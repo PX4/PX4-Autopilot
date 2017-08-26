@@ -95,7 +95,7 @@ void Ekf::initialiseCovariance()
 
 	// earth frame and body frame magnetic field
 	// set to observation variance
-	for (uint8_t index=16; index <= 21; index ++) {
+	for (uint8_t index = 16; index <= 21; index ++) {
 		P[index][index] = sq(_params.mag_noise);
 	}
 
@@ -733,12 +733,14 @@ void Ekf::fixCovarianceErrors()
 		const float minSafeStateVar = 1e-9f;
 		float maxStateVar = minSafeStateVar;
 		bool resetRequired = false;
-		for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
-		    if (P[stateIndex][stateIndex] > maxStateVar) {
-			maxStateVar = P[stateIndex][stateIndex];
-		    } else if (P[stateIndex][stateIndex] < minSafeStateVar) {
-			resetRequired = true;
-		    }
+
+		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
+			if (P[stateIndex][stateIndex] > maxStateVar) {
+				maxStateVar = P[stateIndex][stateIndex];
+
+			} else if (P[stateIndex][stateIndex] < minSafeStateVar) {
+				resetRequired = true;
+			}
 		}
 
 		// To ensure stability of the covariance matrix operations, the ratio of a max and min variance must
@@ -746,31 +748,37 @@ void Ekf::fixCovarianceErrors()
 		// Also limit variance to a maximum equivalent to a 1g uncertainty
 		const float minStateVarTarget = 1E-8f;
 		float minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
-		for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
-			P[stateIndex][stateIndex] = math::constrain(P[stateIndex][stateIndex], minAllowedStateVar, sq(_gravity_mss * _dt_ekf_avg));
+
+		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
+			P[stateIndex][stateIndex] = math::constrain(P[stateIndex][stateIndex], minAllowedStateVar,
+						    sq(_gravity_mss * _dt_ekf_avg));
 		}
 
 		// If any one axis has fallen below the safe minimum, all delta velocity covariance terms must be reset to zero
 		if (resetRequired) {
-		    float delVelBiasVar[3];
-		    // store all delta velocity bias variances
-		    for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
-			delVelBiasVar[stateIndex-13] = P[stateIndex][stateIndex];
-		    }
-		    // reset all delta velocity bias covariances
-		    zeroCols(P,13,15);
-		    // restore all delta velocity bias variances
-		    for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
-			P[stateIndex][stateIndex] = delVelBiasVar[stateIndex-13];
-		    }
+			float delVelBiasVar[3];
+
+			// store all delta velocity bias variances
+			for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
+				delVelBiasVar[stateIndex - 13] = P[stateIndex][stateIndex];
+			}
+
+			// reset all delta velocity bias covariances
+			zeroCols(P, 13, 15);
+
+			// restore all delta velocity bias variances
+			for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
+				P[stateIndex][stateIndex] = delVelBiasVar[stateIndex - 13];
+			}
 		}
 
 		// Run additional checks to see if the delta velocity bias has hit limits in a direction that is clearly wrong
 		// calculate accel bias term aligned with the gravity vector
 		float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
 		float down_dvel_bias = 0.0f;
-		for (uint8_t axis_index=0; axis_index < 3; axis_index++) {
-			down_dvel_bias += _state.accel_bias(axis_index) * _R_to_earth(2,axis_index);
+
+		for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
+			down_dvel_bias += _state.accel_bias(axis_index) * _R_to_earth(2, axis_index);
 		}
 
 		// check that the vertical componenent of accel bias is consistent with both the vertical position and velocity innovation
@@ -838,7 +846,7 @@ void Ekf::fixCovarianceErrors()
 }
 
 void Ekf::resetMagCovariance()
-{	
+{
 	// set the quaternion covariance terms to zero
 	zeroRows(P,0,3);
 	zeroCols(P,0,3);
@@ -893,5 +901,4 @@ void Ekf::resetWindCovariance()
 		P[23][23] = sq(1.0f);
 
 	}
-
 }

@@ -43,21 +43,6 @@
 #include "ekf.h"
 #include "mathlib.h"
 
-#ifndef __PX4_QURT
-#if defined(__cplusplus) && !defined(__PX4_NUTTX)
-#include <cmath>
-#define ISFINITE(x) std::isfinite(x)
-#else
-#define ISFINITE(x) isfinite(x)
-#endif
-#endif
-
-#if defined(__PX4_QURT)
-// Missing math.h defines
-#define ISFINITE(x) __builtin_isfinite(x)
-#endif
-
-
 bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);
@@ -617,7 +602,8 @@ void Ekf::calculateOutputStates()
 			unsigned index = _output_vert_buffer.get_oldest_index();
 			unsigned index_next;
 			unsigned size = _output_vert_buffer.get_length();
-			for (unsigned counter=0; counter < (size - 1); counter++) {
+
+			for (unsigned counter = 0; counter < (size - 1); counter++) {
 				index_next = (index + 1) % size;
 				current_state = _output_vert_buffer.get_from_index(index);
 				next_state = _output_vert_buffer.get_from_index(index_next);
@@ -625,7 +611,7 @@ void Ekf::calculateOutputStates()
 				// correct the velocity
 				if (counter == 0) {
 					current_state.vel_d += vel_d_correction;
-					_output_vert_buffer.push_to_index(index,current_state);
+					_output_vert_buffer.push_to_index(index, current_state);
 				}
 				next_state.vel_d += vel_d_correction;
 
@@ -633,7 +619,7 @@ void Ekf::calculateOutputStates()
 				next_state.vel_d_integ = current_state.vel_d_integ + (current_state.vel_d + next_state.vel_d) * 0.5f * next_state.dt;
 
 				// push the updated data to the buffer
-				_output_vert_buffer.push_to_index(index_next,next_state);
+				_output_vert_buffer.push_to_index(index_next, next_state);
 
 				// advance the index
 				index = (index + 1) % size;
@@ -664,7 +650,7 @@ void Ekf::calculateOutputStates()
 			// loop through the output filter state history and apply the corrections to the velocity and position states
 			outputSample output_states;
 			unsigned max_index = _output_buffer.get_length() - 1;
-			for (unsigned index=0; index <= max_index; index++) {
+			for (unsigned index = 0; index <= max_index; index++) {
 				output_states = _output_buffer.get_from_index(index);
 
 				// a constant  velocity correction is applied
@@ -674,7 +660,7 @@ void Ekf::calculateOutputStates()
 				output_states.pos += pos_correction;
 
 				// push the updated data to the buffer
-				_output_buffer.push_to_index(index,output_states);
+				_output_buffer.push_to_index(index, output_states);
 
 			}
 
