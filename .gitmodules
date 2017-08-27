@@ -54,6 +54,9 @@
 	path = platforms/nuttx/NuttX/apps
 	url = https://github.com/PX4/NuttX-apps.git
 	branch = px4_firmware_nuttx-7.22+
+[submodule "platforms/nuttx/NuttX/libcxx"]
+	path = platforms/nuttx/NuttX/libcxx
+	url = https://github.com/PX4/libcxx.git
 [submodule "cmake/configs/uavcan_board_ident"]
 	path = cmake/configs/uavcan_board_ident
 	url = https://github.com/PX4/uavcan_board_ident.git

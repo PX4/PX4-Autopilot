@@ -33,10 +33,10 @@
 
 #add_subdirectory(hc_sr04) # not currently supported
 add_subdirectory(ll40ls)
-add_subdirectory(mb12xx)
-add_subdirectory(sf0x)
+#add_subdirectory(mb12xx)
+#add_subdirectory(sf0x)
 add_subdirectory(sf1xx)
-add_subdirectory(srf02)
+#add_subdirectory(srf02)
 add_subdirectory(teraranger)
 add_subdirectory(tfmini)
 add_subdirectory(ulanding)

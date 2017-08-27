@@ -177,8 +177,9 @@ function(px4_os_add_flags)
 		DEFINITIONS ${DEFINITIONS})
 
 	include_directories(BEFORE SYSTEM
-		${PX4_BINARY_DIR}/NuttX/nuttx/include
+		${PX4_BINARY_DIR}/NuttX/nuttx/include/libcxx
 		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
+		${PX4_BINARY_DIR}/NuttX/nuttx/include
 	)
 
 	include_directories(
@@ -193,6 +194,15 @@ function(px4_os_add_flags)
 		-D__PX4_NUTTX
 		-D__DF_NUTTX
 		)
+
+	# needed for NuttX LLVM c++ support
+	list(APPEND cxx_flags
+		-D__NuttX__
+		-D_LIBCPP_BUILD_STATIC
+		-D_LIBCPP_NO_EXCEPTIONS
+		-D_LIBCPP_HAS_THREAD_API_PTHREAD
+		-DCLOCK_MONOTONIC
+	)
 
 	if("${CONFIG_ARMV7M_STACKCHECK}" STREQUAL "y")
 		message(STATUS "NuttX Stack Checking (CONFIG_ARMV7M_STACKCHECK) enabled")

@@ -48,13 +48,11 @@ OBJDUMP = ${CMAKE_OBJDUMP}
 # Include paths with Cygwin path conversion
 ifneq (, $(findstring CYGWIN, $(shell uname)))
   WINTOOL = y
-  PX4INCLUDES = -I"$(shell cygpath -w ${PX4_SOURCE_DIR}/src/include)"
-  ARCHINCLUDES = $(PX4INCLUDES) -I. -isystem "$(shell cygpath -w $(TOPDIR)/include)"
-  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem "$(shell cygpath -w $(TOPDIR)/include/cxx)"
+  ARCHINCLUDES = -I. -isystem "$(shell cygpath -w $(TOPDIR)/include)"
+  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem "$(shell cygpath -w $(TOPDIR)/include/cxx) -isystem "$(shell cygpath -w $(TOPDIR)/include/libcxx)"
 else
-  PX4INCLUDES = -I${PX4_SOURCE_DIR}/src/include
-  ARCHINCLUDES = $(PX4INCLUDES) -I. -isystem $(TOPDIR)/include
-  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem $(TOPDIR)/include/cxx
+  ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
+  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem $(TOPDIR)/include/cxx -isystem $(TOPDIR)/include/libcxx
 endif
 
 # Windows toolchain (MSYS & Cygwin) symbolic link handling
@@ -64,14 +62,45 @@ ifeq ($(WINTOOL),y)
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
 endif
 
+FLAGS = -Os -g2 \
+	-fdata-sections \
+	-ffunction-sections \
+	-fno-builtin-printf \
+	-fno-common \
+	-fno-strength-reduce \
+	-fno-strict-aliasing \
+	-fomit-frame-pointer \
+	-Wall \
+	-Werror \
+	-Wextra \
+	-Wlogical-op \
+	-Wno-cpp \
+	-Wno-maybe-uninitialized \
+	-Wno-missing-field-initializers \
+	-Wno-sign-compare \
+	-Wno-type-limits \
+	-Wno-unused-parameter \
+	-Wpointer-arith
+
 # enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
-  INSTRUMENTATIONDEFINES = -finstrument-functions -ffixed-r10
+	FLAGS += -finstrument-functions -ffixed-r10
 endif
 
-CFLAGS = -Os -g2 ${CMAKE_C_FLAGS} $(ARCHINCLUDES) $(INSTRUMENTATIONDEFINES) \
+ifeq ($(CONFIG_ARCH_CORTEXM3),y)
+	FLAGS += -mcpu=cortex-m3 -mthumb -march=armv7-m
+endif
+ifeq ($(CONFIG_ARCH_CORTEXM4),y)
+	FLAGS += -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+endif
+ifeq ($(CONFIG_ARCH_CORTEXM7),y)
+	FLAGS += -mcpu=cortex-m7 -mthumb -mfpu=fpv5-sp-d16 -mfloat-abi=hard
+endif
+
+CFLAGS = -std=gnu99 $(FLAGS) \
+	$(ARCHINCLUDES) \
+	-Wmissing-parameter-type \
 	-Wno-bad-function-cast \
-	-Wno-cpp \
 	-Wno-float-equal \
 	-Wno-format-truncation \
 	-Wno-implicit-fallthrough \
@@ -84,12 +113,20 @@ CFLAGS = -Os -g2 ${CMAKE_C_FLAGS} $(ARCHINCLUDES) $(INSTRUMENTATIONDEFINES) \
 	-Wno-nested-externs \
 	-Wno-nonnull-compare \
 	-Wno-old-style-declaration \
-	-Wno-sign-compare \
-	-Wno-type-limits
+	-Wno-type-limits \
+	-Wstrict-prototypes
 
-CXXFLAGS = -Os -g2 ${CMAKE_CXX_FLAGS} $(ARCHXXINCLUDES) $(INSTRUMENTATIONDEFINES) \
+CXXFLAGS = -std=c++11 $(FLAGS) \
+	$(ARCHXXINCLUDES) \
+	-D__NuttX__ \
+	-D_LIBCPP_BUILD_STATIC \
+	-D_LIBCPP_NO_EXCEPTIONS \
+	-D_LIBCPP_HAS_THREAD_API_PTHREAD \
+	-DCLOCK_MONOTONIC \
 	-fcheck-new \
-	-fno-builtin \
+	-fno-exceptions \
+	-fno-rtti \
+	-Wno-c++14-compat \
 	-Wno-double-promotion \
 	-Wno-maybe-uninitialized \
 	-Wno-missing-declarations

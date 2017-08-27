@@ -105,6 +105,7 @@ target_link_libraries(${FW_NAME} PRIVATE
 	-Wl,--end-group
 
 	m
+	supc++
 	)
 
 target_link_libraries(${FW_NAME} PRIVATE ${module_libraries})

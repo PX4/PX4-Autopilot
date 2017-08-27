@@ -9,7 +9,7 @@ set(config_module_list
 	#
 	drivers/barometer
 	drivers/differential_pressure
-	drivers/distance_sensor
+	#drivers/distance_sensor
 	drivers/magnetometer
 	drivers/telemetry
 	drivers/imu
