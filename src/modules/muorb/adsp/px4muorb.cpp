@@ -111,11 +111,8 @@ int px4muorb_param_update_to_shmem(uint32_t param, const uint8_t *value,
 	return 0;
 }
 
-int px4muorb_param_update_index_from_shmem(unsigned char *data,
-		int data_len_in_bytes)
+int px4muorb_param_update_index_from_shmem(unsigned char *data, int data_len_in_bytes)
 {
-	unsigned int i;
-
 	if (!shmem_info_p) {
 		return -1;
 	}
@@ -125,7 +122,7 @@ int px4muorb_param_update_index_from_shmem(unsigned char *data,
 		return -1;
 	}
 
-	for (i = 0; i < data_len_in_bytes; i++) {
+	for (int i = 0; i < data_len_in_bytes; i++) {
 		data[i] = shmem_info_p->adsp_changed_index[i];
 	}
 
