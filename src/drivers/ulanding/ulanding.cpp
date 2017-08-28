@@ -210,6 +210,7 @@ Radar::init()
 #else
 		ret = CDev::init();
 #endif
+
 		if (ret != OK) {
 			PX4_WARN("vdev init failed");
 			break;
@@ -232,37 +233,26 @@ Radar::init()
 		/* fill the struct for the new configuration */
 		tcgetattr(fd, &uart_config);
 
-		// Input flags - Turn off input processing
-		//
-		// convert break to null byte, no CR to NL translation,
-		// no NL to CR translation, don't mark parity errors or breaks
-		// no input parity check, don't strip high bit off,
-		// no XON/XOFF software flow control
-		//
-		//TODO: only Posix/VDev/OcPoc?
+		/** Input flags - Turn off input processing
+		 *
+		 * convert break to null byte, no CR to NL translation,
+		 * no NL to CR translation, don't mark parity errors or breaks
+		 * no input parity check, don't strip high bit off,
+		 * no XON/XOFF software flow control
+		 *
+		 */
+
 		uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
 					 INLCR | PARMRK | INPCK | ISTRIP | IXON);
-		//
-		// No line processing
-		//
-		// echo off, echo newline off, canonical mode off,
-		// extended input processing off, signal chars off
-		//
-		//TODO: only for Posix/VDev/OcPoc?
+
+		/** No line processing
+		 *
+		 * echo off, echo newline off, canonical mode off,
+		 * extended input processing off, signal chars off
+		 *
+		 */
+
 		uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-
-		//
-		// Output flags - Turn off output processing
-		//
-		// no CR to NL translation, no NL to CR-NL translation,
-		// no NL to CR translation, no column 0 CR suppression,
-		// no Ctrl-D suppression, no fill characters, no case mapping,
-		// no local output processing
-		//
-		//// config.c_oflag &= ~(OCRNL | ONLCR | ONLRET |
-		//                     ONOCR | ONOEOT| OFILL | OLCUC | OPOST);
-
-		//uart_config.c_oflag = 0;
 
 		/* clear ONLCR flag (which appends a CR for every LF) */
 		uart_config.c_oflag &= ~ONLCR;
