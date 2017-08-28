@@ -35,34 +35,20 @@
  * @file ecl_pitch_controller.cpp
  * Implementation of a simple orthogonal pitch PID controller.
  *
- * Authors and acknowledgements in header.
+ * Authors and acknowledgments in header.
  */
 
 #include "ecl_pitch_controller.h"
-#include <math.h>
-#include <stdint.h>
-#include <float.h>
-#include <geo/geo.h>
-#include <ecl/ecl.h>
-#include <mathlib/mathlib.h>
-#include <systemlib/err.h>
-
-ECL_PitchController::ECL_PitchController() :
-	ECL_Controller("pitch"),
-	_max_rate_neg(0.0f),
-	_roll_ff(0.0f)
-{
-}
 
 float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
-
 	/* Do not calculate control signal with bad inputs */
-	if (!(PX4_ISFINITE(ctl_data.pitch_setpoint) &&
-	      PX4_ISFINITE(ctl_data.roll) &&
-	      PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.airspeed))) {
-		warnx("not controlling pitch");
+	if (!(ISFINITE(ctl_data.pitch_setpoint) &&
+	      ISFINITE(ctl_data.roll) &&
+	      ISFINITE(ctl_data.pitch) &&
+	      ISFINITE(ctl_data.airspeed))) {
+
+		ECL_WARN("not controlling pitch");
 		return _rate_setpoint;
 	}
 
@@ -73,14 +59,13 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 	_rate_setpoint =  pitch_error / _tc;
 
 	/* limit the rate */
-	if (_max_rate > 0.01f && _max_rate_neg > 0.01f) {
+	if (_max_rate >= 0.0f && _max_rate_neg >= 0.0f) {
 		if (_rate_setpoint > 0.0f) {
 			_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
 
 		} else {
 			_rate_setpoint = (_rate_setpoint < -_max_rate_neg) ? -_max_rate_neg : _rate_setpoint;
 		}
-
 	}
 
 	return _rate_setpoint;
@@ -89,21 +74,22 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(PX4_ISFINITE(ctl_data.roll) &&
-	      PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.body_y_rate) &&
-	      PX4_ISFINITE(ctl_data.body_z_rate) &&
-	      PX4_ISFINITE(ctl_data.yaw_rate_setpoint) &&
-	      PX4_ISFINITE(ctl_data.airspeed_min) &&
-	      PX4_ISFINITE(ctl_data.airspeed_max) &&
-	      PX4_ISFINITE(ctl_data.scaler))) {
+	if (!(ISFINITE(ctl_data.roll) &&
+	      ISFINITE(ctl_data.pitch) &&
+	      ISFINITE(ctl_data.body_y_rate) &&
+	      ISFINITE(ctl_data.body_z_rate) &&
+	      ISFINITE(ctl_data.yaw_rate_setpoint) &&
+	      ISFINITE(ctl_data.airspeed_min) &&
+	      ISFINITE(ctl_data.airspeed_max) &&
+	      ISFINITE(ctl_data.scaler))) {
+
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
 
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
-	float dt = (float)dt_micros * 1e-6f;
+	float dt = dt_micros * 1e-6f;
 
 	/* lock integral for long intervals */
 	bool lock_integrator = ctl_data.lock_integrator;
