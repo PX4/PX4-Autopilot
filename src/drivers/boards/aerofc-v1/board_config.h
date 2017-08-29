@@ -150,6 +150,8 @@
 
 #define MEMORY_CONSTRAINED_SYSTEM
 
+#define CRASHDUMP_RESET_ONLY
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

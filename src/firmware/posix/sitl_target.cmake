@@ -1,7 +1,6 @@
 
 function(px4_add_sitl_app)
-px4_parse_function_args(
-			NAME px4_add_sitl_app
+px4_parse_function_args(NAME px4_add_sitl_app
 			ONE_VALUE APP_NAME MAIN_SRC UPLOAD_NAME
 			REQUIRED APP_NAME MAIN_SRC
 			ARGN ${ARGN}
@@ -27,7 +26,6 @@ px4_parse_function_args(
 			pthread m
 			)
 	endif()
-
 endfunction()
 
 #=============================================================================
@@ -62,6 +60,9 @@ add_custom_target(run_config
 			USES_TERMINAL
 		DEPENDS px4 logs_symlink
 		)
+
+# Add support for external project building
+include(ExternalProject)
 
 # project to build sitl_gazebo if necessary
 ExternalProject_Add(sitl_gazebo

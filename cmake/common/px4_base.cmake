@@ -198,10 +198,6 @@ function(px4_add_module)
 		REQUIRED MODULE
 		ARGN ${ARGN})
 
-	if (EXTERNAL)
-		px4_mangle_name("${EXTERNAL_MODULES_LOCATION}/src/${MODULE}" MODULE)
-	endif()
-
 	px4_add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
 	# set defaults if not set
@@ -219,16 +215,14 @@ function(px4_add_module)
 		if(NOT ${property})
 			set(${property} ${${property}_DEFAULT})
 		endif()
-		set_target_properties(${MODULE} PROPERTIES ${property}
-			${${property}})
+		set_target_properties(${MODULE} PROPERTIES ${property} ${${property}})
 	endforeach()
 
 	# default stack max to stack main
 	if(NOT STACK_MAX)
 		set(STACK_MAX ${STACK_MAIN})
 	endif()
-	set_target_properties(${MODULE} PROPERTIES STACK_MAX
-		${STACK_MAX})
+	set_target_properties(${MODULE} PROPERTIES STACK_MAX ${STACK_MAX})
 
 	if(${OS} STREQUAL "qurt" )
 		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
@@ -270,7 +264,6 @@ function(px4_add_module)
 			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
 		endif()
 	endforeach()
-
 endfunction()
 
 #=============================================================================
@@ -479,14 +472,6 @@ function(px4_add_common_flags)
 		-D__STDC_FORMAT_MACROS
 		)
 
-	if (NOT (APPLE AND (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")))
-		set(added_exe_linker_flags
-			-Wl,--warn-common
-			-Wl,--gc-sections
-			#,--print-gc-sections
-			)
-	endif()
-
 	# output
 	foreach(var ${inout_vars})
 		string(TOLOWER ${var} lower_var)
@@ -494,31 +479,6 @@ function(px4_add_common_flags)
 		#message(STATUS "set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
 
-endfunction()
-
-#=============================================================================
-#
-#	px4_mangle_name
-#
-#	Convert a path name to a module name
-#
-#	Usage:
-#		px4_mangle_name(dirname newname)
-#
-#	Input:
-#		dirname					: path to module dir
-#
-#	Output:
-#		newname					: module name
-#
-#	Example:
-#		px4_mangle_name(${dirpath} mangled_name)
-#		message(STATUS "module name is ${mangled_name}")
-#
-function(px4_mangle_name dirname newname)
-	set(tmp)
-	string(REPLACE "/" "__" tmp ${dirname})
-	set(${newname} ${tmp} PARENT_SCOPE)
 endfunction()
 
 #=============================================================================
@@ -588,6 +548,8 @@ function(px4_add_library target)
 	px4_add_optimization_flags_for_target(${target})
 	# Pass variable to the parent px4_add_module.
 	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
+
+	set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES ${target})
 endfunction()
 
 #=============================================================================

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,9 @@
 #
 ############################################################################
 
-#
-# STM32 ADC driver
-#
-
-MODULE_COMMAND	= adc
-
-SRCS		= adc.cpp
-
-INCLUDE_DIRS	+= $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/common
-
-MAXOPTIMIZATION	 = -Os
+px4_add_library(board_kinetis
+	board_identity.c
+	board_mcu_version.c
+	board_reset.c
+	)
+add_dependencies(board_kinetis nuttx_build)

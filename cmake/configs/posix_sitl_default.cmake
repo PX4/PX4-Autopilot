@@ -3,7 +3,7 @@ include(posix/px4_impl_posix)
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
-	drivers/boards/sitl
+	drivers/boards
 	drivers/camera_trigger
 	drivers/device
 	drivers/gps
@@ -193,11 +193,6 @@ set(config_module_list
 	# micro-RTPS
 	lib/micro-CDR
 )
-
-set(config_extra_builtin_cmds
-	serdis
-	sercon
-	)
 
 set(config_rtps_send_topics
 	sensor_baro

@@ -34,7 +34,7 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/rgbled
 	drivers/led
-	drivers/boards/sitl
+	drivers/boards
 	drivers/qshell/posix
 
 	systemcmds/param
