@@ -35,14 +35,11 @@ add_custom_command(OUTPUT romfs.img
 	)
 
 # create romfs.o
-add_custom_command(OUTPUT romfs.o
-	COMMAND ${OBJCOPY} -I binary -O elf32-littlearm -B arm romfs.img romfs.o
-		--redefine-sym _binary_romfs_img_start=romfs_img
-		--redefine-sym _binary_romfs_img_size=romfs_img_len
-		--strip-symbol _binary_romfs_img_end
-		--rename-section .data=.rodata
+add_custom_command(OUTPUT nsh_romfsimg.c
+	COMMAND xxd -i romfs.img nsh_romfsimg.c
+	COMMAND sed -i 's/unsigned/const unsigned/g' nsh_romfsimg.c
 	DEPENDS romfs.img
 	)
 
-add_library(romfs STATIC romfs.o)
+add_library(romfs STATIC nsh_romfsimg.c)
 set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)
