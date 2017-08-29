@@ -31,36 +31,12 @@
 #
 ############################################################################
 
-
-add_definitions(
-		-DHW_UAVCAN_NAME=${uavcanblid_name}
-		-DHW_VERSION_MAJOR=${uavcanblid_hw_version_major}
-		-DHW_VERSION_MINOR=${uavcanblid_hw_version_minor}
-)
-
-include_directories(${px4_bootloader_base}include)
-include_directories(${px4_module_base}systemlib)
-include_directories(.)
-
 px4_add_module(
 	MODULE drivers__boards__px4flow-v2__bootloader
-	COMPILE_FLAGS
 	SRCS
 		boot.c
 		led.c
-		../../common/stm32/board_identity.c
-		${px4_bootloader_base}src/uavcan/main.c
-		${px4_bootloader_base}src/common/boot_app_shared.c
-		${px4_bootloader_base}src/common/nuttx_stubs.c
-		${px4_bootloader_base}src/sched/timer.c
-		${px4_bootloader_base}src/fs/flash.c
-		${px4_bootloader_base}src/util/crc.c
-		${px4_bootloader_base}src/util/random.c
-		${px4_bootloader_base}src/arch/stm32/drivers/can/driver.c
-		${px4_bootloader_base}src/protocol/uavcan.c
 	DEPENDS
-		nuttx_export_${BOARD}
+		nuttx_build
 )
-
-
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+target_link_libraries(drivers__boards__px4flow-v2__bootloader drivers_bootloaders)

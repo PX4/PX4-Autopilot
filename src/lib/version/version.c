@@ -33,7 +33,7 @@
 
 #include "version.h"
 
-#include "build_git_version.h" //generated from build_git_version.h.in
+#include "build_git_version.h"
 
 #include <string.h>
 

@@ -308,10 +308,6 @@ BMI160::accel_set_sample_rate(float frequency)
 		setbits |= BMI_ACCEL_RATE_25_16;
 		_accel_sample_rate = 25 / 16;
 
-	} else if (frequency <= 25 / 16) {
-		setbits |= BMI_ACCEL_RATE_25_16;
-		_accel_sample_rate = 25 / 16;
-
 	} else if (frequency <= 25 / 8) {
 		setbits |= BMI_ACCEL_RATE_25_8;
 		_accel_sample_rate = 25 / 8;

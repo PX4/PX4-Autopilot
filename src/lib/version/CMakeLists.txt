@@ -30,6 +30,38 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+# check if px4 source is a git repo
+if (EXISTS ${PX4_SOURCE_DIR}/.git)
+	if (IS_DIRECTORY ${PX4_SOURCE_DIR}/.git)
+		# standard git repo
+		set(git_dir_path ${PX4_SOURCE_DIR}/.git)
+	else()
+		# git submodule
+		file(READ ${PX4_SOURCE_DIR}/.git git_dir_path)
+		string(STRIP ${git_dir_path} git_dir_path)
+		string(REPLACE "gitdir: " "" git_dir_path ${git_dir_path})
+		get_filename_component(git_dir_path ${git_dir_path} ABSOLUTE)
+	endif()
+else()
+	message(FATAL_ERROR "is not a git repository")
+endif()
+if(NOT IS_DIRECTORY "${git_dir_path}")
+	message(FATAL_ERROR "${git_dir_path} is not a directory")
+endif()
+
+set(px4_git_ver_header ${PX4_BINARY_DIR}/build_git_version.h)
+add_custom_command(OUTPUT ${px4_git_ver_header}
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py ${px4_git_ver_header} > ${PX4_BINARY_DIR}/git_header.log
+	DEPENDS
+		${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py
+		${git_dir_path}/HEAD
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	COMMENT "Generating git hash header"
+	)
+set_source_files_properties(${px4_git_ver_header} PROPERTIES GENERATED TRUE)
+add_custom_target(ver_gen ALL DEPENDS ${px4_git_ver_header})
+
 px4_add_module(
 	MODULE lib__version
 	COMPILE_FLAGS

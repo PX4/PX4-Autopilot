@@ -156,24 +156,24 @@ installpx4() {
    if [ $mode == 0 ]; then
       # copy default binaries
       echo -e "Copying the PX4 binaries from the eagle_default build tree..."
-      adb push $workspace/build_qurt_eagle_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
-      adb push $workspace/build_qurt_eagle_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
-      adb push $workspace/build_posix_eagle_default/src/firmware/posix/px4 /home/linaro
+      adb push $workspace/build/qurt_eagle_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
+      adb push $workspace/build/qurt_eagle_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
+      adb push $workspace/build/posix_eagle_default/src/firmware/posix/px4 /home/linaro
       adb push $workspace/posix-configs/eagle/flight/px4.config /usr/share/data/adsp
       adb push $workspace/posix-configs/eagle/flight/mainapp.config /home/linaro
    elif [ $mode == 1 ]; then
       # copy legacy binaries
       echo -e "Copying the PX4 binaries from the eagle_legacy build tree..."
-      adb push $workspace/build_qurt_eagle_legacy/src/firmware/qurt/libpx4.so /usr/share/data/adsp
-      adb push $workspace/build_qurt_eagle_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
-      adb push $workspace/build_posix_eagle_legacy/src/firmware/posix/px4 /home/linaro
+      adb push $workspace/build/qurt_eagle_legacy/src/firmware/qurt/libpx4.so /usr/share/data/adsp
+      adb push $workspace/build/qurt_eagle_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
+      adb push $workspace/build/posix_eagle_legacy/src/firmware/posix/px4 /home/linaro
       adb push $workspace/posix-configs/eagle/200qx/px4.config /usr/share/data/adsp
       adb push $workspace/posix-configs/eagle/200qx/mainapp.config /home/linaro
    else
       echo -e "Copying the PX4 binaries from the excelsior_legacy build tree..."
-      adb push $workspace/build_qurt_excelsior_legacy/src/firmware/qurt/libpx4.so /usr/lib/rfsa/adsp
-      adb push $workspace/build_qurt_excelsior_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/lib/rfsa/adsp
-      adb push $workspace/build_posix_excelsior_legacy/src/firmware/posix/px4 /home/root
+      adb push $workspace/build/qurt_excelsior_legacy/src/firmware/qurt/libpx4.so /usr/lib/rfsa/adsp
+      adb push $workspace/build/qurt_excelsior_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/lib/rfsa/adsp
+      adb push $workspace/build/posix_excelsior_legacy/src/firmware/posix/px4 /home/root
       adb push $workspace/posix-configs/excelsior/px4.config /usr/lib/rfsa/adsp
       adb push $workspace/posix-configs/excelsior/mainapp.config /home/root
    fi

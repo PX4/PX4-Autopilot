@@ -681,7 +681,7 @@ CONFIG_RAM_SIZE=262144
 # Board Selection
 #
 CONFIG_ARCH_BOARD_AUAV_X21=y
-CONFIG_ARCH_BOARD="auav_x21"
+CONFIG_ARCH_BOARD="auav-x21"
 
 #
 # Custom Board Configuration

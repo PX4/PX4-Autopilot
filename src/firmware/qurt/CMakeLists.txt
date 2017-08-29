@@ -9,6 +9,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes")
 
+get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+
 px4_qurt_generate_builtin_commands(
 	OUT ${PX4_BINARY_DIR}/apps
 	MODULE_LIST ${module_libraries})
@@ -29,15 +31,10 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	target_link_libraries(px4
 		-Wl,--start-group
 		${module_libraries}
-                ${target_libraries}
-                ${df_driver_libs}
+		${df_driver_libs}
 		-Wl,--end-group
 		)
 else()
-	#message("module_libraries = ${module_libraries}")
-	#message("target_libraries = ${target_libraries}")
-	#message("df_driver_libs = ${df_driver_libs}")
-	#message("module_external_libraries = ${module_external_libraries}")
 	# Generate the DSP lib and stubs but not the apps side executable
 	# The Apps side executable is generated via the posix_eagle_xxxx target
 	QURT_LIB(LIB_NAME px4
@@ -46,10 +43,8 @@ else()
 			${PX4_BINARY_DIR}/apps.cpp
 		LINK_LIBS
 			${module_libraries}
-			${target_libraries}
 			${df_driver_libs}
 			m
-			${module_external_libraries}
 		)
 
 	px4_add_adb_push(OUT upload

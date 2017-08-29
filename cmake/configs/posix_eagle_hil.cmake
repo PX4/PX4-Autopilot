@@ -20,7 +20,7 @@ endif()
 
 set(config_module_list
 	drivers/device
-	drivers/boards/sitl
+	drivers/boards
 	drivers/led
 	drivers/linux_sbus
 
