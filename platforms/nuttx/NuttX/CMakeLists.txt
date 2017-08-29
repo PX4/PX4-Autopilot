@@ -134,7 +134,7 @@ add_custom_command(OUTPUT ${APPS_DIR}/libapps.a
 add_custom_target(nuttx_apps_build DEPENDS ${APPS_DIR}/libapps.a)
 add_library(nuttx_apps STATIC IMPORTED GLOBAL)
 set_property(TARGET nuttx_apps PROPERTY IMPORTED_LOCATION ${APPS_DIR}/libapps.a)
-
+add_dependencies(nuttx_build nuttx_apps_build)
 target_link_libraries(nuttx_build INTERFACE nuttx_apps)
 
 # libboard.a
@@ -146,6 +146,7 @@ add_custom_command(OUTPUT ${NUTTX_DIR}/arch/arm/src/board/libboard.a
 add_custom_target(nuttx_board_build DEPENDS ${NUTTX_DIR}/arch/arm/src/board/libboard.a)
 add_library(nuttx_board STATIC IMPORTED GLOBAL)
 set_property(TARGET nuttx_board PROPERTY IMPORTED_LOCATION ${NUTTX_DIR}/arch/arm/src/board/libboard.a)
+add_dependencies(nuttx_build nuttx_board_build)
 target_link_libraries(nuttx_build INTERFACE nuttx_board)
 
 # helper for all targets
@@ -164,7 +165,6 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 	add_library(nuttx_${nuttx_lib} STATIC IMPORTED GLOBAL)
 	set_property(TARGET nuttx_${nuttx_lib} PROPERTY IMPORTED_LOCATION ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a)
 	add_dependencies(nuttx_build nuttx_${nuttx_lib}_build)
-
 	target_link_libraries(nuttx_build INTERFACE nuttx_${nuttx_lib})
 endfunction()
 
