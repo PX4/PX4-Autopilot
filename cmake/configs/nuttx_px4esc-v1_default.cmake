@@ -26,15 +26,13 @@ add_definitions(
 )
 
 px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
-	BIN ${CMAKE_CURRENT_BINARY_DIR}/src/firmware/nuttx/px4esc-v1.bin
+	BIN ${PX4_BINARY_DIR}/src/firmware/nuttx/px4esc-v1.bin
 	HWNAME ${uavcanblid_name}
 	HW_MAJOR ${uavcanblid_hw_version_major}
 	HW_MINOR ${uavcanblid_hw_version_minor}
 	SW_MAJOR ${uavcanblid_sw_version_major}
 	SW_MINOR ${uavcanblid_sw_version_minor}
 )
-
-include_directories(${PX4_SOURCE_DIR}/src/drivers/boards/px4esc-v1/bootloader)
 
 set(config_module_list
 	#

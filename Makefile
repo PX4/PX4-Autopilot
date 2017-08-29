@@ -182,7 +182,7 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders sizes check quick_check
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware sizes check quick_check
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
@@ -218,20 +218,11 @@ alt_firmware: \
 	check_s2740vc-v1_default \
 	sizes
 
-checks_bootloaders: \
-	check_esc35-v1_bootloader \
-	check_px4esc-v1_bootloader \
-	check_px4flow-v2_bootloader \
-	check_s2740vc-v1_bootloader \
-# not fitting in flash		check_px4cannode-v1_bootloader \
-# not fitting in flash	check_zubaxgnss-v1_bootloader \
-	sizes
-
 sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
 
 # All default targets that don't require a special build environment
-check: check_posix_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders tests check_format
+check: check_posix_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
 quick_check: check_posix_sitl_default check_px4fmu-v3_default tests check_format

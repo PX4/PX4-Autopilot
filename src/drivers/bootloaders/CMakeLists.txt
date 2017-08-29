@@ -32,17 +32,9 @@
 ############################################################################
 
 px4_add_library(drivers_bootloaders
-		src/arch/stm32/drivers/can/driver.c
-		src/common/boot_app_shared.c
-		src/common/nuttx_stubs.c
-		src/fs/flash.c
-		src/protocol/uavcan.c
-		src/sched/timer.c
-		src/uavcan/main.c
-		src/util/crc.c
-		src/util/random.c
+		boot_app_shared.c
 	)
-add_dependencies(drivers_bootloaders nuttx_build)
+add_dependencies(drivers_bootloaders platforms__common)
 
 include_directories(include)
 target_include_directories(drivers_bootloaders INTERFACE include)

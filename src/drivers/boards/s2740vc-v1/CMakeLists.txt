@@ -50,4 +50,3 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-include_directories(bootloader)

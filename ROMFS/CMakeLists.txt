@@ -42,4 +42,5 @@ add_custom_command(OUTPUT nsh_romfsimg.c
 	)
 
 add_library(romfs STATIC nsh_romfsimg.c)
+add_dependencies(romfs platforms__common)
 set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)

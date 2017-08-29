@@ -188,9 +188,7 @@ function(px4_os_add_flags)
 	#set(added_link_dirs ${nuttx_export_dir}/libs)
 	set(added_definitions -D__PX4_NUTTX)
 
-	if(NOT ${nuttx_config_type} STREQUAL "bootloader")
-		list(APPEND added_definitions -D__DF_NUTTX)
-	endif()
+	list(APPEND added_definitions -D__DF_NUTTX)
 
 	if("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
 		set(instrument_flags
@@ -241,7 +239,7 @@ function(px4_os_prebuild_targets)
 	add_custom_target(${OUT} DEPENDS nuttx_context)
 
 	# parse nuttx config options for cmake
-	file(STRINGS ${PX4_SOURCE_DIR}/nuttx-configs/${BOARD}/${nuttx_config_type}/defconfig ConfigContents)
+	file(STRINGS ${PX4_SOURCE_DIR}/nuttx-configs/${BOARD}/nsh/defconfig ConfigContents)
 	foreach(NameAndValue ${ConfigContents})
 		# Strip leading spaces
 		string(REGEX REPLACE "^[ ]+" "" NameAndValue ${NameAndValue})
@@ -271,7 +269,6 @@ endfunction()
 #	Usage:
 #		px4_nuttx_configure(
 #	    HWCLASS <m3|m4>
-#		  CONFIG <nsh|bootloader
 #		  [ROMFS <y|n>
 #		  ROMFSROOT <root>]
 #			)
@@ -305,13 +302,6 @@ function(px4_nuttx_configure)
 	endif()
 	set(CMAKE_SYSTEM_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR} CACHE INTERNAL "system processor" FORCE)
 	set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake CACHE INTERNAL "toolchain file" FORCE)
-
-	# CONFIG (nsh/bootloader)
-	if(CONFIG)
-		set(nuttx_config_type ${CONFIG} PARENT_SCOPE)
-	else()
-		set(nuttx_config_type "nsh" PARENT_SCOPE)
-	endif()
 
 	# ROMFS
 	if("${ROMFS}" STREQUAL "y")
