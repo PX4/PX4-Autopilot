@@ -213,6 +213,10 @@ kinetis_boardinitialize(void)
 	/* configure LEDs */
 	board_autoled_initialize();
 
+	/* Reset Sensors */
+	kinetis_pinconfig(GPIO_GM_nRST);
+	kinetis_pinconfig(GPIO_A_RST);
+
 	/* configure ADC pins */
 
 	kinetis_pinconfig(GPIO_BAT_VSENS);
@@ -270,7 +274,6 @@ kinetis_boardinitialize(void)
 
 	kinetis_pinconfig(GPIO_LED_D9);
 	kinetis_pinconfig(GPIO_LED_D10);
-
 
 	nxphlite_timer_initialize();
 
@@ -342,6 +345,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #else
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
+
+	/* Release Reset pins on Sensors */
+
+	kinetis_gpiowrite(GPIO_GM_nRST, 1);
+	kinetis_gpiowrite(GPIO_A_RST, 0);
 
 	param_init();
 
