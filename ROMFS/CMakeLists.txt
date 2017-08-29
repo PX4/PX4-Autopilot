@@ -37,7 +37,7 @@ add_custom_command(OUTPUT romfs.img
 # create romfs.o
 add_custom_command(OUTPUT nsh_romfsimg.c
 	COMMAND xxd -i romfs.img nsh_romfsimg.c
-	COMMAND sed -i 's/unsigned/const unsigned/g' nsh_romfsimg.c
+	COMMAND sed 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && mv nsh_romfsimg.c.tmp nsh_romfsimg.c
 	DEPENDS romfs.img
 	)
 
