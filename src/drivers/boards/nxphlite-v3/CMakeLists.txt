@@ -32,13 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__boards__nxphlite-v3
-	COMPILE_FLAGS
 	SRCS
-		../common/kinetis/board_identity.c
-		../common/kinetis/board_mcu_version.c
-		../common/kinetis/board_reset.c
-		../common/board_crashdump.c
-		../common/board_dma_alloc.c
 		nxphlite_autoleds.c
 		nxphlite_automount.c
 		nxphlite_can.c
@@ -51,4 +45,3 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

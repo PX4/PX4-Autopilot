@@ -22,7 +22,7 @@ include_directories(${HEXAGON_SDK_INCLUDES})
 
 set(config_module_list
 	drivers/device
-	drivers/boards/sitl
+	drivers/boards
 	drivers/pwm_out_sim
 	drivers/led
 	drivers/rgbled

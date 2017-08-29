@@ -33,11 +33,7 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__boards__aerofc-v1
-	COMPILE_FLAGS
 	SRCS
-		../common/stm32/board_reset.c
-		../common/stm32/board_identity.c
-		../common/stm32/board_mcu_version.c
 		aerofc_init.c
 		aerofc_spi.c
 		aerofc_led.c
@@ -45,4 +41,3 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

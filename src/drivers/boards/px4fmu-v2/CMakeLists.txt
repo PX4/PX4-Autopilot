@@ -32,13 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__boards__px4fmu-v2
-	COMPILE_FLAGS
 	SRCS
-		../common/board_crashdump.c
-		../common/board_dma_alloc.c
-		../common/stm32/board_reset.c
-		../common/stm32/board_identity.c
-		../common/stm32/board_mcu_version.c
 		px4fmu_can.c
 		px4fmu2_init.c
 		px4fmu_timer_config.c
@@ -48,4 +42,3 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

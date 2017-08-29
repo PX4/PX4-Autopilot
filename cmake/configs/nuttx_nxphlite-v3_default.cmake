@@ -2,8 +2,6 @@ include(nuttx/px4_impl_nuttx)
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
-
 set(config_uavcan_num_ifaces 1)
 
 set(config_module_list
@@ -15,7 +13,7 @@ set(config_module_list
 #NOT Supported	drivers/bma180
 #NOT Supported	drivers/bmi160
 	drivers/bmp280
-	drivers/boards/nxphlite-v3
+	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
 	drivers/device
@@ -212,30 +210,3 @@ set(config_module_list
 	# EKF
 	examples/ekf_att_pos_estimator
 )
-
-set(config_extra_builtin_cmds
-	serdis
-	sercon
-	)
-
-set(config_extra_libs
-##NO CAN YET	uavcan
-##NO CAN YET	uavcan_stm32_driver
-	)
-
-set(config_io_extra_libs
-	)
-
-add_custom_target(sercon)
-set_target_properties(sercon PROPERTIES
-	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "sercon"
-	STACK_MAIN "2048"
-	COMPILE_FLAGS "-Os")
-
-add_custom_target(serdis)
-set_target_properties(serdis PROPERTIES
-	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "serdis"
-	STACK_MAIN "2048"
-	COMPILE_FLAGS "-Os")

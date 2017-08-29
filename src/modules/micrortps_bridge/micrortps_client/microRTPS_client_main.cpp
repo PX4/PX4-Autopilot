@@ -35,15 +35,16 @@
 
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 #include <ctime>
 #include <termios.h>
 
 #include <px4_config.h>
 #include <px4_getopt.h>
+#include <px4_module.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
-#include <px4_module.h>
 
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 

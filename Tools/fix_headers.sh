@@ -79,7 +79,7 @@ fi
 
 # Find a reasonable tmp directory.
 # First make a list of all build directories by looking for a CMakeCache.txt in them. Sort them so the most recent one is first.
-CMAKECACHE_FILES=$(find "$BASEDIR" -mindepth 2 -maxdepth 2 -type f -name CMakeCache.txt -wholename "$BASEDIR/build_*/CMakeCache.txt" | xargs /bin/ls -td)
+CMAKECACHE_FILES=$(find "$BASEDIR" -mindepth 2 -maxdepth 2 -type f -name CMakeCache.txt -wholename "$BASEDIR/build/*/CMakeCache.txt" | xargs /bin/ls -td)
 # Make a list of all candidate tmp directories.
 TMPDIRS=
 for f in $CMAKECACHE_FILES; do
@@ -195,7 +195,7 @@ for subm in $SUBMODULES; do
 done
 
 echo -n "Finding all source files with #include's (excluding submodules and build directory)... "
-find $BASEDIR -mindepth 2 -type f ! \( -wholename $BASEDIR/build_* -o $EXCLUDE_ARGS -o $SUBMODULES_ARGS \) \( $INCLUDE_C_ARGS -o $INCLUDE_H_ARGS \) > $TMPDIR/fix_headers_sources
+find $BASEDIR -mindepth 2 -type f ! \( -wholename $BASEDIR/build/* -o $EXCLUDE_ARGS -o $SUBMODULES_ARGS \) \( $INCLUDE_C_ARGS -o $INCLUDE_H_ARGS \) > $TMPDIR/fix_headers_sources
 cat "$TMPDIR/fix_headers_sources" | xargs grep -l "$INCLUDE_RE" > $TMPDIR/fix_headers_sources_with_includes
 echo "done"
 number_of_files=$(sed -n '$=' "$TMPDIR/fix_headers_sources_with_includes")
@@ -206,7 +206,7 @@ find $BASEDIR -type f ! \( $EXCLUDE_ARGS \) \( $SUBMODULES_ARGS \) \( $INCLUDE_H
 echo "done"
 
 echo -n "Finding all header files (excluding stdc++ headers)... "
-find $BASEDIR -type f ! \( $EXCLUDE_ARGS \) -wholename $BASEDIR/build_* \( $INCLUDE_H_ARGS \) > $TMPDIR/fix_headers_HEADERS
+find $BASEDIR -type f ! \( $EXCLUDE_ARGS \) -wholename $BASEDIR/build/* \( $INCLUDE_H_ARGS \) > $TMPDIR/fix_headers_HEADERS
 grep -E "$HEADER_RE" $TMPDIR/fix_headers_sources >> $TMPDIR/fix_headers_HEADERS
 cat $TMPDIR/fix_headers_SUBMODULE_HEADERS >> $TMPDIR/fix_headers_HEADERS
 echo "done"
@@ -233,7 +233,7 @@ function include_path()
 	foo=0
 	for includedir in $(grep "/$PATH_RE\$" $TMPDIR/fix_headers_HEADERS | cut -c $striplen-); do
 		# If the include directory is NuttX header that was copied to the build directory, then it's still a system file.
-		if [[ $includedir/ =~ ^build_.*/NuttX/ ]]; then
+		if [[ $includedir/ =~ ^build/.*/NuttX/ ]]; then
 			issubmodule=1
 		# If the include directory is a submodule, then treat it as a system file.
 		elif [[ $includedir/ =~ ^$SUBMODULES_RE/ ]]; then

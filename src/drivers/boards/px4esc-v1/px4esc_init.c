@@ -205,8 +205,3 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 	return result;
 }
-
-
-__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
-{
-}

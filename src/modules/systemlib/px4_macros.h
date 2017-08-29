@@ -96,7 +96,7 @@
 
 #if !defined(CCASSERT)
 #if defined(static_assert)
-#		define CCASSERT(predicate) static_assert(predicate)
+#		define CCASSERT(predicate) static_assert(predicate, STRINGIFY(predicate))
 #	else
 #		define CCASSERT(predicate) _x_CCASSERT_LINE(predicate, __LINE__)
 #		if !defined(_x_CCASSERT_LINE)
