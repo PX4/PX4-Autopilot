@@ -2,8 +2,6 @@ include(nuttx/px4_impl_nuttx)
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
-
 set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
@@ -14,7 +12,7 @@ set(config_module_list
 	drivers/stm32
 	drivers/led
 	drivers/px4fmu
-	drivers/boards/aerofc-v1
+	drivers/boards
 	drivers/tap_esc
 	drivers/mpu9250
 	drivers/ms5611
@@ -112,9 +110,3 @@ set(config_module_list
 	platforms/common
 	platforms/nuttx/px4_layer
 )
-
-set(config_extra_builtin_cmds
-	)
-
-set(config_io_board
-	)

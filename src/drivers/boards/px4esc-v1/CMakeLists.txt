@@ -31,38 +31,13 @@
 #
 ############################################################################
 
-include_directories(../../bootloaders/include)
-
-set(SRCS)
-list(APPEND SRCS
-    ../common/stm32/board_reset.c
-    ../common/stm32/board_identity.c
-    ../common/stm32/board_mcu_version.c
-    px4esc_init.c
-    px4esc_led.c
-    px4esc_usb.c
-   ../../../drivers/bootloaders/src/common/boot_app_shared.c
-   ../../../drivers/bootloaders/src/util/crc.c
-)
-
-if(${OS} STREQUAL "nuttx")
-	if (NOT ${BOARD} STREQUAL "sim")
-		list(APPEND SRCS
-			../../../drivers/device/device_nuttx.cpp
-			../../../drivers/device/cdev.cpp
-		)
-	endif()
-else()
-	list(APPEND SRCS
-		../../../drivers/device/device_posix.cpp
-		../../../drivers/device/vdev.cpp
-	)
-endif()
-
 px4_add_module(
 	MODULE drivers__boards__px4esc-v1
-	COMPILE_FLAGS
-	SRCS ${SRCS}
+	SRCS
+		px4esc_init.c
+		px4esc_led.c
+		px4esc_usb.c
 	DEPENDS
 		platforms__common
 	)
+include_directories(bootloader)

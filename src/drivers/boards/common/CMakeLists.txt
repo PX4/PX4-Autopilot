@@ -31,32 +31,22 @@
 #
 ############################################################################
 
-set(nuttx_patches
-	00001-REJECTED-add-math.h.patch
-	00002-REJECTED-fix-shadow-wanings.patch
-	00003-REJECTED-add-var-expansion-in-nsh-parse.patch
-	00004-REJECTED-avoid-export-copy-with-export-insitu.patch
-	00006-REJECTED-cstdint-fix.patch
-	00007-REJECTED-silence-jobserver-warnings.patch
-	00008-REJECTED-static-assert-fix.patch
-	00009-REJECTED-ctype-fix-shadow-wanings.patch
-	00010-REJECTED-no-irq-args.patch
-	00011-REJECTED-stm32_serial_no_irq_args.patch
-	90000-PENDING-wip-inflight-to-upstream.patch
-	)
+if (${OS} MATCHES "nuttx")
 
-# add absolute path and sort
-set(px4_nuttx_patches)
-foreach(patch_file ${nuttx_patches})
-	list(APPEND px4_nuttx_patches ${CMAKE_CURRENT_SOURCE_DIR}/${patch_file})
-endforeach()
-list(SORT px4_nuttx_patches)
-set(px4_nuttx_patches ${px4_nuttx_patches} PARENT_SCOPE)
-
-file(GLOB patches_found *.patch)
-foreach(patch_file ${patches_found})
-	list (FIND px4_nuttx_patches ${patch_file} _index)
-	if (${_index} EQUAL -1)
-		message(FATAL_ERROR "${patch_file} missing from nuttx-patches/CMakeLists.txt")
+	if (NOT ${LABEL} STREQUAL "bootloader")
+		px4_add_library(boards_common
+			board_crashdump.c
+			board_dma_alloc.c
+			board_gpio_init.c
+			)
+		add_dependencies(boards_common nuttx_build)
 	endif()
-endforeach()
+
+	if (${CONFIG_ARCH_CHIP} MATCHES "kinetis")
+		add_subdirectory(kinetis)
+	elseif (${CONFIG_ARCH_CHIP} MATCHES "samv7")
+		add_subdirectory(samv7)
+	elseif (${CONFIG_ARCH_CHIP} MATCHES "stm32")
+		add_subdirectory(stm32)
+	endif()
+endif()

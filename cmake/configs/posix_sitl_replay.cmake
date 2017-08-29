@@ -4,7 +4,7 @@ set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cma
 
 set(config_module_list
 	drivers/device
-	drivers/boards/sitl
+	drivers/boards
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
@@ -29,11 +29,6 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	lib/micro-CDR
-	)
-
-set(config_extra_builtin_cmds
-	serdis
-	sercon
 	)
 
 set(config_sitl_rcS_dir

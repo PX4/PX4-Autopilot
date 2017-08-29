@@ -72,11 +72,27 @@ foreach(tool ddd)
 	endif()
 endforeach()
 
-set(LINKER_FLAGS "-Wl,-gc-sections")
-set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})
+set(cpu_flags)
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m7")
+	set(cpu_flags "-mcpu=cortex-m7 -mthumb -mfpu=fpv5-sp-d16 -mfloat-abi=hard")
+elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m4")
+	set(cpu_flags "-mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
+elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
+	set(cpu_flags "-mcpu=cortex-m3 -mthumb -march=armv7-m")
+else ()
+	message(FATAL_ERROR "Processor not recognised in toolchain file")
+endif()
+
+set(c_flags "-fno-common -ffunction-sections -fdata-sections")
+set(cxx_flags "-fno-common -ffunction-sections -fdata-sections")
+
+set(CMAKE_C_FLAGS "${c_flags} ${cpu_flags}" CACHE INTERNAL "" FORCE)
+set(CMAKE_CXX_FLAGS "${cxx_flags} ${cpu_flags}" CACHE INTERNAL "" FORCE)
+set(CMAKE_ASM_FLAGS "${cpu_flags} -D__ASSEMBLY__ " CACHE INTERNAL "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS "${cpu_flags} -nodefaultlibs -nostdlib -Wl,--warn-common,--gc-sections" CACHE INTERNAL "" FORCE)
 
 # where is the target environment 
-set(CMAKE_FIND_ROOT_PATH  get_file_component(${C_COMPILER} PATH))
+set(CMAKE_FIND_ROOT_PATH get_file_component(${C_COMPILER} PATH))
 
 # search for programs in the build host directories
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)

@@ -31,40 +31,15 @@
 #
 ############################################################################
 
-include_directories(../../bootloaders/include)
-
-set(SRCS)
-list(APPEND SRCS
-   ../common/stm32/board_identity.c
-   ../common/stm32/board_mcu_version.c
-   ../common/stm32/board_reset.c
-   px4cannode_can.c
-   px4cannode_buttons.c
-   px4cannode_init.c
-   px4cannode_led.c
-   px4cannode_spi.c
-   ../../../drivers/bootloaders/src/common/boot_app_shared.c
-   ../../../drivers/bootloaders/src/util/crc.c
-)
-
-if(${OS} STREQUAL "nuttx")
-	if (NOT ${BOARD} STREQUAL "sim")
-		list(APPEND SRCS
-			../../../drivers/device/device_nuttx.cpp
-			../../../drivers/device/cdev.cpp
-		)
-	endif()
-else()
-	list(APPEND SRCS
-		../../../drivers/device/device_posix.cpp
-		../../../drivers/device/vdev.cpp
-	)
-endif()
-
 px4_add_module(
 	MODULE drivers__boards__px4cannode-v1
-	COMPILE_FLAGS
-	SRCS ${SRCS}
+	SRCS
+		px4cannode_can.c
+		px4cannode_buttons.c
+		px4cannode_init.c
+		px4cannode_led.c
+		px4cannode_spi.c
 	DEPENDS
 		platforms__common
 	)
+include_directories(bootloader)
