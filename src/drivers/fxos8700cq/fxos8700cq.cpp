@@ -33,8 +33,8 @@
 
 /**
  * @file fxos8700cq.cpp
- * Driver for the ST FXOS8700CQ 3-axis, linear accelerometer and  and 3-axis,
-  * magnetometer connected via SPI.
+ * Driver for the NXP FXOS8700CQ 6-axis sensor with integrated linear accelerometer and
+ * magnetometer connected via SPI.
  */
 
 #include <px4_config.h>
