@@ -319,7 +319,7 @@ void Ekf::alignOutputFilter()
 {
 	// calculate the quaternion delta between the output and EKF quaternions at the EKF fusion time horizon
 	Quatf quat_inv = _state.quat_nominal.inversed();
-	Quatf q_delta =  _output_sample_delayed.quat_nominal * quat_inv;
+	Quatf q_delta =   quat_inv * _output_sample_delayed.quat_nominal;
 	q_delta.normalize();
 
 	// calculate the velocity and posiiton deltas between the output and EKF at the EKF fusion time horizon
@@ -332,7 +332,7 @@ void Ekf::alignOutputFilter()
 
 	for (unsigned i = 0; i < output_length; i++) {
 		output_states = _output_buffer.get_from_index(i);
-		output_states.quat_nominal *= q_delta;
+		output_states.quat_nominal = q_delta * output_states.quat_nominal;
 		output_states.quat_nominal.normalize();
 		output_states.vel += vel_delta;
 		output_states.pos += pos_delta;
@@ -439,20 +439,20 @@ bool Ekf::realignYawGPS()
 			}
 
 			// calculate the amount that the quaternion has changed by
-			_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();
+			_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
 			// add the reset amount to the output observer buffered data
 			outputSample output_states;
 			unsigned output_length = _output_buffer.get_length();
 			for (unsigned i = 0; i < output_length; i++) {
 				output_states = _output_buffer.get_from_index(i);
-				output_states.quat_nominal *= _state_reset_status.quat_change;
+				output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
 				_output_buffer.push_to_index(i, output_states);
 			}
 
 			// apply the change in attitude quaternion to our newest quaternion estimate
 			// which was already taken out from the output buffer
-			_output_new.quat_nominal *= _state_reset_status.quat_change;
+			_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
 
 			// capture the reset event
 			_state_reset_status.quat_counter++;
@@ -522,20 +522,20 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		_state.quat_nominal = Quatf(euler321);
 
 		// calculate the amount that the quaternion has changed by
-		_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();
+		_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
 		// add the reset amount to the output observer buffered data
 		outputSample output_states;
 		unsigned output_length = _output_buffer.get_length();
 		for (unsigned i = 0; i < output_length; i++) {
 			output_states = _output_buffer.get_from_index(i);
-			output_states.quat_nominal *= _state_reset_status.quat_change;
+			output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
 			_output_buffer.push_to_index(i, output_states);
 		}
 
 		// apply the change in attitude quaternion to our newest quaternion estimate
 		// which was already taken out from the output buffer
-		_output_new.quat_nominal *= _state_reset_status.quat_change;
+		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
 
 		// capture the reset event
 		_state_reset_status.quat_counter++;
@@ -636,7 +636,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	}
 
 	// calculate the amount that the quaternion has changed by
-	_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();
+	_state_reset_status.quat_change =  quat_before_reset.inversed() * _state.quat_nominal;
 
 	// add the reset amount to the output observer buffered data
 	outputSample output_states = {};
@@ -644,13 +644,13 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 	for (unsigned i = 0; i < output_length; i++) {
 		output_states = _output_buffer.get_from_index(i);
-		output_states.quat_nominal *= _state_reset_status.quat_change;
+		output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
 		_output_buffer.push_to_index(i, output_states);
 	}
 
 	// apply the change in attitude quaternion to our newest quaternion estimate
 	// which was already taken out from the output buffer
-	_output_new.quat_nominal *= _state_reset_status.quat_change;
+	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
 
 	// capture the reset event
 	_state_reset_status.quat_counter++;
