@@ -40,11 +40,10 @@ set(msg_file_names
 	airspeed.msg
 	att_pos_mocap.msg
 	battery_status.msg
-	camera_trigger.msg
 	camera_capture.msg
+	camera_trigger.msg
 	collision_report.msg
 	commander_state.msg
-	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
 	debug_value.msg
@@ -89,12 +88,13 @@ set(msg_file_names
 	satellite_info.msg
 	sensor_accel.msg
 	sensor_baro.msg
+	sensor_bias.msg
 	sensor_combined.msg
 	sensor_correction.msg
-	sensor_selection.msg
 	sensor_gyro.msg
 	sensor_mag.msg
 	sensor_preflight.msg
+	sensor_selection.msg
 	servorail_status.msg
 	subsystem_info.msg
 	system_power.msg

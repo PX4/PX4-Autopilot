@@ -72,7 +72,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
-	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles_standard.airspeed_disabled = param_find("FW_ARSP_MODE");
 	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
 	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
 	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
@@ -131,8 +131,8 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.forward_thrust_scale, &_params_standard.forward_thrust_scale);
 
 	/* airspeed mode */
-	param_get(_params_handles_standard.airspeed_mode, &i);
-	_params_standard.airspeed_mode = math::constrain(i, 0, 2);
+	param_get(_params_handles_standard.airspeed_disabled, &i);
+	_params_standard.airspeed_disabled = math::constrain(i, 0, 1);
 
 	/* pitch setpoint offset */
 	param_get(_params_handles_standard.pitch_setpoint_offset, &v);
@@ -240,7 +240,7 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (((_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED ||
+			if (((_params_standard.airspeed_disabled == 1 ||
 			      _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans) &&
 			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
 			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
@@ -308,14 +308,13 @@ void Standard::update_transition_state()
 
 			// time based blending when no airspeed sensor is set
 
-		} else if (_params_standard.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED &&
-			   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1000000.0f) &&
-			   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > ((_params_standard.front_trans_time_min / 2.0f) *
-					   1000000.0f)
+		} else if (_params_standard.airspeed_disabled &&
+			   hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1e6f) &&
+			   hrt_elapsed_time(&_vtol_schedule.transition_start) > ((_params_standard.front_trans_time_min / 2.0f) * 1e6f)
 			  ) {
-			float weight = 1.0f - ((float)(hrt_elapsed_time(&_vtol_schedule.transition_start) - ((
-							       _params_standard.front_trans_time_min / 2.0f) * 1000000.0f)) /
-					       ((_params_standard.front_trans_time_min / 2.0f) * 1000000.0f));
+			float weight = 1.0f - ((hrt_elapsed_time(&_vtol_schedule.transition_start) - ((
+							_params_standard.front_trans_time_min / 2.0f) * 1e6f)) /
+					       ((_params_standard.front_trans_time_min / 2.0f) * 1e6f));
 
 			weight = math::constrain(weight, 0.0f, 1.0f);
 
@@ -340,7 +339,7 @@ void Standard::update_transition_state()
 
 		// check front transition timeout
 		if (_params_standard.front_trans_timeout > FLT_EPSILON) {
-			if ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1000000.0f)) {
+			if (hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1e6f)) {
 				// transition timeout occured, abort transition
 				_attc->abort_front_transition("Transition timeout");
 			}
