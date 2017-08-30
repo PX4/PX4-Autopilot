@@ -35,26 +35,36 @@
  * @file ecl_wheel_controller.cpp
  * Implementation of a simple PID wheel controller for heading tracking.
  *
- * Authors and acknowledgments in header.
+ * Authors and acknowledgements in header.
  */
 
 #include "ecl_wheel_controller.h"
-
+#include <stdint.h>
+#include <float.h>
 #include <geo/geo.h>
+#include <ecl/ecl.h>
+#include <mathlib/mathlib.h>
+#include <systemlib/err.h>
+#include <ecl/ecl.h>
+
+ECL_WheelController::ECL_WheelController() :
+	ECL_Controller("wheel")
+{
+}
 
 float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(ISFINITE(ctl_data.body_z_rate) &&
-	      ISFINITE(ctl_data.groundspeed) &&
-	      ISFINITE(ctl_data.groundspeed_scaler))) {
+	if (!(PX4_ISFINITE(ctl_data.body_z_rate) &&
+	      PX4_ISFINITE(ctl_data.groundspeed) &&
+	      PX4_ISFINITE(ctl_data.groundspeed_scaler))) {
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
 
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
-	float dt = dt_micros * 1e-6f;
+	float dt = (float)dt_micros * 1e-6f;
 
 	/* lock integral for long intervals */
 	bool lock_integrator = ctl_data.lock_integrator;
@@ -99,11 +109,12 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
 
+
 float ECL_WheelController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(ISFINITE(ctl_data.yaw_setpoint) &&
-	      ISFINITE(ctl_data.yaw))) {
+	if (!(PX4_ISFINITE(ctl_data.yaw_setpoint) &&
+	      PX4_ISFINITE(ctl_data.yaw))) {
 		return _rate_setpoint;
 	}
 
@@ -114,13 +125,14 @@ float ECL_WheelController::control_attitude(const struct ECL_ControlData &ctl_da
 	_rate_setpoint =  yaw_error / _tc;
 
 	/* limit the rate */
-	if (_max_rate >= 0.0f) {
+	if (_max_rate > 0.01f) {
 		if (_rate_setpoint > 0.0f) {
 			_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
 
 		} else {
 			_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
 		}
+
 	}
 
 	return _rate_setpoint;
