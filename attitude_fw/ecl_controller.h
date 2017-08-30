@@ -48,8 +48,9 @@
 
 #pragma once
 
-#include "ecl/ecl.h"
-#include "mathlib/mathlib.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <systemlib/perf_counter.h>
 
 struct ECL_ControlData {
 	float roll;
@@ -76,7 +77,7 @@ struct ECL_ControlData {
 class __EXPORT ECL_Controller
 {
 public:
-	ECL_Controller() = default;
+	ECL_Controller(const char *name);
 	~ECL_Controller() = default;
 
 	virtual float control_attitude(const struct ECL_ControlData &ctl_data) = 0;
@@ -90,7 +91,7 @@ public:
 	void set_k_ff(float k_ff);
 	void set_integrator_max(float max);
 	void set_max_rate(float max_rate);
-	void set_bodyrate_setpoint(float rate) { _bodyrate_setpoint = rate; }
+	void set_bodyrate_setpoint(float rate) {_bodyrate_setpoint = rate;}
 
 	/* Getters */
 	float get_rate_error();
@@ -100,22 +101,17 @@ public:
 	void reset_integrator();
 
 protected:
-	uint64_t _last_run{0};
-
-	float _tc{0.5f};
-	float _k_p{0.0f};
-	float _k_i{0.0f};
-	float _k_ff{0.0f};
-
-	float _integrator_max{0.0f};
-	float _integrator{0.0f};
-
-	float _rate_setpoint{0.0f};
-	float _bodyrate_setpoint{0.0f};
-
-	float _max_rate{0.0f};
-	float _rate_error{0.0f};
-	float _last_output{0.0f};
-
+	uint64_t _last_run;
+	float _tc;
+	float _k_p;
+	float _k_i;
+	float _k_ff;
+	float _integrator_max;
+	float _max_rate;
+	float _last_output;
+	float _integrator;
+	float _rate_error;
+	float _rate_setpoint;
+	float _bodyrate_setpoint;
 	float constrain_airspeed(float airspeed, float minspeed, float maxspeed);
 };
