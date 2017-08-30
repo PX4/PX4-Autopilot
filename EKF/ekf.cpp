@@ -329,7 +329,7 @@ void Ekf::predictState()
 	dq.from_axis_angle(corrected_delta_ang);
 
 	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
-	_state.quat_nominal = dq * _state.quat_nominal;
+	_state.quat_nominal = _state.quat_nominal * dq;
 
 	// quaternions must be normalised whenever they are modified
 	_state.quat_nominal.normalize();
@@ -471,7 +471,7 @@ void Ekf::calculateOutputStates()
 
 	// rotate the previous INS quaternion by the delta quaternions
 	_output_new.time_us = imu_new.time_us;
-	_output_new.quat_nominal = dq * _output_new.quat_nominal;
+	_output_new.quat_nominal = _output_new.quat_nominal * dq;
 
 	// the quaternions must always be normalised afer modification
 	_output_new.quat_nominal.normalize();
@@ -524,7 +524,7 @@ void Ekf::calculateOutputStates()
 
 		// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
 		Quatf quat_inv = _state.quat_nominal.inversed();
-		Quatf q_error =  _output_sample_delayed.quat_nominal * quat_inv;
+		Quatf q_error =   quat_inv * _output_sample_delayed.quat_nominal;
 		q_error.normalize();
 
 		// convert the quaternion delta to a delta angle
