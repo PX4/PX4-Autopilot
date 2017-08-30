@@ -50,7 +50,7 @@ use strict;
 
 # Configuration: set these as appropriate for your architecture/project.
 
-my $objdump = "avr-objdump";
+my $objdump = "arm-none-eabi-objdump";
 my $call_cost = 4;
 
 # First, we need to read all object and corresponding .su files. We're
@@ -106,7 +106,7 @@ foreach (@ARGV) {
     close(DISASSEMBLY);
 
     # Extract frame sizes from the corresponding .su file.
-    if ($objfile =~ /^(.*).o$/) {
+    if ($objfile =~ /^(.*).obj$/) {
 	my $sufile = "$1.su";
 
 	open(SUFILE, "<$sufile") || die "Can't open $sufile";
