@@ -535,34 +535,31 @@ void Logger::add_common_topics()
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
-	add_topic("actuator_outputs", 100);
-	add_topic("airspeed");
+	add_topic("actuator_outputs", 200);
+	add_topic("airspeed", 200);
 	add_topic("att_pos_mocap", 50);
-	add_topic("battery_status", 300);
+	add_topic("battery_status", 500);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
-	add_topic("commander_state", 100);
+	add_topic("commander_state", 200);
 	add_topic("control_state", 100);
 	add_topic("cpuload");
-	add_topic("differential_pressure", 50);
-	add_topic("distance_sensor");
-	add_topic("ekf2_innovations", 50);
-	add_topic("esc_status", 250);
-	add_topic("estimator_status", 200); //this one is large
-	add_topic("gps_dump"); //this will only be published if gps_dump_comm is set
-	add_topic("input_rc", 100);
-	add_topic("optical_flow", 50);
+	add_topic("differential_pressure", 400);
+	add_topic("distance_sensor", 100);
+	add_topic("ekf2_innovations", 200);
+	add_topic("esc_status", 400);
+	add_topic("estimator_status", 200);
+	add_topic("manual_control_setpoint", 200);
+	add_topic("offboard_mission");
+	add_topic("optical_flow", 100);
 	add_topic("position_setpoint_triplet", 200);
-	add_topic("rc_channels", 100);
-	add_topic("satellite_info");
 	add_topic("sensor_combined", 100);
-	add_topic("sensor_preflight", 50);
-	add_topic("system_power", 300);
-	add_topic("task_stack_info");
-	add_topic("tecs_status", 20);
+	add_topic("sensor_preflight", 200);
+	add_topic("system_power", 500);
+	add_topic("tecs_status", 200);
 	add_topic("telemetry_status");
-	add_topic("vehicle_attitude", 30);
-	add_topic("vehicle_attitude_setpoint", 30);
+	add_topic("vehicle_attitude", 40);
+	add_topic("vehicle_attitude_setpoint", 40);
 	add_topic("vehicle_command");
 	add_topic("vehicle_global_position", 200);
 	add_topic("arm_auth_request");
@@ -571,19 +568,28 @@ void Logger::add_common_topics()
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
-	add_topic("vehicle_rates_setpoint", 30);
-	add_topic("vehicle_status");
+	add_topic("vehicle_rates_setpoint", 40);
+	add_topic("vehicle_status", 200);
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
-	add_topic("vtol_vehicle_status", 100);
-	add_topic("wind_estimate", 100);
+	add_topic("vtol_vehicle_status", 200);
+	add_topic("wind_estimate", 200);
 }
 
 void Logger::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
+	add_topic("airspeed");
+	add_topic("distance_sensor");
 	add_topic("ekf2_timestamps");
+	add_topic("optical_flow");
+	add_topic("sensor_baro");
 	add_topic("sensor_combined");
+	add_topic("sensor_selection");
+	add_topic("vehicle_gps_position");
+	add_topic("vehicle_status");
+	add_topic("vehicle_vision_attitude");
+	add_topic("vehicle_vision_position");
 }
 
 void Logger::add_thermal_calibration_topics()
