@@ -102,6 +102,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_pos{},
 	_hil_land_detector{},
 	_control_mode{},
+	_actuator_armed{},
 	_global_pos_pub(nullptr),
 	_local_pos_pub(nullptr),
 	_attitude_pub(nullptr),
@@ -143,6 +144,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
+	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
 	_global_ref_timestamp(0),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -399,6 +401,28 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 }
 
 void
+MavlinkReceiver::send_flight_information()
+{
+	bool updated;
+	mavlink_flight_information_t flight_info;
+	uuid_uint32_t uid;
+	board_get_uuid32(uid);
+
+	flight_info.flight_uuid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) |
+				  uid[PX4_CPU_UUID_WORD32_UNIQUE_H];
+
+	orb_check(_actuator_armed_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &_actuator_armed);
+	}
+
+	flight_info.arming_time_utc = flight_info.takeoff_time_utc = _actuator_armed.armed_time_ms;
+	flight_info.time_boot_ms = hrt_absolute_time() / 1000;
+	mavlink_msg_flight_information_send_struct(_mavlink->get_channel(), &flight_info);
+}
+
+void
 MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 {
 	/* command */
@@ -432,6 +456,9 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 		get_message_interval((int)cmd_mavlink.param1);
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
+		send_flight_information();
 
 	} else {
 
