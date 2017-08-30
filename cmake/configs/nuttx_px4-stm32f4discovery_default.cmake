@@ -40,7 +40,6 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
-	lib/external_lgpl
 	lib/geo
 	lib/conversion
 	lib/version

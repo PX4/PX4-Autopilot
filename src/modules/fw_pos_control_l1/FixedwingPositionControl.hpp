@@ -43,7 +43,7 @@
  *    Conference, Aug 2004. AIAA-2004-4900.
  *
  * Original implementation for total energy control class:
- *    Paul Riseborough and Andrew Tridgell, 2013 (code in lib/external_lgpl)
+ *    Paul Riseborough, ECL Library, 2017
  *
  * More details and acknowledgements in the referenced library headers.
  *
@@ -66,7 +66,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
-#include <external_lgpl/tecs/tecs.h>
+#include <ecl/tecs/tecs.h>
 #include <geo/geo.h>
 #include <launchdetection/LaunchDetector.h>
 #include <mathlib/mathlib.h>
