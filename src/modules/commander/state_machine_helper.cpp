@@ -332,6 +332,11 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 					      || new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY;
 			ret = TRANSITION_CHANGED;
 			status->arming_state = new_arming_state;
+			if(new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				armed->armed_time_ms = hrt_absolute_time() / 1000;
+			} else {
+				armed->armed_time_ms = 0;
+			}
 		}
 
 		/* reset feedback state */
