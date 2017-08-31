@@ -14,9 +14,9 @@
     <arg name="Y" default="0"/>
 
 
-    <arg name="est" default="lpe"/>
+    <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="hippocampus"/>
-    <arg name="world" default="$(find px4)/Tools/sitl_gazebo/worlds/underwater.world"/>
+    <arg name="world" default="$(find px4)/Tools/sitl_gazebo/worlds/hippocampus.world"/>
     <arg name="sdf" default="$(find px4)/Tools/sitl_gazebo/models/$(arg vehicle)/$(arg vehicle).sdf"/>
 
     <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)"/>
