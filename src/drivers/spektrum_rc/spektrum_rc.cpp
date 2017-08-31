@@ -81,7 +81,8 @@ void task_main(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
-       while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
@@ -91,6 +92,7 @@ void task_main(int argc, char *argv[])
 			break;
 		}
 	}
+
 	int uart_fd = dsm_init(device_path);
 
 	if (uart_fd < 1) {
