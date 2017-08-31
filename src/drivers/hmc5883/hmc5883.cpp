@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,149 @@
  ****************************************************************************/
 
 /**
- * @file hmc5883.cpp
- *
- * Driver for the HMC5883 / HMC5983 magnetometer connected via I2C or SPI.
+ * Driver for the HMC5883 / HMC5983 magnetometer
  */
 
+#include <px4/device_driver.h>
+
+enum { CONFIG_A, CONFIG_B, MODE,
+       DATA_OUT_X_MSB, DATA_OUT_X_LSB,
+       DATA_OUT_Y_MSB, DATA_OUT_Y_LSB,
+       DATA_OUT_Z_MSB, DATA_OUT_Z_LSB,
+       STATUS, ID_A, ID_B, ID_C,
+       DATA_OUT_X, DATA_OUT_Y, DATA_OUT_Z };
+
+static const px4::reg_t regs[] = {
+	[CONFIG_A] = { 0, px4::ioperm::READWRITE, 1, 0x80 },
+	[CONFIG_B] = { 1, px4::ioperm::READWRITE, 1, 0x1f },
+	[MODE] = { 2, px4::ioperm::READWRITE, 1, 0xfc },
+
+	[DATA_OUT_X_MSB] = { 3, px4::ioperm::READ, 1, 0 },
+	[DATA_OUT_X_LSB] = { 4, px4::ioperm::READ, 1, 0 },
+	[DATA_OUT_Y_MSB] = { 7, px4::ioperm::READ, 1, 0 },
+	[DATA_OUT_Y_LSB] = { 8, px4::ioperm::READ, 1, 0 },
+	[DATA_OUT_Z_MSB] = { 5, px4::ioperm::READ, 1, 0 },
+	[DATA_OUT_Z_LSB] = { 6, px4::ioperm::READ, 1, 0 },
+
+	[STATUS] = { 9, px4::ioperm::READ, 1, 0x3},
+
+	[ID_A] = { 10, px4::ioperm::READ, 1, 0},
+	[ID_B] = { 11, px4::ioperm::READ, 1, 0},
+	[ID_C] = { 12, px4::ioperm::READ, 1, 0},
+
+	// TODO: we really need a 6-byte DATA_OUT pseudo-register,
+	// but we don't have an API for that (yet)
+	[DATA_OUT_X] = { 3, px4::ioperm::READ, 2, 0 },
+	[DATA_OUT_Y] = { 7, px4::ioperm::READ, 2, 0 },
+	[DATA_OUT_Z] = { 5, px4::ioperm::READ, 2, 0 },
+};
+
+// TODO: px4 namespace?
+
+class hmc5883 : public px4::device {
+public:
+	hmc5883(std::string &path) : device(path) {
+		io = new px4::regcache(path, regs);
+	}
+	int init();
+	// initiates periodic sampling at the specified rate
+	// call again to adjust the sampling rate
+	// hz==0 means "capture one sample and then stop", i.e. manual sampling
+	int start(int hz = 100);
+	int reset();
+	~hmc5883();
+
+	int set_range(float max_gauss = 0.88f);
+
+	// ...
+	static device *clone(std::string &path) { return new hmc5883(path); }
+private:
+	// helpers that stash the written value so that we can refresh
+	// it later if necessary
+	int write_CONFIG_A(int val);
+	int write_CONFIG_B(int val);
+	int write_MODE(int val);
+	int config_a, config_b, mode;
+
+	int rate_hz;
+	hmc5883( /* a naked driver makes no sense */ );
+};
+
+static int unused = register_driver("hmc5883", hmc5883::clone);
+
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(*(a)))
+
+// TODO: operator overloading?
+int hmc5883::write_CONFIG_A(int val)
+{
+	int ret = io->write(regs[CONFIG_A], val);
+	if (!ret)
+		config_a = val;
+	return ret;
+}
+
+int hmc5883::write_CONFIG_B(int val)
+{
+	int ret = io->write(regs[CONFIG_B], val);
+	if (!ret)
+		config_b = val;
+	return ret;
+}
+
+int hmc5883::write_MODE(int val)
+{
+	int ret = io->write(regs[MODE], val);
+	if (!ret)
+		mode = val;
+	return ret;
+}
+
+int hmc5883::set_range(float max_gauss)
+{
+	int gn = 0;
+	const float grange[] = {0.88f, 1.3f, 1.9f, 2.5f, 4.0f, 4.7f, 5.6f, 8.1f};
+	while (gn < ARRAY_SIZE(grange)
+	       && abs(max_gauss) > grange[gn])
+		gn++;
+	return write_CONFIG_B(gn << 5);
+}
+
+// leaves chip in initialized, stopped state
+int hmc5883::reset()
+{
+	set_range();
+}
+
+// gets chip ready to start, but doesn't start it
+int hmc5883::init()
+{
+	reset();
+}
+
+// starts reading and publishing data
+// TODO: assumes we've been initialied
+int hmc5883::start(int hz)
+{
+	rate_hz = hz;
+	// start interval timer to periodically call sample();
+}
+
+int hmc5883::sample() // periodic callback, or called directly to trigger just one sampling event
+{
+	// we might be in interrupt context; just unblock the foreground reader/publisher and return
+	// TODO: maybe do all the i2c in report()?
+}
+
+int hmc5883::report()
+{
+	// read and publish the results
+}
+
+
+
+
+
+#if ORIG
 #include <px4_config.h>
 #include <px4_defines.h>
 
@@ -440,123 +578,7 @@ out:
 	return ret;
 }
 
-int HMC5883::set_range(unsigned range)
-{
-	if (range < 0.88f) {
-		_range_bits = 0x00;
-		_range_scale = 1.0f / 1370.0f;
-		_range_ga = 0.88f;
 
-	} else if (range <= 1.3f) {
-		_range_bits = 0x01;
-		_range_scale = 1.0f / 1090.0f;
-		_range_ga = 1.3f;
-
-	} else if (range <= 2) {
-		_range_bits = 0x02;
-		_range_scale = 1.0f / 820.0f;
-		_range_ga = 1.9f;
-
-	} else if (range <= 3) {
-		_range_bits = 0x03;
-		_range_scale = 1.0f / 660.0f;
-		_range_ga = 2.5f;
-
-	} else if (range <= 4) {
-		_range_bits = 0x04;
-		_range_scale = 1.0f / 440.0f;
-		_range_ga = 4.0f;
-
-	} else if (range <= 4.7f) {
-		_range_bits = 0x05;
-		_range_scale = 1.0f / 390.0f;
-		_range_ga = 4.7f;
-
-	} else if (range <= 5.6f) {
-		_range_bits = 0x06;
-		_range_scale = 1.0f / 330.0f;
-		_range_ga = 5.6f;
-
-	} else {
-		_range_bits = 0x07;
-		_range_scale = 1.0f / 230.0f;
-		_range_ga = 8.1f;
-	}
-
-	int ret;
-
-	/*
-	 * Send the command to set the range
-	 */
-	ret = write_reg(ADDR_CONF_B, (_range_bits << 5));
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-	}
-
-	uint8_t range_bits_in = 0;
-	ret = read_reg(ADDR_CONF_B, range_bits_in);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-	}
-
-	return !(range_bits_in == (_range_bits << 5));
-}
-
-/**
-   check that the range register has the right value. This is done
-   periodically to cope with I2C bus noise causing the range of the
-   compass changing.
- */
-void HMC5883::check_range(void)
-{
-	int ret;
-
-	uint8_t range_bits_in = 0;
-	ret = read_reg(ADDR_CONF_B, range_bits_in);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-		return;
-	}
-
-	if (range_bits_in != (_range_bits << 5)) {
-		perf_count(_range_errors);
-		ret = write_reg(ADDR_CONF_B, (_range_bits << 5));
-
-		if (OK != ret) {
-			perf_count(_comms_errors);
-		}
-	}
-}
-
-/**
-   check that the configuration register has the right value. This is
-   done periodically to cope with I2C bus noise causing the
-   configuration of the compass to change.
- */
-void HMC5883::check_conf(void)
-{
-	int ret;
-
-	uint8_t conf_reg_in = 0;
-	ret = read_reg(ADDR_CONF_A, conf_reg_in);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-		return;
-	}
-
-	if (conf_reg_in != _conf_reg) {
-		perf_count(_conf_errors);
-		ret = write_reg(ADDR_CONF_A, _conf_reg);
-
-		if (OK != ret) {
-			perf_count(_comms_errors);
-		}
-	}
-}
 
 ssize_t
 HMC5883::read(struct file *filp, char *buffer, size_t buflen)
@@ -1920,3 +1942,4 @@ hmc5883_main(int argc, char *argv[])
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', 'tempoff', 'tempon' or 'info'");
 }
+#endif
