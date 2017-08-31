@@ -358,9 +358,12 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 
 			case SENSOR_POLLRATE_MAX:
+
+			/* FALLTHROUGH */
 			case SENSOR_POLLRATE_DEFAULT:
 				ticks = _max_mesure_ticks;
 
+			/* FALLTHROUGH */
 			default: {
 					if (ticks == 0) {
 						ticks = USEC2TICK(USEC_PER_SEC / arg);
@@ -669,9 +672,13 @@ start_bus(struct bmp280_bus_option &bus)
 
 	bus.dev = new BMP280(interface, bus.devpath);
 
-	if (bus.dev != nullptr && OK != bus.dev->init()) {
+	if (bus.dev == nullptr) {
+		return false;
+	}
+
+	if (OK != bus.dev->init()) {
 		delete bus.dev;
-		bus.dev = NULL;
+		bus.dev = nullptr;
 		return false;
 	}
 

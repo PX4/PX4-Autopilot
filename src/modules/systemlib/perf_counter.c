@@ -605,10 +605,10 @@ extern const uint16_t latency_buckets[];
 void
 perf_print_latency(int fd)
 {
-	dprintf(fd, "bucket : events\n");
+	dprintf(fd, "bucket [us] : events\n");
 
 	for (int i = 0; i < latency_bucket_count; i++) {
-		printf("  %4i : %li\n", latency_buckets[i], (long int)latency_counters[i]);
+		printf("       %4i : %li\n", latency_buckets[i], (long int)latency_counters[i]);
 	}
 
 	// print the overflow bucket value

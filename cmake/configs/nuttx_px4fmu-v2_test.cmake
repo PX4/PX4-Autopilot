@@ -38,7 +38,9 @@ set(config_module_list
 	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
-	drivers/meas_airspeed
+	drivers/ms4525_airspeed
+	drivers/ms5525_airspeed
+	drivers/sdp3x_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
@@ -82,7 +84,6 @@ set(config_module_list
 	modules/mc_pos_control/mc_pos_control_tests
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
-	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -94,7 +95,7 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 	#modules/gpio_led
-	modules/uavcan
+	#modules/uavcan
 	modules/land_detector
 
 	#
@@ -148,6 +149,7 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
+	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -194,14 +196,6 @@ set(config_extra_builtin_cmds
 
 set(config_io_board
 	px4io-v2
-	)
-
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
-	)
-
-set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

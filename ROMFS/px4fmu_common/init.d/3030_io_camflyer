@@ -5,6 +5,7 @@
 # @url https://pixhawk.org/platforms/planes/bormatec_camflyer_q
 #
 # @type Flying Wing
+# @class Plane
 #
 # @output MAIN1 left aileron
 # @output MAIN2 right aileron
@@ -14,7 +15,7 @@
 # @output AUX2 feed-through of RC AUX2 channel
 # @output AUX3 feed-through of RC AUX3 channel
 #
-# @maintainer Simon Wilks <simon@px4.io>
+# @maintainer Simon Wilks <simon@uaventure.com>
 #
 
 sh /etc/init.d/rc.fw_defaults

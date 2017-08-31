@@ -64,6 +64,8 @@ protected:
 
 	virtual bool  _get_ground_contact_state() override;
 
+	virtual bool _get_maybe_landed_state() override;
+
 	virtual bool _get_freefall_state() override;
 
 	virtual float _get_max_altitude() override;

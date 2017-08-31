@@ -33,7 +33,7 @@
 
 /**
  * @file LandDetector.h
-Land detector interface for multicopter, fixedwing and VTOL implementations.
+ * Land detector interface for multicopter, fixedwing and VTOL implementations.
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Julian Oes <julian@oes.ch>
@@ -43,6 +43,7 @@ Land detector interface for multicopter, fixedwing and VTOL implementations.
 #pragma once
 
 #include <px4_workqueue.h>
+#include <px4_module.h>
 #include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/param/param.h>
 #include <uORB/uORB.h>
@@ -52,27 +53,33 @@ namespace land_detector
 {
 
 
-class LandDetector
+class LandDetector : public ModuleBase<LandDetector>
 {
 public:
 	enum class LandDetectionState {
 		FLYING = 0,
 		LANDED = 1,
 		FREEFALL = 2,
-		GROUND_CONTACT = 3
+		GROUND_CONTACT = 3,
+		MAYBE_LANDED = 4
 	};
 
 	LandDetector();
 	virtual ~LandDetector();
 
-	/**
-	 * @return true if this task is currently running.
-	 */
-	inline bool is_running() const
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[])
 	{
-		return _taskIsRunning;
+		return print_usage("unknown command");
 	}
 
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 	/**
 	 * @return current state.
@@ -81,11 +88,6 @@ public:
 	{
 		return _state;
 	}
-
-	/**
-	 * Tells the task that it should exit.
-	 */
-	void stop();
 
 	/**
 	 * Get the work queue going.
@@ -115,6 +117,11 @@ protected:
 	virtual bool _get_landed_state() = 0;
 
 	/**
+	 * @return true if UAV is in almost landed state
+	 */
+	virtual bool _get_maybe_landed_state() = 0;
+
+	/**
 	 * @return true if UAV is touching ground but not landed
 	 */
 	virtual bool _get_ground_contact_state()  = 0;
@@ -140,13 +147,16 @@ protected:
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
 
 	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
+	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 300000;
+
+	/** Time in us that almost landing conditions have to hold before triggering almost landed . */
+	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 250000;
 
 	/** Time in us that ground contact condition have to hold before triggering contact ground */
-	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 1000000;
+	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 350000;
 
-	/** Time interval in us in which wider acceptance thresholds are used after arming. */
-	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME_US = 2000000;
+	/** Time interval in us in which wider acceptance thresholds are used after landed. */
+	static constexpr uint64_t LAND_DETECTOR_LAND_PHASE_TIME_US = 2000000;
 
 	orb_advert_t _landDetectedPub;
 	struct vehicle_land_detected_s _landDetected;
@@ -157,6 +167,7 @@ protected:
 
 	systemlib::Hysteresis _freefall_hysteresis;
 	systemlib::Hysteresis _landed_hysteresis;
+	systemlib::Hysteresis _maybe_landed_hysteresis;
 	systemlib::Hysteresis _ground_contact_hysteresis;
 
 	float _altitude_max;
@@ -170,14 +181,10 @@ private:
 
 	void _update_state();
 
-	bool _taskShouldExit;
-	bool _taskIsRunning;
-
 	param_t _p_total_flight_time_high;
 	param_t _p_total_flight_time_low;
 	uint64_t _total_flight_time; ///< in microseconds
 	hrt_abstime _takeoff_time;
-
 
 	struct work_s	_work;
 };

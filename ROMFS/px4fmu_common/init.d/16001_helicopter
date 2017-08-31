@@ -3,8 +3,10 @@
 # @name Blade 130X
 #
 # @type Helicopter
+# @class Copter
 #
 # @maintainer Bart Slinger <bartslinger@gmail.com>
+#
 # @output MAIN1 main motor
 # @output MAIN2 front swashplate servo
 # @output MAIN3 right swashplate servo

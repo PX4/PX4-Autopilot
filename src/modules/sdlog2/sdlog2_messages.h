@@ -518,8 +518,8 @@ struct log_EST5_s {
 #define LOG_RPL1_MSG 51
 struct log_RPL1_s {
 	uint64_t time_ref;
-	float gyro_integral_dt;
-	float accelerometer_integral_dt;
+	uint32_t gyro_integral_dt;
+	uint32_t accelerometer_integral_dt;
 	uint64_t magnetometer_timestamp;
 	uint64_t baro_timestamp;
 	float gyro_x_rad;
@@ -629,7 +629,6 @@ struct log_DPRS_s {
 	uint64_t error_count;
 	float differential_pressure_raw_pa;
 	float differential_pressure_filtered_pa;
-	float max_differential_pressure_pa;
 	float temperature;
 };
 

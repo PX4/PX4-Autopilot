@@ -3,6 +3,7 @@
 # @name Quadrotor X Tailsitter
 #
 # @type VTOL Quad Tailsitter
+# @class VTOL
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #

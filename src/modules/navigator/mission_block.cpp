@@ -65,7 +65,7 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_param_vtol_wv_takeoff(this, "VT_WV_TKO_EN", false),
 	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
-	_param_back_trans_dur(this, "VT_B_TRANS_DUR", false)
+	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false)
 {
 }
 
@@ -296,12 +296,11 @@ MissionBlock::is_mission_item_reached()
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
 			if (_mission_item.vtol_back_transition) {
 
-				float groundspeed = sqrtf(_navigator->get_global_position()->vel_n * _navigator->get_global_position()->vel_n +
-							  _navigator->get_global_position()->vel_e * _navigator->get_global_position()->vel_e);
+				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
+						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
-				if (_param_back_trans_dur.get() > FLT_EPSILON && groundspeed > FLT_EPSILON
-				    && groundspeed * _param_back_trans_dur.get() > mission_acceptance_radius) {
-					mission_acceptance_radius = groundspeed * _param_back_trans_dur.get();
+				if (_param_back_trans_dec_mss.get() > FLT_EPSILON && velocity > FLT_EPSILON) {
+					mission_acceptance_radius = (velocity / _param_back_trans_dec_mss.get() / 2) * velocity;
 				}
 
 			}
@@ -363,31 +362,32 @@ MissionBlock::is_mission_item_reached()
 		if ((get_time_inside(_mission_item) < FLT_EPSILON) ||
 		    (now - _time_first_inside_orbit >= (hrt_abstime)(get_time_inside(_mission_item) * 1e6f))) {
 
+			position_setpoint_s &curr_sp = _navigator->get_position_setpoint_triplet()->current;
+			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
+
+			const float range = get_distance_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
+
 			// exit xtrack location
-			if (_mission_item.loiter_exit_xtrack &&
+			// reset lat/lon of loiter waypoint so vehicle follows a tangent
+			if (_mission_item.loiter_exit_xtrack && next_sp.valid && PX4_ISFINITE(range) &&
 			    (_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 			     _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
-				// reset lat/lon of loiter waypoint so vehicle follows a tangent
-				struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
-				const struct position_setpoint_s *next_sp = &_navigator->get_position_setpoint_triplet()->next;
-				float range = get_distance_to_next_waypoint(curr_sp->lat, curr_sp->lon, next_sp->lat, next_sp->lon);
-				float bearing = get_bearing_to_next_waypoint(curr_sp->lat, curr_sp->lon, next_sp->lat, next_sp->lon);
+				float bearing = get_bearing_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
 				float inner_angle = M_PI_2_F - asinf(_mission_item.loiter_radius / range);
 
 				// Compute "ideal" tangent origin
-				if (curr_sp->loiter_direction > 0) {
+				if (curr_sp.loiter_direction > 0) {
 					bearing -= inner_angle;
 
 				} else {
 					bearing += inner_angle;
 				}
 
-
 				// Replace current setpoint lat/lon with tangent coordinate
-				waypoint_from_heading_and_distance(curr_sp->lat, curr_sp->lon,
-								   bearing, curr_sp->loiter_radius,
-								   &curr_sp->lat, &curr_sp->lon);
+				waypoint_from_heading_and_distance(curr_sp.lat, curr_sp.lon,
+								   bearing, curr_sp.loiter_radius,
+								   &curr_sp.lat, &curr_sp.lon);
 			}
 
 			return true;
@@ -475,10 +475,14 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		}
 
 	} else {
-		PX4_INFO("forwarding command %d", item->nav_cmd);
-		struct vehicle_command_s cmd = {};
+		const hrt_abstime now = hrt_absolute_time();
+
+		struct vehicle_command_s cmd = {
+			.timestamp = now
+		};
+
 		mission_item_to_vehicle_command(item, &cmd);
-		_action_start = hrt_absolute_time();
+		_action_start = now;
 
 		_navigator->publish_vehicle_cmd(cmd);
 	}
@@ -507,12 +511,12 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	       item->nav_cmd == NAV_CMD_VTOL_LAND;
 }
 
-void
+bool
 MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp)
 {
 	/* don't change the setpoint for non-position items */
 	if (!item_contains_position(item)) {
-		return;
+		return false;
 	}
 
 	sp->lat = item->lat;
@@ -598,6 +602,8 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	}
 
 	sp->valid = true;
+
+	return sp->valid;
 }
 
 void
@@ -711,9 +717,17 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	    !_navigator->get_vstatus()->is_rotary_wing &&
 	    _param_force_vtol.get() == 1) {
 
-		struct vehicle_command_s cmd = {};
-		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		cmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		struct vehicle_command_s cmd = {
+			.timestamp = hrt_absolute_time(),
+			.param5 = 0.0f,
+			.param6 = 0.0f,
+			.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC,
+			.param2 = 0.0f,
+			.param3 = 0.0f,
+			.param4 = 0.0f,
+			.param7 = 0.0f,
+			.command = NAV_CMD_DO_VTOL_TRANSITION
+		};
 
 		_navigator->publish_vehicle_cmd(cmd);
 	}

@@ -2631,7 +2631,7 @@ mpu6000_main(int argc, char *argv[])
 	int device_type = MPU_DEVICE_TYPE_MPU6000;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
-	int accel_range = 8;
+	int accel_range = MPU6000_ACCEL_DEFAULT_RANGE_G;
 
 	/* jump over start/off/etc and look at options first */
 	while ((ch = getopt(argc, argv, "T:XISsZzR:a:")) != EOF) {

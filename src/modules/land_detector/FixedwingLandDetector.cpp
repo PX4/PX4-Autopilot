@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file FixedwingLandDetector.cpp
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
@@ -106,6 +106,13 @@ bool FixedwingLandDetector::_get_freefall_state()
 	return false;
 }
 bool FixedwingLandDetector::_get_ground_contact_state()
+{
+
+	// TODO
+	return false;
+}
+
+bool FixedwingLandDetector::_get_maybe_landed_state()
 {
 
 	// TODO

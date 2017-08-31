@@ -64,6 +64,8 @@
 
 #define GPIO_VDD_5V_SENSORS_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN13)
 
+#define GPIO_FORCE_BOOTLOADER	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_50MHz|GPIO_PORTA|GPIO_PIN11|GPIO_EXTI)
+
 /*
  * I2C busses
  *
@@ -76,7 +78,8 @@
  *
  */
 
-#define PX4_I2C_BUS_EXPANSION	1
+#define PX4_I2C_BUS_EXPANSION   1
+#define PX4_I2C_BUS_EXPANSION1  2
 #define PX4_I2C_BUS_ONBOARD	3
 
 #define PX4_I2C_OBDEV_HMC5883	0x1e
@@ -116,12 +119,12 @@
 /*
  * GPS
  */
-#define GPS_DEFAULT_UART_PORT	"/dev/ttyS2"
+#define GPS_DEFAULT_UART_PORT	"/dev/ttyS5"
 
 /*
  * RC Serial port
  */
-#define RC_SERIAL_PORT		"/dev/ttyS3"
+#define RC_SERIAL_PORT		"/dev/ttyS2"
 /* No invert support */
 #define INVERT_RC_INPUT(_invert_true)		while(0)
 

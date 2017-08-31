@@ -209,7 +209,7 @@ private:
 /**
  * Abstract class for any virtual character device
  */
-class __EXPORT VDev : public Device
+class __EXPORT CDev : public Device
 {
 public:
 	/**
@@ -218,12 +218,12 @@ public:
 	 * @param name		Driver name
 	 * @param devname	Device node name
 	 */
-	VDev(const char *name, const char *devname);
+	CDev(const char *name, const char *devname);
 
 	/**
 	 * Destructor
 	 */
-	virtual ~VDev();
+	virtual ~CDev();
 
 	virtual int	init();
 
@@ -322,12 +322,10 @@ public:
 	 */
 	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg);
 
-	static VDev *getDev(const char *path);
+	static CDev *getDev(const char *path);
 	static void showFiles(void);
 	static void showDevices(void);
 	static void showTopics(void);
-	static const char *devList(unsigned int *next);
-	static const char *topicList(unsigned int *next);
 
 	/**
 	 * Get the device name.
@@ -449,8 +447,8 @@ private:
 	int		remove_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/* do not allow copying this class */
-	VDev(const VDev &);
-	//VDev operator=(const VDev&);
+	CDev(const CDev &);
+	//CDev operator=(const CDev&);
 };
 
 #if 0

@@ -72,6 +72,7 @@ public:
 	~Mission() override = default;
 
 	void on_inactive() override;
+	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
 

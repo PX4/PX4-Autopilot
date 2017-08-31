@@ -76,17 +76,13 @@ set(config_module_list
 	platforms/common
 	platforms/nuttx/px4_layer
 	modules/uORB
+	lib/micro-CDR
 
 )
 
 set(config_extra_builtin_cmds
 	serdis
 	sercon
-	)
-
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
 	)
 
 add_custom_target(sercon)

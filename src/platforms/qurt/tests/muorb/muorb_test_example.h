@@ -54,6 +54,6 @@ private:
 	int uSleepTest();
 
 	struct esc_status_s m_esc_status;
-	struct vehicle_command_s m_vc;
+	struct vehicle_command_s m_vc = {};
 
 };

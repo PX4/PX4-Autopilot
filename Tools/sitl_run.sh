@@ -88,7 +88,7 @@ SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
 then
-	$src_path/Tools/jmavsim_run.sh &
+	$src_path/Tools/jmavsim_run.sh -r 500 &
 	SIM_PID=`echo $!`
 	cd ../..
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
@@ -104,7 +104,10 @@ then
 		if [[ -n "$HEADLESS" ]]; then
 			echo "not running gazebo gui"
 		else
-			gzclient --verbose &
+			# gzserver needs to be running to avoid a race. Since the launch
+			# is putting it into the background we need to avoid it by backing off
+			sleep 3
+			nice -n 20 gzclient --verbose &
 			GUI_PID=`echo $!`
 		fi
 	else

@@ -46,5 +46,15 @@
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
 
+/*
+ * I2C busses
+ */
+#define PX4_I2C_BUS_ESC		1
+#define PX4_SIM_BUS_TEST	2
+#define PX4_I2C_BUS_EXPANSION	3
+#define PX4_I2C_BUS_LED		3
+#define PX4_NUMBER_I2C_BUSES 3
+#define PX4_I2C_OBDEV_LED	0x55
+
 #include <system_config.h>
 #include "../common/board_common.h"

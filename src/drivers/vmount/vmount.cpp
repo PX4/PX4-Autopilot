@@ -63,6 +63,7 @@
 #include <uORB/topics/parameter_update.h>
 
 #include <px4_config.h>
+#include <px4_module.h>
 
 using namespace vmount;
 
@@ -80,15 +81,15 @@ struct ThreadData {
 static volatile ThreadData *g_thread_data = nullptr;
 
 struct Parameters {
-	int mnt_mode_in;
-	int mnt_mode_out;
-	int mnt_mav_sysid;
-	int mnt_mav_compid;
-	int mnt_ob_lock_mode;
-	int mnt_ob_norm_mode;
-	int mnt_man_pitch;
-	int mnt_man_roll;
-	int mnt_man_yaw;
+	int32_t mnt_mode_in;
+	int32_t mnt_mode_out;
+	int32_t mnt_mav_sysid;
+	int32_t mnt_mav_compid;
+	int32_t mnt_ob_lock_mode;
+	int32_t mnt_ob_norm_mode;
+	int32_t mnt_man_pitch;
+	int32_t mnt_man_roll;
+	int32_t mnt_man_yaw;
 
 	bool operator!=(const Parameters &p)
 	{
@@ -127,8 +128,30 @@ extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
 
 static void usage()
 {
-	PX4_INFO("usage: vmount {start|stop|status|test}");
-	PX4_INFO("       vmount test {roll|pitch|yaw} <angle_deg>");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Mount (Gimbal) control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
+output (eg. AUX channels or MAVLink).
+
+Documentation how to use it is on the [gimbal_control](https://dev.px4.io/en/advanced/gimbal_control.html) page.
+
+### Implementation
+Each method is implemented in its own class, and there is a common base class for inputs and outputs.
+They are connected via an API, defined by the `ControlData` data structure. This makes sure that each input method
+can be used with each output method and new inputs/outputs can be added with minimal effort.
+
+### Examples
+Test the output by setting a fixed yaw angle (and the other axes to 0):
+$ vmount stop
+$ vmount test yaw 30
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("vmount", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one axis (vmount must not be running)");
+	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 static int vmount_thread_main(int argc, char *argv[])
@@ -199,6 +222,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	g_thread_data = &thread_data;
 
 	int last_active = 0;
+	hrt_abstime last_output_update = 0;
 
 	while (!thread_should_exit) {
 
@@ -313,21 +337,26 @@ static int vmount_thread_main(int argc, char *argv[])
 					continue;
 				}
 
-				if (control_data_to_check != nullptr) {
+				if (control_data_to_check != nullptr || already_active) {
 					control_data = control_data_to_check;
 					last_active = i;
 				}
 			}
 
-			//update output
-			int ret = thread_data.output_obj->update(control_data);
+			hrt_abstime now = hrt_absolute_time();
+			if (now - last_output_update > 10000) { // rate-limit the update of outputs
+				last_output_update = now;
 
-			if (ret) {
-				PX4_ERR("failed to write output (%i)", ret);
-				break;
+				//update output
+				int ret = thread_data.output_obj->update(control_data);
+
+				if (ret) {
+					PX4_ERR("failed to write output (%i)", ret);
+					break;
+				}
+
+				thread_data.output_obj->publish();
 			}
-
-			thread_data.output_obj->publish();
 
 		} else {
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
@@ -414,8 +443,8 @@ int vmount_main(int argc, char *argv[])
 		thread_should_exit = false;
 		int vmount_task = px4_task_spawn_cmd("vmount",
 						     SCHED_DEFAULT,
-						     SCHED_PRIORITY_DEFAULT + 40,
-						     1500,
+						     SCHED_PRIORITY_DEFAULT,
+						     1900,
 						     vmount_thread_main,
 						     (char *const *)argv + 1);
 

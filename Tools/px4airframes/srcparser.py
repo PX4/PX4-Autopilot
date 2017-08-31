@@ -6,9 +6,11 @@ class ParameterGroup(object):
     """
     Single parameter group
     """
-    def __init__(self, name):
+    def __init__(self, name, af_class):
         self.name = name
+        self.af_class = af_class
         self.params = []
+
 
     def AddParameter(self, param):
         """
@@ -22,6 +24,12 @@ class ParameterGroup(object):
         """
         return self.name
 
+    def GetClass(self):
+        """
+        Get parameter group vehicle type.
+        """
+        return self.af_class
+        
     def GetImageName(self):
         """
         Get parameter group image base name (w/o extension)
@@ -50,6 +58,8 @@ class ParameterGroup(object):
             return "QuadRotorWide"
         elif (self.name == "Quadrotor H"):
             return "QuadRotorH"
+        elif (self.name == "Dodecarotor cox"):
+            return "DodecaRotorXCoaxial"
         elif (self.name == "Simulation"):
             return "AirframeSimulation"
         elif (self.name == "Plane A-Tail"):
@@ -80,6 +90,8 @@ class ParameterGroup(object):
             return "Boat"
         return "AirframeUnknown"
 
+
+        
     def GetParams(self):
         """
         Returns the parsed list of parameters. Every parameter is a Parameter
@@ -113,13 +125,14 @@ class Parameter(object):
         # all others == 0 (sorted alphabetically)
     }
 
-    def __init__(self, path, name, airframe_type, airframe_id, maintainer):
+    def __init__(self, path, name, airframe_type, airframe_class, airframe_id, maintainer):
         self.fields = {}
         self.outputs = {}
         self.archs = {}
         self.path = path
         self.name = name
         self.type = airframe_type
+        self.af_class = airframe_class
         self.id = airframe_id
         self.maintainer = maintainer
 
@@ -131,6 +144,9 @@ class Parameter(object):
 
     def GetType(self):
         return self.type
+
+    def GetClass(self):
+        return self.af_class
 
     def GetId(self):
         return self.id
@@ -337,6 +353,7 @@ class SourceParser(object):
         airframe_type = None
         maintainer = "John Doe <john@example.com>"
         airframe_name = None
+        airframe_class = None
 
         # Done with file, store
         for tag in tags:
@@ -344,6 +361,8 @@ class SourceParser(object):
                 maintainer = tags[tag]
             elif tag == "type":
                 airframe_type = tags[tag]
+            elif tag == "class":
+                airframe_class = tags[tag]
             elif tag == "name":
                 airframe_name = tags[tag]
             elif tag not in self.valid_tags:
@@ -355,12 +374,16 @@ class SourceParser(object):
             sys.stderr.write("Aborting due to missing @type tag in file: '%s'\n" % path)
             return False
 
+        if airframe_class == None:
+            sys.stderr.write("Aborting due to missing @class tag in file: '%s'\n" % path)
+            return False
+
         if airframe_name == None:
             sys.stderr.write("Aborting due to missing @name tag in file: '%s'\n" % path)
             return False
 
         # We already know this is an airframe config, so add it
-        param = Parameter(path, airframe_name, airframe_type, airframe_id, maintainer)
+        param = Parameter(path, airframe_name, airframe_type, airframe_class, airframe_id, maintainer)
 
         # Done with file, store
         for tag in tags:
@@ -368,6 +391,8 @@ class SourceParser(object):
                 maintainer = tags[tag]
             if tag == "type":
                 airframe_type = tags[tag]
+            if tag == "class":
+                airframe_class = tags[tag]
             if tag == "name":
                 airframe_name = tags[tag]
             else:
@@ -380,11 +405,18 @@ class SourceParser(object):
         # Store outputs
         for arch in archs:
             param.SetArch(arch, archs[arch])
+            
+
+        
 
         # Store the parameter
-        if airframe_type not in self.param_groups:
-            self.param_groups[airframe_type] = ParameterGroup(airframe_type)
-        self.param_groups[airframe_type].AddParameter(param)
+        
+        #Create a class-specific airframe group. This is needed to catch cases where an airframe type might cross classes (e.g. simulation)
+        class_group_identifier=airframe_type+airframe_class
+        if class_group_identifier not in self.param_groups:
+            #self.param_groups[airframe_type] = ParameterGroup(airframe_type)  #HW TEST REMOVE
+            self.param_groups[class_group_identifier] = ParameterGroup(airframe_type, airframe_class)
+        self.param_groups[class_group_identifier].AddParameter(param)
 
         return True
 
@@ -443,5 +475,20 @@ class SourceParser(object):
         """
         groups = self.param_groups.values()
         groups = sorted(groups, key=lambda x: x.GetName())
+        groups = sorted(groups, key=lambda x: x.GetClass())
         groups = sorted(groups, key=lambda x: self.priority.get(x.GetName(), 0), reverse=True)
+        
+        #Rename duplicate groups to include the class (creating unique headings in page TOC)
+        duplicate_test=set()
+        duplicate_set=set()
+        for group in groups:
+            if group.GetName() in duplicate_test:
+                duplicate_set.add(group.GetName())
+            else:
+                duplicate_test.add(group.GetName() )
+        for group in groups:
+            if group.GetName() in duplicate_set:
+                group.name=group.GetName()+' (%s)' % group.GetClass()
+
+        
         return groups

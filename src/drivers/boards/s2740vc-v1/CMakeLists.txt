@@ -70,7 +70,6 @@ endif()
 px4_add_module(
 	MODULE drivers__boards__s2740vc-v1
 	COMPILE_FLAGS
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common

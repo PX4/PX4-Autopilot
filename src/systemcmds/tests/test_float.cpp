@@ -1,4 +1,4 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <px4_config.h>
 #include <cfloat>

@@ -483,12 +483,19 @@ CameraTrigger::stop()
 void
 CameraTrigger::test()
 {
-	struct vehicle_command_s cmd = {};
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
-	cmd.param5 = 1.0f;
+	struct vehicle_command_s cmd = {
+		.timestamp = hrt_absolute_time(),
+		.param5 = 1.0f,
+		.param6 = 0.0f,
+		.param1 = 0.0f,
+		.param2 = 0.0f,
+		.param3 = 0.0f,
+		.param4 = 0.0f,
+		.param7 = 0.0f,
+		.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL
+	};
 
-	orb_advert_t pub;
-	pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+	orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 	(void)orb_unadvertise(pub);
 }
 
@@ -508,7 +515,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 	bool updated = false;
 	orb_check(trig->_command_sub, &updated);
 
-	struct vehicle_command_s cmd = {};
+	struct vehicle_command_s cmd;
 	unsigned cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 	bool need_ack = false;
 
@@ -599,6 +606,12 @@ CameraTrigger::cycle_trampoline(void *arg)
 					trig->_activation_time = cmd.param2;
 					param_set(trig->_p_activation_time, &(trig->_activation_time));
 				}
+			}
+
+			// Trigger once immediately if param is set
+			if (cmd.param3 > 0.0f) {
+				// Schedule shot
+				trig->_one_shot = true;
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -709,10 +722,16 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 	// Command ACK handling
 	if (updated && need_ack) {
-		vehicle_command_ack_s command_ack = {};
-
-		command_ack.command = cmd.command;
-		command_ack.result = cmd_result;
+		vehicle_command_ack_s command_ack = {
+			.timestamp = 0,
+			.result_param2 = 0,
+			.command = cmd.command,
+			.result = (uint8_t)cmd_result,
+			.from_external = 0,
+			.result_param1 = 0,
+			.target_system = cmd.source_system,
+			.target_component = cmd.source_component
+		};
 
 		if (trig->_cmd_ack_pub == nullptr) {
 			trig->_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,

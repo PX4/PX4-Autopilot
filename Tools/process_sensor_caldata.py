@@ -16,7 +16,7 @@ Data can be gathered using the following sequence:
 1) Power up the board and set the TC_A_ENABLE, TC_B_ENABLE and TC_G_ENABLE parameters to 1
 2) Set all CAL_GYR and CAL_ACC parameters to defaults
 3) Set the SYS_LOGGER parameter to 1 to use the new system logger
-4) Set the SDLOG_MODE parameter to 3 to enable logging of sensor data for calibration and power off
+4) Set the SDLOG_MODE parameter to 2, and SDLOG_PROFILE parameter to 2 to enable logging of sensor data for calibration and power off
 5) Cold soak the board for 30 minutes
 6) Move to a warm dry, still air, constant pressure environment.
 7) Apply power for 45 minutes, keeping the board still.

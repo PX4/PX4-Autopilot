@@ -52,17 +52,35 @@ OutputMavlink::OutputMavlink(const OutputConfig &output_config)
 {
 }
 
+OutputMavlink::~OutputMavlink()
+{
+	if (_vehicle_command_pub) {
+		orb_unadvertise(_vehicle_command_pub);
+	}
+}
+
 int OutputMavlink::update(const ControlData *control_data)
 {
-	vehicle_command_s vehicle_command;
+	vehicle_command_s vehicle_command = {
+		.timestamp = 0,
+		.param5 = 0.0f,
+		.param6 = 0.0f,
+		.param1 = 0.0f,
+		.param2 = 0.0f,
+		.param3 = 0.0f,
+		.param4 = 0.0f,
+		.param7 = 0.0f,
+		.command = 0,
+		.target_system = (uint8_t)_config.mavlink_sys_id,
+		.target_component = (uint8_t)_config.mavlink_comp_id,
+	};
 
 	if (control_data) {
 		//got new command
 		_set_angle_setpoints(control_data);
 
 		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
-		vehicle_command.target_system = _config.mavlink_sys_id;
-		vehicle_command.target_component = _config.mavlink_comp_id;
+		vehicle_command.timestamp = hrt_absolute_time();
 
 		if (control_data->type == ControlData::Type::Neutral) {
 			vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
@@ -90,13 +108,14 @@ int OutputMavlink::update(const ControlData *control_data)
 	hrt_abstime t = hrt_absolute_time();
 	_calculate_output_angles(t);
 
+	vehicle_command.timestamp = t;
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
-	vehicle_command.target_system = _config.mavlink_sys_id;
-	vehicle_command.target_component = _config.mavlink_comp_id;
 
-	vehicle_command.param1 = _angle_outputs[0];
-	vehicle_command.param2 = _angle_outputs[1];
-	vehicle_command.param3 = _angle_outputs[2];
+	// vmount spec has roll, pitch on channels 0, 1, respectively; MAVLink spec has roll, pitch on channels 1, 0, respectively
+	// vmount uses radians, MAVLink uses degrees
+	vehicle_command.param1 = _angle_outputs[1] * M_RAD_TO_DEG_F;
+	vehicle_command.param2 = _angle_outputs[0] * M_RAD_TO_DEG_F;
+	vehicle_command.param3 = _angle_outputs[2] * M_RAD_TO_DEG_F;
 
 	orb_publish(ORB_ID(vehicle_command), _vehicle_command_pub, &vehicle_command);
 

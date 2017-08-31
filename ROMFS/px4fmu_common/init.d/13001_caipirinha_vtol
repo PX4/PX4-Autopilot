@@ -3,6 +3,7 @@
 # @name Caipiroshka Duo Tailsitter
 #
 # @type VTOL Duo Tailsitter
+# @class VTOL
 #
 # @output MAIN1 motor right
 # @output MAIN2 motor left

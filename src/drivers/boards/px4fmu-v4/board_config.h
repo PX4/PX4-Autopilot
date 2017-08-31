@@ -210,6 +210,7 @@
 
 /* Power supply control and monitoring GPIOs */
 #define GPIO_VDD_BRICK_VALID         (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_VDD_USB_VALID           (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
 #define GPIO_VDD_3V3_SENSORS_EN      (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
 
 /* Tone alarm output */
@@ -311,6 +312,7 @@
  */
 #define BOARD_ADC_USB_CONNECTED      (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_BRICK_VALID        (px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
+#define BOARD_ADC_USB_VALID          (px4_arch_gpioread(GPIO_VDD_USB_VALID))
 #define BOARD_ADC_SERVO_VALID        (1)
 #define BOARD_ADC_PERIPH_5V_OC       (0)
 #define BOARD_ADC_HIPOWER_5V_OC      (0)
@@ -325,7 +327,8 @@
 		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
 		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
 		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
-		{GPIO_VDD_BRICK_VALID,   0,                       0}, }
+		{GPIO_VDD_BRICK_VALID,   0,                       0}, \
+		{GPIO_VDD_USB_VALID,     0,                       0}, }
 
 /*
  * PX4FMUv4 GPIO numbers.
@@ -341,6 +344,7 @@
 
 #define GPIO_3V3_SENSORS_EN          (1<<7)  /**< PE3 - VDD_3V3_SENSORS_EN */
 #define GPIO_BRICK_VALID             (1<<8)  /**< PB5 - !VDD_BRICK_VALID */
+#define GPIO_USB_VALID               (1<<9)  /**< PC0 - !GPIO_VDD_USB_VALID */
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE    5120

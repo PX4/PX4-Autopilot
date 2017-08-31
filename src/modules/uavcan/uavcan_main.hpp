@@ -104,7 +104,7 @@ class UavcanNode : public device::CDev
 
 public:
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
-	enum eServerAction {None, Start, Stop, CheckFW , Busy};
+	enum eServerAction {None, Start, Stop, CheckFW, Busy};
 
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 

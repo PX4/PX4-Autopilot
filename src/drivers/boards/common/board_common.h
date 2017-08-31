@@ -84,7 +84,7 @@
  *
  * The PX4_xxxx_BUS_FIRST_CS and PX4_xxxxx_BUS_LAST_CS
  * #define PX4_SENSORS_BUS_FIRST_CS  PX4_SPIDEV_ICM_20689
-*  #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
+ *  #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
  *
  *
  */
@@ -93,6 +93,31 @@
 #define PX4_SPI_BUS_ID(bd)        (((bd) >> 4) & 0xf)
 #define PX4_SPI_DEV_ID(bd)        ((bd) & 0xf)
 
+/* I2C PX4 clock configuration
+ *
+ * A board may override BOARD_NUMBER_I2C_BUSES and BOARD_I2C_BUS_CLOCK_INIT
+ * simply by defining the #defines.
+ *
+ * If none are provided the default number of I2C busses  will be taken from
+ * the px4 micro hal and the init will be from the legacy values of 100K.
+ */
+#if !defined(BOARD_NUMBER_I2C_BUSES)
+# define BOARD_NUMBER_I2C_BUSES PX4_NUMBER_I2C_BUSES
+#endif
+
+#if !defined(BOARD_I2C_BUS_CLOCK_INIT)
+#  if (BOARD_NUMBER_I2C_BUSES) == 1
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 2
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 3
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 4
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
+#  else
+#    error BOARD_NUMBER_I2C_BUSES not supported
+#  endif
+#endif
 /* ADC defining tools
  * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
  */
@@ -116,14 +141,50 @@
 #define ADC_3V3_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
-/* Choose the source for ADC_SCALED_V5_SENSE */
+/* Provide define for Bricks and Battery */
 
+/* Legacy default */
+
+#if !defined(BOARD_NUMBER_BRICKS)
+#  define BOARD_NUMBER_BRICKS 1
+#  if !defined(BOARD_ADC_BRICK_VALID)
+#    define BOARD_ADC_BRICK_VALID (1)
+#  endif
+#endif
+
+#if BOARD_NUMBER_BRICKS == 1
+#  define BOARD_BATT_V_LIST       {ADC_BATTERY_VOLTAGE_CHANNEL}
+#  define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK_VALID}
+#elif BOARD_NUMBER_BRICKS == 2
+#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL}
+#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID}
+#elif BOARD_NUMBER_BRICKS == 3
+#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL}
+#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID}
+#elif BOARD_NUMBER_BRICKS == 4
+#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL, ADC_BATTERY4_VOLTAGE_CHANNEL}
+#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL, ADC_BATTERY4_CURRENT_CHANNEL}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID, BOARD_ADC_BRICK4_VALID}
+#else
+#  error Unsuported BOARD_NUMBER_BRICKS number.
+#endif
+
+/* Choose the source for ADC_SCALED_V5_SENSE */
 #if defined(ADC_5V_RAIL_SENSE)
 #define ADC_SCALED_V5_SENSE ADC_5V_RAIL_SENSE
 #else
-#  if defined(ADC_SCALED_V5)
-#    define ADC_SCALED_V5_SENSE ADC_SCALED_V5
+#  if defined(ADC_SCALED_V5_CHANNEL)
+#    define ADC_SCALED_V5_SENSE ADC_SCALED_V5_CHANNEL
 #  endif
+#endif
+
+/* Define the source for ADC_SCALED_V3V3_SENSORS_SENSE */
+
+#if defined(ADC_SCALED_VDD_3V3_SENSORS_CHANNEL)
+#  define ADC_SCALED_V3V3_SENSORS_SENSE ADC_SCALED_VDD_3V3_SENSORS_CHANNEL
 #endif
 
 /* Define an overridable default of 0.0f V for batery v div
@@ -192,6 +253,17 @@
 #define BOARD_HAS_CAPTURE 1
 #endif
 
+/*
+ * Defined when a supports version and type API.
+ */
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+#  define BOARD_HAS_VERSIONING 1
+#  define HW_VER_SIMPLE(s)	     0x90000+(s)
+
+#  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
+#  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
+#  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
+#endif
 
 /************************************************************************************
  * Public Data
@@ -356,6 +428,51 @@ __EXPORT void board_system_reset(int status) noreturn_function;
 __EXPORT int board_set_bootload_mode(board_reset_e mode);
 #endif
 
+/************************************************************************************
+ * Name: board_get_hw_type
+ *
+ * Description:
+ *   Optional returns a string defining the HW type
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT const char *board_get_hw_type_name(void);
+#else
+#define board_get_hw_type_name() ""
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_version
+ *
+ * Description:
+ *   Optional returns a integer HW version
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT int board_get_hw_version(void);
+#else
+#define board_get_hw_version() 0
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_revision
+ *
+ * Description:
+ *   Optional returns a integer HW revision
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT int board_get_hw_revision(void);
+#else
+#define board_get_hw_revision() 0
+#endif
+
 #if !defined(BOARD_OVERRIDE_UUID)
 /************************************************************************************
  * Name: board_get_uuid
@@ -491,3 +608,17 @@ int board_shutdown(void);
 static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
 static inline int board_shutdown(void) { return -EINVAL; }
 #endif
+
+/************************************************************************************
+ * Name: board_gpio_init
+ *
+ * Description:
+ *   Board may provide a list of GPI pins to get initialized
+ *
+ *  list    - A list of GPIO pins to be initialized
+ *  count   - Size of the list
+ *
+ * return  - Nothing
+  ************************************************************************************/
+
+__EXPORT void board_gpio_init(const uint32_t list[], int count);

@@ -33,13 +33,13 @@
 px4_add_module(
 	MODULE drivers__boards__px4fmu-v5
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		../common/stm32/board_reset.c
 		../common/stm32/board_identity.c
 		../common/stm32/board_mcu_version.c
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
+		../common/board_gpio_init.c
 #		WIP px4fmu_can.c
 		px4fmu_init.c
 		px4fmu_sdio.c

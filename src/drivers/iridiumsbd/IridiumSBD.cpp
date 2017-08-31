@@ -33,6 +33,8 @@
 
 #include "IridiumSBD.h"
 
+#include <px4_tasks.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -45,7 +47,6 @@
 #include <nuttx/config.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
 
 #include "drivers/drv_iridiumsbd.h"
@@ -513,11 +514,7 @@ int IridiumSBD::ioctl(struct file *filp, int cmd, unsigned long arg)
 	default: {
 
 			/* see if the parent class can make any use of it */
-#ifdef __PX4_NUTTX
 			return CDev::ioctl(filp, cmd, arg);
-#else
-			return VDev::ioctl(filp, cmd, arg);
-#endif
 		}
 	}
 }

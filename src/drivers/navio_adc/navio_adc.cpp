@@ -44,7 +44,6 @@
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <px4_adc.h>
 #include <drivers/drv_adc.h>
 
 #include <VirtDevObj.hpp>
@@ -90,11 +89,11 @@ protected:
 	virtual void _measure() override;
 
 private:
-	int read_channel(struct adc_msg_s *adc_msg, int channel);
+	int read_channel(px4_adc_msg_t *adc_msg, int channel);
 
 	pthread_mutex_t _samples_lock;
 	int _fd[ADC_MAX_CHAN];
-	adc_msg_s _samples[ADC_MAX_CHAN];
+	px4_adc_msg_t _samples[ADC_MAX_CHAN];
 };
 
 NavioADC::NavioADC()
@@ -120,7 +119,7 @@ NavioADC::~NavioADC()
 
 void NavioADC::_measure()
 {
-	adc_msg_s tmp_samples[ADC_MAX_CHAN];
+	px4_adc_msg_t tmp_samples[ADC_MAX_CHAN];
 
 	for (int i = 0; i < ADC_MAX_CHAN; ++i) {
 		int ret;
@@ -216,7 +215,7 @@ ssize_t NavioADC::devRead(void *buf, size_t count)
 	return count;
 }
 
-int NavioADC::read_channel(struct adc_msg_s *adc_msg, int channel)
+int NavioADC::read_channel(px4_adc_msg_t *adc_msg, int channel)
 {
 	char buffer[11]; /* 32bit max INT has maximum 10 chars */
 	int ret;
@@ -304,7 +303,7 @@ int navio_adc_main(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		struct adc_msg_s adc_msgs[ADC_MAX_CHAN];
+		px4_adc_msg_t adc_msgs[ADC_MAX_CHAN];
 
 		ret = instance->devRead((char *)&adc_msgs, sizeof(adc_msgs));
 

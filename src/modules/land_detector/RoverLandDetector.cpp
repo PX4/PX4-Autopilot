@@ -67,6 +67,12 @@ bool RoverLandDetector::_get_ground_contact_state()
 	return false;
 }
 
+bool RoverLandDetector::_get_maybe_landed_state()
+{
+	return false;
+}
+
+
 bool RoverLandDetector::_get_landed_state()
 {
 	return false;

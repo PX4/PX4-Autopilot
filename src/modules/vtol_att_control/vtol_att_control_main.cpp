@@ -76,6 +76,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_manual_control_sp_sub(-1),
 	_armed_sub(-1),
 	_local_pos_sub(-1),
+	_pos_sp_triplet_sub(-1),
 	_airspeed_sub(-1),
 	_battery_status_sub(-1),
 	_vehicle_cmd_sub(-1),
@@ -109,6 +110,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_actuators_fw_in, 0, sizeof(_actuators_fw_in));
 	memset(&_armed, 0, sizeof(_armed));
 	memset(&_local_pos, 0, sizeof(_local_pos));
+	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
 	memset(&_airspeed, 0, sizeof(_airspeed));
 	memset(&_batt_status, 0, sizeof(_batt_status));
 	memset(&_vehicle_cmd, 0, sizeof(_vehicle_cmd));
@@ -369,6 +371,22 @@ VtolAttitudeControl::vehicle_local_pos_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+	}
+
+}
+
+/**
+* Check for position setpoint updates.
+*/
+void
+VtolAttitudeControl::pos_sp_triplet_poll()
+{
+	bool updated;
+	/* Check if parameters have changed */
+	orb_check(_pos_sp_triplet_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 	}
 
 }
@@ -650,6 +668,7 @@ void VtolAttitudeControl::task_main()
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_armed_sub             = orb_subscribe(ORB_ID(actuator_armed));
 	_local_pos_sub         = orb_subscribe(ORB_ID(vehicle_local_position));
+	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_battery_status_sub	   = orb_subscribe(ORB_ID(battery_status));
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
@@ -668,14 +687,12 @@ void VtolAttitudeControl::task_main()
 	_vtol_type->set_idle_mc();
 
 	/* wakeup source*/
-	px4_pollfd_struct_t fds[3] = {};	/*input_mc, input_fw, parameters*/
+	px4_pollfd_struct_t fds[2] = {};	/*input_mc, input_fw, parameters*/
 
 	fds[0].fd     = _actuator_inputs_mc;
 	fds[0].events = POLLIN;
 	fds[1].fd     = _actuator_inputs_fw;
 	fds[1].events = POLLIN;
-	fds[2].fd     = _params_sub;
-	fds[2].events = POLLIN;
 
 	while (!_task_should_exit) {
 		/*Advertise/Publish vtol vehicle status*/
@@ -689,8 +706,7 @@ void VtolAttitudeControl::task_main()
 		}
 
 		/* wait for up to 100ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
-
+		int pret = px4_poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
@@ -699,15 +715,27 @@ void VtolAttitudeControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			/* sleep a bit before next try */
 			usleep(100000);
 			continue;
 		}
 
-		if (fds[2].revents & POLLIN) {	//parameters were updated, read them now
+		if (fds[0].revents & POLLIN) {
+			orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
+		}
+
+		if (fds[1].revents & POLLIN) {
+			orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
+		}
+
+		/* only update parameters if they changed */
+		bool params_updated = false;
+		orb_check(_params_sub, &params_updated);
+
+		if (params_updated) {
 			/* read from param to clear updated flag */
-			struct parameter_update_s update;
+			parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 			/* update parameters from storage */
@@ -729,6 +757,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_rates_sp_fw_poll();
 		parameters_update_poll();
 		vehicle_local_pos_poll();			// Check for new sensor values
+		pos_sp_triplet_poll();
 		vehicle_airspeed_poll();
 		vehicle_battery_poll();
 		vehicle_cmd_poll();
@@ -762,8 +791,6 @@ void VtolAttitudeControl::task_main()
 
 			// got data from mc attitude controller
 			if (fds[0].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
-
 				_vtol_type->update_mc_state();
 
 				fill_mc_att_rates_sp();
@@ -776,7 +803,6 @@ void VtolAttitudeControl::task_main()
 
 			// got data from fw attitude controller
 			if (fds[1].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 				vehicle_manual_poll();
 
 				_vtol_type->update_fw_state();
@@ -844,7 +870,7 @@ void VtolAttitudeControl::task_main()
 		}
 	}
 
-	warnx("exit");
+	PX4_WARN("exit");
 	_control_task = -1;
 }
 

@@ -34,7 +34,10 @@ class SourceScanner(object):
         Scans provided file and passes its contents to the parser using
         parser.Parse method.
         """
-        prefix = "^.*" + os.path.sep + "src" + os.path.sep
+        # Extract the scope: it is the directory within the repo. Either it
+        # starts directly with 'src/module/abc', or it has the form 'x/y/z/src/module/abc'.
+        # The output is 'module/abc' in both cases.
+        prefix = "^(|.*" + os.path.sep + ")src" + os.path.sep
         scope = re.sub(prefix.replace("\\", "/"), "", os.path.dirname(os.path.relpath(path)).replace("\\", "/"))
 
         with codecs.open(path, 'r', 'utf-8') as f:

@@ -187,18 +187,6 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
 
 /**
- * Vertical velocity feed forward
- *
- * Feed forward weight for altitude control in stabilized modes (ALTCTRL, POSCTRL). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
-
-/**
  * Proportional gain for horizontal position error
  *
  * @min 0.0
@@ -300,18 +288,6 @@ PARAM_DEFINE_FLOAT(MPC_TARGET_THRE, 15.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 8.0f);
 
 /**
- * Horizontal velocity feed forward
- *
- * Feed forward weight for position control in position control mode (POSCTRL). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
-
-/**
  * Maximum tilt angle in air
  *
  * Limits maximum tilt in AUTO and POSCTRL modes during flight.
@@ -341,11 +317,11 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
  * Landing descend rate
  *
  * @unit m/s
- * @min 0.2
+ * @min 0.6
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
  * Takeoff climb rate

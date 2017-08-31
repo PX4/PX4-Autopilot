@@ -66,6 +66,8 @@
 #include <drivers/drv_led.h>
 #include <lib/led/led.h>
 
+#include "uORB/topics/parameter_update.h"
+
 #define RGBLED_ONTIME 120
 #define RGBLED_OFFTIME 120
 

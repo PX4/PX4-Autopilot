@@ -62,7 +62,6 @@ endif()
 px4_add_module(
 	MODULE drivers__boards__px4flow-v2
 	COMPILE_FLAGS
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common

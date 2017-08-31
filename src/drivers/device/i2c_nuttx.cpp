@@ -49,7 +49,7 @@ namespace device
  *  All calls to init() will NOT set the buss frequency
  */
 
-unsigned int I2C::_bus_clocks[3] = { 100000, 100000, 100000 };
+unsigned int I2C::_bus_clocks[BOARD_NUMBER_I2C_BUSES] = BOARD_I2C_BUS_CLOCK_INIT;
 
 I2C::I2C(const char *name,
 	 const char *devname,

@@ -44,6 +44,7 @@
 
 #include <systemlib/param/param.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
@@ -74,6 +75,8 @@ protected:
 
 	virtual bool _get_ground_contact_state() override;
 
+	virtual bool _get_maybe_landed_state() override;
+
 	virtual bool _get_freefall_state() override;
 
 	virtual float _get_max_altitude() override;
@@ -95,6 +98,7 @@ private:
 		param_t manual_stick_down_threshold;
 		param_t altitude_max;
 		param_t manual_stick_up_position_takeoff_threshold;
+		param_t landSpeed;
 	} _paramHandle;
 
 	struct {
@@ -110,9 +114,11 @@ private:
 		float manual_stick_down_threshold;
 		float altitude_max;
 		float manual_stick_up_position_takeoff_threshold;
+		float landSpeed;
 	} _params;
 
 	int _vehicleLocalPositionSub;
+	int _vehicleLocalPositionSetpointSub;
 	int _actuatorsSub;
 	int _armingSub;
 	int _attitudeSub;
@@ -121,17 +127,18 @@ private:
 	int _vehicle_control_mode_sub;
 	int _battery_sub;
 
-	struct vehicle_local_position_s		_vehicleLocalPosition;
-	struct actuator_controls_s		_actuators;
-	struct actuator_armed_s			_arming;
-	struct vehicle_attitude_s		_vehicleAttitude;
-	struct manual_control_setpoint_s	_manual;
-	struct control_state_s			_ctrl_state;
-	struct vehicle_control_mode_s		_control_mode;
-	struct battery_status_s _battery;
+	struct vehicle_local_position_s				_vehicleLocalPosition;
+	struct vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint;
+	struct actuator_controls_s					_actuators;
+	struct actuator_armed_s						_arming;
+	struct vehicle_attitude_s					_vehicleAttitude;
+	struct manual_control_setpoint_s			_manual;
+	struct control_state_s						_ctrl_state;
+	struct vehicle_control_mode_s				_control_mode;
+	struct battery_status_s						_battery;
 
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
-	uint64_t _arming_time;
+	uint64_t _landed_time;
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();
@@ -139,6 +146,8 @@ private:
 	bool _has_position_lock();
 	bool _has_manual_control_present();
 	bool _has_minimal_thrust();
+	bool _has_low_thrust();
+	bool _is_climb_rate_enabled();
 };
 
 

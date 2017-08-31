@@ -67,6 +67,13 @@ enum class link_loss_actions_t {
     LOCKDOWN = 6,
 };
 
+typedef enum {
+	ARM_REQ_NONE = 0,
+	ARM_REQ_MISSION_BIT = (1 << 0),
+	ARM_REQ_ARM_AUTH_BIT = (1 << 1),
+	ARM_REQ_GPS_BIT = (1 << 2),
+} arm_requirements_t;
+
 // This is a struct used by the commander internally.
 struct status_flags_s {
     bool condition_calibration_enabled;
@@ -118,8 +125,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					    orb_advert_t *mavlink_log_pub,        ///< uORB handle for mavlink log
 					    status_flags_s *status_flags,
 					    float avionics_power_rail_voltage,
-					    bool arm_without_gps,
-					    bool arm_mission_required,
+					    uint8_t arm_requirements,
 					    hrt_abstime time_since_boot);
 
 transition_result_t
@@ -145,10 +151,6 @@ bool set_nav_state(struct vehicle_status_s *status,
 		   const int offb_loss_rc_act,
 		   const int posctl_nav_loss_act);
 
-void set_rc_loss_nav_state(struct vehicle_status_s *status,
-			   struct actuator_armed_s *armed,
-			   status_flags_s *status_flags,
-			   const link_loss_actions_t link_loss_act);
 /*
  * Checks the validty of position data aaainst the requirements of the current navigation
  * mode and switches mode if position data required is not available.
@@ -160,13 +162,14 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 			       const bool use_rc, // true if a mode using RC control can be used as a fallback
 			       const bool using_global_pos); // true when the current mode requires a global position estimate
 
-void set_data_link_loss_nav_state(struct vehicle_status_s *status,
-				  struct actuator_armed_s *armed,
-				  status_flags_s *status_flags,
-				  const link_loss_actions_t link_loss_act);
+void set_rc_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, status_flags_s *status_flags,
+						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
+
+void set_data_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, status_flags_s *status_flags,
+						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
 		    bool force_report, status_flags_s *status_flags, battery_status_s *battery,
-		    bool arm_without_gps, bool arm_mission_required, hrt_abstime time_since_boot);
+		    uint8_t arm_requirements, hrt_abstime time_since_boot);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

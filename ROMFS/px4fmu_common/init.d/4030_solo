@@ -3,6 +3,7 @@
 # @name 3DR Solo
 #
 # @type Quadrotor x
+# @class Copter
 #
 # @board px4fmu-v1 exclude
 # @board px4fmu-v2 exclude

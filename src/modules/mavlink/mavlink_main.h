@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,13 +33,16 @@
 
 /**
  * @file mavlink_main.h
- * MAVLink 1.0 protocol interface definition.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * MAVLink 2.0 protocol interface definition.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #pragma once
+
+#include <px4_posix.h>
 
 #include <stdbool.h>
 #ifdef __PX4_NUTTX
@@ -129,6 +132,14 @@ public:
 
 	static int		get_status_all_instances();
 
+	/**
+	 * Set all instances to verbose mode
+	 *
+	 * This is primarily intended for analysis and
+	 * not intended for normal operation
+	 */
+	static int		set_verbose_all_instances(bool enabled);
+
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
@@ -214,6 +225,8 @@ public:
 
 	void			set_config_link_on(bool on) { _config_link_on = on; }
 
+	bool			is_connected() { return ((_rstatus.heartbeat_time > 0) && (hrt_absolute_time() - _rstatus.heartbeat_time < 3000000)); }
+
 	bool			broadcast_enabled() { return _broadcast_mode > BROADCAST_MODE_OFF; }
 
 	/**
@@ -256,7 +269,14 @@ public:
 	/**
 	 * Set communication protocol for this mavlink instance
 	 */
-	void 		set_protocol(Protocol p) {_protocol = p;};
+	void 			set_protocol(Protocol p) { _protocol = p; }
+
+	/**
+	 * Set verbose mode
+	 */
+	void			set_verbose(bool v);
+
+	bool			get_verbose() const { return _verbose; }
 
 	/**
 	 * Get the manual input generation mode
@@ -283,7 +303,7 @@ public:
 	 *
 	 * @return the number of bytes sent or -1 in case of error
 	 */
-	int             send_packet();
+	int             	send_packet();
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
@@ -307,7 +327,7 @@ public:
 
 	mavlink_channel_t	get_channel();
 
-	void			configure_stream_threadsafe(const char *stream_name, float rate);
+	void			configure_stream_threadsafe(const char *stream_name, float rate = -1.0f);
 
 	bool			_task_should_exit;	/**< if true, mavlink task should exit */
 
@@ -427,10 +447,12 @@ public:
 
 	bool			accepting_commands() { return true; /* non-trivial side effects ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG));*/ }
 
-	int				get_data_rate() { return _datarate; }
+	bool			verbose() { return _verbose; }
+
+	int			get_data_rate()		{ return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
 
-	uint64_t		get_main_loop_delay() { return _main_loop_delay; }
+	unsigned		get_main_loop_delay() const { return _main_loop_delay; }
 
 	/** get the Mavlink shell. Create a new one if there isn't one. It is *always* created via MavlinkReceiver thread.
 	 *  Returns nullptr if shell cannot be created */
@@ -451,6 +473,11 @@ public:
 		if (_mavlink_ulog) { _mavlink_ulog_stop_requested = true; }
 	}
 
+
+	void set_uorb_main_fd(int fd, unsigned int interval);
+
+	bool ftp_enabled() const { return _ftp_on; }
+
 protected:
 	Mavlink			*next;
 
@@ -460,7 +487,10 @@ private:
 	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
 	static bool		_boot_complete;
-	static const unsigned MAVLINK_MAX_INSTANCES = 4;
+	static constexpr unsigned MAVLINK_MAX_INSTANCES = 4;
+	static constexpr unsigned MAVLINK_MIN_INTERVAL = 1500;
+	static constexpr unsigned MAVLINK_MAX_INTERVAL = 10000;
+	static constexpr float MAVLINK_MIN_MULTIPLIER = 0.0005f;
 	mavlink_message_t _mavlink_buffer;
 	mavlink_status_t _mavlink_status;
 
@@ -586,13 +616,13 @@ private:
 	int			mavlink_open_uart(int baudrate, const char *uart_name);
 #endif
 
-	static unsigned int	interval_from_rate(float rate);
+	static int		interval_from_rate(float rate);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
 	static constexpr unsigned RADIO_BUFFER_HALF_PERCENTAGE = 50;
 
-	int configure_stream(const char *stream_name, const float rate);
+	int configure_stream(const char *stream_name, const float rate = -1.0f);
 
 	/**
 	 * Adjust the stream rates based on the current rate
@@ -614,6 +644,14 @@ private:
 	void message_buffer_mark_read(int n);
 
 	void pass_message(const mavlink_message_t *msg);
+
+	/**
+	 * Check the configuration of a connected radio
+	 *
+	 * This convenience function allows to re-configure a connected
+	 * radio without removing it from the main system harness.
+	 */
+	void check_radio_config();
 
 	/**
 	 * Update rate mult so total bitrate will be equal to _datarate.

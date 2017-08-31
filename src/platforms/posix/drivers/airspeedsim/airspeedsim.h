@@ -78,7 +78,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class __EXPORT AirspeedSim : public device::VDev
+class __EXPORT AirspeedSim : public device::CDev
 {
 public:
 	AirspeedSim(int bus, int address, unsigned conversion_interval, const char *path);
@@ -123,7 +123,6 @@ protected:
 	void update_status();
 
 	struct work_s			_work;
-	float			_max_differential_pressure_pa;
 	bool			_sensor_ok;
 	bool			_last_published_sensor_ok;
 	unsigned			_measure_ticks;

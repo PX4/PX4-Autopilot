@@ -851,6 +851,7 @@ tone_alarm_main(int argc, char *argv[])
 
 			if (buffer == nullptr) {
 				PX4_WARN("not enough memory memory");
+				fclose(fd);
 				return 1;
 			}
 

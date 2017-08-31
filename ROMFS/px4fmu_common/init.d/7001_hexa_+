@@ -3,6 +3,7 @@
 # @name Generic Hexarotor + geometry
 #
 # @type Hexarotor +
+# @class Copter
 #
 # @output MAIN1 motor1
 # @output MAIN2 motor2
@@ -15,7 +16,7 @@
 # @output AUX2 feed-through of RC AUX2 channel
 # @output AUX3 feed-through of RC AUX3 channel
 #
-# @maintainer Anton Babushkin <anton@px4.io>
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

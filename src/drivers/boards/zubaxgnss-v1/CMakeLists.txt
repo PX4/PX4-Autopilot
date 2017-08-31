@@ -61,7 +61,6 @@ endif()
 px4_add_module(
 	MODULE drivers__boards__zubaxgnss-v1
 	COMPILE_FLAGS
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common

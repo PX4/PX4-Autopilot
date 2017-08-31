@@ -22,6 +22,7 @@ set(config_module_list
 	drivers/device
 	drivers/boards/sitl
 	drivers/led
+	drivers/linux_sbus
 
 	systemcmds/param
 	systemcmds/ver
@@ -47,6 +48,7 @@ set(config_module_list
 	lib/conversion
 	lib/version
 	lib/DriverFramework/framework
+	lib/micro-CDR
 
 	platforms/common
 	platforms/posix/px4_layer

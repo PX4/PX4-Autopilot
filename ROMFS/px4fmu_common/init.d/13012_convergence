@@ -1,8 +1,12 @@
 #!nsh
 #
 # @name E-flite Convergence
+#
 # @type VTOL Tiltrotor
+# @class VTOL
+#
 # @maintainer Andreas Antener <andreas@uaventure.com>
+#
 # @output MAIN1 Motor right
 # @output MAIN2 Motor left
 # @output MAIN3 Motor back

@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <errno.h>
 #include <fcntl.h>

@@ -44,8 +44,11 @@
 #include <math.h>
 
 #include <px4_posix.h>
+#include <px4_shutdown.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <systemlib/systemlib.h>
@@ -58,6 +61,7 @@
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 #include "PreflightCheck.h"
+#include "arm_auth.h"
 
 #ifndef __PX4_NUTTX
 #include "DevMgr.hpp"
@@ -103,9 +107,10 @@ static const char *const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked immediately
 static int last_prearm_ret = 1;			///< initialize to fail
 
-void set_link_loss_nav_state(struct vehicle_status_s *status,
-			     struct actuator_armed_s *armed,
+void set_link_loss_nav_state(vehicle_status_s *status,
+			     actuator_armed_s *armed,
 			     status_flags_s *status_flags,
+			     commander_state_s *internal_state,
 			     const link_loss_actions_t link_loss_act,
 			     uint8_t auto_recovery_nav_state);
 
@@ -113,17 +118,16 @@ void reset_link_loss_globals(struct actuator_armed_s *armed,
 			     const bool old_failsafe,
 			     const link_loss_actions_t link_loss_act);
 
-transition_result_t arming_state_transition(struct vehicle_status_s *status,
-                                            struct battery_status_s *battery,
+transition_result_t arming_state_transition(vehicle_status_s *status,
+                                            battery_status_s *battery,
                                             const struct safety_s *safety,
                                             arming_state_t new_arming_state,
-                                            struct actuator_armed_s *armed,
+                                            actuator_armed_s *armed,
                                             bool fRunPreArmChecks,
                                             orb_advert_t *mavlink_log_pub,	///< uORB handle for mavlink log
                                             status_flags_s *status_flags,
                                             float avionics_power_rail_voltage,
-                                            bool arm_without_gps,
-                                            bool arm_mission_required,
+                                            uint8_t arm_requirements,
                                             hrt_abstime time_since_boot)
 {
 	// Double check that our static arrays are still valid
@@ -151,7 +155,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			prearm_ret = preflight_check(status, mavlink_log_pub, true /* pre-arm */, false /* force_report */,
-						     status_flags, battery, arm_without_gps, arm_mission_required, time_since_boot);
+						     status_flags, battery, arm_requirements,
+						     time_since_boot);
 		}
 
 		/* re-run the pre-flight check as long as sensors are failing */
@@ -162,7 +167,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
 				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */, false /* force_report */,
-							     status_flags, battery, arm_without_gps, arm_mission_required, time_since_boot);
+							     status_flags, battery, arm_requirements,
+							     time_since_boot);
 				status_flags->condition_system_sensors_initialized = (prearm_ret == OK);
 				last_preflight_check = hrt_absolute_time();
 				last_prearm_ret = prearm_ret;
@@ -309,6 +315,15 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 			}
 		}
 
+		if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT)
+				&& new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				&& valid_transition) {
+			if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
+				feedback_provided = true;
+				valid_transition = false;
+			}
+		}
+
 		// Finish up the state transition
 		if (valid_transition) {
 			armed->armed = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
@@ -317,6 +332,11 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					      || new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY;
 			ret = TRANSITION_CHANGED;
 			status->arming_state = new_arming_state;
+			if(new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				armed->armed_time_ms = hrt_absolute_time() / 1000;
+			} else {
+				armed->armed_time_ms = 0;
+			}
 		}
 
 		/* reset feedback state */
@@ -481,8 +501,8 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 	} else {
 		switch (new_state) {
 		case vehicle_status_s::HIL_STATE_OFF:
-			/* we're in HIL and unexpected things can happen if we disable HIL now */
-			mavlink_log_critical(mavlink_log_pub, "Not switching off HIL (safety)");
+			/* The system is in HITL mode and unexpected things can happen if we disable HITL without rebooting. */
+			mavlink_log_critical(mavlink_log_pub, "Set SYS_HITL to 0 and reboot to disable HITL.");
 			ret = TRANSITION_DENIED;
 			break;
 
@@ -492,17 +512,26 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 			    || current_status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
 
 				ret = TRANSITION_CHANGED;
-				mavlink_log_critical(mavlink_log_pub, "Switched to ON hil state");
+
+				int32_t hitl_on = 0;
+				param_get(param_find("SYS_HITL"), &hitl_on);
+
+				if (hitl_on) {
+					mavlink_log_info(mavlink_log_pub, "Enabled Hardware-in-the-loop simulation.");
+				} else {
+					mavlink_log_critical(mavlink_log_pub, "Set parameter SYS_HITL to 1 before starting HITL.");
+					ret = TRANSITION_DENIED;
+				}
 
 			} else {
-				mavlink_log_critical(mavlink_log_pub, "Not switching to HIL when armed");
+				mavlink_log_critical(mavlink_log_pub, "Not switching to HITL when armed.");
 				ret = TRANSITION_DENIED;
 			}
 
 			break;
 
 		default:
-			warnx("Unknown HIL state");
+			PX4_WARN("Unknown HIL state");
 			break;
 		}
 	}
@@ -510,7 +539,6 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 	if (ret == TRANSITION_CHANGED) {
 		current_status->hil_state = new_state;
 		current_status->timestamp = hrt_absolute_time();
-		// XXX also set lockdown here
 		orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 	}
 
@@ -574,7 +602,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		if (rc_lost && is_armed) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-			set_rc_loss_nav_state(status, armed, status_flags, rc_loss_act);
+			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
 
 		} else {
 			switch (internal_state->main_state) {
@@ -611,7 +639,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 			if (rc_lost && is_armed) {
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-				set_rc_loss_nav_state(status, armed, status_flags, rc_loss_act);
+				set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
 
 				/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
 				/* A local position estimate is enough for POSCTL for multirotors,
@@ -674,7 +702,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		} else if (data_link_loss_act_configured && status->data_link_lost) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-			set_data_link_loss_nav_state(status, armed, status_flags, data_link_loss_act);
+			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
 
 			/* datalink loss DISABLED:
 			 * check if both, RC and datalink are lost during the mission
@@ -685,7 +713,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-			set_rc_loss_nav_state(status, armed, status_flags, rc_loss_act);
+			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
 
 			/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
 
@@ -712,14 +740,14 @@ bool set_nav_state(struct vehicle_status_s *status,
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
 
-			set_data_link_loss_nav_state(status, armed, status_flags, data_link_loss_act);
+			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
 
 			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
 
 		} else if (rc_lost && !data_link_loss_act_configured) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-			set_rc_loss_nav_state(status, armed, status_flags, rc_loss_act);
+			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
 
 			/* don't bother if RC is lost if datalink is connected */
 
@@ -891,12 +919,13 @@ bool set_nav_state(struct vehicle_status_s *status,
 	return status->nav_state != nav_state_old;
 }
 
-void set_rc_loss_nav_state(struct vehicle_status_s *status,
-			   struct actuator_armed_s *armed,
+void set_rc_loss_nav_state(vehicle_status_s *status,
+			   actuator_armed_s *armed,
 			   status_flags_s *status_flags,
+			   commander_state_s *internal_state,
 			   const link_loss_actions_t link_loss_act)
 {
-	set_link_loss_nav_state(status, armed, status_flags, link_loss_act, vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
+	set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_act, vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
 }
 
 bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
@@ -947,17 +976,19 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 
 }
 
-void set_data_link_loss_nav_state(struct vehicle_status_s *status,
-				  struct actuator_armed_s *armed,
+void set_data_link_loss_nav_state(vehicle_status_s *status,
+				  actuator_armed_s *armed,
 				  status_flags_s *status_flags,
+				  commander_state_s *internal_state,
 				  const link_loss_actions_t link_loss_act)
 {
-	set_link_loss_nav_state(status, armed, status_flags, link_loss_act, vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS);
+	set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_act, vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS);
 }
 
-void set_link_loss_nav_state(struct vehicle_status_s *status,
-			     struct actuator_armed_s *armed,
+void set_link_loss_nav_state(vehicle_status_s *status,
+			     actuator_armed_s *armed,
 			     status_flags_s *status_flags,
+			     commander_state_s *internal_state,
 			     const link_loss_actions_t link_loss_act,
 			     uint8_t auto_recovery_nav_state)
 {
@@ -971,6 +1002,9 @@ void set_link_loss_nav_state(struct vehicle_status_s *status,
 
 	} else if (link_loss_act == link_loss_actions_t::AUTO_RTL
 		   && status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+
+		uint8_t main_state_prev = 0;
+		main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, status_flags, internal_state);
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 	} else if (link_loss_act == link_loss_actions_t::AUTO_LAND && status_flags->condition_local_position_valid) {
@@ -1013,7 +1047,7 @@ void reset_link_loss_globals(struct actuator_armed_s *armed, const bool old_fail
 }
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report,
-		    status_flags_s *status_flags, battery_status_s *battery, bool arm_without_gps, bool arm_mission_required,
+		    status_flags_s *status_flags, battery_status_s *battery, uint8_t arm_requirements,
 		    hrt_abstime time_since_boot)
 {
 	bool reportFailures = force_report || (!status_flags->condition_system_prearm_error_reported &&
@@ -1027,9 +1061,11 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		checkAirspeed = true;
 	}
 
-	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, true, true, true, true,
+	bool sensor_checks = (status->hil_state == vehicle_status_s::HIL_STATE_OFF);
+
+	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, sensor_checks, sensor_checks, sensor_checks, sensor_checks,
 			    checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
-			    !arm_without_gps, true, status->is_vtol, reportFailures, prearm, time_since_boot);
+			    arm_requirements & ARM_REQ_GPS_BIT, true, status->is_vtol, reportFailures, prearm, time_since_boot);
 
 	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected && prearm) {
 		preflight_ok = false;
@@ -1039,7 +1075,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		}
 	}
 
-	if (battery->warning >= battery_status_s::BATTERY_WARNING_LOW) {
+	if (!status_flags->circuit_breaker_engaged_power_check && battery->warning >= battery_status_s::BATTERY_WARNING_LOW) {
 		preflight_ok = false;
 
 		if (reportFailures) {
@@ -1048,7 +1084,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 	}
 
 	// mission required
-	if (arm_mission_required &&
+	if ((arm_requirements & ARM_REQ_MISSION_BIT) &&
 		(!status_flags->condition_auto_mission_available ||
 		!status_flags->condition_home_position_valid ||
 		!status_flags->condition_global_position_valid)) {

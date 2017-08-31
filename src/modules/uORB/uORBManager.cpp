@@ -179,7 +179,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	fd = node_open(PUBSUB, meta, data, true, instance, priority);
 
 	if (fd == ERROR) {
-		PX4_WARN("node_open as advertiser failed.");
+		PX4_ERR("%s advertise failed", meta->o_name);
 		return nullptr;
 	}
 
@@ -197,7 +197,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	px4_close(fd);
 
 	if (result == ERROR) {
-		PX4_WARN("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
+		PX4_WARN("px4_ioctl ORBIOCGADVERTISER failed. fd = %d", fd);
 		return nullptr;
 	}
 

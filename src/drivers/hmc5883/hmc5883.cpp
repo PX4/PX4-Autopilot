@@ -442,12 +442,12 @@ out:
 
 int HMC5883::set_range(unsigned range)
 {
-	if (range < 1) {
+	if (range < 0.88f) {
 		_range_bits = 0x00;
 		_range_scale = 1.0f / 1370.0f;
 		_range_ga = 0.88f;
 
-	} else if (range <= 1) {
+	} else if (range <= 1.3f) {
 		_range_bits = 0x01;
 		_range_scale = 1.0f / 1090.0f;
 		_range_ga = 1.3f;

@@ -126,6 +126,14 @@ private:
 	}
 
 	/**
+	 * permanently store the ulog file name for the hardfault crash handler, so that it can
+	 * append crash logs to the last ulog file.
+	 * @param log_file path to the log file
+	 * @return 0 on success, <0 errno otherwise
+	 */
+	int hardfault_store_filename(const char *log_file);
+
+	/**
 	 * write w/o waiting/blocking
 	 */
 	int write(void *ptr, size_t size, uint64_t dropout_start);

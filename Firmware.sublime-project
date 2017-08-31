@@ -40,12 +40,12 @@
 			"options_c":
 			{
 				"use_only_additional_options": true,
-				"additional_options_file": "${project_path}/Tools/astylerc"
+				"additional_options_file": "${project_path}/Tools/astyle/astylerc"
 			},
 			"options_c++":
 			{
 				"use_only_additional_options": true,
-				"additional_options_file": "${project_path}/Tools/astylerc"
+				"additional_options_file": "${project_path}/Tools/astyle/astylerc"
 			}
 		}
 	},

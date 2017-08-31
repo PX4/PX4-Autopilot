@@ -350,6 +350,8 @@ function(px4_add_common_flags)
 				-Wno-varargs
 				-Wno-address-of-packed-member
 				-Wno-unknown-warning-option
+				-Wunused-but-set-variable
+				#-Wdouble-promotion # needs work first
 			)
 		endif()
 	else()
@@ -623,9 +625,9 @@ function(px4_find_python_module module)
 		\nfor debian systems try: \
 		\n\tsudo apt-get install python-${module} \
 		\nor for all other OSs/debian: \
-		\n\tpip install ${module}\n" PY_${module_upper})
+		\n\tsudo -H pip install ${module}\n" PY_${module_upper})
 	#if (NOT PY_${module}_FOUND)
-		#message(FATAL_ERROR "python module not found, exitting")
+		#message(FATAL_ERROR "python module not found, exiting")
 	#endif()
 endfunction(px4_find_python_module)
 

@@ -3,6 +3,7 @@
 # @name DJI Flame Wheel F450
 #
 # @type Quadrotor x
+# @class Copter
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #

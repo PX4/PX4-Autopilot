@@ -579,6 +579,8 @@ function(px4_os_add_flags)
 		-nostdlib
 		)
 
+	set(added_optimization_flags)
+
 	set(added_exe_linker_flags) # none currently
 
 	set(instrument_flags)

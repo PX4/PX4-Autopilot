@@ -3,7 +3,7 @@
 # @name Generic Quadrotor X config with mount (e.g. gimbal)
 #
 # @type Quadrotor x
-#
+# @class Copter
 #
 # @output MAIN1 motor 1
 # @output MAIN2 motor 2

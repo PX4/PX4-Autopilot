@@ -3,8 +3,9 @@
 # @name Generic 250 Racer
 #
 # @type Quadrotor x
+# @class Copter
 #
-# @maintainer Mark Whitehorn <kd0aij@gmail.com>
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/4001_quad_x

@@ -41,6 +41,7 @@
 
 #include "definitions.hpp"
 
+#include <px4_module.h>
 #include <uORB/uORBTopics.h>
 #include <uORB/topics/ekf2_timestamps.h>
 
@@ -54,26 +55,34 @@ namespace px4
  * to replay. This is necessary because data messages from different subscriptions don't need to be in
  * monotonic increasing order.
  */
-class Replay
+class Replay : public ModuleBase<Replay>
 {
 public:
-	Replay();
+	Replay() {}
 
-	/// Destructor, also waits for task exit
-	virtual ~Replay();
+	virtual ~Replay() {}
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static Replay *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
 
 	/**
-	 * Start task.
-	 * @param quiet silently fail if no log file found
-	 * @param apply_params_only if true, only apply parameters from definitions section of the file
-	 *                          and user-overridden parameters, then exit w/o replaying.
-	 * @return OK on success.
+	 * Apply the parameters from the log
+	 * @param quiet do not print an error if true and no log file given via ENV
+	 * @return 0 on success
 	 */
-	static int		start(bool quiet, bool apply_params_only);
-
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	void		task_main();
+	static int applyParams(bool quiet);
 
 	/**
 	 * Tell the replay module that we want to use replay mode.
@@ -85,6 +94,36 @@ public:
 	static bool isSetup() { return _replay_file; }
 
 protected:
+
+	/**
+	 * @class Compatibility base class to convert topics to an updated format
+	 */
+	class CompatBase
+	{
+	public:
+		virtual ~CompatBase() = default;
+
+		/**
+		 * apply compatibility to a topic
+		 * @param data input topic (can be modified in place)
+		 * @return new topic data
+		 */
+		virtual void *apply(void *data) = 0;
+	};
+
+	class CompatSensorCombinedDtType : public CompatBase
+	{
+	public:
+		CompatSensorCombinedDtType(int gyro_integral_dt_offset_log, int gyro_integral_dt_offset_intern,
+					   int accelerometer_integral_dt_offset_log, int accelerometer_integral_dt_offset_intern);
+
+		void *apply(void *data) override;
+	private:
+		int _gyro_integral_dt_offset_log;
+		int _gyro_integral_dt_offset_intern;
+		int _accelerometer_integral_dt_offset_log;
+		int _accelerometer_integral_dt_offset_intern;
+	};
 
 	struct Subscription {
 
@@ -98,10 +137,22 @@ protected:
 		std::streampos next_read_pos;
 		uint64_t next_timestamp; ///< timestamp of the file
 
+		CompatBase *compat = nullptr;
+
 		// statistics
 		int error_counter = 0;
 		int publication_counter = 0;
 	};
+
+	/**
+	 * Find the offset & field size in bytes for a given field name
+	 * @param format format string, as specified by ULog
+	 * @param field_name search for this field
+	 * @param offset returned offset
+	 * @param field_size returned field size
+	 * @return true if found, false otherwise
+	 */
+	static bool findFieldOffset(const std::string &format, const std::string &field_name, int &offset, int &field_size);
 
 	/**
 	 * publish an orb topic
@@ -158,7 +209,6 @@ protected:
 	std::vector<uint8_t> _read_buffer;
 
 private:
-	bool _task_should_exit = false;
 	std::set<std::string> _overridden_params;
 	std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
 
@@ -168,6 +218,8 @@ private:
 
 	/** keep track of file position to avoid adding a subscription multiple times. */
 	std::streampos _subscription_file_pos = 0;
+
+	uint64_t _read_until_file_position = 1ULL << 60; ///< read limit if log contains appended data
 
 	bool readFileHeader(std::ifstream &file);
 
@@ -181,6 +233,7 @@ private:
 	///file parsing methods. They return false, when further parsing should be aborted.
 	bool readFormat(std::ifstream &file, uint16_t msg_size);
 	bool readAndAddSubscription(std::ifstream &file, uint16_t msg_size);
+	bool readFlagBits(std::ifstream &file, uint16_t msg_size);
 
 	/**
 	 * Read the file header and definitions sections. Apply the parameters from this section

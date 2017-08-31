@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,54 +42,57 @@
 namespace uORB
 {
 
-PublicationBase::PublicationBase(const struct orb_metadata *meta,
-				 int priority) :
+PublicationBase::PublicationBase(const struct orb_metadata *meta, int priority) :
 	_meta(meta),
-	_priority(priority),
-	_instance(),
-	_handle(nullptr)
+	_priority(priority)
 {
-}
-
-void PublicationBase::update(void *data)
-{
-	if (_handle != nullptr) {
-		int ret = orb_publish(getMeta(), getHandle(), data);
-
-		if (ret != PX4_OK) { warnx("publish fail"); }
-
-	} else {
-		orb_advert_t handle;
-
-		if (_priority > 0) {
-			handle = orb_advertise_multi(
-					 getMeta(), data,
-					 &_instance, _priority);
-
-		} else {
-			handle = orb_advertise(getMeta(), data);
-		}
-
-		if (int64_t(handle) != PX4_ERROR) {
-			setHandle(handle);
-
-		} else {
-			warnx("advert fail");
-		}
-	}
 }
 
 PublicationBase::~PublicationBase()
 {
-	orb_unadvertise(getHandle());
+	orb_unadvertise(_handle);
 }
 
-PublicationNode::PublicationNode(const struct orb_metadata *meta,
-				 int priority,
-				 List<PublicationNode *> *list) :
+bool PublicationBase::update(void *data)
+{
+	bool updated = false;
+
+	if (_handle != nullptr) {
+		if (orb_publish(_meta, _handle, data) != PX4_OK) {
+			PX4_ERR("%s publish fail", _meta->o_name);
+
+		} else {
+			updated = true;
+		}
+
+	} else {
+		orb_advert_t handle = nullptr;
+
+		if (_priority > 0) {
+			handle = orb_advertise_multi(_meta, data, &_instance, _priority);
+
+		} else {
+			handle = orb_advertise(_meta, data);
+		}
+
+		if (handle != nullptr) {
+			_handle = handle;
+			updated = true;
+
+		} else {
+			PX4_ERR("%s advert fail", _meta->o_name);
+		}
+	}
+
+	return updated;
+}
+
+PublicationNode::PublicationNode(const struct orb_metadata *meta, int priority, List<PublicationNode *> *list) :
 	PublicationBase(meta, priority)
 {
-	if (list != nullptr) { list->add(this); }
+	if (list != nullptr) {
+		list->add(this);
+	}
 }
 
-}
+}  // namespace uORB

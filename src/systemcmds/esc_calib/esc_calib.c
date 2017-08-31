@@ -34,12 +34,11 @@
 
 /**
  * @file esc_calib.c
- *
- * Tool for ESC calibration
  */
 
 #include <px4_config.h>
 #include <px4_getopt.h>
+#include <px4_module.h>
 #include <px4_defines.h>
 #include <px4_log.h>
 
@@ -71,16 +70,23 @@ usage(const char *reason)
 		PX4_ERR("%s", reason);
 	}
 
-	PX4_ERR(
-		"usage:\n"
-		"esc_calib\n"
-		"    [-d <device>        PWM output device (defaults to " PWM_OUTPUT0_DEVICE_PATH ")\n"
-		"    [-l <pwm>           Low PWM value in us (default: %dus)\n"
-		"    [-h <pwm>           High PWM value in us (default: %dus)\n"
-		"    [-c <channels>]     Supply channels (e.g. 1234)\n"
-		"    [-m <chanmask> ]    Directly supply channel mask (e.g. 0xF)\n"
-		"    [-a]                Use all outputs\n"
-		, PWM_DEFAULT_MIN, PWM_DEFAULT_MAX);
+	PRINT_MODULE_DESCRIPTION("Tool for ESC calibration\n"
+				 "\n"
+				 "Calibration procedure (running the command will guide you through it):\n"
+				 "- Remove props, power off the ESC's\n"
+				 "- Stop attitude controllers: mc_att_control stop, fw_att_control stop\n"
+				 "- Make sure safety is off\n"
+				 "- Run this command\n"
+				);
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("esc_calib", "command");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/pwm_output0", "<file:dev>", "Select PWM output device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('l', 1000, 0, 3000, "Low PWM value in us", true);
+	PRINT_MODULE_USAGE_PARAM_INT('h', 2000, 0, 3000, "High PWM value in us", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('c', NULL, NULL, "select channels in the form: 1234 (1 digit per channel, 1=first)",
+					true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Select all channels", true);
 }
 
 int

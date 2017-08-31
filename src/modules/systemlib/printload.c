@@ -133,7 +133,7 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 		print_state->interval_time_ms_inv = 1.f / ((float)((print_state->new_time - print_state->interval_start_time) / 1000));
 
 		/* header for task list */
-		snprintf(buffer, buffer_length, "%4s %*-s %8s %6s %11s %10s %-6s",
+		snprintf(buffer, buffer_length, "%4s %*-s %8s %6s %11s %10s %-5s %2s",
 			 "PID",
 			 CONFIG_TASK_NAME_SIZE, "COMMAND",
 			 "CPU(ms)",
@@ -141,10 +141,11 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 			 "USED/STACK",
 			 "PRIO(BASE)",
 #if CONFIG_RR_INTERVAL > 0
-			 "TSLICE"
+			 "TSLICE",
 #else
-			 "STATE"
+			 "STATE",
 #endif
+			 "FD"
 			);
 		cb(user);
 
@@ -201,6 +202,19 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 		unsigned tcb_task_state = system_load.tasks[i].tcb->task_state;
 		unsigned tcb_sched_priority = system_load.tasks[i].tcb->sched_priority;
 
+		unsigned int tcb_num_used_fds = 0; // number of used file descriptors
+#if CONFIG_NFILE_DESCRIPTORS > 0
+		FAR struct task_group_s *group = system_load.tasks[i].tcb->group;
+
+		if (group) {
+			for (int fd_index = 0; fd_index < CONFIG_NFILE_DESCRIPTORS; ++fd_index) {
+				if (group->tg_filelist.fl_files[fd_index].f_inode) {
+					++tcb_num_used_fds;
+				}
+			}
+		}
+
+#endif
 
 		sched_unlock();
 
@@ -270,11 +284,11 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 #endif
 #if CONFIG_RR_INTERVAL > 0
 		/* print scheduling info with RR time slice */
-		snprintf(buffer + print_len, buffer_length - print_len, " %6d", tcb_timeslice);
+		snprintf(buffer + print_len, buffer_length - print_len, " %5d %2d", tcb_timeslice, tcb_num_used_fds);
 		(void)tstate_name(TSTATE_TASK_INVALID); // Stop not used warning
 #else
 		// print task state instead
-		snprintf(buffer + print_len, buffer_length - print_len, " %-6s", tstate_name(tcb_task_state));
+		snprintf(buffer + print_len, buffer_length - print_len, " %-5s %2d", tstate_name(tcb_task_state), tcb_num_used_fds);
 #endif
 		cb(user);
 	}
@@ -300,10 +314,11 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 
 	sched_load = 1.f - idle_load - task_load;
 
-	snprintf(buffer, buffer_length, "Processes: %d total, %d running, %d sleeping",
+	snprintf(buffer, buffer_length, "Processes: %d total, %d running, %d sleeping, max FDs: %d",
 		 system_load.total_count,
 		 print_state->running_count,
-		 print_state->blocked_count);
+		 print_state->blocked_count,
+		 CONFIG_NFILE_DESCRIPTORS);
 	cb(user);
 	snprintf(buffer, buffer_length, "CPU usage: %.2f%% tasks, %.2f%% sched, %.2f%% idle",
 		 (double)(task_load * 100.f),
