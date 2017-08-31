@@ -485,6 +485,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 		default:
 			break;
 		}
+
 		values[channel] = value;
 	}
 
