@@ -98,11 +98,7 @@ namespace ulanding
 
 extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[]);
 
-#if defined(__PX4_POSIX)
-class Radar : public device::VDev
-#else
 class Radar : public device::CDev
-#endif
 {
 public:
 	Radar(const char *port = RADAR_DEFAULT_PORT);
@@ -138,11 +134,7 @@ Radar	*g_dev;
 }
 
 Radar::Radar(const char *port) :
-#if defined(__PX4_POSIX)
-	VDev("Radar", RANGE_FINDER0_DEVICE_PATH),
-#else
 	CDev("Radar", RANGE_FINDER0_DEVICE_PATH),
-#endif
 	_task_should_exit(false),
 	_task_handle(-1),
 	_class_instance(-1),
@@ -204,12 +196,7 @@ Radar::init()
 
 	do { /* create a scope to handle exit conditions using break */
 
-#if defined(__PX4_POSIX)
-		/* do regular vdev init */
-		ret = VDev::init();
-#else
 		ret = CDev::init();
-#endif
 
 		if (ret != OK) {
 			PX4_WARN("vdev init failed");
