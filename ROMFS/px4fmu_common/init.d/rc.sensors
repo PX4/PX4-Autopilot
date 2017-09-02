@@ -1,6 +1,6 @@
 #!nsh
 #
-# Standard startup script for PX4FMU v2, v3, v4 onboard sensor drivers.
+# Standard startup script for sensor drivers.
 #
 
 if ver hwcmp AEROFC_V1
@@ -68,8 +68,6 @@ if ver hwcmp PX4FMU_V2
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
-
-	# External I2C bus
 	lis3mdl -X start
 
 	# Internal I2C bus
@@ -117,6 +115,7 @@ then
 			hmc5883 -C -T -S -R 8 start
 
 		fi
+
 		if [ $BOARD_FMUV3 == 21 ]
 		then
 			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
@@ -133,7 +132,7 @@ then
 		# V3 build hwtypecmp supports V2|V2M|V30
 		if ver hwtypecmp V2M
 		then
-		# On the PixhawkMini the mpu9250 has been disabled due to HW errata
+			# On the PixhawkMini the mpu9250 has been disabled due to HW errata
 		else
 			mpu9250 start
 		fi
@@ -156,51 +155,63 @@ if ver hwcmp PX4FMU_V4
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
+	lis3mdl -X start
+	bmp280 -I start
 
-	lis3mdl -R 2 start
+	# expansion i2c used for BMM150 rotated by 90deg
+	bmm150 -R 2 start
 
-	# Internal SPI bus is rotated 90 deg yaw
-	hmc5883 -C -T -S -R 2 start
-
-	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20608 start
-
-	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20602 start
-
-	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
-	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
-	# will prevent the incorrect driver from a successful initialization.
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
-
-	# Internal SPI bus BMI160
-	bmi160 start
+	if hmc5883 -C -T -S -R 2 start
+	then
+		# hmc5883 internal SPI bus is rotated 90 deg yaw
+	else
+		if lis3mdl -R 2 start
+		then
+			# lis3mdl internal SPI bus is rotated 90 deg yaw
+		else
+			# BMI055 gyro internal SPI bus
+			bmi055 -G start	
+		fi
+	fi
 
 	# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
 
-	# Internal SPI bus BMI055_ACC
-	bmi055 -A start
+	if mpu6000 -R 2 -T 20602 start
+	then
+		# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	else
+		if mpu6000 -R 2 -T 20608 start
+		then
+			# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
+		else
+			# BMI055 accel internal SPI bus
+			bmi055 -A start
+		fi
+	fi
 
-	# Internal SPI bus BMI055_GYR
-	bmi055 -G start
+	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
+	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
+	# will prevent the incorrect driver from a successful initialization.
 
-	# expansion i2c used for BMM150 rotated by 90deg
-	bmm150 -R 2 start
-
-	# expansion i2c used for BMP280
-	bmp280 -I start
+	if mpu9250 -R 2 start
+	then
+		# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
+	else
+		# BMI160 internal SPI bus
+		bmi160 start
+	fi
 fi
 
 if ver hwcmp MINDPX_V2
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
+
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 12 start
+
 	mpu6000 -s -R 8 start
 	mpu9250 -s -R 8 start
 	lsm303d -R 10 start
@@ -219,16 +230,13 @@ fi
 if ver hwcmp AEROFC_V1
 then
 	ms5611 -T 0 start
-
 	mpu9250 -s -R 14 start
 
 	# Possible external compasses
 	hmc5883 -X start
 
 	ist8310 -C -b 1 -R 4 start
-
 	aerofc_adc start
-
 	ll40ls start i2c
 fi
 
@@ -287,25 +295,40 @@ fi
 # Optional drivers
 #
 
-sdp3x_airspeed start
-sdp3x_airspeed start -b 2
-
-# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
-# detected as MS5525 because the chip manufacturer was so
-# clever to assign the same I2C address and skip a WHO_AM_I
-# register.
-if [ $BOARD_FMUV3 == 21 ]
+if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
 then
-	ms5525_airspeed start -b 2
-else
-	ms5525_airspeed start
+	if param compare CBRK_AIRSPD_CHK 0
+	then
+		if sdp3x_airspeed start
+		then
+		else
+			sdp3x_airspeed start -b 2
+		fi
+
+		# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
+		# detected as MS5525 because the chip manufacturer was so
+		# clever to assign the same I2C address and skip a WHO_AM_I
+		# register.
+		if [ $BOARD_FMUV3 == 21 ]
+		then
+			ms5525_airspeed start -b 2
+		else
+			ms5525_airspeed start
+		fi
+
+		if ms4525_airspeed start
+		then
+		else
+			ms4525_airspeed start -b 2
+		fi
+
+		if ets_airspeed start
+		then
+		else
+			ets_airspeed start -b 1
+		fi
+	fi
 fi
-
-ms4525_airspeed start
-ms4525_airspeed start -b 2
-
-ets_airspeed start
-ets_airspeed start -b 1
 
 # Sensors on the PWM interface bank
 if param compare SENS_EN_LL40LS 1
@@ -323,34 +346,29 @@ then
 fi
 
 # lightware serial lidar sensor
-if param compare SENS_EN_SF0X 0
+if param greater SENS_EN_SF0X 0
 then
-else
 	sf0x start
 fi
 
 # lightware i2c lidar sensor
-if param compare SENS_EN_SF1XX 0
+if param greater SENS_EN_SF1XX 0
 then
-else
 	sf1xx start
 fi
 
 # mb12xx sonar sensor
-if param compare SENS_EN_MB12XX 1
+if param greater SENS_EN_MB12XX 0
 then
 	mb12xx start
 fi
 
 # teraranger one tof sensor
-if param compare SENS_EN_TRANGER 0
+if param greater SENS_EN_TRANGER 0
 then
-else
 	teraranger start
 fi
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 20000
-if sensors start
-then
-fi
+sensors start

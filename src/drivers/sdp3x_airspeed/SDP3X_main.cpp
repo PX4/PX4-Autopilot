@@ -41,22 +41,21 @@ namespace sdp3x_airspeed
 {
 SDP3X *g_dev = nullptr;
 
-int start(int i2c_bus);
+int start(uint8_t i2c_bus);
 int stop();
 int test();
 int reset();
-int info();
 
 // Start the driver.
 // This function call only returns once the driver is up and running
 // or failed to detect the sensor.
 int
-start(int i2c_bus)
+start(uint8_t i2c_bus)
 {
 	int fd = -1;
 
 	if (g_dev != nullptr) {
-		PX4_WARN("driver already started");
+		PX4_WARN("already started");
 		return PX4_ERROR;
 	}
 
@@ -68,7 +67,7 @@ start(int i2c_bus)
 	}
 
 	/* try the next SDP3XDSO if init fails */
-	if (OK != g_dev->Airspeed::init()) {
+	if (g_dev->init() != PX4_OK) {
 		delete g_dev;
 
 		g_dev = new SDP3X(i2c_bus, I2C_ADDRESS_2_SDP3X, PATH_SDP3X);
@@ -80,7 +79,7 @@ start(int i2c_bus)
 		}
 
 		/* both versions failed if the init for the SDP3XDSO fails, give up */
-		if (OK != g_dev->Airspeed::init()) {
+		if (g_dev->init() != PX4_OK) {
 			goto fail;
 		}
 	}
@@ -105,7 +104,8 @@ fail:
 		g_dev = nullptr;
 	}
 
-	PX4_WARN("no SDP3X airspeed sensor connected on bus %d", i2c_bus);
+	PX4_WARN("not started on bus %d", i2c_bus);
+
 	return PX4_ERROR;
 }
 
@@ -213,20 +213,6 @@ int reset()
 	return PX4_OK;
 }
 
-// print a little info about the driver
-int
-info()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
-	PX4_INFO("state @ %p", g_dev);
-	g_dev->print_info();
-	return PX4_OK;
-}
-
 } // namespace sdp3x_airspeed
 
 
@@ -237,13 +223,13 @@ sdp3x_airspeed_usage()
 	PX4_WARN("options:");
 	PX4_WARN("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
 	PX4_WARN("command:");
-	PX4_WARN("\tstart|stop|reset|test|info");
+	PX4_WARN("\tstart|stop|reset|test");
 }
 
 int
 sdp3x_airspeed_main(int argc, char *argv[])
 {
-	int i2c_bus = PX4_I2C_BUS_DEFAULT;
+	uint8_t i2c_bus = PX4_I2C_BUS_DEFAULT;
 
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
@@ -279,13 +265,6 @@ sdp3x_airspeed_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "reset")) {
 		return sdp3x_airspeed::reset();
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		return sdp3x_airspeed::info();
 	}
 
 	sdp3x_airspeed_usage();

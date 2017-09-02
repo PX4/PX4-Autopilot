@@ -66,22 +66,9 @@ start(uint8_t i2c_bus)
 		goto fail;
 	}
 
-	/* try the next MS5525DSO if init fails */
-	if (OK != g_dev->Airspeed::init()) {
-		delete g_dev;
-
-		g_dev = new MS5525(i2c_bus, I2C_ADDRESS_2_MS5525DSO, PATH_MS5525);
-
-		/* check if the MS5525DSO was instantiated */
-		if (g_dev == nullptr) {
-			PX4_WARN("MS5525 was not instantiated");
-			goto fail;
-		}
-
-		/* both versions failed if the init for the MS5525DSO fails, give up */
-		if (OK != g_dev->Airspeed::init()) {
-			goto fail;
-		}
+	/* try to initialize */
+	if (g_dev->init() != PX4_OK) {
+		goto fail;
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
@@ -104,7 +91,8 @@ fail:
 		g_dev = nullptr;
 	}
 
-	PX4_WARN("no MS5525 airspeed sensor connected on bus %d", i2c_bus);
+	PX4_WARN("not started on bus %d", i2c_bus);
+
 	return PX4_ERROR;
 }
 
