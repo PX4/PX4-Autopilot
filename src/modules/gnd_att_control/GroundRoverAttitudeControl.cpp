@@ -55,7 +55,8 @@ namespace att_gnd_control
 GroundRoverAttitudeControl	*g_control = nullptr;
 }
 
-namespace gnd_throttle {
+namespace gnd_throttle
+{
 const double HOLD = 0.5;
 }
 
@@ -147,12 +148,12 @@ GroundRoverAttitudeControl::vehicle_control_mode_poll()
 void
 GroundRoverAttitudeControl::vehicle_status_poll()
 {
-    bool updated = false;
-    orb_check(_vstatus_sub, &updated);
+	bool updated = false;
+	orb_check(_vstatus_sub, &updated);
 
-    if (updated) {
-        orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
-    }
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
+	}
 }
 
 void
@@ -201,7 +202,7 @@ GroundRoverAttitudeControl::task_main()
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-    _vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
@@ -329,14 +330,14 @@ GroundRoverAttitudeControl::task_main()
 					}
 				}
 
-                /* When reverse is possible, throttle hold pwm should be at the mid position */
-                if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-                    _actuators.control[actuator_controls_s::INDEX_THROTTLE] = gnd_throttle::HOLD;
-                }
+				/* When reverse is possible, throttle hold pwm should be at the mid position */
+				if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = gnd_throttle::HOLD;
+				}
 
-                if (_debug && loop_counter % 10) {
-                    warnx("att control, actuator throttle = %f", (double)_actuators.control[actuator_controls_s::INDEX_THROTTLE]);
-                }
+				if (_debug && loop_counter % 10) {
+					warnx("att control, actuator throttle = %f", (double)_actuators.control[actuator_controls_s::INDEX_THROTTLE]);
+				}
 
 			} else {
 				/* manual/direct control */
