@@ -1238,7 +1238,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_START:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_STOP:
 	case vehicle_command_s::VEHICLE_CMD_NAV_DELAY:
-            /* ignore commands that handled in low prio loop */
+	    /* ignore commands that handled in low prio loop */
 		break;
 
 	default:
@@ -2003,7 +2003,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* perform system checks when new telemetry link connected */
 				if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
 				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)
-				        || !telemetry_preflight_checks_reported[i]) &&
+					|| !telemetry_preflight_checks_reported[i]) &&
 				    /* and this link has a communication partner */
 				    (telemetry.heartbeat_time > 0) &&
 				    /* and it is still connected */
@@ -3380,7 +3380,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 	last_overload = overload;
 
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_CRAZYFLIE) || defined (CONFIG_ARCH_BOARD_AEROFC_V1) || defined (CONFIG_ARCH_BOARD_AEROCORE2)
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_CRAZYFLIE) || defined (CONFIG_ARCH_BOARD_AEROFC_V1) || defined (CONFIG_ARCH_BOARD_AEROCORE2)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {
@@ -4155,7 +4155,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 		.result_param2 = 0,
 		.command = cmd.command,
 		.result = (uint8_t)result,
-		.from_external = false,
+		.from_external = 0,
 		.result_param1 = 0,
 		.target_system = cmd.source_system,
 		.target_component = cmd.source_component
