@@ -146,7 +146,7 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 
 #define STICK_ON_OFF_LIMIT 0.9f
 
-#define POSITION_TIMEOUT		(1 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 1000ms */
+#define POSITION_TIMEOUT		1			/**< default number of seconds of position health check failure required to declare the position invalid */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
@@ -159,19 +159,24 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define INAIR_RESTART_HOLDOFF_INTERVAL	500000
 
 /* Controls the probation period which is the amount of time required for position and velocity checks to pass before the validity can be changed from false to true*/
-#define POSVEL_PROBATION_TAKEOFF 30E6		/**< probation duration set at takeoff (usec) */
+#define POSVEL_PROBATION_TAKEOFF 30		/**< probation duration set at takeoff (sec) */
 #define POSVEL_PROBATION_MIN 1E6		/**< minimum probation duration (usec) */
 #define POSVEL_PROBATION_MAX 100E6		/**< maximum probation duration (usec) */
 #define POSVEL_VALID_PROBATION_FACTOR 10	/**< the rate at which the probation duration is increased while checks are failing */
+
+/* Parameters controlling the sensitivity of the position failsafe */
+static int32_t posctl_nav_loss_delay = POSITION_TIMEOUT * (1000 * 1000);
+static int32_t posctl_nav_loss_prob = POSVEL_PROBATION_TAKEOFF * (1000 * 1000);
+static int32_t posctl_nav_loss_gain = POSVEL_VALID_PROBATION_FACTOR;
 
 /*
  * Probation times for position and velocity validity checks to pass if failed
  * Signed integers are used because these can become negative values before constraints are applied
  */
-static int64_t gpos_probation_time_us = POSVEL_PROBATION_TAKEOFF;
-static int64_t gvel_probation_time_us = POSVEL_PROBATION_TAKEOFF;
-static int64_t lpos_probation_time_us = POSVEL_PROBATION_TAKEOFF;
-static int64_t lvel_probation_time_us = POSVEL_PROBATION_TAKEOFF;
+static int64_t gpos_probation_time_us = POSVEL_PROBATION_MIN;
+static int64_t gvel_probation_time_us = POSVEL_PROBATION_MIN;
+static int64_t lpos_probation_time_us = POSVEL_PROBATION_MIN;
+static int64_t lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
@@ -1699,6 +1704,16 @@ int commander_thread_main(int argc, char *argv[])
 
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
+	/* Get parameter values controlloing activation of position failure failsafe and convert to required units*/
+	const int32_t sec_to_usec = (1000 * 1000);
+	int32_t init_param_val = POSITION_TIMEOUT;
+	param_get(param_find("COM_POS_FS_DELAY"), &posctl_nav_loss_delay);
+	posctl_nav_loss_delay = init_param_val * sec_to_usec; // convert to uSec
+	init_param_val = POSVEL_PROBATION_TAKEOFF;
+	param_get(param_find("COM_POS_FS_PROB"), &posctl_nav_loss_prob);
+	posctl_nav_loss_prob = init_param_val * sec_to_usec; // convert to uSec
+	param_get(param_find("COM_POS_FS_GAIN"), &posctl_nav_loss_gain);
+
 	/* now initialized */
 	commander_initialized = true;
 	thread_running = true;
@@ -2219,7 +2234,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_local_altitude_valid */
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid,
+		check_valid(local_position.timestamp, posctl_nav_loss_delay, local_position.z_valid,
 			    &(status_flags.condition_local_altitude_valid), &status_changed);
 
 		/* Update land detector */
@@ -2237,10 +2252,10 @@ int commander_thread_main(int argc, char *argv[])
 					// Set all position and velocity test probation durations to takeoff value
 					// This is a larger value to give the vehicle time to complete a failsafe landing
 					// if faulty sensors cause loss of navigation shortly after takeoff.
-					gpos_probation_time_us = POSVEL_PROBATION_TAKEOFF;
-					gvel_probation_time_us = POSVEL_PROBATION_TAKEOFF;
-					lpos_probation_time_us = POSVEL_PROBATION_TAKEOFF;
-					lvel_probation_time_us = POSVEL_PROBATION_TAKEOFF;
+					gpos_probation_time_us = posctl_nav_loss_prob;
+					gvel_probation_time_us = posctl_nav_loss_prob;
+					lpos_probation_time_us = posctl_nav_loss_prob;
+					lvel_probation_time_us = posctl_nav_loss_prob;
 				}
 			}
 
@@ -3821,7 +3836,7 @@ check_posvel_validity(bool data_valid, float data_accuracy, float required_accur
 	} else if (!*valid_state) {
 		bool level_check_pass = data_valid && data_accuracy < required_accuracy;
 		if (!level_check_pass) {
-			*probation_time_us += (now - *last_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
+			*probation_time_us += (now - *last_fail_time_us) * posctl_nav_loss_gain;
 			*last_fail_time_us = now;
 		} else if (now - *last_fail_time_us > *probation_time_us) {
 			pos_inaccurate = false;
@@ -3833,7 +3848,7 @@ check_posvel_validity(bool data_valid, float data_accuracy, float required_accur
 		*last_fail_time_us = now;
 	}
 
-	bool data_stale = (now - data_timestamp_us > POSITION_TIMEOUT);
+	bool data_stale = (now - data_timestamp_us > posctl_nav_loss_delay);
 
 	// Set validity
 	if (pos_status_changed) {

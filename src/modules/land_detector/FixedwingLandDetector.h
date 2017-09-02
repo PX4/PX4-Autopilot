@@ -51,54 +51,52 @@
 namespace land_detector
 {
 
-class FixedwingLandDetector : public LandDetector
+class FixedwingLandDetector final : public LandDetector
 {
 public:
 	FixedwingLandDetector();
 
 protected:
-	virtual void _initialize_topics() override;
+	void _initialize_topics() override;
+	void _update_params() override;
+	void _update_topics() override;
+	bool _get_landed_state() override;
+	bool _get_maybe_landed_state() override;
+	bool _get_ground_contact_state() override;
+	bool _get_freefall_state() override;
+	float _get_max_altitude() override;
 
-	virtual void _update_params() override;
-
-	virtual void _update_topics() override;
-
-	virtual bool _get_landed_state() override;
-
-	virtual bool _get_maybe_landed_state() override;
-
-	virtual bool _get_ground_contact_state() override;
-
-	virtual bool _get_freefall_state() override;
-
-	virtual float _get_max_altitude() override;
 private:
+
+	/** Time in us that landing conditions have to hold before triggering a land. */
+	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
+
 	struct {
 		param_t maxVelocity;
 		param_t maxClimbRate;
 		param_t maxAirSpeed;
 		param_t maxIntVelocity;
-	} _paramHandle;
+	} _paramHandle{};
 
 	struct {
 		float maxVelocity;
 		float maxClimbRate;
 		float maxAirSpeed;
 		float maxIntVelocity;
-	} _params;
+	} _params{};
 
-	int _controlStateSub;
-	int _armingSub;
-	int _airspeedSub;
+	int _controlStateSub{-1};
+	int _armingSub{-1};
+	int _airspeedSub{-1};
 
-	struct control_state_s _controlState;
-	struct actuator_armed_s _arming;
-	struct airspeed_s _airspeed;
+	control_state_s _controlState{};
+	actuator_armed_s _arming{};
+	airspeed_s _airspeed{};
 
-	float _velocity_xy_filtered;
-	float _velocity_z_filtered;
-	float _airspeed_filtered;
-	float _accel_horz_lp;
+	float _velocity_xy_filtered{0.0f};
+	float _velocity_z_filtered{0.0f};
+	float _airspeed_filtered{0.0f};
+	float _accel_horz_lp{0.0f};
 };
 
 } // namespace land_detector

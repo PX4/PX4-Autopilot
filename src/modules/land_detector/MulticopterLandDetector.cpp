@@ -108,6 +108,11 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_paramHandle.altitude_max = param_find("LNDMC_ALT_MAX");
 	_paramHandle.manual_stick_up_position_takeoff_threshold = param_find("LNDMC_POS_UPTHR");
 	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
+
+	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
+	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
+	_maybe_landed_hysteresis.set_hysteresis_time_from(false, MAYBE_LAND_DETECTOR_TRIGGER_TIME_US);
+	_ground_contact_hysteresis.set_hysteresis_time_from(false, GROUND_CONTACT_TRIGGER_TIME_US);
 }
 
 void MulticopterLandDetector::_initialize_topics()
@@ -286,14 +291,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		// if this persists for 8 seconds AND the drone is not
 		// falling consider it to be landed. This should even sustain
 		// quite acrobatic flight.
-		if ((_min_trust_start > 0) &&
-		    (hrt_elapsed_time(&_min_trust_start) > 8000000)) {
-
-			return true;
-
-		} else {
-			return false;
-		}
+		return (_min_trust_start > 0) && (hrt_elapsed_time(&_min_trust_start) > 8000000);
 	}
 
 	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating) {
@@ -411,4 +409,4 @@ bool MulticopterLandDetector::_has_minimal_thrust()
 	return _actuators.control[3] <= sys_min_throttle;
 }
 
-}
+} // namespace land_detector

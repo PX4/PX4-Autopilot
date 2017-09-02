@@ -47,32 +47,17 @@
 #include <drivers/drv_hrt.h>
 #include "uORB/topics/parameter_update.h"
 
-
 namespace land_detector
 {
 
-
 LandDetector::LandDetector() :
-	_landDetectedPub(nullptr),
-	_landDetected{0, false, false},
-	_parameterSub(0),
-	_state{},
-	_freefall_hysteresis(false),
-	_landed_hysteresis(true),
-	_maybe_landed_hysteresis(true),
-	_ground_contact_hysteresis(true),
-	_total_flight_time{0},
-	_takeoff_time{0},
-	_work{}
+	_cycle_perf(perf_alloc(PC_ELAPSED, "land_detector_cycle"))
 {
-	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
-	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
-	_maybe_landed_hysteresis.set_hysteresis_time_from(false, MAYBE_LAND_DETECTOR_TRIGGER_TIME_US);
-	_ground_contact_hysteresis.set_hysteresis_time_from(false, GROUND_CONTACT_TRIGGER_TIME_US);
 }
 
 LandDetector::~LandDetector()
 {
+	perf_free(_cycle_perf);
 }
 
 int LandDetector::start()
@@ -91,13 +76,16 @@ LandDetector::_cycle_trampoline(void *arg)
 
 void LandDetector::_cycle()
 {
-	if (!_object) { // not initialized yet
+	perf_begin(_cycle_perf);
+
+	if (_object == nullptr) { // not initialized yet
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.freefall = false;
 		_landDetected.landed = false;
 		_landDetected.ground_contact = false;
 		_landDetected.maybe_landed = false;
+
 		_p_total_flight_time_high = param_find("LND_FLIGHT_T_HI");
 		_p_total_flight_time_low = param_find("LND_FLIGHT_T_LO");
 
@@ -110,28 +98,24 @@ void LandDetector::_cycle()
 	}
 
 	_check_params(false);
-
 	_update_topics();
-
-	hrt_abstime now = hrt_absolute_time();
-
 	_update_state();
 
-	float alt_max_prev = _altitude_max;
-	_altitude_max = _get_max_altitude();
-
-	bool freefallDetected = (_state == LandDetectionState::FREEFALL);
-	bool landDetected = (_state == LandDetectionState::LANDED);
-	bool maybe_landedDetected = (_state == LandDetectionState::MAYBE_LANDED);
-	bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
+	const bool landDetected = (_state == LandDetectionState::LANDED);
+	const bool freefallDetected = (_state == LandDetectionState::FREEFALL);
+	const bool maybe_landedDetected = (_state == LandDetectionState::MAYBE_LANDED);
+	const bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
+	const float alt_max = _get_max_altitude();
 
 	// Only publish very first time or when the result has changed.
 	if ((_landDetectedPub == nullptr) ||
-	    (_landDetected.freefall != freefallDetected) ||
 	    (_landDetected.landed != landDetected) ||
-	    (_landDetected.ground_contact != ground_contactDetected) ||
+	    (_landDetected.freefall != freefallDetected) ||
 	    (_landDetected.maybe_landed != maybe_landedDetected) ||
-	    (fabsf(_landDetected.alt_max - alt_max_prev) > FLT_EPSILON)) {
+	    (_landDetected.ground_contact != ground_contactDetected) ||
+	    (fabsf(_landDetected.alt_max - alt_max) > FLT_EPSILON)) {
+
+		hrt_abstime now = hrt_absolute_time();
 
 		if (!landDetected && _landDetected.landed) {
 			// We did take off
@@ -148,16 +132,18 @@ void LandDetector::_cycle()
 		}
 
 		_landDetected.timestamp = hrt_absolute_time();
-		_landDetected.freefall = (_state == LandDetectionState::FREEFALL);
-		_landDetected.landed = (_state == LandDetectionState::LANDED);
-		_landDetected.ground_contact = (_state == LandDetectionState::GROUND_CONTACT);
-		_landDetected.maybe_landed = (_state == LandDetectionState::MAYBE_LANDED);
-		_landDetected.alt_max = _altitude_max;
+		_landDetected.landed = landDetected;
+		_landDetected.freefall = freefallDetected;
+		_landDetected.maybe_landed = maybe_landedDetected;
+		_landDetected.ground_contact = ground_contactDetected;
+		_landDetected.alt_max = alt_max;
 
 		int instance;
 		orb_publish_auto(ORB_ID(vehicle_land_detected), &_landDetectedPub, &_landDetected,
 				 &instance, ORB_PRIO_DEFAULT);
 	}
+
+	perf_end(_cycle_perf);
 
 	if (!should_exit()) {
 
