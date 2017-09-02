@@ -80,13 +80,13 @@ private:
 	bool		_task_running{false};			/**< if true, task is running in its mainloop */
 	int		_control_task{-1};			/**< task handle */
 
-	int		_att_sp_sub{ -1};			/**< vehicle attitude setpoint */
-	int		_battery_status_sub{ -1};		/**< battery status subscription */
-	int		_ctrl_state_sub{ -1};		/**< control state subscription */
-	int		_manual_sub{ -1};			/**< notification of manual control updates */
-	int		_params_sub{ -1};			/**< notification of parameter updates */
-	int		_vcontrol_mode_sub{ -1};		/**< vehicle status subscription */
-	int     _vstatus_sub{ -1};          /**< vehicle status subscription */
+	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
+	int		_battery_status_sub{-1};		/**< battery status subscription */
+	int		_ctrl_state_sub{-1};		/**< control state subscription */
+	int		_manual_sub{-1};			/**< notification of manual control updates */
+	int		_params_sub{-1};			/**< notification of parameter updates */
+	int		_vcontrol_mode_sub{-1};		/**< vehicle status subscription */
+	int     _vstatus_sub{-1};          /**< vehicle status subscription */
 
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
 
