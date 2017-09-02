@@ -86,7 +86,7 @@ private:
 	int		_manual_sub{-1};			/**< notification of manual control updates */
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle status subscription */
-	int     _vstatus_sub{-1};          /**< vehicle status subscription */
+	int		_vstatus_sub{-1};          /**< vehicle status subscription */
 
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
 
@@ -135,7 +135,7 @@ private:
 	void		parameters_update();
 
 	void		vehicle_control_mode_poll();
-	void        vehicle_status_poll();
+	void		vehicle_status_poll();
 	void		manual_control_setpoint_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		battery_status_poll();
