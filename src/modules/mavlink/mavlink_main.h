@@ -221,10 +221,6 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	bool			get_config_link_on() { return _config_link_on; }
-
-	void			set_config_link_on(bool on) { _config_link_on = on; }
-
 	bool			is_connected() { return ((_rstatus.heartbeat_time > 0) && (hrt_absolute_time() - _rstatus.heartbeat_time < 3000000)); }
 
 	bool			broadcast_enabled() { return _broadcast_mode > BROADCAST_MODE_OFF; }
@@ -445,8 +441,6 @@ public:
 
 	bool			is_usb_uart() { return _is_usb_uart; }
 
-	bool			accepting_commands() { return true; /* non-trivial side effects ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG));*/ }
-
 	bool			verbose() { return _verbose; }
 
 	int			get_data_rate()		{ return _datarate; }
@@ -605,7 +599,6 @@ private:
 	param_t			_param_broadcast;
 
 	unsigned		_system_type;
-	static bool		_config_link_on;
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 	perf_counter_t		_txerr_perf;			/**< TX error counter */

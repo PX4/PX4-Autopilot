@@ -65,7 +65,6 @@
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
-#include <geo/geo.h>
 #include <navigator/navigation.h>
 #include <px4_defines.h>
 #include <px4_config.h>
@@ -2439,16 +2438,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
-		}
-
-		/* Initialize map projection if gps is valid */
-		if (!map_projection_global_initialized()
-		    && (gps_position.eph < eph_threshold)
-		    && (gps_position.epv < epv_threshold)
-		    && hrt_elapsed_time((hrt_abstime *)&gps_position.timestamp) < 1e6) {
-			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
-			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
-						  (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
 		}
 
 		/* check if GPS is ok */

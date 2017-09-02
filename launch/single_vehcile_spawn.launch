@@ -7,7 +7,7 @@
     <arg name="R" default="0"/>
     <arg name="P" default="0"/>
     <arg name="Y" default="0"/>
-    <arg name="est" default="lpe"/>
+    <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="iris"/>
     <arg name="ID" default="1"/>
     <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>

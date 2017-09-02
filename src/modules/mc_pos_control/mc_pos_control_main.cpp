@@ -263,10 +263,10 @@ private:
 		math::Vector<3> vel_d;
 	} _params{};
 
-	struct map_projection_reference_s _ref_pos;
-	float _ref_alt;
-	hrt_abstime _ref_timestamp;
-	hrt_abstime _last_warn;
+	struct map_projection_reference_s _ref_pos {};
+	float _ref_alt{0.0f};
+	hrt_abstime _ref_timestamp{};
+	hrt_abstime _last_warn{};
 
 	math::Vector<3> _thrust_int;
 	math::Vector<3> _pos;
