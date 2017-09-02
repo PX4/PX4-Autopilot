@@ -95,12 +95,12 @@ private:
 	bool		_task_should_exit{false};		/**< if true, sensor task should exit */
 	bool		_task_running{false};			/**< if true, task is running in its mainloop */
 
-	int		_control_mode_sub{-1};		/**< control mode subscription */
-	int		_ctrl_state_sub{-1};			/**< control state subscription */
-	int		_global_pos_sub{-1};
-	int		_manual_control_sub{-1};		/**< notification of manual control updates */
-	int		_params_sub{-1};			/**< notification of parameter updates */
-	int		_pos_sp_triplet_sub{-1};
+	int		_control_mode_sub{ -1};		/**< control mode subscription */
+	int		_ctrl_state_sub{ -1};			/**< control state subscription */
+	int		_global_pos_sub{ -1};
+	int		_manual_control_sub{ -1};		/**< notification of manual control updates */
+	int		_params_sub{ -1};			/**< notification of parameter updates */
+	int		_pos_sp_triplet_sub{ -1};
 
 	control_state_s				_ctrl_state{};			/**< control state */
 	fw_pos_ctrl_status_s			_gnd_pos_ctrl_status{};		/**< navigation capabilities */
@@ -174,10 +174,10 @@ private:
 	} _parameter_handles{};		/**< handles for interesting parameters */
 
 
-    /**
-     * Helper function to map range [0,1] to [mid,1.0]
-     */
-    float map_above(float source, float mid);
+	/**
+	 * Helper function to map range [0,1] to [mid,1.0]
+	 */
+	float map_above(float source, float mid);
 
 	/**
 	 * Update our local parameter cache.
