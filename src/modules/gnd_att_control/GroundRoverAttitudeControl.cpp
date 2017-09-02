@@ -330,7 +330,7 @@ GroundRoverAttitudeControl::task_main()
 					}
 				}
 
-				/* When reverse is possible, throttle hold pwm should be at the mid position */
+				/* When reverse is possible, at HOLD mode, throttle hold pwm should be at the mid position */
 				if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = gnd_throttle::HOLD;
 				}
