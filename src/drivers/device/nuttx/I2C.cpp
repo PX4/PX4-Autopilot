@@ -40,7 +40,9 @@
  *       that is supplied.  Should we just depend on the bus knowing?
  */
 
-#include "i2c.h"
+#include "I2C.hpp"
+
+#include <cstring>
 
 namespace device
 {
@@ -51,22 +53,9 @@ namespace device
 
 unsigned int I2C::_bus_clocks[BOARD_NUMBER_I2C_BUSES] = BOARD_I2C_BUS_CLOCK_INIT;
 
-I2C::I2C(const char *name,
-	 const char *devname,
-	 int bus,
-	 uint16_t address,
-	 uint32_t frequency,
-	 int irq) :
-	// base class
-	CDev(name, devname, irq),
-	// public
-	// protected
-	_retries(0),
-	// private
-	_bus(bus),
-	_address(address),
-	_frequency(frequency),
-	_dev(nullptr)
+I2C::I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency) :
+	CDev(name, devname),
+	_frequency(frequency)
 {
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
@@ -109,25 +98,25 @@ I2C::init()
 	unsigned bus_index;
 
 	// attach to the i2c bus
-	_dev = px4_i2cbus_initialize(_bus);
+	_dev = px4_i2cbus_initialize(get_device_bus());
 
 	if (_dev == nullptr) {
-		DEVICE_DEBUG("failed to init I2C");
+		PX4_ERR("failed to init I2C");
 		ret = -ENOENT;
 		goto out;
 	}
 
 	// the above call fails for a non-existing bus index,
 	// so the index math here is safe.
-	bus_index = _bus - 1;
+	bus_index = get_device_bus() - 1;
 
 	// abort if the max frequency we allow (the frequency we ask)
 	// is smaller than the bus frequency
 	if (_bus_clocks[bus_index] > _frequency) {
-		(void)px4_i2cbus_uninitialize(_dev);
+		px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
-		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
-			   _bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+		PX4_ERR("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
+			get_device_bus(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -152,21 +141,13 @@ I2C::init()
 	ret = probe();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("probe failed");
-		goto out;
-	}
-
-	// do base class init, which will create device node, etc
-	ret = CDev::init();
-
-	if (ret != OK) {
-		DEVICE_DEBUG("cdev init failed");
+		PX4_DEBUG("probe failed");
 		goto out;
 	}
 
 	// tell the world where we are
-	DEVICE_LOG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
-		   _bus, _address, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	PX4_ERR("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+		get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
 
@@ -199,8 +180,8 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		msgs = 0;
 
 		if (send_len > 0) {
-			msgv[msgs].frequency = _bus_clocks[_bus - 1];
-			msgv[msgs].addr = _address;
+			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];
+			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = 0;
 			msgv[msgs].buffer = const_cast<uint8_t *>(send);
 			msgv[msgs].length = send_len;
@@ -208,8 +189,8 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		}
 
 		if (recv_len > 0) {
-			msgv[msgs].frequency = _bus_clocks[_bus - 1];
-			msgv[msgs].addr = _address;
+			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];;
+			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = I2C_M_READ;
 			msgv[msgs].buffer = recv;
 			msgv[msgs].length = recv_len;
@@ -235,38 +216,44 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	} while (retry_count++ < _retries);
 
 	return ret;
-
 }
 
 int
-I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
+I2C::read(unsigned address, void *data, unsigned count)
 {
-	int ret;
-	unsigned retry_count = 0;
+	uint8_t cmd = address;
+	return transfer(&cmd, 1, (uint8_t *)data, count);
+}
 
-	/* force the device address and Frequency into the message vector */
-	for (unsigned i = 0; i < msgs; i++) {
-		msgv[i].frequency = _bus_clocks[_bus - 1];
-		msgv[i].addr = _address;
+int
+I2C::write(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
 	}
 
+	buf[0] = address;
+	memcpy(&buf[1], data, count);
 
-	do {
-		ret = I2C_TRANSFER(_dev, msgv, msgs);
+	return transfer(&buf[0], count + 1, nullptr, 0);
+}
 
-		/* success */
-		if (ret == OK) {
-			break;
-		}
+uint8_t
+I2C::get_reg(uint8_t addr)
+{
+	uint8_t cmd[2] = { (uint8_t)(addr), 0};
+	transfer(&cmd[0], 1, &cmd[1], 1);
 
-		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries)) {
-			I2C_RESET(_dev);
-		}
+	return cmd[1];
+}
 
-	} while (retry_count++ < _retries);
-
-	return ret;
+int
+I2C::set_reg(uint8_t value, uint8_t addr)
+{
+	uint8_t cmd[2] = { (uint8_t)(addr), value};
+	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 
 } // namespace device

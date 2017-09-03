@@ -110,66 +110,6 @@ RingBuffer::put(const void *val, size_t val_size)
 }
 
 bool
-RingBuffer::put(int8_t val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(uint8_t val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(int16_t val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(uint16_t val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(int32_t val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(uint32_t val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(int64_t val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(uint64_t val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(float val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
-RingBuffer::put(double val)
-{
-	return put(&val, sizeof(val));
-}
-
-bool
 RingBuffer::force(const void *val, size_t val_size)
 {
 	bool overwrote = false;
@@ -184,66 +124,6 @@ RingBuffer::force(const void *val, size_t val_size)
 	}
 
 	return overwrote;
-}
-
-bool
-RingBuffer::force(int8_t val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(uint8_t val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(int16_t val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(uint16_t val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(int32_t val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(uint32_t val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(int64_t val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(uint64_t val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(float val)
-{
-	return force(&val, sizeof(val));
-}
-
-bool
-RingBuffer::force(double val)
-{
-	return force(&val, sizeof(val));
 }
 
 // FIXME - clang crashes on this get() call
@@ -262,6 +142,7 @@ static inline bool my_sync_bool_compare_and_swap(volatile unsigned *a, unsigned 
 #else
 #define __PX4_SBCAP __sync_bool_compare_and_swap
 #endif
+
 bool
 RingBuffer::get(void *val, size_t val_size)
 {
@@ -293,66 +174,6 @@ RingBuffer::get(void *val, size_t val_size)
 	} else {
 		return false;
 	}
-}
-
-bool
-RingBuffer::get(int8_t &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(uint8_t &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(int16_t &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(uint16_t &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(int32_t &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(uint32_t &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(int64_t &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(uint64_t &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(float &val)
-{
-	return get(&val, sizeof(val));
-}
-
-bool
-RingBuffer::get(double &val)
-{
-	return get(&val, sizeof(val));
 }
 
 unsigned
