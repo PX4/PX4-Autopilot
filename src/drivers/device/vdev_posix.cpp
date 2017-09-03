@@ -59,7 +59,7 @@ volatile bool sim_delay = false;
 
 extern "C" {
 
-#define PX4_MAX_FD 300
+#define PX4_MAX_FD 350
 	static device::file_t *filemap[PX4_MAX_FD] = {};
 
 	int px4_errno;
