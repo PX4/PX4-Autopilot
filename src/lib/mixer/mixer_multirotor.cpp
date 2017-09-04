@@ -213,15 +213,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		boost = -min_out;
 
 	} else if (max_out > 1.0f && min_out > 0.0f && max_out - min_out <= 1.0f) {
-		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
-
-		if (max_thrust_diff >= max_out - 1.0f) {
-			boost = -(max_out - 1.0f);
-
-		} else {
-			boost = -max_thrust_diff;
-			roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
-		}
+		boost = -(max_out - 1.0f);
 
 	} else if (min_out < 0.0f && max_out < 1.0f && max_out - min_out > 1.0f) {
 		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
