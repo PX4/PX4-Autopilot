@@ -38,20 +38,9 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include "boot_config.h"
-
 #include <stdint.h>
 #include <stdlib.h>
-
-#include <nuttx/progmem.h>
-
-#include "chip.h"
-#include "stm32.h"
-
-#include "flash.h"
-#include "blsched.h"
+#include "crc.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -80,98 +69,105 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
 /****************************************************************************
- * Name: bl_flash_erase
+ * Name: crc16_add
  *
  * Description:
- *   This function erases the flash starting at address and ending at
- *   address + nbytes.
+ *   Use to calculates a CRC-16-CCITT using the polynomial of
+ *   0x1021 by adding a value successive values.
  *
  * Input Parameters:
- *   address - A word-aligned address within the first page of flash to erase
- *   nbytes - The number of bytes to erase, rounding up to the next page.
+ *    crc   - The running total of the crc 16
+ *    value - The value to add
  *
- *
- *
- * Returned value:
- *   On success FLASH_OK On Error one of the flash_error_t
+ * Returned Value:
+ *   The current crc16 with the value processed.
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_erase(size_t address, size_t nbytes)
+uint16_t crc16_add(uint16_t crc, uint8_t value)
 {
-	/*
-	 * FIXME (?): this may take a long time, and while flash is being erased it
-	 * might not be possible to execute interrupts, send NodeStatus messages etc.
-	 * We can pass a per page callback or yeild */
+	uint32_t i;
+	const uint16_t poly = 0x1021u;
+	crc ^= (uint16_t)((uint16_t) value << 8u);
 
-	flash_error_t status = FLASH_ERROR_AFU;
+	for (i = 0; i < 8; i++) {
+		if (crc & (1u << 15u)) {
+			crc = (uint16_t)((crc << 1u) ^ poly);
 
-
-	ssize_t bllastpage = up_progmem_getpage(address - 1);
-
-	if (bllastpage < 0) {
-		return FLASH_ERROR_AFU;
+		} else {
+			crc = (uint16_t)(crc << 1u);
+		}
 	}
 
-	ssize_t appstartpage = up_progmem_getpage(address);
-	ssize_t appendpage = up_progmem_getpage(address + nbytes - 4);
+	return crc;
+}
 
-	if (appendpage < 0 || appstartpage < 0) {
-		return FLASH_ERROR_AFU;
+/****************************************************************************
+ * Name: crc16_signature
+ *
+ * Description:
+ *   Calculates a CRC-16-CCITT using the crc16_add
+ *   function
+ *
+ * Input Parameters:
+ *    initial - The Initial value to uses as the crc's starting point
+ *    length  - The number of bytes to add to the crc
+ *    bytes   - A pointer to any array of length bytes
+ *
+ * Returned Value:
+ *   The crc16 of the array of bytes
+ *
+ ****************************************************************************/
+
+uint16_t crc16_signature(uint16_t initial, size_t length, const uint8_t *bytes)
+{
+	size_t i;
+
+	for (i = 0u; i < length; i++) {
+		initial = crc16_add(initial, bytes[i]);
 	}
 
-	status = FLASH_ERROR_SUICIDE;
+	return initial ^ CRC16_OUTPUT_XOR;
+}
 
-	if (bllastpage >= 0 && appstartpage > bllastpage) {
+/****************************************************************************
+ * Name: crc64_add_word
+ *
+ * Description:
+ *   Calculates a CRC-64-WE using the polynomial of 0x42F0E1EBA9EA3693
+ *   See http://reveng.sourceforge.net/crc-catalogue/17plus.htm#crc.cat-bits.64
+ *   Check: 0x62EC59E3F1A4F00A
+ *
+ * Input Parameters:
+ *    crc   - The running total of the crc 64
+ *    value - The value to add
+ *
+ * Returned Value:
+ *   The current crc64 with the value processed.
+ *
+ ****************************************************************************/
+__EXPORT
+uint64_t crc64_add_word(uint64_t crc, uint32_t value)
+{
+	uint32_t i, j;
+	uint8_t byte;
+	const uint64_t poly = 0x42F0E1EBA9EA3693ull;
 
-		/* Erase the whole application flash region */
+	for (j = 0; j < 4; j++) {
+		byte = ((uint8_t *) &value)[j];
+		crc ^= (uint64_t) byte << 56u;
 
-		status = FLASH_OK;
+		for (i = 0; i < 8; i++) {
+			if (crc & (1ull << 63u)) {
+				crc = (uint64_t)(crc << 1u) ^ poly;
 
-		while (status == FLASH_OK && appstartpage <= appendpage) {
-			bl_sched_yield();
-			ssize_t ps = up_progmem_erasepage(appstartpage++);
-
-			if (ps <= 0) {
-				status = FLASH_ERASE_ERROR;
+			} else {
+				crc = (uint64_t)(crc << 1u);
 			}
 		}
 	}
 
-	return status;
-}
-
-/****************************************************************************
- * Name: bl_flash_write
- *
- * Description:
- *   This function writes the flash starting at the given address
- *
- * Input Parameters:
- *   flash_address - The address of the flash to write
- *                   must be word aligned
- *   data          - A pointer to a buffer count bytes to be written
- *                   to the flash.
- *   count         - Number of bytes to write
- *
- * Returned value:
- *   On success FLASH_OK On Error one of the flash_error_t
- *
- ****************************************************************************/
-
-flash_error_t bl_flash_write(uint32_t flash_address, uint8_t *data, ssize_t count)
-{
-
-	flash_error_t status = FLASH_ERROR;
-
-	if (flash_address >= APPLICATION_LOAD_ADDRESS &&
-	    (flash_address + count) <= (uint32_t) APPLICATION_LAST_8BIT_ADDRRESS) {
-		if (count  ==
-		    up_progmem_write((size_t) flash_address, (void *)data, count)) {
-			status = FLASH_OK;
-		}
-	}
-
-	return status;
+	return crc;
 }
