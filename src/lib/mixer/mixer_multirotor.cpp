@@ -210,15 +210,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	// TODO: revise the saturation/boosting strategy
 
 	if (min_out < 0.0f && max_out < 1.0f && -min_out <= 1.0f - max_out) {
-		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
-
-		if (max_thrust_diff >= -min_out) {
-			boost = -min_out;
-
-		} else {
-			boost = max_thrust_diff;
-			roll_pitch_scale = (thrust + boost) / (thrust - min_out);
-		}
+		boost = -min_out;
 
 	} else if (max_out > 1.0f && min_out > 0.0f && min_out >= max_out - 1.0f) {
 		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
