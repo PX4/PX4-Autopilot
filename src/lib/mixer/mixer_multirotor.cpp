@@ -179,10 +179,6 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	// clean out class variable used to capture saturation
 	_saturation_status.value = 0;
 
-	// thrust boost parameters
-	float thrust_increase_factor = 1.5f;
-	float thrust_decrease_factor = 0.6f;
-
 	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		float out = roll * _rotors[i].roll_scale +
@@ -216,18 +212,15 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		boost = -(max_out - 1.0f);
 
 	} else if (min_out < 0.0f && max_out < 1.0f && max_out - min_out > 1.0f) {
-		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
-		boost = math::constrain(-min_out - (1.0f - max_out) / 2.0f, 0.0f, max_thrust_diff);
+		boost = -min_out - (1.0f - max_out) / 2.0f;
 		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
 
 	} else if (max_out > 1.0f && min_out > 0.0f && max_out - min_out > 1.0f) {
-		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
-		boost = math::constrain(-(max_out - 1.0f - min_out) / 2.0f, -max_thrust_diff, 0.0f);
+		boost = -(max_out - min_out - 1.0f) / 2.0f;
 		roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
 
 	} else if (min_out < 0.0f && max_out > 1.0f) {
-		boost = math::constrain(-(max_out - 1.0f + min_out) / 2.0f, thrust_decrease_factor * thrust - thrust,
-					thrust_increase_factor * thrust - thrust);
+		boost = -(max_out - 1.0f + min_out) / 2.0f;
 		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
 	}
 
