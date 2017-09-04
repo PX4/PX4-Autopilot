@@ -9,7 +9,7 @@ endif()
 
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-arm-linux-gnueabihf.cmake)
 
-set(config_generate_parameters_scope ALL)
+set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
@@ -22,13 +22,14 @@ set(config_module_list
 	drivers/device
 	drivers/boards/sitl
 	drivers/led
+	drivers/linux_sbus
 
 	systemcmds/param
 	systemcmds/ver
 
 	modules/mavlink
 
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
 	modules/sensors
@@ -47,6 +48,7 @@ set(config_module_list
 	lib/conversion
 	lib/version
 	lib/DriverFramework/framework
+	lib/micro-CDR
 
 	platforms/common
 	platforms/posix/px4_layer

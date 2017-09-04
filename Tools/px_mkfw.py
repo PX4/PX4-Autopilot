@@ -98,7 +98,7 @@ if args.summary != None:
 if args.description != None:
 	desc['description']	= str(args.description)
 if args.git_identity != None:
-	cmd = " ".join(["git", "--git-dir", args.git_identity + "/.git", "describe", "--always", "--dirty"])
+	cmd = " ".join(["git", "--git-dir", args.git_identity + "/.git", "describe", "--always", "--tags"])
 	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
 	desc['git_identity']	= str(p.read().strip())
 	p.close()

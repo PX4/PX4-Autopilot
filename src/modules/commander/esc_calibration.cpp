@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,7 +77,32 @@ int check_if_batt_disconnected(orb_advert_t *mavlink_log_pub) {
 int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* armed)
 {
 	int	return_code = PX4_OK;
+	
+#if defined(__PX4_POSIX_OCPOC)
+	hrt_abstime timeout_start;
+	hrt_abstime timeout_wait = 60*1000*1000;
+	armed->in_esc_calibration_mode = true;
+	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "begin esc");
+	timeout_start = hrt_absolute_time();
+	
+	while (true) {
+		if (hrt_absolute_time() - timeout_start > timeout_wait) {
+			break;
+		}else{
+			usleep(50000);
+		}
+	}
 
+	armed->in_esc_calibration_mode = false;
+	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "end esc");
+
+	if (return_code == OK) {
+		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "esc");
+	}
+		  
+	return return_code;
+
+#else
 	int	fd = -1;
 
 	struct	battery_status_s battery;
@@ -192,4 +217,5 @@ Out:
 Error:
 	return_code = PX4_ERROR;
 	goto Out;
+#endif
 }

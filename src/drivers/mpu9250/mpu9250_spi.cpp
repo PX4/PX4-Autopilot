@@ -74,12 +74,16 @@
 
 
 /*
-  The MPU9250 can only handle high SPI bus speeds on the sensor and
-  interrupt status registers. All other registers have a maximum 1MHz
-  SPI speed
+ * The MPU9250 can only handle high SPI bus speeds of 20Mhz on the sensor and
+ * interrupt status registers. All other registers have a maximum 1MHz
+ * SPI speed
+ *
+ * The Actual Value will be rounded down by the spi driver.
+ * for a 168Mhz CPU this will be 10.5 Mhz and for a 180 Mhz CPU
+ * it will be 11.250 Mhz
  */
 #define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
-#define MPU9250_HIGH_SPI_BUS_SPEED	11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU9250 */
+#define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
 
 
 device::Device *MPU9250_SPI_interface(int bus, bool external_bus);
@@ -113,7 +117,7 @@ MPU9250_SPI_interface(int bus, bool external_bus)
 	device::Device *interface = nullptr;
 
 	if (external_bus) {
-#ifdef PX4_SPI_BUS_EXT
+#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
 		cs = (spi_dev_e) PX4_SPIDEV_EXT_MPU;
 #else
 		errx(0, "External SPI not available");
@@ -265,8 +269,25 @@ int
 MPU9250_SPI::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = MPU_WHOAMI_9250;
-	return (read(MPUREG_WHOAMI, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+
+	int ret = read(MPUREG_WHOAMI, &whoami, 1);
+
+	if (ret != OK) {
+		return -EIO;
+	}
+
+	switch (whoami) {
+	case MPU_WHOAMI_9250:
+	case MPU_WHOAMI_6500:
+		ret = 0;
+		break;
+
+	default:
+		PX4_WARN("probe failed! %u", whoami);
+		ret = -EIO;
+	}
+
+	return ret;
 }
 
 #endif // PX4_SPIDEV_MPU

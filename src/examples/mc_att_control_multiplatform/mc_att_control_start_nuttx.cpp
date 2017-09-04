@@ -74,7 +74,7 @@ int mc_att_control_m_main(int argc, char *argv[])
 					     SCHED_PRIORITY_MAX - 5,
 					     1900,
 					     mc_att_control_start_main,
-					     (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+					     (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 
 		return 0;
 	}

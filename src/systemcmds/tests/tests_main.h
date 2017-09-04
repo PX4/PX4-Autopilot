@@ -86,6 +86,7 @@ extern int	test_uart_break(int argc, char *argv[]);
 extern int	test_uart_console(int argc, char *argv[]);
 extern int	test_uart_loopback(int argc, char *argv[]);
 extern int	test_uart_send(int argc, char *argv[]);
+extern int	test_parameters(int argc, char *argv[]);
 
 /* external */
 extern int commander_tests_main(int argc, char *argv[]);

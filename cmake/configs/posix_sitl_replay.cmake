@@ -12,7 +12,7 @@ set(config_module_list
 	systemcmds/ver
 	systemcmds/perf
 	modules/uORB
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/ekf2
 	modules/ekf2_replay
@@ -28,6 +28,7 @@ set(config_module_list
 	lib/geo_lookup
 	lib/version
 	lib/DriverFramework/framework
+	lib/micro-CDR
 	)
 
 set(config_extra_builtin_cmds

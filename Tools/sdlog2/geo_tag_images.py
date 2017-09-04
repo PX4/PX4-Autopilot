@@ -4,10 +4,13 @@
 #  a PX4 binary log file.
 #
 #  This file accepts *.jpg format images and reads position information
-#  from a *.bin file
+#  from a *.px4log file
 #
 #  Example Syntax:
-#  python geotag.py --logfile=log001.bin --input=images/ --output=imagesWithTag/ --offset=-0.4 -v
+#  python geo_tag_images.py --logfile=log001.px4log --input=images/ --output=imagesWithTag/ --offset=-0.4 -v
+#
+#  Optional: Correct image times first
+#              jhead -exonly -ft -n%Y-%m-%d\ %H.%M.%S -ta+HH:MM:SS *.JPG
 #
 #   Author: Hector Azpurua hector@azpurua.com
 #   Based on the script of Andreas Bircher
@@ -15,12 +18,12 @@
 import os
 import re
 import sys
-import csv
 import bisect
 import pyexiv2
 import argparse
 from lxml import etree
-import datetime, calendar
+import datetime
+import calendar
 from shutil import copyfile
 from subprocess import check_output
 from pykml.factory import KML_ElementMaker as KML
@@ -28,6 +31,7 @@ from pykml.factory import GX_ElementMaker as GX
 
 
 class GpsPosition(object):
+
     def __init__(self, timestamp, lat, lon, alt):
         self.timestamp = timestamp
         self.lat = float(lat)
@@ -36,6 +40,7 @@ class GpsPosition(object):
 
 
 class Main:
+
     def __init__(self):
         """
 
@@ -54,7 +59,7 @@ class Main:
         self.kml = args['kml']
         self.verbose = args['verbose']
         self.offset = args['offset']
-        self.time_tresh = args['treshold']
+        self.time_thresh = args['threshold']
 
         self.tdiff_list = []
         self.non_processed_files = []
@@ -102,7 +107,7 @@ class Main:
 
         absolute_value = abs(value)
         deg = int(absolute_value)
-        t1 = (absolute_value-deg) * 60
+        t1 = (absolute_value - deg) * 60
         minute = int(t1)
         sec = round((t1 - minute) * 60, 5)
 
@@ -118,10 +123,27 @@ class Main:
         :return:
         """
         datetimeformat = "%Y-%m-%d %H:%M:%S.%f"
-        epoch = datetime.datetime.strptime("1980-01-06 00:00:00.000", datetimeformat)
-        elapsed = datetime.timedelta(days=(gpsweek * 7), milliseconds=(gpsmillis + leapmillis))
+        epoch = datetime.datetime.strptime(
+            "1980-01-06 00:00:00.000", datetimeformat)
+        elapsed = datetime.timedelta(
+            days=(gpsweek * 7), milliseconds=(gpsmillis + leapmillis))
 
         return Main.utc_to_local(epoch + elapsed)
+
+    @staticmethod
+    def unix_microseconds_to_datetime(unix_us, offset=0):
+        """
+        Convert unix microseconds to datetime object, using offset milliseconds if necessary
+        :param unix_us:
+        :param offset:
+        :return:
+        """
+
+        # time in seconds
+        time_s = int(unix_us) / 1000000 + (offset / 1000)
+        datetime_from_unix = datetime.datetime.fromtimestamp(time_s)
+
+        return datetime_from_unix
 
     @staticmethod
     def utc_to_local(utc_dt):
@@ -130,7 +152,8 @@ class Main:
         :param utc_dt:
         :return:
         """
-        timestamp = calendar.timegm(utc_dt.timetuple())  # use integer timestamp to avoid precision lost
+        # use integer timestamp to avoid precision loss
+        timestamp = calendar.timegm(utc_dt.timetuple())
         local_dt = datetime.datetime.fromtimestamp(timestamp)
         assert utc_dt.resolution >= datetime.timedelta(microseconds=1)
 
@@ -151,7 +174,8 @@ class Main:
                     KML.IconStyle(
                         KML.scale(0.4),
                         KML.Icon(
-                            KML.href("http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png")
+                            KML.href(
+                                "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png")
                         ),
                     ),
                     id=style_dot,
@@ -163,7 +187,7 @@ class Main:
                         GX.labelVisibility('1'),
                     ),
                     id=style_path
-                )   
+                )
             )
         )
 
@@ -176,9 +200,11 @@ class Main:
                         KML.Point(
                             KML.extrude(True),
                             KML.altitudeMode('absolute'),
-                            KML.coordinates("{},{},{}".format(gps.lon, gps.lat, gps.alt))
+                            KML.coordinates(
+                                "{},{},{}".format(gps.lon, gps.lat, gps.alt))
                         ),
-                        KML.name(str(ii)) if ii % 5 == 0 or ii == 1 else KML.name()
+                        KML.name(
+                            str(ii)) if ii % 5 == 0 or ii == 1 else KML.name()
                     )
                 )
 
@@ -189,7 +215,8 @@ class Main:
                 KML.LineString(
                     KML.altitudeMode('absolute'),
                     KML.coordinates(
-                        ' '.join(["{},{},{}".format(gps.lon, gps.lat, gps.alt) for gps in self.tagged_gps])
+                        ' '.join(["{},{},{}".format(gps.lon, gps.lat, gps.alt)
+                                 for gps in self.tagged_gps])
                     )
                 )
             )
@@ -198,7 +225,7 @@ class Main:
         s = etree.tostring(doc)
 
         file_path = self.output + 'GoogleEarth_points.kml'
-        f = open(file_path,'w')
+        f = open(file_path, 'w')
         f.write(s)
         f.close()
 
@@ -215,16 +242,16 @@ class Main:
 
         i = bisect.bisect_left(datetime_list, elem)
 
-        # Cleanup of the indices 
-        if i < 0: 
-            i = 0 
+        # Cleanup of the indices
+        if i < 0:
+            i = 0
         elif i >= dlist_len:
-            i = dlist_len - 1 
+            i = dlist_len - 1
 
         date = datetime_list[i]
         diff = abs((date - elem).total_seconds())
 
-        if diff > self.time_tresh:
+        if diff > self.time_thresh:
             return -1, diff
 
         return i, diff
@@ -272,7 +299,8 @@ class Main:
         :return:
         """
         gps_list = []
-        out = check_output(["python", "sdlog2_dump.py", log_file, "-m GPS", "-v"])
+        out = check_output(
+            ["python", "sdlog2_dump.py", log_file, "-m GPS", "-v"])
 
         for line in out.splitlines():
             if not line.startswith("MSG GPS:"):
@@ -285,13 +313,13 @@ class Main:
                 if len(e) == 2:
                     vdict[e[0]] = float(e[1])
 
-            gps_time = vdict['TimeMS']
-            gps_week = vdict['Week']
+            # PX4 GPS.GPSTime is unix time in microseconds
+            gps_time = vdict['GPSTime']
             gps_lat = vdict['Lat']
-            gps_lon = vdict['Lng']
+            gps_lon = vdict['Lon']
             gps_alt = vdict['Alt']
 
-            date = self.gps_week_seconds_to_datetime(gps_week, gps_time, leapmillis=offset)
+            date = self.unix_microseconds_to_datetime(gps_time, offset)
             gps_list.append(GpsPosition(date, gps_lat, gps_lon, gps_alt))
 
         return gps_list
@@ -319,7 +347,7 @@ class Main:
         :return:
         """
         self.img_list = [input_folder + filename for filename in os.listdir(input_folder)
-                         if re.search(r'\.'+file_type+'$', filename, re.IGNORECASE)]
+                         if re.search(r'\.' + file_type + '$', filename, re.IGNORECASE)]
         self.img_list = sorted(self.img_list)
         return self.img_list
 
@@ -351,12 +379,14 @@ class Main:
 
             if self.verbose:
                 msg = "[DEBUG] %s/%s) %s\n\timg %s -> gps %s (%ss)\n\tlat:%s, lon:%s, alt:%s".ljust(60) %\
-                        (i+1, img_size, filename, cdate, closest_gps.timestamp, img_tdiff, closest_gps.lat, closest_gps.lon, closest_gps.alt)
+                    (i + 1, img_size, filename, cdate, closest_gps.timestamp,
+                     img_tdiff, closest_gps.lat, closest_gps.lon, closest_gps.alt)
                 print msg
 
             output_filename = self.output + str(img_seq) + '_' + filename
             copyfile(self.img_list[i], output_filename)
-            self.set_gps_location(output_filename, closest_gps.lat, closest_gps.lon, closest_gps.alt)
+            self.set_gps_location(
+                output_filename, closest_gps.lat, closest_gps.lon, closest_gps.alt)
             self.tagged_gps.append(closest_gps)
             img_seq += 1
 
@@ -366,7 +396,7 @@ class Main:
     @staticmethod
     def get_arg():
         parser = argparse.ArgumentParser(
-            description='Geotag script to add GPS info to pictures from PX4 binary log files.'\
+            description='Geotag script to add GPS info to pictures from PX4 binary log files.'
                         'It uses synchronized time to allocate GPS positions.'
         )
 
@@ -380,12 +410,12 @@ class Main:
             '-o', '--output', help='Output folder to contain tagged images.', required=True
         )
         parser.add_argument(
-            '-t', '--treshold', help='Time treshold between the GPS time and the local image time.',
+            '-t', '--threshold', help='Time threshold between the GPS time and the local image time.',
             default=1, required=False, type=float
         )
         parser.add_argument(
             '-of', '--offset', help='Time offset in MILLISECONDS between the GPS time and the local time.',
-            default=-17000, required=False, type=float
+            default=0, required=False, type=float
         )
         parser.add_argument(
             '-kml', '--kml', help='Save the in KML format the information of all tagged images.',

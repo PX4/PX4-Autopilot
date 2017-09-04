@@ -45,5 +45,7 @@
 #include "math/Matrix.hpp"
 #include "math/Quaternion.hpp"
 #include "math/Limits.hpp"
+#include "math/Functions.hpp"
+#include "math/matrix_alg.h"
 
 #endif

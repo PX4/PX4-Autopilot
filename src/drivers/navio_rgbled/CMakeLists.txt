@@ -40,7 +40,8 @@ px4_add_module(
 		navio_rgbled.cpp
 	DEPENDS
 		platforms__common
-		drivers__navio_gpio
+		drivers__linux_gpio
+		lib__led
 	)
 
 #add_subdirectory(test)

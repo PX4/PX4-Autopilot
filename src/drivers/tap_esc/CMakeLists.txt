@@ -36,6 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		tap_esc.cpp
+		tap_esc_common.cpp
 	DEPENDS
 		platforms__common
 	)

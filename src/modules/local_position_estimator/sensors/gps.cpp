@@ -57,7 +57,7 @@ void BlockLocalPositionEstimator::gpsInit()
 			// find lat, lon of current origin by subtracting x and y
 			// if not using vision position since vision will
 			// have it's own origin, not necessarily where vehicle starts
-			if (!(_fusion.get() & FUSE_VIS_POS)) {
+			if (!_map_ref.init_done && !(_fusion.get() & FUSE_VIS_POS)) {
 				double gpsLatOrigin = 0;
 				double gpsLonOrigin = 0;
 				// reproject at current coordinates
@@ -66,11 +66,16 @@ void BlockLocalPositionEstimator::gpsInit()
 				map_projection_reproject(&_map_ref, -_x(X_x), -_x(X_y), &gpsLatOrigin, &gpsLonOrigin);
 				// reinit origin
 				map_projection_init(&_map_ref, gpsLatOrigin, gpsLonOrigin);
+				// set timestamp when origin was set to current time
+				_time_origin = _timeStamp;
 
 				// always override alt origin on first GPS to fix
 				// possible baro offset in global altitude at init
 				_altOrigin = _gpsAltOrigin;
 				_altOriginInitialized = true;
+
+				mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (gps) : lat %6.2f lon %6.2f alt %5.1f m",
+							     gpsLatOrigin, gpsLonOrigin, double(_gpsAltOrigin));
 			}
 
 			PX4_INFO("[lpe] gps init "

@@ -37,6 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		bmp280_spi.cpp
+		bmp280_i2c.cpp
 		bmp280.cpp
 	DEPENDS
 		platforms__common

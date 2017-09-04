@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include "simulator.h"
 
@@ -55,7 +55,7 @@ using namespace simulator;
 
 static px4_task_t g_sim_task = -1;
 
-Simulator *Simulator::_instance = NULL;
+Simulator *Simulator::_instance = nullptr;
 
 Simulator *Simulator::getInstance()
 {
@@ -120,6 +120,23 @@ void Simulator::write_gps_data(void *buf)
 void Simulator::write_airspeed_data(void *buf)
 {
 	_airspeed.writeData(buf);
+}
+
+void Simulator::parameters_update(bool force)
+{
+	bool updated;
+	struct parameter_update_s param_upd;
+
+	orb_check(_param_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(parameter_update), _param_sub, &param_upd);
+	}
+
+	if (updated || force) {
+		// update C++ param system
+		updateParams();
+	}
 }
 
 int Simulator::start(int argc, char *argv[])
@@ -198,7 +215,7 @@ extern "C" {
 								argv);
 
 				// now wait for the command to complete
-				while (true) {
+				while (!px4_exit_requested()) {
 					if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
 						break;
 

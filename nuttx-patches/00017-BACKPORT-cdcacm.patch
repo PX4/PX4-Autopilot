@@ -1,0 +1,17 @@
+diff --git NuttX/nuttx/drivers/usbdev/cdcacm.c NuttX/nuttx/drivers/usbdev/cdcacm.c
+index 64e2e68..15f92dd 100644
+--- NuttX/nuttx/drivers/usbdev/cdcacm.c
++++ NuttX/nuttx/drivers/usbdev/cdcacm.c
+@@ -243,6 +243,12 @@ static const struct uart_ops_s g_uartops =
+ #ifdef CONFIG_SERIAL_IFLOWCONTROL
+   cdcuart_rxflowcontrol, /* rxflowcontrol */
+ #endif
++#ifdef CONFIG_SERIAL_DMA
++  NULL,                  /* dmasend */
++  NULL,                  /* dmareceive */
++  NULL,                  /* dmarxfree */
++  NULL,                  /* dmatxavail */
++#endif
+   NULL,                  /* send */
+   cdcuart_txint,         /* txinit */
+   NULL,                  /* txready */

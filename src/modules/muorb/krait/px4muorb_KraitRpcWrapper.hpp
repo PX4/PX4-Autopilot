@@ -65,6 +65,8 @@ public:
 	/**
 	 * Muorb related functions to pub/sub of orb topic from krait to adsp
 	 */
+	int32_t TopicAdvertised(const char *topic);
+	int32_t TopicUnadvertised(const char *topic);
 	int32_t AddSubscriber(const char *topic);
 	int32_t RemoveSubscriber(const char *topic);
 	int32_t SendData(const char *topic, int32_t length_in_bytes, const uint8_t *data);

@@ -36,31 +36,12 @@
  * @author Simon Wilks <simon@px4.io>
  * @author Lorenz Meier <lorenz@px4.io>
  *
- * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
 
 #include <px4_config.h>
+#include <drivers/device/device.h>
 
 #include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
-#include <arch/board/board.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
@@ -80,14 +61,13 @@
 Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char *path) :
 	I2C("Airspeed", path, bus, address, 100000),
 	_reports(nullptr),
-	_buffer_overflows(perf_alloc(PC_COUNT, "aspd_buf_of")),
-	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
 	_last_published_sensor_ok(true), /* initialize differently to force publication */
 	_measure_ticks(0),
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
 	_airspeed_pub(nullptr),
+	_airspeed_orb_class_instance(-1),
 	_subsys_pub(nullptr),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
@@ -118,7 +98,6 @@ Airspeed::~Airspeed()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 }
 
 int
@@ -141,20 +120,17 @@ Airspeed::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(AIRSPEED_BASE_DEVICE_PATH);
 
-	/* publication init */
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+	/* advertise sensor topic, measure manually to initialize valid report */
+	measure();
+	differential_pressure_s arp;
+	_reports->get(&arp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct differential_pressure_s arp;
-		measure();
-		_reports->get(&arp);
+	/* measurement will have generated a report, publish */
+	_airspeed_pub = orb_advertise_multi(ORB_ID(differential_pressure), &arp, &_airspeed_orb_class_instance,
+					    ORB_PRIO_HIGH - _class_instance);
 
-		/* measurement will have generated a report, publish */
-		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
-
-		if (_airspeed_pub == nullptr) {
-			warnx("uORB started?");
-		}
+	if (_airspeed_pub == nullptr) {
+		PX4_WARN("uORB started?");
 	}
 
 	ret = OK;
@@ -179,7 +155,7 @@ Airspeed::probe()
 }
 
 int
-Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
+Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -192,7 +168,7 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 				_measure_ticks = 0;
 				return OK;
 
-			/* external signalling (DRDY) not supported */
+			/* external signaling (DRDY) not supported */
 			case SENSOR_POLLRATE_EXTERNAL:
 
 			/* zero would be bad */
@@ -255,14 +231,14 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -294,7 +270,7 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-Airspeed::read(struct file *filp, char *buffer, size_t buflen)
+Airspeed::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(differential_pressure_s);
 	differential_pressure_s *abuf = reinterpret_cast<differential_pressure_s *>(buffer);
@@ -409,7 +385,6 @@ Airspeed::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	warnx("poll interval:  %u ticks", _measure_ticks);
 	_reports->print_info("report queue");
 }
@@ -417,7 +392,5 @@ Airspeed::print_info()
 void
 Airspeed::new_report(const differential_pressure_s &report)
 {
-	if (!_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&report);
 }

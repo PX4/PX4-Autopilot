@@ -47,6 +47,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_log.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -70,7 +71,7 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -80,6 +81,7 @@
 #include <systemlib/hardfault_log.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/param/param.h>
 
 #include "up_internal.h"
 /****************************************************************************
@@ -87,22 +89,6 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -155,7 +141,7 @@ __EXPORT void board_rc_input(bool invert_on)
 		cr2 &= ~(USART_CR2_RXINV | USART_CR2_TXINV);
 	}
 
-	putreg32(cr2, STM32_USART_CR1_OFFSET + RC_UXART_BASE);
+	putreg32(cr2, STM32_USART_CR2_OFFSET + RC_UXART_BASE);
 	putreg32(cr1, STM32_USART_CR1_OFFSET + RC_UXART_BASE);
 
 	leave_critical_section(irqstate);
@@ -171,12 +157,12 @@ __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
 
-	stm32_gpiowrite(GPIO_PERIPH_5V_EN, 0);
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+	VDD_5V_PERIPH_EN(false);
+	VDD_3V3_SENSORS_EN(false);
 
-	bool last = stm32_gpioread(GPIO_SPEKTRUM_POWER_EN);
+	bool last = READ_VDD_3V3_SPEKTRUM_POWER_EN();
 	/* Keep Spektum on to discharge rail*/
-	stm32_gpiowrite(GPIO_SPEKTRUM_POWER_EN, 1);
+	VDD_3V3_SPEKTRUM_POWER_EN(false);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -185,11 +171,35 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_SPEKTRUM_POWER_EN, last);
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
-	stm32_gpiowrite(GPIO_PERIPH_5V_EN, 1);
+	VDD_3V3_SPEKTRUM_POWER_EN(last);
+	VDD_3V3_SENSORS_EN(true);
+	VDD_5V_PERIPH_EN(true);
 
 }
+
+/************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+__EXPORT void board_on_reset(int status)
+{
+	/* configure the GPIO pins to outputs and keep them low */
+
+	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
+	board_gpio_init(gpio, arraySize(gpio));
+
+	if (status >= 0) {
+		up_mdelay(6);
+	}
+}
+
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -204,64 +214,24 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	board_on_reset(-1); /* Reset PWM first thing */
+
 	/* configure LEDs */
+
 	board_autoled_initialize();
 
-	/* configure the GPIO pins to outputs and keep them low */
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
-	stm32_configgpio(GPIO_GPIO1_OUTPUT);
-	stm32_configgpio(GPIO_GPIO2_OUTPUT);
-	stm32_configgpio(GPIO_GPIO3_OUTPUT);
-	stm32_configgpio(GPIO_GPIO4_OUTPUT);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+	/* configure pins */
 
-	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN0);	/* ADC_BATTERY_VOLTAGE_CHANNEL  */
-	stm32_configgpio(GPIO_ADC1_IN1);	/* ADC_BATTERY_CURRENT_CHANNEL */
-	stm32_configgpio(GPIO_ADC1_IN2);	/* ADC_BATTERY1_VOLTAGE_CHANNEL */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* ADC_BATTERY1_CURRENT_CHANNEL */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* ADC_5V_RAIL_SENSE */
-	stm32_configgpio(GPIO_ADC1_IN8);	/* ADC_RC_RSSI_CHANNEL */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* ADC_INT_1 */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* ADC_INT_2 */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* ADC_INT_3 */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* ADC_INT_4 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* ADC_INT_5 */
-
-	/* Configure the HEATER off */
-
-	stm32_configgpio(GPIO_HEATER);
-
-
-	/* Configure the CAN Silent Control pins and keep them low */
-
-	stm32_configgpio(GPIO_CAN1_SILENCE);
-	stm32_configgpio(GPIO_CAN2_SILENCE);
-	stm32_configgpio(GPIO_CAN3_SILENCE);
-
-	/* configure power supply control/sense pins */
-
-	stm32_configgpio(GPIO_POWER_IN_A);
-	stm32_configgpio(GPIO_POWER_IN_B);
-	stm32_configgpio(GPIO_POWER_IN_C);
-
-	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_PERIPH_5V_EN);
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	stm32_configgpio(GPIO_VDD_3V3V_SD_CARD_EN);
-	stm32_configgpio(GPIO_VDD_5V_RC_EN);
-	stm32_configgpio(GPIO_VDD_5V_WIFI_EN);
-	stm32_configgpio(GPIO_SPEKTRUM_POWER_EN);
-
-	stm32_configgpio(GPIO_LED_SAFETY);
-	stm32_configgpio(GPIO_BTN_SAFETY);
-
-#ifdef GPIO_RC_OUT
-	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
-#endif
+	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
+	board_gpio_init(gpio, arraySize(gpio));
 
 	/* configure SPI interfaces */
+
 	stm32_spiinitialize();
+
+	/* configure USB interfaces */
+
+	stm32_usbinitialize();
 
 }
 
@@ -293,6 +263,15 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	/* Power on Interfaces */
+
+	VDD_3V3_SD_CARD_EN(true);
+	VDD_5V_PERIPH_EN(true);
+	VDD_5V_HIPOWER_EN(true);
+	VDD_3V3_SENSORS_EN(true);
+	VDD_3V3_SPEKTRUM_POWER_EN(true);
+	VDD_5V_RC_EN(true);
+	VDD_5V_WIFI_EN(true);
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
@@ -311,10 +290,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
+	param_init();
+
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
+		PX4_ERR("DMA alloc FAILED");
 	}
 
 	/* configure CPU load estimation */
@@ -339,7 +320,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
-#if defined(CONFIG_STM32_BBSRAM)
+#if defined(CONFIG_STM32F7_BBSRAM)
 
 	/* NB. the use of the console requires the hrt running
 	 * to poll the DMA
@@ -347,11 +328,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Using Battery Backed Up SRAM */
 
-	int filesizes[CONFIG_STM32_BBSRAM_FILES + 1] = BSRAM_FILE_SIZES;
+	int filesizes[CONFIG_STM32F7_BBSRAM_FILES + 1] = BSRAM_FILE_SIZES;
 
 	stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
 
-#if defined(CONFIG_STM32_SAVE_CRASHDUMP)
+#if defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
 
 	/* Panic Logging in Battery Backed Up Files */
 
@@ -376,7 +357,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (hadCrash == OK) {
 
-		message("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+		PX4_ERR("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
 			" while booting to halt the system!\n");
 
 		/* Yes. So add one to the boot count - this will be reset after a successful
@@ -398,7 +379,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 			hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
-			message("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
+			PX4_ERR("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
 				reboots,
 				(bytesWaiting == 0 ? "" : " Due to Key Press\n"));
 
@@ -451,7 +432,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 						break;
 					} // Inner Switch
 
-					message("\nEnter B - Continue booting\n" \
+					PX4_ERR("\nEnter B - Continue booting\n" \
 						"Enter C - Clear the fault log\n" \
 						"Enter D - Dump fault log\n\n?>");
 					fflush(stdout);
@@ -468,8 +449,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		} // inner if
 	} // outer if
 
-#endif // CONFIG_STM32_SAVE_CRASHDUMP
-#endif // CONFIG_STM32_BBSRAM
+#endif // CONFIG_STM32F7_SAVE_CRASHDUMP
+#endif // CONFIG_STM32F7_BBSRAM
 
 	/* initial LED state */
 	drv_led_start();
@@ -488,6 +469,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 #ifdef CONFIG_MMCSD
+
 	ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
@@ -498,158 +480,4 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	return OK;
-}
-
-static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
-{
-	while (size--) {
-		*dest++ = *src--;
-	}
-}
-
-__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
-{
-	/* We need a chunk of ram to save the complete context in.
-	 * Since we are going to reboot we will use &_sdata
-	 * which is the lowest memory and the amount we will save
-	 * _should be_ below any resources we need herein.
-	 * Unfortunately this is hard to test. See dead below
-	 */
-
-	fullcontext_s *pdump = (fullcontext_s *)&_sdata;
-
-	(void)enter_critical_section();
-
-	struct tcb_s *rtcb = (struct tcb_s *)tcb;
-
-	/* Zero out everything */
-
-	memset(pdump, 0, sizeof(fullcontext_s));
-
-	/* Save Info */
-
-	pdump->info.lineno = lineno;
-
-	if (filename) {
-
-		int offset = 0;
-		unsigned int len = strlen((char *)filename) + 1;
-
-		if (len > sizeof(pdump->info.filename)) {
-			offset = len - sizeof(pdump->info.filename) ;
-		}
-
-		strncpy(pdump->info.filename, (char *)&filename[offset], sizeof(pdump->info.filename));
-	}
-
-	/* Save the value of the pointer for current_regs as debugging info.
-	 * It should be NULL in case of an ASSERT and will aid in cross
-	 * checking the validity of system memory at the time of the
-	 * fault.
-	 */
-
-	pdump->info.current_regs = (uintptr_t) CURRENT_REGS;
-
-	/* Save Context */
-
-
-#if CONFIG_TASK_NAME_SIZE > 0
-	strncpy(pdump->info.name, rtcb->name, CONFIG_TASK_NAME_SIZE);
-#endif
-
-	pdump->info.pid = rtcb->pid;
-
-
-	/* If  current_regs is not NULL then we are in an interrupt context
-	 * and the user context is in current_regs else we are running in
-	 * the users context
-	 */
-
-	if (CURRENT_REGS) {
-		pdump->info.stacks.interrupt.sp = currentsp;
-
-		pdump->info.flags |= (eRegsPresent | eUserStackPresent | eIntStackPresent);
-		memcpy(pdump->info.regs, (void *)CURRENT_REGS, sizeof(pdump->info.regs));
-		pdump->info.stacks.user.sp = pdump->info.regs[REG_R13];
-
-	} else {
-
-		/* users context */
-		pdump->info.flags |= eUserStackPresent;
-
-		pdump->info.stacks.user.sp = currentsp;
-	}
-
-	if (pdump->info.pid == 0) {
-
-		pdump->info.stacks.user.top = g_idle_topstack - 4;
-		pdump->info.stacks.user.size = CONFIG_IDLETHREAD_STACKSIZE;
-
-	} else {
-		pdump->info.stacks.user.top = (uint32_t) rtcb->adj_stack_ptr;
-		pdump->info.stacks.user.size = (uint32_t) rtcb->adj_stack_size;;
-	}
-
-#if CONFIG_ARCH_INTERRUPTSTACK > 3
-
-	/* Get the limits on the interrupt stack memory */
-
-	pdump->info.stacks.interrupt.top = (uint32_t)&g_intstackbase;
-	pdump->info.stacks.interrupt.size  = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
-
-	/* If In interrupt Context save the interrupt stack data centered
-	 * about the interrupt stack pointer
-	 */
-
-	if ((pdump->info.flags & eIntStackPresent) != 0) {
-		stack_word_t *ps = (stack_word_t *) pdump->info.stacks.interrupt.sp;
-		copy_reverse(pdump->istack, &ps[arraySize(pdump->istack) / 2], arraySize(pdump->istack));
-	}
-
-	/* Is it Invalid? */
-
-	if (!(pdump->info.stacks.interrupt.sp <= pdump->info.stacks.interrupt.top &&
-	      pdump->info.stacks.interrupt.sp > pdump->info.stacks.interrupt.top - pdump->info.stacks.interrupt.size)) {
-		pdump->info.flags |= eInvalidIntStackPrt;
-	}
-
-#endif
-
-	/* If In interrupt context or User save the user stack data centered
-	 * about the user stack pointer
-	 */
-	if ((pdump->info.flags & eUserStackPresent) != 0) {
-		stack_word_t *ps = (stack_word_t *) pdump->info.stacks.user.sp;
-		copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack) / 2], arraySize(pdump->ustack));
-	}
-
-	/* Is it Invalid? */
-
-	if (!(pdump->info.stacks.user.sp <= pdump->info.stacks.user.top &&
-	      pdump->info.stacks.user.sp > pdump->info.stacks.user.top - pdump->info.stacks.user.size)) {
-		pdump->info.flags |= eInvalidUserStackPtr;
-	}
-
-	int rv = stm32_bbsram_savepanic(HARDFAULT_FILENO, (uint8_t *)pdump, sizeof(fullcontext_s));
-
-	/* Test if memory got wiped because of using _sdata */
-
-	if (rv == -ENXIO) {
-		char *dead = "Memory wiped - dump not saved!";
-
-		while (*dead) {
-			up_lowputc(*dead++);
-		}
-
-	} else if (rv == -ENOSPC) {
-
-		/* hard fault again */
-
-		up_lowputc('!');
-	}
-
-
-#if defined(CONFIG_BOARD_RESET_ON_CRASH)
-	px4_systemreset(false);
-#endif
 }

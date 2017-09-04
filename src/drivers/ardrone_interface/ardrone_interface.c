@@ -344,29 +344,29 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		}
 
 		if (counter % 24 == 0) {
-			if (led_counter == 0) { ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0); }
+			if (led_counter == 0) { ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0, 0); }
 
-			if (led_counter == 1) { ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0); }
+			if (led_counter == 1) { ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0, 0); }
 
-			if (led_counter == 2) { ar_set_leds(ardrone_write, 1, 0, 0, 0, 0, 0, 0 , 0); }
+			if (led_counter == 2) { ar_set_leds(ardrone_write, 1, 0, 0, 0, 0, 0, 0, 0); }
 
-			if (led_counter == 3) { ar_set_leds(ardrone_write, 0, 0, 0, 1, 0, 0, 0 , 0); }
+			if (led_counter == 3) { ar_set_leds(ardrone_write, 0, 0, 0, 1, 0, 0, 0, 0); }
 
-			if (led_counter == 4) { ar_set_leds(ardrone_write, 0, 0, 1, 1, 0, 0, 0 , 0); }
+			if (led_counter == 4) { ar_set_leds(ardrone_write, 0, 0, 1, 1, 0, 0, 0, 0); }
 
-			if (led_counter == 5) { ar_set_leds(ardrone_write, 0, 0, 1, 0, 0, 0, 0 , 0); }
+			if (led_counter == 5) { ar_set_leds(ardrone_write, 0, 0, 1, 0, 0, 0, 0, 0); }
 
-			if (led_counter == 6) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 1, 0 , 0); }
+			if (led_counter == 6) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 1, 0, 0); }
 
-			if (led_counter == 7) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 1, 0 , 0); }
+			if (led_counter == 7) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 1, 0, 0); }
 
-			if (led_counter == 8) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 0, 0 , 0); }
+			if (led_counter == 8) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 0, 0, 0); }
 
-			if (led_counter == 9) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 0 , 1); }
+			if (led_counter == 9) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 0, 1); }
 
-			if (led_counter == 10) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 1); }
+			if (led_counter == 10) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1, 1); }
 
-			if (led_counter == 11) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 0); }
+			if (led_counter == 11) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1, 0); }
 
 			led_counter++;
 

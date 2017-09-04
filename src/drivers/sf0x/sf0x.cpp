@@ -130,7 +130,6 @@ private:
 
 	perf_counter_t			_sample_perf;
 	perf_counter_t			_comms_errors;
-	perf_counter_t			_buffer_overflows;
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -196,8 +195,7 @@ SF0X::SF0X(const char *port) :
 	_distance_sensor_topic(nullptr),
 	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "sf0x_com_err")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buf_of"))
+	_comms_errors(perf_alloc(PC_COUNT, "sf0x_com_err"))
 {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port));
@@ -262,7 +260,6 @@ SF0X::~SF0X()
 
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 }
 
 int
@@ -645,9 +642,7 @@ SF0X::collect()
 	/* publish it */
 	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 
-	if (_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -782,7 +777,6 @@ SF0X::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %d ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 }

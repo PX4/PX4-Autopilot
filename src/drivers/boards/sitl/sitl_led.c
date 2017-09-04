@@ -48,7 +48,7 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-static bool _led_state[2] = { false , false };
+static bool _led_state[2] = { false, false };
 
 __EXPORT void led_init()
 {

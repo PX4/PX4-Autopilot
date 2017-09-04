@@ -80,11 +80,11 @@
 #define GPIO_RELAY2_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN11)
 
 #define GPIO_SPEKTRUM_PWR_EN GPIO_RELAY1_EN
-#define POWER_SPEKTRUM(_s)		px4_arch_gpiowrite(GPIO_RELAY1_EN, (_s))
+#define SPEKTRUM_POWER(_on_true)     px4_arch_gpiowrite(GPIO_RELAY1_EN, (_on_true))
 
-#define SPEKTRUM_RX_HIGH(_s)	px4_arch_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_s))
-#define SPEKTRUM_RX_AS_UART()		px4_arch_configgpio(GPIO_USART1_RX)
-#define SPEKTRUM_RX_AS_GPIO()		px4_arch_configgpio(GPIO_USART1_RX_SPEKTRUM)
+#define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_one_true))
+#define SPEKTRUM_RX_AS_UART()        px4_arch_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_USART1_RX_SPEKTRUM)
 
 /* Analog inputs ********************************************************************/
 
@@ -96,5 +96,5 @@
  */
 #define HRT_TIMER		1	/* use timer1 for the HRT */
 #define HRT_TIMER_CHANNEL	2	/* use capture/compare channel 2 */
-#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 */
-#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTE|GPIO_PIN9)
+#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 PA8 */
+#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTA|GPIO_PIN8)

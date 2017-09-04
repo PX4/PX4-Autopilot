@@ -61,8 +61,8 @@ uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
 extern unsigned char *adsp_changed_index;
 
 struct param_wbuf_s {
-	param_t param;
 	union param_value_u val;
+	param_t param;
 	bool unsaved;
 };
 

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -63,15 +63,17 @@ public:
 	 *                     subsequent calls to update() that return no new data
 	 *                     (in other words: if (some) control_data values change,
 	 *                     non-null will be returned).
+	 * @param already_active true if the mode was already active last time, false if it was not and "major"
+	 *                       change is necessary such as big stick movement for RC.
 	 * @return 0 on success, <0 otherwise
 	 */
-	virtual int update(unsigned int timeout_ms, ControlData **control_data);
+	virtual int update(unsigned int timeout_ms, ControlData **control_data, bool already_active);
 
 	/** report status to stdout */
 	virtual void print_status() = 0;
 
 protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data) = 0;
+	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active) = 0;
 
 	virtual int initialize() { return 0; }
 

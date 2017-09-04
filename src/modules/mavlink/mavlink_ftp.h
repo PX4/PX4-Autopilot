@@ -39,22 +39,27 @@
 #include <dirent.h>
 #include <queue.h>
 
+#include <px4_defines.h>
 #include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
-#include "mavlink_stream.h"
 #include "mavlink_bridge_header.h"
 
 class MavlinkFtpTest;
+class Mavlink;
 
 /// MAVLink remote file server. Support FTP like commands using MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL message.
-class MavlinkFTP : public MavlinkStream
+class MavlinkFTP
 {
 public:
-	/// @brief Constructor is only public so unit test code can new objects.
 	MavlinkFTP(Mavlink *mavlink);
 	~MavlinkFTP();
 
-	static MavlinkStream *new_instance(Mavlink *mavlink);
+	/**
+	 * Handle sending of messages. Call this regularly at a fixed frequency.
+	 * @param t current time
+	 */
+	void send(const hrt_abstime t);
 
 	/// Handle possible FTP message
 	void handle_message(const mavlink_message_t *msg);
@@ -115,10 +120,7 @@ public:
 		kErrUnknownCommand		///< Unknown command opcode
 	};
 
-	// MavlinkStream overrides
-	virtual const char *get_name(void) const;
-	virtual uint16_t get_id(void);
-	virtual unsigned get_size(void);
+	unsigned get_size();
 
 private:
 	char		*_data_as_cstring(PayloadHeader *payload);
@@ -145,8 +147,11 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
-	// Overrides from MavlinkStream
-	virtual void send(const hrt_abstime t);
+	/**
+	 * make sure that the working buffers _work_buffer* are allocated
+	 * @return true if buffers exist, false if allocation failed
+	 */
+	bool _ensure_buffers_exist();
 
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
@@ -169,10 +174,27 @@ private:
 	ReceiveMessageFunc_t	_utRcvMsgFunc;	///< Unit test override for mavlink message sending
 	void			*_worker_data;	///< Additional parameter to _utRcvMsgFunc;
 
+	Mavlink *_mavlink;
+
 	/* do not allow copying this class */
 	MavlinkFTP(const MavlinkFTP &);
 	MavlinkFTP operator=(const MavlinkFTP &);
 
+	/* work buffers: they're allocated as soon as we get the first request (lazy, since FTP is rarely used) */
+	char *_work_buffer1;
+	static constexpr int _work_buffer1_len = kMaxDataLength;
+	char *_work_buffer2;
+	static constexpr int _work_buffer2_len = 256;
+	hrt_abstime _last_work_buffer_access; ///< timestamp when the buffers were last accessed
+
+	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
+	// Note that requests can still fall outside of the root dir by using ../..
+#ifdef MAVLINK_FTP_UNIT_TEST
+	static constexpr const char _root_dir[] = "";
+#else
+	static constexpr const char _root_dir[] = PX4_ROOTFSDIR;
+#endif
+	static constexpr const int _root_dir_len = sizeof(_root_dir) - 1;
 
 	// Mavlink test needs to be able to call send
 	friend class MavlinkFtpTest;

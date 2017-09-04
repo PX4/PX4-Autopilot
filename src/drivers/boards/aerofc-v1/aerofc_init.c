@@ -65,13 +65,16 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
+
+#include <dataman/dataman.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
 #include <systemlib/err.h>
 #include <systemlib/hardfault_log.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/param/param.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <systemlib/flashparams/flashfs.h>
@@ -113,6 +116,19 @@ extern void led_off(int led);
 __END_DECLS
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int _bootloader_force_pin_callback(int irq, void *context)
+{
+	if (stm32_gpioread(GPIO_FORCE_BOOTLOADER)) {
+		board_reset(0);
+	}
+
+	return 0;
+}
+
+/****************************************************************************
  * Protected Functions
  ****************************************************************************/
 
@@ -125,15 +141,17 @@ __END_DECLS
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
 
 __EXPORT void stm32_boardinitialize(void)
 {
-	/* configure LEDs */
+	stm32_configgpio(GPIO_FORCE_BOOTLOADER);
+	_bootloader_force_pin_callback(0, NULL);
 
+	/* configure LEDs */
 	board_autoled_initialize();
 
 	/* turn sensors on */
@@ -156,6 +174,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	int result;
 
+	/* the interruption subsystem is not initialized when stm32_boardinitialize() is called */
+	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback);
+
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */
@@ -173,11 +194,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
-	/* configure the DMA allocator */
-
-	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
-	}
+	param_init();
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -338,28 +355,32 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_AMBER);
 	led_off(LED_BLUE);
 
-#if defined(FLASH_BASED_PARAMS)
 	/*
 	 * Bootloader(sector 0):
 	 * start: 0x08000000, len: 16K, end: 0x08003E80
 	 *
 	 * FlashFS(sector 1 and 2):
-	 * start: 0x08004000, len: 32K, end: 0x0800C000
+	 * start: 0x08004000, len: 32K, end: 0x0800BFFF
 	 *
 	 * Firmware(sector 3 to 11):
-	 * start: 0x0800C000, len: 976K, end: 0x080FA480
+	 * start: 0x0800C000, len: 976K, end: 0x080FFFFF
 	 *
-	 * First 1MB memory bank complete.
-	 * Second 1MB memory bank is reserved for future use.
+	 * Dataman(sector 23):
+	 * start: 0x081E0000, len: 128K, end: 0x08200000
+	 *
+	 * First 1MB memory bank complete assigned.
+	 * Second 1MB memory bank is mostly empty.
 	 */
-	static sector_descriptor_t  sector_map[] = {
+
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t params_sector_map[] = {
 		{1, 16 * 1024, 0x08004000},
 		{2, 16 * 1024, 0x08008000},
 		{0, 0, 0},
 	};
 
 	/* Initialize the flashfs layer to use heap allocated memory */
-	result = parameter_flashfs_init(sector_map, NULL, 0);
+	result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
 	if (result != OK) {
 		message("[boot] FAILED to init params in FLASH %d\n", result);
@@ -369,159 +390,17 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
-	return OK;
-}
+#if defined(FLASH_BASED_DATAMAN)
+	static dm_sector_descriptor_t dm_sector_map = {23, 128 * 1024, 0x081E0000};
+	dm_flash_sector_description_set(&dm_sector_map);
+#endif
 
-static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
-{
-	while (size--) {
-		*dest++ = *src--;
-	}
+	return OK;
 }
 
 __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
 {
-	/* We need a chunk of ram to save the complete context in.
-	 * Since we are going to reboot we will use &_sdata
-	 * which is the lowest memory and the amount we will save
-	 * _should be_ below any resources we need herein.
-	 * Unfortunately this is hard to test. See dead below
-	 */
-
-	fullcontext_s *pdump = (fullcontext_s *)&_sdata;
-
-	(void)enter_critical_section();
-
-	struct tcb_s *rtcb = (struct tcb_s *)tcb;
-
-	/* Zero out everything */
-
-	memset(pdump, 0, sizeof(fullcontext_s));
-
-	/* Save Info */
-
-	pdump->info.lineno = lineno;
-
-	if (filename) {
-
-		int offset = 0;
-		unsigned int len = strlen((char *)filename) + 1;
-
-		if (len > sizeof(pdump->info.filename)) {
-			offset = len - sizeof(pdump->info.filename) ;
-		}
-
-		strncpy(pdump->info.filename, (char *)&filename[offset], sizeof(pdump->info.filename));
-	}
-
-	/* Save the value of the pointer for current_regs as debugging info.
-	 * It should be NULL in case of an ASSERT and will aid in cross
-	 * checking the validity of system memory at the time of the
-	 * fault.
-	 */
-
-	pdump->info.current_regs = (uintptr_t) CURRENT_REGS;
-
-	/* Save Context */
-
-
-#if CONFIG_TASK_NAME_SIZE > 0
-	strncpy(pdump->info.name, rtcb->name, CONFIG_TASK_NAME_SIZE);
-#endif
-
-	pdump->info.pid = rtcb->pid;
-
-
-	/* If  current_regs is not NULL then we are in an interrupt context
-	 * and the user context is in current_regs else we are running in
-	 * the users context
-	 */
-
-	if (CURRENT_REGS) {
-		pdump->info.stacks.interrupt.sp = currentsp;
-
-		pdump->info.flags |= (eRegsPresent | eUserStackPresent | eIntStackPresent);
-		memcpy(pdump->info.regs, (void *)CURRENT_REGS, sizeof(pdump->info.regs));
-		pdump->info.stacks.user.sp = pdump->info.regs[REG_R13];
-
-	} else {
-
-		/* users context */
-		pdump->info.flags |= eUserStackPresent;
-
-		pdump->info.stacks.user.sp = currentsp;
-	}
-
-	if (pdump->info.pid == 0) {
-
-		pdump->info.stacks.user.top = g_idle_topstack - 4;
-		pdump->info.stacks.user.size = CONFIG_IDLETHREAD_STACKSIZE;
-
-	} else {
-		pdump->info.stacks.user.top = (uint32_t) rtcb->adj_stack_ptr;
-		pdump->info.stacks.user.size = (uint32_t) rtcb->adj_stack_size;;
-	}
-
-#if CONFIG_ARCH_INTERRUPTSTACK > 3
-
-	/* Get the limits on the interrupt stack memory */
-
-	pdump->info.stacks.interrupt.top = (uint32_t)&g_intstackbase;
-	pdump->info.stacks.interrupt.size  = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
-
-	/* If In interrupt Context save the interrupt stack data centered
-	 * about the interrupt stack pointer
-	 */
-
-	if ((pdump->info.flags & eIntStackPresent) != 0) {
-		stack_word_t *ps = (stack_word_t *) pdump->info.stacks.interrupt.sp;
-		copy_reverse(pdump->istack, &ps[arraySize(pdump->istack) / 2], arraySize(pdump->istack));
-	}
-
-	/* Is it Invalid? */
-
-	if (!(pdump->info.stacks.interrupt.sp <= pdump->info.stacks.interrupt.top &&
-	      pdump->info.stacks.interrupt.sp > pdump->info.stacks.interrupt.top - pdump->info.stacks.interrupt.size)) {
-		pdump->info.flags |= eInvalidIntStackPrt;
-	}
-
-#endif
-
-	/* If In interrupt context or User save the user stack data centered
-	 * about the user stack pointer
-	 */
-	if ((pdump->info.flags & eUserStackPresent) != 0) {
-		stack_word_t *ps = (stack_word_t *) pdump->info.stacks.user.sp;
-		copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack) / 2], arraySize(pdump->ustack));
-	}
-
-	/* Is it Invalid? */
-
-	if (!(pdump->info.stacks.user.sp <= pdump->info.stacks.user.top &&
-	      pdump->info.stacks.user.sp > pdump->info.stacks.user.top - pdump->info.stacks.user.size)) {
-		pdump->info.flags |= eInvalidUserStackPtr;
-	}
-
-	int rv = stm32_bbsram_savepanic(HARDFAULT_FILENO, (uint8_t *)pdump, sizeof(fullcontext_s));
-
-	/* Test if memory got wiped because of using _sdata */
-
-	if (rv == -ENXIO) {
-		char *dead = "Memory wiped - dump not saved!";
-
-		while (*dead) {
-			up_lowputc(*dead++);
-		}
-
-	} else if (rv == -ENOSPC) {
-
-		/* hard fault again */
-
-		up_lowputc('!');
-	}
-
-
 #if defined(CONFIG_BOARD_RESET_ON_CRASH)
-	px4_systemreset(false);
+	board_reset(0);
 #endif
 }

@@ -110,7 +110,7 @@ typedef param_t px4_param_t;
  * NuttX specific defines.
  ****************************************************************************/
 
-#define PX4_ROOTFSDIR
+#define PX4_ROOTFSDIR ""
 #define _PX4_IOC(x,y) _IOC(x,y)
 #define px4_statfs_buf_f_bavail_t int
 
@@ -174,7 +174,7 @@ using ::isfinite;
 
 // QURT specific
 #  include "dspal_math.h"
-#  define PX4_ROOTFSDIR
+#  define PX4_ROOTFSDIR ""
 #  define PX4_TICKS_PER_SEC 1000L
 #  define SIOCDEVPRIVATE 999999
 
@@ -192,7 +192,7 @@ __BEGIN_DECLS
 extern long PX4_TICKS_PER_SEC;
 __END_DECLS
 
-#  if defined(__PX4_POSIX_EAGLE)
+#  if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
 #    define PX4_ROOTFSDIR "/home/linaro"
 #  elif defined(__PX4_POSIX_BEBOP)
 #    define PX4_ROOTFSDIR "/data/ftp/internal_000"

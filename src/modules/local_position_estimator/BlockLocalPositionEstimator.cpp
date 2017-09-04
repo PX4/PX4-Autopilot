@@ -20,7 +20,7 @@ static const char *msg_label = "[lpe] ";  // rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
-	SuperBlock(NULL, "LPE"),
+	SuperBlock(nullptr, "LPE"),
 	// subscriptions, set rate, add to list
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
 	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
@@ -34,8 +34,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_manual(ORB_ID(manual_control_setpoint), 1000 / 2, 0, &getSubscriptions()),
 	// gps 10 hz
 	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
-	// vision 30 hz
-	_sub_vision_pos(ORB_ID(vision_position_estimate), 1000 / 30, 0, &getSubscriptions()),
+	// vision 50 hz
+	_sub_vision_pos(ORB_ID(vehicle_vision_position), 1000 / 50, 0, &getSubscriptions()),
 	// mocap 50 hz
 	_sub_mocap(ORB_ID(att_pos_mocap), 1000 / 50, 0, &getSubscriptions()),
 	// all distance sensors, 10 hz
@@ -44,8 +44,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_dist2(ORB_ID(distance_sensor), 1000 / 10, 2, &getSubscriptions()),
 	_sub_dist3(ORB_ID(distance_sensor), 1000 / 10, 3, &getSubscriptions()),
 	_dist_subs(),
-	_sub_lidar(NULL),
-	_sub_sonar(NULL),
+	_sub_lidar(nullptr),
+	_sub_sonar(nullptr),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -94,6 +94,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_t_max_grade(this, "T_MAX_GRADE"),
 
 	// init origin
+	_fake_origin(this, "FAKE_ORIGIN"),
 	_init_origin_lat(this, "LAT"),
 	_init_origin_lon(this, "LON"),
 
@@ -122,6 +123,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// misc
 	_polls(),
 	_timeStamp(hrt_absolute_time()),
+	_time_origin(0),
 	_timeStampLastBaro(hrt_absolute_time()),
 	_time_last_hist(0),
 	_time_last_flow(0),
@@ -147,10 +149,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// masks
 	_sensorTimeout(255),
 	_sensorFault(0),
-	_estimatorInitialized(0),
-
-	// kf matrices
-	_x(), _u(), _P(), _R_att(), _eul()
+	_estimatorInitialized(0)
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -223,7 +222,7 @@ void BlockLocalPositionEstimator::update()
 	// auto-detect connected rangefinders while not armed
 	bool armedState = _sub_armed.get().armed;
 
-	if (!armedState && (_sub_lidar == NULL || _sub_sonar == NULL)) {
+	if (!armedState && (_sub_lidar == nullptr || _sub_sonar == nullptr)) {
 
 		// detect distance sensors
 		for (int i = 0; i < N_DIST_SUBS; i++) {
@@ -238,13 +237,13 @@ void BlockLocalPositionEstimator::update()
 
 				if (s->get().type == \
 				    distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
-				    _sub_lidar == NULL) {
+				    _sub_lidar == nullptr) {
 					_sub_lidar = s;
 					mavlink_and_console_log_info(&mavlink_log_pub, "%sLidar detected with ID %i", msg_label, i);
 
 				} else if (s->get().type == \
 					   distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
-					   _sub_sonar == NULL) {
+					   _sub_sonar == nullptr) {
 					_sub_sonar = s;
 					mavlink_and_console_log_info(&mavlink_log_pub, "%sSonar detected with ID %i", msg_label, i);
 				}
@@ -281,7 +280,6 @@ void BlockLocalPositionEstimator::update()
 	_lastArmedState = armedState;
 
 	// see which updates are available
-	bool flowUpdated = _sub_flow.updated();
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = false;
 
@@ -299,11 +297,12 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
+	bool flowUpdated = (_fusion.get() & FUSE_FLOW) && _sub_flow.updated();
 	bool gpsUpdated = (_fusion.get() & FUSE_GPS) && _sub_gps.updated();
 	bool visionUpdated = (_fusion.get() & FUSE_VIS_POS) && _sub_vision_pos.updated();
 	bool mocapUpdated = _sub_mocap.updated();
-	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
-	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
+	bool lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
+	bool sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
 	bool landUpdated = landed()
 			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle rate
 
@@ -374,11 +373,18 @@ void BlockLocalPositionEstimator::update()
 	// check timeouts
 	checkTimeouts();
 
-	// if we have no lat, lon initialize projection at 0,0
-	if ((_estimatorInitialized & EST_XY) && !_map_ref.init_done) {
+	// if we have no lat, lon initialize projection to LPE_LAT, LPE_LON parameters
+	if (!_map_ref.init_done && (_estimatorInitialized & EST_XY) && _fake_origin.get()) {
 		map_projection_init(&_map_ref,
 				    _init_origin_lat.get(),
 				    _init_origin_lon.get());
+
+		// set timestamp when origin was set to current time
+		_time_origin = _timeStamp;
+
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
+					     double(_init_origin_lat.get()), double(_init_origin_lon.get()), double(_altOrigin));
+
 	}
 
 	// reinitialize x if necessary
@@ -520,7 +526,7 @@ void BlockLocalPositionEstimator::update()
 		publishEstimatorStatus();
 		_pub_innov.update();
 
-		if ((_estimatorInitialized & EST_XY)) {
+		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _fake_origin.get())) {
 			publishGlobalPos();
 		}
 	}
@@ -558,11 +564,7 @@ bool BlockLocalPositionEstimator::landed()
 
 	bool disarmed_not_falling = (!_sub_armed.get().armed) && (!_sub_land.get().freefall);
 
-	if (!(_sub_land.get().landed || disarmed_not_falling)) {
-		return false;
-	}
-
-	return true;
+	return _sub_land.get().landed || disarmed_not_falling;
 }
 
 void BlockLocalPositionEstimator::publishLocalPos()
@@ -609,10 +611,13 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vy = xLP(X_vy); // east
 		_pub_lpos.get().vz = xLP(X_vz); // down
 
+		// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+		_pub_lpos.get().z_deriv = xLP(X_vz);
+
 		_pub_lpos.get().yaw = _eul(2);
 		_pub_lpos.get().xy_global = _estimatorInitialized & EST_XY;
 		_pub_lpos.get().z_global = !(_sensorTimeout & SENSOR_BARO);
-		_pub_lpos.get().ref_timestamp = _timeStamp;
+		_pub_lpos.get().ref_timestamp = _time_origin;
 		_pub_lpos.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
 		_pub_lpos.get().ref_alt = _altOrigin;
@@ -627,6 +632,9 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().eph = eph;
 		_pub_lpos.get().epv = epv;
 		_pub_lpos.update();
+		//TODO provide calculated values for these
+		_pub_lpos.get().evh = 0.0f;
+		_pub_lpos.get().evv = 0.0f;
 	}
 }
 
@@ -686,6 +694,10 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().vel_n = xLP(X_vx);
 		_pub_gpos.get().vel_e = xLP(X_vy);
 		_pub_gpos.get().vel_d = xLP(X_vz);
+
+		// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+		_pub_gpos.get().pos_d_deriv = xLP(X_vz);
+
 		_pub_gpos.get().yaw = _eul(2);
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
@@ -694,6 +706,9 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().dead_reckoning = !(_estimatorInitialized & EST_XY);
 		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter;
 		_pub_gpos.update();
+		// TODO provide calculated values for these
+		_pub_gpos.get().evh = 0.0f;
+		_pub_gpos.get().evv = 0.0f;
 	}
 }
 

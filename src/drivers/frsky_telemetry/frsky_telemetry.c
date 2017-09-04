@@ -55,6 +55,7 @@
 #include <unistd.h>
 
 #include <px4_tasks.h>
+#include <px4_module.h>
 #include <systemlib/err.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
@@ -63,6 +64,7 @@
 
 #include "sPort_data.h"
 #include "frsky_data.h"
+#include "common.h"
 
 
 /* thread state */
@@ -79,7 +81,44 @@ static void usage(void);
 static int frsky_telemetry_thread_main(int argc, char *argv[]);
 __EXPORT int frsky_telemetry_main(int argc, char *argv[]);
 
-#define DEBUG
+
+uint16_t get_telemetry_flight_mode(int px4_flight_mode)
+{
+	// map the flight modes (see https://github.com/ilihack/LuaPilot_Taranis_Telemetry/blob/master/SCRIPTS/TELEMETRY/LuaPil.lua#L790)
+	switch (px4_flight_mode) {
+	case 0: return 18; // manual
+
+	case 1: return 23; // alt control
+
+	case 2: return 22; // pos control
+
+	case 3: return 27; // mission
+
+	case 4: return 26; // loiter
+
+	case 5:
+	case 6:
+	case 7: return 28; // rtl
+
+	case 10: return 19; // acro
+
+	case 14: return 24; // offboard
+
+	case 15: return 20; // stabilized
+
+	case 16: return 21; // rattitude
+
+	case 17: return 25; // takeoff
+
+	case 8:
+	case 9:
+	case 18: return 29; // land
+
+	case 19: return 30; // follow target
+	}
+
+	return -1;
+}
 
 /**
  * Opens the UART device and sets all required serial parameters.
@@ -109,7 +148,7 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config, s
 	uart_config->c_oflag &= ~OPOST;
 
 	/* Set baud rate */
-	static const speed_t speed = B9600;
+	const speed_t speed = B9600;
 
 	if (cfsetispeed(uart_config, speed) < 0 || cfsetospeed(uart_config, speed) < 0) {
 		warnx("ERR: %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
@@ -145,10 +184,13 @@ static int set_uart_speed(int uart, struct termios *uart_config, speed_t speed)
  */
 static void usage()
 {
-	fprintf(stderr,
-		"usage: frsky_telemetry start [-d <devicename>]\n"
-		"       frsky_telemetry stop\n"
-		"       frsky_telemetry status\n");
+	PRINT_MODULE_DESCRIPTION("FrSky Telemetry support. Auto-detects D or S.PORT protocol.");
+
+	PRINT_MODULE_USAGE_NAME("frsky_telemetry", "communication");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
 	exit(1);
 }
 
@@ -158,7 +200,7 @@ static void usage()
 static int frsky_telemetry_thread_main(int argc, char *argv[])
 {
 	/* Default values for arguments */
-	char *device_name = "/dev/ttyS6"; /* USART8 */
+	const char *device_name = "/dev/ttyS6"; /* USART8 */
 
 	/* Work around some stupidity in task_create's argv handling */
 	argc -= 2;
@@ -283,8 +325,19 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			err(1, "could not allocate memory");
 		}
 
-		static float filtered_alt = NAN;
+		float filtered_alt = NAN;
+		float last_baro_alt = 0.f;
 		int sensor_sub = orb_subscribe(ORB_ID(sensor_baro));
+
+		uint32_t lastBATV_ms = 0;
+		uint32_t lastCUR_ms = 0;
+		uint32_t lastALT_ms = 0;
+		uint32_t lastSPD_ms = 0;
+		uint32_t lastFUEL_ms = 0;
+		uint32_t lastVSPD_ms = 0;
+		uint32_t lastGPS_ms = 0;
+		uint32_t lastNAV_STATE_ms = 0;
+		uint32_t lastGPS_FIX_ms = 0;
 
 		/* send S.port telemetry */
 		while (!thread_should_exit) {
@@ -308,14 +361,13 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			if (status < 1) { continue; }
 
-			hrt_abstime now = hrt_absolute_time();
+			uint32_t now_ms = hrt_absolute_time() / 1000;
 
 			newBytes = read(uart, &sbuf[1], 1);
 
 			/* get a local copy of the current sensor values
 			 * in order to apply a lowpass filter to baro pressure.
 			 */
-			static float last_baro_alt = 0;
 			bool sensor_updated;
 			orb_check(sensor_sub, &sensor_updated);
 
@@ -335,24 +387,14 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			sPort_update_topics();
 
-			static hrt_abstime lastBATV = 0;
-			static hrt_abstime lastCUR = 0;
-			static hrt_abstime lastALT = 0;
-			static hrt_abstime lastSPD = 0;
-			static hrt_abstime lastFUEL = 0;
-			static hrt_abstime lastVSPD = 0;
-			static hrt_abstime lastGPS = 0;
-			static hrt_abstime lastNAV_STATE = 0;
-			static hrt_abstime lastGPS_FIX = 0;
-
 
 			switch (sbuf[1]) {
 
 			case SMARTPORT_POLL_1:
 
 				/* report BATV at 1Hz */
-				if (now - lastBATV > 1000 * 1000) {
-					lastBATV = now;
+				if (now_ms - lastBATV_ms > 1000) {
+					lastBATV_ms = now_ms;
 					/* send battery voltage */
 					sPort_send_BATV(uart);
 				}
@@ -363,8 +405,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			case SMARTPORT_POLL_2:
 
 				/* report battery current at 5Hz */
-				if (now - lastCUR > 200 * 1000) {
-					lastCUR = now;
+				if (now_ms - lastCUR_ms > 200) {
+					lastCUR_ms = now_ms;
 					/* send battery current */
 					sPort_send_CUR(uart);
 				}
@@ -375,8 +417,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			case SMARTPORT_POLL_3:
 
 				/* report altitude at 5Hz */
-				if (now - lastALT > 200 * 1000) {
-					lastALT = now;
+				if (now_ms - lastALT_ms > 200) {
+					lastALT_ms = now_ms;
 					/* send altitude */
 					sPort_send_ALT(uart);
 				}
@@ -387,8 +429,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			case SMARTPORT_POLL_4:
 
 				/* report speed at 5Hz */
-				if (now - lastSPD > 200 * 1000) {
-					lastSPD = now;
+				if (now_ms - lastSPD_ms > 200) {
+					lastSPD_ms = now_ms;
 					/* send speed */
 					sPort_send_SPD(uart);
 				}
@@ -398,8 +440,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			case SMARTPORT_POLL_5:
 
 				/* report fuel at 1Hz */
-				if (now - lastFUEL > 1000 * 1000) {
-					lastFUEL = now;
+				if (now_ms - lastFUEL_ms > 1000) {
+					lastFUEL_ms = now_ms;
 					/* send fuel */
 					sPort_send_FUEL(uart);
 				}
@@ -409,14 +451,14 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			case SMARTPORT_POLL_6:
 
 				/* report vertical speed at 10Hz */
-				if (now - lastVSPD > 100 * 1000) {
+				if (now_ms - lastVSPD_ms > 100) {
 					/* estimate vertical speed using first difference and delta t */
-					uint64_t dt = now - lastVSPD;
-					float speed  = (filtered_alt - last_baro_alt) / (1e-6f * (float)dt);
+					uint32_t dt = now_ms - lastVSPD_ms;
+					float speed  = (filtered_alt - last_baro_alt) / (1e-3f * (float)dt);
 
 					/* save current alt and timestamp */
 					last_baro_alt = filtered_alt;
-					lastVSPD = now;
+					lastVSPD_ms = now_ms;
 
 					sPort_send_VSPD(uart, speed);
 				}
@@ -426,7 +468,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			case SMARTPORT_POLL_7:
 
 				/* report GPS data elements at 5*5Hz */
-				if (now - lastGPS > 100 * 1000) {
+				if (now_ms - lastGPS_ms > 100) {
 					static int elementCount = 0;
 
 					switch (elementCount) {
@@ -464,20 +506,38 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 				}
 
+			/* FALLTHROUGH */
+
 			case SMARTPORT_POLL_8:
 
 				/* report nav_state as DIY_NAVSTATE 2Hz */
-				if (now - lastNAV_STATE > 500 * 1000) {
-					lastNAV_STATE = now;
+				if (now_ms - lastNAV_STATE_ms > 500) {
+					lastNAV_STATE_ms = now_ms;
 					/* send T1 */
 					sPort_send_NAV_STATE(uart);
 				}
 
 				/* report satcount and fix as DIY_GPSFIX at 2Hz */
-				else if (now - lastGPS_FIX > 500 * 1000) {
-					lastGPS_FIX = now;
+				else if (now_ms - lastGPS_FIX_ms > 500) {
+					lastGPS_FIX_ms = now_ms;
 					/* send T2 */
 					sPort_send_GPS_FIX(uart);
+				}
+
+				break;
+
+			case SMARTPORT_SENSOR_ID_SP2UR: {
+					static int elementCount = 0;
+
+					switch (elementCount++ % 2) {
+					case 0:
+						sPort_send_flight_mode(uart);
+						break;
+
+					default:
+						sPort_send_GPS_info(uart);
+						break;
+					}
 				}
 
 				break;
@@ -525,9 +585,9 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			bool new_input = frsky_parse_host((uint8_t *)&sbuf[0], nbytes, &host_frame);
 
 			/* the RSSI value could be useful */
-			if (false && new_input) {
-				warnx("host frame: ad1:%u, ad2: %u, rssi: %u",
-				      host_frame.ad1, host_frame.ad2, host_frame.linkq);
+			if (new_input) {
+				PX4_DEBUG("host frame: ad1:%u, ad2: %u, rssi: %u",
+					  host_frame.ad1, host_frame.ad2, host_frame.linkq);
 			}
 
 			frsky_update_topics();
@@ -588,8 +648,8 @@ int frsky_telemetry_main(int argc, char *argv[])
 		thread_should_exit = false;
 		frsky_task = px4_task_spawn_cmd("frsky_telemetry",
 						SCHED_DEFAULT,
-						200,
-						1100,
+						SCHED_PRIORITY_DEFAULT + 4,
+						1268,
 						frsky_telemetry_thread_main,
 						(char *const *)argv);
 

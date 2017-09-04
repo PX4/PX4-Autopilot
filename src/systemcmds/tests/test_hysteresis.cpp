@@ -1,11 +1,11 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <systemlib/hysteresis/hysteresis.h>
 
 class HysteresisTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool _init_false();

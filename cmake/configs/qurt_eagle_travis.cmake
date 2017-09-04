@@ -11,7 +11,7 @@ else()
 	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
 endif()
 
-set(config_generate_parameters_scope ALL)
+set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
@@ -37,6 +37,7 @@ set(config_module_list
 	# System commands
 	#
 	systemcmds/param
+	systemcmds/led
 	systemcmds/mixer
 
 	#
@@ -56,7 +57,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
@@ -72,11 +73,13 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/ecl
+	lib/led
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
+	lib/micro-CDR
 
 	#
 	# QuRT port

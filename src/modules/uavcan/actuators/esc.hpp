@@ -49,6 +49,7 @@
 #include <uavcan/equipment/esc/Status.hpp>
 #include <systemlib/perf_counter.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/actuator_outputs.h>
 
 
 class UavcanEscController
@@ -93,6 +94,7 @@ private:
 	bool		_run_at_idle_throttle_when_armed = false;
 	esc_status_s	_esc_status = {};
 	orb_advert_t	_esc_status_pub = nullptr;
+	orb_advert_t _actuator_outputs_pub = nullptr;
 
 	/*
 	 * libuavcan related things
@@ -107,6 +109,7 @@ private:
 	 * ESC states
 	 */
 	uint32_t 			_armed_mask = 0;
+	uint8_t				_max_number_of_nonzero_outputs = 0;
 
 	/*
 	 * Perf counters

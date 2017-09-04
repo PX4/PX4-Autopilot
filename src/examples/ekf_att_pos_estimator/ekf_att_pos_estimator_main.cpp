@@ -67,6 +67,7 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <platforms/px4_defines.h>
+#include <uORB/topics/parameter_update.h>
 
 static uint64_t IMUusec = 0;
 
@@ -121,7 +122,7 @@ AttitudePositionEstimatorEKF	*g_estimator = nullptr;
 }
 
 AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
-	SuperBlock(NULL, "PE"),
+	SuperBlock(nullptr, "PE"),
 	_task_should_exit(false),
 	_task_running(false),
 	_estimator_task(-1),
@@ -136,7 +137,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_vehicle_land_detected_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
-	_mission_sub(-1),
 	_home_sub(-1),
 	_armedSub(-1),
 
@@ -396,7 +396,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 	int check = _ekf->CheckAndBound(&ekf_report);
 
-	const char *const feedback[] = { 0,
+	const char *const feedback[] = { nullptr,
 					 "NaN in states, resetting",
 					 "stale sensor data, resetting",
 					 "got initial position lock",
@@ -740,7 +740,6 @@ void AttitudePositionEstimatorEKF::task_main()
 	_task_running = false;
 
 	_estimator_task = -1;
-	return;
 }
 
 void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
@@ -909,6 +908,11 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	_ctrl_state.pitch_rate = _LP_att_Q.apply(_ekf->dAngIMU.y / _ekf->dtIMU) - _ekf->states[11] / _ekf->dtIMUfilt;
 	_ctrl_state.yaw_rate = _LP_att_R.apply(_ekf->dAngIMU.z / _ekf->dtIMU) - _ekf->states[12] / _ekf->dtIMUfilt;
 
+	/* Gyro bias estimates */
+	_ctrl_state.roll_rate_bias = _ekf->states[10] / _ekf->dtIMUfilt;
+	_ctrl_state.pitch_rate_bias = _ekf->states[11] / _ekf->dtIMUfilt;
+	_ctrl_state.yaw_rate_bias = _ekf->states[12] / _ekf->dtIMUfilt;
+
 	/* Guard from bad data */
 	if (!PX4_ISFINITE(_ctrl_state.x_vel) ||
 	    !PX4_ISFINITE(_ctrl_state.y_vel) ||
@@ -945,11 +949,20 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.vy = _ekf->states[5];
 	_local_pos.vz = _ekf->states[6];
 
+	// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+	_local_pos.z_deriv = _ekf->states[6];
+
 	_local_pos.xy_valid = _gps_initialized && _gpsIsGood;
 	_local_pos.z_valid = true;
 	_local_pos.v_xy_valid = _gps_initialized && _gpsIsGood;
 	_local_pos.v_z_valid = true;
 	_local_pos.xy_global = _gps_initialized; //TODO: Handle optical flow mode here
+
+	// TODO provide calculated values for these
+	_local_pos.eph = 0.0f;
+	_local_pos.epv = 0.0f;
+	_local_pos.evh = 0.0f;
+	_local_pos.evv = 0.0f;
 
 	_local_pos.z_global = false;
 	matrix::Eulerf euler = matrix::Quatf(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
@@ -1007,10 +1020,12 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 
 	if (_local_pos.v_z_valid) {
 		_global_pos.vel_d = _local_pos.vz;
-
 	} else {
 		_global_pos.vel_d = 0.0f;
 	}
+
+	// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+	_global_pos.pos_d_deriv = _global_pos.vel_d;
 
 	/* terrain altitude */
 	if (_terrain_estimator->is_valid()) {
@@ -1050,6 +1065,10 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 		// bad data, abort publication
 		return;
 	}
+
+	// TODO provide calculated values for these
+	_global_pos.evh = 0.0f;
+	_global_pos.evv = 0.0f;
 
 	/* lazily publish the global position only once available */
 	if (_global_pos_pub != nullptr) {
@@ -1341,7 +1360,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	_ekf->angRate.y = _sensor_combined.gyro_rad[1];
 	_ekf->angRate.z = _sensor_combined.gyro_rad[2];
 
-	float gyro_dt = _sensor_combined.gyro_integral_dt;
+	float gyro_dt = _sensor_combined.gyro_integral_dt / 1.e6f;
 	_ekf->dAngIMU = _ekf->angRate * gyro_dt;
 
 	perf_count(_perf_gyro);
@@ -1352,7 +1371,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
 		_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
 
-		float accel_dt = _sensor_combined.accelerometer_integral_dt;
+		float accel_dt = _sensor_combined.accelerometer_integral_dt / 1.e6f;
 		_ekf->dVelIMU = _ekf->accel * accel_dt;
 
 		_last_accel = _sensor_combined.timestamp + _sensor_combined.accelerometer_timestamp_relative;
@@ -1376,8 +1395,8 @@ void AttitudePositionEstimatorEKF::pollData()
 	// leave this in as long as larger improvements are still being made.
 #if 0
 
-	float deltaTIntegral = _sensor_combined.gyro_integral_dt;
-	float deltaTIntAcc = _sensor_combined.accelerometer_integral_dt;
+	float deltaTIntegral = _sensor_combined.gyro_integral_dt / 1.e6f;
+	float deltaTIntAcc = _sensor_combined.accelerometer_integral_dt / 1.e6f;
 
 	static unsigned dtoverflow5 = 0;
 	static unsigned dtoverflow10 = 0;
@@ -1716,7 +1735,7 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "debug")) {
-		int debug = strtoul(argv[2], NULL, 10);
+		int debug = strtoul(argv[2], nullptr, 10);
 		int ret = estimator::g_estimator->set_debuglevel(debug);
 
 		return ret;

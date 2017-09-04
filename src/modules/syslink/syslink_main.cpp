@@ -55,7 +55,7 @@
 #include <mqueue.h>
 
 #include <drivers/drv_rc_input.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include <systemlib/err.h>
 
@@ -414,7 +414,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		memcpy(&vbat, &msg->data[1], sizeof(float));
 		//memcpy(&iset, &msg->data[5], sizeof(float));
 
-		_battery.updateBatteryStatus(t, vbat, -1, 0, false, &_battery_status);
+		_battery.updateBatteryStatus(t, vbat, -1, true, true, 0, 0, false, &_battery_status);
 
 
 		// Update battery charge state

@@ -1,0 +1,97 @@
+<launch>
+
+    <!-- MAVROS posix SITL environment launch script -->
+
+    <arg name="debug" default="false"/>
+    <arg name="verbose" default="false"/>
+    <arg name="paused" default="false"/>
+
+    <arg name="est" default="ekf2"/>
+    <arg name="vehicle" default="iris"/>
+    <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
+
+    <arg name="headless" default="false"/>
+    <arg name="gui" default="true"/>
+    <arg name="ns" default="/"/>
+
+    <arg name="pluginlists_yaml" default="$(find mavros)/launch/px4_pluginlists.yaml" />
+    <arg name="config_yaml" default="$(find mavros)/launch/px4_config.yaml" />
+
+    <!-- Load world -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="world_name" value="$(arg world)" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="verbose" value="$(arg verbose)" />
+        <arg name="paused" value="$(arg paused)" />
+    </include>
+
+    <!-- UAV1 iris_1-->
+    <group ns="uav1">
+        <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
+        <arg name="gcs_url" value=""/>
+        <arg name="tgt_system" value="1"/> 
+        <arg name="tgt_component" value="1"/>
+        <arg name="rcS1" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_1"/>
+        <arg name="ID" value="1"/>
+
+        <include file="$(find px4)/launch/single_vehcile_spawn.launch">
+            <arg name="x" value="0"/>
+            <arg name="y" value="0"/>
+            <arg name="z" value="0"/>
+            <arg name="R" value="0"/>
+            <arg name="P" value="0"/>
+            <arg name="Y" value="0"/>
+            <arg name="vehicle" value="$(arg vehicle)"/>
+            <arg name="rcS" value="$(arg rcS1)"/>
+            <arg name="mavlink_udp_port" value="14560"/>
+            <arg name="ID" value="$(arg ID)"/>
+        </include>
+
+        <include file="$(find mavros)/launch/node.launch">
+            <arg name="pluginlists_yaml" value="$(arg pluginlists_yaml)" />
+            <arg name="config_yaml" value="$(arg config_yaml)" />
+
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)" />
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)" />
+        </include>
+    </group>
+
+    <!-- UAV2 iris_2 -->
+    <group ns="uav2">
+        <arg name="fcu_url" default="udp://:14541@localhost:14559"/>
+        <arg name="gcs_url" value=""/>
+        <arg name="tgt_system" value="2"/> 
+        <arg name="tgt_component" value="1"/>
+        <arg name="rcS2" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_2"/>
+        <arg name="ID" value="2"/>
+
+        <include file="$(find px4)/launch/single_vehcile_spawn.launch">
+            <arg name="x" value="1"/>
+            <arg name="y" value="0"/>
+            <arg name="z" value="0"/>
+            <arg name="R" value="0"/>
+            <arg name="P" value="0"/>
+            <arg name="Y" value="0"/>
+            <arg name="vehicle" value="$(arg vehicle)"/>
+            <arg name="rcS" value="$(arg rcS2)"/>
+            <arg name="mavlink_udp_port" value="14562"/>
+            <arg name="ID" value="$(arg ID)"/>
+        </include>
+
+        <include file="$(find mavros)/launch/node.launch">
+            <arg name="pluginlists_yaml" value="$(arg pluginlists_yaml)" />
+            <arg name="config_yaml" value="$(arg config_yaml)" />
+
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)" />
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)" />
+        </include>
+    </group>
+
+</launch>
+<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->

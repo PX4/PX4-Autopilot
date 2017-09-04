@@ -1,0 +1,217 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32/Kconfig NuttX/nuttx/arch/arm/src/stm32/Kconfig
+index b6c0458..8ebf8df 100644
+--- NuttX/nuttx/arch/arm/src/stm32/Kconfig
++++ NuttX/nuttx/arch/arm/src/stm32/Kconfig
+@@ -2514,6 +2514,14 @@ config STM32_FLASH_PREFETCH
+ 	on F1 parts).  Some early revisions of F4 parts do not support FLASH pre-fetch
+ 	properly and enabling this option may interfere with ADC accuracy.
+ 
++config STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW
++    bool "Workaround for FLASH data cache corruption"
++    default n
++    ---help---
++		Enable the workaround to fix flash data cache corruption when reading
++		from one flash bank while writing on other flash bank.  See your STM32
++		errata to check if your STM32 is affected by this problem.
++
+ choice
+ 	prompt "JTAG Configuration"
+ 	default STM32_JTAG_DISABLE
+diff --git NuttX/nuttx/arch/arm/src/stm32/chip/stm32_flash.h NuttX/nuttx/arch/arm/src/stm32/chip/stm32_flash.h
+index 70e6d62..82d8f09 100644
+--- NuttX/nuttx/arch/arm/src/stm32/chip/stm32_flash.h
++++ NuttX/nuttx/arch/arm/src/stm32/chip/stm32_flash.h
+@@ -322,10 +322,11 @@
+ #  define FLASH_CR_SER              (1 << 1)                /* Bit 1: Sector Erase */
+ #  define FLASH_CR_MER              (1 << 2)                /* Bit 2: Mass Erase sectors 0..11 */
+ #  define FLASH_CR_SNB_SHIFT        (3)                     /* Bits 3-6: Sector number */
+-#  define FLASH_CR_SNB_MASK         (15 << FLASH_CR_SNB_SHIFT)
+ #if defined(CONFIG_STM32_STM32F427) || defined(CONFIG_STM32_STM32F429)
++#    define FLASH_CR_SNB_MASK       (31 << FLASH_CR_SNB_SHIFT)
+ #    define FLASH_CR_SNB(n)         (((n % 12) << FLASH_CR_SNB_SHIFT) | ((n / 12) << 7)) /* Sector n, n=0..23 */
+ #else
++#    define FLASH_CR_SNB_MASK       (15 << FLASH_CR_SNB_SHIFT)
+ #    define FLASH_CR_SNB(n)         ((n) << FLASH_CR_SNB_SHIFT) /* Sector n, n=0..11 */
+ #endif
+ #  define FLASH_CR_PSIZE_SHIFT      (8)                     /* Bits 8-9: Program size */
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
+index 73f1419..fb1e1ca 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
+@@ -47,6 +47,10 @@
+ 
+ #include <nuttx/config.h>
+ #include <nuttx/arch.h>
++
++#include <stdbool.h>
++#include <semaphore.h>
++#include <assert.h>
+ #include <errno.h>
+ 
+ #include "stm32_flash.h"
+@@ -81,13 +85,29 @@
+ #endif
+ 
+ /************************************************************************************
+- * Private Functions
++ * Private Data
+  ************************************************************************************/
+ 
++static sem_t g_sem = SEM_INITIALIZER(1);
++
+ /************************************************************************************
+- * Public Functions
++ * Private Functions
+  ************************************************************************************/
+-void stm32_flash_unlock(void)
++
++static void sem_lock(void)
++{
++  while (sem_wait(&g_sem) < 0)
++    {
++      DEBUGASSERT(errno == EINTR);
++    }
++}
++
++static inline void sem_unlock(void)
++{
++  sem_post(&g_sem);
++}
++
++static void flash_unlock(void)
+ {
+   while (getreg32(STM32_FLASH_SR) & FLASH_SR_BSY)
+     {
+@@ -103,14 +123,48 @@ void stm32_flash_unlock(void)
+     }
+ }
+ 
+-void stm32_flash_lock(void)
++static void flash_lock(void)
+ {
+   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_LOCK);
+ }
+ 
++#if defined(CONFIG_STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW)
++static void data_cache_disable(void)
++{
++  modifyreg32(STM32_FLASH_ACR, FLASH_ACR_DCEN, 0);
++}
+ 
+-#if defined(CONFIG_STM32_STM32F10XX) || defined(CONFIG_STM32_STM32F30XX)
++static void data_cache_enable(void)
++{
++  /* Reset data cache */
++
++  modifyreg32(STM32_FLASH_ACR, 0, FLASH_ACR_DCRST);
++
++  /* Enable data cache */
++
++  modifyreg32(STM32_FLASH_ACR, 0, FLASH_ACR_DCEN);
++}
++#endif /* defined(CONFIG_STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW) */
++
++/************************************************************************************
++ * Public Functions
++ ************************************************************************************/
++
++void stm32_flash_unlock(void)
++{
++  sem_lock();
++  flash_unlock();
++  sem_unlock();
++}
+ 
++void stm32_flash_lock(void)
++{
++  sem_lock();
++  flash_lock();
++  sem_unlock();
++}
++
++#if defined(CONFIG_STM32_STM32F10XX) || defined(CONFIG_STM32_STM32F30XX)
+ size_t up_progmem_pagesize(size_t page)
+ {
+   return STM32_FLASH_PAGESIZE;
+@@ -231,14 +285,19 @@ ssize_t up_progmem_erasepage(size_t page)
+       return -EFAULT;
+     }
+ 
+-  /* Get flash ready and begin erasing single page */
++  sem_lock();
+ 
++#if !defined(CONFIG_STM32_STM32F40XX)
+   if (!(getreg32(STM32_RCC_CR) & RCC_CR_HSION))
+     {
++      sem_unlock();
+       return -EPERM;
+     }
++#endif
++
++  /* Get flash ready and begin erasing single page */
+ 
+-  stm32_flash_unlock();
++  flash_unlock();
+ 
+   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_PAGE_ERASE);
+ 
+@@ -257,6 +316,7 @@ ssize_t up_progmem_erasepage(size_t page)
+   while (getreg32(STM32_FLASH_SR) & FLASH_SR_BSY) up_waste();
+ 
+   modifyreg32(STM32_FLASH_CR, FLASH_CR_PAGE_ERASE, 0);
++  sem_unlock();
+ 
+   /* Verify */
+   if (up_progmem_ispageerased(page) == 0)
+@@ -318,14 +378,23 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
+       return -EFAULT;
+     }
+ 
+-  /* Get flash ready and begin flashing */
++  sem_lock();
+ 
++#if !defined(CONFIG_STM32_STM32F40XX)
+   if (!(getreg32(STM32_RCC_CR) & RCC_CR_HSION))
+     {
++      sem_unlock();
+       return -EPERM;
+     }
++#endif
++
++  /* Get flash ready and begin flashing */
++
++  flash_unlock();
+ 
+-  stm32_flash_unlock();
++#if defined(CONFIG_STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW)
++  data_cache_disable();
++#endif
+ 
+   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_PG);
+ 
+@@ -347,17 +416,25 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
+       if (getreg32(STM32_FLASH_SR) & FLASH_SR_WRITE_PROTECTION_ERROR)
+         {
+           modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
++          sem_unlock();
+           return -EROFS;
+         }
+ 
+       if (getreg16(addr) != *hword)
+         {
+           modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
++          sem_unlock();
+           return -EIO;
+         }
+     }
+ 
+   modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
++
++#if defined(CONFIG_STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW)
++  data_cache_enable();
++#endif
++
++  sem_unlock();
+   return written;
+ }
+ 

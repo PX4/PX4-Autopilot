@@ -44,6 +44,7 @@
  * Included Files
  ************************************************************************************/
 #include <errno.h>
+#include <stdint.h>
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -83,7 +84,7 @@
  *
  * The PX4_xxxx_BUS_FIRST_CS and PX4_xxxxx_BUS_LAST_CS
  * #define PX4_SENSORS_BUS_FIRST_CS  PX4_SPIDEV_ICM_20689
-*  #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
+ *  #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
  *
  *
  */
@@ -91,6 +92,238 @@
 #define PX4_MK_SPI_SEL(b,d)       ((((b) & 0xf) << 4) + ((d) & 0xf))
 #define PX4_SPI_BUS_ID(bd)        (((bd) >> 4) & 0xf)
 #define PX4_SPI_DEV_ID(bd)        ((bd) & 0xf)
+
+/* I2C PX4 clock configuration
+ *
+ * A board may override BOARD_NUMBER_I2C_BUSES and BOARD_I2C_BUS_CLOCK_INIT
+ * simply by defining the #defines.
+ *
+ * If none are provided the default number of I2C busses  will be taken from
+ * the px4 micro hal and the init will be from the legacy values of 100K.
+ */
+#if !defined(BOARD_NUMBER_I2C_BUSES)
+# define BOARD_NUMBER_I2C_BUSES PX4_NUMBER_I2C_BUSES
+#endif
+
+#if !defined(BOARD_I2C_BUS_CLOCK_INIT)
+#  if (BOARD_NUMBER_I2C_BUSES) == 1
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 2
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 3
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
+#  elif (BOARD_NUMBER_I2C_BUSES) == 4
+#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
+#  else
+#    error BOARD_NUMBER_I2C_BUSES not supported
+#  endif
+#endif
+/* ADC defining tools
+ * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
+ */
+
+/* Provide overrideable defaults ADC Full scale ranges and Divider ratios
+ * If the board has a different ratio or full scale range for any voltage sensing
+ * the board_congig.h file should define the constants that differ from these
+ * defaults
+ */
+#if !defined(ADC_V5_V_FULL_SCALE)
+#define ADC_V5_V_FULL_SCALE             (6.6f)  // 5 volt Rail full scale voltage
+#endif
+#if !defined(ADC_V5_SCALE)
+#define ADC_V5_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#endif
+
+#if !defined(ADC_3V3_V_FULL_SCALE)
+#define ADC_3V3_V_FULL_SCALE             (3.6f)  // 3.3V volt Rail full scale voltage
+#endif
+#if !defined(ADC_3V3_SCALE)
+#define ADC_3V3_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#endif
+
+/* Provide define for Bricks and Battery */
+
+/* Legacy default */
+
+#if !defined(BOARD_NUMBER_BRICKS)
+#  define BOARD_NUMBER_BRICKS 1
+#  if !defined(BOARD_ADC_BRICK_VALID)
+#    define BOARD_ADC_BRICK_VALID (1)
+#  endif
+#endif
+
+#if BOARD_NUMBER_BRICKS == 1
+#  define BOARD_BATT_V_LIST       {ADC_BATTERY_VOLTAGE_CHANNEL}
+#  define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK_VALID}
+#elif BOARD_NUMBER_BRICKS == 2
+#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL}
+#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID}
+#elif BOARD_NUMBER_BRICKS == 3
+#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL}
+#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID}
+#elif BOARD_NUMBER_BRICKS == 4
+#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL, ADC_BATTERY4_VOLTAGE_CHANNEL}
+#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL, ADC_BATTERY4_CURRENT_CHANNEL}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID, BOARD_ADC_BRICK4_VALID}
+#else
+#  error Unsuported BOARD_NUMBER_BRICKS number.
+#endif
+
+/* Choose the source for ADC_SCALED_V5_SENSE */
+#if defined(ADC_5V_RAIL_SENSE)
+#define ADC_SCALED_V5_SENSE ADC_5V_RAIL_SENSE
+#else
+#  if defined(ADC_SCALED_V5_CHANNEL)
+#    define ADC_SCALED_V5_SENSE ADC_SCALED_V5_CHANNEL
+#  endif
+#endif
+
+/* Define the source for ADC_SCALED_V3V3_SENSORS_SENSE */
+
+#if defined(ADC_SCALED_VDD_3V3_SENSORS_CHANNEL)
+#  define ADC_SCALED_V3V3_SENSORS_SENSE ADC_SCALED_VDD_3V3_SENSORS_CHANNEL
+#endif
+
+/* Define an overridable default of 0.0f V for batery v div
+ * This is done to ensure the missing default trips a low
+ * voltage lockdown
+ */
+#if !defined(BOARD_BATTERY1_V_DIV)
+#define BOARD_BATTERY1_V_DIV 0.0f
+#endif
+
+#if !defined(BOARD_BATTERY2_V_DIV)
+#define BOARD_BATTERY2_V_DIV 0.0f
+#endif
+
+/* Define an overridable default of 0.0f for A per V
+ * This is done to ensure the default leads to an
+ * unrealistic current value
+ */
+#if !defined(BOARD_BATTERY1_A_PER_V)
+#define BOARD_BATTERY1_A_PER_V 0.0f
+#endif
+
+#if !defined(BOARD_BATTERY2_A_PER_V)
+#define BOARD_BATTERY2_A_PER_V 0.0f
+#endif
+
+/* Conditional use of FMU GPIO
+ * If the board use the PX4FMU driver and the board provides
+ * BOARD_FMU_GPIO_TAB then we publish the logical BOARD_HAS_FMU_GPIO
+ */
+#if defined(BOARD_FMU_GPIO_TAB)
+#  define BOARD_HAS_FMU_GPIO
+#endif
+
+/* Conditional use of PX4 PIO is Used to determine if the board
+ * has a PX4IO processor.
+ * We then publish the logical BOARD_USES_PX4IO
+ */
+#if defined(BOARD_USES_PX4IO_VERSION)
+#  define BOARD_USES_PX4IO	1
+/*  Allow a board_config to override the PX4IO FW search paths */
+#  if defined(BOARD_PX4IO_FW_SEARCH_PATHS)
+#    define PX4IO_FW_SEARCH_PATHS BOARD_PX4IO_FW_SEARCH_PATHS
+#  else
+/*  Use PX4IO FW search paths defaults based on version */
+#    if BOARD_USES_PX4IO_VERSION == 1
+#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4io-v1.bin", "/fs/microsd/px4io1.bin", "/fs/microsd/px4io.bin", nullptr }
+#    endif
+#    if BOARD_USES_PX4IO_VERSION == 2
+#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4io-v2.bin", "/fs/microsd/px4io2.bin", "/fs/microsd/px4io.bin", nullptr }
+#    endif
+#  endif
+#endif
+
+/* Provide an overridable default nop
+ * for BOARD_EEPROM_WP_CTRL
+ */
+#if !defined(BOARD_EEPROM_WP_CTRL)
+#  define BOARD_EEPROM_WP_CTRL(on_true)
+#endif
+
+/*
+ * Defined when a board has capture and uses channels.
+ */
+#if defined(DIRECT_INPUT_TIMER_CHANNELS) && DIRECT_INPUT_TIMER_CHANNELS > 0
+#define BOARD_HAS_CAPTURE 1
+#endif
+
+/*
+ * Defined when a supports version and type API.
+ */
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+#  define BOARD_HAS_VERSIONING 1
+#  define HW_VER_SIMPLE(s)	     0x90000+(s)
+
+#  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
+#  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
+#  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
+#endif
+
+/************************************************************************************
+ * Public Data
+ ************************************************************************************/
+
+/* board reset control */
+
+typedef enum board_reset_e {
+	board_reset_normal           = 0,  /* Perform a normal reset */
+	board_reset_extended         = 1,  /* Perform an extend reset as defined by board */
+	board_reset_power_off        = 2,  /* Reset to the boot loader, signaling a power off */
+	board_reset_enter_bootloader = 3   /* Perform a reset to the boot loader */
+} board_reset_e;
+
+/* board power button state notification */
+
+typedef enum board_power_button_state_notification_e {
+	PWR_BUTTON_IDEL,                       /* Button went up without meeting shutdown button down time */
+	PWR_BUTTON_DOWN,                       /* Button went Down */
+	PWR_BUTTON_UP,                         /* Button went Up */
+	PWR_BUTTON_REQUEST_SHUT_DOWN,          /* Button went up after meeting shutdown button down time */
+
+	PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING, /* Response from call back board code does nothing the
+                                            * expectation is that board_shutdown will be called.
+                                            */
+	PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW,     /* Response from call back board code does shutdown now. */
+} board_power_button_state_notification_e;
+
+/* board call back signature  */
+
+typedef int (*power_button_state_notification_t)(board_power_button_state_notification_e request);
+
+/* Defined the types used for board UUID and MFG UID
+ *
+ * A type suitable for holding the byte format of the UUID
+ *
+ * The original PX4 stm32 (legacy) based implementation **displayed** the
+ * UUID as: ABCD EFGH IJKL
+ * Where:
+ *       A was bit 31 and D was bit 0
+ *       E was bit 63 and H was bit 32
+ *       I was bit 95 and L was bit 64
+ *
+ * Since the string was used by some manufactures to identify the units
+ * it must be preserved.
+ *
+ * For new targets moving forward we will use
+ *      IJKL EFGH ABCD
+ */
+
+/* A type suitable for defining the 8 bit format of the UUID */
+typedef uint8_t uuid_byte_t[PX4_CPU_UUID_BYTE_LENGTH];
+
+/* A type suitable for defining the 32bit format of the UUID */
+typedef uint32_t uuid_uint32_t[PX4_CPU_UUID_WORD32_LENGTH];
+
+/* A type suitable for defining the 8 bit format of the MFG UID
+ * This is always returned as MSD @ index 0 -LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
+ */
+typedef uint8_t mfguid_t[PX4_CPU_MFGUID_BYTE_LENGTH];
 
 /************************************************************************************
  * Private Functions
@@ -148,3 +381,244 @@ __EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16
 __EXPORT void board_rc_input(bool invert_on);
 #  endif
 #endif
+
+/************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_NO_RESET) || !defined(BOARD_HAS_ON_RESET)
+#  define board_on_reset(status)
+#else
+__EXPORT void board_on_reset(int status);
+#endif
+
+/************************************************************************************
+ * Name: board_reset
+ *
+ * Description:
+ *   All boards my optionally provide this API to reset the board
+ *
+ ************************************************************************************/
+#if defined(BOARD_HAS_NO_RESET)
+#  define board_system_reset(status)
+#else
+__EXPORT void board_system_reset(int status) noreturn_function;
+#endif
+
+/************************************************************************************
+ * Name: board_set_bootload_mode
+ *
+ * Description:
+ *   All boards my optionally provide this API to enter configure the entry to
+ *   boot loader mode on the next system reset.
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_NO_BOOTLOADER)
+#  define board_set_bootload_mode(mode)
+#else
+__EXPORT int board_set_bootload_mode(board_reset_e mode);
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_type
+ *
+ * Description:
+ *   Optional returns a string defining the HW type
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT const char *board_get_hw_type_name(void);
+#else
+#define board_get_hw_type_name() ""
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_version
+ *
+ * Description:
+ *   Optional returns a integer HW version
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT int board_get_hw_version(void);
+#else
+#define board_get_hw_version() 0
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_revision
+ *
+ * Description:
+ *   Optional returns a integer HW revision
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT int board_get_hw_revision(void);
+#else
+#define board_get_hw_revision() 0
+#endif
+
+#if !defined(BOARD_OVERRIDE_UUID)
+/************************************************************************************
+ * Name: board_get_uuid
+ *
+ * Description:
+ *   All boards either provide a way to read a uuid of PX4_CPU_UUID_BYTE_LENGTH
+ *   from PX4_CPU_UUID_ADDRESS in the SoC's address space OR define
+ *   BOARD_OVERRIDE_UUID as an array of bytes that is PX4_CPU_UUID_BYTE_LENGTH
+ *
+ ************************************************************************************/
+
+__EXPORT void board_get_uuid(uuid_byte_t uuid_bytes);
+
+/************************************************************************************
+ * Name: board_get_uuid32
+ *
+ * Description:
+ *   All boards either provide a way to read a uuid of PX4_CPU_UUID_WORD32_LENGTH
+ *   from PX4_CPU_UUID_ADDRESS in the Soc's address space OR define
+ *   BOARD_OVERRIDE_UUID as an array of bytes that is PX4_CPU_UUID_BYTE_LENGTH
+ *   On Legacy (stm32) targets the raw32 format is the result of coping returning
+ *   the 32bit words from low memory to high memory. On new targets the result
+ *   will be an array of words with the MSW at index 0 and the LSW: at index
+ *   PX4_CPU_UUID_WORD32_LENGTH-1.
+ *
+ *	 The ordering can optionally be set by defining
+ *	 PX4_CPU_UUID_WORD32_FORMAT_ORDER
+ *
+ ************************************************************************************/
+__EXPORT void board_get_uuid32(uuid_uint32_t uuid_words);
+
+/************************************************************************************
+ * Name: board_get_uuid32_formated
+ *
+ * Description:
+ *   All boards either provide a way to retrieve a uuid and format it
+ *   or define BOARD_OVERRIDE_UUID
+ *   The format can optionally be reordered if PX4_CPU_UUID_WORD32_FORMAT_ORDER is
+ *   defined and printed with the optional separator
+ *
+ *   With seperator = ":"
+ *   31-00:63-32:95-64
+ *   32383336:412038:33355110
+ *   With seperator = " "
+ *   31-00:63-32:95-64
+ *   32383336 412038 33355110
+ *   With seperator = NULL
+ *   31-00:63-32:95-64
+ *   3238333641203833355110
+ *
+ ************************************************************************************/
+__EXPORT int board_get_uuid32_formated(char *format_buffer, int size,
+				       const char *format,
+				       const char *seperator);
+#endif // !defined(BOARD_OVERRIDE_UUID)
+
+#if !defined(BOARD_OVERRIDE_MFGUID)
+/************************************************************************************
+ * Name: board_get_mfguid
+ *
+ * Description:
+ *   All boards either provide a way to retrieve a manafactuers Uniqe ID or
+ *   define BOARD_OVERRIDE_MFGUID.
+ *    The MFGUID is returned as an array of bytes in
+ *    MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
+ *
+ ************************************************************************************/
+
+int board_get_mfguid(mfguid_t mfgid);
+
+/************************************************************************************
+ * Name: board_get_mfguid_formated
+ *
+ * Description:
+ *   All boards either provide a way to retrieve a formatted string of the
+ *   manafactuers Uniqe ID or define BOARD_OVERRIDE_MFGUID
+ *
+ ************************************************************************************/
+
+int board_get_mfguid_formated(char *format_buffer, int size);
+#endif // !defined(BOARD_OVERRIDE_MFGUID)
+
+/************************************************************************************
+ * Name: board_mcu_version
+ *
+ * Description:
+ *   All boards either provide a way to retrieve the cpu revision
+ *   Or define BOARD_OVERRIDE_CPU_VERSION
+ *
+ * rev    - The silicon revision character
+ * revstr - The full chip name string
+ * errata  -The eratta if any.
+ *
+ * return  - The silicon revision / version number as integer
+ *           or -1 on error and rev, revstr and errata will
+ *           not be set
+ */
+#if defined(BOARD_OVERRIDE_CPU_VERSION)
+#define board_mcu_version(rev, revstr, errata) BOARD_OVERRIDE_CPU_VERSION
+#else
+__EXPORT int board_mcu_version(char *rev, const char **revstr, const char **errata);
+#endif // !defined(BOARD_OVERRIDE_CPU_VERSION)
+
+#if defined(BOARD_HAS_POWER_CONTROL)
+/************************************************************************************
+ * Name: board_register_power_state_notification_cb
+ *
+ * Description:
+ *   boards may provide a function to register a power button state notification
+ *   call back.
+ *
+ *   N.B. this call back may be called off an interrupt. Do not attempt to block
+ *   or run any long threads.
+ *
+ * cb     - A pointer to a power button state notification function.
+ *
+ * return  - OK
+ */
+
+int board_register_power_state_notification_cb(power_button_state_notification_t cb);
+
+/************************************************************************************
+ * Name: board_shutdown
+ *
+ * Description:
+ *   boards may provide a function to power off the board.
+ *
+ * return  - OK, or -errno
+ */
+int board_shutdown(void);
+
+#else
+static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
+static inline int board_shutdown(void) { return -EINVAL; }
+#endif
+
+/************************************************************************************
+ * Name: board_gpio_init
+ *
+ * Description:
+ *   Board may provide a list of GPI pins to get initialized
+ *
+ *  list    - A list of GPIO pins to be initialized
+ *  count   - Size of the list
+ *
+ * return  - Nothing
+  ************************************************************************************/
+
+__EXPORT void board_gpio_init(const uint32_t list[], int count);

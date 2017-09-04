@@ -3,10 +3,7 @@
 # @name DJI Flame Wheel F450
 #
 # @type Quadrotor x
-#
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
+# @class Copter
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #

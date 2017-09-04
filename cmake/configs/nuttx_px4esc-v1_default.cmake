@@ -3,6 +3,7 @@ include(nuttx/px4_impl_nuttx)
 add_definitions(
   -DFLASH_BASED_PARAMS
   -DPARAM_NO_ORB
+  -DPARAM_NO_AUTOSAVE
   -DPARAMETER_BUFFER_SIZE=1024
 )
 
@@ -63,7 +64,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	lib/version
 
@@ -75,17 +76,13 @@ set(config_module_list
 	platforms/common
 	platforms/nuttx/px4_layer
 	modules/uORB
+	lib/micro-CDR
 
 )
 
 set(config_extra_builtin_cmds
 	serdis
 	sercon
-	)
-
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
 	)
 
 add_custom_target(sercon)

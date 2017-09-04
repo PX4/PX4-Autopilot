@@ -42,21 +42,12 @@
 #include <stdlib.h>
 #include "ORBMap.hpp"
 
-namespace device
-{
-//type mappings to NuttX
-typedef ::file file_t;
-typedef CDev VDev;
-}
-
 #else
 
 #include <string>
 #include <map>
 
 #endif /* __PX4_NUTTX */
-
-
 
 namespace uORB
 {
@@ -68,7 +59,7 @@ class Manager;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public device::VDev
+class uORB::DeviceNode : public device::CDev
 {
 public:
 	DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
@@ -124,6 +115,9 @@ public:
 	static ssize_t    publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
 	static int        unadvertise(orb_advert_t handle);
+
+	static int16_t topic_advertised(const orb_metadata *meta, int priority);
+	//static int16_t topic_unadvertised(const orb_metadata *meta, int priority);
 
 	/**
 	 * processes a request for add subscription from remote
@@ -204,7 +198,7 @@ private:
 #endif
 	};
 	struct SubscriberData {
-		~SubscriberData() { if (update_interval) { delete(update_interval); } }
+		~SubscriberData() { if (update_interval) { delete (update_interval); } }
 
 		unsigned  generation; /**< last generation the subscriber has seen */
 		int   flags; /**< lowest 8 bits: priority of publisher, 9. bit: update_reported bit */
@@ -274,7 +268,7 @@ private:
  * Used primarily to create new objects via the ORBIOCCREATE
  * ioctl.
  */
-class uORB::DeviceMaster : public device::VDev
+class uORB::DeviceMaster : public device::CDev
 {
 public:
 	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);

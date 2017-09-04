@@ -54,15 +54,6 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 
-#include <errno.h>
-#include <fcntl.h>
-#include <math.h>
-#include <poll.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
@@ -77,11 +68,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_state.h>
-#include <uORB/topics/fw_virtual_attitude_setpoint.h>
-#include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/mc_virtual_attitude_setpoint.h>
-#include <uORB/topics/mc_virtual_rates_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -90,6 +77,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/uORB.h>
@@ -115,11 +103,11 @@ public:
 
 	struct vehicle_attitude_s 			*get_att() {return &_v_att;}
 	struct vehicle_attitude_setpoint_s		*get_att_sp() {return &_v_att_sp;}
-	struct mc_virtual_attitude_setpoint_s 		*get_mc_virtual_att_sp() {return &_mc_virtual_att_sp;}
-	struct fw_virtual_attitude_setpoint_s 		*get_fw_virtual_att_sp() {return &_fw_virtual_att_sp;}
+	struct vehicle_attitude_setpoint_s 		*get_mc_virtual_att_sp() {return &_mc_virtual_att_sp;}
+	struct vehicle_attitude_setpoint_s 		*get_fw_virtual_att_sp() {return &_fw_virtual_att_sp;}
 	struct vehicle_rates_setpoint_s 		*get_rates_sp() {return &_v_rates_sp;}
-	struct mc_virtual_rates_setpoint_s 		*get_mc_virtual_rates_sp() {return &_mc_virtual_v_rates_sp;}
-	struct fw_virtual_rates_setpoint_s 		*get_fw_virtual_rates_sp() {return &_fw_virtual_v_rates_sp;}
+	struct vehicle_rates_setpoint_s 		*get_mc_virtual_rates_sp() {return &_mc_virtual_v_rates_sp;}
+	struct vehicle_rates_setpoint_s 		*get_fw_virtual_rates_sp() {return &_fw_virtual_v_rates_sp;}
 	struct manual_control_setpoint_s 		*get_manual_control_sp() {return &_manual_control_sp;}
 	struct vehicle_control_mode_s 			*get_control_mode() {return &_v_control_mode;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
@@ -129,6 +117,7 @@ public:
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
 	struct actuator_armed_s 			*get_armed() {return &_armed;}
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
+	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
 	struct airspeed_s 				*get_airspeed() {return &_airspeed;}
 	struct battery_status_s 			*get_batt_status() {return &_batt_status;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
@@ -155,6 +144,7 @@ private:
 	int	_manual_control_sp_sub;	//manual control setpoint subscription
 	int	_armed_sub;				//arming status subscription
 	int	_local_pos_sub;			// sensor subscription
+	int	_pos_sp_triplet_sub;			// local position setpoint subscription
 	int	_airspeed_sub;			// airspeed subscription
 	int	_battery_status_sub;	// battery status subscription
 	int	_vehicle_cmd_sub;
@@ -174,11 +164,11 @@ private:
 //*******************data containers***********************************************************
 	struct vehicle_attitude_s			_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s		_v_att_sp;			//vehicle attitude setpoint
-	struct mc_virtual_attitude_setpoint_s 		_mc_virtual_att_sp;	// virtual mc attitude setpoint
-	struct fw_virtual_attitude_setpoint_s 		_fw_virtual_att_sp;	// virtual fw attitude setpoint
+	struct vehicle_attitude_setpoint_s 		_mc_virtual_att_sp;	// virtual mc attitude setpoint
+	struct vehicle_attitude_setpoint_s 		_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_rates_setpoint_s			_v_rates_sp;		//vehicle rates setpoint
-	struct mc_virtual_rates_setpoint_s 		_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
-	struct fw_virtual_rates_setpoint_s 		_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint
+	struct vehicle_rates_setpoint_s 		_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
+	struct vehicle_rates_setpoint_s 		_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint
 	struct manual_control_setpoint_s		_manual_control_sp; //manual control setpoint
 	struct vehicle_control_mode_s			_v_control_mode;	//vehicle control mode
 	struct vtol_vehicle_status_s 			_vtol_vehicle_status;
@@ -188,6 +178,7 @@ private:
 	struct actuator_controls_s			_actuators_fw_in;	//actuator controls from fw_att_control
 	struct actuator_armed_s				_armed;				//actuator arming status
 	struct vehicle_local_position_s			_local_pos;
+	struct position_setpoint_triplet_s		_pos_sp_triplet;
 	struct airspeed_s 				_airspeed;			// airspeed
 	struct battery_status_s 			_batt_status; 		// battery status
 	struct vehicle_command_s			_vehicle_cmd;
@@ -210,6 +201,10 @@ private:
 		param_t vtol_type;
 		param_t elevons_mc_lock;
 		param_t fw_min_alt;
+		param_t fw_qc_max_pitch;
+		param_t fw_qc_max_roll;
+		param_t front_trans_time_openloop;
+		param_t front_trans_time_min;
 	} _params_handles;
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
@@ -235,6 +230,7 @@ private:
 	void 		vehicle_rates_sp_mc_poll();
 	void 		vehicle_rates_sp_fw_poll();
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
+	void 		pos_sp_triplet_poll();		// Check for changes in position setpoint values
 	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
 	void		vehicle_attitude_setpoint_poll();  //Check for attitude setpoint updates.
 	void		vehicle_attitude_poll();  //Check for attitude updates.

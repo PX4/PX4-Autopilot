@@ -1,4 +1,5 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
+include(common/px4_upload)
 include(toolchain/Toolchain-qurt)
 include(fastrpc)
 include(qurt_lib)
@@ -33,10 +34,10 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		-Wl,--end-group
 		)
 else()
-	message("module_libraries = ${module_libraries}")
-	message("target_libraries = ${target_libraries}")
-	message("df_driver_libs = ${df_driver_libs}")
-	message("module_external_libraries = ${module_external_libraries}")
+	#message("module_libraries = ${module_libraries}")
+	#message("target_libraries = ${target_libraries}")
+	#message("df_driver_libs = ${df_driver_libs}")
+	#message("module_external_libraries = ${module_external_libraries}")
 	# Generate the DSP lib and stubs but not the apps side executable
 	# The Apps side executable is generated via the posix_eagle_xxxx target
 	QURT_LIB(LIB_NAME px4

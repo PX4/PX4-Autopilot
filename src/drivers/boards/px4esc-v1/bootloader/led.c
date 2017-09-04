@@ -46,7 +46,7 @@
 #define TMR_REG(o)      (TMR_BASE+(o))
 
 
-void rgb_led(int r, int g , int b, int freqs)
+void rgb_led(int r, int g, int b, int freqs)
 {
 
 	long fosc = TMR_FREQUENCY;

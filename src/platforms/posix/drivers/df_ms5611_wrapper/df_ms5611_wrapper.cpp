@@ -151,7 +151,7 @@ int DfMS5611Wrapper::_publish(struct baro_sensor_data &data)
 	baro_report baro_report = {};
 	baro_report.timestamp = hrt_absolute_time();
 
-	baro_report.pressure = data.pressure_pa;
+	baro_report.pressure = data.pressure_pa / 100.0f; // convert to mbar
 	baro_report.temperature = data.temperature_c;
 
 	// TODO: verify this, it's just copied from the MS5611 driver.
@@ -193,9 +193,6 @@ int DfMS5611Wrapper::_publish(struct baro_sensor_data &data)
 			orb_publish(ORB_ID(sensor_baro), _baro_topic, &baro_report);
 		}
 	}
-
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
 
 	perf_end(_baro_sample_perf);
 

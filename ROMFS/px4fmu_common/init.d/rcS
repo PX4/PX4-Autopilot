@@ -1,5 +1,8 @@
 #!nsh
-#
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+set +e
+# Un comment the line below to help debug scripts by printing a trace of the script commands
+#set -x
 # PX4FMU startup script.
 #
 # NOTE: environment variable references:
@@ -38,7 +41,9 @@ mount -t procfs /proc
 #
 # Start CDC/ACM serial driver
 #
-sercon
+if sercon
+then
+fi
 
 #
 # Default to auto-start mode.
@@ -135,6 +140,10 @@ then
 		fi
 	fi
 
+	# FMUv5 may have both PWM I2C RGB LED support
+
+	rgbled_pwm start
+
 	# Currently unused, but might be useful down the road
 	#if pca8574 start
 	#then
@@ -145,8 +154,8 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# Wipe out params except RC*
-		param reset_nostart RC*
+		# Wipe out params except RC* and total flight time
+		param reset_nostart RC* LND_FLIGHT_T_*
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
@@ -185,12 +194,25 @@ then
 	set MK_MODE none
 	set FMU_MODE pwm
 	set AUX_MODE pwm
+	set FMU_ARGS ""
 	set MAVLINK_F default
 	set MAVLINK_COMPANION_DEVICE /dev/ttyS2
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set FAILSAFE none
 	set USE_IO yes
+	set LOGGER_BUF 16
+
+	if param compare SYS_FMU_TASK 1
+	then
+		set FMU_ARGS "-t"
+	fi
+
+	if param compare SYS_HITL 1
+	then
+		# Enable HITL mode
+		set HIL yes
+	fi
 
 	#
 	# Set USE_IO flag
@@ -228,6 +250,11 @@ then
 		then
 			set USE_IO no
 		fi
+
+		if ver hwcmp AEROCORE2
+		then
+			set USE_IO no
+		fi
 	else
 		set USE_IO no
 	fi
@@ -249,21 +276,37 @@ then
 	#
 	if param compare SYS_AUTOSTART 0
 	then
+		ekf2 start
 	else
 		sh /etc/init.d/rc.autostart
 	fi
 	unset MODE
 
 	#
+	# If mount (gimbal) control is enabled and output mode is AUX, set the aux
+	# mixer to mount (override the airframe-specific MIXER_AUX setting)
+	#
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		if param compare MNT_MODE_OUT 0
+		then
+			set MIXER_AUX mount
+		fi
+	fi
+
+	#
 	# Wipe incompatible settings for boards not having two outputs
 	if ver hwcmp PX4FMU_V4
 	then
 		set MIXER_AUX none
+		param set SYS_FMU_TASK 1
 	fi
 
 	if ver hwcmp PX4FMU_V5
 	then
 		set MIXER_AUX none
+		param set SYS_FMU_TASK 1
 	fi
 
 	if ver hwcmp AEROFC_V1
@@ -399,29 +442,47 @@ then
 		then
 			set FMU_MODE serial
 		fi
-		unset HIL
 	else
-		unset HIL
 		gps start
 	fi
 
+	set DATAMAN_OPT ""
+	if ver hwcmp AEROFC_V1
+	then
+		set DATAMAN_OPT -i
+	fi
+	if ver hwcmp AEROCORE2
+	then
+		set DATAMAN_OPT "-f /fs/mtd_dataman"
+	fi
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
-	if dataman start
+	if dataman start $DATAMAN_OPT
 	then
 	fi
+	unset DATAMAN_OPT
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
-	sh /etc/init.d/rc.sensors
+	if [ $HIL == yes ]
+	then
+		sensors start -h
+	else
+		sh /etc/init.d/rc.sensors
+	fi
+	unset HIL
 
 	# Needs to be this early for in-air-restarts
 	if [ $OUTPUT_MODE == hil ]
 	then
-	    commander start -hil
+	    commander start --hil
 	else
 	    commander start
+	fi
+
+	if send_event start
+	then
 	fi
 
 	#
@@ -443,17 +504,28 @@ then
 	fi
 
 	# Sensors on the PWM interface bank
-	# clear pins 5 and 6
 	if param compare SENS_EN_LL40LS 1
 	then
+		# clear pins 5 and 6
 		set FMU_MODE pwm4
 		set AUX_MODE pwm4
 	fi
 	if param greater TRIG_MODE 0
 	then
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
+		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output
+		if param compare TRIG_PINS 56
+		then
+			# clear pins 5 and 6
+			set FMU_MODE pwm4
+			set AUX_MODE pwm4
+		else
+			set FMU_MODE none
+			set AUX_MODE none
+		fi
 		camera_trigger start
+
+		param set CAM_FBACK_MODE 1
+		camera_feedback start
 	fi
 
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
@@ -481,7 +553,7 @@ then
 
 		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
-			if fmu mode_$FMU_MODE
+			if fmu mode_$FMU_MODE $FMU_ARGS
 			then
 			else
 				echo "FMU start failed" >> $LOG_FILE
@@ -550,7 +622,7 @@ then
 		else
 			if [ $OUTPUT_MODE != fmu -a $OUTPUT_MODE != ardrone ]
 			then
-				if fmu mode_${FMU_MODE}
+				if fmu mode_${FMU_MODE} $FMU_ARGS
 				then
 				else
 					echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
@@ -583,7 +655,7 @@ then
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
-			set MAVLINK_F "-r 1200"
+			set MAVLINK_F "-r 1200 -f"
 			# Avoid using ttyS1 for MAVLink on FMUv4
 			if ver hwcmp PX4FMU_V4
 			then
@@ -594,7 +666,7 @@ then
 
 			if ver hwcmp AEROFC_V1
 			then
-				set MAVLINK_F "-r 1200 -d /dev/ttyS4"
+				set MAVLINK_F "-r 1200 -d /dev/ttyS3"
 			fi
 		fi
 
@@ -631,11 +703,15 @@ then
 		fi
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
 		fi
 		if param compare SYS_COMPANION 57600
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x -f
+		fi
+		if param compare SYS_COMPANION 460800
+		then
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x -f
 		fi
 		if param compare SYS_COMPANION 157600
 		then
@@ -643,7 +719,7 @@ then
 		fi
 		if param compare SYS_COMPANION 257600
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x -f
 		fi
 		if param compare SYS_COMPANION 319200
 		then
@@ -657,6 +733,10 @@ then
 		then
 			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000
 		fi
+		if param compare SYS_COMPANION 3115200
+		then
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000
+		fi
 		if param compare SYS_COMPANION 419200
 		then
 			iridiumsbd start -d /dev/ttyS2
@@ -668,7 +748,7 @@ then
 		fi
 		if param compare SYS_COMPANION 1500000
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x -f
 		fi
 	fi
 
@@ -681,51 +761,11 @@ then
 	then
 		if uavcan start
 		then
+			set LOGGER_BUF 6
 			uavcan start fw
 		else
 			tone_alarm ${TUNE_ERR}
 		fi
-	fi
-
-	#
-	# Optional drivers
-	#
-
-	# Sensors on the PWM interface bank
-	if param compare SENS_EN_LL40LS 1
-	then
-		if pwm_input start
-		then
-			if ll40ls start pwm
-			then
-			fi
-		fi
-	fi
-
-	# lightware serial lidar sensor
-	if param compare SENS_EN_SF0X 0
-	then
-	else
-		sf0x start
-	fi
-
-	# lightware i2c lidar sensor
-	if param compare SENS_EN_SF1XX 0
-	then
-	else
-		sf1xx start
-	fi
-
-	# mb12xx sonar sensor
-	if param compare SENS_EN_MB12XX 1
-	then
-		mb12xx start
-	fi
-
-	# teraranger one tof sensor
-	if param compare SENS_EN_TRONE 1
-	then
-		trone start
 	fi
 
 	if ver hwcmp PX4FMU_V4
@@ -750,13 +790,23 @@ then
 		px4flow start &
 	fi
 
+	if ver hwcmp PX4FMU_V4PRO
+	then
+		# Check for flow sensor - as it is a background task, launch it last
+		px4flow start &
+	fi
+
 	if ver hwcmp MINDPX_V2
 	then
 		px4flow start &
 	fi
 
-	# Start MAVLink
-	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	if ver hwcmp AEROFC_V1
+	then
+	else
+		# Start MAVLink
+		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	fi
 
 	#
 	# Logging
@@ -782,6 +832,14 @@ then
 			fi
 		else
 			set LOGGER_ARGS ""
+			#
+			# Adjust FMUv5 logging settings
+			#
+			if ver hwcmp PX4FMU_V5
+			then
+				set LOGGER_BUF 64
+				param set SDLOG_MODE 2
+			fi
 			if param compare SDLOG_MODE 1
 			then
 				set LOGGER_ARGS "-e"
@@ -790,10 +848,14 @@ then
 			then
 				set LOGGER_ARGS "-f"
 			fi
-
-			if logger start -b 12 -t ${LOGGER_ARGS}
+			if ver hwcmp AEROFC_V1
+			then
+				set LOGGER_ARGS "-m mavlink"
+			fi
+			if logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
 			then
 			fi
+			unset LOGGER_BUF
 			unset LOGGER_ARGS
 		fi
 	fi
@@ -943,20 +1005,29 @@ then
 	fi
 
 	#
-	# Rover setup
+	# UGV setup
 	#
-	if [ $VEHICLE_TYPE == rover ]
+	if [ $VEHICLE_TYPE == ugv ]
 	then
-		# 10 is MAV_TYPE_GROUND_ROVER
-		set MAV_TYPE 10
+		if [ $MIXER == none ]
+		then
+			# Set default mixer for UGV if not defined
+			set MIXER stampede
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use MAV_TYPE = 10 (UGV) if not defined
+			set MAV_TYPE 10
+		fi
+
+		param set MAV_TYPE ${MAV_TYPE}
 
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
 
-		# Start standard rover apps
-		sh /etc/init.d/rc.axialracing_ax10_apps
-
-		param set MAV_TYPE 10
+		# Start standard UGV apps
+		sh /etc/init.d/rc.gnd_apps
 	fi
 
 	#
@@ -987,7 +1058,7 @@ then
 		then
 			# On Pixracer use Telem 2 port (TL2).
 			snapdragon_rc_pwm start -d /dev/ttyS2
-			fmu mode_pwm4
+			fmu mode_pwm4 $FMU_ARGS
 		fi
 
 		pwm failsafe -c 1234 -p 900
@@ -1030,13 +1101,55 @@ then
 		# CF2 shouldn't have an sd card
 	else
 
-		# Run no SD alarm
-		if [ $LOG_FILE == /dev/null ]
+		if ver hwcmp AEROCORE2
 		then
-			# Play SOS
-			tone_alarm error
+			# AEROCORE2 shouldn't have an sd card
+		else
+
+			# Run no SD alarm
+			if [ $LOG_FILE == /dev/null ]
+			then
+				# Play SOS
+				tone_alarm error
+			fi
+
 		fi
 
+	fi
+
+	#
+	# Check if we should start a thermal calibration
+	# TODO move further up and don't start unnecessary services if we are calibrating
+	#
+	set TEMP_CALIB_ARGS ""
+	if param compare SYS_CAL_GYRO 1
+	then
+		set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -g"
+		param set SYS_CAL_GYRO 0
+	fi
+	if param compare SYS_CAL_ACCEL 1
+	then
+		set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -a"
+		param set SYS_CAL_ACCEL 0
+	fi
+	if param compare SYS_CAL_BARO 1
+	then
+		set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -b"
+		param set SYS_CAL_BARO 0
+	fi
+	if [ "x$TEMP_CALIB_ARGS" != "x" ]
+	then
+		send_event temperature_calibration ${TEMP_CALIB_ARGS}
+	fi
+	unset TEMP_CALIB_ARGS
+
+	# vmount to control mounts such as gimbals, disabled by default.
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		if vmount start
+		then
+		fi
 	fi
 
 # End of autostart

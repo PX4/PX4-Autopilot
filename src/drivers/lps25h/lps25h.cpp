@@ -226,7 +226,6 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
 
 	struct baro_report	_last_report;           /**< used for info() */
 
@@ -336,9 +335,14 @@ LPS25H::LPS25H(device::Device *interface, const char *path) :
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lps25h_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "lps25h_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "lps25h_buffer_overflows")),
 	_last_report{0}
 {
+	// set the device type from the interface
+	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_device_id.devid_s.bus = _interface->get_device_bus();
+	_device_id.devid_s.address = _interface->get_device_address();
+	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_LPS25H;
+
 	// enable debug() calls
 	_debug_enabled = false;
 
@@ -362,7 +366,6 @@ LPS25H::~LPS25H()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 
 	delete _interface;
 }
@@ -743,6 +746,9 @@ LPS25H::collect()
 	new_report.pressure = p;
 	new_report.altitude = alt;
 
+	/* get device ID */
+	new_report.device_id = _device_id.devid;
+
 	if (!(_pub_blocked)) {
 
 		if (_baro_topic != nullptr) {
@@ -762,9 +768,7 @@ LPS25H::collect()
 	_last_report = new_report;
 
 	/* post a report to the ring */
-	if (_reports->force(&new_report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&new_report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -797,7 +801,6 @@ LPS25H::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("pressure    %.2f\n", (double)_last_report.pressure);
 	printf("altitude:    %.2f\n", (double)_last_report.altitude);

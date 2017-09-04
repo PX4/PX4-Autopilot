@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -82,11 +82,7 @@
 
 #include <systemlib/err.h>
 
-#ifdef __PX4_NUTTX
 class PWMSim : public device::CDev
-#else
-class PWMSim : public device::VDev
-#endif
 {
 	const uint32_t PWM_SIM_DISARMED_MAGIC = 900;
 	const uint32_t PWM_SIM_FAILSAFE_MAGIC = 600;
@@ -158,10 +154,10 @@ private:
 	static const GPIOConfig	_gpio_tab[];
 	static const unsigned	_ngpio;
 
-	void		gpio_reset(void);
+	void		gpio_reset();
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
-	uint32_t	gpio_read(void);
+	uint32_t	gpio_read();
 	int		gpio_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 };
@@ -169,7 +165,7 @@ private:
 namespace
 {
 
-PWMSim	*g_pwm_sim;
+PWMSim	*g_pwm_sim = nullptr;
 
 } // namespace
 
@@ -178,12 +174,7 @@ bool PWMSim::_lockdown = false;
 bool PWMSim::_failsafe = false;
 
 PWMSim::PWMSim() :
-#ifdef __PX4_NUTTX
-	CDev
-#else
-	VDev
-#endif
-	("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
+	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
 	_task(-1),
 	_mode(MODE_NONE),
 	_update_rate(50),
@@ -191,7 +182,7 @@ PWMSim::PWMSim() :
 	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
-	_outputs_pub(0),
+	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_groups_required(0),
@@ -244,11 +235,7 @@ PWMSim::init()
 	ASSERT(_task == -1);
 
 	/* do regular cdev init */
-#ifdef __PX4_NUTTX
 	ret = CDev::init();
-#else
-	ret = VDev::init();
-#endif
 
 	if (ret != OK) {
 		return ret;
@@ -487,7 +474,7 @@ PWMSim::task_main()
 			}
 
 			/* do mixing */
-			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
+			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, nullptr);
 			outputs.noutputs = num_outputs;
 			outputs.timestamp = hrt_absolute_time();
 
@@ -543,10 +530,10 @@ PWMSim::task_main()
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &aa);
-			/* do not obey the lockdown value, as lockdown is for PWMSim */
+			/* do not obey the lockdown value, as lockdown is for PWMSim. Only obey manual lockdown */
 			_armed = aa.armed;
 			_failsafe = aa.force_failsafe;
-			_lockdown = aa.lockdown || aa.manual_lockdown;
+			_lockdown = aa.manual_lockdown;
 		}
 	}
 
@@ -609,11 +596,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	/* if nobody wants it, let CDev have it */
 	if (ret == -ENOTTY) {
-#ifdef __PX4_NUTTX
 		ret = CDev::ioctl(filp, cmd, arg);
-#else
-		ret = VDev::ioctl(filp, cmd, arg);
-#endif
 	}
 
 	return ret;
@@ -690,6 +673,17 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case PWM_SERVO_GET_TRIM_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			for (unsigned i = 0; i < _num_outputs; i++) {
+				pwm->values[i] = 1500;
+			}
+
+			pwm->channel_count = _num_outputs;
+			break;
+		}
+
 	case PWM_SERVO_GET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
@@ -709,6 +703,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 	/* FALLTHROUGH */
+
 	case PWM_SERVO_SET(0):
 	case PWM_SERVO_SET(1):
 		if (arg < 2100) {
@@ -730,6 +725,8 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	/* FALLTHROUGH */
+
 	case PWM_SERVO_GET(3):
 	case PWM_SERVO_GET(2):
 		if (_num_outputs < 4) {
@@ -738,6 +735,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 	/* FALLTHROUGH */
+
 	case PWM_SERVO_GET(1):
 	case PWM_SERVO_GET(0): {
 			*(servo_position_t *)arg = 1500;
@@ -793,9 +791,10 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				ret = -EINVAL;
 
 			} else {
-				if (_mixers == nullptr)
+				if (_mixers == nullptr) {
 					_mixers = new MixerGroup(control_callback,
 								 (uintptr_t)&_controls);
+				}
 
 				_mixers->add_mixer(mixer);
 				_mixers->groups_required(_groups_required);
@@ -861,7 +860,7 @@ enum PortMode {
 	PORT2_16PWM,
 };
 
-static PortMode g_port_mode = PORT_MODE_UNDEFINED;
+PortMode g_port_mode = PORT_MODE_UNDEFINED;
 
 int
 hil_new_mode(PortMode new_mode)
@@ -927,7 +926,7 @@ hil_new_mode(PortMode new_mode)
 }
 
 int
-test(void)
+test()
 {
 	int	fd;
 
@@ -956,13 +955,13 @@ fake(int argc, char *argv[])
 
 	actuator_controls_s ac;
 
-	ac.control[0] = strtol(argv[1], 0, 0) / 100.0f;
+	ac.control[0] = strtol(argv[1], nullptr, 0) / 100.0f;
 
-	ac.control[1] = strtol(argv[2], 0, 0) / 100.0f;
+	ac.control[1] = strtol(argv[2], nullptr, 0) / 100.0f;
 
-	ac.control[2] = strtol(argv[3], 0, 0) / 100.0f;
+	ac.control[2] = strtol(argv[3], nullptr, 0) / 100.0f;
 
-	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
+	ac.control[3] = strtol(argv[4], nullptr, 0) / 100.0f;
 
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 

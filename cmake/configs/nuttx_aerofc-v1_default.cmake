@@ -16,15 +16,14 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards/aerofc-v1
 	drivers/tap_esc
-	drivers/mpu6500
+	drivers/mpu9250
 	drivers/ms5611
 	drivers/hmc5883
 	drivers/gps
 	drivers/ist8310
+	drivers/ll40ls
 	drivers/aerofc_adc
 	modules/sensors
-	# dummy tone alarm
-	modules/dummy
 
 	#
 	# System commands
@@ -66,8 +65,10 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	modules/fw_pos_control_l1
 	modules/fw_att_control
+	modules/fw_pos_control_l1
+	modules/gnd_att_control
+	modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
@@ -80,7 +81,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
@@ -105,6 +106,7 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/rc
 	platforms/nuttx
+	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -112,27 +114,7 @@ set(config_module_list
 )
 
 set(config_extra_builtin_cmds
-	serdis
-	sercon
 	)
 
 set(config_io_board
 	)
-
-set(config_extra_libs
-	)
-
-set(config_io_extra_libs
-	)
-
-add_custom_target(sercon)
-set_target_properties(sercon PROPERTIES
-	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "sercon"
-	STACK_MAIN "2048")
-
-add_custom_target(serdis)
-set_target_properties(serdis PROPERTIES
-	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "serdis"
-	STACK_MAIN "2048")

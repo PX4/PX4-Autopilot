@@ -59,6 +59,9 @@
 extern void led_on(int led);
 extern void led_off(int led);
 
+static struct timespec time_down;
+
+
 /************************************************************************************
  * Private Data
  ************************************************************************************/
@@ -67,17 +70,53 @@ extern void led_off(int led);
  * Private Functions
  ************************************************************************************/
 
+
+static int default_power_button_state_notification(board_power_button_state_notification_e request)
+{
+//	syslog(0,"%d\n", request);
+	return PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW;
+}
+
+
+static power_button_state_notification_t power_state_notification = default_power_button_state_notification;
+
+int board_register_power_state_notification_cb(power_button_state_notification_t cb)
+{
+	power_state_notification = cb;
+
+	if (board_pwr_button_down() && (time_down.tv_nsec != 0 || time_down.tv_sec != 0)) {
+		// make sure we don't miss the first event
+		power_state_notification(PWR_BUTTON_DOWN);
+	}
+
+	return OK;
+}
+
+int board_shutdown()
+{
+	stm32_pwr_enablebkp(true);
+	/* XXX wow, this is evil - write a magic number into backup register zero */
+	*(uint32_t *)0x40002850 = 0xdeaddead;
+	stm32_pwr_enablebkp(false);
+	up_mdelay(50);
+	up_systemreset();
+
+	while (1);
+
+	return 0;
+}
+
 static int board_button_irq(int irq, FAR void *context)
 {
-	static struct timespec time_down;
-
 	if (board_pwr_button_down()) {
 
 		led_on(BOARD_LED_RED);
-
 		clock_gettime(CLOCK_REALTIME, &time_down);
+		power_state_notification(PWR_BUTTON_DOWN);
 
 	} else {
+
+		power_state_notification(PWR_BUTTON_UP);
 
 		led_off(BOARD_LED_RED);
 
@@ -93,15 +132,13 @@ static int board_button_irq(int irq, FAR void *context)
 
 			led_on(BOARD_LED_BLUE);
 
-			up_mdelay(200);
-			stm32_pwr_enablebkp(true);
-			/* XXX wow, this is evil - write a magic number into backup register zero */
-			*(uint32_t *)0x40002850 = 0xdeaddead;
-			stm32_pwr_enablebkp(false);
-			up_mdelay(50);
-			up_systemreset();
+			if (power_state_notification(PWR_BUTTON_REQUEST_SHUT_DOWN) == PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW) {
+				up_mdelay(200);
+				board_shutdown();
+			}
 
-			while (1);
+		} else {
+			power_state_notification(PWR_BUTTON_IDEL);
 		}
 	}
 
@@ -146,23 +183,4 @@ void board_pwr_init(int stage)
 bool board_pwr_button_down(void)
 {
 	return 0 == stm32_gpioread(KEY_AD_GPIO);
-}
-
-/****************************************************************************
- * Name: board_pwr
- *
- * Description:
- *   Called to turn on or off the TAP
- *
- ****************************************************************************/
-
-void board_pwr(bool on_not_off)
-{
-	if (on_not_off) {
-		stm32_configgpio(POWER_ON_GPIO);
-
-	} else {
-
-		stm32_configgpio(POWER_OFF_GPIO);
-	}
 }

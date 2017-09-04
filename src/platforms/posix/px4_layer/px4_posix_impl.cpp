@@ -46,7 +46,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
-#include "systemlib/param/param.h"
+#include <systemlib/param/param.h>
 #include "hrt_work.h"
 #include <drivers/drv_hrt.h>
 #include "px4_time.h"
@@ -67,15 +67,16 @@ __END_DECLS
 namespace px4
 {
 
-void init_once(void);
+void init_once();
 
-void init_once(void)
+void init_once()
 {
 	_shell_task_id = pthread_self();
 	//printf("[init] shell id: %lu\n", (unsigned long)_shell_task_id);
 	work_queues_init();
 	hrt_work_queue_init();
 	hrt_init();
+	param_init();
 
 #ifdef CONFIG_SHMEM
 	PX4_DEBUG("Syncing params to shared memory\n");

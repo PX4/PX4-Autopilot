@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,8 +69,8 @@ static const uint16_t	r_page_config[] = {
 #else
 	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 1,
 #endif
-	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 3,	/* XXX hardcoded magic number */
-	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= PX4IO_BL_VERSION,
+	[PX4IO_P_CONFIG_MAX_TRANSFER]		= PX4IO_MAX_TRANSFER_LEN,
 	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
 	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= PX4IO_SERVO_COUNT,
 	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= PX4IO_RC_INPUT_CHANNELS,
@@ -324,6 +324,11 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RAW_PWM;
+
+		/* Trigger all timer's channels in Oneshot mode to fire
+		 * the oneshots with updated values.
+		 */
+		up_pwm_update();
 
 		break;
 
@@ -628,12 +633,18 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_ALTRATE:
-			if (value < 25) {
-				value = 25;
-			}
 
-			if (value > 400) {
-				value = 400;
+			/* For PWM constrain to [25,400]Hz
+			 * For Oneshot there is no rate, 0 is therefore used to select Oneshot mode
+			 */
+			if (value != 0) {
+				if (value < 25) {
+					value = 25;
+				}
+
+				if (value > 400) {
+					value = 400;
+				}
 			}
 
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
@@ -869,10 +880,6 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	 */
 	case PX4IO_PAGE_STATUS:
 		/* PX4IO_P_STATUS_FREEMEM */
-		{
-			struct mallinfo minfo = mallinfo();
-			r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.fordblks;
-		}
 
 		/* XXX PX4IO_P_STATUS_CPULOAD */
 
@@ -904,6 +911,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
 			}
 		}
+
 #endif
 #ifdef ADC_IBATT
 		/* PX4IO_P_STATUS_IBATT */

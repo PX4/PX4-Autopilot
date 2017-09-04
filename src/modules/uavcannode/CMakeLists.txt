@@ -53,7 +53,7 @@ add_definitions(
 		-DHW_VERSION_MINOR=${uavcanblid_hw_version_minor}
 		)
 
-px4_share_subdirectory(RELDIR ../uavcan/libuavcan ARGS EXCLUDE_FROM_ALL)
+add_subdirectory(../uavcan/libuavcan uavcannode_libuavcan)
 add_dependencies(uavcan platforms__nuttx)
 
 include_directories(../../drivers/bootloaders/include)
@@ -72,13 +72,15 @@ px4_add_module(
 		-O3
 	SRCS
 		uavcannode_main.cpp
-    indication_controller.cpp
-    sim_controller.cpp
-    led.cpp
-    resources.cpp
-    uavcannode_params.c
+		indication_controller.cpp
+		sim_controller.cpp
+		led.cpp
+		resources.cpp
+		uavcannode_params.c
 
 	DEPENDS
 		platforms__common
 		uavcan
 	)
+
+target_link_libraries(modules__uavcannode uavcan uavcan_stm32_driver)

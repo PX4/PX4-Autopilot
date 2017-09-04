@@ -69,6 +69,43 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
 PARAM_DEFINE_INT32(SDLOG_MODE, 0);
 
 /**
+ * Logging Topic Profile
+ *
+ * Selects a set of topics appropriate for specific tasks.
+ *
+ * This parameter is only for the new logger (SYS_LOGGER=1).
+ *
+ * @value 0 default
+ * @value 1 thermal calibration
+ * @value 2 system identification
+ *
+ * @min 0
+ * @max 2
+ * @reboot_required true
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_PROFILE, 0);
+
+/**
+ * Maximum number of log directories to keep
+ *
+ * If there are more log directories than this value,
+ * the system will delete the oldest directories during startup.
+ *
+ * In addition, the system will delete old logs if there is not enough free space left.
+ * The minimum amount is 300 MB.
+ *
+ * If this is set to 0, old directories will only be removed if the free space falls below
+ * the minimum.
+ *
+ * @min 0
+ * @max 1000
+ * @reboot_required true
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_DIRS_MAX, 0);
+
+/**
  * Log UUID
  *
  * If set to 1, add an ID to the log, which uniquely identifies the vehicle

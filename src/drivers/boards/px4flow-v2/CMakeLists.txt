@@ -37,6 +37,7 @@ include_directories(../../bootloaders/include)
 
 set(SRCS)
 list(APPEND SRCS
+    ../common/stm32/board_reset.c
     px4flow_init.c
     px4flow_led.c
     px4flow_can.c
@@ -61,7 +62,6 @@ endif()
 px4_add_module(
 	MODULE drivers__boards__px4flow-v2
 	COMPILE_FLAGS
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common

@@ -44,9 +44,12 @@
 #include <poll.h>
 
 #include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/debug_value.h>
+#include <uORB/topics/debug_vect.h>
 
 __EXPORT int px4_mavlink_debug_main(int argc, char *argv[]);
 
@@ -54,16 +57,40 @@ int px4_mavlink_debug_main(int argc, char *argv[])
 {
 	printf("Hello Debug!\n");
 
-	/* advertise debug value */
-	struct debug_key_value_s dbg = { .key = "velx", .value = 0.0f };
-	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+	/* advertise named debug value */
+	struct debug_key_value_s dbg_key = { .key = "velx", .value = 0.0f };
+	orb_advert_t pub_dbg_key = orb_advertise(ORB_ID(debug_key_value), &dbg_key);
+
+	/* advertise indexed debug value */
+	struct debug_value_s dbg_ind = { .ind = 42, .value = 0.5f };
+	orb_advert_t pub_dbg_ind = orb_advertise(ORB_ID(debug_value), &dbg_ind);
+
+	/* advertise debug vect */
+	struct debug_vect_s dbg_vect = { .name = "vel3D", .x = 1.0f, .y = 2.0f, .z = 3.0f };
+	orb_advert_t pub_dbg_vect = orb_advertise(ORB_ID(debug_vect), &dbg_vect);
 
 	int value_counter = 0;
 
 	while (value_counter < 100) {
-		/* send one value */
-		dbg.value = value_counter;
-		orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+		uint64_t timestamp_us = hrt_absolute_time();
+		uint32_t timestamp_ms = timestamp_us / 1000;
+
+		/* send one named value */
+		dbg_key.value = value_counter;
+		dbg_key.timestamp_ms = timestamp_ms;
+		orb_publish(ORB_ID(debug_key_value), pub_dbg_key, &dbg_key);
+
+		/* send one indexed value */
+		dbg_ind.value = 0.5f * value_counter;
+		dbg_ind.timestamp_ms = timestamp_ms;
+		orb_publish(ORB_ID(debug_value), pub_dbg_ind, &dbg_ind);
+
+		/* send one vector */
+		dbg_vect.x = 1.0f * value_counter;
+		dbg_vect.y = 2.0f * value_counter;
+		dbg_vect.z = 3.0f * value_counter;
+		dbg_vect.timestamp_us = timestamp_us;
+		orb_publish(ORB_ID(debug_vect), pub_dbg_vect, &dbg_vect);
 
 		warnx("sent one more value..");
 

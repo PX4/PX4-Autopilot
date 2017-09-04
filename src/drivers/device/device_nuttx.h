@@ -130,29 +130,41 @@ public:
 	 */
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
-	/**
-	 * Return the bus ID the device is connected to.
-	 *
-	 * @return The bus ID
-	 */
-	virtual uint8_t get_device_bus() {return _device_id.devid_s.bus;};
-
-	/**
-	 * Return the bus address of the device.
-	 *
-	 * @return The bus address
-	 */
-	virtual uint8_t get_device_address() {return _device_id.devid_s.address;};
-
-	/*
-	  device bus types for DEVID
-	 */
+	/** Device bus types for DEVID */
 	enum DeviceBusType {
 		DeviceBusType_UNKNOWN = 0,
 		DeviceBusType_I2C     = 1,
 		DeviceBusType_SPI     = 2,
 		DeviceBusType_UAVCAN  = 3,
 	};
+
+	/**
+	 * Return the bus ID the device is connected to.
+	 *
+	 * @return The bus ID
+	 */
+	virtual uint8_t get_device_bus() { return _device_id.devid_s.bus; }
+
+	/**
+	 * Return the bus type the device is connected to.
+	 *
+	 * @return The bus type
+	 */
+	virtual DeviceBusType get_device_bus_type() { return _device_id.devid_s.bus_type; }
+
+	/**
+	 * Return the bus address of the device.
+	 *
+	 * @return The bus address
+	 */
+	virtual uint8_t get_device_address() { return _device_id.devid_s.address; }
+
+	/**
+	 * Set the device type
+	 *
+	 * @return The device type
+	 */
+	virtual void set_device_type(uint8_t devtype) { _device_id.devid_s.devtype = devtype; }
 
 	/*
 	  broken out device elements. The bitfields are used to keep
@@ -162,12 +174,12 @@ public:
 	 */
 	struct DeviceStructure {
 		enum DeviceBusType bus_type : 3;
-			uint8_t bus: 5;    // which instance of the bus type
-			uint8_t address;   // address on the bus (eg. I2C address)
-			uint8_t devtype;   // device class specific device type
-		};
+		uint8_t bus: 5;    // which instance of the bus type
+		uint8_t address;   // address on the bus (eg. I2C address)
+		uint8_t devtype;   // device class specific device type
+	};
 
-		union DeviceId {
+	union DeviceId {
 		struct DeviceStructure devid_s;
 		uint32_t devid;
 	};
@@ -494,72 +506,6 @@ private:
 	CDev operator=(const CDev &);
 };
 
-/**
- * Abstract class for character device accessed via PIO
- */
-class __EXPORT PIO : public CDev
-{
-public:
-	/**
-	 * Constructor
-	 *
-	 * @param name		Driver name
-	 * @param devname	Device node name
-	 * @param base		Base address of the device PIO area
-	 * @param irq		Interrupt assigned to the device (or zero if none)
-	 */
-	PIO(const char *name,
-	    const char *devname,
-	    uint32_t base,
-	    int irq = 0);
-	virtual ~PIO();
-
-	virtual int	init();
-
-protected:
-
-	/**
-	 * Read a register
-	 *
-	 * @param offset	Register offset in bytes from the base address.
-	 */
-	uint32_t	reg(uint32_t offset)
-	{
-		return *(volatile uint32_t *)(_base + offset);
-	}
-
-	/**
-	 * Write a register
-	 *
-	 * @param offset	Register offset in bytes from the base address.
-	 * @param value	Value to write.
-	 */
-	void		reg(uint32_t offset, uint32_t value)
-	{
-		*(volatile uint32_t *)(_base + offset) = value;
-	}
-
-	/**
-	 * Modify a register
-	 *
-	 * Note that there is a risk of a race during the read/modify/write cycle
-	 * that must be taken care of by the caller.
-	 *
-	 * @param offset	Register offset in bytes from the base address.
-	 * @param clearbits	Bits to clear in the register
-	 * @param setbits	Bits to set in the register
-	 */
-	void		modify(uint32_t offset, uint32_t clearbits, uint32_t setbits)
-	{
-		uint32_t val = reg(offset);
-		val &= ~clearbits;
-		val |= setbits;
-		reg(offset, val);
-	}
-
-private:
-	uint32_t	_base;
-};
 
 } // namespace device
 

@@ -57,14 +57,11 @@ class RTL : public MissionBlock
 {
 public:
 	RTL(Navigator *navigator, const char *name);
+	~RTL() = default;
 
-	~RTL();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
 
 private:
 	/**
@@ -77,6 +74,12 @@ private:
 	 */
 	void		advance_rtl();
 
+	/**
+	 * Get RTL altitude
+	 */
+	float 		get_rtl_altitude();
+
+
 	enum RTLState {
 		RTL_STATE_NONE = 0,
 		RTL_STATE_CLIMB,
@@ -86,11 +89,10 @@ private:
 		RTL_STATE_LOITER,
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
-	} _rtl_state;
-
-	bool _rtl_start_lock;
+	} _rtl_state{RTL_STATE_NONE};
 
 	control::BlockParamFloat _param_return_alt;
+	control::BlockParamFloat _param_min_loiter_alt;
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;

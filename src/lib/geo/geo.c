@@ -178,8 +178,8 @@ __EXPORT int map_projection_reproject(const struct map_projection_reference_s *r
 		return -1;
 	}
 
-	double x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
-	double y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
+	double x_rad = (double)x / CONSTANTS_RADIUS_OF_EARTH;
+	double y_rad = (double)y / CONSTANTS_RADIUS_OF_EARTH;
 	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
 	double sin_c = sin(c);
 	double cos_c = cos(c);
@@ -319,7 +319,7 @@ __EXPORT void waypoint_from_heading_and_distance(double lat_start, double lon_st
 		double *lat_target, double *lon_target)
 {
 	bearing = _wrap_2pi(bearing);
-	double radius_ratio = (double)(fabs(dist) / CONSTANTS_RADIUS_OF_EARTH);
+	double radius_ratio = fabs((double)dist) / CONSTANTS_RADIUS_OF_EARTH;
 
 	double lat_start_rad = lat_start * M_DEG_TO_RAD;
 	double lon_start_rad = lon_start * M_DEG_TO_RAD;
@@ -342,7 +342,7 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) ,
+	float theta = atan2f(sin(d_lon) * cos(lat_next_rad),
 			     cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
 	theta = _wrap_pi(theta);
@@ -432,7 +432,7 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, d
 
 	crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff);
 
-	if (sin(bearing_diff) >= 0) {
+	if (sinf(bearing_diff) >= 0) {
 		crosstrack_error->bearing = _wrap_pi(bearing_track - M_PI_2_F);
 
 	} else {
@@ -516,10 +516,10 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 		// calculate the position of the start and end points.  We should not be doing this often
 		// as this function generally will not be called repeatedly when we are out of the sector.
 
-		double start_disp_x = (double)radius * sin(arc_start_bearing);
-		double start_disp_y = (double)radius * cos(arc_start_bearing);
-		double end_disp_x = (double)radius * sin(_wrap_pi((double)(arc_start_bearing + arc_sweep)));
-		double end_disp_y = (double)radius * cos(_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double start_disp_x = (double)radius * sin((double)arc_start_bearing);
+		double start_disp_y = (double)radius * cos((double)arc_start_bearing);
+		double end_disp_x = (double)radius * sin((double)_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double end_disp_y = (double)radius * cos((double)_wrap_pi((double)(arc_start_bearing + arc_sweep)));
 		double lon_start = lon_now + start_disp_x / 111111.0;
 		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
 		double lon_end = lon_now + end_disp_x / 111111.0;

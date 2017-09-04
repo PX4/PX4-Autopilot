@@ -33,7 +33,10 @@
 
 /**
  * @file mavlink_mission.h
- * MAVLink mission manager interface definition.
+ * Implementation of the MAVLink mission protocol.
+ * Documentation:
+ * - http://qgroundcontrol.org/mavlink/mission_interface
+ * - http://qgroundcontrol.org/mavlink/waypoint_protocol
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Julian Oes <julian@px4.io>
@@ -42,11 +45,11 @@
 
 #pragma once
 
+#include <dataman/dataman.h>
 #include <uORB/uORB.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
-#include "mavlink_stream.h"
 
 enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_IDLE = 0,
@@ -67,32 +70,20 @@ enum MAVLINK_WPM_CODES {
 #define MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT 5000000    ///< Protocol communication action timeout in useconds
 #define MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT 500000        ///< Protocol communication retry timeout in useconds
 
-class MavlinkMissionManager : public MavlinkStream
+class Mavlink;
+
+class MavlinkMissionManager
 {
 public:
+	explicit MavlinkMissionManager(Mavlink *mavlink);
+
 	~MavlinkMissionManager();
 
-	const char *get_name() const
-	{
-		return MavlinkMissionManager::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "MISSION_ITEM";
-	}
-
-	uint16_t get_id()
-	{
-		return MAVLINK_MSG_ID_MISSION_ITEM;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkMissionManager(mavlink);
-	}
-
-	unsigned get_size();
+	/**
+	 * Handle sending of messages. Call this regularly at a fixed frequency.
+	 * @param t current time
+	 */
+	void send(const hrt_abstime t);
 
 	void handle_message(const mavlink_message_t *msg);
 
@@ -102,6 +93,7 @@ public:
 
 private:
 	enum MAVLINK_WPM_STATES _state;					///< Current state
+	enum MAV_MISSION_TYPE _mission_type;				///< mission type of current transmission (only one at a time possible)
 
 	uint64_t		_time_last_recv;
 	uint64_t		_time_last_sent;
@@ -112,14 +104,13 @@ private:
 
 	bool			_int_mode;				///< Use accurate int32 instead of float
 
-	unsigned		_max_count;				///< Maximum number of mission items
 	unsigned		_filesystem_errcount;			///< File system error count
 
 	static int		_dataman_id;				///< Global Dataman storage ID for active mission
 	int			_my_dataman_id;				///< class Dataman storage ID
 	static bool		_dataman_init;				///< Dataman initialized
 
-	static unsigned		_count;					///< Count of items in active mission
+	static unsigned		_count[3];				///< Count of items in (active) mission for each MAV_MISSION_TYPE
 	static int		_current_seq;				///< Current item sequence in active mission
 
 	static int		_last_reached;				///< Last reached waypoint in active mission (-1 means nothing reached)
@@ -136,12 +127,29 @@ private:
 	int			_mission_result_sub;
 	orb_advert_t		_offboard_mission_pub;
 
+	static uint16_t _geofence_update_counter;
+	bool		_geofence_locked; ///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
+
 	MavlinkRateLimiter	_slow_rate_limiter;
 
 	bool _verbose;
 
+	Mavlink *_mavlink;
+
 	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
 		2;	///< Error count limit before stopping to report FS errors
+	static constexpr unsigned	MAX_COUNT[] = {
+		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
+		DM_KEY_FENCE_POINTS_MAX - 1,
+		DM_KEY_SAFE_POINTS_MAX - 1
+	};	/**< Maximum number of mission items for each type
+					(fence & save points use the first item for the stats) */
+
+	/** get the maximum number of item count for the current _mission_type */
+	inline unsigned current_max_item_count();
+
+	/** get the number of item count for the current _mission_type */
+	inline unsigned current_item_count();
 
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
@@ -150,6 +158,18 @@ private:
 	void init_offboard_mission();
 
 	int update_active_mission(int dataman_id, unsigned count, int seq);
+
+	/** store the geofence count to dataman */
+	int update_geofence_count(unsigned count);
+
+	/** store the safepoint count to dataman */
+	int update_safepoint_count(unsigned count);
+
+	/** load geofence stats from dataman */
+	int load_geofence_stats();
+
+	/** load safe point stats from dataman */
+	int load_safepoint_stats();
 
 	/**
 	 *  @brief Sends an waypoint ack message
@@ -167,7 +187,7 @@ private:
 	 */
 	void send_mission_current(uint16_t seq);
 
-	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count);
+	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type);
 
 	void send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq);
 
@@ -219,8 +239,8 @@ private:
 	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
 					mavlink_mission_item_t *mavlink_mission_item);
 
-protected:
-	explicit MavlinkMissionManager(Mavlink *mavlink);
-
-	void send(const hrt_abstime t);
+	/**
+	 * set _state to idle (and do necessary cleanup)
+	 */
+	void switch_to_idle_state();
 };

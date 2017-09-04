@@ -62,11 +62,13 @@ ssh $target /bin/bash <<EOF
     echo -e "Updating firmware on AeroFC"
     ~/px_uploader.py \
         --port /dev/ttyS1 \
-        --baud-flightstack 1500000 \
+        --baud-flightstack 1500000,460800,115200 \
         $(basename $firmware)
+    echo "Firmware updated"
     if [ \$router_running -eq 1 ]; then
+        echo "Restarting router"
         /etc/init.d/mavlink-routerd.sh start
     fi
 EOF
 
-echo "Firmware updated"
+echo "Finished."

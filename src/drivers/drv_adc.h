@@ -45,6 +45,19 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+/* Define the PX4 low level format ADC and the maximum
+ * number of channels that can be returned by a lowlevel
+ * ADC driver. Drivers may return less than PX4_MAX_ADC_CHANNELS
+ * but no more than PX4_MAX_ADC_CHANNELS.
+ *
+ */
+#define PX4_MAX_ADC_CHANNELS 12
+typedef struct __attribute__((packed)) px4_adc_msg_t {
+	uint8_t      am_channel;               /* The 8-bit ADC Channel */
+	int32_t      am_data;                  /* ADC convert result (4 bytes) */
+} px4_adc_msg_t;
+
+
 #define ADC0_DEVICE_PATH	"/dev/adc0"
 
 /*

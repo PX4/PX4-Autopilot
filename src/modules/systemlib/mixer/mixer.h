@@ -262,6 +262,11 @@ protected:
 	 */
 	static const char 		*skipline(const char *buf, unsigned &buflen);
 
+	/**
+	 * Check wether the string is well formed and suitable for parsing
+	 */
+	static bool				string_well_formed(const char *buf, unsigned &buflen);
+
 private:
 
 	/* do not allow to copy due to pointer data members */
@@ -533,13 +538,13 @@ private:
 typedef unsigned int MultirotorGeometryUnderlyingType;
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
 
-	/**
-	 * Multi-rotor mixer for pre-defined vehicle geometries.
-	 *
-	 * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
-	 * a set of outputs based on the configured geometry.
-	 */
-	class __EXPORT MultirotorMixer : public Mixer
+/**
+ * Multi-rotor mixer for pre-defined vehicle geometries.
+ *
+ * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
+ * a set of outputs based on the configured geometry.
+ */
+class __EXPORT MultirotorMixer : public Mixer
 {
 public:
 	/**

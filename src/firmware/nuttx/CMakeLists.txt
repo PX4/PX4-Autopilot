@@ -1,3 +1,6 @@
+
+include(common/px4_upload)
+
 px4_nuttx_generate_builtin_commands(
 	OUT builtin_commands.c
 	MODULE_LIST
@@ -29,7 +32,7 @@ set(startup_libs)
 if("${config_nuttx_config}" STREQUAL "bootloader")
 	set(nuttx_ld_prefix "bootloader")
 	set(nuttx_startup_files ${nuttx_export_dir}/startup/${nuttx_startup_files})
-	set(nuttx_bootloader_wrapers "-Wl,-wrap,sched_process_timer")
+	set(nuttx_bootloader_wrapers "-Wl,-wrap,sched_process_timer -Wl,-wrap,sem_post -Wl,-wrap,sem_wait")
 
 	add_custom_command(OUTPUT
 		${nuttx_startup_files}
@@ -66,7 +69,6 @@ target_link_libraries(firmware_nuttx
 	${startup_libs}
 	${module_libraries}
 	${df_driver_libs}
-	${config_extra_libs}
 	${nuttx_bootloader_wrapers}
 	${link_libs}
 	-Wl,--end-group)
@@ -96,7 +98,7 @@ if(NOT ${BOARD} STREQUAL "sim")
 	endif()
 
 	set(fw_file
-		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
+		${CMAKE_CURRENT_BINARY_DIR}/${BOARD}_${LABEL}.px4)
 
 #
 # Bootloaders do not need .px4 or xml

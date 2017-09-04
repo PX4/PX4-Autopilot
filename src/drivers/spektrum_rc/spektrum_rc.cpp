@@ -36,7 +36,7 @@
  * @file spektrum_rc.cpp
  *
  * This is a driver for a Spektrum satellite receiver connected to a Snapdragon
- * on the serial port. By default port J15 (next to USB) is used.
+ * on the serial port. By default port J12 (next to J13, power module side) is used.
  */
 
 #include <px4_tasks.h>
@@ -49,8 +49,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 
-// Snapdraogon: use J15 (next to USB)
-#define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-1"
+// Snapdraogon: use J12 (next to J13, power module side)
+#define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-3"
 
 #define UNUSED(x) (void)(x)
 
@@ -89,6 +89,8 @@ void task_main(int argc, char *argv[])
 	uint8_t rx_buf[2 * DSM_BUFFER_SIZE];
 
 	_is_running = true;
+	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
+	uint16_t raw_rc_count = 0;
 
 	// Main loop
 	while (!_task_should_exit) {
@@ -108,8 +110,6 @@ void task_main(int argc, char *argv[])
 
 		bool dsm_11_bit;
 		unsigned frame_drops;
-		uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
-		uint16_t raw_rc_count;
 
 		// parse new data
 		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,

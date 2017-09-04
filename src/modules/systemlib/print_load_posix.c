@@ -180,3 +180,9 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 #endif
 }
 
+void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_callback_f cb, void *user,
+		       struct print_load_s *print_state)
+{
+
+}
+

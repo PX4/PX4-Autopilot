@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2013-2014 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@
 # Currently supported formats are:
 #   * XML for the parametric UI generator
 #   * Human-readable description in DokuWiki page format
+#   * Human-readable description in Markdown page format for the PX4 dev guide
 #
 # This tool also allows to automatically upload the human-readable version
 # to the DokuWiki installation via XML-RPC.
@@ -50,15 +51,20 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4params import srcscanner, srcparser, xmlout, dokuwikiout, dokuwikirpc
+from px4params import srcscanner, srcparser, xmlout, dokuwikiout, dokuwikirpc, markdownout
+
+import re
+import json
+import codecs
 
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Process parameter documentation.")
     parser.add_argument("-s", "--src-path",
-                        default="../src",
+                        default=["../src"],
                         metavar="PATH",
-                        help="path to source files to scan for parameters")
+                        nargs='*',
+                        help="one or more paths to source files to scan for parameters")
     parser.add_argument("-x", "--xml",
                         nargs='?',
                         const="parameters.xml",
@@ -72,10 +78,16 @@ def main():
                         help="Inject additional param XML file"
                              " (default FILENAME: ../Tools/parameters_injected.xml)")
     parser.add_argument("-b", "--board",
-                         nargs='?',
-                         const="",
-                         metavar="BOARD",
-                         help="Board to create xml parameter xml for")
+                        nargs='?',
+                        const="",
+                        metavar="BOARD",
+                        help="Board to create xml parameter xml for")
+    parser.add_argument("-m", "--markdown",
+                        nargs='?',
+                        const="parameters.md",
+                        metavar="FILENAME",
+                        help="Create Markdown file"
+                             " (default FILENAME: parameters.md)")
     parser.add_argument("-w", "--wiki",
                         nargs='?',
                         const="parameters.wiki",
@@ -107,11 +119,18 @@ def main():
                         metavar="SUMMARY",
                         default="Automagically updated parameter documentation from code.",
                         help="DokuWiki page edit summary")
-    parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
+    parser.add_argument('-v', '--verbose',
+                        action='store_true',
+                        help="verbose output")
+    parser.add_argument("-o", "--overrides",
+                        default="{}",
+                        metavar="OVERRIDES",
+                        help="a dict of overrides in the form of a json string")
+
     args = parser.parse_args()
 
     # Check for valid command
-    if not (args.xml or args.wiki or args.wiki_update):
+    if not (args.xml or args.wiki or args.wiki_update or args.markdown):
         print("Error: You need to specify at least one output method!\n")
         parser.print_usage()
         sys.exit(1)
@@ -121,17 +140,36 @@ def main():
     parser = srcparser.SourceParser()
 
     # Scan directories, and parse the files
-    if (args.verbose): print("Scanning source path " + args.src_path)
+    if (args.verbose):
+        print("Scanning source path " + str(args.src_path))
+
     if not scanner.ScanDir(args.src_path, parser):
         sys.exit(1)
+
     if not parser.Validate():
         sys.exit(1)
     param_groups = parser.GetParamGroups()
 
+    if len(param_groups) == 0:
+        print("Warning: no parameters found")
+
+    override_dict = json.loads(args.overrides)
+    if len(override_dict.keys()) > 0:
+        for group in param_groups:
+            for param in group.GetParams():
+                name = param.GetName()
+                if name in override_dict.keys():
+                    val = str(override_dict[param.GetName()])
+                    param.default = val
+                    print("OVERRIDING {:s} to {:s}!!!!!".format(name, val))
+
     # Output to XML file
     if args.xml:
-        if args.verbose: print("Creating XML file " + args.xml)
-        out = xmlout.XMLOutput(param_groups, args.board, os.path.join(args.src_path, args.inject_xml))
+        if args.verbose:
+            print("Creating XML file " + args.xml)
+        cur_dir = os.path.dirname(os.path.realpath(__file__))
+        out = xmlout.XMLOutput(param_groups, args.board,
+                               os.path.join(cur_dir, args.inject_xml))
         out.Save(args.xml)
 
     # Output to DokuWiki tables
@@ -147,6 +185,13 @@ def main():
                 xmlrpc.wiki.putPage(args.wiki_update, out.output, {'sum': args.wiki_summary})
             else:
                 print("Error: You need to specify DokuWiki XML-RPC username and password!")
+
+    # Output to Markdown/HTML tables
+    if args.markdown:
+        out = markdownout.MarkdownTablesOutput(param_groups)
+        if args.markdown:
+            print("Creating markdown file " + args.markdown)
+            out.Save(args.markdown)
 
     #print("All done!")
 

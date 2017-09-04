@@ -129,6 +129,11 @@ public:
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void			stop();
+
+	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void			print_info();
@@ -152,7 +157,6 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
 	perf_counter_t		_range_errors;
 	perf_counter_t		_conf_errors;
 
@@ -179,11 +183,6 @@ private:
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
 	void			start();
-
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void			stop();
 
 	/**
 	 * Reset the device
@@ -337,7 +336,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 	_mag_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lis3mdl_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "lis3mdl_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "lis3mdl_buffer_overflows")),
 	_range_errors(perf_alloc(PC_COUNT, "lis3mdl_range_errors")),
 	_conf_errors(perf_alloc(PC_COUNT, "lis3mdl_conf_errors")),
 	_sensor_ok(false),
@@ -352,6 +350,10 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 	_temperature_error_count(0),
 	_check_state_cnt(0)
 {
+	// set the device type from the interface
+	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_device_id.devid_s.bus = _interface->get_device_bus();
+	_device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LIS3MDL;
 
 	// enable debug() calls
@@ -390,7 +392,6 @@ LIS3MDL::~LIS3MDL()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
 }
@@ -510,7 +511,7 @@ void LIS3MDL::check_conf(void)
 
 		if (reg_in != _cntl_reg4) {
 			perf_count(_conf_errors);
-			ret = write_reg(ADDR_CTRL_REG1, _cntl_reg4);
+			ret = write_reg(ADDR_CTRL_REG4, _cntl_reg4);
 
 			if (OK != ret) {
 				perf_count(_comms_errors);
@@ -783,7 +784,11 @@ LIS3MDL::start()
 void
 LIS3MDL::stop()
 {
-	work_cancel(HPWORK, &_work);
+	if (_measure_ticks > 0) {
+		/* ensure no new items are queued while we cancel this one */
+		_measure_ticks = 0;
+		work_cancel(HPWORK, &_work);
+	}
 }
 
 int
@@ -804,6 +809,10 @@ LIS3MDL::cycle_trampoline(void *arg)
 void
 LIS3MDL::cycle()
 {
+	if (_measure_ticks == 0) {
+		return;
+	}
+
 	/* collection phase? */
 	if (_collect_phase) {
 
@@ -842,12 +851,14 @@ LIS3MDL::cycle()
 	/* next phase is collection */
 	_collect_phase = true;
 
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&LIS3MDL::cycle_trampoline,
-		   this,
-		   USEC2TICK(LIS3MDL_CONVERSION_INTERVAL));
+	if (_measure_ticks > 0) {
+		/* schedule a fresh cycle call when the measurement is done */
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&LIS3MDL::cycle_trampoline,
+			   this,
+			   USEC2TICK(LIS3MDL_CONVERSION_INTERVAL));
+	}
 }
 
 int
@@ -900,6 +911,9 @@ LIS3MDL::collect()
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
 	new_report.error_count = perf_event_count(_comms_errors);
+	new_report.range_ga = _range_ga;
+	new_report.scaling = _range_scale;
+	new_report.device_id = _device_id.devid;
 
 	/*
 	 * @note  We could read the status register here, which could tell us that
@@ -927,35 +941,27 @@ LIS3MDL::collect()
 	new_report.temperature = report.t;
 	new_report.temperature = 25 + (report.t / (16 * 8.0f));
 
+	// XXX revisit for SPI part, might require a bus type IOCTL
+
+	unsigned dummy;
+	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
+	new_report.is_external = !sensor_is_onboard;
+
 	/*
 	 * RAW outputs
 	 *
-	 * to align the sensor axes with the board, x and y need to be flipped
-	 * and y needs to be negated
 	 */
-	new_report.x_raw = report.y;
-	new_report.y_raw = -report.x;
-	/* z remains z */
+	new_report.x_raw = report.x;
+	new_report.y_raw = report.y;
 	new_report.z_raw = report.z;
 
-	/* scale values for output */
-
-	// XXX revisit for SPI part, might require a bus type IOCTL
-	unsigned dummy;
-	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
-
-	if (sensor_is_onboard) {
-		// convert onboard so it matches offboard for the
-		// scaling below
-		report.y = -report.y;
-		report.x = -report.x;
-	}
-
-	/* the standard external mag by 3DR has x pointing to the
-	 * right, y pointing backwards, and z down, therefore switch x
-	 * and y and invert y */
-	xraw_f = -report.y;
-	yraw_f = report.x;
+	/* the LIS3MDL mag on Pixhawk Pro by Drotek has x pointing towards,
+	 * y pointing to the right, and z down, therefore no switch needed,
+	 * it is better to have no artificial rotation inside the
+	 * driver and then use the startup script with -R command with the
+	 * real rotation between the sensor and body frame */
+	xraw_f = report.x;
+	yraw_f = report.y;
 	zraw_f = report.z;
 
 	// apply user specified rotation
@@ -986,9 +992,7 @@ LIS3MDL::collect()
 	_last_report = new_report;
 
 	/* post a report to the ring */
-	if (_reports->force(&new_report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&new_report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -1007,37 +1011,12 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 	struct mag_report report;
 	ssize_t sz;
 	int ret = 1;
-	uint8_t good_count = 0;
 
 	// XXX do something smarter here
 	int fd = (int)enable;
 
-	struct mag_calibration_s mscale_previous = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-
-	struct mag_calibration_s mscale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-
 	float sum_excited[3] = {0.0f, 0.0f, 0.0f};
-
-	/* expected axis scaling. The datasheet says that 766 will
-	 * be places in the X and Y axes and 713 in the Z
-	 * axis. Experiments show that in fact 766 is placed in X,
-	 * and 713 in Y and Z. This is relative to a base of 660
-	 * LSM/Ga, giving 1.16 and 1.08 */
-	float expected_cal[3] = { 1.16f, 1.08f, 1.08f };
+	float sum_non_excited[3] = {0.0f, 0.0f, 0.0f};
 
 	/* start the sensor polling at 50 Hz */
 	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
@@ -1047,29 +1026,13 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 	}
 
 	/* Set to 4 Gauss */
-	if (OK != ioctl(filp, MAGIOCSRANGE, 4)) {
-		warnx("FAILED: MAGIOCSRANGE 4 Ga");
+	if (OK != ioctl(filp, MAGIOCSRANGE, 12)) {
+		warnx("FAILED: MAGIOCSRANGE 12 Ga");
 		ret = 1;
 		goto out;
 	}
 
-	if (OK != ioctl(filp, MAGIOCEXSTRAP, 1)) {
-		warnx("FAILED: MAGIOCEXSTRAP 1");
-		ret = 1;
-		goto out;
-	}
-
-	if (OK != ioctl(filp, MAGIOCGSCALE, (long unsigned int)&mscale_previous)) {
-		warn("FAILED: MAGIOCGSCALE 1");
-		ret = 1;
-		goto out;
-	}
-
-	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-		warn("FAILED: MAGIOCSSCALE 1");
-		ret = 1;
-		goto out;
-	}
+	usleep(20000);
 
 	// discard 10 samples to let the sensor settle
 	for (uint8_t i = 0; i < 10; i++) {
@@ -1095,8 +1058,8 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 		}
 	}
 
-	/* read the sensor up to 100x, stopping when we have 30 good values */
-	for (uint8_t i = 0; i < 100 && good_count < 30; i++) {
+	/* read the sensor up to 10x */
+	for (uint8_t i = 0; i < 10; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -1118,44 +1081,93 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 			goto out;
 		}
 
-		float cal[3] = {fabsf(expected_cal[0] / report.x),
-				fabsf(expected_cal[1] / report.y),
-				fabsf(expected_cal[2] / report.z)
-			       };
+		sum_non_excited[0] += report.x;
+		sum_non_excited[1] += report.y;
+		sum_non_excited[2] += report.z;
+	}
 
-		if (cal[0] > 0.7f && cal[0] < 1.35f &&
-		    cal[1] > 0.7f && cal[1] < 1.35f &&
-		    cal[2] > 0.7f && cal[2] < 1.35f) {
-			good_count++;
-			sum_excited[0] += cal[0];
-			sum_excited[1] += cal[1];
-			sum_excited[2] += cal[2];
+	sum_non_excited[0] /= 10.0f;
+	sum_non_excited[1] /= 10.0f;
+	sum_non_excited[2] /= 10.0f;
+
+
+	if (OK != ioctl(filp, MAGIOCEXSTRAP, 1)) {
+		warnx("FAILED: MAGIOCEXSTRAP 1");
+		ret = 1;
+		goto out;
+	}
+
+	usleep(60000);
+
+	// discard 10 samples to let the sensor settle
+	for (uint8_t i = 0; i < 10; i++) {
+		struct pollfd fds;
+
+		/* wait for data to be ready */
+		fds.fd = fd;
+		fds.events = POLLIN;
+		ret = ::poll(&fds, 1, 2000);
+
+		if (ret != 1) {
+			warn("ERROR: TIMEOUT 1");
+			goto out;
+		}
+
+		/* now go get it */
+		sz = ::read(fd, &report, sizeof(report));
+
+		if (sz != sizeof(report)) {
+			warn("ERROR: READ 1");
+			ret = -EIO;
+			goto out;
 		}
 	}
 
-	if (good_count < 5) {
+	/* read the sensor up to 10x */
+	for (uint8_t i = 0; i < 10; i++) {
+		struct pollfd fds;
+
+		/* wait for data to be ready */
+		fds.fd = fd;
+		fds.events = POLLIN;
+		ret = ::poll(&fds, 1, 2000);
+
+		if (ret != 1) {
+			warn("ERROR: TIMEOUT 2");
+			goto out;
+		}
+
+		/* now go get it */
+		sz = ::read(fd, &report, sizeof(report));
+
+		if (sz != sizeof(report)) {
+			warn("ERROR: READ 2");
+			ret = -EIO;
+			goto out;
+		}
+
+		sum_excited[0] += report.x;
+		sum_excited[1] += report.y;
+		sum_excited[2] += report.z;
+	}
+
+	sum_excited[0] /= 10.0f;
+	sum_excited[1] /= 10.0f;
+	sum_excited[2] /= 10.0f;
+
+	if (1.0f < fabsf(sum_excited[0] - sum_non_excited[0]) && fabsf(sum_excited[0] - sum_non_excited[0]) < 3.0f &&
+	    1.0f < fabsf(sum_excited[1] - sum_non_excited[1]) && fabsf(sum_excited[1] - sum_non_excited[1]) < 3.0f &&
+	    0.1f < fabsf(sum_excited[2] - sum_non_excited[2]) && fabsf(sum_excited[2] - sum_non_excited[2]) < 1.0f) {
+		ret = OK;
+
+	} else {
 		ret = -EIO;
 		goto out;
 	}
 
-	float scaling[3];
-
-	scaling[0] = sum_excited[0] / good_count;
-	scaling[1] = sum_excited[1] / good_count;
-	scaling[2] = sum_excited[2] / good_count;
-
-	/* set scaling in device */
-	mscale_previous.x_scale = 1.0f / scaling[0];
-	mscale_previous.y_scale = 1.0f / scaling[1];
-	mscale_previous.z_scale = 1.0f / scaling[2];
-
 	ret = OK;
 
 out:
-
-	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-		warn("FAILED: MAGIOCSSCALE 2");
-	}
 
 	/* set back to normal mode */
 	/* Set to 4 Gauss */
@@ -1167,14 +1179,7 @@ out:
 		warnx("FAILED: MAGIOCEXSTRAP 0");
 	}
 
-	if (ret == OK) {
-		if (check_scale()) {
-			/* failed */
-			warnx("FAILED: SCALE");
-			ret = PX4_ERROR;
-		}
-
-	}
+	usleep(20000);
 
 	return ret;
 }
@@ -1227,7 +1232,7 @@ int LIS3MDL::check_calibration()
 	}
 
 	/* return 0 if calibrated, 1 else */
-	return (!_calibrated);
+	return !_calibrated;
 }
 
 int LIS3MDL::set_excitement(unsigned enable)
@@ -1300,7 +1305,6 @@ LIS3MDL::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
 	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
@@ -1338,6 +1342,7 @@ struct lis3mdl_bus_option {
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 void	start(enum LIS3MDL_BUS busid, enum Rotation rotation);
+int		stop();
 bool	start_bus(struct lis3mdl_bus_option &bus, enum Rotation rotation);
 struct lis3mdl_bus_option &find_bus(enum LIS3MDL_BUS busid);
 void	test(enum LIS3MDL_BUS busid);
@@ -1434,6 +1439,26 @@ start(enum LIS3MDL_BUS busid, enum Rotation rotation)
 }
 
 /**
+ * Stop the driver.
+ */
+int
+stop()
+{
+	bool stopped = false;
+
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if (bus_options[i].dev != nullptr) {
+			bus_options[i].dev->stop();
+			delete bus_options[i].dev;
+			bus_options[i].dev = nullptr;
+			stopped = true;
+		}
+	}
+
+	return !stopped;
+}
+
+/**
  * find a bus structure for a busid
  */
 struct lis3mdl_bus_option &find_bus(enum LIS3MDL_BUS busid)
@@ -1527,45 +1552,19 @@ test(enum LIS3MDL_BUS busid)
 
 
 /**
- * Automatic scale calibration.
+ * Self test check.
  *
- * Basic idea:
- *
- *   output = (ext field +- 1.1 Ga self-test) * scale factor
- *
- * and consequently:
- *
- *   1.1 Ga = (excited - normal) * scale factor
- *   scale factor = (excited - normal) / 1.1 Ga
- *
- *   sxy = (excited - normal) / 766	| for conf reg. B set to 0x60 / Gain = 3
- *   sz  = (excited - normal) / 713	| for conf reg. B set to 0x60 / Gain = 3
- *
- * By subtracting the non-excited measurement the pure 1.1 Ga reading
- * can be extracted and the sensitivity of all axes can be matched.
+ * Unlike HMC5883, self test feature cannot be used to calculate
+ * scale.
  *
  * SELF TEST OPERATION
- * To check the LIS3MDLL for proper operation, a self test feature in incorporated
- * in which the sensor offset straps are excited to create a nominal field strength
+ * To check the LIS3MDL for proper operation, a self test feature is incorporated :
+ * sensor offset straps are excited to create a nominal field strength
  * (bias field) to be measured. To implement self test, the least significant bits
- * (MS1 and MS0) of configuration register A are changed from 00 to 01 (positive bias)
- * or 10 (negetive bias), e.g. 0x11 or 0x12.
- * Then, by placing the mode register into single-measurement mode (0x01),
- * two data acquisition cycles will be made on each magnetic vector.
- * The first acquisition will be a set pulse followed shortly by measurement
- * data of the external field. The second acquisition will have the offset strap
- * excited (about 10 mA) in the positive bias mode for X, Y, and Z axes to create
- * about a ±1.1 gauss self test field plus the external field. The first acquisition
- * values will be subtracted from the second acquisition, and the net measurement
- * will be placed into the data output registers.
- * Since self test adds ~1.1 Gauss additional field to the existing field strength,
- * using a reduced gain setting prevents sensor from being saturated and data registers
- * overflowed. For example, if the configuration register B is set to 0x60 (Gain=3),
- * values around +766 LSB (1.16 Ga * 660 LSB/Ga) will be placed in the X and Y data
- * output registers and around +713 (1.08 Ga * 660 LSB/Ga) will be placed in Z data
- * output register. To leave the self test mode, change MS1 and MS0 bit of the
- * configuration register A back to 00 (Normal Measurement Mode), e.g. 0x10.
- * Using the self test method described above, the user can scale sensor
+ * (MS1 and MS0) of configuration register A are changed from 00 to 01 (positive bias).
+ * A few measurements are taken and stored with and without the additional magnetic
+ * field. According to ST datasheet, those values must stay between thresholds in order
+ * to pass the self test.
  */
 int calibrate(enum LIS3MDL_BUS busid)
 {
@@ -1693,6 +1692,13 @@ lis3mdl_main(int argc, char *argv[])
 		}
 
 		exit(0);
+	}
+
+	/*
+	 * Stop the driver.
+	 */
+	if (!strcmp(verb, "stop")) {
+		return lis3mdl::stop();
 	}
 
 	/*

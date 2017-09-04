@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,8 +55,10 @@
 #include <systemlib/mixer/mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
+#include "mixer.h"
+
 extern "C" {
-//#define DEBUG
+	/* #define DEBUG */
 #include "px4io.h"
 }
 
@@ -73,6 +75,9 @@ static volatile bool should_arm_nothrottle = false;
 static volatile bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
 
+static bool new_fmu_data = false;
+static uint64_t last_fmu_update = 0;
+
 extern int _sbus_fd;
 
 /* selected control values and count for mixing */
@@ -83,6 +88,7 @@ enum mixer_source {
 	MIX_FAILSAFE,
 	MIX_OVERRIDE_FMU_OK
 };
+
 static volatile mixer_source source;
 
 static int	mixer_callback(uintptr_t handle,
@@ -123,14 +129,19 @@ mixer_tick(void)
 			isr_debug(1, "AP RX timeout");
 		}
 
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK);
-		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, (PX4IO_P_STATUS_FLAGS_FMU_OK));
+		PX4_ATOMIC_MODIFY_OR(r_status_alarms, PX4IO_P_STATUS_ALARMS_FMU_LOST);
 
 	} else {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_OK);
 
 		/* this flag is never cleared once OK */
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED);
+
+		if (system_state.fmu_data_received_time > last_fmu_update) {
+			new_fmu_data = true;
+			last_fmu_update = system_state.fmu_data_received_time;
+		}
 	}
 
 	/* default to failsafe mixing - it will be forced below if flag is set */
@@ -220,7 +231,7 @@ mixer_tick(void)
 		should_arm &&
 		/* and FMU is initialized */
 		(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) {
-		r_setup_arming |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		PX4_ATOMIC_MODIFY_OR(r_setup_arming, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
 	}
 
 	/*
@@ -234,10 +245,10 @@ mixer_tick(void)
 	 * Set failsafe status flag depending on mixing source
 	 */
 	if (source == MIX_FAILSAFE) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_FAILSAFE;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FAILSAFE);
 
 	} else {
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FAILSAFE);
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, (PX4IO_P_STATUS_FLAGS_FAILSAFE));
 	}
 
 	/*
@@ -268,8 +279,9 @@ mixer_tick(void)
 		unsigned mixed;
 
 		if (REG_TO_FLOAT(r_setup_slew_max) > FLT_EPSILON) {
-			// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
-			// factor 2 is needed because actuator ouputs are in the range [-1,1]
+			/*  maximum value the outputs of the multirotor mixer are allowed to change in this cycle
+			 * factor 2 is needed because actuator outputs are in the range [-1,1]
+			 */
 			float delta_out_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
 						      r_setup_slew_max);
 			mixer_group.set_max_delta_out_once(delta_out_max);
@@ -299,6 +311,17 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
+
+
+		if (mixed  && new_fmu_data) {
+			new_fmu_data = false;
+
+			/* Trigger all timer's channels in Oneshot mode to fire
+			 * the oneshots with updated values.
+			 */
+
+			up_pwm_update();
+		}
 	}
 
 	/* set arming */
@@ -313,14 +336,14 @@ mixer_tick(void)
 		/* need to arm, but not armed */
 		up_pwm_servo_arm(true);
 		mixer_servos_armed = true;
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED);
 		isr_debug(5, "> PWM enabled");
 
 	} else if (!needs_to_arm && mixer_servos_armed) {
 		/* armed but need to disarm */
 		up_pwm_servo_arm(false);
 		mixer_servos_armed = false;
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED);
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, (PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED));
 		isr_debug(5, "> PWM disabled");
 	}
 
@@ -465,7 +488,7 @@ mixer_callback(uintptr_t handle,
  * not loaded faithfully.
  */
 
-static char mixer_text[200];		/* large enough for one mixer */
+static char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 
 int
@@ -478,7 +501,7 @@ mixer_handle_text(const void *buffer, size_t length)
 	}
 
 	/* disable mixing, will be enabled once load is complete */
-	r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_MIXER_OK);
+	PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_MIXER_OK);
 
 	/* abort if we're in the mixer - the caller is expected to retry */
 	if (in_mixer) {
@@ -509,7 +532,7 @@ mixer_handle_text(const void *buffer, size_t length)
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
+			PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_MIXER_OK);
 			return 0;
 		}
 
@@ -530,7 +553,9 @@ mixer_handle_text(const void *buffer, size_t length)
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
-				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+				memmove(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+				/* enforce null termination */
+				mixer_text[resid] = '\0';
 			}
 
 			mixer_text_length = resid;
@@ -560,8 +585,9 @@ mixer_set_failsafe()
 	unsigned mixed;
 
 	if (REG_TO_FLOAT(r_setup_slew_max) > FLT_EPSILON) {
-		// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
-		// factor 2 is needed because actuator ouputs are in the range [-1,1]
+		/* maximum value the outputs of the multirotor mixer are allowed to change in this cycle
+		 * factor 2 is needed because actuator outputs are in the range [-1,1]
+		 */
 		float delta_out_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
 					      r_setup_slew_max);
 		mixer_group.set_max_delta_out_once(delta_out_max);

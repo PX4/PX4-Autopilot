@@ -1075,6 +1075,9 @@ L3GD20::measure()
 	report.scaling = _gyro_range_scale;
 	report.range_rad_s = _gyro_range_rad_s;
 
+	/* return device ID */
+	report.device_id = _device_id.devid;
+
 	_reports->force(&report);
 
 	if (gyro_notify) {
@@ -1144,8 +1147,8 @@ L3GD20::test_error()
 int
 L3GD20::self_test()
 {
-	/* evaluate gyro offsets, complain if offset -> zero or larger than 25 dps */
-	if (fabsf(_gyro_scale.x_offset) > L3GD20_MAX_OFFSET || fabsf(_gyro_scale.x_offset) < 0.000001f) {
+	/* evaluate gyro offsets, complain if offset larger than 25 dps */
+	if (fabsf(_gyro_scale.x_offset) > L3GD20_MAX_OFFSET) {
 		return 1;
 	}
 
@@ -1153,7 +1156,7 @@ L3GD20::self_test()
 		return 1;
 	}
 
-	if (fabsf(_gyro_scale.y_offset) > L3GD20_MAX_OFFSET || fabsf(_gyro_scale.y_offset) < 0.000001f) {
+	if (fabsf(_gyro_scale.y_offset) > L3GD20_MAX_OFFSET) {
 		return 1;
 	}
 
@@ -1161,7 +1164,7 @@ L3GD20::self_test()
 		return 1;
 	}
 
-	if (fabsf(_gyro_scale.z_offset) > L3GD20_MAX_OFFSET || fabsf(_gyro_scale.z_offset) < 0.000001f) {
+	if (fabsf(_gyro_scale.z_offset) > L3GD20_MAX_OFFSET) {
 		return 1;
 	}
 

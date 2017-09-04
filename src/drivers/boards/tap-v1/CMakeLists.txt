@@ -35,10 +35,13 @@ px4_add_module(
 	MODULE drivers__boards__tap-v1
 	COMPILE_FLAGS
 	SRCS
+		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
+		../common/stm32/board_mcu_version.c
+		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 		tap_init.c
 		tap_pwr.c
-		tap_i2c.cpp
 		tap_sdio.c
 		tap_timer_config.c
 		tap_spi.c

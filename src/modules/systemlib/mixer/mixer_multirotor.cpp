@@ -51,7 +51,7 @@
 #include <unistd.h>
 #include <math.h>
 
-#include <px4iofirmware/protocol.h>
+#include <mathlib/math/Limits.hpp>
 #include <drivers/drv_pwm_output.h>
 
 #include "mixer.h"
@@ -68,16 +68,6 @@
  * Clockwise: 1
  * Counter-clockwise: -1
  */
-
-namespace
-{
-
-float constrain(float val, float min, float max)
-{
-	return (val < min) ? min : ((val > max) ? max : val);
-}
-
-} // anonymous namespace
 
 MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 				 uintptr_t cb_handle,
@@ -116,22 +106,9 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	int s[4];
 	int used;
 
-	/* enforce that the mixer ends with space or a new line */
-	for (int i = buflen - 1; i >= 0; i--) {
-		if (buf[i] == '\0') {
-			continue;
-		}
-
-		/* require a space or newline at the end of the buffer, fail on printable chars */
-		if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
-			/* found a line ending or space, so no split symbols / numbers. good. */
-			break;
-
-		} else {
-			debug("simple parser rejected: No newline / space at end of buf. (#%d/%d: 0x%02x)", i, buflen - 1, buf[i]);
-			return nullptr;
-		}
-
+	/* enforce that the mixer ends with a new line */
+	if (!string_well_formed(buf, buflen)) {
+		return nullptr;
 	}
 
 	if (sscanf(buf, "R: %7s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
@@ -195,6 +172,13 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	} else if (!strcmp(geomname, "8c")) {
 		geometry = MultirotorGeometry::OCTA_COX;
 
+	} else if (!strcmp(geomname, "6m")) {
+		geometry = MultirotorGeometry::DODECA_TOP_COX;
+
+	} else if (!strcmp(geomname, "6a")) {
+		geometry = MultirotorGeometry::DODECA_BOTTOM_COX;
+
+
 #if 0
 
 	} else if (!strcmp(geomname, "8cw")) {
@@ -238,10 +222,10 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	4) scale all outputs to range [idle_speed,1]
 	*/
 
-	float		roll    = constrain(get_control(0, 0) * _roll_scale, -1.0f, 1.0f);
-	float		pitch   = constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
-	float		yaw     = constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
-	float		thrust  = constrain(get_control(0, 3), 0.0f, 1.0f);
+	float		roll    = math::constrain(get_control(0, 0) * _roll_scale, -1.0f, 1.0f);
+	float		pitch   = math::constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
+	float		yaw     = math::constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
+	float		thrust  = math::constrain(get_control(0, 3), 0.0f, 1.0f);
 	float		min_out = 1.0f;
 	float		max_out = 0.0f;
 
@@ -299,17 +283,17 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 
 	} else if (min_out < 0.0f && max_out < 1.0f && -min_out > 1.0f - max_out) {
 		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
-		boost = constrain(-min_out - (1.0f - max_out) / 2.0f, 0.0f, max_thrust_diff);
+		boost = math::constrain(-min_out - (1.0f - max_out) / 2.0f, 0.0f, max_thrust_diff);
 		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
 
 	} else if (max_out > 1.0f && min_out > 0.0f && min_out < max_out - 1.0f) {
 		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
-		boost = constrain(-(max_out - 1.0f - min_out) / 2.0f, -max_thrust_diff, 0.0f);
+		boost = math::constrain(-(max_out - 1.0f - min_out) / 2.0f, -max_thrust_diff, 0.0f);
 		roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
 
 	} else if (min_out < 0.0f && max_out > 1.0f) {
-		boost = constrain(-(max_out - 1.0f + min_out) / 2.0f, thrust_decrease_factor * thrust - thrust,
-				  thrust_increase_factor * thrust - thrust);
+		boost = math::constrain(-(max_out - 1.0f + min_out) / 2.0f, thrust_decrease_factor * thrust - thrust,
+					thrust_increase_factor * thrust - thrust);
 		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
 	}
 
@@ -321,6 +305,10 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	if (max_out > 1.0f) {
 		_saturation_status.flags.motor_pos = true;
 	}
+
+	// Thrust reduction is used to reduce the collective thrust if we hit
+	// the upper throttle limit
+	float thrust_reduction = 0.0f;
 
 	// mix again but now with thrust boost, scale roll/pitch and also add yaw
 	for (unsigned i = 0; i < _rotor_count; i++) {
@@ -343,20 +331,24 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 
 		} else if (out > 1.0f) {
 			// allow to reduce thrust to get some yaw response
-			float thrust_reduction = fminf(0.15f, out - 1.0f);
-			thrust -= thrust_reduction;
+			float prop_reduction = fminf(0.15f, out - 1.0f);
+			// keep the maximum requested reduction
+			thrust_reduction = fmaxf(thrust_reduction, prop_reduction);
 
 			if (fabsf(_rotors[i].yaw_scale) <= FLT_EPSILON) {
 				yaw = 0.0f;
 
 			} else {
 				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-					       roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
+					       roll_pitch_scale + (thrust - thrust_reduction) + boost)) / _rotors[i].yaw_scale;
 			}
 		}
 	}
 
-	/* add yaw and scale outputs to range idle_speed...1 */
+	// Apply collective thrust reduction, the maximum for one prop
+	thrust -= thrust_reduction;
+
+	// add yaw and scale outputs to range idle_speed...1
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		outputs[i] = (roll * _rotors[i].roll_scale +
 			      pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
@@ -375,7 +367,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 							_thrust_factor));
 		}
 
-		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
+		outputs[i] = math::constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
 
 	}
 
@@ -419,7 +411,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	_delta_out_max = 0.0f;
 
 	// Notify saturation status
-	if (status_reg != NULL) {
+	if (status_reg != nullptr) {
 		(*status_reg) = _saturation_status.value;
 	}
 

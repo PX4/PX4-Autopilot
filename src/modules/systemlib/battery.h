@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,9 +85,14 @@ public:
 	 *
 	 * @param voltage_v: current voltage in V
 	 * @param current_a: current current in A
+	 * @param connected: Battery is connected
+	 * @param selected_source: This battery is on the brick that the selected source for selected_source
+	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 * @param throttle_normalized: throttle from 0 to 1
 	 */
-	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
+	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
+				 bool connected, bool selected_source, int priority,
+				 float throttle_normalized,
 				 bool armed, battery_status_s *status);
 
 private:
@@ -106,6 +111,7 @@ private:
 	control::BlockParamFloat _param_r_internal;
 	control::BlockParamFloat _param_low_thr;
 	control::BlockParamFloat _param_crit_thr;
+	control::BlockParamFloat _param_emergency_thr;
 
 	float _voltage_filtered_v;
 	float _current_filtered_a;

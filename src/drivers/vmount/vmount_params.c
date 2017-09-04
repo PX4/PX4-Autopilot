@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -39,24 +39,30 @@
 
 /**
 * Mount input mode
+*
 * RC uses the AUX input channels (see MNT_MAN_* parameters),
 * MAVLINK_ROI uses the MAV_CMD_DO_SET_ROI Mavlink message, and MAVLINK_DO_MOUNT the
 * MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL messages to control a mount.
-* @value 0 DISABLE
+*
+* @value -1 DISABLED
+* @value 0 AUTO
 * @value 1 RC
 * @value 2 MAVLINK_ROI
 * @value 3 MAVLINK_DO_MOUNT
-* @min 0
+* @min -1
 * @max 3
 * @group Mount
+* @reboot_required true
 */
-PARAM_DEFINE_INT32(MNT_MODE_IN, 0);
+PARAM_DEFINE_INT32(MNT_MODE_IN, -1);
 
 /**
 * Mount output mode
+*
 * AUX uses the mixer output Control Group #2.
 * MAVLINK uses the MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL MavLink messages
 * to control a mount (set MNT_MAV_SYSID & MNT_MAV_COMPID)
+*
 * @value 0 AUX
 * @value 1 MAVLINK
 * @min 0
@@ -66,22 +72,27 @@ PARAM_DEFINE_INT32(MNT_MODE_IN, 0);
 PARAM_DEFINE_INT32(MNT_MODE_OUT, 0);
 
 /**
-* Mavlink System ID (if MNT_MODE_OUT is MAVLINK)
+* Mavlink System ID of the mount
+*
+* If MNT_MODE_OUT is MAVLINK, mount configure/control commands will be sent with this target ID.
 *
 * @group Mount
 */
-PARAM_DEFINE_INT32(MNT_MAV_SYSID, 71);
+PARAM_DEFINE_INT32(MNT_MAV_SYSID, 1);
 
 /**
-* Mavlink Component ID (if MNT_MODE_OUT is MAVLINK)
+* Mavlink Component ID of the mount
+*
+* If MNT_MODE_OUT is MAVLINK, mount configure/control commands will be sent with this component ID.
 *
 * @group Mount
 */
-PARAM_DEFINE_INT32(MNT_MAV_COMPID, 67);
+PARAM_DEFINE_INT32(MNT_MAV_COMPID, 154);
 
 /**
 * Mixer value for selecting normal mode
 * if required by the gimbal (only in AUX output mode)
+*
 * @min -1.0
 * @max 1.0
 * @decimal 3
@@ -92,24 +103,13 @@ PARAM_DEFINE_FLOAT(MNT_OB_NORM_MODE, -1.0f);
 /**
 * Mixer value for selecting a locking mode
 * if required for the gimbal (only in AUX output mode)
+*
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Mount
 */
 PARAM_DEFINE_FLOAT(MNT_OB_LOCK_MODE, 0.0f);
-
-
-/**
-* This enables the mount to be manually controlled when no ROI is set.
-*
-* If set to 1, the mount will be controlled by the AUX channels below
-* when no ROI is set.
-*
-* @boolean
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_MAN_CONTROL, 0);
 
 /**
 * Auxiliary channel to control roll (in AUX input or manual mode).

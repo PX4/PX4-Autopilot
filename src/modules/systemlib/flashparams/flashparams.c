@@ -44,6 +44,7 @@
 
 #include <px4_defines.h>
 #include <px4_posix.h>
+#include <px4_shutdown.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -65,26 +66,10 @@
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-	param_t                 param;
 	union param_value_u     val;
+	param_t                 param;
 	bool                    unsaved;
 };
-
-
-/** lock the parameter store */
-static void
-param_lock(void)
-{
-	//do {} while (sem_wait(&param_sem) != 0);
-}
-
-/** unlock the parameter store */
-static void
-param_unlock(void)
-{
-	//sem_post(&param_sem);
-}
-
 
 static int
 param_export_internal(bool only_unsaved)
@@ -92,8 +77,6 @@ param_export_internal(bool only_unsaved)
 	struct param_wbuf_s *s = NULL;
 	struct bson_encoder_s encoder;
 	int     result = -1;
-
-	param_lock();
 
 	/* Use realloc */
 
@@ -125,7 +108,7 @@ param_export_internal(bool only_unsaved)
 		switch (param_type(s->param)) {
 
 		case PARAM_TYPE_INT32:
-			param_get(s->param, &i);
+			i = s->val.i;
 
 			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
@@ -135,7 +118,7 @@ param_export_internal(bool only_unsaved)
 			break;
 
 		case PARAM_TYPE_FLOAT:
-			param_get(s->param, &f);
+			f = s->val.f;
 
 			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
@@ -165,7 +148,6 @@ param_export_internal(bool only_unsaved)
 	result = 0;
 
 out:
-	param_unlock();
 
 	if (result == 0) {
 
@@ -176,6 +158,12 @@ out:
 		/* Get requiered space */
 
 		size_t buf_size = bson_encoder_buf_size(&encoder);
+
+		int shutdown_lock_ret = px4_shutdown_lock();
+
+		if (shutdown_lock_ret) {
+			PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
+		}
 
 		/* Get a buffer from the flash driver with enough space */
 
@@ -205,6 +193,11 @@ out:
 			free(enc_buff);
 			parameter_flashfs_free();
 		}
+
+		if (shutdown_lock_ret == 0) {
+			px4_shutdown_unlock();
+		}
+
 	}
 
 	return result;
@@ -250,7 +243,8 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	switch (node->type) {
 	case BSON_INT32:
 		if (param_type(param) != PARAM_TYPE_INT32) {
-			debug("unexpected type for '%s", node->name);
+			PX4_WARN("unexpected type for %s", node->name);
+			result = 1; // just skip this entry
 			goto out;
 		}
 
@@ -260,7 +254,8 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 	case BSON_DOUBLE:
 		if (param_type(param) != PARAM_TYPE_FLOAT) {
-			debug("unexpected type for '%s", node->name);
+			PX4_WARN("unexpected type for %s", node->name);
+			result = 1; // just skip this entry
 			goto out;
 		}
 
@@ -270,12 +265,14 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 	case BSON_BINDATA:
 		if (node->subtype != BSON_BIN_BINARY) {
-			debug("unexpected subtype for '%s", node->name);
+			PX4_WARN("unexpected type for %s", node->name);
+			result = 1; // just skip this entry
 			goto out;
 		}
 
 		if (bson_decoder_data_pending(decoder) != param_size(param)) {
-			debug("bad size for '%s'", node->name);
+			PX4_WARN("bad size for '%s'", node->name);
+			result = 1; // just skip this entry
 			goto out;
 		}
 
@@ -300,7 +297,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_external(param, v, state->mark_saved, true, false)) {
+	if (param_set_external(param, v, state->mark_saved, true)) {
 
 		debug("error setting value for '%s'", node->name);
 		goto out;
@@ -360,13 +357,6 @@ int flash_param_save(void)
 	return param_export_internal(false);
 }
 
-
-int flash_param_save_default(void)
-{
-	return param_export_internal(false);
-}
-
-
 int flash_param_load(void)
 {
 	param_reset_all();
@@ -375,5 +365,5 @@ int flash_param_load(void)
 
 int flash_param_import(void)
 {
-	return 0;
+	return -1;
 }

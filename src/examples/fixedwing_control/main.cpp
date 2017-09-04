@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -313,9 +313,11 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 	/* Setup of loop */
 
-	struct pollfd fds[2] = {{ .fd = param_sub, .events = POLLIN },
-		{ .fd = att_sub, .events = POLLIN }
-	};
+	struct pollfd fds[2] = {};
+	fds[0].fd = param_sub;
+	fds[0].events = POLLIN;
+	fds[1].fd = att_sub;
+	fds[1].events = POLLIN;
 
 	while (!thread_should_exit) {
 
@@ -462,7 +464,7 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 						 SCHED_PRIORITY_MAX - 20,
 						 2048,
 						 fixedwing_control_thread_main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 		thread_running = true;
 		exit(0);
 	}

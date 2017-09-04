@@ -938,7 +938,7 @@ int parameter_flashfs_alloc(flash_file_token_t token, uint8_t **buffer, size_t *
 			/* We have a buffer reserve space and init it */
 			*buffer = &working_buffer[sizeof(flash_entry_header_t)];
 			*buf_size = working_buffer_size - sizeof(flash_entry_header_t);
-			memset(working_buffer, 0xff , working_buffer_size);
+			memset(working_buffer, 0xff, working_buffer_size);
 			rv = 0;
 
 		}

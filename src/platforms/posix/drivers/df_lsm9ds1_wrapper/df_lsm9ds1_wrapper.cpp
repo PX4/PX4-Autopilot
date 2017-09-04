@@ -624,6 +624,7 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 	mag_report.timestamp = accel_report.timestamp;
+	mag_report.is_external = false;
 
 	// TODO: get these right
 	gyro_report.scaling = -1.0f;
@@ -708,9 +709,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 		if (_mag_topic != nullptr) {
 			orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
 		}
-
-		/* Notify anyone waiting for data. */
-		DevMgr::updateNotify(*this);
 
 		// Report if there are high vibrations, every 10 times it happens.
 		const bool threshold_reached = (data.accel_range_hit_counter - _last_accel_range_hit_count > 10);

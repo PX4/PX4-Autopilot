@@ -70,7 +70,7 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -80,6 +80,7 @@
 #include <systemlib/hardfault_log.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/param/param.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -130,10 +131,12 @@ __END_DECLS
  ************************************************************************************/
 __EXPORT void board_peripheral_reset(int ms)
 {
-	/* set the peripheral rails off */
-	stm32_configgpio(GPIO_VDD_3V3_PERIPH_EN);
-
+	/* set the peripheral and sensor rails off */
 	stm32_gpiowrite(GPIO_VDD_3V3_PERIPH_EN, 0);
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_5V_HIPOWER_EN, 1);
+
 
 //	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
 	/* Keep Spektum on to discharge rail*/
@@ -148,7 +151,50 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* switch the peripheral rail back on */
 //	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
 	stm32_gpiowrite(GPIO_VDD_3V3_PERIPH_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+	stm32_gpiowrite(GPIO_VDD_5V_HIPOWER_EN, 0);
+}
 
+/************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+__EXPORT void board_on_reset(int status)
+{
+	UNUSED(status);
+	/* configure the GPIO pins to outputs and keep them low */
+
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+
+	/* On resets invoked from system (not boot) insure we establish a low
+	 * output state (discharge the pins) on PWM pins before they become inputs.
+	 *
+	 * We also delay the onset of the that 3.1 Ms pulse as boot. This has
+	 * triggered some ESC to spin. By adding this delay here the reset
+	 * is pushed out > 400 ms. So the ESC PWM input can not mistake
+	 * the 3.1 Ms pulse as a valid PWM command.
+	 *
+	 * fixme:Establish in upstream NuttX an CONFIG_IO_INIT_STATE to
+	 * the initialize the IO lines in the clock config.
+	 *
+	 */
+
+	if (status >= 0) {
+		up_mdelay(400);
+	}
 }
 
 /************************************************************************************
@@ -164,42 +210,49 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	/* Reset all PWM to Low outputs */
+
+	board_on_reset(-1);
+
 	/* configure LEDs */
+
 	board_autoled_initialize();
 
+	/* Start with Power off */
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+
 	/* configure ADC pins */
-	//todo:Revisit! ADC3 etc
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
+	stm32_configgpio(GPIO_ADC1_IN11);	/* BATT2_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN13);	/* BATT2_CURRENT_SENS */
 
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_VDD_3V3_PERIPH_EN);
-	stm32_configgpio(GPIO_VDD_BRICK_VALID);
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_configgpio(GPIO_VDD_5V_HIPOWER_EN);
+
+	stm32_configgpio(GPIO_nVDD_BRICK1_VALID);
+	stm32_configgpio(GPIO_nVDD_BRICK2_VALID);
+	stm32_configgpio(GPIO_nVDD_USB_VALID);
+
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_8266_GPIO0);
 //	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
-	stm32_configgpio(GPIO_BTN_SAFETY);
+	stm32_configgpio(GPIO_BTN_SAFETY_FMU);
 
-#ifdef GPIO_RC_OUT
-	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
-	stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set it high to pull RC input up */
-#endif
 
-	/* configure the GPIO pins to outputs and keep them low */
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
-	stm32_configgpio(GPIO_GPIO1_OUTPUT);
-	stm32_configgpio(GPIO_GPIO2_OUTPUT);
-	stm32_configgpio(GPIO_GPIO3_OUTPUT);
-	stm32_configgpio(GPIO_GPIO4_OUTPUT);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
-
-	/* configure SPI interfaces */
-	stm32_spiinitialize();
+	/* configure SPI interfaces
+	 * is deferred to board_app_initialize
+	 * to delay the sensor power up with
+	 * out adding a delay
+	 */
 
 	stm32_usbinitialize();
 
@@ -253,8 +306,19 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
 
+	/* Bring up the Sensor power */
+
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+
+	/* Now it is ok to drvie the pins high
+	 * so configure SPI CPIO */
+
+	stm32_spiinitialize();
+
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
+
+	param_init();
 
 	/* configure the DMA allocator */
 
@@ -440,6 +504,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_LIS, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_EEPROM, false);
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */
@@ -518,158 +583,4 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	return OK;
-}
-
-static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
-{
-	while (size--) {
-		*dest++ = *src--;
-	}
-}
-
-__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
-{
-	/* We need a chunk of ram to save the complete context in.
-	 * Since we are going to reboot we will use &_sdata
-	 * which is the lowest memory and the amount we will save
-	 * _should be_ below any resources we need herein.
-	 * Unfortunately this is hard to test. See dead below
-	 */
-
-	fullcontext_s *pdump = (fullcontext_s *)&_sdata;
-
-	(void)enter_critical_section();
-
-	struct tcb_s *rtcb = (struct tcb_s *)tcb;
-
-	/* Zero out everything */
-
-	memset(pdump, 0, sizeof(fullcontext_s));
-
-	/* Save Info */
-
-	pdump->info.lineno = lineno;
-
-	if (filename) {
-
-		int offset = 0;
-		unsigned int len = strlen((char *)filename) + 1;
-
-		if (len > sizeof(pdump->info.filename)) {
-			offset = len - sizeof(pdump->info.filename) ;
-		}
-
-		strncpy(pdump->info.filename, (char *)&filename[offset], sizeof(pdump->info.filename));
-	}
-
-	/* Save the value of the pointer for current_regs as debugging info.
-	 * It should be NULL in case of an ASSERT and will aid in cross
-	 * checking the validity of system memory at the time of the
-	 * fault.
-	 */
-
-	pdump->info.current_regs = (uintptr_t) CURRENT_REGS;
-
-	/* Save Context */
-
-
-#if CONFIG_TASK_NAME_SIZE > 0
-	strncpy(pdump->info.name, rtcb->name, CONFIG_TASK_NAME_SIZE);
-#endif
-
-	pdump->info.pid = rtcb->pid;
-
-
-	/* If  current_regs is not NULL then we are in an interrupt context
-	 * and the user context is in current_regs else we are running in
-	 * the users context
-	 */
-
-	if (CURRENT_REGS) {
-		pdump->info.stacks.interrupt.sp = currentsp;
-
-		pdump->info.flags |= (eRegsPresent | eUserStackPresent | eIntStackPresent);
-		memcpy(pdump->info.regs, (void *)CURRENT_REGS, sizeof(pdump->info.regs));
-		pdump->info.stacks.user.sp = pdump->info.regs[REG_R13];
-
-	} else {
-
-		/* users context */
-		pdump->info.flags |= eUserStackPresent;
-
-		pdump->info.stacks.user.sp = currentsp;
-	}
-
-	if (pdump->info.pid == 0) {
-
-		pdump->info.stacks.user.top = g_idle_topstack - 4;
-		pdump->info.stacks.user.size = CONFIG_IDLETHREAD_STACKSIZE;
-
-	} else {
-		pdump->info.stacks.user.top = (uint32_t) rtcb->adj_stack_ptr;
-		pdump->info.stacks.user.size = (uint32_t) rtcb->adj_stack_size;;
-	}
-
-#if CONFIG_ARCH_INTERRUPTSTACK > 3
-
-	/* Get the limits on the interrupt stack memory */
-
-	pdump->info.stacks.interrupt.top = (uint32_t)&g_intstackbase;
-	pdump->info.stacks.interrupt.size  = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
-
-	/* If In interrupt Context save the interrupt stack data centered
-	 * about the interrupt stack pointer
-	 */
-
-	if ((pdump->info.flags & eIntStackPresent) != 0) {
-		stack_word_t *ps = (stack_word_t *) pdump->info.stacks.interrupt.sp;
-		copy_reverse(pdump->istack, &ps[arraySize(pdump->istack) / 2], arraySize(pdump->istack));
-	}
-
-	/* Is it Invalid? */
-
-	if (!(pdump->info.stacks.interrupt.sp <= pdump->info.stacks.interrupt.top &&
-	      pdump->info.stacks.interrupt.sp > pdump->info.stacks.interrupt.top - pdump->info.stacks.interrupt.size)) {
-		pdump->info.flags |= eInvalidIntStackPrt;
-	}
-
-#endif
-
-	/* If In interrupt context or User save the user stack data centered
-	 * about the user stack pointer
-	 */
-	if ((pdump->info.flags & eUserStackPresent) != 0) {
-		stack_word_t *ps = (stack_word_t *) pdump->info.stacks.user.sp;
-		copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack) / 2], arraySize(pdump->ustack));
-	}
-
-	/* Is it Invalid? */
-
-	if (!(pdump->info.stacks.user.sp <= pdump->info.stacks.user.top &&
-	      pdump->info.stacks.user.sp > pdump->info.stacks.user.top - pdump->info.stacks.user.size)) {
-		pdump->info.flags |= eInvalidUserStackPtr;
-	}
-
-	int rv = stm32_bbsram_savepanic(HARDFAULT_FILENO, (uint8_t *)pdump, sizeof(fullcontext_s));
-
-	/* Test if memory got wiped because of using _sdata */
-
-	if (rv == -ENXIO) {
-		char *dead = "Memory wiped - dump not saved!";
-
-		while (*dead) {
-			up_lowputc(*dead++);
-		}
-
-	} else if (rv == -ENOSPC) {
-
-		/* hard fault again */
-
-		up_lowputc('!');
-	}
-
-
-#if defined(CONFIG_BOARD_RESET_ON_CRASH)
-	px4_systemreset(false);
-#endif
 }

@@ -54,7 +54,6 @@
 
 
 /* Configuration Constants */
-#define LL40LS_BUS          PX4_I2C_BUS_EXPANSION
 #define LL40LS_BASEADDR     0x62 /* 7-bit address */
 #define LL40LS_BASEADDR_OLD     0x42 /* previous 7-bit address */
 
@@ -90,6 +89,8 @@ public:
 	 */
 	void print_registers() override;
 
+	const char *get_dev_name() override;
+
 protected:
 	int         probe();
 	int         read_reg(uint8_t reg, uint8_t &val);
@@ -110,7 +111,6 @@ private:
 
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _comms_errors;
-	perf_counter_t      _buffer_overflows;
 	perf_counter_t      _sensor_resets;
 	perf_counter_t      _sensor_zero_resets;
 	uint16_t        _last_distance;

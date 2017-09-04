@@ -1,15 +1,7 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
-#include <errno.h>
-#include <fcntl.h>
-#include <float.h>
-#include <math.h>
 #include <px4_config.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <cfloat>
 
 typedef union {
 	float f;
@@ -22,18 +14,18 @@ typedef union {
 class FloatTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool singlePrecisionTests();
 	bool doublePrecisionTests();
 };
 
-bool FloatTest::singlePrecisionTests(void)
+bool FloatTest::singlePrecisionTests()
 {
 	float sinf_zero = sinf(0.0f);
 	float sinf_one = sinf(1.0f);
-	float sqrt_two = sqrt(2.0f);
+	float sqrt_two = sqrtf(2.0f);
 
 	ut_assert("sinf(0.0f) == 0.0f", fabsf(sinf_zero) < FLT_EPSILON);
 	ut_assert("sinf(1.0f) == 0.84147f", fabsf((sinf_one - 0.841470956802368164062500000000f)) < FLT_EPSILON);
@@ -83,7 +75,7 @@ bool FloatTest::singlePrecisionTests(void)
 }
 
 
-bool FloatTest::doublePrecisionTests(void)
+bool FloatTest::doublePrecisionTests()
 {
 	float f1 = 1.55f;
 
@@ -138,7 +130,7 @@ bool FloatTest::doublePrecisionTests(void)
 	return true;
 }
 
-bool FloatTest::run_tests(void)
+bool FloatTest::run_tests()
 {
 	ut_run_test(singlePrecisionTests);
 	ut_run_test(doublePrecisionTests);

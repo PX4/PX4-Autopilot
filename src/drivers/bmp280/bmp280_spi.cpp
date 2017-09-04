@@ -93,9 +93,6 @@ BMP280_SPI::BMP280_SPI(uint8_t bus, spi_dev_e device, bool external) :
 	_external = external;
 }
 
-bmp280::IBMP280::~IBMP280()
-{
-}
 
 BMP280_SPI::~BMP280_SPI()
 {

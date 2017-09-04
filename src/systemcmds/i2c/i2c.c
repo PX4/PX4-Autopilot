@@ -39,6 +39,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +56,6 @@
 #include <board_config.h>
 
 #include "systemlib/systemlib.h"
-#include "systemlib/err.h"
 
 #ifndef PX4_I2C_BUS_ONBOARD
 #  error PX4_I2C_BUS_ONBOARD not defined, no device interface
@@ -76,7 +76,8 @@ int i2c_main(int argc, char *argv[])
 	i2c = px4_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
 
 	if (i2c == NULL) {
-		errx(1, "failed to locate I2C bus");
+		PX4_ERR("failed to locate I2C bus");
+		return 1;
 	}
 
 	usleep(100000);
@@ -85,17 +86,20 @@ int i2c_main(int argc, char *argv[])
 	int ret = transfer(PX4_I2C_OBDEV_PX4IO, buf, sizeof(buf), NULL, 0);
 
 	if (ret) {
-		errx(1, "send failed - %d", ret);
+		PX4_ERR("send failed - %d", ret);
+		return 1;
 	}
 
 	uint32_t val;
 	ret = transfer(PX4_I2C_OBDEV_PX4IO, NULL, 0, (uint8_t *)&val, sizeof(val));
 
 	if (ret) {
-		errx(1, "recive failed - %d", ret);
+		PX4_ERR("recive failed - %d", ret);
+		return 1;
 	}
 
-	errx(0, "got 0x%08x", val);
+	PX4_INFO("got 0x%08x", val);
+	return 0;
 }
 
 static int

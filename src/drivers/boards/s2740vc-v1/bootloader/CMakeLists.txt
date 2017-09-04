@@ -45,11 +45,12 @@ include_directories(.)
 px4_add_module(
 	MODULE drivers__boards__s2740vc-v1__bootloader
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		boot.c
+		../../common/stm32/board_identity.c
 		${px4_bootloader_base}src/uavcan/main.c
 		${px4_bootloader_base}src/common/boot_app_shared.c
+		${px4_bootloader_base}src/common/nuttx_stubs.c
 		${px4_bootloader_base}src/sched/timer.c
 		${px4_bootloader_base}src/fs/flash.c
 		${px4_bootloader_base}src/util/crc.c

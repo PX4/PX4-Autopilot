@@ -4,5 +4,3 @@
 px4/position_setpoint previous
 px4/position_setpoint current
 px4/position_setpoint next
-
-uint8 nav_state	# report the navigation state

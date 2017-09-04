@@ -43,6 +43,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <uORB/topics/rc_channels.h>
 
 namespace sensors
 {
@@ -124,6 +126,11 @@ private:
 	const Parameters &_parameters;
 
 	hrt_abstime _last_rc_to_param_map_time = 0;
+
+	math::LowPassFilter2p _filter_roll; /**< filters for the main 4 stick inputs */
+	math::LowPassFilter2p _filter_pitch; /** we want smooth setpoints as inputs to the controllers */
+	math::LowPassFilter2p _filter_yaw;
+	math::LowPassFilter2p _filter_throttle;
 
 };
 

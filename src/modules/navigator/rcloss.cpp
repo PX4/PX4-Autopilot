@@ -83,7 +83,6 @@ void
 RCLoss::on_activation()
 {
 	_rcl_state = RCL_STATE_NONE;
-	updateParams();
 	advance_rcl();
 	set_rcl_item();
 }
@@ -92,7 +91,6 @@ void
 RCLoss::on_active()
 {
 	if (is_mission_item_reached()) {
-		updateParams();
 		advance_rcl();
 		set_rcl_item();
 	}

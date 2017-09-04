@@ -339,15 +339,15 @@ BATT_SMBUS::~BATT_SMBUS()
 	}
 
 	if (_manufacturer_name != nullptr) {
-		delete _manufacturer_name;
+		delete[] _manufacturer_name;
 	}
 
 	if (_device_name != nullptr) {
-		delete _device_name;
+		delete[] _device_name;
 	}
 
 	if (_device_chemistry != nullptr) {
-		delete _device_chemistry;
+		delete[] _device_chemistry;
 	}
 }
 
@@ -603,7 +603,7 @@ BATT_SMBUS::cycle()
 		uint8_t len = manufacturer_name((uint8_t *)man_name, sizeof(man_name));
 
 		if (len > 0) {
-			_manufacturer_name = new char[len];
+			_manufacturer_name = new char[len + 1];
 			strcpy(_manufacturer_name, man_name);
 			perform_solo_battry_check = true;
 		}
@@ -614,7 +614,7 @@ BATT_SMBUS::cycle()
 		uint8_t len = device_name((uint8_t *)dev_name, sizeof(dev_name));
 
 		if (len > 0) {
-			_device_name = new char[len];
+			_device_name = new char[len + 1];
 			strcpy(_device_name, dev_name);
 			perform_solo_battry_check = true;
 		}
@@ -625,7 +625,7 @@ BATT_SMBUS::cycle()
 		uint8_t len = device_chemistry((uint8_t *)dev_chem, sizeof(dev_chem));
 
 		if (len > 0) {
-			_device_chemistry = new char[len];
+			_device_chemistry = new char[len + 1];
 			strcpy(_device_chemistry, dev_chem);
 			perform_solo_battry_check = true;
 		}

@@ -48,7 +48,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <semaphore.h>
-#include "systemlib/param/param.h"
+#include <systemlib/param/param.h>
 #include "hrt_work.h"
 #include "px4_log.h"
 
@@ -80,6 +80,7 @@ void qurt_log(const char *fmt, ...)
 	va_start(args, fmt);
 	printf(fmt, args);
 	printf("n");
+	va_end(args);
 }
 #endif
 
@@ -106,6 +107,7 @@ void init_once(void)
 	work_queues_init();
 	hrt_work_queue_init();
 	hrt_init();
+	param_init();
 
 	/* Shared memory param sync*/
 	init_params();
@@ -122,7 +124,7 @@ void init(int argc, char *argv[], const char *app_name)
 ssize_t
 dm_read(
 	dm_item_t item,                 /* The item type to retrieve */
-	unsigned char index,            /* The index of the item */
+	unsigned index,                 /* The index of the item */
 	void *buffer,                   /* Pointer to caller data buffer */
 	size_t buflen                   /* Length in bytes of data to retrieve */
 )
@@ -134,7 +136,7 @@ dm_read(
 ssize_t
 dm_write(
 	dm_item_t  item,                /* The item type to store */
-	unsigned char index,            /* The index of the item */
+	unsigned index,                 /* The index of the item */
 	dm_persitence_t persistence,    /* The persistence level of this item */
 	const void *buffer,             /* Pointer to caller data buffer */
 	size_t buflen                   /* Length in bytes of data to retrieve */

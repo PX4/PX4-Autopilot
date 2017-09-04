@@ -229,7 +229,10 @@ class MavrosMissionTest(unittest.TestCase):
             (self.mission_name, lat, lon, alt, xy_radius, z_radius, timeout, index, self.last_pos_d, self.last_alt_d, vtol_state_string)))
 
     def run_mission(self):
-        """switch mode: auto and arm"""
+	# Hack to wait until vehicle is ready
+	# TODO better integration with pre-flight status reporting
+	time.sleep(5)
+	"""switch mode: auto and arm"""
         self._srv_cmd_long(False, 176, False,
                            # custom, auto, mission
                            1, 4, 4, 0, 0, 0, 0)
@@ -314,12 +317,12 @@ class MavrosMissionTest(unittest.TestCase):
         with open(mission_file, 'r') as f:
             mission_ext = os.path.splitext(mission_file)[1]
             if mission_ext == '.mission':
-                rospy.loginfo("new style mission fiel detected")
+                rospy.loginfo("new style mission file detected")
                 for waypoint in read_new_mission(f):
                     wps.append(waypoint)
                     rospy.logdebug(waypoint)
             elif mission_ext == '.txt':
-                rospy.loginfo("old style mission fiel detected")
+                rospy.loginfo("old style mission file detected")
                 mission = QGroundControlWP()
                 for waypoint in mission.read(f):
                     wps.append(waypoint)
@@ -369,7 +372,8 @@ class MavrosMissionTest(unittest.TestCase):
         rospy.loginfo("mission done, calculating performance metrics")
         last_log = get_last_log()
         rospy.loginfo("log file %s", last_log)
-        data = px4tools.ulog.read_ulog(last_log).resample_and_concat(0.1)
+        data = px4tools.ulog.read_ulog(last_log).concat(dt=0.1)
+        data = px4tools.ulog.compute_data(data)
         res = px4tools.estimator_analysis(data, False)
 
         # enforce performance

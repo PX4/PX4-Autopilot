@@ -54,6 +54,7 @@
 /* Configuration ************************************************************************************/
 
 /* PX4IO connection configuration */
+#define BOARD_USES_PX4IO_VERSION       1
 #define PX4IO_SERIAL_DEVICE	"/dev/ttyS2"
 
 //#ifdef CONFIG_STM32_SPI2
@@ -125,6 +126,12 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL	10
 #define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
+
+/* Define Battery 1 Voltage Divider and A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV   (5.7013919372f)
+#define BOARD_BATTERY1_A_PER_V (15.391030303f)
 
 /* User GPIOs
  *
@@ -211,6 +218,22 @@
 		{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, GPIO_USART2_RX_1}, \
 		{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2}, \
 		{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2}, }
+
+/*
+ * GPIO numbers.
+ *
+ * For shared pins, alternate function 1 selects the non-GPIO mode
+ * (USART2, CAN2, etc.)
+ */
+#define GPIO_EXT_1     (1<<0)  /**< high-power GPIO 1 */
+#define GPIO_EXT_2     (1<<1)  /**< high-power GPIO 1 */
+#define GPIO_MULTI_1   (1<<2)  /**< USART2 CTS */
+#define GPIO_MULTI_2   (1<<3)  /**< USART2 RTS */
+#define GPIO_MULTI_3   (1<<4)  /**< USART2 TX */
+#define GPIO_MULTI_4   (1<<5)  /**< USART2 RX */
+#define GPIO_CAN_TX    (1<<6)  /**< CAN2 TX */
+#define GPIO_CAN_RX    (1<<7)  /**< CAN2 RX */
+
 
 /* BOARD_HAS_MULTI_PURPOSE_GPIO defined because the board
  * has alternate uses for GPIO as noted in that the third

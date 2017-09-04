@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN mpu9250
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		mpu9250.cpp
 		mpu9250_i2c.cpp

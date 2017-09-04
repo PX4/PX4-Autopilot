@@ -33,8 +33,11 @@
 px4_add_module(
 	MODULE drivers__boards__px4nucleoF767ZI-v1
 	COMPILE_FLAGS
-		-Os
 	SRCS
+		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
+		../common/stm32/board_mcu_version.c
+		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 #		WIP px4nucleo_can.c
 		px4nucleo_init.c

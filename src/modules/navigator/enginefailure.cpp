@@ -96,9 +96,6 @@ EngineFailure::set_ef_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* make sure we have the latest params */
-	updateParams();
-
 	set_previous_pos_setpoint();
 	_navigator->set_can_loiter_at_sp(false);
 

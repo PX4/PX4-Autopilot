@@ -69,23 +69,55 @@ typedef enum param_type_e {
 	PARAM_TYPE_UNKNOWN = 0xffff
 } param_type_t;
 
+
+#ifdef __PX4_NUTTX // on NuttX use 16 bits to save RAM
 /**
  * Parameter handle.
  *
  * Parameters are represented by parameter handles, which can
- * be obtained by looking up (or creating?) parameters.
+ * be obtained by looking up parameters. They are an offset into a global
+ * constant parameter array.
  */
-typedef uintptr_t	param_t;
+typedef uint16_t	param_t;
 
 /**
  * Handle returned when a parameter cannot be found.
  */
-#define PARAM_INVALID	((uintptr_t)0xffffffff)
+#define PARAM_INVALID	((uint16_t)0xffff)
 
 /**
  * Magic handle for hash check param
  */
-#define PARAM_HASH      ((uintptr_t)INT32_MAX)
+#define PARAM_HASH      ((uint16_t)INT16_MAX)
+
+#else // on other platforms use 32 bits for better performance
+
+/**
+ * Parameter handle.
+ *
+ * Parameters are represented by parameter handles, which can
+ * be obtained by looking up parameters. They are an offset into a global
+ * constant parameter array.
+ */
+typedef uint32_t	param_t;
+
+/**
+ * Handle returned when a parameter cannot be found.
+ */
+#define PARAM_INVALID	((uint32_t)0xffffffff)
+
+/**
+ * Magic handle for hash check param
+ */
+#define PARAM_HASH      ((uint32_t)INT32_MAX)
+
+#endif /* __PX4_NUTTX */
+
+
+/**
+ * Initialize the param backend. Call this on startup before calling any other methods.
+ */
+__EXPORT void		param_init(void);
 
 /**
  * Look up a parameter by name.
@@ -217,16 +249,6 @@ __EXPORT int		param_get(param_t param, void *val);
 __EXPORT int		param_set(param_t param, const void *val);
 
 /**
- * Set the value of a parameter, but do not trigger an auto-save
- *
- * @param param		A handle returned by param_find or passed by param_foreach.
- * @param val		The value to set; assumed to point to a variable of the parameter type.
- *			For structures, the pointer is assumed to point to a structure to be copied.
- * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
- */
-__EXPORT int		param_set_no_autosave(param_t param, const void *val);
-
-/**
  * Set the value of a parameter, but do not notify the system about the change.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
@@ -235,6 +257,12 @@ __EXPORT int		param_set_no_autosave(param_t param, const void *val);
  * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
  */
 __EXPORT int		param_set_no_notification(param_t param, const void *val);
+
+/**
+ * Notify the system about parameter changes. Can be used for example after several calls to
+ * param_set_no_notification() to avoid unnecessary system notifications.
+ */
+__EXPORT void param_notify_changes(void);
 
 /**
  * Reset a parameter to its default value.
@@ -354,6 +382,14 @@ __EXPORT int 		param_load_default(void);
  * @return		CRC32 hash of all param_ids and values
  */
 __EXPORT uint32_t	param_hash_check(void);
+
+
+/**
+ * Enable/disable the param autosaving.
+ * Re-enabling with changed params will not cause an autosave.
+ * @param enable true: enable autosaving, false: disable autosaving
+ */
+__EXPORT void	param_control_autosave(bool enable);
 
 /*
  * Macros creating static parameter definitions.

@@ -1,0 +1,329 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_bbsram.c NuttX/nuttx/arch/arm/src/stm32f7/stm32_bbsram.c
+index bd653cf..71adbcf 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_bbsram.c
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_bbsram.c
+@@ -1,7 +1,7 @@
+ /****************************************************************************
+  * arch/arm/src/stm32f7/stm32_bbsram.c
+  *
+- *   Copyright (C) 2015-2016 Gregory Nutt. All rights reserved.
++ *   Copyright (C) 2015-2017 Gregory Nutt. All rights reserved.
+  *   Author: Gregory Nutt <gnutt@nuttx.org>
+  *           David Sidrane <david_s5@nscdg.com>
+  *
+@@ -257,7 +257,7 @@ static void stm32_bbsram_semtake(FAR struct stm32_bbsram_s *priv)
+ 
+ static inline void stm32_bbsram_unlock(void)
+ {
+-  (void)stm32_pwr_enablebkp(true);
++  stm32_pwr_enablebkp(true);
+ }
+ 
+ /****************************************************************************
+@@ -277,7 +277,7 @@ static inline void stm32_bbsram_unlock(void)
+ 
+ static inline void stm32_bbsram_lock(void)
+ {
+-  (void)stm32_pwr_enablebkp(false);
++  stm32_pwr_enablebkp(false);
+ }
+ 
+ /****************************************************************************
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_pwr.c NuttX/nuttx/arch/arm/src/stm32f7/stm32_pwr.c
+index 961eaf4..c9d2d5d 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_pwr.c
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_pwr.c
+@@ -2,7 +2,7 @@
+  * arch/arm/src/stm32f7/stm32_pwr.c
+  *
+  *   Copyright (C) 2011 Uros Platise. All rights reserved.
+- *   Copyright (C) 2013, 2015 Gregory Nutt. All rights reserved.
++ *   Copyright (C) 2013, 2015, 2017 Gregory Nutt. All rights reserved.
+  *   Authors: Uros Platise <uros.platise@isotel.eu>
+  *            Gregory Nutt <gnutt@nuttx.org>
+  *            David Sidrane <david_s5@nscdg.com>
+@@ -53,6 +53,12 @@
+ #if defined(CONFIG_STM32F7_PWR)
+ 
+ /************************************************************************************
++ * Private Data
++ ************************************************************************************/
++
++static uint16_t g_bkp_writable_counter = 0;
++
++/************************************************************************************
+  * Private Functions
+  ************************************************************************************/
+ 
+@@ -76,52 +82,108 @@ static inline void stm32_pwr_modifyreg(uint8_t offset, uint16_t clearbits, uint1
+  ************************************************************************************/
+ 
+ /************************************************************************************
++ * Name: stm32_pwr_initbkp
++ *
++ * Description:
++ *   Insures the referenced count access to the backup domain (RTC registers,
++ *   RTC backup data registers and backup SRAM is consistent with the HW state
++ *   without relying on a variable.
++ *
++ *   NOTE: This function should only be called by SoC Start up code.
++ *
++ * Input Parameters:
++ *   writable - True: enable ability to write to backup domain registers
++ *
++ * Returned Value:
++ *   None
++ *
++ ************************************************************************************/
++
++void stm32_pwr_initbkp(bool writable)
++{
++  uint16_t regval;
++
++  /* Make the HW not writable */
++
++  regval = stm32_pwr_getreg(STM32_PWR_CR1_OFFSET);
++  regval &= ~PWR_CR1_DBP;
++  stm32_pwr_putreg(STM32_PWR_CR1_OFFSET, regval);
++
++  /* Make the reference count agree */
++
++  g_bkp_writable_counter =  0;
++  stm32_pwr_enablebkp(writable);
++}
++
++/************************************************************************************
+  * Name: stm32_pwr_enablebkp
+  *
+  * Description:
+  *   Enables access to the backup domain (RTC registers, RTC backup data registers
+  *   and backup SRAM).
+  *
++ *   NOTE: Reference counting is used in order to supported nested calls to this
++ *   function.  As a consequence, every call to stm32_pwr_enablebkp(true) must
++ *   be followed by a matching call to stm32_pwr_enablebkp(false).
++ *
+  * Input Parameters:
+  *   writable - True: enable ability to write to backup domain registers
+  *
+  * Returned Value:
+- *   True: The backup domain was previously writable.
++ *   None
+  *
+  ************************************************************************************/
+ 
+-bool stm32_pwr_enablebkp(bool writable)
++void stm32_pwr_enablebkp(bool writable)
+ {
++  irqstate_t flags;
+   uint16_t regval;
+   bool waswritable;
++  bool wait = false;
++
++  flags = enter_critical_section();
+ 
+   /* Get the current state of the STM32 PWR control register */
+ 
+   regval      = stm32_pwr_getreg(STM32_PWR_CR1_OFFSET);
+   waswritable = ((regval & PWR_CR1_DBP) != 0);
+ 
++  if (writable)
++    {
++      DEBUGASSERT(g_bkp_writable_counter < UINT16_MAX);
++      g_bkp_writable_counter++;
++    }
++  else if (g_bkp_writable_counter > 0)
++    {
++      g_bkp_writable_counter--;
++    }
+   /* Enable or disable the ability to write */
+ 
+-  if (waswritable && !writable)
++  if (waswritable && g_bkp_writable_counter == 0)
+     {
+       /* Disable backup domain access */
+ 
+       regval &= ~PWR_CR1_DBP;
+       stm32_pwr_putreg(STM32_PWR_CR1_OFFSET, regval);
+     }
+-  else if (!waswritable && writable)
++  else if (!waswritable && g_bkp_writable_counter > 0)
+     {
+       /* Enable backup domain access */
+ 
+       regval |= PWR_CR1_DBP;
+       stm32_pwr_putreg(STM32_PWR_CR1_OFFSET, regval);
+ 
++      wait = true;
++	}
++
++  leave_critical_section(flags);
++
++  if (wait)
++    {
+       /* Enable does not happen right away */
+ 
+       up_udelay(4);
+     }
+-
+-  return waswritable;
+ }
+ 
+ /************************************************************************************
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_pwr.h NuttX/nuttx/arch/arm/src/stm32f7/stm32_pwr.h
+index 772851d..c80de12 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_pwr.h
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_pwr.h
+@@ -1,7 +1,7 @@
+ /************************************************************************************
+  * arch/arm/src/stm32f7/stm32_pwr.h
+  *
+- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
++ *   Copyright (C) 2016-2017 Gregory Nutt. All rights reserved.
+  *   Authors: Gregory Nutt <gnutt@nuttx.org>
+  *            David Sidrane <david_s5@nscdg.com>
+  *
+@@ -68,6 +68,27 @@ extern "C"
+  ************************************************************************************/
+ 
+ /************************************************************************************
++ * Name: stm32_pwr_initbkp
++ *
++ * Description:
++ *   Insures the referenced count access to the backup domain (RTC registers,
++ *   RTC backup data registers and backup SRAM is consistent with the HW state
++ *   without relying on a variable.
++ *
++ *   NOTE: This function should only be called by SoC Start up code.
++ *
++ * Input Parameters:
++ *   writable - set the initial state of the enable and the
++ *              bkp_writable_counter
++ *
++ * Returned Value:
++ *   None
++ *
++ ************************************************************************************/
++
++void stm32_pwr_initbkp(bool writable);
++
++/************************************************************************************
+  * Name: stm32_pwr_enablebkp
+  *
+  * Description:
+@@ -78,11 +99,11 @@ extern "C"
+  *   writable - True: enable ability to write to backup domain registers
+  *
+  * Returned Value:
+- *   True: The backup domain was previously writeable.
++ *   none
+  *
+  ************************************************************************************/
+ 
+-bool stm32_pwr_enablebkp(bool writable);
++void stm32_pwr_enablebkp(bool writable);
+ 
+ /************************************************************************************
+  * Name: stm32_pwr_enablebreg
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_rcc.c NuttX/nuttx/arch/arm/src/stm32f7/stm32_rcc.c
+index 21cac17..a64ce09 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_rcc.c
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_rcc.c
+@@ -1,7 +1,7 @@
+ /****************************************************************************
+  * arch/arm/src/stm32f7/stm32_rcc.c
+  *
+- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
++ *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
+  *   Authors: Gregory Nutt <gnutt@nuttx.org>
+  *            David Sidrane <david_s5@nscdg.com>
+  *
+@@ -52,6 +52,7 @@
+ 
+ #include "chip/stm32_flash.h"
+ #include "stm32_rcc.h"
++#include "stm32_pwr.h"
+ 
+ /****************************************************************************
+  * Pre-processor Definitions
+@@ -113,6 +114,13 @@ void stm32_clockconfig(void)
+ 
+   rcc_reset();
+ 
++#if defined(CONFIG_STM32F7_PWR)
++
++  /* Insure the bkp is initialized */
++
++  stm32_pwr_initbkp(false);
++#endif
++
+ #if defined(CONFIG_STM32F7_CUSTOM_CLOCKCONFIG)
+ 
+   /* Invoke Board Custom Clock Configuration */
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_rtc.c NuttX/nuttx/arch/arm/src/stm32f7/stm32_rtc.c
+index bd42b83..5445c01 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_rtc.c
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_rtc.c
+@@ -1,7 +1,7 @@
+ /****************************************************************************
+  * arch/arm/src/stm32f7/stm32_rtc.c
+  *
+- *   Copyright (C) 2011, 2015-2016 Gregory Nutt. All rights reserved.
++ *   Copyright (C) 2011, 2015-2017 Gregory Nutt. All rights reserved.
+  *   Author: Gregory Nutt <gnutt@nuttx.org>
+  *           David Sidrane <david_s5@nscdg.com>
+  *
+@@ -261,7 +261,7 @@ static void rtc_wprunlock(void)
+    * registers and backup SRAM).
+    */
+ 
+-  (void)stm32_pwr_enablebkp(true);
++  stm32_pwr_enablebkp(true);
+ 
+   /* The following steps are required to unlock the write protection on all the
+    * RTC registers (except for RTC_ISR[13:8], RTC_TAFCR, and RTC_BKPxR).
+@@ -300,7 +300,7 @@ static inline void rtc_wprlock(void)
+    * data registers and backup SRAM).
+    */
+ 
+-  (void)stm32_pwr_enablebkp(false);
++  stm32_pwr_enablebkp(false);
+ }
+ 
+ /****************************************************************************
+@@ -850,7 +850,7 @@ int up_rtc_initialize(void)
+ 
+   regval = getreg32(RTC_MAGIC_REG);
+ 
+-  (void)stm32_pwr_enablebkp(true);
++  stm32_pwr_enablebkp(true);
+ 
+   if (regval != RTC_MAGIC)
+     {
+@@ -943,7 +943,7 @@ int up_rtc_initialize(void)
+         }
+     }
+ 
+-  (void)stm32_pwr_enablebkp(false);
++  stm32_pwr_enablebkp(false);
+ 
+   /* Loop, attempting to initialize/resume the RTC.  This loop is necessary
+    * because it seems that occasionally it takes longer to initialize the
+@@ -994,7 +994,7 @@ int up_rtc_initialize(void)
+        * backup data registers and backup SRAM).
+        */
+ 
+-      (void)stm32_pwr_enablebkp(true);
++      stm32_pwr_enablebkp(true);
+ 
+       /* Remember that the RTC is initialized */
+ 
+@@ -1014,7 +1014,7 @@ int up_rtc_initialize(void)
+    * data registers and backup SRAM).
+    */
+ 
+-  (void)stm32_pwr_enablebkp(false);
++  stm32_pwr_enablebkp(false);
+ 
+   if (ret != OK && nretry > 0)
+     {

@@ -38,6 +38,9 @@
 
 #include <mathlib/mathlib.h>
 #include <px4_posix.h>
+#ifdef __PX4_NUTTX
+#include <systemlib/hardfault_log.h>
+#endif /* __PX4_NUTTX */
 
 namespace px4
 {
@@ -54,19 +57,13 @@ LogWriterFile::LogWriterFile(size_t buffer_size) :
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
 	/* allocate write performance counters */
-	_perf_write = perf_alloc(PC_ELAPSED, "sd write");
-	_perf_fsync = perf_alloc(PC_ELAPSED, "sd fsync");
+	_perf_write = perf_alloc(PC_ELAPSED, "logger_sd_write");
+	_perf_fsync = perf_alloc(PC_ELAPSED, "logger_sd_fsync");
 }
 
 bool LogWriterFile::init()
 {
-	if (_buffer) {
-		return true;
-	}
-
-	_buffer = new uint8_t[_buffer_size];
-
-	return _buffer;
+	return true;
 }
 
 LogWriterFile::~LogWriterFile()
@@ -76,6 +73,10 @@ LogWriterFile::~LogWriterFile()
 	perf_free(_perf_write);
 	perf_free(_perf_fsync);
 
+	if (_fd >= 0) {
+		::close(_fd);
+	}
+
 	if (_buffer) {
 		delete[] _buffer;
 	}
@@ -83,24 +84,77 @@ LogWriterFile::~LogWriterFile()
 
 void LogWriterFile::start_log(const char *filename)
 {
+	// register the current file with the hardfault handler: if the system crashes,
+	// the hardfault handler will append the crash log to that file on the next reboot.
+	// Note that we don't deregister it when closing the log, so that crashes after disarming
+	// are appended as well (the same holds for crashes before arming, which can be a bit misleading)
+	int ret = hardfault_store_filename(filename);
+
+	if (ret) {
+		PX4_ERR("Failed to register ULog file to the hardfault handler (%i)", ret);
+	}
+
 	_fd = ::open(filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 	if (_fd < 0) {
 		PX4_ERR("Can't open log file %s, errno: %d", filename, errno);
 		_should_run = false;
 		return;
-
-	} else {
-		PX4_INFO("Opened log file: %s", filename);
-		_should_run = true;
-		_running = true;
 	}
+
+	if (_buffer == nullptr) {
+		_buffer = new uint8_t[_buffer_size];
+
+		if (_buffer == nullptr) {
+			PX4_ERR("Can't create log buffer");
+			::close(_fd);
+			_fd = -1;
+			_should_run = false;
+			return;
+		}
+	}
+
+	PX4_INFO("Opened log file: %s", filename);
+	_should_run = true;
+	_running = true;
 
 	// Clear buffer and counters
 	_head = 0;
 	_count = 0;
 	_total_written = 0;
 	notify();
+}
+
+int LogWriterFile::hardfault_store_filename(const char *log_file)
+{
+#ifdef __PX4_NUTTX
+	int fd = open(HARDFAULT_ULOG_PATH, O_TRUNC | O_WRONLY | O_CREAT);
+
+	if (fd < 0) {
+		return -errno;
+	}
+
+	int n = strlen(log_file);
+
+	if (n >= HARDFAULT_MAX_ULOG_FILE_LEN) {
+		PX4_ERR("ULog file name too long (%s, %i>=%i)\n", log_file, n, HARDFAULT_MAX_ULOG_FILE_LEN);
+		return -EINVAL;
+	}
+
+	if (n + 1 != ::write(fd, log_file, n + 1)) {
+		close(fd);
+		return -errno;
+	}
+
+	int ret = close(fd);
+
+	if (ret != 0) {
+		return -errno;
+	}
+
+#endif /* __PX4_NUTTX */
+
+	return 0;
 }
 
 void LogWriterFile::stop_log()
@@ -119,7 +173,7 @@ int LogWriterFile::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
-	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1024));
+	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1072));
 
 	int ret = pthread_create(&_thread, &thr_attr, &LogWriterFile::run_helper, this);
 	pthread_attr_destroy(&thr_attr);
@@ -136,7 +190,7 @@ void LogWriterFile::thread_stop()
 	notify();
 
 	// wait for thread to complete
-	int ret = pthread_join(_thread, NULL);
+	int ret = pthread_join(_thread, nullptr);
 
 	if (ret) {
 		PX4_WARN("join failed: %d", ret);
@@ -167,6 +221,10 @@ void LogWriterFile::run()
 			if (start) {
 				break;
 			}
+		}
+
+		if (_exit_thread) {
+			break;
 		}
 
 		int poll_count = 0;

@@ -39,6 +39,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_tasks.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -70,7 +71,6 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
@@ -792,8 +792,6 @@ PX4IO::init()
 
 		} while (true);
 
-		/* send command to arm system via command API */
-		vehicle_command_s cmd;
 		/* send this to itself */
 		param_t sys_id_param = param_find("MAV_SYS_ID");
 		param_t comp_id_param = param_find("MAV_COMP_ID");
@@ -809,22 +807,25 @@ PX4IO::init()
 			errx(1, "PRM CMPID");
 		}
 
-		cmd.target_system = sys_id;
-		cmd.target_component = comp_id;
-		cmd.source_system = sys_id;
-		cmd.source_component = comp_id;
-		/* request arming */
-		cmd.param1 = 1.0f;
-		cmd.param2 = 0;
-		cmd.param3 = 0;
-		cmd.param4 = 0;
-		cmd.param5 = 0;
-		cmd.param6 = 0;
-		cmd.param7 = 0;
-		cmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
-
-		/* ask to confirm command */
-		cmd.confirmation =  1;
+		/* send command to arm system via command API */
+		struct vehicle_command_s cmd = {
+			.timestamp = hrt_absolute_time(),
+			.param5 = 0.0f,
+			.param6 = 0.0f,
+			/* request arming */
+			.param1 = 1.0f,
+			.param2 = 0.0f,
+			.param3 = 0.0f,
+			.param4 = 0.0f,
+			.param7 = 0.0f,
+			.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+			.target_system = (uint8_t)sys_id,
+			.target_component = (uint8_t)comp_id,
+			.source_system = (uint8_t)sys_id,
+			.source_component = (uint8_t)comp_id,
+			/* ask to confirm command */
+			.confirmation = 1
+		};
 
 		/* send command once */
 		orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -922,7 +923,7 @@ PX4IO::init()
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				   1400,
+				   1500,
 				   (main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
 
@@ -1797,7 +1798,9 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	float current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
 	current_a += _battery_amp_bias;
 
-	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, _last_throttle, _armed, &battery_status);
+	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, true, true, 0,
+				     _last_throttle,
+				     _armed, &battery_status);
 
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {
@@ -3527,6 +3530,8 @@ test(void)
 			}
 		}
 
+		usleep(250);
+
 		/* readback servo values */
 		for (unsigned i = 0; i < servo_count; i++) {
 			servo_position_t value;
@@ -3536,7 +3541,7 @@ test(void)
 			}
 
 			if (value != servos[i]) {
-				errx(1, "servo %u readback error, got %hu expected %hu", i, value, servos[i]);
+				warnx("servo %u readback error, got %hu expected %hu", i, value, servos[i]);
 			}
 		}
 
@@ -3706,29 +3711,15 @@ px4io_main(int argc, char *argv[])
 		}
 
 		PX4IO_Uploader *up;
-		const char *fn[4];
 
-		/* work out what we're uploading... */
+		/* Assume we are using default paths */
+
+		const char *fn[4] = PX4IO_FW_SEARCH_PATHS;
+
+		/* Override defaults if a path is passed on command line */
 		if (argc > 2) {
 			fn[0] = argv[2];
 			fn[1] = nullptr;
-
-		} else {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-			fn[0] = "/etc/extras/px4io-v1.bin";
-			fn[1] =	"/fs/microsd/px4io1.bin";
-			fn[2] =	"/fs/microsd/px4io.bin";
-			fn[3] =	nullptr;
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
-	  defined(CONFIG_ARCH_BOARD_AUAV_X21) || \
-	  defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)
-			fn[0] = "/etc/extras/px4io-v2.bin";
-			fn[1] =	"/fs/microsd/px4io2.bin";
-			fn[2] =	"/fs/microsd/px4io.bin";
-			fn[3] =	nullptr;
-#else
-#error "unknown board"
-#endif
 		}
 
 		up = new PX4IO_Uploader;

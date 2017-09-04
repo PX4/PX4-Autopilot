@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__ulanding
 	MAIN ulanding_radar
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		ulanding.cpp
 	DEPENDS

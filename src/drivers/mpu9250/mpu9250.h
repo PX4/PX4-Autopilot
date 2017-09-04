@@ -178,6 +178,7 @@
 #define BIT_I2C_SLV3_DLY_EN         0x08
 
 #define MPU_WHOAMI_9250			0x71
+#define MPU_WHOAMI_6500			0x70
 
 #define MPU9250_ACCEL_DEFAULT_RATE	1000
 #define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
@@ -374,6 +375,11 @@ private:
 	int			reset();
 
 
+	/**
+	 * Resets the main chip (excluding the magnetometer if any).
+	 */
+	int			reset_mpu();
+
 
 #if defined(USE_I2C)
 	/**
@@ -462,6 +468,17 @@ private:
 	void			write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
+	 * Modify a checked register in the mpu
+	 *
+	 * Bits are cleared before bits are set.
+	 *
+	 * @param reg		The register to modify.
+	 * @param clearbits	Bits in the register to clear.
+	 * @param setbits	Bits in the register to set.
+	 */
+	void			modify_checked_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
+
+	/**
 	 * Set the mpu measurement range.
 	 *
 	 * @param max_g		The maximum G value the range must support.
@@ -482,7 +499,7 @@ private:
 	bool			is_external()
 	{
 		unsigned dummy;
-		return !_interface->ioctl(ACCELIOCGEXTERNAL, dummy);
+		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
 	}
 
 	/**

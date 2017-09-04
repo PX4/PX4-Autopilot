@@ -87,11 +87,11 @@ bool LogWriter::init()
 LogWriter::~LogWriter()
 {
 	if (_log_writer_file) {
-		delete(_log_writer_file);
+		delete (_log_writer_file);
 	}
 
 	if (_log_writer_mavlink) {
-		delete(_log_writer_mavlink);
+		delete (_log_writer_mavlink);
 	}
 }
 

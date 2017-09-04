@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -61,10 +61,10 @@ public:
 	/** check whether the test finished, and thus the main thread can quit */
 	bool finished();
 
-	virtual int update(unsigned int timeout_ms, ControlData **control_data);
+	virtual int update(unsigned int timeout_ms, ControlData **control_data, bool already_active);
 
 protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data) { return 0; } //not needed
+	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active) { return 0; } //not needed
 
 	virtual int initialize();
 

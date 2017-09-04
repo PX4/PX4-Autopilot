@@ -133,12 +133,14 @@ static void test_corruption(const char *filename, uint32_t write_chunk, uint32_t
 
 		if (read(fd, buffer, sizeof(buffer)) != (int)sizeof(buffer)) {
 			printf("read failed at offset %u\n", ofs);
+			close(fd);
 			return;
 		}
 
 		for (uint16_t j = 0; j < write_chunk; j++) {
 			if (buffer[j] != get_value(ofs)) {
 				printf("corruption at ofs=%u got %u\n", ofs, buffer[j]);
+				close(fd);
 				return;
 			}
 

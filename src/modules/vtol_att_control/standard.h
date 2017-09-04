@@ -69,6 +69,7 @@ private:
 	struct {
 		float front_trans_dur;
 		float back_trans_dur;
+		float back_trans_ramp;
 		float pusher_trans;
 		float airspeed_blend;
 		float airspeed_trans;
@@ -77,11 +78,17 @@ private:
 		float down_pitch_max;
 		float forward_thrust_scale;
 		int airspeed_mode;
+		float pitch_setpoint_offset;
+		float reverse_output;
+		float reverse_delay;
+		float back_trans_throttle;
+		float mpc_xy_cruise;
 	} _params_standard;
 
 	struct {
 		param_t front_trans_dur;
 		param_t back_trans_dur;
+		param_t back_trans_ramp;
 		param_t pusher_trans;
 		param_t airspeed_blend;
 		param_t airspeed_trans;
@@ -90,6 +97,11 @@ private:
 		param_t down_pitch_max;
 		param_t forward_thrust_scale;
 		param_t airspeed_mode;
+		param_t pitch_setpoint_offset;
+		param_t reverse_output;
+		param_t reverse_delay;
+		param_t back_trans_throttle;
+		param_t mpc_xy_cruise;
 	} _params_handles_standard;
 
 	enum vtol_mode {
@@ -106,6 +118,7 @@ private:
 
 	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
+	float _reverse_output;
 	float _airspeed_trans_blend_margin;
 
 	void set_max_mc(unsigned pwm_value);

@@ -41,9 +41,6 @@
 #ifndef LAUNCHDETECTOR_H
 #define LAUNCHDETECTOR_H
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include "LaunchMethod.h"
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
@@ -55,36 +52,34 @@ class __EXPORT LaunchDetector : public control::SuperBlock
 {
 public:
 	LaunchDetector();
+	~LaunchDetector() override;
+
 	LaunchDetector(const LaunchDetector &) = delete;
 	LaunchDetector operator=(const LaunchDetector &) = delete;
-	virtual ~LaunchDetector();
 
 	void reset();
 
 	void update(float accel_x);
 	LaunchDetectionResult getLaunchDetected();
-	bool launchDetectionEnabled() { return (bool)launchdetection_on.get(); };
-
-	float getThrottlePreTakeoff() {return throttlePreTakeoff.get(); }
+	bool launchDetectionEnabled() { return launchdetection_on.get() == 1; };
 
 	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
 	float getPitchMax(float pitchMaxDefault);
 
-//	virtual bool getLaunchDetected();
-protected:
 private:
-	int activeLaunchDetectionMethodIndex; /**< holds a index to the launchMethod in the array launchMethods
-					       which detected a Launch. If no launchMethod has detected a launch yet the
-					       value is -1. Once one launchMetthod has detected a launch only this
-					       method is checked for further adavancing in the state machine (e.g. when
-					       to power up the motors) */
+	/* holds an index to the launchMethod in the array launchMethods
+	 * which detected a Launch. If no launchMethod has detected a launch yet the
+	 * value is -1. Once one launchMethod has detected a launch only this
+	 * method is checked for further advancing in the state machine
+	 * (e.g. when to power up the motors)
+	 */
+	int activeLaunchDetectionMethodIndex{-1};
 
 	LaunchMethod *launchMethods[1];
-	control::BlockParamInt launchdetection_on;
-	control::BlockParamFloat throttlePreTakeoff;
 
+	control::BlockParamInt launchdetection_on;
 };
 
-}
+} // namespace launchdetection
 
 #endif // LAUNCHDETECTOR_H

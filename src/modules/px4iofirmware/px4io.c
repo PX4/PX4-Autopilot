@@ -85,10 +85,11 @@ static volatile uint8_t msg_next_out, msg_next_in;
  * output.
  */
 #define NUM_MSG 1
-static char msg[NUM_MSG][40];
+static char msg[NUM_MSG][CONFIG_USART1_TXBUFSIZE];
 
 static void heartbeat_blink(void);
 static void ring_blink(void);
+static void update_mem_usage(void);
 
 /*
  * add a debug message to be printed on the console
@@ -125,6 +126,27 @@ show_debug_messages(void)
 			debug("%s", msg[msg_next_out]);
 			msg_next_out = (msg_next_out + 1) % NUM_MSG;
 		}
+	}
+}
+
+/*
+ * Get the memory usage at 2 Hz while not armed
+ */
+static void
+update_mem_usage(void)
+{
+	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+		return;
+	}
+
+	static uint64_t last_mem_time = 0;
+	uint64_t now = hrt_absolute_time();
+
+	if (now - last_mem_time > (500 * 1000)) {
+		struct mallinfo minfo = mallinfo();
+		r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.fordblks;
+		last_mem_time = now;
 	}
 }
 
@@ -311,6 +333,7 @@ user_start(int argc, char *argv[])
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
 	struct mallinfo minfo = mallinfo();
+	r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.mxordblk;
 	syslog(LOG_INFO, "MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* initialize PWM limit lib */
@@ -417,6 +440,8 @@ user_start(int argc, char *argv[])
 			/* switch resistive heater hard on */
 			LED_BLUE(true);
 		}
+
+		update_mem_usage();
 
 		ring_blink();
 

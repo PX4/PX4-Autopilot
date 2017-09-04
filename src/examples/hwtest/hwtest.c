@@ -64,7 +64,7 @@ int ex_hwtest_main(int argc, char *argv[])
 	orb_advert_t actuator_pub_ptr = orb_advertise(ORB_ID(actuator_controls_0), &actuators);
 
 	struct actuator_armed_s arm;
-	memset(&arm, 0 , sizeof(arm));
+	memset(&arm, 0, sizeof(arm));
 
 	arm.timestamp = hrt_absolute_time();
 	arm.ready_to_arm = true;

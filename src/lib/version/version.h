@@ -43,29 +43,16 @@
 
 #pragma once
 
+#include <px4_config.h>
+#include <systemlib/px4_macros.h>
 #include <stdint.h>
-
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
 
 /* The preferred method for publishing a board name is to
  * define it in board_config.h as BOARD_NAME
  */
-#if defined(CONFIG_ARCH_BOARD_SITL)
-# define BOARD_NAME "SITL"
-#elif defined(CONFIG_ARCH_BOARD_EAGLE)
-# define BOARD_NAME "EAGLE"
-#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-# define BOARD_NAME "EXCELSIOR"
-#elif defined(CONFIG_ARCH_BOARD_RPI)
-# define BOARD_NAME "RPI"
-#elif defined(CONFIG_ARCH_BOARD_BEBOP)
-# define BOARD_NAME "BEBOP"
-#else
-# include "board_config.h"
-# ifndef BOARD_NAME
+
+#ifndef BOARD_NAME
 #  error "board_config.h must define BOARD_NAME"
-# endif
 #endif
 
 
@@ -77,6 +64,30 @@ __BEGIN_DECLS
 static inline const char *px4_board_name(void)
 {
 	return BOARD_NAME;
+}
+
+/**
+ * get the board sub type
+ */
+static inline const char *px4_board_sub_type(void)
+{
+	return board_get_hw_type_name();
+}
+
+/**
+ * get the board HW version
+ */
+static inline int px4_board_hw_version(void)
+{
+	return board_get_hw_version();
+}
+
+/**
+ * get the board HW revision
+ */
+static inline int px4_board_hw_revision(void)
+{
+	return board_get_hw_revision();
 }
 
 /**
@@ -132,9 +143,20 @@ __EXPORT const char *px4_toolchain_version(void);
 __EXPORT const char *px4_firmware_version_string(void);
 
 /**
+ * get the git branch name (can be empty, for example if HEAD points to a tag)
+ */
+__EXPORT const char *px4_firmware_git_branch(void);
+
+
+/**
  * Firmware version in binary form (first part of the git tag)
  */
 __EXPORT uint64_t px4_firmware_version_binary(void);
+
+/**
+ * MAVLink lib version in binary form (first part of the git tag)
+ */
+__EXPORT uint64_t px4_mavlink_lib_version_binary(void);
 
 /**
  * Operating system version in binary form (first part of the git tag)

@@ -57,7 +57,8 @@
 /*
  * Constants and limits.
  */
-#define PX4IO_SERVO_COUNT		8
+#define PX4IO_BL_VERSION			3
+#define PX4IO_SERVO_COUNT			8
 #define PX4IO_CONTROL_CHANNELS		8
 #define PX4IO_CONTROL_GROUPS		4
 #define PX4IO_RC_INPUT_CHANNELS		18
@@ -199,6 +200,14 @@ extern pwm_limit_t pwm_limit;
 #define BUTTON_SAFETY		px4_arch_gpioread(GPIO_BTN_SAFETY)
 
 #define CONTROL_PAGE_INDEX(_group, _channel) (_group * PX4IO_CONTROL_CHANNELS + _channel)
+
+#define PX4_CRITICAL_SECTION(cmd)	{ irqstate_t flags = px4_enter_critical_section(); cmd; px4_leave_critical_section(flags); }
+
+#define PX4_ATOMIC_MODIFY_OR(target, modification)	{ if ((target | (modification)) != target) { PX4_CRITICAL_SECTION(target |= (modification)); } }
+
+#define PX4_ATOMIC_MODIFY_CLEAR(target, modification)	{ if ((target & ~(modification)) != target) { PX4_CRITICAL_SECTION(target &= ~(modification)); } }
+
+#define PX4_ATOMIC_MODIFY_AND(target, modification)	{ if ((target & (modification)) != target) { PX4_CRITICAL_SECTION(target &= (modification)); } }
 
 /*
  * Mixer

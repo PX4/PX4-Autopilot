@@ -161,6 +161,11 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	int used;
 	const char *end = buf + buflen;
 
+	/* enforce that the mixer ends with a new line */
+	if (!string_well_formed(buf, buflen)) {
+		return nullptr;
+	}
+
 	/* get the base info for the mixer */
 	if (sscanf(buf, "M: %u%n", &inputs, &used) != 1) {
 		debug("simple parse failed on '%s'", buf);

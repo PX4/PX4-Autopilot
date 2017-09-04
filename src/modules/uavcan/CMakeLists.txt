@@ -48,6 +48,7 @@ add_definitions(
 add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan platforms__nuttx)
 
+include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
 include_directories(libuavcan/libuavcan/include)
 include_directories(libuavcan/libuavcan/include/dsdlc_generated)
 include_directories(libuavcan/libuavcan_drivers/posix/include)
@@ -80,4 +81,4 @@ px4_add_module(
 		uavcan
 	)
 
-## vim: set noet ft=cmake fenc=utf-8 ff=unix :
+target_link_libraries(modules__uavcan uavcan uavcan_stm32_driver)

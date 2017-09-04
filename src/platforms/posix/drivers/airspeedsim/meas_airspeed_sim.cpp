@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file meas_airspeed_sim.cpp
- * @author Lorenz Meier
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Sarthak Kaingade
  * @author Simon Wilks
  * @author Thomas Gubler
@@ -194,18 +194,11 @@ MEASAirspeedSim::collect()
 
 	struct differential_pressure_s report;
 
-	/* track maximum differential pressure measured (so we can work out top speed). */
-	if (diff_press_pa_raw > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_press_pa_raw;
-	}
-
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature;
-	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw);
-
+	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
-	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		/* publish it */
@@ -279,18 +272,6 @@ MEASAirspeedSim::cycle()
 		   (worker_t)&AirspeedSim::cycle_trampoline,
 		   this,
 		   USEC2TICK(CONVERSION_INTERVAL));
-}
-
-/**
-   correct for 5V rail voltage if the system_power ORB topic is
-   available
-
-   See http://uav.tridgell.net/MS4525/MS4525-offset.png for a graph of
-   offset versus voltage for 3 sensors
- */
-void
-MEASAirspeedSim::voltage_correction(float &diff_press_pa, float &temperature)
-{
 }
 
 /**
@@ -473,13 +454,17 @@ reset()
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("driver reset failed");
+		close(fd);
 		return 1;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("driver poll restart failed");
+		close(fd);
 		return 1;
 	}
+
+	close(fd);
 
 	return 0;
 }

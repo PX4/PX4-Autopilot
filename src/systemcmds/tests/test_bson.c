@@ -233,7 +233,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			return 1;
 		}
 
-		if (memcmp(sample_data, dbuf, len)) {
+		if (memcmp(sample_data, dbuf, len) != 0) {
 			PX4_ERR("FAIL: decoder: data1 compare fail");
 			return 1;
 		}

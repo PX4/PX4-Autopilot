@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,10 +35,9 @@ px4_add_module(
 	MAIN fw_pos_control_l1
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
-		fw_pos_control_l1_main.cpp
-		landingslope.cpp
+		FixedwingPositionControl.cpp
+		Landingslope.cpp
 	DEPENDS
 		platforms__common
 		git_ecl

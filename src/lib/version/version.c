@@ -58,10 +58,39 @@ enum FIRMWARE_TYPE {
 	FIRMWARE_TYPE_RELEASE = 255
 };
 
+typedef enum {
+	PATCH = 0,
+	MINOR = 8,
+	MAJOR = 16
+} version_type_t;
+
+/**
+ * Convert a version number from string to int
+ * @param version tag
+ * @param start index of the fist char
+ * @param end index of the last char
+ * @return version number as int
+ */
+static uint32_t string_to_int(const char *tag, int start, int end)
+{
+	const char *curr = &tag[start];
+	uint32_t temp_ver = 0;
+
+	while (curr <= &tag[end]) {
+		temp_ver = (temp_ver * 10)  + (*curr - '0');
+
+		curr++;
+	}
+
+	return temp_ver;
+}
+
 /**
  * Convert a version tag string to a number
  * @param tag version tag in one of the following forms:
  *            - dev: v1.4.0rc3-7-g7e282f57
+ *            - dev: v1.4.0rc3-7-g7e282f57-dirty
+ *            - dev: v1.4.0-dirty
  *            - rc: v1.4.0rc4
  *            - release: v1.4.0
  *            - linux: 7.9.3
@@ -71,9 +100,10 @@ static uint32_t version_tag_to_number(const char *tag)
 {
 	uint32_t ver = 0;
 	unsigned len = strlen(tag);
-	unsigned mag = 0;
+	int end = 0;
 	int32_t type = -1;
 	unsigned dashcount = 0;
+	version_type_t v_type = PATCH;
 
 	for (int i = len - 1; i >= 0; i--) {
 
@@ -82,15 +112,34 @@ static uint32_t version_tag_to_number(const char *tag)
 		}
 
 		if (tag[i] >= '0' && tag[i] <= '9') {
-			if (mag < 32) {
-				unsigned number = tag[i] - '0';
-
-				ver += (number << mag);
-				mag += 8;
+			if (!end) {
+				end = i;
 			}
 
-		} else if (tag[i] == '.') {
-			continue;
+			if (i == 0) {
+				uint32_t temp_ver = string_to_int(tag, i, end);
+				ver = (temp_ver << v_type) + ver;
+			}
+
+		} else if ((tag[i] == '.') || (i == 0)) {
+			uint32_t temp_ver = string_to_int(tag, (i + 1), end);
+			ver = (temp_ver << v_type) + ver;
+
+			end = 0;
+
+			switch (v_type) {
+			case PATCH:
+				v_type = MINOR;
+				break;
+
+			case MINOR:
+				v_type = MAJOR;
+				break;
+
+			case MAJOR:
+			default:
+				break;
+			}
 
 		} else if (i > 3 && type == -1) {
 			/* scan and look for signature characters for each type */
@@ -127,7 +176,7 @@ static uint32_t version_tag_to_number(const char *tag)
 			 * are seeing non-numeric characters (eg. '-')
 			 */
 			ver = 0;
-			mag = 0;
+			end = 0;
 		}
 	}
 
@@ -150,6 +199,11 @@ static uint32_t version_tag_to_number(const char *tag)
 uint32_t px4_firmware_version(void)
 {
 	return version_tag_to_number(PX4_GIT_TAG_STR);
+}
+
+const char *px4_firmware_git_branch(void)
+{
+	return PX4_GIT_BRANCH_NAME;
 }
 
 uint32_t px4_board_version(void)
@@ -186,7 +240,7 @@ uint32_t px4_os_version(void)
 #elif defined(__PX4_QURT)
 	return 0; //TODO: implement version for QuRT
 #elif defined(__PX4_NUTTX)
-	return version_tag_to_number("v7.18.0"); //TODO: get correct version
+	return version_tag_to_number(NUTTX_GIT_TAG_STR);
 #else
 # error "px4_os_version not implemented for current OS"
 #endif
@@ -195,7 +249,7 @@ uint32_t px4_os_version(void)
 const char *px4_os_version_string(void)
 {
 #if defined(__PX4_NUTTX)
-	return NULL; //TODO: get NuttX git tag as string
+	return NUTTX_GIT_VERSION_STR;
 #else
 	return NULL;
 #endif
@@ -248,6 +302,11 @@ const char *px4_firmware_version_string(void)
 uint64_t px4_firmware_version_binary(void)
 {
 	return PX4_GIT_VERSION_BINARY;
+}
+
+uint64_t px4_mavlink_lib_version_binary(void)
+{
+	return MAVLINK_LIB_GIT_VERSION_BINARY;
 }
 
 uint64_t px4_os_version_binary(void)

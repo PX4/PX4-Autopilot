@@ -145,6 +145,11 @@ MS5611_SPI::init()
 {
 	int ret;
 
+#if defined(PX4_SPI_BUS_RAMTRON) && \
+	(PX4_SPI_BUS_BARO == PX4_SPI_BUS_RAMTRON)
+	SPI::set_lockmode(LOCK_THREADS);
+#endif
+
 	ret = SPI::init();
 
 	if (ret != OK) {

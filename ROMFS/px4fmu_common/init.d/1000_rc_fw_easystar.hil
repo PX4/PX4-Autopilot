@@ -3,11 +3,14 @@
 # @name HILStar (XPlane)
 #
 # @type Simulation
+# @class Plane
 #
 # @output MAIN1 aileron
 # @output MAIN2 elevator
 # @output MAIN3 rudder
 # @output MAIN4 throttle
+# @output MAIN5 flaps
+# @output MAIN6 gear
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
@@ -41,5 +44,5 @@ then
 	param set RWTO_TKOFF 1
 fi
 
-set HIL yes
+param set SYS_HITL 1
 set MIXER AERT

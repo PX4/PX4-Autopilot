@@ -52,14 +52,13 @@ namespace runwaytakeoff
 {
 
 RunwayTakeoff::RunwayTakeoff() :
-	SuperBlock(NULL, "RWTO"),
+	SuperBlock(nullptr, "RWTO"),
 	_state(),
 	_initialized(false),
 	_initialized_time(0),
 	_init_yaw(0),
 	_climbout(false),
 	_throttle_ramp_time(2 * 1e6),
-	_start_wp(),
 	_runway_takeoff_enabled(this, "TKOFF"),
 	_heading_mode(this, "HDG"),
 	_nav_alt(this, "NAV_ALT"),

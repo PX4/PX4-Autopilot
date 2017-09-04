@@ -54,12 +54,7 @@ TerrainEstimator::TerrainEstimator() :
 
 bool TerrainEstimator::is_distance_valid(float distance)
 {
-	if (distance > 40.0f || distance < 0.00001f) {
-		return false;
-
-	} else {
-		return true;
-	}
+	return (distance < 40.0f && distance > 0.00001f);
 }
 
 void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitude,

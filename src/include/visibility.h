@@ -39,8 +39,7 @@
  * This file is normally included automatically by the build system.
  */
 
-#ifndef __SYSTEMLIB_VISIBILITY_H
-#define __SYSTEMLIB_VISIBILITY_H
+#pragma once
 
 #ifdef __EXPORT
 #  undef __EXPORT
@@ -59,4 +58,15 @@
 #  define __BEGIN_DECLS
 #  define __END_DECLS
 #endif
+
+
+#ifdef __PX4_NUTTX
+/* On NuttX we call clearenv() so we cannot use getenv() and others (see px4_task_spawn_cmd() in px4_nuttx_tasks.c).
+ * We need to include the headers declaring getenv() before the pragma, otherwise it will trigger a poison error.
+ */
+#include <stdlib.h>
+#ifdef __cplusplus
+#include <cstdlib>
 #endif
+#pragma GCC poison getenv setenv putenv
+#endif /* __PX4_NUTTX */

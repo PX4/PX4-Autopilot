@@ -43,6 +43,7 @@
 #include <unistd.h>
 
 #include <px4_config.h>
+#include <px4_module.h>
 #include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
@@ -72,16 +73,13 @@ static bool synchronized; ///< call fsync after each block?
 static void
 usage()
 {
-	PX4_WARN(
-		"Test the speed of an SD Card. Usage:\n"
-		"sd_bench [-b <block_size>] [-r <runs>] [-d <duration>] [-s]\n"
-		"\n"
-		"\t-b <block_size>\t\tBlock size for each read/write (default=4096)\n"
-		"\t-r <runs>\t\tNumber of runs (default=5)\n"
-		"\t-d <duration>\t\tDuration of a run in ms (default=2000)\n"
-		"\t-s \t\t\tCall fsync after each block (default=at end of each run)\n"
-	);
+	PRINT_MODULE_DESCRIPTION("Test the speed of an SD Card");
 
+	PRINT_MODULE_USAGE_NAME_SIMPLE("sd_bench", "command");
+	PRINT_MODULE_USAGE_PARAM_INT('b', 4096, 1, 1000000, "Block size for each read/write", true);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 5, 1, 1000, "Number of runs", true);
+	PRINT_MODULE_USAGE_PARAM_INT('d', 2000, 1, 100000, "Duration of a run in ms", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Call fsync after each block (default=at end of each run)", true);
 }
 
 int
@@ -120,15 +118,15 @@ sd_bench_main(int argc, char *argv[])
 		}
 	}
 
+	if (block_size <= 0 || num_runs <= 0) {
+		PX4_ERR("invalid argument");
+		return -1;
+	}
+
 	int bench_fd = open(BENCHMARK_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666);
 
 	if (bench_fd < 0) {
 		PX4_ERR("Can't open benchmark file %s", BENCHMARK_FILE);
-		return -1;
-	}
-
-	if (block_size <= 0 || num_runs <= 0) {
-		PX4_ERR("invalid argument");
 		return -1;
 	}
 
@@ -137,6 +135,7 @@ sd_bench_main(int argc, char *argv[])
 
 	if (!block) {
 		PX4_ERR("Failed to allocate memory block");
+		close(bench_fd);
 		return -1;
 	}
 

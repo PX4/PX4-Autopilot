@@ -28,14 +28,16 @@ set(config_module_list
 	#drivers/ll40ls
 	drivers/trone
 	drivers/gps
-	drivers/pwm_out_sim
+	#drivers/pwm_out_sim
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
-	drivers/meas_airspeed
+	drivers/ms4525_airspeed
+	drivers/ms5525_airspeed
+	drivers/sdp3x_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
 	drivers/vmount
@@ -64,6 +66,7 @@ set(config_module_list
 	# General system control
 	#
 	modules/commander
+	modules/events
 	modules/load_mon
 	modules/navigator
 	modules/mavlink
@@ -91,13 +94,13 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/sdlog2
+	#modules/sdlog2
 	modules/logger
 
 	#
 	# Library modules
 	#
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
@@ -115,12 +118,14 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
+	lib/led
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
+	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -167,12 +172,6 @@ set(config_extra_builtin_cmds
 
 set(config_io_board
 	px4io-v1
-	)
-
-set(config_extra_libs
-	)
-
-set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

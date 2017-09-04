@@ -56,7 +56,7 @@ class OutputMavlink : public OutputBase
 {
 public:
 	OutputMavlink(const OutputConfig &output_config);
-	virtual ~OutputMavlink() { }
+	virtual ~OutputMavlink();
 
 	virtual int update(const ControlData *control_data);
 

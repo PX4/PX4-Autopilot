@@ -38,50 +38,23 @@
  * Generic driver for airspeed sensors connected via I2C.
  */
 
+#include <drivers/device/i2c.h>
+#include <drivers/device/ringbuffer.h>
+#include <drivers/drv_airspeed.h>
+#include <drivers/drv_hrt.h>
 #include <px4_config.h>
 #include <px4_defines.h>
-
-#include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#ifdef __PX4_NUTTX
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-#
-#else
 #include <px4_workqueue.h>
-#endif
-
-#include <arch/board/board.h>
-
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
-
-#include <drivers/drv_airspeed.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/uORB.h>
 
 /* Default I2C bus */
-#define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
+static constexpr uint8_t PX4_I2C_BUS_DEFAULT = PX4_I2C_BUS_EXPANSION;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -105,7 +78,6 @@ public:
 
 private:
 	ringbuffer::RingBuffer		*_reports;
-	perf_counter_t		_buffer_overflows;
 
 	/* this class has pointer data members and should not be copied */
 	Airspeed(const Airspeed &);
@@ -128,14 +100,15 @@ protected:
 	void update_status();
 
 	work_s			_work;
-	float			_max_differential_pressure_pa;
 	bool			_sensor_ok;
 	bool			_last_published_sensor_ok;
-	int			_measure_ticks;
+	uint32_t		_measure_ticks;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 
 	orb_advert_t		_airspeed_pub;
+	int			_airspeed_orb_class_instance;
+
 	orb_advert_t		_subsys_pub;
 
 	int			_class_instance;

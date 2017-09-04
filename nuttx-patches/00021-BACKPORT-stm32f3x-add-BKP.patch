@@ -1,0 +1,24 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32/chip/stm32f30xxx_memorymap.h NuttX/nuttx/arch/arm/src/stm32/chip/stm32f30xxx_memorymap.h
+index 51cca40..a7cbc46 100644
+--- NuttX/nuttx/arch/arm/src/stm32/chip/stm32f30xxx_memorymap.h
++++ NuttX/nuttx/arch/arm/src/stm32/chip/stm32f30xxx_memorymap.h
+@@ -93,6 +93,7 @@
+ #define STM32_TIM6_BASE      0x40001000     /* 0x40001000-0x400013ff TIM6 */
+ #define STM32_TIM7_BASE      0x40001400     /* 0x40001400-0x400017ff TIM7 */
+ #define STM32_RTC_BASE       0x40002800     /* 0x40002800-0x40002bff RTC */
++#define STM32_BKP_BASE       0x40002850     /* 0x40002850-0x4000288c BKP */
+ #define STM32_WWDG_BASE      0x40002c00     /* 0x40002c00-0x40002fff WWDG */
+ #define STM32_IWDG_BASE      0x40003000     /* 0x40003000-0x400033ff IWDG */
+ #define STM32_I2S2EXT_BASE   0x40003400     /* 0x40003400-0x400037ff I2S2ext */
+diff --git NuttX/nuttx/arch/arm/src/stm32/chip/stm32f37xxx_memorymap.h NuttX/nuttx/arch/arm/src/stm32/chip/stm32f37xxx_memorymap.h
+index 4c703be..49bfa2e 100644
+--- NuttX/nuttx/arch/arm/src/stm32/chip/stm32f37xxx_memorymap.h
++++ NuttX/nuttx/arch/arm/src/stm32/chip/stm32f37xxx_memorymap.h
+@@ -94,6 +94,7 @@
+ #define STM32_TIM13_BASE     0x40001c00     /* 0x40001c00-0x40001fff TIM13 */
+ #define STM32_TIM14_BASE     0x40002000     /* 0x40002000-0x400023ff TIM14 */
+ #define STM32_RTC_BASE       0x40002800     /* 0x40002800-0x40002bff RTC */
++#define STM32_BKP_BASE       0x40002850     /* 0x40002850-0x400028cc BKP */
+ #define STM32_WWDG_BASE      0x40002c00     /* 0x40002c00-0x40002fff WWDG */
+ #define STM32_IWDG_BASE      0x40003000     /* 0x40003000-0x400033ff IWDG */
+ #define STM32_SPI2_BASE      0x40003800     /* 0x40003800-0x40003bff SPI2, or */

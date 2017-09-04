@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN hmc5883
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		hmc5883_i2c.cpp
 		hmc5883_spi.cpp

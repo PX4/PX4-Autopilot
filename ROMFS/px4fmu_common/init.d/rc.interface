@@ -19,7 +19,7 @@ then
 
 	if [ $MIXER_AUX == none -a $USE_IO == yes ]
 	then
-		set MIXER_AUX ${MIXER}.aux
+		set MIXER_AUX ${MIXER}
 	fi
 
 	# Use the mixer file from the SD-card if it exists
@@ -102,6 +102,18 @@ then
 		fi
 	fi
 
+	#
+	# Per channel disarmed settings
+	#
+	pwm disarmed -c 1 -p p:PWM_MAIN_DIS1
+	pwm disarmed -c 2 -p p:PWM_MAIN_DIS2
+	pwm disarmed -c 3 -p p:PWM_MAIN_DIS3
+	pwm disarmed -c 4 -p p:PWM_MAIN_DIS4
+	pwm disarmed -c 5 -p p:PWM_MAIN_DIS5
+	pwm disarmed -c 6 -p p:PWM_MAIN_DIS6
+	pwm disarmed -c 7 -p p:PWM_MAIN_DIS7
+	pwm disarmed -c 8 -p p:PWM_MAIN_DIS8
+
 	if [ $FAILSAFE != none ]
 	then
 		pwm failsafe -d ${OUTPUT_DEV} ${FAILSAFE}
@@ -117,7 +129,7 @@ fi
 #MindPX has not aux mixer
 if ver hwcmp MINDPX_V2
 then
-        set MIXER_AUX none
+	set MIXER_AUX none
 fi
 
 if ver hwcmp CRAZYFLIE
@@ -157,7 +169,7 @@ then
 
 	if [ $MIXER_AUX_FILE != none ]
 	then
-		if fmu mode_${AUX_MODE}
+		if fmu mode_${AUX_MODE} $FMU_ARGS
 		then
 			# Append aux mixer to main device
 			if [ $OUTPUT_MODE == hil ]
@@ -198,16 +210,16 @@ then
 			#
 			if [ $PWM_AUX_RATE != none ]
 			then
-				pwm rate -e -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
+				pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
 			fi
 
 			if [ $PWM_AUX_MIN != none ]
 			then
-				pwm min -e -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
+				pwm min -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
 			fi
 			if [ $PWM_AUX_MAX != none ]
 			then
-				pwm max -e -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
+				pwm max -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
 			fi
 		fi
 
@@ -225,12 +237,22 @@ then
 		#
 		if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
 		then
-			pwm disarmed -e -c ${PWM_ACHDIS} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c ${PWM_ACHDIS} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
 		fi
+
+		#
+		# Per channel disarmed settings
+		#
+		pwm disarmed -c 1 -p p:PWM_AUX_DIS1 -d ${OUTPUT_AUX_DEV}
+		pwm disarmed -c 2 -p p:PWM_AUX_DIS2 -d ${OUTPUT_AUX_DEV}
+		pwm disarmed -c 3 -p p:PWM_AUX_DIS3 -d ${OUTPUT_AUX_DEV}
+		pwm disarmed -c 4 -p p:PWM_AUX_DIS4 -d ${OUTPUT_AUX_DEV}
+		pwm disarmed -c 5 -p p:PWM_AUX_DIS5 -d ${OUTPUT_AUX_DEV}
+		pwm disarmed -c 6 -p p:PWM_AUX_DIS6 -d ${OUTPUT_AUX_DEV}
 
 		if [ $FAILSAFE_AUX != none ]
 		then
-			pwm failsafe -e -d ${OUTPUT_AUX_DEV} ${FAILSAFE}
+			pwm failsafe -d ${OUTPUT_AUX_DEV} ${FAILSAFE}
 		fi
 
 	fi

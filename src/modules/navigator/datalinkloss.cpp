@@ -93,7 +93,6 @@ void
 DataLinkLoss::on_activation()
 {
 	_dll_state = DLL_STATE_NONE;
-	updateParams();
 	advance_dll();
 	set_dll_item();
 }
@@ -102,7 +101,6 @@ void
 DataLinkLoss::on_active()
 {
 	if (is_mission_item_reached()) {
-		updateParams();
 		advance_dll();
 		set_dll_item();
 	}

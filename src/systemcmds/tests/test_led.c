@@ -49,7 +49,7 @@
 
 #include <arch/board/board.h>
 
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include "tests_main.h"
 

@@ -169,3 +169,17 @@ PARAM_DEFINE_INT32(CBRK_BUZZER, 0);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_USB_CHK, 0);
+
+/**
+ * Circuit breaker for position error check
+ *
+ * Setting this parameter to 201607 will disable the position and velocity
+ * accuracy checks in the commander.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 201607
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_VELPOSERR, 0);

@@ -65,7 +65,7 @@ __END_DECLS
 static uint32_t g_ledmap[] = {
 	GPIO_LED_BLUE,    // Indexed by LED_BLUE
 	GPIO_LED_RED,     // Indexed by LED_RED, LED_AMBER
-	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY
+	0,                // Indexed by LED_SAFETY
 	GPIO_LED_GREEN,   // Indexed by LED_GREEN
 };
 
@@ -73,20 +73,28 @@ __EXPORT void led_init(void)
 {
 	/* Configure LED GPIOs for output */
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
-		stm32_configgpio(g_ledmap[l]);
+		if (g_ledmap[l] != 0) {
+			stm32_configgpio(g_ledmap[l]);
+		}
 	}
 }
 
 static void phy_set_led(int led, bool state)
 {
 	/* Pull Down to switch on */
-	stm32_gpiowrite(g_ledmap[led], !state);
+	if (g_ledmap[led] != 0) {
+		stm32_gpiowrite(g_ledmap[led], !state);
+	}
 }
 
 static bool phy_get_led(int led)
 {
 
-	return !stm32_gpioread(g_ledmap[led]);
+	if (g_ledmap[led] != 0) {
+		return !stm32_gpioread(g_ledmap[led]);
+	}
+
+	return 0;
 }
 
 __EXPORT void led_on(int led)

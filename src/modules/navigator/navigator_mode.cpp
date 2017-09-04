@@ -45,26 +45,21 @@
 NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
 	SuperBlock(navigator, name),
 	_navigator(navigator),
-	_first_run(true)
+	_active(false)
 {
 	/* load initial params */
 	updateParams();
 	/* set initial mission items */
+	on_inactivation();
 	on_inactive();
-}
-
-NavigatorMode::~NavigatorMode()
-{
 }
 
 void
 NavigatorMode::run(bool active)
 {
 	if (active) {
-		if (_first_run) {
-			/* first run */
-			_first_run = false;
-			/* Reset stay in failsafe flag */
+		if (!_active) {
+			/* first run, reset stay in failsafe flag */
 			_navigator->get_mission_result()->stay_in_failsafe = false;
 			_navigator->set_mission_result_updated();
 			on_activation();
@@ -76,13 +71,24 @@ NavigatorMode::run(bool active)
 
 	} else {
 		/* periodic updates when inactive */
-		_first_run = true;
-		on_inactive();
+		if (_active) {
+			on_inactivation();
+
+		} else {
+			on_inactive();
+		}
 	}
+
+	_active = active;
 }
 
 void
 NavigatorMode::on_inactive()
+{
+}
+
+void
+NavigatorMode::on_inactivation()
 {
 }
 

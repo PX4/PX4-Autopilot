@@ -169,9 +169,9 @@ int MuorbTestExample::uSleepTest()
 	PX4_INFO("After usleep for 1 sec [%" PRIu64 "]", hrt_absolute_time());
 
 	for (int i = 0; i < 10; ++i) {
-		PX4_INFO("In While Loop: B4 Sleep for[%d] seconds [%" PRIu64 "]" , i + 1, hrt_absolute_time());
+		PX4_INFO("In While Loop: B4 Sleep for[%d] seconds [%" PRIu64 "]", i + 1, hrt_absolute_time());
 		usleep((i + 1) * 1000000);
-		PX4_INFO("In While Loop: After Sleep for[%d] seconds [%" PRIu64 "]" , i + 1 , hrt_absolute_time());
+		PX4_INFO("In While Loop: After Sleep for[%d] seconds [%" PRIu64 "]", i + 1, hrt_absolute_time());
 	}
 
 	PX4_INFO("exiting sleep test...");

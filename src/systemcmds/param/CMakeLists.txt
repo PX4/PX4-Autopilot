@@ -35,8 +35,9 @@ px4_add_module(
 	MAIN param
 	STACK_MAIN 2500
 	COMPILE_FLAGS
+		-Wno-array-bounds
 	SRCS
-		param.c
+		param.cpp
 	DEPENDS
 		platforms__common
 	)

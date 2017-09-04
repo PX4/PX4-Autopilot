@@ -150,7 +150,6 @@ private:
     int     _vehicle_land_detected_sub;
     int     _params_sub;            /**< notification of parameter updates */
     int     _manual_control_sub;        /**< notification of manual control updates */
-    int     _mission_sub;
     int     _home_sub;          /**< home position as defined by commander / user */
     int     _landDetectorSub;
     int     _armedSub;

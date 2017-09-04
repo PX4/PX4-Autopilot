@@ -54,19 +54,19 @@ class CatapultLaunchMethod : public LaunchMethod, public control::SuperBlock
 {
 public:
 	CatapultLaunchMethod(SuperBlock *parent);
-	~CatapultLaunchMethod();
+	~CatapultLaunchMethod() override = default;
 
-	void update(float accel_x);
-	LaunchDetectionResult getLaunchDetected() const;
-	void reset();
-	float getPitchMax(float pitchMaxDefault);
+	void update(float accel_x) override;
+	LaunchDetectionResult getLaunchDetected() const override;
+	void reset() override;
+	float getPitchMax(float pitchMaxDefault) override;
 
 private:
-	hrt_abstime last_timestamp;
-	float integrator;
-	float motorDelayCounter;
+	hrt_abstime last_timestamp{0};
+	float integrator{0.0f};
+	float motorDelayCounter{0.0f};
 
-	LaunchDetectionResult state;
+	LaunchDetectionResult state{LAUNCHDETECTION_RES_NONE};
 
 	control::BlockParamFloat thresholdAccel;
 	control::BlockParamFloat thresholdTime;
@@ -79,4 +79,4 @@ private:
 
 #endif /* CATAPULTLAUNCHMETHOD_H_ */
 
-}
+} // namespace launchdetection

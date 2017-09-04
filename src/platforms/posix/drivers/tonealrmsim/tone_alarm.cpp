@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -594,7 +594,6 @@ tune_end:
 		_default_tune_number = 0;
 	}
 
-	return;
 }
 
 int
@@ -852,6 +851,7 @@ tone_alarm_main(int argc, char *argv[])
 
 			if (buffer == nullptr) {
 				PX4_WARN("not enough memory memory");
+				fclose(fd);
 				return 1;
 			}
 
@@ -861,6 +861,7 @@ tone_alarm_main(int argc, char *argv[])
 			/* terminate the string */
 			buffer[sz] = 0;
 			ret = play_string(buffer, true);
+			fclose(fd);
 		}
 
 		/* if it looks like a PLAY string... */

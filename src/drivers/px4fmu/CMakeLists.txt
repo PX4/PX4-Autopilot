@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN fmu
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		fmu.cpp
 	DEPENDS

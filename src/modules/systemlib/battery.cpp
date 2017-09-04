@@ -42,7 +42,7 @@
 #include "battery.h"
 
 Battery::Battery() :
-	SuperBlock(NULL, "BAT"),
+	SuperBlock(nullptr, "BAT"),
 	_param_v_empty(this, "V_EMPTY"),
 	_param_v_full(this, "V_CHARGED"),
 	_param_n_cells(this, "N_CELLS"),
@@ -51,7 +51,9 @@ Battery::Battery() :
 	_param_r_internal(this, "R_INTERNAL"),
 	_param_low_thr(this, "LOW_THR"),
 	_param_crit_thr(this, "CRIT_THR"),
+	_param_emergency_thr(this, "EMERGEN_THR"),
 	_voltage_filtered_v(-1.0f),
+	_current_filtered_a(-1.0f),
 	_discharged_mah(0.0f),
 	_remaining_voltage(1.0f),
 	_remaining_capacity(1.0f),
@@ -82,7 +84,9 @@ Battery::reset(battery_status_s *battery_status)
 }
 
 void
-Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
+Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
+			     bool connected, bool selected_source, int priority,
+			     float throttle_normalized,
 			     bool armed, battery_status_s *battery_status)
 {
 	reset(battery_status);
@@ -103,7 +107,9 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->discharged_mah = _discharged_mah;
 		battery_status->warning = _warning;
 		battery_status->remaining = _remaining;
-		battery_status->connected = true;
+		battery_status->connected = connected;
+		battery_status->system_source = selected_source;
+		battery_status->priority = priority;
 	}
 }
 
@@ -219,7 +225,10 @@ void
 Battery::determineWarning()
 {
 	// Smallest values must come first
-	if (_remaining < _param_crit_thr.get()) {
+	if (_remaining < _param_emergency_thr.get()) {
+		_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+
+	} else if (_remaining < _param_crit_thr.get()) {
 		_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
 	} else if (_remaining < _param_low_thr.get()) {

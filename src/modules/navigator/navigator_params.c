@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(NAV_FW_ALT_RAD, 10.0f);
  * @increment 0.5
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 3.0f);
+PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 0.8f);
 
 /**
  * Set data link loss failsafe mode
