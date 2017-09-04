@@ -471,7 +471,7 @@ void Standard::update_mc_state()
 		_v_att_sp->roll_body = -asinf(tilt_new(1));
 		R_sp = matrix::Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, euler_sp(2));
 		matrix::Quatf q_sp(R_sp);
-		memcpy(&_v_att_sp->q_d[0], &q_sp._data[0], sizeof(_v_att_sp->q_d));
+		q_sp.copyTo(_v_att_sp->q_d);
 	}
 
 	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
