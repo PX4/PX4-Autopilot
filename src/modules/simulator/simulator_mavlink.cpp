@@ -216,16 +216,13 @@ static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t 
 void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 {
 	// write sensor data to memory so that drivers can copy data from there
-	RawMPUData mpu = {};
-	mpu.accel_x = imu->xacc;
-	mpu.accel_y = imu->yacc;
-	mpu.accel_z = imu->zacc;
-	mpu.temp = imu->temperature;
-	mpu.gyro_x = imu->xgyro;
-	mpu.gyro_y = imu->ygyro;
-	mpu.gyro_z = imu->zgyro;
+	RawGyroData gyro = {};
+	gyro.gyro_x = imu->xgyro;
+	gyro.gyro_y = imu->ygyro;
+	gyro.gyro_z = imu->zgyro;
+	gyro.temperature = imu->temperature;
 
-	write_MPU_data(&mpu);
+	write_gyro_data(&gyro);
 	perf_begin(_perf_mpu);
 
 	RawAccelData accel = {};
@@ -636,10 +633,9 @@ void Simulator::send()
 void Simulator::initializeSensorData()
 {
 	// write sensor data to memory so that drivers can copy data from there
-	RawMPUData mpu = {};
-	mpu.accel_z = 9.81f;
+	RawGyroData gyro = {};
 
-	write_MPU_data(&mpu);
+	write_gyro_data(&gyro);
 
 	RawAccelData accel = {};
 	accel.z = 9.81f;
