@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file hippocampus_example_app.cpp
+ * @file uuv_example_app.cpp
  *
  * This file let the hippocampus drive in a circle and prints the orientation as well as the acceleration data.
  * The HippoCampus is an autonomous underwater vehicle (AUV) designed by the Technical University Hamburg-Harburg (TUHH).
@@ -59,7 +59,6 @@
 // internal libraries
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
-#include <lib/tailsitter_recovery/tailsitter_recovery.h>
 
 // Include uORB and the required topics for this app
 #include <uORB/uORB.h>
@@ -67,9 +66,9 @@
 #include <uORB/topics/actuator_controls.h>              // this topic gives the actuators control input
 #include <uORB/topics/control_state.h>                  // this topic holds the orientation of the hippocampus
 
-extern "C" __EXPORT int auv_hippocampus_example_app_main(int argc, char *argv[]);
+extern "C" __EXPORT int uuv_example_app_main(int argc, char *argv[]);
 
-int auv_hippocampus_example_app_main(int argc, char *argv[])
+int uuv_example_app_main(int argc, char *argv[])
 {
 	PX4_INFO("auv_hippocampus_example_app has been started!");
 
@@ -122,7 +121,7 @@ int auv_hippocampus_example_app_main(int argc, char *argv[])
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw_sensor);
 				// printing the sensor data into the terminal
-				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
+				PX4_INFO("Acc:\t%8.4f\t%8.4f\t%8.4f",
 					 (double)raw_sensor.accelerometer_m_s2[0],
 					 (double)raw_sensor.accelerometer_m_s2[1],
 					 (double)raw_sensor.accelerometer_m_s2[2]);
@@ -171,7 +170,7 @@ int auv_hippocampus_example_app_main(int argc, char *argv[])
 	}
 
 
-	PX4_INFO("exiting auv_hippocampus_example_app!");
+	PX4_INFO("Exiting uuv_example_app!");
 
 
 	return 0;
