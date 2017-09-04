@@ -847,7 +847,7 @@ void Ekf2::run()
 				_integrated_time_us += sensors.gyro_integral_dt;
 			}
 
-			matrix::Quaternion<float> q;
+			matrix::Quatf q;
 			_ekf.copy_quaternion(q.data());
 
 			float velocity[3];
