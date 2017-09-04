@@ -532,7 +532,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
 
-	_debug_enabled = false;
 	_servorail_status.rssi_v = 0;
 }
 

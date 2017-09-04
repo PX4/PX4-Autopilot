@@ -77,7 +77,7 @@ read	: cdev_read,
 write	: cdev_write,
 seek	: cdev_seek,
 ioctl	: cdev_ioctl,
-poll	: cdev_poll,
+poll	: cdev_poll
 };
 
 static int

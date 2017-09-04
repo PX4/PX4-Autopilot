@@ -297,7 +297,7 @@ public:
 private:
 	// Private constructor, uORB::Manager takes care of its creation
 	DeviceMaster(Flavor f);
-	virtual ~DeviceMaster();
+	virtual ~DeviceMaster() = default;
 
 	struct DeviceNodeStatisticsData {
 		DeviceNode *node;

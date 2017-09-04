@@ -112,8 +112,7 @@ protected:
 	 */
 	int		transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
 
-
-	bool external() override { return (get_device_bus() == PX4_I2C_BUS_EXPANSION); }
+	bool	external() override;
 
 private:
 	uint32_t		_frequency;

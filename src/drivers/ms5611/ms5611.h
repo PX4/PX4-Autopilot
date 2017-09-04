@@ -37,6 +37,10 @@
  * Shared defines for the ms5611 driver.
  */
 
+#include <cinttypes>
+
+#include <drivers/device/device.h>
+
 #define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
 #define ADDR_PROM_SETUP			0xA0	/* address of 8x 2 bytes factory and calibration data */
 

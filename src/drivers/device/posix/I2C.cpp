@@ -97,6 +97,16 @@ I2C::init()
 
 #endif
 
+	// call the probe function to check whether the device is present
+	ret = probe();
+
+	if (ret != OK) {
+		PX4_DEBUG("probe failed");
+	}
+
+	// tell the world where we are
+	PX4_DEBUG("on I2C bus %d at 0x%02x", get_device_bus(), get_device_address());
+
 	return ret;
 }
 

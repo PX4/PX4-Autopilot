@@ -244,7 +244,7 @@ BMA180::BMA180(int bus, spi_dev_e device) :
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_BMA180;
 
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	// default scale factors
 	_accel_scale.x_offset = 0;

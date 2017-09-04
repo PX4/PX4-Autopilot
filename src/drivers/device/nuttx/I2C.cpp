@@ -146,8 +146,8 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	PX4_ERR("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
-		get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	PX4_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+		  get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
 
@@ -189,7 +189,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		}
 
 		if (recv_len > 0) {
-			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];;
+			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];
 			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = I2C_M_READ;
 			msgv[msgs].buffer = recv;
@@ -254,6 +254,16 @@ I2C::set_reg(uint8_t value, uint8_t addr)
 {
 	uint8_t cmd[2] = { (uint8_t)(addr), value};
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
+}
+
+bool
+I2C::external()
+{
+#ifdef PX4_I2C_BUS_EXPANSION
+	return (get_device_bus() == PX4_I2C_BUS_EXPANSION);
+#else
+	return false;
+#endif /* PX4_I2C_BUS_EXPANSION */
 }
 
 } // namespace device

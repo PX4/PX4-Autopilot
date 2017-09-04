@@ -583,10 +583,8 @@ LSM303D::LSM303D(int bus, const char *path, spi_dev_e device, enum Rotation rota
 	_last_temperature(0),
 	_checked_next(0)
 {
-
-
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_LSM303D;
 
