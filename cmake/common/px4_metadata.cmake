@@ -73,102 +73,97 @@ function(px4_generate_messages)
 		REQUIRED MSG_FILES OS TARGET
 		ARGN ${ARGN})
 
-	if("${nuttx_config_type}" STREQUAL "bootloader")
-		# do nothing for bootloaders
-	else()
+	set(QUIET)
+	if (NOT VERBOSE)
+		set(QUIET "-q")
+	endif()
 
-		set(QUIET)
-		if (NOT VERBOSE)
-			set(QUIET "-q")
-		endif()
+	# headers
+	set(msg_out_path ${PX4_BINARY_DIR}/src/modules/uORB/topics)
+	set(msg_list)
+	foreach(msg_file ${MSG_FILES})
+		get_filename_component(msg ${msg_file} NAME_WE)
+		list(APPEND msg_list ${msg})
+	endforeach()
 
-		# headers
-		set(msg_out_path ${PX4_BINARY_DIR}/src/modules/uORB/topics)
-		set(msg_list)
-		foreach(msg_file ${MSG_FILES})
-			get_filename_component(msg ${msg_file} NAME_WE)
-			list(APPEND msg_list ${msg})
-		endforeach()
+	set(msg_files_out)
+	foreach(msg ${msg_list})
+		list(APPEND msg_files_out ${msg_out_path}/${msg}.h)
+	endforeach()
 
-		set(msg_files_out)
-		foreach(msg ${msg_list})
-			list(APPEND msg_files_out ${msg_out_path}/${msg}.h)
-		endforeach()
+	add_custom_command(OUTPUT ${msg_files_out}
+		COMMAND ${PYTHON_EXECUTABLE}
+			Tools/px_generate_uorb_topic_files.py
+			--headers
+			${QUIET}
+			-f ${MSG_FILES}
+			-i ${INCLUDES}
+			-o ${msg_out_path}
+			-e msg/templates/uorb
+			-t ${PX4_BINARY_DIR}/topics_temporary_header
+		DEPENDS ${DEPENDS} ${MSG_FILES}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+		COMMENT "Generating uORB topic headers"
+		VERBATIM
+		)
 
-		add_custom_command(OUTPUT ${msg_files_out}
-			COMMAND ${PYTHON_EXECUTABLE}
-				Tools/px_generate_uorb_topic_files.py
-				--headers
-				${QUIET}
-				-f ${MSG_FILES}
-				-i ${INCLUDES}
-				-o ${msg_out_path}
-				-e msg/templates/uorb
-				-t ${PX4_BINARY_DIR}/topics_temporary_header
-			DEPENDS ${DEPENDS} ${MSG_FILES}
-			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-			COMMENT "Generating uORB topic headers"
-			VERBATIM
-			)
+	# !sources
+	set(msg_source_out_path	${PX4_BINARY_DIR}/topics_sources)
+	set(msg_source_files_out ${msg_source_out_path}/uORBTopics.cpp)
+	foreach(msg ${msg_list})
+		list(APPEND msg_source_files_out ${msg_source_out_path}/${msg}.cpp)
+	endforeach()
+	add_custom_command(OUTPUT ${msg_source_files_out}
+		COMMAND ${PYTHON_EXECUTABLE}
+			Tools/px_generate_uorb_topic_files.py
+			--sources
+			${QUIET}
+			-f ${MSG_FILES}
+			-i ${INCLUDES}
+			-o ${msg_source_out_path}
+			-e msg/templates/uorb
+			-t ${PX4_BINARY_DIR}/topics_temporary_sources
+		DEPENDS ${DEPENDS} ${MSG_FILES}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+		COMMENT "Generating uORB topic sources"
+		VERBATIM
+		)
+	set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
 
-		# !sources
-		set(msg_source_out_path	${PX4_BINARY_DIR}/topics_sources)
-		set(msg_source_files_out ${msg_source_out_path}/uORBTopics.cpp)
-		foreach(msg ${msg_list})
-			list(APPEND msg_source_files_out ${msg_source_out_path}/${msg}.cpp)
-		endforeach()
-		add_custom_command(OUTPUT ${msg_source_files_out}
-			COMMAND ${PYTHON_EXECUTABLE}
-				Tools/px_generate_uorb_topic_files.py
-				--sources
-				${QUIET}
-				-f ${MSG_FILES}
-				-i ${INCLUDES}
-				-o ${msg_source_out_path}
-				-e msg/templates/uorb
-				-t ${PX4_BINARY_DIR}/topics_temporary_sources
-			DEPENDS ${DEPENDS} ${MSG_FILES}
-			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-			COMMENT "Generating uORB topic sources"
-			VERBATIM
-			)
-		set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
+	# multi messages for target OS
+	set(msg_multi_out_path ${PX4_BINARY_DIR}/src/platforms/${OS}/px4_messages)
+	set(msg_multi_files_out)
+	foreach(msg ${msg_list})
+		list(APPEND msg_multi_files_out ${msg_multi_out_path}/px4_${msg}.h)
+	endforeach()
+	add_custom_command(OUTPUT ${msg_multi_files_out}
+		COMMAND ${PYTHON_EXECUTABLE}
+			Tools/px_generate_uorb_topic_files.py
+			--headers
+			${QUIET}
+			-f ${MSG_FILES}
+			-i ${INCLUDES}
+			-o ${msg_multi_out_path}
+			-e msg/templates/px4/uorb
+			-t ${PX4_BINARY_DIR}/multi_topics_temporary/${OS}
+			-p "px4_"
+		DEPENDS ${DEPENDS} ${MSG_FILES}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+		COMMENT "Generating uORB topic multi headers for ${OS}"
+		VERBATIM
+		)
 
-		# multi messages for target OS
-		set(msg_multi_out_path ${PX4_BINARY_DIR}/src/platforms/${OS}/px4_messages)
-		set(msg_multi_files_out)
-		foreach(msg ${msg_list})
-			list(APPEND msg_multi_files_out ${msg_multi_out_path}/px4_${msg}.h)
-		endforeach()
-		add_custom_command(OUTPUT ${msg_multi_files_out}
-			COMMAND ${PYTHON_EXECUTABLE}
-				Tools/px_generate_uorb_topic_files.py
-				--headers
-				${QUIET}
-				-f ${MSG_FILES}
-				-i ${INCLUDES}
-				-o ${msg_multi_out_path}
-				-e msg/templates/px4/uorb
-				-t ${PX4_BINARY_DIR}/multi_topics_temporary/${OS}
-				-p "px4_"
-			DEPENDS ${DEPENDS} ${MSG_FILES}
-			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-			COMMENT "Generating uORB topic multi headers for ${OS}"
-			VERBATIM
-			)
+	px4_add_library(${TARGET}
+		${msg_source_files_out}
+		${msg_multi_files_out}
+		${msg_files_out}
+		)
 
-		px4_add_library(${TARGET}
-			${msg_source_files_out}
-			${msg_multi_files_out}
-			${msg_files_out}
-			)
-
-		target_include_directories(${TARGET}
-			PRIVATE ${PX4_SOURCE_DIR}/src/lib/micro-CDR/include
-			PRIVATE ${PX4_BINARY_DIR}/src/lib/micro-CDR/include/microcdr
-			)
-		target_link_libraries(${TARGET} PRIVATE lib__micro-CDR)
-    endif()
+	target_include_directories(${TARGET}
+		PRIVATE ${PX4_SOURCE_DIR}/src/lib/micro-CDR/include
+		PRIVATE ${PX4_BINARY_DIR}/src/lib/micro-CDR/include/microcdr
+		)
+	target_link_libraries(${TARGET} PRIVATE lib__micro-CDR)
 endfunction()
 
 #=============================================================================
