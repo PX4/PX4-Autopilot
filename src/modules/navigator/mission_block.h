@@ -149,6 +149,7 @@ protected:
 	control::BlockParamInt _param_vtol_wv_loiter;
 	control::BlockParamInt _param_force_vtol;
 	control::BlockParamFloat _param_back_trans_dec_mss;
+	control::BlockParamFloat _param_reverse_delay;
 };
 
 #endif
