@@ -229,7 +229,7 @@ private:
 	bool _alt_hold_engaged;
 	bool _run_pos_control;
 	bool _run_alt_control;
-	bool _pos_first_nonfinite;
+	bool _triplet_lat_lon_finite;
 
 	bool _reset_int_z = true;
 	bool _reset_int_xy = true;
@@ -419,7 +419,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_alt_hold_engaged(false),
 	_run_pos_control(true),
 	_run_alt_control(true),
-	_pos_first_nonfinite(true),
+	_triplet_lat_lon_finite(true),
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
 	_vel_max_xy(0.0f),
@@ -1412,13 +1412,13 @@ void MulticopterPositionControl::control_auto(float dt)
 					       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
 					       &curr_pos_sp.data[0], &curr_pos_sp.data[1]);
 
-			_pos_first_nonfinite = true;
+			_triplet_lat_lon_finite = true;
 
 		} else { // use current position if NAN -> e.g. land
-			if (_pos_first_nonfinite) {
+			if (_triplet_lat_lon_finite) {
 				curr_pos_sp.data[0] = _pos(0);
 				curr_pos_sp.data[1] = _pos(1);
-				_pos_first_nonfinite = false;
+				_triplet_lat_lon_finite = false;
 			}
 		}
 
