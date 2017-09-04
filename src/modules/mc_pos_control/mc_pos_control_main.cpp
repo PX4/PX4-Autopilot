@@ -737,6 +737,9 @@ MulticopterPositionControl::poll_subscriptions()
 		    && PX4_ISFINITE(_pos_sp_triplet.current.alt) && _pos_sp_triplet.current.valid) {
 			_pos_sp_triplet.current.valid = true;
 
+		} else if (PX4_ISFINITE(_pos_sp_triplet.current.alt) && _pos_sp_triplet.current.valid) {
+			_pos_sp_triplet.current.valid = true;
+
 		} else {
 			_pos_sp_triplet.current.valid = false;
 		}
@@ -1402,7 +1405,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	if (_pos_sp_triplet.current.valid) {
 
-		math::Vector<3> curr_pos_sp;
+		math::Vector<3> curr_pos_sp = _curr_pos_sp;
 
 		//only project setpoints if they are finite, else use current position
 		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) &&
@@ -1438,9 +1441,16 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		/* check if triplets have been updated
 		 * note: we only can look at xy since navigator applies slewrate to z */
-		matrix::Vector2f diff((_curr_pos_sp(0) - curr_pos_sp(0)), (_curr_pos_sp(1) - curr_pos_sp(1)));
+		float  diff;
 
-		if (diff.length() > FLT_EPSILON) {
+		if (_triplet_lat_lon_finite) {
+			diff = matrix::Vector2f((_curr_pos_sp(0) - curr_pos_sp(0)), (_curr_pos_sp(1) - curr_pos_sp(1))).length();
+
+		} else {
+			diff = fabsf(_curr_pos_sp(2) - curr_pos_sp(2));
+		}
+
+		if (diff > FLT_EPSILON) {
 			triplet_updated = true;
 		}
 
