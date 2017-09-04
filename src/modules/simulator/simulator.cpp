@@ -62,9 +62,9 @@ Simulator *Simulator::getInstance()
 	return _instance;
 }
 
-bool Simulator::getMPUReport(uint8_t *buf, int len)
+bool Simulator::getGyroReport(simulator::RawGyroData *report)
 {
-	return _mpu.copyData(buf, len);
+	return _gyro.copyData(report, sizeof(*report));
 }
 
 bool Simulator::getRawAccelReport(uint8_t *buf, int len)
@@ -92,9 +92,9 @@ bool Simulator::getAirspeedSample(uint8_t *buf, int len)
 	return _airspeed.copyData(buf, len);
 }
 
-void Simulator::write_MPU_data(void *buf)
+void Simulator::write_gyro_data(void *buf)
 {
-	_mpu.writeData(buf);
+	_gyro.writeData(buf);
 }
 
 void Simulator::write_accel_data(void *buf)

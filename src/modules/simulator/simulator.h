@@ -86,14 +86,11 @@ struct RawMagData {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct RawMPUData {
-	float	accel_x;
-	float	accel_y;
-	float	accel_z;
-	float	temp;
-	float	gyro_x;
-	float	gyro_y;
-	float	gyro_z;
+struct RawGyroData {
+	float gyro_x;
+	float gyro_y;
+	float gyro_z;
+	float temperature;
 };
 #pragma pack(pop)
 
@@ -211,12 +208,12 @@ public:
 
 	bool getRawAccelReport(uint8_t *buf, int len);
 	bool getMagReport(uint8_t *buf, int len);
-	bool getMPUReport(uint8_t *buf, int len);
+	bool getGyroReport(simulator::RawGyroData *report);
 	bool getBaroSample(uint8_t *buf, int len);
 	bool getGPSSample(uint8_t *buf, int len);
 	bool getAirspeedSample(uint8_t *buf, int len);
 
-	void write_MPU_data(void *buf);
+	void write_gyro_data(void *buf);
 	void write_accel_data(void *buf);
 	void write_mag_data(void *buf);
 	void write_baro_data(void *buf);
@@ -228,7 +225,7 @@ public:
 private:
 	Simulator() : SuperBlock(nullptr, "SIM"),
 		_accel(1),
-		_mpu(1),
+		_gyro(1),
 		_baro(1),
 		_mag(1),
 		_gps(1),
@@ -309,7 +306,7 @@ private:
 
 	// simulated sensor instances
 	simulator::Report<simulator::RawAccelData>	_accel;
-	simulator::Report<simulator::RawMPUData>	_mpu;
+	simulator::Report<simulator::RawGyroData>	_gyro;
 	simulator::Report<simulator::RawBaroData>	_baro;
 	simulator::Report<simulator::RawMagData>	_mag;
 	simulator::Report<simulator::RawGPSData>	_gps;
