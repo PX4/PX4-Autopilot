@@ -32,20 +32,21 @@
 ############################################################################
 
 set(SRCS
-	perf_counter.c
-	conversions.c
-	cpuload.c
-	pid/pid.c
 	airspeed.c
-	mavlink_log.c
-	rc_check.c
-	otp.c
+	battery.cpp
 	board_serial.c
-	pwm_limit/pwm_limit.c
 	bson/tinybson.c
 	circuit_breaker.cpp
-	battery.cpp
+	conversions.c
+	cpuload.c
+	crc.c
 	hysteresis/hysteresis.cpp
+	mavlink_log.c
+	otp.c
+	perf_counter.c
+	pid/pid.c
+	pwm_limit/pwm_limit.c
+	rc_check.c
 	)
 
 if(${OS} STREQUAL "nuttx")

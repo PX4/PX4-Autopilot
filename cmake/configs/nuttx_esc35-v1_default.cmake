@@ -34,14 +34,11 @@ px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
 	SW_MINOR ${uavcanblid_sw_version_minor}
 )
 
-include_directories(${PX4_SOURCE_DIR}/src/drivers/boards/esc35-v1/bootloader)
-
 set(config_module_list
 	#
 	# Board support modules
 	#
 	drivers/boards
-	drivers/bootloaders
 	drivers/device
 	drivers/led
 	drivers/stm32

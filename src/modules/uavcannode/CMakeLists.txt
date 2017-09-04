@@ -53,11 +53,12 @@ set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
 add_subdirectory(${LIBUAVCAN_DIR} uavcannode_libuavcan)
 add_dependencies(uavcan platforms__nuttx)
 
-include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders/include)
 include_directories(${LIBUAVCAN_DIR}/libuavcan/include)
 include_directories(${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated)
 include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include)
 include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include)
+
+include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders)
 
 px4_add_module(
 	MODULE modules__uavcannode
