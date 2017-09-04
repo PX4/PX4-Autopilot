@@ -612,6 +612,9 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 	case ACCELIOCSELFTEST:
 		return OK;
 
+	case SENSORIOCCALTEST:
+		return OK;
+
 	default:
 		/* give it to the superclass */
 		return VirtDevObj::devIOCTL(cmd, arg);
