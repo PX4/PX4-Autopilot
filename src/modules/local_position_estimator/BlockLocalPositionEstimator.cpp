@@ -807,7 +807,7 @@ void BlockLocalPositionEstimator::updateSSParams()
 void BlockLocalPositionEstimator::predict()
 {
 	// get acceleration
-	matrix::Quaternion<float> q(&_sub_att.get().q[0]);
+	matrix::Quatf q(&_sub_att.get().q[0]);
 	_eul = matrix::Euler<float>(q);
 	_R_att = matrix::Dcm<float>(q);
 	Vector3f a(_sub_sensor.get().accelerometer_m_s2);
