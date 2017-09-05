@@ -216,16 +216,13 @@ static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t 
 void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 {
 	// write sensor data to memory so that drivers can copy data from there
-	RawMPUData mpu = {};
-	mpu.accel_x = imu->xacc;
-	mpu.accel_y = imu->yacc;
-	mpu.accel_z = imu->zacc;
-	mpu.temp = imu->temperature;
-	mpu.gyro_x = imu->xgyro;
-	mpu.gyro_y = imu->ygyro;
-	mpu.gyro_z = imu->zgyro;
+	RawGyroData gyro = {};
+	gyro.gyro_x = imu->xgyro;
+	gyro.gyro_y = imu->ygyro;
+	gyro.gyro_z = imu->zgyro;
+	gyro.temperature = imu->temperature;
 
-	write_MPU_data(&mpu);
+	write_gyro_data(&gyro);
 	perf_begin(_perf_mpu);
 
 	RawAccelData accel = {};
@@ -276,7 +273,7 @@ void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 	gps.fix_type = gps_sim->fix_type;
 	gps.satellites_visible = gps_sim->satellites_visible;
 
-	write_gps_data((void *)&gps);
+	write_gps_data(&gps);
 }
 
 void Simulator::handle_message(mavlink_message_t *msg, bool publish)
@@ -631,39 +628,6 @@ void Simulator::send()
 			send_controls();
 		}
 	}
-}
-
-void Simulator::initializeSensorData()
-{
-	// write sensor data to memory so that drivers can copy data from there
-	RawMPUData mpu = {};
-	mpu.accel_z = 9.81f;
-
-	write_MPU_data(&mpu);
-
-	RawAccelData accel = {};
-	accel.z = 9.81f;
-
-	write_accel_data(&accel);
-
-	RawMagData mag = {};
-	mag.x = 0.4f;
-	mag.y = 0.0f;
-	mag.z = 0.6f;
-
-	write_mag_data((void *)&mag);
-
-	RawBaroData baro = {};
-	// calculate air pressure from altitude (valid for low altitude)
-	baro.pressure = 120000.0f;
-	baro.altitude = 0.0f;
-	baro.temperature = 25.0f;
-
-	write_baro_data(&baro);
-
-	RawAirspeedData airspeed {};
-
-	write_airspeed_data(&airspeed);
 }
 
 void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)

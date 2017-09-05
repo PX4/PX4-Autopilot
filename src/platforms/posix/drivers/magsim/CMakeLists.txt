@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,19 +34,12 @@
 include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
 
 px4_add_module(
-	MODULE platforms__posix__drivers__airspeedsim
-	MAIN measairspeedsim
+	MODULE platforms__posix__drivers__magsim
+	MAIN magsim
 	COMPILE_FLAGS
 	SRCS
-		meas_airspeed_sim.cpp
+		magsim.cpp
 	DEPENDS
 		platforms__common
-		git_driverframework
-		df_driver_framework
 	)
-
-target_link_libraries(platforms__posix__drivers__airspeedsim
-	df_driver_framework
-)
-
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

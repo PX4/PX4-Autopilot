@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2017 Roman Bapst. All rights reserved.
+ * Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,106 +32,86 @@
  ****************************************************************************/
 
 /**
- * @file gpssim.cpp
- * Simulated GPS driver
+ * @file magsim.cpp
+ * Driver for a simulated magnetometer.
  */
 
+#include <px4_config.h>
+
 #include <sys/types.h>
-#include <px4_defines.h>
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdbool.h>
+#include <sys/stat.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/device.h>
-#include <drivers/drv_gps.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <px4_getopt.h>
+#include <errno.h>
 
 #include <simulator/simulator.h>
 
-#include <string>
+#include <systemlib/err.h>
 
-#include <DevMgr.hpp>
+#include <drivers/drv_mag.h>
+#include <drivers/drv_hrt.h>
+
+#include <board_config.h>
 #include <VirtDevObj.hpp>
+
+#define DEV_PATH "/dev/magsim"
+#define MEASURE_INTERVAL_US (10000)
+
+extern "C" { __EXPORT int magsim_main(int argc, char *argv[]); }
 
 using namespace DriverFramework;
 
-#define DEV_PATH "/dev/gpssim"
-#define MEASURE_INTERVAL_US (100000)
-
-class GPSSIM : public VirtDevObj
+class MAGSIM : public VirtDevObj
 {
 public:
-	GPSSIM(const std::string &path);
-	GPSSIM() = delete;
+	MAGSIM(const char *path);
+	MAGSIM() = delete;
 
-	virtual ~GPSSIM();
+	virtual ~MAGSIM();
 
-	GPSSIM operator=(const GPSSIM &) = delete;
+	MAGSIM operator=(const MAGSIM &) = delete;
 
 	virtual int init() override final;
-	virtual int start() override final;
+
 	virtual int devIOCTL(unsigned long cmd, unsigned long arg) override final;
 
 private:
+	virtual int start() override final;
+	virtual int stop() override final;
 	virtual void _measure() override final;
 
-private:
+
 	orb_advert_t _topic;
 	int _orb_class_instance;
 };
 
-extern "C" __EXPORT int gpssim_main(int argc, char *argv[]);
-
-GPSSIM::GPSSIM(const std::string &path) :
-	VirtDevObj("GPSSIM", path.c_str(), "/dev/gps", MEASURE_INTERVAL_US),
+MAGSIM::MAGSIM(const char *path) :
+	VirtDevObj("MAGSIM", path, MAG_BASE_DEVICE_PATH, MEASURE_INTERVAL_US),
 	_topic(nullptr),
 	_orb_class_instance(-1)
 {
+	m_id.dev_id_s.bus = 1;
+	m_id.dev_id_s.devtype = DRV_MAG_DEVTYPE_ACCELSIM;
 }
 
-GPSSIM::~GPSSIM()
+MAGSIM::~MAGSIM()
 {
+	/* make sure we are truly inactive */
 	stop();
-
-	if (_topic) {
-		orb_unadvertise(_topic);
-	}
 }
 
-int GPSSIM::devIOCTL(unsigned long cmd, unsigned long arg)
-{
-	int ret = OK;
-
-	switch (cmd) {
-	default:
-		/* give it to parent if no one wants it */
-		ret = VirtDevObj::devIOCTL(cmd, arg);
-		break;
-	}
-
-	return ret;
-}
-
-int GPSSIM::init()
+int MAGSIM::init()
 {
 	int ret;
 
 	ret = VirtDevObj::init();
 
-	if (ret != 0) {
+	if (ret != OK) {
 		PX4_WARN("Base class init failed (%d)", ret);
 		ret = 1;
 		goto out;
@@ -148,18 +128,43 @@ out:
 	return ret;
 }
 
-int GPSSIM::start()
+int MAGSIM::devIOCTL(unsigned long cmd, unsigned long arg)
+{
+	switch (cmd) {
+	case SENSORIOCCALTEST:
+		return OK;
+
+	case DEVIOCGDEVICEID: {
+			return (int)VirtDevObj::devIOCTL(cmd, arg);
+		} break;
+	}
+
+	return OK;
+}
+
+int MAGSIM::start()
 {
 	/* make sure we are stopped first */
 	stop();
 
-	/* start polling at the specified rate */
-	return DevObj::start();
+	int ret = VirtDevObj::start();
+
+	if (ret != 0) {
+		PX4_ERR("MAGSIM::start base class start failed");
+	}
+
+	return (ret != 0) ? -1 : 0;
 }
 
-void GPSSIM::_measure()
+int MAGSIM::stop()
 {
-	simulator::RawGPSData raw_report;
+	return VirtDevObj::stop();
+}
+
+void MAGSIM::_measure()
+{
+	simulator::RawMagData raw_report;
+	mag_report report;
 	Simulator *sim = Simulator::getInstance();
 
 	if (sim == nullptr) {
@@ -167,33 +172,33 @@ void GPSSIM::_measure()
 		return;
 	}
 
-	if (!sim->getGPSSample(&raw_report)) {
+	if (!sim->getMagReport(&raw_report)) {
 		return;
 	}
 
-	vehicle_gps_position_s report = {};
-
 	report.timestamp = hrt_absolute_time();
-	report.timestamp_time_relative = 0;
-	report.lat = raw_report.lat;
-	report.lon = raw_report.lon;
-	report.alt = raw_report.alt;
-	report.eph = (float)raw_report.eph * 1e-2f;
-	report.epv = (float)raw_report.epv * 1e-2f;
-	report.vel_m_s = (float)(raw_report.vel) / 100.0f;
-	report.vel_n_m_s = (float)(raw_report.vn) / 100.0f;
-	report.vel_e_m_s = (float)(raw_report.ve) / 100.0f;
-	report.vel_d_m_s = (float)(raw_report.vd) / 100.0f;
-	report.cog_rad = (float)(raw_report.cog) * 3.1415f / (100.0f * 180.0f);
-	report.fix_type = raw_report.fix_type;
-	report.satellites_used = raw_report.satellites_visible;
+	report.error_count = 0;
+	report.x = raw_report.x;
+	report.y = raw_report.y;
+	report.z = raw_report.z;
+
+	report.range_ga = 0;
+	report.scaling = 0;
+	report.temperature = 0;
+
+	report.x_raw = 0;
+	report.y_raw = 0;
+	report.z_raw = 0;
+
+	report.device_id = 0;
+	report.is_external = false;
 
 	if (_topic) {
-		orb_publish(ORB_ID(vehicle_gps_position), _topic, &report);
+		orb_publish(ORB_ID(sensor_mag), _topic, &report);
 
 	} else {
-		_topic = orb_advertise_multi(ORB_ID(vehicle_gps_position), &report,
-					     &_orb_class_instance, ORB_PRIO_HIGH);
+		_topic = orb_advertise_multi(ORB_ID(sensor_mag), &report,
+					     &_orb_class_instance, ORB_PRIO_DEFAULT);
 
 		if (_topic == nullptr) {
 			PX4_WARN("ADVERT FAIL");
@@ -205,13 +210,12 @@ void GPSSIM::_measure()
 /**
  * Local functions in support of the shell command.
  */
-namespace gpssim
+namespace magsim
 {
 
-static GPSSIM *g_dev = nullptr;
+static MAGSIM *g_dev = nullptr;
 
 static int start();
-static int stop();
 static void usage();
 
 int start()
@@ -221,15 +225,15 @@ int start()
 		return 0;
 	}
 
-	g_dev = new GPSSIM(DEV_PATH);
+	g_dev = new MAGSIM(DEV_PATH);
 
 	if (g_dev == nullptr) {
-		PX4_ERR("failed to allocate GPSSIM");
+		PX4_ERR("failed to allocate MAGSIM");
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
-		PX4_ERR("failed to init GPSSIM");
+		PX4_ERR("failed to init MAGSIM");
 		goto fail;
 	}
 
@@ -241,54 +245,36 @@ fail:
 		g_dev = nullptr;
 	}
 
-	PX4_WARN("driver start failed");
+	PX4_ERR("driver start failed");
 	return 1;
-}
-
-int stop()
-{
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-
-	} else {
-		/* warn, but not an error */
-		PX4_WARN("already stopped.");
-	}
-
-	return 0;
 }
 
 void usage()
 {
-	PX4_INFO("missing command: try 'start', 'stop'");
+	PX4_WARN("Usage: MAGSIM 'start'");
 }
 
 } // namespace
 
-int gpssim_main(int argc, char *argv[])
+int magsim_main(int argc, char *argv[])
 {
 	int ret;
 	int myoptind = 1;
 
 	if (argc <= 1) {
-		gpssim::usage();
+		magsim::usage();
 		return 1;
 	}
 
 	const char *verb = argv[myoptind];
 
 	if (!strcmp(verb, "start")) {
-		ret = gpssim::start();
+		ret = magsim::start();
 	}
 
-	else if (!strcmp(verb, "stop")) {
-		ret = gpssim::stop();
-	}
-
-	else  {
-		gpssim::usage();
-		ret = 1;
+	else {
+		magsim::usage();
+		return 1;
 	}
 
 	return ret;

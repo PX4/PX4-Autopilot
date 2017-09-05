@@ -53,6 +53,7 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/device/ringbuffer.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/battery.h>
 #include <controllib/blocks.hpp>
@@ -86,14 +87,11 @@ struct RawMagData {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct RawMPUData {
-	float	accel_x;
-	float	accel_y;
-	float	accel_z;
-	float	temp;
-	float	gyro_x;
-	float	gyro_y;
-	float	gyro_z;
+struct RawGyroData {
+	float gyro_x;
+	float gyro_y;
+	float gyro_z;
+	float temperature;
 };
 #pragma pack(pop)
 
@@ -130,62 +128,6 @@ struct RawGPSData {
 };
 #pragma pack(pop)
 
-template <typename RType> class Report
-{
-public:
-	Report(int readers) :
-		_readidx(0),
-		_max_readers(readers),
-		_report_len(sizeof(RType))
-	{
-		memset(_buf, 0, sizeof(_buf));
-		px4_sem_init(&_lock, 0, _max_readers);
-	}
-
-	~Report() {};
-
-	bool copyData(void *outbuf, int len)
-	{
-		if (len != _report_len) {
-			return false;
-		}
-
-		read_lock();
-		memcpy(outbuf, &_buf[_readidx], _report_len);
-		read_unlock();
-		return true;
-	}
-	void writeData(void *inbuf)
-	{
-		write_lock();
-		memcpy(&_buf[!_readidx], inbuf, _report_len);
-		_readidx = !_readidx;
-		write_unlock();
-	}
-
-protected:
-	void read_lock() { px4_sem_wait(&_lock); }
-	void read_unlock() { px4_sem_post(&_lock); }
-	void write_lock()
-	{
-		for (int i = 0; i < _max_readers; i++) {
-			px4_sem_wait(&_lock);
-		}
-	}
-	void write_unlock()
-	{
-		for (int i = 0; i < _max_readers; i++) {
-			px4_sem_post(&_lock);
-		}
-	}
-
-	int _readidx;
-	px4_sem_t _lock;
-	const int _max_readers;
-	const int _report_len;
-	RType _buf[2];
-};
-
 };
 
 class Simulator : public control::SuperBlock
@@ -209,30 +151,30 @@ public:
 
 	static int start(int argc, char *argv[]);
 
-	bool getRawAccelReport(uint8_t *buf, int len);
-	bool getMagReport(uint8_t *buf, int len);
-	bool getMPUReport(uint8_t *buf, int len);
-	bool getBaroSample(uint8_t *buf, int len);
-	bool getGPSSample(uint8_t *buf, int len);
-	bool getAirspeedSample(uint8_t *buf, int len);
+	bool getAccelReport(simulator::RawAccelData *report);
+	bool getMagReport(simulator::RawMagData *report);
+	bool getGyroReport(simulator::RawGyroData *report);
+	bool getBaroSample(simulator::RawBaroData *report);
+	bool getGPSSample(simulator::RawGPSData *report);
+	bool getAirspeedSample(simulator::RawAirspeedData *report);
 
-	void write_MPU_data(void *buf);
-	void write_accel_data(void *buf);
-	void write_mag_data(void *buf);
-	void write_baro_data(void *buf);
-	void write_gps_data(void *buf);
-	void write_airspeed_data(void *buf);
+	void write_accel_data(const simulator::RawAccelData *report);
+	void write_mag_data(const simulator::RawMagData *report);
+	void write_gyro_data(const simulator::RawGyroData *report);
+	void write_baro_data(const simulator::RawBaroData *report);
+	void write_gps_data(const simulator::RawGPSData *report);
+	void write_airspeed_data(const simulator::RawAirspeedData *report);
 
 	bool isInitialized() { return _initialized; }
 
 private:
 	Simulator() : SuperBlock(nullptr, "SIM"),
-		_accel(1),
-		_mpu(1),
-		_baro(1),
-		_mag(1),
-		_gps(1),
-		_airspeed(1),
+		_accel(2, sizeof(simulator::RawAccelData)),
+		_gyro(2, sizeof(simulator::RawGyroData)),
+		_baro(2, sizeof(simulator::RawBaroData)),
+		_mag(2, sizeof(simulator::RawMagData)),
+		_gps(2, sizeof(simulator::RawGPSData)),
+		_airspeed(2, sizeof(simulator::RawAirspeedData)),
 		_perf_accel(perf_alloc_once(PC_ELAPSED, "sim_accel_delay")),
 		_perf_mpu(perf_alloc_once(PC_ELAPSED, "sim_mpu_delay")),
 		_perf_baro(perf_alloc_once(PC_ELAPSED, "sim_baro_delay")),
@@ -287,12 +229,14 @@ private:
 			_actuator_outputs_sub[i] = -1;
 		}
 
-		simulator::RawGPSData gps_data{};
-		gps_data.eph = UINT16_MAX;
-		gps_data.epv = UINT16_MAX;
-		_gps.writeData(&gps_data);
-
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
+
+		pthread_mutex_init(&_accel_mutex, NULL);
+		pthread_mutex_init(&_gyro_mutex, NULL);
+		pthread_mutex_init(&_baro_mutex, NULL);
+		pthread_mutex_init(&_mag_mutex, NULL);
+		pthread_mutex_init(&_gps_mutex, NULL);
+		pthread_mutex_init(&_airspeed_mutex, NULL);
 	}
 	~Simulator()
 	{
@@ -301,19 +245,35 @@ private:
 		}
 
 		_instance = NULL;
-	}
 
-	void initializeSensorData();
+		pthread_mutex_destroy(&_accel_mutex);
+		pthread_mutex_destroy(&_gyro_mutex);
+		pthread_mutex_destroy(&_baro_mutex);
+		pthread_mutex_destroy(&_mag_mutex);
+		pthread_mutex_destroy(&_gps_mutex);
+		pthread_mutex_destroy(&_airspeed_mutex);
+	}
 
 	static Simulator *_instance;
 
 	// simulated sensor instances
-	simulator::Report<simulator::RawAccelData>	_accel;
-	simulator::Report<simulator::RawMPUData>	_mpu;
-	simulator::Report<simulator::RawBaroData>	_baro;
-	simulator::Report<simulator::RawMagData>	_mag;
-	simulator::Report<simulator::RawGPSData>	_gps;
-	simulator::Report<simulator::RawAirspeedData> _airspeed;
+	ringbuffer::RingBuffer _accel;
+	pthread_mutex_t _accel_mutex;
+
+	ringbuffer::RingBuffer _gyro;
+	pthread_mutex_t _gyro_mutex;
+
+	ringbuffer::RingBuffer _baro;
+	pthread_mutex_t _baro_mutex;
+
+	ringbuffer::RingBuffer _mag;
+	pthread_mutex_t _mag_mutex;
+
+	ringbuffer::RingBuffer _gps;
+	pthread_mutex_t _gps_mutex;
+
+	ringbuffer::RingBuffer _airspeed;
+	pthread_mutex_t _airspeed_mutex;
 
 	perf_counter_t _perf_accel;
 	perf_counter_t _perf_mpu;
