@@ -199,30 +199,31 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 
 	float boost = 0.0f;		// value added to demanded thrust (can also be negative)
 	float roll_pitch_scale = 1.0f;	// scale for demanded roll and pitch
+	float delta_out_max = max_out - min_out; // distance between the two extrema
 
+	// If the difference between the to extrema is smaller than 1.0, the boost can safely unsaturate a motor if needed
+	// without saturating another one.
+	// Otherwise, a scaler is computed to make the distance between the two extrema exacly 1.0 and the boost
+	// value is computed to maximize the roll-pitch control.
+	//
 	// Note: thrust boost is computed assuming thrust_gain==1 for all motors.
 	// On asymmetric platforms, some motors have thrust_gain<1,
 	// which may result in motor saturation after thrust boost is applied
 	// TODO: revise the saturation/boosting strategy
+	if (delta_out_max <= 1.0f) {
+		if (min_out < 0.0f) {
+			boost = -min_out;
 
-	if (min_out < 0.0f && max_out < 1.0f && max_out - min_out <= 1.0f) {
-		boost = -min_out;
+		} else if (max_out > 1.0f) {
+			boost = -(max_out - 1.0f);
 
-	} else if (max_out > 1.0f && min_out > 0.0f && max_out - min_out <= 1.0f) {
-		boost = -(max_out - 1.0f);
+		}
 
-	} else if (min_out < 0.0f && max_out < 1.0f && max_out - min_out > 1.0f) {
-		boost = -min_out - (1.0f - max_out) / 2.0f;
-		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
-
-	} else if (max_out > 1.0f && min_out > 0.0f && max_out - min_out > 1.0f) {
-		boost = -(max_out - min_out - 1.0f) / 2.0f;
-		roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
-
-	} else if (min_out < 0.0f && max_out > 1.0f) {
-		boost = -(max_out - 1.0f + min_out) / 2.0f;
-		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
+	} else {
+		roll_pitch_scale = 1 / (max_out - min_out);
+		boost = 1.0f - ((max_out - thrust) * roll_pitch_scale + thrust);
 	}
+
 
 	// capture saturation
 	if (min_out < 0.0f) {
