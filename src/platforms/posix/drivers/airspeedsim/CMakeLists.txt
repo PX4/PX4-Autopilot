@@ -38,9 +38,15 @@ px4_add_module(
 	MAIN measairspeedsim
 	COMPILE_FLAGS
 	SRCS
-		airspeedsim.cpp
 		meas_airspeed_sim.cpp
 	DEPENDS
 		platforms__common
+		git_driverframework
+		df_driver_framework
 	)
+
+target_link_libraries(platforms__posix__drivers__airspeedsim
+	df_driver_framework
+)
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
