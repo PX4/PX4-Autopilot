@@ -273,7 +273,7 @@ GPSSIM::receive(int timeout)
 {
 	Simulator *sim = Simulator::getInstance();
 	simulator::RawGPSData gps;
-	sim->getGPSSample((uint8_t *)&gps, sizeof(gps));
+	sim->getGPSSample(&gps);
 
 	static uint64_t timestamp_last = 0;
 

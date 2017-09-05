@@ -71,6 +71,8 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
 
+#include <simulator/simulator.h>
+
 /* Default I2C bus */
 #define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
 
@@ -115,7 +117,7 @@ protected:
 	virtual int	collect() = 0;
 
 	virtual int	transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len);
+			simulator::RawAirspeedData *report);
 
 	/**
 	 * Update the subsystem status

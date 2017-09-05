@@ -64,62 +64,62 @@ Simulator *Simulator::getInstance()
 
 bool Simulator::getGyroReport(simulator::RawGyroData *report)
 {
-	return _gyro.copyData(report, sizeof(*report));
+	return _gyro.copyData(report);
 }
 
 bool Simulator::getAccelReport(simulator::RawAccelData *report)
 {
-	return _accel.copyData(report, sizeof(*report));
+	return _accel.copyData(report);
 }
 
 bool Simulator::getMagReport(simulator::RawMagData *report)
 {
-	return _mag.copyData(report, sizeof(*report));
+	return _mag.copyData(report);
 }
 
 bool Simulator::getBaroSample(simulator::RawBaroData *report)
 {
-	return _baro.copyData(report, sizeof(*report));
+	return _baro.copyData(report);
 }
 
-bool Simulator::getGPSSample(uint8_t *buf, int len)
+bool Simulator::getGPSSample(simulator::RawGPSData *report)
 {
-	return _gps.copyData(buf, len);
+	return _gps.copyData(report);
 }
 
-bool Simulator::getAirspeedSample(uint8_t *buf, int len)
+bool Simulator::getAirspeedSample(simulator::RawAirspeedData *report)
 {
-	return _airspeed.copyData(buf, len);
+	return _airspeed.copyData(report);
 }
 
-void Simulator::write_gyro_data(void *buf)
+void Simulator::write_gyro_data(const simulator::RawGyroData *report)
 {
-	_gyro.writeData(buf);
+	_gyro.writeData(report);
 }
 
-void Simulator::write_accel_data(void *buf)
+void Simulator::write_accel_data(const simulator::RawAccelData *report)
 {
-	_accel.writeData(buf);
+	_accel.writeData(report);
 }
 
-void Simulator::write_mag_data(void *buf)
+void Simulator::write_mag_data(const simulator::RawMagData *report)
 {
-	_mag.writeData(buf);
+	_mag.writeData(report);
 }
 
-void Simulator::write_baro_data(void *buf)
+void Simulator::write_baro_data(const simulator::RawBaroData *report)
 {
-	_baro.writeData(buf);
+	_baro.writeData(report);
 }
 
-void Simulator::write_gps_data(void *buf)
+void Simulator::write_gps_data(const simulator::RawGPSData *report)
 {
-	_gps.writeData(buf);
+	_gps.writeData(report);
 }
 
-void Simulator::write_airspeed_data(void *buf)
+void Simulator::write_airspeed_data(const simulator::RawAirspeedData *report)
 {
-	_airspeed.writeData(buf);
+	_airspeed.writeData(report);
 }
 
 void Simulator::parameters_update(bool force)

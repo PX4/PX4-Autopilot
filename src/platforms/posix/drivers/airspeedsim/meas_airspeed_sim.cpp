@@ -138,7 +138,7 @@ MEASAirspeedSim::measure()
 	 * Send the command to begin a measurement.
 	 */
 	uint8_t cmd = 0;
-	ret = transfer(&cmd, 1, nullptr, 0);
+	ret = transfer(&cmd, 1, nullptr);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -153,17 +153,11 @@ MEASAirspeedSim::collect()
 	int	ret = -EIO;
 
 	/* read from the sensor */
-#pragma pack(push, 1)
-	struct {
-		float		temperature;
-		float		diff_pressure;
-	} airspeed_report;
-#pragma pack(pop)
-
+	simulator::RawAirspeedData airspeed_report;
 
 	perf_begin(_sample_perf);
 
-	ret = transfer(nullptr, 0, (uint8_t *)&airspeed_report, sizeof(airspeed_report));
+	ret = transfer(nullptr, 0, &airspeed_report);
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
