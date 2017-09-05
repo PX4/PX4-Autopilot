@@ -548,6 +548,7 @@ void Logger::add_common_topics()
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
 	add_topic("input_rc", 200);
+	add_topic("manual_control_setpoint", 200);
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("rc_channels", 200);
