@@ -259,6 +259,9 @@ then
 
 	# Possible external compasses
 	hmc5883 -C -T -X start
+
+	# Possible external compasses
+	lis3mdl -X start
 fi
 
 if ver hwcmp PX4FMU_V5
