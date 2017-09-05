@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file accelsim.cpp
- * Driver for a simulated accelerometer.
+ * @file magsim.cpp
+ * Driver for a simulated magnetometer.
  */
 
 #include <px4_config.h>
@@ -53,72 +53,59 @@
 
 #include <systemlib/err.h>
 
-#include <drivers/drv_accel.h>
+#include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 
 #include <board_config.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <VirtDevObj.hpp>
 
-#define DEV_PATH "/dev/accelsim"
-#define MEASURE_INTERVAL_US (4000)
-#define FILTER_FREQ 30
+#define DEV_PATH "/dev/magsim"
+#define MEASURE_INTERVAL_US (10000)
 
-extern "C" { __EXPORT int accelsim_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int magsim_main(int argc, char *argv[]); }
 
 using namespace DriverFramework;
 
-/*
- * TODO: The existing driver is not using the LowPassFilter2p
- */
-
-class ACCELSIM : public VirtDevObj
+class MAGSIM : public VirtDevObj
 {
 public:
-	ACCELSIM(const char *path);
-	ACCELSIM() = delete;
+	MAGSIM(const char *path);
+	MAGSIM() = delete;
 
-	virtual ~ACCELSIM();
+	virtual ~MAGSIM();
 
-	ACCELSIM operator=(const ACCELSIM &) = delete;
+	MAGSIM operator=(const MAGSIM &) = delete;
 
 	virtual int init() override final;
-	virtual int start() override final;
-	virtual int stop() override final;
+
 	virtual int devIOCTL(unsigned long cmd, unsigned long arg) override final;
 
 private:
+	virtual int start() override final;
+	virtual int stop() override final;
 	virtual void _measure() override final;
 
-private:
+
 	orb_advert_t _topic;
 	int _orb_class_instance;
-
-	math::LowPassFilter2p _accel_filter_x;
-	math::LowPassFilter2p _accel_filter_y;
-	math::LowPassFilter2p _accel_filter_z;
 };
 
-
-ACCELSIM::ACCELSIM(const char *path) :
-	VirtDevObj("ACCELSIM", path, ACCEL_BASE_DEVICE_PATH, MEASURE_INTERVAL_US),
+MAGSIM::MAGSIM(const char *path) :
+	VirtDevObj("MAGSIM", path, MAG_BASE_DEVICE_PATH, MEASURE_INTERVAL_US),
 	_topic(nullptr),
-	_orb_class_instance(-1),
-	_accel_filter_x(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
-	_accel_filter_y(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
-	_accel_filter_z(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ)
+	_orb_class_instance(-1)
 {
 	m_id.dev_id_s.bus = 1;
-	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
+	m_id.dev_id_s.devtype = DRV_MAG_DEVTYPE_ACCELSIM;
 }
 
-ACCELSIM::~ACCELSIM()
+MAGSIM::~MAGSIM()
 {
 	/* make sure we are truly inactive */
 	stop();
 }
 
-int ACCELSIM::init()
+int MAGSIM::init()
 {
 	int ret;
 
@@ -141,7 +128,7 @@ out:
 	return ret;
 }
 
-int ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
+int MAGSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case SENSORIOCCALTEST:
@@ -155,7 +142,7 @@ int ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 	return OK;
 }
 
-int ACCELSIM::start()
+int MAGSIM::start()
 {
 	/* make sure we are stopped first */
 	stop();
@@ -163,21 +150,21 @@ int ACCELSIM::start()
 	int ret = VirtDevObj::start();
 
 	if (ret != 0) {
-		PX4_ERR("ACCELSIM::start base class start failed");
+		PX4_ERR("MAGSIM::start base class start failed");
 	}
 
 	return (ret != 0) ? -1 : 0;
 }
 
-int ACCELSIM::stop()
+int MAGSIM::stop()
 {
 	return VirtDevObj::stop();
 }
 
-void ACCELSIM::_measure()
+void MAGSIM::_measure()
 {
-	simulator::RawAccelData raw_report;
-	accel_report report;
+	simulator::RawMagData raw_report;
+	mag_report report;
 	Simulator *sim = Simulator::getInstance();
 
 	if (sim == nullptr) {
@@ -185,38 +172,32 @@ void ACCELSIM::_measure()
 		return;
 	}
 
-	if (!sim->getAccelReport(&raw_report)) {
+	if (!sim->getMagReport(&raw_report)) {
 		return;
 	}
 
 	report.timestamp = hrt_absolute_time();
-	report.integral_dt = 0;
 	report.error_count = 0;
-
 	report.x = raw_report.x;
 	report.y = raw_report.y;
 	report.z = raw_report.z;
 
-	report.x_integral = 0;
-	report.y_integral = 0;
-	report.z_integral = 0;
-
-	report.temperature = raw_report.temperature;
-	report.range_m_s2 = 0;
+	report.range_ga = 0;
 	report.scaling = 0;
+	report.temperature = 0;
 
 	report.x_raw = 0;
 	report.y_raw = 0;
 	report.z_raw = 0;
-	report.temperature_raw = 0;
 
 	report.device_id = 0;
+	report.is_external = false;
 
 	if (_topic) {
-		orb_publish(ORB_ID(sensor_accel), _topic, &report);
+		orb_publish(ORB_ID(sensor_mag), _topic, &report);
 	} else {
-		_topic = orb_advertise_multi(ORB_ID(sensor_accel), &report,
-				&_orb_class_instance, ORB_PRIO_HIGH);
+		_topic = orb_advertise_multi(ORB_ID(sensor_mag), &report,
+				&_orb_class_instance, ORB_PRIO_DEFAULT);
 
 		if (_topic == nullptr) {
 			PX4_WARN("ADVERT FAIL");
@@ -228,13 +209,13 @@ void ACCELSIM::_measure()
 /**
  * Local functions in support of the shell command.
  */
-namespace accelsim
+namespace magsim
 {
 
-static ACCELSIM *g_dev;
+static MAGSIM *g_dev = nullptr;
 
-static void usage();
 static int start();
+static void usage();
 
 int start()
 {
@@ -243,15 +224,15 @@ int start()
 		return 0;
 	}
 
-	g_dev = new ACCELSIM(DEV_PATH);
+	g_dev = new MAGSIM(DEV_PATH);
 
 	if (g_dev == nullptr) {
-		PX4_ERR("failed to allocate ACCELSIM");
+		PX4_ERR("failed to allocate MAGSIM");
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
-		PX4_ERR("failed to init ACCELSIM");
+		PX4_ERR("failed to init MAGSIM");
 		goto fail;
 	}
 
@@ -269,30 +250,29 @@ fail:
 
 void usage()
 {
-	PX4_WARN("Usage: accelsim 'start'");
+	PX4_WARN("Usage: MAGSIM 'start'");
 }
 
 } // namespace
 
-int
-accelsim_main(int argc, char *argv[])
+int magsim_main(int argc, char *argv[])
 {
 	int ret;
 	int myoptind = 1;
 
 	if (argc <= 1) {
-		accelsim::usage();
+		magsim::usage();
 		return 1;
 	}
 
 	const char *verb = argv[myoptind];
 
 	if (!strcmp(verb, "start")) {
-		ret = accelsim::start();
+		ret = magsim::start();
 	}
 
 	else {
-		accelsim::usage();
+		magsim::usage();
 		return 1;
 	}
 

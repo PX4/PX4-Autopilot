@@ -18,6 +18,7 @@ set(config_module_list
 
 	modules/sensors
 	platforms/posix/drivers/accelsim
+	platforms/posix/drivers/magsim
 	platforms/posix/drivers/adcsim
 	platforms/posix/drivers/airspeedsim
 	platforms/posix/drivers/barosim
