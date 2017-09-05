@@ -128,8 +128,11 @@ GYROSIM::GYROSIM(const std::string &path) :
 
 GYROSIM::~GYROSIM()
 {
-	/* make sure we are truly inactive */
 	stop();
+
+	if (_topic) {
+		orb_unadvertise(_topic);
+	}
 }
 
 int GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
