@@ -114,8 +114,11 @@ BAROSIM::BAROSIM(const char *path) :
 
 BAROSIM::~BAROSIM()
 {
-	/* make sure we are truly inactive */
 	stop();
+
+	if (_topic) {
+		orb_unadvertise(_topic);
+	}
 }
 
 int BAROSIM::init()
