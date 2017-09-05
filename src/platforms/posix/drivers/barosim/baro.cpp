@@ -179,7 +179,6 @@ int BAROSIM::start()
 void BAROSIM::_measure()
 {
 	simulator::RawBaroData raw_report;
-	baro_report report;
 	Simulator *sim = Simulator::getInstance();
 
 	if (sim == nullptr) {
@@ -191,6 +190,7 @@ void BAROSIM::_measure()
 		return;
 	}
 
+	baro_report report = {};
 	report.timestamp = hrt_absolute_time();
 	report.pressure = raw_report.pressure;
 	report.altitude = raw_report.altitude;
