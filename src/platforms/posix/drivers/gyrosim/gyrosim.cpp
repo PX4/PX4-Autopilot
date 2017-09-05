@@ -72,12 +72,15 @@
 #include <drivers/device/integrator.h>
 #include <drivers/drv_gyro.h>
 
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
 #include <VirtDevObj.hpp>
 
 using namespace DriverFramework;
 
 #define DEV_PATH "/dev/gyrosim"
 #define MEASURE_INTERVAL_US (2500)
+#define FILTER_FREQ 30
 
 class GYROSIM : public VirtDevObj
 {
@@ -98,6 +101,10 @@ private:
 
 private:
 	Integrator _integrator;
+	math::LowPassFilter2p _filter_x;
+	math::LowPassFilter2p _filter_y;
+	math::LowPassFilter2p _filter_z;
+
 	orb_advert_t _topic;
 	int _orb_class_instance;
 };
@@ -108,6 +115,9 @@ extern "C" { __EXPORT int gyrosim_main(int argc, char *argv[]); }
 GYROSIM::GYROSIM(const std::string &path) :
 	VirtDevObj("GYROSIM", path.c_str(), GYRO_BASE_DEVICE_PATH, MEASURE_INTERVAL_US),
 	_integrator(MEASURE_INTERVAL_US, true),
+	_filter_x(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
+	_filter_y(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
+	_filter_z(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
 	_topic(nullptr),
 	_orb_class_instance(-1)
 {
@@ -172,7 +182,6 @@ int GYROSIM::start()
 void GYROSIM::_measure()
 {
 	simulator::RawGyroData raw_report;
-	gyro_report report = {};
 	Simulator *sim = Simulator::getInstance();
 
 	if (sim == nullptr) {
@@ -184,39 +193,42 @@ void GYROSIM::_measure()
 		return;
 	}
 
-	// TODO: for now use local time but this should be the timestamp of the simulator
-	report.timestamp = hrt_absolute_time();
-	report.error_count = 0;
+	uint64_t timestamp = hrt_absolute_time();
+	uint64_t integral_dt;
 
-	report.scaling = 1; /* TODO: what should we report here ? */
-	report.range_rad_s = 100; /* TODO: what should we report here ? */
-
-	report.temperature = raw_report.temperature;
-
-	report.x = raw_report.gyro_x;
-	report.y = raw_report.gyro_y;
-	report.z = raw_report.gyro_z;
+	float x_filt = _filter_x.apply(raw_report.gyro_x);
+	float y_filt = _filter_y.apply(raw_report.gyro_y);
+	float z_filt = _filter_z.apply(raw_report.gyro_z);
 
 	math::Vector<3> val(raw_report.gyro_x, raw_report.gyro_y, raw_report.gyro_z);
 	math::Vector<3> val_integrated;
 
-	bool notify = _integrator.put(report.timestamp, val, val_integrated, report.integral_dt);
+	bool notify = _integrator.put(timestamp, val, val_integrated, integral_dt);
 
 	if (!notify) {
 		return;
 	}
 
-	report.x_integral = val_integrated(0);
-	report.y_integral = val_integrated(1);
-	report.z_integral = val_integrated(2);
-
-	report.x_raw = 0;
-	report.y_raw = 0;
-	report.z_raw = 0;
-	report.temperature_raw = raw_report.temperature;
-
-	/* fake device ID */
-	report.device_id = 3467548; /* TODO: what should we report here ? */
+	gyro_report report = {
+		.timestamp = timestamp,
+		.integral_dt = integral_dt,
+		.error_count = 0,
+		.x = x_filt,
+		.y = y_filt,
+		.z = z_filt,
+		.x_integral = val_integrated(0),
+		.y_integral = val_integrated(1),
+		.z_integral = val_integrated(2),
+		.temperature = raw_report.temperature,
+		// TODO: get these right
+		.range_rad_s = -1.0f,
+		.scaling = -1.0f,
+		.device_id = 3467548,
+		.x_raw = 0,
+		.y_raw = 0,
+		.z_raw = 0,
+		.temperature_raw = 0,
+	};
 
 	if (_topic) {
 		orb_publish(ORB_ID(sensor_gyro), _topic, &report);
