@@ -55,6 +55,7 @@
 
 #include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/integrator.h>
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
@@ -94,9 +95,10 @@ private:
 	orb_advert_t _topic;
 	int _orb_class_instance;
 
-	math::LowPassFilter2p _accel_filter_x;
-	math::LowPassFilter2p _accel_filter_y;
-	math::LowPassFilter2p _accel_filter_z;
+	Integrator _integrator;
+	math::LowPassFilter2p _filter_x;
+	math::LowPassFilter2p _filter_y;
+	math::LowPassFilter2p _filter_z;
 };
 
 
@@ -104,9 +106,10 @@ ACCELSIM::ACCELSIM(const char *path) :
 	VirtDevObj("ACCELSIM", path, ACCEL_BASE_DEVICE_PATH, MEASURE_INTERVAL_US),
 	_topic(nullptr),
 	_orb_class_instance(-1),
-	_accel_filter_x(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
-	_accel_filter_y(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
-	_accel_filter_z(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ)
+	_integrator(MEASURE_INTERVAL_US, true),
+	_filter_x(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
+	_filter_y(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ),
+	_filter_z(1e6 / MEASURE_INTERVAL_US, FILTER_FREQ)
 {
 	m_id.dev_id_s.bus = 1;
 	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
@@ -190,16 +193,25 @@ void ACCELSIM::_measure()
 	}
 
 	report.timestamp = hrt_absolute_time();
-	report.integral_dt = 0;
+
+	math::Vector<3> aval(raw_report.x, raw_report.y, raw_report.z);
+	math::Vector<3> aval_integrated;
+
+	bool accel_notify = _integrator.put(report.timestamp, aval, aval_integrated, report.integral_dt);
+
+	if (!accel_notify) {
+		return;
+	}
+
 	report.error_count = 0;
 
 	report.x = raw_report.x;
 	report.y = raw_report.y;
 	report.z = raw_report.z;
 
-	report.x_integral = 0;
-	report.y_integral = 0;
-	report.z_integral = 0;
+	report.x_integral = aval_integrated(0);
+	report.y_integral = aval_integrated(1);
+	report.z_integral = aval_integrated(2);
 
 	report.temperature = raw_report.temperature;
 	report.range_m_s2 = 0;
@@ -210,7 +222,7 @@ void ACCELSIM::_measure()
 	report.z_raw = 0;
 	report.temperature_raw = 0;
 
-	report.device_id = 0;
+	report.device_id = 6789478;
 
 	if (_topic) {
 		orb_publish(ORB_ID(sensor_accel), _topic, &report);
