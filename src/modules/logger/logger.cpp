@@ -537,8 +537,6 @@ void Logger::add_common_topics()
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
-	add_topic("arm_auth_ack");
-	add_topic("arm_auth_request");
 	add_topic("att_pos_mocap", 50);
 	add_topic("battery_status", 500);
 	add_topic("camera_capture");
