@@ -49,6 +49,7 @@ simulator start -s -u _SIMPORT_
 tone_alarm start
 gyrosim start
 accelsim start
+magsim start
 barosim start
 adcsim start
 gpssim start

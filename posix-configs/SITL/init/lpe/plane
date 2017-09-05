@@ -54,6 +54,7 @@ simulator start -s
 tone_alarm start
 gyrosim start
 accelsim start
+magsim start
 barosim start
 adcsim start
 gpssim start
