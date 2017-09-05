@@ -273,7 +273,7 @@ void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 	gps.fix_type = gps_sim->fix_type;
 	gps.satellites_visible = gps_sim->satellites_visible;
 
-	write_gps_data((void *)&gps);
+	write_gps_data(&gps);
 }
 
 void Simulator::handle_message(mavlink_message_t *msg, bool publish)
@@ -647,7 +647,7 @@ void Simulator::initializeSensorData()
 	mag.y = 0.0f;
 	mag.z = 0.6f;
 
-	write_mag_data((void *)&mag);
+	write_mag_data(&mag);
 
 	RawBaroData baro = {};
 	// calculate air pressure from altitude (valid for low altitude)

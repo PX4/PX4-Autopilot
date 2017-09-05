@@ -413,23 +413,20 @@ AirspeedSim::new_report(const differential_pressure_s &report)
 }
 
 int
-AirspeedSim::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+AirspeedSim::transfer(const uint8_t *send, unsigned send_len, simulator::RawAirspeedData *report)
 {
-	if (recv_len > 0) {
-		// this is equivalent to the collect phase
-		Simulator *sim = Simulator::getInstance();
-
-		if (sim == nullptr) {
-			PX4_ERR("Error BARO_SIM::transfer no simulator");
-			return -ENODEV;
-		}
-
-		PX4_DEBUG("BARO_SIM::transfer getting sample");
-		sim->getAirspeedSample(recv, recv_len);
-
-	} else {
-		// we don't need measure phase
+	if (!report) {
 	}
+
+	Simulator *sim = Simulator::getInstance();
+
+	if (sim == nullptr) {
+		PX4_ERR("Error no simulator");
+		return -ENODEV;
+	}
+
+	PX4_DEBUG("transfer getting sample");
+	sim->getAirspeedSample(report);
 
 	return 0;
 }

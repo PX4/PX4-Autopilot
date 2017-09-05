@@ -141,18 +141,14 @@ public:
 
 	~Report() {};
 
-	bool copyData(void *outbuf, int len)
+	bool copyData(RType *outbuf)
 	{
-		if (len != _report_len) {
-			return false;
-		}
-
 		read_lock();
 		memcpy(outbuf, &_buf[_readidx], _report_len);
 		read_unlock();
 		return true;
 	}
-	void writeData(void *inbuf)
+	void writeData(const RType *inbuf)
 	{
 		write_lock();
 		memcpy(&_buf[!_readidx], inbuf, _report_len);
@@ -210,15 +206,15 @@ public:
 	bool getMagReport(simulator::RawMagData *report);
 	bool getGyroReport(simulator::RawGyroData *report);
 	bool getBaroSample(simulator::RawBaroData *report);
-	bool getGPSSample(uint8_t *buf, int len);
-	bool getAirspeedSample(uint8_t *buf, int len);
+	bool getGPSSample(simulator::RawGPSData *report);
+	bool getAirspeedSample(simulator::RawAirspeedData *report);
 
-	void write_gyro_data(void *buf);
-	void write_accel_data(void *buf);
-	void write_mag_data(void *buf);
-	void write_baro_data(void *buf);
-	void write_gps_data(void *buf);
-	void write_airspeed_data(void *buf);
+	void write_accel_data(const simulator::RawAccelData *report);
+	void write_mag_data(const simulator::RawMagData *report);
+	void write_gyro_data(const simulator::RawGyroData *report);
+	void write_baro_data(const simulator::RawBaroData *report);
+	void write_gps_data(const simulator::RawGPSData *report);
+	void write_airspeed_data(const simulator::RawAirspeedData *report);
 
 	bool isInitialized() { return _initialized; }
 
