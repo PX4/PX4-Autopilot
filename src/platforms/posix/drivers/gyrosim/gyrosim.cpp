@@ -97,9 +97,9 @@ private:
 	virtual void _measure() override final;
 
 private:
-	Integrator _gyro_int;
-	orb_advert_t _gyro_topic;
-	int _gyro_orb_class_instance;
+	Integrator _integrator;
+	orb_advert_t _topic;
+	int _orb_class_instance;
 };
 
 /** driver 'main' command */
@@ -107,9 +107,9 @@ extern "C" { __EXPORT int gyrosim_main(int argc, char *argv[]); }
 
 GYROSIM::GYROSIM(const std::string &path) :
 	VirtDevObj("GYROSIM", path.c_str(), GYRO_BASE_DEVICE_PATH, MEASURE_INTERVAL_US),
-	_gyro_int(MEASURE_INTERVAL_US, true),
-	_gyro_topic(nullptr),
-	_gyro_orb_class_instance(-1)
+	_integrator(MEASURE_INTERVAL_US, true),
+	_topic(nullptr),
+	_orb_class_instance(-1)
 {
 
 	m_id.dev_id_s.bus = 1;
@@ -200,7 +200,7 @@ void GYROSIM::_measure()
 	math::Vector<3> gval(raw_report.gyro_x, raw_report.gyro_y, raw_report.gyro_z);
 	math::Vector<3> gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(report.timestamp, gval, gval_integrated, report.integral_dt);
+	bool gyro_notify = _integrator.put(report.timestamp, gval, gval_integrated, report.integral_dt);
 	report.x_integral = gval_integrated(0);
 	report.y_integral = gval_integrated(1);
 	report.z_integral = gval_integrated(2);
@@ -214,14 +214,14 @@ void GYROSIM::_measure()
 	report.device_id = 3467548; /* TODO: what should we report here ? */
 
 	if (gyro_notify) {
-		if (_gyro_topic) {
-			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+		if (_topic) {
+			orb_publish(ORB_ID(sensor_gyro), _topic, &report);
 
 		} else {
-			_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &report,
-							  &_gyro_orb_class_instance, ORB_PRIO_HIGH);
+			_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &report,
+						     &_orb_class_instance, ORB_PRIO_HIGH);
 
-			if (_gyro_topic == nullptr) {
+			if (_topic == nullptr) {
 				PX4_WARN("ADVERT FAIL");
 				return;
 			}
