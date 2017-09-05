@@ -271,13 +271,14 @@ GPSSIM::task_main_trampoline(void *arg)
 int
 GPSSIM::receive(int timeout)
 {
+	bool status;
 	Simulator *sim = Simulator::getInstance();
 	simulator::RawGPSData gps;
-	sim->getGPSSample(&gps);
+	status = sim->getGPSSample(&gps);
 
 	static uint64_t timestamp_last = 0;
 
-	if (gps.timestamp != timestamp_last) {
+	if (status && gps.timestamp != timestamp_last) {
 		_report_gps_pos.timestamp = hrt_absolute_time();
 		_report_gps_pos.lat = gps.lat;
 		_report_gps_pos.lon = gps.lon;

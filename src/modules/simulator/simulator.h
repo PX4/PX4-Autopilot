@@ -133,7 +133,8 @@ public:
 	Report(int readers) :
 		_readidx(0),
 		_max_readers(readers),
-		_report_len(sizeof(RType))
+		_report_len(sizeof(RType)),
+		_empty(true)
 	{
 		memset(_buf, 0, sizeof(_buf));
 		px4_sem_init(&_lock, 0, _max_readers);
@@ -143,14 +144,21 @@ public:
 
 	bool copyData(RType *outbuf)
 	{
+		bool ret;
+
 		read_lock();
-		memcpy(outbuf, &_buf[_readidx], _report_len);
+		ret = !_empty;
+		if (!_empty) {
+			memcpy(outbuf, &_buf[_readidx], _report_len);
+		}
 		read_unlock();
-		return true;
+
+		return ret;
 	}
 	void writeData(const RType *inbuf)
 	{
 		write_lock();
+		_empty = false;
 		memcpy(&_buf[!_readidx], inbuf, _report_len);
 		_readidx = !_readidx;
 		write_unlock();
@@ -177,6 +185,7 @@ protected:
 	const int _max_readers;
 	const int _report_len;
 	RType _buf[2];
+	bool _empty;
 };
 
 };
@@ -295,8 +304,6 @@ private:
 
 		_instance = NULL;
 	}
-
-	void initializeSensorData();
 
 	static Simulator *_instance;
 

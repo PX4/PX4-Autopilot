@@ -426,7 +426,9 @@ AirspeedSim::transfer(const uint8_t *send, unsigned send_len, simulator::RawAirs
 	}
 
 	PX4_DEBUG("transfer getting sample");
-	sim->getAirspeedSample(report);
+	if (!sim->getAirspeedSample(report)) {
+		return -ENODEV;
+	}
 
 	return 0;
 }
