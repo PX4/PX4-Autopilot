@@ -194,12 +194,12 @@ void ACCELSIM::_measure()
 
 	report.timestamp = hrt_absolute_time();
 
-	math::Vector<3> aval(raw_report.x, raw_report.y, raw_report.z);
-	math::Vector<3> aval_integrated;
+	math::Vector<3> val(raw_report.x, raw_report.y, raw_report.z);
+	math::Vector<3> val_integrated;
 
-	bool accel_notify = _integrator.put(report.timestamp, aval, aval_integrated, report.integral_dt);
+	bool notify = _integrator.put(report.timestamp, val, val_integrated, report.integral_dt);
 
-	if (!accel_notify) {
+	if (!notify) {
 		return;
 	}
 
@@ -209,9 +209,9 @@ void ACCELSIM::_measure()
 	report.y = raw_report.y;
 	report.z = raw_report.z;
 
-	report.x_integral = aval_integrated(0);
-	report.y_integral = aval_integrated(1);
-	report.z_integral = aval_integrated(2);
+	report.x_integral = val_integrated(0);
+	report.y_integral = val_integrated(1);
+	report.z_integral = val_integrated(2);
 
 	report.temperature = raw_report.temperature;
 	report.range_m_s2 = 0;
