@@ -77,9 +77,9 @@ bool Simulator::getMagReport(simulator::RawMagData *report)
 	return _mag.copyData(report, sizeof(*report));
 }
 
-bool Simulator::getBaroSample(uint8_t *buf, int len)
+bool Simulator::getBaroSample(simulator::RawBaroData *report)
 {
-	return _baro.copyData(buf, len);
+	return _baro.copyData(report, sizeof(*report));
 }
 
 bool Simulator::getGPSSample(uint8_t *buf, int len)
