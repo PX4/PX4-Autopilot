@@ -61,7 +61,7 @@
 #include <VirtDevObj.hpp>
 
 #define DEV_PATH "/dev/accelsim"
-#define MEASURE_INTERVAL_US (4000)
+#define MEASURE_INTERVAL_US (2500)
 #define FILTER_FREQ 30
 
 extern "C" { __EXPORT int accelsim_main(int argc, char *argv[]); }
