@@ -64,62 +64,111 @@ Simulator *Simulator::getInstance()
 
 bool Simulator::getGyroReport(simulator::RawGyroData *report)
 {
-	return _gyro.copyData(report);
-}
+	bool ret;
 
-bool Simulator::getAccelReport(simulator::RawAccelData *report)
-{
-	return _accel.copyData(report);
-}
+	pthread_mutex_lock(&_gyro_mutex);
+	ret = _gyro.get(report, sizeof(*report));
+	pthread_mutex_unlock(&_gyro_mutex);
 
-bool Simulator::getMagReport(simulator::RawMagData *report)
-{
-	return _mag.copyData(report);
-}
-
-bool Simulator::getBaroSample(simulator::RawBaroData *report)
-{
-	return _baro.copyData(report);
-}
-
-bool Simulator::getGPSSample(simulator::RawGPSData *report)
-{
-	return _gps.copyData(report);
-}
-
-bool Simulator::getAirspeedSample(simulator::RawAirspeedData *report)
-{
-	return _airspeed.copyData(report);
+	return ret;
 }
 
 void Simulator::write_gyro_data(const simulator::RawGyroData *report)
 {
-	_gyro.writeData(report);
+	pthread_mutex_lock(&_gyro_mutex);
+	_gyro.force(report, sizeof(*report));
+	pthread_mutex_unlock(&_gyro_mutex);
+}
+
+bool Simulator::getAccelReport(simulator::RawAccelData *report)
+{
+	bool ret;
+
+	pthread_mutex_lock(&_accel_mutex);
+	ret = _accel.get(report, sizeof(*report));
+	pthread_mutex_unlock(&_accel_mutex);
+
+	return ret;
 }
 
 void Simulator::write_accel_data(const simulator::RawAccelData *report)
 {
-	_accel.writeData(report);
+	pthread_mutex_lock(&_accel_mutex);
+	_accel.force(report, sizeof(*report));
+	pthread_mutex_unlock(&_accel_mutex);
+}
+
+bool Simulator::getMagReport(simulator::RawMagData *report)
+{
+	bool ret;
+
+	pthread_mutex_lock(&_mag_mutex);
+	ret = _mag.get(report, sizeof(*report));
+	pthread_mutex_unlock(&_mag_mutex);
+
+	return ret;
 }
 
 void Simulator::write_mag_data(const simulator::RawMagData *report)
 {
-	_mag.writeData(report);
+	pthread_mutex_lock(&_mag_mutex);
+	_mag.force(report, sizeof(*report));
+	pthread_mutex_unlock(&_mag_mutex);
+}
+
+bool Simulator::getBaroSample(simulator::RawBaroData *report)
+{
+	bool ret;
+
+	pthread_mutex_lock(&_baro_mutex);
+	ret = _baro.get(report, sizeof(*report));
+	pthread_mutex_unlock(&_baro_mutex);
+
+	return ret;
 }
 
 void Simulator::write_baro_data(const simulator::RawBaroData *report)
 {
-	_baro.writeData(report);
+	pthread_mutex_lock(&_baro_mutex);
+	_baro.force(report, sizeof(*report));
+	pthread_mutex_unlock(&_baro_mutex);
+}
+
+bool Simulator::getGPSSample(simulator::RawGPSData *report)
+{
+	bool ret;
+
+	pthread_mutex_lock(&_gps_mutex);
+	ret = _gps.get(report, sizeof(*report));
+	pthread_mutex_unlock(&_gps_mutex);
+
+	return ret;
 }
 
 void Simulator::write_gps_data(const simulator::RawGPSData *report)
 {
-	_gps.writeData(report);
+	pthread_mutex_lock(&_gps_mutex);
+	_gps.force(report, sizeof(*report));
+	pthread_mutex_unlock(&_gps_mutex);
+}
+
+bool Simulator::getAirspeedSample(simulator::RawAirspeedData *report)
+{
+	bool ret;
+
+	pthread_mutex_lock(&_airspeed_mutex);
+	ret = _airspeed.get(report, sizeof(*report));
+	pthread_mutex_unlock(&_airspeed_mutex);
+
+	return ret;
 }
 
 void Simulator::write_airspeed_data(const simulator::RawAirspeedData *report)
 {
-	_airspeed.writeData(report);
+	pthread_mutex_lock(&_airspeed_mutex);
+	_airspeed.force(report, sizeof(*report));
+	pthread_mutex_unlock(&_airspeed_mutex);
+
 }
 
 void Simulator::parameters_update(bool force)
