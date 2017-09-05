@@ -1152,3 +1152,12 @@ PARAM_DEFINE_FLOAT(EKF2_PCOEF_Y, 0.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_PCOEF_Z, 0.0f);
+
+/**
+ * Maximum time we allow dead reckoning while both gps position and velocity measurements are being rejected before attempting to reset the states to the GPS measurement (usec). 
+ *
+ * @group EKF2
+ * @min 0
+ * @unit us
+ */
+PARAM_DEFINE_INT32(EKF2_NO_GPS_TOUT, 7000000);

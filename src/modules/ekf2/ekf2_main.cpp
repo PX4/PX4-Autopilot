@@ -339,6 +339,7 @@ private:
 	_K_pstatic_coef_xn;	///< static pressure position error coefficient along the negative X body axis
 	control::BlockParamFloat _K_pstatic_coef_y;	///< static pressure position error coefficient along the Y body axis
 	control::BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
+	control::BlockParamInt _no_gps_timeout_max; ///< maximum time we allow dead reckoning while both gps position and velocity measurements are being rejected before attempting to reset the states to the GPS measurement
 
 };
 
@@ -459,7 +460,8 @@ Ekf2::Ekf2():
 	_K_pstatic_coef_xp(this, "EKF2_PCOEF_XP", false),
 	_K_pstatic_coef_xn(this, "EKF2_PCOEF_XN", false),
 	_K_pstatic_coef_y(this, "EKF2_PCOEF_Y", false),
-	_K_pstatic_coef_z(this, "EKF2_PCOEF_Z", false)
+	_K_pstatic_coef_z(this, "EKF2_PCOEF_Z", false),
+	_no_gps_timeout_max(this, "EKF2_NO_GPS_TOUT",  _params->no_gps_timeout_max)
 {
 
 }
