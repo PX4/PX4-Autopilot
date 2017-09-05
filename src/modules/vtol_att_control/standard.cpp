@@ -162,16 +162,15 @@ void Standard::update_vtol_state()
 	 * For the back transition the pusher motor is immediately stopped and rotors reactivated.
 	 */
 
+	float mc_weight = _mc_roll_weight;
+
 	if (!_attc->is_fixed_wing_requested()) {
 
 		// the transition to fw mode switch is off
 		if (_vtol_schedule.flight_mode == MC_MODE) {
 			// in mc mode
 			_vtol_schedule.flight_mode = MC_MODE;
-			_mc_roll_weight = 1.0f;
-			_mc_pitch_weight = 1.0f;
-			_mc_yaw_weight = 1.0f;
-			_mc_throttle_weight = 1.0f;
+			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
 
@@ -197,10 +196,7 @@ void Standard::update_vtol_state()
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// failsafe back to mc mode
 			_vtol_schedule.flight_mode = MC_MODE;
-			_mc_roll_weight = 1.0f;
-			_mc_pitch_weight = 1.0f;
-			_mc_yaw_weight = 1.0f;
-			_mc_throttle_weight = 1.0f;
+			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
 
@@ -233,10 +229,7 @@ void Standard::update_vtol_state()
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// in fw mode
 			_vtol_schedule.flight_mode = FW_MODE;
-			_mc_roll_weight = 0.0f;
-			_mc_pitch_weight = 0.0f;
-			_mc_yaw_weight = 0.0f;
-			_mc_throttle_weight = 0.0f;
+			mc_weight = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
@@ -255,6 +248,11 @@ void Standard::update_vtol_state()
 
 		}
 	}
+
+	_mc_roll_weight = mc_weight;
+	_mc_pitch_weight = mc_weight;
+	_mc_yaw_weight = mc_weight;
+	_mc_throttle_weight = mc_weight;
 
 	// map specific control phases to simple control modes
 	switch (_vtol_schedule.flight_mode) {
