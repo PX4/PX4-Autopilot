@@ -148,8 +148,8 @@ int ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		return OK;
 
 	case DEVIOCGDEVICEID: {
-		return (int)VirtDevObj::devIOCTL(cmd, arg);
-	} break;
+			return (int)VirtDevObj::devIOCTL(cmd, arg);
+		} break;
 	}
 
 	return OK;
@@ -214,9 +214,10 @@ void ACCELSIM::_measure()
 
 	if (_topic) {
 		orb_publish(ORB_ID(sensor_accel), _topic, &report);
+
 	} else {
 		_topic = orb_advertise_multi(ORB_ID(sensor_accel), &report,
-				&_orb_class_instance, ORB_PRIO_HIGH);
+					     &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_topic == nullptr) {
 			PX4_WARN("ADVERT FAIL");

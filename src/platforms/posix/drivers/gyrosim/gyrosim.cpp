@@ -216,9 +216,10 @@ void GYROSIM::_measure()
 	if (gyro_notify) {
 		if (_gyro_topic) {
 			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+
 		} else {
 			_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &report,
-							&_gyro_orb_class_instance, ORB_PRIO_HIGH);
+							  &_gyro_orb_class_instance, ORB_PRIO_HIGH);
 
 			if (_gyro_topic == nullptr) {
 				PX4_WARN("ADVERT FAIL");

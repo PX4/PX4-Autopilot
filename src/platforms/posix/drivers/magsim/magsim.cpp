@@ -135,8 +135,8 @@ int MAGSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		return OK;
 
 	case DEVIOCGDEVICEID: {
-		return (int)VirtDevObj::devIOCTL(cmd, arg);
-	} break;
+			return (int)VirtDevObj::devIOCTL(cmd, arg);
+		} break;
 	}
 
 	return OK;
@@ -195,9 +195,10 @@ void MAGSIM::_measure()
 
 	if (_topic) {
 		orb_publish(ORB_ID(sensor_mag), _topic, &report);
+
 	} else {
 		_topic = orb_advertise_multi(ORB_ID(sensor_mag), &report,
-				&_orb_class_instance, ORB_PRIO_DEFAULT);
+					     &_orb_class_instance, ORB_PRIO_DEFAULT);
 
 		if (_topic == nullptr) {
 			PX4_WARN("ADVERT FAIL");

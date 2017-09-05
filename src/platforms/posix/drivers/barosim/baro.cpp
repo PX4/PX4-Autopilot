@@ -146,6 +146,7 @@ int BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 	switch (cmd) {
 
 	case BAROIOCSMSLPRESSURE:
+
 		/* range-check for sanity */
 		if ((arg < 80000) || (arg > 120000)) {
 			return -EINVAL;
@@ -201,9 +202,10 @@ void BAROSIM::_measure()
 
 	if (_topic) {
 		orb_publish(ORB_ID(sensor_baro), _topic, &report);
+
 	} else {
 		_topic = orb_advertise_multi(ORB_ID(sensor_baro), &report,
-						  &_orb_class_instance, ORB_PRIO_HIGH);
+					     &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_topic == nullptr) {
 			PX4_ERR("ADVERT FAIL");

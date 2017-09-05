@@ -148,9 +148,11 @@ public:
 
 		read_lock();
 		ret = !_empty;
+
 		if (!_empty) {
 			memcpy(outbuf, &_buf[_readidx], _report_len);
 		}
+
 		read_unlock();
 
 		return ret;
