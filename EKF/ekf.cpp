@@ -485,6 +485,11 @@ void Ekf::calculateOutputStates()
 	// corrrect for measured accceleration due to gravity
 	delta_vel_NED(2) += _gravity_mss * imu_new.delta_vel_dt;
 
+	// calculate the earth frame velocity derivatives
+	if (imu_new.delta_vel_dt > 1e-4f) {
+		_vel_deriv_ned = delta_vel_NED * (1.0f / imu_new.delta_vel_dt);
+	}
+
 	// save the previous velocity so we can use trapezidal integration
 	Vector3f vel_last = _output_new.vel;
 
@@ -502,14 +507,18 @@ void Ekf::calculateOutputStates()
 	// accumulate the time for each update
 	_output_vert_new.dt += imu_new.delta_vel_dt;
 
-	// calculate the average angular rate across the last IMU update
-	Vector3f ang_rate = _imu_sample_new.delta_ang * (1.0f / _imu_sample_new.delta_ang_dt);
+	// correct velocity for IMU offset
+	if (_imu_sample_new.delta_ang_dt > 1e-4f) {
+		// calculate the average angular rate across the last IMU update
+		Vector3f ang_rate = _imu_sample_new.delta_ang * (1.0f / _imu_sample_new.delta_ang_dt);
 
-	// calculate the velocity of the IMU relative to the body origin
-	Vector3f vel_imu_rel_body = cross_product(ang_rate, _params.imu_pos_body);
+		// calculate the velocity of the IMU relative to the body origin
+		Vector3f vel_imu_rel_body = cross_product(ang_rate, _params.imu_pos_body);
 
-	// rotate the relative velocity into earth frame
-	_vel_imu_rel_body_ned = _R_to_earth_now * vel_imu_rel_body;
+		// rotate the relative velocity into earth frame
+		_vel_imu_rel_body_ned = _R_to_earth_now * vel_imu_rel_body;
+
+	}
 
 	// store the INS states in a ring buffer with the same length and time coordinates as the IMU data buffer
 	if (_imu_updated) {
