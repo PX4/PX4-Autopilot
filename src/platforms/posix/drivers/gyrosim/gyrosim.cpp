@@ -197,13 +197,18 @@ void GYROSIM::_measure()
 	report.y = raw_report.gyro_y;
 	report.z = raw_report.gyro_z;
 
-	math::Vector<3> gval(raw_report.gyro_x, raw_report.gyro_y, raw_report.gyro_z);
-	math::Vector<3> gval_integrated;
+	math::Vector<3> val(raw_report.gyro_x, raw_report.gyro_y, raw_report.gyro_z);
+	math::Vector<3> val_integrated;
 
-	bool gyro_notify = _integrator.put(report.timestamp, gval, gval_integrated, report.integral_dt);
-	report.x_integral = gval_integrated(0);
-	report.y_integral = gval_integrated(1);
-	report.z_integral = gval_integrated(2);
+	bool notify = _integrator.put(report.timestamp, val, val_integrated, report.integral_dt);
+
+	if (!notify) {
+		return;
+	}
+
+	report.x_integral = val_integrated(0);
+	report.y_integral = val_integrated(1);
+	report.z_integral = val_integrated(2);
 
 	report.x_raw = 0;
 	report.y_raw = 0;
@@ -213,18 +218,16 @@ void GYROSIM::_measure()
 	/* fake device ID */
 	report.device_id = 3467548; /* TODO: what should we report here ? */
 
-	if (gyro_notify) {
-		if (_topic) {
-			orb_publish(ORB_ID(sensor_gyro), _topic, &report);
+	if (_topic) {
+		orb_publish(ORB_ID(sensor_gyro), _topic, &report);
 
-		} else {
-			_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &report,
-						     &_orb_class_instance, ORB_PRIO_HIGH);
+	} else {
+		_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &report,
+					     &_orb_class_instance, ORB_PRIO_HIGH);
 
-			if (_topic == nullptr) {
-				PX4_WARN("ADVERT FAIL");
-				return;
-			}
+		if (_topic == nullptr) {
+			PX4_WARN("ADVERT FAIL");
+			return;
 		}
 	}
 }
