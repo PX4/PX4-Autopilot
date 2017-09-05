@@ -206,8 +206,8 @@ public:
 
 	static int start(int argc, char *argv[]);
 
-	bool getRawAccelReport(uint8_t *buf, int len);
-	bool getMagReport(uint8_t *buf, int len);
+	bool getAccelReport(simulator::RawAccelData *report);
+	bool getMagReport(simulator::RawMagData *report);
 	bool getGyroReport(simulator::RawGyroData *report);
 	bool getBaroSample(uint8_t *buf, int len);
 	bool getGPSSample(uint8_t *buf, int len);

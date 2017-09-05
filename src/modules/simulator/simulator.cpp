@@ -67,14 +67,14 @@ bool Simulator::getGyroReport(simulator::RawGyroData *report)
 	return _gyro.copyData(report, sizeof(*report));
 }
 
-bool Simulator::getRawAccelReport(uint8_t *buf, int len)
+bool Simulator::getAccelReport(simulator::RawAccelData *report)
 {
-	return _accel.copyData(buf, len);
+	return _accel.copyData(report, sizeof(*report));
 }
 
-bool Simulator::getMagReport(uint8_t *buf, int len)
+bool Simulator::getMagReport(simulator::RawMagData *report)
 {
-	return _mag.copyData(buf, len);
+	return _mag.copyData(report, sizeof(*report));
 }
 
 bool Simulator::getBaroSample(uint8_t *buf, int len)
