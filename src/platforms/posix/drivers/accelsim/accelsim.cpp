@@ -57,7 +57,6 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/integrator.h>
 
-#include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <VirtDevObj.hpp>
 
@@ -68,10 +67,6 @@
 extern "C" { __EXPORT int accelsim_main(int argc, char *argv[]); }
 
 using namespace DriverFramework;
-
-/*
- * TODO: The existing driver is not using the LowPassFilter2p
- */
 
 class ACCELSIM : public VirtDevObj
 {
@@ -180,7 +175,6 @@ int ACCELSIM::stop()
 void ACCELSIM::_measure()
 {
 	simulator::RawAccelData raw_report;
-	accel_report report;
 	Simulator *sim = Simulator::getInstance();
 
 	if (sim == nullptr) {
@@ -192,37 +186,42 @@ void ACCELSIM::_measure()
 		return;
 	}
 
-	report.timestamp = hrt_absolute_time();
+	uint64_t timestamp = hrt_absolute_time();
+	uint64_t integral_dt;
+
+	float x_filt = _filter_x.apply(raw_report.x);
+	float y_filt = _filter_y.apply(raw_report.y);
+	float z_filt = _filter_z.apply(raw_report.z);
 
 	math::Vector<3> val(raw_report.x, raw_report.y, raw_report.z);
 	math::Vector<3> val_integrated;
 
-	bool notify = _integrator.put(report.timestamp, val, val_integrated, report.integral_dt);
+	bool notify = _integrator.put(timestamp, val, val_integrated, integral_dt);
 
 	if (!notify) {
 		return;
 	}
 
-	report.error_count = 0;
-
-	report.x = raw_report.x;
-	report.y = raw_report.y;
-	report.z = raw_report.z;
-
-	report.x_integral = val_integrated(0);
-	report.y_integral = val_integrated(1);
-	report.z_integral = val_integrated(2);
-
-	report.temperature = raw_report.temperature;
-	report.range_m_s2 = 0;
-	report.scaling = 0;
-
-	report.x_raw = 0;
-	report.y_raw = 0;
-	report.z_raw = 0;
-	report.temperature_raw = 0;
-
-	report.device_id = 6789478;
+	accel_report report = {
+		.timestamp = timestamp,
+		.integral_dt = integral_dt,
+		.error_count = 0,
+		.x = x_filt,
+		.y = y_filt,
+		.z = z_filt,
+		.x_integral = val_integrated(0),
+		.y_integral = val_integrated(1),
+		.z_integral = val_integrated(2),
+		.temperature = raw_report.temperature,
+		// TODO: get these right
+		.range_m_s2 = -1.0f,
+		.scaling = -1.0f,
+		.device_id = 6789478,
+		.x_raw = 0,
+		.y_raw = 0,
+		.z_raw = 0,
+		.temperature_raw = 0,
+	};
 
 	if (_topic) {
 		orb_publish(ORB_ID(sensor_accel), _topic, &report);
