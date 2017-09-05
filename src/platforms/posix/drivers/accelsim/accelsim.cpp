@@ -114,6 +114,10 @@ ACCELSIM::~ACCELSIM()
 {
 	/* make sure we are truly inactive */
 	stop();
+
+	if (_topic) {
+		orb_unadvertise(_topic);
+	}
 }
 
 int ACCELSIM::init()
