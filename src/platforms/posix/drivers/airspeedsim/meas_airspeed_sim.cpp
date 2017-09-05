@@ -119,13 +119,16 @@ MEASAirspeedSim::MEASAirspeedSim(const std::string &path) :
 	_topic(nullptr),
 	_orb_class_instance(-1)
 {
-
 }
 
 MEASAirspeedSim::~MEASAirspeedSim()
 {
 	/* make sure we are truly inactive */
 	stop();
+
+	if (_topic) {
+		orb_unadvertise(_topic);
+	}
 }
 
 int MEASAirspeedSim::devIOCTL(unsigned long cmd, unsigned long arg)
