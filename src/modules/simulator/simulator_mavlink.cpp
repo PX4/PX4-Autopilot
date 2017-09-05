@@ -630,38 +630,6 @@ void Simulator::send()
 	}
 }
 
-void Simulator::initializeSensorData()
-{
-	// write sensor data to memory so that drivers can copy data from there
-	RawGyroData gyro = {};
-
-	write_gyro_data(&gyro);
-
-	RawAccelData accel = {};
-	accel.z = 9.81f;
-
-	write_accel_data(&accel);
-
-	RawMagData mag = {};
-	mag.x = 0.4f;
-	mag.y = 0.0f;
-	mag.z = 0.6f;
-
-	write_mag_data(&mag);
-
-	RawBaroData baro = {};
-	// calculate air pressure from altitude (valid for low altitude)
-	baro.pressure = 120000.0f;
-	baro.altitude = 0.0f;
-	baro.temperature = 25.0f;
-
-	write_baro_data(&baro);
-
-	RawAirspeedData airspeed {};
-
-	write_airspeed_data(&airspeed);
-}
-
 void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 {
 	// set the threads name
