@@ -105,6 +105,10 @@ GPSSIM::GPSSIM(const std::string &path) :
 GPSSIM::~GPSSIM()
 {
 	stop();
+
+	if (_topic) {
+		orb_unadvertise(_topic);
+	}
 }
 
 int GPSSIM::devIOCTL(unsigned long cmd, unsigned long arg)
