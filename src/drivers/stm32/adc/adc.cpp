@@ -98,6 +98,22 @@
 
 #ifdef STM32_ADC_CCR
 # define rCCR		REG(STM32_ADC_CCR_OFFSET)
+
+/* Assuming VDC 2.4 - 3.6 */
+
+#define ADC_MAX_FADC 36000000
+
+#  if STM32_PCLK2_FREQUENCY/2 <= ADC_MAX_FADC
+#    define ADC_CCR_ADCPRE_DIV     ADC_CCR_ADCPRE_DIV2
+#  elif STM32_PCLK2_FREQUENCY/4 <= ADC_MAX_FADC
+#    define ADC_CCR_ADCPRE_DIV     ADC_CCR_ADCPRE_DIV4
+#  elif STM32_PCLK2_FREQUENCY/6 <= ADC_MAX_FADC
+#   define ADC_CCR_ADCPRE_DIV     ADC_CCR_ADCPRE_DIV6
+#  elif STM32_PCLK2_FREQUENCY/8 <= ADC_MAX_FADC
+#   define ADC_CCR_ADCPRE_DIV     ADC_CCR_ADCPRE_DIV8
+#  else
+#    error "ADC PCLK2 too high - no divisor found "
+#  endif
 #endif
 
 class ADC : public device::CDev
@@ -222,9 +238,14 @@ ADC::init()
 #endif
 		0;
 
-#ifdef ADC_CCR_TSVREFE
+	/* Soc have CCR */
+#ifdef STM32_ADC_CCR
+#  ifdef ADC_CCR_TSVREFE
 	/* enable temperature sensor in CCR */
-	rCCR = ADC_CCR_TSVREFE;
+	rCCR = ADC_CCR_TSVREFE | ADC_CCR_ADCPRE_DIV;
+#  else
+	rCCR = ADC_CCR_ADCPRE_DIV;
+#  endif
 #endif
 
 	/* configure for a single-channel sequence */
