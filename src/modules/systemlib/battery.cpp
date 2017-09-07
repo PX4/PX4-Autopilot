@@ -95,7 +95,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
 	estimateRemaining(voltage_v, current_a, throttle_normalized, armed);
-	determineWarning();
+	determineWarning(connected);
 	computeScale();
 
 	if (_voltage_filtered_v > 2.1f) {
@@ -222,17 +222,19 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 }
 
 void
-Battery::determineWarning()
+Battery::determineWarning(bool connected)
 {
-	// Smallest values must come first
-	if (_remaining < _param_emergency_thr.get()) {
-		_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+	if (connected) {
+		// Smallest values must come first
+		if (_remaining < _param_emergency_thr.get()) {
+			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-	} else if (_remaining < _param_crit_thr.get()) {
-		_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+		} else if (_remaining < _param_crit_thr.get()) {
+			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-	} else if (_remaining < _param_low_thr.get()) {
-		_warning = battery_status_s::BATTERY_WARNING_LOW;
+		} else if (_remaining < _param_low_thr.get()) {
+			_warning = battery_status_s::BATTERY_WARNING_LOW;
+		}
 	}
 }
 

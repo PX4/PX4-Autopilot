@@ -100,7 +100,7 @@ private:
 	void filterCurrent(float current_a);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
 	void estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed);
-	void determineWarning();
+	void determineWarning(bool connected);
 	void computeScale();
 
 	control::BlockParamFloat _param_v_empty;
