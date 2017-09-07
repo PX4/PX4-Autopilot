@@ -118,7 +118,7 @@ int board_get_mfguid_formated(char *format_buffer, int size)
 	board_get_mfguid(mfguid);
 	int offset  = 0;
 
-	for (unsigned i = 0; i < PX4_CPU_MFGUID_BYTE_LENGTH; i++) {
+	for (unsigned i = 0; offset < size && i < PX4_CPU_MFGUID_BYTE_LENGTH; i++) {
 		offset += snprintf(&format_buffer[offset], size - offset, "%02x", mfguid[i]);
 	}
 
