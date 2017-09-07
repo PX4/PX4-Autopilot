@@ -498,7 +498,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			.source_system = msg->sysid,
 			.source_component = msg->compid,
 			.confirmation = cmd_mavlink.confirmation,
-			.from_external = 1
+			.from_external = true
 		};
 
 		if (_cmd_pub == nullptr) {
@@ -517,7 +517,7 @@ out:
 			.result_param2 = 0,
 			.command = cmd_mavlink.command,
 			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
-			.from_external = 0,
+			.from_external = false,
 			.result_param1 = 0,
 			.target_system = msg->sysid,
 			.target_component = msg->compid
@@ -595,7 +595,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			.source_system = msg->sysid,
 			.source_component = msg->compid,
 			.confirmation = 0,
-			.from_external = 1
+			.from_external = true
 		};
 
 		if (_cmd_pub == nullptr) {
@@ -614,7 +614,7 @@ out:
 			.result_param2 = 0,
 			.command = cmd_mavlink.command,
 			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
-			.from_external = 0,
+			.from_external = false,
 			.result_param1 = 0,
 			.target_system = msg->sysid,
 			.target_component = msg->compid
@@ -643,7 +643,7 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 		.result_param2 = ack.result_param2,
 		.command = ack.command,
 		.result = ack.result,
-		.from_external = 1,
+		.from_external = true,
 		.result_param1 = ack.progress,
 		.target_system = ack.target_system,
 		.target_component = ack.target_component
@@ -802,7 +802,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 		.source_system = msg->sysid,
 		.source_component = msg->compid,
 		.confirmation = 1,
-		.from_external = 1
+		.from_external = true
 	};
 
 	if (_cmd_pub == nullptr) {
