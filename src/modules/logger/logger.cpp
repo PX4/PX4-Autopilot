@@ -2012,7 +2012,7 @@ void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_
 		.result_param2 = 0,
 		.command = cmd->command,
 		.result = (uint8_t)result,
-		.from_external = 0,
+		.from_external = false,
 		.result_param1 = 0,
 		.target_system = cmd->source_system,
 		.target_component = cmd->source_component

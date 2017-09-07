@@ -16,7 +16,7 @@ uint32 ORB_QUEUE_LENGTH = 3
 
 uint16 command
 uint8 result
-uint8 from_external
+bool from_external
 uint8 result_param1
 int32 result_param2
 uint8 target_system
