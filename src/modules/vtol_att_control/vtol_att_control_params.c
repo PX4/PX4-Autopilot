@@ -272,20 +272,6 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
 
 /**
- * Weather-vane yaw rate scale.
- *
- * The desired yawrate from the controller will be scaled in order to avoid
- * yaw fighting against the wind.
- *
- * @min 0.0
- * @max 1.0
- * @increment 0.01
- * @decimal 3
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_WV_YAWR_SCL, 0.15f);
-
-/**
  * Front transition timeout
  *
  * Time in seconds after which transition will be cancelled. Disabled if set to 0.
@@ -356,3 +342,41 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_F_TR_OL_TM, 6.0f);
+
+/**
+ * Weather-vane yaw rate scale.
+ *
+ * The desired yawrate from the controller will be scaled in order to avoid
+ * yaw fighting against the wind.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_WV_YAWR_SCL, 0.15f);
+
+/**
+ * Enable weather-vane mode takeoff for missions
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(VT_WV_TKO_EN, 0);
+
+/**
+ * Weather-vane mode for loiter
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
+
+/**
+ * Weather-vane mode landings for missions
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);

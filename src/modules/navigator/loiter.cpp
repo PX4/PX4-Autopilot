@@ -58,7 +58,6 @@
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_LTRMIN_ALT", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_loiter_pos_set(false)
 {
@@ -123,7 +122,7 @@ Loiter::set_loiter_position()
 	_loiter_pos_set = true;
 
 	// set current mission item to loiter
-	set_loiter_item(&_mission_item, _param_min_alt.get());
+	set_loiter_item(&_mission_item, _navigator->get_loiter_min_alt());
 
 	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

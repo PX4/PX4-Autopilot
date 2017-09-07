@@ -426,7 +426,6 @@ void Standard::update_mc_state()
 		return;
 	}
 
-
 	matrix::Dcmf R(matrix::Quatf(_v_att->q));
 	matrix::Dcmf R_sp(matrix::Quatf(_v_att_sp->q_d));
 	matrix::Eulerf euler(R);
@@ -543,7 +542,7 @@ void Standard::fill_actuator_outputs()
 	}
 
 	// set the fixed wing throttle control
-	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
+	if (_vtol_schedule.flight_mode == FW_MODE) {
 
 		// take the throttle value commanded by the fw controller
 		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
