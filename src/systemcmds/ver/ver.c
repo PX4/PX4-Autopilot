@@ -59,6 +59,7 @@ static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
 static const char mcu_uid_str[]         = "uid";
 static const char mfg_uid_str[]         = "mfguid";
+static const char px4_guid_str[]         = "px4guid";
 
 #if defined(PX4_CPU_UUID_WORD32_FORMAT)
 #  define CPU_UUID_FORMAT PX4_CPU_UUID_WORD32_FORMAT
@@ -90,6 +91,7 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bdate", "Build date and time");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("uid", "UUID");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mfguid", "Manufacturer UUID");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("px4guid", "PX4 GUID");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("uri", "Build URI");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("all", "Print all versions");
@@ -241,6 +243,18 @@ int ver_main(int argc, char *argv[])
 				board_get_mfguid_formated(mfguid_fmt_buffer, sizeof(mfguid_fmt_buffer));
 #endif
 				printf("MFGUID: %s\n", mfguid_fmt_buffer);
+				ret = 0;
+			}
+
+			if (show_all || !strncmp(argv[1], px4_guid_str, sizeof(px4_guid_str))) {
+
+#if defined(BOARD_OVERRIDE_PX4_GUID)
+				char *px4guid_fmt_buffer = BOARD_OVERRIDE_PX4_GUID;
+#else
+				char px4guid_fmt_buffer[PX4_GUID_FORMAT_SIZE];
+				board_get_px4_guid_formated(px4guid_fmt_buffer, sizeof(px4guid_fmt_buffer));
+#endif
+				printf("PX4GUID: %s\n", px4guid_fmt_buffer);
 				ret = 0;
 			}
 
