@@ -262,7 +262,7 @@
 #define ADC_BATTERY2_VOLTAGE_CHANNEL        /* PA2 */  ADC1_CH(2)
 #define ADC_BATTERY2_CURRENT_CHANNEL        /* PA3 */  ADC1_CH(3)
 #define ADC1_SPARE_2_CHANNEL                /* PA4 */  ADC1_CH(4)
-#define ADC_RSSI_IN_CHANNEL                 /* PB8 */  ADC1_CH(8)
+#define ADC_RSSI_IN_CHANNEL                 /* PB0 */  ADC1_CH(8)
 #define ADC_SCALED_V5_CHANNEL               /* PC0 */  ADC1_CH(10)
 #define ADC_SCALED_VDD_3V3_SENSORS_CHANNEL  /* PC1 */  ADC1_CH(11)
 #define ADC_HW_VER_SENSE_CHANNEL            /* PC2 */  ADC1_CH(12)
@@ -304,6 +304,10 @@
 	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
 	 (1 << ADC1_SPARE_1_CHANNEL))
 #endif
+
+/* HW has to large of R termination on ADC todo:change when HW value is chosen */
+
+#define BOARD_ADC_OPEN_CIRCUIT_V               (5.6f)
 
 /* HW Version and Revision drive signals Default to 1 to detect */
 
