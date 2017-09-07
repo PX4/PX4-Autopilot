@@ -148,6 +148,20 @@
 
 /* Legacy default */
 
+/* Define the default maximum voltage resulting from the bias on ADC termination */
+
+#if !defined(BOARD_ADC_OPEN_CIRCUIT_V)
+#  define BOARD_ADC_OPEN_CIRCUIT_V  (1.5f)
+#endif
+
+/* Define the default Under voltage Window on the LTC4417 as set by resistors on the
+ * board. Default is that of the FMUv2 at 3.7V
+ */
+
+#if !defined(BOARD_VALID_UV)
+#  define BOARD_VALID_UV  (3.7f)
+#endif
+
 #if !defined(BOARD_NUMBER_BRICKS)
 #  define BOARD_NUMBER_BRICKS 1
 #  if !defined(BOARD_ADC_BRICK_VALID)
