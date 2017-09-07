@@ -321,7 +321,6 @@ typedef enum board_power_button_state_notification_e {
 
 typedef int (*power_button_state_notification_t)(board_power_button_state_notification_e request);
 
-
 /* UUID
  *
  * Define the types used for board UUID, MFG UID and PX4 GUID
@@ -742,7 +741,6 @@ __EXPORT int board_get_hw_revision(void);
 #define board_get_hw_revision() (-1)
 #endif
 
-#if !defined(BOARD_OVERRIDE_UUID)
 /************************************************************************************
  * Name: board_get_uuid DEPRICATED use board_get_px4_guid
  *
@@ -818,9 +816,7 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRICATED use boar
 __EXPORT int board_get_uuid32_formated(char *format_buffer, int size,
 				       const char *format,
 				       const char *seperator); // DEPRICATED use board_get_px4_guid_formated
-#endif // !defined(BOARD_OVERRIDE_UUID)
 
-#if !defined(BOARD_OVERRIDE_MFGUID)
 /************************************************************************************
  * Name: board_get_mfguid
  *
@@ -861,19 +857,19 @@ int board_get_mfguid(mfguid_t mfgid);
  ************************************************************************************/
 
 int board_get_mfguid_formated(char *format_buffer, int size); // DEPRICATED use board_get_px4_guid_formated
-#endif // !defined(BOARD_OVERRIDE_MFGUID)
 
-#if !defined(BOARD_OVERRIDE_PX4_GUID)
 /************************************************************************************
  * Name: board_get_px4_guid
  *
  * Description:
  *   All boards either provide a way to retrieve a PX4 Globally unique ID or
  *   define BOARD_OVERRIDE_PX4_GUID.
+ *   The GUID is returned as an array of bytes in MSD @ index 0 - LSD @ index
+ *   PX4_PX4_GUID_BYTE_LENGTH-1
  *
  *   The form of the GUID is as follows:
  *  offset:0         1         2         -           17
- *    <ARCH MSD><ARCH LSD><MSD CPU UUID>...<LSD CPU UUID>
+ *    <ARCH MSD><ARCH LSD><MSD CPU UUID>...<LSD CPU UUID> *
  *
  *  Where <ARCH MSD><ARCH LSD> are a monotonic ordinal number assigned by
  *  PX4 to a chip architecture (PX4_SOC_ARCH_ID). The 2 bytes are used to
@@ -924,7 +920,6 @@ int board_get_px4_guid(px4_guid_t guid);
  ************************************************************************************/
 
 int board_get_px4_guid_formated(char *format_buffer, int size);
-#endif // !defined(BOARD_OVERRIDE_PX4_GUID)
 
 /************************************************************************************
  * Name: board_mcu_version
