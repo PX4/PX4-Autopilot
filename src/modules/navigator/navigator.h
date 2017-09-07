@@ -120,14 +120,13 @@ public:
 	 */
 	struct fw_pos_ctrl_status_s *get_fw_pos_ctrl_status() { return &_fw_pos_ctrl_status; }
 	struct home_position_s *get_home_position() { return &_home_pos; }
-	struct mission_result_s *get_mission_result() { return &_mission_result; }
-	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
-	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
-	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
 	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+
+	struct mission_result_s *get_mission_result() { return &_mission_result; }
+	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -144,14 +143,14 @@ public:
 	/**
 	 * Returns the default acceptance radius defined by the parameter
 	 */
-	float		get_default_acceptance_radius();
+	float		get_default_acceptance_radius() { return _param_acceptance_radius.get(); }
 
 	/**
 	 * Get the acceptance radius
 	 *
 	 * @return the distance at which the next waypoint should be used
 	 */
-	float		get_acceptance_radius();
+	float		get_acceptance_radius() { return get_acceptance_radius(_param_acceptance_radius.get()); }
 
 	/**
 	 * Get the altitude acceptance radius
@@ -160,48 +159,24 @@ public:
 	 */
 	float		get_altitude_acceptance_radius();
 
-	/**
-	 * Get the cruising speed
-	 *
-	 * @return the desired cruising speed for this mission
-	 */
-	float		get_cruising_speed();
+	float		get_loiter_min_alt() const { return _param_mission_loiter_min_alt.get(); }
 
-	/**
-	 * Set the cruising speed
-	 *
-	 * Passing a negative value or leaving the parameter away will reset the cruising speed
-	 * to its default value.
-	 *
-	 * For VTOL: sets cruising speed for current mode only (multirotor or fixed-wing).
-	 *
-	 */
-	void		set_cruising_speed(float speed = -1.0f);
 
-	/**
-	 * Reset cruising speed to default values
-	 *
-	 * For VTOL: resets both cruising speeds.
-	 */
-	void		reset_cruising_speed();
+	enum mission_yaw_mode {
+		MISSION_YAWMODE_NONE = 0,
+		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
+		MISSION_YAWMODE_FRONT_TO_HOME = 2,
+		MISSION_YAWMODE_BACK_TO_HOME = 3,
+		MISSION_YAWMODE_TO_ROI = 4,
+		MISSION_YAWMODE_MAX = 5
+	};
 
+	int32_t		get_yaw_mode() const { return _param_mission_yaw_mode.get(); }
 
 	/**
 	 *  Set triplets to invalid
 	 */
 	void 		reset_triplets();
-
-	/**
-	 * Get the target throttle
-	 *
-	 * @return the desired throttle for this mission
-	 */
-	float		get_cruising_throttle();
-
-	/**
-	 * Set the target throttle
-	 */
-	void		set_cruising_throttle(float throttle = -1.0f) { _mission_throttle = throttle; }
 
 	/**
 	 * Get the acceptance radius given the mission item preset radius
@@ -262,8 +237,6 @@ private:
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
-	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
-	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */
@@ -278,7 +251,7 @@ private:
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
 
-	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
+	MissionBlock	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
@@ -290,17 +263,16 @@ private:
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
 
-	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
+	MissionBlock *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
-
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
 
-	float _mission_cruising_speed_mc{-1.0f};
-	float _mission_cruising_speed_fw{-1.0f};
-	float _mission_throttle{-1.0f};
+	// Mission parameters shared by other parts of navigator
+	control::BlockParamFloat _param_mission_loiter_min_alt;
+	control::BlockParamFloat _param_mission_yaw_mode;
 
 	// update subscriptions
 	void		fw_pos_ctrl_status_update(bool force = false);

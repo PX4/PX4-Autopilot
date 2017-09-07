@@ -46,29 +46,25 @@
 
 #include "navigator_mode.h"
 #include "mission_block.h"
+#include "mission.h"
 
-class Loiter : public MissionBlock
+class Loiter final : public MissionBlock
 {
 public:
 	Loiter(Navigator *navigator, const char *name);
 
-	~Loiter();
+	~Loiter() = default;
 
-	virtual void on_inactive();
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
 
-	virtual void on_activation();
-
-	virtual void on_active();
-
-	enum mission_yaw_mode {
-		MISSION_YAWMODE_NONE = 0,
-		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
-		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_MAX = 4
-	};
+	position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
 
 private:
+
+	position_setpoint_triplet_s	_reposition_triplet{};	/**< triplet for non-mission direct position command */
+
 	/**
 	 * Use the stored reposition location of the navigator
 	 * to move to a new location.
@@ -80,8 +76,6 @@ private:
 	 */
 	void set_loiter_position();
 
-	control::BlockParamFloat _param_min_alt;
-	control::BlockParamInt _param_yawmode;
 	bool _loiter_pos_set;
 };
 

@@ -54,15 +54,15 @@
 #include "navigator.h"
 
 Takeoff::Takeoff(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
+	MissionBlock(navigator, name)
 {
 	// load initial params
 	updateParams();
-}
 
-Takeoff::~Takeoff()
-{
+	_takeoff_triplet.current.cruising_speed = -1.0f;
+	_takeoff_triplet.current.cruising_throttle = -1.0f;
+	_takeoff_triplet.current.acceptance_radius = _navigator->get_acceptance_radius();
+	_takeoff_triplet.current.loiter_radius = _navigator->get_loiter_radius();
 }
 
 void
@@ -79,9 +79,7 @@ Takeoff::on_activation()
 void
 Takeoff::on_active()
 {
-	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
-
-	if (rep->current.valid) {
+	if (_takeoff_triplet.current.valid) {
 		// reset the position
 		set_takeoff_position();
 
@@ -91,8 +89,7 @@ Takeoff::on_active()
 
 		// set loiter item so position controllers stop doing takeoff logic
 		set_loiter_item(&_mission_item);
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
@@ -100,43 +97,36 @@ Takeoff::on_active()
 void
 Takeoff::set_takeoff_position()
 {
-	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
-
 	float abs_altitude = 0.0f;
-
-	float min_abs_altitude;
+	float min_abs_altitude = _navigator->get_loiter_min_alt();
 
 	if (_navigator->home_position_valid()) { //only use home position if it is valid
-		min_abs_altitude = _navigator->get_global_position()->alt + _param_min_alt.get();
-
-	} else { //e.g. flow
-		min_abs_altitude = _param_min_alt.get();
+		min_abs_altitude += _navigator->get_global_position()->alt;
 	}
 
 	// Use altitude if it has been set. If home position is invalid use min_abs_altitude
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt) && _navigator->home_position_valid()) {
-		abs_altitude = rep->current.alt;
+	if (_takeoff_triplet.current.valid && PX4_ISFINITE(_takeoff_triplet.current.alt) && _navigator->home_position_valid()) {
+		abs_altitude = _takeoff_triplet.current.alt;
 
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
 		if (abs_altitude < min_abs_altitude) {
 			abs_altitude = min_abs_altitude;
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-					     "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
+					     "Using minimum takeoff altitude: %.2f m", (double)_navigator->get_loiter_min_alt());
 		}
 
 	} else {
 		// Use home + minimum clearance but only notify.
 		abs_altitude = min_abs_altitude;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
+				 "Using minimum takeoff altitude: %.2f m", (double)_navigator->get_loiter_min_alt());
 	}
 
 
 	if (abs_altitude < _navigator->get_global_position()->alt) {
 		// If the suggestion is lower than our current alt, let's not go down.
 		abs_altitude = _navigator->get_global_position()->alt;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-				     "Already higher than takeoff altitude");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude");
 	}
 
 	// set current mission item to takeoff
@@ -147,26 +137,26 @@ Takeoff::set_takeoff_position()
 	reset_mission_item_reached();
 
 	// convert mission item to current setpoint
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
 
-	if (rep->current.valid) {
+	if (_takeoff_triplet.current.valid) {
 
 		// Go on and check which changes had been requested
-		if (PX4_ISFINITE(rep->current.yaw)) {
-			pos_sp_triplet->current.yaw = rep->current.yaw;
+		if (PX4_ISFINITE(_takeoff_triplet.current.yaw)) {
+			pos_sp_triplet->current.yaw = _takeoff_triplet.current.yaw;
 		}
 
-		if (PX4_ISFINITE(rep->current.lat) && PX4_ISFINITE(rep->current.lon)) {
-			pos_sp_triplet->current.lat = rep->current.lat;
-			pos_sp_triplet->current.lon = rep->current.lon;
+		if (PX4_ISFINITE(_takeoff_triplet.current.lat) && PX4_ISFINITE(_takeoff_triplet.current.lon)) {
+			pos_sp_triplet->current.lat = _takeoff_triplet.current.lat;
+			pos_sp_triplet->current.lon = _takeoff_triplet.current.lon;
 		}
 
 		// mark this as done
-		memset(rep, 0, sizeof(*rep));
+		_takeoff_triplet.current.valid = false;
 	}
 
 	_navigator->set_can_loiter_at_sp(true);

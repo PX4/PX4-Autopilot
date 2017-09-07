@@ -98,8 +98,7 @@ Land::on_active()
 		_navigator->set_mission_result_updated();
 		set_idle_item(&_mission_item);
 
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }

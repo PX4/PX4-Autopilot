@@ -54,7 +54,6 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_rtl_state(RTL_STATE_NONE),
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
-	_param_min_loiter_alt(this, "MIS_LTRMIN_ALT", false),
 	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
 	_param_land_delay(this, "RTL_LAND_DELAY", false),
 	_param_rtl_min_dist(this, "RTL_MIN_DIST", false)

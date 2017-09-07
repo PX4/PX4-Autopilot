@@ -774,7 +774,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		float mission_airspeed = _parameters.airspeed_trim;
 
 		if (PX4_ISFINITE(pos_sp_curr.cruising_speed) &&
-		    pos_sp_curr.cruising_speed > 0.1f) {
+		    pos_sp_curr.cruising_speed >= _parameters.airspeed_min &&
+		    pos_sp_curr.cruising_speed <= _parameters.airspeed_max) {
 
 			mission_airspeed = pos_sp_curr.cruising_speed;
 		}
@@ -782,7 +783,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		float mission_throttle = _parameters.throttle_cruise;
 
 		if (PX4_ISFINITE(pos_sp_curr.cruising_throttle) &&
-		    pos_sp_curr.cruising_throttle > 0.01f) {
+		    pos_sp_curr.cruising_throttle >= _parameters.throttle_min &&
+		    pos_sp_curr.cruising_throttle <= _parameters.throttle_max) {
 
 			mission_throttle = pos_sp_curr.cruising_throttle;
 		}
@@ -793,6 +795,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 			_att_sp.pitch_body = 0.0f;
 
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+
 			/* waypoint is a plain navigation waypoint */
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, nav_speed_2d);
 			_att_sp.roll_body = _l1_control.nav_roll();
@@ -840,7 +843,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 						   radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
 						   _parameters.throttle_min,
 						   _parameters.throttle_max,
-						   _parameters.throttle_cruise,
+						   mission_throttle,
 						   false,
 						   radians(_parameters.pitch_limit_min));
 

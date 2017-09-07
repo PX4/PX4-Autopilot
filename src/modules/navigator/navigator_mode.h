@@ -86,7 +86,6 @@ public:
 protected:
 	Navigator *_navigator{nullptr};
 
-private:
 	bool _active{false};
 };
 

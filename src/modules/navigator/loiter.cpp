@@ -58,16 +58,15 @@
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_LTRMIN_ALT", false),
-	_param_yawmode(this, "MIS_YAWMODE", false),
 	_loiter_pos_set(false)
 {
 	// load initial params
 	updateParams();
-}
 
-Loiter::~Loiter()
-{
+	_reposition_triplet.current.cruising_speed = -1.0f;
+	_reposition_triplet.current.cruising_throttle = -1.0f;
+	_reposition_triplet.current.acceptance_radius = _navigator->get_acceptance_radius();
+	_reposition_triplet.current.loiter_radius = _navigator->get_loiter_radius();
 }
 
 void
@@ -79,7 +78,7 @@ Loiter::on_inactive()
 void
 Loiter::on_activation()
 {
-	if (_navigator->get_reposition_triplet()->current.valid) {
+	if (_reposition_triplet.current.valid) {
 		reposition();
 
 	} else {
@@ -90,7 +89,7 @@ Loiter::on_activation()
 void
 Loiter::on_active()
 {
-	if (_navigator->get_reposition_triplet()->current.valid) {
+	if (_reposition_triplet.current.valid) {
 		reposition();
 	}
 
@@ -123,7 +122,7 @@ Loiter::set_loiter_position()
 	_loiter_pos_set = true;
 
 	// set current mission item to loiter
-	set_loiter_item(&_mission_item, _param_min_alt.get());
+	set_loiter_item(&_mission_item, _navigator->get_loiter_min_alt());
 
 	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -145,36 +144,40 @@ Loiter::reposition()
 		return;
 	}
 
-	struct position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
-
-	if (rep->current.valid) {
+	if (_reposition_triplet.current.valid) {
 		// set loiter position based on reposition command
 
 		// convert mission item to current setpoint
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		pos_sp_triplet->current.velocity_valid = false;
+		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
 		pos_sp_triplet->previous.yaw = _navigator->get_global_position()->yaw;
 		pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
-		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
+
+		pos_sp_triplet->current.velocity_valid = false;
+		pos_sp_triplet->current = _reposition_triplet.current;
+
+		// respect DO_CHANGE_SPEED commands
+		pos_sp_triplet->current.cruising_speed = get_cruising_speed();
+		pos_sp_triplet->current.cruising_throttle = get_cruising_throttle();
+
 		pos_sp_triplet->next.valid = false;
 
 		// set yaw (depends on the value of parameter MIS_YAWMODE):
 		// MISSION_YAWMODE_NONE: do not change yaw setpoint
 		// MISSION_YAWMODE_FRONT_TO_WAYPOINT: point to next waypoint
-		if (_param_yawmode.get() != MISSION_YAWMODE_NONE) {
-			float travel_dist = get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
-					    _navigator->get_global_position()->lon,
-					    pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
+		if (_navigator->get_yaw_mode() != Navigator::MISSION_YAWMODE_NONE) {
+
+			const float travel_dist = get_distance_to_next_waypoint(
+							  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+							  pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 			if (travel_dist > 1.0f) {
 				// calculate direction the vehicle should point to.
 				pos_sp_triplet->current.yaw = get_bearing_to_next_waypoint(
-								      _navigator->get_global_position()->lat,
-								      _navigator->get_global_position()->lon,
-								      pos_sp_triplet->current.lat,
-								      pos_sp_triplet->current.lon);
+								      _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+								      pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 			}
 		}
 
@@ -183,6 +186,6 @@ Loiter::reposition()
 		_navigator->set_position_setpoint_triplet_updated();
 
 		// mark this as done
-		memset(rep, 0, sizeof(*rep));
+		_reposition_triplet.current.valid = false;
 	}
 }

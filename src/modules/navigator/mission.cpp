@@ -64,7 +64,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_takeoff_alt(this, "MIS_TAKEOFF_ALT", false),
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
-	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
 	_missionFeasibilityChecker(navigator)
@@ -78,7 +77,7 @@ Mission::on_inactive()
 	/* We need to reset the mission cruising speed, otherwise the
 	 * mission velocity which might have been set using mission items
 	 * is used for missions such as RTL. */
-	_navigator->set_cruising_speed();
+	reset_cruising_speed();
 
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_position_valid()) {
@@ -105,7 +104,6 @@ Mission::on_inactive()
 		if (need_to_reset_mission(false)) {
 			reset_offboard_mission(_offboard_mission);
 			update_offboard_mission();
-			_navigator->reset_cruising_speed();
 		}
 
 	} else {
@@ -191,7 +189,7 @@ Mission::on_active()
 	if (need_to_reset_mission(true)) {
 		reset_offboard_mission(_offboard_mission);
 		update_offboard_mission();
-		_navigator->reset_cruising_speed();
+		reset_cruising_speed();
 		offboard_updated = true;
 	}
 
@@ -226,14 +224,9 @@ Mission::on_active()
 		}
 	}
 
-	/* check if a cruise speed change has been commanded */
-	if (_mission_type != MISSION_TYPE_NONE) {
-		cruising_speed_sp_update();
-	}
-
 	/* see if we need to update the current yaw heading */
-	if ((_param_yawmode.get() != MISSION_YAWMODE_NONE
-	     && _param_yawmode.get() < MISSION_YAWMODE_MAX
+	if ((_navigator->get_yaw_mode() != Navigator::MISSION_YAWMODE_NONE
+	     && _navigator->get_yaw_mode() < Navigator::MISSION_YAWMODE_MAX
 	     && _mission_type != MISSION_TYPE_NONE)
 	    || _navigator->get_vstatus()->is_vtol) {
 
@@ -1011,8 +1004,8 @@ Mission::heading_sp_update()
 		point_from_latlon[1] = _navigator->get_global_position()->lon;
 
 		/* target location is home */
-		if ((_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME
-		     || _param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME)
+		if ((_navigator->get_yaw_mode() == Navigator::MISSION_YAWMODE_FRONT_TO_HOME
+		     || _navigator->get_yaw_mode() == Navigator::MISSION_YAWMODE_BACK_TO_HOME)
 		    // need to be rotary wing for this but not in a transition
 		    // in VTOL mode this will prevent updating yaw during FW flight
 		    // (which would result in a wrong yaw setpoint spike during back transition)
@@ -1022,7 +1015,7 @@ Mission::heading_sp_update()
 			point_to_latlon[0] = _navigator->get_home_position()->lat;
 			point_to_latlon[1] = _navigator->get_home_position()->lon;
 
-		} else if (_param_yawmode.get() == MISSION_YAWMODE_TO_ROI
+		} else if (_navigator->get_yaw_mode() == Navigator::MISSION_YAWMODE_TO_ROI
 			   && _navigator->get_vroi().mode == vehicle_roi_s::ROI_LOCATION) {
 			/* target location is ROI */
 			point_to_latlon[0] = _navigator->get_vroi().lat;
@@ -1047,7 +1040,7 @@ Mission::heading_sp_update()
 					    point_to_latlon[1]);
 
 			/* always keep the back of the rotary wing pointing towards home */
-			if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
+			if (_navigator->get_yaw_mode() == Navigator::MISSION_YAWMODE_BACK_TO_HOME) {
 				_mission_item.yaw = _wrap_pi(yaw + M_PI_F);
 				pos_sp_triplet->current.yaw = _mission_item.yaw;
 
@@ -1140,24 +1133,6 @@ Mission::altitude_sp_foh_reset()
 }
 
 void
-Mission::cruising_speed_sp_update()
-{
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	const float cruising_speed = _navigator->get_cruising_speed();
-
-	/* Don't change setpoint if the current waypoint is not valid */
-	if (!pos_sp_triplet->current.valid ||
-	    fabsf(pos_sp_triplet->current.cruising_speed - cruising_speed) < FLT_EPSILON) {
-		return;
-	}
-
-	pos_sp_triplet->current.cruising_speed = cruising_speed;
-
-	_navigator->set_position_setpoint_triplet_updated();
-}
-
-void
 Mission::do_abort_landing()
 {
 	// Abort FW landing
@@ -1171,7 +1146,7 @@ Mission::do_abort_landing()
 	//  or 2 * FW_CLMBOUT_DIFF above the current altitude
 	float alt_landing = get_absolute_altitude_for_item(_mission_item);
 	float min_climbout = _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get());
-	float alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(), min_climbout);
+	float alt_sp = math::max(alt_landing + _navigator->get_loiter_min_alt(), min_climbout);
 
 	// turn current landing waypoint into an indefinite loiter
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
@@ -1511,13 +1486,61 @@ Mission::need_to_reset_mission(bool active)
 void
 Mission::generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw)
 {
-	waypoint_from_heading_and_distance(
-		_navigator->get_global_position()->lat,
-		_navigator->get_global_position()->lon,
-		yaw,
-		1000000.0f,
-		&(setpoint->lat),
-		&(setpoint->lon));
+	waypoint_from_heading_and_distance(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon, yaw,
+					   1000000.0f, &(setpoint->lat), &(setpoint->lon));
 	setpoint->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	setpoint->yaw = yaw;
+}
+
+bool
+Mission::set_cruising_speed(float speed)
+{
+	if (PX4_ISFINITE(speed) && (speed > FLT_EPSILON)
+	    && (_mission_type != MISSION_TYPE_NONE)) {
+
+		_cruising_speed = speed;
+
+		position_setpoint_s &pos_sp_curr = _navigator->get_position_setpoint_triplet()->current;
+
+		if (pos_sp_curr.valid) {
+			// update setpoint immediately if mission active and the current setpoint is valid
+			if (fabsf(pos_sp_curr.cruising_speed - get_cruising_speed()) > FLT_EPSILON) {
+				pos_sp_curr.cruising_speed = get_cruising_speed();
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+		}
+
+		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "Mission changing cruise speed to %d m/s", (int)speed);
+		return true;
+	}
+
+	return false;
+}
+
+bool
+Mission::set_cruising_throttle(float throttle)
+{
+	// input throttle is a percentage
+	if (PX4_ISFINITE(throttle) && (throttle > FLT_EPSILON) && (throttle <= 100.0f)
+	    && (_mission_type != MISSION_TYPE_NONE)) {
+
+		_cruising_throttle = throttle / 100.0f;
+
+		position_setpoint_s &pos_sp_curr = _navigator->get_position_setpoint_triplet()->current;
+
+		if (pos_sp_curr.valid) {
+			// update setpoint immediately if mission active and the current setpoint is valid
+			if (fabsf(pos_sp_curr.cruising_throttle - get_cruising_throttle()) > FLT_EPSILON) {
+
+				pos_sp_curr.cruising_throttle = get_cruising_throttle();
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+		}
+
+		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "Mission changing cruise throttle to %d %",
+					     (int)throttle);
+		return true;
+	}
+
+	return false;
 }

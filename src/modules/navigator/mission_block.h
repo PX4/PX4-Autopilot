@@ -68,6 +68,20 @@ public:
 
 	static bool item_contains_position(const mission_item_s &item);
 
+	/**
+	 * Cruising speed
+	 */
+	virtual float	get_cruising_speed() { return -1.0f; }
+	virtual bool	set_cruising_speed(float speed) { return false; }
+	virtual void	reset_cruising_speed() {}
+
+	/**
+	 * Cruising throttle
+	 */
+	virtual float	get_cruising_throttle() { return -1.0f; }
+	virtual bool	set_cruising_throttle(float throttle) { return false; }
+	virtual void	reset_cruising_throttle() {}
+
 protected:
 	/**
 	 * Check if mission item has been reached
@@ -136,7 +150,6 @@ protected:
 	actuator_controls_s _actuators{};
 	orb_advert_t    _actuator_pub{nullptr};
 
-	control::BlockParamFloat _param_loiter_min_alt;
 	control::BlockParamFloat _param_yaw_timeout;
 	control::BlockParamFloat _param_yaw_err;
 	control::BlockParamInt _param_vtol_wv_land;
