@@ -460,8 +460,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.rattitude_thres = param_find("FW_RATT_TH");
 
-	_parameter_handles.vtol_type = param_find("VT_TYPE");
-
 	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
 
 	/* fetch initial parameter values */
@@ -567,7 +565,9 @@ FixedwingAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.rattitude_thres, &_parameters.rattitude_thres);
 
-	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
+	if (_vehicle_status.is_vtol) {
+		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
+	}
 
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
 
@@ -675,6 +675,10 @@ FixedwingAttitudeControl::vehicle_status_poll()
 				_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
+
+				_parameter_handles.vtol_type = param_find("VT_TYPE");
+
+				parameters_update();
 
 			} else {
 				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);

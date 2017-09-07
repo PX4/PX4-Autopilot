@@ -92,7 +92,6 @@ private:
 	} _rtl_state{RTL_STATE_NONE};
 
 	control::BlockParamFloat _param_return_alt;
-	control::BlockParamFloat _param_min_loiter_alt;
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;

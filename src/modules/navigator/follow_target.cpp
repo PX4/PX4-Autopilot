@@ -400,3 +400,37 @@ bool FollowTarget::target_position_valid()
 	// need at least 1 continuous data points for position estimate
 	return (_target_updates >= 1);
 }
+
+void
+FollowTarget::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target,
+				     float yaw)
+{
+	if (_navigator->get_land_detected()->landed) {
+		/* landed, don't takeoff, but switch to IDLE mode */
+		item->nav_cmd = NAV_CMD_IDLE;
+
+	} else {
+
+		item->nav_cmd = NAV_CMD_DO_FOLLOW_REPOSITION;
+
+		/* use current target position */
+		item->lat = target.lat;
+		item->lon = target.lon;
+		item->altitude = _navigator->get_home_position()->alt;
+
+		if (min_clearance > 8.0f) {
+			item->altitude += min_clearance;
+
+		} else {
+			item->altitude += 8.0f; // if min clearance is bad set it to 8.0 meters (well above the average height of a person)
+		}
+	}
+
+	item->altitude_is_relative = false;
+	item->yaw = yaw;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
+}

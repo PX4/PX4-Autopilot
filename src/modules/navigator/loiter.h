@@ -80,7 +80,6 @@ private:
 	 */
 	void set_loiter_position();
 
-	control::BlockParamFloat _param_min_alt;
 	control::BlockParamInt _param_yawmode;
 	bool _loiter_pos_set;
 };
