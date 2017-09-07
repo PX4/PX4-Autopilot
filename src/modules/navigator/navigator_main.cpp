@@ -46,6 +46,9 @@
 #include "navigator.h"
 
 #include <cfloat>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
@@ -55,9 +58,6 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/systemlib.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
@@ -96,10 +96,14 @@ Navigator::Navigator() :
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
 	_follow_target(this, "TAR"),
+	// navigator params
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
-	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD")
+	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
+	_param_force_vtol(this, "FORCE_VT"),
+	// non-navigator params
+	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;

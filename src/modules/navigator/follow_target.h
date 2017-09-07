@@ -46,6 +46,7 @@
 #include <lib/mathlib/math/Matrix.hpp>
 #include "navigator_mode.h"
 #include "mission_block.h"
+#include <uORB/topics/follow_target.h>
 
 class FollowTarget : public MissionBlock
 {
@@ -162,4 +163,9 @@ private:
 	void update_position_sp(bool velocity_valid, bool position_valid, float yaw_rate);
 	void update_target_motion();
 	void update_target_velocity();
+
+	/**
+	 * Set follow_target item
+	 */
+	void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target, float yaw);
 };

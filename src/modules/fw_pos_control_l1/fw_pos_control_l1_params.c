@@ -383,6 +383,20 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 
 /**
+ * Cruise Airspeed
+ *
+ * The fixed wing controller tries to fly at this airspeed.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
+
+/**
  * Maximum climb rate
  *
  * This is the best climb rate that the aircraft can achieve with
