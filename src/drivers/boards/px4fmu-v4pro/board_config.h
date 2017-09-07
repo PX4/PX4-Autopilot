@@ -211,6 +211,10 @@
 #define BOARD_BATTERY2_V_DIV (6.490196078f)
 #define BOARD_BATTERY2_A_PER_V (26.4f)
 
+/* Define LTC4417 UV set by resistors on the board that are different than FMUv2 3.7V */
+
+#define BOARD_VALID_UV (4.01f)
+
 /* User GPIOs
  *
  * GPIO0-5 are the PWM servo outputs.
