@@ -4055,7 +4055,7 @@ protected:
 		_actuator_time(0),
 		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
 		_airspeed_time(0),
-		_attitude_sp_sub(_mavlink->add_orb_subscription(ORB_ID(fw_pos_ctrl_status))),
+		_attitude_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint))),
 		_attitude_sp_time(0),
 		_attitude_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
 		_attitude_time(0),
