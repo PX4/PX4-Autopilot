@@ -545,8 +545,15 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
 					/* Consider the brick connected if there is a voltage */
+					bool connected = bat_voltage_v[b] > BOARD_ADC_OPEN_CIRCUIT_V;
 
-					bool connected = bat_voltage_v[b] > 1.5f;
+					/* In the case where the BOARD_ADC_OPEN_CIRCUIT_V is
+					 * greater than the BOARD_VALID_UV let the HW qualify that it
+					 * is connected.
+					 */
+					if (BOARD_ADC_OPEN_CIRCUIT_V > BOARD_VALID_UV) {
+						connected &= valid_chan[b];
+					}
 
 					actuator_controls_s ctrl;
 					orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
