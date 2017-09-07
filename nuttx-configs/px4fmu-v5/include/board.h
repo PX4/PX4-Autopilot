@@ -348,8 +348,8 @@
 
 /* USART8: has no remap
  *
- *      GPIO_UART7_RX                          PE0[CN12-64]
- *      GPIO_UART7_TX                          PE1[CN11-61]
+ *      GPIO_UART8_RX                          PE0[CN12-64]
+ *      GPIO_UART8_TX                          PE1[CN11-61]
  */
 
 /* UART RX DMA configurations */
