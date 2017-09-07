@@ -1036,8 +1036,14 @@ MulticopterPositionControl::get_cruising_speed_xy()
 	/*
 	 * in mission the user can choose cruising speed different to default
 	 */
-	return ((PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && (_pos_sp_triplet.current.cruising_speed > 0.1f)) ?
-		_pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy);
+	const float &cruising_speed = _pos_sp_triplet.current.cruising_speed;
+
+	if (PX4_ISFINITE(cruising_speed) && cruising_speed >= 0.0f && cruising_speed <= _params.vel_max_xy) {
+		return cruising_speed;
+
+	} else {
+		return _params.vel_cruise_xy;
+	}
 }
 
 void

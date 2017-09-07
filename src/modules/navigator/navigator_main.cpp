@@ -191,8 +191,15 @@ void
 Navigator::vehicle_status_update()
 {
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
+		const bool was_vtol = _vstatus.is_vtol;
+		const bool was_transition_mode = _vstatus.in_transition_mode;
 		/* in case the commander is not be running */
 		_vstatus.arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
+
+		// reset cruising speed to default if VTOL has transitioned
+		if ((_vstatus.is_vtol != was_vtol) || (_vstatus.in_transition_mode != was_transition_mode)) {
+			set_cruising_speed();
+		}
 	}
 }
 
@@ -803,41 +810,18 @@ Navigator::get_altitude_acceptance_radius()
 float
 Navigator::get_cruising_speed()
 {
-	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
-	if (_vstatus.is_rotary_wing) {
-		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
-			return _mission_cruising_speed_mc;
-
-		} else {
-			return -1.0f;
-		}
+	if (is_planned_mission() && (_mission_cruising_speed > FLT_EPSILON)) {
+		return _mission_cruising_speed;
 
 	} else {
-		if (is_planned_mission() && _mission_cruising_speed_fw > 0.0f) {
-			return _mission_cruising_speed_fw;
-
-		} else {
-			return -1.0f;
-		}
+		return -1.0f;
 	}
 }
 
 void
 Navigator::set_cruising_speed(float speed)
 {
-	if (_vstatus.is_rotary_wing) {
-		_mission_cruising_speed_mc = speed;
-
-	} else {
-		_mission_cruising_speed_fw = speed;
-	}
-}
-
-void
-Navigator::reset_cruising_speed()
-{
-	_mission_cruising_speed_mc = -1.0f;
-	_mission_cruising_speed_fw = -1.0f;
+	_mission_cruising_speed = speed;
 }
 
 void

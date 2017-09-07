@@ -105,7 +105,7 @@ Mission::on_inactive()
 		if (need_to_reset_mission(false)) {
 			reset_offboard_mission(_offboard_mission);
 			update_offboard_mission();
-			_navigator->reset_cruising_speed();
+			_navigator->set_cruising_speed();
 		}
 
 	} else {
@@ -191,7 +191,7 @@ Mission::on_active()
 	if (need_to_reset_mission(true)) {
 		reset_offboard_mission(_offboard_mission);
 		update_offboard_mission();
-		_navigator->reset_cruising_speed();
+		_navigator->set_cruising_speed();
 		offboard_updated = true;
 	}
 

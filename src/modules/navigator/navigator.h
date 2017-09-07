@@ -296,8 +296,7 @@ private:
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
 
-	float _mission_cruising_speed_mc{-1.0f};
-	float _mission_cruising_speed_fw{-1.0f};
+	float _mission_cruising_speed{-1.0f};
 	float _mission_throttle{-1.0f};
 
 	// update subscriptions
