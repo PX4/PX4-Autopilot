@@ -66,7 +66,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_dist_between_wps(this, "MIS_DIST_WPS", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
-	_param_force_vtol(this, "NAV_FORCE_VT", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
 	_missionFeasibilityChecker(navigator)
 {
@@ -545,9 +544,7 @@ Mission::set_mission_items()
 	if (item_contains_position(_mission_item)) {
 
 		/* force vtol land */
-		if (_mission_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get() == 1
-		    && !_navigator->get_vstatus()->is_rotary_wing
-		    && _navigator->get_vstatus()->is_vtol) {
+		if (_navigator->force_vtol() && _mission_item.nav_cmd == NAV_CMD_LAND) {
 
 			_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
 		}
@@ -732,7 +729,6 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
-			_mission_item.disable_mc_yaw = true;
 		}
 
 		/* we just moved to the landing waypoint, now descend */
@@ -1176,7 +1172,7 @@ Mission::do_abort_landing()
 	//  or 2 * FW_CLMBOUT_DIFF above the current altitude
 	float alt_landing = get_absolute_altitude_for_item(_mission_item);
 	float min_climbout = _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get());
-	float alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(), min_climbout);
+	float alt_sp = math::max(alt_landing + _navigator->get_loiter_min_alt(), min_climbout);
 
 	// turn current landing waypoint into an indefinite loiter
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;

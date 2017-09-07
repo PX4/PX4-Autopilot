@@ -222,6 +222,10 @@ public:
 
 	bool		abort_landing();
 
+	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
+
+	bool		force_vtol() const { return _vstatus.is_vtol && !_vstatus.is_rotary_wing && _param_force_vtol.get(); }
+
 private:
 
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
@@ -292,11 +296,15 @@ private:
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
+	// navigator parameters
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
-
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
+	control::BlockParamInt _param_force_vtol;	/**< acceptance radius for multicopter altitude */
+
+	// non-navigator parameters
+	control::BlockParamFloat _param_loiter_min_alt;
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};

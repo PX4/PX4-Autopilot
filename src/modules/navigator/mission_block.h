@@ -44,8 +44,6 @@
 #include "navigator_mode.h"
 
 #include <navigator/navigation.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/follow_target.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
@@ -116,11 +114,6 @@ protected:
 	void set_idle_item(struct mission_item_s *item);
 
 	/**
-	 * Set follow_target item
-	 */
-	void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target, float yaw);
-
-	/**
 	 * General function used to adjust the mission item based on vehicle specific limitations
 	 */
 	void	mission_apply_limitation(mission_item_s &item);
@@ -138,16 +131,12 @@ protected:
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
-	actuator_controls_s _actuators{};
 	orb_advert_t    _actuator_pub{nullptr};
 
-	control::BlockParamFloat _param_loiter_min_alt;
 	control::BlockParamFloat _param_yaw_timeout;
 	control::BlockParamFloat _param_yaw_err;
-	control::BlockParamInt _param_vtol_wv_land;
-	control::BlockParamInt _param_vtol_wv_takeoff;
-	control::BlockParamInt _param_vtol_wv_loiter;
-	control::BlockParamInt _param_force_vtol;
+
+	// VTOL parameters
 	control::BlockParamFloat _param_back_trans_dec_mss;
 	control::BlockParamFloat _param_reverse_delay;
 };

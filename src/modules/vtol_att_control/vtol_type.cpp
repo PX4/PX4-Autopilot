@@ -64,7 +64,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_actuators_out_1 = _attc->get_actuators_out1();
 	_actuators_mc_in = _attc->get_actuators_mc_in();
 	_actuators_fw_in = _attc->get_actuators_fw_in();
-	_armed = _attc->get_armed();
 	_local_pos = _attc->get_local_pos();
 	_airspeed = _attc->get_airspeed();
 	_batt_status = _attc->get_batt_status();
@@ -153,6 +152,24 @@ void VtolType::update_mc_state()
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
+
+	// VTOL weathervane
+	_v_att_sp->disable_mc_yaw_control = false;
+
+	if (_attc->get_pos_sp_triplet()->current.valid &&
+	    !_v_control_mode->flag_control_manual_enabled) {
+
+		if (_params->wv_takeoff && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+			_v_att_sp->disable_mc_yaw_control = true;
+
+		} else if (_params->wv_loiter
+			   && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+			_v_att_sp->disable_mc_yaw_control = true;
+
+		} else if (_params->wv_land && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			_v_att_sp->disable_mc_yaw_control = true;
+		}
+	}
 }
 
 void VtolType::update_fw_state()
@@ -190,13 +207,13 @@ void VtolType::update_transition_state()
 
 bool VtolType::can_transition_on_ground()
 {
-	return !_armed->armed || _land_detected->landed;
+	return !_v_control_mode->flag_armed || _land_detected->landed;
 }
 
 void VtolType::check_quadchute_condition()
 {
 
-	if (_armed->armed && !_land_detected->landed) {
+	if (_v_control_mode->flag_armed && !_land_detected->landed) {
 		matrix::Eulerf euler = matrix::Quatf(_v_att->q);
 
 		// fixed-wing minimum altitude

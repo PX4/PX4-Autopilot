@@ -49,7 +49,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
-	_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_parameter_handles.airspeed_disabled = param_find("FW_ARSP_MODE");
 
 	_parameter_handles.pitch_limit_min = param_find("FW_P_LIM_MIN");
@@ -94,8 +93,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
 	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
 
-	_parameter_handles.vtol_type = 				param_find("VT_TYPE");
-
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -135,7 +132,6 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
-	param_get(_parameter_handles.airspeed_trans, &(_parameters.airspeed_trans));
 	param_get(_parameter_handles.airspeed_disabled, &(_parameters.airspeed_disabled));
 
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
@@ -194,7 +190,6 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
-	param_get(_parameter_handles.vtol_type, &(_parameters.vtol_type));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -287,6 +282,11 @@ FixedwingPositionControl::vehicle_status_poll()
 		if (_attitude_setpoint_id == nullptr) {
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
+
+				_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
+				_parameter_handles.vtol_type = param_find("VT_TYPE");
+
+				parameters_update();
 
 			} else {
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
@@ -1059,7 +1059,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 			if (_runway_takeoff.runwayTakeoffEnabled()) {
 				if (!_runway_takeoff.isInitialized()) {
-					_runway_takeoff.init(_yaw, _global_pos.lat, _global_pos.lon);
+					Eulerf euler(Quatf(_att.q));
+					_runway_takeoff.init(euler.psi(), _global_pos.lat, _global_pos.lon);
 
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
