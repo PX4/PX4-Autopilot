@@ -570,7 +570,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 				.result_param2 = 0,
 				.command = cmd.command,
 				.result = cmd_ack_result,
-				.from_external = 0,
+				.from_external = false,
 				.result_param1 = 0,
 				.target_system = cmd.source_system,
 				.target_component = cmd.source_component

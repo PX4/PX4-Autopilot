@@ -48,5 +48,11 @@
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 
+/*
+ * I2C busses
+ */
+#define PX4_I2C_BUS_EXPANSION	1
+#define PX4_NUMBER_I2C_BUSES 1
+
 #include <system_config.h>
 #include "../common/board_common.h"

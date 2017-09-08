@@ -45,6 +45,7 @@ px4_add_module(
 	MAIN uorb_tests
 	STACK_MAIN 2048
 	COMPILE_FLAGS
+		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common

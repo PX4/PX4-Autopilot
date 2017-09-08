@@ -47,6 +47,8 @@ set(msg_file_names
 	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
+	debug_value.msg
+	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_innovations.msg

@@ -41,33 +41,23 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+
 #include <cmath>
-#include <drivers/drv_hrt.h>
 
 #include "FixedwingLandDetector.h"
-
 
 namespace land_detector
 {
 
-FixedwingLandDetector::FixedwingLandDetector() :
-	_paramHandle(),
-	_params(),
-	_controlStateSub(-1),
-	_armingSub(-1),
-	_airspeedSub(-1),
-	_controlState{},
-	_arming{},
-	_airspeed{},
-	_velocity_xy_filtered(0.0f),
-	_velocity_z_filtered(0.0f),
-	_airspeed_filtered(0.0f),
-	_accel_horz_lp(0.0f)
+FixedwingLandDetector::FixedwingLandDetector()
 {
 	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
 	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
 	_paramHandle.maxIntVelocity = param_find("LNDFW_VELI_MAX");
+
+	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
+	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
 }
 
 void FixedwingLandDetector::_initialize_topics()
@@ -97,7 +87,7 @@ float FixedwingLandDetector::_get_max_altitude()
 	// TODO
 	// This means no altitude limit as the limit
 	// is always current position plus 1000 meters
-	return -_controlState.z_pos + 1000;
+	return roundf(-_controlState.z_pos + 1000);
 }
 
 bool FixedwingLandDetector::_get_freefall_state()
@@ -105,16 +95,15 @@ bool FixedwingLandDetector::_get_freefall_state()
 	// TODO
 	return false;
 }
+
 bool FixedwingLandDetector::_get_ground_contact_state()
 {
-
 	// TODO
 	return false;
 }
 
 bool FixedwingLandDetector::_get_maybe_landed_state()
 {
-
 	// TODO
 	return false;
 }

@@ -75,6 +75,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
 	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
 	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
+	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
 	_params_handles_standard.back_trans_throttle = param_find("VT_B_TRANS_THR");
 	_params_handles_standard.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 
@@ -140,6 +141,10 @@ Standard::parameters_update()
 	/* reverse output */
 	param_get(_params_handles_standard.reverse_output, &v);
 	_params_standard.reverse_output = math::constrain(v, 0.0f, 1.0f);
+
+	/* reverse output */
+	param_get(_params_handles_standard.reverse_delay, &v);
+	_params_standard.reverse_delay = math::constrain(v, 0.0f, 10.0f);
 
 	/* reverse throttle */
 	param_get(_params_handles_standard.back_trans_throttle, &v);
@@ -346,11 +351,17 @@ void Standard::update_transition_state()
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 
-		// Handle throttle reversal for active breaking
-		float thrscale = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_dur *
-				 1000000.0f);
-		thrscale = math::constrain(thrscale, 0.0f, 1.0f);
-		_pusher_throttle = thrscale * _params_standard.back_trans_throttle;
+		hrt_abstime btrans_start;
+		btrans_start = _vtol_schedule.transition_start + uint64_t(_params_standard.reverse_delay) * 1000000.0f;
+		_pusher_throttle = 0.0f;
+
+		if (hrt_absolute_time() >= btrans_start) {
+			// Handle throttle reversal for active breaking
+			float thrscale = (float)hrt_elapsed_time(&btrans_start) / (_params_standard.front_trans_dur *
+					 1000000.0f);
+			thrscale = math::constrain(thrscale, 0.0f, 1.0f);
+			_pusher_throttle = thrscale * _params_standard.back_trans_throttle;
+		}
 
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_ramp > FLT_EPSILON) {

@@ -44,7 +44,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-class VFile : public device::VDev
+class VFile : public device::CDev
 {
 public:
 

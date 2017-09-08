@@ -10,6 +10,12 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/vmount
 	drivers/linux_gpio
+	drivers/airspeed
+	drivers/ets_airspeed
+	drivers/ms4525_airspeed
+	drivers/ms5525_airspeed
+	drivers/sdp3x_airspeed
+
 	modules/sensors
 	platforms/posix/drivers/accelsim
 	platforms/posix/drivers/adcsim

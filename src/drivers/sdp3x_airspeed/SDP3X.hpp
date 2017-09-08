@@ -107,7 +107,6 @@ private:
 	 */
 	int write_command(uint16_t command);
 
-	bool _inited{false};
 	uint16_t _scale{0};
 };
 

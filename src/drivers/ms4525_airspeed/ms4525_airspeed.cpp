@@ -54,23 +54,6 @@
 
 #include <drivers/device/i2c.h>
 
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
 #include <board_config.h>
 
 #include <systemlib/airspeed.h>
@@ -417,7 +400,7 @@ start(int i2c_bus)
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_ERR("already started");
 	}
 
 	/* create the driver, try the MS4525DO first */
@@ -430,22 +413,22 @@ start(int i2c_bus)
 
 	/* both versions failed if the init for the MS5525DSO fails, give up */
 	if (OK != g_dev->Airspeed::init()) {
-		PX4_WARN("init fail");
+		PX4_ERR("init fail");
 		goto fail;
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(PATH_MS4525, O_RDONLY);
+	fd = px4_open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
 	}
 
-	exit(0);
+	return;
 
 fail:
 
@@ -455,7 +438,6 @@ fail:
 	}
 
 	PX4_WARN("no MS4525 airspeed sensor connected");
-	exit(1);
 }
 
 /**
@@ -469,10 +451,8 @@ stop()
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
 	}
-
-	exit(0);
 }
 
 /**
@@ -487,58 +467,56 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(PATH_MS4525, O_RDONLY);
+	int fd = px4_open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", PATH_MS4525);
+		PX4_ERR("%s open failed (try 'meas_airspeed start' if the driver is not running", PATH_MS4525);
 	}
 
 	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
+	sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		PX4_ERR("immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
+	PX4_INFO("single read");
+	PX4_INFO("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+		PX4_ERR("failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
+		px4_pollfd_struct_t fds;
 
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
+		ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out");
+			PX4_ERR("timed out");
 		}
 
 		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
+		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			PX4_ERR("periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
-		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
+		PX4_INFO("periodic read %u", i);
+		PX4_INFO("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
+		PX4_INFO("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
 	/* reset the sensor polling to its default rate */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default rate");
+	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+		PX4_ERR("failed to set default rate");
 	}
-
-	errx(0, "PASS");
 }
 
 /**
@@ -547,21 +525,19 @@ test()
 void
 reset()
 {
-	int fd = open(PATH_MS4525, O_RDONLY);
+	int fd = px4_open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		PX4_ERR("failed ");
 	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
+		PX4_ERR("driver reset failed");
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		PX4_ERR("driver poll restart failed");
 	}
-
-	exit(0);
 }
 
 /**
@@ -571,13 +547,11 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
 	}
 
-	printf("state @ %p\n", g_dev);
+	PX4_INFO("state @ %p", g_dev);
 	g_dev->print_info();
-
-	exit(0);
 }
 
 } // namespace
@@ -586,11 +560,11 @@ info()
 static void
 meas_airspeed_usage()
 {
-	warnx("usage: meas_airspeed command [options]");
-	warnx("options:");
-	warnx("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
-	warnx("command:");
-	warnx("\tstart|stop|reset|test|info");
+	PX4_INFO("usage: meas_airspeed command [options]");
+	PX4_INFO("options:");
+	PX4_INFO("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
+	PX4_INFO("command:");
+	PX4_INFO("\tstart|stop|reset|test|info");
 }
 
 int
@@ -644,5 +618,6 @@ ms4525_airspeed_main(int argc, char *argv[])
 	}
 
 	meas_airspeed_usage();
-	exit(0);
+
+	return 0;
 }
