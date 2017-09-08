@@ -47,21 +47,18 @@ SRC_DIR=$PWD/../
 CCACHE_DIR=${HOME}/.ccache
 mkdir -p "${CCACHE_DIR}"
 
-X11_TMP=/tmp/.X11-unix
-
 docker run -it --rm -w "${SRC_DIR}" \
-	-e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
-	-e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
-	-e BRANCH_NAME="${BRANCH_NAME}" \
-	-e CCACHE_DIR="${CCACHE_DIR}" \
-	-e CI="${CI}" \
-	-e CODECOV_TOKEN="${CODECOV_TOKEN}" \
-	-e COVERALLS_REPO_TOKEN="${COVERALLS_REPO_TOKEN}" \
-	-e DISPLAY="${DISPLAY}" \
-	-e LOCAL_USER_ID="$(id -u)" \
-	-e TRAVIS_BRANCH="${TRAVIS_BRANCH}" \
-	-e TRAVIS_BUILD_ID="${TRAVIS_BUILD_ID}" \
-	-v ${CCACHE_DIR}:${CCACHE_DIR}:rw \
-	-v ${SRC_DIR}:${SRC_DIR}:rw \
-	-v ${X11_TMP}:${X11_TMP}:ro \
+	--env=AWS_ACCESS_KEY_ID \
+	--env=AWS_SECRET_ACCESS_KEY \
+	--env=BRANCH_NAME \
+	--env=CCACHE_DIR="${CCACHE_DIR}" \
+	--env=CI \
+	--env=CODECOV_TOKEN \
+	--env=COVERALLS_REPO_TOKEN \
+	--env=LOCAL_USER_ID="$(id -u)" \
+	--env=TRAVIS_BRANCH \
+	--env=TRAVIS_BUILD_ID \
+	--publish 14556:14556/udp \
+	--volume=${CCACHE_DIR}:${CCACHE_DIR}:rw \
+	--volume=${SRC_DIR}:${SRC_DIR}:rw \
 	${PX4_DOCKER_REPO} /bin/bash -c "$@"
