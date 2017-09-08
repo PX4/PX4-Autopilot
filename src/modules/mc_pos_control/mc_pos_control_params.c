@@ -341,7 +341,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_SPEED, 1.5f);
  *
  * @unit deg
  * @min 0.0
- * @max 90.0
+ * @max 85.0
  * @decimal 1
  * @group Multicopter Position Control
  */
