@@ -184,7 +184,7 @@ MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionIt
 			// Geofence function checks against home altitude amsl
 			missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 
-			if (MissionBlock::item_contains_position(&missionitem) &&
+			if (MissionBlock::item_contains_position(missionitem) &&
 			    !geofence.check(missionitem)) {
 
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %d", i + 1);
@@ -212,7 +212,7 @@ MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_
 		}
 
 		/* reject relative alt without home set */
-		if (missionitem.altitude_is_relative && !home_valid && MissionBlock::item_contains_position(&missionitem)) {
+		if (missionitem.altitude_is_relative && !home_valid && MissionBlock::item_contains_position(missionitem)) {
 
 			warning_issued = true;
 
@@ -229,7 +229,7 @@ MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_
 		/* calculate the global waypoint altitude */
 		float wp_alt = (missionitem.altitude_is_relative) ? missionitem.altitude + home_alt : missionitem.altitude;
 
-		if ((home_alt > wp_alt) && MissionBlock::item_contains_position(&missionitem)) {
+		if ((home_alt > wp_alt) && MissionBlock::item_contains_position(missionitem)) {
 
 			warning_issued = true;
 
@@ -286,7 +286,6 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 		    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
 		    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
-		    missionitem.nav_cmd != NAV_CMD_ROI &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
 		    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
@@ -411,7 +410,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 					return false;
 				}
 
-				if (MissionBlock::item_contains_position(&missionitem_previous)) {
+				if (MissionBlock::item_contains_position(missionitem_previous)) {
 					float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon, missionitem.lat,
 							    missionitem.lon);
 
@@ -489,7 +488,7 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 		/* find first waypoint (with lat/lon) item in datamanager */
 		for (size_t i = 0; i < nMissionItems; i++) {
 			if (dm_read(dm_current, i, &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
-				if (MissionBlock::item_contains_position(&mission_item)) {
+				if (MissionBlock::item_contains_position(mission_item)) {
 					/* check only items with valid lat/lon */
 
 					/* check distance from current position to item */

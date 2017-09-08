@@ -42,7 +42,7 @@ enum arm_auth_methods {
 	ARM_AUTH_METHOD_LAST
 };
 
-void arm_auth_init(orb_advert_t *mav_log_pub, uint32_t *system_id);
+void arm_auth_init(orb_advert_t *mav_log_pub, uint8_t *system_id);
 void arm_auth_update(hrt_abstime now);
 uint8_t arm_auth_check();
 enum arm_auth_methods arm_auth_method_get();

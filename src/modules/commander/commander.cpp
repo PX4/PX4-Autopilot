@@ -106,7 +106,6 @@
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/power_button_state.h>
-#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/sensor_combined.h>
@@ -225,7 +224,6 @@ static float max_imu_gyr_diff = 0.09f;
 static float min_stick_change = 0.25f;
 
 static struct vehicle_status_s status = {};
-static struct vehicle_roi_s _roi = {};
 static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
@@ -286,8 +284,7 @@ void usage(const char *reason);
 bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd,
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
-		    orb_advert_t *command_ack_pub, struct vehicle_roi_s *roi,
-		    orb_advert_t *roi_pub, bool *changed);
+		    orb_advert_t *command_ack_pub, bool *changed);
 
 /**
  * Mainloop of commander.
@@ -514,8 +511,8 @@ int commander_main(int argc, char *argv[])
 					.param4 = NAN,
 					.param7 = NAN,
 					.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF,
-					.target_system = (uint8_t)status.system_id,
-					.target_component = (uint8_t)status.component_id
+					.target_system = status.system_id,
+					.target_component = status.component_id
 				};
 
 				orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -545,8 +542,8 @@ int commander_main(int argc, char *argv[])
 			.param4 = NAN,
 			.param7 = NAN,
 			.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND,
-			.target_system = (uint8_t)status.system_id,
-			.target_component = (uint8_t)status.component_id
+			.target_system = status.system_id,
+			.target_component = status.component_id
 		};
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -568,8 +565,8 @@ int commander_main(int argc, char *argv[])
 			.param4 = NAN,
 			.param7 = NAN,
 			.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
-			.target_system = (uint8_t)status.system_id,
-			.target_component = (uint8_t)status.component_id
+			.target_system = status.system_id,
+			.target_component = status.component_id
 		};
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -637,8 +634,8 @@ int commander_main(int argc, char *argv[])
 			.param4 = 0.0f,
 			.param7 = 0.0f,
 			.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION,
-			.target_system = (uint8_t)status.system_id,
-			.target_component = (uint8_t)status.component_id
+			.target_system = status.system_id,
+			.target_component = status.component_id
 		};
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -764,8 +761,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
-		    orb_advert_t *command_ack_pub, struct vehicle_roi_s *roi,
-		    orb_advert_t *roi_pub, bool *changed)
+		    orb_advert_t *command_ack_pub, bool *changed)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -1159,34 +1155,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
-	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI: {
-
-		roi->mode = cmd->param1;
-
-		if (roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
-			roi->mission_seq =  cmd->param2;
-		}
-		else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-			roi->lat = cmd->param5;
-			roi->lon = cmd->param6;
-			roi->alt = cmd->param7;
-		}
-		else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
-			roi->target_seq = cmd->param2;
-		}
-
-		if (*roi_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_roi), *roi_pub, roi);
-
-		} else {
-			*roi_pub = orb_advertise(ORB_ID(vehicle_roi), roi);
-		}
-
-		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-		break;
-	}
 	case vehicle_command_s::VEHICLE_CMD_MISSION_START: {
 
 		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
@@ -1529,10 +1497,6 @@ int commander_thread_main(int argc, char *argv[])
 	orb_advert_t home_pub = nullptr;
 	memset(&_home, 0, sizeof(_home));
 
-	/* region of interest */
-	orb_advert_t roi_pub = nullptr;
-	memset(&_roi, 0, sizeof(_roi));
-
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
 
@@ -1818,12 +1782,11 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, nullptr);
 	pthread_attr_destroy(&commander_low_prio_attr);
 
-	arm_auth_init(&mavlink_log_pub, &(status.system_id));
+	arm_auth_init(&mavlink_log_pub, &status.system_id);
 
 	while (!thread_should_exit) {
 
 		arming_ret = TRANSITION_NOT_CHANGED;
-
 
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
@@ -1852,8 +1815,13 @@ int commander_thread_main(int argc, char *argv[])
 				status.is_vtol = is_vtol(&status);
 
 				/* check and update system / component ID */
-				param_get(_param_system_id, &(status.system_id));
-				param_get(_param_component_id, &(status.component_id));
+				int32_t sys_id = 0;
+				param_get(_param_system_id, &sys_id);
+				status.system_id = sys_id;
+
+				int32_t comp_id = 0;
+				param_get(_param_component_id, &comp_id);
+				status.component_id = comp_id;
 
 				get_circuit_breaker_params();
 
@@ -3008,7 +2976,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* handle it */
 			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position,
-					&attitude, &home_pub, &command_ack_pub, &_roi, &roi_pub, &status_changed)) {
+					&attitude, &home_pub, &command_ack_pub, &status_changed)) {
 				status_changed = true;
 			}
 		}

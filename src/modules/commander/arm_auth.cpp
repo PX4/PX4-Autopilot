@@ -66,7 +66,7 @@ struct packed_struct {
 	uint8_t authentication_method;
 } arm_parameters;
 
-static uint32_t *system_id;
+static uint8_t *system_id;
 
 static uint8_t _auth_method_arm_req_check();
 static uint8_t _auth_method_two_arm_check();
@@ -260,7 +260,7 @@ void arm_auth_update(hrt_abstime now)
 	}
 }
 
-void arm_auth_init(orb_advert_t *mav_log_pub, uint32_t *sys_id)
+void arm_auth_init(orb_advert_t *mav_log_pub, uint8_t *sys_id)
 {
 	system_id = sys_id;
 	param_arm_parameters = param_find("COM_ARM_AUTH");
