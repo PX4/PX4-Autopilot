@@ -277,14 +277,16 @@ private:
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 	math::Vector<3> _prev_pos_sp; /**< previous setpoint of the triples */
-	matrix::Vector2f _stick_input_xy_prev; /*for manual controlled mode to detect direction change */
+	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
 	float _yaw_takeoff;	/**< home yaw angle present when vehicle was taking off (euler) */
+	float _man_yaw_offset; /**< current yaw offset in manual mode */
+
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
-	float _acceleration_state_dependent_xy; /* acceleration limit applied in manual mode */
-	float _acceleration_state_dependent_z; /* acceleration limit applied in manual mode in z */
+	float _acceleration_state_dependent_xy; /**< acceleration limit applied in manual mode */
+	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
@@ -455,6 +457,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_last_warn(0),
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
+	_man_yaw_offset(0.0f),
 	_vel_max_xy(0.0f),
 	_acceleration_state_dependent_xy(0.0f),
 	_acceleration_state_dependent_z(0.0f),
@@ -2771,6 +2774,10 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 void
 MulticopterPositionControl::generate_attitude_setpoint(float dt)
 {
+	// yaw setpoint is integrated over time, but we don't want to integrate the offset's
+	_att_sp.yaw_body -= _man_yaw_offset;
+	_man_yaw_offset = 0.f;
+
 	/* reset yaw setpoint to current position if needed */
 	if (_reset_yaw_sp) {
 		_reset_yaw_sp = false;
@@ -2812,8 +2819,57 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 	/* control roll and pitch directly if no aiding velocity controller is active */
 	if (!_control_mode.flag_control_velocity_enabled) {
-		_att_sp.roll_body = _manual.y * _params.man_tilt_max;
-		_att_sp.pitch_body = -_manual.x * _params.man_tilt_max;
+
+		/*
+		 * Input mapping for roll & pitch setpoints
+		 * ----------------------------------------
+		 * This simplest thing to do is map the y & x inputs directly to roll and pitch, and scale according to the max
+		 * tilt angle.
+		 * But this has several issue:
+		 * - The maximum tilt angle cannot easily be restricted. By limiting the roll and pitch separately,
+		 *   it would be possible to get to a higher tilt angle by combining roll and pitch (the difference is
+		 *   around 15 degrees maximum, so quite noticeable). Limiting this angle is not simple in roll-pitch-space,
+		 *   it requires to limit the tilt angle = acos(cos(roll) * cos(pitch)) in a meaningful way (eg. scaling both
+		 *   roll and pitch).
+		 * - Moving the stick diagonally, such that |x| = |y|, does not move the vehicle towards a 45 degrees angle.
+		 *   The direction angle towards the max tilt in the XY-plane is atan(1/cos(x)). Which means it even depends
+		 *   on the tilt angle (for a tilt angle of 35 degrees, it's off by about 5 degrees).
+		 *
+		 * So instead we control the following 2 angles:
+		 * - tilt angle
+		 * - the direction of the maximum tilt in the XY-plane, which also defines the direction of the motion
+		 *
+		 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
+		 * points to, and changes of the stick input are linear.
+		 */
+		const float x = _manual.x * _params.man_tilt_max;
+		const float y = _manual.y * _params.man_tilt_max;
+		const float tilt_angle_sp = math::min(_params.man_tilt_max, sqrtf(x * x + y * y));
+
+		// we want to fly towards the direction of (x, y), so we use a perpendicular axis angle vector in the XY-plane
+		matrix::Vector2f v = matrix::Vector2f(y, -x);
+		float v_norm = v.norm();
+
+		if (v_norm > FLT_EPSILON) {
+			v /= v_norm;
+		}
+
+		v *= tilt_angle_sp; // the norm of v defines the tilt angle
+
+		matrix::Quatf q_sp_rpy = matrix::AxisAnglef(v(0), v(1), 0.f);
+		// The axis angle can change the yaw as well (but only at higher tilt angles).
+		// This the the formula by how much the yaw changes:
+		//   let a := tilt angle, b := atan(y/x) (direction of maximum tilt)
+		//   yaw = atan(-2 * sin(b) * cos(b) * sin^2(a/2) / (1 - 2 * cos^2(b) * sin^2(a/2))).
+		matrix::Eulerf euler_sp = q_sp_rpy;
+		// Since the yaw setpoint is integrated, we extract the offset here,
+		// so that we can remove it before the next iteration
+		_man_yaw_offset = euler_sp(2);
+
+		// update the setpoints
+		_att_sp.roll_body = euler_sp(0);
+		_att_sp.pitch_body = euler_sp(1);
+		_att_sp.yaw_body += euler_sp(2);
 
 		/* only if optimal recovery is not used, modify roll/pitch */
 		if (_params.opt_recover <= 0) {
@@ -2823,6 +2879,10 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 			// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
 			// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
 			// heading of the vehicle.
+			// The effect of that can be seen with:
+			// - roll/pitch into one direction, keep it fixed (at high angle)
+			// - apply a fast yaw rotation
+			// - look at the roll and pitch angles: they should stay pretty much the same as when not yawing
 
 			// calculate our current yaw error
 			float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
