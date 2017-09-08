@@ -249,35 +249,15 @@
 
 /*
  * I2C
- *
- * Peripheral   Port     Signal Name               CONN
- * I2C1_SDA     PB9     I2C1_SDA                  J2-4,9,16,21 mpu6050, U4 MS6507
- * I2C1_SDL     PB8     I2C1_SCL                  J2-3,10,15,22 mpu6050, U4 MS6507
- * I2C2_SDA     PB11    Sonar Echo/I2C_SDA        JP2-31,32
- * I2C2_SDL     PB10    Sonar Trig/I2C_SCL        JP2-29,30
- * I2C3_SDA     PC9     COMPASS_I2C3_SDA          JP1-27,28
- * I2C3_SDL     PA8     COMPASS_I2C3_SCL          JP1-25,26
- *
- * The optional _GPIO configurations allow the I2C driver to manually
- * reset the bus to clear stuck slaves.  They match the pin configuration,
- * but are normally-high GPIOs.
  */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_2
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2
-
-#define GPIO_I2C2_SDA GPIO_I2C2_SDA_1
-#define GPIO_I2C2_SCL GPIO_I2C2_SCL_1
 
 #define GPIO_I2C3_SDA		GPIO_I2C3_SDA_1
 #define GPIO_I2C3_SCL		GPIO_I2C3_SCL_1
 
 /*
  * SPI
- *
- * Peripheral   Port     Signal Name               CONN
- * SPI2_NSS       PB12    SD_SPI2_NSS               SD-2 CS
- * TBD
- *
  */
 
 #define GPIO_SPI1_NSS   (GPIO_SPI1_NSS_2  | GPIO_SPEED_50MHz)
