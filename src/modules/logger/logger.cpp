@@ -1896,9 +1896,9 @@ void Logger::write_version()
 		param_get(write_uuid_param, &write_uuid);
 
 		if (write_uuid == 1) {
-			char uuid_string[PX4_CPU_UUID_WORD32_FORMAT_SIZE];
-			board_get_uuid32_formated(uuid_string, sizeof(uuid_string), "%08X", NULL);
-			write_info("sys_uuid", uuid_string);
+			char px4_uuid_string[PX4_GUID_FORMAT_SIZE];
+			board_get_px4_guid_formated(px4_uuid_string, sizeof(px4_uuid_string));
+			write_info("sys_uuid", px4_uuid_string);
 		}
 	}
 #endif /* BOARD_HAS_NO_UUID */
