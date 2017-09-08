@@ -309,7 +309,7 @@ protected:
 
 public:
 
-	BMI055(const char *name, const char *devname, int bus, enum spi_dev_e device, enum spi_mode_e mode, uint32_t frequency,
+	BMI055(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency,
 	       enum Rotation rotation);
 	virtual ~BMI055();
 
@@ -321,7 +321,7 @@ public:
 class BMI055_accel : public BMI055
 {
 public:
-	BMI055_accel(int bus, const char *path_accel, spi_dev_e device, enum Rotation rotation);
+	BMI055_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation);
 	virtual ~BMI055_accel();
 
 	virtual int     init();
@@ -484,7 +484,7 @@ private:
 class BMI055_gyro : public BMI055
 {
 public:
-	BMI055_gyro(int bus, const char *path_gyro, spi_dev_e device, enum Rotation rotation);
+	BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation);
 	virtual ~BMI055_gyro();
 
 	virtual int     init();

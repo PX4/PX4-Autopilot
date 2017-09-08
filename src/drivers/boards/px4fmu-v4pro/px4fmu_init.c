@@ -54,7 +54,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/arch.h>
+#include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -524,14 +524,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi2, 20 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	SPI_SELECT(spi2, SPIDEV_FLASH, false);
+	SPI_SELECT(spi2, SPIDEV_FLASH(0), false);
 
 	/* Configure SPI 5-based devices */
 
-	spi5 = stm32_spibus_initialize(PX4_SPI_EXT0);
+	spi5 = stm32_spibus_initialize(PX4_SPI_BUS_EXT0);
 
 	if (!spi5) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_EXT0);
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT0);
 		board_autoled_on(LED_RED);
 		return -ENODEV;
 	}
@@ -544,10 +544,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure SPI 6-based devices */
 
-	spi6 = stm32_spibus_initialize(PX4_SPI_EXT1);
+	spi6 = stm32_spibus_initialize(PX4_SPI_BUS_EXT1);
 
 	if (!spi6) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_EXT1);
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT1);
 		board_autoled_on(LED_RED);
 		return -ENODEV;
 	}

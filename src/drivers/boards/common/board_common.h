@@ -54,7 +54,7 @@
  *  A board provides SPI bus definitions and a set of buses that should be
  *  enumerated as well as chip selects that will be interatorable
  *
- * We will use these in macros place of the spi_dev_e enumeration to select a
+ * We will use these in macros place of the uint32_t enumeration to select a
  * specific SPI device on given SPI1 bus.
  *
  * These macros will define BUS:DEV For clarity and indexing
@@ -88,10 +88,13 @@
  *
  *
  */
+#define PX4_SPIDEV_ID(type, index)  ((((type) & 0xffff) << 16) | ((index) & 0xffff))
 
-#define PX4_MK_SPI_SEL(b,d)       ((((b) & 0xf) << 4) + ((d) & 0xf))
-#define PX4_SPI_BUS_ID(bd)        (((bd) >> 4) & 0xf)
-#define PX4_SPI_DEV_ID(bd)        ((bd) & 0xf)
+#define PX4_SPI_DEVICE_ID         (1 << 12)
+#define PX4_MK_SPI_SEL(b,d)       PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, ((((b) & 0xff) << 8) | ((d) & 0xff)))
+#define PX4_SPI_BUS_ID(devid)     (((devid) >> 8) & 0xff)
+#define PX4_SPI_DEV_ID(devid)     ((devid) & 0xff)
+#define PX4_CHECK_ID(devid)       ((devid) & PX4_SPI_DEVICE_ID)
 
 /* I2C PX4 clock configuration
  *
@@ -263,6 +266,26 @@
 #  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
 #  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
 #  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
+#endif
+
+/* Provide an interface for reading the connected state of VBUS */
+
+/************************************************************************************
+ * Name: board_read_VBUS_state
+ *
+ * Description:
+ *   All boards must provide a way to read the state of VBUS, this my be simple
+ *   digital input on a GPIO. Or something more complicated like a Analong input
+ *   or reading a bit from a USB controller register.
+ *
+ * Returns -  0 if connected.
+ *
+ ************************************************************************************/
+
+#if defined(GPIO_OTGFS_VBUS)
+#  define board_read_VBUS_state() (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1)
+#else
+int board_read_VBUS_state(void);
 #endif
 
 /************************************************************************************
@@ -483,7 +506,6 @@ __EXPORT int board_get_hw_revision(void);
  *   BOARD_OVERRIDE_UUID as an array of bytes that is PX4_CPU_UUID_BYTE_LENGTH
  *
  ************************************************************************************/
-
 __EXPORT void board_get_uuid(uuid_byte_t uuid_bytes);
 
 /************************************************************************************

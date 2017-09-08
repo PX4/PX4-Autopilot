@@ -123,7 +123,7 @@ extern "C" { __EXPORT int bma180_main(int argc, char *argv[]); }
 class BMA180 : public device::SPI
 {
 public:
-	BMA180(int bus, spi_dev_e device);
+	BMA180(int bus, uint32_t device);
 	virtual ~BMA180();
 
 	virtual int		init();
@@ -229,7 +229,7 @@ private:
 	int			set_lowpass(unsigned frequency);
 };
 
-BMA180::BMA180(int bus, spi_dev_e device) :
+BMA180::BMA180(int bus, uint32_t device) :
 	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, 8000000),
 	_call_interval(0),
 	_reports(nullptr),
@@ -787,7 +787,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new BMA180(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_BMA);
+	g_dev = new BMA180(1 /* XXX magic number */, PX4_SPIDEV_BMA);
 
 	if (g_dev == nullptr) {
 		goto fail;

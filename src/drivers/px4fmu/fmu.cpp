@@ -103,6 +103,18 @@
 #define BUTTON_SAFETY	px4_arch_gpioread(GPIO_BTN_SAFETY)
 #define CYCLE_COUNT 10			/* safety switch must be held for 1 second to activate */
 
+#if defined(PX4_CPU_UUID_WORD32_FORMAT)
+#  define CPU_UUID_FORMAT PX4_CPU_UUID_WORD32_FORMAT
+#else
+#  define CPU_UUID_FORMAT "%0X"
+#endif
+
+#if defined(PX4_CPU_UUID_WORD32_SEPARATOR)
+#  define CPU_UUID_SEPARATOR PX4_CPU_UUID_WORD32_SEPARATOR
+#else
+#  define CPU_UUID_SEPARATOR " "
+#endif
+
 /*
  * Define the various LED flash sequences for each system state.
  */
@@ -148,6 +160,7 @@ public:
 		MODE_4PWM,
 		MODE_6PWM,
 		MODE_8PWM,
+		MODE_14PWM,
 		MODE_4CAP,
 		MODE_5CAP,
 		MODE_6CAP,
@@ -740,6 +753,21 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_mask = 0xff;
 		_pwm_initialized = false;
 		_num_outputs = 8;
+
+		break;
+#endif
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	case MODE_14PWM:
+		DEVICE_DEBUG("MODE_14PWM");
+		/* default output rates */
+		_pwm_default_rate = 50;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0x3fff;
+		_pwm_initialized = false;
+		_num_outputs = 14;
 
 		break;
 #endif
@@ -1901,6 +1929,9 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 	case MODE_8PWM:
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+	case MODE_14PWM:
+#endif
 		ret = pwm_ioctl(filp, cmd, arg);
 		break;
 
@@ -2198,6 +2229,20 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	case PWM_SERVO_SET(13):
+	case PWM_SERVO_SET(12):
+	case PWM_SERVO_SET(11):
+	case PWM_SERVO_SET(10):
+	case PWM_SERVO_SET(9):
+	case PWM_SERVO_SET(8):
+		if (_mode < MODE_14PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case PWM_SERVO_SET(7):
@@ -2251,6 +2296,20 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		break;
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	case PWM_SERVO_GET(13):
+	case PWM_SERVO_GET(12):
+	case PWM_SERVO_GET(11):
+	case PWM_SERVO_GET(10):
+	case PWM_SERVO_GET(9):
+	case PWM_SERVO_GET(8):
+		if (_mode < MODE_14PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	/* FALLTHROUGH */
@@ -2307,12 +2366,27 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(6):
 	case PWM_SERVO_GET_RATEGROUP(7):
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+	case PWM_SERVO_GET_RATEGROUP(8):
+	case PWM_SERVO_GET_RATEGROUP(9):
+	case PWM_SERVO_GET_RATEGROUP(10):
+	case PWM_SERVO_GET_RATEGROUP(11):
+	case PWM_SERVO_GET_RATEGROUP(12):
+	case PWM_SERVO_GET_RATEGROUP(13):
+#endif
 		*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
 		break;
 
 	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+		case MODE_14PWM:
+			*(unsigned *)arg = 14;
+			break;
+#endif
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
@@ -2579,7 +2653,7 @@ ssize_t
 PX4FMU::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	uint16_t values[8];
+	uint16_t values[len];
 
 #if BOARD_HAS_PWM == 0
 	return 0;
@@ -3008,6 +3082,9 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 8
 		servo_mode = PX4FMU::MODE_8PWM;
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 14
+		servo_mode = PX4FMU::MODE_14PWM;
 #endif
 		break;
 

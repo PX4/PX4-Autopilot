@@ -264,7 +264,7 @@ __EXPORT uint32_t		latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 /* timer-specific functions */
 static void		hrt_tim_init(void);
-static int		hrt_tim_isr(int irq, void *context);
+static int		hrt_tim_isr(int irq, void *context, void *arg);
 static void		hrt_latency_update(void);
 
 /* callout list manipulation */
@@ -410,7 +410,7 @@ static void
 hrt_tim_init(void)
 {
 	/* claim our interrupt vector */
-	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr);
+	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr, NULL);
 
 	/* clock/power on our timer */
 	modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
@@ -605,7 +605,7 @@ error:
  * and then re-scheduling the next deadline.
  */
 static int
-hrt_tim_isr(int irq, void *context)
+hrt_tim_isr(int irq, void *context, void *arg)
 {
 	uint32_t status;
 

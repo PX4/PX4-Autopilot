@@ -37,7 +37,7 @@
  */
 
 #include <px4_config.h>
-#include <nuttx/arch.h>
+#include "platform/cxxinitialize.h"
 
 #include <stdio.h>	// required for task_create
 #include <stdbool.h>

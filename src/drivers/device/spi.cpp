@@ -47,7 +47,6 @@
 
 #include <px4_config.h>
 #include <nuttx/arch.h>
-#include <stm32_spi.h>
 #include "spi.h"
 
 #ifndef CONFIG_SPI_EXCHANGE
@@ -60,7 +59,7 @@ namespace device
 SPI::SPI(const char *name,
 	 const char *devname,
 	 int bus,
-	 enum spi_dev_e device,
+	 uint32_t device,
 	 enum spi_mode_e mode,
 	 uint32_t frequency,
 	 int irq) :
@@ -125,7 +124,7 @@ SPI::init()
 	}
 
 	/* tell the workd where we are */
-	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", _bus, _device, _frequency / 1000);
+	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", _bus, PX4_SPI_DEV_ID(_device), _frequency / 1000);
 
 out:
 	return ret;
