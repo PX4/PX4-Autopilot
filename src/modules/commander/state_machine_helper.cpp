@@ -72,7 +72,6 @@ static const char reason_no_rc[] = "no RC";
 static const char reason_no_offboard[] = "no offboard";
 static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
 static const char reason_no_gps[] = "no gps";
-static const char reason_no_gps_cmd[] = "no gps cmd";
 static const char reason_no_local_position[] = "no local position";
 static const char reason_no_global_position[] = "no global position";
 static const char reason_no_datalink[] = "no datalink";
@@ -518,6 +517,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 
 				if (hitl_on) {
 					mavlink_log_info(mavlink_log_pub, "Enabled Hardware-in-the-loop simulation.");
+
 				} else {
 					mavlink_log_critical(mavlink_log_pub, "Set parameter SYS_HITL to 1 before starting HITL.");
 					ret = TRANSITION_DENIED;
@@ -648,6 +648,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, !(posctl_nav_loss_act == 1), !status->is_rotary_wing)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 			}
@@ -669,20 +670,21 @@ bool set_nav_state(struct vehicle_status_s *status,
 		} else if (status_flags->data_link_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
 
-		} else if (status_flags->gps_failure_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps_cmd);
-
 		} else if (status_flags->rc_signal_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
 
 		} else if (status_flags->vtol_transition_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-			/* finished handling commands which have priority, now handle failures */
+		} else if (status_flags->gps_failure || status_flags->gps_failure_cmd) {
+			if (status->is_rotary_wing) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
-		} else if (status_flags->gps_failure) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			} else {
+				// TODO: FW position controller doesn't run without condition_global_position_valid
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+			}
+
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
@@ -696,28 +698,24 @@ bool set_nav_state(struct vehicle_status_s *status,
 		} else if (status->mission_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
+		} else if (data_link_loss_act_configured && status->data_link_lost) {
 			/* datalink loss enabled:
 			 * check for datalink lost: this should always trigger RTGS */
-
-		} else if (data_link_loss_act_configured && status->data_link_lost) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
 			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
 
+		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
+			   && mission_finished) {
 			/* datalink loss DISABLED:
 			 * check if both, RC and datalink are lost during the mission
 			 * or all links are lost after the mission finishes in air: this should always trigger RCRECOVER */
-
-		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
-			   && mission_finished) {
-
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
 			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
 
-			/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
-
 		} else if (!stay_in_failsafe) {
+			/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 		}
 
@@ -730,28 +728,31 @@ bool set_nav_state(struct vehicle_status_s *status,
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (status_flags->gps_failure) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			if (status->is_rotary_wing) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+			} else {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+			}
+
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
-			/* also go into failsafe if just datalink is lost, and we're actually in air */
-
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
-
+			/* also go into failsafe if just datalink is lost, and we're actually in air */
 			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
 
-			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
 		} else if (rc_lost && !data_link_loss_act_configured) {
+			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
 
-			/* don't bother if RC is lost if datalink is connected */
-
 		} else if (status->rc_signal_lost) {
+			/* don't bother if RC is lost if datalink is connected */
 
 			/* this mode is ok, we don't need RC for LOITERing */
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
@@ -771,7 +772,14 @@ bool set_nav_state(struct vehicle_status_s *status,
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (status_flags->gps_failure) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			if (status->is_rotary_wing) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+			} else {
+				// TODO: FW position controller doesn't run without condition_global_position_valid
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+			}
+
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
@@ -857,7 +865,13 @@ bool set_nav_state(struct vehicle_status_s *status,
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 				} else if (status_flags->condition_local_altitude_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+					if (status->is_rotary_wing) {
+						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+					} else {
+						// TODO: FW position controller doesn't run without condition_global_position_valid
+						status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+					}
 
 				} else {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
@@ -890,7 +904,13 @@ bool set_nav_state(struct vehicle_status_s *status,
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 				} else if (status_flags->condition_local_altitude_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+					if (status->is_rotary_wing) {
+						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+					} else {
+						// TODO: FW position controller doesn't run without condition_global_position_valid
+						status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+					}
 
 				} else {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
@@ -901,7 +921,13 @@ bool set_nav_state(struct vehicle_status_s *status,
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 				} else if (status_flags->condition_local_altitude_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+					if (status->is_rotary_wing) {
+						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+					} else {
+						// TODO: FW position controller doesn't run without condition_global_position_valid
+						status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+					}
 
 				} else {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
@@ -948,17 +974,27 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 			// fallback to a mode that gives the operator stick control
 			if (status->is_rotary_wing && status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+
 			} else if (status_flags->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_STAB;
 			}
+
 		} else {
 			// go into a descent that does not require stick control
 			if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
 			} else  if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+				if (status->is_rotary_wing) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+				} else {
+					// TODO: FW position controller doesn't run without condition_global_position_valid
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+				}
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
@@ -966,6 +1002,7 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 
 		if (using_global_pos) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_global_position);
+
 		} else {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_local_position);
 		}
@@ -1026,7 +1063,13 @@ void set_link_loss_nav_state(vehicle_status_s *status,
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 	} else if (status_flags->condition_local_altitude_valid) {
-		status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+		if (status->is_rotary_wing) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+		} else {
+			// TODO: FW position controller doesn't run without condition_global_position_valid
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+		}
 
 	} else {
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
