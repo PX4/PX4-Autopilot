@@ -251,8 +251,8 @@ private:
 		float vel_max_down;
 		float slow_land_alt1;
 		float slow_land_alt2;
-		uint32_t alt_mode;
-		int opt_recover;
+		int32_t alt_mode;
+		int32_t opt_recover;
 		float rc_flt_smp_rate;
 		float rc_flt_cutoff;
 
@@ -596,7 +596,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.tilt_max_land = math::radians(_params.tilt_max_land);
 
 		float v;
-		uint32_t v_i;
+		int32_t v_i;
 		param_get(_params_handles.xy_p, &v);
 		_params.pos_p(0) = v;
 		_params.pos_p(1) = v;
@@ -651,9 +651,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
-		int i;
-		param_get(_params_handles.opt_recover, &i);
-		_params.opt_recover = i;
+		param_get(_params_handles.opt_recover, &_params.opt_recover);
 
 		/* mc attitude control parameters*/
 		/* manual control scale */
