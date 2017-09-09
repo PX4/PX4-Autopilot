@@ -363,6 +363,11 @@ cppcheck: posix_sitl_default
 	@cppcheck -i$(SRC_DIR)/src/examples --std=c++11 --std=c99 --std=posix --project=build_posix_sitl_default/compile_commands.json --xml-version=2 2> cppcheck-result.xml
 	@cppcheck-htmlreport --source-encoding=ascii --file=cppcheck-result.xml --report-dir=cppcheck --source-dir=$(SRC_DIR)/src/
 
+check_stack: px4fmu-v3_default
+	@echo "Checking worst case stack usage..."
+	@cd build_px4fmu-v3_default/ && mkdir -p stack_usage && $(SRC_DIR)/Tools/avstack.pl `find . -name *.obj` > stack_usage/wca_stack_usage.txt 2> stack_usage/wca_stack_usage_errors.txt
+	@head -n 20 build_px4fmu-v3_default/stack_usage/wca_stack_usage.txt
+
 # Cleanup
 # --------------------------------------------------------------------
 .PHONY: clean submodulesclean distclean
