@@ -1928,12 +1928,6 @@ PX4IO::io_publish_raw_rc()
 int
 PX4IO::io_publish_pwm_outputs()
 {
-	/* data we are going to fetch */
-	actuator_outputs_s outputs = {};
-	multirotor_motor_limits_s motor_limits;
-
-	outputs.timestamp = hrt_absolute_time();
-
 	/* get servo values from IO */
 	uint16_t ctl[_max_actuators];
 	int ret = io_reg_get(PX4IO_PAGE_SERVOS, 0, ctl, _max_actuators);
@@ -1942,38 +1936,33 @@ PX4IO::io_publish_pwm_outputs()
 		return ret;
 	}
 
+	actuator_outputs_s outputs = {};
+	outputs.timestamp = hrt_absolute_time();
+	outputs.noutputs = _max_actuators;
+
 	/* convert from register format to float */
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		outputs.output[i] = ctl[i];
 	}
 
-	outputs.noutputs = _max_actuators;
-
-	/* lazily advertise on first publication */
-	if (_to_outputs == nullptr) {
-		int instance;
-		_to_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
-						  &outputs, &instance, ORB_PRIO_MAX);
-
-	} else {
-		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
-	}
+	int instance;
+	orb_publish_auto(ORB_ID(actuator_outputs), &_to_outputs, &outputs, &instance, ORB_PRIO_DEFAULT);
 
 	/* get mixer status flags from IO */
-	uint16_t mixer_status;
-	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &mixer_status, sizeof(mixer_status) / sizeof(uint16_t));
-	motor_limits.saturation_status = mixer_status;
+	MultirotorMixer::saturation_status saturation_status;
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &saturation_status.value, 1);
 
 	if (ret != OK) {
 		return ret;
 	}
 
 	/* publish mixer status */
-	if (_to_mixer_status == nullptr) {
-		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
+	if (saturation_status.flags.valid) {
+		multirotor_motor_limits_s motor_limits;
+		motor_limits.timestamp = hrt_absolute_time();
+		motor_limits.saturation_status = saturation_status.value;
 
-	} else {
-		orb_publish(ORB_ID(multirotor_motor_limits), _to_mixer_status, &motor_limits);
+		orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
 	}
 
 	return OK;

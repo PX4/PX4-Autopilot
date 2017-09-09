@@ -184,7 +184,7 @@ NullMixer::NullMixer() :
 }
 
 unsigned
-NullMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
+NullMixer::mix(float *outputs, unsigned space)
 {
 	if (space > 0) {
 		*outputs = 0.0f;

@@ -40,7 +40,6 @@ px4_add_module(
 		px4io_uploader.cpp
 		px4io_serial.cpp
 		px4io_i2c.cpp
-		px4io_params.c
 	DEPENDS
 		platforms__common
 	)

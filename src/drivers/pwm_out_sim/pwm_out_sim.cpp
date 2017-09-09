@@ -474,7 +474,7 @@ PWMSim::task_main()
 			}
 
 			/* do mixing */
-			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, nullptr);
+			num_outputs = _mixers->mix(&outputs.output[0], num_outputs);
 			outputs.noutputs = num_outputs;
 			outputs.timestamp = hrt_absolute_time();
 

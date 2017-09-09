@@ -337,9 +337,7 @@ void task_main(int argc, char *argv[])
 				int16_t motor_rpms[UART_ESC_MAX_MOTORS];
 
 				if (_armed.armed) {
-					_outputs.noutputs = mixer->mix(&_outputs.output[0],
-								       actuator_controls_s::NUM_ACTUATOR_CONTROLS,
-								       NULL);
+					_outputs.noutputs = mixer->mix(&_outputs.output[0], actuator_controls_s::NUM_ACTUATOR_CONTROLS);
 
 					// Make sure we support only up to UART_ESC_MAX_MOTORS motors
 					if (_outputs.noutputs > UART_ESC_MAX_MOTORS) {

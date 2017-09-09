@@ -131,8 +131,6 @@
 #include <px4_config.h>
 #include "drivers/drv_mixer.h"
 
-#include <uORB/topics/multirotor_motor_limits.h>
-
 #include "mixer_load.h"
 
 /**
@@ -174,12 +172,12 @@ public:
 	 * @param space			The number of available entries in the output array;
 	 * @return			The number of entries in the output array that were populated.
 	 */
-	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg) = 0;
+	virtual unsigned		mix(float *outputs, unsigned space) = 0;
 
 	/**
 	 * Get the saturation status.
 	 *
-	 * @return			Integer bitmask containing saturation_status from multirotor_motor_limits.msg .
+	 * @return			Integer bitmask containing saturation_status from multirotor_motor_limits.msg.
 	 */
 	virtual uint16_t		get_saturation_status(void) = 0;
 
@@ -284,7 +282,7 @@ public:
 	MixerGroup(ControlCallback control_cb, uintptr_t cb_handle);
 	~MixerGroup();
 
-	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
+	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
 
@@ -425,7 +423,7 @@ public:
 	 */
 	static NullMixer		*from_text(const char *buf, unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
+	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
 	virtual void 			set_offset(float trim) {}
@@ -490,14 +488,10 @@ public:
 	 * @return			A new SimpleMixer instance, or nullptr if one could not be
 	 *				allocated.
 	 */
-	static SimpleMixer		*pwm_input(Mixer::ControlCallback control_cb,
-			uintptr_t cb_handle,
-			unsigned input,
-			uint16_t min,
-			uint16_t mid,
-			uint16_t max);
+	static SimpleMixer		*pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
+			uint16_t mid, uint16_t max);
 
-	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
+	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
 
@@ -599,12 +593,10 @@ public:
 	 * @return			A new MultirotorMixer instance, or nullptr
 	 *				if the text format is bad.
 	 */
-	static MultirotorMixer		*from_text(Mixer::ControlCallback control_cb,
-			uintptr_t cb_handle,
-			const char *buf,
+	static MultirotorMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
 			unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
+	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
 
@@ -618,7 +610,7 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	virtual void 			set_max_delta_out_once(float delta_out_max) {_delta_out_max = delta_out_max;}
+	virtual void 			set_max_delta_out_once(float delta_out_max) { _delta_out_max = delta_out_max; }
 
 	unsigned set_trim(float trim)
 	{
@@ -632,6 +624,23 @@ public:
 	 */
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
+	union saturation_status {
+		struct {
+			uint16_t valid		: 1; // 0 - true when the saturation status is used
+			uint16_t motor_pos	: 1; // 1 - true when any motor has saturated in the positive direction
+			uint16_t motor_neg	: 1; // 2 - true when any motor has saturated in the negative direction
+			uint16_t roll_pos	: 1; // 3 - true when a positive roll demand change will increase saturation
+			uint16_t roll_neg	: 1; // 4 - true when a negative roll demand change will increase saturation
+			uint16_t pitch_pos	: 1; // 5 - true when a positive pitch demand change will increase saturation
+			uint16_t pitch_neg	: 1; // 6 - true when a negative pitch demand change will increase saturation
+			uint16_t yaw_pos	: 1; // 7 - true when a positive yaw demand change will increase saturation
+			uint16_t yaw_neg	: 1; // 8 - true when a negative yaw demand change will increase saturation
+			uint16_t thrust_pos	: 1; // 9 - true when a positive thrust demand change will increase saturation
+			uint16_t thrust_neg	: 1; //10 - true when a negative thrust demand change will increase saturation
+		} flags;
+		uint16_t value;
+	};
+
 private:
 	float				_roll_scale;
 	float				_pitch_scale;
@@ -640,27 +649,8 @@ private:
 	float 				_delta_out_max;
 	float 				_thrust_factor;
 
-
-	orb_advert_t			_limits_pub;
-	multirotor_motor_limits_s 	_limits;
-
-	union {
-		struct {
-			uint16_t motor_pos	: 1; // 0 - true when any motor has saturated in the positive direction
-			uint16_t motor_neg	: 1; // 1 - true when any motor has saturated in the negative direction
-			uint16_t roll_pos	: 1; // 2 - true when a positive roll demand change will increase saturation
-			uint16_t roll_neg	: 1; // 3 - true when a negative roll demand change will increase saturation
-			uint16_t pitch_pos	: 1; // 4 - true when a positive pitch demand change will increase saturation
-			uint16_t pitch_neg	: 1; // 5 - true when a negative pitch demand change will increase saturation
-			uint16_t yaw_pos	: 1; // 6 - true when a positive yaw demand change will increase saturation
-			uint16_t yaw_neg	: 1; // 7 - true when a negative yaw demand change will increase saturation
-			uint16_t thrust_pos	: 1; // 8 - true when a positive thrust demand change will increase saturation
-			uint16_t thrust_neg	: 1; // 9 - true when a negative thrust demand change will increase saturation
-		} flags;
-		uint16_t value;
-	} _saturation_status;
-
 	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
+	saturation_status _saturation_status;
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
@@ -729,15 +719,14 @@ public:
 	 * @return			A new HelicopterMixer instance, or nullptr
 	 *				if the text format is bad.
 	 */
-	static HelicopterMixer		*from_text(Mixer::ControlCallback control_cb,
-			uintptr_t cb_handle,
-			const char *buf,
+	static HelicopterMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
 			unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
+	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual void			groups_required(uint32_t &groups);
 
 	virtual uint16_t		get_saturation_status(void) { return 0; }
+
 	unsigned set_trim(float trim)
 	{
 		return 4;

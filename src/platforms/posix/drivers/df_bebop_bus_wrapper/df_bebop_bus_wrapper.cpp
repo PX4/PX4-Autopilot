@@ -377,9 +377,7 @@ void task_main(int argc, char *argv[])
 
 			if (_mixers != nullptr) {
 				/* do mixing */
-				_outputs.noutputs = _mixers->mix(_outputs.output,
-								 4,
-								 NULL);
+				_outputs.noutputs = _mixers->mix(_outputs.output, 4);
 			}
 
 			// Set last throttle for battery calculations

@@ -299,9 +299,7 @@ void task_main(int argc, char *argv[])
 		if (_mixer_group != nullptr) {
 			_outputs.timestamp = hrt_absolute_time();
 			/* do mixing */
-			_outputs.noutputs = _mixer_group->mix(_outputs.output,
-							      actuator_outputs_s::NUM_ACTUATOR_OUTPUTS,
-							      NULL);
+			_outputs.noutputs = _mixer_group->mix(_outputs.output, actuator_outputs_s::NUM_ACTUATOR_OUTPUTS);
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = _outputs.noutputs; i < _outputs.NUM_ACTUATOR_OUTPUTS; i++) {
