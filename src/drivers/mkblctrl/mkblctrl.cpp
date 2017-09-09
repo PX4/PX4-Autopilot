@@ -539,7 +539,7 @@ MK::task_main()
 				if (_mixers != nullptr) {
 
 					/* do mixing */
-					outputs.noutputs = _mixers->mix(&outputs.output[0], _num_outputs, NULL);
+					outputs.noutputs = _mixers->mix(&outputs.output[0], _num_outputs);
 					outputs.timestamp = hrt_absolute_time();
 
 					/* iterate actuators */

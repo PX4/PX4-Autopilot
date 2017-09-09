@@ -655,7 +655,7 @@ TAP_ESC::cycle()
 		if (_is_armed && _mixers != nullptr) {
 
 			/* do mixing */
-			num_outputs = _mixers->mix(&_outputs.output[0], num_outputs, NULL);
+			num_outputs = _mixers->mix(&_outputs.output[0], num_outputs);
 			_outputs.noutputs = num_outputs;
 			_outputs.timestamp = hrt_absolute_time();
 
