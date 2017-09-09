@@ -91,11 +91,7 @@ enum mixer_source {
 
 static volatile mixer_source source;
 
-static int	mixer_callback(uintptr_t handle,
-			       uint8_t control_group,
-			       uint8_t control_index,
-			       float &control);
-
+static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
 static int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits);
 
 static MixerGroup mixer_group(mixer_callback, 0);
@@ -107,10 +103,9 @@ int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits)
 		return 0;
 	}
 
-	uint16_t mixer_limits = 0;
 	in_mixer = true;
-	int mixcount = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &mixer_limits);
-	*limits = mixer_limits;
+	int mixcount = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+	*limits = mixer_group.get_saturation_status();
 	in_mixer = false;
 
 	return mixcount;
@@ -600,7 +595,6 @@ mixer_set_failsafe()
 	}
 
 	/* mix */
-
 	mixed = mixer_mix_threadsafe(&outputs[0], &r_mixer_limits);
 
 	/* scale to PWM and update the servo outputs as required */

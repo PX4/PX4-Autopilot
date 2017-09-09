@@ -402,9 +402,7 @@ void task_main(int argc, char *argv[])
 		_outputs.timestamp = hrt_absolute_time();
 
 		/* do  mixing for virtual control group */
-		_outputs.noutputs = _mixer->mix(_outputs.output,
-						_outputs.NUM_ACTUATOR_OUTPUTS,
-						NULL);
+		_outputs.noutputs = _mixer->mix(_outputs.output, _outputs.NUM_ACTUATOR_OUTPUTS);
 
 		//set max, min and disarmed pwm
 		const uint16_t reverse_mask = 0;
