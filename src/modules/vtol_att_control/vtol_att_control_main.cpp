@@ -76,6 +76,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_manual_control_sp_sub(-1),
 	_armed_sub(-1),
 	_local_pos_sub(-1),
+	_control_state_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_airspeed_sub(-1),
 	_battery_status_sub(-1),
@@ -110,6 +111,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_actuators_fw_in, 0, sizeof(_actuators_fw_in));
 	memset(&_armed, 0, sizeof(_armed));
 	memset(&_local_pos, 0, sizeof(_local_pos));
+	memset(&_control_state, 0, sizeof(_control_state));
 	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
 	memset(&_airspeed, 0, sizeof(_airspeed));
 	memset(&_batt_status, 0, sizeof(_batt_status));
@@ -371,6 +373,23 @@ VtolAttitudeControl::vehicle_local_pos_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+	}
+
+}
+
+
+/**
+* Check for control state updates.
+*/
+void
+VtolAttitudeControl::control_state_poll()
+{
+	bool updated;
+	/* Check if parameters have changed */
+	orb_check(_control_state_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(control_state), _control_state_sub, &_control_state);
 	}
 
 }
@@ -668,6 +687,7 @@ void VtolAttitudeControl::task_main()
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_armed_sub             = orb_subscribe(ORB_ID(actuator_armed));
 	_local_pos_sub         = orb_subscribe(ORB_ID(vehicle_local_position));
+	_control_state_sub     = orb_subscribe(ORB_ID(control_state));
 	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_battery_status_sub	   = orb_subscribe(ORB_ID(battery_status));
@@ -757,6 +777,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_rates_sp_fw_poll();
 		parameters_update_poll();
 		vehicle_local_pos_poll();			// Check for new sensor values
+		control_state_poll();
 		pos_sp_triplet_poll();
 		vehicle_airspeed_poll();
 		vehicle_battery_poll();

@@ -208,11 +208,10 @@ void Standard::update_vtol_state()
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed
 			// XXX: base this on XY hold velocity of MC
-			float vel = sqrtf(_local_pos->vx * _local_pos->vx + _local_pos->vy * _local_pos->vy);
-
 			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
 			    (_params_standard.back_trans_dur * 1000000.0f) ||
-			    (_local_pos->v_xy_valid && vel <= _params_standard.mpc_xy_cruise)) {
+			    (_local_pos->v_xy_valid && _control_state->x_vel <= _params_standard.mpc_xy_cruise)) {
+
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
 
