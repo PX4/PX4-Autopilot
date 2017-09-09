@@ -365,11 +365,18 @@ cppcheck: posix_sitl_default
 
 check_stack: px4fmu-v3_default
 	@echo "Checking worst case stack usage with avstack.pl ..."
+	@echo " "
 	@cd build_px4fmu-v3_default/ && mkdir -p stack_usage && $(SRC_DIR)/Tools/avstack.pl `find . -name *.obj` > stack_usage/avstack_output.txt 2> stack_usage/avstack_errors.txt
-	@head -n 30 build_px4fmu-v3_default/stack_usage/avstack_output.txt | c++filt
+	@head -n 10 build_px4fmu-v3_default/stack_usage/avstack_output.txt | c++filt
+	@echo " "
 	@echo "Checking worst case stack usage with checkstack.pl ..."
+	@echo " "
+	@echo "Top 10:"
 	@cd build_px4fmu-v3_default/ && mkdir -p stack_usage && arm-none-eabi-objdump -d src/firmware/nuttx/firmware_nuttx | $(SRC_DIR)/Tools/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
-	@head -n 30 build_px4fmu-v3_default/stack_usage/checkstack_output.txt | c++filt
+	@head -n 10 build_px4fmu-v3_default/stack_usage/checkstack_output.txt | c++filt
+	@echo " "
+	@echo "Symbols with 'main', 'thread' or 'task':"
+	@cat build_px4fmu-v3_default/stack_usage/checkstack_output.txt | c++filt | grep -E 'thread|main|task'
 
 # Cleanup
 # --------------------------------------------------------------------
