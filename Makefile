@@ -364,9 +364,12 @@ cppcheck: posix_sitl_default
 	@cppcheck-htmlreport --source-encoding=ascii --file=cppcheck-result.xml --report-dir=cppcheck --source-dir=$(SRC_DIR)/src/
 
 check_stack: px4fmu-v3_default
-	@echo "Checking worst case stack usage..."
-	@cd build_px4fmu-v3_default/ && mkdir -p stack_usage && $(SRC_DIR)/Tools/avstack.pl `find . -name *.obj` > stack_usage/wca_stack_usage.txt 2> stack_usage/wca_stack_usage_errors.txt
-	@head -n 20 build_px4fmu-v3_default/stack_usage/wca_stack_usage.txt
+	@echo "Checking worst case stack usage with avstack.pl ..."
+	@cd build_px4fmu-v3_default/ && mkdir -p stack_usage && $(SRC_DIR)/Tools/avstack.pl `find . -name *.obj` > stack_usage/avstack_output.txt 2> stack_usage/avstack_errors.txt
+	@head -n 30 build_px4fmu-v3_default/stack_usage/avstack_output.txt
+	@echo "Checking worst case stack usage with checkstack.pl ..."
+	@cd build_px4fmu-v3_default/ && mkdir -p stack_usage && arm-none-eabi-objdump -d src/firmware/nuttx/firmware_nuttx | $(SRC_DIR)/Tools/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
+	@head -n 30 build_px4fmu-v3_default/stack_usage/checkstack_output.txt
 
 # Cleanup
 # --------------------------------------------------------------------
