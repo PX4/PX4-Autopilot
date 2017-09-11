@@ -987,8 +987,8 @@ HMC5883::collect()
 	 * to align the sensor axes with the board, x and y need to be flipped
 	 * and y needs to be negated
 	 */
-	new_report.x_raw = report.y;
-	new_report.y_raw = -report.x;
+	new_report.x_raw = -report.y;
+	new_report.y_raw = report.x;
 	/* z remains z */
 	new_report.z_raw = report.z;
 
