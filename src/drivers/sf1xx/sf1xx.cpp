@@ -260,6 +260,13 @@ SF1XX::init()
 		_conversion_interval = 50000;
 		break;
 
+	case 5:
+		/* SF20/LW20 (100m 48-388Hz) */
+		_min_distance = 0.001f;
+		_max_distance = 100.0f;
+		_conversion_interval = 20834;
+		break;
+
 	default:
 		DEVICE_LOG("invalid HW model %d.", hw_model);
 		return ret;

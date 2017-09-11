@@ -35,6 +35,7 @@ px4_add_module(
     MAIN motor_ramp
     STACK_MAIN 1200
     COMPILE_FLAGS
+        -Wno-sign-compare # TODO: fix all sign-compare
         -Wno-write-strings
     SRCS
         motor_ramp.cpp

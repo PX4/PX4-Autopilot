@@ -116,7 +116,7 @@ int NavioSysfsPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
 	int ret = 0;
 
 	//convert this to duty_cycle in ns
-	for (unsigned i = 0; i < num_outputs; ++i) {
+	for (int i = 0; i < num_outputs; ++i) {
 		int n = ::snprintf(data, sizeof(data), "%u", pwm[i] * 1000);
 		int write_ret = ::write(_pwm_fd[i], data, n);
 

@@ -45,6 +45,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <px4_module.h>
+#include <px4_log.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 #include <systemlib/systemlib.h>
@@ -56,49 +58,44 @@
 #include <drivers/drv_gpio.h>
 #include <modules/px4iofirmware/protocol.h>
 
-#if defined(BOARD_HAS_FMU_GPIO) && defined(GPIO_SERVO_1)
-#  define LED_ON_SERVO_GPIO
-#  define PIN_NAME "AUX OUT 1"
+#define PIN_NAME "AUX OUT 1"
 
 
 /* Minimum pin number */
-#  define GPIO_MIN_SERVO_PIN 1
+#define GPIO_MIN_SERVO_PIN 1
+
+#define CYCLE_RATE_HZ  5
 
 /* Maximum */
-#  if defined(GPIO_SERVO_16)
-#    define GPIO_MAX_SERVO_PIN 16
-#  elif defined(GPIO_SERVO_15)
-#    define GPIO_MAX_SERVO_PIN 15
-#  elif defined(GPIO_SERVO_14)
-#    define GPIO_MAX_SERVO_PIN 14
-#  elif defined(GPIO_SERVO_13)
-#    define GPIO_MAX_SERVO_PIN 13
-#  elif defined(GPIO_SERVO_12)
-#    define GPIO_MAX_SERVO_PIN 12
-#  elif defined(GPIO_SERVO_11)
-#    define GPIO_MAX_SERVO_PIN 11
-#  elif defined(GPIO_SERVO_10)
-#    define GPIO_MAX_SERVO_PIN 10
-#  elif defined(GPIO_SERVO_9)
-#    define GPIO_MAX_SERVO_PIN 9
-#  elif defined(GPIO_SERVO_8)
-#    define GPIO_MAX_SERVO_PIN 8
-#  elif defined(GPIO_SERVO_7)
-#    define GPIO_MAX_SERVO_PIN 7
-#  elif defined(GPIO_SERVO_6)
-#    define GPIO_MAX_SERVO_PIN 6
-#  endif
-#endif
-
-#if defined(BOARD_HAS_FMU_GPIO) && defined(GPIO_EXT_1)
-#  define LED_ON_EXT_GPIO_AND_PIO
-#  define PIN_NAME "PX4FMU GPIO_EXT1"
+#if defined(GPIO_SERVO_16)
+#  define GPIO_MAX_SERVO_PIN 16
+#elif defined(GPIO_SERVO_15)
+#  define GPIO_MAX_SERVO_PIN 15
+#elif defined(GPIO_SERVO_14)
+#  define GPIO_MAX_SERVO_PIN 14
+#elif defined(GPIO_SERVO_13)
+#  define GPIO_MAX_SERVO_PIN 13
+#elif defined(GPIO_SERVO_12)
+#  define GPIO_MAX_SERVO_PIN 12
+#elif defined(GPIO_SERVO_11)
+#  define GPIO_MAX_SERVO_PIN 11
+#elif defined(GPIO_SERVO_10)
+#  define GPIO_MAX_SERVO_PIN 10
+#elif defined(GPIO_SERVO_9)
+#  define GPIO_MAX_SERVO_PIN 9
+#elif defined(GPIO_SERVO_8)
+#  define GPIO_MAX_SERVO_PIN 8
+#elif defined(GPIO_SERVO_7)
+#  define GPIO_MAX_SERVO_PIN 7
+#elif defined(GPIO_SERVO_6)
+#  define GPIO_MAX_SERVO_PIN 6
+#else
+#  error "Board must define GPIO_SERVO_1 and GPIO_SERVO_n where n is 6-16"
 #endif
 
 struct gpio_led_s {
 	struct work_s work;
 	int gpio_fd;
-	bool use_io;
 	int pin;
 	struct vehicle_status_s vehicle_status;
 	struct battery_status_s battery_status;
@@ -110,7 +107,12 @@ struct gpio_led_s {
 
 
 static struct gpio_led_s *gpio_led_data;
-static bool gpio_led_started = false;
+static volatile enum {
+	Stopped =  0,
+	Running =  1,
+	Falied  =  2,
+	Stopping = 3
+} gpio_led_state = Stopped;
 
 __EXPORT int gpio_led_main(int argc, char *argv[]);
 
@@ -118,132 +120,120 @@ void gpio_led_start(FAR void *arg);
 
 void gpio_led_cycle(FAR void *arg);
 
+static void print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+This module is responsible for drving a single LED on one of the FMU AUX pins.
+
+It listens on the vehicle_status and battery_status topics and provides visual annunciation on the LED.
+
+### Implementation
+The module runs on the work queue. It schedules at a fixed frequency or 5 Hz
+
+### Examples
+It is started with:
+$  gpio_led start
+To drive an LED connected AUX1 pin.
+
+OR with any of the avaliabel AUX pins
+$  gpio_led start -p 5
+To drive an LED connected AUX5 pin.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("gpio_led", "driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "annunciation on AUX OUT pin");
+	PRINT_MODULE_USAGE_PARAM_FLAG('p', "Use specified AUX OUT pin number (default: 1)", true);
+	PRINT_MODULE_USAGE_COMMAND("stop");
+}
+
 int gpio_led_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-#if defined(LED_ON_EXT_GPIO_AND_PIO)
-		errx(1, "usage: gpio_led {start|stop} [-p <1|2|a1|a2|r1|r2>]\n"
-		     "\t-p\tUse pin:\n"
-		     "\t\t1\tPX4FMU GPIO_EXT1 (default)\n"
-		     "\t\t2\tPX4FMU GPIO_EXT2\n"
-		     "\t\ta1\tPX4IO ACC1\n"
-		     "\t\ta2\tPX4IO ACC2\n"
-		     "\t\tr1\tPX4IO RELAY1\n"
-		     "\t\tr2\tPX4IO RELAY2"
-		    );
-#endif
-
-#if defined(LED_ON_SERVO_GPIO)
-		errx(1, "usage: gpio_led {start|stop} [-p <n>]\n"
-		     "\t-p <n>\tUse specified AUX OUT pin number (default: 1)"
-		    );
-#endif
-
+		print_usage(NULL);
+		exit(1);
 	} else {
 
 		if (!strcmp(argv[1], "start")) {
-			if (gpio_led_started) {
-				errx(1, "already running");
+			if (gpio_led_state != Stopped) {
+				PX4_WARN("already running");
+				exit(1);
 			}
 
-			bool use_io = false;
-
-			/* by default use GPIO_EXT_1 on FMUv1 and GPIO_SERVO_1 on FMUv2 */
+			/* by default GPIO_SERVO_1 on FMUv2 */
 			int pin = 1;
 
 			/* pin name to display */
-#if defined(LED_ON_EXT_GPIO_AND_PIO)
-			char *pin_name = PIN_NAME;
-#endif
-#if defined(LED_ON_SERVO_GPIO)
 			char pin_name[sizeof(PIN_NAME) + 2] = PIN_NAME;
-#endif
 
 			if (argc > 2) {
 				if (!strcmp(argv[2], "-p")) {
-#if defined(LED_ON_EXT_GPIO_AND_PIO)
 
-					if (!strcmp(argv[3], "1")) {
-						use_io = false;
-						pin = GPIO_EXT_1;
-						pin_name = "PX4FMU GPIO_EXT1";
-
-					} else if (!strcmp(argv[3], "2")) {
-						use_io = false;
-						pin = GPIO_EXT_2;
-						pin_name = "PX4FMU GPIO_EXT2";
-
-					} else if (!strcmp(argv[3], "a1")) {
-						use_io = true;
-						pin = PX4IO_P_SETUP_RELAYS_ACC1;
-						pin_name = "PX4IO ACC1";
-
-					} else if (!strcmp(argv[3], "a2")) {
-						use_io = true;
-						pin = PX4IO_P_SETUP_RELAYS_ACC2;
-						pin_name = "PX4IO ACC2";
-
-					} else if (!strcmp(argv[3], "r1")) {
-						use_io = true;
-						pin = PX4IO_P_SETUP_RELAYS_POWER1;
-						pin_name = "PX4IO RELAY1";
-
-					} else if (!strcmp(argv[3], "r2")) {
-						use_io = true;
-						pin = PX4IO_P_SETUP_RELAYS_POWER2;
-						pin_name = "PX4IO RELAY2";
-
-					} else {
-						errx(1, "unsupported pin: %s", argv[3]);
-					}
-
-#endif // defined(LED_ON_EXT_GPIO_AND_PIO)
-
-#if defined(LED_ON_SERVO_GPIO)
 					unsigned int n = strtoul(argv[3], NULL, 10);
 
 					if (n >= GPIO_MIN_SERVO_PIN && n <= GPIO_MAX_SERVO_PIN) {
-						use_io = false;
 						pin = 1 << (n - 1);
 						snprintf(pin_name, sizeof(pin_name), "AUX OUT %d", n);
-
 					} else {
-						errx(1, "unsupported pin: %s", argv[3]);
+						PX4_ERR("unsupported pin: %s (valid values are %d-%d)", argv[3], GPIO_MIN_SERVO_PIN, GPIO_MAX_SERVO_PIN);
+						exit(1);
 					}
 
-#endif // defined(LED_ON_SERVO_GPIO)
 				}
 			}
 
 			gpio_led_data = malloc(sizeof(struct gpio_led_s));
-			memset(gpio_led_data, 0, sizeof(struct gpio_led_s));
-			gpio_led_data->use_io = use_io;
-			gpio_led_data->pin = pin;
-			int ret = work_queue(LPWORK, &(gpio_led_data->work), gpio_led_start, gpio_led_data, 0);
-
-			if (ret != 0) {
-				errx(1, "failed to queue work: %d", ret);
-
+			if (gpio_led_data == NULL) {
+				PX4_ERR("failed to allocate memory!");
+				exit(1);
 			} else {
-				gpio_led_started = true;
-				warnx("start, using pin: %s", pin_name);
-				exit(0);
+				memset(gpio_led_data, 0, sizeof(struct gpio_led_s));
+				gpio_led_data->pin = pin;
+				int ret = work_queue(LPWORK, &(gpio_led_data->work), gpio_led_start, gpio_led_data, 0);
+
+				if (ret != 0) {
+					PX4_ERR("failed to queue work: %d", ret);
+					goto out;
+				} else {
+					usleep(1000000/CYCLE_RATE_HZ);
+					if (gpio_led_state != Running) {
+						gpio_led_state = Stopped;
+						goto out;
+					}
+					PX4_INFO("start, using pin: %s", pin_name);
+					exit(0);
+				}
 			}
 
 		} else if (!strcmp(argv[1], "stop")) {
-			if (gpio_led_started) {
-				gpio_led_started = false;
-				warnx("stop");
+			if (gpio_led_state == Running) {
+				gpio_led_state = Stopping;
+				while(gpio_led_state != Stopped) {
+					usleep(1000000/CYCLE_RATE_HZ);
+				}
+				PX4_INFO("stopped");
+				free (gpio_led_data);
+				gpio_led_data = NULL;
 				exit(0);
-
 			} else {
-				errx(1, "not running");
+				PX4_WARN("not running");
+				exit(1);
 			}
 
 		} else {
-			errx(1, "unrecognized command '%s', only supporting 'start' or 'stop'", argv[1]);
+			print_usage("unrecognized command");
+			exit(1);
 		}
 	}
+out:
+	free (gpio_led_data);
+	gpio_led_data = NULL;
+	exit(1);
 }
 
 void gpio_led_start(FAR void *arg)
@@ -252,26 +242,17 @@ void gpio_led_start(FAR void *arg)
 
 	char *gpio_dev = PX4FMU_DEVICE_PATH;
 
-#if defined(BOARD_USES_PX4IO)
-
-	if (priv->use_io) {
-		gpio_dev = PX4IO_DEVICE_PATH;
-	}
-
-#endif
-
 	/* open GPIO device */
 	priv->gpio_fd = open(gpio_dev, 0);
 
 	if (priv->gpio_fd < 0) {
-		// TODO find way to print errors
-		//printf("gpio_led: GPIO device \"%s\" open fail\n", gpio_dev);
-		gpio_led_started = false;
+		PX4_ERR("gpio_led: GPIO device \"%s\" open fail\n", gpio_dev);
+		gpio_led_state = Falied;
 		return;
 	}
 
 	/* configure GPIO pin */
-	/* px4fmu only, px4io doesn't support GPIO_SET_OUTPUT and will ignore */
+
 	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, priv->pin);
 
 	/* initialize vehicle status structure */
@@ -290,11 +271,12 @@ void gpio_led_start(FAR void *arg)
 	int ret = work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, 0);
 
 	if (ret != 0) {
-		// TODO find way to print errors
-		//printf("gpio_led: failed to queue work: %d\n", ret);
-		gpio_led_started = false;
+		PX4_ERR("gpio_led: failed to queue work: %d\n", ret);
+		close(priv->gpio_fd);
+		gpio_led_state = Falied;
 		return;
 	}
+	gpio_led_state = Running;
 }
 
 void gpio_led_cycle(FAR void *arg)
@@ -359,11 +341,15 @@ void gpio_led_cycle(FAR void *arg)
 	}
 
 	/* repeat cycle at 5 Hz */
-	if (gpio_led_started) {
-		work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, USEC2TICK(200000));
+	if (gpio_led_state == Running) {
+		work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, USEC2TICK(1000000/CYCLE_RATE_HZ));
 
 	} else {
 		/* switch off LED on stop */
 		ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
+		orb_unsubscribe(priv->vehicle_status_sub);
+		orb_unsubscribe(priv->battery_status_sub);
+		close(priv->gpio_fd);
+		gpio_led_state = Stopped;
 	}
 }

@@ -303,6 +303,9 @@ Mission::find_offboard_land_start()
 void
 Mission::update_onboard_mission()
 {
+	/* reset triplets */
+	_navigator->reset_triplets();
+
 	if (orb_copy(ORB_ID(onboard_mission), _navigator->get_onboard_mission_sub(), &_onboard_mission) == OK) {
 		/* accept the current index set by the onboard mission if it is within bounds */
 		if (_onboard_mission.current_seq >= 0
@@ -349,6 +352,9 @@ void
 Mission::update_offboard_mission()
 {
 	bool failed = true;
+
+	/* reset triplets */
+	_navigator->reset_triplets();
 
 	if (orb_copy(ORB_ID(offboard_mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {
 		// The following is not really a warning, but it can be useful to have this message in the log file
@@ -1018,6 +1024,12 @@ Mission::heading_sp_update()
 			point_to_latlon[0] = _navigator->get_home_position()->lat;
 			point_to_latlon[1] = _navigator->get_home_position()->lon;
 
+		} else if (_param_yawmode.get() == MISSION_YAWMODE_TO_ROI
+			   && _navigator->get_vroi()->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
+			/* target location is ROI */
+			point_to_latlon[0] = _navigator->get_vroi()->lat;
+			point_to_latlon[1] = _navigator->get_vroi()->lon;
+
 		} else {
 			/* target location is next (current) waypoint */
 			point_to_latlon[0] = pos_sp_triplet->current.lat;
@@ -1058,11 +1070,15 @@ Mission::altitude_sp_foh_update()
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	/* Don't change setpoint if last and current waypoint are not valid
-	 * or if the previous altitude isn't from a position or loiter setpoint
+	 * or if the previous altitude isn't from a position or loiter setpoint or
+	 * if rotary wing since that is handled in the mc_pos_control
 	 */
+
+
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid || !PX4_ISFINITE(pos_sp_triplet->previous.alt)
 	    || !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
-		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER) ||
+	    _navigator->get_vstatus()->is_rotary_wing) {
 
 		return;
 	}
@@ -1113,8 +1129,10 @@ Mission::altitude_sp_foh_update()
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
 	}
 
+
 	// we set altitude directly so we can run this in parallel to the heading update
 	_navigator->set_position_setpoint_triplet_updated();
+
 }
 
 void

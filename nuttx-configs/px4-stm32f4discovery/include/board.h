@@ -189,7 +189,7 @@
 #define BOARD_LED2_BIT    (1 << BOARD_LED2)
 
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the 2 LEDs on board the
- * px4fmu-v1.  The following definitions describe how NuttX controls the LEDs:
+ * px4-stm32f4discovery.  The following definitions describe how NuttX controls the LEDs:
  */
 
 #define LED_STARTED       0  /* LED1 */

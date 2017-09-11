@@ -2,7 +2,6 @@
 #
 # @name Intel Aero Ready to Fly Drone
 #
-# @board px4fmu-v1 exclude
 # @board px4fmu-v2 exclude
 # @board px4fmu-v3 exclude
 # @board px4fmu-v4 exclude
@@ -78,5 +77,5 @@ set OUTPUT_MODE tap_esc
 set MIXER quad_x
 set USE_IO no
 
-param set SYS_COMPANION 460800
+param set SYS_COMPANION 921600
 set MAVLINK_COMPANION_DEVICE /dev/ttyS1

@@ -727,7 +727,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 			.result_param2 = 0,
 			.command = cmd.command,
 			.result = (uint8_t)cmd_result,
-			.from_external = 0,
+			.from_external = false,
 			.result_param1 = 0,
 			.target_system = cmd.source_system,
 			.target_component = cmd.source_component

@@ -57,14 +57,9 @@
 #include <px4_tasks.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-
 #include <sys/types.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/systemlib.h>
-#include <drivers/device/device.h>
-#include <arch/board/board.h>
-
-#include <uORB/uORB.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
@@ -219,6 +214,12 @@ Navigator::params_update()
 }
 
 void
+Navigator::vehicle_roi_update()
+{
+	orb_copy(ORB_ID(vehicle_roi), _vehicle_roi_sub, &_vroi);
+}
+
+void
 Navigator::task_main_trampoline(int argc, char *argv[])
 {
 	navigator::g_navigator->task_main();
@@ -251,6 +252,7 @@ Navigator::task_main()
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	_vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -262,18 +264,17 @@ Navigator::task_main()
 	home_position_update(true);
 	fw_pos_ctrl_status_update(true);
 	params_update();
+	vehicle_roi_update();
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1] = {};
 
 	/* Setup of loop */
-	fds[0].fd = _global_pos_sub;
+	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
 
-	bool global_pos_available_once = false;
-
-	/* rate-limit global pos subscription to 20 Hz / 50 ms */
-	orb_set_interval(_global_pos_sub, 49);
+	/* rate-limit position subscription to 20 Hz / 50 ms */
+	orb_set_interval(_local_pos_sub, 50);
 
 	while (!_task_should_exit) {
 
@@ -281,11 +282,6 @@ Navigator::task_main()
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
 
 		if (pret == 0) {
-			/* timed out - periodic check for _task_should_exit, etc. */
-			if (global_pos_available_once) {
-				global_pos_available_once = false;
-			}
-
 			/* Let the loop run anyway, don't do `continue` here. */
 
 		} else if (pret < 0) {
@@ -295,16 +291,9 @@ Navigator::task_main()
 			continue;
 
 		} else {
-
 			if (fds[0].revents & POLLIN) {
-				/* success, global pos is available */
-				global_position_update();
-
-				if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-					have_geofence_position_data = true;
-				}
-
-				global_pos_available_once = true;
+				/* success, local pos is available */
+				local_position_update();
 			}
 		}
 
@@ -323,11 +312,15 @@ Navigator::task_main()
 			}
 		}
 
-		/* local position updated */
-		orb_check(_local_pos_sub, &updated);
+		/* global position updated */
+		orb_check(_global_pos_sub, &updated);
 
 		if (updated) {
-			local_position_update();
+			global_position_update();
+
+			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
+				have_geofence_position_data = true;
+			}
 		}
 
 		/* sensors combined updated */
@@ -372,6 +365,14 @@ Navigator::task_main()
 			home_position_update();
 		}
 
+		/* ROI updated */
+		orb_check(_vehicle_roi_sub, &updated);
+
+		if (updated) {
+			vehicle_roi_update();
+		}
+
+		/* vehicle_command updated */
 		orb_check(_vehicle_command_sub, &updated);
 
 		if (updated) {
@@ -508,9 +509,6 @@ Navigator::task_main()
 
 					_mission.set_current_offboard_mission_index(cmd.param1);
 				}
-
-			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
-				warnx("navigator: got pause/continue command");
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
 				if (cmd.param2 > FLT_EPSILON) {
@@ -659,10 +657,7 @@ Navigator::task_main()
 		/* if nothing is running, set position setpoint triplet invalid once */
 		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
 			_pos_sp_triplet_published_invalid_once = true;
-			_pos_sp_triplet.previous.valid = false;
-			_pos_sp_triplet.current.valid = false;
-			_pos_sp_triplet.next.valid = false;
-			_pos_sp_triplet_updated = true;
+			reset_triplets();
 		}
 
 		if (_pos_sp_triplet_updated) {
@@ -680,29 +675,17 @@ Navigator::task_main()
 	}
 
 	orb_unsubscribe(_global_pos_sub);
-	_global_pos_sub = -1;
 	orb_unsubscribe(_local_pos_sub);
-	_local_pos_sub = -1;
 	orb_unsubscribe(_gps_pos_sub);
-	_gps_pos_sub = -1;
 	orb_unsubscribe(_sensor_combined_sub);
-	_sensor_combined_sub = -1;
 	orb_unsubscribe(_fw_pos_ctrl_status_sub);
-	_fw_pos_ctrl_status_sub = -1;
 	orb_unsubscribe(_vstatus_sub);
-	_vstatus_sub = -1;
 	orb_unsubscribe(_land_detected_sub);
-	_land_detected_sub = -1;
 	orb_unsubscribe(_home_pos_sub);
-	_home_pos_sub = -1;
 	orb_unsubscribe(_onboard_mission_sub);
-	_onboard_mission_sub = -1;
 	orb_unsubscribe(_offboard_mission_sub);
-	_offboard_mission_sub = -1;
 	orb_unsubscribe(_param_update_sub);
-	_param_update_sub = -1;
 	orb_unsubscribe(_vehicle_command_sub);
-	_vehicle_command_sub = -1;
 
 	PX4_INFO("exiting");
 
@@ -828,6 +811,17 @@ Navigator::reset_cruising_speed()
 	_mission_cruising_speed_mc = -1.0f;
 	_mission_cruising_speed_fw = -1.0f;
 }
+
+void
+Navigator::reset_triplets()
+{
+	_pos_sp_triplet.current.valid = false;
+	_pos_sp_triplet.previous.valid = false;
+	_pos_sp_triplet.next.valid = false;
+	_pos_sp_triplet_updated = true;
+}
+
+
 
 float
 Navigator::get_cruising_throttle()
@@ -982,20 +976,6 @@ Navigator::publish_geofence_result()
 	} else {
 		/* advertise and publish */
 		_geofence_result_pub = orb_advertise(ORB_ID(geofence_result), &_geofence_result);
-	}
-}
-
-void
-Navigator::publish_att_sp()
-{
-	/* lazily publish the attitude sp only once available */
-	if (_att_sp_pub != nullptr) {
-		/* publish att sp*/
-		orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-
-	} else {
-		/* advertise and publish */
-		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 	}
 }
 
