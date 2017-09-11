@@ -167,9 +167,14 @@ static param_t param_find_internal(const char *name, bool notification);
 // the following implements an RW-lock using 2 semaphores (used as mutexes). It gives
 // priority to readers, meaning a writer could suffer from starvation, but in our use-case
 // we only have short periods of reads and writes are rare.
-static px4_sem_t param_sem; ///< this protects against concurrent access to param_values and param save
+static px4_sem_t param_sem; ///< this protects against concurrent access to param_values
 static int reader_lock_holders = 0;
 static px4_sem_t reader_lock_holders_lock; ///< this protects against concurrent access to reader_lock_holders
+
+static px4_sem_t param_sem_save; ///< this protects against concurrent param saves (file or flash access).
+///< we use a separate lock to allow concurrent param reads and saves.
+///< a param_set could still be blocked by a param save, because it
+///< needs to take the reader lock
 
 /** lock the parameter store for read access */
 static void
@@ -228,6 +233,7 @@ void
 param_init(void)
 {
 	px4_sem_init(&param_sem, 0, 1);
+	px4_sem_init(&param_sem_save, 0, 1);
 	px4_sem_init(&reader_lock_holders_lock, 0, 1);
 }
 
@@ -1014,7 +1020,10 @@ param_export(int fd, bool only_unsaved)
 		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
 	}
 
-	param_lock_writer();
+	// take the file lock
+	do {} while (px4_sem_wait(&param_sem_save) != 0);
+
+	param_lock_reader();
 
 	bson_encoder_init_file(&encoder, fd);
 
@@ -1099,16 +1108,17 @@ param_export(int fd, bool only_unsaved)
 	result = 0;
 
 out:
-	param_unlock_writer();
 
-	fsync(fd); // make sure the data is flushed before releasing the shutdown lock
+	if (result == 0) {
+		result = bson_encoder_fini(&encoder); // this will call fsync
+	}
+
+	param_unlock_reader();
+
+	px4_sem_post(&param_sem_save);
 
 	if (shutdown_lock_ret == 0) {
 		px4_shutdown_unlock();
-	}
-
-	if (result == 0) {
-		result = bson_encoder_fini(&encoder);
 	}
 
 	return result;
