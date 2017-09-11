@@ -345,7 +345,7 @@ class uploader(object):
         self.__send(uploader.CHIP_ERASE +
                     uploader.EOC)
 
-        # erase is very slow, give it 20s
+        # erase is very slow, give it 30s
         deadline = time.time() + 30.0
         while time.time() < deadline:
 
