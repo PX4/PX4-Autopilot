@@ -864,12 +864,10 @@ int board_get_mfguid_formated(char *format_buffer, int size); // DEPRICATED use 
  * Description:
  *   All boards either provide a way to retrieve a PX4 Globally unique ID or
  *   define BOARD_OVERRIDE_PX4_GUID.
- *   The GUID is returned as an array of bytes in MSD @ index 0 - LSD @ index
- *   PX4_PX4_GUID_BYTE_LENGTH-1
  *
  *   The form of the GUID is as follows:
  *  offset:0         1         2         -           17
- *    <ARCH MSD><ARCH LSD><MSD CPU UUID>...<LSD CPU UUID> *
+ *    <ARCH MSD><ARCH LSD><MSD CPU UUID>...<LSD CPU UUID>
  *
  *  Where <ARCH MSD><ARCH LSD> are a monotonic ordinal number assigned by
  *  PX4 to a chip architecture (PX4_SOC_ARCH_ID). The 2 bytes are used to
