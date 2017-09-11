@@ -48,7 +48,6 @@ param set MC_ROLLRATE_P 0.2
 param set MC_PITCHRATE_P 0.2
 param set MC_ROLLRATE_I 0.05
 param set MC_PITCHRATE_I 0.05
-param set LPE_GPS_ON 0
 param set MPC_ALT_MODE 1
 param set LPE_T_MAX_GRADE 0
 param set MPC_XY_VEL_MAX 2
@@ -61,7 +60,7 @@ param set NAV_ACC_RAD 1.0
 param set CBRK_GPSFAIL 240024
 # Flow-only mode
 param set LPE_FUSION 242
-param set FAKE_ORIGIN 1
+param set LPE_FAKE_ORIGIN 1
 
 replay tryapplyparams
 simulator start -s
