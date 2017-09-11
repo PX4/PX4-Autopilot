@@ -31,4 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(drivers_board sitl_led.c)
+px4_add_library(drivers_board
+	sitl_led.c
+	../common/board_identity.c
+	)
