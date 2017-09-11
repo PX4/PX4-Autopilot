@@ -247,13 +247,9 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], px4_guid_str, sizeof(px4_guid_str))) {
-
-#if defined(BOARD_OVERRIDE_PX4_GUID)
-				char *px4guid_fmt_buffer = BOARD_OVERRIDE_PX4_GUID;
-#else
 				char px4guid_fmt_buffer[PX4_GUID_FORMAT_SIZE];
+
 				board_get_px4_guid_formated(px4guid_fmt_buffer, sizeof(px4guid_fmt_buffer));
-#endif
 				printf("PX4GUID: %s\n", px4guid_fmt_buffer);
 				ret = 0;
 			}
@@ -284,13 +280,8 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], mcu_uid_str, sizeof(mcu_uid_str))) {
-
-#if defined(BOARD_OVERRIDE_UUID)
-				char *uid_fmt_buffer = BOARD_OVERRIDE_UUID;
-#else
 				char uid_fmt_buffer[PX4_CPU_UUID_WORD32_FORMAT_SIZE];
 				board_get_uuid32_formated(uid_fmt_buffer, sizeof(uid_fmt_buffer), CPU_UUID_FORMAT, CPU_UUID_SEPARATOR);
-#endif
 				printf("UID: %s \n", uid_fmt_buffer);
 				ret = 0;
 			}
