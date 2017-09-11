@@ -903,8 +903,6 @@ void IEKF::publish()
 		msg.lat = lat_deg;
 		msg.lon = lon_deg;
 		msg.alt = _x(X::asl);
-		msg.delta_lat_lon[0] = 0;
-		msg.delta_lat_lon[1] = 0;
 		msg.delta_alt = 0;
 		msg.lat_lon_reset_counter = 0;
 		msg.alt_reset_counter = 0;
