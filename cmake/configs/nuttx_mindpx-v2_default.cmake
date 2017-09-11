@@ -18,7 +18,6 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards/mindpx-v2
 	drivers/rgbled
-	#drivers/rgbled_pwm
 	drivers/mpu6000
 	drivers/mpu9250
 	drivers/lsm303d
@@ -86,7 +85,6 @@ set(config_module_list
 	modules/mc_pos_control/mc_pos_control_tests
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
-	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -156,6 +154,7 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
+	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -201,14 +200,6 @@ set(config_module_list
 set(config_extra_builtin_cmds
 	serdis
 	sercon
-	)
-
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
-	)
-
-set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

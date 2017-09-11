@@ -62,6 +62,8 @@ GTAGS
 *.creator.user
 *.files
 *.includes
+src/modules/micrortps_bridge/micrortps_agent/
+src/modules/micrortps_bridge/micrortps_listener/
 
 # uavcan firmware
 ROMFS/px4fmu_common/uavcan/
@@ -77,8 +79,10 @@ posix-configs/SITL/init/test/*_generated
 parameters.md
 airframes.md
 airframes.xml
+/modules
 
 cppcheck-result.xml
 cppcheck
 
 scan-build
+

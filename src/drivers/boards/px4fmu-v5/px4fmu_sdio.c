@@ -37,6 +37,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_log.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -57,23 +58,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* Configuration ************************************************************/
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /* Card detections requires card support and a card detection GPIO */
 
@@ -157,7 +141,7 @@ int stm32_sdio_initialize(void)
 	sdio_dev = sdio_initialize(SDIO_SLOTNO);
 
 	if (!sdio_dev) {
-		message("[boot] Failed to initialize SDIO slot %d\n", SDIO_SLOTNO);
+		PX4_ERR("[boot] Failed to initialize SDIO slot %d\n", SDIO_SLOTNO);
 		return -ENODEV;
 	}
 
@@ -168,7 +152,7 @@ int stm32_sdio_initialize(void)
 	ret = mmcsd_slotinitialize(SDIO_MINOR, sdio_dev);
 
 	if (ret != OK) {
-		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		PX4_ERR("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 

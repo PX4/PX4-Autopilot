@@ -34,22 +34,18 @@
 /**
  * @file sensors.cpp
  *
- * PX4 Flight Core transitional mapping layer.
- *
- * This app / class mapps the PX4 middleware layer / drivers to the application
- * layer of the PX4 Flight Core. Individual sensors can be accessed directly as
- * well instead of relying on the sensor_combined topic.
- *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomas@px4.io>
  * @author Anton Babushkin <anton@px4.io>
+ * @author Beat Küng <beat-kueng@gmx.net>
  */
 
 #include <board_config.h>
 
-#include <px4_adc.h>
 #include <px4_config.h>
+#include <px4_module.h>
+#include <px4_getopt.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
@@ -133,36 +129,35 @@ using namespace sensors;
  */
 extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 
-class Sensors
+class Sensors : public ModuleBase<Sensors>
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Sensors(bool hil_enabled);
 
-	/**
-	 * Destructor, also kills the sensors task.
-	 */
-	~Sensors();
+	~Sensors() {}
 
-	/**
-	 * Start the sensors task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
+	/** @see ModuleBase */
+	static Sensors *instantiate(int argc, char *argv[]);
 
-	void	print_status();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 private:
 	DevHandle 	_h_adc;				/**< ADC driver handle */
 
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
-
-	volatile bool 	_task_should_exit;		/**< if true, sensor task should exit */
-	int 		_sensors_task;			/**< task handle for sensor task */
 
 	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed;				/**< arming status of the vehicle */
@@ -173,7 +168,12 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
-	orb_advert_t	_battery_pub;			/**< battery status */
+	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] = {nullptr};			/**< battery status */
+
+#if BOARD_NUMBER_BRICKS > 1
+	int 			_battery_pub_intance0ndx = 0; /**< track the index of instance 0 */
+#endif
+
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
@@ -182,11 +182,11 @@ private:
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
-	struct battery_status_s _battery_status;	/**< battery status */
+	struct battery_status_s _battery_status[BOARD_NUMBER_BRICKS];	/**< battery status */
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 
-	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
+	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
 
 	Parameters		_parameters;			/**< local copies of interesting parameters */
 	ParameterHandles	_parameter_handles;		/**< handles for interesting parameters */
@@ -230,29 +230,11 @@ private:
 	 *				data should be returned.
 	 */
 	void		adc_poll(struct sensor_combined_s &raw);
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main();
 };
-
-namespace sensors
-{
-
-Sensors	*g_sensors = nullptr;
-}
 
 Sensors::Sensors(bool hil_enabled) :
 	_last_adc(0),
 
-	_task_should_exit(true),
-	_sensors_task(-1),
 	_hil_enabled(hil_enabled),
 	_armed(false),
 
@@ -263,7 +245,6 @@ Sensors::Sensors(bool hil_enabled) :
 
 	/* publications */
 	_sensor_pub(nullptr),
-	_battery_pub(nullptr),
 	_airspeed_pub(nullptr),
 	_diff_pres_pub(nullptr),
 	_sensor_preflight(nullptr),
@@ -281,31 +262,6 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
-}
-
-Sensors::~Sensors()
-{
-	if (_sensors_task != -1) {
-
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_sensors_task);
-				break;
-			}
-		} while (_sensors_task != -1);
-	}
-
-	sensors::g_sensors = nullptr;
 }
 
 int
@@ -381,7 +337,9 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.timestamp = _diff_pres.timestamp;
 
 		/* push data into validator */
-		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count,
+		float airspeed_input[3] = { _diff_pres.differential_pressure_raw_pa, _diff_pres.temperature, 0.0f };
+
+		_airspeed_validator.put(_airspeed.timestamp, airspeed_input, _diff_pres.error_count,
 					ORB_PRIO_HIGH);
 
 		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
@@ -452,7 +410,9 @@ Sensors::parameter_update_poll(bool forced)
 			px4_close(fd);
 		}
 
-		_battery.updateParams();
+		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+			_battery[b].updateParams();
+		}
 	}
 }
 
@@ -469,35 +429,48 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	/* rate limit to 100 Hz */
 	if (t - _last_adc >= 10000) {
 		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-		struct adc_msg_s buf_adc[12];
+		px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
 		/* read all channels available */
 		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
-		float bat_voltage_v = 0.0f;
-		float bat_current_a = 0.0f;
-		bool updated_battery = false;
+		//todo:abosorb into new class Power
+
+		/* For legacy support we publish the battery_status for the Battery that is
+		 * associated with the Brick that is the selected source for VDD_5V_IN
+		 * Selection is done in HW ala a LTC4417 or similar, or may be hard coded
+		 * Like in the FMUv4
+		 */
+
+		/* The ADC channela that  are associated with each brick, in power controller
+		 * priority order highest to lowest, as defined by the board config.
+		 */
+
+		int   bat_voltage_v_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
+		int   bat_voltage_i_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
+
+		/* The valid signals (HW dependent) are associated with each brick */
+
+		bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
+
+		/* Per Brick readings with default unread channels at 0 */
+
+		float bat_current_a[BOARD_NUMBER_BRICKS] = {0.0f};
+		float bat_voltage_v[BOARD_NUMBER_BRICKS] = {0.0f};
+
+		/* Based on the valid_chan, used to indicate the selected the lowest index
+		 * (highest priority) supply that is the source for the VDD_5V_IN
+		 * When < 0 none selected
+		 */
+
+		int selected_source = -1;
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
 			/* Read add channels we got */
 			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-
-				/* look for specific channels and process the raw voltage to measurement data */
-				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-					/* Voltage in volts */
-					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
-
-					if (bat_voltage_v > 0.5f) {
-						updated_battery = true;
-					}
-
-				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
-					bat_current_a = (((float)(buf_adc[i].am_data) * _parameters.battery_current_scaling)
-							 - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
-
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
-				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
 					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
@@ -522,18 +495,67 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 								 ORB_PRIO_DEFAULT);
 					}
 
+				} else
 #endif
+				{
+					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+
+						/* Once we have subscriptions, Do this once for the lowest (highest priority
+						 * supply on power controller) that is valid.
+						 */
+						if (_battery_pub[b] != nullptr && selected_source < 0 && valid_chan[b]) {
+							/* Indicate the lowest brick (highest priority supply on power controller)
+							 * that is valid as the one that is the selected source for the
+							 * VDD_5V_IN
+							 */
+							selected_source = b;
+
+#if BOARD_NUMBER_BRICKS > 1
+
+							/* Move the selected_source to instance 0 */
+							if (_battery_pub_intance0ndx != selected_source) {
+
+								orb_advert_t tmp_h = _battery_pub[_battery_pub_intance0ndx];
+								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[selected_source];
+								_battery_pub[selected_source] = tmp_h;
+								_battery_pub_intance0ndx = selected_source;
+							}
+
+#endif
+						}
+
+						// todo:per brick scaling
+						/* look for specific channels and process the raw voltage to measurement data */
+						if (bat_voltage_v_chan[b] == buf_adc[i].am_channel) {
+							/* Voltage in volts */
+							bat_voltage_v[b] = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
+
+						} else if (bat_voltage_i_chan[b] == buf_adc[i].am_channel) {
+							bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
+									    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
+						}
+					}
 				}
 			}
 
-			if (_parameters.battery_source == 0 && updated_battery) {
-				actuator_controls_s ctrl;
-				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
-				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-							     _armed, &_battery_status);
+			if (_parameters.battery_source == 0) {
 
-				int instance;
-				orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &instance, ORB_PRIO_DEFAULT);
+				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+
+					/* Consider the brick connected if there is a voltage */
+
+					bool connected = bat_voltage_v[b] > 1.5f;
+
+					actuator_controls_s ctrl;
+					orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+
+					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
+									connected, selected_source == b, b,
+									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+									_armed,  &_battery_status[b]);
+					int instance;
+					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &_battery_status[b], &instance, ORB_PRIO_DEFAULT);
+				}
 			}
 
 			_last_adc = t;
@@ -542,18 +564,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	}
 }
 
-void
-Sensors::task_main_trampoline(int argc, char *argv[])
-{
-	sensors::g_sensors->task_main();
-}
 
 void
-Sensors::task_main()
+Sensors::run()
 {
-
-	int ret = 0;
-
 	if (!_hil_enabled) {
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_BEBOP)
 		adc_init();
@@ -582,7 +596,9 @@ Sensors::task_main()
 
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
-	_battery.reset(&_battery_status);
+	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+		_battery[b].reset(&_battery_status[b]);
+	}
 
 	/* get a set of initial values */
 	_voted_sensors_update.sensors_poll(raw);
@@ -606,11 +622,9 @@ Sensors::task_main()
 
 	poll_fds.events = POLLIN;
 
-	_task_should_exit = false;
-
 	uint64_t last_config_update = hrt_absolute_time();
 
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 
 		/* use the best-voted gyro to pace output */
 		poll_fds.fd = _voted_sensors_update.best_gyro_fd();
@@ -619,7 +633,7 @@ Sensors::task_main()
 		 * if a gyro fails) */
 		int pret = px4_poll(&poll_fds, 1, 50);
 
-		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
+		/* if pret == 0 it timed out - periodic check for should_exit(), etc. */
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -700,104 +714,114 @@ Sensors::task_main()
 
 	_rc_update.deinit();
 	_voted_sensors_update.deinit();
-
-	_sensors_task = -1;
-	px4_task_exit(ret);
 }
 
-int
-Sensors::start()
+int Sensors::task_spawn(int argc, char *argv[])
 {
-	ASSERT(_sensors_task == -1);
-
 	/* start the task */
-	_sensors_task = px4_task_spawn_cmd("sensors",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 6,
-					   2000,
-					   (px4_main_t)&Sensors::task_main_trampoline,
-					   nullptr);
+	_task_id = px4_task_spawn_cmd("sensors",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_SENSOR_HUB,
+				      2000,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
-	/* wait until the task is up and running or has failed */
-	while (_sensors_task > 0 && _task_should_exit) {
-		usleep(100);
+	if (_task_id < 0) {
+		_task_id = -1;
+		return -errno;
 	}
 
-	if (_sensors_task < 0) {
-		return -PX4_ERROR;
-	}
-
-	return OK;
+	return 0;
 }
 
-void Sensors::print_status()
+int Sensors::print_status()
 {
 	_voted_sensors_update.print_status();
 
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
+
+	return 0;
 }
 
+int Sensors::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int Sensors::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+The sensors module is central to the whole system. It takes low-level output from drivers, turns
+it into a more usable form, and publishes it for the rest of the system.
+
+The provided functionality includes:
+- Read the output from the sensor drivers (`sensor_gyro`, etc.).
+  If there are multiple of the same type, do voting and failover handling.
+  Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
+  topics is `sensor_combined`, used by many parts of the system.
+- Do RC channel mapping: read the raw input channels (`input_rc`), then apply the calibration, map the RC channels
+  to the configured channels & mode switches, low-pass filter, and then publish as `rc_channels` and
+  `manual_control_setpoint`.
+- Read the output from the ADC driver (via ioctl interface) and publish `battery_status`.
+- Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
+  on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
+  sensor drivers must already be running when `sensors` is started.
+- Do preflight sensor consistency checks and publish the `sensor_preflight` topic.
+
+### Implementation
+It runs in its own thread and polls on the currently selected gyro topic.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("sensors", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Start in HIL mode", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+Sensors *Sensors::instantiate(int argc, char *argv[])
+{
+	bool hil_enabled = false;
+	bool error_flag = false;
+
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "h", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'h':
+			hil_enabled = true;
+			break;
+
+		case '?':
+			error_flag = true;
+			break;
+
+		default:
+			PX4_WARN("unrecognized flag");
+			error_flag = true;
+			break;
+		}
+	}
+
+	if (error_flag) {
+		return nullptr;
+	}
+
+	return new Sensors(hil_enabled);;
+}
 
 int sensors_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		PX4_INFO("usage: sensors {start|stop|status}");
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (sensors::g_sensors != nullptr) {
-			PX4_INFO("already running");
-			return 0;
-		}
-
-		bool hil_enabled = false;
-
-		if (argc > 2 && !strcmp(argv[2], "-hil")) {
-			hil_enabled = true;
-		}
-
-		sensors::g_sensors = new Sensors(hil_enabled);
-
-		if (sensors::g_sensors == nullptr) {
-			PX4_ERR("alloc failed");
-			return 1;
-		}
-
-		if (OK != sensors::g_sensors->start()) {
-			delete sensors::g_sensors;
-			sensors::g_sensors = nullptr;
-			PX4_ERR("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (sensors::g_sensors == nullptr) {
-			PX4_INFO("not running");
-			return 1;
-		}
-
-		delete sensors::g_sensors;
-		sensors::g_sensors = nullptr;
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (sensors::g_sensors) {
-			sensors::g_sensors->print_status();
-			return 0;
-
-		} else {
-			PX4_INFO("not running");
-			return 1;
-		}
-	}
-
-	PX4_ERR("unrecognized command");
-	return 1;
+	return Sensors::main(argc, argv);
 }

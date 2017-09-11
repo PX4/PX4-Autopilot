@@ -43,6 +43,7 @@ set(config_module_list
 	lib/mathlib/math/filter
 	lib/conversion
 	lib/DriverFramework/framework
+	lib/micro-CDR
 
 	#
 	# QuRT port

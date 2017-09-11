@@ -43,7 +43,6 @@
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <px4_adc.h>
 #include <drivers/drv_adc.h>
 
 #include <VirtDevObj.hpp>
@@ -75,11 +74,10 @@ protected:
 	virtual void _measure() override;
 
 private:
-	int read(struct adc_msg_s(*buf)[12], unsigned int len);
+	int read(px4_adc_msg_t(*buf)[PX4_MAX_ADC_CHANNELS], unsigned int len);
 
 	pthread_mutex_t _samples_lock;
-	adc_msg_s _samples;
-	FILE *xadc_fd;
+	px4_adc_msg_t _samples;
 };
 
 OcpocADC::OcpocADC()
@@ -95,7 +93,7 @@ OcpocADC::~OcpocADC()
 
 void OcpocADC::_measure()
 {
-	struct adc_msg_s tmp_samples[12];
+	px4_adc_msg_t tmp_samples[PX4_MAX_ADC_CHANNELS];
 
 	int ret = read(&tmp_samples, sizeof(tmp_samples));
 
@@ -148,15 +146,20 @@ ssize_t OcpocADC::devRead(void *buf, size_t count)
 	return count;
 }
 
-int OcpocADC::read(struct adc_msg_s(*buf)[12], unsigned int len)
+int OcpocADC::read(px4_adc_msg_t(*buf)[PX4_MAX_ADC_CHANNELS], unsigned int len)
 {
 	uint32_t buff[1];
 	int ret = 0;
 
-	xadc_fd = fopen(ADC_VOLTAGE_PATH, "r");
+	FILE *xadc_fd = fopen(ADC_VOLTAGE_PATH, "r");
 
 	if (xadc_fd != NULL) {
-		fscanf(xadc_fd, "%d", buff);
+		int ret_tmp = fscanf(xadc_fd, "%d", buff);
+
+		if (ret_tmp < 0) {
+			ret = ret_tmp;
+		}
+
 		fclose(xadc_fd);
 
 		(*buf)[0].am_data = buff[0];
@@ -220,7 +223,7 @@ int ocpoc_adc_main(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		struct adc_msg_s adc_msgs[12];
+		px4_adc_msg_t adc_msgs[PX4_MAX_ADC_CHANNELS];
 
 		ret = instance->devRead((char *)&adc_msgs, sizeof(adc_msgs));
 

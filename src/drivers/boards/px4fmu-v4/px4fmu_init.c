@@ -213,6 +213,7 @@ stm32_boardinitialize(void)
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_PERIPH_3V3_EN);
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
+	stm32_configgpio(GPIO_VDD_USB_VALID);
 
 	/* Start with Sensor voltage off We will enable it
 	 * in board_app_initialize

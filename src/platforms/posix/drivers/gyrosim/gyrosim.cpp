@@ -291,8 +291,6 @@ public:
 protected:
 	friend class GYROSIM;
 
-	void			parent_poll_notify();
-
 	virtual void 		_measure() {};
 private:
 	GYROSIM			*_parent;
@@ -1105,10 +1103,6 @@ GYROSIM::_measure()
 
 
 	if (accel_notify) {
-		/* notify anyone waiting for data */
-		updateNotify();
-		_gyro->parent_poll_notify();
-
 		if (!(_pub_blocked)) {
 			/* log the time of this report */
 			perf_begin(_controller_latency_perf);
@@ -1118,9 +1112,6 @@ GYROSIM::_measure()
 	}
 
 	if (gyro_notify) {
-		updateNotify();
-		_gyro->parent_poll_notify();
-
 		if (!(_pub_blocked)) {
 			/* publish it */
 			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
@@ -1185,12 +1176,6 @@ GYROSIM_gyro::init()
 	int ret = VirtDevObj::init();
 	PX4_DEBUG("GYROSIM_gyro::init base class ret: %d", ret);
 	return ret;
-}
-
-void
-GYROSIM_gyro::parent_poll_notify()
-{
-	updateNotify();
 }
 
 ssize_t

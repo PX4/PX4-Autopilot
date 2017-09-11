@@ -1,10 +1,11 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <drivers/sf0x/sf0x_parser.h>
 
 #include <systemlib/err.h>
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 
 extern "C" __EXPORT int sf0x_tests_main(int argc, char *argv[]);

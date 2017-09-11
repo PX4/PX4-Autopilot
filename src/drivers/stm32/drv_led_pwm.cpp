@@ -176,26 +176,28 @@ led_pwm_channel_init(unsigned channel)
 		/* configure the GPIO first */
 		px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
 
+		uint16_t polarity = led_pwm_channels[channel].masks;
+
 		/* configure the channel */
 		switch (led_pwm_channels[channel].timer_channel) {
 		case 1:
 			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
-			rCCER(timer) |= GTIM_CCER_CC1E;
+			rCCER(timer) |= polarity | GTIM_CCER_CC1E;
 			break;
 
 		case 2:
 			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
-			rCCER(timer) |= GTIM_CCER_CC2E;
+			rCCER(timer) |= polarity | GTIM_CCER_CC2E;
 			break;
 
 		case 3:
 			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
-			rCCER(timer) |= GTIM_CCER_CC3E;
+			rCCER(timer) |= polarity | GTIM_CCER_CC3E;
 			break;
 
 		case 4:
 			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
-			rCCER(timer) |= GTIM_CCER_CC4E;
+			rCCER(timer) |= polarity | GTIM_CCER_CC4E;
 			break;
 		}
 	}
@@ -218,11 +220,7 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 
 	unsigned period = led_pwm_timer_get_period(timer);
 
-#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
-	unsigned value = period - (unsigned)cvalue * period / 255;
-#else
 	unsigned value = (unsigned)cvalue * period / 255;
-#endif
 
 	/* configure the channel */
 	if (value > 0) {

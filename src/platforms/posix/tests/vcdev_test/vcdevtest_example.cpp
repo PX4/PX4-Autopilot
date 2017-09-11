@@ -99,11 +99,11 @@ public:
 	size_t _read_offset;
 };
 
-class VCDevNode : public VDev
+class VCDevNode : public CDev
 {
 public:
 	VCDevNode() :
-		VDev("vcdevtest", TESTDEV),
+		CDev("vcdevtest", TESTDEV),
 		_is_open_for_write(false),
 		_write_offset(0) {};
 
@@ -127,7 +127,7 @@ int VCDevNode::open(device::file_t *handlep)
 		return -1;
 	}
 
-	int ret = VDev::open(handlep);
+	int ret = CDev::open(handlep);
 
 	if (ret != 0) {
 		return ret;
@@ -146,7 +146,7 @@ int VCDevNode::close(device::file_t *handlep)
 {
 	delete (PrivData *)handlep->priv;
 	handlep->priv = nullptr;
-	VDev::close(handlep);
+	CDev::close(handlep);
 
 	// Enable a new writer of the device is re-opened for write
 	if ((handlep->flags & PX4_F_WRONLY) && _is_open_for_write) {

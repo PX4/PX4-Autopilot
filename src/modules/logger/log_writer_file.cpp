@@ -84,6 +84,16 @@ LogWriterFile::~LogWriterFile()
 
 void LogWriterFile::start_log(const char *filename)
 {
+	// register the current file with the hardfault handler: if the system crashes,
+	// the hardfault handler will append the crash log to that file on the next reboot.
+	// Note that we don't deregister it when closing the log, so that crashes after disarming
+	// are appended as well (the same holds for crashes before arming, which can be a bit misleading)
+	int ret = hardfault_store_filename(filename);
+
+	if (ret) {
+		PX4_ERR("Failed to register ULog file to the hardfault handler (%i)", ret);
+	}
+
 	_fd = ::open(filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 	if (_fd < 0) {
@@ -103,17 +113,6 @@ void LogWriterFile::start_log(const char *filename)
 			return;
 		}
 	}
-
-	// register the current file with the hardfault handler: if the system crashes,
-	// the hardfault handler will append the crash log to that file on the next reboot.
-	// Note that we don't deregister it when closing the log, so that crashes after disarming
-	// are appended as well (the same holds for crashes before arming, which can be a bit misleading)
-	int ret = hardfault_store_filename(filename);
-
-	if (ret) {
-		PX4_ERR("Failed to register ULog file to the hardfault handler (%i)", ret);
-	}
-
 
 	PX4_INFO("Opened log file: %s", filename);
 	_should_run = true;
@@ -174,7 +173,7 @@ int LogWriterFile::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
-	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1060));
+	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1072));
 
 	int ret = pthread_create(&_thread, &thr_attr, &LogWriterFile::run_helper, this);
 	pthread_attr_destroy(&thr_attr);

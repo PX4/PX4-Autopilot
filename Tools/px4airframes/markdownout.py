@@ -1,8 +1,9 @@
 from xml.sax.saxutils import escape
 import codecs
+import os
 
 class MarkdownTablesOutput():
-    def __init__(self, groups, board):
+    def __init__(self, groups, board, image_path):
         result = ("# Airframes Reference\n"
                   "> **Note** **This list is auto-generated from the source code**.\n"
                   "> \n"
@@ -16,6 +17,8 @@ class MarkdownTablesOutput():
  
         type_set = set()
         
+        if len(image_path) > 0 and image_path[-1] != '/':
+            image_path = image_path + '/'
 
         for group in groups:
             if group.GetClass() not in type_set:
@@ -28,7 +31,8 @@ class MarkdownTablesOutput():
             image_name = group.GetImageName()
             result += '<div>\n'
             if image_name != 'AirframeUnknown':
-                result += '<img src="../../assets/airframes/types/%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
+                image_name = image_path + image_name
+                result += '<img src="%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
 
             # check if all outputs are equal for the group: if so, show them
             # only once

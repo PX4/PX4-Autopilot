@@ -336,6 +336,7 @@ void mTecs::debug(const char *fmt, ...)
 
 	va_start(args, fmt);
 	debug_print(fmt, args);
+	va_end(args);
 }
 
 } /* namespace fwPosctrl */

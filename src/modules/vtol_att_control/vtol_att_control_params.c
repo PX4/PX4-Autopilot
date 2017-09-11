@@ -221,6 +221,21 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 
 /**
+ * Approximate deceleration during back transition
+ *
+ * The approximate deceleration during a back transition in m/s/s
+ * Used to calculate back transition distance in mission mode. A lower value will make the VTOL transition further from the destination waypoint.
+ *
+ * @unit m/s/s
+ * @min 0.00
+ * @max 20.00
+ * @increment 1
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_DEC_MSS, 2.0f);
+
+/**
  * Transition blending airspeed
  *
  * Airspeed at which we can start blending both fw and mc controls. Set to 0 to disable.
@@ -309,7 +324,7 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 
 
 /**
- * QuadChute Max Pith
+ * QuadChute Max Pitch
  *
  * Maximum pitch angle before QuadChute engages
  * Above this the vehicle will transition back to MC mode and enter failsafe RTL

@@ -36,6 +36,7 @@
  * @group MAVLink
  * @min 1
  * @max 250
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 
@@ -44,6 +45,7 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
  * @group MAVLink
  * @min 1
  * @max 250
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 

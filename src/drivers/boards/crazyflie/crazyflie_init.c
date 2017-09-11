@@ -146,8 +146,6 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-	int result;
-
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */
@@ -328,15 +326,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_BLUE);
 	led_off(LED_TX);
 	led_off(LED_RX);
-
-
-
-	result = board_i2c_initialize();
-
-	if (result != OK) {
-		led_on(LED_RED);
-		return -ENODEV;
-	}
 
 	return OK;
 }

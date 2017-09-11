@@ -67,6 +67,8 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/debug_value.h>
+#include <uORB/topics/debug_vect.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_force_setpoint.h>
@@ -151,6 +153,9 @@ private:
 	void handle_message_serial_control(mavlink_message_t *msg);
 	void handle_message_logging_ack(mavlink_message_t *msg);
 	void handle_message_play_tune(mavlink_message_t *msg);
+	void handle_message_named_value_float(mavlink_message_t *msg);
+	void handle_message_debug(mavlink_message_t *msg);
+	void handle_message_debug_vect(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -190,6 +195,8 @@ private:
 
 	bool	evaluate_target_ok(int command, int target_system, int target_component);
 
+	void send_flight_information();
+
 	Mavlink	*_mavlink;
 
 	MavlinkMissionManager		_mission_manager;
@@ -201,6 +208,7 @@ private:
 	struct vehicle_local_position_s _hil_local_pos;
 	struct vehicle_land_detected_s _hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
+	struct actuator_armed_s _actuator_armed;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;
@@ -236,10 +244,14 @@ private:
 	orb_advert_t _transponder_report_pub;
 	orb_advert_t _collision_report_pub;
 	orb_advert_t _control_state_pub;
+	orb_advert_t _debug_key_value_pub;
+	orb_advert_t _debug_value_pub;
+	orb_advert_t _debug_vect_pub;
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
 	int _control_mode_sub;
+	int _actuator_armed_sub;
 	uint64_t _global_ref_timestamp;
 	int _hil_frames;
 	uint64_t _old_timestamp;

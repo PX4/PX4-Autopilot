@@ -218,6 +218,9 @@ MPU9250::~MPU9250()
 	/* make sure we are truly inactive */
 	stop();
 
+	orb_unadvertise(_accel_topic);
+	orb_unadvertise(_gyro->_gyro_topic);
+
 	/* delete the gyro subdriver */
 	delete _gyro;
 
@@ -257,14 +260,12 @@ MPU9250::init()
 	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
 #endif
 
-
 	int ret = probe();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("MPU9250 probe failed");
 		return ret;
 	}
-
 
 	/* do init */
 
@@ -276,11 +277,9 @@ MPU9250::init()
 		return ret;
 	}
 
-
-
-
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	ret = -ENOMEM;
 
 	if (_accel_reports == nullptr) {
 		goto out;
@@ -292,7 +291,7 @@ MPU9250::init()
 		goto out;
 	}
 
-	if (reset() != OK) {
+	if (reset_mpu() != OK) {
 		PX4_ERR("Exiting! Device failed to take initialization");
 		goto out;
 	}
@@ -318,7 +317,7 @@ MPU9250::init()
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("gyro init failed");
-		return ret;
+		goto out;
 	}
 
 #ifdef USE_I2C
@@ -337,8 +336,19 @@ MPU9250::init()
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("mag init failed");
+		goto out;
+	}
+
+
+	if (_whoami == MPU_WHOAMI_9250) {
+		ret = _mag->ak8963_reset();
+	}
+
+	if (ret != OK) {
+		DEVICE_DEBUG("mag reset failed");
 		return ret;
 	}
+
 
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
@@ -353,7 +363,8 @@ MPU9250::init()
 					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_accel_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		PX4_ERR("ADVERT FAIL");
+		goto out;
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
@@ -364,7 +375,8 @@ MPU9250::init()
 			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_gyro->_gyro_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		PX4_ERR("ADVERT FAIL");
+		goto out;
 	}
 
 out:
@@ -375,16 +387,42 @@ int MPU9250::reset()
 {
 	irqstate_t state;
 
+	/* When the mpu9250 starts from 0V the internal power on circuit
+	 * per the data sheet will require:
+	 *
+	 * Start-up time for register read/write From power-up Typ:11 max:100 ms
+	 *
+	 */
+
+	usleep(110000);
+
 	// Hold off sampling until done (100 MS will be shortened)
 	state = px4_enter_critical_section();
 	_reset_wait = hrt_absolute_time() + 100000;
+	px4_leave_critical_section(state);
 
+	int ret;
+
+	ret = reset_mpu();
+
+	if (ret == OK && _whoami == MPU_WHOAMI_9250) {
+		ret = _mag->ak8963_reset();
+	}
+
+
+	state = px4_enter_critical_section();
+	_reset_wait = hrt_absolute_time() + 10;
+	px4_leave_critical_section(state);
+
+	return ret;
+}
+
+int MPU9250::reset_mpu()
+{
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-
 	write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
 	write_checked_reg(MPUREG_PWR_MGMT_2, 0);
 
-	px4_leave_critical_section(state);
 
 	usleep(1000);
 
@@ -452,15 +490,6 @@ int MPU9250::reset()
 			}
 		}
 	}
-
-
-	if (all_ok && _whoami == MPU_WHOAMI_9250) {
-		all_ok = _mag->ak8963_reset() == OK;
-	}
-
-	state = px4_enter_critical_section();
-	_reset_wait = hrt_absolute_time() + 10;
-	px4_leave_critical_section(state);
 
 	return all_ok ? OK : -EIO;
 }

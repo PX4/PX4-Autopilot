@@ -74,7 +74,7 @@
 #define SIGNED_TO_REG(_signed)	((uint16_t)(_signed))
 
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
-#define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
+#define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)floorf((_float + 0.00005f) * 10000.0f))
 
 #define PX4IO_PROTOCOL_VERSION		4
 

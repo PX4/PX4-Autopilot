@@ -74,6 +74,10 @@ tone_alarm start
 #
 # Start system state indicator
 #
+if rgbled_pwm start
+then
+fi
+
 if rgbled start
 then
 fi

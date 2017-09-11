@@ -44,5 +44,5 @@ then
 	param set RWTO_TKOFF 1
 fi
 
-set HIL yes
+param set SYS_HITL 1
 set MIXER AERT

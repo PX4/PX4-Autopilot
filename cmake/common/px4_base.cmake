@@ -350,6 +350,8 @@ function(px4_add_common_flags)
 				-Wno-varargs
 				-Wno-address-of-packed-member
 				-Wno-unknown-warning-option
+				-Wunused-but-set-variable
+				#-Wdouble-promotion # needs work first
 			)
 		endif()
 	else()

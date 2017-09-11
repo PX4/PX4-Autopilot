@@ -71,6 +71,37 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.last_channel_index = 5,
 		.handler = io_timer_handler1,
 		.vectorno =  STM32_IRQ_TIM4,
+	},
+	{
+		.base = STM32_TIM12_BASE,
+		.clock_register = STM32_RCC_APB1ENR,
+		.clock_bit = RCC_APB1ENR_TIM12EN,
+		.clock_freq = STM32_APB1_TIM12_CLKIN,
+		.first_channel_index = 6,
+		.last_channel_index = 7,
+		.handler = io_timer_handler2,
+		.vectorno =  STM32_IRQ_TIM12,
+	},
+	{
+		.base = STM32_TIM2_BASE,
+		.clock_register = STM32_RCC_APB1ENR,
+		.clock_bit = RCC_APB1ENR_TIM2EN,
+		.clock_freq = STM32_APB1_TIM2_CLKIN,
+		.first_channel_index = 8,
+		.last_channel_index = 10,
+		.handler = io_timer_handler3,
+		.vectorno =  STM32_IRQ_TIM2,
+	},
+	{
+		.base = STM32_TIM9_BASE,
+		.clock_register = STM32_RCC_APB2ENR,
+		.clock_bit = RCC_APB2ENR_TIM9EN,
+		.clock_freq = STM32_APB2_TIM9_CLKIN,
+		.first_channel_index = 11,
+		.last_channel_index = 11,
+		.handler = io_timer_handler4,
+		.vectorno =  STM32_IRQ_TIM9,
+
 	}
 };
 
@@ -122,6 +153,22 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.timer_channel = 3,
 		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
 		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
+	},
+	{
+		.gpio_out = GPIO_TIM12_CH1OUT,
+		.gpio_in = GPIO_TIM12_CH1IN,
+		.timer_index = 2,
+		.timer_channel = 1,
+		.ccr_offset = STM32_GTIM_CCR1_OFFSET, // TODO: need revision
+		.masks  = GTIM_SR_CC1IF | GTIM_SR_CC1OF // TODO: need revision
+	},
+	{
+		.gpio_out = GPIO_TIM12_CH2OUT,
+		.gpio_in = GPIO_TIM12_CH2IN,
+		.timer_index = 2,
+		.timer_channel = 2,
+		.ccr_offset = STM32_GTIM_CCR2_OFFSET, // TODO: need revision
+		.masks  = GTIM_SR_CC2IF | GTIM_SR_CC2OF // TODO: need revision
 	}
 };
 
@@ -146,41 +193,98 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 	}
 };
 
+/* Support driving active low (preferred) or active high LED
+ * on both the onboard status LEDs or the [n]UI_LED_<color>[_EXTERNAL]
+ *
+ * Use open drain to drive the LED. This will ensure that
+ * if the LED has a 5 Volt supply that the LED will be
+ * off when high.
+ */
+#define CCER_C1_NUM_BITS   4
+#define ACTIVE_LOW(c)      (GTIM_CCER_CC1P << (((c)-1) * CCER_C1_NUM_BITS))
+#define ACTIVE_HIGH(c)     0
+
+#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
+#  define POLARITY(c)      ACTIVE_LOW(c)
+#  define DRIVE_TYPE(p)    ((p)|GPIO_OPENDRAIN)
+#else
+#  define POLARITY(c)      ACTIVE_HIGH((c))
+#  define DRIVE_TYPE(p)    (p)
+#endif
+
+#if defined(BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW)
+#  define UI_POLARITY(c)    ACTIVE_LOW(c)
+#  define UI_DRIVE_TYPE(p)  ((p)|GPIO_OPENDRAIN)
+#else
+#  define UI_POLARITY(c)    ACTIVE_HIGH((c))
+#  define UI_DRIVE_TYPE(p)  (p)
+#endif
+
 __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 	{
-		.gpio_out = LED_TIM3_CH4OUT,
+		.gpio_out = DRIVE_TYPE(LED_TIM3_CH4OUT),
 		.gpio_in  = 0,
 		.timer_index = 0,
 		.timer_channel = 4,
+		.masks = POLARITY(4),
 	},
 	{
-		.gpio_out = LED_TIM3_CH1OUT,
+		.gpio_out = DRIVE_TYPE(LED_TIM3_CH1OUT),
 		.gpio_in  = 0,
 		.timer_index = 0,
 		.timer_channel = 1,
+		.masks = POLARITY(1),
 	},
 	{
-		.gpio_out = LED_TIM3_CH2OUT,
+		.gpio_out = DRIVE_TYPE(LED_TIM3_CH2OUT),
 		.gpio_in  = 0,
 		.timer_index = 0,
 		.timer_channel = 2,
+		.masks = POLARITY(2),
 	},
+#if defined(BOARD_UI_LED_SWAP_RG)
 	{
-		.gpio_out = LED_TIM5_CH1OUT,
-		.gpio_in  = 0,
-		.timer_index = 1,
-		.timer_channel = 1,
-	},
-	{
-		.gpio_out = LED_TIM5_CH2OUT,
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH2OUT),
 		.gpio_in  = 0,
 		.timer_index = 1,
 		.timer_channel = 2,
+		.masks = UI_POLARITY(2),
 	},
 	{
-		.gpio_out = LED_TIM5_CH3OUT,
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH1OUT),
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 1,
+		.masks = UI_POLARITY(1),
+	},
+	{
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH3OUT),
 		.gpio_in  = 0,
 		.timer_index = 1,
 		.timer_channel = 3,
+		.masks = UI_POLARITY(3),
+	},
+#else
+	{
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH1OUT),
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 1,
+		.masks = UI_POLARITY(1),
+	},
+	{
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH2OUT),
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 2,
+		.masks = UI_POLARITY(2),
+	},
+	{
+		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH3OUT),
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 3,
+		.masks = UI_POLARITY(3),
 	}
+#endif
 };

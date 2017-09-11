@@ -40,6 +40,8 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
+#include <px4_log.h>
+#include <px4_module.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +54,6 @@
 
 
 #include "systemlib/systemlib.h"
-#include "systemlib/err.h"
 
 
 __EXPORT int motor_test_main(int argc, char *argv[]);
@@ -85,16 +86,21 @@ void motor_test(unsigned channel, float value)
 static void usage(const char *reason)
 {
 	if (reason != NULL) {
-		warnx("%s", reason);
+		PX4_WARN("%s", reason);
 	}
 
-	errx(1,
-	     "usage:\n"
-	     "motor_test\n"
-	     "    -m <channel>            Motor to test (0..7), all if -m not given\n"
-	     "    -p <power>              Power (0..100), 0 if -p not given\n"
-	     "motor_test stop             Stop all motors\n"
-	     "motor_test iterate          Iterate all motors starting and stopping one after the other\n");
+	PRINT_MODULE_DESCRIPTION("Utility to test motors.\n"
+				 "\n"
+				 "Note: this can only be used for drivers which support the motor_test uorb topic (currently uavcan and tap_esc)\n"
+				);
+
+	PRINT_MODULE_USAGE_NAME("motor_test", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Set motor(s) to a specific output value");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 7, "Motor to test (0...7, all if not specified)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 100, "Power (0...100)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop all motors");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("iterate", "Iterate all motors starting and stopping one after the other");
+
 }
 
 int motor_test_main(int argc, char *argv[])
@@ -121,6 +127,7 @@ int motor_test_main(int argc, char *argv[])
 
 			if (lval > 100) {
 				usage("value invalid");
+				return 1;
 			}
 
 			value = ((float)lval) / 100.f;
@@ -128,17 +135,18 @@ int motor_test_main(int argc, char *argv[])
 
 		default:
 			usage(NULL);
+			return 1;
 		}
 	}
 
 	bool run_test = true;
 
-	if (argc > 1) {
-		if (strcmp("stop", argv[1]) == 0) {
+	if (myoptind >= 0 && myoptind < argc) {
+		if (strcmp("stop", argv[myoptind]) == 0) {
 			channel = -1;
 			value = 0.f;
 
-		} else if (strcmp("iterate", argv[1]) == 0) {
+		} else if (strcmp("iterate", argv[myoptind]) == 0) {
 			value = 0.3f;
 
 			for (int i = 0; i < 8; ++i) {
@@ -149,7 +157,17 @@ int motor_test_main(int argc, char *argv[])
 			}
 
 			run_test = false;
+
+		} else if (strcmp("test", argv[myoptind]) == 0) {
+			// nothing to do
+		} else {
+			usage(NULL);
+			return 0;
 		}
+
+	} else {
+		usage(NULL);
+		return 0;
 	}
 
 	if (run_test) {
@@ -164,5 +182,5 @@ int motor_test_main(int argc, char *argv[])
 		}
 	}
 
-	exit(0);
+	return 0;
 }

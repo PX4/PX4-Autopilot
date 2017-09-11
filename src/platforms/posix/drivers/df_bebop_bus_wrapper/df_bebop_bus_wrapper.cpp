@@ -202,7 +202,8 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 
 	// TODO Check if this is the right way for the Bebop
 	// We don't have current measurements
-	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, _last_throttle, _armed, &battery_report);
+	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, true, true, 0, _last_throttle, _armed,
+				     &battery_report);
 
 	esc_status_s esc_status = {};
 

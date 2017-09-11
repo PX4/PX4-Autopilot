@@ -8,7 +8,7 @@ output 0 and 1, the elevator to output 2, the rudder to output 3, the throttle
 to output 4 and the wheel to output 5.
 
 Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
-(roll), 1 (pitch), 2 (yaw) and 3 (thrust) 4 (flaps) 6 (flaperon).
+(roll), 1 (pitch), 2 (yaw) and 3 (thrust) 4 (flaps).
 
 Aileron mixer (roll + flaperon)
 ---------------------------------
@@ -18,15 +18,13 @@ depending on the actual configuration it may be necessary to reverse the scaling
 factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
-M: 2
+M: 1
 O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
-S: 0 6  10000  10000      0 -10000  10000
 
-M: 2
+M: 1
 O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
-S: 0 6 -10000 -10000      0 -10000  10000
 
 Elevator mixer
 ------------

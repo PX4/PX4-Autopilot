@@ -24,6 +24,11 @@ matrix:
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=tests PX4_DOCKER_REPO=px4io/px4-dev-base:ubuntu17.10
+    - os: linux
+      sudo: required
+      services:
+        - docker
       env: BUILD_TARGET=clang-tidy
     - os: linux
       sudo: required
@@ -53,7 +58,8 @@ before_install:
   - if [[ "${TRAVIS_BRANCH}" = "coverity" ]]; then
       if [[ "${BUILD_TARGET}" = "coverity_scan" ]]; then sudo apt-get install genromfs && pip install empy jinja2; else exit 0; fi;
     fi
-
+  # use git:// to fetch instead of https://
+  - git config --global url."git://".insteadOf https://
 env:
   global:
     # COVERITY KEY

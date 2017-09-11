@@ -46,10 +46,6 @@
 namespace land_detector
 {
 
-RoverLandDetector::RoverLandDetector()
-{
-}
-
 void RoverLandDetector::_initialize_topics()
 {
 }
@@ -67,6 +63,12 @@ bool RoverLandDetector::_get_ground_contact_state()
 	return false;
 }
 
+bool RoverLandDetector::_get_maybe_landed_state()
+{
+	return false;
+}
+
+
 bool RoverLandDetector::_get_landed_state()
 {
 	return false;
@@ -82,4 +84,4 @@ float RoverLandDetector::_get_max_altitude()
 	return 0.0f;
 }
 
-}
+} // namespace land_detector

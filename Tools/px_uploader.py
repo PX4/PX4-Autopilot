@@ -343,13 +343,13 @@ class uploader(object):
                     uploader.EOC)
 
         # erase is very slow, give it 20s
-        deadline = time.time() + 20.0
+        deadline = time.time() + 30.0
         while time.time() < deadline:
 
             # Draw progress bar (erase usually takes about 9 seconds to complete)
             estimatedTimeRemaining = deadline-time.time()
             if estimatedTimeRemaining >= 9.0:
-                self.__drawProgressBar(label, 20.0-estimatedTimeRemaining, 9.0)
+                self.__drawProgressBar(label, 30.0-estimatedTimeRemaining, 9.0)
             else:
                 self.__drawProgressBar(label, 10.0, 10.0)
                 sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()))

@@ -225,6 +225,7 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
 	(void)param_find("SYS_AUTOCONFIG");
+	(void)param_find("SYS_HITL");
 	(void)param_find("PWM_RATE");
 	(void)param_find("PWM_MIN");
 	(void)param_find("PWM_MAX");
@@ -355,11 +356,11 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	}
 
 	if (param_get(parameter_handles.rc_map_stab_sw, &(parameters.rc_map_stab_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(parameter_handles.rc_map_man_sw, &(parameters.rc_map_man_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	param_get(parameter_handles.rc_map_aux1, &(parameters.rc_map_aux1));

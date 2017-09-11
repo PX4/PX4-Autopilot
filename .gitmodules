@@ -37,3 +37,6 @@
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
+[submodule "src/lib/micro-CDR"]
+	path = src/lib/micro-CDR
+	url = https://github.com/eProsima/micro-CDR.git

@@ -62,7 +62,7 @@ public:
 
 	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
 
-	static unsigned	int	_bus_clocks[3];
+	static unsigned	int	_bus_clocks[BOARD_NUMBER_I2C_BUSES];
 
 protected:
 	/**

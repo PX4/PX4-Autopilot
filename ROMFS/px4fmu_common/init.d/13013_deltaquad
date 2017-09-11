@@ -11,9 +11,10 @@
 # @output MAIN2 motor 2
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
-# @output AUX1 Right elevon
-# @output AUX2 Left elevon
-# @output AUX3 Motor
+# @output MAIN5 Right elevon
+# @output MAIN6 Left elevon
+# @output MAIN7 Pusher motor
+# @output MAIN8 Pusher reverse channel
 #
 
 sh /etc/init.d/rc.vtol_defaults
@@ -107,12 +108,17 @@ then
 	param set SYS_COMPANION 57600
 fi
 
-set MIXER vtol_quad_x
+set MIXER deltaquad
 set PWM_OUT 1234
 set PWM_RATE 400
 
-set MIXER_AUX vtol_delta
-set PWM_ACHDIS 3
+param set PWM_MAIN_DIS5 1500
+param set PWM_MAIN_DIS6 1500
+param set PWM_MAIN_DIS7 900
+param set PWM_MAIN_DIS8 900
+
+set MIXER_AUX pass
+set PWM_AUX_OUT 12345
 set PWM_AUX_DISARMED 950
 
 set MAV_TYPE 22

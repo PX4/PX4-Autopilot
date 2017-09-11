@@ -45,6 +45,7 @@ set(config_module_list
 	lib/conversion
 	lib/version
 	lib/DriverFramework/framework
+	lib/micro-CDR
 
 	#
 	# QuRT port

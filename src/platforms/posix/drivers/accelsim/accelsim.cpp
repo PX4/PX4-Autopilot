@@ -881,9 +881,6 @@ ACCELSIM::_measure()
 
 	_accel_reports->force(&accel_report);
 
-	/* notify anyone waiting for data */
-	DevMgr::updateNotify(*this);
-
 	if (!(m_pub_blocked)) {
 		/* publish it */
 
@@ -969,9 +966,6 @@ ACCELSIM::mag_measure()
 	mag_report.z = raw_mag_report.z;
 
 	_mag_reports->force(&mag_report);
-
-	/* notify anyone waiting for data */
-	DevMgr::updateNotify(*this);
 
 	if (!(m_pub_blocked)) {
 		/* publish it */

@@ -67,6 +67,7 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <platforms/px4_defines.h>
+#include <uORB/topics/parameter_update.h>
 
 static uint64_t IMUusec = 0;
 
@@ -1359,7 +1360,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	_ekf->angRate.y = _sensor_combined.gyro_rad[1];
 	_ekf->angRate.z = _sensor_combined.gyro_rad[2];
 
-	float gyro_dt = _sensor_combined.gyro_integral_dt;
+	float gyro_dt = _sensor_combined.gyro_integral_dt / 1.e6f;
 	_ekf->dAngIMU = _ekf->angRate * gyro_dt;
 
 	perf_count(_perf_gyro);
@@ -1370,7 +1371,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
 		_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
 
-		float accel_dt = _sensor_combined.accelerometer_integral_dt;
+		float accel_dt = _sensor_combined.accelerometer_integral_dt / 1.e6f;
 		_ekf->dVelIMU = _ekf->accel * accel_dt;
 
 		_last_accel = _sensor_combined.timestamp + _sensor_combined.accelerometer_timestamp_relative;
@@ -1394,8 +1395,8 @@ void AttitudePositionEstimatorEKF::pollData()
 	// leave this in as long as larger improvements are still being made.
 #if 0
 
-	float deltaTIntegral = _sensor_combined.gyro_integral_dt;
-	float deltaTIntAcc = _sensor_combined.accelerometer_integral_dt;
+	float deltaTIntegral = _sensor_combined.gyro_integral_dt / 1.e6f;
+	float deltaTIntAcc = _sensor_combined.accelerometer_integral_dt / 1.e6f;
 
 	static unsigned dtoverflow5 = 0;
 	static unsigned dtoverflow10 = 0;

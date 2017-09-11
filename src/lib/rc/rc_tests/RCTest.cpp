@@ -1,4 +1,4 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <systemlib/err.h>
 
@@ -62,7 +62,7 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 	FILE *fp;
 	fp = fopen(filepath, "rt");
 
-	ut_test(fp != nullptr);
+	ut_test(fp);
 	//PX4_INFO("loading data from: %s", filepath);
 
 	float f;
@@ -138,7 +138,7 @@ bool RCTest::sbus2Test()
 	FILE *fp;
 	fp = fopen(filepath, "rt");
 
-	ut_test(fp != nullptr);
+	ut_test(fp);
 	//warnx("loading data from: %s", filepath);
 
 	// if (argc < 2)
@@ -221,7 +221,7 @@ bool RCTest::st24Test()
 	FILE *fp;
 
 	fp = fopen(filepath, "rt");
-	ut_test(fp != nullptr);
+	ut_test(fp);
 
 	float f;
 	unsigned x;
@@ -282,7 +282,7 @@ bool RCTest::sumdTest()
 	FILE *fp;
 
 	fp = fopen(filepath, "rt");
-	ut_test(fp != nullptr);
+	ut_test(fp);
 
 	float f;
 	unsigned x;

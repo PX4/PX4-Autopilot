@@ -28,7 +28,7 @@ set(config_module_list
 	#drivers/ll40ls
 	drivers/trone
 	drivers/gps
-	drivers/pwm_out_sim
+	#drivers/pwm_out_sim
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
@@ -94,7 +94,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/sdlog2
+	#modules/sdlog2
 	modules/logger
 
 	#
@@ -125,6 +125,7 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
+	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -171,12 +172,6 @@ set(config_extra_builtin_cmds
 
 set(config_io_board
 	px4io-v1
-	)
-
-set(config_extra_libs
-	)
-
-set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

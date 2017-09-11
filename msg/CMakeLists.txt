@@ -47,6 +47,8 @@ set(msg_file_names
 	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
+	debug_value.msg
+	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_innovations.msg
@@ -55,8 +57,6 @@ set(msg_file_names
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
-	fence.msg
-	fence_vertex.msg
 	filtered_bottom_flow.msg
 	follow_target.msg
 	fw_pos_ctrl_status.msg
@@ -81,6 +81,7 @@ set(msg_file_names
 	parameter_update.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
+	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
 	rc_channels.msg

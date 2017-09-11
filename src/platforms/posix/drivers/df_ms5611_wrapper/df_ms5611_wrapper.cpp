@@ -194,9 +194,6 @@ int DfMS5611Wrapper::_publish(struct baro_sensor_data &data)
 		}
 	}
 
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
-
 	perf_end(_baro_sample_perf);
 
 	return 0;

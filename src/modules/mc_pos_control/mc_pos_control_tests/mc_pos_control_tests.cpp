@@ -40,7 +40,7 @@
  */
 
 #include <systemlib/err.h>
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 #include <mathlib/mathlib.h>
 
 extern "C" __EXPORT int mc_pos_control_tests_main(int argc, char *argv[]);

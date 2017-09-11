@@ -42,6 +42,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -175,8 +176,11 @@ static const int16_t IST8310_MIN_VAL_Z  = -IST8310_MAX_VAL_Z;
 
 enum IST8310_BUS {
 	IST8310_BUS_ALL           = 0,
-	IST8310_BUS_I2C_EXTERNAL = 1,
-	IST8310_BUS_I2C_INTERNAL = 2,
+	IST8310_BUS_I2C_EXTERNAL  = 1,
+	IST8310_BUS_I2C_EXTERNAL1 = 2,
+	IST8310_BUS_I2C_EXTERNAL2 = 3,
+	IST8310_BUS_I2C_EXTERNAL3 = 4,
+	IST8310_BUS_I2C_INTERNAL  = 5,
 };
 
 #ifndef CONFIG_SCHED_WORKQUEUE
@@ -1277,6 +1281,15 @@ struct ist8310_bus_option {
 	IST8310 *dev;
 } bus_options[] = {
 	{ IST8310_BUS_I2C_EXTERNAL, "/dev/ist8310_ext", PX4_I2C_BUS_EXPANSION, NULL },
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ IST8310_BUS_I2C_EXTERNAL1, "/dev/ist8311_int", PX4_I2C_BUS_EXPANSION1, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ IST8310_BUS_I2C_EXTERNAL2, "/dev/ist8312_int", PX4_I2C_BUS_EXPANSION2, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION3
+	{ IST8310_BUS_I2C_EXTERNAL3, "/dev/ist8313_int", PX4_I2C_BUS_EXPANSION3, NULL },
+#endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ IST8310_BUS_I2C_INTERNAL, "/dev/ist8310_int", PX4_I2C_BUS_ONBOARD, NULL },
 #endif
@@ -1548,7 +1561,7 @@ usage()
 	PX4_INFO("    -R rotation");
 	PX4_INFO("    -C calibrate on start");
 	PX4_INFO("    -a 12C Address (0x%02x)", IST8310_BUS_I2C_ADDR);
-	PX4_INFO("    -b 12C bus (%d|%d)", IST8310_BUS_I2C_EXTERNAL, IST8310_BUS_I2C_INTERNAL);
+	PX4_INFO("    -b 12C bus (%d-%d)", IST8310_BUS_I2C_EXTERNAL, IST8310_BUS_I2C_INTERNAL);
 }
 
 } // namespace
@@ -1556,26 +1569,27 @@ usage()
 int
 ist8310_main(int argc, char *argv[])
 {
-	int ch;
-
 	IST8310_BUS i2c_busid = IST8310_BUS_ALL;
 	int i2c_addr = IST8310_BUS_I2C_ADDR; /* 7bit */
 
 	enum Rotation rotation = ROTATION_NONE;
 	bool calibrate = false;
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
 
-	while ((ch = getopt(argc, argv, "R:Ca:b:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:Ca:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
-			i2c_addr = (int)strtol(optarg, NULL, 0);
+			i2c_addr = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
-			i2c_busid = (IST8310_BUS)strtol(optarg, NULL, 0);
+			i2c_busid = (IST8310_BUS)strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'C':
@@ -1588,12 +1602,12 @@ ist8310_main(int argc, char *argv[])
 		}
 	}
 
-	if (optind >= argc) {
+	if (myoptind >= argc) {
 		ist8310::usage();
 		exit(1);
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.

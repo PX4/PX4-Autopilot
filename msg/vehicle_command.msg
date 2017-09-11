@@ -62,6 +62,7 @@ uint32 VEHICLE_CMD_START_RX_PAIR = 500			# Starts receiver pairing |0:Spektrum| 
 uint32 VEHICLE_CMD_SET_CAMERA_MODE = 530            # Set camera capture mode (photo, video, etc.)
 uint32 VEHICLE_CMD_DO_TRIGGER_CONTROL = 2003            # Enable or disable on-board camera triggering system
 uint32 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000    # Command VTOL transition
+uint32 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001    # Request arm authorization
 uint32 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001	# Prepare a payload deployment in the flight plan
 uint32 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002	# Control a pre-programmed payload deployment
 uint32 VEHICLE_CMD_PREFLIGHT_UAVCAN = 243		# UAVCAN configuration. If param 1 == 1 actuator mapping and direction assignment should be started
@@ -73,7 +74,8 @@ uint32 VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED = 1	# Command TEMPORARY REJECTED/
 uint32 VEHICLE_CMD_RESULT_DENIED = 2			# Command PERMANENTLY DENIED |
 uint32 VEHICLE_CMD_RESULT_UNSUPPORTED = 3		# Command UNKNOWN/UNSUPPORTED |
 uint32 VEHICLE_CMD_RESULT_FAILED = 4			# Command executed, but failed |
-uint32 VEHICLE_CMD_RESULT_ENUM_END = 5			#
+uint32 VEHICLE_CMD_RESULT_IN_PROGRESS = 5		# Command being executed |
+uint32 VEHICLE_CMD_RESULT_ENUM_END = 6			#
 
 uint32 VEHICLE_MOUNT_MODE_RETRACT = 0				# Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization |
 uint32 VEHICLE_MOUNT_MODE_NEUTRAL = 1				# Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory. |
@@ -98,9 +100,10 @@ float32 param4			# Parameter 4, as defined by MAVLink uint32 VEHICLE_CMD enum.
 float64 param5			# Parameter 5, as defined by MAVLink uint32 VEHICLE_CMD enum.
 float64 param6			# Parameter 6, as defined by MAVLink uint32 VEHICLE_CMD enum.
 float32 param7			# Parameter 7, as defined by MAVLink uint32 VEHICLE_CMD enum.
-uint32 command			# Command ID, as defined MAVLink by uint32 VEHICLE_CMD enum.
-uint32 target_system		# System which should execute the command
-uint32 target_component		# Component which should execute the command, 0 for all components
-uint32 source_system		# System sending the command
-uint32 source_component		# Component sending the command
+uint16 command			# Command ID, as defined MAVLink by uint32 VEHICLE_CMD enum.
+uint8 target_system		# System which should execute the command
+uint8 target_component		# Component which should execute the command, 0 for all components
+uint8 source_system		# System sending the command
+uint8 source_component		# Component sending the command
 uint8 confirmation		# 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command)
+uint8 from_external

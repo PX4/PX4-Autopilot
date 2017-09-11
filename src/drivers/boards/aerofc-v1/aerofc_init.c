@@ -116,6 +116,19 @@ extern void led_off(int led);
 __END_DECLS
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int _bootloader_force_pin_callback(int irq, void *context)
+{
+	if (stm32_gpioread(GPIO_FORCE_BOOTLOADER)) {
+		board_reset(0);
+	}
+
+	return 0;
+}
+
+/****************************************************************************
  * Protected Functions
  ****************************************************************************/
 
@@ -128,15 +141,17 @@ __END_DECLS
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
 
 __EXPORT void stm32_boardinitialize(void)
 {
-	/* configure LEDs */
+	stm32_configgpio(GPIO_FORCE_BOOTLOADER);
+	_bootloader_force_pin_callback(0, NULL);
 
+	/* configure LEDs */
 	board_autoled_initialize();
 
 	/* turn sensors on */
@@ -158,6 +173,9 @@ __EXPORT void stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	int result;
+
+	/* the interruption subsystem is not initialized when stm32_boardinitialize() is called */
+	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback);
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 

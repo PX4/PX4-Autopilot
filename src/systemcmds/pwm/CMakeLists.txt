@@ -37,7 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-array-bounds
 	SRCS
-		pwm.c
+		pwm.cpp
 	DEPENDS
 		platforms__common
 	)

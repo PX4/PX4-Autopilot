@@ -363,7 +363,7 @@ __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned 
 /**
  * Trigger all timer's channels in Oneshot mode to fire
  * the oneshot with updated values.
- * Nothing is none if not in oneshot mode.
+ * Nothing is done if not in oneshot mode.
  *
  */
 __EXPORT extern void up_pwm_update(void);

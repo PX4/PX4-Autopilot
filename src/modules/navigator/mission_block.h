@@ -86,7 +86,7 @@ protected:
 	 * @param the mission item to convert
 	 * @param the position setpoint that needs to be set
 	 */
-	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
+	bool mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
 	/**
 	 * Set previous position setpoint to current setpoint
@@ -148,7 +148,7 @@ protected:
 	control::BlockParamInt _param_vtol_wv_takeoff;
 	control::BlockParamInt _param_vtol_wv_loiter;
 	control::BlockParamInt _param_force_vtol;
-	control::BlockParamFloat _param_back_trans_dur;
+	control::BlockParamFloat _param_back_trans_dec_mss;
 };
 
 #endif

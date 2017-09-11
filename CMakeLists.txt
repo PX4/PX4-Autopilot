@@ -204,6 +204,7 @@ px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
 px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
+px4_add_git_submodule(TARGET git_micro_cdr PATH "src/lib/micro-CDR")
 
 px4_create_git_hash_header()
 
@@ -380,8 +381,10 @@ px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}
 	INCLUDES ${msg_include_paths}
-	DEPENDS git_genmsg git_gencpp prebuild_targets
+	DEPENDS git_genmsg git_gencpp git_micro_cdr prebuild_targets
 	)
+include_directories("${PX4_SOURCE_DIR}/src/lib/micro-CDR/include"
+					"${PX4_BINARY_DIR}/src/lib/micro-CDR/include/microcdr")
 
 px4_generate_airframes_xml(BOARD ${BOARD})
 

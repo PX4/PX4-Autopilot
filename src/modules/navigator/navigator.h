@@ -68,6 +68,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/uORB.h>
 
 /**
@@ -88,17 +89,12 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	int			start();
+	int		start();
 
 	/**
 	 * Display the navigator status.
 	 */
 	void		status();
-
-	/**
-	 * Add point to geofence
-	 */
-	void		add_fence_point(int argc, char *argv[]);
 
 	/**
 	 * Load fence from file
@@ -261,7 +257,7 @@ private:
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
-	vehicle_local_position_s			_local_pos;		/**< local vehicle position */
+	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */

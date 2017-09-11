@@ -1,6 +1,6 @@
 uorb start
 
-ekf2 start --replay
+ekf2 start -r
 logger start -e -t -b 1000 -p vehicle_attitude
 sleep 0.2
 replay start

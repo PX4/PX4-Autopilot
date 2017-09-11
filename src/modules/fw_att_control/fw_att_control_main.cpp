@@ -750,13 +750,11 @@ FixedwingAttitudeControl::task_main()
 	battery_status_poll();
 
 	/* wakeup source */
-	px4_pollfd_struct_t fds[2];
+	px4_pollfd_struct_t fds[1];
 
 	/* Setup of loop */
-	fds[0].fd = _params_sub;
+	fds[0].fd = _ctrl_state_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _ctrl_state_sub;
-	fds[1].events = POLLIN;
 
 	_task_running = true;
 
@@ -773,16 +771,19 @@ FixedwingAttitudeControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
 		perf_begin(_loop_perf);
 
 		/* only update parameters if they changed */
-		if (fds[0].revents & POLLIN) {
+		bool params_updated = false;
+		orb_check(_params_sub, &params_updated);
+
+		if (params_updated) {
 			/* read from param to clear updated flag */
-			struct parameter_update_s update;
+			parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 			/* update parameters from storage */
@@ -790,7 +791,7 @@ FixedwingAttitudeControl::task_main()
 		}
 
 		/* only run controller if attitude changed */
-		if (fds[1].revents & POLLIN) {
+		if (fds[0].revents & POLLIN) {
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
@@ -988,6 +989,7 @@ FixedwingAttitudeControl::task_main()
 				// in STABILIZED mode we need to generate the attitude setpoint
 				// from manual user inputs
 				if (!_vcontrol_mode.flag_control_climb_rate_enabled && !_vcontrol_mode.flag_control_offboard_enabled) {
+					_att_sp.timestamp = hrt_absolute_time();
 					_att_sp.roll_body = _manual.y * _parameters.man_roll_max + _parameters.rollsp_offset_rad;
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max, _parameters.man_roll_max);
 					_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max + _parameters.pitchsp_offset_rad;
@@ -1001,17 +1003,6 @@ FixedwingAttitudeControl::task_main()
 
 					int instance;
 					orb_publish_auto(_attitude_setpoint_id, &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
-				}
-
-				float roll_sp = _att_sp.roll_body;
-				float pitch_sp = _att_sp.pitch_body;
-				float yaw_sp = _att_sp.yaw_body;
-				float throttle_sp = _att_sp.thrust;
-				float yaw_manual = 0.0f;
-
-				/* allow manual yaw in manual modes */
-				if (_vcontrol_mode.flag_control_manual_enabled) {
-					yaw_manual = _manual.r;
 				}
 
 				/* reset integrals where needed */
@@ -1039,6 +1030,11 @@ FixedwingAttitudeControl::task_main()
 					_yaw_ctrl.reset_integrator();
 					_wheel_ctrl.reset_integrator();
 				}
+
+				float roll_sp = _att_sp.roll_body;
+				float pitch_sp = _att_sp.pitch_body;
+				float yaw_sp = _att_sp.yaw_body;
+				float throttle_sp = _att_sp.thrust;
 
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
@@ -1124,8 +1120,10 @@ FixedwingAttitudeControl::task_main()
 						_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 								_parameters.trim_yaw;
 
-						/* add in manual rudder control */
-						_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
+						/* add in manual rudder control in manual modes */
+						if (_vcontrol_mode.flag_control_manual_enabled) {
+							_actuators.control[actuator_controls_s::INDEX_YAW] += _manual.r;
+						}
 
 						if (!PX4_ISFINITE(yaw_u)) {
 							_yaw_ctrl.reset_integrator();
@@ -1274,7 +1272,7 @@ FixedwingAttitudeControl::start()
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("fw_att_control",
 					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
+					   SCHED_PRIORITY_ATTITUDE_CONTROL,
 					   1500,
 					   (px4_main_t)&FixedwingAttitudeControl::task_main_trampoline,
 					   nullptr);
