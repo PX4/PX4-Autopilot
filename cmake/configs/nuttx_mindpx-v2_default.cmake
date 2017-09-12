@@ -135,6 +135,9 @@ set(config_module_list
 	modules/uORB
 	modules/dataman
 
+	# micro RTPS
+	modules/micrortps_bridge/micrortps_client
+
 	#
 	# Libraries
 	#
@@ -197,6 +200,14 @@ set(config_module_list
 	# EKF
 	#examples/ekf_att_pos_estimator
 )
+
+set(config_rtps_send_topics
+   sensor_combined
+   )
+
+set(config_rtps_receive_topics
+   sensor_baro
+   )
 
 set(config_extra_builtin_cmds
 	serdis
