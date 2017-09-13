@@ -53,7 +53,7 @@ void board_get_uuid(uuid_byte_t uuid_bytes)
 	uint32_t *chip_uuid = (uint32_t *) DUMMY_SIM_UIDH;
 	uint32_t  *uuid_words = (uint32_t *) uuid_bytes;
 
-	for (int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
+	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
 		*uuid_words++ = SWAP_UINT32(chip_uuid[i]);
 	}
 }
@@ -73,7 +73,7 @@ int board_get_uuid32_formated(char *format_buffer, int size,
 	int offset = 0;
 	int sep_size = seperator ? strlen(seperator) : 0;
 
-	for (int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
+	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
 		offset += snprintf(&format_buffer[offset], size - ((i * 2 * sizeof(uint32_t)) + 1), format, uuid[i]);
 
 		if (sep_size && i < PX4_CPU_UUID_WORD32_LENGTH - 1) {
