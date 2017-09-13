@@ -54,6 +54,7 @@ set(config_module_list
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
 	drivers/tap_esc
+	drivers/trevo
 	drivers/trone
 	drivers/vmount
 	modules/sensors
