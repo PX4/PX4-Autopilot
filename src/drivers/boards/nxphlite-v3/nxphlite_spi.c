@@ -119,19 +119,19 @@ void nxphlite_spidev_initialize(void)
 	kinetis_pinconfig(GPIO_EXTI_BARO_INT1);
 	kinetis_pinconfig(GPIO_P_INT);
 
-	for (int cs = 0; cs < arraySize(spi0selects_gpio); cs++) {
+	for (unsigned int cs = 0; cs < arraySize(spi0selects_gpio); cs++) {
 		if (spi0selects_gpio[cs] != 0) {
 			kinetis_pinconfig(spi0selects_gpio[cs]);
 		}
 	}
 
-	for (int cs = 0; cs < arraySize(spi1selects_gpio); cs++) {
+	for (unsigned int cs = 0; cs < arraySize(spi1selects_gpio); cs++) {
 		if (spi1selects_gpio[cs] != 0) {
 			kinetis_pinconfig(spi1selects_gpio[cs]);
 		}
 	}
 
-	for (int cs = 0; cs < arraySize(spi2selects_gpio); cs++) {
+	for (unsigned int cs = 0; cs < arraySize(spi2selects_gpio); cs++) {
 		if (spi2selects_gpio[cs] != 0) {
 			kinetis_pinconfig(spi2selects_gpio[cs]);
 		}
@@ -260,7 +260,7 @@ void kinetis_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected
 
 	/* Making sure the other peripherals are not selected */
 
-	for (int cs = 0;  arraySize(spi0selects_gpio) > 1 && cs < arraySize(spi0selects_gpio); cs++) {
+	for (unsigned int cs = 0;  arraySize(spi0selects_gpio) > 1 && cs < arraySize(spi0selects_gpio); cs++) {
 		if (spi0selects_gpio[cs] != 0) {
 			kinetis_gpiowrite(spi0selects_gpio[cs], 1);
 		}
@@ -289,7 +289,7 @@ void kinetis_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected
 
 	/* Making sure the other peripherals are not selected */
 
-	for (int cs = 0;  arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
+	for (unsigned int cs = 0;  arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
 		if (spi1selects_gpio[cs] != 0) {
 			kinetis_gpiowrite(spi1selects_gpio[cs], 1);
 		}
@@ -318,7 +318,7 @@ void kinetis_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected
 
 	/* Making sure the other peripherals are not selected */
 
-	for (int cs = 0;  arraySize(spi2selects_gpio) > 1 && cs < arraySize(spi2selects_gpio); cs++) {
+	for (unsigned int cs = 0;  arraySize(spi2selects_gpio) > 1 && cs < arraySize(spi2selects_gpio); cs++) {
 		if (spi2selects_gpio[cs] != 0) {
 			kinetis_gpiowrite(spi2selects_gpio[cs], 1);
 		}
