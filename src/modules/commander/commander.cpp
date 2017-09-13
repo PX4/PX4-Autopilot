@@ -1264,8 +1264,8 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
 					const vehicle_attitude_s &attitude)
 {
-	//Need global position fix to be able to set home
-	if (!status_flags.condition_global_position_valid) {
+	//Need global and local position fix to be able to set home
+	if (!status_flags.condition_global_position_valid || !status_flags.condition_local_position_valid) {
 		return;
 	}
 
