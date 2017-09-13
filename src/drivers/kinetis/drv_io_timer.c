@@ -792,7 +792,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 		uint32_t any_on = 0;
 
 		if (action_cache[actions].base != 0) {
-			for (int index = 0; index < action_cache[actions].index; index++) {
+			for (unsigned int index = 0; index < action_cache[actions].index; index++) {
 
 				if (action_cache[actions].cnsc[index].gpio) {
 					px4_arch_configgpio(action_cache[actions].cnsc[index].gpio);
