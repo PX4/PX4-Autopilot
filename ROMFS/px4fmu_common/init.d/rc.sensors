@@ -322,9 +322,10 @@ then
 fi
 
 # teraranger one tof sensor
-if param compare SENS_EN_TRONE 1
+if param compare SENS_EN_TRANGER 0
 then
-	trone start
+else
+	teraranger start
 fi
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
