@@ -1088,14 +1088,18 @@ PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
 PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
 
 /**
- * TeraRanger One (trone)
+ * TeraRanger Rangefinder (i2c)
  *
  * @reboot_required true
- *
- * @boolean
+ * @min 0
+ * @max 3
  * @group Sensor Enable
+ * @value 0 Disabled
+ * @value 1 Autodetect
+ * @value 2 TROne
+ * @value 3 TREvo
  */
-PARAM_DEFINE_INT32(SENS_EN_TRONE, 0);
+PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);
 
 /**
  * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)

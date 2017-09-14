@@ -29,7 +29,7 @@ set(config_module_list
 	#drivers/srf02
 	drivers/sf0x
 	drivers/ll40ls
-	drivers/trone
+	drivers/teraranger
 	drivers/gps
 	drivers/pwm_out_sim
 	#drivers/hott
