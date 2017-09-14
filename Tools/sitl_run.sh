@@ -94,20 +94,23 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then
-		# Set the plugin path so Gazebo finds our model and sim
-		source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
+		if  [[ -z "$DONT_RUN" ]]
+		then
+			# Set the plugin path so Gazebo finds our model and sim
+			source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
 
-		gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
-		SIM_PID=`echo $!`
+			gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
+			SIM_PID=`echo $!`
 
-		if [[ -n "$HEADLESS" ]]; then
-			echo "not running gazebo gui"
-		else
-			# gzserver needs to be running to avoid a race. Since the launch
-			# is putting it into the background we need to avoid it by backing off
-			sleep 3
-			nice -n 20 gzclient --verbose &
-			GUI_PID=`echo $!`
+			if [[ -n "$HEADLESS" ]]; then
+				echo "not running gazebo gui"
+			else
+				# gzserver needs to be running to avoid a race. Since the launch
+				# is putting it into the background we need to avoid it by backing off
+				sleep 3
+				nice -n 20 gzclient --verbose &
+				GUI_PID=`echo $!`
+			fi
 		fi
 	else
 		echo "You need to have gazebo simulator installed!"
@@ -124,8 +127,11 @@ sitl_command="$sudo_enabled $sitl_bin $no_pxh $chroot_enabled $src_path $src_pat
 
 echo SITL COMMAND: $sitl_command
 
+if [[ -n "$DONT_RUN" ]]
+then
+    echo "Not running simulation (\$DONT_RUN is set)."
 # Start Java simulator
-if [ "$debugger" == "lldb" ]
+elif [ "$debugger" == "lldb" ]
 then
 	lldb -- $sitl_command
 elif [ "$debugger" == "gdb" ]
@@ -153,14 +159,17 @@ else
 	$sitl_command
 fi
 
-if [ "$program" == "jmavsim" ]
+if [[ -z "$DONT_RUN" ]]
 then
-	pkill -9 -P $SIM_PID
-	kill -9 $SIM_PID
-elif [ "$program" == "gazebo" ]
-then
-	kill -9 $SIM_PID
-	if [[ ! -n "$HEADLESS" ]]; then
-		kill -9 $GUI_PID
+	if [ "$program" == "jmavsim" ]
+	then
+		pkill -9 -P $SIM_PID
+		kill -9 $SIM_PID
+	elif [ "$program" == "gazebo" ]
+	then
+		kill -9 $SIM_PID
+		if [[ ! -n "$HEADLESS" ]]; then
+			kill -9 $GUI_PID
+		fi
 	fi
 fi
