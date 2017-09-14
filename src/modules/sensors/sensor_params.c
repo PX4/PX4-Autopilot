@@ -1088,16 +1088,6 @@ PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
 PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
 
 /**
- * TeraRanger Evo (trevo)
- *
- * @reboot_required true
- *
- * @boolean
- * @group Sensor Enable
- */
- PARAM_DEFINE_INT32(SENS_EN_TREVO, 0);
-
-/**
  * TeraRanger One (trone)
  *
  * @reboot_required true
