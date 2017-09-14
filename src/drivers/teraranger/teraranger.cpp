@@ -278,54 +278,59 @@ TERARANGER::init()
 	int hw_model;
 	param_get(param_find("SENS_EN_TRANGER"), &hw_model);
 
-	switch(hw_model){
-		case 0: /* Disabled */
-			DEVICE_LOG("Disabled");
-			return ret;
-		
-		case 1: /* Autodetect */
-			/* Assume TROne */
-			set_address(TRONE_BASEADDR);
-			if(I2C::init() != OK)
-			{
-				set_address(TREVO_BASEADDR);
-				if (I2C::init() != OK)
-				{
-					goto out;
-				} else {
-					_min_distance = TREVO_MIN_DISTANCE;
-					_max_distance = TREVO_MAX_DISTANCE;
-				}
-			}
-			else
-			{
-				_min_distance = TRONE_MIN_DISTANCE;
-				_max_distance = TRONE_MAX_DISTANCE;
-			}
-			break;
+	switch (hw_model) {
+	case 0: /* Disabled */
+		DEVICE_LOG("Disabled");
+		return ret;
 
-		case 2: /* TROne */
-			set_address(TRONE_BASEADDR);
+	case 1: /* Autodetect */
+		/* Assume TROne */
+		set_address(TRONE_BASEADDR);
+
+		if (I2C::init() != OK) {
+			set_address(TREVO_BASEADDR);
+
 			if (I2C::init() != OK) {
 				goto out;
-			}	
+
+			} else {
+				_min_distance = TREVO_MIN_DISTANCE;
+				_max_distance = TREVO_MAX_DISTANCE;
+			}
+
+		} else {
 			_min_distance = TRONE_MIN_DISTANCE;
 			_max_distance = TRONE_MAX_DISTANCE;
-			break;
-			
-		case 3: /* TREvo */
-			set_address(TREVO_BASEADDR);
-			/* do I2C init (and probe) first */
-			if (I2C::init() != OK) {
-				goto out;
-			}
-			_min_distance = TREVO_MIN_DISTANCE;
-			_max_distance = TREVO_MAX_DISTANCE;
-			break;
+		}
 
-		default:
-			DEVICE_LOG("invalid HW model %d.", hw_model);
-			return ret;
+		break;
+
+	case 2: /* TROne */
+		set_address(TRONE_BASEADDR);
+
+		if (I2C::init() != OK) {
+			goto out;
+		}
+
+		_min_distance = TRONE_MIN_DISTANCE;
+		_max_distance = TRONE_MAX_DISTANCE;
+		break;
+
+	case 3: /* TREvo */
+		set_address(TREVO_BASEADDR);
+
+		/* do I2C init (and probe) first */
+		if (I2C::init() != OK) {
+			goto out;
+		}
+
+		_min_distance = TREVO_MIN_DISTANCE;
+		_max_distance = TREVO_MAX_DISTANCE;
+		break;
+
+	default:
+		DEVICE_LOG("invalid HW model %d.", hw_model);
+		return ret;
 	}
 
 	/* allocate basic report buffers */
@@ -582,7 +587,7 @@ int
 TERARANGER::measure()
 {
 	int ret;
-	
+
 	/*
 	 * Send the command to begin a measurement.
 	 */
