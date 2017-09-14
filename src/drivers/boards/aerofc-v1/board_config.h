@@ -120,7 +120,7 @@
 /*
  * GPS
  */
-#define GPS_DEFAULT_UART_PORT	"/dev/ttyS5"
+#define GPS_DEFAULT_UART_PORT	"/dev/ttyS4"
 
 /*
  * RC Serial port

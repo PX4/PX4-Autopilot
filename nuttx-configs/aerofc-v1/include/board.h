@@ -240,7 +240,7 @@
 #define GPIO_UART4_RTS	0 // unused
 
 // Mavlink
-// UART5
+// UART8
 
 // Serial console
 #define GPIO_USART6_TX	GPIO_USART6_TX_1
