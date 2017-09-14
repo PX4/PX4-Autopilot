@@ -20,7 +20,6 @@ set(config_module_list
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/ms5611
-	drivers/trevo
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
