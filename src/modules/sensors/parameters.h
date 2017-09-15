@@ -142,6 +142,9 @@ struct Parameters {
 	float battery_a_per_v;
 	int32_t battery_source;
 
+	int32_t pwm_max;
+	int32_t pwm_min;
+
 	float baro_qnh;
 
 	float vibration_warning_threshold;
@@ -218,6 +221,9 @@ struct ParameterHandles {
 	param_t battery_v_div;
 	param_t battery_a_per_v;
 	param_t battery_source;
+
+	param_t pwm_max;
+	param_t pwm_min;
 
 	param_t board_rotation;
 

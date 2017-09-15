@@ -78,6 +78,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
@@ -162,7 +163,7 @@ private:
 	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed;				/**< arming status of the vehicle */
 
-	int		_actuator_ctrl_0_sub;		/**< attitude controls sub */
+	int 	_actuators_outputs_sub[ORB_MULTI_MAX_INSTANCES]; /**< actuator outputs subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
@@ -238,7 +239,7 @@ Sensors::Sensors(bool hil_enabled) :
 	_hil_enabled(hil_enabled),
 	_armed(false),
 
-	_actuator_ctrl_0_sub(-1),
+	_actuators_outputs_sub{},
 	_diff_pres_sub(-1),
 	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
@@ -546,12 +547,33 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 					bool connected = bat_voltage_v[b] > 1.5f;
 
-					actuator_controls_s ctrl;
-					orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+					/* subscribe to actuators outputs */
+					struct actuator_outputs_s actuator_outputs;
+					float actuator_output_normalized = 0.0f;
+					int total_num_actuators = 0; //total number of actuators active
 
+					for (auto actuator_outputs_sub : _actuators_outputs_sub) {
+
+						bool updated = false;
+						orb_check(actuator_outputs_sub, &updated);
+
+						if (updated) {
+							orb_copy(ORB_ID(actuator_outputs), actuator_outputs_sub, &actuator_outputs);
+
+							for (unsigned num = 0; num < actuator_outputs.noutputs; num++) {
+								actuator_output_normalized += actuator_outputs.output[num];
+								total_num_actuators++;
+							}
+						}
+					}
+
+					actuator_output_normalized = (total_num_actuators > 0) ? actuator_output_normalized / total_num_actuators : 0.0f;;
+					actuator_output_normalized = (actuator_output_normalized - _parameters.pwm_min) / (_parameters.pwm_max -
+								     _parameters.pwm_min);
+					actuator_output_normalized = math::constrain(actuator_output_normalized, 0.0f, 1.0f);
 					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
 									connected, selected_source == b, b,
-									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+									actuator_output_normalized,
 									_armed,  &_battery_status[b]);
 					int instance;
 					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &_battery_status[b], &instance, ORB_PRIO_DEFAULT);
@@ -594,7 +616,9 @@ Sensors::run()
 
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		_actuators_outputs_sub[i] = orb_subscribe_multi(ORB_ID(actuator_outputs), i);
+	}
 
 	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 		_battery[b].reset(&_battery_status[b]);
@@ -709,7 +733,11 @@ Sensors::run()
 	orb_unsubscribe(_diff_pres_sub);
 	orb_unsubscribe(_vcontrol_mode_sub);
 	orb_unsubscribe(_params_sub);
-	orb_unsubscribe(_actuator_ctrl_0_sub);
+
+	for (auto actuator_outputs_sub : _actuators_outputs_sub) {
+		orb_unsubscribe(actuator_outputs_sub);
+	}
+
 	orb_unadvertise(_sensor_pub);
 
 	_rc_update.deinit();
