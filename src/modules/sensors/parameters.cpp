@@ -144,6 +144,10 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
 	parameter_handles.battery_source = param_find("BAT_SOURCE");
 
+	/* pwm max/min for main actuator output */
+	parameter_handles.pwm_max = param_find("PWM_MAX");
+	parameter_handles.pwm_min = param_find("PWM_MIN");
+
 	/* rotations */
 	parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
 
@@ -227,8 +231,6 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	(void)param_find("SYS_AUTOCONFIG");
 	(void)param_find("SYS_HITL");
 	(void)param_find("PWM_RATE");
-	(void)param_find("PWM_MIN");
-	(void)param_find("PWM_MAX");
 	(void)param_find("PWM_DISARMED");
 	(void)param_find("PWM_AUX_MIN");
 	(void)param_find("PWM_AUX_MAX");
@@ -477,6 +479,16 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	}
 
 	param_get(parameter_handles.battery_source, &(parameters.battery_source));
+
+	if (param_get(parameter_handles.pwm_max, &(parameters.pwm_max)) != OK) {
+		PX4_WARN("%s", paramerr);
+		parameters.pwm_max = 0;
+	}
+
+	if (param_get(parameter_handles.pwm_min, &(parameters.pwm_min)) != OK) {
+		PX4_WARN("%s", paramerr);
+		parameters.pwm_min = 0;
+	}
 
 	param_get(parameter_handles.board_rotation, &(parameters.board_rotation));
 
