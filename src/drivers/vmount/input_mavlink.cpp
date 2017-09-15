@@ -278,6 +278,11 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					// both specs have yaw on channel 2
 					_control_data.type_data.angle.angles[2] = vehicle_command.param3 * M_DEG_TO_RAD_F;
 
+					// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
+					if (_control_data.type_data.angle.angles[2] > M_PI_F) {
+						_control_data.type_data.angle.angles[2] -= 2 * M_PI_F;
+					}
+
 					*control_data = &_control_data;
 					break;
 
