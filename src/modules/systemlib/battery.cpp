@@ -86,7 +86,7 @@ Battery::reset(battery_status_s *battery_status)
 void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
 			     bool connected, bool selected_source, int priority,
-			     float throttle_normalized,
+			     float actuators_outputs_normalized,
 			     bool armed, battery_status_s *battery_status)
 {
 	reset(battery_status);
@@ -94,7 +94,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	filterVoltage(voltage_v);
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(voltage_v, current_a, throttle_normalized, armed);
+	estimateRemaining(voltage_v, current_a, actuators_outputs_normalized, armed);
 	determineWarning();
 	computeScale();
 
@@ -164,7 +164,7 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 }
 
 void
-Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
+Battery::estimateRemaining(float voltage_v, float current_a, float actuators_outputs_normalized, bool armed)
 {
 	const float bat_r = _param_r_internal.get();
 
@@ -176,7 +176,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 
 	} else {
 		// assume 10% voltage drop of the full drop range with motors idle
-		const float thr = (armed) ? ((fabsf(throttle_normalized) + 0.1f) / 1.1f) : 0.0f;
+		const float thr = (armed) ? ((fabsf(actuators_outputs_normalized) + 0.1f) / 1.1f) : 0.0f;
 
 		bat_v_empty_dynamic -= _param_v_load_drop.get() * thr;
 	}
