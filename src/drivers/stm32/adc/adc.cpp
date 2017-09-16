@@ -209,71 +209,87 @@ ADC::~ADC()
 	}
 }
 
-int
-ADC::init()
+int board_adc_init()
 {
-	/* do calibration if supported */
+	static bool once = false;
+
+	if (!once) {
+
+		once = true;
+
+		/* do calibration if supported */
 #ifdef ADC_CR2_CAL
-	rCR2 |= ADC_CR2_CAL;
-	usleep(100);
+		rCR2 |= ADC_CR2_CAL;
+		usleep(100);
 
-	if (rCR2 & ADC_CR2_CAL) {
-		return -1;
-	}
+		if (rCR2 & ADC_CR2_CAL) {
+			return -1;
+		}
 
 #endif
 
-	/* arbitrarily configure all channels for 55 cycle sample time */
-	rSMPR1 = 0b00000011011011011011011011011011;
-	rSMPR2 = 0b00011011011011011011011011011011;
+		/* arbitrarily configure all channels for 55 cycle sample time */
+		rSMPR1 = 0b00000011011011011011011011011011;
+		rSMPR2 = 0b00011011011011011011011011011011;
 
-	/* XXX for F2/4, might want to select 12-bit mode? */
-	rCR1 = 0;
+		/* XXX for F2/4, might want to select 12-bit mode? */
+		rCR1 = 0;
 
-	/* enable the temperature sensor / Vrefint channel if supported*/
-	rCR2 =
+		/* enable the temperature sensor / Vrefint channel if supported*/
+		rCR2 =
 #ifdef ADC_CR2_TSVREFE
-		/* enable the temperature sensor in CR2 */
-		ADC_CR2_TSVREFE |
+			/* enable the temperature sensor in CR2 */
+			ADC_CR2_TSVREFE |
 #endif
-		0;
+			0;
 
-	/* Soc have CCR */
+		/* Soc have CCR */
 #ifdef STM32_ADC_CCR
 #  ifdef ADC_CCR_TSVREFE
-	/* enable temperature sensor in CCR */
-	rCCR = ADC_CCR_TSVREFE | ADC_CCR_ADCPRE_DIV;
+		/* enable temperature sensor in CCR */
+		rCCR = ADC_CCR_TSVREFE | ADC_CCR_ADCPRE_DIV;
 #  else
-	rCCR = ADC_CCR_ADCPRE_DIV;
+		rCCR = ADC_CCR_ADCPRE_DIV;
 #  endif
 #endif
 
-	/* configure for a single-channel sequence */
-	rSQR1 = 0;
-	rSQR2 = 0;
-	rSQR3 = 0;	/* will be updated with the channel each tick */
+		/* configure for a single-channel sequence */
+		rSQR1 = 0;
+		rSQR2 = 0;
+		rSQR3 = 0;	/* will be updated with the channel each tick */
 
-	/* power-cycle the ADC and turn it on */
-	rCR2 &= ~ADC_CR2_ADON;
-	usleep(10);
-	rCR2 |= ADC_CR2_ADON;
-	usleep(10);
-	rCR2 |= ADC_CR2_ADON;
-	usleep(10);
+		/* power-cycle the ADC and turn it on */
+		rCR2 &= ~ADC_CR2_ADON;
+		usleep(10);
+		rCR2 |= ADC_CR2_ADON;
+		usleep(10);
+		rCR2 |= ADC_CR2_ADON;
+		usleep(10);
 
-	/* kick off a sample and wait for it to complete */
-	hrt_abstime now = hrt_absolute_time();
-	rCR2 |= ADC_CR2_SWSTART;
+		/* kick off a sample and wait for it to complete */
+		hrt_abstime now = hrt_absolute_time();
+		rCR2 |= ADC_CR2_SWSTART;
 
-	while (!(rSR & ADC_SR_EOC)) {
+		while (!(rSR & ADC_SR_EOC)) {
 
-		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
-		if ((hrt_absolute_time() - now) > 500) {
-			DEVICE_LOG("sample timeout");
-			return -1;
+			/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
+			if ((hrt_absolute_time() - now) > 500) {
+				return -1;
+			}
 		}
-	}
+	} // once
 
+	return OK;
+}
+int
+ADC::init()
+{
+	int rv = board_adc_init();
+
+	if (rv < 0) {
+		DEVICE_LOG("sample timeout");
+		return rv;
+	}
 
 	/* create the device node */
 	return CDev::init();
@@ -448,12 +464,10 @@ ADC::update_system_power(hrt_abstime now)
 #endif // BOARD_ADC_USB_CONNECTED
 }
 
-uint16_t
-ADC::_sample(unsigned channel)
+uint16_t board_adc_sample(unsigned channel)
 {
-	perf_begin(_sample_perf);
-
 	/* clear any previous EOC */
+
 	if (rSR & ADC_SR_EOC) {
 		rSR &= ~ADC_SR_EOC;
 	}
@@ -469,13 +483,24 @@ ADC::_sample(unsigned channel)
 
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
-			DEVICE_LOG("sample timeout");
 			return 0xffff;
 		}
 	}
 
 	/* read the result and clear EOC */
 	uint16_t result = rDR;
+	return result;
+}
+
+uint16_t
+ADC::_sample(unsigned channel)
+{
+	perf_begin(_sample_perf);
+	uint16_t result = board_adc_sample(channel);
+
+	if (result == 0xffff) {
+		DEVICE_LOG("sample timeout");
+	}
 
 	perf_end(_sample_perf);
 	return result;
