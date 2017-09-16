@@ -280,6 +280,10 @@
 #  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
 #endif
 
+#if defined(BOARD_HAS_HW_VERSIONING)
+#  define BOARD_HAS_VERSIONING 1
+#endif
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/
