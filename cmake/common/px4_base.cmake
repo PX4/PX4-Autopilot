@@ -331,6 +331,7 @@ function(px4_add_common_flags)
 		-Wfloat-equal
 		-Wformat-security
 		-Winit-self
+		-Wlogical-op
 		-Wmissing-declarations
 		-Wpointer-arith
 		-Wshadow
@@ -357,7 +358,6 @@ function(px4_add_common_flags)
 		list(APPEND warnings
 			-Wunused-but-set-variable
 			-Wformat=1
-			#-Wlogical-op # very verbose due to eigen
 			-Wdouble-promotion
 		)
 	endif()
