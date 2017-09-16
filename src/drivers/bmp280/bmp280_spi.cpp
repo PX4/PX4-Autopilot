@@ -66,7 +66,7 @@ class BMP280_SPI: public device::SPI, public bmp280::IBMP280
 {
 public:
 	BMP280_SPI(uint8_t bus, spi_dev_e device, bool external);
-	~BMP280_SPI();
+	virtual ~BMP280_SPI() = default;
 
 	bool is_external();
 	int init();
@@ -92,12 +92,6 @@ BMP280_SPI::BMP280_SPI(uint8_t bus, spi_dev_e device, bool external) :
 {
 	_external = external;
 }
-
-
-BMP280_SPI::~BMP280_SPI()
-{
-}
-
 
 bool BMP280_SPI::is_external()
 {
@@ -133,8 +127,6 @@ bmp280::data_s *BMP280_SPI::get_data(uint8_t addr)
 	} else {
 		return nullptr;
 	}
-
-
 }
 
 bmp280::calibration_s *BMP280_SPI::get_calibration(uint8_t addr)
@@ -148,7 +140,5 @@ bmp280::calibration_s *BMP280_SPI::get_calibration(uint8_t addr)
 		return nullptr;
 	}
 }
-
-
 
 #endif /* PX4_SPIDEV_BARO || PX4_SPIDEV_EXT_BARO */

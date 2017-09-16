@@ -131,21 +131,26 @@ struct fcalibration_s {
 class IBMP280
 {
 public:
-	virtual ~IBMP280() = 0;
+	virtual ~IBMP280() = default;
 
 	virtual bool is_external() = 0;
 	virtual int init() = 0;
 
-	virtual uint8_t get_reg(uint8_t addr) = 0; //read reg value
-	virtual int set_reg(uint8_t value, uint8_t addr) = 0; //write reg value
-	virtual bmp280::data_s *get_data(uint8_t addr) = 0; //bulk read of data into buffer, return same pointer
-	virtual bmp280::calibration_s *get_calibration(uint8_t addr) =
-		0; //bulk read of calibration data into buffer, return same pointer
+	// read reg value
+	virtual uint8_t get_reg(uint8_t addr) = 0;
+
+	// write reg value
+	virtual int set_reg(uint8_t value, uint8_t addr) = 0;
+
+	// bulk read of data into buffer, return same pointer
+	virtual bmp280::data_s *get_data(uint8_t addr) = 0;
+
+	// bulk read of calibration data into buffer, return same pointer
+	virtual bmp280::calibration_s *get_calibration(uint8_t addr) = 0;
 
 };
 
 } /* namespace */
-
 
 
 /* interface factories */
