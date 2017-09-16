@@ -39,6 +39,7 @@ if (NOT ${LABEL} STREQUAL "bootloader")
 	list(APPEND SRCS
 		board_mcu_version.c
 		board_reset.c
+		board_hw_rev_ver.c
 		)
 endif()
 
