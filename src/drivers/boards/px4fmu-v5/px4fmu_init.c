@@ -66,6 +66,7 @@
 
 #include <chip.h>
 #include "board_config.h"
+
 #include <stm32_uart.h>
 
 #include <arch/board/board.h>
@@ -103,12 +104,7 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-/****************************************************************************
- * Protected Functions
- ****************************************************************************/
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+
 /************************************************************************************
  * Name: board_rc_input
  *
@@ -289,6 +285,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
+
+	if (OK == board_determine_hw_info()) {
+		PX4_INFO("Rev 0x%1x : Ver 0x%1x %s", board_get_hw_revision(), board_get_hw_version(), board_get_hw_type_name());
+
+	} else {
+		PX4_ERR("Failed to read HW revision and version");
+	}
 
 	param_init();
 
