@@ -44,15 +44,13 @@
 
 #include "board_config.h"
 
-
 #if defined(PX4_I2C_OBDEV_BMP280) || defined(PX4_I2C_EXT_OBDEV_BMP280)
-
 
 class BMP280_I2C: public device::I2C, public bmp280::IBMP280
 {
 public:
 	BMP280_I2C(uint8_t bus, uint8_t device, bool external);
-	~BMP280_I2C();
+	virtual ~BMP280_I2C() = default;
 
 	bool is_external();
 	int init();
@@ -79,12 +77,6 @@ BMP280_I2C::BMP280_I2C(uint8_t bus, uint8_t device, bool external) :
 	_external = external;
 }
 
-
-BMP280_I2C::~BMP280_I2C()
-{
-}
-
-
 bool BMP280_I2C::is_external()
 {
 	return _external;
@@ -101,14 +93,12 @@ uint8_t BMP280_I2C::get_reg(uint8_t addr)
 	transfer(&cmd[0], 1, &cmd[1], 1);
 
 	return cmd[1];
-
 }
 
 int BMP280_I2C::set_reg(uint8_t value, uint8_t addr)
 {
 	uint8_t cmd[2] = { (uint8_t)(addr), value};
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
-
 }
 
 bmp280::data_s *BMP280_I2C::get_data(uint8_t addr)
@@ -121,8 +111,6 @@ bmp280::data_s *BMP280_I2C::get_data(uint8_t addr)
 	} else {
 		return nullptr;
 	}
-
-
 }
 
 bmp280::calibration_s *BMP280_I2C::get_calibration(uint8_t addr)
@@ -136,7 +124,5 @@ bmp280::calibration_s *BMP280_I2C::get_calibration(uint8_t addr)
 		return nullptr;
 	}
 }
-
-
 
 #endif /* PX4_I2C_OBDEV_BMP280 || PX4_I2C_EXT_OBDEV_BMP280 */
