@@ -865,19 +865,4 @@ static inline int board_register_power_state_notification_cb(power_button_state_
 static inline int board_shutdown(void) { return -EINVAL; }
 #endif
 
-/************************************************************************************
- * Name: board_gpio_init
- *
- * Description:
- *   Board may provide a list of GPI pins to get initialized
- *
- * Input Parameters:
- *  list    - A list of GPIO pins to be initialized
- *  count   - Size of the list
- *
- * Returned Value:
- *   Nothing
- *
- ************************************************************************************/
-
-__EXPORT void board_gpio_init(const uint32_t list[], int count);
+#include "board_internal_common.h"
