@@ -55,7 +55,7 @@ set(config_module_list
 	drivers/snapdragon_rc_pwm
 	drivers/srf02
 	drivers/tap_esc
-	drivers/trone
+	drivers/teraranger
 	drivers/vmount
 	modules/sensors
 
