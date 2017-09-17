@@ -120,8 +120,8 @@ __END_DECLS
  * Private Data
  ****************************************************************************/
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-static int hw_version = -1;
-static int hw_revision = -1;
+static int hw_version = 0;
+static int hw_revision = 0;
 static char hw_type[4] = HW_VER_TYPE_INIT;
 #endif
 /****************************************************************************
@@ -229,7 +229,7 @@ __EXPORT void board_on_reset(int status)
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 static int determin_hw_version(int *version, int *revision)
 {
-	*revision = -1; /* unknown */
+	*revision = 0; /* default revision */
 	int rv = 0;
 	int pos = 0;
 	stm32_configgpio(GPIO_PULLDOWN | (HW_VER_PB4 & ~GPIO_PUPD_MASK));
