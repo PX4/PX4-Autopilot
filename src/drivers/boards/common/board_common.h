@@ -569,7 +569,7 @@ __EXPORT int board_set_bootload_mode(board_reset_e mode);
  *   None
  *
  * Returned Value:
- *   a 0 terminated string defining the HW type. This my be a 0 length string ""
+ *   a 0 terminated string defining the HW type. This may be a 0 length string ""
  *
  ************************************************************************************/
 
@@ -590,15 +590,15 @@ __EXPORT const char *board_get_hw_type_name(void);
  *
  * Returned Value:
  *   An integer value of this boards hardware version.
- *   A value of 0 is the default for boards not supporting the BOARD_HAS_VERSIONING API.
- *   A value of -1 is the default for boards supporting the API but not having version.
+ *   A value of -1 is the default for boards not supporting the BOARD_HAS_VERSIONING API.
+ *   A value of 0 is the default for boards supporting the API but not having version.
  *
  ************************************************************************************/
 
 #if defined(BOARD_HAS_VERSIONING)
 __EXPORT int board_get_hw_version(void);
 #else
-#define board_get_hw_version() 0
+#define board_get_hw_version() (-1)
 #endif
 
 /************************************************************************************
@@ -612,15 +612,15 @@ __EXPORT int board_get_hw_version(void);
  *
  * Returned Value:
  *   An integer value of this boards hardware revision.
- *   A value of 0 is the default for boards not supporting the BOARD_HAS_VERSIONING API.
- *   A value of -1 is the default for boards supporting the API but not having revision.
+ *   A value of -1 is the default for boards not supporting the BOARD_HAS_VERSIONING API.
+ *   A value of 0 is the default for boards supporting the API but not having revision.
  *
  ************************************************************************************/
 
 #if defined(BOARD_HAS_VERSIONING)
 __EXPORT int board_get_hw_revision(void);
 #else
-#define board_get_hw_revision() 0
+#define board_get_hw_revision() (-1)
 #endif
 
 #if !defined(BOARD_OVERRIDE_UUID)
