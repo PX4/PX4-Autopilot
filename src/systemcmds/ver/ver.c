@@ -152,11 +152,11 @@ int ver_main(int argc, char *argv[])
 				int  v = px4_board_hw_version();
 				int  r = px4_board_hw_revision();
 
-				if (v > 0) {
+				if (v >= 0) {
 					snprintf(vb, sizeof(vb), "0x%08X", v);
 				}
 
-				if (r > 0) {
+				if (r >= 0) {
 					snprintf(rb, sizeof(rb), "0x%08X", r);
 				}
 
