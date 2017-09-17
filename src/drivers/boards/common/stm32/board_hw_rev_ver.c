@@ -49,8 +49,8 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static int hw_version = -1;
-static int hw_revision = -1;
+static int hw_version = 0;
+static int hw_revision = 0;
 static char hw_info[] = HW_INFO_INIT;
 
 /****************************************************************************
@@ -276,8 +276,8 @@ __EXPORT const char *board_get_hw_type_name()
  *
  * Returned Value:
  *   An integer value of this boards hardware version.
- *   A value of 0 is the default for boards not supporting the BOARD_HAS_VERSIONING API.
- *   A value of -1 is the default for boards supporting the API but not having version.
+ *   A value of -1 is the default for boards not supporting the BOARD_HAS_VERSIONING API.
+ *   A value of 0 is the default for boards supporting the API but not having version.
  *
  ************************************************************************************/
 
@@ -297,8 +297,8 @@ __EXPORT int board_get_hw_version()
  *
  * Returned Value:
  *   An integer value of this boards hardware revision.
- *   A value of 0 is the default for boards not supporting the BOARD_HAS_VERSIONING API.
- *   A value of -1 is the default for boards supporting the API but not having revision.
+ *   A value of -1 is the default for boards not supporting the BOARD_HAS_VERSIONING API.
+ *   A value of 0 is the default for boards supporting the API but not having revision.
  *
  ************************************************************************************/
 
