@@ -173,6 +173,21 @@ MavlinkFTP::_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t 
 		goto out;
 	}
 
+	// check the sequence number: if this is a resent request, resend the last response
+	if (_last_reply_valid) {
+		mavlink_file_transfer_protocol_t *last_reply = reinterpret_cast<mavlink_file_transfer_protocol_t *>(_last_reply);
+		PayloadHeader *last_payload = reinterpret_cast<PayloadHeader *>(&last_reply->payload[0]);
+
+		if (payload->seq_number + 1 == last_payload->seq_number) {
+			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
+			// resent the request
+			mavlink_msg_file_transfer_protocol_send_struct(_mavlink->get_channel(), last_reply);
+			return;
+		}
+	}
+
+
+
 #ifdef MAVLINK_FTP_DEBUG
 	printf("ftp: channel %u opc %u size %u offset %u\n", _getServerChannel(), payload->opcode, payload->size,
 	       payload->offset);
@@ -268,11 +283,14 @@ out:
 
 		payload->data[0] = errorCode;
 
+
 		if (errorCode == kErrFailErrno) {
 			payload->size = 2;
 			payload->data[1] = r_errno;
 		}
 	}
+
+	_last_reply_valid = false;
 
 	// Stream download replies are sent through mavlink stream mechanism. Unless we need to Nack.
 	if (!stream_send || errorCode != kErrNone) {
@@ -302,8 +320,18 @@ void
 MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 {
 
-#ifdef MAVLINK_FTP_DEBUG
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
+
+	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
+	// we can simply resend the response.
+	// we only keep small responses to reduce RAM usage and avoid large memcpy's. The larger responses are all data
+	// retrievals without side-effects, meaning it's ok to reexecute them if a response gets lost
+	if (payload->size <= sizeof(uint32_t)) {
+		_last_reply_valid = true;
+		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
+	}
+
+#ifdef MAVLINK_FTP_DEBUG
 	warnx("FTP: %s seq_number: %d", payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 #endif
 
