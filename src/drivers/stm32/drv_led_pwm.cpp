@@ -147,14 +147,14 @@ static void led_pwm_timer_init_timer(unsigned timer)
 
 	/* If the timer clock source provided as clock_freq is the STM32_APBx_TIMx_CLKIN
 	 * then configure the timer to free-run at 1MHz.
-	 * Otherwize, other frequencies are attainable by adjusting .clock_freq accordingly.
+	 * Otherwise, other frequencies are attainable by adjusting .clock_freq accordingly.
 	 */
 
 	rPSC(timer) = (led_pwm_timers[timer].clock_freq / 1000000) - 1;
 
 	/* configure the timer to update at the desired rate */
 
-	rARR(timer) = 1000000 / LED_PWM_RATE;
+	rARR(timer) = (1000000 / LED_PWM_RATE) - 1;
 
 	/* generate an update event; reloads the counter and all registers */
 	rEGR(timer) = GTIM_EGR_UG;

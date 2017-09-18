@@ -65,7 +65,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_param_vtol_wv_takeoff(this, "VT_WV_TKO_EN", false),
 	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
-	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false)
+	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
+	_param_reverse_delay(this, "VT_B_REV_DEL", false)
 {
 }
 
@@ -300,7 +301,9 @@ MissionBlock::is_mission_item_reached()
 						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
 				if (_param_back_trans_dec_mss.get() > FLT_EPSILON && velocity > FLT_EPSILON) {
-					mission_acceptance_radius = (velocity / _param_back_trans_dec_mss.get() / 2) * velocity;
+					mission_acceptance_radius = ((velocity / _param_back_trans_dec_mss.get() / 2) * velocity) + _param_reverse_delay.get() *
+								    velocity;
+
 				}
 
 			}

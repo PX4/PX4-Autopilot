@@ -225,7 +225,7 @@ function(px4_os_add_flags)
 		endif()
 
 		# Add the toolchain specific flags
-		set(added_cflags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
+		set(added_c_flags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
 
 		list(APPEND added_cxx_flags
 			${POSIX_CMAKE_CXX_FLAGS}
@@ -248,7 +248,7 @@ function(px4_os_add_flags)
 
 		# Add the toolchain specific flags
 
-		set(added_cflags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork)
+		set(added_c_flags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork)
 
 		list(APPEND added_cxx_flags
 			${POSIX_CMAKE_CXX_FLAGS}

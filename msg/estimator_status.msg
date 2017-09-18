@@ -52,6 +52,7 @@ uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 12 - true if fusion of the North position has encountered a numerical error
 # 13 - true if fusion of the East position has encountered a numerical error
 # 14 - true if fusion of the Down position has encountered a numerical error
+# 15 - true if bad delta velocity bias estimates have been detected
 float32 pos_horiz_accuracy # 1-Sigma estimated horizontal position accuracy relative to the estimators origin (m)
 float32 pos_vert_accuracy # 1-Sigma estimated vertical position accuracy relative to the estimators origin (m)
 uint16 innovation_check_flags # Bitmask to indicate pass/fail status of innovation consistency checks

@@ -20,7 +20,7 @@ set(config_module_list
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/ms5611
-	drivers/trone
+	drivers/teraranger
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/airspeed

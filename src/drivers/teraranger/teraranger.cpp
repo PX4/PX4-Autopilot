@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file trone.cpp
+ * @file teraranger.cpp
  * @author Luis Rodrigues
  *
  * Driver for the TeraRanger One range finders connected via I2C.
@@ -74,32 +74,35 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define TRONE_BUS           PX4_I2C_BUS_EXPANSION
+#define TERARANGER_BUS           PX4_I2C_BUS_EXPANSION
 #define TRONE_BASEADDR      0x30 /* 7-bit address */
-#define TRONE_DEVICE_PATH   	"/dev/trone"
+#define TREVO_BASEADDR      0x31 /* 7-bit address */
+#define TERARANGER_DEVICE_PATH   	"/dev/teraranger"
 
-/* TRONE Registers addresses */
+/* TERARANGER Registers addresses */
 
-#define TRONE_MEASURE_REG	0x00		/* Measure range register */
-#define TRONE_WHO_AM_I_REG  0x01        /* Who am I test register */
-#define TRONE_WHO_AM_I_REG_VAL 0xA1
+#define TERARANGER_MEASURE_REG	0x00		/* Measure range register */
+#define TERARANGER_WHO_AM_I_REG  0x01        /* Who am I test register */
+#define TERARANGER_WHO_AM_I_REG_VAL 0xA1
 
 
 /* Device limits */
 #define TRONE_MIN_DISTANCE (0.20f)
 #define TRONE_MAX_DISTANCE (14.00f)
+#define TREVO_MIN_DISTANCE (0.50f)
+#define TREVO_MAX_DISTANCE (60.0f)
 
-#define TRONE_CONVERSION_INTERVAL 50000 /* 50ms */
+#define TERARANGER_CONVERSION_INTERVAL 50000 /* 50ms */
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class TRONE : public device::I2C
+class TERARANGER : public device::I2C
 {
 public:
-	TRONE(int bus = TRONE_BUS, int address = TRONE_BASEADDR);
-	virtual ~TRONE();
+	TERARANGER(int bus = TERARANGER_BUS, int address = TRONE_BASEADDR);
+	virtual ~TERARANGER();
 
 	virtual int 		init();
 
@@ -222,12 +225,12 @@ static uint8_t crc8(uint8_t *p, uint8_t len)
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int trone_main(int argc, char *argv[]);
+extern "C" __EXPORT int teraranger_main(int argc, char *argv[]);
 
-TRONE::TRONE(int bus, int address) :
-	I2C("TRONE", TRONE_DEVICE_PATH, bus, address, 100000),
-	_min_distance(TRONE_MIN_DISTANCE),
-	_max_distance(TRONE_MAX_DISTANCE),
+TERARANGER::TERARANGER(int bus, int address) :
+	I2C("TERARANGER", TERARANGER_DEVICE_PATH, bus, address, 100000),
+	_min_distance(-1.0f),
+	_max_distance(-1.0f),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_valid(0),
@@ -249,7 +252,7 @@ TRONE::TRONE(int bus, int address) :
 	memset(&_work, 0, sizeof(_work));
 }
 
-TRONE::~TRONE()
+TERARANGER::~TERARANGER()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -269,13 +272,65 @@ TRONE::~TRONE()
 }
 
 int
-TRONE::init()
+TERARANGER::init()
 {
 	int ret = PX4_ERROR;
+	int hw_model;
+	param_get(param_find("SENS_EN_TRANGER"), &hw_model);
 
-	/* do I2C init (and probe) first */
-	if (I2C::init() != OK) {
-		goto out;
+	switch (hw_model) {
+	case 0: /* Disabled */
+		DEVICE_LOG("Disabled");
+		return ret;
+
+	case 1: /* Autodetect */
+		/* Assume TROne */
+		set_address(TRONE_BASEADDR);
+
+		if (I2C::init() != OK) {
+			set_address(TREVO_BASEADDR);
+
+			if (I2C::init() != OK) {
+				goto out;
+
+			} else {
+				_min_distance = TREVO_MIN_DISTANCE;
+				_max_distance = TREVO_MAX_DISTANCE;
+			}
+
+		} else {
+			_min_distance = TRONE_MIN_DISTANCE;
+			_max_distance = TRONE_MAX_DISTANCE;
+		}
+
+		break;
+
+	case 2: /* TROne */
+		set_address(TRONE_BASEADDR);
+
+		if (I2C::init() != OK) {
+			goto out;
+		}
+
+		_min_distance = TRONE_MIN_DISTANCE;
+		_max_distance = TRONE_MAX_DISTANCE;
+		break;
+
+	case 3: /* TREvo */
+		set_address(TREVO_BASEADDR);
+
+		/* do I2C init (and probe) first */
+		if (I2C::init() != OK) {
+			goto out;
+		}
+
+		_min_distance = TREVO_MIN_DISTANCE;
+		_max_distance = TREVO_MAX_DISTANCE;
+		break;
+
+	default:
+		DEVICE_LOG("invalid HW model %d.", hw_model);
+		return ret;
 	}
 
 	/* allocate basic report buffers */
@@ -309,56 +364,53 @@ out:
 }
 
 int
-TRONE::probe()
+TERARANGER::probe()
 {
 	uint8_t who_am_i = 0;
 
-	const uint8_t cmd = TRONE_WHO_AM_I_REG;
+	const uint8_t cmd = TERARANGER_WHO_AM_I_REG;
 
-	// set the I2C bus address
-	set_address(TRONE_BASEADDR);
-
-	// can't use a single transfer as TROne need a bit of time for internal processing
+	// can't use a single transfer as Teraranger needs a bit of time for internal processing
 	if (transfer(&cmd, 1, nullptr, 0) == OK) {
-		if (transfer(nullptr, 0, &who_am_i, 1) == OK && who_am_i == TRONE_WHO_AM_I_REG_VAL) {
+		if (transfer(nullptr, 0, &who_am_i, 1) == OK && who_am_i == TERARANGER_WHO_AM_I_REG_VAL) {
 			return measure();
 		}
 	}
 
 	DEVICE_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
 		     (unsigned)who_am_i,
-		     TRONE_WHO_AM_I_REG_VAL);
+		     TERARANGER_WHO_AM_I_REG_VAL);
 
 	// not found on any address
 	return -EIO;
 }
 
 void
-TRONE::set_minimum_distance(float min)
+TERARANGER::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-TRONE::set_maximum_distance(float max)
+TERARANGER::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-TRONE::get_minimum_distance()
+TERARANGER::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-TRONE::get_maximum_distance()
+TERARANGER::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-TRONE::ioctl(struct file *filp, int cmd, unsigned long arg)
+TERARANGER::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -385,7 +437,7 @@ TRONE::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(TRONE_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(TERARANGER_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -404,7 +456,7 @@ TRONE::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(TRONE_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(TERARANGER_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
@@ -472,7 +524,7 @@ TRONE::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-TRONE::read(struct file *filp, char *buffer, size_t buflen)
+TERARANGER::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
@@ -513,7 +565,7 @@ TRONE::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(TRONE_CONVERSION_INTERVAL);
+		usleep(TERARANGER_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -532,14 +584,14 @@ TRONE::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-TRONE::measure()
+TERARANGER::measure()
 {
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	const uint8_t cmd = TRONE_MEASURE_REG;
+	const uint8_t cmd = TERARANGER_MEASURE_REG;
 	ret = transfer(&cmd, sizeof(cmd), nullptr, 0);
 
 	if (OK != ret) {
@@ -554,7 +606,7 @@ TRONE::measure()
 }
 
 int
-TRONE::collect()
+TERARANGER::collect()
 {
 	int ret = -EIO;
 
@@ -608,14 +660,14 @@ TRONE::collect()
 }
 
 void
-TRONE::start()
+TERARANGER::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&TRONE::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&TERARANGER::cycle_trampoline, this, 1);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -635,21 +687,21 @@ TRONE::start()
 }
 
 void
-TRONE::stop()
+TERARANGER::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-TRONE::cycle_trampoline(void *arg)
+TERARANGER::cycle_trampoline(void *arg)
 {
-	TRONE *dev = (TRONE *)arg;
+	TERARANGER *dev = (TERARANGER *)arg;
 
 	dev->cycle();
 }
 
 void
-TRONE::cycle()
+TERARANGER::cycle()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -668,13 +720,13 @@ TRONE::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(TRONE_CONVERSION_INTERVAL)) {
+		if (_measure_ticks > USEC2TICK(TERARANGER_CONVERSION_INTERVAL)) {
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&TRONE::cycle_trampoline,
+				   (worker_t)&TERARANGER::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(TRONE_CONVERSION_INTERVAL));
+				   _measure_ticks - USEC2TICK(TERARANGER_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -691,13 +743,13 @@ TRONE::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&TRONE::cycle_trampoline,
+		   (worker_t)&TERARANGER::cycle_trampoline,
 		   this,
-		   USEC2TICK(TRONE_CONVERSION_INTERVAL));
+		   USEC2TICK(TERARANGER_CONVERSION_INTERVAL));
 }
 
 void
-TRONE::print_info()
+TERARANGER::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -708,10 +760,10 @@ TRONE::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace trone
+namespace teraranger
 {
 
-TRONE	*g_dev;
+TERARANGER	*g_dev;
 
 void	start();
 void	stop();
@@ -732,7 +784,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new TRONE(TRONE_BUS);
+	g_dev = new TERARANGER(TERARANGER_BUS);
 
 
 	if (g_dev == nullptr) {
@@ -744,7 +796,7 @@ start()
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(TRONE_DEVICE_PATH, O_RDONLY);
+	fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -794,10 +846,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(TRONE_DEVICE_PATH, O_RDONLY);
+	int fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'trone start' if the driver is not running", TRONE_DEVICE_PATH);
+		err(1, "%s open failed (try 'teraranger start' if the driver is not running", TERARANGER_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -855,7 +907,7 @@ test()
 void
 reset()
 {
-	int fd = open(TRONE_DEVICE_PATH, O_RDONLY);
+	int fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -891,41 +943,41 @@ info()
 } // namespace
 
 int
-trone_main(int argc, char *argv[])
+teraranger_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		trone::start();
+		teraranger::start();
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop")) {
-		trone::stop();
+		teraranger::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
-		trone::test();
+		teraranger::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset")) {
-		trone::reset();
+		teraranger::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		trone::info();
+		teraranger::info();
 	}
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");

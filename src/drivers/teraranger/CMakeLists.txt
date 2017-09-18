@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE examples__auv_hippocampus_example_app
-	MAIN auv_hippocampus_example_app
-	STACK_MAIN 2000
+	MODULE drivers__teraranger
+	MAIN teraranger
+	STACK_MAIN 1200
+	COMPILE_FLAGS
 	SRCS
-		auv_hippocampus_example_app.cpp
+		teraranger.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

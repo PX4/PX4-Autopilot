@@ -895,14 +895,14 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int result = OK;
 
-	DEVICE_DEBUG("ioctl %i %u", cmd, arg);
+	DEVICE_DEBUG("ioctl %i %lu", cmd, arg);
 
 //	irqstate_t flags = px4_enter_critical_section();
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
 	case TONE_SET_ALARM:
-		DEVICE_DEBUG("TONE_SET_ALARM %u", arg);
+		DEVICE_DEBUG("TONE_SET_ALARM %lu", arg);
 
 		if (arg < TONE_NUMBER_OF_TUNES) {
 			if (arg == TONE_STOP_TUNE) {

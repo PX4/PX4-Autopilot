@@ -457,7 +457,7 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 {
 
 	/* configure the timer to update at the desired rate */
-	rARR(timer) = BOARD_PWM_FREQ / rate;
+	rARR(timer) = (BOARD_PWM_FREQ / rate) - 1;
 
 	/* generate an update event; reloads the counter and all registers */
 	rEGR(timer) = GTIM_EGR_UG;

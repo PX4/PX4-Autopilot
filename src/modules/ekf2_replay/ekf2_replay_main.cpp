@@ -176,7 +176,7 @@ private:
 	bool _read_part5;
 
 	int _write_fd = -1;
-	px4_pollfd_struct_t _fds[1];
+	px4_pollfd_struct_t _fds[1] {};
 
 	// parse replay message from buffer
 	// @source 			pointer to log message data (excluding header)
@@ -917,7 +917,7 @@ void Ekf2Replay::task_main()
 
 		if (header[2] == LOG_FORMAT_MSG) {
 			// format message
-			struct log_format_s f;
+			struct log_format_s f = {};
 
 			if (::read(fd, &f.type, sizeof(f)) != sizeof(f)) {
 				PRINT_READ_ERROR;

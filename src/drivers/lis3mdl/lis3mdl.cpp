@@ -166,7 +166,7 @@ private:
 
 	enum Rotation		_rotation;
 
-	struct mag_report	_last_report;           /**< used for info() */
+	struct mag_report	_last_report {};          /**< used for info() */
 
 	uint8_t			_range_bits;
 	uint8_t			_cntl_reg1;
@@ -341,7 +341,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 	_sensor_ok(false),
 	_calibrated(false),
 	_rotation(rotation),
-	_last_report{0},
 	_range_bits(0),
 	_cntl_reg1(0),
 	_cntl_reg4(0),
