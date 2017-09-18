@@ -71,9 +71,10 @@ public:
 	///	@param worker_data Data to pass to worker
 	void set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, void *worker_data);
 
-	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload. We pad the structure ourselves to
-	/// 32 bit alignment to avoid usage of any pack pragmas.
-	struct PayloadHeader {
+	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload.
+	/// This needs to be packed, because it's typecasted from mavlink_file_transfer_protocol_t.payload, which starts
+	/// at a 3 byte offset, causing an unaligned access to seq_number and offset
+	struct __attribute__((__packed__)) PayloadHeader {
 		uint16_t	seq_number;	///< sequence number for message
 		uint8_t		session;	///< Session id for read and write commands
 		uint8_t		opcode;		///< Command opcode
