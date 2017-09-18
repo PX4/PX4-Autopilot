@@ -3066,14 +3066,6 @@ get_interface()
 		goto got;
 	}
 
-#ifdef PX4_I2C_OBDEV_PX4IO
-	interface = PX4IO_i2c_interface();
-#endif
-
-	if (interface != nullptr) {
-		goto got;
-	}
-
 	errx(1, "cannot alloc interface");
 
 got:

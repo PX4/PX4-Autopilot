@@ -120,9 +120,6 @@ then
 	fi
 fi
 
-# This is a FMUv2+ thing
-
-#MindPX has not aux mixer
 if ver hwcmp MINDPX_V2
 then
 	set MIXER_AUX none
@@ -134,6 +131,11 @@ then
 fi
 
 if ver hwcmp AEROFC_V1
+then
+	set MIXER_AUX none
+fi
+
+if ver hwcmp PX4FMU_V4
 then
 	set MIXER_AUX none
 fi
@@ -168,7 +170,7 @@ then
 		if fmu mode_${AUX_MODE} $FMU_ARGS
 		then
 			# Append aux mixer to main device
-			if [ $OUTPUT_MODE == hil ]
+			if param compare SYS_HITL 1
 			then
 				if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
 				then
