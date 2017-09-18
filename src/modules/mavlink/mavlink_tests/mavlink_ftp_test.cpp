@@ -688,12 +688,13 @@ bool MavlinkFtpTest::_createdirectory_test()
 	struct _testCase {
 		const char	*dir;
 		bool		success;
+		bool		fail_exists;
 	};
 	static const struct _testCase rgTestCases[] = {
-		{ "/etc/bogus",			false },
-		{ _unittest_microsd_dir,	true },
-		{ _unittest_microsd_dir,	false },
-		{ "/fs/microsd/bogus/bogus",	false },
+		{ "/etc/bogus",			false, false },
+		{ _unittest_microsd_dir,	true, false },
+		{ _unittest_microsd_dir,	false, true },
+		{ "/fs/microsd/bogus/bogus",	false, false },
 	};
 
 	for (size_t i = 0; i < sizeof(rgTestCases) / sizeof(rgTestCases[0]); i++) {
@@ -714,6 +715,11 @@ bool MavlinkFtpTest::_createdirectory_test()
 		if (test->success) {
 			ut_compare("Didn't get Ack back", reply->opcode, MavlinkFTP::kRspAck);
 			ut_compare("Incorrect payload size", reply->size, 0);
+
+		} else if (test->fail_exists) {
+			ut_compare("Didn't get Nak back", reply->opcode, MavlinkFTP::kRspNak);
+			ut_compare("Incorrect payload size", reply->size, 1);
+			ut_compare("Incorrect error code", reply->data[0], MavlinkFTP::kErrFailFileExists);
 
 		} else {
 			ut_compare("Didn't get Nak back", reply->opcode, MavlinkFTP::kRspNak);
