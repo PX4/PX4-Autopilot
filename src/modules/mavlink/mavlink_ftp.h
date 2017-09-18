@@ -199,6 +199,10 @@ private:
 #endif
 	static constexpr const int _root_dir_len = sizeof(_root_dir) - 1;
 
+	bool _last_reply_valid = false;
+	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
+								      + sizeof(PayloadHeader) + sizeof(uint32_t)];
+
 	// Mavlink test needs to be able to call send
 	friend class MavlinkFtpTest;
 };
