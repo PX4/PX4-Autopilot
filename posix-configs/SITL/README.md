@@ -63,7 +63,7 @@ Example "startup" file
 
 ```
 uorb start
-mavlink start -u 14556
+mavlink start -x -u 14556
 simulator start -s
 param set CAL_GYRO0_ID 2293760
 param set CAL_ACC0_ID 1310720
