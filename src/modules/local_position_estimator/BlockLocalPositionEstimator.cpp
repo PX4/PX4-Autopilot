@@ -151,8 +151,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sensorTimeout(UINT16_MAX),
 	_sensorFault(0),
 	_estimatorInitialized(0),
-	_beaconFault(0),
-
+	_beaconFault(0)
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
