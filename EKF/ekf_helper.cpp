@@ -1000,6 +1000,36 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckon
 	memcpy(dead_reckoning, &_is_dead_reckoning, sizeof(bool));
 }
 
+/*
+Returns the following vehicle control limits required by the estimator.
+vxy_max : Maximum ground relative horizontal speed (metres/sec). NaN when no limiting required.
+limit_hagl : Boolean true when height above ground needs to be controlled to remain between optical flow focus and rang efinder max range limits.
+*/
+void Ekf::get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl)
+{
+	float flow_gnd_spd_max;
+	bool flow_limit_hagl;
+
+	// If relying on optical flow for navigation we need to keep within flow and range sensor limits
+	bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos);
+	if (relying_on_optical_flow) {
+		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
+		flow_gnd_spd_max = 0.5f * _params.flow_rate_max * (_terrain_vpos - _state.pos(2));
+		flow_gnd_spd_max = fmaxf(flow_gnd_spd_max , 0.0f);
+
+		flow_limit_hagl = true;
+
+	} else {
+		flow_gnd_spd_max = NAN;
+		flow_limit_hagl = false;
+
+	}
+
+	memcpy(vxy_max, &flow_gnd_spd_max, sizeof(float));
+	memcpy(limit_hagl, &flow_limit_hagl, sizeof(bool));
+
+}
+
 // get EKF innovation consistency check status information comprising of:
 // status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
