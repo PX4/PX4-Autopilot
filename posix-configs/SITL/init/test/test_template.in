@@ -24,7 +24,7 @@ list_devices
 list_topics
 list_files
 
-mavlink start -u 14556 -r 2000000
+mavlink start -x -u 14556 -r 2000000
 mavlink boot_complete
 
 tests @test_name@

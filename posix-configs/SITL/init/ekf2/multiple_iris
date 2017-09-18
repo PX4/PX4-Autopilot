@@ -61,8 +61,8 @@ ekf2 start
 mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_dc.main.mix
-mavlink start -u _MAVPORT_ -r 4000000 -o _MAVOPORT_
-mavlink start -u _MAVPORT2_ -r 4000000 -m onboard -o _MAVOPORT2_
+mavlink start -x -u _MAVPORT_ -r 4000000 -o _MAVOPORT_
+mavlink start -x -u _MAVPORT2_ -r 4000000 -m onboard -o _MAVOPORT2_
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u _MAVPORT_
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u _MAVPORT_
 mavlink stream -r 50 -s GLOBAL_POSITION_INT -u _MAVPORT_
