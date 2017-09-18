@@ -261,6 +261,11 @@ out:
 		payload->req_opcode = payload->opcode;
 		payload->opcode = kRspNak;
 		payload->size = 1;
+
+		if (r_errno == EEXIST) {
+			errorCode = kErrFailFileExists;
+		}
+
 		payload->data[0] = errorCode;
 
 		if (errorCode == kErrFailErrno) {
