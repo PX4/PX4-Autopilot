@@ -60,10 +60,12 @@ bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 bool rc_signal_lost				# true if RC reception lost
 uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.
 
-bool data_link_lost				# datalink to GCS lost
-uint8 data_link_lost_counter			# counts unique data link lost events
+bool gcs_data_link_lost			# GCS datalink lost
+bool obc_data_link_lost			# OBC datalink lost
+uint8 gcs_data_link_lost_counter		# counts unique GCS data link lost events
+uint8 obc_data_link_lost_counter		# counts unique OBC data link lost events
 bool engine_failure				# Set to true if an engine failure is detected
-bool engine_failure_cmd				# Set to true if an engine failure mode is commanded
+bool engine_failure_cmd			# Set to true if an engine failure mode is commanded
 bool mission_failure				# Set to true if mission could not continue/finish
 
 # see SYS_STATUS mavlink message for the following

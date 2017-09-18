@@ -39,7 +39,8 @@ param set MAV_TYPE 10
 param set MIS_LTRMIN_ALT 0.01
 param set MIS_TAKEOFF_ALT 0.01
 param set NAV_ACC_RAD 0.5
-param set NAV_DLL_ACT 0
+param set NAV_DLL_ACT 2
+param set NAV_OBC_DLL_ACT 0
 param set NAV_LOITER_RAD 2
 param set SENS_BOARD_ROT 0
 param set SENS_BOARD_X_OFF 0.000001

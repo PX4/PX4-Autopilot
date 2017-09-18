@@ -1724,6 +1724,16 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.timestamp = hrt_absolute_time();
 			tstatus.heartbeat_time = tstatus.timestamp;
 
+			/* propagate the datalink source to be treated
+			 * differently on the commander
+			 */
+			if (hb.type == MAV_TYPE_GCS) {
+				tstatus.source |= 0b01;
+
+			} else if (hb.type == MAV_TYPE_ONBOARD_CONTROLLER) {
+				tstatus.source |= 0b10;
+			}
+
 			if (_telemetry_status_pub == nullptr) {
 				int multi_instance;
 				_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);

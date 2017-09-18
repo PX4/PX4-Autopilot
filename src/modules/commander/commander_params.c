@@ -93,7 +93,7 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
 /**
- * Datalink loss time threshold
+ * GCS datalink loss time threshold
  *
  * After this amount of seconds without datalink the data link lost mode triggers
  *
@@ -105,6 +105,20 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  * @increment 0.5
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
+
+/**
+ * OBC datalink loss time threshold
+ *
+ * After this amount of seconds without datalink the data link lost mode triggers
+ *
+ * @group Commander
+ * @unit s
+ * @min 5
+ * @max 300
+ * @decimal 1
+ * @increment 0.5
+ */
+PARAM_DEFINE_INT32(COM_OBC_DLL_T, 5);
 
 /**
  * Datalink regain time threshold
@@ -333,6 +347,20 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
+
+/**
+ * Set the source of the datalink
+ *
+ * Used to specify the source of datalink, in order to decide which failsafes
+ * to trigger and to take into account
+ *
+ * @value 1 GCS
+ * @value 2 OBC (Onboard/Offboard computer)
+ * @value 3 Both
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_DL_SRC, 3);
 
 /**
  * Set offboard loss failsafe mode when RC is available

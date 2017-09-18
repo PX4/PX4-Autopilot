@@ -33,6 +33,7 @@ param set MPC_Z_VEL_I 0.15
 param set MPC_Z_VEL_P 0.6
 param set NAV_ACC_RAD 2.0
 param set NAV_DLL_ACT 2
+param set NAV_OBC_DLL_ACT 0
 param set RTL_DESCEND_ALT 10.0
 param set RTL_LAND_DELAY 0
 param set RTL_RETURN_ALT 30.0

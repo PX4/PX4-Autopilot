@@ -565,7 +565,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 		   struct actuator_armed_s *armed,
 		   struct commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub,
-		   const link_loss_actions_t data_link_loss_act,
+		   const link_loss_actions_t gcs_data_link_loss_act,
+		   const link_loss_actions_t obc_data_link_loss_act,
 		   const bool mission_finished,
 		   const bool stay_in_failsafe,
 		   status_flags_s *status_flags,
@@ -577,7 +578,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 {
 	navigation_state_t nav_state_old = status->nav_state;
 
-	const bool data_link_loss_act_configured = data_link_loss_act > link_loss_actions_t::DISABLED;
+	const bool gcs_data_link_loss_act_configured = gcs_data_link_loss_act > link_loss_actions_t::DISABLED;
+	const bool obc_data_link_loss_act_configured = obc_data_link_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_loss_act_configured = rc_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_lost = rc_loss_act_configured && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
 
@@ -588,7 +590,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 	// Safe to do reset flags here, as if loss state persists flags will be restored in the code below
 	reset_link_loss_globals(armed, old_failsafe, rc_loss_act);
-	reset_link_loss_globals(armed, old_failsafe, data_link_loss_act);
+	reset_link_loss_globals(armed, old_failsafe, gcs_data_link_loss_act);
+	reset_link_loss_globals(armed, old_failsafe, obc_data_link_loss_act);
 
 	/* evaluate main state to decide in normal (non-failsafe) mode */
 	switch (internal_state->main_state) {
@@ -698,17 +701,24 @@ bool set_nav_state(struct vehicle_status_s *status,
 		} else if (status->mission_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-		} else if (data_link_loss_act_configured && status->data_link_lost) {
-			/* datalink loss enabled:
+		} else if (gcs_data_link_loss_act_configured && status->gcs_data_link_lost) {
+			/* gcs datalink loss enabled:
 			 * check for datalink lost: this should always trigger RTGS */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, gcs_data_link_loss_act);
 
-		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
-			   && mission_finished) {
+		} else if (obc_data_link_loss_act_configured && status->obc_data_link_lost) {
+			/* obc datalink loss enabled:
+			 * check for datalink lost: this should always trigger RTGS */
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+
+			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, obc_data_link_loss_act);
+
+		} else if (!gcs_data_link_loss_act_configured && !obc_data_link_loss_act_configured &&
+			status->rc_signal_lost && status->gcs_data_link_lost && status->obc_data_link_lost && !landed && mission_finished) {
 			/* datalink loss DISABLED:
-			 * check if both, RC and datalink are lost during the mission
+			 * check if both, RC and GCS/OBC datalink are lost during the mission
 			 * or all links are lost after the mission finishes in air: this should always trigger RCRECOVER */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
@@ -739,14 +749,26 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
-		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
-			/* also go into failsafe if just datalink is lost, and we're actually in air */
-			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+		} else if (status->gcs_data_link_lost && gcs_data_link_loss_act_configured && !landed) {
+			/* also go into failsafe if just gcs datalink is lost, and we're actually in air */
+			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, gcs_data_link_loss_act);
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-		} else if (rc_lost && !data_link_loss_act_configured) {
-			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
+		} else if (status->obc_data_link_lost && obc_data_link_loss_act_configured && !landed) {
+			/* also go into failsafe if just obc datalink is lost, and we're actually in air */
+			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, obc_data_link_loss_act);
+
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+
+		} else if (rc_lost && !gcs_data_link_loss_act_configured) {
+			/* go into failsafe if RC is lost and gcs datalink loss is not set up and rc loss is not DISABLED */
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+
+			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+
+		} else if (rc_lost && !obc_data_link_loss_act_configured) {
+			/* go into failsafe if RC is lost and obc datalink loss is not set up and rc loss is not DISABLED */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
