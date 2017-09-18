@@ -2825,7 +2825,7 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		 * ----------------------------------------
 		 * This simplest thing to do is map the y & x inputs directly to roll and pitch, and scale according to the max
 		 * tilt angle.
-		 * But this has several issue:
+		 * But this has several issues:
 		 * - The maximum tilt angle cannot easily be restricted. By limiting the roll and pitch separately,
 		 *   it would be possible to get to a higher tilt angle by combining roll and pitch (the difference is
 		 *   around 15 degrees maximum, so quite noticeable). Limiting this angle is not simple in roll-pitch-space,
@@ -2836,7 +2836,7 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		 *   on the tilt angle (for a tilt angle of 35 degrees, it's off by about 5 degrees).
 		 *
 		 * So instead we control the following 2 angles:
-		 * - tilt angle
+		 * - tilt angle, given by sqrt(x*x + y*y)
 		 * - the direction of the maximum tilt in the XY-plane, which also defines the direction of the motion
 		 *
 		 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
@@ -2844,17 +2844,14 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		 */
 		const float x = _manual.x * _params.man_tilt_max;
 		const float y = _manual.y * _params.man_tilt_max;
-		const float tilt_angle_sp = math::min(_params.man_tilt_max, sqrtf(x * x + y * y));
 
 		// we want to fly towards the direction of (x, y), so we use a perpendicular axis angle vector in the XY-plane
 		matrix::Vector2f v = matrix::Vector2f(y, -x);
-		float v_norm = v.norm();
+		float v_norm = v.norm(); // the norm of v defines the tilt angle
 
-		if (v_norm > FLT_EPSILON) {
-			v /= v_norm;
+		if (v_norm > _params.man_tilt_max) { // limit to the configured maximum tilt angle
+			v *= _params.man_tilt_max / v_norm;
 		}
-
-		v *= tilt_angle_sp; // the norm of v defines the tilt angle
 
 		matrix::Quatf q_sp_rpy = matrix::AxisAnglef(v(0), v(1), 0.f);
 		// The axis angle can change the yaw as well (but only at higher tilt angles).
