@@ -1854,9 +1854,8 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
-		/* ignore own heartbeats, accept only heartbeats from GCS */
-		if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
-
+		/* ignore own heartbeats, accept only heartbeats from GCS or Onboard computers */
+		if (msg->sysid != mavlink_system.sysid && (hb.type == MAV_TYPE_GCS || hb.type == MAV_TYPE_ONBOARD_CONTROLLER)) {
 			struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
 			/* set heartbeat time and topic time and publish -
