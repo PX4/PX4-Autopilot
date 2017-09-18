@@ -138,6 +138,13 @@ public:
 	// get the 1-sigma horizontal and vertical velocity uncertainty
 	void get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckoning);
 
+	/*
+	Returns the following vehicle control limits required by the estimator.
+	vxy_max : Maximum ground relative horizontal speed (metres/sec). NaN when no limiting required.
+	tilt_rate_max : maximum allowed tilt rate against the direction of travel (rad/sec). NaN when no limiting required.
+	*/
+	void get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl);
+
 	void get_vel_var(Vector3f &vel_var);
 
 	void get_pos_var(Vector3f &pos_var);
