@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_getopt.h>
 
 #include <drivers/device/i2c.h>
 
@@ -99,7 +100,8 @@
 class MB12XX : public device::I2C
 {
 public:
-	MB12XX(int bus = MB12XX_BUS, int address = MB12XX_BASEADDR);
+	MB12XX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
+	       int bus = MB12XX_BUS, int address = MB12XX_BASEADDR);
 	virtual ~MB12XX();
 
 	virtual int 		init();
@@ -116,6 +118,7 @@ protected:
 	virtual int			probe();
 
 private:
+	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
@@ -194,8 +197,9 @@ private:
  */
 extern "C" __EXPORT int mb12xx_main(int argc, char *argv[]);
 
-MB12XX::MB12XX(int bus, int address) :
+MB12XX::MB12XX(uint8_t rotation, int bus, int address) :
 	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, address, 100000),
+	_rotation(rotation),
 	_min_distance(MB12XX_MIN_DISTANCE),
 	_max_distance(MB12XX_MAX_DISTANCE),
 	_reports(nullptr),
@@ -568,7 +572,7 @@ MB12XX::collect()
 	struct distance_sensor_s report;
 	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-	report.orientation = 8;
+	report.orientation = _rotation;
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
@@ -718,7 +722,7 @@ namespace mb12xx
 
 MB12XX	*g_dev;
 
-void	start();
+void	start(uint8_t rotation);
 void	stop();
 void	test();
 void	reset();
@@ -728,7 +732,7 @@ void	info();
  * Start the driver.
  */
 void
-start()
+start(uint8_t rotation)
 {
 	int fd;
 
@@ -737,7 +741,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new MB12XX(MB12XX_BUS);
+	g_dev = new MB12XX(rotation, MB12XX_BUS);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -899,38 +903,57 @@ info()
 int
 mb12xx_main(int argc, char *argv[])
 {
+	// check for optional arguments
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+
+	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'R':
+			rotation = (uint8_t)atoi(myoptarg);
+			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
+			break;
+
+		default:
+			PX4_WARN("Unknown option!");
+		}
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start")) {
-		mb12xx::start();
+	if (!strcmp(argv[myoptind], "start")) {
+		mb12xx::start(rotation);
 	}
 
 	/*
 	 * Stop the driver
 	 */
-	if (!strcmp(argv[1], "stop")) {
+	if (!strcmp(argv[myoptind], "stop")) {
 		mb12xx::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test")) {
+	if (!strcmp(argv[myoptind], "test")) {
 		mb12xx::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset")) {
+	if (!strcmp(argv[myoptind], "reset")) {
 		mb12xx::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
 		mb12xx::info();
 	}
 
