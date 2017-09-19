@@ -514,61 +514,10 @@ struct log_EST5_s {
 
 #define LOG_OUT1_MSG 50
 
-/* --- EKF2 REPLAY Part 1 --- */
-#define LOG_RPL1_MSG 51
-struct log_RPL1_s {
-	uint64_t time_ref;
-	uint32_t gyro_integral_dt;
-	uint32_t accelerometer_integral_dt;
-	uint64_t magnetometer_timestamp;
-	uint64_t baro_timestamp;
-	float gyro_x_rad;
-	float gyro_y_rad;
-	float gyro_z_rad;
-	float accelerometer_x_m_s2;
-	float accelerometer_y_m_s2;
-	float accelerometer_z_m_s2;
-	float magnetometer_x_ga;
-	float magnetometer_y_ga;
-	float magnetometer_z_ga;
-	float baro_alt_meter;
-};
-/* --- EKF2 REPLAY Part 2 --- */
-#define LOG_RPL2_MSG 52
-struct log_RPL2_s {
-	uint64_t time_pos_usec;
-	uint64_t time_vel_usec;
-	int32_t lat;
-	int32_t lon;
-	int32_t alt;
-	uint8_t fix_type;
-	uint8_t nsats;
-	float eph;
-	float epv;
-	float sacc;
-	float vel_m_s;
-	float vel_n_m_s;
-	float vel_e_m_s;
-	float vel_d_m_s;
-	bool vel_ned_valid;
-};
-
 /* --- EST6 - ESTIMATOR INNOVATIONS --- */
 #define LOG_EST6_MSG 53
 struct log_EST6_s {
     float s[6];
-};
-
-/* --- EKF2 REPLAY Part 3 --- */
-#define LOG_RPL3_MSG 54
-struct log_RPL3_s {
-	uint64_t time_flow_usec;
-	float flow_integral_x;
-	float flow_integral_y;
-	float gyro_integral_x;
-	float gyro_integral_y;
-	uint32_t flow_time_integral;
-	uint8_t flow_quality;
 };
 
 /* --- CAMERA TRIGGER --- */
@@ -576,13 +525,6 @@ struct log_RPL3_s {
 struct log_CAMT_s {
 	uint64_t timestamp;
 	uint32_t seq;
-};
-
-/* --- EKF2 REPLAY Part 4 --- */
-#define LOG_RPL4_MSG 56
-struct log_RPL4_s {
-	uint64_t time_rng_usec;
-	float range_to_ground;
 };
 
 /* --- LAND DETECTOR --- */
@@ -593,29 +535,6 @@ struct log_LAND_s {
 
 /* 58 used for DGPS message
  shares struct with GPS MSG 8*/
-
-/* --- EKF2 REPLAY Part 6 --- */
-#define LOG_RPL6_MSG 59
-struct log_RPL6_s {
-	uint64_t time_airs_usec;
-	float indicated_airspeed_m_s;
-	float true_airspeed_m_s;
-};
-
-/* --- EKF2 REPLAY Part 5 --- */
-#define LOG_RPL5_MSG 60
-struct log_RPL5_s {
-	uint64_t time_ev_usec;
-	float x;
-	float y;
-	float z;
-	float q0;
-	float q1;
-	float q2;
-	float q3;
-	float pos_err;
-	float ang_err;
-};
 
 /* --- SYSTEM LOAD --- */
 #define LOG_LOAD_MSG 61
@@ -720,12 +639,6 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 	LOG_FORMAT(CAMT, "QI", "timestamp,seq"),
-	LOG_FORMAT(RPL1, "QffQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gx,gy,gz,ax,ay,az,magX,magY,magZ,b_alt"),
-	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
-	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
-	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
-	LOG_FORMAT(RPL5, "Qfffffffff", "Tev,x,y,z,q0,q1,q2,q3,posErr,angErr"),
-	LOG_FORMAT(RPL6, "Qff", "Tasp,inAsp,trAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
 	LOG_FORMAT(LOAD, "f", "CPU"),
 	LOG_FORMAT(DPRS, "Qffff", "errors,DPRESraw,DPRES,DPRESmax,Temp"),

@@ -114,25 +114,9 @@ then
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
-elif [ "$program" == "replay" ] && [ ! -n "$no_sim" ]
-then
-	echo "Replaying logfile: $logfile"
-	# This is not a simulator, but a log file to replay
-
-	# Check if we need to creat a param file to allow user to change parameters
-	if ! [ -f "$rootfs/replay_params.txt" ]
-		then
-		mkdir -p $rootfs
-		touch $rootfs/replay_params.txt
-	fi
 fi
 
 cd $working_dir
-
-if [ "$logfile" != "" ]
-then
-	cp $logfile $rootfs/replay.px4log
-fi
 
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
