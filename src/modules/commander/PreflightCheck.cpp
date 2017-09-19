@@ -453,9 +453,10 @@ out:
 	return success;
 }
 
-static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
+static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool &lock_detected)
 {
 	bool success = true;
+	lock_detected = false;
 	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
 
 	//Wait up to 2000ms to allow the driver to detect a GNSS receiver module
@@ -472,6 +473,8 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 		if ((OK != orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps)) ||
 		    (hrt_elapsed_time(&gps.timestamp) > 1000000)) {
 			success = false;
+		} else if (gps.fix_type >= 3) {
+			lock_detected = true;
 		}
 	}
 
@@ -765,9 +768,14 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 	}
 
 	/* ---- Global Navigation Satellite System receiver ---- */
+	static hrt_abstime _time_last_no_gps_lock = 0;
 	if (checkGNSS) {
-		if (!gnssCheck(mavlink_log_pub, reportFailures)) {
+		bool lock_detected = false;
+		if (!gnssCheck(mavlink_log_pub, reportFailures, lock_detected)) {
 			failed = true;
+		}
+		if (!lock_detected) {
+			_time_last_no_gps_lock = time_since_boot;
 		}
 	}
 
@@ -776,8 +784,8 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 	int32_t estimator_type;
 	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
 	if (estimator_type == 2 && checkGNSS) {
-		// don't require GPS for the first 20s
-		bool enforce_gps_required = (time_since_boot > 20 * 1000000);
+		// don't fail if not using GPS for the first 20s after gaining 3D lock because quality checks take time to pass
+		bool enforce_gps_required = (_time_last_no_gps_lock > 20 * 1000000);
 
 		if (!ekf2Check(mavlink_log_pub, true, reportFailures, enforce_gps_required)) {
 			failed = true;
