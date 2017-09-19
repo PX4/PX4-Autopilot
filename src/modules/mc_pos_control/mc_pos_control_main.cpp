@@ -2854,7 +2854,8 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		}
 
 		matrix::Quatf q_sp_rpy = matrix::AxisAnglef(v(0), v(1), 0.f);
-		// The axis angle can change the yaw as well (but only at higher tilt angles).
+		// The axis angle can change the yaw as well (but only at higher tilt angles. Note: we're talking
+		// about the world frame here, in terms of body frame the yaw rate will be unaffected).
 		// This the the formula by how much the yaw changes:
 		//   let a := tilt angle, b := atan(y/x) (direction of maximum tilt)
 		//   yaw = atan(-2 * sin(b) * cos(b) * sin^2(a/2) / (1 - 2 * cos^2(b) * sin^2(a/2))).
