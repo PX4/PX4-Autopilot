@@ -64,7 +64,6 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
-#include <uORB/topics/ekf2_replay.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
@@ -162,7 +161,6 @@ private:
 	orb_advert_t _wind_pub;
 	orb_advert_t _estimator_status_pub;
 	orb_advert_t _estimator_innovations_pub;
-	orb_advert_t _replay_pub;
 	orb_advert_t _ekf2_timestamps_pub;
 
 	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
@@ -234,8 +232,6 @@ private:
 	control::BlockParamExtFloat _requiredGDoP;	///< maximum acceptable geometric dilution of precision
 	control::BlockParamExtFloat _requiredHdrift;	///< maximum acceptable horizontal drift speed (m/s)
 	control::BlockParamExtFloat _requiredVdrift;	///< maximum acceptable vertical drift speed (m/s)
-
-	control::BlockParamInt _param_record_replay_msg;	///< turns on recording of ekf2 replay messages
 
 	// measurement source control
 	control::BlockParamExtInt
@@ -339,7 +335,6 @@ Ekf2::Ekf2():
 	_wind_pub(nullptr),
 	_estimator_status_pub(nullptr),
 	_estimator_innovations_pub(nullptr),
-	_replay_pub(nullptr),
 	_ekf2_timestamps_pub(nullptr),
 	_vehicle_local_position_pub(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_vehicle_global_position_pub(ORB_ID(vehicle_global_position), -1, &getPublications()),
@@ -391,7 +386,6 @@ Ekf2::Ekf2():
 	_requiredGDoP(this, "EKF2_REQ_GDOP", false, _params->req_gdop),
 	_requiredHdrift(this, "EKF2_REQ_HDRIFT", false, _params->req_hdrift),
 	_requiredVdrift(this, "EKF2_REQ_VDRIFT", false, _params->req_vdrift),
-	_param_record_replay_msg(this, "EKF2_REC_RPL", false),
 	_fusion_mode(this, "EKF2_AID_MASK", false, _params->fusion_mode),
 	_vdist_sensor_type(this, "EKF2_HGT_MODE", false, _params->vdist_sensor_type),
 	_range_noise(this, "EKF2_RNG_NOISE", false, _params->range_noise),
@@ -1353,96 +1347,6 @@ void Ekf2::run()
 
 			} else {
 				orb_publish(ORB_ID(ekf2_timestamps), _ekf2_timestamps_pub, &ekf2_timestamps);
-			}
-		}
-
-		// publish replay message if in replay mode
-		if (_param_record_replay_msg.get() == 1) {
-			struct ekf2_replay_s replay = {};
-			replay.timestamp = now;
-			replay.gyro_integral_dt = sensors.gyro_integral_dt;
-			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
-			replay.magnetometer_timestamp = _timestamp_mag_us;
-			replay.baro_timestamp = _timestamp_balt_us;
-			memcpy(replay.gyro_rad, sensors.gyro_rad, sizeof(replay.gyro_rad));
-			memcpy(replay.accelerometer_m_s2, sensors.accelerometer_m_s2, sizeof(replay.accelerometer_m_s2));
-			memcpy(replay.magnetometer_ga, sensors.magnetometer_ga, sizeof(replay.magnetometer_ga));
-			replay.baro_alt_meter = sensors.baro_alt_meter;
-
-			// only write gps data if we had a gps update.
-			if (gps_updated) {
-				replay.time_usec = gps.timestamp;
-				replay.lat = gps.lat;
-				replay.lon = gps.lon;
-				replay.alt = gps.alt;
-				replay.fix_type = gps.fix_type;
-				replay.nsats = gps.satellites_used;
-				replay.eph = gps.eph;
-				replay.epv = gps.epv;
-				replay.sacc = gps.s_variance_m_s;
-				replay.vel_m_s = gps.vel_m_s;
-				replay.vel_n_m_s = gps.vel_n_m_s;
-				replay.vel_e_m_s = gps.vel_e_m_s;
-				replay.vel_d_m_s = gps.vel_d_m_s;
-				replay.vel_ned_valid = gps.vel_ned_valid;
-
-			} else {
-				// this will tell the logging app not to bother logging any gps replay data
-				replay.time_usec = 0;
-			}
-
-			if (optical_flow_updated) {
-				replay.flow_timestamp = optical_flow.timestamp;
-				replay.flow_pixel_integral[0] = optical_flow.pixel_flow_x_integral;
-				replay.flow_pixel_integral[1] = optical_flow.pixel_flow_y_integral;
-				replay.flow_gyro_integral[0] = optical_flow.gyro_x_rate_integral;
-				replay.flow_gyro_integral[1] = optical_flow.gyro_y_rate_integral;
-				replay.flow_time_integral = optical_flow.integration_timespan;
-				replay.flow_quality = optical_flow.quality;
-
-			} else {
-				replay.flow_timestamp = 0;
-			}
-
-			if (range_finder_updated) {
-				replay.rng_timestamp = range_finder.timestamp;
-				replay.range_to_ground = range_finder.current_distance;
-
-			} else {
-				replay.rng_timestamp = 0;
-			}
-
-			if (airspeed_updated) {
-				replay.asp_timestamp = airspeed.timestamp;
-				replay.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;
-				replay.true_airspeed_m_s = airspeed.true_airspeed_m_s;
-
-			} else {
-				replay.asp_timestamp = 0;
-			}
-
-			if (vision_position_updated || vision_attitude_updated) {
-				replay.ev_timestamp = vision_position_updated ? ev_pos.timestamp : ev_att.timestamp;
-				replay.pos_ev[0] = ev_pos.x;
-				replay.pos_ev[1] = ev_pos.y;
-				replay.pos_ev[2] = ev_pos.z;
-				replay.quat_ev[0] = ev_att.q[0];
-				replay.quat_ev[1] = ev_att.q[1];
-				replay.quat_ev[2] = ev_att.q[2];
-				replay.quat_ev[3] = ev_att.q[3];
-				// TODO: switch to covariances from topic later
-				replay.pos_err = _ev_pos_noise.get();
-				replay.ang_err = _ev_ang_noise.get();
-
-			} else {
-				replay.ev_timestamp = 0;
-			}
-
-			if (_replay_pub == nullptr) {
-				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
-
-			} else {
-				orb_publish(ORB_ID(ekf2_replay), _replay_pub, &replay);
 			}
 		}
 	}

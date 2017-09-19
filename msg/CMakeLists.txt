@@ -52,7 +52,6 @@ set(msg_file_names
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_innovations.msg
-	ekf2_replay.msg
 	ekf2_timestamps.msg
 	esc_report.msg
 	esc_status.msg
