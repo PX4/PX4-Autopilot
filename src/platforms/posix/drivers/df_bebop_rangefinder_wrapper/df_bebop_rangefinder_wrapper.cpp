@@ -159,7 +159,7 @@ int DfBebopRangeFinderWrapper::_publish(struct bebop_range &data)
 
 	distance_data.id = 0; // TODO set proper ID
 
-	distance_data.orientation = 25; // MAV_SENSOR_ROTATION_PITCH_270
+	distance_data.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 	distance_data.covariance = 1.0f; // TODO set correct value
 
