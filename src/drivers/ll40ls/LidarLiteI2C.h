@@ -71,7 +71,8 @@
 class LidarLiteI2C : public LidarLite, public device::I2C
 {
 public:
-	LidarLiteI2C(int bus, const char *path, int address = LL40LS_BASEADDR);
+	LidarLiteI2C(int bus, const char *path, int address = LL40LS_BASEADDR,
+		     uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~LidarLiteI2C();
 
 	int         init() override;
@@ -100,6 +101,7 @@ protected:
 	int                 reset_sensor();
 
 private:
+	uint8_t _rotation;
 	work_s              _work;
 	ringbuffer::RingBuffer          *_reports;
 	bool                _sensor_ok;

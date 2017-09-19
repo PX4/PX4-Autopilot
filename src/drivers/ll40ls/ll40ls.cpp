@@ -49,6 +49,7 @@
 #include <cstdlib>
 #include <string.h>
 #include <stdio.h>
+#include <platforms/px4_getopt.h>
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -93,7 +94,7 @@ namespace ll40ls
 
 LidarLite *instance = nullptr;
 
-void	start(enum LL40LS_BUS busid);
+void	start(enum LL40LS_BUS busid, uint8_t rotation);
 void	stop();
 void	test();
 void	reset();
@@ -104,7 +105,7 @@ void	usage();
 /**
  * Start the driver.
  */
-void start(enum LL40LS_BUS busid)
+void start(enum LL40LS_BUS busid, uint8_t rotation)
 {
 	int fd, ret;
 
@@ -113,7 +114,7 @@ void start(enum LL40LS_BUS busid)
 	}
 
 	if (busid == LL40LS_BUS_PWM) {
-		instance = new LidarLitePWM(LL40LS_DEVICE_PATH_PWM);
+		instance = new LidarLitePWM(LL40LS_DEVICE_PATH_PWM, rotation);
 
 		if (!instance) {
 			warnx("Failed to instantiate LidarLitePWM");
@@ -131,7 +132,7 @@ void start(enum LL40LS_BUS busid)
 				continue;
 			}
 
-			instance = new LidarLiteI2C(bus_options[i].busnum, bus_options[i].devname);
+			instance = new LidarLiteI2C(bus_options[i].busnum, bus_options[i].devname, rotation);
 
 			if (!instance) {
 				warnx("Failed to instantiate LidarLiteI2C");
@@ -340,6 +341,7 @@ usage()
 #ifdef PX4_I2C_BUS_ONBOARD
 	warnx("    -I only internal bus");
 #endif
+	warnx("E.g. ll40ls start i2c -R 0");
 }
 
 } // namespace
@@ -348,9 +350,12 @@ int
 ll40ls_main(int argc, char *argv[])
 {
 	int ch;
+	int myoptind = 1;
+	const char *myoptarg = NULL;
 	enum LL40LS_BUS busid = LL40LS_BUS_I2C_ALL;
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
-	while ((ch = getopt(argc, argv, "XI")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "IXR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 #ifdef PX4_I2C_BUS_ONBOARD
 
@@ -363,6 +368,11 @@ ll40ls_main(int argc, char *argv[])
 			busid = LL40LS_BUS_I2C_EXTERNAL;
 			break;
 
+		case 'R':
+			rotation = (uint8_t)atoi(myoptarg);
+			PX4_INFO("Setting Lidar orientation to %d", (int)rotation);
+			break;
+
 		default:
 			ll40ls::usage();
 			return 0;
@@ -370,8 +380,8 @@ ll40ls_main(int argc, char *argv[])
 	}
 
 	/* determine protocol first because it's needed next */
-	if (argc > optind + 1) {
-		const char *protocol = argv[optind + 1];
+	if (argc > myoptind + 1) {
+		const char *protocol = argv[myoptind + 1];
 
 		if (!strcmp(protocol, "pwm")) {
 			busid = LL40LS_BUS_PWM;;
@@ -387,11 +397,11 @@ ll40ls_main(int argc, char *argv[])
 	}
 
 	/* now determine action */
-	if (argc > optind) {
-		const char *verb = argv[optind];
+	if (argc > myoptind) {
+		const char *verb = argv[myoptind];
 
 		if (!strcmp(verb, "start")) {
-			ll40ls::start(busid);
+			ll40ls::start(busid, rotation);
 
 		} else if (!strcmp(verb, "stop")) {
 			ll40ls::stop();

@@ -49,8 +49,9 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_input.h>
 
-LidarLitePWM::LidarLitePWM(const char *path) :
+LidarLitePWM::LidarLitePWM(const char *path, uint8_t rotation) :
 	CDev("LidarLitePWM", path),
+	_rotation(rotation),
 	_work{},
 	_reports(nullptr),
 	_class_instance(-1),
@@ -178,7 +179,7 @@ int LidarLitePWM::measure()
 	_range.min_distance = get_minimum_distance();
 	_range.current_distance = float(_pwm.pulse_width) * 1e-3f;   /* 10 usec = 1 cm distance for LIDAR-Lite */
 	_range.covariance = 0.0f;
-	_range.orientation = 8;
+	_range.orientation = _rotation;
 	/* TODO: set proper ID */
 	_range.id = 0;
 
