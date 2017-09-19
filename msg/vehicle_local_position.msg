@@ -55,4 +55,8 @@ float32 epv				# Standard deviation of vertical position error, (metres)
 float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
 float32 evv				# Standard deviation of horizontal velocity error, (metres/sec)
 
+# estimator specified vehicle limits
+float32 vxy_max				# maximum horizontal speed - set to 0 when not applicable (metres/sec)
+bool limit_hagl				# true when the height above ground needs to be limited to observe optical flow focus and range finder limits
+
 # TOPICS vehicle_local_position vehicle_local_position_groundtruth vehicle_vision_position
