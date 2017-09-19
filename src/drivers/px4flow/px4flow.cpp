@@ -110,7 +110,8 @@ class PX4FLOW: public device::I2C
 {
 public:
 	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS_DEFAULT, enum Rotation rotation = (enum Rotation)0,
-		int conversion_interval = PX4FLOW_CONVERSION_INTERVAL_DEFAULT);
+		int conversion_interval = PX4FLOW_CONVERSION_INTERVAL_DEFAULT,
+		uint8_t sonar_rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~PX4FLOW();
 
 	virtual int 		init();
@@ -128,6 +129,7 @@ protected:
 
 private:
 
+	uint8_t _sonar_rotation;
 	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
@@ -188,8 +190,9 @@ private:
  */
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
-PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation, int conversion_interval) :
+PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation, int conversion_interval, uint8_t sonar_rotation) :
 	I2C("PX4FLOW", PX4FLOW0_DEVICE_PATH, bus, address, PX4FLOW_I2C_MAX_BUS_SPEED), /* 100-400 KHz */
+	_sonar_rotation(sonar_rotation),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -569,7 +572,7 @@ PX4FLOW::collect()
 	distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 	/* TODO: the ID needs to be properly set */
 	distance_report.id = 0;
-	distance_report.orientation = 8;
+	distance_report.orientation = _sonar_rotation;
 
 	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
 
@@ -704,8 +707,9 @@ start(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
+	uint8_t sonar_rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
-	while ((ch = px4_getopt(argc, argv, "a:i:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "a:i:R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
 			address = strtoul(myoptarg, nullptr, 16);
@@ -725,6 +729,12 @@ start(int argc, char *argv[])
 				warnx("invalid conversion interval '%s'", myoptarg);
 				err_flag = true;
 			}
+
+			break;
+
+		case 'R':
+			sonar_rotation = (uint8_t)atoi(myoptarg);
+			PX4_INFO("Setting sonar orientation to %d", (int)sonar_rotation);
 
 			break;
 
@@ -762,7 +772,7 @@ start(int argc, char *argv[])
 		while (*cur_bus != -1) {
 			/* create the driver */
 			/* warnx("trying bus %d", *cur_bus); */
-			g_dev = new PX4FLOW(*cur_bus, address, (enum Rotation)0, conversion_interval);
+			g_dev = new PX4FLOW(*cur_bus, address, (enum Rotation)0, conversion_interval, sonar_rotation);
 
 			if (g_dev == nullptr) {
 				/* this is a fatal error */
