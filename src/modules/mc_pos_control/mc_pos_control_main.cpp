@@ -266,6 +266,7 @@ private:
 	struct map_projection_reference_s _ref_pos;
 	float _ref_alt;
 	hrt_abstime _ref_timestamp;
+	bool _first_origin_set;
 	hrt_abstime _last_warn;
 
 	math::Vector<3> _thrust_int;
@@ -455,6 +456,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_user_intention_z(brake),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
+	_first_origin_set{false},
 	_last_warn(0),
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
@@ -858,7 +860,7 @@ MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterPositionControl::update_ref()
 {
-	if (_local_pos.ref_timestamp != _ref_timestamp) {
+	if (_local_pos.ref_timestamp != _ref_timestamp && _first_origin_set) {
 		double lat_sp, lon_sp;
 		float alt_sp = 0.0f;
 
@@ -884,6 +886,13 @@ MulticopterPositionControl::update_ref()
 		}
 
 		_ref_timestamp = _local_pos.ref_timestamp;
+
+	} else if (_local_pos.xy_global && _local_pos.z_global) {
+		// Ignore the origin change for the first time the origin is set.
+		// This allows for GPS use to commence after takeoff
+		_first_origin_set = true;
+		_ref_timestamp = _local_pos.ref_timestamp;
+
 	}
 }
 
