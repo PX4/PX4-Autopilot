@@ -711,8 +711,8 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 		d.max_distance = 5.0f;
 		d.current_distance = flow.distance; /* both are in m */
 		d.type = 1;
-		d.id = MAV_DISTANCE_SENSOR_ULTRASOUND;
-		d.orientation = 8;
+		d.id = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+		d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 		d.covariance = 0.0;
 
 		if (_flow_distance_sensor_pub == nullptr) {
@@ -763,9 +763,9 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	d.min_distance = 0.3f;
 	d.max_distance = 5.0f;
 	d.current_distance = flow.distance; /* both are in m */
-	d.type = 1;
+	d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	d.id = 0;
-	d.orientation = 8;
+	d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	d.covariance = 0.0;
 
 	if (_hil_distance_sensor_pub == nullptr) {
