@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_getopt.h>
 #include <px4_workqueue.h>
 #include <px4_defines.h>
 #include <sys/types.h>
@@ -101,7 +102,7 @@ extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[]);
 class Radar : public device::CDev
 {
 public:
-	Radar(const char *port = RADAR_DEFAULT_PORT);
+	Radar(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, const char *port = RADAR_DEFAULT_PORT);
 	virtual ~Radar();
 
 	virtual int 			init();
@@ -109,6 +110,7 @@ public:
 	int				start();
 
 private:
+	uint8_t _rotation;
 	bool				_task_should_exit;
 	int 				_task_handle;
 	char 				_port[20];
@@ -133,8 +135,9 @@ namespace radar
 Radar	*g_dev;
 }
 
-Radar::Radar(const char *port) :
+Radar::Radar(uint8_t rotation, const char *port) :
 	CDev("Radar", RANGE_FINDER0_DEVICE_PATH),
+	_rotation(rotation),
 	_task_should_exit(false),
 	_task_handle(-1),
 	_class_instance(-1),
@@ -277,7 +280,7 @@ Radar::init()
 		struct distance_sensor_s ds_report = {};
 		ds_report.timestamp = hrt_absolute_time();
 		ds_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
-		ds_report.orientation = 8;
+		ds_report.orientation = _rotation;
 		ds_report.id = 0;
 		ds_report.current_distance = -1.0f;	// make evident that this range sample is invalid
 		ds_report.covariance = SENS_VARIANCE;
@@ -456,7 +459,7 @@ Radar::task_main()
 				struct distance_sensor_s report = {};
 				report.timestamp = hrt_absolute_time();
 				report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-				report.orientation = 8;
+				report.orientation = _rotation;
 				report.current_distance = range;
 				report.current_distance = report.current_distance > ULANDING_MAX_DISTANCE ? ULANDING_MAX_DISTANCE :
 							  report.current_distance;
@@ -485,20 +488,39 @@ int ulanding_radar_main(int argc, char *argv[])
 		return 1;
 	}
 
+	// check for optional arguments
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+
+	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'R':
+			rotation = (uint8_t)atoi(myoptarg);
+			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
+			break;
+
+		default:
+			PX4_WARN("Unknown option!");
+		}
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(argv[myoptind], "start")) {
 		if (radar::g_dev != nullptr) {
 			PX4_WARN("driver already started");
 			return 0;
 		}
 
-		if (argc > 2) {
-			radar::g_dev = new Radar(argv[2]);
+		if (argc > myoptind + 1) {
+			radar::g_dev = new Radar(rotation, argv[myoptind + 1]);
 
 		} else {
-			radar::g_dev = new Radar(RADAR_DEFAULT_PORT);
+			radar::g_dev = new Radar(rotation, RADAR_DEFAULT_PORT);
 		}
 
 		if (radar::g_dev == nullptr) {
@@ -524,7 +546,7 @@ int ulanding_radar_main(int argc, char *argv[])
 	/*
 	 * Stop the driver
 	 */
-	if (!strcmp(argv[1], "stop")) {
+	if (!strcmp(argv[myoptind], "stop")) {
 		if (radar::g_dev != nullptr) {
 			delete radar::g_dev;
 			radar::g_dev = nullptr;
@@ -536,7 +558,7 @@ int ulanding_radar_main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (!strcmp(argv[1], "info")) {
+	if (!strcmp(argv[myoptind], "info")) {
 		PX4_INFO("ulanding radar from Aerotenna");
 		PX4_INFO("min distance %.2f m", (double)ULANDING_MIN_DISTANCE);
 		PX4_INFO("max distance %.2f m", (double)ULANDING_MAX_DISTANCE);
