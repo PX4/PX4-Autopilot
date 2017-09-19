@@ -60,7 +60,7 @@
 class LidarLitePWM : public LidarLite, public device::CDev
 {
 public:
-	LidarLitePWM(const char *path);
+	LidarLitePWM(const char *path, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~LidarLitePWM();
 
 	int init() override;
@@ -107,6 +107,7 @@ protected:
 	void task_main_trampoline(int argc, char *argv[]);
 
 private:
+	uint8_t _rotation;
 	work_s			_work;
 	ringbuffer::RingBuffer	*_reports;
 	int			_class_instance;
