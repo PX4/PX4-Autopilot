@@ -21,7 +21,7 @@ msg_id_map = {
     'differential_pressure': 16,
     'distance_sensor': 17,
     'ekf2_innovations': 18,
-    'ekf2_replay': 19,
+
     'ekf2_timestamps': 20,
     'esc_report': 21,
     'esc_status': 22,
