@@ -405,9 +405,32 @@ FixedwingPositionControl::get_demanded_airspeed()
 float
 FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 {
+	/*
+	 * Calculate accelerated stall airspeed factor from commanded bank angle and use it to increase minimum airspeed.
+	 *
+	 *  We don't know the stall speed of the aircraft, but assuming user defined
+	 *  minimum airspeed (FW_AIRSPD_MIN) is slightly larger than stall speed
+	 *  this is close enough.
+	 *
+	 * increase lift vector to balance additional weight in bank
+	 *  cos(bank angle) = W/L = 1/n
+	 *   n is the load factor
+	 *
+	 * lift is proportional to airspeed^2 so the increase in stall speed is
+	 *  Vsacc = Vs * sqrt(n)
+	 *
+	 */
+	float adjusted_min_airspeed = _parameters.airspeed_min;
+
+	if (_airspeed_valid && PX4_ISFINITE(_att_sp.roll_body)) {
+
+		adjusted_min_airspeed = constrain(_parameters.airspeed_min / sqrtf(cosf(_att_sp.roll_body)), _parameters.airspeed_min,
+						  _parameters.airspeed_max);
+	}
+
 	// add minimum ground speed undershoot (only non-zero in presence of sufficient wind)
 	// sanity check: limit to range
-	return constrain(airspeed_demand + _groundspeed_undershoot, _parameters.airspeed_min, _parameters.airspeed_max);
+	return constrain(airspeed_demand + _groundspeed_undershoot, adjusted_min_airspeed, _parameters.airspeed_max);
 }
 
 void
