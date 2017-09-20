@@ -187,20 +187,20 @@ void Ekf::controlExternalVisionFusion()
 				_state.quat_nominal = Quatf(euler_init);
 
 				// calculate the amount that the quaternion has changed by
-				_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();
+				_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
 				// add the reset amount to the output observer buffered data
 				outputSample output_states;
 				unsigned output_length = _output_buffer.get_length();
 				for (unsigned i=0; i < output_length; i++) {
 					output_states = _output_buffer.get_from_index(i);
-					output_states.quat_nominal *= _state_reset_status.quat_change;
+					output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
 					_output_buffer.push_to_index(i, output_states);
 				}
 
 				// apply the change in attitude quaternion to our newest quaternion estimate
 				// which was already taken out from the output buffer
-				_output_new.quat_nominal *= _state_reset_status.quat_change;
+				_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
 
 				// capture the reset event
 				_state_reset_status.quat_counter++;
