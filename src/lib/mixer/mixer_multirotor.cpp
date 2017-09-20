@@ -220,7 +220,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		}
 
 	} else {
-		roll_pitch_scale = 1 / (max_out - min_out);
+		roll_pitch_scale = 1 / (delta_out_max);
 		boost = 1.0f - ((max_out - thrust) * roll_pitch_scale + thrust);
 	}
 
