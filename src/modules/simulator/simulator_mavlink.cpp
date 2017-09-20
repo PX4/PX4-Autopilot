@@ -429,6 +429,25 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 		break;
 
+	case MAVLINK_MSG_ID_IRLOCK_REPORT:
+		mavlink_irlock_report_t irlock_mavlink;
+		mavlink_msg_irlock_report_decode(msg, &irlock_mavlink);
+
+		struct irlock_report_s report;
+		memset(&report, 0, sizeof(report));
+
+		report.timestamp = hrt_absolute_time();
+		report.signature = irlock_mavlink.signature;
+		report.pos_x = irlock_mavlink.pos_x;
+		report.pos_y = irlock_mavlink.pos_y;
+		report.size_x = irlock_mavlink.size_x;
+		report.size_y = irlock_mavlink.size_y;
+
+		int irlock_multi;
+		orb_publish_auto(ORB_ID(irlock_report), &_irlock_report_pub, &report, &irlock_multi, ORB_PRIO_HIGH);
+
+		break;
+
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		mavlink_hil_state_quaternion_t hil_state;
 		mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
