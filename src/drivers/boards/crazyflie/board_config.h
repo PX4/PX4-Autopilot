@@ -70,6 +70,8 @@
 /* PX4: armed state indicator ; Stock FW: Blinking while charging */
 #define GPIO_LED_BLUE_L		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN2)
 
+#define BOARD_HAS_CONTROL_STATUS_LEDS	1
+
 #define LED_TX 4
 #define LED_RX 5
 
