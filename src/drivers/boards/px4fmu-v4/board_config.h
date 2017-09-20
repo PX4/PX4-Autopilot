@@ -63,6 +63,8 @@
 #define GPIO_LED_GREEN               GPIO_LED2
 #define GPIO_LED_BLUE                GPIO_LED3
 
+#define BOARD_HAS_CONTROL_STATUS_LEDS      1
+
 /*  Define the Chip Selects for SPI1
  *  CS           Devices                                 DRDY
  *  ---- ----------------------------------------------- -----
