@@ -56,6 +56,10 @@ using matrix::Quatf;
  */
 extern "C" __EXPORT int gnd_pos_control_main(int argc, char *argv[]);
 
+namespace gnd_throttle
+{
+const float HOLD = 0.5;
+}
 
 namespace gnd_control
 {
@@ -212,6 +216,11 @@ void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 	}
 }
 
+float GroundRoverPositionControl::map_above(float source, float mid)
+{
+	return (1.0f - mid) * source + mid;
+}
+
 bool
 GroundRoverPositionControl::control_position(const math::Vector<2> &current_position,
 		const math::Vector<3> &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
@@ -247,7 +256,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 		math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
 
-		float mission_throttle = _parameters.throttle_cruise;
+		/* map mission_throttle to the upper half of the throttle range for forward only */
+		float mission_throttle = map_above(_parameters.throttle_cruise, gnd_throttle::HOLD);
 
 		/* Just control the throttle */
 		if (_parameters.speed_control_mode == 1) {
@@ -265,12 +275,13 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 					   * pid_calculate(&_speed_ctrl, mission_target_speed, _ctrl_state.x_vel, _ctrl_state.x_acc, dt);
 
 			// Constrain throttle between min and max
-			mission_throttle = math::constrain(mission_throttle, _parameters.throttle_min, _parameters.throttle_max);
+			mission_throttle = math::constrain(mission_throttle, map_above(_parameters.throttle_min, gnd_throttle::HOLD),
+							   map_above(_parameters.throttle_max, gnd_throttle::HOLD));
 
 		} else {
 			/* Just control throttle in open loop */
 			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_throttle) &&
-			    _pos_sp_triplet.current.cruising_throttle > 0.01f) {
+			    _pos_sp_triplet.current.cruising_throttle > gnd_throttle::HOLD + 0.1f) {
 
 				mission_throttle = _pos_sp_triplet.current.cruising_throttle;
 			}
@@ -280,7 +291,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = 0.0f;
-			_att_sp.thrust = 0.0f;
+			_att_sp.thrust = gnd_throttle::HOLD;
 
 		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
 			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
@@ -303,7 +314,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust = 0.0f;
+			_att_sp.thrust = gnd_throttle::HOLD;
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
@@ -318,7 +329,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = 0.0f;
 		_att_sp.fw_control_yaw = true;
-		_att_sp.thrust = 0.0f;
+		_att_sp.thrust = gnd_throttle::HOLD;
 
 		/* do not publish the setpoint */
 		setpoint = false;

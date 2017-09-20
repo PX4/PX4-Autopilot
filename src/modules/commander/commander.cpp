@@ -2714,18 +2714,21 @@ int commander_thread_main(int argc, char *argv[])
 			const bool arm_button_pressed = arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
 
 			/* DISARM
-			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
+			 * check if left stick is in lower left position, except for rover which requires a mid left position, or arm button is pushed or arm switch has transition from arm to disarm
 			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
 			 * do it only for rotary wings in manual mode or fixed wing if landed */
 			const bool stick_in_lower_left = sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f;
+			const bool stick_in_mid_left = sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.6f && sp_man.z > 0.4f;
+
 			const bool arm_switch_to_disarm_transition =  arm_switch_is_button == 0 &&
-					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
-					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF;
+				_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+				sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF;
 
 			if (in_armed_state &&
-				status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-				(status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
-				(stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition) ) {
+			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
+			    (status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
+			    (((stick_in_lower_left && status.system_type != 10) || (stick_in_mid_left && status.system_type == 10))
+			     || arm_button_pressed || arm_switch_to_disarm_transition)) {
 
 				if (internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL &&
 						internal_state.main_state != commander_state_s::MAIN_STATE_ACRO &&
@@ -2761,17 +2764,20 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* ARM
-			 * check if left stick is in lower right position or arm button is pushed or arm switch has transition from disarm to arm
+			 * check if left stick is in lower right position, except for rover which requires a mid right position, or arm button is pushed or arm switch has transition from disarm to arm
 			 * and we're in MANUAL mode */
 			const bool stick_in_lower_right = (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f);
+			const bool stick_in_mid_right = (sp_man.r > 0.4f && sp_man.z < 0.6f);
+
 			const bool arm_switch_to_arm_transition = arm_switch_is_button == 0 &&
-					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF &&
-					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+				_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF &&
+				sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
 
 			if (!in_armed_state &&
-				status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-				(stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition) ) {
-				if ((stick_on_counter == rc_arm_hyst && stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
+			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
+			    (((stick_in_lower_right && status.system_type != 10) || (stick_in_mid_right && status.system_type == 10))
+			     || arm_button_pressed || arm_switch_to_arm_transition)) {
+			    if ((stick_on_counter == rc_arm_hyst && stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
 
 					/* we check outside of the transition function here because the requirement
 					 * for being in manual mode only applies to manual arming actions.
