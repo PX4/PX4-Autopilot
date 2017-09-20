@@ -60,6 +60,8 @@
 #define GPIO_LED_BLUE	0
 #define GPIO_LED_SAFETY 0
 
+#define BOARD_HAS_CONTROL_STATUS_LEDS	1
+
 /* GPS */
 #define GPS_DEFAULT_UART_PORT	"/dev/ttyS0"
 
