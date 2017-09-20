@@ -557,6 +557,7 @@ void Logger::add_common_topics()
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
 	add_topic("telemetry_status");
+	add_topic("telemetry_status");
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");
