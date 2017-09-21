@@ -882,9 +882,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	float e_R_z_sin = e_R.length(); // == sin(tilt angle error)
 	float e_R_z_cos = R_z * R_sp_z; // == cos(tilt angle error) == (R.transposed() * R_sp)(2, 2)
 
-	/* calculate weight for yaw control */
-	float yaw_w = R_sp(2, 2) * R_sp(2, 2);
-
 	/* calculate rotation matrix after roll/pitch only rotation */
 	math::Matrix<3, 3> R_rp;
 
@@ -916,6 +913,14 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* R_rp and R_sp have the same Z axis, calculate yaw error */
 	math::Vector<3> R_sp_x(R_sp(0, 0), R_sp(1, 0), R_sp(2, 0));
 	math::Vector<3> R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
+
+	/* calculate the weight for yaw control
+	 * Make the weight depend on the tilt angle error: the higher the error of roll and/or pitch, the lower
+	 * the weight that we use to control the yaw. This gives precedence to roll & pitch correction.
+	 * The weight is 1 if there is no tilt error.
+	 */
+	float yaw_w = e_R_z_cos * e_R_z_cos;
+
 	/* calculate the angle between R_rp_x and R_sp_x (yaw angle error), and apply the yaw weight */
 	e_R(2) = atan2f((R_rp_x % R_sp_x) * R_sp_z, R_rp_x * R_sp_x) * yaw_w;
 
