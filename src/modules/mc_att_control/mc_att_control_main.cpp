@@ -664,6 +664,17 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.board_offset[1], &(_params.board_offset[1]));
 	param_get(_params_handles.board_offset[2], &(_params.board_offset[2]));
 
+
+	/* get transformation matrix from sensor/board to body frame */
+	get_rot_matrix((enum Rotation)_params.board_rotation, &_board_rotation);
+
+	/* fine tune the rotation */
+	math::Matrix<3, 3> board_rotation_offset;
+	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _params.board_offset[0],
+					 M_DEG_TO_RAD_F * _params.board_offset[1],
+					 M_DEG_TO_RAD_F * _params.board_offset[2]);
+	_board_rotation = board_rotation_offset * _board_rotation;
+
 	return OK;
 }
 
@@ -978,16 +989,6 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	if (!_armed.armed || !_vehicle_status.is_rotary_wing) {
 		_rates_int.zero();
 	}
-
-	/* get transformation matrix from sensor/board to body frame */
-	get_rot_matrix((enum Rotation)_params.board_rotation, &_board_rotation);
-
-	/* fine tune the rotation */
-	math::Matrix<3, 3> board_rotation_offset;
-	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _params.board_offset[0],
-					 M_DEG_TO_RAD_F * _params.board_offset[1],
-					 M_DEG_TO_RAD_F * _params.board_offset[2]);
-	_board_rotation = board_rotation_offset * _board_rotation;
 
 	// get the raw gyro data and correct for thermal errors
 	math::Vector<3> rates;
