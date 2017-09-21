@@ -932,6 +932,18 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
 
+
+	/* Feed forward the yaw setpoint rate. We need to transform the yaw from world into body frame.
+	 * The following is a simplification of:
+	 * R.transposed() * math::Vector<3>(0.f, 0.f, _v_att_sp.yaw_sp_move_rate * _params.yaw_ff)
+	 */
+	math::Vector<3> yaw_feedforward_rate(R(2, 0), R(2, 1), R(2, 2));
+	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _params.yaw_ff;
+
+	yaw_feedforward_rate(2) *= yaw_w;
+	_rates_sp += yaw_feedforward_rate;
+
+
 	/* limit rates */
 	for (int i = 0; i < 3; i++) {
 		if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
@@ -942,9 +954,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
 		}
 	}
-
-	/* feed forward yaw setpoint rate */
-	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 
 	/* weather-vane mode, dampen yaw rate */
 	if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
