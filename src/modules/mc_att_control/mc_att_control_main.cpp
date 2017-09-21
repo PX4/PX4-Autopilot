@@ -92,10 +92,8 @@
  */
 extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
-#define YAW_DEADZONE	0.05f
 #define MIN_TAKEOFF_THRUST    0.2f
 #define TPA_RATE_LOWER_LIMIT 0.05f
-#define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
 
 #define AXIS_INDEX_ROLL 0
@@ -635,7 +633,7 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.yaw_auto_max, &_params.yaw_auto_max);
 	_params.auto_rate_max(2) = math::radians(_params.yaw_auto_max);
 
-	/* manual rate control scale and auto mode roll/pitch rate limits */
+	/* manual rate control scale and acro mode roll/pitch rate limits */
 	param_get(_params_handles.acro_roll_max, &v);
 	_params.acro_rate_max(0) = math::radians(v);
 	param_get(_params_handles.acro_pitch_max, &v);
@@ -1222,15 +1220,13 @@ MulticopterAttitudeControl::task_main()
 					_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
 				}
 
-				//}
-
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
 					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x,
 								    _manual_control_sp.r).emult(_params.acro_rate_max);
-					_thrust_sp = math::min(_manual_control_sp.z, MANUAL_THROTTLE_MAX_MULTICOPTER);
+					_thrust_sp = _manual_control_sp.z;
 
 					/* publish attitude rates setpoint */
 					_v_rates_sp.roll = _rates_sp(0);
