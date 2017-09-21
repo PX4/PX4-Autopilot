@@ -77,9 +77,7 @@
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/gps_inject_data.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/collision_report.h>
-
 
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
@@ -243,7 +241,6 @@ private:
 	orb_advert_t _follow_target_pub;
 	orb_advert_t _transponder_report_pub;
 	orb_advert_t _collision_report_pub;
-	orb_advert_t _control_state_pub;
 	orb_advert_t _debug_key_value_pub;
 	orb_advert_t _debug_value_pub;
 	orb_advert_t _debug_vect_pub;

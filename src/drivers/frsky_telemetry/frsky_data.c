@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
- *   Author: Stefan Rado <px4@sradonia.net>
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +33,7 @@
 
 /**
  * @file frsky_data.c
+ *
  * @author Stefan Rado <px4@sradonia.net>
  *
  * FrSky telemetry implementation.
@@ -160,6 +160,7 @@ void frsky_update_topics()
 {
 	struct frsky_subscription_data_s *subs = subscription_data;
 	bool updated;
+
 	/* get a local copy of the current sensor values */
 	orb_check(subs->sensor_sub, &updated);
 
@@ -167,12 +168,7 @@ void frsky_update_topics()
 		orb_copy(ORB_ID(sensor_combined), subs->sensor_sub, &subs->sensor_combined);
 	}
 
-	orb_check(subs->vehicle_gps_position_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_gps_position), subs->vehicle_gps_position_sub, &subs->vehicle_gps_position);
-	}
-
+	/* get a local copy of the vehicle status */
 	orb_check(subs->vehicle_status_sub, &updated);
 
 	if (updated) {
@@ -193,6 +189,13 @@ void frsky_update_topics()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_global_position), subs->vehicle_global_position_sub, &subs->global_pos);
+	}
+
+	/* get a local copy of the raw GPS data */
+	orb_check(subs->vehicle_gps_position_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_gps_position), subs->vehicle_gps_position_sub, &subs->vehicle_gps_position);
 	}
 }
 
@@ -245,15 +248,13 @@ void frsky_send_frame2(int uart)
 {
 	struct vehicle_global_position_s *global_pos = &subscription_data->global_pos;
 	struct battery_status_s *battery_status = &subscription_data->battery_status;
+	struct vehicle_gps_position_s *gps = &subscription_data->vehicle_gps_position;
 	/* send formatted frame */
 	float course = 0, lat = 0, lon = 0, speed = 0, alt = 0;
 	char lat_ns = 0, lon_ew = 0;
 	int sec = 0;
 
 	if (global_pos->timestamp != 0 && hrt_absolute_time() < global_pos->timestamp + 20000) {
-		time_t time_gps = global_pos->time_utc_usec / 1000000ULL;
-		struct tm *tm_gps = gmtime(&time_gps);
-
 		course = global_pos->yaw / M_PI_F * 180.0f;
 
 		if (course < 0.f) { // course is in range [0, 360], 0=north, CW
@@ -267,6 +268,12 @@ void frsky_send_frame2(int uart)
 		speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e)
 			 * 25.0f / 46.0f;
 		alt    = global_pos->alt;
+	}
+
+	if (gps->timestamp != 0 && hrt_absolute_time() < gps->timestamp + 20000) {
+		time_t time_gps = gps->time_utc_usec / 1000000ULL;
+		struct tm *tm_gps = gmtime(&time_gps);
+
 		sec    = tm_gps->tm_sec;
 	}
 
@@ -302,7 +309,7 @@ void frsky_send_frame2(int uart)
 void frsky_send_frame3(int uart)
 {
 	/* send formatted frame */
-	time_t time_gps = subscription_data->global_pos.time_utc_usec / 1000000ULL;
+	time_t time_gps = subscription_data->vehicle_gps_position.time_utc_usec / 1000000ULL;
 	struct tm *tm_gps = gmtime(&time_gps);
 	uint16_t hour_min = (tm_gps->tm_min << 8) | (tm_gps->tm_hour & 0xff);
 	frsky_send_data(uart, FRSKY_ID_GPS_DAY_MONTH, tm_gps->tm_mday);

@@ -65,12 +65,12 @@ struct crosstrack_error_s {
 
 /* lat/lon are in radians */
 struct map_projection_reference_s {
+	uint64_t timestamp;
 	double lat_rad;
 	double lon_rad;
 	double sin_lat;
 	double cos_lat;
 	bool init_done;
-	uint64_t timestamp;
 };
 
 struct globallocal_converter_reference_s {
