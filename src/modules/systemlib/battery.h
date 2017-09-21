@@ -45,6 +45,7 @@
 #include <controllib/block/BlockParam.hpp>
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
 
 
 class Battery : public control::SuperBlock
@@ -99,7 +100,7 @@ private:
 	void filterVoltage(float voltage_v);
 	void filterCurrent(float current_a);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed);
+	void estimateRemaining(float throttle_normalized, bool armed);
 	void determineWarning();
 	void computeScale();
 
