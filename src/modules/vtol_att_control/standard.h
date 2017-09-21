@@ -77,7 +77,7 @@ private:
 		float front_trans_time_min;
 		float down_pitch_max;
 		float forward_thrust_scale;
-		int airspeed_mode;
+		int32_t airspeed_disabled;
 		float pitch_setpoint_offset;
 		float reverse_output;
 		float reverse_delay;
@@ -96,7 +96,7 @@ private:
 		param_t front_trans_time_min;
 		param_t down_pitch_max;
 		param_t forward_thrust_scale;
-		param_t airspeed_mode;
+		param_t airspeed_disabled;
 		param_t pitch_setpoint_offset;
 		param_t reverse_output;
 		param_t reverse_delay;

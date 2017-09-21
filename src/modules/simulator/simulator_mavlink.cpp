@@ -462,7 +462,6 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		{
 			hil_gpos.timestamp = timestamp;
 
-			hil_gpos.time_utc_usec = timestamp;
 			hil_gpos.lat = hil_state.lat / 1E7;//1E7
 			hil_gpos.lon = hil_state.lon / 1E7;//1E7
 			hil_gpos.alt = hil_state.alt / 1E3;//1E3
@@ -1125,9 +1124,6 @@ int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
 	uint64_t timestamp = hrt_absolute_time();
 
 	struct vehicle_local_position_s vision_position = {};
-
-	// Use the estimator type to identify the simple vision estimate
-	vision_position.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
 
 	vision_position.timestamp = timestamp;
 	vision_position.x = ev_mavlink->x;

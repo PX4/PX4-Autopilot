@@ -42,9 +42,10 @@
 
 #pragma once
 
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 #include "LandDetector.h"
 
@@ -85,13 +86,15 @@ private:
 		float maxIntVelocity;
 	} _params{};
 
-	int _controlStateSub{-1};
 	int _armingSub{-1};
 	int _airspeedSub{-1};
+	int _sensor_bias_sub{-1};
+	int _local_pos_sub{-1};
 
-	control_state_s _controlState{};
 	actuator_armed_s _arming{};
 	airspeed_s _airspeed{};
+	sensor_bias_s _sensors{};
+	vehicle_local_position_s _local_pos{};
 
 	float _velocity_xy_filtered{0.0f};
 	float _velocity_z_filtered{0.0f};
