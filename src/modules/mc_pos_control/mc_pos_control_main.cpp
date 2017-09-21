@@ -1744,6 +1744,8 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
 		if (!_mode_auto) {
 			_mode_auto = true;
+			//set _triplet_lat_lon_finite true once switch to AUTO(e.g. LAND)
+			_triplet_lat_lon_finite = true;
 		}
 
 		_reset_pos_sp = true;
