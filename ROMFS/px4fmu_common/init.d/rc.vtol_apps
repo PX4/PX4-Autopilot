@@ -32,11 +32,18 @@ then
 	fi
 fi
 
-# EKF
+# EKF2
 if param compare SYS_MC_EST_GROUP 2
 then
 	ekf2 start
 fi
+
+# IEKF
+if param compare SYS_MC_EST_GROUP 3
+then
+	iekf start
+fi
+
 #---------------------------------------
 
 
