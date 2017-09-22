@@ -1111,21 +1111,6 @@ PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
 
 /**
- * RC mode switch threshold automatic distribution
- *
- * This parameter is used by Ground Station software to specify whether
- * the threshold values for flight mode switches were automatically calculated.
- * 0 indicates that the threshold values were set by the user. Any other value
- * indicates that the threshold value where automatically set by the ground
- * station software. It is only meant for ground station use.
- *
- * @boolean
- * @group Radio Calibration
- */
-
-PARAM_DEFINE_INT32(RC_TH_USER, 1);
-
-/**
  * Roll control channel mapping.
  *
  * The channel index (starting from 1 for channel 1) indicates
