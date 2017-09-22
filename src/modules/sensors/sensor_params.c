@@ -766,7 +766,6 @@ PARAM_DEFINE_FLOAT(CAL_MAG3_YSCALE, 1.0f);
  */
 PARAM_DEFINE_FLOAT(CAL_MAG3_ZSCALE, 1.0f);
 
-
 /**
  * Primary accel ID
  *
@@ -854,7 +853,7 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
+PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0.0f);
 
 /**
  * QNH for barometer
@@ -865,7 +864,6 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
  * @unit hPa
  */
 PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
-
 
 /**
  * Board rotation
