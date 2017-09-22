@@ -961,19 +961,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Select primary magnetometer.
- * DEPRECATED, only used on V1 hardware
- *
- * @min 0
- * @max 2
- * @value 0 Auto-select Mag
- * @value 1 External is primary Mag
- * @value 2 Internal is primary Mag
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
-
-/**
  * Threshold (of RMS) to warn about high vibration levels
  *
  * @group Sensor Calibration
