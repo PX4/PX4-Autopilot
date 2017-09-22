@@ -1068,22 +1068,6 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
 PARAM_DEFINE_INT32(BAT_SOURCE, 0);
 
 /**
- * Lightware laser rangefinder (serial)
- *
- * @reboot_required true
- * @min 0
- * @max 4
- * @group Sensor Enable
- * @value 0 Disabled
- * @value 1 SF02
- * @value 2 SF10/a
- * @value 3 SF10/b
- * @value 4 SF10/c
- * @value 5 SF11/c
- */
-PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
-
-/**
  * Maxbotix Soanr (mb12xx)
  *
  * @reboot_required true
