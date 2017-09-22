@@ -235,17 +235,17 @@ void BlockLocalPositionEstimator::update()
 
 				if (s->get().timestamp == 0) { continue; }
 
-				if (s->get().type == \
-				    distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
+				if (s->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
+				    s->get().orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
 				    _sub_lidar == nullptr) {
 					_sub_lidar = s;
-					mavlink_and_console_log_info(&mavlink_log_pub, "%sLidar detected with ID %i", msg_label, i);
+					mavlink_and_console_log_info(&mavlink_log_pub, "%sDownward-facing Lidar detected with ID %i", msg_label, i);
 
-				} else if (s->get().type == \
-					   distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
+				} else if (s->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
+					   s->get().orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
 					   _sub_sonar == nullptr) {
 					_sub_sonar = s;
-					mavlink_and_console_log_info(&mavlink_log_pub, "%sSonar detected with ID %i", msg_label, i);
+					mavlink_and_console_log_info(&mavlink_log_pub, "%sDownward-facing Sonar detected with ID %i", msg_label, i);
 				}
 			}
 		}
