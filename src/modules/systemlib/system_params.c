@@ -158,14 +158,6 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
 PARAM_DEFINE_INT32(SYS_LOGGER, 1);
 
 /**
- * Enable stack checking
- *
- * @boolean
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_STCK_EN, 1);
-
-/**
  * Enable auto start of rate gyro thermal calibration at the next power up.
  *
  * 0 : Set to 0 to do nothing
