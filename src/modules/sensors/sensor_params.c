@@ -984,15 +984,6 @@ PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
 PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);
 
 /**
- * Scaling factor for battery voltage sensor on PX4IO.
- *
- * @min 1
- * @max 100000
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
-
-/**
  * Scaling from ADC counts to volt on the ADC input (battery voltage)
  *
  * This is not the battery voltage, but the intermediate ADC voltage.

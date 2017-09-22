@@ -306,3 +306,12 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
  *
  */
 PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
+
+/**
+ * Scaling factor for battery voltage sensor on PX4IO.
+ *
+ * @min 1
+ * @max 100000
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
