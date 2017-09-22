@@ -702,7 +702,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 				    _control_mode.flag_control_altitude_enabled));
 
 	/* update TECS filters */
-	_tecs.update_state(-_local_pos.z, _ctrl_state.airspeed, _R_nb,
+	_tecs.update_state(-_local_pos.z, _airspeed, _R_nb,
 			   accel_body, accel_earth, (_local_pos.timestamp > 0), in_air_alt_control);
 
 	calculate_gndspeed_undershoot(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
@@ -1107,9 +1107,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 			if (_runway_takeoff.runwayTakeoffEnabled()) {
 				if (!_runway_takeoff.isInitialized()) {
-
-					Eulerf euler(Quatf(_ctrl_state.q));
-					_runway_takeoff.init(euler.psi(), _local_pos.x, _local_pos.y);
+					_runway_takeoff.init(_yaw, _local_pos.x, _local_pos.y);
 
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
@@ -1121,7 +1119,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 				float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
 
 				// update runway takeoff helper
-				_runway_takeoff.update(_ctrl_state.airspeed, -_local_pos.z - terrain_alt,
+				_runway_takeoff.update(_airspeed, -_local_pos.z - terrain_alt,
 						       _local_pos.x, _local_pos.y, &_mavlink_log_pub);
 
 				/*
@@ -1566,9 +1564,11 @@ FixedwingPositionControl::task_main()
 	}
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[2];
 
 	/* Setup of loop */
+	fds[0].fd = _params_sub;
+	fds[0].events = POLLIN;
 	fds[1].fd = _local_pos_sub;
 	fds[1].events = POLLIN;
 
@@ -1849,7 +1849,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
 				    -_local_pos.z, alt_sp,
-				    airspeed_sp, _ctrl_state.airspeed, eas2tas,
+				    airspeed_sp, _airspeed, _eas2tas,
 				    climbout_mode, climbout_pitch_min_rad,
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad, pitch_max_rad);

@@ -1246,12 +1246,12 @@ Mission::do_abort_landing()
 
 	// send reposition cmd to get out of mission
 	vehicle_command_s vcmd = {};
-
+	vcmd.timestamp = hrt_absolute_time();
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
 	vcmd.param1 = -1;
 	vcmd.param2 = 1;
-	vcmd.param5 = _mission_item.lat;
-	vcmd.param6 = _mission_item.lon;
+	vcmd.param5 = _navigator_item.lat;
+	vcmd.param6 = _navigator_item.lon;
 	vcmd.param7 = alt_sp;
 
 	_navigator->publish_vehicle_cmd(&vcmd);

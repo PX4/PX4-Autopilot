@@ -492,6 +492,20 @@ MissionBlock::item_contains_position(const struct navigator_item_s *item)
 }
 
 bool
+MissionBlock::item_contains_position(const struct mission_item_s *item)
+{
+	return item->nav_cmd == NAV_CMD_WAYPOINT ||
+	       item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+	       item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+	       item->nav_cmd == NAV_CMD_LAND ||
+	       item->nav_cmd == NAV_CMD_TAKEOFF ||
+	       item->nav_cmd == NAV_CMD_LOITER_TO_ALT ||
+	       item->nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
+	       item->nav_cmd == NAV_CMD_VTOL_LAND;
+
+}
+
+bool
 MissionBlock::navigator_item_to_position_setpoint(const struct navigator_item_s *item, struct position_setpoint_s *sp)
 {
 

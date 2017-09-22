@@ -265,7 +265,6 @@ private:
 		math::Vector<3> vel_d;
 	} _params{};
 
-	hrt_abstime _ref_timestamp;
 	hrt_abstime _last_warn;
 
 	math::Vector<3> _thrust_int;
@@ -451,7 +450,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_filter_manual_roll(50.0f, 10.0f),
 	_user_intention_xy(brake),
 	_user_intention_z(brake),
-	_ref_timestamp(0),
 	_last_warn(0),
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
