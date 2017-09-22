@@ -1068,16 +1068,6 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
 PARAM_DEFINE_INT32(BAT_SOURCE, 0);
 
 /**
- * Maxbotix Soanr (mb12xx)
- *
- * @reboot_required true
- *
- * @boolean
- * @group Sensor Enable
- */
-PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
-
-/**
  * TeraRanger Rangefinder (i2c)
  *
  * @reboot_required true
