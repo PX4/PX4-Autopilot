@@ -498,7 +498,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					}
 
 				} else
-#endif
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 				{
 					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 

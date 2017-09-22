@@ -135,7 +135,9 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 
 	/* Differential pressure offset */
 	parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	parameter_handles.battery_voltage_scaling = param_find("BAT_CNT_V_VOLT");
 	parameter_handles.battery_current_scaling = param_find("BAT_CNT_V_CURR");
@@ -430,7 +432,9 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 	/* Airspeed offset */
 	param_get(parameter_handles.diff_pres_offset_pa, &(parameters.diff_pres_offset_pa));
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	param_get(parameter_handles.diff_pres_analog_scale, &(parameters.diff_pres_analog_scale));
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(parameter_handles.battery_voltage_scaling, &(parameters.battery_voltage_scaling)) != OK) {

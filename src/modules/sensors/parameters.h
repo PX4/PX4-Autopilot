@@ -64,7 +64,9 @@ struct Parameters {
 	float scaling_factor[RC_MAX_CHAN_COUNT];
 
 	float diff_pres_offset_pa;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	float diff_pres_analog_scale;
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	int board_rotation;
 
@@ -159,7 +161,9 @@ struct ParameterHandles {
 	param_t dz[RC_MAX_CHAN_COUNT];
 
 	param_t diff_pres_offset_pa;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	param_t diff_pres_analog_scale;
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	param_t rc_map_roll;
 	param_t rc_map_pitch;
