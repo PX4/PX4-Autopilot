@@ -1068,19 +1068,6 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
 PARAM_DEFINE_INT32(BAT_SOURCE, 0);
 
 /**
- * Lidar-Lite (LL40LS)
- *
- * @reboot_required true
- * @min 0
- * @max 2
- * @group Sensor Enable
- * @value 0 Disabled
- * @value 1 PWM
- * @value 2 I2C
- */
-PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
-
-/**
  * Lightware laser rangefinder (serial)
  *
  * @reboot_required true
