@@ -1068,20 +1068,6 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
 PARAM_DEFINE_INT32(BAT_SOURCE, 0);
 
 /**
- * TeraRanger Rangefinder (i2c)
- *
- * @reboot_required true
- * @min 0
- * @max 3
- * @group Sensor Enable
- * @value 0 Disabled
- * @value 1 Autodetect
- * @value 2 TROne
- * @value 3 TREvo
- */
-PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);
-
-/**
  * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
  *
  * @reboot_required true
