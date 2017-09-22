@@ -241,9 +241,8 @@ struct ParameterHandles {
 
 /**
  * initialize ParameterHandles struct
- * @return 0 on succes, <0 on error
  */
-int initialize_parameter_handles(ParameterHandles &parameter_handles);
+void initialize_parameter_handles(ParameterHandles &parameter_handles);
 
 
 /**
