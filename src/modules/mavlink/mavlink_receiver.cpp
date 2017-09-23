@@ -169,6 +169,28 @@ MavlinkReceiver::~MavlinkReceiver()
 	orb_unsubscribe(_control_mode_sub);
 }
 
+void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, int ret)
+{
+	vehicle_command_ack_s command_ack = {
+		.timestamp = 0,
+		.result_param2 = 0,
+		.command = command,
+		.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
+		.from_external = false,
+		.result_param1 = 0,
+		.target_system = sysid,
+		.target_component = compid
+	};
+
+	if (_command_ack_pub == nullptr) {
+		_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+						       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
+	}
+}
+
 void
 MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
@@ -431,11 +453,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
 	bool send_ack = true;
-	int ret = 0;
+	int ret = PX4_OK;
 
 	if (!target_ok) {
 		ret = PX4_ERROR;
-		goto out;
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, ret);
+		return;
 	}
 
 	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
@@ -508,27 +531,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		}
 	}
 
-out:
-
 	if (send_ack) {
-		vehicle_command_ack_s command_ack = {
-			.timestamp = 0,
-			.result_param2 = 0,
-			.command = cmd_mavlink.command,
-			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
-			.from_external = false,
-			.result_param1 = 0,
-			.target_system = msg->sysid,
-			.target_component = msg->compid
-		};
-
-		if (_command_ack_pub == nullptr) {
-			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-							       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-		} else {
-			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
-		}
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, ret);
 	}
 }
 
@@ -542,22 +546,28 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
 	bool send_ack = true;
-	int ret = 0;
+	int ret = PX4_OK;
 
 	if (!target_ok) {
 		ret = PX4_ERROR;
-		goto out;
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, ret);
+		return;
 	}
 
 	//check for MAVLINK terminate command
-	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
-		/* This is the link shutdown command, terminate mavlink */
-		PX4_WARN("terminated by remote");
-		fflush(stdout);
-		usleep(50000);
+	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
 
-		/* terminate other threads and this thread */
-		_mavlink->_task_should_exit = true;
+		int cmd_id = int(cmd_mavlink.param1);
+
+		if (cmd_id == 10) {
+			/* This is the link shutdown command, terminate mavlink */
+			PX4_WARN("terminated by remote");
+			fflush(stdout);
+			usleep(50000);
+
+			/* terminate other threads and this thread */
+			_mavlink->_task_should_exit = true;
+		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		/* send autopilot version message */
@@ -605,27 +615,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		}
 	}
 
-out:
-
 	if (send_ack) {
-		vehicle_command_ack_s command_ack = {
-			.timestamp = 0,
-			.result_param2 = 0,
-			.command = cmd_mavlink.command,
-			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
-			.from_external = false,
-			.result_param1 = 0,
-			.target_system = msg->sysid,
-			.target_component = msg->compid
-		};
-
-		if (_command_ack_pub == nullptr) {
-			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-							       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-		} else {
-			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
-		}
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, ret);
 	}
 }
 
