@@ -82,26 +82,81 @@ static const uint32_t spi2selects_gpio[] = PX4_EXTERNAL_BUS_CS_GPIO;
 
 __EXPORT void board_spi_reset(int ms)
 {
-	/* First float the A_MISO line tied to SA0 */
+	/* Goal not to back feed the chips on the bus via IO lines */
 
-	kinetis_pinconfig(PX4_MK_GPIO(PIN_SPI1_SIN, PIN_MODE_ANALOG));
+	/* First float the A_MISO line tied to SA0 to ensure SPI Auto selection*/
 
-	/* Power Down and up */
-	kinetis_gpiowrite(GPIO_SENSOR_P_EN, true);
-	up_mdelay(1);
-	kinetis_gpiowrite(GPIO_SENSOR_P_EN, false);
-	up_mdelay(1);
+	kinetis_pinconfig(PX4_MK_GPIO(PIN_SPI1_SIN, GPIO_OPENDRAIN));
+	kinetis_gpiowrite(PIN_SPI1_SIN, 1);
+
+	/* Next Change CS to inputs with pull downs */
+
+	for (unsigned int cs = 0; cs < arraySize(spi1selects_gpio); cs++) {
+		if (spi1selects_gpio[cs] != 0) {
+			kinetis_pinconfig(PX4_MK_GPIO(spi1selects_gpio[cs], GPIO_PULLDOWN));
+		}
+	}
+
+	/* Turn all the int inputs to inputs with pull down  */
+
+	kinetis_pinconfig(PX4_MK_GPIO(GPIO_EXTI_GYRO_INT1, GPIO_PULLDOWN));
+	kinetis_pinconfig(PX4_MK_GPIO(GPIO_EXTI_GYRO_INT2, GPIO_PULLDOWN));
+	kinetis_pinconfig(PX4_MK_GPIO(GPIO_EXTI_ACCEL_MAG_INT1, GPIO_PULLDOWN));
+	kinetis_pinconfig(PX4_MK_GPIO(GPIO_EXTI_ACCEL_MAG_INT2, GPIO_PULLDOWN));
+	kinetis_pinconfig(PX4_MK_GPIO(GPIO_EXTI_BARO_INT1, GPIO_PULLDOWN));
+	kinetis_pinconfig(PX4_MK_GPIO(GPIO_EXTI_BARO_INT2, GPIO_PULLDOWN));
+
+	/* Drive the Reset Pins LOW
+	 * For the Gyro FXAS21002C this is RESET
+	 * for the Accel FXOS8700CQ this is not RESET */
+
+	kinetis_gpiowrite(GPIO_GM_nRST, false);
+	kinetis_gpiowrite(GPIO_A_RST, false);
+
+	/* Power Down The Sensors */
+
+	VDD_3V3_SENSORS_EN(false);
+	up_mdelay(ms);
+
+	/* Power Up The Sensors */
+	VDD_3V3_SENSORS_EN(true);
+	up_mdelay(2);
+
+	/* Restore all the CS to ouputs inactive */
+
+	for (unsigned int cs = 0; cs < arraySize(spi1selects_gpio); cs++) {
+		if (spi1selects_gpio[cs] != 0) {
+			kinetis_pinconfig(spi1selects_gpio[cs]);
+		}
+	}
+
+	/* Restore all the int inputs to inputs */
+
+	kinetis_pinconfig(GPIO_EXTI_GYRO_INT1);
+	kinetis_pinconfig(GPIO_EXTI_GYRO_INT2);
+	kinetis_pinconfig(GPIO_EXTI_ACCEL_MAG_INT1);
+	kinetis_pinconfig(GPIO_EXTI_ACCEL_MAG_INT2);
+	kinetis_pinconfig(GPIO_EXTI_BARO_INT1);
+	kinetis_pinconfig(GPIO_EXTI_BARO_INT2);
 
 	/* Set Rests Active  */
 
-	kinetis_gpiowrite(GPIO_GM_nRST, false);
+	/* Accel Assert Reset to reset the FXOS8700CQ */
+	/* The Gyro was reset above */
+
 	kinetis_gpiowrite(GPIO_A_RST, true);
 	up_mdelay(ms);
+
+	/* Accel & Gyro release Reset */
+
 	kinetis_gpiowrite(GPIO_A_RST, false);
 	kinetis_gpiowrite(GPIO_GM_nRST, true);
 
-	kinetis_pinconfig(PIN_SPI1_SIN);
+	/* Allow the Accel time to see PIN_SPI1_SIN as a float */
 
+	up_mdelay(2);
+
+	kinetis_pinconfig(PIN_SPI1_SIN);
 }
 
 /************************************************************************************
@@ -115,9 +170,6 @@ __EXPORT void board_spi_reset(int ms)
 void nxphlite_spidev_initialize(void)
 {
 	board_spi_reset(10);
-
-	kinetis_pinconfig(GPIO_EXTI_BARO_INT1);
-	kinetis_pinconfig(GPIO_P_INT);
 
 	for (unsigned int cs = 0; cs < arraySize(spi0selects_gpio); cs++) {
 		if (spi0selects_gpio[cs] != 0) {

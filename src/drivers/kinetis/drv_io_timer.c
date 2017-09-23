@@ -62,24 +62,22 @@
 #include "chip/kinetis_sim.h"
 #include "chip/kinetis_ftm.h"
 
-/* The FTM prescalers are limited to Divide by 2^n where n={1-7}
- * Therefore we use the FTM2 CH0 on PTA10 drive FTM_CLKIN0 (PCT12)
- * and use this at a 4Mhz clock for FTM0 and FTM3.
+/* The FTM pre-scalers are limited to Divide by 2^n where n={1-7}
+ * Therefore we use Y1 at 16 Mhz to drive FTM_CLKIN0 (PCT12)
+ * and use this at a 16Mhz clock for FTM0, FTM2 and FTM3.
  *
- * The input frequencies avaialble from FTM2 are 56,28,14,7,3.5
- * So a onshot mode at 8Mhz is not possible. We will use 4Mhz
- *
- * FTM0 will drive FMU_CH1-6, FTM3 will drive IO_CH1-8
+ * FTM0 will drive FMU_CH1-4, FTM3 will drive FMU_CH5,6, and
+ * U_TRI. FTM2 will be used as input capture on U_ECH
  */
 #if !defined(BOARD_PWM_FREQ)
 #define BOARD_PWM_FREQ 1000000
 #endif
 
 #if !defined(BOARD_ONESHOT_FREQ)
-#define BOARD_ONESHOT_FREQ 4000000
+#define BOARD_ONESHOT_FREQ 8000000
 #endif
 
-#define FTM_SRC_CLOCK_FREQ 4000000
+#define FTM_SRC_CLOCK_FREQ 16000000
 
 #define MAX_CHANNELS_PER_TIMER 8
 
