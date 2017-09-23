@@ -55,6 +55,8 @@ public:
 		_velocity_hor_manual(parent, "MPC_VEL_MANUAL", false),
 		_z_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
 		_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
+		_hold_max_xy(parent, "MPC_HOLD_MAX_XY", false),
+		_hold_max_z(parent, "MPC_HOLD_MAX_Z", false),
 		_sub_control_state(ORB_ID(control_state), 0, 0, &getSubscriptions())
 	{};
 	virtual ~FlightTaskManual() {};
@@ -94,11 +96,11 @@ public:
 		sick_xy(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
 		float stick_z = -math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
 
-		const float stick_xy_length = sick_xy.length();
+		const float stick_xy_norm = sick_xy.norm();
 
 		/* saturate such that magnitude in xy is never larger than 1 */
-		if (stick_xy_length > 1.0f) {
-			sick_xy /= stick_xy_length;
+		if (stick_xy_norm > 1.0f) {
+			sick_xy /= stick_xy_norm;
 		}
 
 		/* rotate stick input to produce velocity setpoint in NED frame */
@@ -116,9 +118,14 @@ public:
 		//velocity_setpoint.print();
 
 		/* handle position and altitude hold */
-		const bool stick_xy_zero = stick_xy_length <= FLT_EPSILON;
+		const bool stick_xy_zero = stick_xy_norm <= FLT_EPSILON;
+		const bool stick_z_zero = fabsf(stick_z) <= FLT_EPSILON;
 
-		if (stick_xy_zero && !PX4_ISFINITE(_hold_position(0))) {
+		float velocity_xy_norm = matrix::Vector2f(_velocity._data).norm();
+		const bool stopped_xy = (_hold_max_xy.get() < FLT_EPSILON || velocity_xy_norm < _hold_max_xy.get());
+		const bool stopped_z = (_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _hold_max_z.get());
+
+		if (stick_xy_zero && stopped_xy && !PX4_ISFINITE(_hold_position(0))) {
 			_hold_position(0) = _position(0);
 			_hold_position(1) = _position(1);
 
@@ -127,9 +134,7 @@ public:
 			_hold_position(1) = NAN;
 		}
 
-		const bool stick_z_zero = fabsf(stick_z) <= FLT_EPSILON;
-
-		if (stick_z_zero && !PX4_ISFINITE(_hold_position(2))) {
+		if (stick_z_zero && stopped_z && !PX4_ISFINITE(_hold_position(2))) {
 			_hold_position(2) = _position(2);
 
 		} else if (!stick_z_zero) {
@@ -144,9 +149,7 @@ public:
 protected:
 	float get_input_frame_yaw()
 	{
-		matrix::Quatf q(&_sub_control_state.get().q[0]);
-		matrix::Eulerf euler_angles(q);
-		return euler_angles(2);
+		return _yaw;
 	};
 
 private:
@@ -156,6 +159,8 @@ private:
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed */
 	control::BlockParamFloat _z_vel_max_up; /**< maximal vertical velocity when flying upwards with the stick */
 	control::BlockParamFloat _z_vel_max_down; /**< maximal vertical velocity when flying downwards with the stick */
+	control::BlockParamFloat _hold_max_xy; /**< velocity threshold to switch into horizontal position hold */
+	control::BlockParamFloat _hold_max_z; /**< velocity threshold to switch into vertical position hold */
 
 	uORB::Subscription<control_state_s> _sub_control_state;
 
