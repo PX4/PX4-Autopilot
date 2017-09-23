@@ -4217,6 +4217,12 @@ void *commander_low_prio_loop(void *arg)
 						/* reboot */
 						px4_shutdown_request(true, false);
 
+					} else if (((int)(cmd.param1)) == 2) {
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+						usleep(100000);
+						/* shutdown */
+						px4_shutdown_request(false, false);
+
 					} else if (((int)(cmd.param1)) == 3) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 						usleep(100000);
