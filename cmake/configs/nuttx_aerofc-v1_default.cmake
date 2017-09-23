@@ -28,22 +28,17 @@ set(config_module_list
 	#
 	# System commands
 	#
-	systemcmds/bl_update
 	systemcmds/mixer
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
-	systemcmds/esc_calib
-	systemcmds/hardfault_log
 	systemcmds/motor_test
 	systemcmds/reboot
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
-	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
-	systemcmds/topic_listener
 
 	#
 	# General system control
@@ -55,23 +50,17 @@ set(config_module_list
 	modules/land_detector
 
 	#
-	# Estimation modules (EKF/ SO3 / other filters)
+	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	modules/position_estimator_inav
 	modules/local_position_estimator
 	modules/ekf2
 
 	#
 	# Vehicle Control
 	#
-	modules/fw_att_control
-	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
-	modules/vtol_att_control
 
 	#
 	# Logging
@@ -94,21 +83,15 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
-	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
-	lib/launchdetection
-	lib/terrain_estimation
-	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
 	lib/rc
 	platforms/nuttx
 	lib/micro-CDR
-
-	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
 	platforms/nuttx/px4_layer
 )
