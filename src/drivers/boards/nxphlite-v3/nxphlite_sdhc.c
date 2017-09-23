@@ -162,6 +162,8 @@ int nxphlite_sdhc_initialize(void)
 	struct nxphlite_sdhc_state_s   *sdhc = &g_sdhc;
 	/* Configure GPIO pins */
 
+	VDD_3V3_SD_CARD_EN(true);
+
 	kinetis_pinconfig(GPIO_SD_CARDDETECT);
 
 	/* Attached the card detect interrupt (but don't enable it yet) */
