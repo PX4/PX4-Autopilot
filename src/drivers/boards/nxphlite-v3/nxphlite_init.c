@@ -124,6 +124,29 @@ __END_DECLS
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+/************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+
+void board_on_reset(int status)
+{
+	/* configure the GPIO pins to outputs and keep them low */
+
+	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
+	board_gpio_init(gpio, arraySize(gpio));
+
+	if (status >= 0) {
+		up_mdelay(6);
+	}
+}
 
 /************************************************************************************
  * Name: board_read_VBUS_state
@@ -139,8 +162,7 @@ __END_DECLS
 
 int board_read_VBUS_state(void)
 {
-	// read  *         36   ADC0_SE21  USB_VBUS_VALID
-	return g_board_usb_connected ? 0 : 1;
+	return BOARD_ADC_USB_CONNECTED ? 0 : 1;
 }
 
 /************************************************************************************
@@ -210,76 +232,16 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 kinetis_boardinitialize(void)
 {
+	board_on_reset(-1); /* Reset PWM first thing */
+
 	/* configure LEDs */
 	board_autoled_initialize();
 
-	/* Reset Sensors */
-	kinetis_pinconfig(GPIO_GM_nRST);
-	kinetis_pinconfig(GPIO_A_RST);
-
-	/* configure ADC pins */
-
-	kinetis_pinconfig(GPIO_BAT_VSENS);
-	kinetis_pinconfig(GPIO_BAT_ISENS);
-	kinetis_pinconfig(GPIO_5V_VSENS);
-	kinetis_pinconfig(GPIO_RSSI_IN);
-
-	/* configure power supply control/sense pins */
-
-	kinetis_pinconfig(GPIO_SPEKTRUM_P_EN);
-
-#if 0
-	kinetis_pinconfig(GPIO_VDD_BRICK_VALID);
-	kinetis_pinconfig(GPIO_VDD_SERVO_VALID);
-	kinetis_pinconfig(GPIO_VDD_5V_HIPOWER_OC);
-	kinetis_pinconfig(GPIO_VDD_5V_PERIPH_OC);
-#endif
-
-	/* configure the GPIO pins to outputs and keep them low */
-	kinetis_pinconfig(GPIO_GPIO0_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO1_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO2_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO3_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO4_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO5_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO6_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO7_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO8_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO9_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO10_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO11_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO12_OUTPUT);
-	kinetis_pinconfig(GPIO_GPIO13_OUTPUT);
-
-	/* Disable Phy for now */
-
-	kinetis_pinconfig(GPIO_E_RST);
-	kinetis_pinconfig(GPIO_E_EN);
-	kinetis_pinconfig(GPIO_E_INH);
-	kinetis_pinconfig(GPIO_ENET_CONFIG0);
-
-	kinetis_pinconfig(GPIO_CAN0_STB);
-	kinetis_pinconfig(GPIO_CAN1_STB);
-
-	kinetis_pinconfig(GPIO_ECH);
-	kinetis_pinconfig(GPIO_TRI);
-
-	kinetis_pinconfig(GPIO_LED_SAFETY);
-	kinetis_pinconfig(GPIO_BTN_SAFETY);
-
-	kinetis_pinconfig(GPIO_TONE_ALARM_IDLE);
-
-	kinetis_pinconfig(GPIO_NFC_IO);
-	kinetis_pinconfig(GPIO_SENSOR_P_EN);
-
-	kinetis_pinconfig(GPIO_LED_D9);
-	kinetis_pinconfig(GPIO_LED_D10);
+	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
+	board_gpio_init(gpio, arraySize(gpio));
 
 	nxphlite_timer_initialize();
 
-	/* configure SPI interfaces */
-
-	nxphlite_spidev_initialize();
 }
 
 //FIXME: Stubs  -----v
@@ -332,6 +294,16 @@ static void kinetis_serial_dma_poll(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+
+	VDD_3V3_SD_CARD_EN(true);
+	VDD_3V3_SENSORS_EN(true);
+
+	/* configure SPI interfaces */
+
+	nxphlite_spidev_initialize();
+
+	VDD_ETH_EN(true);
+
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */
@@ -345,11 +317,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #else
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
-
-	/* Release Reset pins on Sensors */
-
-	kinetis_gpiowrite(GPIO_GM_nRST, 1);
-	kinetis_gpiowrite(GPIO_A_RST, 0);
 
 	param_init();
 

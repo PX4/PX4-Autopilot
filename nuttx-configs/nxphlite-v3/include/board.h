@@ -41,9 +41,6 @@
 /************************************************************************************
  * Included Files
  ************************************************************************************/
-#undef  HW_V3              /*- As shipped from NXP */
-#define HW_V3_MOD_RC0      /*  Modified board */
-#undef  HW_V4              /*  Next Rev with modes */
 
 #include <nuttx/config.h>
 
@@ -61,13 +58,13 @@
  *  256 KiB of SRAM.
  */
 /* Clocking *************************************************************************/
-/* The NXPHlite-v3 uses a 16MHz external Oscillator.  The Kinetis MCU startup from an
- * internal digitally-controlled oscillator (DCO). Nuttx will enable the main external
- * oscillator (EXTAL0/XTAL0). The external oscillator/resonator can range from
+/* The NXPHlite-v3 uses a 16MHz external powered Oscillator.  The Kinetis MCU startup
+ * from an internal digitally-controlled oscillator (DCO). Nuttx will enable the main
+ * external oscillator EXTAL0. The external oscillator can range from
  * 32.768 KHz up to 50 MHz. The default external source for the MCG oscillator inputs
  * EXTAL.
  *
- * Y1 a High-frequency, low-power Xtal
+ * Y1 a High-frequency, Oscillator
  */
 #define BOARD_EXTAL_LP		 1
 #define BOARD_EXTAL_FREQ     16000000       /* 16MHz Oscillator Y1 */
@@ -78,7 +75,7 @@
 
 /* FLL Configuration.
  *  BOARD_EXTAL_FREQ / BOARD_FRDIV has to be in the range 31.25 kHz to 39.0625
- *  16 Mhz/ MCG_C1_FRDIV_DIV512 = 31.25 kHz * 640 the default for MCG_C4
+ *  16 Mhz / MCG_C1_FRDIV_DIV512 = 31.25 kHz * 640 the default for MCG_C4
  *  FLL is 20Mhz
  */
 #define BOARD_FRDIV          MCG_C1_FRDIV_DIV512
@@ -175,11 +172,11 @@
 
 /* SDHC pull-up resistors **********************************************************/
 
-/* There are no external pull-ups on the NXPhlite
- * So enable them.
+/* There are external pull-ups on the NXPhlite
+ * So enable we do not them.
  */
 
-#define BOARD_SDHC_ENABLE_PULLUPS 1
+#undef BOARD_SDHC_ENABLE_PULLUPS
 
 /* Identification mode:  Optimal 400KHz, Actual 168Mhz / (32 * 14) = 375 KHz */
 
@@ -318,38 +315,27 @@
 
 /* PWM Channels */
 
-#define GPIO_FTM0_CH0OUT PIN_FTM0_CH0_2  /* PTC1  FMU_CH1 P4-34 */
-#define GPIO_FTM0_CH3OUT PIN_FTM0_CH3_1  /* PTA6  FMU_CH2 P4-41 */
-#define GPIO_FTM0_CH4OUT PIN_FTM0_CH4_3  /* PTD4  FMU_CH3 P4-35 */
-#define GPIO_FTM0_CH5OUT PIN_FTM0_CH5_3  /* PTD5  FMU_CH4 P4-32 */
-#define GPIO_FTM0_CH6OUT PIN_FTM0_CH6_2  /* PTD6  FMU_CH5 P4-29 */
-#define GPIO_FTM0_CH7OUT PIN_FTM0_CH7_2  /* PTD7  FMU_CH6 P4-26 */
+#define GPIO_FTM0_CH0OUT PIN_FTM0_CH0_2  /* PTC1  FMU_CH1 P4-19 */
+#define GPIO_FTM0_CH3OUT PIN_FTM0_CH3_1  /* PTA6  FMU_CH2 P4-16 */
+#define GPIO_FTM0_CH4OUT PIN_FTM0_CH4_3  /* PTD4  FMU_CH3 P4-13 */
+#define GPIO_FTM0_CH5OUT PIN_FTM0_CH5_3  /* PTD5  FMU_CH4 P4-10 */
 
-#define GPIO_FTM3_CH0OUT PIN_FTM3_CH0_1  /* PTD0  IO_CH1 P4-23 */
-#define GPIO_FTM3_CH1OUT PIN_FTM3_CH1_2  /* PTE6  IO_CH2 P4-20 */
-#define GPIO_FTM3_CH2OUT PIN_FTM3_CH2_2  /* PTE7  IO_CH3 P4-17 */
-#define GPIO_FTM3_CH3OUT PIN_FTM3_CH3_2  /* PTE8  IO_CH4 P4-14 */
-#define GPIO_FTM3_CH4OUT PIN_FTM3_CH4_2  /* PTE9  IO_CH5 P4-11 */
-#define GPIO_FTM3_CH5OUT PIN_FTM3_CH5_2  /* PTE10 IO_CH6 P4-8 */
-#define GPIO_FTM3_CH6OUT PIN_FTM3_CH6_2  /* PTE11 IO_CH7 P4-5 */
-#define GPIO_FTM3_CH7OUT PIN_FTM3_CH7_2  /* PTE12 IO_CH8 P4-2 */
+#define GPIO_FTM3_CH6OUT PIN_FTM3_CH6_2  /* PTE11 FMU_CH5 P4-7 */
+#define GPIO_FTM3_CH7OUT PIN_FTM3_CH7_2  /* PTE12 FMU_CH5 P4-4 */
 
-#define GPIO_FTM0_CH0IN  PIN_FTM0_CH0_2  /* PTC1  FMU_CH1 P4-34 */
-#define GPIO_FTM0_CH3IN  PIN_FTM0_CH3_1  /* PTA6  FMU_CH2 P4-41 */
-#define GPIO_FTM0_CH4IN  PIN_FTM0_CH4_3  /* PTD4  FMU_CH3 P4-35 */
-#define GPIO_FTM0_CH5IN  PIN_FTM0_CH5_3  /* PTD5  FMU_CH4 P4-32 */
-#define GPIO_FTM0_CH6IN  PIN_FTM0_CH6_2  /* PTD6  FMU_CH5 P4-29 */
-#define GPIO_FTM0_CH7IN  PIN_FTM0_CH7_2  /* PTD7  FMU_CH6 P4-26 */
+#define GPIO_FTM3_CH0OUT PIN_FTM3_CH0_1  /* PTD0  U_TRI   P10-2 */
+#define GPIO_FTM2_CH0OUT PIN_FTM2_CH0_1  /* PTA10 U_ECH   P20-3 */
 
-#define GPIO_FTM3_CH0IN  PIN_FTM3_CH0_1  /* PTD0  IO_CH1 P4-23 */
-#define GPIO_FTM3_CH1IN  PIN_FTM3_CH1_2  /* PTE6  IO_CH2 P4-20 */
-#define GPIO_FTM3_CH2IN  PIN_FTM3_CH2_2  /* PTE7  IO_CH3 P4-17 */
-#define GPIO_FTM3_CH3IN  PIN_FTM3_CH3_2  /* PTE8  IO_CH4 P4-14 */
-#define GPIO_FTM3_CH4IN  PIN_FTM3_CH4_2  /* PTE9  IO_CH5 P4-11 */
-#define GPIO_FTM3_CH5IN  PIN_FTM3_CH5_2  /* PTE10 IO_CH6 P4-8 */
-#define GPIO_FTM3_CH6IN  PIN_FTM3_CH6_2  /* PTE11 IO_CH7 P4-5 */
-#define GPIO_FTM3_CH7IN  PIN_FTM3_CH7_2  /* PTE12 IO_CH8 P4-2 */
+#define GPIO_FTM0_CH0IN  PIN_FTM0_CH0_2  /* PTC1  FMU_CH1 P4-19 */
+#define GPIO_FTM0_CH3IN  PIN_FTM0_CH3_1  /* PTA6  FMU_CH2 P4-16 */
+#define GPIO_FTM0_CH4IN  PIN_FTM0_CH4_3  /* PTD4  FMU_CH3 P4-13 */
+#define GPIO_FTM0_CH5IN  PIN_FTM0_CH5_3  /* PTD5  FMU_CH4 P4-10 */
 
+#define GPIO_FTM3_CH6IN  PIN_FTM3_CH6_2  /* PTE11 FMU_CH5 P4-7 */
+#define GPIO_FTM3_CH7IN  PIN_FTM3_CH7_2  /* PTE12 FMU_CH5 P4-4 */
+
+#define GPIO_FTM3_CH0IN  PIN_FTM3_CH0_1  /* PTD0  U_TRI   P10-2 */
+#define GPIO_FTM2_CH0IN  PIN_FTM2_CH0_1  /* PTA10 U_ECH   P20-3 */
 
 /* SPI
  *
@@ -444,19 +430,13 @@
  *      2    UART4_TX     PTC15  UART4_TX
  *      3    UART4_RX     PTC14  UART4_RX
  *      4    UART4_CTS    PTC13  UART4_CTS
- *      5    UART4_RTS    PTC12  UART4_RTS - V3 HW
- *      5    UART4_RTS    PTE27  UART4_RTS - V3.RC01 and V4
+ *      5    UART4_RTS    PTE27  UART4_RTS
  *  -------- ------------ ------- ---------
  */
 
 #define PIN_UART4_RX      PIN_UART4_RX_1
 #define PIN_UART4_TX      PIN_UART4_TX_1
-#if defined (HW_V3)
-#  define PIN_UART4_RTS   PIN_UART4_RTS_1
-#endif
-#if defined(HW_V3_MOD_RC0) || defined(HW_V4)
-#  define PIN_UART4_RTS   PIN_UART4_RTS_2
-#endif
+#define PIN_UART4_RTS     PIN_UART4_RTS_2
 #define PIN_UART4_CTS     PIN_UART4_CTS_1
 
 /*
