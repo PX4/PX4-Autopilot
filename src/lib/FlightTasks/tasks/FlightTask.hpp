@@ -81,8 +81,7 @@ public:
 		_last_time_stamp = hrt_absolute_time();
 		updateSubscriptions();
 		_evaluate_sticks();
-		_evaluate_position();
-		_evaluate_velocity();
+		_evaluate_vehicle_position();
 		return 0;
 	};
 
@@ -114,6 +113,7 @@ protected:
 	matrix::Vector<float, 4> _sticks;
 	matrix::Vector3f _position;
 	matrix::Vector3f _velocity;
+	float _yaw;
 
 	/**
 	 * Put the position vector produced by the task into the setpoint message
@@ -169,20 +169,15 @@ private:
 	/* General output that every task has */
 	vehicle_local_position_setpoint_s *_vehicle_position_setpoint;
 
-	void _evaluate_position()
+	void _evaluate_vehicle_position()
 	{
 		if (_vehicle_position != nullptr && hrt_elapsed_time(&_vehicle_position->timestamp) < _timeout) {
 			_position = matrix::Vector3f(&_vehicle_position->x);
-		}
-	}
-
-	void _evaluate_velocity()
-	{
-		if (_vehicle_position != nullptr && hrt_elapsed_time(&_vehicle_position->timestamp) < _timeout) {
 			_velocity = matrix::Vector3f(&_vehicle_position->vx);
+			_yaw = _vehicle_position->yaw;
 
 		} else {
-			_velocity = matrix::Vector3f(); /* default is all zero */
+			_velocity = matrix::Vector3f(); /* default velocity is all zero */
 		}
 	}
 
