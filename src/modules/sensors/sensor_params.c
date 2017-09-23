@@ -42,13 +42,6 @@
  */
 
 /**
- * ID of the board this parameter set was calibrated on.
- *
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_BOARD_ID, 0);
-
-/**
  * ID of the Gyro that the calibration is for.
  *
  * @group Sensor Calibration
