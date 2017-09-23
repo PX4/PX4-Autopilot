@@ -172,7 +172,7 @@ MavlinkReceiver::~MavlinkReceiver()
 void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, int ret)
 {
 	vehicle_command_ack_s command_ack = {
-		.timestamp = 0,
+		.timestamp = hrt_absolute_time(),
 		.result_param2 = 0,
 		.command = command,
 		.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
@@ -461,7 +461,22 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		return;
 	}
 
-	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+	//check for MAVLINK terminate command
+	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
+
+		int cmd_id = int(cmd_mavlink.param1);
+
+		if (cmd_id == 10) {
+			/* This is the link shutdown command, terminate mavlink */
+			PX4_WARN("terminated by remote");
+			fflush(stdout);
+			usleep(50000);
+
+			/* terminate other threads and this thread */
+			_mavlink->_task_should_exit = true;
+		}
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		/* send autopilot version message */
 		_mavlink->send_autopilot_capabilites();
 
@@ -473,8 +488,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f),
-					   cmd_mavlink.param2, cmd_mavlink.param3);
+		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 		get_message_interval((int)cmd_mavlink.param1);
@@ -487,8 +501,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		send_ack = false;
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
-				 mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID", mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -573,18 +586,41 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		/* send autopilot version message */
 		_mavlink->send_autopilot_capabilites();
 
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
+		/* send protocol version message */
+		_mavlink->send_protocol_version();
+
 	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
 		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
+	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
+
+	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+		get_message_interval((int)cmd_mavlink.param1);
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
+		send_flight_information();
+
 	} else {
 
+		send_ack = false;
+
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
-				 mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID", mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
-		send_ack = false;
+		if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
+			// we already instanciate the streaming object, because at this point we know on which
+			// mavlink channel streaming was requested. But in fact it's possible that the logger is
+			// not even running. The main mavlink thread takes care of this by waiting for an ack
+			// from the logger.
+			_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+
+		} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
+			_mavlink->request_stop_ulog_streaming();
+		}
 
 		struct vehicle_command_s vcmd = {
 			.timestamp = hrt_absolute_time(),
@@ -603,7 +639,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			.target_component = cmd_mavlink.target_component,
 			.source_system = msg->sysid,
 			.source_component = msg->compid,
-			.confirmation = 0,
+			.confirmation = false,
 			.from_external = true
 		};
 
