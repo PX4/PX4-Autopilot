@@ -43,6 +43,9 @@ mount -t procfs /proc
 #
 sercon
 
+# print full system version
+ver all
+
 #
 # Default to auto-start mode.
 #
