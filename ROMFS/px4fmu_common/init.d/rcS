@@ -34,6 +34,15 @@ set +e
 # UART8			/dev/ttyS6		CONSOLE
 
 #
+# Configuration defaults
+#
+# Increment this variable if the system default configuration
+# changes significantly. This will not wipe the param storage
+# but force setting the airframe parameters again.
+#
+set DEFAULTS_VER 1
+
+#
 # Mount the procfs.
 #
 mount -t procfs /proc
@@ -60,7 +69,7 @@ set LOG_FILE /fs/microsd/bootlog.txt
 # REBOOTWORK this needs to start after the flight control loop
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	echo "[i] microSD mounted: /fs/microsd"
+	echo "INFO  [init] microSD mounted: /fs/microsd"
 	if hardfault_log check
 	then
 		tone_alarm error
@@ -124,9 +133,31 @@ then
 	if param load
 	then
 	else
-		if param reset
-		then
-		fi
+		# reset all params if load failed
+		param reset
+	fi
+
+	#
+	# Set AUTOCNF flag to use it in AUTOSTART scripts
+	#
+	if param compare SYS_AUTOCONFIG 1
+	then
+		# Wipe out params except RC* and total flight time
+		echo "INFO  [init] Resetting params to default"
+		param reset_nostart RC* LND_FLIGHT_T_*
+		set AUTOCNF yes
+	else
+		set AUTOCNF no
+	fi
+
+	#
+	# Allow overriding airframe defaults as we change them
+	#
+	if param compare SYS_PARAM_VER ${DEFAULTS_VER}
+	then
+	else
+		echo "INFO  [init] Reapplying airframe default params"
+		set AUTOCNF yes
 	fi
 
 	#
@@ -143,28 +174,6 @@ then
 
 	# FMUv5 may have both PWM I2C RGB LED support
 	rgbled_pwm start
-
-	#
-	# Set AUTOCNF flag to use it in AUTOSTART scripts
-	#
-	if param compare SYS_AUTOCONFIG 1
-	then
-		# Wipe out params except RC* and total flight time
-		param reset_nostart RC* LND_FLIGHT_T_*
-		set AUTOCNF yes
-	else
-		set AUTOCNF no
-
-		#
-		# Release 1.4.0 transitional support:
-		# set to old default if unconfigured.
-		# this preserves the previous behaviour
-		#
-		if param compare BAT_N_CELLS 0
-		then
-			param set BAT_N_CELLS 3
-		fi
-	fi
 
 	#
 	# Set default values
@@ -185,7 +194,6 @@ then
 	set PWM_AUX_MIN p:PWM_AUX_MIN
 	set PWM_AUX_MAX p:PWM_AUX_MAX
 	set FAILSAFE_AUX none
-	set MK_MODE none
 	set FMU_MODE pwm
 	set AUX_MODE pwm
 	set FMU_ARGS ""
@@ -252,9 +260,8 @@ then
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
-	if param compare SYS_AUTOSTART 0
+	if param greater SYS_AUTOSTART 0
 	then
-	else
 		sh /etc/init.d/rc.autostart
 	fi
 	unset MODE
@@ -310,7 +317,7 @@ then
 
 			if px4io checkcrc ${IO_FILE}
 			then
-				echo "[init] PX4IO CRC OK" >> $LOG_FILE
+				echo "[init] PX4IO CRC OK"
 
 				set IO_PRESENT yes
 			else
@@ -391,9 +398,7 @@ then
 	fi
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
-	if dataman start $DATAMAN_OPT
-	then
-	fi
+	dataman start $DATAMAN_OPT
 	unset DATAMAN_OPT
 
 	#
@@ -499,7 +504,6 @@ then
 			fi
 			unset MKBLCTRL_ARG
 		fi
-		unset MK_MODE
 
 		if [ $OUTPUT_MODE == hil ]
 		then
@@ -1001,10 +1005,12 @@ then
 	if param compare MNT_MODE_IN -1
 	then
 	else
-		if vmount start
-		then
-		fi
+		vmount start
 	fi
+
+	param set SYS_PARAM_VER ${DEFAULTS_VER}
+	unset DEFAULTS_VER
+	param save
 
 # End of autostart
 fi
