@@ -106,8 +106,6 @@ ADCSIM::ADCSIM(uint32_t channels) :
 	_channel_count(0),
 	_samples(nullptr)
 {
-	//_debug_enabled = true;
-
 	/* always enable the temperature sensor */
 	channels |= 1 << 16;
 

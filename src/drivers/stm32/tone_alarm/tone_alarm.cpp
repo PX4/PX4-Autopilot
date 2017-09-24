@@ -296,7 +296,7 @@ class ToneAlarm : public device::CDev
 {
 public:
 	ToneAlarm();
-	~ToneAlarm();
+	~ToneAlarm() = default;
 
 	virtual int		init();
 
@@ -404,8 +404,6 @@ ToneAlarm::ToneAlarm() :
 	_next(nullptr),
 	_cbrk(CBRK_OFF)
 {
-	// enable debug() calls
-	//_debug_enabled = true;
 	_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
 	_default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
 	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE] = "MFT200e8a8a";					// Notify Positive tone
@@ -437,10 +435,6 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
 	_tune_names[TONE_HOME_SET] = "home_set";
-}
-
-ToneAlarm::~ToneAlarm()
-{
 }
 
 int
