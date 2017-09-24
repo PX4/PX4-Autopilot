@@ -190,7 +190,6 @@ PWMSim::PWMSim() :
 	_task_should_exit(false),
 	_mixers(nullptr)
 {
-	_debug_enabled = true;
 	memset(_controls, 0, sizeof(_controls));
 
 	_control_topics[0] = ORB_ID(actuator_controls_0);

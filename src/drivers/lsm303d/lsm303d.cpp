@@ -583,17 +583,11 @@ LSM303D::LSM303D(int bus, const char *path, spi_dev_e device, enum Rotation rota
 	_last_temperature(0),
 	_checked_next(0)
 {
-
-
-	// enable debug() calls
-	_debug_enabled = true;
-
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_LSM303D;
 
 	/* Prime _mag with parents devid. */
 	_mag->_device_id.devid = _device_id.devid;
 	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
-
 
 	// default scale factors
 	_accel_scale.x_offset = 0.0f;

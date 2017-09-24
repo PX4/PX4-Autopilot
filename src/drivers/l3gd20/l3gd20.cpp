@@ -433,9 +433,6 @@ L3GD20::L3GD20(int bus, const char *path, spi_dev_e device, enum Rotation rotati
 	_rotation(rotation),
 	_checked_next(0)
 {
-	// enable debug() calls
-	_debug_enabled = true;
-
 	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_L3GD20;
 
 	// default scale factors
