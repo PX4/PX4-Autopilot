@@ -115,10 +115,6 @@ int ver_main(int argc, char *argv[])
 					const char *board_name = px4_board_name();
 					ret = strcmp(board_name, argv[2]);
 
-					if (ret == 0) {
-						PX4_INFO("match: %s", board_name);
-					}
-
 					return ret;
 
 				} else {
