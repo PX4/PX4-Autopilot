@@ -9,7 +9,7 @@ then
 #
 	param set NAV_DLL_ACT 0
 	param set NAV_ACC_RAD 2.0
-	
+
 	# temporary
 	param set NAV_FW_ALT_RAD 1000
 

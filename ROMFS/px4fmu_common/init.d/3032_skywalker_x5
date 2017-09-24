@@ -40,4 +40,4 @@ then
 	param set FW_RR_P 0.04
 fi
 
-set MIXER X5
+set MIXER fw_generic_wing

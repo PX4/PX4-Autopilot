@@ -90,16 +90,14 @@ class ParameterGroup(object):
             return "Boat"
         return "AirframeUnknown"
 
-
-        
     def GetParams(self):
         """
         Returns the parsed list of parameters. Every parameter is a Parameter
         object. Note that returned object is not a copy. Modifications affect
         state of the parser.
         """
-        return sorted(self.params,
-                key=lambda x: x.GetFieldValue("code"))
+
+        return sorted(self.params, key=lambda x: x.GetId())
 
 class Parameter(object):
     """
@@ -443,28 +441,7 @@ class SourceParser(object):
                         sys.stderr.write("Duplicate parameter definition: {0}\n".format(name_plus_board))
                         return False
                 seenParamNames.append(name_plus_board)
-                # Validate values
-                default = param.GetDefault()
-                min = param.GetFieldValue("min")
-                max = param.GetFieldValue("max")
-                #sys.stderr.write("{0} default:{1} min:{2} max:{3}\n".format(name, default, min, max))
-                if default != "" and not self.IsNumber(default):
-                    sys.stderr.write("Default value not number: {0} {1}\n".format(name, default))
-                    return False
-                if min != "":
-                    if not self.IsNumber(min):
-                        sys.stderr.write("Min value not number: {0} {1}\n".format(name, min))
-                        return False
-                    if default != "" and float(default) < float(min):
-                        sys.stderr.write("Default value is smaller than min: {0} default:{1} min:{2}\n".format(name, default, min))
-                        return False
-                if max != "":
-                    if not self.IsNumber(max):
-                        sys.stderr.write("Max value not number: {0} {1}\n".format(name, max))
-                        return False
-                    if default != "" and float(default) > float(max):
-                        sys.stderr.write("Default value is larger than max: {0} default:{1} max:{2}\n".format(name, default, max))
-                        return False
+
         return True
 
     def GetParamGroups(self):
