@@ -79,7 +79,6 @@ BMI055_accel::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		warnx("SPI error");
 		DEVICE_DEBUG("SPI setup failed");
 		return ret;
 	}

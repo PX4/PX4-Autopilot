@@ -133,7 +133,7 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 		close(fd_gyr);
 	}
 
-	exit(0);
+	exit(PX4_OK);
 
 fail_accel:
 
@@ -142,7 +142,8 @@ fail_accel:
 		*g_dev_acc_ptr = nullptr;
 	}
 
-	errx(1, "bmi055 accel driver start failed");
+	PX4_WARN("No BMI055 accel found");
+	exit(PX4_ERROR);
 
 fail_gyro:
 
@@ -151,7 +152,8 @@ fail_gyro:
 		*g_dev_gyr_ptr = nullptr;
 	}
 
-	errx(1, "bmi055 gyro driver start failed");
+	PX4_WARN("No BMI055 gyro found");
+	exit(PX4_ERROR);
 
 }
 
