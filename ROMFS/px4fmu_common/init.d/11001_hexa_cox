@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Generic Hexa coaxial geometry
+# @name Generic Hexarotor coaxial geometry
 #
 # @type Hexarotor Coaxial
 # @class Copter
