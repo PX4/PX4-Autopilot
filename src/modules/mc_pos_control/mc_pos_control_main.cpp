@@ -132,7 +132,7 @@ private:
 	bool 		_in_smooth_takeoff = false; 				/**<true if takeoff ramp is applied */
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
-	bool 		_triplet_lat_lon_finite = true; 		/**<true if triplets current is non-finite */
+	bool 		_triplet_xy_finite = true; 		/**<true if triplets current is non-finite */
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
@@ -1691,8 +1691,7 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
 		if (!_mode_auto) {
 			_mode_auto = true;
-			//set _triplet_lat_lon_finite true once switch to AUTO(e.g. LAND)
-			_triplet_lat_lon_finite = true;
+			_triplet_xy_finite = true;
 		}
 
 		_reset_sp_xy = true;
@@ -1721,13 +1720,13 @@ void MulticopterPositionControl::control_auto(float dt)
 
 			curr_pos_sp(0) =  _pos_sp_triplet.current.x;
 			curr_pos_sp(1) =  _pos_sp_triplet.current.y;
-			_triplet_lat_lon_finite = true;
+			_triplet_xy_finite = true;
 
 		} else { // use current position if NAN -> e.g. land
-			if (_triplet_lat_lon_finite) {
+			if (_triplet_xy_finite) {
 				curr_pos_sp(0) = _pos(0);
 				curr_pos_sp(1) = _pos(1);
-				_triplet_lat_lon_finite = false;
+				_triplet_xy_finite = false;
 			}
 		}
 
@@ -1748,7 +1747,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		 * note: we only can look at xy since navigator applies slewrate to z */
 		float  diff;
 
-		if (_triplet_lat_lon_finite) {
+		if (_triplet_xy_finite) {
 			diff = matrix::Vector2f((_curr_pos_sp(0) - curr_pos_sp(0)), (_curr_pos_sp(1) - curr_pos_sp(1))).length();
 
 		} else {
