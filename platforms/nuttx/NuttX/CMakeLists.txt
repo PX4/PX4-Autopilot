@@ -93,7 +93,7 @@ add_custom_target(nuttx_context DEPENDS ${NUTTX_DIR}/include/nuttx/version.h)
 add_library(nuttx_build INTERFACE)
 
 # builtins
-add_library(nuttx_builtin INTERFACE)
+set(nuttx_builtin_list)
 if ("${BOARD}" MATCHES "px4io")
 	# no apps for px4io
 else()
@@ -109,13 +109,13 @@ else()
 				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${builtin_registry}/${MAIN}_main.bdat
 				VERBATIM
 				)
-			add_dependencies(nuttx_builtin ${builtin_registry}/${MAIN}_main.bdat)
+			list(APPEND nuttx_builtin_list ${builtin_registry}/${MAIN}_main.bdat)
 
 			add_custom_command(OUTPUT ${builtin_registry}/${MAIN}_main.pdat
 				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${builtin_registry}/${MAIN}_main.pdat
 				VERBATIM
 				)
-			add_dependencies(nuttx_builtin ${builtin_registry}/${MAIN}_main.pdat)
+			list(APPEND nuttx_builtin_list ${builtin_registry}/${MAIN}_main.pdat)
 		endif()
 	endforeach()
 endif()
@@ -127,7 +127,7 @@ add_custom_command(OUTPUT ${APPS_DIR}/libapps.a
 		${APPS_DIR}/platform/.built
 	COMMAND find ${APPS_DIR} -name \*.o -o -name \*.built -delete
 	COMMAND make --silent --no-print-directory -C ../apps TOPDIR="${NUTTX_DIR}" libapps.a > /dev/null
-	DEPENDS nuttx_context nuttx_builtin
+	DEPENDS nuttx_context ${nuttx_builtin_list}
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	)
 add_custom_target(nuttx_apps_build DEPENDS ${APPS_DIR}/libapps.a)
