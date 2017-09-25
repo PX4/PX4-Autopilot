@@ -38,31 +38,33 @@
 
 #pragma once
 
+#include <controllib/block/BlockParam.hpp>
+#include <controllib/blocks.hpp>
+#include <drivers/drv_accel.h>
+#include <drivers/drv_baro.h>
+#include <drivers/drv_gyro.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_mag.h>
+#include <drivers/drv_rc_input.h>
+#include <geo/geo.h>
 #include <px4_posix.h>
+#include <systemlib/battery.h>
+#include <systemlib/perf_counter.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/hil_sensor.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/parameter_update.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_baro.h>
-#include <drivers/drv_mag.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_rc_input.h>
-#include <systemlib/perf_counter.h>
-#include <systemlib/battery.h>
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 #include <uORB/uORB.h>
-#include <uORB/topics/optical_flow.h>
-#include <uORB/topics/distance_sensor.h>
-#include <v1.0/mavlink_types.h>
+
 #include <v1.0/common/mavlink.h>
-#include <geo/geo.h>
+#include <v1.0/mavlink_types.h>
+
 namespace simulator
 {
 

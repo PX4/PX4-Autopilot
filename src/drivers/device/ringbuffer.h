@@ -43,14 +43,20 @@
 #include <stdint.h>
 #include <stdio.h>
 
-namespace ringbuffer __EXPORT
+namespace ringbuffer
 {
 
 class RingBuffer
 {
 public:
 	RingBuffer(unsigned num_items, size_t item_size);
-	virtual ~RingBuffer();
+	~RingBuffer();
+
+	// no copy, assignment, move, move assignment
+	RingBuffer(const RingBuffer &) = delete;
+	RingBuffer &operator=(const RingBuffer &) = delete;
+	RingBuffer(RingBuffer &&) = delete;
+	RingBuffer &operator=(RingBuffer &&) = delete;
 
 	/**
 	 * Put an item into the buffer.
@@ -60,16 +66,16 @@ public:
 	 */
 	bool			put(const void *val, size_t val_size = 0);
 
-	bool			put(int8_t val);
-	bool			put(uint8_t val);
-	bool			put(int16_t val);
-	bool			put(uint16_t val);
-	bool			put(int32_t val);
-	bool			put(uint32_t val);
-	bool			put(int64_t val);
-	bool			put(uint64_t val);
-	bool			put(float val);
-	bool			put(double val);
+	bool			put(int8_t val) { return put(&val, sizeof(val)); }
+	bool			put(uint8_t val) { return put(&val, sizeof(val)); }
+	bool			put(int16_t val) { return put(&val, sizeof(val)); }
+	bool			put(uint16_t val) { return put(&val, sizeof(val)); }
+	bool			put(int32_t val) { return put(&val, sizeof(val)); }
+	bool			put(uint32_t val) { return put(&val, sizeof(val)); }
+	bool			put(int64_t val) { return put(&val, sizeof(val)); }
+	bool			put(uint64_t val) { return put(&val, sizeof(val)); }
+	bool			put(float val) { return put(&val, sizeof(val)); }
+	bool			put(double val) { return put(&val, sizeof(val)); }
 
 	/**
 	 * Force an item into the buffer, discarding an older item if there is not space.
@@ -79,16 +85,16 @@ public:
 	 */
 	bool			force(const void *val, size_t val_size = 0);
 
-	bool			force(int8_t val);
-	bool			force(uint8_t val);
-	bool			force(int16_t val);
-	bool			force(uint16_t val);
-	bool			force(int32_t val);
-	bool			force(uint32_t val);
-	bool			force(int64_t val);
-	bool			force(uint64_t val);
-	bool			force(float val);
-	bool			force(double val);
+	bool			force(int8_t val) { return force(&val, sizeof(val)); }
+	bool			force(uint8_t val) { return force(&val, sizeof(val)); }
+	bool			force(int16_t val) { return force(&val, sizeof(val)); }
+	bool			force(uint16_t val) { return force(&val, sizeof(val)); }
+	bool			force(int32_t val) { return force(&val, sizeof(val)); }
+	bool			force(uint32_t val) { return force(&val, sizeof(val)); }
+	bool			force(int64_t val) { return force(&val, sizeof(val)); }
+	bool			force(uint64_t val) { return force(&val, sizeof(val)); }
+	bool			force(float val) { return force(&val, sizeof(val)); }
+	bool			force(double val) { return force(&val, sizeof(val)); }
 
 	/**
 	 * Get an item from the buffer.
@@ -98,16 +104,16 @@ public:
 	 */
 	bool			get(void *val, size_t val_size = 0);
 
-	bool			get(int8_t &val);
-	bool			get(uint8_t &val);
-	bool			get(int16_t &val);
-	bool			get(uint16_t &val);
-	bool			get(int32_t &val);
-	bool			get(uint32_t &val);
-	bool			get(int64_t &val);
-	bool			get(uint64_t &val);
-	bool			get(float &val);
-	bool			get(double &val);
+	bool			get(int8_t &val) { return get(&val, sizeof(val)); }
+	bool			get(uint8_t &val) { return get(&val, sizeof(val)); }
+	bool			get(int16_t &val) { return get(&val, sizeof(val)); }
+	bool			get(uint16_t &val) { return get(&val, sizeof(val)); }
+	bool			get(int32_t &val) { return get(&val, sizeof(val)); }
+	bool			get(uint32_t &val) { return get(&val, sizeof(val)); }
+	bool			get(int64_t &val) { return get(&val, sizeof(val)); }
+	bool			get(uint64_t &val) { return get(&val, sizeof(val)); }
+	bool			get(float &val) { return get(&val, sizeof(val)); }
+	bool			get(double &val) { return get(&val, sizeof(val)); }
 
 	/*
 	 * Get the number of slots free in the buffer.
@@ -170,10 +176,6 @@ private:
 	volatile unsigned	_tail;	/**< removal point in _item_size units */
 
 	unsigned		_next(unsigned index);
-
-	/* we don't want this class to be copied */
-	RingBuffer(const RingBuffer &);
-	RingBuffer operator=(const RingBuffer &);
 };
 
 } // namespace ringbuffer

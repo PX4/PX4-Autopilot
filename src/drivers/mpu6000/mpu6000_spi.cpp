@@ -241,7 +241,7 @@ MPU6000_SPI::ioctl(unsigned operation, unsigned &arg)
 
 	case ACCELIOCGEXTERNAL:
 #if defined(PX4_SPI_BUS_EXT)
-		return _bus == PX4_SPI_BUS_EXT ? 1 : 0;
+		return get_device_bus() == PX4_SPI_BUS_EXT ? 1 : 0;
 #else
 		return 0;
 #endif

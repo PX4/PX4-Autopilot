@@ -45,36 +45,31 @@
  * non-interrupt-mode client.
  */
 
+#include "SPI.hpp"
+
 #include <px4_config.h>
 #include <nuttx/arch.h>
 #include <stm32_spi.h>
-#include "spi.h"
+
+#include <cstring>
 
 #ifndef CONFIG_SPI_EXCHANGE
 # error This driver requires CONFIG_SPI_EXCHANGE
 #endif
 
+#define DIR_READ				(1<<7)
+#define DIR_WRITE				(0<<7)
+#define ADDR_INCREMENT				(1<<6)
+
 namespace device
 {
 
-SPI::SPI(const char *name,
-	 const char *devname,
-	 int bus,
-	 enum spi_dev_e device,
-	 enum spi_mode_e mode,
-	 uint32_t frequency,
-	 int irq) :
-	// base class
-	CDev(name, devname, irq),
-	// public
-	// protected
-	locking_mode(LOCK_PREEMPTION),
-	// private
+SPI::SPI(const char *name, const char *devname, int bus, enum spi_dev_e device, enum spi_mode_e mode,
+	 uint32_t frequency) :
+	CDev(name, devname),
 	_device(device),
 	_mode(mode),
-	_frequency(frequency),
-	_dev(nullptr),
-	_bus(bus)
+	_frequency(frequency)
 {
 	// fill in _device_id fields for a SPI device
 	_device_id.devid_s.bus_type = DeviceBusType_SPI;
@@ -84,25 +79,19 @@ SPI::SPI(const char *name,
 	_device_id.devid_s.devtype = 0;
 }
 
-SPI::~SPI()
-{
-	// XXX no way to let go of the bus...
-}
-
 int
 SPI::init()
 {
-	int ret = OK;
+	int ret = PX4_OK;
 
 	/* attach to the spi bus */
 	if (_dev == nullptr) {
-		_dev = px4_spibus_initialize(_bus);
+		_dev = px4_spibus_initialize(get_device_bus());
 	}
 
 	if (_dev == nullptr) {
-		DEVICE_DEBUG("failed to init SPI");
-		ret = -ENOENT;
-		goto out;
+		PX4_DEBUG("failed to init SPI");
+		return -ENOENT;
 	}
 
 	/* deselect device to ensure high to low transition of pin select */
@@ -112,22 +101,13 @@ SPI::init()
 	ret = probe();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("probe failed");
-		goto out;
-	}
-
-	/* do base class init, which will create the device node, etc. */
-	ret = CDev::init();
-
-	if (ret != OK) {
-		DEVICE_DEBUG("cdev init failed");
-		goto out;
+		PX4_DEBUG("probe failed");
+		return PX4_ERROR;
 	}
 
 	/* tell the workd where we are */
-	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", _bus, _device, _frequency / 1000);
+	PX4_DEBUG("on SPI bus %d at %d (%u KHz)", get_device_bus(), _device, _frequency / 1000);
 
-out:
 	return ret;
 }
 
@@ -153,9 +133,9 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	switch (mode) {
 	default:
 	case LOCK_PREEMPTION: {
-			irqstate_t state = px4_enter_critical_section();
+			ATOMIC_ENTER;
 			result = _transfer(send, recv, len);
-			px4_leave_critical_section(state);
+			ATOMIC_LEAVE;
 		}
 		break;
 
@@ -194,6 +174,68 @@ SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	SPI_SELECT(_dev, _device, false);
 
 	return OK;
+}
+
+int
+SPI::write(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
+	}
+
+	buf[0] = address | DIR_WRITE;
+	memcpy(&buf[1], data, count);
+
+	return transfer(&buf[0], &buf[0], count + 1);
+}
+
+int
+SPI::read(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
+	}
+
+	buf[0] = address | DIR_READ | ADDR_INCREMENT;
+
+	int ret = transfer(&buf[0], &buf[0], count + 1);
+	memcpy(data, &buf[1], count);
+	return ret;
+}
+
+uint8_t
+SPI::read_reg(unsigned reg)
+{
+	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
+
+	transfer(cmd, cmd, sizeof(cmd));
+
+	return cmd[1];
+}
+
+uint16_t
+SPI::read_reg16(unsigned reg)
+{
+	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
+
+	transfer(cmd, cmd, sizeof(cmd));
+
+	return (uint16_t)(cmd[1] << 8) | cmd[2];
+}
+
+void
+SPI::write_reg(unsigned reg, uint8_t value)
+{
+	uint8_t	cmd[2];
+
+	cmd[0] = reg | DIR_WRITE;
+	cmd[1] = value;
+
+	transfer(cmd, nullptr, sizeof(cmd));
 }
 
 } // namespace device

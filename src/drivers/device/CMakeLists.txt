@@ -36,26 +36,24 @@ set(SRCS)
 list(APPEND SRCS
 	ringbuffer.cpp
 	integrator.cpp
+	CDev.cpp
 )
 
 if(${OS} STREQUAL "nuttx")
-	if (NOT ${BOARD} STREQUAL "sim")
-		list(APPEND SRCS
-			device_nuttx.cpp
-			cdev.cpp
-			i2c_nuttx.cpp
-			spi.cpp
-		)
-	endif()
+	list(APPEND SRCS
+		nuttx/cdev_platform.cpp
+		nuttx/I2C.cpp
+		nuttx/SPI.cpp
+	)
+	include_directories(nuttx)
 else()
 	list(APPEND SRCS
-		device_posix.cpp
-		vdev.cpp
-		vfile.cpp
-		vdev_posix.cpp
-		i2c_posix.cpp
-		sim.cpp
+		posix/cdev_platform.cpp
+		posix/I2C.cpp
+		posix/SPI.cpp
+		posix/vfile.cpp
 	)
+	include_directories(posix)
 endif()
 
 px4_add_module(
@@ -64,4 +62,3 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

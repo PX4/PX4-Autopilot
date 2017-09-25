@@ -174,7 +174,6 @@ device::Device
 }
 
 PX4IO_serial::PX4IO_serial() :
-	Device("PX4IO_serial"),
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
 	_rx_dma_status(_dma_status_inactive),

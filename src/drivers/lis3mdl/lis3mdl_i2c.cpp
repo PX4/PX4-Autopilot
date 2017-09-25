@@ -112,7 +112,7 @@ LIS3MDL_I2C::ioctl(unsigned operation, unsigned &arg)
 	switch (operation) {
 
 	case MAGIOCGEXTERNAL:
-		if (_bus == PX4_I2C_BUS_EXPANSION) {
+		if (get_device_bus() == PX4_I2C_BUS_EXPANSION) {
 			return 1;
 
 		} else {

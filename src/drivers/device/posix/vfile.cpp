@@ -32,28 +32,36 @@
  ****************************************************************************/
 
 /**
- * @file vfile.cpp
+ * @file vdev_file.cpp
  * Virtual file
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include <px4_tasks.h>
-#include <drivers/drv_device.h>
-#include "device.h"
-#include <unistd.h>
-#include <stdio.h>
+#include "vfile.h"
 
-class VFile : public device::CDev
+namespace device
 {
-public:
 
-	static VFile *createFile(const char *fname, mode_t mode);
-	~VFile() {}
+VFile::VFile(const char *fname, mode_t mode) :
+	CDev("", fname)
+{
+}
 
-	virtual ssize_t write(device::file_t *handlep, const char *buffer, size_t buflen);
+VFile *VFile::createFile(const char *fname, mode_t mode)
+{
+	VFile *me = new VFile(fname, mode);
+	px4_file_operations_t *fops = nullptr;
+	register_driver(fname, fops, 0666, (void *)me);
+	return me;
+}
 
-private:
-	VFile(const char *fname, mode_t mode);
-	VFile(const VFile &);
-};
+ssize_t VFile::write(file_t *handlep, const char *buffer, size_t buflen)
+{
+	// ignore what was written, but let pollers know something was written
+	poll_notify(POLLIN);
+
+	return buflen;
+}
+
+} // namespace device

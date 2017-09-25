@@ -241,7 +241,7 @@ MK::MK(int bus, const char *_device_path) :
 	strncpy(_device, _device_path, sizeof(_device));
 	/* enforce null termination */
 	_device[sizeof(_device) - 1] = '\0';
-	_debug_enabled = true;
+	_debug_enabled = false;
 }
 
 MK::~MK()

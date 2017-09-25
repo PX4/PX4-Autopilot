@@ -94,8 +94,6 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, 
 	_subscriber_count(0),
 	_publisher(0)
 {
-	// enable debug() calls
-	//_debug_enabled = true;
 }
 
 uORB::DeviceNode::~DeviceNode()
@@ -103,7 +101,6 @@ uORB::DeviceNode::~DeviceNode()
 	if (_data != nullptr) {
 		delete[] _data;
 	}
-
 }
 
 int
@@ -833,13 +830,7 @@ uORB::DeviceMaster::DeviceMaster(Flavor f) :
 	     (f == PUBSUB) ? TOPIC_MASTER_DEVICE_PATH : PARAM_MASTER_DEVICE_PATH),
 	_flavor(f)
 {
-	// enable debug() calls
-	//_debug_enabled = true;
 	_last_statistics_output = hrt_absolute_time();
-}
-
-uORB::DeviceMaster::~DeviceMaster()
-{
 }
 
 int

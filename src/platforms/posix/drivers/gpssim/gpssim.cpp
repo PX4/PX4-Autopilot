@@ -35,32 +35,16 @@
  * @file gpssim.cpp
  * Simulated GPS driver
  */
-
-#include <sys/types.h>
-#include <px4_defines.h>
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_gps.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/satellite_info.h>
-
+#include <drivers/drv_hrt.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
 #include <simulator/simulator.h>
+#include <uORB/topics/satellite_info.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/uORB.h>
 
 #include "DevMgr.hpp"
 #include "VirtDevObj.hpp"

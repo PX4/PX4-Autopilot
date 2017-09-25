@@ -384,7 +384,7 @@ ll40ls_main(int argc, char *argv[])
 		const char *protocol = argv[myoptind + 1];
 
 		if (!strcmp(protocol, "pwm")) {
-			busid = LL40LS_BUS_PWM;;
+			busid = LL40LS_BUS_PWM;
 
 		} else if (!strcmp(protocol, "i2c")) {
 			// Do nothing

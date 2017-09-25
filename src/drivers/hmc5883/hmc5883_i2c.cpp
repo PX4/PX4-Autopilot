@@ -114,7 +114,7 @@ HMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
 
 	case MAGIOCGEXTERNAL:
 #ifdef PX4_I2C_BUS_ONBOARD
-		if (_bus == PX4_I2C_BUS_ONBOARD) {
+		if (get_device_bus() == PX4_I2C_BUS_ONBOARD) {
 			return 0;
 
 		} else {

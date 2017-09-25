@@ -415,9 +415,6 @@ PX4FMU::PX4FMU(bool run_as_task) :
 #ifndef GPIO_BTN_SAFETY
 	_safety_off = true;
 #endif
-
-	/* only enable this during development */
-	_debug_enabled = false;
 }
 
 PX4FMU::~PX4FMU()

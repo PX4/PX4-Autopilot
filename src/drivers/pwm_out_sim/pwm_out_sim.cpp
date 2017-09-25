@@ -131,7 +131,7 @@ private:
 
 	MixerGroup	*_mixers;
 
-	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -190,9 +190,6 @@ PWMSim::PWMSim() :
 	_task_should_exit(false),
 	_mixers(nullptr)
 {
-	_debug_enabled = true;
-	memset(_controls, 0, sizeof(_controls));
-
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);

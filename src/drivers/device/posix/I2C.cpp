@@ -40,43 +40,23 @@
  *       that is supplied.  Should we just depend on the bus knowing?
  */
 
-#include "i2c.h"
+#include "I2C.hpp"
+
 #ifdef __PX4_LINUX
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #endif
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#ifdef __PX4_QURT
-#define PX4_SIMULATE_I2C 1
-#else
-#define PX4_SIMULATE_I2C 0
-#endif
-
-static constexpr const int simulate = PX4_SIMULATE_I2C;
-
-
 namespace device
 {
 
-I2C::I2C(const char *name,
-	 const char *devname,
-	 int bus,
-	 uint16_t address,
-	 uint32_t frequency) :
-	// base class
-	CDev(name, devname),
-	// public
-	// protected
-	_retries(0),
-	// private
-	_bus(bus),
-	_address(address),
-	_fd(-1)
+I2C::I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency) :
+	CDev(name, devname)
 {
-	DEVICE_DEBUG("I2C::I2C name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
@@ -103,35 +83,38 @@ I2C::init()
 	// Assume the driver set the desired bus frequency. There is no standard
 	// way to set it from user space.
 
-	// do base class init, which will create device node, etc
-	ret = CDev::init();
-
-	if (ret != PX4_OK) {
-		DEVICE_DEBUG("CDev::init failed");
-		return ret;
-	}
-
-	if (simulate) {
-		_fd = 10000;
-
-	} else {
 #ifndef __PX4_QURT
 
-		// Open the actual I2C device
-		char dev_path[16];
-		snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", _bus);
-		_fd = ::open(dev_path, O_RDWR);
+	// Open the actual I2C device
+	char dev_path[16];
+	snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", get_device_bus());
+	_fd = ::open(dev_path, O_RDWR);
 
-		if (_fd < 0) {
-			PX4_ERR("could not open %s", dev_path);
-			px4_errno = errno;
-			return PX4_ERROR;
-		}
-
-#endif
+	if (_fd < 0) {
+		PX4_ERR("could not open %s", dev_path);
+		return PX4_ERROR;
 	}
 
+#endif
+
+	// call the probe function to check whether the device is present
+	ret = probe();
+
+	if (ret != OK) {
+		PX4_DEBUG("probe failed");
+	}
+
+	// tell the world where we are
+	PX4_DEBUG("on I2C bus %d at 0x%02x", get_device_bus(), get_device_address());
+
 	return ret;
+}
+
+int
+I2C::probe()
+{
+	// Assume the device is too stupid to be discoverable.
+	return OK;
 }
 
 int
@@ -152,11 +135,11 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	}
 
 	do {
-		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+		//PX4_INFO("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 		msgs = 0;
 
 		if (send_len > 0) {
-			msgv[msgs].addr = _address;
+			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = 0;
 			msgv[msgs].buf = const_cast<uint8_t *>(send);
 			msgv[msgs].len = send_len;
@@ -164,7 +147,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		}
 
 		if (recv_len > 0) {
-			msgv[msgs].addr = _address;
+			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = I2C_M_READ;
 			msgv[msgs].buf = recv;
 			msgv[msgs].len = recv_len;
@@ -178,20 +161,14 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		packets.msgs  = msgv;
 		packets.nmsgs = msgs;
 
-		if (simulate) {
-			DEVICE_DEBUG("I2C SIM: transfer_4 on %s", get_devname());
-			ret = PX4_OK;
+		ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
+
+		if (ret == -1) {
+			PX4_ERR("I2C transfer failed");
+			ret = PX4_ERROR;
 
 		} else {
-			ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
-
-			if (ret == -1) {
-				DEVICE_DEBUG("I2C transfer failed");
-				ret = PX4_ERROR;
-
-			} else {
-				ret = PX4_OK;
-			}
+			ret = PX4_OK;
 		}
 
 		/* success */
@@ -206,92 +183,41 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 }
 
 int
-I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
+I2C::read(unsigned address, void *data, unsigned count)
 {
-#ifndef __PX4_LINUX
-	return 1;
-#else
-	struct i2c_rdwr_ioctl_data packets;
-	int ret;
-	unsigned retry_count = 0;
-
-	/* force the device address into the message vector */
-	for (unsigned i = 0; i < msgs; i++) {
-		msgv[i].addr = _address;
-	}
-
-	do {
-		packets.msgs  = msgv;
-		packets.nmsgs = msgs;
-
-		if (simulate) {
-			DEVICE_DEBUG("I2C SIM: transfer_2 on %s", get_devname());
-			ret = PX4_OK;
-
-		} else {
-			ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
-		}
-
-		if (ret < 0) {
-			DEVICE_DEBUG("I2C transfer failed");
-			return 1;
-		}
-
-		/* success */
-		if (ret == PX4_OK) {
-			break;
-		}
-
-	} while (retry_count++ < _retries);
-
-	return ret;
-#endif
+	uint8_t cmd = address;
+	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
 
-int I2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+int
+I2C::write(unsigned address, void *data, unsigned count)
 {
-	//struct i2c_rdwr_ioctl_data *packets = (i2c_rdwr_ioctl_data *)(void *)arg;
-	switch (cmd) {
-#ifdef __PX4_LINUX
+	uint8_t buf[32];
 
-	case I2C_RDWR:
-		DEVICE_DEBUG("Use I2C::transfer, not ioctl");
-		return 0;
-#endif
-
-	default:
-		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
 	}
+
+	buf[0] = address;
+	memcpy(&buf[1], data, count);
+
+	return transfer(&buf[0], count + 1, nullptr, 0);
 }
 
-ssize_t	I2C::read(file_t *filp, char *buffer, size_t buflen)
+uint8_t
+I2C::get_reg(uint8_t addr)
 {
-	if (simulate) {
-		// FIXME no idea what this should be
-		DEVICE_DEBUG("2C SIM I2C::read");
-		return 0;
-	}
+	uint8_t cmd[2] = { (uint8_t)(addr), 0};
+	transfer(&cmd[0], 1, &cmd[1], 1);
 
-#ifndef __PX4_QURT
-	return ::read(_fd, buffer, buflen);
-#else
-	return 0;
-#endif
+	return cmd[1];
 }
 
-ssize_t	I2C::write(file_t *filp, const char *buffer, size_t buflen)
+int
+I2C::set_reg(uint8_t value, uint8_t addr)
 {
-	if (simulate) {
-		DEVICE_DEBUG("2C SIM I2C::write");
-		return buflen;
-	}
-
-#ifndef __PX4_QURT
-	return ::write(_fd, buffer, buflen);
-#else
-	return buflen;
-#endif
+	uint8_t cmd[2] = { (uint8_t)(addr), value};
+	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 
 } // namespace device

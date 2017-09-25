@@ -136,7 +136,7 @@ MPU9250_mag::init()
 	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr) {
-		return -ENOMEM;;
+		return -ENOMEM;
 	}
 
 	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);

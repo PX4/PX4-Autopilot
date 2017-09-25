@@ -447,7 +447,7 @@ private:
 	*
 	* @return true if the sensor is not on the main MCU board
 	*/
-	bool            is_external() { return (_bus == EXTERNAL_BUS); }
+	bool            is_external() { return (get_device_bus() == EXTERNAL_BUS); }
 
 	/**
 	* Measurement self test
@@ -608,7 +608,7 @@ private:
 	 *
 	 * @return true if the sensor is not on the main MCU board
 	 */
-	bool            is_external() { return (_bus == EXTERNAL_BUS); }
+	bool            is_external() { return (get_device_bus() == EXTERNAL_BUS); }
 
 	/**
 	 * Measurement self test
