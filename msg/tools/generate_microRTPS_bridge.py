@@ -40,7 +40,7 @@
 import sys, os, argparse, shutil
 import px_generate_uorb_topic_files
 import subprocess, glob
-import errno    
+import errno
 
 def get_absolute_path(arg_parse_dir):
     root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
