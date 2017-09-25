@@ -2164,8 +2164,10 @@ MPU6000::print_info()
 	}
 
 	::printf("temperature: %.1f\n", (double)_last_temperature);
-	float imu_cut = _accel_filter_x.get_cutoff_freq();
-	::printf("imu cutoff set to %10.2f Hz\n", double(imu_cut));
+	float accel_cut = _accel_filter_x.get_cutoff_freq();
+	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
+	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
+	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
 }
 
 void
