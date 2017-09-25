@@ -405,8 +405,6 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 	switch (command) {
 
 	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
-
-	/* fallthrough */
 	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
 		/* broadcast and ignore component */
 		target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
@@ -461,22 +459,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		return;
 	}
 
-	//check for MAVLINK terminate command
-	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
-
-		int cmd_id = int(cmd_mavlink.param1);
-
-		if (cmd_id == 10) {
-			/* This is the link shutdown command, terminate mavlink */
-			PX4_WARN("terminated by remote");
-			fflush(stdout);
-			usleep(50000);
-
-			/* terminate other threads and this thread */
-			_mavlink->_task_should_exit = true;
-		}
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		/* send autopilot version message */
 		_mavlink->send_autopilot_capabilites();
 
@@ -567,22 +550,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		return;
 	}
 
-	//check for MAVLINK terminate command
-	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
-
-		int cmd_id = int(cmd_mavlink.param1);
-
-		if (cmd_id == 10) {
-			/* This is the link shutdown command, terminate mavlink */
-			PX4_WARN("terminated by remote");
-			fflush(stdout);
-			usleep(50000);
-
-			/* terminate other threads and this thread */
-			_mavlink->_task_should_exit = true;
-		}
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		/* send autopilot version message */
 		_mavlink->send_autopilot_capabilites();
 
