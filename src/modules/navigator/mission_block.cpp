@@ -294,8 +294,9 @@ MissionBlock::is_navigator_item_reached()
 						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
 				if (_param_back_trans_dec_mss.get() > FLT_EPSILON && velocity > FLT_EPSILON) {
-					navigator_acceptance_radius = ((velocity / _param_back_trans_dec_mss.get() / 2) * velocity) + _param_reverse_delay.get() *
-								    velocity;
+					navigator_acceptance_radius = ((velocity / _param_back_trans_dec_mss.get() / 2) * velocity) + _param_reverse_delay.get()
+								      *
+								      velocity;
 				}
 
 			}

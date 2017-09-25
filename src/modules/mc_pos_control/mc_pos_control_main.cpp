@@ -1766,8 +1766,8 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (_pos_sp_triplet.previous.valid) {
 
 		if (PX4_ISFINITE(_pos_sp_triplet.previous.x) &&
-			PX4_ISFINITE(_pos_sp_triplet.previous.y) &&
-			PX4_ISFINITE(_pos_sp_triplet.previous.z)) {
+		    PX4_ISFINITE(_pos_sp_triplet.previous.y) &&
+		    PX4_ISFINITE(_pos_sp_triplet.previous.z)) {
 
 			prev_sp(0) =  _pos_sp_triplet.previous.x;
 			prev_sp(1) =  _pos_sp_triplet.previous.y;
