@@ -658,19 +658,19 @@ MPU6000::init()
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 
 	if (_accel_reports == nullptr) {
-		goto out;
+		return ret;
 	}
 
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
 	if (_gyro_reports == nullptr) {
-		goto out;
+		return ret;
 	}
 
 	ret = -EIO;
 
 	if (reset() != OK) {
-		goto out;
+		return ret;
 	}
 
 	/* Initialize offsets and scales */
@@ -688,6 +688,34 @@ MPU6000::init()
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
 
+	// set software low pass filter for controllers
+	param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
+	float accel_cut = MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
+
+	if (accel_cut_ph != PARAM_INVALID && param_get(accel_cut_ph, &accel_cut) == PX4_OK) {
+		PX4_INFO("accel cutoff set to %.2f Hz", double(accel_cut));
+
+		_accel_filter_x.set_cutoff_frequency(MPU6000_ACCEL_DEFAULT_RATE, accel_cut);
+		_accel_filter_y.set_cutoff_frequency(MPU6000_ACCEL_DEFAULT_RATE, accel_cut);
+		_accel_filter_z.set_cutoff_frequency(MPU6000_ACCEL_DEFAULT_RATE, accel_cut);
+
+	} else {
+		PX4_ERR("IMU_ACCEL_CUTOFF param invalid");
+	}
+
+	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
+	float gyro_cut = MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
+
+	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == PX4_OK) {
+		PX4_INFO("gyro cutoff set to %.2f Hz", double(gyro_cut));
+
+		_gyro_filter_x.set_cutoff_frequency(MPU6000_GYRO_DEFAULT_RATE, gyro_cut);
+		_gyro_filter_y.set_cutoff_frequency(MPU6000_GYRO_DEFAULT_RATE, gyro_cut);
+		_gyro_filter_z.set_cutoff_frequency(MPU6000_GYRO_DEFAULT_RATE, gyro_cut);
+
+	} else {
+		PX4_ERR("IMU_GYRO_CUTOFF param invalid");
+	}
 
 	/* do CDev init for the gyro device node, keep it optional */
 	ret = _gyro->init();
@@ -711,9 +739,8 @@ MPU6000::init()
 					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_accel_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		PX4_WARN("ADVERT FAIL");
 	}
-
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	struct gyro_report grp;
@@ -723,10 +750,9 @@ MPU6000::init()
 			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_gyro->_gyro_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		PX4_WARN("ADVERT FAIL");
 	}
 
-out:
 	return ret;
 }
 
@@ -2137,6 +2163,10 @@ MPU6000::print_info()
 	}
 
 	::printf("temperature: %.1f\n", (double)_last_temperature);
+	float accel_cut = _accel_filter_x.get_cutoff_freq();
+	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
+	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
+	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
 }
 
 void
