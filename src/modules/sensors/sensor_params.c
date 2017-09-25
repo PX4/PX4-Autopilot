@@ -1148,7 +1148,7 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 /**
 * Driver level cut frequency for gyro
 *
-* The cut frequency for the 2nd order butterworth filter on the imu driver. This features
+* The cut frequency for the 2nd order butterworth filter on the gyro driver. This features
 * is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
 * controllers, not the estimators. 0 disables the filter.
 *
@@ -1163,7 +1163,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 /**
 * Driver level cut frequency for accel
 *
-* The cut frequency for the 2nd order butterworth filter on the imu driver. This features
+* The cut frequency for the 2nd order butterworth filter on the accel driver. This features
 * is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
 * controllers, not the estimators. 0 disables the filter.
 *

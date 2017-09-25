@@ -315,29 +315,29 @@ MPU9250::init()
 	param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
 	float accel_cut = MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
 
-	if (accel_cut_ph != PARAM_INVALID && param_get(accel_cut_ph, &accel_cut) == 0) {
-		param_get(accel_cut_ph, &accel_cut);
-		PX4_INFO("imu accel cutoff set to %10.2f Hz", double(accel_cut));
+	if (accel_cut_ph != PARAM_INVALID && (param_get(accel_cut_ph, &accel_cut) == PX4_OK)) {
+		PX4_INFO("accel cutoff set to %.2f Hz", double(accel_cut));
+
 		_accel_filter_x.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 		_accel_filter_y.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 		_accel_filter_z.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 
 	} else {
-		warnx("IMU_ACCEL_CUTOFF param invalid");
+		PX4_ERR("IMU_ACCEL_CUTOFF param invalid");
 	}
 
 	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
 	float gyro_cut = MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
 
-	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == 0) {
-		param_get(gyro_cut_ph, &gyro_cut);
-		PX4_INFO("imu gyro cutoff set to %10.2f Hz", double(gyro_cut));
+	if (gyro_cut_ph != PARAM_INVALID && (param_get(gyro_cut_ph, &gyro_cut) == PX4_OK)) {
+		PX4_INFO("gyro cutoff set to %.2f Hz", double(gyro_cut));
+
 		_gyro_filter_x.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 		_gyro_filter_y.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 		_gyro_filter_z.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 
 	} else {
-		warnx("IMU_GYRO_CUTOFF param invalid");
+		PX4_ERR("IMU_GYRO_CUTOFF param invalid");
 	}
 
 	/* do CDev init for the gyro device node, keep it optional */
@@ -351,11 +351,11 @@ MPU9250::init()
 
 #ifdef USE_I2C
 
-	if (!_mag->is_passthrough() && _mag->_interface->init() != OK) {
-		warnx("failed to setup ak8963 interface");
+	if (!_mag->is_passthrough() && _mag->_interface->init() != PX4_OK) {
+		PX4_ERR("failed to setup ak8963 interface");
 	}
 
-#endif
+#endif /* USE_I2C */
 
 	/* do CDev init for the mag device node, keep it optional */
 	if (_whoami == MPU_WHOAMI_9250) {
