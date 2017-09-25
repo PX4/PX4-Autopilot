@@ -12,7 +12,7 @@ endif()
 project(NuttX_${BOARD} LANGUAGES ASM C CXX)
 message(STATUS "NuttX: " ${BOARD} " " ${nuttx_config_type} " " ${CMAKE_SYSTEM_PROCESSOR})
 
-if (CMAKE_HOST_APPLE OR TRUE)
+if (CMAKE_HOST_APPLE OR CMAKE_HOST_WIN32)
 	# copy with rsync and create file dependencies
 	set(cp_cmd "rsync")
 	set(cp_opts)
@@ -93,13 +93,12 @@ add_custom_target(nuttx_context DEPENDS ${NUTTX_DIR}/include/nuttx/version.h)
 add_library(nuttx_build INTERFACE)
 
 # builtins
+add_library(nuttx_builtin INTERFACE)
 if ("${BOARD}" MATCHES "px4io")
 	# no apps for px4io
-	set(nuttx_builtin_list)
 else()
 	# add additional commands to nuttx builtins
 	set(builtin_registry ${APPS_DIR}/builtin/registry)
-	set(nuttx_builtin_list)
 	foreach(module ${module_libraries})
 		get_target_property(MAIN ${module} MAIN)
 		get_target_property(STACK_MAIN ${module} STACK_MAIN)
@@ -110,13 +109,13 @@ else()
 				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${builtin_registry}/${MAIN}_main.bdat
 				VERBATIM
 				)
-			list(APPEND nuttx_builtin_list ${builtin_registry}/${MAIN}_main.bdat)
+			add_dependencies(nuttx_builtin ${builtin_registry}/${MAIN}_main.bdat)
 
 			add_custom_command(OUTPUT ${builtin_registry}/${MAIN}_main.pdat
 				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${builtin_registry}/${MAIN}_main.pdat
 				VERBATIM
 				)
-			list(APPEND nuttx_builtin_list ${builtin_registry}/${MAIN}_main.pdat)
+			add_dependencies(nuttx_builtin ${builtin_registry}/${MAIN}_main.pdat)
 		endif()
 	endforeach()
 endif()
@@ -128,7 +127,7 @@ add_custom_command(OUTPUT ${APPS_DIR}/libapps.a
 		${APPS_DIR}/platform/.built
 	COMMAND find ${APPS_DIR} -name \*.o -o -name \*.built -delete
 	COMMAND make --silent --no-print-directory -C ../apps TOPDIR="${NUTTX_DIR}" libapps.a > /dev/null
-	DEPENDS nuttx_context ${nuttx_builtin_list}
+	DEPENDS nuttx_context nuttx_builtin
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	)
 add_custom_target(nuttx_apps_build DEPENDS ${APPS_DIR}/libapps.a)
@@ -184,9 +183,9 @@ add_nuttx_dir(mm mm n "")
 
 # oldconfig helper
 add_custom_target(oldconfig
-	COMMAND make --no-print-directory -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} oldconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} oldconfig
 	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
-	COMMAND ${PX4_SOURCE_DIR}/Tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
+	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 	DEPENDS nuttx_configure
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make oldconfig for ${BOARD} with ${nuttx_config_type}"
@@ -195,9 +194,9 @@ add_custom_target(oldconfig
 
 # menuconfig helper
 add_custom_target(menuconfig
-	COMMAND make --no-print-directory -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} menuconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} menuconfig
 	COMMAND cp ${NUTTX_DIR}/nuttx/.config ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
-	COMMAND ${PX4_SOURCE_DIR}/Tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
+	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 	DEPENDS nuttx_configure
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make menuconfig for ${BOARD} with ${nuttx_config_type}"
@@ -206,7 +205,7 @@ add_custom_target(menuconfig
 
 # qconfig helper
 add_custom_target(qconfig
-	COMMAND make --no-print-directory -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} qconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} qconfig
 	COMMAND cp .config ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 	DEPENDS nuttx_configure
 	WORKING_DIRECTORY ${NUTTX_DIR}
