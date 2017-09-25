@@ -114,8 +114,8 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 
-        # micro RTPS
-        modules/micrortps_bridge/micrortps_client
+	# micro RTPS
+	modules/micrortps_bridge/micrortps_client
 
 	#
 	# Libraries
@@ -231,4 +231,3 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
-

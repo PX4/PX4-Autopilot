@@ -30,10 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(depends
-	msg_gen
-	prebuild_targets
-	)
 
 px4_add_module(
 	MODULE platforms__common
@@ -42,6 +38,7 @@ px4_add_module(
 		px4_getopt.c
 		shutdown.cpp
 	DEPENDS
-		${depends}
+		prebuild_targets
+		uorb_headers
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

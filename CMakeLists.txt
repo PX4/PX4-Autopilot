@@ -192,8 +192,6 @@ px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
 px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
 px4_add_git_submodule(TARGET git_gazebo_flow PATH "Tools/sitl_gazebo/external/OpticalFlow")
 px4_add_git_submodule(TARGET git_gazebo_klt PATH "Tools/sitl_gazebo/external/OpticalFlow/external/klt_feature_tracker")
-px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
-px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
 px4_add_git_submodule(TARGET git_gps_devices PATH "src/drivers/gps/devices")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
@@ -361,16 +359,9 @@ add_definitions(${definitions})
 #=============================================================================
 # message, and airframe generation
 #
-
 include(common/px4_metadata)
 
 add_subdirectory(msg)
-px4_generate_messages(TARGET msg_gen
-	MSG_FILES ${msg_files}
-	OS ${OS}
-	INCLUDES ${msg_include_paths}
-	DEPENDS prebuild_targets
-	)
 
 px4_generate_airframes_xml(BOARD ${BOARD})
 
