@@ -704,7 +704,7 @@ MPU6000::init()
 	}
 
 	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
-	float gyro_cut = MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
+	float gyro_cut = MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == 0) {
 		param_get(gyro_cut_ph, &gyro_cut);
