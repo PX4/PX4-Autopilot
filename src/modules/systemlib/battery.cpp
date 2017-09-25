@@ -195,10 +195,9 @@ Battery::estimateRemaining(float throttle_normalized, bool armed)
 
 	// remaining battery capacity based on used current integrated time
 	const float rcap = 1.0f - _discharged_mah / _param_capacity.get();
-	const float rcap_filt = _remaining_capacity * 0.99f + rcap * 0.01f;
 
-	if (PX4_ISFINITE(rcap_filt)) {
-		_remaining_capacity = rcap_filt;
+	if (PX4_ISFINITE(rcap)) {
+		_remaining_capacity = rcap;
 	}
 
 	// limit to sane values
