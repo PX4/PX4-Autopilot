@@ -2,20 +2,20 @@
  * @file Quaternion.hpp
  *
  * All rotations and axis systems follow the right-hand rule.
- * The Hamilton quaternion product definition is used.
+ * The Hamilton quaternion convention including its product definition is used.
  *
  * In order to rotate a vector in frame b (v_b) to frame n by a righthand
  * rotation defined by the quaternion q_nb (from frame b to n)
  * one can use the following operation:
- * v_n = q_nb * [0;v_b] * q_nb^-1
+ * v_n = q_nb * [0;v_b] * q_nb^(-1)
  *
  * Just like DCM's: v_n = C_nb * v_b (vector rotation)
  * M_n = C_nb * M_b * C_nb^(-1) (matrix rotation)
  *
- * or similarly
- * v_b = q_nb^1 * [0;v_n] * q_nb
+ * or similarly the reverse operation
+ * v_b = q_nb^(-1) * [0;v_n] * q_nb
  *
- * where q_nb^(-1) represents the inverse of the quaternion q_nb =  q_bn
+ * where q_nb^(-1) represents the inverse of the quaternion q_nb^(-1) = q_bn
  *
  * The product z of two quaternions z = q2 * q1 represents an intrinsic rotation
  * in the order of first q1 followed by q2.
