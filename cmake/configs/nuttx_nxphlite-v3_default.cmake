@@ -133,34 +133,39 @@ set(config_module_list
 	modules/logger
 	modules/sdlog2
 
-	#
+#
 	# Library modules
 	#
-	modules/dataman
 	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
+	modules/dataman
+
+	# micro RTPS
+	modules/micrortps_bridge/micrortps_client
+
 
 	#
 	# Libraries
 	#
 	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/rc
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
+	lib/conversion
 	lib/launchdetection
 	lib/led
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/rc
+	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
-	lib/terrain_estimation
 	lib/version
+	lib/DriverFramework/framework
+	lib/micro-CDR
 
 	#
 	# Platform
@@ -168,7 +173,6 @@ set(config_module_list
 	platforms/common
 	platforms/nuttx
 	platforms/nuttx/px4_layer
-	lib/micro-CDR
 
 	#
 	# OBC challenge
@@ -211,3 +215,12 @@ set(config_module_list
 	# EKF
 	examples/ekf_att_pos_estimator
 )
+
+
+set(config_rtps_send_topics
+   sensor_combined
+   )
+
+set(config_rtps_receive_topics
+   sensor_baro
+   )
