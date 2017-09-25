@@ -66,7 +66,6 @@ SDP3X::init_sdp3x()
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
-		PX4_ERR("reset failed");
 		return false;
 	}
 
