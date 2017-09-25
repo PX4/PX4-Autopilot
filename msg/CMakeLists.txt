@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-set(msg_file_names
+set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
 	actuator_direct.msg
@@ -127,17 +127,63 @@ set(msg_file_names
 	wind_estimate.msg
 	)
 
-# Get absolute paths
-set(msg_files)
-set(msg_include_paths)
+px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
+px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
 
-foreach(msg_file ${msg_file_names})
-	list(APPEND msg_files ${CMAKE_CURRENT_SOURCE_DIR}/${msg_file})
+# headers
+set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)
+set(msg_source_out_path	${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
+#set(msg_source_files_out ${CMAKE_CURRENT_BINARY_DIR}/uORBTopics.cpp)
+
+set(msg_list)
+set(uorb_headers)
+set(uorb_sources ${msg_source_out_path}/uORBTopics.cpp)
+foreach(msg_file ${msg_files})
+	get_filename_component(msg ${msg_file} NAME_WE)
+	list(APPEND msg_list ${msg})
+	list(APPEND uorb_headers ${msg_out_path}/${msg}.h)
+	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
 endforeach()
 
-list(APPEND msg_include_paths ${CMAKE_CURRENT_SOURCE_DIR})
-set(msg_include_paths ${msg_include_paths} PARENT_SCOPE)
+# Generate uORB headers
+add_custom_command(OUTPUT ${uorb_headers}
+	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
+		--headers
+		-f ${msg_files}
+		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-o ${msg_out_path}
+		-e templates/uorb
+		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
+		-q
+	DEPENDS ${msg_files}
+	COMMENT "Generating uORB topic headers"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+	)
+add_custom_target(uorb_headers DEPENDS ${uorb_headers})
 
-set(msg_files ${msg_files} PARENT_SCOPE)
+# Generate uORB sources
+add_custom_command(OUTPUT ${uorb_sources}
+	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
+		--sources
+		-f ${msg_files}
+		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-o ${msg_source_out_path}
+		-e templates/uorb
+		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
+		-q
+	DEPENDS ${msg_files}
+	COMMENT "Generating uORB topic sources"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+	)
 
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+add_library(uorb_msgs STATIC EXCLUDE_FROM_ALL ${uorb_sources})
+add_dependencies(uorb_msgs uorb_headers prebuild_targets)
+
+# microCDR now part of uORB
+target_include_directories(uorb_msgs
+	PRIVATE ${PX4_SOURCE_DIR}/src/lib/micro-CDR/include
+	PRIVATE ${PX4_BINARY_DIR}/src/lib/micro-CDR/include/microcdr
+	)
+target_link_libraries(uorb_msgs PRIVATE lib__micro-CDR)

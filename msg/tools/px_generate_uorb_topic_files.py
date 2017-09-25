@@ -47,7 +47,7 @@ import sys
 px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(px4_tools_dir + "/genmsg/src")
 sys.path.append(px4_tools_dir + "/gencpp/src")
-px4_msg_dir = os.path.join(px4_tools_dir,"../msg")
+px4_msg_dir = os.path.join(px4_tools_dir, "..")
 
 try:
         import em

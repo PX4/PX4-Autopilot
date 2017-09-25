@@ -8,10 +8,10 @@
 	path = src/modules/uavcan/libuavcan
 	url = https://github.com/UAVCAN/libuavcan.git
 [submodule "Tools/genmsg"]
-	path = Tools/genmsg
+	path = msg/tools/genmsg
 	url = https://github.com/ros/genmsg.git
 [submodule "Tools/gencpp"]
-	path = Tools/gencpp
+	path = msg/tools/gencpp
 	url = https://github.com/ros/gencpp.git
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
