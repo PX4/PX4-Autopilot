@@ -62,13 +62,12 @@ add_custom_command(OUTPUT
 					${NUTTX_DIR}/PX4_Warnings.mk
 					${NUTTX_DIR}/.config
 					${NUTTX_DIR}/Make.defs
-					${NUTTX_DIR}/configs/${BOARD}/${nuttx_config_type}/defconfig
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/PX4_Config.mk ${NUTTX_DIR}/PX4_Config.mk
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/PX4_Warnings.mk ${NUTTX_DIR}/PX4_Warnings.mk
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig ${NUTTX_DIR}/.config
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/Make.defs ${NUTTX_DIR}/Make.defs
 	COMMAND ${cp_cmd} ${cp_opts} ${NUTTX_CONFIG_DIR}/${BOARD} ${NUTTX_DIR}/configs/
+	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
 	DEPENDS
 		${NUTTX_CONFIG_DIR}/PX4_Config.mk
 		${NUTTX_CONFIG_DIR}/PX4_Warnings.mk
@@ -81,11 +80,30 @@ add_custom_command(OUTPUT
 	)
 add_custom_target(nuttx_configure DEPENDS ${NUTTX_DIR}/.config)
 
+# verbose build settings (V=1 or VERBOSE=1)
+option(PX4_NUTTX_VERBOSE "PX4 NuttX verbose build" off)
+
+if (($ENV{V} MATCHES "1") OR ($ENV{VERBOSE} MATCHES "1"))
+	message(STATUS "NuttX verbose build enabled")
+	set(PX4_NUTTX_VERBOSE on)
+endif()
+
+if (PX4_NUTTX_VERBOSE)
+	set(nuttx_build_options)
+	set(nuttx_build_output)
+	set(nuttx_build_uses_terminal "USES_TERMINAL")
+else()
+	set(nuttx_build_options "--quiet")
+	set(nuttx_build_output ">nuttx_build.log")
+	set(nuttx_build_uses_terminal)
+endif()
+
 # context
 add_custom_command(OUTPUT ${NUTTX_DIR}/include/nuttx/version.h ${NUTTX_DIR}/include/nuttx/config.h
-	COMMAND make --no-print-directory --silent context > /dev/null
+	COMMAND make ${nuttx_build_options} --no-print-directory context ${nuttx_build_output}
 	DEPENDS nuttx_configure ${NUTTX_DIR}/.config
 	WORKING_DIRECTORY ${NUTTX_DIR}
+	${nuttx_build_uses_terminal}
 	)
 add_custom_target(nuttx_context DEPENDS ${NUTTX_DIR}/include/nuttx/version.h)
 
@@ -123,12 +141,12 @@ endif()
 # APPS
 
 # libapps.a
-add_custom_command(OUTPUT ${APPS_DIR}/libapps.a
-		${APPS_DIR}/platform/.built
+add_custom_command(OUTPUT ${APPS_DIR}/libapps.a ${APPS_DIR}/platform/.built
 	COMMAND find ${APPS_DIR} -name \*.o -o -name \*.built -delete
-	COMMAND make --silent --no-print-directory -C ../apps TOPDIR="${NUTTX_DIR}" libapps.a > /dev/null
+	COMMAND make ${nuttx_build_options} --no-print-directory -C ../apps TOPDIR="${NUTTX_DIR}" libapps.a ${nuttx_build_output}
 	DEPENDS nuttx_context ${nuttx_builtin_list}
 	WORKING_DIRECTORY ${NUTTX_DIR}
+	${nuttx_build_uses_terminal}
 	)
 add_custom_target(nuttx_apps_build DEPENDS ${APPS_DIR}/libapps.a)
 add_library(nuttx_apps STATIC IMPORTED GLOBAL)
@@ -138,9 +156,10 @@ target_link_libraries(nuttx_build INTERFACE nuttx_apps)
 
 # libboard.a
 add_custom_command(OUTPUT ${NUTTX_DIR}/arch/arm/src/board/libboard.a
-	COMMAND make --silent --no-print-directory -C board TOPDIR="${NUTTX_DIR}" libboard.a EXTRADEFINES=-D__KERNEL__ > /dev/null
+	COMMAND make ${nuttx_build_options} -j2 --no-print-directory -C board TOPDIR="${NUTTX_DIR}" libboard.a EXTRADEFINES=-D__KERNEL__ ${nuttx_build_output}
 	DEPENDS nuttx_context
 	WORKING_DIRECTORY ${NUTTX_DIR}/arch/arm/src
+	${nuttx_build_uses_terminal}
 	)
 add_custom_target(nuttx_board_build DEPENDS ${NUTTX_DIR}/arch/arm/src/board/libboard.a)
 add_library(nuttx_board STATIC IMPORTED GLOBAL)
@@ -155,10 +174,11 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*)
 
 	add_custom_command(OUTPUT ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a
-		COMMAND find ${nuttx_lib_dir} -type f -name *.o -o -name .built -delete
-		COMMAND make -C ${nuttx_lib_dir} -j2 --silent --no-print-directory lib${nuttx_lib}.a TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRADEFINES=${extra} > /dev/null
+		COMMAND find ${nuttx_lib_dir} -type f -name *.o -delete
+		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} -j2 --no-print-directory lib${nuttx_lib}.a TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRADEFINES=${extra} ${nuttx_build_output}
 		DEPENDS ${nuttx_lib_files} nuttx_context
 		WORKING_DIRECTORY ${NUTTX_DIR}
+		${nuttx_build_uses_terminal}
 		)
 	add_custom_target(nuttx_${nuttx_lib}_build DEPENDS ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a)
 	add_library(nuttx_${nuttx_lib} STATIC IMPORTED GLOBAL)
@@ -168,18 +188,15 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 endfunction()
 
 # add_nuttx_dir(NAME DIRECTORY KERNEL EXTRA)
-
 add_nuttx_dir(arch arch/arm/src y -D__KERNEL__)
 add_nuttx_dir(binfmt binfmt y -D__KERNEL__)
 add_nuttx_dir(configs configs y -D__KERNEL__)
 add_nuttx_dir(drivers drivers y -D__KERNEL__)
 add_nuttx_dir(fs fs y -D__KERNEL__)
 add_nuttx_dir(sched sched y -D__KERNEL__)
-
 add_nuttx_dir(c libc n "")
 add_nuttx_dir(cxx libxx n "")
 add_nuttx_dir(mm mm n "")
-
 
 # oldconfig helper
 add_custom_target(oldconfig
