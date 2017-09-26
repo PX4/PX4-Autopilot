@@ -64,9 +64,11 @@ static int can2_irq(const int irq, void*);
 #define CAN1_TX_IRQn           CAN_TX_IRQn
 #define CAN1_RX0_IRQn          CAN_RX0_IRQn
 #define CAN1_RX1_IRQn          CAN_RX1_IRQn
-#define CAN1_TX_IRQHandler     CAN_TX_IRQHandler
-#define CAN1_RX0_IRQHandler    CAN_RX0_IRQHandler
-#define CAN1_RX1_IRQHandler    CAN_RX1_IRQHandler
+# if UAVCAN_STM32_BAREMETAL
+#  define CAN1_TX_IRQHandler   CAN_TX_IRQHandler
+#  define CAN1_RX0_IRQHandler  CAN_RX0_IRQHandler
+#  define CAN1_RX1_IRQHandler  CAN_RX1_IRQHandler
+# endif
 #endif
 
 
