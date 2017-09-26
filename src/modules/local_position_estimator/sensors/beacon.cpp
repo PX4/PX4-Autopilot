@@ -68,11 +68,12 @@ void BlockLocalPositionEstimator::beaconCorrect()
 		float cov_vx = _sub_beacon_position.get().cov_vx_rel;
 		float cov_vy = _sub_beacon_position.get().cov_vy_rel;
 
-		if (cov_vx < 1.0e-3f || cov_vy < 1.0e-3f) {
+		float min_cov = 1.0e-3f;
+		if (cov_vx < min_cov || cov_vy < min_cov) {
 			//PX4_WARN("fallback cov"); XXX check this
 			// use sensor value only if reasoanble
-			cov_vx = 0.1; // TODO make parameter
-			cov_vy = 0.1; // TODO make parameter
+			cov_vx = min_cov; // TODO make parameter
+			cov_vy = min_cov; // TODO make parameter
 		}
 
 		// beacon measurement matrix and noise matrix
@@ -113,7 +114,7 @@ void BlockLocalPositionEstimator::beaconCorrect()
 			if (!_beaconFault) {
 				_beaconFault = true;
 				mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] beacon fault,  beta %5.2f", double(beta));
-				PX4_WARN("beacon fault,  beta %5.2f", double(beta));
+				PX4_WARN("beacon fault,  beta %5.2f", double(beta)); // TODO remove
 			}
 
 			// abort correction
@@ -122,7 +123,7 @@ void BlockLocalPositionEstimator::beaconCorrect()
 		} else if (_beaconFault) {
 			_beaconFault = false;
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] beacon OK");
-			PX4_WARN("[lpe] beacon OK");
+			PX4_WARN("[lpe] beacon OK"); // TODO remove
 		}
 
 		// kalman filter correction if no fault
@@ -130,7 +131,7 @@ void BlockLocalPositionEstimator::beaconCorrect()
 			Matrix<float, n_x, n_y_beacon> K =
 				_P * C.transpose() * S_I;
 			Vector<float, n_x> dx = K * r;
-			// PX4_WARN("correcting with %f %f", dx(0), dx(1));
+			// PX4_WARN("correcting with %f %f", (double)dx(0), (double)dx(1));
 			_x += dx;
 			_P -= K * C * _P;
 		}

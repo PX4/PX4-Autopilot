@@ -85,7 +85,6 @@ void BeaconPositionEstimator::update()
 	if (_estimator_initialized) {
 		/* predict */
 		// only run prediction if filter has been initialized
-		// use the best estimate of the vehicle acceleration to predict the beacon position
 
 		if (hrt_absolute_time() - _last_update > beacon_position_estimator_TIMEOUT_US) {
 			PX4_WARN("Timeout");
@@ -126,8 +125,8 @@ void BeaconPositionEstimator::update()
 		// default orientation has camera x pointing in body y, camera y in body -x
 
 		matrix::Vector<float, 3> sensor_ray; // ray pointing towards beacon in body frame
-		sensor_ray(0) = -_irlockReport.pos_y;//_irlockReport.pos_x; // forward
-		sensor_ray(1) = _irlockReport.pos_x;//_irlockReport.pos_y; // right
+		sensor_ray(0) = -_irlockReport.pos_y; // forward
+		sensor_ray(1) = _irlockReport.pos_x; // right
 		sensor_ray(2) = 1.0f;
 
 		// rotate the unit ray into the navigation frame, assume sensor frame = body frame
@@ -137,7 +136,7 @@ void BeaconPositionEstimator::update()
 
 		if (fabs(sensor_ray(2)) < 1e-6) {
 			PX4_WARN("z component of measurement unsafe: %f %f %f", (double)sensor_ray(0), (double)sensor_ray(1),
-				 (double)sensor_ray(2));
+				 (double)sensor_ray(2)); // TODO remove print statement
 
 		} else {
 			// scale the ray s.t. the z component has length of HAGL
@@ -160,11 +159,11 @@ void BeaconPositionEstimator::update()
 				bool update_y = _kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
 
 				if (!update_x) {
-					PX4_WARN("rejected x");
+					PX4_WARN("rejected x"); // TODO remove
 				}
 
 				if (!update_y) {
-					PX4_WARN("rejected y");
+					PX4_WARN("rejected y"); // TODO remove
 				}
 
 				if (update_x && update_y) {
@@ -300,15 +299,15 @@ bool BeaconPositionEstimator::_orb_update(const struct orb_metadata *meta, int h
 void BeaconPositionEstimator::_update_params()
 {
 	param_get(_paramHandle.acc_unc, &_params.acc_unc);
-	PX4_WARN("BEST_ACC_UNC %f", (double)_params.acc_unc);
+	PX4_WARN("BEST_ACC_UNC %f", (double)_params.acc_unc); // TODO remove
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
-	PX4_WARN("BEST_MEAS_UNC %f", (double)_params.meas_unc);
+	PX4_WARN("BEST_MEAS_UNC %f", (double)_params.meas_unc); // TODO remove
 	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
-	PX4_WARN("BEST_POS_UNC_IN %f", (double)_params.pos_unc_init);
+	PX4_WARN("BEST_POS_UNC_IN %f", (double)_params.pos_unc_init); // TODO remove
 	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
-	PX4_WARN("BEST_VEL_UNC_IN %f", (double)_params.vel_unc_init);
+	PX4_WARN("BEST_VEL_UNC_IN %f", (double)_params.vel_unc_init); // TODO remove
 	param_get(_paramHandle.mode, &_params.mode);
-	PX4_WARN("BEST_MODE %d", _params.mode);
+	PX4_WARN("BEST_MODE %d", _params.mode); // TODO remove
 }
 
 
