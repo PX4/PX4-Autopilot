@@ -93,6 +93,7 @@ public:
 
 	/**
 	 * Switch to the next task in the available list (for testing)
+	 * @return 0 on success, >0 on error
 	 */
 	void switch_task()
 	{
@@ -102,9 +103,14 @@ public:
 	/**
 	 * Switch to a specific task (for normal usage)
 	 * @param task number to switch to
+	 * @return 0 on success, >0 on error
 	 */
-	void switch_task(int task_number)
+	int switch_task(int task_number)
 	{
+		if (task_number == _current_task) {
+			return 0;
+		}
+
 		if (is_any_task_active()) {
 			_tasks[_current_task]->disable();
 		}
@@ -113,10 +119,11 @@ public:
 
 		if (is_any_task_active()) {
 			_tasks[_current_task]->activate();
-
-		} else {
-			_current_task = -1;
+			return 0;
 		}
+
+		_current_task = -1;
+		return 1;
 	};
 
 	/**
