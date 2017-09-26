@@ -202,33 +202,33 @@ private:
 	math::LowPassFilter2p _filter_manual_pitch;
 	math::LowPassFilter2p _filter_manual_roll;
 
-	void vel_sp_slewrate(float dt, matrix::Vector3f &_vel_sp)
+	void vel_sp_slewrate(matrix::Vector3f &_vel_sp)
 	{
 		matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
 		matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
 		matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
-		matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / dt;
+		matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / _deltatime;
 
 		/* limit total horizontal acceleration */
 		if (acc_xy.length() > _acceleration_state_dependent_xy) {
-			vel_sp_xy = _acceleration_state_dependent_xy * acc_xy.normalized() * dt + vel_sp_prev_xy;
+			vel_sp_xy = _acceleration_state_dependent_xy * acc_xy.normalized() * _deltatime + vel_sp_prev_xy;
 			_vel_sp(0) = vel_sp_xy(0);
 			_vel_sp(1) = vel_sp_xy(1);
 		}
 
 		/* limit vertical acceleration */
-		float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
+		float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / _deltatime;
 		float max_acc_z;
 
 		max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
 
 		if (fabsf(acc_z) > fabsf(max_acc_z)) {
-			_vel_sp(2) = max_acc_z * dt + _vel_sp_prev(2);
+			_vel_sp(2) = max_acc_z * _deltatime + _vel_sp_prev(2);
 		}
 
 	}
 
-	void set_manual_acceleration_xy(matrix::Vector2f &stick_xy, const float dt)
+	void set_manual_acceleration_xy(matrix::Vector2f &stick_xy)
 	{
 
 		/*
@@ -383,10 +383,10 @@ private:
 		case brake: {
 
 				/* limit jerk when braking to zero */
-				float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / dt;
+				float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / _deltatime;
 
 				if (jerk > _manual_jerk_limit_xy) {
-					_acceleration_state_dependent_xy = _manual_jerk_limit_xy * dt + _acceleration_state_dependent_xy;
+					_acceleration_state_dependent_xy = _manual_jerk_limit_xy * _deltatime + _acceleration_state_dependent_xy;
 
 				} else {
 					_acceleration_state_dependent_xy = _acceleration_hor_max.get();
@@ -437,7 +437,7 @@ private:
 		}
 	}
 
-	void set_manual_acceleration_z(float &max_acceleration, const float stick_z, const float dt)
+	void set_manual_acceleration_z(float &max_acceleration, const float stick_z)
 	{
 
 		/* in manual altitude control apply acceleration limit based on stick input
@@ -480,10 +480,10 @@ private:
 		if (_user_intention_z == brake) {
 
 			/* limit jerk when braking to zero */
-			float jerk = (_acceleration_z_max_up.get() - _acceleration_state_dependent_z) / dt;
+			float jerk = (_acceleration_z_max_up.get() - _acceleration_state_dependent_z) / _deltatime;
 
 			if (jerk > _manual_jerk_limit_z) {
-				_acceleration_state_dependent_z = _manual_jerk_limit_z * dt + _acceleration_state_dependent_z;
+				_acceleration_state_dependent_z = _manual_jerk_limit_z * _deltatime + _acceleration_state_dependent_z;
 
 			} else {
 				_acceleration_state_dependent_z = _acceleration_z_max_up.get();
