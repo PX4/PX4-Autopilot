@@ -407,4 +407,63 @@ private:
 		}
 	}
 
+	void set_manual_acceleration_z(float &max_acceleration, const float stick_z, const float dt)
+	{
+
+		/* in manual altitude control apply acceleration limit based on stick input
+		 * we consider two states
+		 * 1.) brake
+		 * 2.) accelerate */
+
+		/* check if zero input stick */
+		const bool is_current_zero = (fabsf(stick_z) <= FLT_EPSILON);
+
+		/* default is acceleration */
+		manual_stick_input intention = acceleration;
+
+		/* check zero input stick */
+		if (is_current_zero) {
+			intention = brake;
+		}
+
+		/* get max and min acceleration where min acceleration is just 1/5 of max acceleration */
+		max_acceleration = (stick_z <= 0.0f) ? _acceleration_z_max_up.get() : _acceleration_z_max_down.get();
+
+		/*
+		 * update user input
+		 */
+		if ((_user_intention_z != brake) && (intention  == brake)) {
+
+			/* we start with lowest acceleration */
+			_acceleration_state_dependent_z = _acceleration_z_max_down.get();
+
+			/* reset slew rate */
+			_vel_sp_prev(2) = _vel(2);
+			_user_intention_z = brake;
+		}
+
+		_user_intention_z = intention;
+
+		/*
+		 * apply acceleration depending on state
+		 */
+		if (_user_intention_z == brake) {
+
+			/* limit jerk when braking to zero */
+			float jerk = (_acceleration_z_max_up.get() - _acceleration_state_dependent_z) / dt;
+
+			if (jerk > _manual_jerk_limit_z) {
+				_acceleration_state_dependent_z = _manual_jerk_limit_z * dt + _acceleration_state_dependent_z;
+
+			} else {
+				_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+			}
+		}
+
+		if (_user_intention_z == acceleration) {
+			_acceleration_state_dependent_z = (max_acceleration - _acceleration_z_max_down.get()) * fabsf(
+					stick_z) + _acceleration_z_max_down.get();
+		}
+	}
+
 };
