@@ -52,7 +52,7 @@ uint16 VEHICLE_CMD_DO_GUIDED_MASTER=221			# set id of master controller |System 
 uint16 VEHICLE_CMD_DO_GUIDED_LIMITS=222			# set limits for external control |timeout - maximum time (in seconds) that external controller will be allowed to control vehicle. 0 means no timeout| absolute altitude min (in meters, AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue.  0 means no lower altitude limit| absolute altitude max (in meters)- if vehicle moves above this alt, the command will be aborted and the mission will continue.  0 means no upper altitude limit| horizontal move limit (in meters, AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit| Empty| Empty| Empty|
 uint16 VEHICLE_CMD_DO_LAST = 240			# NOP - This command is only used to mark the upper limit of the DO commands in the enumeration |Empty| Empty| Empty| Empty| Empty| Empty| Empty|
 uint16 VEHICLE_CMD_PREFLIGHT_CALIBRATION = 241		# Trigger calibration. This command will be only accepted if in pre-flight mode. See mavlink spec MAV_CMD_PREFLIGHT_CALIBRATION
-uint32 PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION = 3		# param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration
+uint16 PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION = 3		# param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration
 uint16 VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS = 242	# Set sensor offsets. This command will be only accepted if in pre-flight mode. |Sensor to adjust the offsets for: 0: gyros, 1: accelerometer, 2: magnetometer, 3: barometer, 4: optical flow| X axis offset (or generic dimension 1), in the sensor's raw units| Y axis offset (or generic dimension 2), in the sensor's raw units| Z axis offset (or generic dimension 3), in the sensor's raw units| Generic dimension 4, in the sensor's raw units| Generic dimension 5, in the sensor's raw units| Generic dimension 6, in the sensor's raw units|
 uint16 VEHICLE_CMD_PREFLIGHT_STORAGE = 245		# Request storage of different parameter values and logs. This command will be only accepted if in pre-flight mode. |Parameter storage: 0: READ FROM FLASH/EEPROM, 1: WRITE CURRENT TO FLASH/EEPROM| Mission storage: 0: READ FROM FLASH/EEPROM, 1: WRITE CURRENT TO FLASH/EEPROM| Reserved| Reserved| Empty| Empty| Empty|
 uint16 VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN = 246	# Request the reboot or shutdown of system components. |0: Do nothing for autopilot, 1: Reboot autopilot, 2: Shutdown autopilot.| 0: Do nothing for onboard computer, 1: Reboot onboard computer, 2: Shutdown onboard computer.| Reserved| Reserved| Empty| Empty| Empty|
@@ -69,27 +69,27 @@ uint16 VEHICLE_CMD_PREFLIGHT_UAVCAN = 243		# UAVCAN configuration. If param 1 ==
 uint16 VEHICLE_CMD_LOGGING_START = 2510		# start streaming ULog data
 uint16 VEHICLE_CMD_LOGGING_STOP = 2511			# stop streaming ULog data
 
-uint16 VEHICLE_CMD_RESULT_ACCEPTED = 0			# Command ACCEPTED and EXECUTED |
-uint16 VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED = 1	# Command TEMPORARY REJECTED/DENIED |
-uint16 VEHICLE_CMD_RESULT_DENIED = 2			# Command PERMANENTLY DENIED |
-uint16 VEHICLE_CMD_RESULT_UNSUPPORTED = 3		# Command UNKNOWN/UNSUPPORTED |
-uint16 VEHICLE_CMD_RESULT_FAILED = 4			# Command executed, but failed |
-uint16 VEHICLE_CMD_RESULT_IN_PROGRESS = 5		# Command being executed |
-uint16 VEHICLE_CMD_RESULT_ENUM_END = 6			#
+uint8 VEHICLE_CMD_RESULT_ACCEPTED = 0			# Command ACCEPTED and EXECUTED |
+uint8 VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED = 1	# Command TEMPORARY REJECTED/DENIED |
+uint8 VEHICLE_CMD_RESULT_DENIED = 2			# Command PERMANENTLY DENIED |
+uint8 VEHICLE_CMD_RESULT_UNSUPPORTED = 3		# Command UNKNOWN/UNSUPPORTED |
+uint8 VEHICLE_CMD_RESULT_FAILED = 4			# Command executed, but failed |
+uint8 VEHICLE_CMD_RESULT_IN_PROGRESS = 5		# Command being executed |
+uint8 VEHICLE_CMD_RESULT_ENUM_END = 6			#
 
-uint16 VEHICLE_MOUNT_MODE_RETRACT = 0				# Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization |
-uint16 VEHICLE_MOUNT_MODE_NEUTRAL = 1				# Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory. |
-uint16 VEHICLE_MOUNT_MODE_MAVLINK_TARGETING = 2		# Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization |
-uint16 VEHICLE_MOUNT_MODE_RC_TARGETING = 3			# Load neutral position and start RC Roll,Pitch,Yaw control with stabilization |
-uint16 VEHICLE_MOUNT_MODE_GPS_POINT = 4				# Load neutral position and start to point to Lat,Lon,Alt |
-uint16 VEHICLE_MOUNT_MODE_ENUM_END = 5				#
+uint8 VEHICLE_MOUNT_MODE_RETRACT = 0				# Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization |
+uint8 VEHICLE_MOUNT_MODE_NEUTRAL = 1				# Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory. |
+uint8 VEHICLE_MOUNT_MODE_MAVLINK_TARGETING = 2		# Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization |
+uint8 VEHICLE_MOUNT_MODE_RC_TARGETING = 3			# Load neutral position and start RC Roll,Pitch,Yaw control with stabilization |
+uint8 VEHICLE_MOUNT_MODE_GPS_POINT = 4				# Load neutral position and start to point to Lat,Lon,Alt |
+uint8 VEHICLE_MOUNT_MODE_ENUM_END = 5				#
 
-uint16 VEHICLE_ROI_NONE = 0                         # No region of interest |
-uint16 VEHICLE_ROI_WPNEXT = 1                       # Point toward next MISSION |
-uint16 VEHICLE_ROI_WPINDEX = 2                      # Point toward given MISSION |
-uint16 VEHICLE_ROI_LOCATION = 3                     # Point toward fixed location |
-uint16 VEHICLE_ROI_TARGET = 4                       # Point toward target
-uint16 VEHICLE_ROI_ENUM_END = 5
+uint8 VEHICLE_ROI_NONE = 0                         # No region of interest |
+uint8 VEHICLE_ROI_WPNEXT = 1                       # Point toward next MISSION |
+uint8 VEHICLE_ROI_WPINDEX = 2                      # Point toward given MISSION |
+uint8 VEHICLE_ROI_LOCATION = 3                     # Point toward fixed location |
+uint8 VEHICLE_ROI_TARGET = 4                       # Point toward target
+uint8 VEHICLE_ROI_ENUM_END = 5
 
 uint8 ORB_QUEUE_LENGTH = 3
 

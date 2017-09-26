@@ -57,7 +57,7 @@ namespace vmount
 class InputMavlinkROI : public InputBase
 {
 public:
-	InputMavlinkROI();
+	InputMavlinkROI() = default;
 	virtual ~InputMavlinkROI();
 
 	virtual void print_status();
@@ -71,7 +71,7 @@ private:
 
 	int _vehicle_roi_sub = -1;
 	int _position_setpoint_triplet_sub = -1;
-	uint8_t _cur_roi_mode = vehicle_roi_s::VEHICLE_ROI_NONE;
+	uint8_t _cur_roi_mode = vehicle_roi_s::ROI_NONE;
 };
 
 

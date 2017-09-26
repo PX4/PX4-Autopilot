@@ -1333,6 +1333,22 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
 			break;
 
+		case MAV_CMD_NAV_ROI:
+		case MAV_CMD_DO_SET_ROI:
+			if ((int)mavlink_mission_item->param1 == MAV_ROI_LOCATION) {
+				mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
+				mission_item->params[0] = MAV_ROI_LOCATION;
+
+				mission_item->params[4] = mavlink_mission_item->x;
+				mission_item->params[5] = mavlink_mission_item->y;
+				mission_item->params[6] = mavlink_mission_item->z;
+
+			} else {
+				return MAV_MISSION_INVALID_PARAM1;
+			}
+
+			break;
+
 		case MAV_CMD_NAV_VTOL_TAKEOFF:
 		case MAV_CMD_NAV_VTOL_LAND:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
@@ -1391,6 +1407,19 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
 			break;
 
+		case MAV_CMD_NAV_ROI:
+		case MAV_CMD_DO_SET_ROI: {
+				const int roi_mode = mavlink_mission_item->param1;
+
+				if (roi_mode == MAV_ROI_NONE || roi_mode == MAV_ROI_WPNEXT || roi_mode == MAV_ROI_WPINDEX) {
+					mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
+
+				} else {
+					return MAV_MISSION_INVALID_PARAM1;
+				}
+			}
+			break;
+
 		case MAV_CMD_DO_CHANGE_SPEED:
 		case MAV_CMD_DO_SET_SERVO:
 		case MAV_CMD_DO_LAND_START:
@@ -1402,8 +1431,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_IMAGE_STOP_CAPTURE:
 		case MAV_CMD_VIDEO_START_CAPTURE:
 		case MAV_CMD_VIDEO_STOP_CAPTURE:
-		case NAV_CMD_DO_SET_ROI:
-		case NAV_CMD_ROI:
 		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		case MAV_CMD_SET_CAMERA_MODE:
@@ -1478,7 +1505,6 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
 		case NAV_CMD_DO_SET_ROI:
-		case NAV_CMD_ROI:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		case NAV_CMD_SET_CAMERA_MODE:

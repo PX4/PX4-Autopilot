@@ -49,14 +49,8 @@
 #include <px4_posix.h>
 #include <errno.h>
 
-
 namespace vmount
 {
-
-
-InputMavlinkROI::InputMavlinkROI()
-{
-}
 
 InputMavlinkROI::~InputMavlinkROI()
 {
@@ -116,27 +110,27 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 
 			_control_data.gimbal_shutter_retract = false;
 
-			if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
+			if (vehicle_roi.mode == vehicle_roi_s::ROI_NONE) {
 
 				_control_data.type = ControlData::Type::Neutral;
 				*control_data = &_control_data;
 
-			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
+			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPNEXT) {
 				_read_control_data_from_position_setpoint_sub();
 				_control_data.type_data.lonlat.roll_angle = 0.f;
 				_control_data.type_data.lonlat.pitch_fixed_angle = -10.f;
 
 				*control_data = &_control_data;
 
-			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
+			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPINDEX) {
 				//TODO how to do this?
 
-			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
+			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
 				control_data_set_lon_lat(vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
 
 				*control_data = &_control_data;
 
-			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
+			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_TARGET) {
 				//TODO is this even suported?
 			}
 
@@ -150,7 +144,7 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 
 		// check whether the position setpoint got updated
 		if (polls[1].revents & POLLIN) {
-			if (_cur_roi_mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
+			if (_cur_roi_mode == vehicle_roi_s::ROI_WPNEXT) {
 				_read_control_data_from_position_setpoint_sub();
 				*control_data = &_control_data;
 
