@@ -202,11 +202,11 @@ private:
 	math::LowPassFilter2p _filter_manual_pitch;
 	math::LowPassFilter2p _filter_manual_roll;
 
-	void vel_sp_slewrate(float dt)
+	void vel_sp_slewrate(float dt, matrix::Vector3f &_vel_sp)
 	{
 		matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
 		matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
-		matrix::Vector2f vel_xy(_vel(0), _vel(1));
+		matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
 		matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / dt;
 
 		/* limit total horizontal acceleration */
@@ -220,12 +220,7 @@ private:
 		float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
 		float max_acc_z;
 
-		if (_control_mode.flag_control_manual_enabled) {
-			max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
-
-		} else {
-			max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
-		}
+		max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
 
 		if (fabsf(acc_z) > fabsf(max_acc_z)) {
 			_vel_sp(2) = max_acc_z * dt + _vel_sp_prev(2);
