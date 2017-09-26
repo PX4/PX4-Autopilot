@@ -63,6 +63,8 @@ public:
 		_deceleration_hor_slow(parent, "MPC_DEC_HOR_SLOW", false),
 		_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 		_acceleration_hor_manual(this, "ACC_HOR_MAN", true),
+		_acceleration_z_max_up(this, "ACC_UP_MAX", true),
+		_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
 		_manual_direction_change_hysteresis(false),
 		_filter_manual_pitch(50.0f, 10.0f),
 		_filter_manual_roll(50.0f, 10.0f)
@@ -180,6 +182,8 @@ private:
 	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto & fast manual brake */
 	control::BlockParamFloat _acceleration_hor_manual; /**< maximum velocity setpoint slewrate for manual acceleration */
+	control::BlockParamFloat _acceleration_z_max_up; /**< max acceleration up */
+	control::BlockParamFloat _acceleration_z_max_down; /**< max acceleration down */
 	matrix::Vector2f _stick_input_xy_prev;
 	matrix::Vector3f _vel_sp_prev;
 	enum manual_stick_input {
@@ -438,7 +442,7 @@ private:
 			_acceleration_state_dependent_z = _acceleration_z_max_down.get();
 
 			/* reset slew rate */
-			_vel_sp_prev(2) = _vel(2);
+			_vel_sp_prev(2) = _velocity(2);
 			_user_intention_z = brake;
 		}
 
