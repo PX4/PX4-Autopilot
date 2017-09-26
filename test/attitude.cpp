@@ -68,6 +68,10 @@ int main()
     // quaternion to dcm
     Dcmf dcm1(q_check);
     TEST(isEqual(dcm1, dcm_check));
+    // quaternion z-axis unit base vector
+    Vector3f q_z = q_check.dcm_z();
+    Vector3f R_z(dcm_check(0, 2), dcm_check(1, 2), dcm_check(2, 2));
+    TEST(isEqual(q_z, R_z));
 
     // dcm default ctor
     Dcmf dcm2;

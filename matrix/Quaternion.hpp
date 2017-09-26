@@ -441,6 +441,27 @@ public:
     }
 
     /**
+     * Corresponding body z-axis to an attitude quaternion /
+     * last orthogonal unit basis vector
+     *
+     * == last column of the equivalent rotation matrix
+     * but calculated more efficiently than a full conversion
+     */
+    Vector3<Type> dcm_z()
+    {
+        Quaternion &q = *this;
+        Vector3<Type> R_z;
+        const Type a = q(0);
+        const Type b = q(1);
+        const Type c = q(2);
+        const Type d = q(3);
+        R_z(0) = 2 * (a * c + b * d);
+        R_z(1) = 2 * (c * d - a * b);
+        R_z(2) = a * a - b * b - c * c + d * d;
+        return R_z;
+    }
+
+    /**
      * XXX DEPRECATED, can use assignment or ctor
      */
     Quaternion from_dcm(Matrix<Type, 3, 3> dcm) {
