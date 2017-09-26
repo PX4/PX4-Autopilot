@@ -111,8 +111,8 @@ protected:
 
 	/* Prepared general inputs for every task */
 	matrix::Vector<float, 4> _sticks;
-	matrix::Vector3f _position;
-	matrix::Vector3f _velocity;
+	matrix::Vector3f _position; /*< current vehicle position */
+	matrix::Vector3f _velocity; /*< current vehicle velocity */
 	float _yaw;
 
 	/**

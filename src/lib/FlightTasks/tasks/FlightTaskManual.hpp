@@ -114,8 +114,6 @@ public:
 		velocity_setpoint = velocity_setpoint.emult(vel_scale);
 
 		_set_velocity_setpoint(velocity_setpoint);
-		//printf("------");
-		//velocity_setpoint.print();
 
 		/* handle position and altitude hold */
 		const bool stick_xy_zero = stick_xy_norm <= FLT_EPSILON;
@@ -142,7 +140,6 @@ public:
 		}
 
 		_set_position_setpoint(_hold_position);
-		//_hold_position.print();
 		return 0;
 	};
 
@@ -164,5 +161,5 @@ private:
 
 	uORB::Subscription<control_state_s> _sub_control_state;
 
-	matrix::Vector3f _hold_position;
+	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
 };
