@@ -57,7 +57,15 @@ public:
 		_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 		_hold_max_xy(parent, "MPC_HOLD_MAX_XY", false),
 		_hold_max_z(parent, "MPC_HOLD_MAX_Z", false),
-		_sub_control_state(ORB_ID(control_state), 0, 0, &getSubscriptions())
+		_sub_control_state(ORB_ID(control_state), 0, 0, &getSubscriptions()),
+		_jerk_hor_max(parent, "MPC_JERK_MAX", false),
+		_jerk_hor_min(parent, "MPC_JERK_MIN", false),
+		_deceleration_hor_slow(parent, "MPC_DEC_HOR_SLOW", false),
+		_acceleration_hor_max(this, "ACC_HOR_MAX", true),
+		_acceleration_hor_manual(this, "ACC_HOR_MAN", true),
+		_manual_direction_change_hysteresis(false),
+		_filter_manual_pitch(50.0f, 10.0f),
+		_filter_manual_roll(50.0f, 10.0f)
 	{};
 	virtual ~FlightTaskManual() {};
 
@@ -163,6 +171,33 @@ private:
 
 	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
 
+
+
+	/* --- Acceleration Smoothing --- */
+
+	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk only applied when breaking to zero */
+	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk only applied when breaking to zero */
+	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
+	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto & fast manual brake */
+	control::BlockParamFloat _acceleration_hor_manual; /**< maximum velocity setpoint slewrate for manual acceleration */
+	matrix::Vector2f _stick_input_xy_prev;
+	matrix::Vector3f _vel_sp_prev;
+	enum manual_stick_input {
+		brake,
+		direction_change,
+		acceleration,
+		deceleration
+	};
+	manual_stick_input _user_intention_xy = brake; /**< defines what the user intends to do derived from the stick input */
+	manual_stick_input _user_intention_z = brake; /**< what the user wants to do derived from stick input in z direction */
+	float _manual_jerk_limit_xy = 1.f; /**< jerk limit in manual mode dependent on stick input */
+	float _manual_jerk_limit_z = 1.f; /**< jerk limit in manual mode in z */
+	float _acceleration_state_dependent_xy = 0.f; /* acceleration limit applied in manual mode */
+	float _acceleration_state_dependent_z = 0.f; /* acceleration limit applied in manual mode in z */
+	systemlib::Hysteresis _manual_direction_change_hysteresis;
+	math::LowPassFilter2p _filter_manual_pitch;
+	math::LowPassFilter2p _filter_manual_roll;
+
 	void set_manual_acceleration_xy(matrix::Vector2f &stick_xy, const float dt)
 	{
 
@@ -227,7 +262,7 @@ private:
 
 			if (_jerk_hor_max.get() > _jerk_hor_min.get()) {
 				_manual_jerk_limit_xy = (_jerk_hor_max.get() - _jerk_hor_min.get()) / _velocity_hor_manual.get() *
-							sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) + _jerk_hor_min.get();
+							sqrtf(_velocity(0) * _velocity(0) + _velocity(1) * _velocity(1)) + _jerk_hor_min.get();
 
 				/* we start braking with lowest accleration */
 				_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
@@ -243,8 +278,8 @@ private:
 			}
 
 			/* reset slew rate */
-			_vel_sp_prev(0) = _vel(0);
-			_vel_sp_prev(1) = _vel(1);
+			_vel_sp_prev(0) = _velocity(0);
+			_vel_sp_prev(1) = _velocity(1);
 
 		}
 
@@ -261,7 +296,7 @@ private:
 
 		case direction_change: {
 				/* only exit direction change if brake or aligned */
-				matrix::Vector2f vel_xy(_vel(0), _vel(1));
+				matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
 				matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
 				bool stick_vel_aligned = (vel_xy_norm * stick_xy_norm > 0.0f);
 
@@ -292,8 +327,8 @@ private:
 				_user_intention_xy = intention;
 
 				if (_user_intention_xy == direction_change) {
-					_vel_sp_prev(0) = _vel(0);
-					_vel_sp_prev(1) = _vel(1);
+					_vel_sp_prev(0) = _velocity(0);
+					_vel_sp_prev(1) = _velocity(1);
 				}
 
 				break;
@@ -303,8 +338,8 @@ private:
 				_user_intention_xy = intention;
 
 				if (_user_intention_xy == direction_change) {
-					_vel_sp_prev(0) = _vel(0);
-					_vel_sp_prev(1) = _vel(1);
+					_vel_sp_prev(0) = _velocity(0);
+					_vel_sp_prev(1) = _velocity(1);
 				}
 
 				break;
@@ -357,7 +392,7 @@ private:
 			}
 
 		default :
-			warn_rate_limited("User intention not recognized");
+			printf("User intention not recognized"); // TODO: take this out, can never happen
 			_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 
 		}
