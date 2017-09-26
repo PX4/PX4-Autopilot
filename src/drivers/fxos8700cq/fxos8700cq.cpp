@@ -479,7 +479,7 @@ private:
 
 FXOS8700CQ::FXOS8700CQ(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("FXOS8700CQ", path, bus, device, SPIDEV_MODE0,
-	    11 * 1000 * 1000 /* will be rounded to 10.4 MHz, within safety margins for FXOS8700C */),
+	    1 * 1000 * 1000),
 	_mag(new FXOS8700CQ_mag(this)),
 	_accel_call{},
 	_mag_call{},
