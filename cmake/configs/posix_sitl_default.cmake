@@ -60,6 +60,12 @@ set(config_module_list
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
+	platforms/posix/tests/hello
+	platforms/posix/tests/hrt_test
+	platforms/posix/tests/muorb
+	platforms/posix/tests/vcdev_test
+	platforms/posix/tests/wqueue
+
 	#
 	# General system control
 	#

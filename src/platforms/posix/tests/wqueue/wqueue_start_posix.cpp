@@ -71,7 +71,7 @@ int wqueue_test_main(int argc, char *argv[])
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
 						 PX4_MAIN,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 
 		return 0;
 	}

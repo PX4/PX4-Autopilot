@@ -96,10 +96,9 @@ const struct {
 	{"mavlink",		mavlink_tests_main,	0},
 	{"mc_pos_control",	mc_pos_control_tests_main,	0},
 	{"sf0x",		sf0x_tests_main,	0},
-#ifndef __PX4_DARWIN
 	{"uorb",		uorb_tests_main,	0},
 	{"hysteresis",		test_hysteresis,	0},
-#endif /* __PX4_DARWIN */
+
 	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 	{"autodeclination",	test_autodeclination,	0},
 	{"bson",		test_bson,	0},
