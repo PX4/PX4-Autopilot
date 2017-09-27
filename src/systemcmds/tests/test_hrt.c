@@ -186,12 +186,12 @@ int test_hrt(int argc, char *argv[])
 	int i;
 	struct timeval tv1, tv2;
 
-	printf("start-time (hrt, sec/usec), end-time (hrt, sec/usec), microseconds per half second\n");
+	printf("start-time (hrt, sec/usec), end-time (hrt, sec/usec), microseconds per 1/10 second\n");
 
 	for (i = 0; i < 10; i++) {
 		prev = hrt_absolute_time();
 		gettimeofday(&tv1, NULL);
-		usleep(500000);
+		usleep(100000);
 		now = hrt_absolute_time();
 		gettimeofday(&tv2, NULL);
 		printf("%lu (%lu/%lu), %lu (%lu/%lu), %lu\n",
@@ -205,7 +205,7 @@ int test_hrt(int argc, char *argv[])
 
 	printf("one-second ticks\n");
 
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 3; i++) {
 		hrt_call_after(&call, 1000000, NULL, NULL);
 
 		while (!hrt_called(&call)) {
