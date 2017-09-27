@@ -145,6 +145,8 @@ private:
 	bool _sensorCombined_valid;
 	bool _new_irlockReport;
 	bool _estimator_initialized;
+	// keep track of whether last measurement was rejected
+	bool _faulty;
 
 	matrix::Dcm<float> _R_att;
 	matrix::Vector<float, 2> _rel_pos;

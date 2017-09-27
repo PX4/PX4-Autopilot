@@ -57,6 +57,7 @@ BeaconPositionEstimator::BeaconPositionEstimator() :
 	_sensorCombined_valid(false),
 	_new_irlockReport(false),
 	_estimator_initialized(false),
+	_faulty(false),
 	_last_predict(0),
 	_last_update(0)
 {
@@ -158,12 +159,15 @@ void BeaconPositionEstimator::update()
 				bool update_x = _kalman_filter_x.update(_rel_pos(0), _params.meas_unc);
 				bool update_y = _kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
 
-				if (!update_x) {
-					PX4_WARN("rejected x"); // TODO remove
-				}
-
-				if (!update_y) {
-					PX4_WARN("rejected y"); // TODO remove
+				if (!update_x || !update_y)
+				{
+					if (!_faulty)
+					{
+						_faulty = true;
+					PX4_WARN("Beacon measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
+					}
+				} else {
+					_faulty = false;
 				}
 
 				if (update_x && update_y) {

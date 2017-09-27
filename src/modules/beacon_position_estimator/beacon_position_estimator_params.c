@@ -88,7 +88,7 @@ PARAM_DEFINE_FLOAT(BEST_LON, -86.929);
  *
  * @group Beacon Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_ACC_UNC, 0.01f);
+PARAM_DEFINE_FLOAT(BEST_ACC_UNC, 0.1f);
 
 /**
  * Beacon measurement uncertainty

@@ -68,12 +68,11 @@ void BlockLocalPositionEstimator::beaconCorrect()
 		float cov_vx = _sub_beacon_position.get().cov_vx_rel;
 		float cov_vy = _sub_beacon_position.get().cov_vy_rel;
 
-		float min_cov = 1.0e-3f;
+		float min_cov = 1.0e-4f; // TODO make parameter
 		if (cov_vx < min_cov || cov_vy < min_cov) {
-			//PX4_WARN("fallback cov"); XXX check this
 			// use sensor value only if reasoanble
-			cov_vx = min_cov; // TODO make parameter
-			cov_vy = min_cov; // TODO make parameter
+			cov_vx = min_cov;
+			cov_vy = min_cov;
 		}
 
 		// beacon measurement matrix and noise matrix
