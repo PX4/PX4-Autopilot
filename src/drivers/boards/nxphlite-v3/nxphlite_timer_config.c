@@ -133,6 +133,38 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	},
 };
 
+__EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
+	{
+		.base = KINETIS_FTM3_BASE,
+		.clock_register = KINETIS_SIM_SCGC3,
+		.clock_bit = SIM_SCGC3_FTM3,
+		.first_channel_index = 0,
+		.last_channel_index = 2,
+		.vectorno =  0,
+	},
+};
+
+__EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
+	{
+		.gpio_out = LED_TIM3_CH1OUT, // RGB_R
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 2,
+	},
+	{
+		.gpio_out = LED_TIM3_CH5OUT, // RGB_G
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 6,
+	},
+	{
+		.gpio_out = LED_TIM3_CH4OUT, // RGB_B
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 5,
+	},
+};
+
 #define _REG(_addr)	(*(volatile uint32_t *)(_addr))
 
 /* Timer register accessors */
