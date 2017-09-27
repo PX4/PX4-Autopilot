@@ -37,53 +37,100 @@
 *
 */
 
-#include <nuttx/config.h>
-
+#include <px4_config.h>
+#include <systemlib/px4_macros.h>
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
 
 #include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
+
+#include <assert.h>
+#include <debug.h>
+#include <time.h>
+#include <queue.h>
+#include <errno.h>
+#include <string.h>
 #include <stdio.h>
-#include <ctype.h>
 
-
-#include <systemlib/perf_counter.h>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/px4_macros.h>
-
+#include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
-#include <drivers/stm32/drv_io_timer.h>
 
+#include "drv_io_timer.h"
 
-#include <board_config.h>
+#include <kinetis.h>
+#include "chip/kinetis_sim.h"
+#include "chip/kinetis_ftm.h"
 
 #if defined(BOARD_HAS_LED_PWM)
-#define REG(_tmr, _reg) (*(volatile uint32_t *)(led_pwm_timers[_tmr].base + _reg))
 
-#define rCR1(_tmr)      REG(_tmr, STM32_GTIM_CR1_OFFSET)
-#define rCR2(_tmr)      REG(_tmr, STM32_GTIM_CR2_OFFSET)
-#define rSMCR(_tmr)     REG(_tmr, STM32_GTIM_SMCR_OFFSET)
-#define rDIER(_tmr)     REG(_tmr, STM32_GTIM_DIER_OFFSET)
-#define rSR(_tmr)       REG(_tmr, STM32_GTIM_SR_OFFSET)
-#define rEGR(_tmr)      REG(_tmr, STM32_GTIM_EGR_OFFSET)
-#define rCCMR1(_tmr)    REG(_tmr, STM32_GTIM_CCMR1_OFFSET)
-#define rCCMR2(_tmr)    REG(_tmr, STM32_GTIM_CCMR2_OFFSET)
-#define rCCER(_tmr)     REG(_tmr, STM32_GTIM_CCER_OFFSET)
-#define rCNT(_tmr)      REG(_tmr, STM32_GTIM_CNT_OFFSET)
-#define rPSC(_tmr)      REG(_tmr, STM32_GTIM_PSC_OFFSET)
-#define rARR(_tmr)      REG(_tmr, STM32_GTIM_ARR_OFFSET)
-#define rCCR1(_tmr)     REG(_tmr, STM32_GTIM_CCR1_OFFSET)
-#define rCCR2(_tmr)     REG(_tmr, STM32_GTIM_CCR2_OFFSET)
-#define rCCR3(_tmr)     REG(_tmr, STM32_GTIM_CCR3_OFFSET)
-#define rCCR4(_tmr)     REG(_tmr, STM32_GTIM_CCR4_OFFSET)
-#define rDCR(_tmr)      REG(_tmr, STM32_GTIM_DCR_OFFSET)
-#define rDMAR(_tmr)     REG(_tmr, STM32_GTIM_DMAR_OFFSET)
-#define rBDTR(_tmr)     REG(_tmr, STM32_ATIM_BDTR_OFFSET)
+#define FTM_SRC_CLOCK_FREQ 16000000
+#define LED_PWM_FREQ        1000000
+
+#if (BOARD_LED_PWM_RATE)
+#  define LED_PWM_RATE BOARD_LED_PWM_RATE
+#else
+#  define LED_PWM_RATE 50
+#endif
+
+#define _REG(_addr)	(*(volatile uint32_t *)(_addr))
+#define _REG32(_base, _reg)	(*(volatile uint32_t *)(_base + _reg))
+#define REG(_tmr, _reg)		_REG32(led_pwm_timers[_tmr].base, _reg)
+
+
+/* Timer register accessors */
+
+#define rSC(_tmr)         REG(_tmr,KINETIS_FTM_SC_OFFSET)
+#define rCNT(_tmr)        REG(_tmr,KINETIS_FTM_CNT_OFFSET)
+#define rMOD(_tmr)        REG(_tmr,KINETIS_FTM_MOD_OFFSET)
+#define rC0SC(_tmr)       REG(_tmr,KINETIS_FTM_C0SC_OFFSET)
+#define rC0V(_tmr)        REG(_tmr,KINETIS_FTM_C0V_OFFSET)
+#define rC1SC(_tmr)       REG(_tmr,KINETIS_FTM_C1SC_OFFSET)
+#define rC1V(_tmr)        REG(_tmr,KINETIS_FTM_C1V_OFFSET)
+#define rC2SC(_tmr)       REG(_tmr,KINETIS_FTM_C2SC_OFFSET)
+#define rC2V(_tmr)        REG(_tmr,KINETIS_FTM_C2V_OFFSET)
+#define rC3SC(_tmr)       REG(_tmr,KINETIS_FTM_C3SC_OFFSET)
+#define rC3V(_tmr)        REG(_tmr,KINETIS_FTM_C3V_OFFSET)
+#define rC4SC(_tmr)       REG(_tmr,KINETIS_FTM_C4SC_OFFSET)
+#define rC4V(_tmr)        REG(_tmr,KINETIS_FTM_C4V_OFFSET)
+#define rC5SC(_tmr)       REG(_tmr,KINETIS_FTM_C5SC_OFFSET)
+#define rC5V(_tmr)        REG(_tmr,KINETIS_FTM_C5V_OFFSET)
+#define rC6SC(_tmr)       REG(_tmr,KINETIS_FTM_C6SC_OFFSET)
+#define rC6V(_tmr)        REG(_tmr,KINETIS_FTM_C6V_OFFSET)
+#define rC7SC(_tmr)       REG(_tmr,KINETIS_FTM_C7SC_OFFSET)
+#define rC7V(_tmr)        REG(_tmr,KINETIS_FTM_C7V_OFFSET)
+
+#define rCNTIN(_tmr)      REG(_tmr,KINETIS_FTM_CNTIN_OFFSET)
+#define rSTATUS(_tmr)     REG(_tmr,KINETIS_FTM_STATUS_OFFSET)
+#define rMODE(_tmr)       REG(_tmr,KINETIS_FTM_MODE_OFFSET)
+#define rSYNC(_tmr)       REG(_tmr,KINETIS_FTM_SYNC_OFFSET)
+#define rOUTINIT(_tmr)    REG(_tmr,KINETIS_FTM_OUTINIT_OFFSET)
+#define rOUTMASK(_tmr)    REG(_tmr,KINETIS_FTM_OUTMASK_OFFSET)
+#define rCOMBINE(_tmr)    REG(_tmr,KINETIS_FTM_COMBINE_OFFSET)
+#define rDEADTIME(_tmr)   REG(_tmr,KINETIS_FTM_DEADTIME_OFFSET)
+#define rEXTTRIG(_tmr)    REG(_tmr,KINETIS_FTM_EXTTRIG_OFFSET)
+#define rPOL(_tmr)        REG(_tmr,KINETIS_FTM_POL_OFFSET)
+#define rFMS(_tmr)        REG(_tmr,KINETIS_FTM_FMS_OFFSET)
+#define rFILTER(_tmr)     REG(_tmr,KINETIS_FTM_FILTER_OFFSET)
+#define rFLTCTRL(_tmr)    REG(_tmr,KINETIS_FTM_FLTCTRL_OFFSET)
+#define rQDCTRL(_tmr)     REG(_tmr,KINETIS_FTM_QDCTRL_OFFSET)
+#define rCONF(_tmr)       REG(_tmr,KINETIS_FTM_CONF_OFFSET)
+#define rFLTPOL(_tmr)     REG(_tmr,KINETIS_FTM_FLTPOL_OFFSET)
+#define rSYNCONF(_tmr)    REG(_tmr,KINETIS_FTM_SYNCONF_OFFSET)
+#define rINVCTRL(_tmr)    REG(_tmr,KINETIS_FTM_INVCTRL_OFFSET)
+#define rSWOCTRL(_tmr)    REG(_tmr,KINETIS_FTM_SWOCTRL_OFFSET)
+#define rPWMLOAD(_tmr)    REG(_tmr,KINETIS_FTM_PWMLOAD_OFFSET)
+
+#define CnSC_RESET          (FTM_CSC_CHF|FTM_CSC_CHIE|FTM_CSC_MSB|FTM_CSC_MSA|FTM_CSC_ELSB|FTM_CSC_ELSA|FTM_CSC_DMA)
+#define CnSC_CAPTURE_INIT   (FTM_CSC_CHIE|FTM_CSC_ELSB|FTM_CSC_ELSA) // Both
+
+#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
+#define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSA)
+#else
+#define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSB)
+#endif
+
+#define FTM_SYNC (FTM_SYNC_SWSYNC)
 
 static void             led_pwm_timer_init(unsigned timer);
 static void             led_pwm_timer_set_rate(unsigned timer, unsigned rate);
@@ -96,6 +143,34 @@ void led_pwm_servo_deinit(void);
 void led_pwm_servo_arm(bool armed);
 unsigned led_pwm_timer_get_period(unsigned timer);
 
+static void led_pwm_timer_set_rate(unsigned timer, unsigned rate)
+{
+
+	irqstate_t flags = px4_enter_critical_section();
+
+	uint32_t save = rSC(timer);
+	rSC(timer) = save & ~(FTM_SC_CLKS_MASK);
+
+	/* configure the timer to update at the desired rate */
+	rMOD(timer) = (LED_PWM_FREQ / rate) - 1;
+	rSC(timer) = save;
+
+	px4_leave_critical_section(flags);
+}
+
+static inline uint32_t div2psc(int div)
+{
+	return 31 - __builtin_clz(div);
+}
+
+static inline void led_pwm_timer_set_PWM_mode(unsigned timer)
+{
+	irqstate_t flags = px4_enter_critical_section();
+	rSC(timer) &= ~(FTM_SC_CLKS_MASK | FTM_SC_PS_MASK);
+	rSC(timer) |= (FTM_SC_CLKS_EXTCLK | div2psc(FTM_SRC_CLOCK_FREQ / LED_PWM_FREQ));
+	px4_leave_critical_section(flags);
+}
+
 
 static void
 led_pwm_timer_init(unsigned timer)
@@ -106,79 +181,72 @@ led_pwm_timer_init(unsigned timer)
 
 		/* enable the timer clock before we try to talk to it */
 
-		modifyreg32(led_pwm_timers[timer].clock_register, 0, led_pwm_timers[timer].clock_bit);
+		uint32_t regval = _REG(led_pwm_timers[timer].clock_register);
+		regval |= led_pwm_timers[timer].clock_bit;
+		_REG(led_pwm_timers[timer].clock_register) = regval;
 
 		/* disable and configure the timer */
-		rCR1(timer) = 0;
-		rCR2(timer) = 0;
-		rSMCR(timer) = 0;
-		rDIER(timer) = 0;
-		rCCER(timer) = 0;
-		rCCMR1(timer) = 0;
-		rCCMR2(timer) = 0;
-		rCCER(timer) = 0;
-		rDCR(timer) = 0;
 
-		if ((led_pwm_timers[timer].base == STM32_TIM1_BASE) || (led_pwm_timers[timer].base == STM32_TIM8_BASE)) {
-			/* master output enable = on */
-			rBDTR(timer) = ATIM_BDTR_MOE;
-		}
+		rSC(timer)    = FTM_SC_CLKS_NONE;
+		rCNT(timer)   = 0;
 
-		/* configure the timer to free-run at 1MHz */
-		rPSC(timer) = (led_pwm_timers[timer].clock_freq / 1000000) - 1;
+		rMODE(timer) = 0;
+		rSYNCONF(timer)   = (FTM_SYNCONF_SYNCMODE | FTM_SYNCONF_SWWRBUF | FTM_SYNCONF_SWRSTCNT);
 
-		/* default to updating at 50Hz */
+		/* Set to run in debug mode */
+
+		rCONF(timer)   |= FTM_CONF_BDMMODE_MASK;
+
+		/* enable the timer */
+
+		led_pwm_timer_set_PWM_mode(timer);
+
+		/*
+		 * Note we do the Standard PWM Out init here
+		 * default to updating at 50Hz
+		 */
+
 		led_pwm_timer_set_rate(timer, 50);
-
-		/* note that the timer is left disabled - arming is performed separately */
 	}
 }
 unsigned
 led_pwm_timer_get_period(unsigned timer)
 {
-	return (rARR(timer));
-}
-static void
-led_pwm_timer_set_rate(unsigned timer, unsigned rate)
-{
-	/* configure the timer to update at the desired rate */
-	rARR(timer) = 1000000 / rate;
+	// MOD is a 16 bit reg
+	unsigned mod = rMOD(timer);
 
-	/* generate an update event; reloads the counter and all registers */
-	rEGR(timer) = GTIM_EGR_UG;
+	if (mod == 0) {
+		return 1 << 16;
+	}
+
+	return (uint16_t)(mod + 1);
 }
 
 
 static void
 led_pwm_channel_init(unsigned channel)
 {
-	unsigned timer = led_pwm_channels[channel].timer_index;
+	/* Only initialize used channels */
 
-	/* configure the GPIO first */
+	if (led_pwm_channels[channel].timer_channel) {
+		unsigned timer = led_pwm_channels[channel].timer_index;
 
-	px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
+		irqstate_t flags = px4_enter_critical_section();
 
-	/* configure the channel */
-	switch (led_pwm_channels[channel].timer_channel) {
-	case 1:
-		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
-		rCCER(timer) |= GTIM_CCER_CC1E;
-		break;
+		/* configure the GPIO first */
 
-	case 2:
-		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
-		rCCER(timer) |= GTIM_CCER_CC2E;
-		break;
+		px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
 
-	case 3:
-		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
-		rCCER(timer) |= GTIM_CCER_CC3E;
-		break;
+		/* configure the channel */
 
-	case 4:
-		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
-		rCCER(timer) |= GTIM_CCER_CC4E;
-		break;
+		uint32_t chan = led_pwm_channels[channel].timer_channel - 1;
+
+		uint16_t rvalue = REG(timer, KINETIS_FTM_CSC_OFFSET(chan));
+		rvalue &= ~CnSC_RESET;
+		rvalue |=  CnSC_PWMOUT_INIT;
+		REG(timer, KINETIS_FTM_CSC_OFFSET(chan)) = rvalue;
+		REG(timer, KINETIS_FTM_CV_OFFSET(0)) = 0;
+		px4_leave_critical_section(flags);
 	}
 }
 
@@ -199,38 +267,19 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 
 	unsigned period = led_pwm_timer_get_period(timer);
 
-#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
-	unsigned value = period - (unsigned)cvalue * period / 255;
-#else
 	unsigned value = (unsigned)cvalue * period / 255;
-#endif
 
 	/* configure the channel */
 	if (value > 0) {
 		value--;
 	}
 
-
-	switch (led_pwm_channels[channel].timer_channel) {
-	case 1:
-		rCCR1(timer) = value;
-		break;
-
-	case 2:
-		rCCR2(timer) = value;
-		break;
-
-	case 3:
-		rCCR3(timer) = value;
-		break;
-
-	case 4:
-		rCCR4(timer) = value;
-		break;
-
-	default:
-		return -1;
-	}
+	irqstate_t flags = px4_enter_critical_section();
+	uint32_t save = rSC(timer);
+	rSC(timer) = save & ~(FTM_SC_CLKS_MASK);
+	REG(timer, KINETIS_FTM_CV_OFFSET(led_pwm_channels[channel].timer_channel - 1)) = value;
+	rSC(timer) = save;
+	px4_leave_critical_section(flags);
 
 	return 0;
 }
@@ -247,28 +296,10 @@ led_pwm_servo_get(unsigned channel)
 	/* test timer for validity */
 	if ((led_pwm_timers[timer].base == 0) ||
 	    (led_pwm_channels[channel].timer_channel == 0)) {
-		return 0;
+		return value;
 	}
 
-	/* configure the channel */
-	switch (led_pwm_channels[channel].timer_channel) {
-	case 1:
-		value = rCCR1(timer);
-		break;
-
-	case 2:
-		value = rCCR2(timer);
-		break;
-
-	case 3:
-		value = rCCR3(timer);
-		break;
-
-	case 4:
-		value = rCCR4(timer);
-		break;
-	}
-
+	value = REG(timer, KINETIS_FTM_CV_OFFSET(led_pwm_channels[channel].timer_channel - 1));
 	unsigned period = led_pwm_timer_get_period(timer);
 	return ((value + 1) * 255 / period);
 }
@@ -295,6 +326,7 @@ led_pwm_servo_deinit(void)
 	/* disable the timers */
 	led_pwm_servo_arm(false);
 }
+
 void
 led_pwm_servo_arm(bool armed)
 {
@@ -303,13 +335,13 @@ led_pwm_servo_arm(bool armed)
 		if (led_pwm_timers[i].base != 0) {
 			if (armed) {
 				/* force an update to preload all registers */
-				rEGR(i) = GTIM_EGR_UG;
-
-				/* arm requires the timer be enabled */
-				rCR1(i) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
+				led_pwm_timer_set_PWM_mode(i);
 
 			} else {
-				rCR1(i) = 0;
+				/* disable and configure the timer */
+
+				rSC(i)    = FTM_SC_CLKS_NONE;
+				rCNT(i)   = 0;
 			}
 		}
 	}
