@@ -435,6 +435,14 @@ __BEGIN_DECLS
 		{0,                      GPIO_TRI,                0}, \
 		{GPIO_ECH,               0,                       0}, \
 	}
+
+#define BOARD_HAS_LED_PWM              1
+
+#define LED_TIM3_CH1OUT   /* PTD1  RGB_R */ PIN_FTM3_CH1_1
+#define LED_TIM3_CH5OUT   /* PTC9  RGB_G */ PIN_FTM3_CH5_1
+#define LED_TIM3_CH4OUT   /* PTC8  RGB_B */ PIN_FTM3_CH4_1
+
+
 /*
  * GPIO numbers.
  *
@@ -468,6 +476,9 @@ __BEGIN_DECLS
 	}
 
 #define PX4_GPIO_INIT_LIST {  \
+		GPIO_LED_R,           \
+		GPIO_LED_G,           \
+		GPIO_LED_B,           \
 		GPIO_SENSOR_P_EN,     \
 		SD_CAED_P_EN,         \
 		nGPIO_ETHERNET_P_EN,  \
