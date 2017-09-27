@@ -66,7 +66,7 @@ static int writer_main(int argc, char *argv[])
 		return -px4_errno;
 	}
 
-	int ret;
+	int ret = 0;
 	int i = 0;
 
 	while (!g_exit) {
@@ -188,7 +188,7 @@ VCDevExample::~VCDevExample()
 {
 	if (_node) {
 		delete _node;
-		_node = 0;
+		_node = nullptr;
 	}
 }
 
@@ -272,7 +272,7 @@ int VCDevExample::main()
 
 	_node = new VCDevNode();
 
-	if (_node == 0) {
+	if (_node == nullptr) {
 		PX4_INFO("Failed to allocate VCDevNode");
 		return -ENOMEM;
 	}
@@ -289,7 +289,7 @@ int VCDevExample::main()
 		return -px4_errno;
 	}
 
-	void *p = 0;
+	void *p = nullptr;
 	int ret = px4_ioctl(fd, DIOC_GETPRIV, (unsigned long)&p);
 
 	if (ret < 0) {
@@ -318,7 +318,7 @@ int VCDevExample::main()
 				 SCHED_PRIORITY_MAX - 6,
 				 2000,
 				 writer_main,
-				 (char *const *)NULL);
+				 (char *const *)nullptr);
 
 	ret = 0;
 

@@ -15,8 +15,6 @@ gpssim start
 measairspeedsim start
 pwm_out_sim mode_pwm
 
-help
-
 ver all
 
 list_tasks

@@ -60,14 +60,14 @@ int  MuorbTestExample::DefaultTest()
 	int i = 0;
 	orb_advert_t pub_id = orb_advertise(ORB_ID(esc_status), & m_esc_status);
 
-	if (pub_id == 0) {
+	if (pub_id == nullptr) {
 		PX4_ERR("error publishing esc_status");
 		return -1;
 	}
 
 	orb_advert_t pub_id_vc = orb_advertise(ORB_ID(vehicle_command), & m_vc);
 
-	if (pub_id_vc == 0) {
+	if (pub_id_vc == nullptr) {
 		PX4_ERR("error publishing vehicle_command");
 		return -1;
 	}
@@ -129,7 +129,7 @@ int MuorbTestExample::PingPongTest()
 	int i = 0;
 	orb_advert_t pub_id_vc = orb_advertise(ORB_ID(vehicle_command), & m_vc);
 
-	if (pub_id_vc == 0) {
+	if (pub_id_vc == nullptr) {
 		PX4_ERR("error publishing vehicle_command");
 		return -1;
 	}

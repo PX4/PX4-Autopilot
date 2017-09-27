@@ -32,7 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE platforms__posix__tests__hrt_test
-	MAIN hrttest
+	MAIN hrt_test
 	SRCS
 		hrt_test_main.cpp
 		hrt_test_start_posix.cpp

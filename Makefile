@@ -182,7 +182,9 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders sizes check quick_check
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware
+.PHONY: sizes check quick_check check_format  tests
+.PHONY: check_posix_sitl_default check_px4fmu-v3_default
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
@@ -241,7 +243,7 @@ check_%:
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata px4_metadata module_documentation
+.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata
 
 parameters_metadata: posix_sitl_default
 	@python $(SRC_DIR)/Tools/px_process_params.py -s $(SRC_DIR)/src --markdown
@@ -308,12 +310,10 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: run_tests_posix tests tests_coverage
+.PHONY: tests tests_coverage coveralls_upload codecov_upload
 
-run_tests_posix:
+tests:
 	$(MAKE) --no-print-directory posix_sitl_default test_results
-
-tests: run_tests_posix
 
 tests_coverage:
 	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
@@ -331,7 +331,7 @@ codecov_upload:
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: posix_sitl_default-clang scan-build clang-tidy clang-tidy-fix clang-tidy-quiet cppcheck
+.PHONY: posix_sitl_default-clang scan-build clang-tidy clang-tidy-fix clang-tidy-quiet cppcheck check_stack
 
 posix_sitl_default-clang:
 	@mkdir -p $(SRC_DIR)/build_posix_sitl_default-clang
@@ -379,7 +379,7 @@ check_stack: px4fmu-v3_default
 
 # Cleanup
 # --------------------------------------------------------------------
-.PHONY: clean submodulesclean distclean
+.PHONY: clean submodulesclean submodulesupdate gazeboclean distclean
 
 clean:
 	@rm -rf $(SRC_DIR)/build_*/
