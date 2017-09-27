@@ -108,6 +108,7 @@ enum PortMode {
 	PORT_FULL_GPIO,
 	PORT_FULL_PWM,
 	PORT_RC_IN,
+	PORT_PWM6,
 	PORT_PWM4,
 	PORT_PWM3,
 	PORT_PWM2,
@@ -2973,6 +2974,13 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_1PWM;
 		break;
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+
+	case PORT_PWM6:
+		/* select 4-pin PWM mode */
+		servo_mode = PX4FMU::MODE_6PWM;
+		break;
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
 	case PORT_PWM4:
@@ -3392,6 +3400,11 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm2cap2")) {
 		new_mode = PORT_PWM2CAP2;
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+
+	} else if (!strcmp(verb, "mode_pwm6")) {
+		new_mode = PORT_PWM6;
+#endif
 	}
 
 	/* was a new mode set? */
@@ -3478,7 +3491,9 @@ mixer files.
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
 #endif
-
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm6");
+#endif
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "Send a DSM bind command (module must be running)");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_reset", "Do a sensor reset (SPI bus)");
