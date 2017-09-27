@@ -63,17 +63,19 @@ __END_DECLS
 
 
 static uint32_t g_ledmap[] = {
-	GPIO_LED_B,       // Indexed by LED_BLUE
-	GPIO_LED_R,       // Indexed by LED_RED, LED_AMBER
+	GPIO_LED_D9,      // Indexed by LED_BLUE
+	GPIO_LED_D10,     // Indexed by LED_RED, LED_AMBER
 	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY
-	GPIO_LED_G,       // Indexed by LED_GREEN
+	0,                // Indexed by LED_GREEN
 };
 
 __EXPORT void led_init(void)
 {
 	/* Configure LED GPIOs for output */
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
-		kinetis_pinconfig(g_ledmap[l]);
+		if (g_ledmap[l] != 0) {
+			kinetis_pinconfig(g_ledmap[l]);
+		}
 	}
 }
 
@@ -81,13 +83,19 @@ static void phy_set_led(int led, bool state)
 {
 	/* Drive High to switch on */
 
-	kinetis_gpiowrite(g_ledmap[led], state);
+	if (g_ledmap[led] != 0) {
+		kinetis_gpiowrite(g_ledmap[led], state);
+	}
 }
 
 static bool phy_get_led(int led)
 {
 
-	return kinetis_gpioread(g_ledmap[led]);
+	if (g_ledmap[led] != 0) {
+		return kinetis_gpioread(g_ledmap[led]);
+	}
+
+	return false;
 }
 
 __EXPORT void led_on(int led)
