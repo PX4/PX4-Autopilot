@@ -390,7 +390,7 @@ CONFIG_ARCH_BOARD="nxphlite-v3"
 # Common Board Options
 #
 CONFIG_ARCH_HAVE_LEDS=y
-CONFIG_ARCH_LEDS=y
+# CONFIG_ARCH_LEDS is not set
 
 #
 # Board-Specific Options
