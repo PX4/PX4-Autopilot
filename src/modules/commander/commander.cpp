@@ -2881,13 +2881,9 @@ Commander::run()
 
 		/* reset main state after takeoff has completed */
 		/* only switch back to posctl */
-		if (main_state_prev == commander_state_s::MAIN_STATE_POSCTL) {
-
-			if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
 					&& _mission_result.finished) {
-
-				main_state_transition(&status, main_state_prev, main_state_prev, &status_flags, &internal_state);
-			}
+			main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 		}
 
 		/* check if we are disarmed and there is a better mode to wait in */
