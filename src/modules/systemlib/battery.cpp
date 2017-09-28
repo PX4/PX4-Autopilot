@@ -94,7 +94,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	filterVoltage(voltage_v);
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(voltage_v, current_a, throttle_normalized, armed);
+	estimateRemaining(throttle_normalized, armed);
 	determineWarning();
 	computeScale();
 
@@ -164,7 +164,7 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 }
 
 void
-Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
+Battery::estimateRemaining(float throttle_normalized, bool armed)
 {
 	const float bat_r = _param_r_internal.get();
 
@@ -172,7 +172,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 	float bat_v_empty_dynamic = _param_v_empty.get();
 
 	if (bat_r >= 0.0f) {
-		bat_v_empty_dynamic -= current_a * bat_r;
+		bat_v_empty_dynamic -= _current_filtered_a * bat_r;
 
 	} else {
 		// assume 10% voltage drop of the full drop range with motors idle
@@ -186,28 +186,23 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
 
 	// remaining battery capacity based on voltage
-	const float rvoltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
+	const float rvoltage = (_voltage_filtered_v - (_param_n_cells.get() * bat_v_empty_dynamic))
 			       / (_param_n_cells.get() * voltage_range);
-	const float rvoltage_filt = _remaining_voltage * 0.99f + rvoltage * 0.01f;
 
-	if (PX4_ISFINITE(rvoltage_filt)) {
-		_remaining_voltage = rvoltage_filt;
+	if (PX4_ISFINITE(rvoltage)) {
+		_remaining_voltage = rvoltage;
 	}
 
 	// remaining battery capacity based on used current integrated time
 	const float rcap = 1.0f - _discharged_mah / _param_capacity.get();
-	const float rcap_filt = _remaining_capacity * 0.99f + rcap * 0.01f;
 
-	if (PX4_ISFINITE(rcap_filt)) {
-		_remaining_capacity = rcap_filt;
+	if (PX4_ISFINITE(rcap)) {
+		_remaining_capacity = rcap;
 	}
 
 	// limit to sane values
-	_remaining_voltage = (_remaining_voltage < 0.0f) ? 0.0f : _remaining_voltage;
-	_remaining_voltage = (_remaining_voltage > 1.0f) ? 1.0f : _remaining_voltage;
-
-	_remaining_capacity = (_remaining_capacity < 0.0f) ? 0.0f : _remaining_capacity;
-	_remaining_capacity = (_remaining_capacity > 1.0f) ? 1.0f : _remaining_capacity;
+	_remaining_voltage = math::constrain(_remaining_voltage, 0.0f, 1.0f);
+	_remaining_capacity = math::constrain(_remaining_capacity, 0.0f, 1.0f);
 
 	// choose which quantity we're using for final reporting
 	if (_param_capacity.get() > 0.0f) {
