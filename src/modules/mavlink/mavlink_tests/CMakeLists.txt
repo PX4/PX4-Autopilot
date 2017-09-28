@@ -40,6 +40,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-sign-compare # TODO: fix all sign-compare
 		-DMAVLINK_FTP_UNIT_TEST
+		#-DMAVLINK_FTP_DEBUG
 		-DMavlinkStream=MavlinkStreamTest
 		-DMavlinkFTP=MavlinkFTPTest
 		-Wno-extra-semi
