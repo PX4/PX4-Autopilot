@@ -111,8 +111,6 @@ typedef uint32_t 	adc_chan_t;
 #define rCLM1(adc)  REG(adc, KINETIS_ADC_CLM1_OFFSET) /* ADC minus-side general calibration value register */
 #define rCLM0(adc)  REG(adc, KINETIS_ADC_CLM0_OFFSET) /* ADC minus-side general calibration value register */
 
-bool g_board_usb_connected = false;
-
 class ADC : public device::CDev
 {
 public:
@@ -372,28 +370,18 @@ ADC::update_system_power(hrt_abstime now)
 
 	system_power.voltage5V_v = 0;
 
-#if defined(ADC_5V_RAIL_SENSE) || defined(BOARD_ADC_USB_CONNECTED)
+#if defined(ADC_5V_RAIL_SENSE)
 
 	for (unsigned i = 0; i < _channel_count; i++) {
-#if defined(ADC_5V_RAIL_SENSE)
 
 		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
 			// it is 2:1 scaled
 			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
 		}
-
-#endif
-#if defined(BOARD_ADC_USB_CONNECTED)
-
-		if (_samples[i].am_channel == BOARD_ADC_USB_CONNECTED) {
-			// > that 50% assum connected
-			system_power.usb_connected = _samples[i].am_data > (4096 / 2);
-		}
-
-#endif
 	}
 
 #endif
+
 
 	/* Note once the board_config.h provides BOARD_ADC_USB_CONNECTED,
 	 * It must provide the true logic GPIO BOARD_ADC_xxxx macros.
@@ -401,7 +389,14 @@ ADC::update_system_power(hrt_abstime now)
 	// these are not ADC related, but it is convenient to
 	// publish these to the same topic
 
-	g_board_usb_connected = system_power.usb_connected;
+	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
+	/* If provided used the Valid signal from HW*/
+#if defined(BOARD_ADC_USB_VALID)
+	system_power.usb_vaild = BOARD_ADC_USB_VALID;
+#else
+	/* If not provided then use connected */
+	system_power.usb_vaild  = system_power.usb_connected;
+#endif
 
 	system_power.brick_valid   = BOARD_ADC_BRICK_VALID;
 	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
