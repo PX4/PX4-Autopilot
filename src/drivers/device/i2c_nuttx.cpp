@@ -51,6 +51,10 @@ namespace device
 
 unsigned int I2C::_bus_clocks[BOARD_NUMBER_I2C_BUSES] = BOARD_I2C_BUS_CLOCK_INIT;
 
+#ifdef PX4_I2C_RUNTIME_BUS
+uint8_t I2C::_runtime_bus_enabled = 0;
+#endif
+
 I2C::I2C(const char *name,
 	 const char *devname,
 	 int bus,
@@ -102,11 +106,40 @@ I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
 	return OK;
 }
 
+#ifdef PX4_I2C_RUNTIME_BUS
+void
+I2C::enable_runtime_bus(unsigned bus, bool enable)
+{
+	if (bus > 7) {
+		return;
+	}
+
+	if (enable) {
+		_runtime_bus_enabled |= (1 << bus);
+
+	} else {
+		_runtime_bus_enabled &= ~(1 << bus);
+	}
+}
+#endif
+
 int
 I2C::init()
 {
 	int ret = OK;
 	unsigned bus_index;
+
+#ifdef PX4_I2C_RUNTIME_BUS
+
+	// is a runtime bus?
+	if (PX4_I2C_RUNTIME_BUS & (1 << _bus)) {
+		// is runtime bus enabled?
+		if (!(_runtime_bus_enabled & (1 << _bus))) {
+			return -1;
+		}
+	}
+
+#endif
 
 	// attach to the i2c bus
 	_dev = px4_i2cbus_initialize(_bus);
