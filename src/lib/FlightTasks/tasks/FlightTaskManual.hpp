@@ -123,6 +123,8 @@ public:
 					   (velocity_setpoint(2) > 0.0f) ? _z_vel_max_down.get() : _z_vel_max_up.get());
 		velocity_setpoint = velocity_setpoint.emult(vel_scale);
 
+		/* smooth out velocity setpoint by slewrate and return it */
+		vel_sp_slewrate(velocity_setpoint);
 		_set_velocity_setpoint(velocity_setpoint);
 
 		/* handle position and altitude hold */
@@ -196,15 +198,15 @@ private:
 	manual_stick_input _user_intention_z = brake; /**< what the user wants to do derived from stick input in z direction */
 	float _manual_jerk_limit_xy = 1.f; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z = 1.f; /**< jerk limit in manual mode in z */
-	float _acceleration_state_dependent_xy = 0.f; /* acceleration limit applied in manual mode */
-	float _acceleration_state_dependent_z = 0.f; /* acceleration limit applied in manual mode in z */
+	float _acceleration_state_dependent_xy = 0.2f; /* acceleration limit applied in manual mode */
+	float _acceleration_state_dependent_z = 0.2f; /* acceleration limit applied in manual mode in z */
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
 	math::LowPassFilter2p _filter_manual_pitch;
 	math::LowPassFilter2p _filter_manual_roll;
 
-	void vel_sp_slewrate(matrix::Vector3f &_vel_sp)
+	void vel_sp_slewrate(matrix::Vector3f &vel_sp)
 	{
-		matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
+		matrix::Vector2f vel_sp_xy(vel_sp(0), vel_sp(1));
 		matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
 		matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
 		matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / _deltatime;
@@ -212,20 +214,21 @@ private:
 		/* limit total horizontal acceleration */
 		if (acc_xy.length() > _acceleration_state_dependent_xy) {
 			vel_sp_xy = _acceleration_state_dependent_xy * acc_xy.normalized() * _deltatime + vel_sp_prev_xy;
-			_vel_sp(0) = vel_sp_xy(0);
-			_vel_sp(1) = vel_sp_xy(1);
+			vel_sp(0) = vel_sp_xy(0);
+			vel_sp(1) = vel_sp_xy(1);
 		}
 
 		/* limit vertical acceleration */
-		float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / _deltatime;
+		float acc_z = (vel_sp(2) - _vel_sp_prev(2)) / _deltatime;
 		float max_acc_z;
 
-		max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
+		max_acc_z = math::sign(acc_z) * _acceleration_state_dependent_z;
 
 		if (fabsf(acc_z) > fabsf(max_acc_z)) {
-			_vel_sp(2) = max_acc_z * _deltatime + _vel_sp_prev(2);
+			vel_sp(2) = max_acc_z * _deltatime + _vel_sp_prev(2);
 		}
 
+		_vel_sp_prev = vel_sp;
 	}
 
 	void set_manual_acceleration_xy(matrix::Vector2f &stick_xy)
