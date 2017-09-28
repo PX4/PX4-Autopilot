@@ -3,7 +3,7 @@ float32 voltage3V3_v	# Sensor 3V3 rail voltage
 uint8 v3v3_valid		# Sensor 3V3 rail voltage was read.
 uint8 usb_connected		# USB is connected when 1
 uint8 brick_valid		# brick bits power is good when bit 1
-uint8 usb_vaild 		# USB is valid when 1
+uint8 usb_valid 		# USB is valid when 1
 uint8 servo_valid		# servo power is good when 1
 uint8 periph_5V_OC		# peripheral overcurrent when 1
 uint8 hipower_5V_OC		# hi power peripheral overcurrent when 1
