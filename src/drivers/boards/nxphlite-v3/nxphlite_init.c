@@ -241,6 +241,10 @@ kinetis_boardinitialize(void)
 
 	nxphlite_timer_initialize();
 
+	/* Power on Spektrum */
+
+	VDD_3V3_SPEKTRUM_POWER_EN(true);
+
 }
 
 //FIXME: Stubs  -----v
@@ -512,7 +516,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif
-
 
 	return OK;
 }

@@ -412,6 +412,9 @@ __BEGIN_DECLS
 // Do not have #define VDD_5V_WIFI_EN(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_WIFI_EN, (on_true))
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(SD_CAED_P_EN, !(on_true))
 
+/* Map to control term used in RC lib */
+#define SPEKTRUM_POWER(on_true) VDD_3V3_SPEKTRUM_POWER_EN((on_true))
+
 
 /*
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
