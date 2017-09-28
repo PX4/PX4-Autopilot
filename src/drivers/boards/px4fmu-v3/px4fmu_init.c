@@ -119,17 +119,10 @@ __END_DECLS
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 static int hw_version = 0;
 static int hw_revision = 0;
 static char hw_type[4] = HW_VER_TYPE_INIT;
-#endif
-/****************************************************************************
- * Protected Functions
- ****************************************************************************/
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+
 /************************************************************************************
  * Name: board_peripheral_reset
  *
@@ -226,7 +219,6 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 static int determin_hw_version(int *version, int *revision)
 {
 	*revision = 0; /* default revision */
@@ -309,7 +301,6 @@ __EXPORT int board_get_hw_revision()
 {
 	return  hw_revision;
 }
-#endif // BOARD_HAS_SIMPLE_HW_VERSIONING
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -404,7 +395,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
 
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 
 	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
 		switch (hw_version) {
@@ -425,7 +415,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		PX4_INFO("Ver 0x%1X : Rev %x %s", hw_version, hw_revision, hw_type);
 	}
 
-#endif // BOARD_HAS_SIMPLE_HW_VERSIONING
 
 	/* Bring up the Sensor power */
 

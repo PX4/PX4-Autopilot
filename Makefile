@@ -184,7 +184,6 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 
 .PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware
 .PHONY: sizes check quick_check
-.PHONY: check_posix_sitl_default check_px4fmu-v3_default
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
