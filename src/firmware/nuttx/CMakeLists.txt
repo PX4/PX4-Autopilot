@@ -2,7 +2,7 @@ include(common/px4_upload)
 
 # add executable
 set(fw_name ${CONFIG}.elf)
-add_executable(${fw_name} ${PX4_SOURCE_DIR}/nuttx-configs/${BOARD}/src/empty.c)
+add_executable(${fw_name} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 add_dependencies(${fw_name} git_nuttx)
 
 get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
@@ -21,7 +21,6 @@ target_link_libraries(${fw_name}
 	nuttx_arch
 	nuttx_binfmt
 	nuttx_binfmt
-	nuttx_board
 	nuttx_c
 	nuttx_configs
 	nuttx_cxx
