@@ -248,21 +248,23 @@ private:
 	orb_advert_t	_vehicle_cmd_pub{nullptr};
 	orb_advert_t	_vehicle_roi_pub{nullptr};
 
+	// Subscriptions
 	fw_pos_ctrl_status_s				_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
-	geofence_result_s				_geofence_result{};
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
-	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
-	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
-	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	sensor_combined_s				_sensor_combined{};	/**< sensor values */
-	vehicle_attitude_setpoint_s			_att_sp{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
-	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+
+	// Publications
+	geofence_result_s				_geofence_result{};
+	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
+	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
+	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
+	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */
 
