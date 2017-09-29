@@ -71,8 +71,9 @@
 class LidarLiteI2C : public LidarLite, public device::I2C
 {
 public:
-	LidarLiteI2C(int bus, const char *path, int address = LL40LS_BASEADDR,
-		     uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	LidarLiteI2C(int bus, const char *path,
+		     uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
+		     int address = LL40LS_BASEADDR);
 	virtual ~LidarLiteI2C();
 
 	int         init() override;
