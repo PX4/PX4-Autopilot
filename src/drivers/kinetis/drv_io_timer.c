@@ -465,6 +465,9 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 	rMOD(timer) = (BOARD_PWM_FREQ / rate) - 1;
 	rSC(timer) = save;
 
+	/* generate an update event; reloads the counter and all registers */
+	rSYNC(timer) = FTM_SYNC;
+
 	px4_leave_critical_section(flags);
 
 	return 0;
