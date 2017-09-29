@@ -432,10 +432,10 @@ ADC::update_system_power(hrt_abstime now)
 	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
 	/* If provided used the Valid signal from HW*/
 #if defined(BOARD_ADC_USB_VALID)
-	system_power.usb_vaild = BOARD_ADC_USB_VALID;
+	system_power.usb_valid = BOARD_ADC_USB_VALID;
 #else
 	/* If not provided then use connected */
-	system_power.usb_vaild  = system_power.usb_connected;
+	system_power.usb_valid  = system_power.usb_connected;
 #endif
 
 	/* The valid signals (HW dependent) are associated with each brick */
