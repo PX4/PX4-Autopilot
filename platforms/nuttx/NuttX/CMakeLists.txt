@@ -154,19 +154,6 @@ set_property(TARGET nuttx_apps PROPERTY IMPORTED_LOCATION ${APPS_DIR}/libapps.a)
 add_dependencies(nuttx_build nuttx_apps_build)
 target_link_libraries(nuttx_build INTERFACE nuttx_apps)
 
-# libboard.a
-add_custom_command(OUTPUT ${NUTTX_DIR}/arch/arm/src/board/libboard.a
-	COMMAND make ${nuttx_build_options} -j2 --no-print-directory -C board TOPDIR="${NUTTX_DIR}" libboard.a EXTRADEFINES=-D__KERNEL__ ${nuttx_build_output}
-	DEPENDS nuttx_context
-	WORKING_DIRECTORY ${NUTTX_DIR}/arch/arm/src
-	${nuttx_build_uses_terminal}
-	)
-add_custom_target(nuttx_board_build DEPENDS ${NUTTX_DIR}/arch/arm/src/board/libboard.a)
-add_library(nuttx_board STATIC IMPORTED GLOBAL)
-set_property(TARGET nuttx_board PROPERTY IMPORTED_LOCATION ${NUTTX_DIR}/arch/arm/src/board/libboard.a)
-add_dependencies(nuttx_build nuttx_board_build)
-target_link_libraries(nuttx_build INTERFACE nuttx_board)
-
 # helper for all targets
 function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 	file(GLOB_RECURSE nuttx_lib_files
@@ -175,7 +162,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 
 	add_custom_command(OUTPUT ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND find ${nuttx_lib_dir} -type f -name *.o -delete
-		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} -j2 --no-print-directory lib${nuttx_lib}.a TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRADEFINES=${extra} ${nuttx_build_output}
+		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} --no-print-directory lib${nuttx_lib}.a TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRADEFINES=${extra} ${nuttx_build_output}
 		DEPENDS ${nuttx_lib_files} nuttx_context
 		WORKING_DIRECTORY ${NUTTX_DIR}
 		${nuttx_build_uses_terminal}
