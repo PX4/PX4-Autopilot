@@ -64,8 +64,6 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission, float 
 	const float home_alt = _navigator->get_home_position()->alt;
 	const bool home_valid = _navigator->home_position_valid();
 
-
-
 	bool &warning_issued = _navigator->get_mission_result()->warning;
 	const float default_acceptance_rad  = _navigator->get_default_acceptance_radius();
 	const bool landed = _navigator->get_land_detected()->landed;
