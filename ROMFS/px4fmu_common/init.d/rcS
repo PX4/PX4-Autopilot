@@ -236,6 +236,12 @@ then
 		param set SYS_AUTOSTART 4070
 	fi
 
+	if ver hwcmp NXPHLITE_V3
+	then
+		param set SYS_FMU_TASK 1
+		set MAVLINK_COMPANION_DEVICE /dev/ttyS4
+	fi
+
 	#
 	# Set USE_IO flag
 	#
