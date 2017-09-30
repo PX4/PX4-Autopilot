@@ -49,7 +49,7 @@
 #include <stdio.h>
 #include <drivers/drv_hrt.h>
 
-LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address, uint8_t rotation) :
+LidarLiteI2C::LidarLiteI2C(int bus, const char *path, uint8_t rotation, int address) :
 	I2C("LL40LS", path, bus, address, 100000),
 	_rotation(rotation),
 	_work{},
