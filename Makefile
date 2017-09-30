@@ -119,7 +119,8 @@ ifdef VNP
 endif
 
 # additional config parameters passed to cmake
-CMAKE_ARGS :=
+CMAKE_ARGS := -Wno-deprecated
+
 ifdef EXTERNAL_MODULES_LOCATION
 	CMAKE_ARGS := -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
 endif
