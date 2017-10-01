@@ -214,6 +214,32 @@ out:
 	return success;
 }
 
+// return false if the magnetomer measurements are inconsistent
+static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, bool report_status)
+{
+	// get the sensor preflight data
+	int sensors_sub = orb_subscribe(ORB_ID(sensor_preflight));
+	struct sensor_preflight_s sensors = {};
+	if (orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors) != 0) {
+		// can happen if not advertised (yet)
+		return true;
+	}
+	orb_unsubscribe(sensors_sub);
+
+	// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
+	// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
+	float test_limit;
+	param_get(param_find("COM_ARM_MAG"), &test_limit);
+	if (sensors.mag_inconsistency_ga > test_limit) {
+		if (report_status) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAG SENSORS INCONSISTENT");
+		}
+		return false;
+	}
+
+	return true;
+}
+
 static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool optional, bool dynamic, int &device_id, bool report_fail)
 {
 	bool success = true;
@@ -625,6 +651,12 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 			}
 			failed = true;
 		}
+
+		/* fail if mag sensors are inconsistent */
+		if (!magConsistencyCheck(mavlink_log_pub, reportFailures)) {
+			failed = true;
+		}
+
 	}
 
 	/* ---- ACCEL ---- */
