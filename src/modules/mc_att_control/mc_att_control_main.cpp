@@ -218,6 +218,7 @@ private:
 		param_t acro_roll_max;
 		param_t acro_pitch_max;
 		param_t acro_yaw_max;
+		param_t acro_expo;
 		param_t rattitude_thres;
 
 		param_t vtol_type;
@@ -256,7 +257,8 @@ private:
 		float yaw_auto_max;
 		math::Vector<3> mc_rate_max;		/**< attitude rate limits in stabilized modes */
 		math::Vector<3> auto_rate_max;		/**< attitude rate limits in auto modes */
-		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
+		matrix::Vector3f acro_rate_max;		/**< max attitude rates in acro mode */
+		float acro_expo;
 		float rattitude_thres;
 		int vtol_type;						/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
 		bool vtol_opt_recovery_enabled;
@@ -492,6 +494,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yaw_max	= 	param_find("MC_ACRO_Y_MAX");
+	_params_handles.acro_expo	= 	param_find("MC_ACRO_EXPO");
 	_params_handles.rattitude_thres = 	param_find("MC_RATT_TH");
 	_params_handles.vtol_type 		= 	param_find("VT_TYPE");
 	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
@@ -633,13 +636,14 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.yaw_auto_max, &_params.yaw_auto_max);
 	_params.auto_rate_max(2) = math::radians(_params.yaw_auto_max);
 
-	/* manual rate control scale and acro mode roll/pitch rate limits */
+	/* manual rate control acro mode rate limits and expo */
 	param_get(_params_handles.acro_roll_max, &v);
 	_params.acro_rate_max(0) = math::radians(v);
 	param_get(_params_handles.acro_pitch_max, &v);
 	_params.acro_rate_max(1) = math::radians(v);
 	param_get(_params_handles.acro_yaw_max, &v);
 	_params.acro_rate_max(2) = math::radians(v);
+	param_get(_params_handles.acro_expo, &_params.acro_expo);
 
 	/* stick deflection needed in rattitude mode to control rates not angles */
 	param_get(_params_handles.rattitude_thres, &_params.rattitude_thres);
@@ -1241,8 +1245,12 @@ MulticopterAttitudeControl::task_main()
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
-					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x,
-								    _manual_control_sp.r).emult(_params.acro_rate_max);
+					matrix::Vector3f man_rate_sp;
+					man_rate_sp(0) = math::expo(_manual_control_sp.y, _params.acro_expo);
+					man_rate_sp(1) = math::expo(-_manual_control_sp.x, _params.acro_expo);
+					man_rate_sp(2) = math::expo(_manual_control_sp.r, _params.acro_expo);
+					man_rate_sp = man_rate_sp.emult(_params.acro_rate_max);
+					_rates_sp = math::Vector<3>(man_rate_sp.data());
 					_thrust_sp = _manual_control_sp.z;
 
 					/* publish attitude rates setpoint */
