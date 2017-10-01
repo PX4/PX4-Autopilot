@@ -62,6 +62,7 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_en
 	memset(&_last_baro_timestamp, 0, sizeof(_last_baro_timestamp));
 	memset(&_accel_diff, 0, sizeof(_accel_diff));
 	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
+	memset(&_mag_diff, 0, sizeof(_mag_diff));
 
 	// initialise the corrections
 	memset(&_corrections, 0, sizeof(_corrections));
@@ -1210,4 +1211,51 @@ void VotedSensorsUpdate::calc_gyro_inconsistency(sensor_preflight_s &preflt)
 	}
 }
 
+void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
+{
+	float mag_diff_sum_max_sq = 0.0f; // the maximum sum of axis differences squared
+	unsigned check_index = 0; // the number of sensors the primary has been checked against
 
+	// Check each sensor against the primary
+	for (unsigned sensor_index = 0; sensor_index < _mag.subscription_count; sensor_index++) {
+
+		// check that the sensor we are checking against is not the same as the primary
+		if ((_mag.priority[sensor_index] > 0) && (sensor_index != _mag.last_best_vote)) {
+
+			float mag_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison against the primary
+
+			// calculate mag_diff_sum_sq for the specified sensor against the primary
+			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+				_mag_diff[axis_index][check_index] = 0.95f * _mag_diff[axis_index][check_index] + 0.05f *
+								     (_last_sensor_data[_mag.last_best_vote].magnetometer_ga[axis_index] -
+								      _last_sensor_data[sensor_index].magnetometer_ga[axis_index]);
+				mag_diff_sum_sq += _mag_diff[axis_index][check_index] * _mag_diff[axis_index][check_index];
+
+			}
+
+			// capture the largest sum value
+			if (mag_diff_sum_sq > mag_diff_sum_max_sq) {
+				mag_diff_sum_max_sq = mag_diff_sum_sq;
+
+			}
+
+			// increment the check index
+			check_index++;
+		}
+
+		// check to see if the maximum number of checks has been reached and break
+		if (check_index >= 2) {
+			break;
+
+		}
+	}
+
+	// skip check if less than 2 sensors
+	if (check_index < 1) {
+		preflt.mag_inconsistency_ga = 0.0f;
+
+	} else {
+		// get the vector length of the largest difference and write to the combined sensor struct
+		preflt.mag_inconsistency_ga = sqrtf(mag_diff_sum_max_sq);
+	}
+}
