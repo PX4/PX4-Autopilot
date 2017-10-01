@@ -188,14 +188,14 @@ private:
 	control::BlockParamFloat _acceleration_z_max_down; /**< max acceleration down */
 	matrix::Vector2f _stick_input_xy_prev;
 	matrix::Vector3f _vel_sp_prev; /* velocity setpoint of last loop to calculate setpoint slewrate - acceleration */
-	enum manual_stick_input {
+	enum stick_user_intention {
 		brake,
 		direction_change,
 		acceleration,
 		deceleration
 	};
-	manual_stick_input _user_intention_xy = brake; /**< defines what the user intends to do derived from the stick input */
-	manual_stick_input _user_intention_z = brake; /**< what the user wants to do derived from stick input in z direction */
+	stick_user_intention _intention_xy_prev = brake; /**< user intension derived from the xy stick input */
+	stick_user_intention _user_intention_z = brake; /**< user intension derived from the z stick input */
 	float _manual_jerk_limit_xy = 1.f; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z = 1.f; /**< jerk limit in manual mode in z */
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
@@ -240,64 +240,63 @@ private:
 		 */
 		float acceleration_state_dependent_xy = 0.f;
 
-		/* get normalized stick input vector */
+		/* check input stick for zero or direction */
+		const float stick_xy_norm = stick_xy.norm();
+		const bool stick_xy_zero = stick_xy_norm <= FLT_EPSILON;
 		matrix::Vector2f stick_xy_unit = stick_xy;
 
-		if (stick_xy_unit.length() > FLT_EPSILON) {
+		if (!stick_xy_zero) {
 			stick_xy_unit.normalize();
 		}
 
+		const float stick_xy_prev_norm = _stick_input_xy_prev.norm();
+		const bool stick_xy_prev_zero = stick_xy_prev_norm <= FLT_EPSILON;
 		matrix::Vector2f stick_xy_prev_unit = _stick_input_xy_prev;
 
-		if (stick_xy_prev_unit.length() > FLT_EPSILON) {
+		if (!stick_xy_prev_zero) {
 			stick_xy_prev_unit.normalize();
 		}
 
-		/* check if stick direction and current velocity are within 60angle */
-		const bool is_aligned = (stick_xy_unit * stick_xy_prev_unit) > 0.5f;
-
-		/* check if zero input stick */
-		const bool is_prev_zero = (fabsf(_stick_input_xy_prev.length()) <= FLT_EPSILON);
-		const bool is_current_zero = (fabsf(stick_xy.length()) <= FLT_EPSILON);
+		/* check if stick direction and current velocity are within 60 angle cos(60) = 0.5 */
+		const bool previous_stick_aligned = (stick_xy_unit * stick_xy_prev_unit) > 0.5f;
 
 		/* check acceleration */
-		const bool do_acceleration = is_prev_zero || (is_aligned &&
-					     ((stick_xy.length() > _stick_input_xy_prev.length()) || (fabsf(stick_xy.length() - 1.0f) < FLT_EPSILON)));
+		const bool do_acceleration = stick_xy_prev_zero || (previous_stick_aligned &&
+					     ((stick_xy_norm > stick_xy_prev_norm) || (fabsf(stick_xy_norm - 1.0f) < FLT_EPSILON)));
 
-		const bool do_deceleration = (is_aligned && (stick_xy.length() <= _stick_input_xy_prev.length()));
+		const bool do_deceleration = (previous_stick_aligned && (stick_xy_norm <= stick_xy_prev_norm));
 
-		const bool do_direction_change = !is_aligned;
+		const bool do_direction_change = !previous_stick_aligned;
 
-		manual_stick_input intention;
+		stick_user_intention intention_xy;
 
-		if (is_current_zero) {
+		if (stick_xy_zero) {
 			/* we want to stop */
-			intention = brake;
+			intention_xy = brake;
 
 		} else if (do_acceleration) {
 			/* we do manual acceleration */
-			intention = acceleration;
+			intention_xy = acceleration;
 
 		} else if (do_deceleration) {
 			/* we do manual deceleration */
-			intention = deceleration;
+			intention_xy = deceleration;
 
 		} else if (do_direction_change) {
 			/* we have a direction change */
-			intention = direction_change;
+			intention_xy = direction_change;
 
 		} else {
 			/* catchall: acceleration */
-			intention = acceleration;
+			intention_xy = acceleration;
 		}
 
-
 		/*
-		 * update user intention
+		 * execute the user intention
 		 */
 
 		/* we always want to break starting with slow deceleration */
-		if ((_user_intention_xy != brake) && (intention  == brake)) {
+		if ((_intention_xy_prev != brake) && (intention_xy  == brake)) {
 
 			if (_jerk_hor_max.get() > _jerk_hor_min.get()) {
 				_manual_jerk_limit_xy = (_jerk_hor_max.get() - _jerk_hor_min.get()) / _velocity_hor_manual.get() *
@@ -322,10 +321,10 @@ private:
 
 		}
 
-		switch (_user_intention_xy) {
+		switch (_intention_xy_prev) {
 		case brake: {
-				if (intention != brake) {
-					_user_intention_xy = acceleration;
+				if (intention_xy != brake) {
+					_intention_xy_prev = acceleration;
 					/* we initialize with lowest acceleration */
 					acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 				}
@@ -344,17 +343,17 @@ private:
 
 
 				/* exit direction change if one of the condition is met */
-				if (intention == brake) {
-					_user_intention_xy = intention;
+				if (intention_xy == brake) {
+					_intention_xy_prev = intention_xy;
 
 				} else if (stick_vel_aligned) {
-					_user_intention_xy = acceleration;
+					_intention_xy_prev = acceleration;
 
 				} else if (_manual_direction_change_hysteresis.get_state()) {
 
 					/* TODO: find conditions which are always continuous
 					 * only if stick input is large*/
-					if (stick_xy.length() > 0.6f) {
+					if (stick_xy_norm > 0.6f) {
 						acceleration_state_dependent_xy = _acceleration_hor_max.get();
 					}
 				}
@@ -363,9 +362,9 @@ private:
 			}
 
 		case acceleration: {
-				_user_intention_xy = intention;
+				_intention_xy_prev = intention_xy;
 
-				if (_user_intention_xy == direction_change) {
+				if (_intention_xy_prev == direction_change) {
 					_vel_sp_prev(0) = _velocity(0);
 					_vel_sp_prev(1) = _velocity(1);
 				}
@@ -374,9 +373,9 @@ private:
 			}
 
 		case deceleration: {
-				_user_intention_xy = intention;
+				_intention_xy_prev = intention_xy;
 
-				if (_user_intention_xy == direction_change) {
+				if (_intention_xy_prev == direction_change) {
 					_vel_sp_prev(0) = _velocity(0);
 					_vel_sp_prev(1) = _velocity(1);
 				}
@@ -388,7 +387,7 @@ private:
 		/*
 		 * apply acceleration based on state
 		*/
-		switch (_user_intention_xy) {
+		switch (_intention_xy_prev) {
 		case brake: {
 
 				/* limit jerk when braking to zero */
@@ -407,14 +406,14 @@ private:
 		case direction_change: {
 
 				/* limit acceleration linearly on stick input*/
-				acceleration_state_dependent_xy = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
+				acceleration_state_dependent_xy = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy_norm +
 								  _deceleration_hor_slow.get();
 				break;
 			}
 
 		case acceleration: {
 				/* limit acceleration linearly on stick input*/
-				float acc_limit  = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length()
+				float acc_limit  = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy_norm
 						   + _deceleration_hor_slow.get();
 
 				if (acceleration_state_dependent_xy > acc_limit) {
@@ -460,7 +459,7 @@ private:
 		const bool is_current_zero = (fabsf(stick_z) <= FLT_EPSILON);
 
 		/* default is acceleration */
-		manual_stick_input intention = acceleration;
+		stick_user_intention intention = acceleration;
 
 		/* check zero input stick */
 		if (is_current_zero) {
