@@ -101,20 +101,20 @@ public:
 		FlightTask::update();
 
 		/* prepare stick input */
-		matrix::Vector2f sick_xy;
-		sick_xy(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
-		sick_xy(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
+		matrix::Vector2f stick_xy; /**< horizontal two dimensional stick input within a unit circle */
+		stick_xy(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
+		stick_xy(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
 		float stick_z = -math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
 
-		const float stick_xy_norm = sick_xy.norm();
+		const float stick_xy_norm = stick_xy.norm();
 
 		/* saturate such that magnitude in xy is never larger than 1 */
 		if (stick_xy_norm > 1.0f) {
-			sick_xy /= stick_xy_norm;
+			stick_xy /= stick_xy_norm;
 		}
 
 		/* rotate stick input to produce velocity setpoint in NED frame */
-		matrix::Vector3f velocity_setpoint(sick_xy(0), sick_xy(1), stick_z);
+		matrix::Vector3f velocity_setpoint(stick_xy(0), stick_xy(1), stick_z);
 		velocity_setpoint = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, get_input_frame_yaw())) * velocity_setpoint;
 
 		/* scale [0,1] length velocity vector to maximal manual speed (in m/s) */
@@ -124,7 +124,7 @@ public:
 		velocity_setpoint = velocity_setpoint.emult(vel_scale);
 
 		/* smooth out velocity setpoint by slewrate and return it */
-		vel_sp_slewrate(velocity_setpoint);
+		vel_sp_slewrate(velocity_setpoint, stick_xy, stick_z);
 		_set_velocity_setpoint(velocity_setpoint);
 
 		/* handle position and altitude hold */
@@ -187,7 +187,7 @@ private:
 	control::BlockParamFloat _acceleration_z_max_up; /**< max acceleration up */
 	control::BlockParamFloat _acceleration_z_max_down; /**< max acceleration down */
 	matrix::Vector2f _stick_input_xy_prev;
-	matrix::Vector3f _vel_sp_prev;
+	matrix::Vector3f _vel_sp_prev; /* velocity setpoint of last loop to calculate setpoint slewrate - acceleration */
 	enum manual_stick_input {
 		brake,
 		direction_change,
@@ -198,42 +198,39 @@ private:
 	manual_stick_input _user_intention_z = brake; /**< what the user wants to do derived from stick input in z direction */
 	float _manual_jerk_limit_xy = 1.f; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z = 1.f; /**< jerk limit in manual mode in z */
-	float _acceleration_state_dependent_xy = 0.2f; /* acceleration limit applied in manual mode */
-	float _acceleration_state_dependent_z = 0.2f; /* acceleration limit applied in manual mode in z */
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
 	math::LowPassFilter2p _filter_manual_pitch;
 	math::LowPassFilter2p _filter_manual_roll;
 
-	void vel_sp_slewrate(matrix::Vector3f &vel_sp)
+	void vel_sp_slewrate(matrix::Vector3f &vel_sp, const matrix::Vector2f &stick_xy, const float &stick_z)
 	{
 		matrix::Vector2f vel_sp_xy(vel_sp(0), vel_sp(1));
-		matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
-		matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
-		matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / _deltatime;
+		const matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
+		const matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
+		const matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / _deltatime;
+
+		const float acc_xy_max = get_acceleration_xy(stick_xy);
 
 		/* limit total horizontal acceleration */
-		if (acc_xy.length() > _acceleration_state_dependent_xy) {
-			vel_sp_xy = _acceleration_state_dependent_xy * acc_xy.normalized() * _deltatime + vel_sp_prev_xy;
+		if (acc_xy.length() > acc_xy_max) {
+			vel_sp_xy = acc_xy_max * acc_xy.normalized() * _deltatime + vel_sp_prev_xy;
 			vel_sp(0) = vel_sp_xy(0);
 			vel_sp(1) = vel_sp_xy(1);
 		}
 
 		/* limit vertical acceleration */
-		float acc_z = (vel_sp(2) - _vel_sp_prev(2)) / _deltatime;
-		float max_acc_z;
+		const float acc_z = (vel_sp(2) - _vel_sp_prev(2)) / _deltatime;
+		const float acc_z_max = math::sign(acc_z) * get_acceleration_z(stick_z);
 
-		max_acc_z = math::sign(acc_z) * _acceleration_state_dependent_z;
-
-		if (fabsf(acc_z) > fabsf(max_acc_z)) {
-			vel_sp(2) = max_acc_z * _deltatime + _vel_sp_prev(2);
+		if (fabsf(acc_z) > fabsf(acc_z_max)) {
+			vel_sp(2) = acc_z_max * _deltatime + _vel_sp_prev(2);
 		}
 
 		_vel_sp_prev = vel_sp;
 	}
 
-	void set_manual_acceleration_xy(matrix::Vector2f &stick_xy)
+	float get_acceleration_xy(const matrix::Vector2f &stick_xy)
 	{
-
 		/*
 		 * In manual mode we consider four states with different acceleration handling:
 		 * 1. user wants to stop
@@ -241,14 +238,23 @@ private:
 		 * 3. user wants to accelerate
 		 * 4. user wants to decelerate
 		 */
+		float acceleration_state_dependent_xy = 0.f;
 
 		/* get normalized stick input vector */
-		matrix::Vector2f stick_xy_norm = (stick_xy.length() > 0.0f) ? stick_xy.normalized() : stick_xy;
-		matrix::Vector2f stick_xy_prev_norm = (_stick_input_xy_prev.length() > 0.0f) ? _stick_input_xy_prev.normalized() :
-						      _stick_input_xy_prev;
+		matrix::Vector2f stick_xy_unit = stick_xy;
+
+		if (stick_xy_unit.length() > FLT_EPSILON) {
+			stick_xy_unit.normalize();
+		}
+
+		matrix::Vector2f stick_xy_prev_unit = _stick_input_xy_prev;
+
+		if (stick_xy_prev_unit.length() > FLT_EPSILON) {
+			stick_xy_prev_unit.normalize();
+		}
 
 		/* check if stick direction and current velocity are within 60angle */
-		const bool is_aligned = (stick_xy_norm * stick_xy_prev_norm) > 0.5f;
+		const bool is_aligned = (stick_xy_unit * stick_xy_prev_unit) > 0.5f;
 
 		/* check if zero input stick */
 		const bool is_prev_zero = (fabsf(_stick_input_xy_prev.length()) <= FLT_EPSILON);
@@ -298,7 +304,7 @@ private:
 							sqrtf(_velocity(0) * _velocity(0) + _velocity(1) * _velocity(1)) + _jerk_hor_min.get();
 
 				/* we start braking with lowest accleration */
-				_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+				acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 
 			} else {
 
@@ -306,7 +312,7 @@ private:
 				_manual_jerk_limit_xy = 1000000.f;
 
 				/* at brake we use max acceleration */
-				_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+				acceleration_state_dependent_xy = _acceleration_hor_max.get();
 
 			}
 
@@ -321,7 +327,7 @@ private:
 				if (intention != brake) {
 					_user_intention_xy = acceleration;
 					/* we initialize with lowest acceleration */
-					_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+					acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 				}
 
 				break;
@@ -331,7 +337,7 @@ private:
 				/* only exit direction change if brake or aligned */
 				matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
 				matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
-				bool stick_vel_aligned = (vel_xy_norm * stick_xy_norm > 0.0f);
+				bool stick_vel_aligned = (vel_xy_norm * stick_xy_unit > 0.0f);
 
 				/* update manual direction change hysteresis */
 				_manual_direction_change_hysteresis.set_state_and_update(!stick_vel_aligned);
@@ -349,7 +355,7 @@ private:
 					/* TODO: find conditions which are always continuous
 					 * only if stick input is large*/
 					if (stick_xy.length() > 0.6f) {
-						_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+						acceleration_state_dependent_xy = _acceleration_hor_max.get();
 					}
 				}
 
@@ -386,13 +392,13 @@ private:
 		case brake: {
 
 				/* limit jerk when braking to zero */
-				float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / _deltatime;
+				float jerk = (_acceleration_hor_max.get() - acceleration_state_dependent_xy) / _deltatime;
 
 				if (jerk > _manual_jerk_limit_xy) {
-					_acceleration_state_dependent_xy = _manual_jerk_limit_xy * _deltatime + _acceleration_state_dependent_xy;
+					acceleration_state_dependent_xy = _manual_jerk_limit_xy * _deltatime + acceleration_state_dependent_xy;
 
 				} else {
-					_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+					acceleration_state_dependent_xy = _acceleration_hor_max.get();
 				}
 
 				break;
@@ -401,8 +407,8 @@ private:
 		case direction_change: {
 
 				/* limit acceleration linearly on stick input*/
-				_acceleration_state_dependent_xy = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
-								   _deceleration_hor_slow.get();
+				acceleration_state_dependent_xy = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
+								  _deceleration_hor_slow.get();
 				break;
 			}
 
@@ -411,22 +417,22 @@ private:
 				float acc_limit  = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length()
 						   + _deceleration_hor_slow.get();
 
-				if (_acceleration_state_dependent_xy > acc_limit) {
-					acc_limit = _acceleration_state_dependent_xy;
+				if (acceleration_state_dependent_xy > acc_limit) {
+					acc_limit = acceleration_state_dependent_xy;
 				}
 
-				_acceleration_state_dependent_xy = acc_limit;
+				acceleration_state_dependent_xy = acc_limit;
 				break;
 			}
 
 		case deceleration: {
-				_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+				acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 				break;
 			}
 
 		default :
 			printf("User intention not recognized"); // TODO: take this out, can never happen
-			_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+			acceleration_state_dependent_xy = _acceleration_hor_max.get();
 
 		}
 
@@ -438,15 +444,17 @@ private:
 		if (_stick_input_xy_prev.length() > 1.0f) {
 			_stick_input_xy_prev = _stick_input_xy_prev.normalized();
 		}
+
+		return acceleration_state_dependent_xy;
 	}
 
-	void set_manual_acceleration_z(float &max_acceleration, const float stick_z)
+	float get_acceleration_z(const float &stick_z)
 	{
-
 		/* in manual altitude control apply acceleration limit based on stick input
 		 * we consider two states
 		 * 1.) brake
 		 * 2.) accelerate */
+		float acceleration_state_dependent_z = 0.f;
 
 		/* check if zero input stick */
 		const bool is_current_zero = (fabsf(stick_z) <= FLT_EPSILON);
@@ -460,7 +468,7 @@ private:
 		}
 
 		/* get max and min acceleration where min acceleration is just 1/5 of max acceleration */
-		max_acceleration = (stick_z <= 0.0f) ? _acceleration_z_max_up.get() : _acceleration_z_max_down.get();
+		float max_acceleration = (stick_z <= 0.0f) ? _acceleration_z_max_up.get() : _acceleration_z_max_down.get();
 
 		/*
 		 * update user input
@@ -468,7 +476,7 @@ private:
 		if ((_user_intention_z != brake) && (intention  == brake)) {
 
 			/* we start with lowest acceleration */
-			_acceleration_state_dependent_z = _acceleration_z_max_down.get();
+			acceleration_state_dependent_z = _acceleration_z_max_down.get();
 
 			/* reset slew rate */
 			_vel_sp_prev(2) = _velocity(2);
@@ -483,20 +491,22 @@ private:
 		if (_user_intention_z == brake) {
 
 			/* limit jerk when braking to zero */
-			float jerk = (_acceleration_z_max_up.get() - _acceleration_state_dependent_z) / _deltatime;
+			float jerk = (_acceleration_z_max_up.get() - acceleration_state_dependent_z) / _deltatime;
 
 			if (jerk > _manual_jerk_limit_z) {
-				_acceleration_state_dependent_z = _manual_jerk_limit_z * _deltatime + _acceleration_state_dependent_z;
+				acceleration_state_dependent_z = _manual_jerk_limit_z * _deltatime + acceleration_state_dependent_z;
 
 			} else {
-				_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+				acceleration_state_dependent_z = _acceleration_z_max_up.get();
 			}
 		}
 
 		if (_user_intention_z == acceleration) {
-			_acceleration_state_dependent_z = (max_acceleration - _acceleration_z_max_down.get()) * fabsf(
+			acceleration_state_dependent_z = (max_acceleration - _acceleration_z_max_down.get()) * fabsf(
 					stick_z) + _acceleration_z_max_down.get();
 		}
+
+		return acceleration_state_dependent_z;
 	}
 
 };
