@@ -401,7 +401,7 @@ private:
 				float jerk = (_acceleration_hor_max.get() - acceleration_state_dependent_xy) / _deltatime;
 
 				if (jerk > _manual_jerk_limit_xy) {
-					acceleration_state_dependent_xy = _manual_jerk_limit_xy * _deltatime + acceleration_state_dependent_xy;
+					acceleration_state_dependent_xy += _manual_jerk_limit_xy * _deltatime;
 
 				} else {
 					acceleration_state_dependent_xy = _acceleration_hor_max.get();
@@ -455,24 +455,20 @@ private:
 		 * 2.) accelerate */
 		float acceleration_state_dependent_z = 0.f;
 
-		/* check if zero input stick */
-		const bool is_current_zero = (fabsf(stick_z) <= FLT_EPSILON);
-
 		/* default is acceleration */
 		stick_user_intention intention = acceleration;
 
-		/* check zero input stick */
-		if (is_current_zero) {
+		if (fabsf(stick_z) <= FLT_EPSILON) {
 			intention = brake;
 		}
 
-		/* get max and min acceleration where min acceleration is just 1/5 of max acceleration */
+		/* set maximum acceleration depending on upwards or downwards flight */
 		float max_acceleration = (stick_z <= 0.0f) ? _acceleration_z_max_up.get() : _acceleration_z_max_down.get();
 
 		/*
 		 * update user input
 		 */
-		if ((_user_intention_z != brake) && (intention  == brake)) {
+		if ((_user_intention_z != brake) && (intention == brake)) {
 
 			/* we start with lowest acceleration */
 			acceleration_state_dependent_z = _acceleration_z_max_down.get();
@@ -493,7 +489,7 @@ private:
 			float jerk = (_acceleration_z_max_up.get() - acceleration_state_dependent_z) / _deltatime;
 
 			if (jerk > _manual_jerk_limit_z) {
-				acceleration_state_dependent_z = _manual_jerk_limit_z * _deltatime + acceleration_state_dependent_z;
+				acceleration_state_dependent_z += _manual_jerk_limit_z * _deltatime;
 
 			} else {
 				acceleration_state_dependent_z = _acceleration_z_max_up.get();
@@ -501,8 +497,8 @@ private:
 		}
 
 		if (_user_intention_z == acceleration) {
-			acceleration_state_dependent_z = (max_acceleration - _acceleration_z_max_down.get()) * fabsf(
-					stick_z) + _acceleration_z_max_down.get();
+			const float acceleration_range = max_acceleration - _acceleration_z_max_down.get();
+			acceleration_state_dependent_z = _acceleration_z_max_down.get() + acceleration_range * fabsf(stick_z);
 		}
 
 		return acceleration_state_dependent_z;
