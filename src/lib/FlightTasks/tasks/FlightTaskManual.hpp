@@ -61,14 +61,18 @@ public:
 		_jerk_hor_max(parent, "MPC_JERK_MAX", false),
 		_jerk_hor_min(parent, "MPC_JERK_MIN", false),
 		_deceleration_hor_slow(parent, "MPC_DEC_HOR_SLOW", false),
-		_acceleration_hor_max(this, "ACC_HOR_MAX", true),
-		_acceleration_hor_manual(this, "ACC_HOR_MAN", true),
-		_acceleration_z_max_up(this, "ACC_UP_MAX", true),
-		_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
+		_acceleration_hor_max(this, "MPC_ACC_HOR_MAX", false),
+		_acceleration_hor_manual(this, "MPC_ACC_HOR_MAN", false),
+		_acceleration_z_max_up(this, "MPC_ACC_UP_MAX", false),
+		_acceleration_z_max_down(this, "MPC_ACC_DOWN_MAX", false),
+		_rc_flt_smp_rate(parent, "RC_FLT_SMP_RATE", false),
+		_rc_flt_cutoff(parent, "RC_FLT_CUTOFF", false),
 		_manual_direction_change_hysteresis(false),
-		_filter_manual_pitch(50.0f, 10.0f),
-		_filter_manual_roll(50.0f, 10.0f)
-	{};
+		_filter_roll_stick(50.0f, 10.0f),
+		_filter_pitch_stick(50.0f, 10.0f)
+	{
+		_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TIME_US);
+	};
 	virtual ~FlightTaskManual() {};
 
 	/**
@@ -78,6 +82,8 @@ public:
 	virtual int activate()
 	{
 		FlightTask::activate();
+		_filter_roll_stick.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
+		_filter_pitch_stick.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
 		_hold_position = matrix::Vector3f(NAN, NAN, NAN);
 		return 0;
 	};
@@ -178,14 +184,18 @@ private:
 
 
 	/* --- Acceleration Smoothing --- */
+	static constexpr uint64_t DIRECTION_CHANGE_TIME_US = 1e5; /** Time in us to switch into direction change state */
 
-	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk only applied when breaking to zero */
-	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk only applied when breaking to zero */
+	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk only applied when braking to zero */
+	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk only applied when braking to zero */
 	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto & fast manual brake */
 	control::BlockParamFloat _acceleration_hor_manual; /**< maximum velocity setpoint slewrate for manual acceleration */
 	control::BlockParamFloat _acceleration_z_max_up; /**< max acceleration up */
 	control::BlockParamFloat _acceleration_z_max_down; /**< max acceleration down */
+	control::BlockParamFloat _rc_flt_smp_rate; /**< sample rate for stick lowpass filter */
+	control::BlockParamFloat _rc_flt_cutoff; /**< cutoff frequency for stick lowpass filter */
+
 	matrix::Vector2f _stick_input_xy_prev;
 	matrix::Vector3f _vel_sp_prev; /* velocity setpoint of last loop to calculate setpoint slewrate - acceleration */
 	enum stick_user_intention {
@@ -199,8 +209,8 @@ private:
 	float _manual_jerk_limit_xy = 1.f; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z = 1.f; /**< jerk limit in manual mode in z */
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
-	math::LowPassFilter2p _filter_manual_pitch;
-	math::LowPassFilter2p _filter_manual_roll;
+	math::LowPassFilter2p _filter_roll_stick;
+	math::LowPassFilter2p _filter_pitch_stick;
 
 	void vel_sp_slewrate(matrix::Vector3f &vel_sp, const matrix::Vector2f &stick_xy, const float &stick_z)
 	{
@@ -229,16 +239,23 @@ private:
 		_vel_sp_prev = vel_sp;
 	}
 
+	void reset_slewrate_xy()
+	{
+		_vel_sp_prev(0) = _velocity(0);
+		_vel_sp_prev(1) = _velocity(1);
+	}
+
 	float get_acceleration_xy(const matrix::Vector2f &stick_xy)
 	{
 		/*
 		 * In manual mode we consider four states with different acceleration handling:
-		 * 1. user wants to stop
-		 * 2. user wants to quickly change direction
+		 * 1. user wants to stop/brake (lets go of sticks)
+		 * 2. user wants to quickly change direction (> 90 degree)
 		 * 3. user wants to accelerate
 		 * 4. user wants to decelerate
 		 */
 		float acceleration_state_dependent_xy = 0.f;
+		const matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
 
 		/* check input stick for zero or direction */
 		const float stick_xy_norm = stick_xy.norm();
@@ -257,7 +274,7 @@ private:
 			stick_xy_prev_unit.normalize();
 		}
 
-		/* check if stick direction and current velocity are within 60 angle cos(60) = 0.5 */
+		/* check if stick direction changed more than 60 degree angle cos(60) = 0.5 */
 		const bool previous_stick_aligned = (stick_xy_unit * stick_xy_prev_unit) > 0.5f;
 
 		/* check acceleration */
@@ -295,37 +312,35 @@ private:
 		 * execute the user intention
 		 */
 
-		/* we always want to break starting with slow deceleration */
+		/* pilot starts to have brake intention */
 		if ((_intention_xy_prev != brake) && (intention_xy  == brake)) {
 
 			if (_jerk_hor_max.get() > _jerk_hor_min.get()) {
-				_manual_jerk_limit_xy = (_jerk_hor_max.get() - _jerk_hor_min.get()) / _velocity_hor_manual.get() *
-							sqrtf(_velocity(0) * _velocity(0) + _velocity(1) * _velocity(1)) + _jerk_hor_min.get();
+				/* allow jerk proportional to velocity */
+				const float jerk_range = _jerk_hor_max.get() - _jerk_hor_min.get();
+				const float velocity_ratio = vel_xy.norm() / _velocity_hor_manual.get();
+				_manual_jerk_limit_xy = _jerk_hor_min.get() + jerk_range * velocity_ratio;
 
-				/* we start braking with lowest accleration */
+				/* start braking with lowest deceleration */
 				acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 
 			} else {
-
-				/* set the jerk limit large since we don't know it better*/
-				_manual_jerk_limit_xy = 1000000.f;
-
-				/* at brake we use max acceleration */
+				/* set the jerk limit large because it's disabled*/
+				_manual_jerk_limit_xy = 1e6f;
+				/* to brake we use max acceleration */
 				acceleration_state_dependent_xy = _acceleration_hor_max.get();
-
 			}
 
-			/* reset slew rate */
-			_vel_sp_prev(0) = _velocity(0);
-			_vel_sp_prev(1) = _velocity(1);
-
+			reset_slewrate_xy();
 		}
 
+		/* allowed state transitions */
 		switch (_intention_xy_prev) {
 		case brake: {
+
+				/* pilot does not want to brake anymore, initialize with lowest acceleration */
 				if (intention_xy != brake) {
 					_intention_xy_prev = acceleration;
-					/* we initialize with lowest acceleration */
 					acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 				}
 
@@ -333,16 +348,10 @@ private:
 			}
 
 		case direction_change: {
-				/* only exit direction change if brake or aligned */
-				matrix::Vector2f vel_xy(_velocity(0), _velocity(1));
-				matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
-				bool stick_vel_aligned = (vel_xy_norm * stick_xy_unit > 0.0f);
-
-				/* update manual direction change hysteresis */
+				/* only exit direction change if brake or desired heading aligned */
+				const bool stick_vel_aligned = (vel_xy * stick_xy_unit > 0.0f);
 				_manual_direction_change_hysteresis.set_state_and_update(!stick_vel_aligned);
 
-
-				/* exit direction change if one of the condition is met */
 				if (intention_xy == brake) {
 					_intention_xy_prev = intention_xy;
 
@@ -365,8 +374,7 @@ private:
 				_intention_xy_prev = intention_xy;
 
 				if (_intention_xy_prev == direction_change) {
-					_vel_sp_prev(0) = _velocity(0);
-					_vel_sp_prev(1) = _velocity(1);
+					reset_slewrate_xy();
 				}
 
 				break;
@@ -376,8 +384,7 @@ private:
 				_intention_xy_prev = intention_xy;
 
 				if (_intention_xy_prev == direction_change) {
-					_vel_sp_prev(0) = _velocity(0);
-					_vel_sp_prev(1) = _velocity(1);
+					reset_slewrate_xy();
 				}
 
 				break;
@@ -385,11 +392,11 @@ private:
 		}
 
 		/*
-		 * apply acceleration based on state
+		 * calculate dynamic acceleration based on state
 		*/
+
 		switch (_intention_xy_prev) {
 		case brake: {
-
 				/* limit jerk when braking to zero */
 				float jerk = (_acceleration_hor_max.get() - acceleration_state_dependent_xy) / _deltatime;
 
@@ -404,10 +411,9 @@ private:
 			}
 
 		case direction_change: {
-
 				/* limit acceleration linearly on stick input*/
-				acceleration_state_dependent_xy = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy_norm +
-								  _deceleration_hor_slow.get();
+				const float acceleration_range = _acceleration_hor_manual.get() - _deceleration_hor_slow.get();
+				acceleration_state_dependent_xy = _deceleration_hor_slow.get() + acceleration_range * stick_xy_norm;
 				break;
 			}
 
@@ -429,16 +435,10 @@ private:
 				break;
 			}
 
-		default :
-			printf("User intention not recognized"); // TODO: take this out, can never happen
-			acceleration_state_dependent_xy = _acceleration_hor_max.get();
-
 		}
 
 		/* update previous stick input */
-		_stick_input_xy_prev = matrix::Vector2f(_filter_manual_pitch.apply(stick_xy(0)),
-							_filter_manual_roll.apply(stick_xy(1)));
-
+		_stick_input_xy_prev = matrix::Vector2f(_filter_pitch_stick.apply(stick_xy(0)), _filter_roll_stick.apply(stick_xy(1)));
 
 		if (_stick_input_xy_prev.length() > 1.0f) {
 			_stick_input_xy_prev = _stick_input_xy_prev.normalized();
