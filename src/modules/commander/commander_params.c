@@ -591,6 +591,18 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_ACC, 0.7f);
 PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
 
 /**
+ * Maximum magnetic field inconsistency between units that will allow arming
+ *
+ * @group Commander
+ * @unit Gauss
+ * @min 0.05
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_MAG, 0.15f);
+
+/**
  * Enable RC stick override of auto modes
  *
  * @boolean
