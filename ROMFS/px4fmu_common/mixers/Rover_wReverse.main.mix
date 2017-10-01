@@ -1,0 +1,42 @@
+# A rover mixer with reverse:
+# This example uses Vaterra Ascender Chevrolet K10 Pickup RTR Rock Crawler,
+# which has a Dynamite S2210 WP 60A Brushed ESC.
+#
+# The only important part here is the power system of your rover:
+# a reverse-enabled ESC and a motor.
+#
+# You need to adjust the offset of the throttle output in this file to
+# achieve motor neutral/break when your throttle stick is at the mid position (usually 1500us).
+#
+# # board pin connections:
+# To be consistent with ArduRover from Ardupilot,
+# reference: https://docs.emlid.com/navio2/ardupilot/typical-setup-schemes/
+# steering servo should be connected to pwm output pin 1
+# and the ESC should be connected to pwm output pin 3
+#
+# This mixer has be tested on a RPI3/Navio2 board.
+#
+
+board pwm out pin 1:
+Steering = Control Group 0, ouput channel 2 (yaw):
+---------------------------------------
+M: 1
+O:       10000   10000      0 -10000  10000
+S: 0 2   10000   10000      0 -10000  10000
+
+board pwm out pin 2:
+This mixer is empty
+---------------------------------------
+Z:
+
+board pwm out pin 3:
+Throttle = Control Group 0, output channel 3 (throttle):
+---------------------------------------
+M: 1
+O:      10000  10000     0  -10000  10000
+S: 0 3  10000  10000     -5000  -10000  10000
+
+board pwm out pin 4:
+This mixer is empty.
+---------------------------------------
+Z:

@@ -178,6 +178,10 @@ private:
 
 	} _parameter_handles{};		/**< handles for interesting parameters */
 
+	/**
+	 * Helper function to map range [0,1] to [mid,1.0]
+	 */
+	float map_above(float source, float mid);
 
 	/**
 	 * Update our local parameter cache.
