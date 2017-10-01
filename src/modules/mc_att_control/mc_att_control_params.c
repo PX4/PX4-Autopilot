@@ -379,7 +379,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRAUTO_MAX, 45.0f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 120.0f);
+PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 700.0f);
 
 /**
  * Max acro pitch rate
@@ -391,7 +391,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 120.0f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 120.0f);
+PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 700.0f);
 
 /**
  * Max acro yaw rate
@@ -403,7 +403,20 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 120.0f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 120.0f);
+PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 700.0f);
+
+/**
+ * Acro expo factor
+ *
+ * 0 Purely linear input curve
+ * 1 Purely cubic input curve
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
 
 /**
  * Threshold for Rattitude mode
