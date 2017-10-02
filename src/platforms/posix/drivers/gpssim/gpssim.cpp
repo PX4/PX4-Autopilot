@@ -558,11 +558,6 @@ usage(const char *reason)
 int
 gpssim_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		gpssim::usage("not enough arguments supplied");
-		return 1;
-	}
-
 	// set to default
 	const char *device_name = GPS_DEFAULT_UART_PORT;
 	bool fake_gps = false;
@@ -593,6 +588,11 @@ gpssim_main(int argc, char *argv[])
 		default:
 			PX4_WARN("Unknown option!");
 		}
+	}
+
+	if (myoptind >= argc) {
+		gpssim::usage("not enough arguments supplied");
+		return 1;
 	}
 
 	/*
