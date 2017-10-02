@@ -10,7 +10,7 @@ if(NOT nuttx_config_type)
 endif()
 
 project(NuttX_${BOARD} LANGUAGES ASM C CXX)
-message(STATUS "NuttX: " ${BOARD} " " ${nuttx_config_type} " " ${CMAKE_SYSTEM_PROCESSOR})
+message(STATUS "NuttX: " ${BOARD} " " ${nuttx_config_type} " " ${HWCLASS})
 
 if (CMAKE_HOST_APPLE OR CMAKE_HOST_WIN32)
 	# copy with rsync and create file dependencies
@@ -38,7 +38,7 @@ file(GLOB_RECURSE copy_apps_files
 # copy nuttx to build directory
 add_custom_command(OUTPUT nuttx_copy.stamp
 	COMMAND ${cp_cmd} ${cp_opts} ${CMAKE_CURRENT_SOURCE_DIR}/nuttx ${CMAKE_CURRENT_BINARY_DIR}
-	COMMAND cmake -E touch nuttx_copy.stamp
+	COMMAND ${CMAKE_COMMAND} -E touch nuttx_copy.stamp
 	DEPENDS ${copy_nuttx_files}
 	COMMENT "Copying NuttX/nuttx to ${CMAKE_CURRENT_BINARY_DIR}"
 	)
@@ -49,7 +49,7 @@ set(NUTTX_CONFIG_DIR ${PX4_SOURCE_DIR}/nuttx-configs)
 # copy apps to build directory
 add_custom_command(OUTPUT apps_copy.stamp
 	COMMAND ${cp_cmd} ${cp_opts} ${CMAKE_CURRENT_SOURCE_DIR}/apps ${CMAKE_CURRENT_BINARY_DIR}
-	COMMAND cmake -E touch apps_copy.stamp
+	COMMAND ${CMAKE_COMMAND} -E touch apps_copy.stamp
 	DEPENDS ${copy_apps_files}
 	COMMENT "Copying NuttX/apps to ${CMAKE_CURRENT_BINARY_DIR}"
 	)
@@ -113,34 +113,45 @@ add_library(nuttx_build INTERFACE)
 add_dependencies(nuttx_build nuttx_context)
 
 # builtins
-add_custom_target(nuttx_builtins)
+set(nuttx_builtin_list)
 if (CONFIG_NSH_LIBRARY)
-	# add additional commands to nuttx builtins
-	set(builtin_registry ${APPS_DIR}/builtin/registry)
+	# force builtins regeneration and apps rebuild if nuttx or px4 configuration have changed
+	add_custom_command(OUTPUT builtins_clean.stamp
+		COMMAND find ${APPS_DIR}/builtin/registry -name \*.bdat -delete
+		COMMAND find ${APPS_DIR}/builtin/registry -name \*.pdat -delete
+		COMMAND rm -f ${APPS_DIR}/builtin/builtin_list.h
+		COMMAND ${CMAKE_COMMAND} -E touch builtins_clean.stamp
+		DEPENDS
+			nuttx_configure
+			nuttx_context
+			${PX4_SOURCE_DIR}/cmake/configs/${CONFIG}.cmake
+		)
+
 	foreach(module ${module_libraries})
 		get_target_property(MAIN ${module} MAIN)
 		get_target_property(STACK_MAIN ${module} STACK_MAIN)
 		get_target_property(PRIORITY ${module} PRIORITY)
 
 		if(MAIN)
-			add_custom_command(OUTPUT ${builtin_registry}/${MAIN}_main.bdat
-				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${builtin_registry}/${MAIN}_main.bdat
-				DEPENDS nuttx_context
+			add_custom_command(OUTPUT ${APPS_DIR}/builtin/registry/${MAIN}_main.bdat
+				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${APPS_DIR}/builtin/registry/${MAIN}_main.bdat
+				COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
+				DEPENDS nuttx_context builtins_clean.stamp
 				VERBATIM
 				)
+			list(APPEND nuttx_builtin_list ${APPS_DIR}/builtin/registry/${MAIN}_main.bdat)
 
-			add_custom_command(OUTPUT ${builtin_registry}/${MAIN}_main.pdat
-				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${builtin_registry}/${MAIN}_main.pdat
-				DEPENDS nuttx_context
+			add_custom_command(OUTPUT ${APPS_DIR}/builtin/registry/${MAIN}_main.pdat
+				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${APPS_DIR}/builtin/registry/${MAIN}_main.pdat
+				COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
+				DEPENDS nuttx_context builtins_clean.stamp
 				VERBATIM
 				)
+			list(APPEND nuttx_builtin_list ${APPS_DIR}/builtin/registry/${MAIN}_main.pdat)
 
-			add_custom_target(nuttx_builtins_${MAIN} DEPENDS ${builtin_registry}/${MAIN}_main.bdat ${builtin_registry}/${MAIN}_main.pdat)
-			add_dependencies(nuttx_builtins nuttx_builtins_${MAIN})
 		endif()
 	endforeach()
 endif()
-add_dependencies(nuttx_build nuttx_builtins)
 
 # APPS
 
@@ -148,7 +159,7 @@ add_dependencies(nuttx_build nuttx_builtins)
 add_custom_command(OUTPUT ${APPS_DIR}/libapps.a ${APPS_DIR}/platform/.built
 	COMMAND find ${APPS_DIR} -name \*.o -delete
 	COMMAND make ${nuttx_build_options} --no-print-directory -C ../apps TOPDIR="${NUTTX_DIR}" libapps.a ${nuttx_build_output}
-	DEPENDS nuttx_context nuttx_builtins
+	DEPENDS nuttx_context ${nuttx_builtin_list}
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}
 	)

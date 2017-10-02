@@ -1276,9 +1276,9 @@ static void print_usage()
 	      "\t        hardpoint set <id> <command>}");
 }
 
-extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
+extern "C" __EXPORT int uavcan_node_main(int argc, char *argv[]);
 
-int uavcan_main(int argc, char *argv[])
+int uavcan_node_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();

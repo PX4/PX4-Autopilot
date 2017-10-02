@@ -40,6 +40,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <cstring>
 
 #include "mavlink_ftp.h"
 #include "mavlink_main.h"

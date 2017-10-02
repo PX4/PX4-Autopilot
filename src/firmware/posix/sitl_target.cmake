@@ -1,7 +1,7 @@
 
 function(px4_add_sitl_app)
-px4_parse_function_args(NAME px4_add_sitl_app
-			ONE_VALUE APP_NAME MAIN_SRC UPLOAD_NAME
+	px4_parse_function_args(NAME px4_add_sitl_app
+			ONE_VALUE APP_NAME MAIN_SRC
 			REQUIRED APP_NAME MAIN_SRC
 			ARGN ${ARGN}
 			)
@@ -34,7 +34,6 @@ endfunction()
 
 set(SITL_RUNNER_MAIN_CPP ${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp)
 px4_add_sitl_app(APP_NAME px4
-		UPLOAD_NAME upload
 		MAIN_SRC ${SITL_RUNNER_MAIN_CPP}
 		)
 
@@ -43,26 +42,36 @@ file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
 
 # add a symlink to the logs dir to make it easier to find them
 add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
-		COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/fs/microsd/log logs
-		WORKING_DIRECTORY ${PX4_BINARY_DIR})
+	COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/fs/microsd/log logs
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
 add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
 
 add_custom_target(run_config
-		COMMAND Tools/sitl_run.sh
-			$<TARGET_FILE:px4>
-			${config_sitl_rcS_dir}
-			${config_sitl_debugger}
-			${config_sitl_viewer}
-			${config_sitl_model}
-			${PX4_SOURCE_DIR}
-			${PX4_BINARY_DIR}
-			WORKING_DIRECTORY ${SITL_WORKING_DIR}
-			USES_TERMINAL
-		DEPENDS px4 logs_symlink
-		)
+	COMMAND Tools/sitl_run.sh
+		$<TARGET_FILE:px4>
+		${config_sitl_rcS_dir}
+		${config_sitl_debugger}
+		${config_sitl_viewer}
+		${config_sitl_model}
+		${PX4_SOURCE_DIR}
+		${PX4_BINARY_DIR}
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	USES_TERMINAL
+	DEPENDS
+		px4
+		logs_symlink
+	)
 
 # Add support for external project building
 include(ExternalProject)
+
+# TODO: move these out of PX4
+px4_add_git_submodule(TARGET git_gazebo PATH "${PX4_SOURCE_DIR}/Tools/sitl_gazebo")
+px4_add_git_submodule(TARGET git_gazebo_flow PATH "${PX4_SOURCE_DIR}/Tools/sitl_gazebo/external/OpticalFlow")
+px4_add_git_submodule(TARGET git_gazebo_klt PATH "${PX4_SOURCE_DIR}/Tools/sitl_gazebo/external/OpticalFlow/external/klt_feature_tracker")
+
+px4_add_git_submodule(TARGET git_jmavsim PATH "${PX4_SOURCE_DIR}/Tools/jMAVSim")
 
 # project to build sitl_gazebo if necessary
 ExternalProject_Add(sitl_gazebo
@@ -70,13 +79,18 @@ ExternalProject_Add(sitl_gazebo
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
+	DEPENDS
+		git_gazebo
+		git_gazebo_flow
+		git_gazebo_klt
 	)
 set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 ExternalProject_Add_Step(sitl_gazebo forceconfigure
 	DEPENDEES update
 	DEPENDERS configure
-	ALWAYS 1)
+	ALWAYS 1
+	)
 
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo replay)
@@ -87,11 +101,7 @@ foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})
 		foreach(model ${models})
 			if (debugger STREQUAL "none")
-				if (model STREQUAL "none")
-					set(_targ_name "${viewer}")
-				else()
-					set(_targ_name "${viewer}_${model}")
-				endif()
+				set(_targ_name "${viewer}_${model}")
 			else()
 				if (model STREQUAL "none")
 					set(_targ_name "${viewer}___${debugger}")
@@ -108,7 +118,6 @@ foreach(viewer ${viewers})
 				configure_file(${PX4_SOURCE_DIR}/src/platforms/posix/sitl_runner_main.cpp.in sitl_runner_main_${model}.cpp @ONLY)
 
 				px4_add_sitl_app(APP_NAME px4_${model}
-						UPLOAD_NAME upload_${model}
 						MAIN_SRC ${CMAKE_CURRENT_BINARY_DIR}/sitl_runner_main_${model}.cpp
 						)
 				set_target_properties(px4_${model} PROPERTIES EXCLUDE_FROM_ALL TRUE)
@@ -125,7 +134,8 @@ foreach(viewer ${viewers})
 						${PX4_BINARY_DIR}
 						WORKING_DIRECTORY ${SITL_WORKING_DIR}
 						USES_TERMINAL
-					DEPENDS logs_symlink
+					DEPENDS
+						logs_symlink
 					)
 			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")

@@ -1,25 +1,29 @@
 include (common/px4_upload)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
 
 px4_posix_generate_builtin_commands(
 	OUT apps
-	MODULE_LIST ${module_libraries})
+	MODULE_LIST ${module_libraries}
+	)
 
 # Define build target
 set(APP_NAME px4)
 set(MAIN_SRC ${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp)
-set(UPLOAD_NAME upload)
 
-if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
+if ((${BOARD} STREQUAL "eagle") OR (${BOARD} STREQUAL "excelsior"))
 	include(fastrpc)
 	include(linux_app)
 
+	set(extra_c_flags -Wno-missing-prototypes -Wno-missing-declarations)
+	add_compile_options("$<$<COMPILE_LANGUAGE:C>:${extra_c_flags}>")
+
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
 		APP_NAME ${APP_NAME}
 		IDL_NAME px4muorb
@@ -37,7 +41,7 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 			-Wl,--end-group
 		)
 
-	px4_add_adb_push(OUT ${UPLOAD_NAME}
+	px4_add_adb_push(OUT upload
 				OS ${OS}
 				BOARD ${BOARD}
 				FILES $<TARGET_FILE:${APP_NAME}>
@@ -62,19 +66,19 @@ elseif ("${BOARD}" STREQUAL "rpi")
 		)
 
 	file(GLOB RPI_CONFIG_FILES ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config)
-	px4_add_scp_push(OUT ${UPLOAD_NAME}
-				OS ${OS}
-				BOARD ${BOARD}
-				FILES $<TARGET_FILE:${APP_NAME}>
-				${RPI_CONFIG_FILES}
-				${PX4_SOURCE_DIR}/ROMFS
-				DEPENDS ${APP_NAME}
-				DEST /home/pi)
+	
+	add_custom_target(upload
+		COMMAND ${PX4_SOURCE_DIR}/Tools/scp_upload.sh $<TARGET_FILE:${APP_NAME}> ${RPI_CONFIG_FILES} ${PX4_SOURCE_DIR}/ROMFS /home/pi
+		DEPENDS ${APP_NAME}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		COMMENT "uploading ${BUNDLE}"
+		VERBATIM
+		USES_TERMINAL
+		)
 
 elseif ("${BOARD}" STREQUAL "bebop")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+	add_compile_options(-static)
 
 	px4_add_executable(${APP_NAME}
 		${MAIN_SRC}
@@ -97,17 +101,20 @@ elseif ("${BOARD}" STREQUAL "bebop")
 			)
 	endif()
 
-	px4_add_adb_push_to_bebop(OUT ${UPLOAD_NAME}
-				OS ${OS}
-				BOARD ${BOARD}
-				FILES $<TARGET_FILE:px4>.stripped
-				DEPENDS px4
-				DEST /usr/bin)
+	add_custom_target(upload
+		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload_to_bebop.sh $<TARGET_FILE:px4>.stripped /usr/bin
+		DEPENDS $<TARGET_FILE:px4>.stripped ${APP_NAME}.stripped
+		COMMENT "uploading ${BUNDLE}"
+		VERBATIM
+		USES_TERMINAL
+		)
 
-elseif ("${BOARD}" STREQUAL "sitl")
+elseif (${BOARD} STREQUAL "sitl")
 
-	include(./sitl_target.cmake)
-	include(./sitl_tests.cmake)
+	include(sitl_target.cmake)
+	if(BUILD_TESTING)
+		include(./sitl_tests.cmake)
+	endif()
 
 else()
 
@@ -142,7 +149,7 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADI
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 
 add_custom_command(OUTPUT ${APP_NAME}.stripped
-			COMMAND ${STRIP_TOOL} -R .comment -R .gnu.version -o $<TARGET_FILE:px4>.stripped $<TARGET_FILE:px4>
+			COMMAND ${CMAKE_STRIP} -R .comment -R .gnu.version -o $<TARGET_FILE:px4>.stripped $<TARGET_FILE:px4>
 			DEPENDS px4
 			)
-add_custom_target(strip DEPENDS "${APP_NAME}.stripped")
+add_custom_target(strip DEPENDS ${APP_NAME}.stripped)

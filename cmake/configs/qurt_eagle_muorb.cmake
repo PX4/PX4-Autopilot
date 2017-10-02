@@ -6,7 +6,6 @@ else()
 	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
 endif()
 
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
@@ -45,7 +44,6 @@ set(config_module_list
 	lib/conversion
 	lib/version
 	lib/DriverFramework/framework
-	lib/micro-CDR
 
 	#
 	# QuRT port

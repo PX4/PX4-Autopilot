@@ -67,7 +67,6 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	lib/micro-CDR
 	lib/version
 	modules/systemlib
 	modules/systemlib/param

@@ -37,14 +37,11 @@ px4_add_module(
 	STACK_MAIN 2200
 	COMPILE_FLAGS
 		-Wno-sign-compare # TODO: fix all sign-compare
+		-Wno-double-promotion
 	SRCS
 		send_event.cpp
 		temperature_calibration/accel.cpp
 		temperature_calibration/baro.cpp
 		temperature_calibration/gyro.cpp
 		temperature_calibration/task.cpp
-	DEPENDS
-		platforms__common
-		modules__uORB
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

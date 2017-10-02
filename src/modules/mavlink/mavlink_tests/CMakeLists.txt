@@ -44,6 +44,7 @@ px4_add_module(
 		-DMavlinkStream=MavlinkStreamTest
 		-DMavlinkFTP=MavlinkFTPTest
 		-Wno-extra-semi
+		-Wno-double-promotion # double promotions in generated mavlink
 	SRCS
 		mavlink_tests.cpp
 		mavlink_ftp_test.cpp

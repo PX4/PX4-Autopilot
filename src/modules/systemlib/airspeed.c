@@ -58,11 +58,11 @@
 float calc_indicated_airspeed_corrected(enum AIRSPEED_PITOT_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
 					float tube_len, float differential_pressure, float pressure_ambient, float temperature_celsius)
 {
-
 	// air density in kg/m3
-	double rho_air = get_air_density(pressure_ambient, temperature_celsius);
+	float rho_air = get_air_density(pressure_ambient, temperature_celsius);
 
-	double dp = fabsf(differential_pressure);
+	float dp = fabsf(differential_pressure);
+
 	// additional dp through pitot tube
 	float dp_pitot;
 	float dp_tube;
@@ -79,16 +79,16 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_PITOT_MODEL pmodel, enum A
 
 	case AIRSPEED_SENSOR_MODEL_SDP3X: {
 			// flow through sensor
-			double flow_SDP33 = (300.805 - 300.878 / (0.00344205 * pow(dp, 0.68698) + 1)) * 1.29 / rho_air;
+			float flow_SDP33 = (300.805f - 300.878f / (0.00344205f * powf(dp, 0.68698) + 1)) * 1.29f / rho_air;
 
 			// for too small readings the compensation might result in a negative flow which causes numerical issues
-			if (flow_SDP33 < 0.0) {
-				flow_SDP33 = 0.0;
+			if (flow_SDP33 < 0.0f) {
+				flow_SDP33 = 0.0f;
 			}
 
 			switch (pmodel) {
 			case AIRSPEED_PITOT_MODEL_HB:
-				dp_pitot = 28557670.0 - 28557670.0 / (1 + pow((flow_SDP33 / 5027611.0), 1.227924));
+				dp_pitot = 28557670.0f - 28557670.0f / (1 + powf((flow_SDP33 / 5027611.0f), 1.227924f));
 				break;
 
 			default:
@@ -97,10 +97,10 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_PITOT_MODEL pmodel, enum A
 			}
 
 			// pressure drop through tube
-			dp_tube = flow_SDP33 * 0.000746124 * (double)tube_len * rho_air;
+			dp_tube = flow_SDP33 * 0.000746124f * tube_len * rho_air;
 
 			// speed at pitot-tube tip due to flow through sensor
-			dv = 0.0331582 * flow_SDP33;
+			dv = 0.0331582f * flow_SDP33;
 		}
 		break;
 

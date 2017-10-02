@@ -25,7 +25,7 @@ list_files
 mavlink start -x -u 14556 -r 2000000
 mavlink boot_complete
 
-tests @test_name@
+tests_run @test_name@
 
 dataman status
 dataman stop

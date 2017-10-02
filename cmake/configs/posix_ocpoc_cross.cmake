@@ -1,5 +1,5 @@
 #set toolchain
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-xilinx-linux-gnueabi.cmake)
+set(CMAKE_TOOLCHAIN_FILE toolchains/Toolchain-arm-xilinx-linux-gnueabi)
 
 set(CMAKE_PROGRAM_PATH
 	"${OCPOC_TOOLCHAIN_DIR}"
@@ -94,7 +94,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/rc
 	lib/led
-	lib/micro-CDR
 
 	#
 	# POSIX

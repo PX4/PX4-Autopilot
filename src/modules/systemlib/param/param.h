@@ -83,7 +83,7 @@ typedef uint16_t	param_t;
 /**
  * Handle returned when a parameter cannot be found.
  */
-#define PARAM_INVALID	((uint16_t)0xffff)
+#define PARAM_INVALID	(0xffff)
 
 /**
  * Magic handle for hash check param
@@ -104,7 +104,7 @@ typedef uint32_t	param_t;
 /**
  * Handle returned when a parameter cannot be found.
  */
-#define PARAM_INVALID	((uint32_t)0xffffffff)
+#define PARAM_INVALID	(0xffffffff)
 
 /**
  * Magic handle for hash check param

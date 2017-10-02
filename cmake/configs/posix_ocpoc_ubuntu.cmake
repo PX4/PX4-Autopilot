@@ -1,5 +1,5 @@
 #set toolchain
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-gcc-arm-linux-gnueabihf.cmake)
+set(CMAKE_TOOLCHAIN_FILE toolchains/Toolchain-arm-linux-gnueabihf)
 
 set(CMAKE_PROGRAM_PATH
 	${CMAKE_PROGRAM_PATH}
@@ -93,7 +93,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/rc
 	lib/led
-	lib/micro-CDR
 
 	#
 	# POSIX

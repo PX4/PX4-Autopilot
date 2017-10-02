@@ -147,7 +147,7 @@ private:
 	float _altitude_max{0.0f};
 
 	struct PolygonInfo {
-		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
+		uint16_t fence_type; ///< one of NAV_CMD_NAV_FENCE_* (can also be a circular region)
 		uint16_t dataman_index;
 		union {
 			uint16_t vertex_count;

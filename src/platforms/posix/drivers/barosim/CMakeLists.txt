@@ -37,6 +37,7 @@ px4_add_module(
 	MODULE platforms__posix__drivers__barosim
 	MAIN barosim
 	COMPILE_FLAGS
+		-Wno-double-promotion # double promotions in generated mavlink
 	SRCS
 		baro.cpp
 	DEPENDS

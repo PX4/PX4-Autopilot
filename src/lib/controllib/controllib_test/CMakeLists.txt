@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE lib__controllib__controllib_test
 	MAIN controllib_test
 	COMPILE_FLAGS
+		-Wno-double-promotion # investigate and fix
 	SRCS
 		controllib_test_main.cpp
 	DEPENDS

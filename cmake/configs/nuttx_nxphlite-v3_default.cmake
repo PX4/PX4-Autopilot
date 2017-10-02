@@ -137,11 +137,11 @@ set(config_module_list
 #
 	# Library modules
 	#
-	modules/systemlib/param
+	modules/dataman
 	modules/systemlib
 	modules/systemlib/mixer
+	modules/systemlib/param
 	modules/uORB
-	modules/dataman
 
 	# micro RTPS
 	modules/micrortps_bridge/micrortps_client
@@ -151,22 +151,21 @@ set(config_module_list
 	# Libraries
 	#
 	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/rc
+	lib/conversion
+	lib/DriverFramework/framework
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
-	lib/conversion
 	lib/launchdetection
 	lib/led
-	lib/terrain_estimation
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/rc
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/terrain_estimation
 	lib/version
-	lib/DriverFramework/framework
-	lib/micro-CDR
 
 	#
 	# Platform

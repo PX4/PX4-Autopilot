@@ -1,6 +1,6 @@
 include(posix/px4_impl_posix)
 
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
+set(CMAKE_TOOLCHAIN_FILE toolchains/Toolchain-native)
 
 set(config_module_list
 	drivers/boards
@@ -191,7 +191,6 @@ set(config_module_list
 	examples/ekf_att_pos_estimator
 
 	# micro-RTPS
-	lib/micro-CDR
 )
 
 set(config_rtps_send_topics

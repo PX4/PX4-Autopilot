@@ -38,16 +38,9 @@ px4_add_module(
 	MAIN gyrosim
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Wno-double-promotion
 	SRCS
 		gyrosim.cpp
 	DEPENDS
-		platforms__common
 		git_driverframework
-		df_driver_framework
 	)
-
-target_link_libraries(platforms__posix__drivers__gyrosim
-	df_driver_framework
-)
-
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -7,6 +7,7 @@ include(qurt_flags)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-missing-prototypes>)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes")
 
 get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)

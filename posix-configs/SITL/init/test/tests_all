@@ -11,6 +11,6 @@ ver all
 
 sleep 1
 
-tests all
+tests_run all
 
 shutdown

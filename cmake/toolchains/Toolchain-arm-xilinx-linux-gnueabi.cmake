@@ -70,10 +70,7 @@ foreach(tool echo grep rm mkdir nm cp touch make unzip)
 	endif()
 endforeach()
 
-set(LINKER_FLAGS "-Wl,-gc-sections")
-set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})
-set(CMAKE_C_FLAGS ${C_FLAGS})
-set(CMAKE_CXX_LINKER_FLAGS ${C_FLAGS})
+link_libraries(-Wl,-gc-sections)
 
 # where is the target environment
 set(CMAKE_FIND_ROOT_PATH  get_file_component(${C_COMPILER} PATH))
@@ -83,6 +80,3 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 # for libraries and headers in the target directories
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-
-# enable static linking
-#set(LDFLAGS "--disable-shared")

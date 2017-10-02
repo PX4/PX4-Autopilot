@@ -135,7 +135,6 @@ set(config_module_list
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
 	platforms/nuttx/px4_layer
-	lib/micro-CDR
 
 	#
 	# OBC challenge

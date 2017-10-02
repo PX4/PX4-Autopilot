@@ -37,10 +37,8 @@ px4_add_module(
 	MODULE platforms__posix__drivers__airspeedsim
 	MAIN measairspeedsim
 	COMPILE_FLAGS
+		-Wno-double-promotion
 	SRCS
 		airspeedsim.cpp
 		meas_airspeed_sim.cpp
-	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

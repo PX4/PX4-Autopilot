@@ -32,6 +32,8 @@
 ############################################################################
 px4_add_module(
 	MODULE lib__geo
+	COMPILE_FLAGS
+		-Wno-double-promotion # TODO: fix
 	SRCS
 		geo.c
 	DEPENDS

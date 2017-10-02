@@ -61,6 +61,7 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
+#include <string.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
