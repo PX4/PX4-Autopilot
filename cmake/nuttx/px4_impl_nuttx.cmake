@@ -236,7 +236,7 @@ function(px4_os_prebuild_targets)
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
 
-	add_custom_target(${OUT} DEPENDS nuttx_context)
+	add_custom_target(${OUT} DEPENDS nuttx_context uorb_headers)
 
 	# parse nuttx config options for cmake
 	file(STRINGS ${PX4_SOURCE_DIR}/nuttx-configs/${BOARD}/nsh/defconfig ConfigContents)

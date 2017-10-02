@@ -93,7 +93,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/rc
 	lib/led
-	lib/micro-CDR
 
 	#
 	# POSIX

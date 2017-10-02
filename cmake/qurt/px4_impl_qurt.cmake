@@ -80,6 +80,7 @@ function(px4_qurt_generate_builtin_commands)
 		MULTI_VALUE MODULE_LIST
 		REQUIRED MODULE_LIST OUT
 		ARGN ${ARGN})
+
 	set(builtin_apps_string)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
@@ -235,7 +236,8 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
-	add_custom_target(${OUT} DEPENDS git_driverframework)
+
+	add_custom_target(${OUT} DEPENDS git_driverframework uorb_headers)
 
 endfunction()
 

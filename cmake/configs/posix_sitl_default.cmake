@@ -191,7 +191,6 @@ set(config_module_list
 	examples/ekf_att_pos_estimator
 
 	# micro-RTPS
-	lib/micro-CDR
 )
 
 set(config_rtps_send_topics

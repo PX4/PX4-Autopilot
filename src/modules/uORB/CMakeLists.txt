@@ -49,4 +49,3 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-target_link_libraries(modules__uORB uorb_msgs)

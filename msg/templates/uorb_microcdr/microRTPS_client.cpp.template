@@ -67,6 +67,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 
 @[for topic in list(set(topic_names))]@
 #include <uORB/topics/@(topic).h>
+#include <uORB_microcdr/topics/@(topic).h>
 @[end for]@
 
 void* send(void *data);

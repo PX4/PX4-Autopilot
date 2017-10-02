@@ -126,7 +126,7 @@ if del_tree:
 if agent and os.path.isdir(agent_out_dir + "/idl"):
     shutil.rmtree(agent_out_dir + "/idl")
 
-uorb_templates_dir = msg_folder + "/templates/uorb"
+uorb_templates_dir = msg_folder + "/templates/uorb_microcdr"
 urtps_templates_dir = msg_folder + "/templates/urtps"
 
 uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
