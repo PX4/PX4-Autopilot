@@ -38,6 +38,7 @@
 
 #include <sys/types.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -557,46 +558,50 @@ usage(const char *reason)
 int
 gpssim_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		gpssim::usage("not enough arguments supplied");
+		return 1;
+	}
 
-	/* set to default */
+	// set to default
 	const char *device_name = GPS_DEFAULT_UART_PORT;
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 
+	// check for optional arguments
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
-	if (argc < 2) {
+	while ((ch = px4_getopt(argc, argv, "d:fs", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device_name = myoptarg;
+			PX4_INFO("Using device %s", device_name);
+			break;
 
-		gpssim::usage("not enough arguments supplied");
-		return 1;
+		case 'f':
+			fake_gps = true;
+			PX4_INFO("Using fake GPS");
+			break;
+
+		case 's':
+			enable_sat_info = true;
+			PX4_INFO("Satellite info enabled");
+			break;
+
+		default:
+			PX4_WARN("Unknown option!");
+		}
 	}
 
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(argv[myoptind], "start")) {
 		if (g_dev != nullptr) {
 			PX4_WARN("already started");
 			return 0;
-		}
-
-		if (argc > 3) {
-			if (!strcmp(argv[2], "-d")) {
-				device_name = argv[3];
-			}
-		}
-
-		/* Detect fake gps option */
-		for (int i = 2; i < argc; i++) {
-			if (!strcmp(argv[i], "-f")) {
-				fake_gps = true;
-			}
-		}
-
-		/* Detect sat info option */
-		for (int i = 2; i < argc; i++) {
-			if (!strcmp(argv[i], "-s")) {
-				enable_sat_info = true;
-			}
 		}
 
 		gpssim::start(device_name, fake_gps, enable_sat_info);
@@ -609,28 +614,28 @@ gpssim_main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcmp(argv[1], "stop")) {
+	if (!strcmp(argv[myoptind], "stop")) {
 		gpssim::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test")) {
+	if (!strcmp(argv[myoptind], "test")) {
 		gpssim::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset")) {
+	if (!strcmp(argv[myoptind], "reset")) {
 		gpssim::reset();
 	}
 
 	/*
 	 * Print driver status.
 	 */
-	if (!strcmp(argv[1], "status")) {
+	if (!strcmp(argv[myoptind], "status")) {
 		gpssim::info();
 	}
 
