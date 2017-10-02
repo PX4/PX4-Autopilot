@@ -723,7 +723,11 @@ then
 
 		if ver hwcmp AEROFC_V1
 		then
-			set LOGGER_ARGS "-m mavlink"
+			if cd /fs/microsd
+			then
+			else
+				set LOGGER_ARGS "-m mavlink"
+			fi
 		fi
 
 		logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
