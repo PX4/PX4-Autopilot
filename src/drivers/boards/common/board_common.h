@@ -981,6 +981,7 @@ int board_shutdown(void);
 static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
 static inline int board_shutdown(void) { return -EINVAL; }
 #endif
+__END_DECLS
 
 /************************************************************************************
  * Name: px4_i2c_bus_external
