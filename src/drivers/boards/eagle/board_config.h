@@ -40,7 +40,7 @@
 #pragma once
 
 #define BOARD_OVERRIDE_UUID "EAGLEID000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID 0x1005
+#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_EAGLE
 
 #define BOARD_NAME "EAGLE"
 
