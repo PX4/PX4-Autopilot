@@ -112,6 +112,9 @@ public:
 	// get the wind velocity in m/s
 	void get_wind_velocity(float *wind);
 
+	// get the wind velocity var
+	void get_wind_velocity_var(float *wind_var);
+
 	// get the true airspeed in m/s
 	void get_true_airspeed(float *tas);
 

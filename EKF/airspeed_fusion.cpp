@@ -224,6 +224,12 @@ void Ekf::get_wind_velocity(float *wind)
 	wind[1] = _state.wind_vel(1);
 }
 
+void Ekf::get_wind_velocity_var(float *wind_var)
+{
+	wind_var[0] = P[22][22];
+	wind_var[1] = P[23][23];
+}
+
 void Ekf::get_true_airspeed(float *tas)
 {
 	float tempvar = sqrtf(sq(_state.vel(0) - _state.wind_vel(0)) + sq(_state.vel(1) - _state.wind_vel(1)) + sq(_state.vel(2)));
