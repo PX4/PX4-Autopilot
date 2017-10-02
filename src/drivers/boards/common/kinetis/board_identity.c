@@ -44,6 +44,8 @@
 #include <chip/kinetis_memorymap.h>
 #include <chip/kinetis_sim.h>
 
+static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID;
+
 #define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
 
 void board_get_uuid(uuid_byte_t uuid_bytes)
@@ -98,6 +100,34 @@ int board_get_mfguid_formated(char *format_buffer, int size)
 
 	for (unsigned int i = 0; i < PX4_CPU_MFGUID_BYTE_LENGTH; i++) {
 		offset += snprintf(&format_buffer[offset], size - offset, "%02x", mfguid[i]);
+	}
+
+	return offset;
+}
+
+int board_get_px4_guid(px4_guid_t px4_guid)
+{
+	uint8_t  *pb = (uint8_t *) &px4_guid[0];
+	*pb++ = (soc_arch_id >> 8) & 0xff;
+	*pb++ = (soc_arch_id & 0xff);
+	board_get_uuid(&px4_guid[4]);
+	return PX4_GUID_BYTE_LENGTH;
+}
+
+int board_get_px4_guid_formated(char *format_buffer, int size)
+{
+	px4_guid_t px4_guid;
+	board_get_px4_guid(px4_guid);
+	int offset  = 0;
+
+	/* size should be 2 per byte + 1 for termination
+	 * So it needs to be odd
+	 */
+	size = size & 1 ? size : size - 1;
+
+	/* Discard from MSD */
+	for (unsigned i = PX4_GUID_BYTE_LENGTH - size / 2; offset < size && i < PX4_GUID_BYTE_LENGTH; i++) {
+		offset += snprintf(&format_buffer[offset], size - offset, "%02x", px4_guid[i]);
 	}
 
 	return offset;
