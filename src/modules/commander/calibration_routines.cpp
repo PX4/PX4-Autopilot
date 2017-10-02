@@ -839,19 +839,21 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 
 		orb_copy(ORB_ID(vehicle_command), cancel_sub, &cmd);
 
-		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION &&
-		    (int)cmd.param1 == 0 &&
-		    (int)cmd.param2 == 0 &&
-		    (int)cmd.param3 == 0 &&
-		    (int)cmd.param4 == 0 &&
-		    (int)cmd.param5 == 0 &&
-		    (int)cmd.param6 == 0) {
-			calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-			mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
-			return true;
+		if (cmd.from_external) { // ignore internal commands, such as VEHICLE_CMD_DO_MOUNT_CONTROL from vmount
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION &&
+					(int)cmd.param1 == 0 &&
+					(int)cmd.param2 == 0 &&
+					(int)cmd.param3 == 0 &&
+					(int)cmd.param4 == 0 &&
+					(int)cmd.param5 == 0 &&
+					(int)cmd.param6 == 0) {
+				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
+				return true;
 
-		} else {
-			calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
+			} else {
+				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
+			}
 		}
 	}
 
