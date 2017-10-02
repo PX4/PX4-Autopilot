@@ -321,6 +321,29 @@ typedef enum board_power_button_state_notification_e {
 
 typedef int (*power_button_state_notification_t)(board_power_button_state_notification_e request);
 
+/*  PX4_SOC_ARCH_ID is monotonic ordinal number assigned by PX4 to a chip
+ *  architecture. The 2 bytes are used to create a globally unique ID when
+ *  prepended to a padded Soc ID.
+ */
+
+
+typedef enum PX4_SOC_ARCH_ID_t {
+
+	PX4_SOC_ARCH_ID_STM32F4        =  0x0001,
+	PX4_SOC_ARCH_ID_STM32F7        =  0x0002,
+	PX4_SOC_ARCH_ID_KINETISK66     =  0x0003,
+	PX4_SOC_ARCH_ID_SAMV7          =  0x0004,
+
+	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
+	PX4_SOC_ARCH_ID_QURT           =  0x1002,
+	PX4_SOC_ARCH_ID_OCPOC          =  0x1003,
+	PX4_SOC_ARCH_ID_RPI            =  0x1004,
+	PX4_SOC_ARCH_ID_SIM            =  0x1005,
+	PX4_SOC_ARCH_ID_SITL           =  0x1006,
+
+} PX4_SOC_ARCH_ID_t;
+
+
 /* UUID
  *
  * Define the types used for board UUID, MFG UID and PX4 GUID
