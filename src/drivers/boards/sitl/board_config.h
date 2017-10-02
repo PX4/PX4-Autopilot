@@ -40,7 +40,7 @@
 #pragma once
 
 #define BOARD_OVERRIDE_UUID "SIMULATIONID0000" // must be of length 16
-#define PX4_SOC_ARCH_ID 0x1003
+#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_SITL
 
 #define BOARD_NAME "SITL"
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
