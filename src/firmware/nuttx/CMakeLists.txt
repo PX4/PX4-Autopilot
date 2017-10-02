@@ -42,7 +42,7 @@ if (config_romfs_root)
 endif()
 
 # create px4 file (combined firmware and metadata)
-set(fw_file ${PX4_BINARY_DIR}/${CONFIG}.px4)
+set(fw_file ${PX4_BINARY_DIR}/${BOARD}_${LABEL}.px4)
 
 add_custom_command(OUTPUT ${BOARD}.bin
 	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR}/${fw_name} ${BOARD}.bin
@@ -50,7 +50,7 @@ add_custom_command(OUTPUT ${BOARD}.bin
 	)
 
 if (TARGET parameters_xml AND TARGET airframes_xml)
-	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/${CONFIG}.px4
+	add_custom_command(OUTPUT ${fw_file}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
 			--prototype ${PX4_SOURCE_DIR}/Images/${BOARD}.prototype
 			--git_identity ${PX4_SOURCE_DIR}
@@ -58,10 +58,10 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
 			--image ${BOARD}.bin > ${fw_file}
 		DEPENDS ${BOARD}.bin parameters_xml airframes_xml
-		COMMENT "Creating ${CONFIG}.px4"
+		COMMENT "Creating ${fw_file}"
 		)
 
-	add_custom_target(px4 ALL DEPENDS ${PX4_BINARY_DIR}/${CONFIG}.px4)
+	add_custom_target(px4 ALL DEPENDS ${fw_file})
 
 	# upload helper
 	if (${BOARD} STREQUAL "aerofc-v1")
