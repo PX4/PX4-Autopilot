@@ -107,17 +107,6 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
-# NuttX verbose output
-ifdef VN
-	export PX4_NUTTX_BUILD_VERBOSE=1
-	export V=1
-endif
-
-# NuttX verbose patches output
-ifdef VNP
-	export PX4_NUTTX_PATCHES_VERBOSE=1
-endif
-
 # additional config parameters passed to cmake
 CMAKE_ARGS := -Wno-deprecated
 

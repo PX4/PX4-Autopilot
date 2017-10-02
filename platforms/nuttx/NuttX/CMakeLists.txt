@@ -53,7 +53,7 @@ add_custom_command(OUTPUT apps_copy.stamp
 	DEPENDS ${copy_apps_files}
 	COMMENT "Copying NuttX/apps to ${CMAKE_CURRENT_BINARY_DIR}"
 	)
-set(APPS_DIR ${CMAKE_CURRENT_BINARY_DIR}/apps)
+set(APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
 
 # copy PX4 board config into nuttx
 file(GLOB_RECURSE board_config_files ${NUTTX_CONFIG_DIR}/${BOARD})
@@ -74,7 +74,8 @@ add_custom_command(OUTPUT
 		${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 		${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/Make.defs
 		${board_config_files}
-		nuttx_copy.stamp apps_copy.stamp
+		nuttx_copy.stamp
+		apps_copy.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	COMMENT "Copying NuttX config ${BOARD} and configuring"
 	)
@@ -109,12 +110,11 @@ add_custom_target(nuttx_context DEPENDS ${NUTTX_DIR}/include/nuttx/version.h)
 
 # library of NuttX libraries
 add_library(nuttx_build INTERFACE)
+add_dependencies(nuttx_build nuttx_context)
 
 # builtins
-set(nuttx_builtin_list)
-if ("${BOARD}" MATCHES "px4io")
-	# no apps for px4io
-else()
+add_custom_target(nuttx_builtins)
+if (CONFIG_NSH_LIBRARY)
 	# add additional commands to nuttx builtins
 	set(builtin_registry ${APPS_DIR}/builtin/registry)
 	foreach(module ${module_libraries})
@@ -125,26 +125,30 @@ else()
 		if(MAIN)
 			add_custom_command(OUTPUT ${builtin_registry}/${MAIN}_main.bdat
 				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${builtin_registry}/${MAIN}_main.bdat
+				DEPENDS nuttx_context
 				VERBATIM
 				)
-			list(APPEND nuttx_builtin_list ${builtin_registry}/${MAIN}_main.bdat)
 
 			add_custom_command(OUTPUT ${builtin_registry}/${MAIN}_main.pdat
 				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${builtin_registry}/${MAIN}_main.pdat
+				DEPENDS nuttx_context
 				VERBATIM
 				)
-			list(APPEND nuttx_builtin_list ${builtin_registry}/${MAIN}_main.pdat)
+
+			add_custom_target(nuttx_builtins_${MAIN} DEPENDS ${builtin_registry}/${MAIN}_main.bdat ${builtin_registry}/${MAIN}_main.pdat)
+			add_dependencies(nuttx_builtins nuttx_builtins_${MAIN})
 		endif()
 	endforeach()
 endif()
+add_dependencies(nuttx_build nuttx_builtins)
 
 # APPS
 
 # libapps.a
 add_custom_command(OUTPUT ${APPS_DIR}/libapps.a ${APPS_DIR}/platform/.built
-	COMMAND find ${APPS_DIR} -name \*.o -o -name \*.built -delete
+	COMMAND find ${APPS_DIR} -name \*.o -delete
 	COMMAND make ${nuttx_build_options} --no-print-directory -C ../apps TOPDIR="${NUTTX_DIR}" libapps.a ${nuttx_build_output}
-	DEPENDS nuttx_context ${nuttx_builtin_list}
+	DEPENDS nuttx_context nuttx_builtins
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}
 	)
