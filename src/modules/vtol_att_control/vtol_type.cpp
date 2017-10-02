@@ -82,18 +82,15 @@ void VtolType::set_idle_mc()
 		PX4_WARN("can't open %s", dev);
 	}
 
-	unsigned servo_count;
-	int ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	unsigned pwm_value = _params->idle_pwm_mc;
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_values = {};
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
 		pwm_values.values[i] = pwm_value;
 		pwm_values.channel_count++;
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
+	int ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 	if (ret != OK) {
 		PX4_WARN("failed setting min values");

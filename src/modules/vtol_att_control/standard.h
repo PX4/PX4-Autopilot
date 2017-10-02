@@ -123,6 +123,6 @@ private:
 	float _pusher_throttle{0.0f};
 	float _airbrakes_output{0.0f};
 
-	virtual void parameters_update();
+	void parameters_update() override;
 };
 #endif

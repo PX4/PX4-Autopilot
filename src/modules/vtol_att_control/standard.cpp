@@ -284,7 +284,7 @@ void Standard::update_transition_state()
 		_airbrakes_output = 0.0f;
 
 		const float as_blend_region = _params_standard.airspeed_trans - _params_standard.airspeed_blend;
-		const float as_above_blend = _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_blend;
+		const float as_above_blend = _airspeed->indicated_airspeed_m_s - _params_standard.airspeed_blend;
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_params_standard.airspeed_enabled && (as_blend_region > 0.0f) && (as_above_blend > 0.0f) &&
@@ -491,12 +491,14 @@ void Standard::fill_actuator_outputs()
 			fw_out[actuator_controls_s::INDEX_PITCH] = 0.0f;
 			fw_out[actuator_controls_s::INDEX_YAW] = 0.0f;
 			fw_out[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
+			fw_out[actuator_controls_s::INDEX_AIRBRAKES] = _airbrakes_output;
 
 		} else {
 			fw_out[actuator_controls_s::INDEX_ROLL] = -fw_in[actuator_controls_s::INDEX_ROLL];
 			fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
 			fw_out[actuator_controls_s::INDEX_YAW] = fw_in[actuator_controls_s::INDEX_YAW];
 			fw_out[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
+			fw_out[actuator_controls_s::INDEX_AIRBRAKES] = _airbrakes_output;
 		}
 
 		break;
@@ -512,6 +514,7 @@ void Standard::fill_actuator_outputs()
 		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW] = fw_in[actuator_controls_s::INDEX_YAW];
 		fw_out[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
+		fw_out[actuator_controls_s::INDEX_AIRBRAKES] = _airbrakes_output;
 
 		break;
 
@@ -525,6 +528,7 @@ void Standard::fill_actuator_outputs()
 		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW] = fw_in[actuator_controls_s::INDEX_YAW];
 		fw_out[actuator_controls_s::INDEX_THROTTLE] = fw_in[actuator_controls_s::INDEX_THROTTLE];
+		fw_out[actuator_controls_s::INDEX_AIRBRAKES] = fw_in[actuator_controls_s::INDEX_AIRBRAKES];
 
 		break;
 	}
