@@ -429,6 +429,7 @@ LogListHelper::get_log_data(uint8_t len, uint8_t *buffer)
 
 	if (offset && fseek(current_log_filep, offset, SEEK_CUR)) {
 		fclose(current_log_filep);
+		current_log_filep = nullptr;
 		PX4LOG_WARN("MavlinkLogHandler::get_log_data Seek error in %s\n", current_log_filename);
 		return 0;
 	}
