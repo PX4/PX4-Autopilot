@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The TAP V1 uses a 16MHz crystal connected to the HSE.
+/* The AeroFC V1 uses a 16MHz crystal connected to the HSE.
  *
  * This is the canonical configuration:
  *   System Clock source           : PLL (HSE)
@@ -166,6 +166,24 @@
 #define BOARD_TIM12_FREQUENCY   STM32_APB1_TIM12_CLKIN
 #define BOARD_TIM13_FREQUENCY   STM32_APB1_TIM13_CLKIN
 #define BOARD_TIM14_FREQUENCY   STM32_APB1_TIM14_CLKIN
+
+/* SDIO */
+#define SDIO_INIT_CLKDIV      (118 << SDIO_CLKCR_CLKDIV_SHIFT)
+#define SDIO_MMCXFR_CLKDIV    (2 << SDIO_CLKCR_CLKDIV_SHIFT)
+#define SDIO_SDXFR_CLKDIV     (2 << SDIO_CLKCR_CLKDIV_SHIFT)
+
+/* DMA Channl/Stream Selections *****************************************************/
+/* Stream selections are arbitrary for now but might become important in the future
+ * is we set aside more DMA channels/streams.
+ *
+ * SDIO DMA
+ *   DMAMAP_SDIO_1 = Channel 4, Stream 3 <- may later be used by SPI DMA
+ *   DMAMAP_SDIO_2 = Channel 4, Stream 6
+ */
+
+#define DMAMAP_SDIO DMAMAP_SDIO_1
+
+/* SDIO end */
 
 /* LED definitions ******************************************************************/
 /* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any

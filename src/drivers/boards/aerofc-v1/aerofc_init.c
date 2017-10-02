@@ -57,6 +57,8 @@
 
 #include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
+#include <nuttx/sdio.h>
+#include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 
 #include "board_config.h"
@@ -162,6 +164,37 @@ __EXPORT void stm32_boardinitialize(void)
 
 }
 
+static int board_sdio_initialize(void)
+{
+#ifdef CONFIG_MMCSD
+	/* First, get an instance of the SDIO interface */
+
+	struct sdio_dev_s *sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+
+	if (!sdio) {
+		message("[boot] Failed to initialize SDIO slot %d\n",
+			CONFIG_NSH_MMCSDSLOTNO);
+		return -ENODEV;
+	}
+
+	/* Now bind the SDIO interface to the MMC/SD driver */
+	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
+
+	if (ret != OK) {
+		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		return ret;
+	}
+
+	/* Then let's guess and say that there is a card in the slot. */
+	sdio_mediachange(sdio, true);
+
+	return ret;
+
+#else
+	return ERROR;
+#endif
+}
+
 /****************************************************************************
  * Name: board_app_initialize
  *
@@ -195,6 +228,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	hrt_init();
 
 	param_init();
+
+	if (board_dma_alloc_init() < 0) {
+		message("DMA alloc FAILED");
+	}
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -394,6 +431,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	static dm_sector_descriptor_t dm_sector_map = {23, 128 * 1024, 0x081E0000};
 	dm_flash_sector_description_set(&dm_sector_map);
 #endif
+
+	board_sdio_initialize();
 
 	return OK;
 }
