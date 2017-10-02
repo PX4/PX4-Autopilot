@@ -32,7 +32,7 @@
  ****************************************************************************/
 #pragma once
 /*
- * This file is a shim to bridge to nuttx_v3
+ * This file is a shim to bridge to the many SoC architecture supported by PX3
  */
 
 #ifdef __PX4_NUTTX
@@ -47,14 +47,6 @@ __BEGIN_DECLS
  * schemes or 0,1,2 for zero based schemes.
  */
 
-/*  PX4_SOC_ARCH_ID is monotonic ordinal number assigned by PX4 to a chip
- *  architecture. The 2 bytes are used to create a globally unique ID when
- *  prepended to a padded Soc ID.
- */
-
-#define PX4_SOC_ARCH_ID_BASE             0x0001
-#define PX4_MK_SOC_ARCH_ID(a)            ((a)+PX4_SOC_ARCH_ID_BASE)
-
 #define PX4_BUS_NUMBER_TO_PX4(x)        ((x)+PX4_BUS_OFFSET)  /* Use to define Zero based to match Nuttx Driver but provide 1 based to PX4 */
 #define PX4_BUS_NUMBER_FROM_PX4(x)      ((x)-PX4_BUS_OFFSET)  /* Use to map PX4 1 based to NuttX driver 0 based */
 
@@ -65,7 +57,7 @@ __BEGIN_DECLS
 
 #    if defined(CONFIG_ARCH_CHIP_STM32)
 #      include <stm32.h>
-#      define PX4_SOC_ARCH_ID             PX4_MK_SOC_ARCH_ID(0)
+#      define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F4
 #      define PX4_FLASH_BASE  STM32_FLASH_BASE
 #      if defined(CONFIG_STM32_STM32F4XXX)
 #        include <stm32_bbsram.h>
@@ -76,7 +68,7 @@ __BEGIN_DECLS
 #    endif
 
 #    if defined(CONFIG_ARCH_CHIP_STM32F7)
-#      define PX4_SOC_ARCH_ID             PX4_MK_SOC_ARCH_ID(1)
+#      define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
 #      include <chip.h>
 #      include <up_internal.h> //include up_systemreset() which is included on stm32.h
 #      include <stm32_bbsram.h>
@@ -154,15 +146,15 @@ __BEGIN_DECLS
 #endif // defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
 #if defined(CONFIG_ARCH_CHIP_KINETIS)
-#    define PX4_SOC_ARCH_ID             PX4_MK_SOC_ARCH_ID(2)
+#    define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_KINETISK66
 
 #    // Fixme: using ??
-#    define PX4_BBSRAM_SIZE          2048
-#    define PX4_BBSRAM_GETDESC_IOCTL 0
-#    define PX4_NUMBER_I2C_BUSES     KINETIS_NI2C
+#    define PX4_BBSRAM_SIZE             2048
+#    define PX4_BBSRAM_GETDESC_IOCTL    0
+#    define PX4_NUMBER_I2C_BUSES        KINETIS_NI2C
 
-#    define GPIO_OUTPUT_SET          GPIO_OUTPUT_ONE
-#    define GPIO_OUTPUT_CLEAR        GPIO_OUTPUT_ZER0
+#    define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
+#    define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZER0
 
 #    include <chip.h>
 #    include <kinetis_spi.h>
@@ -228,12 +220,12 @@ __BEGIN_DECLS
 #    include <sam_spi.h>
 #    include <sam_twihs.h>
 
-#    define PX4_SOC_ARCH_ID             PX4_MK_SOC_ARCH_ID(3)
+#    define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_SAMV7
 
 #    // Fixme: using ??
-#    define PX4_BBSRAM_SIZE          2048
-#    define PX4_BBSRAM_GETDESC_IOCTL 0
-#    define PX4_NUMBER_I2C_BUSES     SAMV7_NTWIHS
+#    define PX4_BBSRAM_SIZE             2048
+#    define PX4_BBSRAM_GETDESC_IOCTL    0
+#    define PX4_NUMBER_I2C_BUSES        SAMV7_NTWIHS
 
 //todo:define this for Atmel and add loader.
 /* Atmel defines the 128 bit UUID as
