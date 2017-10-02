@@ -70,11 +70,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	flag_idle_mc = true;
 }
 
-VtolType::~VtolType()
-{
-
-}
-
 /**
 * Adjust idle speed for mc mode.
 */
@@ -172,6 +167,7 @@ void VtolType::update_fw_state()
 {
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	_mc_roll_weight = 0.0f;
 	_mc_pitch_weight = 0.0f;
 	_mc_yaw_weight = 0.0f;
@@ -263,5 +259,85 @@ void VtolType::check_quadchute_condition()
 			}
 		}
 	}
+}
 
+bool
+VtolType::disable_mc_motors()
+{
+	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	int fd = px4_open(dev, 0);
+
+	if (fd < 0) {
+		PX4_ERR("can't open %s", dev);
+		return false;
+	}
+
+	// first save the current max values
+	struct pwm_output_values max_pwm_values = {};
+
+	int ret = px4_ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&max_pwm_values);
+
+	if (ret == OK) {
+		_max_mc_pwm_values = max_pwm_values;
+
+	} else {
+		PX4_ERR("failed getting max values");
+		px4_close(fd);
+		return false;
+	}
+
+	// now get the disarmed PWM values
+	output_pwm_s disarmed_pwm_values = {};
+	ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&disarmed_pwm_values);
+
+	if (ret == OK) {
+
+		// finally disable by setting the MC motors max to the disarmed value
+		for (int i = 0; i < _params->vtol_motor_count; i++) {
+			max_pwm_values.values[i] = disarmed_pwm_values.values[i];
+			max_pwm_values.channel_count = _params->vtol_motor_count;
+		}
+
+		ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&max_pwm_values);
+
+		if (ret != OK) {
+			PX4_ERR("failed setting max values");
+		}
+
+	} else {
+		PX4_ERR("failed getting max values");
+	}
+
+	px4_close(fd);
+
+	return (ret == PX4_OK);
+}
+
+bool
+VtolType::enable_mc_motors()
+{
+	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	int fd = px4_open(dev, 0);
+
+	if (fd < 0) {
+		PX4_ERR("can't open %s", dev);
+		return false;
+	}
+
+	struct pwm_output_values pwm_values = {};
+
+	for (int i = 0; i < _params->vtol_motor_count; i++) {
+		pwm_values.values[i] = _max_mc_pwm_values.values[i];
+		pwm_values.channel_count = _params->vtol_motor_count;
+	}
+
+	int ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
+
+	if (ret != OK) {
+		PX4_ERR("failed setting max values");
+	}
+
+	px4_close(fd);
+
+	return (ret == PX4_OK);
 }

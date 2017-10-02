@@ -45,24 +45,24 @@
 
 #ifndef STANDARD_H
 #define STANDARD_H
+
 #include "vtol_type.h"
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 
-class Standard : public VtolType
+class Standard final : public VtolType
 {
-
 public:
 
 	Standard(VtolAttitudeControl *_att_controller);
-	~Standard();
+	~Standard() override = default;
 
-	virtual void update_vtol_state();
-	virtual void update_transition_state();
-	virtual void update_fw_state();
-	virtual void update_mc_state();
-	virtual void fill_actuator_outputs();
-	virtual void waiting_on_tecs();
+	void update_vtol_state() override;
+	void update_transition_state() override;
+	void update_fw_state() override;
+	void update_mc_state() override;
+	void fill_actuator_outputs() override;
+	void waiting_on_tecs() override;
 
 private:
 
@@ -77,13 +77,13 @@ private:
 		float front_trans_time_min;
 		float down_pitch_max;
 		float forward_thrust_scale;
-		int32_t airspeed_disabled;
+		bool airspeed_enabled;
 		float pitch_setpoint_offset;
 		float reverse_output;
 		float reverse_delay;
 		float back_trans_throttle;
 		float mpc_xy_cruise;
-	} _params_standard;
+	} _params_standard{};
 
 	struct {
 		param_t front_trans_dur;
@@ -96,32 +96,32 @@ private:
 		param_t front_trans_time_min;
 		param_t down_pitch_max;
 		param_t forward_thrust_scale;
-		param_t airspeed_disabled;
+		param_t airspeed_mode;
 		param_t pitch_setpoint_offset;
 		param_t reverse_output;
 		param_t reverse_delay;
 		param_t back_trans_throttle;
 		param_t mpc_xy_cruise;
-	} _params_handles_standard;
+	} _params_handles_standard{};
 
 	enum vtol_mode {
-		MC_MODE = 0,
-		TRANSITION_TO_FW,
-		TRANSITION_TO_MC,
-		FW_MODE
+		MC_MODE = mode::ROTARY_WING,
+		TRANSITION_TO_FW = mode::TRANSITION_TO_FW,
+		TRANSITION_TO_MC = mode::TRANSITION_TO_MC,
+		FW_MODE = mode::FIXED_WING
 	};
 
 	struct {
 		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
-	} _vtol_schedule;
+	} _vtol_schedule{};
 
-	bool _flag_enable_mc_motors;
-	float _pusher_throttle;
-	float _reverse_output;
-	float _airspeed_trans_blend_margin;
+	bool _flag_enable_mc_motors{true};
 
-	void set_max_mc(unsigned pwm_value);
+	bool _transition_achieved{false}; // transition achieved flag
+
+	float _pusher_throttle{0.0f};
+	float _airbrakes_output{0.0f};
 
 	virtual void parameters_update();
 };
