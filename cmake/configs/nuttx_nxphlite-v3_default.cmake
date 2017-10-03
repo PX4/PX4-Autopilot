@@ -19,7 +19,7 @@ set(config_module_list
 	drivers/device
 	drivers/ets_airspeed
 	drivers/frsky_telemetry
-	drivers/fxos8700cq
+	drivers/fxos8701cq
 	drivers/fxas21002c
 	drivers/gps
 	drivers/hmc5883
