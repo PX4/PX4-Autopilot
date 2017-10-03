@@ -1482,6 +1482,11 @@ gyrosim_main(int argc, char *argv[])
 		}
 	}
 
+	if (myoptind >= argc) {
+		gyrosim::usage();
+		return 1;
+	}
+
 	const char *verb = argv[myoptind];
 
 	/*
