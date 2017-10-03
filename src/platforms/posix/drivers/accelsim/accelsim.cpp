@@ -1168,7 +1168,7 @@ accelsim_main(int argc, char *argv[])
 		}
 	}
 
-	if (argc <= 1) {
+	if (myoptind >= argc) {
 		accelsim::usage();
 		return 1;
 	}
