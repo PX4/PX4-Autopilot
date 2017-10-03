@@ -54,13 +54,36 @@ int sign(T val)
 /*
  * So called exponential curve function implementation.
  * It is essentially a linear combination between a linear and a cubic function.
- * It's used in the range [-1,1]
+ * @param value [-1,1] input value to function
+ * @param e [0,1] function parameter to set ratio between linear and cubic shape
+ * 		0 - pure linear function
+ * 		1 - pure cubic function
+ * @return result of function output
  */
 template<typename _Tp>
 inline const _Tp expo(const _Tp &value, const _Tp &e)
 {
 	_Tp x = constrain(value, (_Tp) - 1, (_Tp)1);
 	return (1 - e) * x + e * x * x * x;
+}
+
+/*
+ * So called SuperExpo function implementation.
+ * It is a 1/(1-x) function to further shape the rc input curve intuitively.
+ * I enhanced it compared to other implementations to keep the scale between [-1,1].
+ * @param value [-1,1] input value to function
+ * @param e [0,1] function parameter to set ratio between linear and cubic shape (see expo)
+ * @param g [0,1) function parameter to set SuperExpo shape
+ * 		0 - pure expo function
+ * 		0.99 - very strong bent curve, stays zero until maximum stick input
+ * 		1 - DO NOT USE, division by zero on maxima
+ * @return result of function output
+ */
+template<typename _Tp>
+inline const _Tp superexpo(const _Tp &value, const _Tp &e, const _Tp &g)
+{
+	_Tp x = constrain(value, (_Tp) - 1, (_Tp)1);
+	return expo(x, e) * (1 - g) / (1 - fabsf(x) * g);
 }
 
 template<typename _Tp>
