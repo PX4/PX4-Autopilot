@@ -406,7 +406,8 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 700.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 700.0f);
 
 /**
- * Acro expo factor
+ * Acro Expo factor
+ * applied to input of all axis: roll, pitch, yaw
  *
  * 0 Purely linear input curve
  * 1 Purely cubic input curve
@@ -417,6 +418,21 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 700.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
+
+/**
+ * Acro SuperExpo factor
+ * applied to input of all axis: roll, pitch, yaw
+ *
+ * 0 Pure Expo function
+ * 0.7 resonable shape enhancement for intuitive stick feel
+ * 0.95 very strong bent input curve only near maxima have effect
+ *
+ * @min 0
+ * @max 0.95
+ * @decimal 2
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.7f);
 
 /**
  * Threshold for Rattitude mode
