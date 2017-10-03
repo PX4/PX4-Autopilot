@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file fxos8700cq.cpp
- * Driver for the NXP FXOS8700CQ 6-axis sensor with integrated linear accelerometer and
+ * @file fxos8701cq.cpp
+ * Driver for the NXP FXOS8701CQ 6-axis sensor with integrated linear accelerometer and
  * magnetometer connected via SPI.
  */
 
@@ -81,38 +81,38 @@
 #define ADDR_7(a)                       ((a) & (1 << 7))
 #define swap16(w)                       __builtin_bswap16((w))
 #define swap16RightJustify14(w)         (((int16_t)swap16(w)) >> 2)
-#define FXOS8700C_DEVICE_PATH_ACCEL     "/dev/fxos8700cq_accel"
-#define FXOS8700C_DEVICE_PATH_ACCEL_EXT "/dev/fxos8700cq_accel_ext"
-#define FXOS8700C_DEVICE_PATH_MAG       "/dev/fxos8700cq_mag"
+#define FXOS8701C_DEVICE_PATH_ACCEL     "/dev/fxos8701cq_accel"
+#define FXOS8701C_DEVICE_PATH_ACCEL_EXT "/dev/fxos8701cq_accel_ext"
+#define FXOS8701C_DEVICE_PATH_MAG       "/dev/fxos8701cq_mag"
 
-#define FXOS8700CQ_DR_STATUS       0x00
+#define FXOS8701CQ_DR_STATUS       0x00
 #  define DR_STATUS_ZYXDR          (1 << 3)
 
-#define FXOS8700CQ_OUT_X_MSB       0x01
+#define FXOS8701CQ_OUT_X_MSB       0x01
 
-#define FXOS8700CQ_XYZ_DATA_CFG    0x0e
+#define FXOS8701CQ_XYZ_DATA_CFG    0x0e
 #  define XYZ_DATA_CFG_FS_SHIFTS   0
 #  define XYZ_DATA_CFG_FS_MASK     (3 << XYZ_DATA_CFG_FS_SHIFTS)
 #  define XYZ_DATA_CFG_FS_2G       (0 << XYZ_DATA_CFG_FS_SHIFTS)
 #  define XYZ_DATA_CFG_FS_4G       (1 << XYZ_DATA_CFG_FS_SHIFTS)
 #  define XYZ_DATA_CFG_FS_8G       (2 << XYZ_DATA_CFG_FS_SHIFTS)
 
-#define FXOS8700CQ_WHOAMI          0x0d
-#  define FXOS8700CQ_WHOAMI_VAL    0xC7
+#define FXOS8701CQ_WHOAMI          0x0d
+#  define FXOS8701CQ_WHOAMI_VAL    0xCA
 
-#define FXOS8700CQ_CTRL_REG1       0x2a
+#define FXOS8701CQ_CTRL_REG1       0x2a
 #  define CTRL_REG1_ACTIVE         (1 << 0)
 #  define CTRL_REG1_DR_SHIFTS      3
 #  define CTRL_REG1_DR_MASK        (7 << CTRL_REG1_DR_SHIFTS)
 #  define CTRL_REG1_DR(n)          (((n) & 7) << CTRL_REG1_DR_SHIFTS)
-#define FXOS8700CQ_CTRL_REG2       0x2b
+#define FXOS8701CQ_CTRL_REG2       0x2b
 #  define CTRL_REG2_AUTO_INC       (1 << 5)
 
-#define FXOS8700CQ_M_DR_STATUS     0x32
+#define FXOS8701CQ_M_DR_STATUS     0x32
 #  define M_DR_STATUS_ZYXDR         (1 << 3)
-#define FXOS8700CQ_M_OUT_X_MSB     0x33
-#define FXOS8700CQ_TEMP            0x51
-#define FXOS8700CQ_M_CTRL_REG1     0x5b
+#define FXOS8701CQ_M_OUT_X_MSB     0x33
+#define FXOS8701CQ_TEMP            0x51
+#define FXOS8701CQ_M_CTRL_REG1     0x5b
 #  define M_CTRL_REG1_HMS_SHIFTS   0
 #  define M_CTRL_REG1_HMS_MASK     (3 << M_CTRL_REG1_HMS_SHIFTS)
 #  define M_CTRL_REG1_HMS_A        (0 << M_CTRL_REG1_HMS_SHIFTS)
@@ -122,21 +122,21 @@
 #  define M_CTRL_REG1_OS_MASK      (7 << M_CTRL_REG1_HMS_SHIFTS)
 #  define M_CTRL_REG1_OS(n)        (((n) & 7) << M_CTRL_REG1_OS_SHIFTS)
 
-#define FXOS8700CQ_M_CTRL_REG2     0x5c
-#define FXOS8700CQ_M_CTRL_REG3     0x5d
+#define FXOS8701CQ_M_CTRL_REG2     0x5c
+#define FXOS8701CQ_M_CTRL_REG3     0x5d
 
 #define DEF_REG(r)   {r, #r}
 
 /* default values for this device */
-#define FXOS8700C_ACCEL_DEFAULT_RANGE_G              8
-#define FXOS8700C_ACCEL_DEFAULT_RATE                 400 /* ODR is 400 in Hybird mode (accel + mag) */
-#define FXOS8700C_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ   50
-#define FXOS8700C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ   30
-#define FXOS8700C_ACCEL_MAX_OUTPUT_RATE              280
+#define FXOS8701C_ACCEL_DEFAULT_RANGE_G              8
+#define FXOS8701C_ACCEL_DEFAULT_RATE                 400 /* ODR is 400 in Hybird mode (accel + mag) */
+#define FXOS8701C_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ   50
+#define FXOS8701C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ   30
+#define FXOS8701C_ACCEL_MAX_OUTPUT_RATE              280
 
-#define FXOS8700C_MAG_DEFAULT_RANGE_GA               12 /* It is fixed at 12 G */
-#define FXOS8700C_MAG_DEFAULT_RATE                   100
-#define FXOS8700C_ONE_G                              9.80665f
+#define FXOS8701C_MAG_DEFAULT_RANGE_GA               12 /* It is fixed at 12 G */
+#define FXOS8701C_MAG_DEFAULT_RATE                   100
+#define FXOS8701C_ONE_G                              9.80665f
 
 #ifdef PX4_SPI_BUS_EXT
 #define EXTERNAL_BUS PX4_SPI_BUS_EXT
@@ -150,18 +150,18 @@
   This time reduction is enough to cope with worst case timing jitter
   due to other timers
  */
-#define FXOS8700C_TIMER_REDUCTION				240
+#define FXOS8701C_TIMER_REDUCTION				240
 
-extern "C" { __EXPORT int fxos8700cq_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int fxos8701cq_main(int argc, char *argv[]); }
 
 
-class FXOS8700CQ_mag;
+class FXOS8701CQ_mag;
 
-class FXOS8700CQ : public device::SPI
+class FXOS8701CQ : public device::SPI
 {
 public:
-	FXOS8700CQ(int bus, const char *path, uint32_t device, enum Rotation rotation);
-	virtual ~FXOS8700CQ();
+	FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation rotation);
+	virtual ~FXOS8701CQ();
 
 	virtual int		init();
 
@@ -186,14 +186,14 @@ public:
 protected:
 	virtual int		probe();
 
-	friend class 		FXOS8700CQ_mag;
+	friend class 		FXOS8701CQ_mag;
 
 	virtual ssize_t		mag_read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		mag_ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
 
-	FXOS8700CQ_mag		*_mag;
+	FXOS8701CQ_mag		*_mag;
 
 	struct hrt_call		_accel_call;
 	struct hrt_call		_mag_call;
@@ -251,9 +251,9 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define FXOS8700C_NUM_CHECKED_REGISTERS 5
-	static const uint8_t	_checked_registers[FXOS8700C_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[FXOS8700C_NUM_CHECKED_REGISTERS];
+#define FXOS8701C_NUM_CHECKED_REGISTERS 5
+	static const uint8_t	_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS];
+	uint8_t			_checked_values[FXOS8701C_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
 
 	/**
@@ -333,7 +333,7 @@ private:
 	int			mag_self_test();
 
 	/**
-	 * Read a register from the FXOS8700C
+	 * Read a register from the FXOS8701C
 	 *
 	 * @param		The register to read.
 	 * @return		The value that was read.
@@ -341,7 +341,7 @@ private:
 	uint8_t			read_reg(unsigned reg);
 
 	/**
-	 * Write a register in the FXOS8700C
+	 * Write a register in the FXOS8701C
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
@@ -349,7 +349,7 @@ private:
 	void			write_reg(unsigned reg, uint8_t value);
 
 	/**
-	 * Modify a register in the FXOS8700C
+	 * Modify a register in the FXOS8701C
 	 *
 	 * Bits are cleared before bits are set.
 	 *
@@ -360,7 +360,7 @@ private:
 	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
 
 	/**
-	 * Write a register in the FXOS8700C, updating _checked_values
+	 * Write a register in the FXOS8701C, updating _checked_values
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
@@ -368,7 +368,7 @@ private:
 	void			write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
-	 * Set the FXOS8700C accel measurement range.
+	 * Set the FXOS8701C accel measurement range.
 	 *
 	 * @param max_g	The measurement range of the accel is in g (9.81m/s^2)
 	 *			Zero selects the maximum supported range.
@@ -377,7 +377,7 @@ private:
 	int			accel_set_range(unsigned max_g);
 
 	/**
-	 * Set the FXOS8700C mag measurement range.
+	 * Set the FXOS8701C mag measurement range.
 	 *
 	 * @param max_ga	The measurement range of the mag is in Ga
 	 *			Zero selects the maximum supported range.
@@ -386,7 +386,7 @@ private:
 	int			mag_set_range(unsigned max_g);
 
 	/**
-	 * Set the FXOS8700C on-chip anti-alias filter bandwith.
+	 * Set the FXOS8701C on-chip anti-alias filter bandwith.
 	 *
 	 * @param bandwidth The anti-alias filter bandwidth in Hz
 	 * 			Zero selects the highest bandwidth
@@ -404,7 +404,7 @@ private:
 	int			accel_set_driver_lowpass_filter(float samplerate, float bandwidth);
 
 	/**
-	 * Set the FXOS8700C internal accel and mag sampling frequency.
+	 * Set the FXOS8701C internal accel and mag sampling frequency.
 	 *
 	 * @param frequency	The internal accel and mag sampling frequency is set to not less than
 	 *			this value.
@@ -414,7 +414,7 @@ private:
 	int			accel_set_samplerate(unsigned frequency);
 
 	/**
-	 * Set the FXOS8700CQ internal mag sampling frequency.
+	 * Set the FXOS8701CQ internal mag sampling frequency.
 	 *
 	 * @param frequency	The mag reporting frequency is set to not less than
 	 *			this value. (sampling is all way the same as accel
@@ -426,30 +426,30 @@ private:
 
 
 	/* this class cannot be copied */
-	FXOS8700CQ(const FXOS8700CQ &);
-	FXOS8700CQ operator=(const FXOS8700CQ &);
+	FXOS8701CQ(const FXOS8701CQ &);
+	FXOS8701CQ operator=(const FXOS8701CQ &);
 };
 
 /*
   list of registers that will be checked in check_registers(). Note
   that ADDR_WHO_AM_I must be first in the list.
  */
-const uint8_t FXOS8700CQ::_checked_registers[FXOS8700C_NUM_CHECKED_REGISTERS] = {
-	FXOS8700CQ_WHOAMI,
-	FXOS8700CQ_XYZ_DATA_CFG,
-	FXOS8700CQ_CTRL_REG1,
-	FXOS8700CQ_M_CTRL_REG1,
-	FXOS8700CQ_M_CTRL_REG2,
+const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = {
+	FXOS8701CQ_WHOAMI,
+	FXOS8701CQ_XYZ_DATA_CFG,
+	FXOS8701CQ_CTRL_REG1,
+	FXOS8701CQ_M_CTRL_REG1,
+	FXOS8701CQ_M_CTRL_REG2,
 };
 
 /**
  * Helper class implementing the mag driver node.
  */
-class FXOS8700CQ_mag : public device::CDev
+class FXOS8701CQ_mag : public device::CDev
 {
 public:
-	FXOS8700CQ_mag(FXOS8700CQ *parent);
-	~FXOS8700CQ_mag();
+	FXOS8701CQ_mag(FXOS8701CQ *parent);
+	~FXOS8701CQ_mag();
 
 	virtual ssize_t			read(struct file *filp, char *buffer, size_t buflen);
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
@@ -457,11 +457,11 @@ public:
 	virtual int		init();
 
 protected:
-	friend class FXOS8700CQ;
+	friend class FXOS8701CQ;
 
 	void				parent_poll_notify();
 private:
-	FXOS8700CQ				*_parent;
+	FXOS8701CQ				*_parent;
 
 	orb_advert_t			_mag_topic;
 	int				_mag_orb_class_instance;
@@ -472,15 +472,15 @@ private:
 	void				measure_trampoline(void *arg);
 
 	/* this class does not allow copying due to ptr data members */
-	FXOS8700CQ_mag(const FXOS8700CQ_mag &);
-	FXOS8700CQ_mag operator=(const FXOS8700CQ_mag &);
+	FXOS8701CQ_mag(const FXOS8701CQ_mag &);
+	FXOS8701CQ_mag operator=(const FXOS8701CQ_mag &);
 };
 
 
-FXOS8700CQ::FXOS8700CQ(int bus, const char *path, uint32_t device, enum Rotation rotation) :
-	SPI("FXOS8700CQ", path, bus, device, SPIDEV_MODE0,
+FXOS8701CQ::FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation rotation) :
+	SPI("FXOS8701CQ", path, bus, device, SPIDEV_MODE0,
 	    1 * 1000 * 1000),
-	_mag(new FXOS8700CQ_mag(this)),
+	_mag(new FXOS8701CQ_mag(this)),
 	_accel_call{},
 	_mag_call{},
 	_call_accel_interval(0),
@@ -501,16 +501,16 @@ FXOS8700CQ::FXOS8700CQ(int bus, const char *path, uint32_t device, enum Rotation
 	_accel_class_instance(-1),
 	_accel_read(0),
 	_mag_read(0),
-	_accel_sample_perf(perf_alloc(PC_ELAPSED, "fxos8700cq_acc_read")),
-	_mag_sample_perf(perf_alloc(PC_ELAPSED, "fxos8700cq_mag_read")),
-	_bad_registers(perf_alloc(PC_COUNT, "fxos8700cq_bad_reg")),
-	_bad_values(perf_alloc(PC_COUNT, "fxos8700cq_bad_val")),
-	_accel_duplicates(perf_alloc(PC_COUNT, "fxos8700cq_acc_dupe")),
+	_accel_sample_perf(perf_alloc(PC_ELAPSED, "fxos8701cq_acc_read")),
+	_mag_sample_perf(perf_alloc(PC_ELAPSED, "fxos8701cq_mag_read")),
+	_bad_registers(perf_alloc(PC_COUNT, "fxos8701cq_bad_reg")),
+	_bad_values(perf_alloc(PC_COUNT, "fxos8701cq_bad_val")),
+	_accel_duplicates(perf_alloc(PC_COUNT, "fxos8701cq_acc_dupe")),
 	_register_wait(0),
-	_accel_filter_x(FXOS8700C_ACCEL_DEFAULT_RATE, FXOS8700C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_y(FXOS8700C_ACCEL_DEFAULT_RATE, FXOS8700C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_z(FXOS8700C_ACCEL_DEFAULT_RATE, FXOS8700C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_int(1000000 / FXOS8700C_ACCEL_MAX_OUTPUT_RATE, true),
+	_accel_filter_x(FXOS8701C_ACCEL_DEFAULT_RATE, FXOS8701C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_y(FXOS8701C_ACCEL_DEFAULT_RATE, FXOS8701C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_z(FXOS8701C_ACCEL_DEFAULT_RATE, FXOS8701C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_int(1000000 / FXOS8701C_ACCEL_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_constant_accel_count(0),
 	_last_temperature(0),
@@ -524,11 +524,11 @@ FXOS8700CQ::FXOS8700CQ(int bus, const char *path, uint32_t device, enum Rotation
 	// enable debug() calls
 	_debug_enabled = true;
 
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_FXOS8700C;
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_FXOS8701C;
 
 	/* Prime _mag with parents devid. */
 	_mag->_device_id.devid = _device_id.devid;
-	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_FXOS8700C;
+	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_FXOS8701C;
 
 
 	// default scale factors
@@ -547,7 +547,7 @@ FXOS8700CQ::FXOS8700CQ(int bus, const char *path, uint32_t device, enum Rotation
 	_mag_scale.z_scale = 1.0f;
 }
 
-FXOS8700CQ::~FXOS8700CQ()
+FXOS8701CQ::~FXOS8701CQ()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -576,7 +576,7 @@ FXOS8700CQ::~FXOS8700CQ()
 }
 
 int
-FXOS8700CQ::init()
+FXOS8701CQ::init()
 {
 	int ret = PX4_ERROR;
 
@@ -645,50 +645,50 @@ out:
 
 
 void
-FXOS8700CQ::reset()
+FXOS8701CQ::reset()
 {
 
 	/* enable accel set it To Standby */
 
-	write_checked_reg(FXOS8700CQ_CTRL_REG1, 0);
-	write_checked_reg(FXOS8700CQ_XYZ_DATA_CFG, 0);
+	write_checked_reg(FXOS8701CQ_CTRL_REG1, 0);
+	write_checked_reg(FXOS8701CQ_XYZ_DATA_CFG, 0);
 
 	/* Use hybird mode to read Accel and Mag */
 
-	write_checked_reg(FXOS8700CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_AM | M_CTRL_REG1_OS(7));
+	write_checked_reg(FXOS8701CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_AM | M_CTRL_REG1_OS(7));
 
 	/* Use the hybird auto increment mode  to read all the data at the same time */
 
-	write_checked_reg(FXOS8700CQ_M_CTRL_REG2, CTRL_REG2_AUTO_INC);
+	write_checked_reg(FXOS8701CQ_M_CTRL_REG2, CTRL_REG2_AUTO_INC);
 
-	accel_set_range(FXOS8700C_ACCEL_DEFAULT_RANGE_G);
-	accel_set_samplerate(FXOS8700C_ACCEL_DEFAULT_RATE);
-	accel_set_driver_lowpass_filter((float)FXOS8700C_ACCEL_DEFAULT_RATE, (float)FXOS8700C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ);
+	accel_set_range(FXOS8701C_ACCEL_DEFAULT_RANGE_G);
+	accel_set_samplerate(FXOS8701C_ACCEL_DEFAULT_RATE);
+	accel_set_driver_lowpass_filter((float)FXOS8701C_ACCEL_DEFAULT_RATE, (float)FXOS8701C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ);
 
 	// we setup the anti-alias on-chip filter as 50Hz. We believe
 	// this operates in the analog domain, and is critical for
 	// anti-aliasing. The 2 pole software filter is designed to
 	// operate in conjunction with this on-chip filter
-	accel_set_onchip_lowpass_filter_bandwidth(FXOS8700C_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ);
+	accel_set_onchip_lowpass_filter_bandwidth(FXOS8701C_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ);
 
-	mag_set_range(FXOS8700C_MAG_DEFAULT_RANGE_GA);
+	mag_set_range(FXOS8701C_MAG_DEFAULT_RANGE_GA);
 
 	/* enable  set it To Standby mode at 800 Hz which becomes 400 Hz due to hybird mode */
 
-	write_checked_reg(FXOS8700CQ_CTRL_REG1, CTRL_REG1_DR(0) | CTRL_REG1_ACTIVE);
+	write_checked_reg(FXOS8701CQ_CTRL_REG1, CTRL_REG1_DR(0) | CTRL_REG1_ACTIVE);
 
 	_accel_read = 0;
 	_mag_read = 0;
 }
 
 int
-FXOS8700CQ::probe()
+FXOS8701CQ::probe()
 {
 	/* verify that the device is attached and functioning */
-	bool success = (read_reg(FXOS8700CQ_WHOAMI) == FXOS8700CQ_WHOAMI_VAL);
+	bool success = (read_reg(FXOS8701CQ_WHOAMI) == FXOS8701CQ_WHOAMI_VAL);
 
 	if (success) {
-		_checked_values[0] = FXOS8700CQ_WHOAMI_VAL;
+		_checked_values[0] = FXOS8701CQ_WHOAMI_VAL;
 		return OK;
 	}
 
@@ -696,7 +696,7 @@ FXOS8700CQ::probe()
 }
 
 ssize_t
-FXOS8700CQ::read(struct file *filp, char *buffer, size_t buflen)
+FXOS8701CQ::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct accel_report);
 	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
@@ -735,7 +735,7 @@ FXOS8700CQ::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 ssize_t
-FXOS8700CQ::mag_read(struct file *filp, char *buffer, size_t buflen)
+FXOS8701CQ::mag_read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
 	mag_report *mrb = reinterpret_cast<mag_report *>(buffer);
@@ -776,7 +776,7 @@ FXOS8700CQ::mag_read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-FXOS8700CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
+FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -801,7 +801,7 @@ FXOS8700CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ioctl(filp, SENSORIOCSPOLLRATE, 1600);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, FXOS8700C_ACCEL_DEFAULT_RATE);
+				return ioctl(filp, SENSORIOCSPOLLRATE, FXOS8701C_ACCEL_DEFAULT_RATE);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -823,7 +823,7 @@ FXOS8700CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* XXX this is a bit shady, but no other way to adjust... */
 					_call_accel_interval = ticks;
 
-					_accel_call.period = _call_accel_interval - FXOS8700C_TIMER_REDUCTION;
+					_accel_call.period = _call_accel_interval - FXOS8701C_TIMER_REDUCTION;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -900,7 +900,7 @@ FXOS8700CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
-		return (unsigned long)((_accel_range_m_s2) / FXOS8700C_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / FXOS8701C_ONE_G + 0.5f);
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
@@ -917,7 +917,7 @@ FXOS8700CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 int
-FXOS8700CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
+FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -1046,7 +1046,7 @@ FXOS8700CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 int
-FXOS8700CQ::accel_self_test()
+FXOS8701CQ::accel_self_test()
 {
 	/*todo:Implement
 	 * set to 2 Jmode Save current samples
@@ -1065,7 +1065,7 @@ FXOS8700CQ::accel_self_test()
 }
 
 int
-FXOS8700CQ::mag_self_test()
+FXOS8701CQ::mag_self_test()
 {
 	if (_mag_read == 0) {
 		return 1;
@@ -1091,7 +1091,7 @@ FXOS8700CQ::mag_self_test()
 }
 
 uint8_t
-FXOS8700CQ::read_reg(unsigned reg)
+FXOS8701CQ::read_reg(unsigned reg)
 {
 	uint8_t cmd[3];
 
@@ -1105,7 +1105,7 @@ FXOS8700CQ::read_reg(unsigned reg)
 }
 
 void
-FXOS8700CQ::write_reg(unsigned reg, uint8_t value)
+FXOS8701CQ::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t cmd[3];
 
@@ -1117,11 +1117,11 @@ FXOS8700CQ::write_reg(unsigned reg, uint8_t value)
 }
 
 void
-FXOS8700CQ::write_checked_reg(unsigned reg, uint8_t value)
+FXOS8701CQ::write_checked_reg(unsigned reg, uint8_t value)
 {
 	write_reg(reg, value);
 
-	for (uint8_t i = 0; i < FXOS8700C_NUM_CHECKED_REGISTERS; i++) {
+	for (uint8_t i = 0; i < FXOS8701C_NUM_CHECKED_REGISTERS; i++) {
 		if (reg == _checked_registers[i]) {
 			_checked_values[i] = value;
 		}
@@ -1129,7 +1129,7 @@ FXOS8700CQ::write_checked_reg(unsigned reg, uint8_t value)
 }
 
 void
-FXOS8700CQ::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
+FXOS8701CQ::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
 	uint8_t	val;
 
@@ -1140,7 +1140,7 @@ FXOS8700CQ::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 }
 
 int
-FXOS8700CQ::accel_set_range(unsigned max_g)
+FXOS8701CQ::accel_set_range(unsigned max_g)
 {
 	uint8_t setbits = 0;
 	float lsb_per_g;
@@ -1166,17 +1166,17 @@ FXOS8700CQ::accel_set_range(unsigned max_g)
 		max_accel_g = 2;
 	}
 
-	_accel_range_scale = (FXOS8700C_ONE_G / lsb_per_g);
-	_accel_range_m_s2 = max_accel_g * FXOS8700C_ONE_G;
+	_accel_range_scale = (FXOS8701C_ONE_G / lsb_per_g);
+	_accel_range_m_s2 = max_accel_g * FXOS8701C_ONE_G;
 
 
-	modify_reg(FXOS8700CQ_XYZ_DATA_CFG, XYZ_DATA_CFG_FS_MASK, setbits);
+	modify_reg(FXOS8701CQ_XYZ_DATA_CFG, XYZ_DATA_CFG_FS_MASK, setbits);
 
 	return OK;
 }
 
 int
-FXOS8700CQ::mag_set_range(unsigned max_ga)
+FXOS8701CQ::mag_set_range(unsigned max_ga)
 {
 	_mag_range_ga = 12;
 	_mag_range_scale = 0.001f;
@@ -1185,13 +1185,13 @@ FXOS8700CQ::mag_set_range(unsigned max_ga)
 }
 
 int
-FXOS8700CQ::accel_set_onchip_lowpass_filter_bandwidth(unsigned bandwidth)
+FXOS8701CQ::accel_set_onchip_lowpass_filter_bandwidth(unsigned bandwidth)
 {
 	return OK;
 }
 
 int
-FXOS8700CQ::accel_set_driver_lowpass_filter(float samplerate, float bandwidth)
+FXOS8701CQ::accel_set_driver_lowpass_filter(float samplerate, float bandwidth)
 {
 	_accel_filter_x.set_cutoff_frequency(samplerate, bandwidth);
 	_accel_filter_y.set_cutoff_frequency(samplerate, bandwidth);
@@ -1201,16 +1201,16 @@ FXOS8700CQ::accel_set_driver_lowpass_filter(float samplerate, float bandwidth)
 }
 
 int
-FXOS8700CQ::accel_set_samplerate(unsigned frequency)
+FXOS8701CQ::accel_set_samplerate(unsigned frequency)
 {
 	uint8_t setbits = 0;
 
 	/* The selected ODR is reduced by a factor of two when the device is operated in hybrid mode.*/
 
-	uint8_t  active      = read_reg(FXOS8700CQ_CTRL_REG1) & CTRL_REG1_ACTIVE;
+	uint8_t  active      = read_reg(FXOS8701CQ_CTRL_REG1) & CTRL_REG1_ACTIVE;
 
 	if (frequency == 0 || frequency == ACCEL_SAMPLERATE_DEFAULT) {
-		frequency = FXOS8700C_ACCEL_DEFAULT_RATE;
+		frequency = FXOS8701C_ACCEL_DEFAULT_RATE;
 	}
 
 	if (frequency <= 25) {
@@ -1237,14 +1237,14 @@ FXOS8700CQ::accel_set_samplerate(unsigned frequency)
 		return -EINVAL;
 	}
 
-	modify_reg(FXOS8700CQ_CTRL_REG1, CTRL_REG1_ACTIVE, 0);
-	modify_reg(FXOS8700CQ_CTRL_REG1, CTRL_REG1_DR_MASK, setbits);
-	modify_reg(FXOS8700CQ_CTRL_REG1, 0, active);
+	modify_reg(FXOS8701CQ_CTRL_REG1, CTRL_REG1_ACTIVE, 0);
+	modify_reg(FXOS8701CQ_CTRL_REG1, CTRL_REG1_DR_MASK, setbits);
+	modify_reg(FXOS8701CQ_CTRL_REG1, 0, active);
 	return OK;
 }
 
 int
-FXOS8700CQ::mag_set_samplerate(unsigned frequency)
+FXOS8701CQ::mag_set_samplerate(unsigned frequency)
 {
 	if (frequency == 0) {
 		frequency = 100;
@@ -1274,7 +1274,7 @@ FXOS8700CQ::mag_set_samplerate(unsigned frequency)
 
 
 void
-FXOS8700CQ::start()
+FXOS8701CQ::start()
 {
 	/* make sure we are stopped first */
 	stop();
@@ -1286,13 +1286,13 @@ FXOS8700CQ::start()
 	/* start polling at the specified rate */
 	hrt_call_every(&_accel_call,
 		       1000,
-		       _call_accel_interval - FXOS8700C_TIMER_REDUCTION,
-		       (hrt_callout)&FXOS8700CQ::measure_trampoline, this);
-	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&FXOS8700CQ::mag_measure_trampoline, this);
+		       _call_accel_interval - FXOS8701C_TIMER_REDUCTION,
+		       (hrt_callout)&FXOS8701CQ::measure_trampoline, this);
+	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&FXOS8701CQ::mag_measure_trampoline, this);
 }
 
 void
-FXOS8700CQ::stop()
+FXOS8701CQ::stop()
 {
 	hrt_cancel(&_accel_call);
 	hrt_cancel(&_mag_call);
@@ -1306,25 +1306,25 @@ FXOS8700CQ::stop()
 }
 
 void
-FXOS8700CQ::measure_trampoline(void *arg)
+FXOS8701CQ::measure_trampoline(void *arg)
 {
-	FXOS8700CQ *dev = (FXOS8700CQ *)arg;
+	FXOS8701CQ *dev = (FXOS8701CQ *)arg;
 
 	/* make another measurement */
 	dev->measure();
 }
 
 void
-FXOS8700CQ::mag_measure_trampoline(void *arg)
+FXOS8701CQ::mag_measure_trampoline(void *arg)
 {
-	FXOS8700CQ *dev = (FXOS8700CQ *)arg;
+	FXOS8701CQ *dev = (FXOS8701CQ *)arg;
 
 	/* make another measurement */
 	dev->mag_measure();
 }
 
 void
-FXOS8700CQ::check_registers(void)
+FXOS8701CQ::check_registers(void)
 {
 
 	uint8_t v;
@@ -1351,11 +1351,11 @@ FXOS8700CQ::check_registers(void)
 		_register_wait = 20;
 	}
 
-	_checked_next = (_checked_next + 1) % FXOS8700C_NUM_CHECKED_REGISTERS;
+	_checked_next = (_checked_next + 1) % FXOS8701C_NUM_CHECKED_REGISTERS;
 }
 
 void
-FXOS8700CQ::measure()
+FXOS8701CQ::measure()
 {
 	/* status register and data as read back from the device */
 
@@ -1389,8 +1389,8 @@ FXOS8700CQ::measure()
 
 	/* fetch data from the sensor */
 	memset(&raw_accel_mag_report, 0, sizeof(raw_accel_mag_report));
-	raw_accel_mag_report.cmd[0] = DIR_READ(FXOS8700CQ_DR_STATUS);
-	raw_accel_mag_report.cmd[1] = ADDR_7(FXOS8700CQ_DR_STATUS);
+	raw_accel_mag_report.cmd[0] = DIR_READ(FXOS8701CQ_DR_STATUS);
+	raw_accel_mag_report.cmd[1] = ADDR_7(FXOS8701CQ_DR_STATUS);
 	transfer((uint8_t *)&raw_accel_mag_report, (uint8_t *)&raw_accel_mag_report, sizeof(raw_accel_mag_report));
 
 	if (!(raw_accel_mag_report.status & DR_STATUS_ZYXDR)) {
@@ -1424,9 +1424,9 @@ FXOS8700CQ::measure()
 	 * one device to the next
 	 */
 
-	write_checked_reg(FXOS8700CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_A | M_CTRL_REG1_OS(7));
-	_last_temperature = (read_reg(FXOS8700CQ_TEMP)) * 0.96f;
-	write_checked_reg(FXOS8700CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_AM | M_CTRL_REG1_OS(7));
+	write_checked_reg(FXOS8701CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_A | M_CTRL_REG1_OS(7));
+	_last_temperature = (read_reg(FXOS8701CQ_TEMP)) * 0.96f;
+	write_checked_reg(FXOS8701CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_AM | M_CTRL_REG1_OS(7));
 
 	accel_report.temperature = _last_temperature;
 
@@ -1526,7 +1526,7 @@ FXOS8700CQ::measure()
 }
 
 void
-FXOS8700CQ::mag_measure()
+FXOS8701CQ::mag_measure()
 {
 	/* status register and data as read back from the device */
 
@@ -1591,7 +1591,7 @@ FXOS8700CQ::mag_measure()
 }
 
 void
-FXOS8700CQ::print_info()
+FXOS8701CQ::print_info()
 {
 	printf("accel reads:          %u\n", _accel_read);
 	printf("mag reads:            %u\n", _mag_read);
@@ -1604,7 +1604,7 @@ FXOS8700CQ::print_info()
 	_mag_reports->print_info("mag reports");
 	::printf("checked_next: %u\n", _checked_next);
 
-	for (uint8_t i = 0; i < FXOS8700C_NUM_CHECKED_REGISTERS; i++) {
+	for (uint8_t i = 0; i < FXOS8701C_NUM_CHECKED_REGISTERS; i++) {
 		uint8_t v = read_reg(_checked_registers[i]);
 
 		if (v != _checked_values[i]) {
@@ -1619,23 +1619,23 @@ FXOS8700CQ::print_info()
 }
 
 void
-FXOS8700CQ::print_registers()
+FXOS8701CQ::print_registers()
 {
 	const struct {
 		uint8_t reg;
 		const char *name;
 	} regmap[] = {
-		DEF_REG(FXOS8700CQ_DR_STATUS),
-		DEF_REG(FXOS8700CQ_OUT_X_MSB),
-		DEF_REG(FXOS8700CQ_XYZ_DATA_CFG),
-		DEF_REG(FXOS8700CQ_WHOAMI),
-		DEF_REG(FXOS8700CQ_CTRL_REG1),
-		DEF_REG(FXOS8700CQ_CTRL_REG2),
-		DEF_REG(FXOS8700CQ_M_DR_STATUS),
-		DEF_REG(FXOS8700CQ_M_OUT_X_MSB),
-		DEF_REG(FXOS8700CQ_M_CTRL_REG1),
-		DEF_REG(FXOS8700CQ_M_CTRL_REG2),
-		DEF_REG(FXOS8700CQ_M_CTRL_REG3),
+		DEF_REG(FXOS8701CQ_DR_STATUS),
+		DEF_REG(FXOS8701CQ_OUT_X_MSB),
+		DEF_REG(FXOS8701CQ_XYZ_DATA_CFG),
+		DEF_REG(FXOS8701CQ_WHOAMI),
+		DEF_REG(FXOS8701CQ_CTRL_REG1),
+		DEF_REG(FXOS8701CQ_CTRL_REG2),
+		DEF_REG(FXOS8701CQ_M_DR_STATUS),
+		DEF_REG(FXOS8701CQ_M_OUT_X_MSB),
+		DEF_REG(FXOS8701CQ_M_CTRL_REG1),
+		DEF_REG(FXOS8701CQ_M_CTRL_REG2),
+		DEF_REG(FXOS8701CQ_M_CTRL_REG3),
 	};
 
 	for (uint8_t i = 0; i < sizeof(regmap) / sizeof(regmap[0]); i++) {
@@ -1644,14 +1644,14 @@ FXOS8700CQ::print_registers()
 }
 
 void
-FXOS8700CQ::test_error()
+FXOS8701CQ::test_error()
 {
 	// trigger an error
-	write_reg(FXOS8700CQ_CTRL_REG1, 0);
+	write_reg(FXOS8701CQ_CTRL_REG1, 0);
 }
 
-FXOS8700CQ_mag::FXOS8700CQ_mag(FXOS8700CQ *parent) :
-	CDev("FXOS8700C_mag", FXOS8700C_DEVICE_PATH_MAG),
+FXOS8701CQ_mag::FXOS8701CQ_mag(FXOS8701CQ *parent) :
+	CDev("FXOS8701C_mag", FXOS8701C_DEVICE_PATH_MAG),
 	_parent(parent),
 	_mag_topic(nullptr),
 	_mag_orb_class_instance(-1),
@@ -1659,7 +1659,7 @@ FXOS8700CQ_mag::FXOS8700CQ_mag(FXOS8700CQ *parent) :
 {
 }
 
-FXOS8700CQ_mag::~FXOS8700CQ_mag()
+FXOS8701CQ_mag::~FXOS8701CQ_mag()
 {
 	if (_mag_class_instance != -1) {
 		unregister_class_devname(MAG_BASE_DEVICE_PATH, _mag_class_instance);
@@ -1667,7 +1667,7 @@ FXOS8700CQ_mag::~FXOS8700CQ_mag()
 }
 
 int
-FXOS8700CQ_mag::init()
+FXOS8701CQ_mag::init()
 {
 	int ret;
 
@@ -1681,19 +1681,19 @@ FXOS8700CQ_mag::init()
 }
 
 void
-FXOS8700CQ_mag::parent_poll_notify()
+FXOS8701CQ_mag::parent_poll_notify()
 {
 	poll_notify(POLLIN);
 }
 
 ssize_t
-FXOS8700CQ_mag::read(struct file *filp, char *buffer, size_t buflen)
+FXOS8701CQ_mag::read(struct file *filp, char *buffer, size_t buflen)
 {
 	return _parent->mag_read(filp, buffer, buflen);
 }
 
 int
-FXOS8700CQ_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
+FXOS8701CQ_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case DEVIOCGDEVICEID:
@@ -1706,13 +1706,13 @@ FXOS8700CQ_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 void
-FXOS8700CQ_mag::measure()
+FXOS8701CQ_mag::measure()
 {
 	_parent->mag_measure();
 }
 
 void
-FXOS8700CQ_mag::measure_trampoline(void *arg)
+FXOS8701CQ_mag::measure_trampoline(void *arg)
 {
 	_parent->mag_measure_trampoline(arg);
 }
@@ -1720,10 +1720,10 @@ FXOS8700CQ_mag::measure_trampoline(void *arg)
 /**
  * Local functions in support of the shell command.
  */
-namespace fxos8700cq
+namespace fxos8701cq
 {
 
-FXOS8700CQ	*g_dev;
+FXOS8701CQ	*g_dev;
 
 void	start(bool external_bus, enum Rotation rotation, unsigned range);
 void	test();
@@ -1752,18 +1752,18 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 	/* create the driver */
 	if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_ACCEL_MAG)
-		g_dev = new FXOS8700CQ(PX4_SPI_BUS_EXT, FXOS8700C_DEVICE_PATH_ACCEL, PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
+		g_dev = new FXOS8701CQ(PX4_SPI_BUS_EXT, FXOS8701C_DEVICE_PATH_ACCEL, PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
 #else
 		PX4_ERR("External SPI not available");
 		exit(0);
 #endif
 
 	} else {
-		g_dev = new FXOS8700CQ(PX4_SPI_BUS_SENSORS, FXOS8700C_DEVICE_PATH_ACCEL, PX4_SPIDEV_ACCEL_MAG, rotation);
+		g_dev = new FXOS8701CQ(PX4_SPI_BUS_SENSORS, FXOS8701C_DEVICE_PATH_ACCEL, PX4_SPIDEV_ACCEL_MAG, rotation);
 	}
 
 	if (g_dev == nullptr) {
-		PX4_ERR("failed instantiating FXOS8700C obj");
+		PX4_ERR("failed instantiating FXOS8701C obj");
 		goto fail;
 	}
 
@@ -1772,7 +1772,7 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(FXOS8700C_DEVICE_PATH_ACCEL, O_RDONLY);
+	fd = open(FXOS8701C_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -1786,7 +1786,7 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 		goto fail;
 	}
 
-	fd_mag = open(FXOS8700C_DEVICE_PATH_MAG, O_RDONLY);
+	fd_mag = open(FXOS8701C_DEVICE_PATH_MAG, O_RDONLY);
 
 	/* don't fail if open cannot be opened */
 	if (0 <= fd_mag) {
@@ -1827,10 +1827,10 @@ test()
 
 
 	/* get the driver */
-	fd_accel = open(FXOS8700C_DEVICE_PATH_ACCEL, O_RDONLY);
+	fd_accel = open(FXOS8701C_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd_accel < 0) {
-		PX4_ERR("%s open failed", FXOS8700C_DEVICE_PATH_ACCEL);
+		PX4_ERR("%s open failed", FXOS8701C_DEVICE_PATH_ACCEL);
 		goto exit_none;
 	}
 
@@ -1860,10 +1860,10 @@ test()
 	}
 
 	/* get the driver */
-	fd_mag = open(FXOS8700C_DEVICE_PATH_MAG, O_RDONLY);
+	fd_mag = open(FXOS8701C_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd_mag < 0) {
-		PX4_ERR("%s open failed", FXOS8700C_DEVICE_PATH_MAG);
+		PX4_ERR("%s open failed", FXOS8701C_DEVICE_PATH_MAG);
 		goto exit_with_accel;
 	}
 
@@ -1922,7 +1922,7 @@ exit_none:
 void
 reset()
 {
-	int fd = open(FXOS8700C_DEVICE_PATH_ACCEL, O_RDONLY);
+	int fd = open(FXOS8701C_DEVICE_PATH_ACCEL, O_RDONLY);
 	int rv = 1;
 
 	if (fd < 0) {
@@ -1942,7 +1942,7 @@ reset()
 
 	close(fd);
 
-	fd = open(FXOS8700C_DEVICE_PATH_MAG, O_RDONLY);
+	fd = open(FXOS8701C_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("mag could not be opened, external mag might be used");
@@ -2025,7 +2025,7 @@ usage()
 } // namespace
 
 int
-fxos8700cq_main(int argc, char *argv[])
+fxos8701cq_main(int argc, char *argv[])
 {
 	bool external_bus = false;
 	int ch;
@@ -2050,7 +2050,7 @@ fxos8700cq_main(int argc, char *argv[])
 			break;
 
 		default:
-			fxos8700cq::usage();
+			fxos8701cq::usage();
 			exit(0);
 		}
 	}
@@ -2062,42 +2062,42 @@ fxos8700cq_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		fxos8700cq::start(external_bus, rotation, accel_range);
+		fxos8701cq::start(external_bus, rotation, accel_range);
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(verb, "test")) {
-		fxos8700cq::test();
+		fxos8701cq::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset")) {
-		fxos8700cq::reset();
+		fxos8701cq::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info")) {
-		fxos8700cq::info();
+		fxos8701cq::info();
 	}
 
 	/*
 	 * dump device registers
 	 */
 	if (!strcmp(verb, "regdump")) {
-		fxos8700cq::regdump();
+		fxos8701cq::regdump();
 	}
 
 	/*
 	 * trigger an error
 	 */
 	if (!strcmp(verb, "testerror")) {
-		fxos8700cq::test_error();
+		fxos8701cq::test_error();
 	}
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
