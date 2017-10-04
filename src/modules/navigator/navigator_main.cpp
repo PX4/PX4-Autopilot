@@ -163,21 +163,22 @@ Navigator::local_reference_update()
 		_ref_alt = _local_pos.ref_alt;
 
 		if (_ref_timestamp != 0) {
+			// TODO: get a global septoint
 			// reproject position setpoint to new reference
 			// this effectively adjusts the position setpoint to keep the vehicle
 			// in its current local position. It would only change its
-			// global position on the next setpoint update.
-			map_projection_project(&_ref_pos, _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon, &_pos_sp_triplet.current.x,
-					       &_pos_sp_triplet.current.y);
-			_pos_sp_triplet.current.z = (-_pos_sp_triplet.current.alt - _ref_alt);
-
-			map_projection_project(&_ref_pos, _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
-					       &_pos_sp_triplet.previous.x, &_pos_sp_triplet.previous.y);
-			_pos_sp_triplet.previous.z = (-_pos_sp_triplet.previous.alt - _ref_alt);
-
-			map_projection_project(&_ref_pos, _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon, &_pos_sp_triplet.next.x,
-					       &_pos_sp_triplet.next.y);
-			_pos_sp_triplet.next.z = (-_pos_sp_triplet.next.alt - _ref_alt);
+			//// global position on the next setpoint update.
+			//map_projection_project(&_ref_pos, _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon, &_pos_sp_triplet.current.x,
+			//		       &_pos_sp_triplet.current.y);
+			//_pos_sp_triplet.current.z = (-_pos_sp_triplet.current.alt - _ref_alt);
+			//
+			//map_projection_project(&_ref_pos, _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
+			//		       &_pos_sp_triplet.previous.x, &_pos_sp_triplet.previous.y);
+			//_pos_sp_triplet.previous.z = (-_pos_sp_triplet.previous.alt - _ref_alt);
+			//
+			//map_projection_project(&_ref_pos, _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon, &_pos_sp_triplet.next.x,
+			//		       &_pos_sp_triplet.next.y);
+			//_pos_sp_triplet.next.z = (-_pos_sp_triplet.next.alt - _ref_alt);
 		}
 
 		_ref_timestamp = _local_pos.ref_timestamp;
