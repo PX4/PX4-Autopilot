@@ -41,7 +41,6 @@ set(QURT_LAYER_SRCS
 	px4_qurt_tasks.cpp
 	lib_crc32.c
 	../../../posix/src/px4_layer/drv_hrt.c
-	../../../drivers/boards/common/board_identity.c
 	qurt_stubs.c
 	main.cpp
 	shmem_qurt.cpp
