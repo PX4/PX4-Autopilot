@@ -94,8 +94,11 @@ static void usage(const char *reason)
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("all", "Print all versions");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwcmp", "Compare hardware version (returns 0 on match)");
+	PRINT_MODULE_USAGE_ARG("<hw> [<hw2>]",
+			       "Hardware to compare against (eg. PX4FMU_V4). An OR comparison is used if multiple are specified", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwtypecmp", "Compare hardware type (returns 0 on match)");
-	PRINT_MODULE_USAGE_ARG("<hw>", "Hardware to compare against (eg. PX4FMU_V4)", false);
+	PRINT_MODULE_USAGE_ARG("<hwtype> [<hwtype2>]",
+			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
 }
 
 __EXPORT int ver_main(int argc, char *argv[]);
@@ -111,34 +114,36 @@ int ver_main(int argc, char *argv[])
 
 			if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
 				if (argc >= 3 && argv[2] != NULL) {
-					/* compare 3rd parameter with px4_board_name() string, in case of match, return 0 */
 					const char *board_name = px4_board_name();
-					ret = strcmp(board_name, argv[2]);
 
-					return ret;
+					for (int i = 2; i < argc; ++i) {
+						if (strcmp(board_name, argv[i]) == 0) {
+							return 0; // if one of the arguments match, return success
+						}
+					}
 
 				} else {
 					PX4_ERR("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
-					return 1;
 				}
+
+				return 1;
 			}
 
 			if (!strncmp(argv[1], sz_ver_hwtypecmp_str, sizeof(sz_ver_hwtypecmp_str))) {
 				if (argc >= 3 && argv[2] != NULL) {
-					/* compare 3rd parameter with px4_board_sub_type() string, in case of match, return 0 */
 					const char *board_type = px4_board_sub_type();
-					ret = strcmp(board_type, argv[2]);
 
-					if (ret == 0) {
-						PX4_INFO("match: %s", board_type);
+					for (int i = 2; i < argc; ++i) {
+						if (strcmp(board_type, argv[i]) == 0) {
+							return 0; // if one of the arguments match, return success
+						}
 					}
-
-					return ret;
 
 				} else {
 					PX4_ERR("Not enough arguments, try 'ver hwtypecmp {V2|V2M|V30|V31}'");
-					return 1;
 				}
+
+				return 1;
 			}
 
 			/* check if we want to show all */
