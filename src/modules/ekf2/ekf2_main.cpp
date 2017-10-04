@@ -298,10 +298,11 @@ private:
 	BlockParamFloat _mag_bias_alpha;	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
 	// EKF accel bias learning control
-	BlockParamExtFloat _acc_bias_lim;	///< TODO
-	BlockParamExtFloat _acc_bias_learn_acc_lim;	///< TODO
-	BlockParamExtFloat _acc_bias_learn_gyr_lim;	///< TODO
-	BlockParamExtFloat _acc_bias_learn_tc;	///< TODO
+	BlockParamExtFloat _acc_bias_lim;	///< Accelerometer bias learning limit (m/s**2)
+	BlockParamExtFloat _acc_bias_learn_acc_lim;	///< Maximum IMU accel magnitude that allows IMU bias learning (m/s**2)
+	BlockParamExtFloat
+	_acc_bias_learn_gyr_lim;	///< Maximum IMU gyro angular rate magnitude that allows IMU bias learning (m/s**2)
+	BlockParamExtFloat _acc_bias_learn_tc;	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
 
 	// Multi-rotor drag specific force fusion
 	BlockParamExtFloat _drag_noise;	///< observation noise variance for drag specific force measurements (m/sec**2)**2
