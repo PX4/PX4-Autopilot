@@ -107,7 +107,8 @@ public:
 	int print_status() override;
 
 private:
-	int getRangeSubIndex(const int *subs);
+	int getRangeSubIndex(const int *subs); ///< get subscribtion index of first downward-facing range sensor
+
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
 	// time slip monitoring
@@ -563,6 +564,7 @@ void Ekf2::run()
 			if (range_finder_updated) {
 				orb_copy(ORB_ID(distance_sensor), range_finder_subs[range_finder_sub_index], &range_finder);
 
+				// check if distance sensor is within working boundaries
 				if (range_finder.min_distance >= range_finder.current_distance ||
 				    range_finder.max_distance <= range_finder.current_distance) {
 					range_finder_updated = false;
