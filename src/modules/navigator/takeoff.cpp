@@ -103,47 +103,43 @@ Takeoff::set_takeoff_position()
 {
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
-	float abs_altitude = 0.0f;
+	// default is minimum altitude
+	float height_above_ground_sp =  _param_min_alt.get();
+	float reference_height = _navigator->get_local_reference_alt();
 
-	float min_abs_altitude;
+	// check if desired setpoint and home position is valid
+	if (rep->current.valid && PX4_ISFINITE(rep->current.z)) {
 
-	if (_navigator->home_position_valid()) { //only use home position if it is valid
-		min_abs_altitude = _navigator->get_global_position()->alt + _param_min_alt.get();
+		//get desired height
+		float desired_height = -rep->current.z - _navigator->get_local_reference_alt();
 
-	} else { //e.g. flow
-		min_abs_altitude = _param_min_alt.get();
-	}
+		if (_navigator->home_position_valid()) {
+			desired_height = -rep->current.z - _navigator->get_home_position()->z;
+			reference_height = _navigator->get_home_position()->z;
+		}
 
-	// Use altitude if it has been set. If home position is invalid use min_abs_altitude
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt) && _navigator->home_position_valid()) {
-		abs_altitude = rep->current.alt;
-
-		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
-		if (abs_altitude < min_abs_altitude) {
-			abs_altitude = min_abs_altitude;
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-					     "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
+		if (desired_height > height_above_ground_sp) {
+			height_above_ground_sp = desired_height;
 		}
 
 	} else {
-		// Use home + minimum clearance but only notify.
-		abs_altitude = min_abs_altitude;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(),
 				 "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
 	}
 
+	// if we are already heigher, don't go down
+	if (height_above_ground_sp < -(_navigator->get_local_position()->z - _navigator->get_home_position()->z)) {
 
-	if (abs_altitude < _navigator->get_global_position()->alt) {
-		// If the suggestion is lower than our current alt, let's not go down.
-		abs_altitude = _navigator->get_global_position()->alt;
+		height_above_ground_sp = -(_navigator->get_local_position()->z - _navigator->get_home_position()->z);
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 				     "Already higher than takeoff altitude");
+
 	}
 
-	float lpos_z = - (abs_altitude - _navigator->get_local_reference_alt());
+	float lpos_z = reference_height - height_above_ground_sp;
 
 	// set current mission item to takeoff
-	set_takeoff_item(&_navigator_item, abs_altitude, lpos_z);
+	set_takeoff_item(&_navigator_item, lpos_z);
 	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
@@ -157,6 +153,8 @@ Takeoff::set_takeoff_position()
 	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
 
+
+	//TODO: what is the purpose of this
 	if (rep->current.valid) {
 
 		// Go on and check which changes had been requested
@@ -164,9 +162,9 @@ Takeoff::set_takeoff_position()
 			pos_sp_triplet->current.yaw = rep->current.yaw;
 		}
 
-		if (PX4_ISFINITE(rep->current.lat) && PX4_ISFINITE(rep->current.lon)) {
-			pos_sp_triplet->current.lat = rep->current.lat;
-			pos_sp_triplet->current.lon = rep->current.lon;
+		if (PX4_ISFINITE(rep->current.x) && PX4_ISFINITE(rep->current.y)) {
+			pos_sp_triplet->current.x = rep->current.x;
+			pos_sp_triplet->current.y = rep->current.y;
 		}
 
 		// mark this as done

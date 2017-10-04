@@ -104,7 +104,7 @@ protected:
 	/**
 	 * Set a takeoff mission item
 	 */
-	void set_takeoff_item(struct navigator_item_s *item, float abs_altitude, float lpos_z, float min_pitch = 0.0f);
+	void set_takeoff_item(struct navigator_item_s *item, float lpos_z, float min_pitch = 0.0f);
 
 	/**
 	 * Set a land mission item
@@ -132,6 +132,8 @@ protected:
 	void issue_command(const struct navigator_item_s &item);
 
 	float get_time_inside(const struct navigator_item_s &item);
+
+	float get_horizontal_distance_to_target(const struct navigator_item_s &item);
 
 	mission_item_s _mission_item{};
 	navigator_item_s _navigator_item{};

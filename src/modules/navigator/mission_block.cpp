@@ -129,17 +129,9 @@ MissionBlock::is_navigator_item_reached()
 
 	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 
-		float dist = -1.0f;
-		float dist_xy = -1.0f;
-		float dist_z = -1.0f;
-
-		float altitude_amsl = _navigator_item.altitude;
-
-		dist = get_distance_to_point_global_wgs84(_navigator_item.lat, _navigator_item.lon, altitude_amsl,
-				_navigator->get_global_position()->lat,
-				_navigator->get_global_position()->lon,
-				_navigator->get_global_position()->alt,
-				&dist_xy, &dist_z);
+		float dist_xy = get_horizontal_distance_to_target(_navigator_item);
+		float dist_z = fabsf(_navigator_item.z - _navigator->get_local_position()->z);
+		float dist = sqrtf(dist_xy * dist_xy + dist_z * dist_z);
 
 		/* FW special case for NAV_CMD_WAYPOINT to achieve altitude via loiter */
 		if (!_navigator->get_vstatus()->is_rotary_wing &&
@@ -192,8 +184,8 @@ MissionBlock::is_navigator_item_reached()
 			}
 
 			/* require only altitude for takeoff for multicopter */
-			if (_navigator->get_global_position()->alt >
-			    altitude_amsl - altitude_acceptance_radius) {
+			if (_navigator->get_local_position()->z <
+			    _navigator_item.z + altitude_acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 
@@ -230,22 +222,17 @@ MissionBlock::is_navigator_item_reached()
 			//  first check if the altitude setpoint is the navigator setpoint
 			struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
 
-			if (fabsf(curr_sp->alt - altitude_amsl) >= FLT_EPSILON) {
+			if (fabsf(curr_sp->z - _navigator_item.z) >= FLT_EPSILON) {
 				// check if the initial loiter has been accepted
-				dist_xy = -1.0f;
-				dist_z = -1.0f;
-
-				dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, curr_sp->alt,
-						_navigator->get_global_position()->lat,
-						_navigator->get_global_position()->lon,
-						_navigator->get_global_position()->alt,
-						&dist_xy, &dist_z);
+				dist_xy = get_horizontal_distance_to_target(_navigator_item);
+				dist_z = fabsf(_navigator_item.z - _navigator->get_local_position()->z);
+				dist = sqrtf(dist_xy * dist_xy + dist_z * dist_z);
 
 				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_navigator_item.loiter_radius) * 1.2f)
 				    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT navigator item
-					curr_sp->alt = altitude_amsl;
+					curr_sp->z = _navigator_item.z;
 					_navigator->set_position_setpoint_triplet_updated();
 				}
 
@@ -260,10 +247,8 @@ MissionBlock::is_navigator_item_reached()
 						struct position_setpoint_s next_sp = _navigator->get_position_setpoint_triplet()->next;
 
 						if (next_sp.valid) {
-							_navigator_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-									      _navigator->get_global_position()->lon,
-									      next_sp.lat, next_sp.lon);
 
+							_navigator_item.yaw = _navigator->get_heading_to_target(matrix::Vector2f(next_sp.x, next_sp.y));
 							_waypoint_yaw_reached = false;
 
 						} else {
@@ -322,7 +307,7 @@ MissionBlock::is_navigator_item_reached()
 		    && PX4_ISFINITE(_navigator_item.yaw)) {
 
 			/* check course if defined only for rotary wing except takeoff */
-			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
+			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_local_position()->yaw : atan2f(
 					    _navigator->get_global_position()->vel_e,
 					    _navigator->get_global_position()->vel_n);
 			float yaw_err = _wrap_pi(_navigator_item.yaw - cog);
@@ -361,7 +346,7 @@ MissionBlock::is_navigator_item_reached()
 			position_setpoint_s &curr_sp = _navigator->get_position_setpoint_triplet()->current;
 			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
 
-			const float range = get_distance_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
+			const float range = matrix::Vector2f(next_sp.x - curr_sp.x, next_sp.y - curr_sp.y).length();
 
 			// exit xtrack location
 
@@ -370,7 +355,8 @@ MissionBlock::is_navigator_item_reached()
 			    (_navigator_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 			     _navigator_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
-				float bearing = get_bearing_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
+				float bearing = _navigator->get_heading_to_target(matrix::Vector2f(curr_sp.x, curr_sp.y), matrix::Vector2f(next_sp.x,
+						next_sp.y));
 				float inner_angle = M_PI_2_F - asinf(_mission_item.loiter_radius / range);
 
 				// Compute "ideal" tangent origin
@@ -381,10 +367,10 @@ MissionBlock::is_navigator_item_reached()
 					bearing += inner_angle;
 				}
 
-				// Replace current setpoint lat/lon with tangent coordinate
-				waypoint_from_heading_and_distance(curr_sp.lat, curr_sp.lon,
-								   bearing, curr_sp.loiter_radius,
-								   &curr_sp.lat, &curr_sp.lon);
+				matrix::Quatf q_rot = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, -1.0f), bearing);
+				matrix::Vector3f destination = curr_sp.loiter_radius * q_rot.conjugate(matrix::Vector3f(1.0f, 0.0f, 0.0f));
+				curr_sp.x = destination(0);
+				curr_sp.y = destination(1);
 			}
 
 			return true;
@@ -510,9 +496,6 @@ bool
 MissionBlock::navigator_item_to_position_setpoint(const struct navigator_item_s *item, struct position_setpoint_s *sp)
 {
 
-	sp->lat = item->lat;
-	sp->lon = item->lon;
-	sp->alt = item->altitude;
 	sp->x = item->x;
 	sp->y = item->y;
 	sp->z = item->z;
@@ -570,14 +553,16 @@ MissionBlock::navigator_item_to_position_setpoint(const struct navigator_item_s 
 
 	case NAV_CMD_LOITER_TO_ALT:
 
-		// initially use current altitude, and switch to mission item altitude once in loiter position
+		// initially use current altitude, and switch to navigator z once in loiter position
 		if (_param_loiter_min_alt.get() > 0.0f) { // ignore _param_loiter_min_alt if smaller then 0 (-1)
-			sp->alt = math::max(_navigator->get_global_position()->alt,
-					    _navigator->get_home_position()->alt + _param_loiter_min_alt.get());
+			sp->z = math::min(_navigator->get_local_position()->z - _navigator->get_home_position()->z,
+					  -_param_loiter_min_alt.get()) + _navigator->get_home_position()->z;
 
 		} else {
-			sp->alt = _navigator->get_global_position()->alt;
+			sp->z = _navigator->get_local_position()->z;
 		}
+
+		break;
 
 	// fall through
 	case NAV_CMD_LOITER_TIME_LIMIT:
@@ -624,27 +609,15 @@ MissionBlock::set_loiter_item(struct navigator_item_s *item, float min_clearance
 
 		if (_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid) {
 			/* use current position setpoint */
-			item->lat = pos_sp_triplet->current.lat;
-			item->lon = pos_sp_triplet->current.lon;
-			item->altitude = pos_sp_triplet->current.alt;
-
 			item->x = pos_sp_triplet->current.x;
 			item->y = pos_sp_triplet->current.y;
 			item->z = pos_sp_triplet->current.z;
 
 		} else {
 			/* use current position and use return altitude as clearance */
-			item->lat = _navigator->get_global_position()->lat;
-			item->lon = _navigator->get_global_position()->lon;
-			item->altitude = _navigator->get_global_position()->alt;
-
 			item->x = _navigator->get_local_position()->x;
 			item->y = _navigator->get_local_position()->y;
 			item->z = _navigator->get_local_position()->z;
-
-			if (min_clearance > 0.0f && item->altitude < _navigator->get_home_position()->alt + min_clearance) {
-				item->altitude = _navigator->get_home_position()->alt + min_clearance;
-			}
 
 			if (min_clearance > 0.0f && item->z > - min_clearance) {
 				item->z = - min_clearance;
@@ -672,16 +645,16 @@ MissionBlock::set_follow_target_item(struct navigator_item_s *item, float min_cl
 
 		item->nav_cmd = NAV_CMD_DO_FOLLOW_REPOSITION;
 
+		map_projection_project(_navigator->get_local_reference_pos(), target.lat, target.lon, &item->x,  &item->y);
+
 		/* use current target position */
-		item->lat = target.lat;
-		item->lon = target.lon;
-		item->altitude = _navigator->get_home_position()->alt;
+		item->z = _navigator->get_home_position()->z;
 
 		if (min_clearance > 8.0f) {
-			item->altitude += min_clearance;
+			item->z -= min_clearance;
 
 		} else {
-			item->altitude += 8.0f; // if min clearance is bad set it to 8.0 meters (well above the average height of a person)
+			item->z -= 8.0f; // if min clearance is bad set it to 8.0 meters (well above the average height of a person)
 		}
 	}
 
@@ -694,21 +667,15 @@ MissionBlock::set_follow_target_item(struct navigator_item_s *item, float min_cl
 }
 
 void
-MissionBlock::set_takeoff_item(struct navigator_item_s *item, float abs_altitude, float lpos_z, float min_pitch)
+MissionBlock::set_takeoff_item(struct navigator_item_s *item, float lpos_z, float min_pitch)
 {
 	item->nav_cmd = NAV_CMD_TAKEOFF;
 
 	/* use current position */
-	item->lat = _navigator->get_global_position()->lat;
-	item->lon = _navigator->get_global_position()->lon;
-
 	item->x = _navigator->get_local_position()->x;
 	item->y = _navigator->get_local_position()->y;
 	item->z = lpos_z;
 	item->yaw = _navigator->get_local_position()->yaw;
-
-	item->altitude = abs_altitude;
-
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->pitch_min = min_pitch;
 	item->autocontinue = false;
@@ -735,25 +702,19 @@ MissionBlock::set_land_item(struct navigator_item_s *item, bool at_current_locat
 
 	/* use current position */
 	if (at_current_location) {
-		item->lat = _navigator->get_global_position()->lat;
-		item->lon = _navigator->get_global_position()->lon;
-
 		item->x = _navigator->get_local_position()->x;
 		item->y = _navigator->get_local_position()->y;
 		item->yaw = _navigator->get_local_position()->yaw;
 
 	} else {
 		/* use home position */
-		item->lat = _navigator->get_home_position()->lat;
-		item->lon = _navigator->get_home_position()->lon;
 		item->yaw = _navigator->get_home_position()->yaw;
 		item->x = _navigator->get_home_position()->x;
 		item->y = _navigator->get_home_position()->y;
 
 	}
 
-	item->altitude = 0; // not used -> position controller uses descend velocity
-	item->z = 100; // not used -> position controller uses descend velocity
+	item->z = 10000; // not used -> position controller uses descend velocity
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
@@ -765,12 +726,9 @@ void
 MissionBlock::set_current_position_item(struct navigator_item_s *item)
 {
 	item->nav_cmd = NAV_CMD_WAYPOINT;
-	item->lat = _navigator->get_global_position()->lat;
-	item->lon = _navigator->get_global_position()->lon;
 	item->x = _navigator->get_local_position()->x;
 	item->y = _navigator->get_local_position()->y;
 	item->z = _navigator->get_local_position()->z;
-	item->altitude = _navigator->get_global_position()->alt;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
@@ -783,12 +741,9 @@ void
 MissionBlock::set_idle_item(struct navigator_item_s *item)
 {
 	item->nav_cmd = NAV_CMD_IDLE;
-	item->lat = _navigator->get_home_position()->lat;
-	item->lon = _navigator->get_home_position()->lon;
 	item->x = _navigator->get_home_position()->x;
 	item->y = _navigator->get_home_position()->y;
 	item->z = _navigator->get_home_position()->z;
-	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
@@ -797,8 +752,9 @@ MissionBlock::set_idle_item(struct navigator_item_s *item)
 	item->origin = ORIGIN_ONBOARD;
 }
 
+
 void
-MissionBlock::mission_apply_limitation(mission_item_s &item)
+MissionBlock::navigator_apply_limitation(naviator_item_s &item)
 {
 	/*
 	 * Limit altitude
@@ -824,4 +780,11 @@ MissionBlock::mission_apply_limitation(mission_item_s &item)
 	/*
 	 * Add other limitations here
 	 */
+
+float
+MissionBlock::get_horizontal_distance_to_target(const struct navigator_item_s &item)
+{
+	const float e_x = _navigator_item.x - _navigator->get_local_position()->x;
+	const float e_y = _navigator_item.y - _navigator->get_local_position()->y;
+	return sqrtf(e_x * e_x + e_y * e_y);
 }

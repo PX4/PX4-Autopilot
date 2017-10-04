@@ -1707,7 +1707,6 @@ void MulticopterPositionControl::control_auto(float dt)
 	bool next_setpoint_valid = false;
 	bool triplet_updated = false;
 
-	math::Vector<3> prev_sp;
 	math::Vector<3> next_sp;
 
 	if (_pos_sp_triplet.current.valid) {
@@ -1769,9 +1768,9 @@ void MulticopterPositionControl::control_auto(float dt)
 		    PX4_ISFINITE(_pos_sp_triplet.previous.y) &&
 		    PX4_ISFINITE(_pos_sp_triplet.previous.z)) {
 
-			prev_sp(0) =  _pos_sp_triplet.previous.x;
-			prev_sp(1) =  _pos_sp_triplet.previous.y;
-			prev_sp(2) =  _pos_sp_triplet.previous.z;
+			_prev_pos_sp(0) =  _pos_sp_triplet.previous.x;
+			_prev_pos_sp(1) =  _pos_sp_triplet.previous.y;
+			_prev_pos_sp(2) =  _pos_sp_triplet.previous.z;
 			previous_setpoint_valid = true;
 		}
 	}

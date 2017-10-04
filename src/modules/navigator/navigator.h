@@ -170,6 +170,21 @@ public:
 	 */
 	float		get_cruising_speed();
 
+	/**
+	 *  Get heading to target from current position
+	 *
+	 *  @return desired heading such that body x points towards target
+	 */
+	float 		get_heading_to_target(const matrix::Vector2f &target);
+
+
+	/**
+	 *  Get heading to target from any arbitrary point
+	 *
+	 *  @return desired heading such that body x points towards target from start point
+	 */
+	float 		get_heading_to_target(const matrix::Vector2f &start, const matrix::Vector2f &target);
+
 
 	/**
 	 * Set the cruising speed

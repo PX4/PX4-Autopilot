@@ -93,7 +93,7 @@ RTL::on_activation()
 	if (_navigator->get_land_detected()->landed) {
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt + get_rtl_altitude())) {
+	} else if (_navigator->get_local_position()->z > (_navigator->get_home_position()->z - get_rtl_altitude())) {
 
 		/* if lower than return altitude, climb up first */
 		_rtl_state = RTL_STATE_CLIMB;
@@ -103,7 +103,7 @@ RTL::on_activation()
 		_rtl_state = RTL_STATE_RETURN;
 
 		/* set altitude setpoint to current altitude */
-		_navigator_item.altitude = _navigator->get_global_position()->alt;
+		_navigator_item.z = _navigator->get_local_position()->z;
 	}
 
 	set_rtl_item();
@@ -129,25 +129,19 @@ RTL::set_rtl_item()
 	case RTL_STATE_CLIMB: {
 
 			// check if we are pretty close to home already
-			float home_dist = get_distance_to_next_waypoint(_navigator->get_home_position()->lat,
-					  _navigator->get_home_position()->lon,
-					  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+			float home_dist = matrix::Vector2f(_navigator->get_local_position()->x - _navigator->get_home_position()->x,
+							   _navigator->get_local_position()->y - _navigator->get_home_position()->y).length();
 
 			// if we are close to home we do not climb as high, otherwise we climb to return alt
-			float climb_alt = _navigator->get_home_position()->alt + get_rtl_altitude();
-			float climb_z = - get_rtl_altitude();
+			float climb_z = -get_rtl_altitude() + _navigator->get_home_position()->z;
 
 			// we are close to home, limit climb to min
 			if (home_dist < _param_rtl_min_dist.get()) {
-				climb_alt = _navigator->get_home_position()->alt + _param_descend_alt.get();
-				climb_z = - _param_descend_alt.get();
+				climb_z = - _param_descend_alt.get() + _navigator->get_home_position()->z;
 			}
 
-			_navigator_item.lat = _navigator->get_global_position()->lat;
-			_navigator_item.lon = _navigator->get_global_position()->lon;
 			_navigator_item.x = _navigator->get_local_position()->x;
 			_navigator_item.y = _navigator->get_local_position()->y;
-			_navigator_item.altitude = climb_alt;
 			_navigator_item.z = climb_z;
 			_navigator_item.yaw = NAN;
 			_navigator_item.loiter_radius = _navigator->get_loiter_radius();
@@ -158,32 +152,29 @@ RTL::set_rtl_item()
 			_navigator_item.origin = ORIGIN_ONBOARD;
 
 			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
-						     (int)(climb_alt),
-						     (int)(climb_alt - _navigator->get_home_position()->alt));
+						     (int)(-climb_z - _navigator->get_home_position()->z),
+						     (int)(-climb_z));
 			break;
 		}
 
 	case RTL_STATE_RETURN: {
-			_navigator_item.lat = _navigator->get_home_position()->lat;
-			_navigator_item.lon = _navigator->get_home_position()->lon;
+
 			_navigator_item.x = _navigator->get_home_position()->x;
 			_navigator_item.y = _navigator->get_home_position()->y;
 			// don't change altitude
 
 			// use home yaw if close to home
 			/* check if we are pretty close to home already */
-			float home_dist = get_distance_to_next_waypoint(_navigator->get_home_position()->lat,
-					  _navigator->get_home_position()->lon,
-					  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+			float home_dist = matrix::Vector2f(_navigator->get_local_position()->x - _navigator->get_home_position()->x,
+							   _navigator->get_local_position()->y - _navigator->get_home_position()->y).length();
 
 			if (home_dist < _param_rtl_min_dist.get()) {
 				_navigator_item.yaw = _navigator->get_home_position()->yaw;
 
 			} else {
 				// use current heading to home
-				_navigator_item.yaw = get_bearing_to_next_waypoint(
-							      _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-							      _navigator->get_home_position()->lat, _navigator->get_home_position()->lon);
+				_navigator_item.yaw = _navigator->get_heading_to_target(matrix::Vector2f(_navigator->get_home_position()->x,
+						      _navigator->get_home_position()->y));
 			}
 
 			_navigator_item.loiter_radius = _navigator->get_loiter_radius();
@@ -193,9 +184,6 @@ RTL::set_rtl_item()
 			_navigator_item.autocontinue = true;
 			_navigator_item.origin = ORIGIN_ONBOARD;
 
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above home)",
-					 (int)(_navigator_item.altitude),
-					 (int)(_navigator_item.altitude - _navigator->get_home_position()->alt));
 			break;
 		}
 
@@ -206,30 +194,25 @@ RTL::set_rtl_item()
 		}
 
 	case RTL_STATE_DESCEND: {
-			_navigator_item.lat = _navigator->get_home_position()->lat;
-			_navigator_item.lon = _navigator->get_home_position()->lon;
+
 			_navigator_item.x = _navigator->get_home_position()->x;
 			_navigator_item.y = _navigator->get_home_position()->y;
 			_navigator_item.z = _navigator->get_home_position()->z - _param_descend_alt.get();
-			_navigator_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
 
 			// check if we are already lower - then we will just stay there
-			if (_navigator_item.altitude > _navigator->get_global_position()->alt) {
-				_navigator_item.altitude = _navigator->get_global_position()->alt;
+			if (_navigator_item.z < _navigator->get_local_position()->z) {
 				_navigator_item.z = _navigator->get_local_position()->z;
 			}
 
 			_navigator_item.yaw = _navigator->get_home_position()->yaw;
 
 			// except for vtol which might be still off here and should point towards this location
-			float d_current = get_distance_to_next_waypoint(
-						  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-						  _navigator_item.lat, _navigator_item.lon);
+			float d_current = get_horizontal_distance_to_target(_navigator_item);
 
 			if (_navigator->get_vstatus()->is_vtol && d_current > _navigator->get_acceptance_radius()) {
-				_navigator_item.yaw = get_bearing_to_next_waypoint(
-							      _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-							      _navigator_item.lat, _navigator_item.lon);
+				// use current heading to home
+				_navigator_item.yaw = _navigator->get_heading_to_target(matrix::Vector2f(_navigator->get_home_position()->x,
+						      _navigator->get_home_position()->y));
 			}
 
 			_navigator_item.loiter_radius = _navigator->get_loiter_radius();
@@ -243,16 +226,14 @@ RTL::set_rtl_item()
 			pos_sp_triplet->previous.valid = false;
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above home)",
-					 (int)(_navigator_item.altitude),
-					 (int)(_navigator_item.altitude - _navigator->get_home_position()->alt));
+					 (int)(-_navigator_item.z),
+					 (int)(_navigator_item.z - _navigator->get_home_position()->z));
 			break;
 		}
 
 	case RTL_STATE_LOITER: {
 			bool autoland = _param_land_delay.get() > -DELAY_SIGMA;
 
-			_navigator_item.lat = _navigator->get_home_position()->lat;
-			_navigator_item.lon = _navigator->get_home_position()->lon;
 			_navigator_item.x = _navigator->get_home_position()->x;
 			_navigator_item.y = _navigator->get_home_position()->y;
 

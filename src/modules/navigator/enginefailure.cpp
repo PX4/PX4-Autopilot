@@ -103,10 +103,7 @@ EngineFailure::set_ef_item()
 	case EF_STATE_LOITERDOWN: {
 			//XXX create mission item at ground (below?) here
 
-			_navigator_item.lat = _navigator->get_global_position()->lat;
-			_navigator_item.lon = _navigator->get_global_position()->lon;
 			//XXX setting altitude to a very low value, evaluate other options
-			_navigator_item.altitude = _navigator->get_home_position()->alt - 1000.0f;
 			_navigator_item.x = _navigator->get_local_position()->x;
 			_navigator_item.y = _navigator->get_local_position()->y;
 			_navigator_item.z = _navigator->get_home_position()->z - 1000.0f;

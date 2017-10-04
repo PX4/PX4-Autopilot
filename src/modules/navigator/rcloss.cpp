@@ -106,9 +106,6 @@ RCLoss::set_rcl_item()
 
 	switch (_rcl_state) {
 	case RCL_STATE_LOITER: {
-			_navigator_item.lat = _navigator->get_global_position()->lat;
-			_navigator_item.lon = _navigator->get_global_position()->lon;
-			_navigator_item.altitude = _navigator->get_global_position()->alt;
 			_navigator_item.x = _navigator->get_local_position()->x;
 			_navigator_item.y = _navigator->get_local_position()->y;
 			_navigator_item.z = _navigator->get_local_position()->z;
