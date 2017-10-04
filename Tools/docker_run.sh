@@ -11,6 +11,9 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
 		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2017-07-28"
+	elif [[ $@ =~ .*ocpoc.* ]]; then
+		# posix_ocpoc_ubuntu
+		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2017-09-26"
 	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then
 		# clang tools
 		PX4_DOCKER_REPO="px4io/px4-dev-clang:2017-08-29"
