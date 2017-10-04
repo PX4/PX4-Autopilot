@@ -47,6 +47,12 @@
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 
+#define BOARD_NUMBER_I2C_BUSES 4
+#define BOARD_MAX_LEDS 1 // Number external of LED's this board has
+#define PX4_I2C_BUS_LED 1
+#define PX4_I2C_OBDEV_LED 0x55
+#define PX4_I2C_BUS_EXPANSION 1
+
 // Battery ADC channels
 #define ADC_BATTERY_VOLTAGE_CHANNEL     10
 #define ADC_BATTERY_CURRENT_CHANNEL     ((uint8_t)(-1))
@@ -54,5 +60,3 @@
 
 #include <system_config.h>
 #include "../common/board_common.h"
-
-#define BOARD_MAX_LEDS 1 // Number external of LED's this board has
