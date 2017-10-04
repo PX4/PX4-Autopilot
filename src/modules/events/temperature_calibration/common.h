@@ -49,6 +49,7 @@
 
 
 #define TC_ERROR_INITIAL_TEMP_TOO_HIGH 110 ///< starting temperature was above the configured allowed temperature
+#define TC_ERROR_COMMUNICATION         112 ///< no sensors found
 
 /**
  * Base class for temperature calibration types with abstract methods (for all different sensor types)
@@ -66,6 +67,7 @@ public:
 	 * check & update new sensor data.
 	 * @return progress in range [0, 100], 110 when finished, <0 on error,
 	 *         -TC_ERROR_INITIAL_TEMP_TOO_HIGH if starting temperature is too hot
+	 *         -TC_ERROR_COMMUNICATION if no sensors found
 	 */
 	virtual int update() = 0;
 
@@ -129,14 +131,15 @@ public:
 	{
 		int num_not_complete = 0;
 
+		if (_num_sensor_instances == 0) {
+			return -TC_ERROR_COMMUNICATION;
+		}
+
 		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 			int status = update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
 
-			if (status == -1) {
-				return -1;
-
-			} else if (status == -TC_ERROR_INITIAL_TEMP_TOO_HIGH) {
-				return -TC_ERROR_INITIAL_TEMP_TOO_HIGH;
+			if (status < 0) {
+				return status;
 			}
 
 			num_not_complete += status;
