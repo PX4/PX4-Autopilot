@@ -531,18 +531,6 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
 
 /**
- * Replay mode
- *
- * A value of 1 indicates that the ekf2 module will publish
- * replay messages for logging.
- *
- * @group EKF2
- * @reboot_required true
- * @boolean
- */
-PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
-
-/**
  * Integer bitmask controlling data fusion and aiding methods.
  *
  * Set bits in the following positions to enable:
