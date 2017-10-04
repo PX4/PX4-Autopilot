@@ -384,7 +384,7 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 			int buf_free;
 			::ioctl(_fd, FIONSPACE, (unsigned long)&buf_free);
 
-			if (buf_free < buflen) {
+			if (buf_free < (int)buflen) {
 				//let write fail, to let mavlink know the buffer would overflow
 				//(this is because in the ioctl we pretend there is always enough space)
 				ret = -1;
@@ -617,4 +617,3 @@ out:
 	PX4_ERR("unrecognized command, try 'start <device>', 'stop', 'status'");
 	return 1;
 }
-
