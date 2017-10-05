@@ -264,11 +264,6 @@ MS5525::collect()
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &diff_pressure);
 	}
 
-	new_report(diff_pressure);
-
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-
 	ret = OK;
 
 	perf_end(_sample_perf);

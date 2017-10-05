@@ -48,7 +48,6 @@
 
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 static constexpr uint8_t I2C_ADDRESS_1_MS5525DSO = 0x76;
-static constexpr uint8_t I2C_ADDRESS_2_MS5525DSO = 0x77;
 
 static constexpr const char PATH_MS5525[] = "/dev/ms5525";
 
