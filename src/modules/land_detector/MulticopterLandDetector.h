@@ -52,7 +52,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -110,9 +109,7 @@ private:
 		param_t minManThrottle;
 		param_t freefall_acc_threshold;
 		param_t freefall_trigger_time;
-		param_t manual_stick_down_threshold;
 		param_t altitude_max;
-		param_t manual_stick_up_position_takeoff_threshold;
 		param_t landSpeed;
 	} _paramHandle;
 
@@ -126,9 +123,7 @@ private:
 		float minManThrottle;
 		float freefall_acc_threshold;
 		float freefall_trigger_time;
-		float manual_stick_down_threshold;
 		float altitude_max;
-		float manual_stick_up_position_takeoff_threshold;
 		float landSpeed;
 	} _params;
 
@@ -137,7 +132,6 @@ private:
 	int _actuatorsSub;
 	int _armingSub;
 	int _attitudeSub;
-	int _manualSub;
 	int _sensor_bias_sub;
 	int _vehicle_control_mode_sub;
 	int _battery_sub;
@@ -147,7 +141,6 @@ private:
 	struct actuator_controls_s					_actuators;
 	struct actuator_armed_s						_arming;
 	struct vehicle_attitude_s					_vehicleAttitude;
-	struct manual_control_setpoint_s			_manual;
 	struct sensor_bias_s					_sensors;
 	struct vehicle_control_mode_s				_control_mode;
 	struct battery_status_s						_battery;
@@ -159,7 +152,6 @@ private:
 	float _get_takeoff_throttle();
 	bool _has_altitude_lock();
 	bool _has_position_lock();
-	bool _has_manual_control_present();
 	bool _has_minimal_thrust();
 	bool _has_low_thrust();
 	bool _is_climb_rate_enabled();

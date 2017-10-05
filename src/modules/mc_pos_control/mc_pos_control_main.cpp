@@ -128,7 +128,7 @@ private:
 	bool		 _reset_yaw_sp = true; 				/**<true if reset yaw setpoint */
 	bool 		_hold_offboard_xy = false; 			/**<TODO : check if we need this extra hold_offboard flag */
 	bool 		_hold_offboard_z = false;
-	bool 		_in_takeoff = false; 				/**<true if takeoff ramp is applied */
+	bool 		_in_smooth_takeoff = false; 				/**<true if takeoff ramp is applied */
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
 	bool 		_triplet_lat_lon_finite = true; 		/**<true if triplets current is non-finite */
@@ -384,6 +384,8 @@ private:
 	void limit_altitude();
 
 	void warn_rate_limited(const char *str);
+
+	bool manual_wants_takeoff();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -1462,15 +1464,7 @@ MulticopterPositionControl::control_manual(float dt)
 		_vel_sp(1) = man_vel_sp(1);
 	}
 
-	if (_vehicle_land_detected.landed) {
-		/* don't run controller when landed
-		 * NOTE:
-		 * This only works in manual since once we give throttle input, the
-		 * landdetector will exit the landing state */
-
-	} else {
-		control_position(dt);
-	}
+	control_position(dt);
 }
 
 void
@@ -2487,8 +2481,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	_vel_sp_prev = _vel_sp;
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
-	if (_in_takeoff) {
-		_in_takeoff = _takeoff_vel_limit < -_vel_sp(2);
+	if (_in_smooth_takeoff) {
+		_in_smooth_takeoff = _takeoff_vel_limit < -_vel_sp(2);
 		/* ramp vertical velocity limit up to takeoff speed */
 		_takeoff_vel_limit += -_vel_sp(2) * dt / _takeoff_ramp_time.get();
 		/* limit vertical velocity to the current ramp value */
@@ -2557,7 +2551,7 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		thrust_sp(1) = 0.0f;
 	}
 
-	if (!in_auto_takeoff()) {
+	if (!in_auto_takeoff() && !manual_wants_takeoff()) {
 		if (_vehicle_land_detected.ground_contact) {
 			/* if still or already on ground command zero xy thrust_sp in body
 			 * frame to consider uneven ground */
@@ -2606,7 +2600,7 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 	// We can only run the control if we're already in-air, have a takeoff setpoint,
 	// or if we're in offboard control.
 	// Otherwise, we should just bail out
-	if (_vehicle_land_detected.landed && !in_auto_takeoff()) {
+	if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
 		// Keep throttle low while still on ground.
 		thr_max = 0.0f;
 
@@ -2966,6 +2960,16 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 	_att_sp.timestamp = hrt_absolute_time();
 }
 
+bool MulticopterPositionControl::manual_wants_takeoff()
+{
+	const bool has_manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
+
+	// If the throttle stick is well above 50%, so above 62.5% (50% + 0.15 * 50%) we trigger manual takeoff.
+	const bool manual_wants_takeoff = (has_manual_control_present && _manual.z > 0.15f);
+
+	return manual_wants_takeoff;
+}
+
 void
 MulticopterPositionControl::task_main()
 {
@@ -3048,7 +3052,6 @@ MulticopterPositionControl::task_main()
 			_reset_yaw_sp = true;
 			_hold_offboard_xy = false;
 			_hold_offboard_z = false;
-			_in_takeoff  = false;
 			_in_landing = false;
 			_lnd_reached_ground = false;
 
@@ -3073,10 +3076,17 @@ MulticopterPositionControl::task_main()
 			_vel_sp_prev = _vel;
 		}
 
-		/* switch to smooth takeoff if we got out of landed state */
-		if (!_vehicle_land_detected.landed && was_landed) {
-			_in_takeoff = true;
+		if (!_in_smooth_takeoff && _vehicle_land_detected.landed && _control_mode.flag_armed &&
+		    (in_auto_takeoff() || manual_wants_takeoff())) {
+			_in_smooth_takeoff = true;
+			// This ramp starts negative and goes to positive later because we want to
+			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
 			_takeoff_vel_limit = -0.5f;
+		}
+
+		else if (!_control_mode.flag_armed) {
+			// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
+			_in_smooth_takeoff = false;
 		}
 
 		/* set triplets to invalid if we just landed */
