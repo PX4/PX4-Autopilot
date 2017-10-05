@@ -617,6 +617,10 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 	close(fd);
 	ulog_file_name[HARDFAULT_MAX_ULOG_FILE_LEN - 1] = 0; //ensure null-termination
 
+	if (strlen(ulog_file_name) == 0) {
+		return -ENOENT;
+	}
+
 	identify(caller);
 	syslog(LOG_INFO, "Appending to ULog %s\n", ulog_file_name);
 
@@ -823,14 +827,21 @@ static int hardfault_commit(char *caller)
 						// .txt file around, since that is a bit less prone to FS errors than the ULog
 						if (ret == OK) {
 							ret = hardfault_append_to_ulog(caller, fdout);
+							identify(caller);
 
-							if (ret == OK) {
-								identify(caller);
+							switch (ret) {
+							case OK:
 								syslog(LOG_INFO, "Successfully appended to ULog\n");
+								break;
 
-							} else {
-								identify(caller);
+							case -ENOENT:
+								syslog(LOG_INFO, "No ULog to append to\n");
+								ret = OK;
+								break;
+
+							default:
 								syslog(LOG_INFO, "Failed to append to ULog (%i)\n", ret);
+								break;
 							}
 						}
 
