@@ -165,11 +165,6 @@ ETSAirspeed::collect()
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
 
-	new_report(report);
-
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-
 	ret = OK;
 
 	perf_end(_sample_perf);
@@ -244,10 +239,10 @@ namespace ets_airspeed
 ETSAirspeed	*g_dev;
 
 int start(int i2c_bus);
-int	stop();
-int	test();
-int	reset();
-int	info();
+int stop();
+int test();
+int reset();
+int info();
 
 /**
  * Start the driver.
@@ -272,7 +267,7 @@ start(int i2c_bus)
 		goto fail;
 	}
 
-	if (OK != g_dev->Airspeed::init()) {
+	if (OK != g_dev->init()) {
 		goto fail;
 	}
 
@@ -296,7 +291,8 @@ fail:
 		g_dev = nullptr;
 	}
 
-	PX4_WARN("no ETS airspeed sensor connected on bus %d", i2c_bus);
+	PX4_WARN("not started on bus %d", i2c_bus);
+
 	return PX4_ERROR;
 }
 
@@ -346,7 +342,7 @@ test()
 	}
 
 	PX4_INFO("single read");
-	PX4_INFO("diff pressure: %f pa", (double)report.differential_pressure_filtered_pa);
+	PX4_INFO("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -356,22 +352,23 @@ test()
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
+		px4_pollfd_struct_t fds;
 
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
+		ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
 			PX4_ERR("timed out waiting for sensor data");
+			return PX4_ERROR;
 		}
 
 		/* now go get it */
 		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			PX4_ERR("periodic read failed");
 		}
 
 		PX4_INFO("periodic read %u", i);
@@ -396,7 +393,7 @@ reset()
 	int fd = px4_open(ETS_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("failed ");
+		PX4_ERR("failed");
 		return PX4_ERROR;
 	}
 
@@ -410,22 +407,6 @@ reset()
 		return PX4_ERROR;
 	}
 
-	return PX4_OK;
-}
-
-/**
- * Print a little info about the driver.
- */
-int
-info()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
-	PX4_INFO("state @ %p", g_dev);
-	g_dev->print_info();
 	return PX4_OK;
 }
 
@@ -483,13 +464,6 @@ ets_airspeed_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "reset")) {
 		return ets_airspeed::reset();
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		return ets_airspeed::info();
 	}
 
 	ets_airspeed_usage();

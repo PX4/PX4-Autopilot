@@ -49,12 +49,9 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
-
 #include <px4_config.h>
 
 #include <drivers/device/i2c.h>
-
-#include <board_config.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
@@ -238,11 +235,6 @@ MEASAirspeed::collect()
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
 
-	new_report(report);
-
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-
 	ret = OK;
 
 	perf_end(_sample_perf);
@@ -382,11 +374,10 @@ namespace meas_airspeed
 
 MEASAirspeed	*g_dev = nullptr;
 
-int	start(int i2c_bus);
-int	stop();
-int	test();
-int	reset();
-int	info();
+int start(int i2c_bus);
+int stop();
+int test();
+int reset();
 
 /**
  * Start the driver.
@@ -412,8 +403,7 @@ start(int i2c_bus)
 		goto fail;
 	}
 
-	/* both versions failed if the init for the MS5525DSO fails, give up */
-	if (OK != g_dev->Airspeed::init()) {
+	if (OK != g_dev->init()) {
 		goto fail;
 	}
 
@@ -437,7 +427,8 @@ fail:
 		g_dev = nullptr;
 	}
 
-	PX4_WARN("no MS4525 airspeed sensor connected on bus %d", i2c_bus);
+	PX4_WARN("not started on bus %d", i2c_bus);
+
 	return PX4_ERROR;
 }
 
@@ -505,7 +496,8 @@ test()
 		ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			PX4_ERR("timed out");
+			PX4_ERR("timed out waiting for sensor data");
+			return PX4_ERROR;
 		}
 
 		/* now go get it */
@@ -539,7 +531,7 @@ reset()
 	int fd = px4_open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("failed ");
+		PX4_ERR("failed");
 		return PX4_ERROR;
 	}
 
@@ -556,23 +548,6 @@ reset()
 	return PX4_OK;
 }
 
-/**
- * Print a little info about the driver.
- */
-int
-info()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
-	PX4_INFO("state @ %p", g_dev);
-	g_dev->print_info();
-
-	return PX4_OK;
-}
-
 } // namespace
 
 
@@ -583,7 +558,7 @@ meas_airspeed_usage()
 	PX4_INFO("options:");
 	PX4_INFO("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
 	PX4_INFO("command:");
-	PX4_INFO("\tstart|stop|reset|test|info");
+	PX4_INFO("\tstart|stop|reset|test");
 }
 
 int
@@ -627,13 +602,6 @@ ms4525_airspeed_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "reset")) {
 		return meas_airspeed::reset();
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		return meas_airspeed::info();
 	}
 
 	meas_airspeed_usage();

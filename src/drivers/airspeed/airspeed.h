@@ -31,23 +31,13 @@
  *
  ****************************************************************************/
 
-/**
- * @file airspeed.h
- * @author Simon Wilks
- *
- * Generic driver for airspeed sensors connected via I2C.
- */
-
 #include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_workqueue.h>
 #include <systemlib/airspeed.h>
-#include <systemlib/err.h>
-#include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
@@ -55,10 +45,6 @@
 
 /* Default I2C bus */
 static constexpr uint8_t PX4_I2C_BUS_DEFAULT = PX4_I2C_BUS_EXPANSION;
-
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
 
 class __EXPORT Airspeed : public device::I2C
 {
@@ -68,17 +54,9 @@ public:
 
 	virtual int	init();
 
-	virtual ssize_t	read(device::file_t *filp, char *buffer, size_t buflen);
 	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	virtual void	print_info();
-
 private:
-	ringbuffer::RingBuffer		*_reports;
-
 	/* this class has pointer data members and should not be copied */
 	Airspeed(const Airspeed &);
 	Airspeed &operator=(const Airspeed &);
@@ -117,16 +95,6 @@ protected:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-
-
-	/**
-	* Test whether the device supported by the driver is present at a
-	* specific address.
-	*
-	* @param address	The I2C bus address to probe.
-	* @return		True if the device is present.
-	*/
-	int	probe_address(uint8_t address);
 
 	/**
 	* Initialise the automatic measurement state machine and start it.

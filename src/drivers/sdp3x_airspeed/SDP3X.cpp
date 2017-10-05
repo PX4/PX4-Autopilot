@@ -160,11 +160,6 @@ SDP3X::collect()
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
 
-	new_report(report);
-
-	// notify anyone waiting for data
-	poll_notify(POLLIN);
-
 	ret = OK;
 
 	perf_end(_sample_perf);
