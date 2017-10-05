@@ -56,6 +56,7 @@ add_custom_command(OUTPUT ${px4_git_ver_header}
 	DEPENDS
 		${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py
 		${git_dir_path}/HEAD
+		${git_dir_path}/index
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	COMMENT "Generating git hash header"
 	)
