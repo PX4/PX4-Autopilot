@@ -33,12 +33,22 @@
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+set(geom_files
+    quad_x.toml
+)
+
+set(geom_list)
+foreach(geom_file ${geom_files})
+	list(APPEND geom_list ${CMAKE_CURRENT_SOURCE_DIR}/geoms/${geom_file})
+endforeach()
+
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py > ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py -f ${geom_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py ${geom_list}
 	)
 
-add_custom_target(mixer_gen DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h)
+add_custom_target(mixer_gen
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h ${geom_list})
 
 px4_add_module(
 	MODULE modules__systemlib__mixer
@@ -53,4 +63,4 @@ px4_add_module(
 		platforms__common
 		mixer_gen
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
