@@ -489,14 +489,20 @@ class uploader(object):
     # upload the firmware
     def upload(self, fw, force=False, boot_delay=None):
         # Make sure we are doing the right thing
-        if self.board_type != fw.property('board_id'):
-            msg = "Firmware not suitable for this board (board_type=%u board_id=%u)" % (
+        if (self.board_type == 33) and (fw.property('board_id') == 9):
+            msg = "Target is AUAVX2.1 (board_type=%u board_id=%u)" % (
                 self.board_type, fw.property('board_id'))
-            print("WARNING: %s" % msg)
-            if force:
-                print("FORCED WRITE, FLASHING ANYWAY!")
-            else:
-                raise IOError(msg)
+            print("INFO: %s" % msg)
+        else:
+            if self.board_type != fw.property('board_id'):
+                msg = "Firmware not suitable for this board (board_type=%u board_id=%u)" % (
+                    self.board_type, fw.property('board_id'))
+                print("WARNING: %s" % msg)
+                
+                if force:
+                    print("FORCED WRITE, FLASHING ANYWAY!")
+                else:
+                    raise IOError(msg)
         if self.fw_maxsize < fw.property('image_size'):
             raise RuntimeError("Firmware image is too large for this board")
 
