@@ -46,9 +46,32 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py -f ${geom_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
 	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py ${geom_list}
 	)
-
 add_custom_target(mixer_gen
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h ${geom_list})
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
+	DEPENDS ${geom_list})
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py --normalize -f ${geom_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py ${geom_list}
+	)
+add_custom_target(mixer_gen_norm
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
+	DEPENDS ${geom_list})
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py --sixdof -f ${geom_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py ${geom_list}
+	)
+add_custom_target(mixer_gen_6dof
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
+	DEPENDS ${geom_list})
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py > ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py
+	)
+add_custom_target(mixer_gen_legacy
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h)
 
 px4_add_module(
 	MODULE modules__systemlib__mixer
@@ -62,5 +85,8 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 		mixer_gen
+		mixer_gen_norm
+		mixer_gen_6dof
+		mixer_gen_legacy
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
