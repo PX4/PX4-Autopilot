@@ -149,6 +149,11 @@ struct Parameters {
 	int32_t air_pmodel;
 	float air_tube_length;
 
+	float wind_p_noise;
+	float tas_scale_p_noise;
+	float tas_noise;
+	float beta_noise;
+
 };
 
 struct ParameterHandles {
@@ -232,6 +237,11 @@ struct ParameterHandles {
 
 	param_t air_pmodel;
 	param_t air_tube_length;
+
+	param_t wind_p_noise;
+	param_t tas_scale_p_noise;
+	param_t tas_noise;
+	param_t beta_noise;
 
 };
 
