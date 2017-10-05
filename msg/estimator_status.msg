@@ -1,13 +1,16 @@
 float32[24] states		# Internal filter states
 float32 n_states		# Number of states effectively used
+
 float32[3] vibe			# IMU vibration metrics in the following array locations
 # 0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
 # 1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 # 2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
+
 uint8 nan_flags			# Bitmask to indicate NaN states
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
 uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)
 float32[24] covariances	# Diagonal Elements of Covariance Matrix
+
 uint16 gps_check_fail_flags     # Bitmask to indicate status of GPS checks - see definition below
 # bits are true when corresponding test has failed
 uint16 GPS_CHECK_FAIL_MIN_SAT_COUNT = 0			# 0 : minimum required sat count fail
@@ -36,6 +39,9 @@ uint32 control_mode_flags	# Bitmask to indicate EKF logic state
 # 12 - true when local position data from external vision is being fused
 # 13 - true when yaw data from external vision measurements is being fused
 # 14 - true when height data from external vision measurements is being fused
+# 15 - true when synthetic sideslip measurements are being fused
+# 16 - true when only the magnetic field states are updated by the magnetometer
+
 uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
 # 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error
@@ -53,6 +59,7 @@ uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 13 - true if fusion of the East position has encountered a numerical error
 # 14 - true if fusion of the Down position has encountered a numerical error
 # 15 - true if bad delta velocity bias estimates have been detected
+
 float32 pos_horiz_accuracy # 1-Sigma estimated horizontal position accuracy relative to the estimators origin (m)
 float32 pos_vert_accuracy # 1-Sigma estimated vertical position accuracy relative to the estimators origin (m)
 uint16 innovation_check_flags # Bitmask to indicate pass/fail status of innovation consistency checks
@@ -68,12 +75,14 @@ uint16 innovation_check_flags # Bitmask to indicate pass/fail status of innovati
 # 9 - true if the height above ground observation has been rejected
 # 10 - true if the X optical flow observation has been rejected
 # 11 - true if the Y optical flow observation has been rejected
+
 float32 mag_test_ratio # ratio of the largest magnetometer innovation component to the innovation test limit
 float32 vel_test_ratio # ratio of the largest velocity innovation component to the innovation test limit
 float32 pos_test_ratio # ratio of the largest horizontal position innovation component to the innovation test limit
 float32 hgt_test_ratio # ratio of the vertical position innovation to the innovation test limit
 float32 tas_test_ratio # ratio of the true airspeed innovation to the innovation test limit
 float32 hagl_test_ratio # ratio of the height above ground innovation to the innovation test limit
+
 uint16 solution_status_flags # Bitmask indicating which filter kinematic state outputs are valid for flight control use.
 # 0 - True if the attitude estimate is good
 # 1 - True if the horizontal velocity estimate is good
@@ -86,4 +95,5 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 # 8 - True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 # 9 - True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
 # 10 - True if the EKF has detected a GPS glitch
+
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
