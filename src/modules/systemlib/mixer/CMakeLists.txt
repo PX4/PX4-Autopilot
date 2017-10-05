@@ -34,7 +34,23 @@
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(geom_files
-    quad_x.toml
+	quad_x.toml
+	quad_h.toml
+	quad_plus.toml
+	quad_wide.toml
+	quad_x_pusher.toml
+	hex_x.toml
+	hex_plus.toml
+	hex_cox.toml
+	hex_t.toml
+	octa_x.toml
+	octa_plus.toml
+	octa_cox.toml
+	octa_cox_wide.toml
+	twin_engine.toml
+	tri_y.toml
+	dodeca_top_cox.toml
+	dodeca_bottom_cox.toml
 )
 
 set(geom_list)
