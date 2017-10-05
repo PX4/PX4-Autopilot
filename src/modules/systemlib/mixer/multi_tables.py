@@ -201,7 +201,7 @@ dodeca_top_cox = [
     [ -30, CW],
     [ 150, CCW],
     [  30, CCW],
-    [-150, CW],                                          
+    [-150, CW],
 ]
 
 dodeca_bottom_cox = [
@@ -213,7 +213,16 @@ dodeca_bottom_cox = [
     [-150, CCW],
 ]
 
-tables = [quad_x, quad_h, quad_plus, quad_v, quad_wide, quad_s250aq, quad_deadcat, hex_x, hex_plus, hex_cox, hex_t, octa_x, octa_plus, octa_cox, octa_cox_wide, twin_engine, tri_y, dodeca_top_cox, dodeca_bottom_cox]
+tables = [quad_x, quad_h, quad_plus, quad_v, quad_wide, quad_s250aq, quad_deadcat,
+          hex_x, hex_plus, hex_cox, hex_t,
+          octa_x, octa_plus, octa_cox, octa_cox_wide,
+          twin_engine, tri_y,
+          dodeca_top_cox, dodeca_bottom_cox]
+keys   = ["4x", "4h", "4+", "4v", "4w", "4s", "4dc",
+          "6x", "6+", "6c", "6t",
+          "8x", "8+", "8c", "8cw",
+          "2-", "3y",
+          "6m", "6a"]
 
 def variableName(variable):
     for variableName, value in list(globals().items()):
@@ -256,7 +265,11 @@ def printScaleTablesCounts():
         print("\t{}, /* {} */".format(len(table), variableName(table)))
     print("};\n")
 
-
+def printScaleTablesKeys():
+    print("const char* _config_key[] = {")
+    for key, table in zip(keys, tables):
+        print("\t\"{}\",\t/* {} */".format(key, variableName(table)))
+    print("};\n")
 
 printEnum()
 
@@ -264,6 +277,7 @@ print("namespace {")
 printScaleTables()
 printScaleTablesIndex()
 printScaleTablesCounts()
+printScaleTablesKeys()
 
 print("} // anonymous namespace\n")
 print("#endif /* _MIXER_MULTI_TABLES */")

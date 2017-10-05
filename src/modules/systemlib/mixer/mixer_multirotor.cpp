@@ -100,7 +100,7 @@ MultirotorMixer::~MultirotorMixer()
 MultirotorMixer *
 MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
 {
-	MultirotorGeometry geometry;
+	MultirotorGeometry geometry = MultirotorGeometry::MAX_GEOMETRY;
 	char geomname[8];
 	int s[4];
 	int used;
@@ -129,61 +129,15 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	debug("remaining in buf: %d, first char: %c", buflen, buf[0]);
 
-	if (!strcmp(geomname, "4+")) {
-		geometry = MultirotorGeometry::QUAD_PLUS;
+	for (MultirotorGeometryUnderlyingType i = 0; i < (MultirotorGeometryUnderlyingType)MultirotorGeometry::MAX_GEOMETRY;
+	     i++) {
+		if (!strcmp(geomname, _config_key[i])) {
+			geometry = (MultirotorGeometry)i;
+			break;
+		}
+	}
 
-	} else if (!strcmp(geomname, "4x")) {
-		geometry = MultirotorGeometry::QUAD_X;
-
-	} else if (!strcmp(geomname, "4h")) {
-		geometry = MultirotorGeometry::QUAD_H;
-
-	} else if (!strcmp(geomname, "4v")) {
-		geometry = MultirotorGeometry::QUAD_V;
-
-	} else if (!strcmp(geomname, "4w")) {
-		geometry = MultirotorGeometry::QUAD_WIDE;
-
-	} else if (!strcmp(geomname, "4s")) {
-		geometry = MultirotorGeometry::QUAD_S250AQ;
-
-	} else if (!strcmp(geomname, "4dc")) {
-		geometry = MultirotorGeometry::QUAD_DEADCAT;
-
-	} else if (!strcmp(geomname, "6+")) {
-		geometry = MultirotorGeometry::HEX_PLUS;
-
-	} else if (!strcmp(geomname, "6x")) {
-		geometry = MultirotorGeometry::HEX_X;
-
-	} else if (!strcmp(geomname, "6c")) {
-		geometry = MultirotorGeometry::HEX_COX;
-
-	} else if (!strcmp(geomname, "6t")) {
-		geometry = MultirotorGeometry::HEX_T;
-
-	} else if (!strcmp(geomname, "8+")) {
-		geometry = MultirotorGeometry::OCTA_PLUS;
-
-	} else if (!strcmp(geomname, "8x")) {
-		geometry = MultirotorGeometry::OCTA_X;
-
-	} else if (!strcmp(geomname, "8c")) {
-		geometry = MultirotorGeometry::OCTA_COX;
-
-	} else if (!strcmp(geomname, "6m")) {
-		geometry = MultirotorGeometry::DODECA_TOP_COX;
-
-	} else if (!strcmp(geomname, "6a")) {
-		geometry = MultirotorGeometry::DODECA_BOTTOM_COX;
-
-	} else if (!strcmp(geomname, "2-")) {
-		geometry = MultirotorGeometry::TWIN_ENGINE;
-
-	} else if (!strcmp(geomname, "3y")) {
-		geometry = MultirotorGeometry::TRI_Y;
-
-	} else {
+	if (geometry == MultirotorGeometry::MAX_GEOMETRY) {
 		debug("unrecognised geometry '%s'", geomname);
 		return nullptr;
 	}
