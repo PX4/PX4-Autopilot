@@ -75,7 +75,7 @@ using namespace DriverFramework;
 class DfHmc9250Wrapper : public HMC5883
 {
 public:
-	DfHmc9250Wrapper(enum Rotation rotation);
+	DfHmc9250Wrapper(enum Rotation rotation, const char *path);
 	~DfHmc9250Wrapper();
 
 
@@ -119,8 +119,8 @@ private:
 
 };
 
-DfHmc9250Wrapper::DfHmc9250Wrapper(enum Rotation rotation) :
-	HMC5883(MAG_DEVICE_PATH),
+DfHmc9250Wrapper::DfHmc9250Wrapper(enum Rotation rotation, const char *path) :
+	HMC5883(path),
 	_mag_topic(nullptr),
 	_param_update_sub(-1),
 	_mag_calibration{},
@@ -325,14 +325,14 @@ namespace df_hmc5883_wrapper
 
 DfHmc9250Wrapper *g_dev = nullptr;
 
-int start(enum Rotation rotation);
+int start(enum Rotation rotation, const char *path);
 int stop();
 int info();
 void usage();
 
-int start(enum Rotation rotation)
+int start(enum Rotation rotation, const char *path)
 {
-	g_dev = new DfHmc9250Wrapper(rotation);
+	g_dev = new DfHmc9250Wrapper(rotation, path);
 
 	if (g_dev == nullptr) {
 		PX4_ERR("failed instantiating DfHmc9250Wrapper object");
@@ -348,11 +348,11 @@ int start(enum Rotation rotation)
 
 	// Open the MAG sensor
 	DevHandle h;
-	DevMgr::getHandle(MAG_DEVICE_PATH, h);
+	DevMgr::getHandle(path, h);
 
 	if (!h.isValid()) {
 		DF_LOG_INFO("Error: unable to obtain a valid handle for the receiver at: %s (%d)",
-			    MAG_DEVICE_PATH, h.getError());
+			    path, h.getError());
 		return -1;
 	}
 
@@ -415,12 +415,17 @@ df_hmc5883_wrapper_main(int argc, char *argv[])
 	int ret = 0;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+	const char *device_path = MAG_DEVICE_PATH;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:D:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);
+			break;
+
+		case 'D':
+			device_path = myoptarg;
 			break;
 
 		default:
@@ -438,7 +443,7 @@ df_hmc5883_wrapper_main(int argc, char *argv[])
 
 
 	if (!strcmp(verb, "start")) {
-		ret = df_hmc5883_wrapper::start(rotation);
+		ret = df_hmc5883_wrapper::start(rotation, device_path);
 	}
 
 	else if (!strcmp(verb, "stop")) {
