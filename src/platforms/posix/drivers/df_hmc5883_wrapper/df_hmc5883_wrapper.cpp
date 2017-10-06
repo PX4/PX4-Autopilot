@@ -72,11 +72,11 @@ extern "C" { __EXPORT int df_hmc5883_wrapper_main(int argc, char *argv[]); }
 using namespace DriverFramework;
 
 
-class DfHmc9250Wrapper : public HMC5883
+class DfHmc5883Wrapper : public HMC5883
 {
 public:
-	DfHmc9250Wrapper(enum Rotation rotation, const char *path);
-	~DfHmc9250Wrapper();
+	DfHmc5883Wrapper(enum Rotation rotation, const char *path);
+	~DfHmc5883Wrapper();
 
 
 	/**
@@ -119,7 +119,7 @@ private:
 
 };
 
-DfHmc9250Wrapper::DfHmc9250Wrapper(enum Rotation rotation, const char *path) :
+DfHmc5883Wrapper::DfHmc5883Wrapper(enum Rotation rotation, const char *path) :
 	HMC5883(path),
 	_mag_topic(nullptr),
 	_param_update_sub(-1),
@@ -139,12 +139,12 @@ DfHmc9250Wrapper::DfHmc9250Wrapper(enum Rotation rotation, const char *path) :
 	get_rot_matrix(rotation, &_rotation_matrix);
 }
 
-DfHmc9250Wrapper::~DfHmc9250Wrapper()
+DfHmc5883Wrapper::~DfHmc5883Wrapper()
 {
 	perf_free(_mag_sample_perf);
 }
 
-int DfHmc9250Wrapper::start()
+int DfHmc5883Wrapper::start()
 {
 	/* Subscribe to param update topic. */
 	if (_param_update_sub < 0) {
@@ -172,7 +172,7 @@ int DfHmc9250Wrapper::start()
 	return 0;
 }
 
-int DfHmc9250Wrapper::stop()
+int DfHmc5883Wrapper::stop()
 {
 	/* Stop sensor. */
 	int ret = HMC5883::stop();
@@ -185,7 +185,7 @@ int DfHmc9250Wrapper::stop()
 	return 0;
 }
 
-void DfHmc9250Wrapper::_update_mag_calibration()
+void DfHmc5883Wrapper::_update_mag_calibration()
 {
 	// TODO: replace magic number
 	for (unsigned i = 0; i < 3; ++i) {
@@ -251,7 +251,7 @@ void DfHmc9250Wrapper::_update_mag_calibration()
 }
 
 
-int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
+int DfHmc5883Wrapper::_publish(struct mag_sensor_data &data)
 {
 	/* Check if calibration values are still up-to-date. */
 	bool updated;
@@ -323,7 +323,7 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 namespace df_hmc5883_wrapper
 {
 
-DfHmc9250Wrapper *g_dev = nullptr;
+DfHmc5883Wrapper *g_dev = nullptr;
 
 int start(enum Rotation rotation, const char *path);
 int stop();
@@ -332,17 +332,17 @@ void usage();
 
 int start(enum Rotation rotation, const char *path)
 {
-	g_dev = new DfHmc9250Wrapper(rotation, path);
+	g_dev = new DfHmc5883Wrapper(rotation, path);
 
 	if (g_dev == nullptr) {
-		PX4_ERR("failed instantiating DfHmc9250Wrapper object");
+		PX4_ERR("failed instantiating DfHmc5883Wrapper object");
 		return -1;
 	}
 
 	int ret = g_dev->start();
 
 	if (ret != 0) {
-		PX4_ERR("DfHmc9250Wrapper start failed");
+		PX4_ERR("DfHmc5883Wrapper start failed");
 		return ret;
 	}
 
