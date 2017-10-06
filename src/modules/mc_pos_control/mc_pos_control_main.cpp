@@ -809,22 +809,14 @@ MulticopterPositionControl::poll_subscriptions()
 
 		/* we need either a valid position setpoint or a valid velocity setpoint */
 
-		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) && PX4_ISFINITE(_pos_sp_triplet.current.lon)
-		    && PX4_ISFINITE(_pos_sp_triplet.current.alt) && _pos_sp_triplet.current.valid) {
-			_pos_sp_triplet.current.valid = true;
 
-		} else if (PX4_ISFINITE(_pos_sp_triplet.current.alt) && _pos_sp_triplet.current.valid) {
-			_pos_sp_triplet.current.valid = true;
-
-		} else {
+		if (!PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
 
-		if (PX4_ISFINITE(_pos_sp_triplet.previous.lat) && PX4_ISFINITE(_pos_sp_triplet.previous.lon)
-		    && PX4_ISFINITE(_pos_sp_triplet.previous.alt) && _pos_sp_triplet.previous.valid) {
-			_pos_sp_triplet.previous.valid = true;
-
-		} else {
+		if (!PX4_ISFINITE(_pos_sp_triplet.previous.lat) ||
+		    !PX4_ISFINITE(_pos_sp_triplet.previous.lon) ||
+		    !PX4_ISFINITE(_pos_sp_triplet.previous.alt)) {
 			_pos_sp_triplet.previous.valid = false;
 		}
 	}
@@ -3132,10 +3124,12 @@ MulticopterPositionControl::task_main()
 		 * attitude setpoints for the transition).
 		 * - if not armed
 		 */
-		if (_control_mode.flag_armed  && (!(_control_mode.flag_control_offboard_enabled &&
-						    !(_control_mode.flag_control_position_enabled ||
-						      _control_mode.flag_control_velocity_enabled ||
-						      _control_mode.flag_control_acceleration_enabled)))) {
+
+		if (_control_mode.flag_armed &&
+			(!(_control_mode.flag_control_offboard_enabled &&
+			!(_control_mode.flag_control_position_enabled ||
+			_control_mode.flag_control_velocity_enabled ||
+			_control_mode.flag_control_acceleration_enabled)))) {
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
