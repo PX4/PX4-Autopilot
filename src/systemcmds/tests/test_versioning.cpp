@@ -82,34 +82,34 @@ bool VersioningTest::_test_flight_version()
 
 bool VersioningTest::_test_vendor_version()
 {
-	ut_assert_true(_is_correct_version_tag_vendor("alpha", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("alpha23", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("v11.45.99-34.56.88", 0x223858));
-	ut_assert_true(_is_correct_version_tag_vendor("v11.45.99-1.2.3", 0x010203));
-	ut_assert_true(_is_correct_version_tag_vendor("1.2.3-11.45.99", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-1.0.0", 0x010000));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-255.255.255", 0xFFFFFF));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-255.255.255-11", 0xFFFFFF));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-rc2", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11-abababab", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99rc3-7-g7e282f57", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99rc4", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99alpha3-7-g7e282f57", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99alpha4", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99beta3-7-g7e282f57", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99beta4", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99dev4", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99dev3-7-g7e282f57", 0x0B2D63));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-1.0.0-rc2-abababab", 0x010000));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-1.0.0-rc2-23-abababab", 0x010000));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-0.8.7-67-g1d5e979", 0x000807));
-	ut_assert_true(_is_correct_version_tag_vendor("v1.6.0-100-g890c415", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("1.2.3-0.45.99beta4", 0x002D63));
-	ut_assert_true(_is_correct_version_tag_vendor("1.2.3-0.0.0beta4", 0x000000));
-	ut_assert_true(_is_correct_version_tag_vendor("1.2.3-0.0.0dev4", 0x000000));
+	ut_assert_true(_is_correct_version_tag_vendor("alpha", 0x00000000));
+	ut_assert_true(_is_correct_version_tag_vendor("alpha23", 0x00000000));
+	ut_assert_true(_is_correct_version_tag_vendor("v11.45.99-34.56.88", 0x223858FF));
+	ut_assert_true(_is_correct_version_tag_vendor("v11.45.99-1.2.3", 0x010203FF));
+	ut_assert_true(_is_correct_version_tag_vendor("1.2.3-11.45.99", 0x0B2D63FF));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-1.0.0", 0x010000FF));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-255.255.255", 0xFFFFFFFF));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-255.255.255-11", 0xFFFFFFFF));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3", 0x000000FF));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-rc2", 0x000000C0));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11", 0x00000000));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45", 0x00000000));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11-abababab", 0x00000000));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99rc3-7-g7e282f57", 0x0B2D6300));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99rc4", 0x0B2D63C0));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99alpha3-7-g7e282f57", 0x0B2D6300));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99alpha4", 0x0B2D6340));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99beta3-7-g7e282f57", 0x0B2D6300));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99beta4", 0x0B2D6380));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99dev4", 0x0B2D6300));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.2.3-11.45.99dev3-7-g7e282f57", 0x0B2D6300));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-1.0.0-rc2-abababab", 0x01000000));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-1.0.0-rc2-23-abababab", 0x010000C0));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.6.2-0.8.7-67-g1d5e979", 0x00080700));
+	ut_assert_true(_is_correct_version_tag_vendor("v1.6.0-100-g890c415", 0x00000000));
+	ut_assert_true(_is_correct_version_tag_vendor("1.2.3-0.45.99beta4", 0x002D6380));
+	ut_assert_true(_is_correct_version_tag_vendor("1.2.3-0.0.0beta4", 0x00000080));
+	ut_assert_true(_is_correct_version_tag_vendor("1.2.3-0.0.0dev4", 0x00000000));
 
 	return true;
 }
