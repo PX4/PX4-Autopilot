@@ -2879,9 +2879,12 @@ Commander::run()
 			}
 		}
 
-		/* reset main state after takeoff has completed */
-		/* only switch back to posctl */
+		/* Reset main state to loiter after takeoff is completed.
+		 * Sometimes, the mission result topic is outdated and the mission is still signalled
+		 * as finished even though we only just started with the takeoff. Therefore, we also
+		 * check the timestamp of the mission_result topic. */
 		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+					&& (_mission_result.timestamp > internal_state.timestamp)
 					&& _mission_result.finished) {
 			main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 		}
