@@ -373,8 +373,8 @@ Navigator::task_main()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
-				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
-				struct position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
+				position_setpoint_triplet_s *rep = get_reposition_triplet();
+				position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
 				// store current position as previous position and goal as next
 				rep->previous.yaw = get_global_position()->yaw;
@@ -394,8 +394,9 @@ Navigator::task_main()
 					rep->current.yaw = NAN;
 				}
 
-				// Position change with optional altitude change
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+
+					// Position change with optional altitude change
 					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
 					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
 
@@ -406,18 +407,17 @@ Navigator::task_main()
 						rep->current.alt = get_global_position()->alt;
 					}
 
-					// Altitude without position change
-
 				} else if (PX4_ISFINITE(cmd.param7) && curr->current.valid
 					   && PX4_ISFINITE(curr->current.lat)
 					   && PX4_ISFINITE(curr->current.lon)) {
+
+					// Altitude without position change
 					rep->current.lat = curr->current.lat;
 					rep->current.lon = curr->current.lon;
 					rep->current.alt = cmd.param7;
 
-					// All three set to NaN - hold in current position
-
 				} else {
+					// All three set to NaN - hold in current position
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
 					rep->current.alt = get_global_position()->alt;
@@ -430,7 +430,7 @@ Navigator::task_main()
 				// CMD_DO_REPOSITION is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
-				struct position_setpoint_triplet_s *rep = get_takeoff_triplet();
+				position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
 				// store current position as previous position and goal as next
 				rep->previous.yaw = get_global_position()->yaw;
@@ -477,6 +477,7 @@ Navigator::task_main()
 
 				if (land_start != -1) {
 					vehicle_command_s vcmd = {};
+					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
 					vcmd.param1 = land_start;
 					publish_vehicle_cmd(&vcmd);
 
@@ -492,6 +493,8 @@ Navigator::task_main()
 
 					_mission.set_current_offboard_mission_index(cmd.param1);
 				}
+
+				// CMD_MISSION_START is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
 				if (cmd.param2 > FLT_EPSILON) {
@@ -744,18 +747,6 @@ Navigator::start()
 void
 Navigator::status()
 {
-	/* TODO: add this again */
-	// PX4_INFO("Global position is %svalid", _global_pos_valid ? "" : "in");
-
-	// if (_global_pos.global_valid) {
-	// 	PX4_INFO("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
-	// 	PX4_INFO("Altitude %5.5f meters, altitude above home %5.5f meters",
-	// 	      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
-	// 	PX4_INFO("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
-	// 	      (double)_global_pos.vel_n, (double)_global_pos.vel_e, (double)_global_pos.vel_d);
-	// 	PX4_INFO("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
-	// }
-
 	_geofence.printStatus();
 
 }
@@ -848,8 +839,6 @@ Navigator::reset_triplets()
 	_pos_sp_triplet.next.valid = false;
 	_pos_sp_triplet_updated = true;
 }
-
-
 
 float
 Navigator::get_cruising_throttle()
@@ -1059,7 +1048,7 @@ Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t res
 	command_ack.command = cmd.command;
 	command_ack.target_system = cmd.source_system;
 	command_ack.target_component = cmd.source_component;
-	command_ack.from_external = cmd.from_external;
+	command_ack.from_external = false;
 
 	command_ack.result = result;
 	command_ack.result_param1 = 0;
