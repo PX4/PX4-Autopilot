@@ -809,12 +809,13 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 
-		/* we need either a valid position setpoint or a valid velocity setpoint */
-
+		/* to be a valid current triplet, altitude has to be finite */
 
 		if (!PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
+
+		/* to be a valid previous triplet, lat/lon/alt has to be finite */
 
 		if (!PX4_ISFINITE(_pos_sp_triplet.previous.lat) ||
 		    !PX4_ISFINITE(_pos_sp_triplet.previous.lon) ||
@@ -3160,10 +3161,10 @@ MulticopterPositionControl::task_main()
 		 * - if not armed
 		 */
 		if (_control_mode.flag_armed &&
-			(!(_control_mode.flag_control_offboard_enabled &&
-			!(_control_mode.flag_control_position_enabled ||
-			_control_mode.flag_control_velocity_enabled ||
-			_control_mode.flag_control_acceleration_enabled)))) {
+		    (!(_control_mode.flag_control_offboard_enabled &&
+		       !(_control_mode.flag_control_position_enabled ||
+			 _control_mode.flag_control_velocity_enabled ||
+			 _control_mode.flag_control_acceleration_enabled)))) {
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
