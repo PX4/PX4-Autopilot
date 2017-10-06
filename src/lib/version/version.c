@@ -140,9 +140,9 @@ uint32_t version_tag_to_vendor_version_number(const char *tag)
 	int16_t buffer = -1;
 	size_t buffer_counter = 0;
 	char version[6] = {0, 0, 0, 0, 0, 0};
-
 	size_t dash_count = 0;
 	size_t point_count = 0;
+	int firmware_type = FIRMWARE_TYPE_RELEASE;
 
 	for (size_t i = 0; i < strlen(tag); i++) {
 		if (tag[i] == '-') {
@@ -151,7 +151,26 @@ uint32_t version_tag_to_vendor_version_number(const char *tag)
 		} else if (tag[i] == '.') {
 			point_count++;
 		}
+
+		if (tag[i] == 'r' && i < strlen(tag) - 1 && tag[i + 1] == 'c') {
+			firmware_type = FIRMWARE_TYPE_RC;
+
+		} else if (tag[i] == 'p') {
+			firmware_type = FIRMWARE_TYPE_ALPHA;
+
+		} else if (tag[i] == 't') {
+			firmware_type = FIRMWARE_TYPE_BETA;
+
+		} else if (tag[i] == 'v' && i > 0) {
+			firmware_type = FIRMWARE_TYPE_DEV;
+		}
 	}
+
+	if ((dash_count == 1 && point_count == 2 && firmware_type == FIRMWARE_TYPE_RELEASE) ||
+	(dash_count == 2 && point_count == 2) ||
+	(dash_count == 3 && point_count == 4)) {
+	firmware_type = FIRMWARE_TYPE_DEV;
+}
 
 	for (size_t i = 0; i < strlen(tag); i++) {
 		if (buffer_counter > 5) {
@@ -182,10 +201,12 @@ uint32_t version_tag_to_vendor_version_number(const char *tag)
 	}
 
 	if (buffer_counter == 6) {
-		version_number = ((uint8_t)version[3] << 8 * 2) |
-				 ((uint8_t)version[4] << 8 * 1) |
-				 ((uint8_t)version[5] << 8 * 0);
+		version_number = ((uint8_t)version[3] << 8 * 3) |
+				 ((uint8_t)version[4] << 8 * 2) |
+				 ((uint8_t)version[5] << 8 * 1) | firmware_type;
 
+	} else if (buffer_counter == 3) {
+		version_number = firmware_type;
 	} else {
 		version_number = 0;
 	}

@@ -1652,12 +1652,10 @@ void Logger::write_version()
 {
 	write_info("ver_sw", px4_firmware_version_string());
 	write_info("ver_sw_release", px4_firmware_version());
-	// FIXME: px4_firmware_vendor_version() needs be converted to return the same format as px4_firmware_version().
-	// This now just assumes we're on a release
 	uint32_t vendor_version = px4_firmware_vendor_version();
 
 	if (vendor_version > 0) {
-		write_info("ver_vendor_sw_release", (vendor_version << 8) | 0xff);
+		write_info("ver_vendor_sw_release", vendor_version);
 	}
 
 	write_info("ver_hw", px4_board_name());
