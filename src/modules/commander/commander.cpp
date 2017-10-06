@@ -1286,6 +1286,7 @@ Commander::run()
 	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
+	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1659,6 +1660,7 @@ Commander::run()
 	/* RC override auto modes */
 	int32_t rc_override = 0;
 
+	int32_t takeoff_complete_act = 0;
 
 	/* Thresholds for engine failure detection */
 	float ef_throttle_thres = 1.0f;
@@ -1807,6 +1809,8 @@ Commander::run()
 
 			/* failsafe response to loss of navigation accuracy */
 			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
+
+			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
 			param_init_forced = false;
 		}
@@ -2884,9 +2888,14 @@ Commander::run()
 		 * as finished even though we only just started with the takeoff. Therefore, we also
 		 * check the timestamp of the mission_result topic. */
 		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-					&& (_mission_result.timestamp > internal_state.timestamp)
-					&& _mission_result.finished) {
-			main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+			&& (_mission_result.timestamp > internal_state.timestamp)
+			&& _mission_result.finished) {
+
+			if ((takeoff_complete_act == 1) && _mission_result.valid) {
+				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+			} else {
+				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+			}
 		}
 
 		/* check if we are disarmed and there is a better mode to wait in */
