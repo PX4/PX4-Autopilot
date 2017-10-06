@@ -178,6 +178,9 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	(void)param_find("CAL_MAG_SIDES");
 
 	(void)param_find("RC_CHAN_CNT");
+
+	(void)param_find("SYS_AUTOCONFIG");
+	(void)param_find("SYS_AUTOSTART");
 }
 
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters)
