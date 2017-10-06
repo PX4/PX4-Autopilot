@@ -839,7 +839,8 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 
 		orb_copy(ORB_ID(vehicle_command), cancel_sub, &cmd);
 
-		if (cmd.from_external) { // ignore internal commands, such as VEHICLE_CMD_DO_MOUNT_CONTROL from vmount
+		// ignore internal commands, such as VEHICLE_CMD_DO_MOUNT_CONTROL from vmount
+		if (cmd.from_external) {
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION &&
 					(int)cmd.param1 == 0 &&
 					(int)cmd.param2 == 0 &&
