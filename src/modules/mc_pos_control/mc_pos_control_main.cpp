@@ -2964,10 +2964,8 @@ bool MulticopterPositionControl::manual_wants_takeoff()
 {
 	const bool has_manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
 
-	// If the throttle stick is well above 50%, so above 62.5% (50% + 0.15 * 50%) we trigger manual takeoff.
-	const bool manual_wants_takeoff = (has_manual_control_present && _manual.z > 0.15f);
-
-	return manual_wants_takeoff;
+	// Manual takeoff is triggered if the throttle stick is above 65%.
+	return (has_manual_control_present && _manual.z > 0.65f);
 }
 
 void
