@@ -1502,7 +1502,7 @@ FixedwingPositionControl::handle_command()
 		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
 			_fw_pos_ctrl_status.abort_landing = true;
-			mavlink_log_critical(&_mavlink_log_pub, "Landing, aborted");
+			mavlink_log_critical(&_mavlink_log_pub, "Landing aborted");
 		}
 	}
 }
