@@ -1029,9 +1029,9 @@ int IST8310::calibrate(struct file *filp, unsigned enable)
 	struct mag_report report;
 	ssize_t sz;
 	int ret = 1;
-	float total_x;
-	float total_y;
-	float total_z;
+	float total_x = 0.0f;
+	float total_y = 0.0f;
+	float total_z = 0.0f;
 
 	// XXX do something smarter here
 	int fd = (int)enable;
@@ -1088,7 +1088,7 @@ int IST8310::calibrate(struct file *filp, unsigned enable)
 		}
 
 
-		for (uint8_t i = 0; i < 60; i++) {
+		for (uint8_t i = 0; i < 30; i++) {
 
 
 			struct pollfd fds;
@@ -1121,9 +1121,9 @@ int IST8310::calibrate(struct file *filp, unsigned enable)
 		}
 	}
 
-	total_x = fabs(sum_in_test[0]) - fabs(sum_in_normal[0]);
-	total_y = fabs(sum_in_test[1]) - fabs(sum_in_normal[1]);
-	total_z = fabs(sum_in_test[2]) - fabs(sum_in_normal[2]);
+	total_x = fabsf(sum_in_test[0] - sum_in_normal[0]);
+	total_y = fabsf(sum_in_test[1] - sum_in_normal[1]);
+	total_z = fabsf(sum_in_test[2] - sum_in_normal[2]);
 
 	ret = ((total_x + total_y + total_z) < (float)0.000001);
 
@@ -1146,6 +1146,8 @@ out:
 			ret = PX4_ERROR;
 		}
 
+	} else {
+		PX4_ERR("FAILED: CALIBRATION SCALE %d, %d, %d", (int)total_x, (int)total_y, (int)total_z);
 	}
 
 	return ret;
@@ -1180,8 +1182,12 @@ int IST8310::check_calibration()
 	bool scale_valid  = (check_scale() == OK);
 
 	if (_calibrated != (offset_valid && scale_valid)) {
-		PX4_WARN("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
-			 (offset_valid) ? "" : "offset invalid");
+
+		if (!scale_valid || !offset_valid) {
+			PX4_WARN("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
+				 (offset_valid) ? "" : "offset invalid");
+		}
+
 		_calibrated = (offset_valid && scale_valid);
 	}
 
@@ -1604,7 +1610,7 @@ ist8310_main(int argc, char *argv[])
 
 	if (myoptind >= argc) {
 		ist8310::usage();
-		exit(1);
+		return 1;
 	}
 
 	const char *verb = argv[myoptind];
@@ -1615,11 +1621,16 @@ ist8310_main(int argc, char *argv[])
 	if (!strcmp(verb, "start")) {
 		ist8310::start(i2c_busid, i2c_addr, rotation);
 
-		if (calibrate && ist8310::calibrate(i2c_busid) != 0) {
-			errx(1, "calibration failed");
+		if (i2c_busid == IST8310_BUS_ALL) {
+			PX4_ERR("calibration only feasible against one bus");
+			return 1;
+
+		} else if (calibrate && (ist8310::calibrate(i2c_busid) != 0)) {
+			PX4_ERR("calibration failed");
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	/*
@@ -1648,12 +1659,15 @@ ist8310_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "calibrate")) {
 		if (ist8310::calibrate(i2c_busid) == 0) {
-			errx(0, "calibration successful");
+			PX4_INFO("calibration successful");
+			return 0;
 
 		} else {
-			errx(1, "calibration failed");
+			PX4_ERR("calibration failed");
+			return 1;
 		}
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', 'tempoff', 'tempon' or 'info'");
+	ist8310::usage();
+	return 1;
 }
