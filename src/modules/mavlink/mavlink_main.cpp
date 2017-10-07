@@ -1988,9 +1988,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* Initialize system properties */
 	mavlink_update_system();
 
-	/* start the MAVLink receiver */
-	MavlinkReceiver::receive_start(&_receive_thread, this);
-
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
@@ -2179,6 +2176,9 @@ Mavlink::task_main(int argc, char *argv[])
 	if (get_protocol() == SERIAL) {
 		send_autopilot_capabilites();
 	}
+
+	/* start the MAVLink receiver last to avoid a race */
+	MavlinkReceiver::receive_start(&_receive_thread, this);
 
 	while (!_task_should_exit) {
 		/* main loop */
