@@ -181,6 +181,12 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 
 	(void)param_find("SYS_AUTOCONFIG");
 	(void)param_find("SYS_AUTOSTART");
+	(void)param_find("SYS_PARAM_VER");
+
+	// Parameters controlling the on-board sensor thermal calibrator
+	(void)param_find("SYS_CAL_TDEL");
+	(void)param_find("SYS_CAL_TMAX");
+	(void)param_find("SYS_CAL_TMIN");
 }
 
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters)
