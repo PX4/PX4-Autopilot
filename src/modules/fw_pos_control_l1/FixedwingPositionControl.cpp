@@ -774,7 +774,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		float mission_airspeed = _parameters.airspeed_trim;
 
 		if (PX4_ISFINITE(pos_sp_curr.cruising_speed) &&
-		    pos_sp_curr.cruising_speed > 0.1f) {
+		    pos_sp_curr.cruising_speed >= _parameters.airspeed_min &&
+		    pos_sp_curr.cruising_speed <= _parameters.airspeed_max) {
 
 			mission_airspeed = pos_sp_curr.cruising_speed;
 		}
@@ -782,7 +783,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		float mission_throttle = _parameters.throttle_cruise;
 
 		if (PX4_ISFINITE(pos_sp_curr.cruising_throttle) &&
-		    pos_sp_curr.cruising_throttle > 0.01f) {
+		    pos_sp_curr.cruising_throttle >= 0.0f &&
+		    pos_sp_curr.cruising_throttle <= 1.0f) {
 
 			mission_throttle = pos_sp_curr.cruising_throttle;
 		}
