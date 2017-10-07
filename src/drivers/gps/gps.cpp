@@ -769,7 +769,6 @@ GPS::run()
 				}
 
 				if (_healthy) {
-					PX4_WARN("GPS module lost");
 					_healthy = false;
 					_rate = 0.0f;
 					_rate_rtcm_injection = 0.0f;
