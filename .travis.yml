@@ -84,7 +84,7 @@ script:
     elif [[ "${BUILD_TARGET}" = "tests" ]]; then
       ./Tools/docker_run.sh 'make tests';
     elif [[ "${BUILD_TARGET}" = "tests_coverage" ]]; then
-      ./Tools/docker_run.sh 'make tests_coverage' && bash <(curl -s https://codecov.io/bash);
+      ./Tools/docker_run.sh 'make tests_coverage' && bash <(curl -s https://codecov.io/bash) -F unittests;
     elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
       ./Tools/docker_run.sh 'make px4_metadata';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
