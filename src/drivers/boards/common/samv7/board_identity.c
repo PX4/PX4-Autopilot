@@ -112,7 +112,7 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 	uint8_t  *pb = (uint8_t *) &px4_guid[0];
 	*pb++ = (soc_arch_id >> 8) & 0xff;
 	*pb++ = (soc_arch_id & 0xff);
-	board_get_uuid(&px4_guid[4]);
+	board_get_uuid(pb);
 	return PX4_GUID_BYTE_LENGTH;
 }
 
