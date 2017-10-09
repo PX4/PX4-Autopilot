@@ -1330,6 +1330,13 @@ void Mavlink::send_autopilot_capabilites()
 		board_get_uuid32(uid);
 		msg.uid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) | uid[PX4_CPU_UUID_WORD32_UNIQUE_H];
 
+#ifndef BOARD_HAS_NO_UUID
+		px4_guid_t px4_guid;
+		board_get_px4_guid(px4_guid);
+		static_assert(sizeof(px4_guid_t) == sizeof(msg.uid2), "GUID byte length mismatch");
+		memcpy(&msg.uid2, &px4_guid, sizeof(msg.uid2));
+#endif /* BOARD_HAS_NO_UUID */
+
 #ifdef CONFIG_ARCH_BOARD_SITL
 		// To avoid that multiple SITL instances have the same UUID, we add the mavlink
 		// system ID. We subtract 1, so that the first UUID remains unchanged given the
@@ -1337,6 +1344,7 @@ void Mavlink::send_autopilot_capabilites()
 		//
 		// Note that the UUID show in `ver` will still be the same for all instances.
 		msg.uid += mavlink_system.sysid - 1;
+		msg.uid2[0] += mavlink_system.sysid - 1;
 #endif
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
 	}
