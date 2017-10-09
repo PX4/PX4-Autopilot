@@ -36,6 +36,16 @@ option(SANITIZE_MEMORY "Enable MemorySanitizer" Off)
 option(SANITIZE_THREAD "Enable ThreadSanitizer" Off)
 option(SANITIZE_UNDEFINED "Enable UndefinedBehaviorSanitizer" Off)
 
+if(DEFINED ENV{PX4_ASAN})
+	set(SANITIZE_ADDRESS ON)
+elseif(DEFINED ENV{PX4_MSAN})
+	set(SANITIZE_MEMORY ON)
+elseif(DEFINED ENV{PX4_TSAN})
+	set(SANITIZE_THREAD ON)
+elseif(DEFINED ENV{PX4_UBSAN})
+	set(SANITIZE_UNDEFINED ON)
+endif()
+
 if (SANITIZE_ADDRESS)
         message(STATUS "address sanitizer enabled")
 
@@ -48,6 +58,7 @@ if (SANITIZE_ADDRESS)
                 -fsanitize=address
                 #-fsanitize-address-use-after-scope
         )
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address" CACHE INTERNAL "" FORCE)
 
 elseif(SANITIZE_MEMORY)
         message(STATUS "thread sanitizer enabled")
@@ -64,6 +75,7 @@ elseif(SANITIZE_THREAD)
                 -g3
                 -fsanitize=thread
         )
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread" CACHE INTERNAL "" FORCE)
 
 elseif(SANITIZE_UNDEFINED)
         message(STATUS "undefined behaviour sanitizer enabled")
@@ -90,5 +102,6 @@ elseif(SANITIZE_UNDEFINED)
                 -fsanitize=vla-bound
                 -fsanitize=vptr
         )
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined" CACHE INTERNAL "" FORCE)
 
 endif()
