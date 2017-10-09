@@ -303,7 +303,7 @@ class ToneAlarm : public device::CDev
 {
 public:
 	ToneAlarm();
-	~ToneAlarm() = default;
+	~ToneAlarm();
 
 	virtual int init();
 	void status();
