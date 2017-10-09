@@ -74,3 +74,4 @@ cppcheck
 
 scan-build
 
+*.gcov

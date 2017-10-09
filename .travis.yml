@@ -24,6 +24,11 @@ matrix:
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=tests_coverage
+    - os: linux
+      sudo: required
+      services:
+        - docker
       env: BUILD_TARGET=tests PX4_DOCKER_REPO=px4io/px4-dev-base:ubuntu17.10
     - os: linux
       sudo: required
@@ -78,6 +83,8 @@ script:
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests" ]]; then
       ./Tools/docker_run.sh 'make tests';
+    elif [[ "${BUILD_TARGET}" = "tests_coverage" ]]; then
+      ./Tools/docker_run.sh 'make tests_coverage' && bash <(curl -s https://codecov.io/bash);
     elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
       ./Tools/docker_run.sh 'make px4_metadata';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
