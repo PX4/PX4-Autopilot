@@ -119,11 +119,19 @@ uint32_t version_tag_to_number(const char *tag)
 	if (buffer >= 0) {
 		version[buffer_counter] = buffer;
 		buffer_counter++;
+	} 
+	
+	if (buffer_counter <= 0) {
+		firmware_type = 0x00;
 	}
 
-	version_number = ((uint8_t)version[0] << 8 * 3) |
-			 ((uint8_t)version[1] << 8 * 2) |
-			 ((uint8_t)version[2] << 8 * 1) | firmware_type;
+	if (buffer_counter == 3 || buffer_counter == 6) {
+		version_number = ((uint8_t)version[0] << 8 * 3) |
+				 ((uint8_t)version[1] << 8 * 2) |
+				 ((uint8_t)version[2] << 8 * 1) | firmware_type;
+	} else {
+		version_number = 0;
+	}
 
 	return version_number;
 }
