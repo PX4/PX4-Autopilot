@@ -329,6 +329,8 @@ typedef int (*power_button_state_notification_t)(board_power_button_state_notifi
 
 typedef enum PX4_SOC_ARCH_ID_t {
 
+	PX4_SOC_ARCH_ID_UNUSED         =  0x0000,
+
 	PX4_SOC_ARCH_ID_STM32F4        =  0x0001,
 	PX4_SOC_ARCH_ID_STM32F7        =  0x0002,
 	PX4_SOC_ARCH_ID_KINETISK66     =  0x0003,
