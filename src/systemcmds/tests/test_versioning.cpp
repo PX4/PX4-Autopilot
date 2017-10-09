@@ -7,10 +7,12 @@ public:
 	virtual bool run_tests();
 
 private:
-	bool _test_tag_to_version_number(const char *version_tag, uint32_t flight_version_target, uint32_t vendor_version_target);
+	bool _test_tag_to_version_number(const char *version_tag, uint32_t flight_version_target,
+					 uint32_t vendor_version_target);
 };
 
-bool VersioningTest::_test_tag_to_version_number(const char *version_tag, uint32_t flight_version_target, uint32_t vendor_version_target) 
+bool VersioningTest::_test_tag_to_version_number(const char *version_tag, uint32_t flight_version_target,
+		uint32_t vendor_version_target)
 {
 	uint32_t flight_version_result = version_tag_to_number(version_tag);
 	uint32_t vendor_version_result = version_tag_to_vendor_version_number(version_tag);
@@ -18,12 +20,16 @@ bool VersioningTest::_test_tag_to_version_number(const char *version_tag, uint32
 	if (flight_version_target == flight_version_result) {
 		if (vendor_version_target == vendor_version_result) {
 			return true;
+
 		} else {
-			PX4_ERR("Wrong vendor version: tag: %s, got: 0x%x, expected: 0x%x", version_tag, vendor_version_result, vendor_version_target);
+			PX4_ERR("Wrong vendor version: tag: %s, got: 0x%x, expected: 0x%x", version_tag, vendor_version_result,
+				vendor_version_target);
 			return false;
 		}
+
 	} else {
-		PX4_ERR("Wrong flight version: tag: %s, got: 0x%x, expected: 0x%x", version_tag, flight_version_result, flight_version_target);
+		PX4_ERR("Wrong flight version: tag: %s, got: 0x%x, expected: 0x%x", version_tag, flight_version_result,
+			flight_version_target);
 		return false;
 	}
 }
@@ -31,9 +37,9 @@ bool VersioningTest::_test_tag_to_version_number(const char *version_tag, uint32
 bool VersioningTest::run_tests()
 {
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3", 					0x0B2D63FF, 0x010203FF));
-	ut_assert_true(_test_tag_to_version_number("v11.45.99-01.02.03", 				0x0B2D63FF, 0x010203FF));	
-	ut_assert_true(_test_tag_to_version_number("v011.045.099-001.002.003", 			0x0B2D63FF, 0x010203FF));	
-	ut_assert_true(_test_tag_to_version_number("v011.045.099-1.2.3",	 			0x0B2D63FF, 0x010203FF));		
+	ut_assert_true(_test_tag_to_version_number("v11.45.99-01.02.03", 				0x0B2D63FF, 0x010203FF));
+	ut_assert_true(_test_tag_to_version_number("v011.045.099-001.002.003", 			0x0B2D63FF, 0x010203FF));
+	ut_assert_true(_test_tag_to_version_number("v011.045.099-1.2.3",	 			0x0B2D63FF, 0x010203FF));
 	ut_assert_true(_test_tag_to_version_number("v1.2.3", 							0x010203FF, 0x000000FF));
 	ut_assert_true(_test_tag_to_version_number("v255.255.255", 						0xFFFFFFFF, 0x000000FF));
 	ut_assert_true(_test_tag_to_version_number("v255.255.255-11", 					0xFFFFFF00, 0x00000000));
@@ -62,7 +68,7 @@ bool VersioningTest::run_tests()
 	ut_assert_true(_test_tag_to_version_number("v1.6.2-rc2", 						0x010602C0, 0x000000C0));
 	ut_assert_true(_test_tag_to_version_number("v1.6.2rc1", 						0x010602C0, 0x000000C0));
 	ut_assert_true(_test_tag_to_version_number("v1.6.10-100-g890c415", 				0x01060A00, 0x00000000));
-	ut_assert_true(_test_tag_to_version_number("v1.6.10-99999999999999-g890c415",	0x01060A00, 0x00000000));	
+	ut_assert_true(_test_tag_to_version_number("v1.6.10-99999999999999-g890c415",	0x01060A00, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("v1.6.2-0.8.7-67-g1d5e979", 			0x01060200, 0x00080700));
 	ut_assert_true(_test_tag_to_version_number("randomtext", 						0x00000000, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("randomtextwithnumber12", 			0x00000000, 0x00000000));
@@ -71,7 +77,7 @@ bool VersioningTest::run_tests()
 	ut_assert_true(_test_tag_to_version_number("v12.12-randomtextwithnumber", 		0x00000000, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("...-...", 							0x00000000, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("v...-...", 							0x00000000, 0x00000000));
-	
+
 	return (_tests_failed == 0);
 }
 
