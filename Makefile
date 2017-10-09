@@ -293,21 +293,13 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage coveralls_upload codecov_upload
+.PHONY: tests tests_coverage
 
 tests:
 	$(MAKE) --no-print-directory posix_sitl_default test_results
 
 tests_coverage:
 	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
-
-coveralls_upload:
-	@cpp-coveralls --include src/ \
-		--exclude=src/lib/DriverFramework \
-		--exclude=src/lib/ecl \
-		--exclude=src/lib/Matrix \
-		--exclude=src/modules/uavcan/libuavcan \
-		--root . --build-root build/posix_sitl_default/ --follow-symlinks
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
@@ -322,7 +314,7 @@ scan-build:
 	@export CCC_CC=clang
 	@export CCC_CXX=clang++
 	@mkdir -p $(SRC_DIR)/build/posix_sitl_default-scan-build
-	@cd $(SRC_DIR)/build/posix_sitl_default-scan-build && scan-build cmake .. -GNinja -DCONFIG=posix_sitl_default
+	@cd $(SRC_DIR)/build/posix_sitl_default-scan-build && scan-build cmake $(SRC_DIR) -GNinja -DCONFIG=posix_sitl_default
 	@scan-build -o $(SRC_DIR)/build/scan-build cmake --build $(SRC_DIR)/build/posix_sitl_default-scan-build
 
 clang-tidy: posix_sitl_default-clang
