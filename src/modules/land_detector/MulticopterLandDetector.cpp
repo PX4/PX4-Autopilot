@@ -245,7 +245,6 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	float landThresholdFactor = 1.0f;
 
 	// Widen acceptance thresholds for landed state right after landed
-	// so that motor spool-up and other effects do not trigger false negatives.
 	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
 		landThresholdFactor = 2.5f;
 	}
