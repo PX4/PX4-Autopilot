@@ -82,13 +82,18 @@ RTL::on_activation()
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
-	/* for safety reasons don't go into RTL if landed */
+	// for safety reasons don't go into RTL if landed
 	if (_navigator->get_land_detected()->landed) {
 		_rtl_state = RTL_STATE_LANDED;
 
 	} else {
-		// otherwise start RTL with braking first
-		_rtl_state = RTL_STATE_BRAKE;
+		// otherwise start with first item of rtl sequence
+		if (_navigator->get_vstatus()->is_rotary_wing) {
+			_rtl_state = RTL_STATE_BRAKE;
+
+		} else {
+			_rtl_state = RTL_STATE_CLIMB;
+		}
 
 	}
 

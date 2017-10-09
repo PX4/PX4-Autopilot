@@ -360,7 +360,11 @@ MissionBlock::is_mission_item_reached()
 
 		/* the vehicle has desired velocity */
 		if (fabsf(ground_speed - _mission_item.requested_speed) < 0.5f) {
+
+			// only interested in velocity and therefore reset position and yaw criteria
 			_waypoint_velocity_reached = true;
+			_waypoint_position_reached = false;
+			_waypoint_yaw_reached = false;
 			return true;
 		}
 
@@ -403,11 +407,13 @@ MissionBlock::is_mission_item_reached()
 								   &curr_sp.lat, &curr_sp.lon);
 			}
 
+			// we are not interested in velocity criteria
+			_waypoint_velocity_reached = false;
 			return true;
 		}
 	}
 
-// all acceptance criteria must be met in the same iteration
+	// reset all criteria
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
 	_waypoint_velocity_reached = false;
