@@ -309,9 +309,6 @@ coveralls_upload:
 		--exclude=src/modules/uavcan/libuavcan \
 		--root . --build-root build/posix_sitl_default/ --follow-symlinks
 
-codecov_upload:
-	@/bin/bash -c "bash <(curl -s https://codecov.io/bash)"
-
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
 .PHONY: posix_sitl_default-clang scan-build clang-tidy clang-tidy-fix clang-tidy-quiet cppcheck check_stack
