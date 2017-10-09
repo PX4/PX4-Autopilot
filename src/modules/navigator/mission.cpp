@@ -536,7 +536,7 @@ Mission::set_mission_items()
 	_navigator->mission_item_to_navigator_item(&navigator_item_next_position, &mission_item_next_position);
 
 	/* handle position navigator items */
-	if (item_contains_position(&_navigator_item)) {
+	if (item_contains_position(_navigator_item)) {
 
 		/* force vtol land */
 		if (_navigator_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get() == 1
@@ -802,7 +802,7 @@ Mission::set_mission_items()
 	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 
 	/* issue command if ready (will do nothing for position mission items) */
-	issue_command(&_navigator_item);
+	issue_command(_navigator_item);
 
 	/* set current work item type */
 	_work_item_type = new_work_item_type;

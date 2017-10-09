@@ -282,8 +282,8 @@ RTL::set_rtl_item()
 	reset_navigator_item_reached();
 
 	/* execute command if set. This is required for commands like VTOL transition */
-	if (!item_contains_position(&_navigator_item)) {
-		issue_command(&_navigator_item);
+	if (!item_contains_position(_navigator_item)) {
+		issue_command(_navigator_item);
 	}
 
 	/* convert mission item to current position setpoint and make it valid */

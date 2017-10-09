@@ -393,7 +393,7 @@ MissionBlock::reset_navigator_item_reached()
 }
 
 void
-MissionBlock::issue_command(const struct navigator_item_s *item)
+MissionBlock::issue_command(const struct navigator_item_s &item)
 {
 	if (item_contains_position(item)) {
 		return;
@@ -452,7 +452,7 @@ MissionBlock::get_time_inside(const struct navigator_item_s &item)
 }
 
 bool
-MissionBlock::item_contains_position(const mission_item_s &item)
+MissionBlock::item_contains_position(const struct navigator_item_s &item)
 {
 	return item.nav_cmd == NAV_CMD_WAYPOINT ||
 	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
@@ -462,46 +462,33 @@ MissionBlock::item_contains_position(const mission_item_s &item)
 	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
 	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_VTOL_LAND;
-}
-
-bool
-MissionBlock::item_contains_position(const struct navigator_item_s *item)
-{
-	return item->nav_cmd == NAV_CMD_WAYPOINT ||
-	       item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-	       item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	       item->nav_cmd == NAV_CMD_LAND ||
-	       item->nav_cmd == NAV_CMD_TAKEOFF ||
-	       item->nav_cmd == NAV_CMD_LOITER_TO_ALT ||
-	       item->nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	       item->nav_cmd == NAV_CMD_VTOL_LAND;
 
 }
 
 bool
-MissionBlock::item_contains_position(const struct mission_item_s *item)
+MissionBlock::item_contains_position(const struct mission_item_s &item)
 {
-	return item->nav_cmd == NAV_CMD_WAYPOINT ||
-	       item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-	       item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	       item->nav_cmd == NAV_CMD_LAND ||
-	       item->nav_cmd == NAV_CMD_TAKEOFF ||
-	       item->nav_cmd == NAV_CMD_LOITER_TO_ALT ||
-	       item->nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	       item->nav_cmd == NAV_CMD_VTOL_LAND;
+	return item.nav_cmd == NAV_CMD_WAYPOINT ||
+	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+	       item.nav_cmd == NAV_CMD_LAND ||
+	       item.nav_cmd == NAV_CMD_TAKEOFF ||
+	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
+	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
+	       item.nav_cmd == NAV_CMD_VTOL_LAND;
 
 }
 
 bool
-MissionBlock::navigator_item_to_position_setpoint(const struct navigator_item_s *item, struct position_setpoint_s *sp)
+MissionBlock::navigator_item_to_position_setpoint(const struct navigator_item_s &item, struct position_setpoint_s *sp)
 {
 
-	sp->x = item->x;
-	sp->y = item->y;
-	sp->z = item->z;
-	sp->yaw = item->yaw;
-	sp->yaw_valid = PX4_ISFINITE(item->yaw);
-	sp->loiter_radius = (fabsf(item->loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item->loiter_radius) :
+	sp->x = item.x;
+	sp->y = item.y;
+	sp->z = item.z;
+	sp->yaw = item.yaw;
+	sp->yaw_valid = PX4_ISFINITE(item.yaw);
+	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
 			    _navigator->get_loiter_radius();
 	sp->loiter_direction = (item.loiter_radius > 0) ? 1 : -1;
 	sp->acceptance_radius = item.acceptance_radius;
@@ -510,7 +497,7 @@ MissionBlock::navigator_item_to_position_setpoint(const struct navigator_item_s 
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
 
-	switch (item->nav_cmd) {
+	switch (item.nav_cmd) {
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;

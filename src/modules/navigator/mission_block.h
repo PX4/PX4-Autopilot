@@ -66,9 +66,9 @@ public:
 	MissionBlock(const MissionBlock &) = delete;
 	MissionBlock &operator=(const MissionBlock &) = delete;
 
-	static bool item_contains_position(const struct navigator_item_s *item);
+	static bool item_contains_position(const struct navigator_item_s &item);
 
-	static bool item_contains_position(const struct mission_item_s *item);
+	static bool item_contains_position(const struct mission_item_s &item);
 
 protected:
 	/**
@@ -123,11 +123,11 @@ protected:
 	 */
 	void set_follow_target_item(struct navigator_item_s *item, float min_clearance, follow_target_s &target, float yaw);
 
-
 	/**
 	 * General function used to adjust the mission item based on vehicle specific limitations
 	 */
 	void	navigator_apply_limitation(naviator_item_s &item);
+
 
 	void issue_command(const struct navigator_item_s &item);
 

@@ -114,7 +114,6 @@ private:
 	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
 
 	bool		_task_should_exit = false;			/**<true if task should exit */
-	bool		_gear_state_initialized = false;		/**<true if the gear state has been initialized */
 	bool		_gear_state_initialized = false;	/**<true if the gear state has been initialized */
 	bool 		_reset_sp_xy = true;  				/**<true if position setpoint needs a reset */
 	bool 		_reset_sp_z = true; 				/**<true if z setpoint needs a reset */
