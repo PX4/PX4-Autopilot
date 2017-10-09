@@ -38,6 +38,7 @@ set(geom_files
 	quad_h.toml
 	quad_plus.toml
 	quad_wide.toml
+	quad_deadcat.toml
 	quad_x_pusher.toml
 	hex_x.toml
 	hex_plus.toml
