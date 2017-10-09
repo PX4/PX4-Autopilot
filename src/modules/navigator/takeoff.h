@@ -47,21 +47,20 @@
 #include "navigator_mode.h"
 #include "mission_block.h"
 
-class Takeoff : public MissionBlock
+class Takeoff final : public MissionBlock
 {
 public:
 	Takeoff(Navigator *navigator, const char *name);
+	~Takeoff() = default;
 
-	~Takeoff();
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
 
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
+	position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
 
 private:
-	control::BlockParamFloat _param_min_alt;
+	position_setpoint_triplet_s	_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 
 	void set_takeoff_position();
 };

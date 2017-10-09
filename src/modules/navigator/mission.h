@@ -66,7 +66,7 @@
 
 class Navigator;
 
-class Mission : public MissionBlock
+class Mission final : public MissionBlock
 {
 public:
 	Mission(Navigator *navigator, const char *name);
@@ -80,15 +80,6 @@ public:
 	enum mission_altitude_mode {
 		MISSION_ALTMODE_ZOH = 0,
 		MISSION_ALTMODE_FOH = 1
-	};
-
-	enum mission_yaw_mode {
-		MISSION_YAWMODE_NONE = 0,
-		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
-		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_TO_ROI = 4,
-		MISSION_YAWMODE_MAX = 5
 	};
 
 	bool set_current_offboard_mission_index(unsigned index);
@@ -162,11 +153,6 @@ private:
 	void altitude_sp_foh_reset();
 
 	/**
-	 * Update the cruising speed setpoint.
-	 */
-	void cruising_speed_sp_update();
-
-	/**
 	 * Abort landing
 	 */
 	void do_abort_landing();
@@ -179,8 +165,8 @@ private:
 	 *
 	 * @return true if current mission item available
 	 */
-	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
-				   struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
+	bool prepare_mission_items(bool onboard, mission_item_s *mission_item,
+				   mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item
@@ -236,20 +222,32 @@ private:
 	 */
 	void generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw);
 
+	// Cruising speed
+	float		get_cruising_speed() override { return _cruising_speed; }
+	bool		set_cruising_speed(float speed) override;
+	void		reset_cruising_speed() override { _cruising_speed = -1.0f; }
+
+	// Cruising throttle
+	float		get_cruising_throttle() override { return _cruising_throttle; }
+	bool		set_cruising_throttle(float throttle) override;
+	void		reset_cruising_throttle() override { _cruising_throttle = -1.0f; }
+
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
 	control::BlockParamInt _param_altmode;
-	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_force_vtol;
 	control::BlockParamFloat _param_fw_climbout_diff;
 
-	struct mission_s _onboard_mission {};
-	struct mission_s _offboard_mission {};
+	mission_s _onboard_mission {};
+	mission_s _offboard_mission {};
 
 	int _current_onboard_mission_index{-1};
 	int _current_offboard_mission_index{-1};
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+
+	float _cruising_speed{-1.0f};
+	float _cruising_throttle{-1.0f};
 
 	enum {
 		MISSION_TYPE_NONE,

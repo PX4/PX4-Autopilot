@@ -44,11 +44,11 @@
 
 NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
 	SuperBlock(navigator, name),
-	_navigator(navigator),
-	_active(false)
+	_navigator(navigator)
 {
 	/* load initial params */
 	updateParams();
+
 	/* set initial mission items */
 	on_inactivation();
 	on_inactive();

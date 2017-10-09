@@ -56,7 +56,6 @@
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
-	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
 	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
 	_param_yaw_err(this, "MIS_YAW_ERR", false),
 	_param_vtol_wv_land(this, "VT_WV_LND_EN", false),
@@ -500,8 +499,8 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->acceptance_radius = item.acceptance_radius;
 	sp->disable_mc_yaw_control = item.disable_mc_yaw;
 
-	sp->cruising_speed = _navigator->get_cruising_speed();
-	sp->cruising_throttle = _navigator->get_cruising_throttle();
+	sp->cruising_speed = get_cruising_speed();
+	sp->cruising_throttle = get_cruising_throttle();
 
 	switch (item.nav_cmd) {
 	case NAV_CMD_IDLE:
@@ -547,9 +546,9 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	case NAV_CMD_LOITER_TO_ALT:
 
 		// initially use current altitude, and switch to mission item altitude once in loiter position
-		if (_param_loiter_min_alt.get() > 0.0f) { // ignore _param_loiter_min_alt if smaller then 0 (-1)
+		if (_navigator->get_loiter_min_alt() > 0.0f) { // ignore _param_loiter_min_alt if smaller then 0 (-1)
 			sp->alt = math::max(_navigator->get_global_position()->alt,
-					    _navigator->get_home_position()->alt + _param_loiter_min_alt.get());
+					    _navigator->get_home_position()->alt + _navigator->get_loiter_min_alt());
 
 		} else {
 			sp->alt = _navigator->get_global_position()->alt;

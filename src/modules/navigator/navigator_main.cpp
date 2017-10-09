@@ -96,10 +96,14 @@ Navigator::Navigator() :
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
 	_follow_target(this, "TAR"),
+	// navigator params
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
-	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD")
+	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
+	// non-navigator params (MISSION, etc)
+	_param_mission_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
+	_param_mission_yaw_mode(this, "MIS_YAWMODE", false)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -114,6 +118,11 @@ Navigator::Navigator() :
 	_navigation_mode_array[9] = &_follow_target;
 
 	updateParams();
+
+	_pos_sp_triplet.current.cruising_speed = -1.0f;
+	_pos_sp_triplet.current.cruising_throttle = -1.0f;
+	_pos_sp_triplet.current.acceptance_radius = get_acceptance_radius();
+	_pos_sp_triplet.current.loiter_radius = get_loiter_radius();
 }
 
 Navigator::~Navigator()
@@ -190,7 +199,18 @@ Navigator::fw_pos_ctrl_status_update(bool force)
 void
 Navigator::vehicle_status_update()
 {
-	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
+	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) == PX4_OK) {
+		const bool was_vtol = _vstatus.is_vtol;
+		const bool was_transition_mode = _vstatus.in_transition_mode;
+
+		// reset cruising speed to default if VTOL has transitioned
+		if ((_vstatus.is_vtol != was_vtol) || (_vstatus.in_transition_mode != was_transition_mode)) {
+			if (_navigation_mode) {
+				_navigation_mode->reset_cruising_speed();
+			}
+		}
+
+	} else {
 		/* in case the commander is not be running */
 		_vstatus.arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
 	}
@@ -373,7 +393,7 @@ Navigator::task_main()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
-				position_setpoint_triplet_s *rep = get_reposition_triplet();
+				position_setpoint_triplet_s *rep = _loiter.get_reposition_triplet();
 				position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
 				// store current position as previous position and goal as next
@@ -430,7 +450,7 @@ Navigator::task_main()
 				// CMD_DO_REPOSITION is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
-				position_setpoint_triplet_s *rep = get_takeoff_triplet();
+				position_setpoint_triplet_s *rep = _takeoff.get_takeoff_triplet();
 
 				// store current position as previous position and goal as next
 				rep->previous.yaw = get_global_position()->yaw;
@@ -497,24 +517,34 @@ Navigator::task_main()
 				// CMD_MISSION_START is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
-				if (cmd.param2 > FLT_EPSILON) {
-					// XXX not differentiating ground and airspeed yet
-					set_cruising_speed(cmd.param2);
 
-				} else {
-					set_cruising_speed();
+				// param1: Speed type (0=Airspeed, 1=Ground Speed)
+				// param2: Speed (m/s, -1 indicates no change)
+				// param3: Throttle (Percent, -1 indicates no change)
 
-					/* if no speed target was given try to set throttle */
-					if (cmd.param3 > FLT_EPSILON) {
-						set_cruising_throttle(cmd.param3 / 100);
+				int result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+
+				if (_navigation_mode) {
+					// TODO: distinguish between airspeed and ground speed
+					if (_navigation_mode->set_cruising_speed(cmd.param2)) {
+						result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
 					} else {
-						set_cruising_throttle();
+						result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 					}
+
+					if (_navigation_mode->set_cruising_throttle(cmd.param3)) {
+						result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
+					} else {
+						result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+					}
+
+				} else {
+					result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
-				// TODO: handle responses for supported DO_CHANGE_SPEED options?
-				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				publish_vehicle_command_ack(cmd, result);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI) {
 				_vroi = {};
@@ -759,6 +789,8 @@ Navigator::publish_position_setpoint_triplet()
 		return;
 	}
 
+	_pos_sp_triplet.timestamp = hrt_absolute_time();
+
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub != nullptr) {
 		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
@@ -766,18 +798,6 @@ Navigator::publish_position_setpoint_triplet()
 	} else {
 		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
 	}
-}
-
-float
-Navigator::get_default_acceptance_radius()
-{
-	return _param_acceptance_radius.get();
-}
-
-float
-Navigator::get_acceptance_radius()
-{
-	return get_acceptance_radius(_param_acceptance_radius.get());
 }
 
 float
@@ -791,46 +811,6 @@ Navigator::get_altitude_acceptance_radius()
 	}
 }
 
-float
-Navigator::get_cruising_speed()
-{
-	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
-	if (_vstatus.is_rotary_wing) {
-		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
-			return _mission_cruising_speed_mc;
-
-		} else {
-			return -1.0f;
-		}
-
-	} else {
-		if (is_planned_mission() && _mission_cruising_speed_fw > 0.0f) {
-			return _mission_cruising_speed_fw;
-
-		} else {
-			return -1.0f;
-		}
-	}
-}
-
-void
-Navigator::set_cruising_speed(float speed)
-{
-	if (_vstatus.is_rotary_wing) {
-		_mission_cruising_speed_mc = speed;
-
-	} else {
-		_mission_cruising_speed_fw = speed;
-	}
-}
-
-void
-Navigator::reset_cruising_speed()
-{
-	_mission_cruising_speed_mc = -1.0f;
-	_mission_cruising_speed_fw = -1.0f;
-}
-
 void
 Navigator::reset_triplets()
 {
@@ -838,18 +818,6 @@ Navigator::reset_triplets()
 	_pos_sp_triplet.previous.valid = false;
 	_pos_sp_triplet.next.valid = false;
 	_pos_sp_triplet_updated = true;
-}
-
-float
-Navigator::get_cruising_throttle()
-{
-	/* Return the mission-requested cruise speed, or default FW_THR_CRUISE value */
-	if (_mission_throttle > FLT_EPSILON) {
-		return _mission_throttle;
-
-	} else {
-		return -1.0f;
-	}
 }
 
 float
@@ -979,7 +947,6 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
-	_mission_result.valid = true;
 }
 
 void
