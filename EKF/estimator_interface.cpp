@@ -307,8 +307,8 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 
 			} else {
 				// when on the ground with poor flow quality, assume zero ground relative velocity
-				optflow_sample_new.flowRadXY(0) = + flow->gyrodata(0);
-				optflow_sample_new.flowRadXY(1) = + flow->gyrodata(1);
+				optflow_sample_new.flowRadXY(0) = - flow->gyrodata(0);
+				optflow_sample_new.flowRadXY(1) = - flow->gyrodata(1);
 
 			}
 
