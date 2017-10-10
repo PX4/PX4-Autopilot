@@ -741,7 +741,7 @@ MissionBlock::set_idle_item(struct navigator_item_s *item)
 
 
 void
-MissionBlock::navigator_apply_limitation(naviator_item_s &item)
+MissionBlock::navigator_apply_limitation(navigator_item_s &item)
 {
 	/*
 	 * Limit altitude
@@ -750,16 +750,9 @@ MissionBlock::navigator_apply_limitation(naviator_item_s &item)
 	/* do nothing if altitude max is negative */
 	if (_navigator->get_land_detected()->alt_max > 0.0f) {
 
-		/* absolute altitude */
-		float altitude_abs = item.altitude_is_relative
-				     ? item.altitude + _navigator->get_home_position()->alt
-				     : item.altitude;
-
 		/* limit altitude to maximum allowed altitude */
-		if ((_navigator->get_land_detected()->alt_max + _navigator->get_home_position()->alt) < altitude_abs) {
-			item.altitude = item.altitude_is_relative ?
-					_navigator->get_land_detected()->alt_max :
-					_navigator->get_land_detected()->alt_max + _navigator->get_home_position()->alt;
+		if (_navigator->get_land_detected()->alt_max  < -(item.z - _navigator->get_home_position()->z)) {
+			item.z = -_navigator->get_land_detected()->alt_max + _navigator->get_home_position()->z;
 
 		}
 	}
@@ -767,6 +760,7 @@ MissionBlock::navigator_apply_limitation(naviator_item_s &item)
 	/*
 	 * Add other limitations here
 	 */
+}
 
 float
 MissionBlock::get_horizontal_distance_to_target(const struct navigator_item_s &item)
