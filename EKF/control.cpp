@@ -383,8 +383,8 @@ void Ekf::controlOpticalFlowFusion()
 		_imu_del_ang_of += _imu_sample_delayed.delta_ang - _state.gyro_bias;
 		_delta_time_of += _imu_sample_delayed.delta_ang_dt;
 
-		// fuse the data
-		if (_control_status.flags.opt_flow) {
+		// fuse the data if the terrain/distance to bottom is valid
+		if (_control_status.flags.opt_flow && get_terrain_valid()) {
 			// Update optical flow bias estimates
 			calcOptFlowBias();
 
