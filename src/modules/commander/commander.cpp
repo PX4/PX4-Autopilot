@@ -2883,7 +2883,7 @@ Commander::run()
 			}
 		}
 
-		/* Reset main state to loiter after takeoff is completed.
+		/* Reset main state to loiter or auto-mission after takeoff is completed.
 		 * Sometimes, the mission result topic is outdated and the mission is still signaled
 		 * as finished even though we only just started with the takeoff. Therefore, we also
 		 * check the timestamp of the mission_result topic. */
