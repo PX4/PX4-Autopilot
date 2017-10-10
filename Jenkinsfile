@@ -1,8 +1,8 @@
 pipeline {
   agent {
     docker {
-      image 'docker pull px4io/px4-dev-simulation'
       args '2017-09-26'
+      image 'px4io/px4-dev-simulation'
     }
     
   }
