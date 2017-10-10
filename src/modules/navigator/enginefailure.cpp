@@ -125,7 +125,7 @@ EngineFailure::set_ef_item()
 	reset_navigator_item_reached();
 
 	/* convert mission item to current position setpoint and make it valid */
-	navigator_apply_limitation(_navigation_item);
+	navigator_apply_limitation(_navigator_item);
 	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 

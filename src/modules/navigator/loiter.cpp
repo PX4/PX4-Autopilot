@@ -129,7 +129,7 @@ Loiter::set_loiter_position()
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current.velocity_valid = false;
 	pos_sp_triplet->previous.valid = false;
-	navigator_apply_limitation(_navigation_item);
+	navigator_apply_limitation(_navigator_item);
 	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 

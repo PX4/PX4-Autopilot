@@ -126,7 +126,7 @@ protected:
 	/**
 	 * General function used to adjust the mission item based on vehicle specific limitations
 	 */
-	void	navigator_apply_limitation(naviator_item_s &item);
+	void	navigator_apply_limitation(navigator_item_s &item);
 
 
 	void issue_command(const struct navigator_item_s &item);

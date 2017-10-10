@@ -498,7 +498,7 @@ Mission::set_mission_items()
 
 		/* update position setpoint triplet  */
 		pos_sp_triplet->previous.valid = false;
-		navigator_apply_limitation(_navigation_item);
+		navigator_apply_limitation(_navigator_item);
 		navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 		pos_sp_triplet->next.valid = false;
 
@@ -757,7 +757,7 @@ Mission::set_mission_items()
 			set_align_navigator_item(&_navigator_item, &navigator_item_next_position);
 
 			/* set position setpoint to target during the transition */
-			navigator_apply_limitation(_navigation_item);
+			navigator_apply_limitation(_navigator_item);
 			navigator_item_to_position_setpoint(navigator_item_next_position, &pos_sp_triplet->current);
 		}
 
@@ -798,7 +798,7 @@ Mission::set_mission_items()
 
 	/*********************************** set setpoints and check next *********************************************/
 	/* set current position setpoint from mission item (is protected against non-position items) */
-	navigator_apply_limitation(_navigation_item);
+	navigator_apply_limitation(_navigator_item);
 	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 
 	/* issue command if ready (will do nothing for position mission items) */
@@ -825,7 +825,7 @@ Mission::set_mission_items()
 		/* try to process next mission item */
 		if (has_next_position_item) {
 			/* got next mission item, update setpoint triplet */
-			navigator_apply_limitation(_navigation_item);
+			navigator_apply_limitation(_navigator_item);
 			navigator_item_to_position_setpoint(navigator_item_next_position, &pos_sp_triplet->next);
 
 		} else {
@@ -1160,7 +1160,7 @@ Mission::do_abort_landing()
 	_navigator_item.origin = ORIGIN_ONBOARD;
 
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	navigator_apply_limitation(_navigation_item);
+	navigator_apply_limitation(_navigator_item);
 	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 
 	_navigator->set_position_setpoint_triplet_updated();
