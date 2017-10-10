@@ -1035,7 +1035,7 @@ float
 MulticopterPositionControl::get_cruising_speed_xy()
 {
 	/*
-	 * in mission the user can choose cruising speed different to default
+	 * in mission the cruise-speed can be different to default
 	 */
 	return ((PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && !(_pos_sp_triplet.current.cruising_speed < 0.0f)) ?
 		_pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy);
@@ -2226,25 +2226,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 			_pos_sp = pos_sp;
 
-		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_VELOCITY) {
-
-			float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
-
-			if (vel_xy_mag > SIGMA_NORM) {
-				_vel_sp(0) = _vel(0) / vel_xy_mag * get_cruising_speed_xy();
-				_vel_sp(1) = _vel(1) / vel_xy_mag * get_cruising_speed_xy();
-
-			} else {
-				/* TODO: we should go in the direction we are heading
-				 * if current velocity is zero
-				 */
-				_vel_sp(0) = 0.0f;
-				_vel_sp(1) = 0.0f;
-			}
-
-			_run_pos_control = false;
-
-		} else {
+		}  else {
 			/* just go to the target point */;
 			_pos_sp = _curr_pos_sp;
 

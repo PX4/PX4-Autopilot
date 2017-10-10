@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_rtl.h
+ * @file rtl.h
  * Helper class for RTL
  *
  * @author Julian Oes <julian@oes.ch>
@@ -74,11 +74,6 @@ private:
 	 */
 	void		advance_rtl();
 
-	/**
-	 * Get RTL altitude
-	 */
-	float 		get_rtl_altitude();
-
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
@@ -89,6 +84,8 @@ private:
 		RTL_STATE_LOITER,
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
+		RTL_STATE_PRE_RETURN,
+		RTL_STATE_AFTER_RETURN,
 	} _rtl_state{RTL_STATE_NONE};
 
 	control::BlockParamFloat _param_return_alt;
