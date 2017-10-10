@@ -16,6 +16,7 @@ dependencies:
     # PX4 OSX instructions 2017-07-28: https://dev.px4.io/en/setup/dev_env_mac.html
 
     # After installing Homebrew, run these commands in your shell to install the common tools:
+    - brew update
     - brew tap PX4/px4
     - brew install px4-dev
 
