@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 #include <stdint.h>
 
 #include <systemlib/battery.h>

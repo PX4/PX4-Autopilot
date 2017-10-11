@@ -40,6 +40,8 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
+#pragma once
+
 #include <systemlib/param/param.h>
 #include <mathlib/mathlib.h>
 
