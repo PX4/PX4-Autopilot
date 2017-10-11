@@ -87,6 +87,8 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 #include <DevMgr.hpp>
 
@@ -169,6 +171,8 @@ private:
 	int		_diff_pres_sub{-1};			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle control mode subscription */
 	int 		_params_sub{-1};			/**< notification of parameter updates */
+	int		_vehicle_local_position_sub{-1};	/**< notification of local position updates from the nav estimator*/
+	int		_vehicle_attitude_sub{-1};		/**< notification of attitude quaternion updates from the nav estimator*/
 
 	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
@@ -190,6 +194,9 @@ private:
 	differential_pressure_s _diff_pres{};
 	airspeed_s _airspeed{};
 	struct wind_estimate_s _wind_est;		/**< wind estimate */
+
+	struct vehicle_local_position_s _vehicle_local_position = {};	/**< local position and velocity estimates */
+	struct vehicle_attitude_s _vehicle_attitude = {};		/**< attitude quaternion estimates */
 
 	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
 
@@ -235,9 +242,14 @@ private:
 	void 		parameter_update_poll(bool forced = false);
 
 	/**
-	 * Check for changes in control state.
+	 * Check for changes in local position and velocity estimates.
 	 */
-	void 		control_state_poll();
+	void 		vehicle_local_position_poll();
+
+	/**
+	 * Check for changes in attitude quaternion estimates.
+	 */
+	void 		vehicle_attitude_poll();
 
 	/**
 	 * Poll the ADC and update readings to suit.
@@ -394,23 +406,21 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	// update wind and airspeed estimator
 	_wind_estimator.update(raw.gyro_integral_dt);
 
-	bool fuse_airspeed = updated && hrt_elapsed_time(&_control_state.timestamp) < 1e6
-			     && (hrt_elapsed_time(&_time_last_airspeed_fused) > 5e4);
-	bool fuse_beta = updated && hrt_elapsed_time(&_control_state.timestamp) < 1e6
-			 && (hrt_elapsed_time(&_time_last_beta_fused) > 5e4);
+	bool fuse_airspeed = updated && (hrt_elapsed_time(&_time_last_airspeed_fused) > 5e4);
+	bool fuse_beta = updated && (hrt_elapsed_time(&_time_last_beta_fused) > 5e4) && _vehicle_local_position.v_xy_valid;
 
 	if (fuse_beta || fuse_airspeed) {
-		matrix::Dcmf R_to_earth(matrix::Quatf(_control_state.q));
-		matrix::Vector3f vI(_control_state.x_vel, _control_state.y_vel, _control_state.z_vel);
+		matrix::Dcmf R_to_earth(matrix::Quatf(_vehicle_attitude.q));
+		matrix::Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		vI = R_to_earth * vI;
 
 		if (fuse_beta) {
-			_wind_estimator.fuse_beta(&vI._data[0][0], _control_state.q);
+			_wind_estimator.fuse_beta(&vI._data[0][0], _vehicle_attitude.q);
 			_time_last_beta_fused = hrt_absolute_time();
 		}
 
 		if (fuse_airspeed) {
-			matrix::Vector3f vel_var(_control_state.vel_variance);
+			matrix::Vector3f vel_var(_vehicle_local_position.evh, _vehicle_local_position.evh, _vehicle_local_position.evv);
 			vel_var = R_to_earth * vel_var;
 			_wind_estimator.fuse_airspeed(_airspeed.indicated_airspeed_m_s, &vI._data[0][0], &vel_var._data[0][0]);
 			_time_last_airspeed_fused = hrt_absolute_time();
@@ -430,8 +440,8 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_wind_est.windspeed_east = wind[1];
 		float wind_cov[2];
 		_wind_estimator.get_wind_var(wind_cov);
-		_wind_est.covariance_north = wind_cov[0];
-		_wind_est.covariance_east = wind_cov[1];
+		_wind_est.variance_north = wind_cov[0];
+		_wind_est.variance_east = wind_cov[1];
 		_wind_est.tas_innov = _wind_estimator.get_tas_innov();
 		_wind_est.tas_innov_var = _wind_estimator.get_tas_innov_var();
 		_wind_est.beta_innov = _wind_estimator.get_beta_innov();
@@ -501,14 +511,25 @@ Sensors::parameter_update_poll(bool forced)
 	}
 }
 
-void Sensors::control_state_poll()
+void Sensors::vehicle_local_position_poll()
 {
 	bool updated;
 
-	orb_check(_control_state_sub, &updated);
+	orb_check(_vehicle_local_position_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(control_state), _control_state_sub, &_control_state);
+		orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &_vehicle_local_position);
+	}
+}
+
+void Sensors::vehicle_attitude_poll()
+{
+	bool updated;
+
+	orb_check(_vehicle_attitude_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_attitude);
 	}
 }
 
@@ -804,7 +825,9 @@ Sensors::run()
 		/* Look for new r/c input data */
 		_rc_update.rc_poll(_parameter_handles);
 
-		control_state_poll();
+		/* Look for new attitude and velocity data required for wind estimation */
+		vehicle_attitude_poll();
+		vehicle_local_position_poll();
 
 		diff_pres_poll(raw);
 
@@ -816,6 +839,8 @@ Sensors::run()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_actuator_ctrl_0_sub);
 	orb_unadvertise(_sensor_pub);
+	orb_unsubscribe(_vehicle_attitude_sub);
+	orb_unsubscribe(_vehicle_local_position_sub);
 
 	_rc_update.deinit();
 	_voted_sensors_update.deinit();
