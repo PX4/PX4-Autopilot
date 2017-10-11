@@ -251,12 +251,12 @@ test_runner(unsigned option)
 	return (failcount > 0);
 }
 
-__EXPORT int tests_main(int argc, char *argv[]);
+__EXPORT int tests_run_main(int argc, char *argv[]);
 
 /**
  * Executes system tests.
  */
-int tests_main(int argc, char *argv[])
+int tests_run_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		printf("tests: missing test name - 'tests help' for a list of tests\n");

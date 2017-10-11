@@ -75,12 +75,8 @@ px4_add_module(
 		led.cpp
 		resources.cpp
 		uavcannode_params.c
-
-	DEPENDS
-		platforms__common
-		uavcan
 	)
 
-target_link_libraries(modules__uavcannode PUBLIC uavcan uavcan_stm32_driver)
+target_link_libraries(uavcannode PUBLIC uavcan uavcan_stm32_driver)
 
 set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES uavcan_stm32_driver)

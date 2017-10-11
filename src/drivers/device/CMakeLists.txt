@@ -31,9 +31,7 @@
 #
 ############################################################################
 
-set(SRCS)
-
-list(APPEND SRCS
+set(SRCS
 	ringbuffer.cpp
 	integrator.cpp
 )

@@ -65,71 +65,11 @@ topic_name = spec.short_name
 @##############################
 @# Generic Includes
 @##############################
+#include <uORB/topics/@(topic_name).h>
+#include <uORB_microcdr/topics/@(topic_name).h>
 
-#include <uORB/uORB.h>
+struct microCDR;
 
-@##############################
-@# Includes for dependencies
-@##############################
-@{
-for field in spec.parsed_fields():
-    if (not field.is_builtin):
-        if (not field.is_header):
-            (package, name) = genmsg.names.package_resource_name(field.base_type)
-            package = package or spec.package # convert '' to package
-            print('#include <uORB/topics/%s.h>'%(name))
-}@
 
-@# Constants c style
-#ifndef __cplusplus
-@[for constant in spec.constants]@
-#define @(constant.name) @(int(constant.val))
-@[end for]
-#endif
-
-@##############################
-@# Main struct of message
-@##############################
-@{
-
-def print_parsed_fields():
-    # sort fields (using a stable sort)
-    sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
-    struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
-    # loop over all fields and print the type and name
-    for field in sorted_fields:
-        if (not field.is_header):
-            print_field_def(field)
-}@
-
-#ifdef __cplusplus
-@#class @(uorb_struct) {
-struct __EXPORT @(uorb_struct) {
-@#public:
-#else
-struct @(uorb_struct) {
-#endif
-@# timestamp at the beginning of each topic is required for logger
-	uint64_t timestamp; // required for logger
-@print_parsed_fields()
-
-#ifdef __cplusplus
-@# Constants again c++-ified
-@{
-for constant in spec.constants:
-    type_name = constant.type
-    if type_name in type_map:
-        # need to add _t: int8 --> int8_t
-        type_px4 = type_map[type_name]
-    else:
-        raise Exception("Type {0} not supported, add to to template file!".format(type_name))
-
-    print('\tstatic constexpr %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
-}
-#endif
-};
-
-/* register this as object request broker structure */
-@[for multi_topic in topics]@
-ORB_DECLARE(@multi_topic);
-@[end for]
+void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length, struct microCDR *microCDRWriter);
+void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input, struct microCDR *microCDRReader);

@@ -59,12 +59,9 @@ px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
 	COMPILE_FLAGS
+		-Wno-double-promotion
 	SRCS
 		${SIMULATOR_SRCS}
-	DEPENDS
-		platforms__common
-		git_jmavsim
-		git_gazebo
 	)
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

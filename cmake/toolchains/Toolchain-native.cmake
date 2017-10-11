@@ -1,5 +1,6 @@
-# compiler tools
-foreach(tool nm ld)
+
+# os tools
+foreach(tool grep genromfs make)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} ${tool})
 	if(NOT ${TOOL})
@@ -7,11 +8,8 @@ foreach(tool nm ld)
 	endif()
 endforeach()
 
-# os tools
-foreach(tool echo grep rm mkdir nm cp touch make unzip)
+# optional compiler tools
+foreach(tool gdb gdbtui)
 	string(TOUPPER ${tool} TOOL)
-	find_program(${TOOL} ${tool})
-	if(NOT ${TOOL})
-		message(FATAL_ERROR "could not find ${TOOL}")
-	endif()
+	find_program(${TOOL} arm-none-eabi-${tool})
 endforeach()

@@ -1,6 +1,6 @@
 include(posix/px4_impl_posix)
 
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
+set(CMAKE_TOOLCHAIN_FILE toolchains/Toolchain-arm-linux-gnueabihf)
 
 add_definitions(
 	-D__PX4_POSIX_BEBOP
@@ -87,7 +87,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-	lib/micro-CDR
 
 	#
 	# POSIX

@@ -166,7 +166,6 @@ endfunction()
 #	Input:
 #		MODULE			: unique name of module
 #		MAIN			: entry point, if not given, assumed to be library
-#		STACK			: deprecated use stack main instead
 #		STACK_MAIN		: size of stack for main function
 #		STACK_MAX		: maximum stack size of any frame
 #		COMPILE_FLAGS		: compile flags
@@ -192,66 +191,51 @@ function(px4_add_module)
 
 	px4_parse_function_args(
 		NAME px4_add_module
-		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
+		ONE_VALUE MODULE MAIN STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
 		OPTIONS EXTERNAL
 		REQUIRED MODULE
 		ARGN ${ARGN})
 
-	px4_add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-	# set defaults if not set
-	set(MAIN_DEFAULT MAIN-NOTFOUND)
-	set(STACK_MAIN_DEFAULT 1024)
-	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
-
-	# default stack max to stack main
-	if(NOT STACK_MAIN AND STACK)
-		set(STACK_MAIN ${STACK})
-		message(AUTHOR_WARNING "STACK deprecated, USE STACK_MAIN instead!")
+	set(target ${MODULE})
+	if(MAIN)
+		set(target ${MAIN})
 	endif()
 
-	foreach(property MAIN STACK_MAIN PRIORITY)
-		if(NOT ${property})
-			set(${property} ${${property}_DEFAULT})
-		endif()
-		set_target_properties(${MODULE} PROPERTIES ${property} ${${property}})
-	endforeach()
-
-	# default stack max to stack main
-	if(NOT STACK_MAX)
-		set(STACK_MAX ${STACK_MAIN})
-	endif()
-	set_target_properties(${MODULE} PROPERTIES STACK_MAX ${STACK_MAX})
-
-	if(${OS} STREQUAL "qurt" )
-		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-	elseif(${OS} STREQUAL "nuttx" )
-		list(APPEND COMPILE_FLAGS -Wframe-larger-than=${STACK_MAX})
-	endif()
+	px4_add_library(${target} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
 	if(MAIN)
-		set_target_properties(${MODULE} PROPERTIES
-			COMPILE_DEFINITIONS PX4_MAIN=${MAIN}_app_main)
-		add_definitions(-DMODULE_NAME="${MAIN}")
+		set_target_properties(${target} PROPERTIES MAIN ${MAIN})
+		target_compile_definitions(${target} PRIVATE -DPX4_MAIN=${MAIN}_app_main)
+	endif()
+
+	if(STACK_MAIN)
+		set_target_properties(${target} PROPERTIES STACK_MAIN ${STACK_MAIN})
 	else()
-		add_definitions(-DMODULE_NAME="${MODULE}")
+		set_target_properties(${target} PROPERTIES STACK_MAIN 1024)
+	endif()
+
+	if(STACK_MAX AND ${OS} MATCHES NuttX)
+		target_compile_options(${target} PRIVATE -Wframe-larger-than=${STACK_MAX})
+	endif()
+
+	if(PRIORITY)
+		set_target_properties(${target} PROPERTIES PRIORITY ${PRIORITY})
+	else()
+		set_target_properties(${target} PROPERTIES PRIORITY SCHED_PRIORITY_DEFAULT)
+	endif()
+
+	if(COMPILE_FLAGS)
+		target_compile_options(${target} PRIVATE ${COMPILE_FLAGS})
 	endif()
 
 	if(INCLUDES)
-		target_include_directories(${MODULE} PRIVATE ${INCLUDES})
+		target_include_directories(${target} PRIVATE ${INCLUDES})
 	endif()
 
 	if(DEPENDS)
-		add_dependencies(${MODULE} ${DEPENDS})
+		add_dependencies(${target} ${DEPENDS})
 	endif()
-
-	# join list variables to get ready to send to compiler
-	foreach(prop LINK_FLAGS COMPILE_FLAGS)
-		if(${prop})
-			px4_join(OUT ${prop} LIST ${${prop}} GLUE " ")
-		endif()
-	endforeach()
 
 	# store module properties in target
 	# COMPILE_FLAGS and LINK_FLAGS are passed to compiler/linker by cmake
@@ -259,11 +243,6 @@ function(px4_add_module)
 	if(COMPILE_FLAGS AND ${_no_optimization_for_target})
 		px4_strip_optimization(COMPILE_FLAGS ${COMPILE_FLAGS})
 	endif()
-	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK_MAIN MAIN PRIORITY)
-		if (${prop})
-			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
-		endif()
-	endforeach()
 endfunction()
 
 #=============================================================================
@@ -272,185 +251,118 @@ endfunction()
 #
 #	Set the default build flags.
 #
-#	Usage:
-#		px4_add_common_flags(
-#			BOARD <in-string>
-#			C_FLAGS <inout-variable>
-#			CXX_FLAGS <inout-variable>
-#			OPTIMIZATION_FLAGS <inout-variable>
-#			EXE_LINKER_FLAGS <inout-variable>
-#			INCLUDE_DIRS <inout-variable>
-#			LINK_DIRS <inout-variable>
-#			DEFINITIONS <inout-variable>)
-#
-#	Input:
-#		BOARD					: board
-#
-#	Input/Output: (appends to existing variable)
-#		C_FLAGS					: c compile flags variable
-#		CXX_FLAGS				: c++ compile flags variable
-#		OPTIMIZATION_FLAGS			: optimization compile flags variable
-#		EXE_LINKER_FLAGS			: executable linker flags variable
-#		INCLUDE_DIRS				: include directories
-#		LINK_DIRS				: link directories
-#		DEFINITIONS				: definitions
-#
-#	Example:
-#		px4_add_common_flags(
-#			BOARD px4fmu-v2
-#			C_FLAGS CMAKE_C_FLAGS
-#			CXX_FLAGS CMAKE_CXX_FLAGS
-#			OPTIMIZATION_FLAGS optimization_flags
-#			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
-#			INCLUDES <list>)
-#
 function(px4_add_common_flags)
 
-	set(inout_vars
-		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
-
-	px4_parse_function_args(
-		NAME px4_add_common_flags
-		ONE_VALUE ${inout_vars} BOARD
-		REQUIRED ${inout_vars} BOARD
-		ARGN ${ARGN})
-
-	set(warnings
+	add_compile_options(
+		# warnings
 		-Wall
+		-Wextra
+		-Werror
+
 		-Warray-bounds
 		-Wdisabled-optimization
-		-Werror
-		-Wextra
 		-Wfatal-errors
 		-Wfloat-equal
 		-Wformat-security
+		-Wformat=1
 		-Winit-self
 		-Wlogical-op
 		-Wmissing-declarations
 		-Wmissing-field-initializers
-		#-Wmissing-include-dirs # TODO: fix and enable
 		-Wpointer-arith
 		-Wshadow
 		-Wuninitialized
 		-Wunknown-pragmas
+		-Wunused-but-set-variable
 		-Wunused-variable
 
+		# TODO: warnings to fix and enable
+		#-Wdouble-promotion
+		#-Wmissing-include-dirs
+		#-Wconversion
+		#-Wuseless-cast
+
+		# disabled warnings
 		-Wno-unused-parameter
-		)
 
-	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-		# QuRT 6.4.X compiler identifies as Clang but does not support this option
-		if (NOT ${OS} STREQUAL "qurt")
-			list(APPEND warnings
-				-Qunused-arguments
-				-Wno-unused-const-variable
-				-Wno-varargs
-				-Wno-address-of-packed-member
-				-Wno-unknown-warning-option
-				-Wunused-but-set-variable
-				#-Wdouble-promotion # needs work first
-			)
-		endif()
-	else()
-		list(APPEND warnings
-			-Wunused-but-set-variable
-			-Wformat=1
-			-Wdouble-promotion
-		)
-	endif()
-
-	set(_optimization_flags
+		# optimizations
+		-fdata-sections
+		-ffunction-sections
+		-fno-common
 		-fno-strict-aliasing
 		-fomit-frame-pointer
 		-funsafe-math-optimizations
-		-ffunction-sections
-		-fdata-sections
+		-fvisibility=hidden
+
+		-include visibility.h
 		)
 
-	set(c_warnings
+	set(c_flags
 		-Wbad-function-cast
-		-Wstrict-prototypes
 		-Wmissing-prototypes
 		-Wnested-externs
+		-Wstrict-prototypes
 		)
 
-	set(c_compile_flags
-		-g
-		-std=gnu99
-		-fno-common
-		)
-
-	set(cxx_warnings
-		-Wno-missing-field-initializers
+	set(cxx_flags
 		-Wreorder
-		)
 
-	set(cxx_compile_flags
-		-g
+		# TODO: fix missing field initializers
+		-Wno-missing-field-initializers
+
 		-fno-exceptions
 		-fno-rtti
-		-std=gnu++11
 		-fno-threadsafe-statics
+		-fno-asynchronous-unwind-tables
+		-fno-unwind-tables
+
 		-DCONFIG_WCHAR_BUILTIN
 		-D__CUSTOM_FILE_IO__
 		)
 
-	# regular Clang or AppleClang
 	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		# force color for clang (needed for clang + ccache)
-		list(APPEND _optimization_flags
+		# Clang C/C++ options
+		add_compile_options(
 			-fcolor-diagnostics
-		)
-	else()
-		list(APPEND _optimization_flags
-			-fno-strength-reduce
-			-fno-builtin-printf
-		)
+			-Qunused-arguments
 
-		# -fcheck-new is a no-op for Clang in general
-		# and has no effect, but can generate a compile
-		# error for some OS
-		list(APPEND cxx_compile_flags
-			-fcheck-new
+			# disabled warnings
+			-Wno-address-of-packed-member
+			-Wno-unknown-warning-option
+			-Wno-unused-const-variable
+			-Wno-varargs
 		)
-	endif()
+	elseif (CMAKE_COMPILER_IS_GNUCXX)
 
-	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
 			# force color for gcc > 4.9
-			list(APPEND _optimization_flags
+			add_compile_options(
 				-fdiagnostics-color=always
+				-fdevirtualize-speculatively
 			)
 		endif()
+
+		# GCC C/C++ options
+		add_compile_options(
+			-fno-builtin-printf
+			-fno-strength-reduce
+		)
+
+		# GCC C++ options
+		list(APPEND cxx_flags
+			-fcheck-new
+			)
 	endif()
 
-	set(visibility_flags
-		-fvisibility=hidden
-		-include visibility.h
-		)
+	add_compile_options("$<$<COMPILE_LANGUAGE:C>:${c_flags}>")
+	add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${cxx_flags}>")
 
-	set(added_c_flags
-		${c_compile_flags}
-		${warnings}
-		${c_warnings}
-		${visibility_flags}
-		)
-
-	set(added_cxx_flags
-		${cxx_compile_flags}
-		${warnings}
-		${cxx_warnings}
-		${visibility_flags}
-		)
-
-	set(added_optimization_flags
-		${_optimization_flags}
-		)
-
-	set(added_include_dirs
+	# TODO: cleanup and start using INTERFACE_INCLUDE_DIRECTORIES
+	include_directories(
 		${PX4_BINARY_DIR}
 		${PX4_BINARY_DIR}/src
 		${PX4_BINARY_DIR}/src/modules
+
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
 		${PX4_SOURCE_DIR}/src/include
@@ -461,23 +373,9 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/platforms
 		)
 
-	set(added_link_dirs) # none used currently
-	set(added_exe_linker_flags)
-
-	string(TOUPPER ${BOARD} board_upper)
-	string(REPLACE "-" "_" board_config ${board_upper})
-
-	set(added_definitions
-		-DCONFIG_ARCH_BOARD_${board_config}
+	add_definitions(
 		-D__STDC_FORMAT_MACROS
 		)
-
-	# output
-	foreach(var ${inout_vars})
-		string(TOLOWER ${var} lower_var)
-		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-		#message(STATUS "set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
-	endforeach()
 
 endfunction()
 
@@ -545,7 +443,11 @@ endfunction()
 #
 function(px4_add_library target)
 	add_library(${target} ${ARGN})
+	target_compile_definitions(${target} PRIVATE -DMODULE_NAME="${target}")
+	add_dependencies(${target} prebuild_targets)
+
 	px4_add_optimization_flags_for_target(${target})
+
 	# Pass variable to the parent px4_add_module.
 	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
 

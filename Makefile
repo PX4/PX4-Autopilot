@@ -107,9 +107,6 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
-# additional config parameters passed to cmake
-CMAKE_ARGS := -Wno-deprecated
-
 ifdef EXTERNAL_MODULES_LOCATION
 	CMAKE_ARGS := -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
 endif
@@ -125,7 +122,7 @@ define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build/$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
 +@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2)  -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS) || (rm -rf $(BUILD_DIR)); fi
-+@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@($(PX4_MAKE) -C $(BUILD_DIR) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 COLOR_BLUE = \033[0;34m
@@ -137,6 +134,7 @@ endef
 
 # Get a list of all config targets.
 ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
+
 # Strip off leading nuttx_
 NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
 
@@ -318,16 +316,16 @@ scan-build:
 	@scan-build -o $(SRC_DIR)/build/scan-build cmake --build $(SRC_DIR)/build/posix_sitl_default-scan-build
 
 clang-tidy: posix_sitl_default-clang
-	@cd build/posix_sitl_default-clang && run-clang-tidy-4.0.py -header-filter=".*\.hpp" -j$(j) -p .
+	@cd  $(SRC_DIR)/build/posix_sitl_default-clang && run-clang-tidy-4.0.py -header-filter=".*\.hpp" -j$(j) -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .
 clang-tidy-fix: posix_sitl_default-clang
-	@cd build/posix_sitl_default-clang && run-clang-tidy-4.0.py -header-filter=".*\.hpp" -j$(j) -fix -p .
+	@cd $(SRC_DIR)/build/posix_sitl_default-clang && run-clang-tidy-4.0.py -header-filter=".*\.hpp" -j$(j) -fix -p .
 
 # modified version of run-clang-tidy.py to return error codes and only output relevant results
 clang-tidy-quiet: posix_sitl_default-clang
-	@cd build/posix_sitl_default-clang && $(SRC_DIR)/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
+	@cd $(SRC_DIR)/build/posix_sitl_default-clang && $(SRC_DIR)/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
 # TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
 cppcheck: posix_sitl_default

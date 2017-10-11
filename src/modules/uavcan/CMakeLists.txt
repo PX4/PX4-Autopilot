@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+px4_add_git_submodule(TARGET git_uavcan PATH libuavcan)
+
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
 
@@ -60,15 +62,13 @@ include_directories(libuavcan/libuavcan_drivers/stm32/driver/include)
 
 px4_add_module(
 	MODULE modules__uavcan
-	MAIN uavcan
+	MAIN uavcan_node
 	STACK_MAIN 3200
 	STACK_MAX 1500
-	COMPILE_FLAGS
 	SRCS
 		# Main
 		uavcan_main.cpp
 		uavcan_servers.cpp
-		uavcan_params.c
 
 		# Actuators
 		actuators/esc.cpp
@@ -81,8 +81,7 @@ px4_add_module(
 		sensors/baro.cpp
 
 	DEPENDS
-		platforms__common
-		uavcan
+		git_uavcan
 	)
 
-target_link_libraries(modules__uavcan uavcan uavcan_stm32_driver)
+target_link_libraries(uavcan_node uavcan uavcan_stm32_driver)

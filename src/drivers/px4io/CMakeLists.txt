@@ -62,7 +62,7 @@ add_custom_command(OUTPUT ${fw_io_exe}
 	)
 add_custom_command(OUTPUT ${fw_io_bin}
 	COMMAND mkdir -p ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/
-	COMMAND ${OBJCOPY} -O binary ${fw_io_exe} ${fw_io_bin}
+	COMMAND ${CMAKE_OBJCOPY} -O binary ${fw_io_exe} ${fw_io_bin}
 	DEPENDS ${fw_io_exe}
 	COMMENT "Copying ${config_io_board} to ROMFS extras"
 	)

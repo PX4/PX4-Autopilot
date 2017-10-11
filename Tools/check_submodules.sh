@@ -34,8 +34,8 @@ then
 			echo "Continuing build with manually overridden submodule.."
 		elif [ "$user_cmd" == "u" ]
 		then
-			git submodule sync --recursive
-			git submodule update --init --recursive
+			git submodule sync --recursive -- $1
+			git submodule update --init --recursive -- $1
 			echo "Submodule fixed, continuing build.."
 		else
 			echo "Build aborted."
@@ -43,10 +43,10 @@ then
 		fi
 	fi
 else
-	echo "REINITIALIZING GIT SUBMODULES"
+	echo "REINITIALIZING GIT SUBMODULE"
 	echo "no git repo found in $1/.git"
 	git submodule sync --recursive -- $1;
-	git submodule update --init --recursive $1;
+	git submodule update --init --recursive -- $1;
 fi
 
 }
@@ -62,7 +62,7 @@ then
 		exit 0
 	}
 
-	git submodule update --recursive $1
+	git submodule update --recursive -- $1
 
 else
 

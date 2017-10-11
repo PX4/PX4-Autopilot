@@ -1071,7 +1071,7 @@ param_export(int fd, bool only_unsaved)
 				f = s->val.f;
 				const char *name = param_name(s->param);
 
-				if (bson_encoder_append_double(&encoder, name, f)) {
+				if (bson_encoder_append_double(&encoder, name, (double)f)) {
 					debug("BSON append failed for '%s'", name);
 					goto out;
 				}

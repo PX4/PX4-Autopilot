@@ -1,8 +1,18 @@
+@###############################################
+@#
+@# EmPy template for generating uORBTopics.cpp file
+@# for logging purposes
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@###############################################
 /****************************************************************************
- * ld.script
  *
- * Copyright (C) 2015 Mark Charlebois. All rights reserved.
- * Author: Mark Charlebois <charlebm@gmail.com>
+ *   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,15 +43,4 @@
  *
  ****************************************************************************/
 
-SECTIONS
-{
-	/*
-	 * Construction data for parameters.
-	 */
-	__param : ALIGN(8) {
-		__param_start = .;
-		KEEP(*(__param*))
-		__param_end = .;
-	}
-}
-INSERT AFTER .rodata;
+#include <uORB/uORB.h>

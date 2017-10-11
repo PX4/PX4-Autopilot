@@ -38,6 +38,8 @@
  *
  */
 
+#include <string.h>
+
 #include <px4_config.h>
 #include <drivers/device/device.h>
 

@@ -44,7 +44,8 @@
  * @author Sander Smeets	<sander@droneslab.com>
  */
 
-#include <cmath>	// NAN
+#include <cmath>
+#include <cfloat>
 
 /* commander module headers */
 #include "accelerometer_calibration.h"
@@ -502,8 +503,8 @@ int commander_main(int argc, char *argv[])
 
 				struct vehicle_command_s cmd = {
 					.timestamp = hrt_absolute_time(),
-					.param5 = NAN,
-					.param6 = NAN,
+					.param5 = (double)NAN,
+					.param6 = (double)NAN,
 					/* minimum pitch */
 					.param1 = NAN,
 					.param2 = NAN,
@@ -533,8 +534,8 @@ int commander_main(int argc, char *argv[])
 
 		struct vehicle_command_s cmd = {
 			.timestamp = 0,
-			.param5 = NAN,
-			.param6 = NAN,
+			.param5 = (double)NAN,
+			.param6 = (double)NAN,
 			/* minimum pitch */
 			.param1 = NAN,
 			.param2 = NAN,
@@ -556,8 +557,8 @@ int commander_main(int argc, char *argv[])
 
 		struct vehicle_command_s cmd = {
 			.timestamp = 0,
-			.param5 = NAN,
-			.param6 = NAN,
+			.param5 = (double)NAN,
+			.param6 = (double)NAN,
 			/* transition to the other mode */
 			.param1 = (float)((status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
 			.param2 = NAN,
@@ -625,8 +626,8 @@ int commander_main(int argc, char *argv[])
 
 		struct vehicle_command_s cmd = {
 			.timestamp = 0,
-			.param5 = 0.0f,
-			.param6 = 0.0f,
+			.param5 = 0.0,
+			.param6 = 0.0,
 			/* if the comparison matches for off (== 0) set 0.0f, 2.0f (on) else */
 			.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f, /* lockdown */
 			.param2 = 0.0f,

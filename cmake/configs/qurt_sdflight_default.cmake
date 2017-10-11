@@ -20,7 +20,6 @@ endif()
 # file that contains all possible parameters, even if the associated module
 # is not used.  This is necessary for parameter synchronization between the 
 # ARM and DSP processors.
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 include(toolchain/Toolchain-qurt)
@@ -94,7 +93,6 @@ set(config_module_list
 	lib/rc
 	lib/version
 	lib/DriverFramework/framework
-	lib/micro-CDR
 
 	#
 	# QuRT port

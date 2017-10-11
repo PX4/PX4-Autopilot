@@ -40,6 +40,8 @@
 
 #include <px4_config.h>
 
+#include <string.h>
+
 #include <drivers/device/i2c.h>
 
 #include <systemlib/airspeed.h>

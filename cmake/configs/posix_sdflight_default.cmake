@@ -16,7 +16,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexago
 # file that contains all possible parameters, even if the associated module
 # is not used.  This is necessary for parameter synchronization between the 
 # ARM and DSP processors.
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
@@ -82,7 +81,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-	lib/micro-CDR
 
 	platforms/common
 	platforms/posix/px4_layer
