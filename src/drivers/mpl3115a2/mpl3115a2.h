@@ -37,6 +37,8 @@
  * Shared defines for the mpl3115a2 driver.
  */
 
+#pragma once
+
 #define MPL3115A2_REG_WHO_AM_I   0x0c
 #define MPL3115A2_WHO_AM_I       0xC4
 

@@ -47,6 +47,9 @@
  *
  * @author Roman Bapst <bapstroman@gmail.com>
 */
+
+#pragma once
+
 #include <lib/mathlib/mathlib.h>
 
 #define SigmoidFunction(val) 1/(1 + expf(-val))

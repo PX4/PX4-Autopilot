@@ -5,6 +5,8 @@
  *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  */
 
+#pragma once
+
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>
 

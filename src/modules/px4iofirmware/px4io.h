@@ -37,6 +37,8 @@
  * General defines and structures for the PX4IO module firmware.
  */
 
+#pragma once
+
 #include <px4_config.h>
 
 #include <stdbool.h>

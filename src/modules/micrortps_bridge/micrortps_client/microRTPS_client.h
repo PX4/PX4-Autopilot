@@ -30,6 +30,8 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 #include "microRTPS_transport.h"
 
 #include <cinttypes>

@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 #define MAX_SHMEM_PARAMS 2000 //MAP_SIZE - (LOCK_SIZE - sizeof(struct shmem_info))
 
 #define PARAM_BUFFER_SIZE (MAX_SHMEM_PARAMS / 8 + 1)

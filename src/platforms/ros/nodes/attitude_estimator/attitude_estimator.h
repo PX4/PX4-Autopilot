@@ -38,6 +38,8 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
 */
 
+#pragma once
+
 #include "ros/ros.h"
 #include <gazebo_msgs/ModelStates.h>
 #include <sensor_msgs/Imu.h>

@@ -40,6 +40,8 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
 */
 
+#pragma once
+
 #include "ros/ros.h"
 #include <mavconn/interface.h>
 #include <px4/vehicle_attitude.h>
