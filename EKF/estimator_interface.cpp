@@ -324,7 +324,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			optflow_sample_new.flowRadXYcomp(0) = optflow_sample_new.flowRadXY(0) - optflow_sample_new.gyroXYZ(0);
 			optflow_sample_new.flowRadXYcomp(1) = optflow_sample_new.flowRadXY(1) - optflow_sample_new.gyroXYZ(1);
 			// convert integration interval to seconds
-			optflow_sample_new.dt = 1e-6f * (float)flow->dt;
+			optflow_sample_new.dt = delta_time;
 			_time_last_optflow = time_usec;
 			// push to buffer
 			_flow_buffer.push(optflow_sample_new);
