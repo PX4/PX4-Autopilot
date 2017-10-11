@@ -282,7 +282,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 
 		// check magnitude is within sensor limits
 		float flow_rate_magnitude;
-		bool flow_magnitude_good = false;
+		bool flow_magnitude_good = true;
 
 		if (delta_time_good) {
 			flow_rate_magnitude = flow->flowdata.norm() / delta_time;
@@ -292,7 +292,9 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		// check quality metric
 		bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
 
-		if (delta_time_good && flow_magnitude_good && (flow_quality_good || !_control_status.flags.in_air)) {
+		// Always use data when on ground to allow for bad quality due to unfocussed sensors and operator handling
+		// If flow quality fails checks on ground, assume zero flow rate after body rate compensation
+		if ((delta_time_good && flow_quality_good && flow_magnitude_good) || !_control_status.flags.in_air) {
 			flowSample optflow_sample_new;
 			// calculate the system time-stamp for the mid point of the integration period
 			optflow_sample_new.time_us = time_usec - _params.flow_delay_ms * 1000 - flow->dt / 2;
