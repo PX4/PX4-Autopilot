@@ -10,5 +10,4 @@ set(config_module_list
 	modules/systemlib/mixer
 	platforms/common
 
-	lib/micro-CDR
 )

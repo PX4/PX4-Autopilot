@@ -330,5 +330,6 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
-	add_custom_target(${OUT})
+
+	add_custom_target(${OUT} DEPENDS uorb_headers)
 endfunction()

@@ -545,7 +545,9 @@ endfunction()
 #
 function(px4_add_library target)
 	add_library(${target} ${ARGN})
+	add_dependencies(${target} prebuild_targets)
 	px4_add_optimization_flags_for_target(${target})
+
 	# Pass variable to the parent px4_add_module.
 	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
 

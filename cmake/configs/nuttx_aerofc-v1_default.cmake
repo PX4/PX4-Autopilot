@@ -89,7 +89,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/rc
 	platforms/nuttx
-	lib/micro-CDR
 	platforms/common
 	platforms/nuttx/px4_layer
 )

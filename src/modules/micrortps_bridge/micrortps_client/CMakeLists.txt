@@ -31,19 +31,12 @@
 #
 ############################################################################
 
-if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
+if(GENERATE_RTPS_BRIDGE)
 
 	find_program(FASTRTPSGEN fastrtpsgen PATHS $ENV{FASTRTPSGEN_DIR})
 	if(NOT FASTRTPSGEN)
 		message(STATUS "WARNING: Unable to find fastrtpsgen. Building PX4 without RTPS bridge support")
-		px4_add_module(
-		    MODULE modules__micrortps_bridge__micrortps_client
-		    MAIN micrortps_client
-		    SRCS
-			microRTPS_client_dummy.cpp
-		    DEPENDS
-			platforms__common
-		)
+
 		return()
 	endif()
 
@@ -63,13 +56,13 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
 		endforeach()
 
 		foreach(topic ${config_rtps_send_topics})
-			list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.cpp)
-			list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.h)
+			list(APPEND topic_bridge_files_out ${msg_out_path}/micrortps_agent/${topic}_Publisher.cpp)
+			list(APPEND topic_bridge_files_out ${msg_out_path}/micrortps_agent/${topic}_Publisher.h)
 		endforeach()
 
 		foreach(topic ${config_rtps_receive_topics})
-			list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Subscriber.cpp)
-			list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Subscriber.h)
+			list(APPEND topic_bridge_files_out ${msg_out_path}/micrortps_agent/${topic}_Subscriber.cpp)
+			list(APPEND topic_bridge_files_out ${msg_out_path}/micrortps_agent/${topic}_Subscriber.h)
 		endforeach()
 
 		set(send_topic_files_opt)
@@ -96,9 +89,9 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
 				--topic-msg-dir ${PX4_SOURCE_DIR}/msg
 				--agent-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent
 				--client-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_client
+				>micrortps_bridge.log 2>&1 || cat micrortps_bridge.log # quiet successful build output
 			DEPENDS ${send_topic_files} ${receive_topic_files}
 			COMMENT "Generating RTPS topic bridge"
-			VERBATIM
 		)
 		add_custom_target(topic_bridge_files DEPENDS ${topic_bridge_files_out})
 
@@ -110,13 +103,13 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
 			MAIN micrortps_client
 			STACK_MAIN 4096
 			SRCS
-				${CMAKE_CURRENT_BINARY_DIR}/micrortps_client/microRTPS_transport.cpp
-				${CMAKE_CURRENT_BINARY_DIR}/micrortps_client/microRTPS_client.cpp
 				microRTPS_client_main.cpp
+				${msg_out_path}/micrortps_client/microRTPS_client.cpp
+				${msg_out_path}/micrortps_client/microRTPS_transport.cpp
 			DEPENDS
 				platforms__common
 				topic_bridge_files
-				uorb_headers
+				uorb_headers_microcdr
 		)
 		target_link_libraries(modules__micrortps_bridge__micrortps_client PRIVATE lib__micro-CDR)
 	endif()

@@ -199,7 +199,6 @@ px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
 px4_add_git_submodule(TARGET git_nuttx PATH "platforms/nuttx/NuttX/nuttx")
 px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
-px4_add_git_submodule(TARGET git_micro_cdr PATH "src/lib/micro-CDR")
 
 #=============================================================================
 
@@ -355,6 +354,22 @@ px4_join(OUT CMAKE_CXX_FLAGS LIST "${CMAKE_CXX_FLAGS};${cxx_flags};${optimizatio
 include_directories(${include_dirs})
 link_directories(${link_dirs})
 add_definitions(${definitions})
+
+#=============================================================================
+# RTPS and micro-cdr
+#
+
+find_program(FASTRTPSGEN fastrtpsgen PATHS $ENV{FASTRTPSGEN_DIR})
+if (FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
+	option(GENERATE_RTPS_BRIDGE "enable RTPS and microCDR" ON)
+endif()
+
+if (GENERATE_RTPS_BRIDGE)
+	# add micro-CDR
+	message(STATUS "RTPS bridge enabled, send: ${config_rtps_send_topics} receive: ${config_rtps_receive_topics}")
+	px4_add_git_submodule(TARGET git_micro_cdr PATH src/lib/micro-CDR)
+	add_subdirectory(src/lib/micro-CDR EXCLUDE_FROM_ALL)
+endif()
 
 #=============================================================================
 # message, and airframe generation
