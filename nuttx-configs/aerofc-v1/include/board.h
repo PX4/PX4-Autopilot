@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/tap-v1/include/board.h
+ * configs/aerofc-v1/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2012-2016 Gregory Nutt. All rights reserved.
@@ -35,8 +35,7 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIG_TAP_V1_INCLUDE_BOARD_H
-#define __CONFIG_TAP_V1_INCLUDE_BOARD_H
+#pragma once
 
 /************************************************************************************
  * Included Files
@@ -187,7 +186,7 @@
 #define BOARD_LED2_BIT    (1 << BOARD_LED2)
 
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the 2 LEDs on board
- * the tap-v1.  The following definitions describe how NuttX controls
+ * the aerofc-v1.  The following definitions describe how NuttX controls
  * the LEDs:
  */
 
@@ -420,4 +419,3 @@ EXTERN void stm32_boardinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __CONFIG_TAP_V1_INCLUDE_BOARD_H */
