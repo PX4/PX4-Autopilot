@@ -159,7 +159,7 @@ void Ekf::fuseHagl()
 bool Ekf::get_terrain_valid()
 {
 	if (_terrain_initialised && _range_data_continuous && !_rng_stuck &&
-		  !_innov_check_fail_status.flags.reject_hagl) {
+		  (_time_last_imu - _time_last_hagl_fuse < 5E6)) {
 		return true;
 
 	} else {
