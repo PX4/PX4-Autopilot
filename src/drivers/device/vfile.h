@@ -38,6 +38,8 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
+#pragma once
+
 #include <px4_tasks.h>
 #include <drivers/drv_device.h>
 #include "device.h"

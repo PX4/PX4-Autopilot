@@ -35,6 +35,8 @@
  * @file terrain_estimator.h
  */
 
+#pragma once
+
 #include <lib/mathlib/mathlib.h>
 #include "matrix/Matrix.hpp"
 #include <uORB/topics/sensor_combined.h>

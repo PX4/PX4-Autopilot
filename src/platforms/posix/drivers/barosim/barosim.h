@@ -36,5 +36,7 @@
  *
  * A simulated Barometer.
  */
+#pragma once
+
 #include "VirtDevObj.hpp"
 
