@@ -10,6 +10,7 @@ checkout:
     - git submodule sync --recursive
     - git submodule deinit -f . && rm -rf .git/modules
     - git submodule update --init --recursive --force
+    - make distclean
 
 dependencies:
   pre:
