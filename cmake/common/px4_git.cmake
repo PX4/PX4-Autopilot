@@ -41,7 +41,6 @@ include(common/px4_base)
 # 	utility functions
 #
 #		* px4_add_git_submodule
-#		* px4_create_git_hash_header
 #
 
 #=============================================================================
@@ -71,13 +70,13 @@ function(px4_add_git_submodule)
 
 	string(REPLACE "/" "_" NAME ${PATH})
 
-	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/git_init_${NAME}.stamp
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
 		COMMAND bash ${PX4_SOURCE_DIR}/Tools/check_submodules.sh ${PATH}
-		COMMAND cmake -E touch ${PX4_BINARY_DIR}/git_init_${NAME}.stamp
+		COMMAND cmake -E touch ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
 		DEPENDS ${PX4_SOURCE_DIR}/.gitmodules ${PATH}/.git
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		COMMENT "git submodule ${PATH}"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		)
 
-	add_custom_target(${TARGET} DEPENDS ${PX4_BINARY_DIR}/git_init_${NAME}.stamp)
+	add_custom_target(${TARGET} DEPENDS git_init_${NAME}.stamp)
 endfunction()

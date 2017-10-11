@@ -159,21 +159,25 @@ all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
 posix: posix_sitl_default
 broadcast: posix_sitl_broadcast
 
+# All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
+.PHONY: all posix broadcast all_nuttx_targets
+
 # Multi- config targets.
 eagle_default: posix_eagle_default qurt_eagle_default
+eagle_rtps: posix_eagle_rtps qurt_eagle_default
 eagle_legacy_default: posix_eagle_legacy qurt_eagle_legacy
 excelsior_default: posix_excelsior_default qurt_excelsior_default
+excelsior_rtps: posix_excelsior_rtps qurt_excelsior_default
 excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 
-
-# All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_legacy_default excelsior_default all_nuttx_targets
+.PHONY: eagle_default eagle_rtps eagle_legacy_default
+.PHONY: excelsior_default excelsior_rtps excelsior_legacy_default
 
 # Other targets
 # --------------------------------------------------------------------
 
 .PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware
-.PHONY: sizes check quick_check
+.PHONY: sizes check quick_check check_rtps
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
@@ -207,6 +211,14 @@ alt_firmware: \
 	check_px4esc-v1_default \
 	check_px4nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
+	sizes
+
+# builds with RTPS
+check_rtps: \
+	check_px4fmu-v3_rtps \
+	check_px4fmu-v4_rtps \
+	check_px4fmu-v4pro_rtps \
+	check_posix_sitl_rtps \
 	sizes
 
 sizes:
