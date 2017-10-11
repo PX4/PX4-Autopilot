@@ -300,6 +300,7 @@ void Ekf::controlOpticalFlowFusion()
 				// set the flag and reset the fusion timeout
 				_control_status.flags.opt_flow = true;
 				_time_last_of_fuse = _time_last_imu;
+				ECL_INFO("EKF Starting Optical Flow Use");
 
 				// if we are not using GPS then the velocity and position states and covariances need to be set
 				if (!_control_status.flags.gps) {
@@ -365,20 +366,6 @@ void Ekf::controlOpticalFlowFusion()
 
 		}
 
-		// handle the case when we are relying on optical flow fusion and lose it
-		if (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos) {
-			// We are relying on flow aiding to constrain attitude drift so after 5s without aiding we need to do something
-			if ((_time_last_imu - _time_last_of_fuse > 5e6)) {
-				// Switch to the non-aiding mode, zero the velocity states
-				// and set the synthetic position to the current estimate
-				_control_status.flags.opt_flow = false;
-				_last_known_posNE(0) = _state.pos(0);
-				_last_known_posNE(1) = _state.pos(1);
-				_state.vel.setZero();
-
-			}
-		}
-
 		// Accumulate autopilot gyro data across the same time interval as the flow sensor
 		_imu_del_ang_of += _imu_sample_delayed.delta_ang - _state.gyro_bias;
 		_delta_time_of += _imu_sample_delayed.delta_ang_dt;
@@ -395,6 +382,21 @@ void Ekf::controlOpticalFlowFusion()
 
 		}
 	}
+
+	// handle the case when we are relying on optical flow fusion and lose it
+	if (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos) {
+		// We are relying on flow aiding to constrain attitude drift so after 5s without aiding we need to do something
+		if ((_time_last_imu - _time_last_of_fuse > 5e6)) {
+			// Switch to the non-aiding mode, zero the velocity states
+			// and set the synthetic position to the current estimate
+			_control_status.flags.opt_flow = false;
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+			_state.vel.setZero();
+			ECL_WARN("EKF Stopping Optical Flow Use");
+		}
+	}
+
 }
 
 void Ekf::controlGpsFusion()
