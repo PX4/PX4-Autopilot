@@ -559,7 +559,7 @@ then
 		then
 			set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 			# Start MAVLink on Wifi (ESP8266 port)
-			mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
+			mavlink start -r 20000 -b 921600 -d /dev/ttyS0
 		fi
 
 		if ver hwcmp AEROFC_V1
