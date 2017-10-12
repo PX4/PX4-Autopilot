@@ -591,6 +591,7 @@ static int
 mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control)
 {
 	control = 0.0f;
+
 	if (control_group != 0) {
 		return -1;
 	}
