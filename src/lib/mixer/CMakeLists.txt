@@ -93,7 +93,7 @@ add_custom_target(mixer_gen_legacy
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h)
 
 px4_add_module(
-	MODULE modules__systemlib__mixer
+	MODULE lib__mixer
 	SRCS
 		mixer.cpp
 		mixer_group.cpp

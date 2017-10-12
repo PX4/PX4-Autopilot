@@ -136,7 +136,6 @@ set(config_module_list
 	modules/dataman
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 
 	#
@@ -152,6 +151,7 @@ set(config_module_list
 	lib/led
 	lib/mathlib
 	lib/mathlib/math/filter
+	lib/mixer
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation

@@ -29,7 +29,6 @@ set(config_module_list
 	#
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 
 	#
@@ -37,13 +36,14 @@ set(config_module_list
 	#
 	#lib/mathlib/CMSIS
 	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
+	lib/conversion
+	lib/DriverFramework/framework
 	lib/ecl
 	lib/geo
-	lib/conversion
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/mixer
 	lib/version
-	lib/DriverFramework/framework
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config

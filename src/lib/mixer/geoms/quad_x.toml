@@ -13,7 +13,7 @@ Cm        = 0.05
 
 [[rotors]]
 name      = "front_right"
-position  = [0.707107, 0.707107]#, 0.0]
+position  = [0.707107, 0.707107, 0.0]
 direction = "CCW"
 
 [[rotors]]
