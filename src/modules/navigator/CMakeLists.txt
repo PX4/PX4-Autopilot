@@ -47,6 +47,7 @@ px4_add_module(
 		rtl.cpp
 		takeoff.cpp
 		land.cpp
+		precland.cpp
 		mission_feasibility_checker.cpp
 		geofence.cpp
 		datalinkloss.cpp

@@ -48,6 +48,7 @@
 #include "geofence.h"
 #include "gpsfailure.h"
 #include "land.h"
+#include "precland.h"
 #include "loiter.h"
 #include "mission.h"
 #include "navigator_mode.h"
@@ -75,7 +76,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 10
+#define NAVIGATOR_MODE_ARRAY_SIZE 11
 
 class Navigator : public control::SuperBlock
 {
@@ -312,6 +313,7 @@ private:
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
 	Land		_land;			/**< class for handling land commands */
+	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
 	RCLoss 		_rcLoss;				/**< class that handles RTL according to OBC rules (rc loss mode) */
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */

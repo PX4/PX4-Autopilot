@@ -777,6 +777,32 @@ Mission::set_mission_items()
 
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 			/* XXX: noop */
+
+			if (1) { // TODO param
+				const hrt_abstime now = hrt_absolute_time();
+
+				struct vehicle_command_s cmd = {};
+				cmd.timestamp = now;
+				cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_PRECLAND;
+				cmd.target_system = (uint8_t)_navigator->get_vstatus()->system_id;
+				cmd.target_component = (uint8_t)_navigator->get_vstatus()->component_id;
+
+				_navigator->publish_vehicle_cmd(cmd);
+
+				float altitude = _navigator->get_global_position()->alt;
+
+				if (pos_sp_triplet->current.valid
+				    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+					altitude = pos_sp_triplet->current.alt;
+				}
+
+				_mission_item.altitude = altitude;
+				_mission_item.altitude_is_relative = false;
+				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				_mission_item.autocontinue = true;
+				_mission_item.time_inside = 0.0f;
+				_mission_item.disable_mc_yaw = true;
+			}
 		}
 
 		/* ignore yaw for landing items */
