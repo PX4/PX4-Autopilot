@@ -208,13 +208,20 @@ int Logger::print_status()
 {
 	PX4_INFO("Running in mode: %s", configured_backend_mode());
 
+	bool is_logging = false;
 	if (_writer.is_started(LogWriter::BackendFile)) {
 		PX4_INFO("File Logging Running");
 		print_statistics();
+		is_logging = true;
 	}
 
 	if (_writer.is_started(LogWriter::BackendMavlink)) {
 		PX4_INFO("Mavlink Logging Running");
+		is_logging = true;
+	}
+
+	if (!is_logging) {
+		PX4_INFO("Not logging");
 	}
 
 	return 0;
