@@ -54,7 +54,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 

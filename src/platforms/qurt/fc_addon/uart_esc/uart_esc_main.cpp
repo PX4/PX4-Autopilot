@@ -46,8 +46,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <systemlib/mixer/mixer.h>
-#include <systemlib/mixer/mixer_multirotor.generated.h>
+#include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_multirotor.generated.h>
 #include <systemlib/param/param.h>
 
 #ifdef __cplusplus

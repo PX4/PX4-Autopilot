@@ -134,12 +134,11 @@ set(config_module_list
 	modules/logger
 	modules/sdlog2
 
-#
+	#
 	# Library modules
 	#
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
 
@@ -147,18 +146,19 @@ set(config_module_list
 	# Libraries
 	#
 	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/rc
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
 	lib/led
-	lib/terrain_estimation
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/mixer
+	lib/rc
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/terrain_estimation
 	lib/version
 	lib/DriverFramework/framework
 

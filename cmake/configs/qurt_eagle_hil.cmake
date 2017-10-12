@@ -54,25 +54,25 @@ set(config_module_list
 	#
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
 
 	#
 	# Libraries
 	#
-	lib/mathlib
-	lib/mathlib/math/filter
+	lib/controllib
+	lib/conversion
+	lib/DriverFramework/framework
 	lib/geo
 	lib/geo_lookup
-	lib/conversion
 	lib/led
-	lib/terrain_estimation
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/mixer
 	lib/runway_takeoff
 	lib/tailsitter_recovery
-	lib/controllib
+	lib/terrain_estimation
 	lib/version
-	lib/DriverFramework/framework
 
 	#
 	# QuRT port

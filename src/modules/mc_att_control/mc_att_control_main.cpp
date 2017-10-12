@@ -64,7 +64,7 @@
 #include <px4_tasks.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/err.h>
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>

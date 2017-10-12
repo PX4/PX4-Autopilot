@@ -111,7 +111,6 @@ set(config_module_list
 	modules/dataman
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 
 	#
@@ -125,6 +124,7 @@ set(config_module_list
 	lib/geo_lookup
 	lib/launchdetection
 	lib/led
+	lib/mixer
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/rc
