@@ -96,8 +96,7 @@ Land::on_active()
 {
 	/* for VTOL update landing location during back transition */
 	if (_navigator->get_vstatus()->is_vtol &&
-		_navigator->get_vstatus()->in_transition_mode)
-	{
+	    _navigator->get_vstatus()->in_transition_mode) {
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
