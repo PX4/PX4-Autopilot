@@ -506,7 +506,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 			// calculate the yaw angle for a 312 sequence
 			euler321(2) = atan2f(R_to_earth_ev(1, 0), R_to_earth_ev(0, 0));
 
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 			// the angle of the projection onto the horizontal gives the yaw angle
@@ -579,7 +579,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 			// calculate the yaw angle for a 312 sequence
 			euler312(0) = atan2f(-R_to_earth_ev(0, 1), R_to_earth_ev(1, 1));
 
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 			// the angle of the projection onto the horizontal gives the yaw angle
@@ -616,7 +616,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		// using error estimate from external vision data
 		angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
 
-	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
 		// using magnetic heading tuning parameter
 		angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 	}
