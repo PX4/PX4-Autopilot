@@ -170,6 +170,7 @@
 // Product ID Description for ICM2602
 // Read From device
 
+#define ICM20602_REV_01		1
 #define ICM20602_REV_02		2
 
 // Product ID Description for ICM2608
