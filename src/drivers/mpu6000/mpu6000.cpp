@@ -905,6 +905,7 @@ MPU6000::probe()
 	case ICM20608_REV_FF:
 	case ICM20689_REV_FE:
 	case ICM20689_REV_03:
+	case ICM20602_REV_01:
 	case ICM20602_REV_02:
 	case MPU6050_REV_D8:
 		unknown_product_id = false;
