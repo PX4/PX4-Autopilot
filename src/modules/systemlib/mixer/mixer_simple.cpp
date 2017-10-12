@@ -299,7 +299,7 @@ SimpleMixer::mix(float *outputs, unsigned space)
 	}
 
 	for (unsigned i = 0; i < _pinfo->control_count; i++) {
-		float input;
+		float input = 0.0f;
 
 		_control_cb(_cb_handle,
 			    _pinfo->controls[i].control_group,
