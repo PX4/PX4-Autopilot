@@ -112,4 +112,3 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 	fclose(fp);
 	return 0;
 }
-
