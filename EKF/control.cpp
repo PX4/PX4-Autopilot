@@ -1105,7 +1105,7 @@ void Ekf::controlMagFusion()
 			// do no magnetometer fusion at all
 			_control_status.flags.mag_hdg = false;
 			_control_status.flags.mag_3D = false;
-		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
+		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO || _params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW) {
 			// Check if height has increased sufficiently to be away from ground magnetic anomalies
 			bool height_achieved = (_last_on_ground_posD - _state.pos(2)) > 1.5f;
 
@@ -1188,7 +1188,15 @@ void Ekf::controlMagFusion()
 				_control_status.flags.mag_hdg = true;
 			}
 
-			// perform switch-over from only updating the mag states to updating all states
+			/*
+			Control switch-over between only updating the mag states to updating all states
+			When flying as a fixed wing aircraft, a misaligned magnetometer can cause an error in pitch/roll and accel bias estimates.
+			When MAG_FUSE_TYPE_AUTOFW is selected and the vehicle is flying as a fixed wing, then magnetometer fusion is only allowed
+			to access the magnetic field states.
+			*/
+			_control_status.flags.update_mag_states_only = (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW)
+					&& _control_status.flags.fixed_wing;
+
 			if (!_control_status.flags.update_mag_states_only && _control_status_prev.flags.update_mag_states_only) {
 				// When re-commencing use of magnetometer to correct vehicle states
 				// set the field state variance to the observation variance and zero

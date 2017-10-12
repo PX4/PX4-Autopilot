@@ -179,6 +179,7 @@ struct dragSample {
 #define MAG_FUSE_TYPE_AUTO      0	///< The selection of either heading or 3D magnetometer fusion will be automatic
 #define MAG_FUSE_TYPE_HEADING   1	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
 #define MAG_FUSE_TYPE_3D        2	///< Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
+#define MAG_FUSE_TYPE_AUTOFW    3	///< The same as option 0, but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states.
 
 // Maximum sensor intervals in usec
 #define GPS_MAX_INTERVAL	5e5	///< Maximum allowable time interval between GPS measurements (uSec)
