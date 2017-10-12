@@ -18,13 +18,15 @@ depending on the actual configuration it may be necessary to reverse the scaling
 factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
-M: 1
+M: 2
 O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
+S: 0 6  10000  10000      0 -10000  10000
 
-M: 1
+M: 2
 O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
+S: 0 6 -10000 -10000      0 -10000  10000
 
 Elevator mixer
 ------------
