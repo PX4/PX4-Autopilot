@@ -79,6 +79,7 @@ mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 mavlink stream -r 10 -s MOUNT_ORIENTATION -u 14556
+mavlink stream -r 10 -s MOUNT_ORIENTATION -u 14557
 logger start -e -t
 vmount start
 camera_trigger start
