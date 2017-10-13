@@ -291,6 +291,7 @@ def generate_mixer_multirotor_header(geom_list, use_normalized_mix=False, use_6d
 if __name__ == '__main__':
     import argparse
     import glob
+    import os
 
     # Parse arguments
     parser = argparse.ArgumentParser(
@@ -312,7 +313,7 @@ if __name__ == '__main__':
     if args.files is not None:
         filenames = args.files
     else:
-        filenames = glob.glob(args.dir + '/*.toml')
+        filenames = glob.glob(os.path.join(args.dir, '*.toml'))
 
     # List of geometries
     geom_list = []
