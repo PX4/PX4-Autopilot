@@ -1,7 +1,6 @@
 # Quadcopter in Y configuration with coax rear props
 
 [info]
-name = "quad_y"
 key = "4y"
 description = "Quadcopter in Y configuration with coax rear props"
 

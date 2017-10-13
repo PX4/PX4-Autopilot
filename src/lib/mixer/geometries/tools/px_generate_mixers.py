@@ -67,6 +67,7 @@ def parse_geometry_toml(filename):
     '''
     Parses toml geometry file and returns a dictionary with curated list of rotors
     '''
+    import os
 
     # Load toml file
     d = toml.load(filename)
@@ -82,10 +83,12 @@ def parse_geometry_toml(filename):
         raise AttributeError('{}: Error, missing info section'.format(filename))
 
     # Check info section
-    for field in ['name', 'key', 'description']:
+    for field in ['key', 'description']:
         if field not in d['info']:
             raise AttributeError('{}: Error, unspecified info field "{}"'.format(filename, field))
 
+    # Use filename as mixer name
+    d['info']['name'] = os.path.basename(filename).split('.')[0].lower()
 
     # Convert rotors
     rotor_list = []
@@ -234,7 +237,9 @@ def generate_mixer_multirotor_header(geometries_list, use_normalized_mix=False, 
     # Print enum
     buf.write(u"enum class MultirotorGeometry : MultirotorGeometryUnderlyingType {\n")
     for i, geometry in enumerate(geometries_list):
-        buf.write(u"\t{} = {},\n".format(geometry['info']['name'].upper(), i))
+        buf.write(u"\t{},{}// {} (text key {})\n".format(
+            geometry['info']['name'].upper(), ' ' * (max(0, 30 - len(geometry['info']['name']))),
+            geometry['info']['description'], geometry['info']['key']))
     buf.write(u"\n\tMAX_GEOMETRY\n")
     buf.write(u"}; // enum class MultirotorGeometry\n\n")
 

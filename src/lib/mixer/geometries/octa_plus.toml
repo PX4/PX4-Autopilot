@@ -1,7 +1,6 @@
 # Generic Octacopter in + configuration
 
 [info]
-name = "octa_plus"
 key = "8+"
 description = "Generic Octacopter in + configuration"
 

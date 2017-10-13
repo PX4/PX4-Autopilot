@@ -1,7 +1,6 @@
 # Generic Quadcopter in + configuration
 
 [info]
-name = "quad_plus"
 key = "4+"
 description = "Generic Quadcopter in + configuration"
 

@@ -1,7 +1,6 @@
 # Generic Quadcopter in wide configuration
 
 [info]
-name = "quad_wide"
 key = "4w"
 description = "Quadcopter in wide configuration. Same geometry as SK450 Deadcat except the CG is moved backward to load all motors equally"
 
