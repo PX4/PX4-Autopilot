@@ -353,8 +353,11 @@ if __name__ == '__main__':
     header = generate_mixer_multirotor_header(geom_list,
                                               use_normalized_mix=args.normalize,
                                               use_6dof=args.sixdof)
-    # print(header)
 
-    # Write header file
-    with open(args.outputfile, 'w') as fd:
-        fd.write(header)
+    if args.outputfile is not None:
+        # Write header file
+        with open(args.outputfile, 'w') as fd:
+            fd.write(header)
+    else:
+        # Print to standard output
+        print(header)
