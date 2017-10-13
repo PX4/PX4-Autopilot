@@ -1,7 +1,6 @@
 # Generic Dodecacopter in X coax configuration, top half
 
 [info]
-name = "dodeca_top_cox"
 key = "6m"
 description = "Generic Dodecacopter in X coax configuration, top half"
 

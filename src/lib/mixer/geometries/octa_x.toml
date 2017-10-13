@@ -1,7 +1,6 @@
 # Generic Octacopter in X configuration
 
 [info]
-name = "octa_x"
 key = "8x"
 description = "Generic Octacopter in X configuration"
 

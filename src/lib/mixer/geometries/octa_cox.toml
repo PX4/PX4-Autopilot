@@ -1,7 +1,6 @@
 # Generic Octacopter in coax configuration
 
 [info]
-name = "octa_cox"
 key = "8c"
 description = "GenericOctacopter in coax configuration"
 

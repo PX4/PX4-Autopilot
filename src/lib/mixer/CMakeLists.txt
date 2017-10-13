@@ -33,7 +33,7 @@
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(geom_files
+set(geometry_files
 	quad_x.toml
 	quad_h.toml
 	quad_plus.toml
@@ -56,34 +56,34 @@ set(geom_files
 	dodeca_bottom_cox.toml
 )
 
-set(geom_list)
-foreach(geom_file ${geom_files})
-	list(APPEND geom_list ${CMAKE_CURRENT_SOURCE_DIR}/geoms/${geom_file})
+set(geometries_list)
+foreach(geom_file ${geometry_files})
+	list(APPEND geometries_list ${CMAKE_CURRENT_SOURCE_DIR}/geometries/${geom_file})
 endforeach()
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py -f ${geom_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py ${geom_list}
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py -f ${geometries_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py ${geometries_list}
 	)
 add_custom_target(mixer_gen
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	DEPENDS ${geom_list})
+	DEPENDS ${geometries_list})
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py --normalize -f ${geom_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py ${geom_list}
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py --normalize -f ${geometries_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py ${geometries_list}
 	)
 add_custom_target(mixer_gen_norm
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
-	DEPENDS ${geom_list})
+	DEPENDS ${geometries_list})
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py --sixdof -f ${geom_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geoms/tools/px_generate_mixers.py ${geom_list}
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py --sixdof -f ${geometries_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py ${geometries_list}
 	)
 add_custom_target(mixer_gen_6dof
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
-	DEPENDS ${geom_list})
+	DEPENDS ${geometries_list})
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py > ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h

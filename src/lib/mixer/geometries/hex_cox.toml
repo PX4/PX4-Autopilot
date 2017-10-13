@@ -1,7 +1,6 @@
 # Generic Hexacopter in coaxial configuration
 
 [info]
-name = "hex_cox"
 key = "6c"
 description = "Generic Hexacopter in coaxial configuration"
 

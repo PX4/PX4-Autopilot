@@ -1,7 +1,6 @@
 # Generic Octacopter in wide coax configuration
 
 [info]
-name = "octa_cox_wide"
 key = "8cw"
 description = "Generic Octacopter in wide coax configuration"
 

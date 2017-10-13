@@ -1,7 +1,6 @@
 # Generic Hexacopter in T configuration
 
 [info]
-name = "hex_t"
 key = "6t"
 description = "Generic Hexacopter in T configuration"
 
