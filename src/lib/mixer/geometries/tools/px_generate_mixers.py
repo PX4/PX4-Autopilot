@@ -72,12 +72,6 @@ def parse_geometry_toml(filename):
     # Load toml file
     d = toml.load(filename)
 
-    # Check default rotor config
-    if 'rotor_default' in d:
-        default = d['rotor_default']
-    else:
-        default = {}
-
     # Check info section
     if 'info' not in d:
         raise AttributeError('{}: Error, missing info section'.format(filename))
@@ -89,6 +83,15 @@ def parse_geometry_toml(filename):
 
     # Use filename as mixer name
     d['info']['name'] = os.path.basename(filename).split('.')[0].lower()
+
+    # Store filename
+    d['info']['filename'] = filename
+
+    # Check default rotor config
+    if 'rotor_default' in d:
+        default = d['rotor_default']
+    else:
+        default = {}
 
     # Convert rotors
     rotor_list = []
@@ -356,6 +359,27 @@ if __name__ == '__main__':
             print('\nNormalized Mix (as in PX4):')
             print(B_px.round(2))
             print('\n-----------------------------')
+
+    # Check that there are no duplicated mixer names or keys
+    for i in range(len(geometries_list)):
+        name_i = geometries_list[i]['info']['name']
+        key_i = geometries_list[i]['info']['key']
+
+        for j in range(i + 1, len(geometries_list)):
+            name_j = geometries_list[j]['info']['name']
+            key_j = geometries_list[j]['info']['key']
+
+            # Mixers cannot share the same name
+            if name_i == name_j:
+                raise ValueError('Duplicated mixer name "{}" in files {} and {}'.format(
+                    name_i,
+                    geometries_list[i]['info']['filename'],
+                    geometries_list[j]['info']['filename']))
+
+            # Mixers cannot share the same key
+            if key_i == key_j:
+                raise ValueError('Duplicated mixer key "{}" for mixers "{}" and "{}"'.format(
+                    key_i, name_i, name_j))
 
     # Generate header file
     header = generate_mixer_multirotor_header(geometries_list,
