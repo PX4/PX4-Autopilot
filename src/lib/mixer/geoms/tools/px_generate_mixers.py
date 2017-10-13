@@ -303,6 +303,8 @@ if __name__ == '__main__':
                         nargs="+")
     parser.add_argument('-o', dest='outputfile',
                         help='output header file')
+    parser.add_argument('--verbose', help='Print details on standard output',
+                        action='store_true')
     parser.add_argument('--normalize', help='Use normalized mixers (compatibility mode)',
                         action='store_true')
     parser.add_argument('--sixdof', help='Use 6dof mixers',
@@ -337,17 +339,18 @@ if __name__ == '__main__':
         # Add to list
         geom_list.append(geom)
 
-        # print('\nFilename')
-        # print(filename)
-        # print('\nGeometry')
-        # print(geom)
-        # print('\nA:')
-        # print(A.round(2))
-        # print('\nB:')
-        # print(B.round(2))
-        # print('\nNormalized Mix (as in PX4):')
-        # print(B_px)
-        # print('\n-----------------------------')
+        if args.verbose:
+            print('\nFilename')
+            print(filename)
+            print('\nGeometry')
+            print(geom)
+            print('\nA:')
+            print(A.round(2))
+            print('\nB:')
+            print(B.round(2))
+            print('\nNormalized Mix (as in PX4):')
+            print(B_px.round(2))
+            print('\n-----------------------------')
 
     # Generate header file
     header = generate_mixer_multirotor_header(geom_list,
