@@ -2,7 +2,6 @@
 # with added pusher motor in the back
 
 [info]
-name = "quad_x_pusher"
 key = "4x1p"
 description = "Quadcopter in X configuration, with added pusher motor in the back"
 

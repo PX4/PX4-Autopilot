@@ -1,7 +1,6 @@
 # Generic Quadcopter in H configuration
 
 [info]
-name = "quad_h"
 key = "4h"
 description = "Generic Quadcopter in H configuration"
 

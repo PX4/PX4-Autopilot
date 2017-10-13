@@ -2,7 +2,6 @@
 # Same geometry as quad_wide, except CG is located at intersection of rear arms, so front motors are more loaded.
 
 [info]
-name = "quad_deadcat"
 key = "4dc"
 description = "SK450 DeadCat Quadcopter, CG at intersection of rear arms"
 

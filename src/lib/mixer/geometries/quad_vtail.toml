@@ -1,7 +1,6 @@
 # Quadcopter in Y configuration with rear props tilted at 45 degrees
 
 [info]
-name = "quad_vtail"
 key = "4vt"
 description = "Quadcopter in Y configuration with rear props tilted at 45 degrees"
 
