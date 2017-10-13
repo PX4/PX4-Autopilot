@@ -312,8 +312,11 @@ if __name__ == '__main__':
     # Find toml files
     if args.files is not None:
         filenames = args.files
-    else:
+    elif args.dir is not None:
         filenames = glob.glob(os.path.join(args.dir, '*.toml'))
+    else:
+        parser.print_usage()
+        raise Exception("Missing input directory (-d) or list of geometry files (-f)")
 
     # List of geometries
     geom_list = []
