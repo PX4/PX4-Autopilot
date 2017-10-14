@@ -71,22 +71,33 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
 /**
  * Logging Topic Profile
  *
- * Selects a set of topics appropriate for specific tasks.
+ * This is an integer bitmask controlling the set and rates of logged topics.
+ * The default allows for general log analysis and estimator replay, while
+ * keeping the log file size reasonably small.
  *
- * This parameter is only for the new logger (SYS_LOGGER=1).
+ * Enabling multiple sets leads to higher bandwidth requirements and larger log
+ * files.
  *
- * @value 0 default
- * @value 1 thermal calibration
- * @value 2 system identification
- * @value 3 high rate
- * @value 4 debug topics
+ * Set bits in the following positions to enable:
+ * 0 : Set to true to use the default set (used for general log analysis)
+ * 1 : Set to true to enable estimator (EKF2) replay topics
+ * 2 : Set to true to enable topics for thermal calibration (raw IMU sensor data)
+ * 3 : Set to true to enable topics for system identification (high rate actuator control and IMU data)
+ * 4 : Set to true to enable full rates for analysis of fast maneuvers (RC, attitude, rates and actuators)
+ * 5 : Set to true to enable debugging topics (debug_*.msg topics, for custom code)
  *
  * @min 0
- * @max 4
+ * @max 63
+ * @bit 0 default set (log analysis)
+ * @bit 1 estimator replay (EKF2)
+ * @bit 2 thermal calibration
+ * @bit 3 system identification
+ * @bit 4 high rate
+ * @bit 5 debug
  * @reboot_required true
  * @group SD Logging
  */
-PARAM_DEFINE_INT32(SDLOG_PROFILE, 0);
+PARAM_DEFINE_INT32(SDLOG_PROFILE, 3);
 
 /**
  * Maximum number of log directories to keep

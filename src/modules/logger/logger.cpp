@@ -531,7 +531,7 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 	return updated;
 }
 
-void Logger::add_common_topics()
+void Logger::add_default_topics()
 {
 #ifdef CONFIG_ARCH_BOARD_SITL
 	add_topic("vehicle_attitude_groundtruth", 10);
@@ -740,36 +740,40 @@ void Logger::run()
 	} else {
 
 		// get the logging profile
-		SDLogProfile sdlog_profile = SDLogProfile::DEFAULT;
+		SDLogProfileMask sdlog_profile = SDLogProfileMask::DEFAULT;
 
 		if (_sdlog_profile_handle != PARAM_INVALID) {
 			param_get(_sdlog_profile_handle, &sdlog_profile);
 		}
+		if ((int32_t)sdlog_profile == 0) {
+			PX4_WARN("No logging profile selected. Using default set");
+			sdlog_profile = SDLogProfileMask::DEFAULT;
+		}
 
 		// load appropriate topics for profile
-		if (sdlog_profile == SDLogProfile::DEFAULT) {
-			add_common_topics();
-			add_estimator_replay_topics();
+		// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
+		if (sdlog_profile & SDLogProfileMask::DEFAULT) {
+			add_default_topics();
+		}
 
-		} else if (sdlog_profile == SDLogProfile::THERMAL_CALIBRATION) {
+		if (sdlog_profile & SDLogProfileMask::ESTIMATOR_REPLAY) {
+			add_estimator_replay_topics();
+		}
+
+		if (sdlog_profile & SDLogProfileMask::THERMAL_CALIBRATION) {
 			add_thermal_calibration_topics();
+		}
 
-		} else if (sdlog_profile == SDLogProfile::SYSTEM_IDENTIFICATION) {
-			add_common_topics();
+		if (sdlog_profile & SDLogProfileMask::SYSTEM_IDENTIFICATION) {
 			add_system_identification_topics();
+		}
 
-		} else if (sdlog_profile == SDLogProfile::HIGH_RATE) {
-			add_common_topics();
-			add_estimator_replay_topics();
+		if (sdlog_profile & SDLogProfileMask::HIGH_RATE) {
 			add_high_rate_topics();
+		}
 
-		} else if (sdlog_profile == SDLogProfile::DEBUG_TOPICS) {
-			add_common_topics();
+		if (sdlog_profile & SDLogProfileMask::DEBUG_TOPICS) {
 			add_debug_topics();
-
-		} else {
-			add_common_topics();
-			add_estimator_replay_topics();
 		}
 	}
 
