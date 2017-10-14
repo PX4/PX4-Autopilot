@@ -65,6 +65,8 @@ enum class SDLogProfile : int32_t {
 	DEFAULT = 0,
 	THERMAL_CALIBRATION,
 	SYSTEM_IDENTIFICATION,
+	HIGH_RATE,
+	DEBUG_TOPICS,
 	N_PROFILES
 };
 
@@ -270,6 +272,8 @@ private:
 	void add_estimator_replay_topics();
 	void add_thermal_calibration_topics();
 	void add_system_identification_topics();
+	void add_high_rate_topics();
+	void add_debug_topics();
 
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
 
