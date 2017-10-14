@@ -167,17 +167,17 @@
 #define MPUREG_ICM_UNDOC1		0x11
 #define MPUREG_ICM_UNDOC1_VALUE	0xc9
 
-// Product ID Description for ICM2602
+// Product ID Description for ICM20602
 // Read From device
 
 #define ICM20602_REV_01		1
 #define ICM20602_REV_02		2
 
-// Product ID Description for ICM2608
+// Product ID Description for ICM20608
 
 #define ICM20608_REV_FF		0xff // In the past, was thought to be not returning a value. But seem repeatable.
 
-// Product ID Description for ICM2689
+// Product ID Description for ICM20689
 
 #define ICM20689_REV_FE		0xfe
 #define ICM20689_REV_03		0x03

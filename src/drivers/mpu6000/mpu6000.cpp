@@ -34,7 +34,7 @@
 /**
  * @file mpu6000.cpp
  *
- * Driver for the Invensense MPU6000, MPU6050 and the ICM2608 connected via
+ * Driver for the Invensense MPU6000, MPU6050, ICM20608, and ICM20602 connected via
  * SPI or I2C.
  *
  * When the device is on the SPI bus the hrt is used to provide thread of
@@ -44,11 +44,11 @@
  * execution to the driver.
  *
  * The I2C code is only included in the build if USE_I2C is defined by the
- * existance of any of PX4_I2C_MPU6050_ADDR, PX4_I2C_MPU6000_ADDR or
+ * existance of any of PX4_I2C_MPU6050_ADDR, PX4_I2C_MPU6000_ADDR
  * PX4_I2C_ICM_20608_G_ADDR in the board_config.h file.
  *
- * The command line option -T 6000|20608 (default 6000) selects between
- * MPU60x0 or the ICM20608G;
+ * The command line option -T 6000|20608|20602 (default 6000) selects between
+ * MPU60x0, ICM20608G, or ICM20602G;
  *
  * @author Andrew Tridgell
  * @author Pat Hickey
@@ -101,9 +101,9 @@
   accelerometer values. This time reduction is enough to cope with
   worst case timing jitter due to other timers
 
-  I2C bus is running at 100 kHz Transaction time is 2.163Ms
- I2C bus is running at 400 kHz (304 kHz acutal) Transaction time
- is 583 uS
+  I2C bus is running at 100 kHz Transaction time is 2.163ms
+  I2C bus is running at 400 kHz (304 kHz actual) Transaction time
+  is 583 us
 
  */
 #define MPU6000_TIMER_REDUCTION				200
