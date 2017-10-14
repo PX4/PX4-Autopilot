@@ -61,14 +61,19 @@ namespace px4
 namespace logger
 {
 
-enum class SDLogProfile : int32_t {
-	DEFAULT = 0,
-	THERMAL_CALIBRATION,
-	SYSTEM_IDENTIFICATION,
-	HIGH_RATE,
-	DEBUG_TOPICS,
-	N_PROFILES
+enum class SDLogProfileMask : int32_t {
+	DEFAULT =               1 << 0,
+	ESTIMATOR_REPLAY =      1 << 1,
+	THERMAL_CALIBRATION =   1 << 2,
+	SYSTEM_IDENTIFICATION = 1 << 3,
+	HIGH_RATE =             1 << 4,
+	DEBUG_TOPICS =          1 << 5
 };
+
+inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
+{
+	return static_cast<int32_t>(a) & static_cast<int32_t>(b);
+}
 
 struct LoggerSubscription {
 	int fd[ORB_MULTI_MAX_INSTANCES];
@@ -268,7 +273,7 @@ private:
 	 */
 	int add_topics_from_file(const char *fname);
 
-	void add_common_topics();
+	void add_default_topics();
 	void add_estimator_replay_topics();
 	void add_thermal_calibration_topics();
 	void add_system_identification_topics();
