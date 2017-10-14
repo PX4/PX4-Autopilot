@@ -78,9 +78,11 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
  * @value 0 default
  * @value 1 thermal calibration
  * @value 2 system identification
+ * @value 3 high rate
+ * @value 4 debug topics
  *
  * @min 0
- * @max 2
+ * @max 4
  * @reboot_required true
  * @group SD Logging
  */
