@@ -57,11 +57,12 @@ class InputRC : public InputBase
 public:
 
 	/**
+	 * @param do_stabilization
 	 * @param aux_channel_roll   which aux channel to use for roll (set to 0 to use a fixed angle of 0)
 	 * @param aux_channel_pitch
 	 * @param aux_channel_yaw
 	 */
-	InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw);
+	InputRC(bool do_stabilization, int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw);
 	virtual ~InputRC();
 
 	virtual void print_status();
@@ -80,6 +81,7 @@ protected:
 	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
 
 private:
+	const bool _do_stabilization;
 	int _aux_channels[3];
 	int _manual_control_setpoint_sub = -1;
 

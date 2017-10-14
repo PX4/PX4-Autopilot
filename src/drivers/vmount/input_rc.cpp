@@ -48,7 +48,8 @@ namespace vmount
 {
 
 
-InputRC::InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw)
+InputRC::InputRC(bool do_stabilization, int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw)
+	: _do_stabilization(do_stabilization)
 {
 	_aux_channels[0] = aux_channel_roll;
 	_aux_channels[1] = aux_channel_pitch;
@@ -132,7 +133,7 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 		for (int i = 0; i < 3; ++i) {
 			control_data.type_data.angle.is_speed[i] = false;
 			control_data.type_data.angle.angles[i] = new_aux_values[i] * M_PI_F;
-			control_data.stabilize_axis[i] = false;
+			control_data.stabilize_axis[i] = _do_stabilization;
 
 			_last_set_aux_values[i] = new_aux_values[i];
 		}
