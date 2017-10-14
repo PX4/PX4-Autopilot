@@ -53,6 +53,13 @@ struct OutputConfig {
 	float gimbal_retracted_mode_value; /**< mixer output value for selecting gimbal retracted mode */
 	float gimbal_normal_mode_value; /**< mixer output value for selecting gimbal normal mode */
 
+	float pitch_range;
+	float roll_range;
+	float yaw_range;
+	float pitch_offset;
+	float roll_offset;
+	float yaw_offset;
+
 	uint32_t mavlink_sys_id; /**< mavlink target system id for mavlink output */
 	uint32_t mavlink_comp_id;
 };

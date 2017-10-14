@@ -73,9 +73,13 @@ int OutputRC::update(const ControlData *control_data)
 
 	actuator_controls_s actuator_controls;
 	actuator_controls.timestamp = hrt_absolute_time();
-	actuator_controls.control[0] = _angle_outputs[0] / M_PI_F;
-	actuator_controls.control[1] = _angle_outputs[1] / M_PI_F;
-	actuator_controls.control[2] = _angle_outputs[2] / M_PI_F;
+	// _angle_outputs are in radians, actuator_controls are in [-1, 1]
+	actuator_controls.control[0] = (_angle_outputs[0] + _config.roll_offset * M_DEG_TO_RAD_F) /
+				       (_config.roll_range * (M_DEG_TO_RAD_F / 2.0f));
+	actuator_controls.control[1] = (_angle_outputs[1] + _config.pitch_offset * M_DEG_TO_RAD_F) /
+				       (_config.pitch_range * (M_DEG_TO_RAD_F / 2.0f));
+	actuator_controls.control[2] = (_angle_outputs[2] + _config.yaw_offset * M_DEG_TO_RAD_F) /
+				       (_config.yaw_range * (M_DEG_TO_RAD_F / 2.0f));
 	actuator_controls.control[3] = _retract_gimbal ? _config.gimbal_retracted_mode_value : _config.gimbal_normal_mode_value;
 
 	int instance;
