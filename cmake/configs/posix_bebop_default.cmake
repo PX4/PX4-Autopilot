@@ -13,7 +13,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/linux_sbus
 	modules/sensors
 	platforms/posix/drivers/df_ms5607_wrapper
@@ -87,13 +86,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 )
 
 set(config_df_driver_list

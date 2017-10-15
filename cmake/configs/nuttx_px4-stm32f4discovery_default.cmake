@@ -6,10 +6,8 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
 	drivers/led
-	drivers/boards
 
 	#
 	# System commands
@@ -45,11 +43,6 @@ set(config_module_list
 	lib/conversion
 	lib/version
 	lib/DriverFramework/framework
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 
 	#
 	# Demo apps

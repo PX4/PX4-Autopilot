@@ -6,11 +6,9 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
 	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/mpu9250
 	drivers/lps25h
 	drivers/gps
@@ -95,11 +93,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge

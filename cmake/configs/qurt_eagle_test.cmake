@@ -21,7 +21,6 @@ include(qurt_flags)
 include_directories(${HEXAGON_SDK_INCLUDES})
 
 set(config_module_list
-	drivers/device
 
 	#
 	# System commands
@@ -44,12 +43,6 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
 	platforms/qurt/tests/hello
 	platforms/posix/tests/vcdev_test
 	platforms/posix/tests/hrt_test

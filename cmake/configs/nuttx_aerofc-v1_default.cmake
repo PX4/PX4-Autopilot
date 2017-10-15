@@ -8,11 +8,9 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
 	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/tap_esc
 	drivers/mpu9250
 	drivers/ms5611
@@ -88,7 +86,4 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	lib/rc
-	platforms/nuttx
-	platforms/common
-	platforms/nuttx/px4_layer
 )

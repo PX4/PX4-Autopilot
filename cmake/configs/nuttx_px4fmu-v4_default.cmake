@@ -15,10 +15,8 @@ set(config_module_list
 	drivers/bmi160
 	drivers/bmm150
 	drivers/bmp280
-	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
-	drivers/device
 	drivers/ets_airspeed
 	drivers/frsky_telemetry
 	drivers/gps
@@ -161,13 +159,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-
-	#
-	# Platform
-	#
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge

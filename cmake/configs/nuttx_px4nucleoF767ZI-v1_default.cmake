@@ -13,10 +13,8 @@ set(config_module_list
 	drivers/bma180
 	drivers/bmi160
 	drivers/bmp280
-	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
-	drivers/device
 	drivers/ets_airspeed
 	drivers/frsky_telemetry
 	drivers/gps
@@ -136,11 +134,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge

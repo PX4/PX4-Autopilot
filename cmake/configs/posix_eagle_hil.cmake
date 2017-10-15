@@ -19,8 +19,6 @@ else()
 endif()
 
 set(config_module_list
-	drivers/device
-	drivers/boards
 	drivers/led
 	drivers/linux_sbus
 
@@ -49,9 +47,6 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 	modules/muorb/krait
 	)
 

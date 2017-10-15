@@ -16,7 +16,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/ms4525_airspeed
@@ -108,13 +107,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 )
 
 #

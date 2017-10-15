@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,39 +31,5 @@
 #
 ############################################################################
 
-set(SRCS)
-
-list(APPEND SRCS
-	ringbuffer.cpp
-	integrator.cpp
-)
-
-if(${OS} STREQUAL "nuttx" AND NOT ${BOARD} MATCHES "io")
-	list(APPEND SRCS
-		device_nuttx.cpp
-		cdev.cpp
-	)
-	if ("${CONFIG_I2C}" STREQUAL "y")
-		list(APPEND SRCS i2c_nuttx.cpp)
-	endif()
-	if ("${CONFIG_SPI}" STREQUAL "y")
-		list(APPEND SRCS spi.cpp)
-	endif()
-elseif(${OS} STREQUAL "posix" OR ${OS} STREQUAL "qurt")
-	list(APPEND SRCS
-		device_posix.cpp
-		vdev.cpp
-		vfile.cpp
-		vdev_posix.cpp
-		i2c_posix.cpp
-		sim.cpp
-	)
-
-endif()
-
-px4_add_module(
-	MODULE drivers__device
-	SRCS ${SRCS}
-	DEPENDS
-		platforms__common
-	)
+add_subdirectory(px4_layer)
+add_subdirectory(work_queue)

@@ -376,7 +376,7 @@ endif()
 #
 include(common/px4_metadata)
 
-add_subdirectory(msg)
+add_subdirectory(msg EXCLUDE_FROM_ALL)
 
 px4_generate_airframes_xml(BOARD ${BOARD})
 
@@ -431,6 +431,11 @@ endif()
 #=============================================================================
 # subdirectories
 #
+
+add_subdirectory(src/platforms EXCLUDE_FROM_ALL)
+add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
+add_subdirectory(src/drivers/device EXCLUDE_FROM_ALL)
+
 foreach(module ${config_module_list})
 	string(REGEX MATCH "^[./]" external_module ${module})
 	if (external_module)
@@ -442,6 +447,7 @@ foreach(module ${config_module_list})
 	endif()
 endforeach()
 
+# firmware added last to generate the builtin for included modules
 add_subdirectory(src/firmware/${OS})
 
 #=============================================================================

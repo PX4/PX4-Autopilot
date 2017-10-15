@@ -8,13 +8,11 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
 	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/rgbled_pwm
 	drivers/tap_esc
 	drivers/mpu6000
@@ -103,9 +101,4 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/version
 	lib/DriverFramework/framework
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 )

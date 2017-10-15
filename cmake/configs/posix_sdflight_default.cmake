@@ -28,13 +28,11 @@ endif()
 set(CONFIG_SHMEM "1")
 
 set(config_module_list
-	drivers/device
 	drivers/blinkm
 	drivers/linux_sbus
 	drivers/pwm_out_sim
 	drivers/rgbled
 	drivers/led
-	drivers/boards
 	drivers/qshell/posix
 
 	systemcmds/param
@@ -82,10 +80,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 	)
 
 set(config_rtps_send_topics

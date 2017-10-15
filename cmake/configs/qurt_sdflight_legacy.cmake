@@ -31,7 +31,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_bmp280_wrapper
@@ -94,13 +93,6 @@ set(config_module_list
 	lib/rc
 	lib/version
 	lib/DriverFramework/framework
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# sources for muorb over fastrpc

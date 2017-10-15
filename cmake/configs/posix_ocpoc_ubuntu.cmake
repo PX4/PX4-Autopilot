@@ -18,7 +18,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_ms5611_wrapper
@@ -94,13 +93,6 @@ set(config_module_list
 	lib/rc
 	lib/led
 
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
-	
 	examples/px4_simple_app
 )
 

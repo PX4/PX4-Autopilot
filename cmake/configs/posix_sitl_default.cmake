@@ -3,9 +3,7 @@ include(posix/px4_impl_posix)
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
-	drivers/boards
 	drivers/camera_trigger
-	drivers/device
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/vmount
@@ -136,13 +134,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
-
-	#
-	# Platform
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# OBC challenge
