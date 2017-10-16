@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_subdirectory(launchdetection)
+
 px4_add_module(
 	MODULE modules__fw_pos_control_l1
 	MAIN fw_pos_control_l1

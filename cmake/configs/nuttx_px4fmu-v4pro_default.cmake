@@ -150,7 +150,6 @@ set(config_module_list
 	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
-	lib/launchdetection
 	lib/led
 	lib/mathlib
 	lib/mathlib/math/filter

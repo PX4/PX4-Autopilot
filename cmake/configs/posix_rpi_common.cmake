@@ -98,7 +98,6 @@ set(config_module_list
 	lib/geo
 	lib/ecl
 	lib/geo_lookup
-	lib/launchdetection
 	lib/led
 	lib/external_lgpl
 	lib/conversion

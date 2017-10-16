@@ -78,7 +78,6 @@ set(config_module_list
 	lib/geo
 	lib/ecl
 	lib/geo_lookup
-	lib/launchdetection
 	lib/external_lgpl
 	lib/conversion
 	lib/terrain_estimation

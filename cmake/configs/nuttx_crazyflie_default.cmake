@@ -87,7 +87,6 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
-	lib/launchdetection
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery

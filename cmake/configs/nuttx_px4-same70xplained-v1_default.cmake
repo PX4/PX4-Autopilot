@@ -123,7 +123,6 @@ set(config_module_list
 	lib/conversion
 	lib/led
 	lib/DriverFramework/framework
-	lib/launchdetection
 	lib/version
 	lib/terrain_estimation
 	lib/runway_takeoff
