@@ -155,8 +155,8 @@ extern "C" {
 			return -1;
 		}
 
-		PX4_DEBUG("px4_open fd = %d", filemap[i]->fd);
-		return filemap[i]->fd;
+		PX4_DEBUG("px4_open fd = %d", i);
+		return i;
 	}
 
 	int px4_close(int fd)
