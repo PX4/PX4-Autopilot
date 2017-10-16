@@ -62,7 +62,6 @@
 #include <arch/board/board.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>

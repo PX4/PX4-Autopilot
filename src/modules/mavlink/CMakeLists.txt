@@ -31,13 +31,13 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
 	STACK_MAIN 1200
 	STACK_MAX 1500
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	COMPILE_FLAGS
 		-Wno-extra-semi
 		-Wno-sign-compare # TODO: fix all sign-compare
@@ -57,6 +57,5 @@ px4_add_module(
 		mavlink_stream.cpp
 		mavlink_ulog.cpp
 	DEPENDS
-		platforms__common
+		version
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

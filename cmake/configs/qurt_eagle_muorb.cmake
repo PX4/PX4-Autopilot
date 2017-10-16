@@ -30,19 +30,8 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
-
-	#
-	# Libraries
-	#
-	lib/mathlib
-	lib/geo
-	lib/geo_lookup
-	lib/conversion
-	lib/version
-	lib/DriverFramework/framework
 
 	platforms/qurt/tests/muorb
 

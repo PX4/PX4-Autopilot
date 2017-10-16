@@ -250,7 +250,16 @@ function(px4_add_module)
 	endif()
 
 	if(DEPENDS)
-		add_dependencies(${MODULE} ${DEPENDS})
+		# using target_link_libraries for dependencies provides linking
+		#  as well as interface include and libraries
+		foreach(dep ${DEPENDS})
+			get_target_property(dep_type ${dep} TYPE)
+			if (${dep_type} STREQUAL "STATIC_LIBRARY")
+				target_link_libraries(${MODULE} PRIVATE ${dep})
+			else()
+				add_dependencies(${MODULE} ${dep})
+			endif()
+		endforeach()
 	endif()
 
 	# join list variables to get ready to send to compiler
@@ -458,14 +467,14 @@ function(px4_add_common_flags)
 		${PX4_BINARY_DIR}
 		${PX4_BINARY_DIR}/src/modules
 
-		${PX4_SOURCE_DIR}/src
 		# TODO: replace with cmake PUBLIC target_include_directories
 		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
-
-		${PX4_SOURCE_DIR}/src/include
-		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		${PX4_SOURCE_DIR}/src/lib/matrix
+
+		${PX4_SOURCE_DIR}/src
+		${PX4_SOURCE_DIR}/src/include
+		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/modules
 		${PX4_SOURCE_DIR}/src/platforms
 		)

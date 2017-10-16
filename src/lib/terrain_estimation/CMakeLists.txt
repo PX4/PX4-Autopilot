@@ -30,13 +30,5 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__terrain_estimation
-	STACK_MAIN 1024
-	COMPILE_FLAGS
-	SRCS
-		terrain_estimator.cpp
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+add_library(terrain_estimator EXCLUDE_FROM_ALL terrain_estimator.cpp)
+add_dependencies(terrain_estimator prebuild_targets)

@@ -64,7 +64,6 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>

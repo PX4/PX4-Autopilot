@@ -58,6 +58,5 @@ set(config_module_list
 	#
 	lib/version
 	modules/systemlib
-	modules/systemlib/param
 	modules/uORB
 )

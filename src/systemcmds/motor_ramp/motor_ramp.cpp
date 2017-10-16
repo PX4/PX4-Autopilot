@@ -56,7 +56,6 @@
 #include <drivers/drv_pwm_output.h>
 #include <platforms/px4_defines.h>
 
-#include "systemlib/systemlib.h"
 #include "systemlib/err.h"
 #include "uORB/topics/actuator_controls.h"
 

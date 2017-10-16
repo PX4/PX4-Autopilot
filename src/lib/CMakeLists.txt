@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__tailsitter_recovery
-	STACK_MAIN 400
-	COMPILE_FLAGS
-	SRCS
-		tailsitter_recovery.cpp
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+px4_add_git_submodule(TARGET git_driverframework PATH "DriverFramework")
+px4_add_git_submodule(TARGET git_ecl PATH "ecl")
+px4_add_git_submodule(TARGET git_matrix PATH "matrix")
+
+add_subdirectory(battery)
+add_subdirectory(controllib)
+add_subdirectory(conversion)
+add_subdirectory(DriverFramework/framework)
+add_subdirectory(ecl)
+add_subdirectory(external_lgpl)
+add_subdirectory(geo)
+add_subdirectory(geo_lookup)
+add_subdirectory(led)
+add_subdirectory(mathlib)
+add_subdirectory(mixer)
+add_subdirectory(rc)
+add_subdirectory(terrain_estimation)
+add_subdirectory(version)

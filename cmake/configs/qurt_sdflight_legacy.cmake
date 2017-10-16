@@ -57,9 +57,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
 	modules/land_detector
@@ -76,21 +74,6 @@ set(config_module_list
 	# FC_ADDON drivers
 	#
 	platforms/qurt/fc_addon/uart_esc
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/geo
-	lib/ecl
-	lib/geo_lookup
-	lib/conversion
-	lib/terrain_estimation
-	lib/tailsitter_recovery
-	lib/rc
-	lib/version
-	lib/DriverFramework/framework
 
 	#
 	# sources for muorb over fastrpc

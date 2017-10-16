@@ -43,9 +43,9 @@ px4_add_module(
 		FixedwingPositionControl.cpp
 		Landingslope.cpp
 	DEPENDS
-		platforms__common
+		launchdetection
+		runway_takeoff
 		git_ecl
-		lib__external_lgpl
 		lib__ecl
+		external_lgpl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -67,14 +67,12 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
-#include <systemlib/mixer/mixer.h>
+#include <mixer/mixer.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
-#include <systemlib/circuit_breaker.h>
+#include <systemlib/circuit_breaker/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/battery.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -83,7 +81,6 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
@@ -275,7 +272,6 @@ private:
 	/* advertised topics */
 	orb_advert_t 		_to_input_rc;		///< rc inputs from io
 	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
-	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
 	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
@@ -293,8 +289,6 @@ private:
 	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
-
-	Battery			_battery;
 
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
@@ -504,7 +498,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_vehicle_command(-1),
 	_to_input_rc(nullptr),
 	_to_outputs(nullptr),
-	_to_battery(nullptr),
 	_to_servorail(nullptr),
 	_to_safety(nullptr),
 	_to_mixer_status(nullptr),
@@ -519,7 +512,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_last_timestamp(0),
 	_cb_flighttermination(true),
 	_in_esc_calibration_mode(false),
-	_battery{},
 	_rssi_pwm_chan(0),
 	_rssi_pwm_max(0),
 	_rssi_pwm_min(0),
@@ -1054,21 +1046,6 @@ PX4IO::task_main()
 					io_set_rc_config();
 				}
 
-				/* re-set the battery scaling */
-				int32_t voltage_scaling_val = 10000;
-				param_t voltage_scaling_param;
-
-				/* set battery voltage scaling */
-				param_get(voltage_scaling_param = param_find("BAT_V_SCALE_IO"), &voltage_scaling_val);
-
-				/* send scaling voltage to IO */
-				uint16_t scaling = voltage_scaling_val;
-				int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
-
-				if (pret != OK) {
-					mavlink_log_critical(&_mavlink_log_pub, "IO vscale upload failed");
-				}
-
 				/* send RC throttle failsafe value to IO */
 				int32_t failsafe_param_val;
 				param_t failsafe_param = param_find("RC_FAILS_THR");
@@ -1080,7 +1057,7 @@ PX4IO::task_main()
 					if (failsafe_param_val > 0) {
 
 						uint16_t failsafe_thr = failsafe_param_val;
-						pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
+						int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
 
 						if (pret != OK) {
 							mavlink_log_critical(&_mavlink_log_pub, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
@@ -1259,9 +1236,6 @@ PX4IO::task_main()
 					param_get(parm_handle, &param_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_MOTOR_SLEW_MAX, FLOAT_TO_REG(param_val));
 				}
-
-				// Also trigger param update in Battery instance.
-				_battery.updateParams();
 			}
 
 		}

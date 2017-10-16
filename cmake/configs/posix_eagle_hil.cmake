@@ -27,7 +27,6 @@ set(config_module_list
 
 	modules/mavlink
 
-	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
 	modules/sensors
@@ -37,15 +36,5 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 
-	lib/controllib
-	lib/mathlib
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/conversion
-	lib/version
-	lib/DriverFramework/framework
-
 	modules/muorb/krait
 	)
-

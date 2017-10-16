@@ -67,9 +67,7 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
 	modules/land_detector
@@ -88,22 +86,6 @@ set(config_module_list
 	drivers/navio_rgbled
 	drivers/pwm_out_sim
 	drivers/rpi_rc_in
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/geo
-	lib/ecl
-	lib/geo_lookup
-	lib/led
-	lib/external_lgpl
-	lib/conversion
-	lib/terrain_estimation
-	lib/tailsitter_recovery
-	lib/version
-	lib/DriverFramework/framework
 )
 
 #

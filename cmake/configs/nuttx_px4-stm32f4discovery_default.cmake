@@ -25,23 +25,8 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
-
-	#
-	# Libraries
-	#
-	#lib/mathlib/CMSIS
-	lib/controllib
-	lib/mathlib
-	lib/ecl
-	lib/external_lgpl
-	lib/geo
-	lib/conversion
-	lib/version
-	lib/DriverFramework/framework
 
 	#
 	# Demo apps

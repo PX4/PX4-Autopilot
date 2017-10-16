@@ -52,8 +52,7 @@
 // #include <poll.h>
 // #include <drivers/drv_hrt.h>
 // #include <arch/board/board.h>
-// #include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+// #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 // #include <mavlink/mavlink_log.h>
 

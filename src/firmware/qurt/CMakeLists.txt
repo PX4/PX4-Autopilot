@@ -28,7 +28,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		${PX4_BINARY_DIR}/src/firmware/qurt/px4muorb_skel.c
 		${PX4_BINARY_DIR}/apps.cpp)
 
-	target_link_libraries(px4
+	target_link_libraries(px4 PRIVATE
 		-Wl,--start-group
 		${module_libraries}
 		${df_driver_libs}

@@ -50,7 +50,6 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
-#include <systemlib/systemlib.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_innovations.h>

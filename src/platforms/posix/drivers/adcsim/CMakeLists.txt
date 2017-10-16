@@ -33,17 +33,9 @@
 px4_add_module(
 	MODULE platforms__posix__drivers__adcsim
 	MAIN adcsim
-	COMPILE_FLAGS
 	SRCS
 		adcsim.cpp
 	DEPENDS
-		platforms__common
 		git_driverframework
 		df_driver_framework
 	)
-
-target_link_libraries(platforms__posix__drivers__adcsim
-	df_driver_framework
-)
-
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

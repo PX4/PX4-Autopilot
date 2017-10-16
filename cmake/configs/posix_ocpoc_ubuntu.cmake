@@ -54,9 +54,7 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
 	modules/land_detector
@@ -72,23 +70,6 @@ set(config_module_list
 	drivers/linux_pwm_out
 	drivers/rgbled
 	drivers/ulanding
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/geo
-	lib/ecl
-	lib/geo_lookup
-	lib/external_lgpl
-	lib/conversion
-	lib/terrain_estimation
-	lib/tailsitter_recovery
-	lib/version
-	lib/DriverFramework/framework
-	lib/rc
-	lib/led
 
 	examples/px4_simple_app
 )

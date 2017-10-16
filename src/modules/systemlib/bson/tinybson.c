@@ -56,7 +56,7 @@
 
 #define BSON_READ  read
 #define BSON_WRITE write
-#define BSON_FSYNC px4_fsync
+#define BSON_FSYNC fsync
 
 static int
 read_x(bson_decoder_t decoder, void *p, size_t s)

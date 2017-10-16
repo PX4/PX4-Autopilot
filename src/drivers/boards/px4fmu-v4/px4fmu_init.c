@@ -76,10 +76,7 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
-
 #include <systemlib/hardfault_log.h>
-
-#include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 
 /****************************************************************************

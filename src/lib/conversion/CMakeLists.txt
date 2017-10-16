@@ -30,12 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__conversion
-	COMPILE_FLAGS
-	SRCS
-		rotation.cpp
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+add_library(rotation EXCLUDE_FROM_ALL rotation.cpp)
+add_dependencies(rotation prebuild_targets)

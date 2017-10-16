@@ -31,9 +31,12 @@
 #
 ############################################################################
 
-px4_add_library(mathlib
+add_library(mathlib EXCLUDE_FROM_ALL
 	math/filter/LowPassFilter2p.cpp
 	math/Limits.cpp
 	math/matrix_alg.cpp
 	math/test/test.cpp
 	)
+
+add_dependencies(mathlib git_matrix prebuild_targets)
+target_include_directories(mathlib PUBLIC ${PX4_SOURCE_DIR}/src/lib/matrix)

@@ -55,26 +55,9 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/geo
-	lib/geo_lookup
-	lib/conversion
-	lib/ecl
-	lib/led
-	lib/terrain_estimation
-	lib/tailsitter_recovery
-	lib/version
-	lib/DriverFramework/framework
 
 	#
 	# sources for muorb over fastrpc

@@ -31,23 +31,15 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
 px4_add_module(
 	MODULE platforms__posix__drivers__gyrosim
 	MAIN gyrosim
 	STACK_MAIN 1200
-	COMPILE_FLAGS
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		gyrosim.cpp
 	DEPENDS
-		platforms__common
 		git_driverframework
 		df_driver_framework
 	)
-
-target_link_libraries(platforms__posix__drivers__gyrosim
-	df_driver_framework
-)
-
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

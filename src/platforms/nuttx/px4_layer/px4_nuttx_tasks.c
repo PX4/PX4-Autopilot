@@ -54,7 +54,6 @@
 
 
 #include <px4_log.h>
-#include <systemlib/systemlib.h>
 
 
 void

@@ -201,7 +201,7 @@ dodeca_top_cox = [
     [ -30, CW],
     [ 150, CCW],
     [  30, CCW],
-    [-150, CW],                                          
+    [-150, CW],
 ]
 
 dodeca_bottom_cox = [

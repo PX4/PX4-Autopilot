@@ -51,9 +51,7 @@ set(config_module_list
 	modules/mc_pos_control
 	modules/mc_att_control
 
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/muorb/krait
 	modules/sensors
@@ -66,18 +64,6 @@ set(config_module_list
 
 	# micro RTPS
 	modules/micrortps_bridge/micrortps_client
-
-	lib/controllib
-	lib/mathlib
-	lib/conversion
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/led
-	lib/terrain_estimation
-	lib/tailsitter_recovery
-	lib/version
-	lib/DriverFramework/framework
 	)
 
 set(config_rtps_send_topics

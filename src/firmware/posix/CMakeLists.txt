@@ -1,5 +1,7 @@
 include (common/px4_upload)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
@@ -52,7 +54,7 @@ elseif ("${BOARD}" STREQUAL "rpi")
 		apps.cpp
 		)
 
-	target_link_libraries(${APP_NAME}
+	target_link_libraries(${APP_NAME} PRIVATE
 		-Wl,--start-group
 		${module_libraries}
 		df_driver_framework
@@ -82,7 +84,7 @@ elseif ("${BOARD}" STREQUAL "bebop")
 		)
 
 	if (NOT APPLE)
-		target_link_libraries(${APP_NAME}
+		target_link_libraries(${APP_NAME} PRIVATE
 			-Wl,--start-group
 			${module_libraries}
 			${df_driver_libs}
@@ -90,7 +92,7 @@ elseif ("${BOARD}" STREQUAL "bebop")
 			-Wl,--end-group
 			)
 	else()
-		target_link_libraries(${APP_NAME}
+		target_link_libraries(${APP_NAME} PRIVATE
 			${module_libraries}
 			${df_driver_libs}
 			pthread m
@@ -104,10 +106,12 @@ elseif ("${BOARD}" STREQUAL "bebop")
 				DEPENDS px4
 				DEST /usr/bin)
 
-elseif ("${BOARD}" STREQUAL "sitl")
+elseif (${BOARD} STREQUAL "sitl")
 
-	include(./sitl_target.cmake)
-	include(./sitl_tests.cmake)
+	include(sitl_target)
+	if(BUILD_TESTING)
+		include(sitl_tests)
+	endif()
 
 else()
 
@@ -117,7 +121,7 @@ else()
 		)
 
 	if (NOT APPLE)
-		target_link_libraries(${APP_NAME}
+		target_link_libraries(${APP_NAME} PRIVATE
 			-Wl,--start-group
 			${module_libraries}
 			${df_driver_libs}
@@ -125,7 +129,7 @@ else()
 			-Wl,--end-group
 			)
 	else()
-		target_link_libraries(${APP_NAME}
+		target_link_libraries(${APP_NAME} PRIVATE
 			${module_libraries}
 			${df_driver_libs}
 			pthread m

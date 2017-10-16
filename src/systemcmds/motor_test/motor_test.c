@@ -52,10 +52,6 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/test_motor.h>
 
-
-#include "systemlib/systemlib.h"
-
-
 __EXPORT int motor_test_main(int argc, char *argv[]);
 
 static void motor_test(unsigned channel, float value);

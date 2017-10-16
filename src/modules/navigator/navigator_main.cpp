@@ -59,7 +59,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/systemlib.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>

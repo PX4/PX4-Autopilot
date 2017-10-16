@@ -54,8 +54,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/circuit_breaker.h>
+#include <systemlib/circuit_breaker/circuit_breaker.h>
 // internal libraries
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>

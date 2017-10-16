@@ -71,10 +71,6 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/param/param.h>
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-#include <systemlib/systemlib.h>
-#endif
-
 #if defined(FLASH_BASED_PARAMS)
 # include <systemlib/flashparams/flashfs.h>
 #endif

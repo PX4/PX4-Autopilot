@@ -44,7 +44,6 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
-#include <systemlib/systemlib.h>
 
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"

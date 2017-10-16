@@ -61,9 +61,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
 	modules/land_detector
@@ -76,21 +74,6 @@ set(config_module_list
 	drivers/spektrum_rc
 	drivers/qshell/qurt
 	drivers/snapdragon_pwm_out
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/geo
-	lib/ecl
-	lib/geo_lookup
-	lib/conversion
-	lib/terrain_estimation
-	lib/tailsitter_recovery
-	lib/rc
-	lib/version
-	lib/DriverFramework/framework
 
 	#
 	# sources for muorb over fastrpc

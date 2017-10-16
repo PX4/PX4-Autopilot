@@ -103,28 +103,9 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/rc
-	lib/ecl
-	lib/external_lgpl
-	lib/geo
-	lib/geo_lookup
-	lib/conversion
-	lib/led
-	lib/DriverFramework/framework
-	lib/version
-	lib/terrain_estimation
-	lib/tailsitter_recovery
 
 	#
 	# OBC challenge

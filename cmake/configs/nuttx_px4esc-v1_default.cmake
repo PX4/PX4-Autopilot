@@ -61,12 +61,4 @@ set(config_module_list
 	modules/uavcanesc/commands/dc
 	modules/uavcanesc/commands/rpm
 	modules/uavcanesc/commands/stat
-
-	#
-	# Library modules
-	#
-	lib/version
-	modules/systemlib
-	modules/systemlib/param
-	modules/uORB
 )

@@ -30,17 +30,8 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
-
-	#
-	# Libraries
-	#
-	lib/mathlib
-	lib/conversion
-	lib/DriverFramework/framework
 
 	platforms/qurt/tests/hello
 	platforms/posix/tests/vcdev_test
