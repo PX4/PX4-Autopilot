@@ -102,7 +102,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_pos{},
 	_hil_land_detector{},
 	_control_mode{},
-	_actuator_armed{},
 	_global_pos_pub(nullptr),
 	_local_pos_pub(nullptr),
 	_attitude_pub(nullptr),
@@ -167,6 +166,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 MavlinkReceiver::~MavlinkReceiver()
 {
 	orb_unsubscribe(_control_mode_sub);
+	orb_unsubscribe(_actuator_armed_sub);
 }
 
 void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, int ret)
@@ -422,21 +422,23 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 void
 MavlinkReceiver::send_flight_information()
 {
-	bool updated;
-	mavlink_flight_information_t flight_info;
-	uuid_uint32_t uid;
-	board_get_uuid32(uid);
+	mavlink_flight_information_t flight_info{};
 
-	flight_info.flight_uuid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) |
-				  uid[PX4_CPU_UUID_WORD32_UNIQUE_H];
+	param_t param_flight_uuid = param_find("COM_FLIGHT_UUID");
 
-	orb_check(_actuator_armed_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &_actuator_armed);
+	if (param_flight_uuid != PARAM_INVALID) {
+		int32_t flight_uuid;
+		param_get(param_flight_uuid, &flight_uuid);
+		flight_info.flight_uuid = (uint64_t)flight_uuid;
 	}
 
-	flight_info.arming_time_utc = flight_info.takeoff_time_utc = _actuator_armed.armed_time_ms;
+	actuator_armed_s actuator_armed;
+	int ret = orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &actuator_armed);
+
+	if (ret == 0 && actuator_armed.timestamp != 0) {
+		flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time_ms;
+	}
+
 	flight_info.time_boot_ms = hrt_absolute_time() / 1000;
 	mavlink_msg_flight_information_send_struct(_mavlink->get_channel(), &flight_info);
 }
