@@ -298,12 +298,11 @@ public:
 	int  orb_stat(int handle, uint64_t *time) ;
 
 	/**
-	 * Check if a topic has already been created (a publisher or a subscriber exists with
-	 * the given instance).
+	 * Check if a topic has already been created and published (advertised)
 	 *
 	 * @param meta    ORB topic metadata.
 	 * @param instance  ORB instance
-	 * @return    OK if the topic exists, ERROR otherwise with errno set accordingly.
+	 * @return    OK if the topic exists, ERROR otherwise.
 	 */
 	int  orb_exists(const struct orb_metadata *meta, int instance) ;
 
