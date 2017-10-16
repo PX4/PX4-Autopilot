@@ -425,38 +425,48 @@ bool Logger::request_stop_static()
 	return true;
 }
 
-int Logger::add_topic(const orb_metadata *topic)
+LoggerSubscription* Logger::add_topic(const orb_metadata *topic)
 {
-	int fd = -1;
+	LoggerSubscription *subscription = nullptr;
 	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
 
 	if (fields_len > sizeof(ulog_message_format_s::format)) {
 		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
 			 sizeof(ulog_message_format_s::format));
 
-		return -1;
+		return nullptr;
 	}
 
-	fd = orb_subscribe(topic);
+	int fd = -1;
+	// Only subscribe to the topic now if it's published. If published later on, we'll dynamically
+	// add the subscription then
+	if (orb_exists(topic, 0) == 0) {
+		fd = orb_subscribe(topic);
 
-	if (fd < 0) {
-		PX4_WARN("logger: %s subscribe failed (%i)", topic->o_name, errno);
-		return -1;
+		if (fd < 0) {
+			PX4_WARN("logger: %s subscribe failed (%i)", topic->o_name, errno);
+			return nullptr;
+		}
+	} else {
+		PX4_DEBUG("Topic %s does not exist. Not subscribing (yet)", topic->o_name);
 	}
 
-	if (!_subscriptions.push_back(LoggerSubscription(fd, topic))) {
+	if (_subscriptions.push_back(LoggerSubscription(fd, topic))) {
+		subscription = &_subscriptions[_subscriptions.size() - 1];
+	} else {
 		PX4_WARN("logger: failed to add topic. Too many subscriptions");
-		orb_unsubscribe(fd);
-		fd = -1;
+		if (fd >= 0) {
+			orb_unsubscribe(fd);
+		}
 	}
 
-	return fd;
+	return subscription;
 }
 
-int Logger::add_topic(const char *name, unsigned interval = 0)
+bool Logger::add_topic(const char *name, unsigned interval)
 {
 	const orb_metadata **topics = orb_get_topics();
-	int fd = -1;
+	LoggerSubscription *subscription = nullptr;
 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		if (strcmp(name, topics[i]->o_name) == 0) {
@@ -467,26 +477,35 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 				if (_subscriptions[j].metadata == topics[i]) {
 					PX4_DEBUG("logging topic %s, interval: %i, already added, only setting interval",
 						  topics[i]->o_name, interval);
-					fd = _subscriptions[j].fd[0];
+					subscription = &_subscriptions[j];
 					already_added = true;
 					break;
 				}
 			}
 
 			if (!already_added) {
-				fd = add_topic(topics[i]);
+				subscription = add_topic(topics[i]);
 				PX4_DEBUG("logging topic: %s, interval: %i", topics[i]->o_name, interval);
 				break;
 			}
 		}
 	}
 
-	// if we poll on a topic, we don't set the interval and let the polled topic define the maximum interval
-	if (!_polling_topic_meta && fd >= 0) {
-		orb_set_interval(fd, interval);
+	// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
+	if (_polling_topic_meta) {
+		interval = 0;
 	}
 
-	return fd;
+	if (subscription) {
+		if (subscription->fd[0] >= 0) {
+			orb_set_interval(subscription->fd[0], interval);
+		} else {
+			// store the interval: use a value < 0 to know it's not a valid fd
+			subscription->fd[0] = -interval - 1;
+		}
+	}
+
+	return subscription;
 }
 
 bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer, bool try_to_subscribe)
@@ -496,27 +515,13 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 
 	if (handle < 0 && try_to_subscribe) {
 
-		if (OK == orb_exists(sub.metadata, multi_instance)) {
-			handle = orb_subscribe_multi(sub.metadata, multi_instance);
+		if (try_to_subscribe_topic(sub, multi_instance)) {
 
-			//PX4_INFO("subscribed to instance %d of topic %s", multi_instance, sub.metadata->o_name);
+			write_add_logged_msg(sub, multi_instance);
 
 			/* copy first data */
-			if (handle >= 0) {
-				write_add_logged_msg(sub, multi_instance);
-
-				/* set to the same interval as the first instance */
-				unsigned int interval;
-
-				if (orb_get_interval(sub.fd[0], &interval) == 0 && interval > 0) {
-					orb_set_interval(handle, interval);
-				}
-
-				/* It can happen that orb_exists returns true, even if there is no publisher (but another subscriber).
-				 * We catch this here, because orb_copy will fail in this case. */
-				if (orb_copy(sub.metadata, handle, buffer) == PX4_OK) {
-					updated = true;
-				}
+			if (orb_copy(sub.metadata, handle, buffer) == PX4_OK) {
+				updated = true;
 			}
 		}
 
@@ -529,6 +534,39 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 	}
 
 	return updated;
+}
+
+bool Logger::try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance)
+{
+	bool ret = false;
+	if (OK == orb_exists(sub.metadata, multi_instance)) {
+
+		unsigned int interval;
+
+		if (multi_instance == 0) {
+			// the first instance and no subscription yet: this means we stored the negative interval as fd
+			interval = (unsigned int) (-(sub.fd[0] + 1));
+		} else {
+			// set to the same interval as the first instance
+			if (orb_get_interval(sub.fd[0], &interval) != 0) {
+				interval = 0;
+			}
+		}
+
+		int &handle = sub.fd[multi_instance];
+		handle = orb_subscribe_multi(sub.metadata, multi_instance);
+
+		if (handle >= 0) {
+			PX4_DEBUG("subscribed to instance %d of topic %s", multi_instance, sub.metadata->o_name);
+			if (interval > 0) {
+				orb_set_interval(handle, interval);
+			}
+			ret = true;
+		} else {
+			PX4_ERR("orb_subscribe_multi %s failed (%i)", sub.metadata->o_name, errno);
+		}
+	}
+	return ret;
 }
 
 void Logger::add_default_topics()
@@ -674,7 +712,7 @@ int Logger::add_topics_from_file(const char *fname)
 			}
 
 			/* add topic with specified interval */
-			if (add_topic(topic_name, interval) >= 0) {
+			if (add_topic(topic_name, interval)) {
 				ntopics++;
 
 			} else {
@@ -1112,7 +1150,7 @@ void Logger::run()
 	//unsubscribe
 	for (LoggerSubscription &sub : _subscriptions) {
 		for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-			if (sub.fd[instance] != -1) {
+			if (sub.fd[instance] >= 0) {
 				orb_unsubscribe(sub.fd[instance]);
 				sub.fd[instance] = -1;
 			}
