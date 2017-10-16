@@ -44,7 +44,7 @@ set(config_module_list
 	drivers/vmount
 	drivers/pwm_input
 	drivers/camera_trigger
-	drivers/bst
+	#drivers/bst
 	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 	#drivers/iridiumsbd
