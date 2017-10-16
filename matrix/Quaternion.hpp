@@ -276,11 +276,11 @@ public:
 
     /**
      * Computes the derivative of q_12 when
-     * rotated with angular velocity expressed in frame 2
+     * rotated with angular velocity expressed in frame 1
      * v_2 = q_12 * v_1 * q_12^-1
      * d/dt q_12 = 0.5 * q_12 * omega_12_2
      *
-     * @param w angular rate in frame 2
+     * @param w angular rate in frame 1 (typically body frame)
      */
     Matrix41 derivative1(const Matrix31 &w) const
     {
@@ -295,7 +295,7 @@ public:
      * v_2 = q_12 * v_1 * q_12^-1
      * d/dt q_12 = 0.5 * omega_12_1 * q_12
      *
-     * @param w angular rate in frame (typically reference frame)
+     * @param w angular rate in frame 2 (typically reference frame)
      */
     Matrix41 derivative2(const Matrix31 &w) const
     {
@@ -341,6 +341,14 @@ public:
         (*this) = (*this) * res;
     }
 
+    /**
+     * Rotates vector v_1 in frame 1 to vector r_2 in frame 2
+     * using the rotation quaternion q_12
+     * v_2 = q_12 * v_1 * q_12^-1
+     *
+     * @param vec vector to rotate in frame 1 (typically body frame)
+     * @return rotated vector in frame 2 (typically reference frame)
+     */
     Vector3f conjugate(const Vector3f &vec) {
         Quaternion q = *this;
         Quaternion v(0, vec(0), vec(1), vec(2));
@@ -348,6 +356,14 @@ public:
         return Vector3f(res(1), res(2), res(3));
     }
 
+    /**
+     * Rotates vector v_2 in frame 2 to vector r_1 in frame 1
+     * using the rotation quaternion q_12
+     * v_1 = q_12^-1 * v_1 * q_12
+     *
+     * @param vec vector to rotate in frame 2 (typically reference frame)
+     * @return rotated vector in frame 1 (typically body frame)
+     */
     Vector3f conjugate_inversed(const Vector3f &vec) {
         Quaternion q = *this;
         Quaternion v(0, vec(0), vec(1), vec(2));
