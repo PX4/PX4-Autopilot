@@ -109,8 +109,9 @@
 
 /* I2C busses */
 
-/* There is no I2C2 so there is not notion of internal / external*/
-#define PX4_I2C_BUS_EXPANSION 1
+/* I2C busses */
+#define PX4_I2C_BUS_EXPANSION 	1
+#define PX4_I2C_BUS_ONBOARD	2
 #define PX4_I2C_BUS_LED		PX4_I2C_BUS_EXPANSION
 
 /* Devices not on the onboard bus.
