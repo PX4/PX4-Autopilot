@@ -280,6 +280,8 @@ endif()
 
 find_package(PythonInterp REQUIRED)
 px4_find_python_module(jinja2 REQUIRED)
+px4_find_python_module(gencpp REQUIRED)
+px4_find_python_module(genmsg REQUIRED)
 
 #=============================================================================
 # cmake testing
