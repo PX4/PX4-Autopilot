@@ -971,9 +971,10 @@ void Logger::run()
 		}
 
 
-		if (_writer.is_started()) {
 
-			hrt_abstime loop_time = hrt_absolute_time();
+		const hrt_abstime loop_time = hrt_absolute_time();
+
+		if (_writer.is_started()) {
 
 			/* check if we need to output the process load */
 			if (_next_load_print != 0 && loop_time >= _next_load_print) {
@@ -1108,6 +1109,25 @@ void Logger::run()
 
 #endif /* DBGPRINT */
 
+		} else { // not logging
+
+			// try to subscribe to new topics, even if we don't log, so that:
+			// - we avoid subscribing to many topics at once, when logging starts
+			// - we'll get the data immediately once we start logging (no need to wait for the next subscribe timeout)
+			if (next_subscribe_topic_index != -1) {
+				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+					if (_subscriptions[next_subscribe_topic_index].fd[instance] < 0) {
+						try_to_subscribe_topic(_subscriptions[next_subscribe_topic_index], instance);
+					}
+				}
+				if (++next_subscribe_topic_index >= _subscriptions.size()) {
+					next_subscribe_topic_index = -1;
+					next_subscribe_check = loop_time + TRY_SUBSCRIBE_INTERVAL;
+				}
+
+			} else if (loop_time > next_subscribe_check) {
+				next_subscribe_topic_index = 0;
+			}
 		}
 
 		// wait for next loop iteration...
