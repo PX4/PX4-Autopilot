@@ -626,10 +626,10 @@ void Logger::add_thermal_calibration_topics()
 
 void Logger::add_sensor_comparison_topics()
 {
-	add_topic("sensor_accel", 10);
-	add_topic("sensor_baro", 10);
-	add_topic("sensor_gyro", 10);
-	add_topic("sensor_mag", 10);
+	add_topic("sensor_accel", 100);
+	add_topic("sensor_baro", 100);
+	add_topic("sensor_gyro", 100);
+	add_topic("sensor_mag", 100);
 }
 
 void Logger::add_system_identification_topics()
