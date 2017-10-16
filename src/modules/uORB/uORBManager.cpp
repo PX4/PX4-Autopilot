@@ -131,9 +131,9 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		return ERROR;
 	}
 
-#if __PX4_NUTTX
+#if defined(__PX4_NUTTX)
 	struct stat buffer;
-	return stat(path, &buffer);
+	ret = stat(path, &buffer);
 #else
 	ret = px4_access(path, F_OK);
 
@@ -141,8 +141,28 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end()) ? OK : ERROR;
 	}
 
-	return ret;
 #endif
+
+	if (ret == 0) {
+		// we know the topic exists, but it's not necessarily advertised/published yet (for example
+		// if there is only a subscriber)
+		// The open() will not lead to memory allocations.
+		int fd = px4_open(path, 0);
+
+		if (fd >= 0) {
+			unsigned long is_published;
+
+			if (px4_ioctl(fd, ORBIOCISPUBLISHED, (unsigned long)&is_published) == 0) {
+				if (!is_published) {
+					ret = ERROR;
+				}
+			}
+
+			px4_close(fd);
+		}
+	}
+
+	return ret;
 }
 
 orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
