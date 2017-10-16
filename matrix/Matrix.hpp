@@ -286,7 +286,7 @@ public:
 
     void print() const
     {
-        static const size_t n = 10*N*M;
+        static const size_t n = 11*N*M + M; // for every entry a tab and 10 digits, for every row a newline
         char * buf = new char[n];
         write_string(buf, n);
         printf("%s\n", buf);
