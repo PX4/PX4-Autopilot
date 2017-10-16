@@ -1336,6 +1336,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
 	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
+	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1744,6 +1745,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	int32_t geofence_action = 0;
 
+	int32_t flight_uuid = 0;
+
 	/* RC override auto modes */
 	int32_t rc_override = 0;
 
@@ -1846,6 +1849,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
+			param_get(_param_flight_uuid, &flight_uuid);
 
 			// If we update parameters the first time
 			// make sure the hysteresis time gets set.
@@ -3040,6 +3044,12 @@ int commander_thread_main(int argc, char *argv[])
 		// check for arming state change
 		if (was_armed != armed.armed) {
 			status_changed = true;
+
+			if (!armed.armed) { // increase the flight uuid upon disarming
+				++flight_uuid;
+				// no need for param notification: the only user is mavlink which reads the param upon request
+				param_set_no_notification(_param_flight_uuid, &flight_uuid);
+			}
 		}
 
 		was_armed = armed.armed;
