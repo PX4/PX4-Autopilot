@@ -805,8 +805,15 @@ MulticopterPositionControl::poll_subscriptions()
 			_pos_sp_triplet.current.valid = false;
 		}
 
+		/* to be a valid previous triplet, x/y/z has to be finite */
 		if (!PX4_ISFINITE(_pos_sp_triplet.previous.x) || !PX4_ISFINITE(_pos_sp_triplet.previous.y)
 		    || !PX4_ISFINITE(_pos_sp_triplet.previous.z)) {
+			_pos_sp_triplet.previous.valid = false;
+		}
+
+		/* to be a valid next triplet, x/y/z has to be finite */
+		if (!PX4_ISFINITE(_pos_sp_triplet.next.x) || !PX4_ISFINITE(_pos_sp_triplet.next.y)
+		    || !PX4_ISFINITE(_pos_sp_triplet.next.z)) {
 			_pos_sp_triplet.previous.valid = false;
 		}
 	}
@@ -1285,7 +1292,7 @@ MulticopterPositionControl::control_manual(float dt)
 		/* set vertical velocity setpoint with throttle stick, remapping of manual.z [0,1] to up and down command [-1,1] */
 		man_vel_sp(2) = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _hold_dz.get());
 
-		/* reset z setpoint to current altitude if needed */
+		/* reset z setpoint to current z if needed */
 		reset_sp_z();
 	}
 
@@ -1566,7 +1573,7 @@ MulticopterPositionControl::control_offboard(float dt)
 
 		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
 
-			/* reset z setpoint to current altitude if needed */
+			/* reset z setpoint to current z if needed */
 			reset_sp_z();
 
 			if (fabsf(_pos_sp_triplet.current.vz) <= FLT_EPSILON &&
@@ -1701,9 +1708,7 @@ void MulticopterPositionControl::control_auto(float dt)
 	reset_sp_xy();
 	reset_sp_z();
 
-	bool current_setpoint_valid = false;
-	bool previous_setpoint_valid = false;
-	bool next_setpoint_valid = false;
+
 	bool triplet_updated = false;
 
 	math::Vector<3> next_sp;
@@ -1728,17 +1733,14 @@ void MulticopterPositionControl::control_auto(float dt)
 			}
 		}
 
-		// only project setpoints if they are finite, else use current position
-		if (PX4_ISFINITE(_pos_sp_triplet.current.z)) {
-			curr_pos_sp(2) = _pos_sp_triplet.current.z;
-
-		}
+		// to be a valid current triplet, z has to be finite and therefore no farther check required
+		curr_pos_sp(2) = _pos_sp_triplet.current.z;
 
 		/* sanity check */
-		if (PX4_ISFINITE(curr_pos_sp(0)) &&
-		    PX4_ISFINITE(curr_pos_sp(1)) &&
-		    PX4_ISFINITE(curr_pos_sp(2))) {
-			current_setpoint_valid = true;
+		if (!PX4_ISFINITE(curr_pos_sp(0)) &&
+		    !PX4_ISFINITE(curr_pos_sp(1)) &&
+		    !PX4_ISFINITE(curr_pos_sp(2))) {
+			curr_pos_sp = _pos;
 		}
 
 		/* check if triplets have been updated
@@ -1763,28 +1765,20 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	if (_pos_sp_triplet.previous.valid) {
 
-		if (PX4_ISFINITE(_pos_sp_triplet.previous.x) &&
-		    PX4_ISFINITE(_pos_sp_triplet.previous.y) &&
-		    PX4_ISFINITE(_pos_sp_triplet.previous.z)) {
+		_prev_pos_sp(0) =  _pos_sp_triplet.previous.x;
+		_prev_pos_sp(1) =  _pos_sp_triplet.previous.y;
+		_prev_pos_sp(2) =  _pos_sp_triplet.previous.z;
 
-			_prev_pos_sp(0) =  _pos_sp_triplet.previous.x;
-			_prev_pos_sp(1) =  _pos_sp_triplet.previous.y;
-			_prev_pos_sp(2) =  _pos_sp_triplet.previous.z;
-			previous_setpoint_valid = true;
-		}
-	}
-
-	/* set previous setpoint to current position if no previous setpoint available */
-	if (!previous_setpoint_valid && triplet_updated) {
+	} else if (triplet_updated) {
+		/* set previous setpoint to current position if no previous setpoint available */
 		_prev_pos_sp = _pos;
-		previous_setpoint_valid = true; /* currrently not necessary to set to true since not used*/
 	}
+
 
 	if (_pos_sp_triplet.next.valid) {
 		next_sp(0) =  _pos_sp_triplet.next.x;
 		next_sp(1) =  _pos_sp_triplet.next.y;
 		next_sp(2) =  _pos_sp_triplet.next.z;
-		next_setpoint_valid = true;
 	}
 
 	/* Auto logic:
@@ -1795,7 +1789,7 @@ void MulticopterPositionControl::control_auto(float dt)
 	 */
 
 	/* create new _pos_sp from triplets */
-	if (current_setpoint_valid &&
+	if (_pos_sp_triplet.current.valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
 		/* update yaw setpoint if needed */
@@ -1912,7 +1906,7 @@ void MulticopterPositionControl::control_auto(float dt)
 			/* check if we just want to stay at current position */
 			matrix::Vector2f pos_sp_diff((_curr_pos_sp(0) - _pos_sp(0)), (_curr_pos_sp(1) - _pos_sp(1)));
 			bool stay_at_current_pos = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
-						    || !next_setpoint_valid)
+						    || !_pos_sp_triplet.next.valid)
 						   && ((pos_sp_diff.length()) < SIGMA_NORM);
 
 			/* only follow line if previous to current has a minimum distance */
@@ -1924,7 +1918,7 @@ void MulticopterPositionControl::control_auto(float dt)
 				/* unit vector from current to next */
 				matrix::Vector2f unit_current_to_next(0.0f, 0.0f);
 
-				if (next_setpoint_valid) {
+				if (_pos_sp_triplet.next.valid) {
 					unit_current_to_next = matrix::Vector2f((next_sp(0) - pos_sp(0)), (next_sp(1) - pos_sp(1)));
 					unit_current_to_next = (unit_current_to_next.length() > SIGMA_NORM) ? unit_current_to_next.normalized() :
 							       unit_current_to_next;
@@ -2004,7 +1998,7 @@ void MulticopterPositionControl::control_auto(float dt)
 						float acceptance_radius = 0.0f;
 
 						/* we want to pass and need to compute the desired velocity close to current setpoint */
-						if (next_setpoint_valid &&  !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+						if (_pos_sp_triplet.next.valid &&  !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 							/* get velocity close to current that depends on angle between prev-current and current-next line */
 							vel_close = get_vel_close(unit_prev_to_current, unit_current_to_next);
 							acceptance_radius = _nav_rad.get();
@@ -2046,7 +2040,7 @@ void MulticopterPositionControl::control_auto(float dt)
 					/* check if altidue is within acceptance radius */
 					bool reached_altitude = (dist_to_current_z < _nav_rad.get()) ? true : false;
 
-					if (reached_altitude && next_setpoint_valid
+					if (reached_altitude && _pos_sp_triplet.next.valid
 					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 						/* since we have a next setpoint use the angle prev-current-next to compute velocity setpoint limit */
 
@@ -2433,7 +2427,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	}
 
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_params.vel_max_up, _params.vel_max_down);
-
 }
 
 void
