@@ -1010,7 +1010,7 @@ void Logger::run()
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
 				 */
-				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+				for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
 					if (copy_if_updated_multi(sub, instance, _msg_buffer + sizeof(ulog_message_data_header_s),
 								  sub_idx == next_subscribe_topic_index)) {
 
@@ -1113,7 +1113,7 @@ void Logger::run()
 			// - we avoid subscribing to many topics at once, when logging starts
 			// - we'll get the data immediately once we start logging (no need to wait for the next subscribe timeout)
 			if (next_subscribe_topic_index != -1) {
-				for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+				for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
 					if (_subscriptions[next_subscribe_topic_index].fd[instance] < 0) {
 						try_to_subscribe_topic(_subscriptions[next_subscribe_topic_index], instance);
 					}
@@ -1167,7 +1167,7 @@ void Logger::run()
 
 	//unsubscribe
 	for (LoggerSubscription &sub : _subscriptions) {
-		for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+		for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
 			if (sub.fd[instance] >= 0) {
 				orb_unsubscribe(sub.fd[instance]);
 				sub.fd[instance] = -1;
