@@ -64,7 +64,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
     * [Christoph Tobler](https://github.com/ChristophTobler)
     * [Mark Charlebois](https://github.com/mcharleb)
   * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero)
-    * [Lucas De Marchi](https://github.com/lucasdemarchi)
+    * [Sugnan Prabhu](https://github.com/sugnanprabhu)
     * [José Roberto de Souza](https://github.com/zehortigoza)
   * [Raspberry Pi / Navio](https://github.com/PX4/Firmware/labels/raspberry_pi) - [Beat Kueng](https://github.com/bkueng)
   * [Parrot Bebop](https://github.com/PX4/Firmware/labels/bebop) - [Michael Schaeuble](https://github.com/eyeam3)
