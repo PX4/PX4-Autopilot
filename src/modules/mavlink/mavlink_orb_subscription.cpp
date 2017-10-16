@@ -160,10 +160,9 @@ MavlinkOrbSubscription::is_published()
 		return true;
 	}
 
-	// Telemetry can sustain an initial published check at 10 Hz
 	hrt_abstime now = hrt_absolute_time();
 
-	if (now - _last_pub_check < 100000) {
+	if (now - _last_pub_check < 300000) {
 		return false;
 	}
 
