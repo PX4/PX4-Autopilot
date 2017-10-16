@@ -145,7 +145,6 @@ set(config_module_list
 	#
 	lib/controllib
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/rc
 	lib/ecl
 	lib/external_lgpl

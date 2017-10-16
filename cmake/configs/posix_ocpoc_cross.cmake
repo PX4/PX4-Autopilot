@@ -79,7 +79,6 @@ set(config_module_list
 	#
 	lib/controllib
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/geo
 	lib/ecl
 	lib/geo_lookup

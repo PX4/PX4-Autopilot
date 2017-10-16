@@ -39,7 +39,6 @@ set(config_module_list
 	# Libraries
 	#
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/conversion
 	lib/DriverFramework/framework
 

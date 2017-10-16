@@ -129,7 +129,6 @@ set(config_module_list
 	#
 	lib/controllib
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/ecl
 	lib/external_lgpl
 	lib/geo

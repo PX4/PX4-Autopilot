@@ -69,7 +69,6 @@ set(config_module_list
 
 	lib/controllib
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/conversion
 	lib/ecl
 	lib/geo
