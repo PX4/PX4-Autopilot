@@ -42,7 +42,7 @@
  * Update with a direct measurement of the first state:
  * H = [1 0]
  *
- * @author Nicolas de Palezieux <ndepal@gmail.com>
+ * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
 #include <matrix/math.hpp>

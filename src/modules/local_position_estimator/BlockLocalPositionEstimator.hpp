@@ -329,26 +329,12 @@ private:
 	BlockParamFloat  _t_max_grade;
 
 	// beacon mode paramters from beacon_position_estimator module
-	enum class BeaconMode {
-		Moving = 0,
-		Stationary,
-		KnownLocation
+	enum BeaconMode {
+		Beacon_Moving = 0,
+		Beacon_Stationary = 1
 	};
-
-	/**
-	* Handles for beacon position estimator parameters
-	**/
-	struct {
-		param_t mode;
-		param_t lat;
-		param_t lon;
-	} _bestParamHandle;
-
-	struct {
-		BeaconMode mode;
-		float lat;
-		float lon;
-	} _bestParams;
+	BlockParamFloat _beacon_min_cov;
+	BlockParamInt 	_beacon_mode;
 
 	// init origin
 	BlockParamInt    _fake_origin;

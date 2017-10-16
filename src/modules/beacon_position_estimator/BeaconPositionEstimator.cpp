@@ -34,7 +34,7 @@
 /*
  * @file BeaconPositionEstimator.cpp
  *
- * @author Nicolas de Palezieux <ndepal@gmail.com>
+ * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
 #include <px4_config.h>
@@ -83,10 +83,8 @@ void BeaconPositionEstimator::update()
 
 	_update_topics();
 
+	/* predict */
 	if (_estimator_initialized) {
-		/* predict */
-		// only run prediction if filter has been initialized
-
 		if (hrt_absolute_time() - _last_update > beacon_position_estimator_TIMEOUT_US) {
 			PX4_WARN("Timeout");
 			_estimator_initialized = false;
@@ -118,8 +116,6 @@ void BeaconPositionEstimator::update()
 	if (_new_irlockReport
 	    && _vehicleAttitude_valid
 	    && _vehicleLocalPosition_valid
-	    && _vehicleLocalPosition.xy_valid
-	    && _vehicleLocalPosition.v_xy_valid
 	    && _vehicleLocalPosition.dist_bottom_valid) {
 
 		// TODO account for sensor orientation as set by parameter
@@ -136,8 +132,7 @@ void BeaconPositionEstimator::update()
 		sensor_ray = _R_att * sensor_ray;
 
 		if (fabs(sensor_ray(2)) < 1e-6) {
-			PX4_WARN("z component of measurement unsafe: %f %f %f", (double)sensor_ray(0), (double)sensor_ray(1),
-				 (double)sensor_ray(2)); // TODO remove print statement
+			// z component of measurement unsafe, don't use this measurement
 
 		} else {
 			// scale the ray s.t. the z component has length of HAGL
@@ -145,8 +140,7 @@ void BeaconPositionEstimator::update()
 			_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * _vehicleLocalPosition.dist_bottom;
 
 			if (!_estimator_initialized) {
-				// too long since last measurement, reset filter
-				PX4_WARN("Init");
+				PX4_INFO("Init");
 				_kalman_filter_x.init(_rel_pos(0), 0, _params.pos_unc_init, _params.vel_unc_init);
 				_kalman_filter_y.init(_rel_pos(1), 0, _params.pos_unc_init, _params.vel_unc_init);
 
@@ -164,13 +158,13 @@ void BeaconPositionEstimator::update()
 					if (!_faulty)
 					{
 						_faulty = true;
-					PX4_WARN("Beacon measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
+						PX4_WARN("Beacon measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
 					}
 				} else {
 					_faulty = false;
 				}
 
-				if (update_x && update_y) {
+				if (!_faulty) {
 					// only publish if both measurements were good
 
 					_beacon_position.timestamp = hrt_absolute_time();
@@ -182,14 +176,12 @@ void BeaconPositionEstimator::update()
 					_kalman_filter_y.getState(y, yvel);
 					_kalman_filter_y.getCovariance(covy, covy_v);
 
-					_beacon_position.rel_pos_valid = true; // relative position is always valid, independent of mode
-					_beacon_position.rel_vel_valid = true; // relative velocity is always valid, independent of mode
+					_beacon_position.rel_pos_valid = true;
+					_beacon_position.rel_vel_valid = true;
 					_beacon_position.x_rel = x;
 					_beacon_position.y_rel = y;
 					_beacon_position.vx_rel = xvel;
 					_beacon_position.vy_rel = yvel;
-					_beacon_position.x_unfilt = _rel_pos(0);
-					_beacon_position.y_unfilt = _rel_pos(1);
 
 					_beacon_position.cov_x_rel = covx;
 					_beacon_position.cov_y_rel = covy;
@@ -197,31 +189,13 @@ void BeaconPositionEstimator::update()
 					_beacon_position.cov_vx_rel = covx_v;
 					_beacon_position.cov_vy_rel = covy_v;
 
-					if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid && _vehicleLocalPosition.v_xy_valid) {
-						_beacon_position.local_pos_valid = true;
-						_beacon_position.local_vel_valid = true;
-
-						// In stationary mode, relative velocity is used in the position estimator, so vx/vy_local should always be 0
-						// Mark it as invalid to signal that it should not be used, write the values anyway for debugging
-						if (_params.mode > BeaconMode::Moving) {
-							_beacon_position.local_vel_valid = false;
-						}
-
-						// In known location mode, relative position ins used in the position estimator, so v/y_local should always correspond to BEST_LAT/BEST_LON
-						// mark it as invalid to signal that it should not be used, write the values anyway for debugging
-						if (_params.mode > BeaconMode::Stationary) {
-							_beacon_position.local_pos_valid = false;
-						}
-
-						_beacon_position.x_local = x + _vehicleLocalPosition.x;
-						_beacon_position.vx_local = xvel + _vehicleLocalPosition.vx;
-
-						_beacon_position.y_local = y + _vehicleLocalPosition.y;
-						_beacon_position.vy_local = yvel + _vehicleLocalPosition.vy;
-
+					if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid)
+					{
+						_beacon_position.x_abs = x + _vehicleLocalPosition.x;
+						_beacon_position.y_abs = y + _vehicleLocalPosition.y;
+						_beacon_position.abs_pos_valid = true;
 					} else {
-						_beacon_position.local_pos_valid = false;
-						_beacon_position.local_vel_valid = false;
+						_beacon_position.abs_pos_valid = false;
 					}
 
 					if (_beaconPositionPub == nullptr) {
@@ -238,6 +212,7 @@ void BeaconPositionEstimator::update()
 
 		}
 
+		// mark this sensor measurement as consumed
 		_new_irlockReport = false;
 
 	}
@@ -303,15 +278,10 @@ bool BeaconPositionEstimator::_orb_update(const struct orb_metadata *meta, int h
 void BeaconPositionEstimator::_update_params()
 {
 	param_get(_paramHandle.acc_unc, &_params.acc_unc);
-	PX4_WARN("BEST_ACC_UNC %f", (double)_params.acc_unc); // TODO remove
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
-	PX4_WARN("BEST_MEAS_UNC %f", (double)_params.meas_unc); // TODO remove
 	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
-	PX4_WARN("BEST_POS_UNC_IN %f", (double)_params.pos_unc_init); // TODO remove
 	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
-	PX4_WARN("BEST_VEL_UNC_IN %f", (double)_params.vel_unc_init); // TODO remove
 	param_get(_paramHandle.mode, &_params.mode);
-	PX4_WARN("BEST_MODE %d", _params.mode); // TODO remove
 }
 
 

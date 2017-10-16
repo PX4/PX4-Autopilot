@@ -93,6 +93,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pn_t_noise_density(this, "PN_T"),
 	_t_max_grade(this, "T_MAX_GRADE"),
 
+	// beacon
+	_beacon_min_cov(this, "BCN_COV"),
+	_beacon_mode(this, "BEST_MODE", false),
+
 	// init origin
 	_fake_origin(this, "FAKE_ORIGIN"),
 	_init_origin_lat(this, "LAT"),
@@ -135,6 +139,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
 	_time_last_land(0),
+	_time_last_beacon(0),
 
 	// reference altitudes
 	_altOrigin(0),
@@ -572,6 +577,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	visionCheckTimeout();
 	mocapCheckTimeout();
 	landCheckTimeout();
+	beaconCheckTimeout();
 }
 
 bool BlockLocalPositionEstimator::landed()

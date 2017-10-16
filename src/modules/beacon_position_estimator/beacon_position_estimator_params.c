@@ -35,7 +35,7 @@
  * @file beacon_position_estimator_params.c
  * Beacon estimator algorithm parameters.
  *
- * @author Nicolas de Palezieux <ndepal@gmail.com>
+ * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
 /**
@@ -43,38 +43,16 @@
  *
  * Configure the mode of the beacon. Depending on the mode, the beacon observations are used differently to aid position estimation.
  *
- * Mode Moving:			The beacon may be moving around while in the field of view of the vehicle. Beacon measurements are not used to aid position.
+ * Mode Moving:			The beacon may be moving around while in the field of view of the vehicle. Beacon measurements are not used to aid positioning.
  * Mode Stationary:		The beacon is stationary. Measured velocity w.r.t. the beacon is used to aid velocity estimation.
- * Mode Known Position:	The location of the beacon is fixed and specified in the parameters BEST_LAT, BEST_LON. Beacon measurements are used to aid position estimation.
  *
+ * @min 0
+ * @max 1
  * @group Beacon Estimator
  * @value 0 Moving
  * @value 1 Stationary
- * @value 2 Known Position
  */
 PARAM_DEFINE_INT32(BEST_MODE, 0);
-
-/**
- * Latitude coordinate of beacon. Only used if BEST_MODE is set to Known Position
- *
- * @group Beacon Estimator
- * @unit deg
- * @min -90
- * @max 90
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BEST_LAT, 40.430f);
-
-/**
- * Longitude coordinate of beacon. Only used if BEST_MODE is set to Known Position
- *
- * @group Beacon Estimator
- * @unit deg
- * @min -180
- * @max 180
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BEST_LON, -86.929);
 
 /**
  * Acceleration uncertainty

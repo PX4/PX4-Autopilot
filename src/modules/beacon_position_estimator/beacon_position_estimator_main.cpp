@@ -35,7 +35,7 @@
  * @file beacon_position_estimator_main.cpp
  * Beacon position estimator. Filter and publish the position of a ground beacon as observed by an onboard sensor.
  *
- * @author Nicolas de Palezieux <ndepal@gmail.com>
+ * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
 #include <px4_config.h>

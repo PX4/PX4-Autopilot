@@ -35,7 +35,7 @@
  *
  * Helper class to do precision landing with a beacon
  *
- * @author Nicolas de Palezieux <ndepal@gmail.com>
+ * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
 #ifndef NAVIGATOR_PRECLAND_H
@@ -91,14 +91,13 @@ private:
 	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
 	bool check_state_conditions(PrecLandState state);
 
-
 	beacon_position_s _beacon_position{}; /**< precision land beacon position */
 	int _beaconPositionSub;
 	bool _beacon_position_valid; /**< wether we have received a beacon position message */
 	struct map_projection_reference_s _map_ref{}; /**< reference for local/global projections */
 	uint64_t _state_start_time; /**< time when we entered current state */
 	position_setpoint_s _first_sp; /**< the position setpoint that was set before we started */
-	unsigned _search_cnt; /**< counter of how many times we had to search for the beacon again */
+	int _search_cnt; /**< counter of how many times we had to search for the beacon again */
 	float _approach_alt; /**< altitude at which to stay during horizontal approach */
 
 	PrecLandState _state;
