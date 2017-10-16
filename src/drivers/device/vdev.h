@@ -61,14 +61,12 @@ namespace device __EXPORT
 {
 
 struct file_t {
-	int fd;
 	int flags;
-	mode_t mode;
 	void *priv;
 	void *vdev;
 
-	file_t() : fd(-1), flags(0), priv(NULL), vdev(NULL) {}
-	file_t(int f, void *c, int d) : fd(d), flags(f), priv(NULL), vdev(c) {}
+	file_t() : flags(0), priv(NULL), vdev(NULL) {}
+	file_t(int f, void *c) : flags(f), priv(NULL), vdev(c) {}
 };
 
 /**
