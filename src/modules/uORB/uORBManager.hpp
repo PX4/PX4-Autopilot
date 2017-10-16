@@ -152,7 +152,7 @@ public:
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
 	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					 int priority, unsigned int queue_size = 1) ;
+					 int priority, unsigned int queue_size = 1);
 
 
 	/**
@@ -176,7 +176,7 @@ public:
 	 * @param data    A pointer to the data to be published.
 	 * @return    OK on success, ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) ;
+	int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data);
 
 	/**
 	 * Subscribe to a topic.
@@ -203,7 +203,7 @@ public:
 	 * @return    ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 */
-	int  orb_subscribe(const struct orb_metadata *meta) ;
+	int  orb_subscribe(const struct orb_metadata *meta);
 
 	/**
 	 * Subscribe to a multi-instance of a topic.
@@ -238,7 +238,7 @@ public:
 	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
-	int  orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) ;
+	int  orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance);
 
 	/**
 	 * Unsubscribe from a topic.
@@ -246,7 +246,7 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @return    OK on success, ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_unsubscribe(int handle) ;
+	int  orb_unsubscribe(int handle);
 
 	/**
 	 * Fetch data from a topic.
@@ -264,7 +264,7 @@ public:
 	 *      using the data.
 	 * @return    OK on success, ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer) ;
+	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer);
 
 	/**
 	 * Check whether a topic has been published to since the last orb_copy.
@@ -284,7 +284,7 @@ public:
 	 * @return    OK if the check was successful, ERROR otherwise with
 	 *      errno set accordingly.
 	 */
-	int  orb_check(int handle, bool *updated) ;
+	int  orb_check(int handle, bool *updated);
 
 	/**
 	 * Return the last time that the topic was updated. If a queue is used, it returns
@@ -295,7 +295,7 @@ public:
 	 *      never been updated. Time is measured in microseconds.
 	 * @return    OK on success, ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_stat(int handle, uint64_t *time) ;
+	int  orb_stat(int handle, uint64_t *time);
 
 	/**
 	 * Check if a topic has already been created and published (advertised)
@@ -304,7 +304,7 @@ public:
 	 * @param instance  ORB instance
 	 * @return    OK if the topic exists, ERROR otherwise.
 	 */
-	int  orb_exists(const struct orb_metadata *meta, int instance) ;
+	int  orb_exists(const struct orb_metadata *meta, int instance);
 
 	/**
 	 * Return the priority of the topic
@@ -316,7 +316,7 @@ public:
 	 *      independent of the startup order of the associated publishers.
 	 * @return    OK on success, ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_priority(int handle, int32_t *priority) ;
+	int  orb_priority(int handle, int32_t *priority);
 
 	/**
 	 * Set the minimum interval between which updates are seen for a subscription.
@@ -336,7 +336,7 @@ public:
 	 * @param interval  An interval period in milliseconds.
 	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
 	 */
-	int  orb_set_interval(int handle, unsigned interval) ;
+	int  orb_set_interval(int handle, unsigned interval);
 
 
 	/**
