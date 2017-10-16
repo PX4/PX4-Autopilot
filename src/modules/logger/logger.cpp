@@ -624,6 +624,14 @@ void Logger::add_thermal_calibration_topics()
 	add_topic("sensor_gyro", 100);
 }
 
+void Logger::add_sensor_comparison_topics()
+{
+	add_topic("sensor_accel", 10);
+	add_topic("sensor_baro", 10);
+	add_topic("sensor_gyro", 10);
+	add_topic("sensor_mag", 10);
+}
+
 void Logger::add_system_identification_topics()
 {
 	// for system id need to log imu and controls at full rate
@@ -775,6 +783,11 @@ void Logger::run()
 		if (sdlog_profile & SDLogProfileMask::DEBUG_TOPICS) {
 			add_debug_topics();
 		}
+
+		if (sdlog_profile & SDLogProfileMask::SENSOR_COMPARISON) {
+			add_sensor_comparison_topics();
+		}
+
 	}
 
 	int vehicle_command_sub = -1;
