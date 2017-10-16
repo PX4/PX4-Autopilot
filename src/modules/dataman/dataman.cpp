@@ -470,7 +470,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persis
 	}
 
 	/* Make sure caller has not given us more data than we can handle */
-	if (count > g_per_item_size[item]) {
+	if (count > (g_per_item_size[item] - DM_SECTOR_HDR_SIZE)) {
 		return -E2BIG;
 	}
 
@@ -511,7 +511,7 @@ _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const v
 	}
 
 	/* Make sure caller has not given us more data than we can handle */
-	if (count > g_per_item_size[item]) {
+	if (count > (g_per_item_size[item] - DM_SECTOR_HDR_SIZE)) {
 		return -E2BIG;
 	}
 
@@ -581,7 +581,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 	}
 
 	/* Make sure the caller hasn't asked for more data than we can handle */
-	if (count > g_per_item_size[item]) {
+	if (count > (g_per_item_size[item] - DM_SECTOR_HDR_SIZE)) {
 		return -E2BIG;
 	}
 
@@ -624,7 +624,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	}
 
 	/* Make sure the caller hasn't asked for more data than we can handle */
-	if (count > g_per_item_size[item]) {
+	if (count > (g_per_item_size[item] - DM_SECTOR_HDR_SIZE)) {
 		return -E2BIG;
 	}
 
