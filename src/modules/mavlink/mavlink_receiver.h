@@ -207,7 +207,6 @@ private:
 	struct vehicle_local_position_s _hil_local_pos;
 	struct vehicle_land_detected_s _hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
-	struct actuator_armed_s _actuator_armed;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;
