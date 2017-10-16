@@ -157,8 +157,6 @@ GpsFailure::set_gpsf_item()
 		break;
 	}
 
-	reset_navigator_item_reached();
-
 	_navigator->set_position_setpoint_triplet_updated();
 }
 

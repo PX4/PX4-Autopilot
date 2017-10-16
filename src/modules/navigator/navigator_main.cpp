@@ -457,8 +457,8 @@ Navigator::task_main()
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 
-					float lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
-					float lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+					double lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					double lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
 
 					if (PX4_ISFINITE(cmd.param7)) {
 						rep->current.z =  -(cmd.param7 - get_local_reference_alt());
@@ -485,7 +485,6 @@ Navigator::task_main()
 					rep->current.z = get_local_position()->z;
 				}
 
-				rep->current.yaw = get_local_position()->yaw;
 				rep->previous.valid = true;
 				rep->current.valid = true;
 				rep->next.valid = false;
@@ -516,8 +515,8 @@ Navigator::task_main()
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 
-					float lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
-					float lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+					double lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+					double lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
 
 					map_projection_project(get_local_reference_pos(), lat, lon, &rep->current.x, &rep->current.y);
 
@@ -756,7 +755,6 @@ Navigator::task_main()
 		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
 			_pos_sp_triplet_published_invalid_once = true;
 			reset_triplets();
-
 		}
 
 		if (_pos_sp_triplet_updated) {
@@ -884,23 +882,16 @@ Navigator::get_cruising_speed()
 float
 Navigator::get_heading_to_target(const matrix::Vector2f &target)
 {
-
-	matrix::Vector2f unit_to_target = target - matrix::Vector2f(get_local_position()->x, get_local_position()->y);
-
-	if (unit_to_target.length() > FLT_EPSILON) {
-		unit_to_target.normalize();
-	}
-
-	// compute yaw from dot product; the sign is given by cross product
-	return acosf(matrix::Vector2f(1.0f, 0.0f) * unit_to_target) * (unit_to_target(1) / fabsf(unit_to_target(1)));
+	const matrix::Vector2f pose(get_local_position()->x, get_local_position()->y);
+	return get_heading_to_target(pose, target);
 }
 
 
 float
-Navigator::get_heading_to_target(const matrix::Vector2f &start, const matrix::Vector2f &target)
+Navigator::get_heading_to_target(const matrix::Vector2f &pose, const matrix::Vector2f &target)
 {
 
-	matrix::Vector2f unit_to_target = target - start;
+	matrix::Vector2f unit_to_target = target - pose;
 
 	if (unit_to_target.length() > FLT_EPSILON) {
 		unit_to_target.normalize();

@@ -246,8 +246,8 @@ private:
 	struct mission_s _onboard_mission {};
 	struct mission_s _offboard_mission {};
 
-	int _current_onboard_mission_index{ -1};
-	int _current_offboard_mission_index{ -1};
+	int _current_onboard_mission_index{-1};
+	int _current_offboard_mission_index{-1};
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	enum {

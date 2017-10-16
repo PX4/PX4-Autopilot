@@ -106,7 +106,7 @@ EngineFailure::set_ef_item()
 			//XXX setting altitude to a very low value, evaluate other options
 			_navigator_item.x = _navigator->get_local_position()->x;
 			_navigator_item.y = _navigator->get_local_position()->y;
-			_navigator_item.z = _navigator->get_home_position()->z - 1000.0f;
+			_navigator_item.z = _navigator->get_home_position()->z + 1000.0f;
 			_navigator_item.yaw = NAN;
 			_navigator_item.loiter_radius = _navigator->get_loiter_radius();
 			_navigator_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;

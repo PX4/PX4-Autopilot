@@ -153,9 +153,6 @@ struct navigator_item_s {
 struct mission_item_s {
 	double lat;			/**< latitude in degrees				*/
 	double lon;			/**< longitude in degrees				*/
-	float x;			/**< local position x in meters */
-	float y;			/**< local position y in meters */
-	float z;			/**< local position z in meters */
 	union {
 		struct {
 			union {

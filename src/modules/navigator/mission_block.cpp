@@ -224,9 +224,6 @@ MissionBlock::is_navigator_item_reached()
 
 			if (fabsf(curr_sp->z - _navigator_item.z) >= FLT_EPSILON) {
 				// check if the initial loiter has been accepted
-				dist_xy = get_horizontal_distance_to_target(_navigator_item);
-				dist_z = fabsf(_navigator_item.z - _navigator->get_local_position()->z);
-				dist = sqrtf(dist_xy * dist_xy + dist_z * dist_z);
 
 				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_navigator_item.loiter_radius) * 1.2f)
 				    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
@@ -482,6 +479,10 @@ MissionBlock::item_contains_position(const struct mission_item_s &item)
 bool
 MissionBlock::navigator_item_to_position_setpoint(const struct navigator_item_s &item, struct position_setpoint_s *sp)
 {
+	/* don't change the setpoint for non-position items */
+	if (!item_contains_position(item)) {
+		return false;
+	}
 
 	sp->x = item.x;
 	sp->y = item.y;
@@ -549,8 +550,6 @@ MissionBlock::navigator_item_to_position_setpoint(const struct navigator_item_s 
 			sp->z = _navigator->get_local_position()->z;
 		}
 
-		break;
-
 	// fall through
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_UNLIMITED:
@@ -606,8 +605,8 @@ MissionBlock::set_loiter_item(struct navigator_item_s *item, float min_clearance
 			item->y = _navigator->get_local_position()->y;
 			item->z = _navigator->get_local_position()->z;
 
-			if (min_clearance > 0.0f && item->z > - min_clearance) {
-				item->z = - min_clearance;
+			if ((min_clearance > 0.0f) && (item->z > _navigator->get_home_position()->z - min_clearance)) {
+				item->z = _navigator->get_home_position()->z - min_clearance;
 			}
 		}
 

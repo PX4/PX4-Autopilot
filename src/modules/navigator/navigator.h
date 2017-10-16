@@ -222,7 +222,6 @@ public:
 	 */
 	void		set_cruising_throttle(float throttle = -1.0f) { _mission_throttle = throttle; }
 
-
 	/**
 	 * Get the acceptance radius given the mission item preset radius
 	 *
@@ -247,7 +246,7 @@ public:
 private:
 
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
-	int		_navigator_task{ -1};		/**< task handle for sensor task */
+	int		_navigator_task{-1};		/**< task handle for sensor task */
 
 	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
 	int		_global_pos_sub{-1};		/**< global position subscription */
@@ -323,9 +322,9 @@ private:
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
 
-	float _mission_cruising_speed_mc{ -1.0f};
-	float _mission_cruising_speed_fw{ -1.0f};
-	float _mission_throttle{ -1.0f};
+	float _mission_cruising_speed_mc{-1.0f};
+	float _mission_cruising_speed_fw{-1.0f};
+	float _mission_throttle{-1.0f};
 
 	// update subscriptions
 	void		fw_pos_ctrl_status_update(bool force = false);
@@ -337,9 +336,7 @@ private:
 	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
-	void		vehicle_roi_update();
 	void 		local_reference_update();
-
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -361,8 +358,6 @@ private:
 	 */
 	void		publish_mission_result();
 
-
 	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
-
 };
 #endif
