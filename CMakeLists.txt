@@ -195,8 +195,7 @@ px4_add_git_submodule(TARGET git_gazebo_klt PATH "Tools/sitl_gazebo/external/Opt
 px4_add_git_submodule(TARGET git_gps_devices PATH "src/drivers/gps/devices")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
-px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
-px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
+px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v2.0")
 px4_add_git_submodule(TARGET git_nuttx PATH "platforms/nuttx/NuttX/nuttx")
 px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
 

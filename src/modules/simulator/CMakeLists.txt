@@ -65,6 +65,7 @@ px4_add_module(
 		platforms__common
 		git_jmavsim
 		git_gazebo
+		git_mavlink
 	)
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

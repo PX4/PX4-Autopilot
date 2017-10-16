@@ -58,5 +58,6 @@ px4_add_module(
 		mavlink_ulog.cpp
 	DEPENDS
 		platforms__common
+		git_mavlink
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
