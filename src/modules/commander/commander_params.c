@@ -687,3 +687,15 @@ PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
+
+/**
+ * Next flight UUID
+ *
+ * This number is incremented automatically after every flight on
+ * disarming in order to remember the next flight UUID.
+ * The first flight is 0.
+ *
+ * @group Commander
+ * @min 0
+ */
+PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
