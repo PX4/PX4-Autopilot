@@ -152,7 +152,6 @@ set(config_module_list
 	lib/led
 	lib/mathlib
 	lib/mathlib/math/filter
-	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version

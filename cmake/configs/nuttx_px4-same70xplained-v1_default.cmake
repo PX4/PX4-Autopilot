@@ -125,7 +125,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/version
 	lib/terrain_estimation
-	lib/runway_takeoff
 	lib/tailsitter_recovery
 
 	#

@@ -95,7 +95,6 @@ set(config_module_list
 	lib/conversion
 	lib/led
 	lib/rc
-	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
