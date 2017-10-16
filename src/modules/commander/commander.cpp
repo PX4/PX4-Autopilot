@@ -1758,7 +1758,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t low_bat_action = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
-	bool arming_state_changed = false;
 	bool main_state_changed = false;
 	bool failsafe_old = false;
 
@@ -2110,7 +2109,6 @@ int commander_thread_main(int argc, char *argv[])
 										  avionics_power_rail_voltage,
 										  arm_requirements,
 										  hrt_elapsed_time(&commander_boot_timestamp))) {
-					arming_state_changed = true;
 				}
 			}
 
@@ -2422,9 +2420,7 @@ int commander_thread_main(int argc, char *argv[])
 							     arm_requirements,
 							     hrt_elapsed_time(&commander_boot_timestamp));
 
-			if (arming_ret == TRANSITION_CHANGED) {
-				arming_state_changed = true;
-			} else if (arming_ret == TRANSITION_DENIED) {
+			if (arming_ret == TRANSITION_DENIED) {
 				/* do not complain if not allowed into standby */
 				arming_ret = TRANSITION_NOT_CHANGED;
 			}
@@ -2717,10 +2713,6 @@ int commander_thread_main(int argc, char *argv[])
 									     avionics_power_rail_voltage,
 									     arm_requirements,
 									     hrt_elapsed_time(&commander_boot_timestamp));
-
-					if (arming_ret == TRANSITION_CHANGED) {
-						arming_state_changed = true;
-					}
 				}
 				stick_off_counter++;
 			/* do not reset the counter when holding the arm button longer than needed */
@@ -2772,9 +2764,7 @@ int commander_thread_main(int argc, char *argv[])
 										     arm_requirements,
 										     hrt_elapsed_time(&commander_boot_timestamp));
 
-						if (arming_ret == TRANSITION_CHANGED) {
-							arming_state_changed = true;
-						} else {
+						if (arming_ret != TRANSITION_CHANGED) {
 							usleep(100000);
 							print_reject_arm("NOT ARMING: Preflight checks failed");
 						}
@@ -2788,10 +2778,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			_last_sp_man_arm_switch = sp_man.arm_switch;
 
-			if (arming_ret == TRANSITION_CHANGED) {
-				arming_state_changed = true;
-
-			} else if (arming_ret == TRANSITION_DENIED) {
+			if (arming_ret == TRANSITION_DENIED) {
 				/*
 				 * the arming transition can be denied to a number of reasons:
 				 *  - pre-flight check failed (sensors not ok or not calibrated)
@@ -3050,13 +3037,12 @@ int commander_thread_main(int argc, char *argv[])
 
 		}
 
-		was_armed = armed.armed;
-
-		/* print new state */
-		if (arming_state_changed) {
+		// check for arming state change
+		if (was_armed != armed.armed) {
 			status_changed = true;
-			arming_state_changed = false;
 		}
+
+		was_armed = armed.armed;
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status,
