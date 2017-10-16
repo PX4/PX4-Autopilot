@@ -338,7 +338,7 @@ public:
     {
         Quaternion res;
         res.from_axis_angle(vec);
-        (*this) = (*this) * res;
+        (*this) = res * (*this);
     }
 
     /**
