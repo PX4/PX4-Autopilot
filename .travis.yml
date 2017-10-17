@@ -7,6 +7,15 @@ git:
   depth: 2000
   submodules: false
 
+env:
+  global:
+    # COVERITY KEY
+    - secure: "NyaJoCGjU0Xc90Y6bxVYWLgjrJX5HlZsm/SPxruZ6I7xkGo19fJIFzGegOHQFR32D4AiKjllfjTUNy+ncckWplind0QwxtF4/kxXrz9XBfiby6X8jLYXIekrB6Ay0mBLGbniDdh+lpWtcyop6Dmkt5bdJCJuKY2nv9ENnhhs07M="
+    # AWS KEY: $PX4_AWS_KEY
+    - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
+    # AWS SECRET: $PX4_AWS_SECRET
+    - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
+
 matrix:
   fast_finish: true
   include:
@@ -24,7 +33,12 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=tests PX4_DOCKER_REPO=px4io/px4-dev-base:ubuntu17.10
+      env: BUILD_TARGET=tests_asan
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=tests_coverage
     - os: linux
       sudo: required
       services:
@@ -50,12 +64,8 @@ matrix:
       sudo: required
       env: BUILD_TARGET=coverity_scan
   allow_failures:
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=tests_coverage
-
+    - env: BUILD_TARGET=tests_asan
+    - env: BUILD_TARGET=tests_coverage
 
 cache:
   ccache: true
@@ -67,30 +77,32 @@ before_install:
     fi
   # use git:// to fetch instead of https://
   - git config --global url."git://".insteadOf https://
-env:
-  global:
-    # COVERITY KEY
-    - secure: "NyaJoCGjU0Xc90Y6bxVYWLgjrJX5HlZsm/SPxruZ6I7xkGo19fJIFzGegOHQFR32D4AiKjllfjTUNy+ncckWplind0QwxtF4/kxXrz9XBfiby6X8jLYXIekrB6Ay0mBLGbniDdh+lpWtcyop6Dmkt5bdJCJuKY2nv9ENnhhs07M="
-    # AWS KEY: $PX4_AWS_KEY
-    - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
-    # AWS SECRET: $PX4_AWS_SECRET
-    - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
 
 script:
   - if [[ "${BUILD_TARGET}" = "coverity_scan" ]]; then
       echo "no script for coverity build";
+
     elif [[ "${TRAVIS_BRANCH}" = "coverity" ]]; then
       echo "exit early for coverity build" && exit 0;
+
     elif [[ "${BUILD_TARGET}" = "check_format" ]]; then
       ./Tools/docker_run.sh 'make check_format';
+
     elif [[ "${BUILD_TARGET}" = "tests" ]]; then
       ./Tools/docker_run.sh 'make tests';
+
     elif [[ "${BUILD_TARGET}" = "tests_coverage" ]]; then
       ./Tools/docker_run.sh 'make tests_coverage' && bash <(curl -s https://codecov.io/bash) -F unittests;
+
+    elif [[ "${BUILD_TARGET}" = "tests_asan" ]]; then
+      ./Tools/docker_run.sh 'PX4_ASAN=1 make tests';
+
     elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
       ./Tools/docker_run.sh 'make px4_metadata';
+
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
       ./Tools/docker_run.sh 'make clang-tidy-quiet';
+
     fi
 
 after_success:
