@@ -30,6 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+# an IO board doesn't use the px4_layer
+if (NOT ${BOARD} MATCHES "io")
+	add_subdirectory(px4_layer)
+endif()
+
 px4_add_module(
 	MODULE platforms__nuttx
 	COMPILE_FLAGS

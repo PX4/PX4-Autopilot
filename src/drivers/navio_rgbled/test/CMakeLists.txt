@@ -37,7 +37,7 @@ add_executable(navio_rgbled_test
 	test.cpp
 	)
 
-target_link_libraries(navio_rgbled_test
+target_link_libraries(navio_rgbled_test PRIVATE
 	drivers__navio_rgbled
 	drivers__navio_gpio
 	platforms__posix__px4_layer

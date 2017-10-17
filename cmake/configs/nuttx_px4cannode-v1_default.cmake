@@ -36,9 +36,7 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/boards
 	drivers/bootloaders
-	drivers/device
 	drivers/led
 	drivers/stm32
 
@@ -51,18 +49,13 @@ set(config_module_list
 	systemcmds/ver
 
 	#
+	# Library modules
+	#
+	modules/systemlib
+	modules/uORB
+
+	#
 	# General system control
 	#
 	modules/uavcannode
-
-	#
-	# Library modules
-	#
-	lib/version
-	modules/systemlib
-	modules/systemlib/param
-	modules/uORB
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 )

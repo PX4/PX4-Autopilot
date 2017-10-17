@@ -32,23 +32,41 @@
  ****************************************************************************/
 
 /*
- * @file circuit_breaker.c
+ * @file circuit_breaker.h
  *
- * Circuit breaker parameters.
- * Analog to real aviation circuit breakers these parameters
- * allow to disable subsystems. They are not supported as standard
- * operation procedure and are only provided for development purposes.
- * To ensure they are not activated accidentally, the associated
- * parameter needs to set to the key (magic).
+ * Circuit breaker functionality.
  */
 
+#ifndef CIRCUIT_BREAKER_H_
+#define CIRCUIT_BREAKER_H_
+
 #include <stdint.h>
-#include <px4_defines.h>
-#include <systemlib/circuit_breaker.h>
 
-bool circuit_breaker_enabled(const char *breaker, int32_t magic)
-{
-	int32_t val = -1;
+/* SAFETY WARNING  --  SAFETY WARNING  --  SAFETY WARNING
+ *
+ * OBEY THE DOCUMENTATION FOR ALL CIRCUIT BREAKERS HERE,
+ * ENSURE TO READ CAREFULLY ALL SAFETY WARNINGS.
+ * http://pixhawk.org/dev/circuit_breakers
+ *
+ * CIRCUIT BREAKERS ARE NOT PART OF THE STANDARD OPERATION PROCEDURE
+ * AND MAY DISABLE CHECKS THAT ARE VITAL FOR SAFE FLIGHT.
+ */
+#define CBRK_SUPPLY_CHK_KEY	894281
+#define CBRK_RATE_CTRL_KEY	140253
+#define CBRK_IO_SAFETY_KEY	22027
+#define CBRK_AIRSPD_CHK_KEY	162128
+#define CBRK_FLIGHTTERM_KEY	121212
+#define CBRK_ENGINEFAIL_KEY	284953
+#define CBRK_GPSFAIL_KEY	240024
+#define CBRK_USB_CHK_KEY	197848
+#define CBRK_VELPOSERR_KEY	201607
 
-	return (PX4_PARAM_GET_BYNAME(breaker, &val) == 0) && (val == magic);
-}
+#include <stdbool.h>
+
+__BEGIN_DECLS
+
+extern "C" __EXPORT bool circuit_breaker_enabled(const char *breaker, int32_t magic);
+
+__END_DECLS
+
+#endif /* CIRCUIT_BREAKER_H_ */

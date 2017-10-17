@@ -49,23 +49,18 @@ add_definitions(
 		)
 
 set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
-
 add_subdirectory(${LIBUAVCAN_DIR} uavcanesc_libuavcan)
-add_dependencies(uavcan platforms__nuttx)
-
-include_directories(${PX4_SOURCE_DIR}/src/modules/systemlib/flashparams)
-include_directories(${LIBUAVCAN_DIR}/libuavcan/include)
-include_directories(${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated)
-include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include)
-include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include)
-
-include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders)
-
+add_dependencies(uavcan prebuild_targets)
 
 px4_add_module(
 	MODULE modules__uavcanesc
 	MAIN uavcanesc
 	STACK_MAIN 4096
+	INCLUDES
+		${LIBUAVCAN_DIR}/libuavcan/include
+		${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
+		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
+		${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include
 	COMPILE_FLAGS
 		-Wno-deprecated-declarations
 		-O3
@@ -75,11 +70,9 @@ px4_add_module(
 		indication_controller.cpp
 		led.cpp
 		uavcanesc_params.c
-		${PX4_SOURCE_DIR}/src/modules/systemlib/flashparams/flashparams.c
-		${PX4_SOURCE_DIR}/src/modules/systemlib/flashparams/flashfs.c
 	DEPENDS
-		platforms__common
+		drivers_bootloaders
+		flashparams
 		uavcan
+		uavcan_stm32_driver
 	)
-
-target_link_libraries(modules__uavcanesc uavcan uavcan_stm32_driver)

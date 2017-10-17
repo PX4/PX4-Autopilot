@@ -59,7 +59,7 @@
 #include <math.h>
 #include <poll.h>
 #include <systemlib/perf_counter.h>
-#include <systemlib/circuit_breaker.h>
+#include <systemlib/circuit_breaker/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
 
 #include "mc_att_control_base.h"

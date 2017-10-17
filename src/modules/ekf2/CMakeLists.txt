@@ -40,7 +40,9 @@ px4_add_module(
 	SRCS
 		ekf2_main.cpp
 	DEPENDS
-		platforms__common
 		git_ecl
+		lib__ecl
+		controllib
+		geo
+		geo_lookup
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

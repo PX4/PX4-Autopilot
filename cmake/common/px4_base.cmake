@@ -198,7 +198,15 @@ function(px4_add_module)
 		REQUIRED MODULE
 		ARGN ${ARGN})
 
-	px4_add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+	add_library(${MODULE} ${SRCS})
+	add_dependencies(${MODULE} prebuild_targets uorb_headers)
+	set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES ${MODULE})
+
+	# TODO: reevaluate per target optimization helpers
+	px4_add_optimization_flags_for_target(${MODULE})
+
+	# Pass variable to the parent px4_add_module.
+	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
 
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
@@ -231,11 +239,10 @@ function(px4_add_module)
 	endif()
 
 	if(MAIN)
-		set_target_properties(${MODULE} PROPERTIES
-			COMPILE_DEFINITIONS PX4_MAIN=${MAIN}_app_main)
-		add_definitions(-DMODULE_NAME="${MAIN}")
+		target_compile_definitions(${MODULE} PRIVATE PX4_MAIN=${MAIN}_app_main)
+		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MAIN}")
 	else()
-		add_definitions(-DMODULE_NAME="${MODULE}")
+		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MODULE}")
 	endif()
 
 	if(INCLUDES)
@@ -243,7 +250,16 @@ function(px4_add_module)
 	endif()
 
 	if(DEPENDS)
-		add_dependencies(${MODULE} ${DEPENDS})
+		# using target_link_libraries for dependencies provides linking
+		#  as well as interface include and libraries
+		foreach(dep ${DEPENDS})
+			get_target_property(dep_type ${dep} TYPE)
+			if (${dep_type} STREQUAL "STATIC_LIBRARY")
+				target_link_libraries(${MODULE} PRIVATE ${dep})
+			else()
+				add_dependencies(${MODULE} ${dep})
+			endif()
+		endforeach()
 	endif()
 
 	# join list variables to get ready to send to compiler
@@ -449,14 +465,16 @@ function(px4_add_common_flags)
 
 	set(added_include_dirs
 		${PX4_BINARY_DIR}
-		${PX4_BINARY_DIR}/src
 		${PX4_BINARY_DIR}/src/modules
-		${PX4_SOURCE_DIR}/src
+
+		# TODO: replace with cmake PUBLIC target_include_directories
 		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
-		${PX4_SOURCE_DIR}/src/include
-		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		${PX4_SOURCE_DIR}/src/lib/matrix
+
+		${PX4_SOURCE_DIR}/src
+		${PX4_SOURCE_DIR}/src/include
+		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/modules
 		${PX4_SOURCE_DIR}/src/platforms
 		)
@@ -545,7 +563,10 @@ endfunction()
 #
 function(px4_add_library target)
 	add_library(${target} ${ARGN})
-	add_dependencies(${target} prebuild_targets)
+	add_dependencies(${target} prebuild_targets uorb_headers)
+
+	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
+
 	px4_add_optimization_flags_for_target(${target})
 
 	# Pass variable to the parent px4_add_module.

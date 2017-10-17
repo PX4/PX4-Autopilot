@@ -30,21 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__controllib
-	COMPILE_FLAGS
-	SRCS
-		block/Block.cpp
-		block/BlockParam.cpp
-		BlockDerivative.cpp
-		BlockHighPass.cpp
-		BlockIntegral.cpp
-		BlockIntegralTrap.cpp
-		BlockLimit.cpp
-		BlockLimitSym.cpp
-		BlockLowPass.cpp
-		BlockLowPass2.cpp
-	DEPENDS
-		platforms__common
+
+add_library(controllib EXCLUDE_FROM_ALL
+	block/Block.cpp
+	block/BlockParam.cpp
+	BlockDerivative.cpp
+	BlockHighPass.cpp
+	BlockIntegral.cpp
+	BlockIntegralTrap.cpp
+	BlockLimit.cpp
+	BlockLimitSym.cpp
+	BlockLowPass.cpp
+	BlockLowPass2.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+add_dependencies(controllib prebuild_targets)
+target_link_libraries(controllib PRIVATE mathlib)

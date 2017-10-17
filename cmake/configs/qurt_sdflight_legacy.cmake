@@ -31,7 +31,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_bmp280_wrapper
@@ -58,9 +57,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
 	modules/land_detector
@@ -77,30 +74,6 @@ set(config_module_list
 	# FC_ADDON drivers
 	#
 	platforms/qurt/fc_addon/uart_esc
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/geo
-	lib/ecl
-	lib/geo_lookup
-	lib/conversion
-	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/rc
-	lib/version
-	lib/DriverFramework/framework
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# sources for muorb over fastrpc

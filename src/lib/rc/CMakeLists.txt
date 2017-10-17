@@ -30,17 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__rc
-	COMPILE_FLAGS
-		-Wno-unused-result
-	SRCS
-		st24.cpp
-		sumd.cpp
-		sbus.cpp
-		dsm.cpp
-		common_rc.cpp
-	DEPENDS
-		platforms__common
+
+px4_add_library(rc EXCLUDE_FROM_ALL
+	st24.cpp
+	sumd.cpp
+	sbus.cpp
+	dsm.cpp
+	common_rc.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+add_dependencies(rc prebuild_targets)
+target_compile_options(rc PRIVATE -Wno-unused-result)

@@ -72,10 +72,6 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/param/param.h>
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-#include <systemlib/systemlib.h>
-#endif
-
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/

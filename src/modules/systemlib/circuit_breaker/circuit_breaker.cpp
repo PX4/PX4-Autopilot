@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,85 +31,24 @@
  *
  ****************************************************************************/
 
-/**
- * @file mixer_load.c
+/*
+ * @file circuit_breaker.c
  *
- * Programmable multi-channel mixer library.
+ * Circuit breaker parameters.
+ * Analog to real aviation circuit breakers these parameters
+ * allow to disable subsystems. They are not supported as standard
+ * operation procedure and are only provided for development purposes.
+ * To ensure they are not activated accidentally, the associated
+ * parameter needs to set to the key (magic).
  */
 
-#include <px4_config.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <systemlib/err.h>
+#include "circuit_breaker.h"
 
-#include "mixer_load.h"
+#include <px4_defines.h>
 
-int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
+bool circuit_breaker_enabled(const char *breaker, int32_t magic)
 {
-	FILE		*fp;
-	char		line[120];
+	int32_t val = -1;
 
-	/* open the mixer definition file */
-	fp = fopen(fname, "r");
-
-	if (fp == NULL) {
-		warnx("file not found");
-		return -1;
-	}
-
-	/* read valid lines from the file into a buffer */
-	buf[0] = '\0';
-
-	for (;;) {
-
-		/* get a line, bail on error/EOF */
-		line[0] = '\0';
-
-		if (fgets(line, sizeof(line), fp) == NULL) {
-			break;
-		}
-
-		/* if the line doesn't look like a mixer definition line, skip it */
-		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':')) {
-			continue;
-		}
-
-		/* compact whitespace in the buffer */
-		char *t, *f;
-
-		for (f = line; *f != '\0'; f++) {
-			/* scan for space characters */
-			if (*f == ' ') {
-				/* look for additional spaces */
-				t = f + 1;
-
-				while (*t == ' ') {
-					t++;
-				}
-
-				if (*t == '\0') {
-					/* strip trailing whitespace */
-					*f = '\0';
-
-				} else if (t > (f + 1)) {
-					memmove(f + 1, t, strlen(t) + 1);
-				}
-			}
-		}
-
-		/* if the line is too long to fit in the buffer, bail */
-		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
-			warnx("line too long");
-			fclose(fp);
-			return -1;
-		}
-
-		/* add the line to the buffer */
-		strcat(buf, line);
-	}
-
-	fclose(fp);
-	return 0;
+	return (PX4_PARAM_GET_BYNAME(breaker, &val) == 0) && (val == magic);
 }
-

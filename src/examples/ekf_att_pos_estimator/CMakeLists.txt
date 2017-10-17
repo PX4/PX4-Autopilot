@@ -34,7 +34,6 @@
 px4_add_module(
 	MODULE examples__ekf_att_pos_estimator
 	MAIN ekf_att_pos_estimator
-	COMPILE_FLAGS
 	STACK_MAIN 3000
 	STACK_MAX 3400
 	SRCS
@@ -42,6 +41,5 @@ px4_add_module(
 		estimator_22states.cpp
 		estimator_utilities.cpp
 	DEPENDS
-		platforms__common
+		terrain_estimator
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

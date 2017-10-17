@@ -34,14 +34,11 @@
 px4_add_module(
 	MODULE drivers__navio_rgbled
 	MAIN navio_rgbled
-	COMPILE_FLAGS
 	SRCS
 		navio_rgbled.cpp
 	DEPENDS
-		platforms__common
+		ledcontroller
 		drivers__linux_gpio
-		lib__led
 	)
 
 #add_subdirectory(test)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

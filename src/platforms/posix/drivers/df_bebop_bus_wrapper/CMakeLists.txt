@@ -31,16 +31,14 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
-
 px4_add_module(
 	MODULE platforms__posix__drivers__df_bebop_bus_wrapper
 	MAIN df_bebop_bus_wrapper
 	SRCS
 		df_bebop_bus_wrapper.cpp
 	DEPENDS
-		platforms__common
+		battery
 		df_driver_framework
 		df_bebop_bus
+		mixer
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

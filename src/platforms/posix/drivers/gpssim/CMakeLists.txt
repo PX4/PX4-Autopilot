@@ -31,15 +31,12 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
 px4_add_module(
 	MODULE platforms__posix__drivers__gpssim
 	MAIN gpssim
-	COMPILE_FLAGS
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		gpssim.cpp
-	DEPENDS
-		platforms__common
+
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

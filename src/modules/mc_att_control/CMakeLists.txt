@@ -30,15 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_subdirectory(tailsitter_recovery)
+
 px4_add_module(
 	MODULE modules__mc_att_control
 	MAIN mc_att_control
 	STACK_MAIN 1200
 	STACK_MAX 3500
-	COMPILE_FLAGS
 	SRCS
 		mc_att_control_main.cpp
 	DEPENDS
-		platforms__common
+		rotation
+		tailsitter_recovery
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

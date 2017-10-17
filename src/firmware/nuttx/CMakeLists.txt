@@ -10,7 +10,7 @@ get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
 # build NuttX
 add_subdirectory(${PX4_SOURCE_DIR}/platforms/nuttx/NuttX ${PX4_BINARY_DIR}/NuttX)
 
-target_link_libraries(${fw_name}
+target_link_libraries(${fw_name} PRIVATE
 	-T${PX4_BINARY_DIR}/NuttX/nuttx/configs/${BOARD}/scripts/ld.script
 	-Wl,-Map=${PX4_BINARY_DIR}/${CONFIG}.map
 	-Wl,--warn-common
@@ -35,7 +35,7 @@ target_link_libraries(${fw_name}
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
-	target_link_libraries(${fw_name} romfs)
+	target_link_libraries(${fw_name} PRIVATE romfs)
 	if (config_io_board)
 		add_dependencies(romfs copy_px4io_bin)
 	endif()

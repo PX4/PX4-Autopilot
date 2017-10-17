@@ -45,5 +45,6 @@ px4_add_module(
 		safety.c
 		serial.c
 	DEPENDS
-		platforms__common
+		mixer
+		rc
 	)

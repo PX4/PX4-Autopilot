@@ -1,6 +1,6 @@
 
 function(px4_add_sitl_app)
-px4_parse_function_args(NAME px4_add_sitl_app
+	px4_parse_function_args(NAME px4_add_sitl_app
 			ONE_VALUE APP_NAME MAIN_SRC UPLOAD_NAME
 			REQUIRED APP_NAME MAIN_SRC
 			ARGN ${ARGN}
@@ -12,7 +12,7 @@ px4_parse_function_args(NAME px4_add_sitl_app
 			)
 
 	if (NOT APPLE)
-		target_link_libraries(${APP_NAME}
+		target_link_libraries(${APP_NAME} PRIVATE
 			-Wl,--start-group
 			${module_libraries}
 			${df_driver_libs}
@@ -20,7 +20,7 @@ px4_parse_function_args(NAME px4_add_sitl_app
 			-Wl,--end-group
 			)
 	else()
-		target_link_libraries(${APP_NAME}
+		target_link_libraries(${APP_NAME} PRIVATE
 			${module_libraries}
 			${df_driver_libs}
 			pthread m
@@ -70,13 +70,16 @@ ExternalProject_Add(sitl_gazebo
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
+	DEPENDS
+		git_gazebo
 	)
 set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 ExternalProject_Add_Step(sitl_gazebo forceconfigure
 	DEPENDEES update
 	DEPENDERS configure
-	ALWAYS 1)
+	ALWAYS 1
+	)
 
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo replay)
@@ -123,9 +126,10 @@ foreach(viewer ${viewers})
 						${model}
 						${PX4_SOURCE_DIR}
 						${PX4_BINARY_DIR}
-						WORKING_DIRECTORY ${SITL_WORKING_DIR}
-						USES_TERMINAL
-					DEPENDS logs_symlink
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS
+						logs_symlink
 					)
 			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")
@@ -133,6 +137,8 @@ foreach(viewer ${viewers})
 				if (viewer STREQUAL "gazebo")
 					add_dependencies(${_targ_name} px4_${model})
 				endif()
+			elseif(viewer STREQUAL "jmavsim")
+				add_dependencies(${_targ_name} git_jmavsim)
 			endif()
 		endforeach()
 	endforeach()

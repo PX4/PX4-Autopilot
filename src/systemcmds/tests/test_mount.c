@@ -48,7 +48,6 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
 #include <string.h>
 

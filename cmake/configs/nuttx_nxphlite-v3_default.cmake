@@ -13,10 +13,8 @@ set(config_module_list
 #NOT Supported	drivers/bma180
 #NOT Supported	drivers/bmi160
 	drivers/bmp280
-	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
-	drivers/device
 	drivers/ets_airspeed
 	drivers/frsky_telemetry
 	drivers/fxos8701cq
@@ -137,9 +135,7 @@ set(config_module_list
 #
 	# Library modules
 	#
-	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
 
@@ -147,32 +143,6 @@ set(config_module_list
 	modules/micrortps_bridge/micrortps_client
 
 
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/rc
-	lib/ecl
-	lib/external_lgpl
-	lib/geo
-	lib/geo_lookup
-	lib/conversion
-	lib/launchdetection
-	lib/led
-	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/version
-	lib/DriverFramework/framework
-
-	#
-	# Platform
-	#
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge

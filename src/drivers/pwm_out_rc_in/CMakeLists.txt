@@ -31,16 +31,15 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
 px4_add_module(
 	MODULE drivers__pwm_out_rc_in
 	MAIN pwm_out_rc_in
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	COMPILE_FLAGS
 		-DMAVLINK_COMM_NUM_BUFFERS=1
 	SRCS
 		pwm_out_rc_in.cpp
 	DEPENDS
-		platforms__common
+		mixer
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

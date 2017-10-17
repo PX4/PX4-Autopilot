@@ -38,7 +38,7 @@ list(APPEND SRCS
 	integrator.cpp
 )
 
-if(${OS} STREQUAL "nuttx")
+if(${OS} STREQUAL "nuttx" AND NOT ${BOARD} MATCHES "io")
 	list(APPEND SRCS
 		device_nuttx.cpp
 		cdev.cpp
@@ -49,7 +49,7 @@ if(${OS} STREQUAL "nuttx")
 	if ("${CONFIG_SPI}" STREQUAL "y")
 		list(APPEND SRCS spi.cpp)
 	endif()
-else()
+elseif(${OS} STREQUAL "posix" OR ${OS} STREQUAL "qurt")
 	list(APPEND SRCS
 		device_posix.cpp
 		vdev.cpp
@@ -61,9 +61,4 @@ else()
 
 endif()
 
-px4_add_module(
-	MODULE drivers__device
-	SRCS ${SRCS}
-	DEPENDS
-		platforms__common
-	)
+px4_add_library(drivers_device ${SRCS})

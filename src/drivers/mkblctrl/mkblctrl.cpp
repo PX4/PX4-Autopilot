@@ -71,9 +71,8 @@
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_tone_alarm.h>
 
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/mixer/mixer.h>
+#include <mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>

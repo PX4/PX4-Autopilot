@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,26 +31,21 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+px4_add_git_submodule(TARGET git_driverframework PATH "DriverFramework")
+px4_add_git_submodule(TARGET git_ecl PATH "ecl")
+px4_add_git_submodule(TARGET git_matrix PATH "matrix")
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py > ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py
-	)
-
-add_custom_target(mixer_gen DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h)
-
-px4_add_module(
-	MODULE modules__systemlib__mixer
-	SRCS
-		mixer.cpp
-		mixer_group.cpp
-		mixer_helicopter.cpp
-		mixer_load.c
-		mixer_multirotor.cpp
-		mixer_simple.cpp
-	DEPENDS
-		platforms__common
-		mixer_gen
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+add_subdirectory(battery)
+add_subdirectory(controllib)
+add_subdirectory(conversion)
+add_subdirectory(DriverFramework/framework)
+add_subdirectory(ecl)
+add_subdirectory(external_lgpl)
+add_subdirectory(geo)
+add_subdirectory(geo_lookup)
+add_subdirectory(led)
+add_subdirectory(mathlib)
+add_subdirectory(mixer)
+add_subdirectory(rc)
+add_subdirectory(terrain_estimation)
+add_subdirectory(version)

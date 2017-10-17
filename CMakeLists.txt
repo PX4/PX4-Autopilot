@@ -187,23 +187,27 @@ execute_process(
 	)
 
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
-px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
-px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
 px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
-px4_add_git_submodule(TARGET git_gazebo_flow PATH "Tools/sitl_gazebo/external/OpticalFlow")
-px4_add_git_submodule(TARGET git_gazebo_klt PATH "Tools/sitl_gazebo/external/OpticalFlow/external/klt_feature_tracker")
-px4_add_git_submodule(TARGET git_gps_devices PATH "src/drivers/gps/devices")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
-px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
 px4_add_git_submodule(TARGET git_nuttx PATH "platforms/nuttx/NuttX/nuttx")
-px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
+px4_add_git_submodule(TARGET git_nuttx_apps PATH "platforms/nuttx/NuttX/apps")
 
 #=============================================================================
 
 message(STATUS "PX4 VERSION: ${git_tag}")
 message(STATUS "CONFIG: ${target_name}")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+
+#=============================================================================
+# project definition
+#
+project(px4 CXX C ASM)
+
+set(package-contact "px4users@googlegroups.com")
+
+#=============================================================================
 
 # The URL for the elf file for crash logging
 if (DEFINED ENV{BUILD_URI})
@@ -214,14 +218,19 @@ endif()
 
 add_definitions(-DBUILD_URI=${BUILD_URI})
 
-# Define GNU standard installation directories
-include(GNUInstallDirs)
-
 # Setup install paths
 if (${OS} STREQUAL "posix")
+
+	# Define GNU standard installation directories
+	include(GNUInstallDirs)
+
 	if (NOT CMAKE_INSTALL_PREFIX)
 		set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
 	endif()
+
+	# cmake testing only on posix
+	enable_testing()
+	include(CTest)
 endif()
 
 #=============================================================================
@@ -257,13 +266,6 @@ if (CCACHE AND CCACHE_PROGRAM)
 endif()
 
 #=============================================================================
-# project definition
-#
-project(px4 CXX C ASM)
-
-set(package-contact "px4users@googlegroups.com")
-
-#=============================================================================
 # find programs and packages
 #
 
@@ -280,12 +282,6 @@ endif()
 
 find_package(PythonInterp REQUIRED)
 px4_find_python_module(jinja2 REQUIRED)
-
-#=============================================================================
-# cmake testing
-#
-enable_testing()
-include(CTest)
 
 #=============================================================================
 # generate compile command database
@@ -376,7 +372,7 @@ endif()
 #
 include(common/px4_metadata)
 
-add_subdirectory(msg)
+add_subdirectory(msg EXCLUDE_FROM_ALL)
 
 px4_generate_airframes_xml(BOARD ${BOARD})
 
@@ -431,6 +427,12 @@ endif()
 #=============================================================================
 # subdirectories
 #
+
+add_subdirectory(src/platforms EXCLUDE_FROM_ALL)
+add_subdirectory(src/lib EXCLUDE_FROM_ALL)
+add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
+add_subdirectory(src/drivers/device EXCLUDE_FROM_ALL)
+
 foreach(module ${config_module_list})
 	string(REGEX MATCH "^[./]" external_module ${module})
 	if (external_module)
@@ -442,6 +444,7 @@ foreach(module ${config_module_list})
 	endif()
 endforeach()
 
+# firmware added last to generate the builtin for included modules
 add_subdirectory(src/firmware/${OS})
 
 #=============================================================================

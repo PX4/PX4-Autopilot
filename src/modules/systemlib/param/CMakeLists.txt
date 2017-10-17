@@ -89,17 +89,11 @@ add_custom_command(OUTPUT px4_parameters.c px4_parameters.h
 set_source_files_properties(px4_parameters.c PROPERTIES GENERATED TRUE)
 set_source_files_properties(px4_parameters.h PROPERTIES GENERATED TRUE)
 
-px4_add_module(
-	MODULE modules__systemlib__param
-	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
-	INCLUDES
-		${CMAKE_CURRENT_BINARY_DIR}
-	SRCS
-		${SRCS}
-		px4_parameters.c
-		px4_parameters.h
-	DEPENDS
-		platforms__common
+px4_add_library(parameters
+	${SRCS}
+	px4_parameters.c
+	px4_parameters.h
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+target_compile_options(parameters PRIVATE -Wno-sign-compare)
+target_include_directories(parameters PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(parameters PRIVATE tinybson)
