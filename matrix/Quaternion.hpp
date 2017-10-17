@@ -330,14 +330,12 @@ public:
 
     /**
      * Rotate quaternion from rotation vector
-     * TODO replace with AxisAngle call
      *
      * @param vec rotation vector
      */
-    void rotate(const Vector<Type, 3> &vec)
+    void rotate(const AxisAngle<Type> &vec)
     {
-        Quaternion res;
-        res.from_axis_angle(vec);
+        Quaternion res(vec);
         (*this) = res * (*this);
     }
 
