@@ -100,6 +100,22 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
 PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
 
 /**
+ * Maximal horizontal distance between waypoint
+ *
+ * Failsafe check to prevent running missions which are way too big.
+ * Set a value of zero or less to disable. The mission will not be started if any distance between
+ * two subsequent waypoints is greater than MIS_DIST_WPS.
+ *
+ * @unit m
+ * @min 0
+ * @max 10000
+ * @decimal 1
+ * @increment 100
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_DIST_WPS, 900);
+
+/**
  * Altitude setpoint mode
  *
  * 0: the system will follow a zero order hold altitude setpoint
