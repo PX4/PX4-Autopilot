@@ -35,7 +35,7 @@
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
 [submodule "src/lib/micro-CDR"]
-	path = src/lib/micro-CDR
+	path = src/modules/micrortps_bridge/micro-CDR
 	url = https://github.com/eProsima/micro-CDR.git
 [submodule "platforms/nuttx/NuttX/nuttx"]
 	path = platforms/nuttx/NuttX/nuttx

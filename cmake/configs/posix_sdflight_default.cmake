@@ -66,9 +66,6 @@ set(config_module_list
 	modules/commander
 	modules/navigator
 
-	# micro RTPS
-	modules/micrortps_bridge/micrortps_client
-
 	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
@@ -87,11 +84,3 @@ set(config_module_list
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
 	)
-
-set(config_rtps_send_topics
-        sensor_baro
-        )
-
-set(config_rtps_receive_topics
-        sensor_combined
-        )
