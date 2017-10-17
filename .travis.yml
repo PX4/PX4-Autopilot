@@ -24,11 +24,6 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=tests_coverage
-    - os: linux
-      sudo: required
-      services:
-        - docker
       env: BUILD_TARGET=tests PX4_DOCKER_REPO=px4io/px4-dev-base:ubuntu17.10
     - os: linux
       sudo: required
@@ -54,6 +49,13 @@ matrix:
       dist: trusty
       sudo: required
       env: BUILD_TARGET=coverity_scan
+  allow_failures:
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=tests_coverage
+
 
 cache:
   ccache: true
