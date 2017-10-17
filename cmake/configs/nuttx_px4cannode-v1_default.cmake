@@ -49,14 +49,13 @@ set(config_module_list
 	systemcmds/ver
 
 	#
+	# Library modules
+	#
+	modules/systemlib
+	modules/uORB
+
+	#
 	# General system control
 	#
 	modules/uavcannode
-
-	#
-	# Library modules
-	#
-	lib/version
-	modules/systemlib
-	modules/uORB
 )

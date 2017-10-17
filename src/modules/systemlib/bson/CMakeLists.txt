@@ -31,6 +31,5 @@
 #
 ############################################################################
 
-add_library(tinybson tinybson.c)
-add_dependencies(tinybson prebuild_targets)
+px4_add_library(tinybson tinybson.c)
 target_compile_options(tinybson PRIVATE -Wno-sign-compare)

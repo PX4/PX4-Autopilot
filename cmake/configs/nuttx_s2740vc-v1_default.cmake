@@ -50,12 +50,7 @@ set(config_module_list
 	systemcmds/ver
 
 	#
-	# General system control
-	#
-
-	#
 	# Library modules
 	#
 	modules/systemlib
-	lib/version
 )

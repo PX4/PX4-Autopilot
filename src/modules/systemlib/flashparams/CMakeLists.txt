@@ -34,3 +34,4 @@
 px4_add_library(flashparams flashfs.c flashparams.c)
 target_compile_options(flashparams PRIVATE -Wno-sign-compare)
 target_link_libraries(flashparams PRIVATE tinybson)
+target_include_directories(flashparams PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -51,6 +51,12 @@ set(config_module_list
 	systemcmds/ver
 
 	#
+	# Library modules
+	#
+	modules/systemlib
+	modules/uORB
+
+	#
 	# General system control
 	#
 	modules/uavcanesc
@@ -60,11 +66,4 @@ set(config_module_list
 	modules/uavcanesc/commands/dc
 	modules/uavcanesc/commands/rpm
 	modules/uavcanesc/commands/stat
-
-	#
-	# Library modules
-	#
-	lib/version
-	modules/systemlib
-	modules/uORB
 )
