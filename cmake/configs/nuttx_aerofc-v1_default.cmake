@@ -37,6 +37,7 @@ set(config_module_list
 	systemcmds/nshterm
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/aerofc_configuration
 
 	#
 	# General system control
