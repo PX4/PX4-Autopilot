@@ -275,10 +275,10 @@ public:
     }
 
     /**
-     * Computes the derivative of q_12 when
+     * Computes the derivative of q_21 when
      * rotated with angular velocity expressed in frame 1
-     * v_2 = q_12 * v_1 * q_12^-1
-     * d/dt q_12 = 0.5 * q_12 * omega_12_2
+     * v_2 = q_21 * v_1 * q_21^-1
+     * d/dt q_21 = 0.5 * q_21 * omega_2
      *
      * @param w angular rate in frame 1 (typically body frame)
      */
@@ -290,10 +290,10 @@ public:
     }
 
     /**
-     * Computes the derivative of q_12 when
+     * Computes the derivative of q_21 when
      * rotated with angular velocity expressed in frame 2
-     * v_2 = q_12 * v_1 * q_12^-1
-     * d/dt q_12 = 0.5 * omega_12_1 * q_12
+     * v_2 = q_21 * v_1 * q_21^-1
+     * d/dt q_21 = 0.5 * omega_1 * q_21
      *
      * @param w angular rate in frame 2 (typically reference frame)
      */
@@ -340,9 +340,10 @@ public:
     }
 
     /**
-     * Rotates vector v_1 in frame 1 to vector r_2 in frame 2
-     * using the rotation quaternion q_12
-     * v_2 = q_12 * v_1 * q_12^-1
+     * Rotates vector v_1 in frame 1 to vector v_2 in frame 2
+     * using the rotation quaternion q_21
+     * describing the rotation from frame 1 to 2
+     * v_2 = q_21 * v_1 * q_21^-1
      *
      * @param vec vector to rotate in frame 1 (typically body frame)
      * @return rotated vector in frame 2 (typically reference frame)
@@ -355,9 +356,10 @@ public:
     }
 
     /**
-     * Rotates vector v_2 in frame 2 to vector r_1 in frame 1
-     * using the rotation quaternion q_12
-     * v_1 = q_12^-1 * v_1 * q_12
+     * Rotates vector v_2 in frame 2 to vector v_1 in frame 1
+     * using the rotation quaternion q_21
+     * describing the rotation from frame 1 to 2
+     * v_1 = q_21^-1 * v_1 * q_21
      *
      * @param vec vector to rotate in frame 2 (typically reference frame)
      * @return rotated vector in frame 1 (typically body frame)
