@@ -48,7 +48,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <mixer/mixer.h>
-#include <mixer/mixer_multirotor.generated.h>
+#include <mixer_multirotor.generated.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_pwm.h>
