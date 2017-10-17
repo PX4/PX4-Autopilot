@@ -132,6 +132,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
+	_params_handles.fw_alt_err = param_find("VT_FW_ALT_ERR");
 	_params_handles.fw_qc_max_pitch = param_find("VT_FW_QC_P");
 	_params_handles.fw_qc_max_roll = param_find("VT_FW_QC_R");
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
@@ -365,6 +366,22 @@ VtolAttitudeControl::vehicle_local_pos_poll()
 }
 
 /**
+* Check for setpoint updates.
+*/
+void
+VtolAttitudeControl::vehicle_local_pos_sp_poll()
+{
+	bool updated;
+	/* Check if parameters have changed */
+	orb_check(_local_pos_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_sub, &_local_pos_sp);
+	}
+
+}
+
+/**
 * Check for position setpoint updates.
 */
 void
@@ -571,6 +588,10 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.fw_min_alt, &v);
 	_params.fw_min_alt = v;
 
+	/* maximum negative altitude error for FW mode (Adaptive QuadChute) */
+	param_get(_params_handles.fw_alt_err, &v);
+	_params.fw_alt_err = v;
+
 	/* maximum pitch angle (QuadChute) */
 	param_get(_params_handles.fw_qc_max_pitch, &l);
 	_params.fw_qc_max_pitch = l;
@@ -666,6 +687,7 @@ void VtolAttitudeControl::task_main()
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_local_pos_sub         = orb_subscribe(ORB_ID(vehicle_local_position));
+	_local_pos_sp_sub         = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_battery_status_sub	   = orb_subscribe(ORB_ID(battery_status));
@@ -754,6 +776,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_rates_sp_fw_poll();
 		parameters_update_poll();
 		vehicle_local_pos_poll();			// Check for new sensor values
+		vehicle_local_pos_sp_poll();
 		pos_sp_triplet_poll();
 		vehicle_airspeed_poll();
 		vehicle_battery_poll();

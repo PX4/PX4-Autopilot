@@ -65,6 +65,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_actuators_mc_in = _attc->get_actuators_mc_in();
 	_actuators_fw_in = _attc->get_actuators_fw_in();
 	_local_pos = _attc->get_local_pos();
+	_local_pos_sp = _attc->get_local_pos_sp();
 	_airspeed = _attc->get_airspeed();
 	_batt_status = _attc->get_batt_status();
 	_tecs_status = _attc->get_tecs_status();
@@ -220,7 +221,28 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_min_alt > FLT_EPSILON) {
 
 			if (-(_local_pos->z) < _params->fw_min_alt) {
-				_attc->abort_front_transition("Minimum altitude breached");
+				_attc->abort_front_transition("QuadChute: Minimum altitude breached");
+			}
+		}
+
+		// adaptive quadchute
+		// We use tecs for tracking in FW and local_pos_sp during transitions
+		if (_params->fw_alt_err > FLT_EPSILON) {
+			float altErr = 0.0f;
+
+			if (_tecs_running) {
+				altErr = _tecs_status->altitudeSp - _tecs_status->altitude_filtered;
+
+			} else {
+				altErr = -_local_pos_sp->z - -_local_pos->z;
+
+				if (!_local_pos->z_valid) {
+					altErr = 0.0f;
+				}
+			}
+
+			if (altErr > _params->fw_alt_err) {
+				_attc->abort_front_transition("QuadChute: Altitude error too large");
 			}
 		}
 
