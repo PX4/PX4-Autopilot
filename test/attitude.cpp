@@ -229,10 +229,7 @@ int main()
     rot(1) = rot(2) = 0.0f;
     qI.rotate(rot);
     Quatf q_true(cos(1.0f / 2), sin(1.0f / 2), 0.0f, 0.0f);
-    TEST(fabs(qI(0) - q_true(0)) < eps);
-    TEST(fabs(qI(1) - q_true(1)) < eps);
-    TEST(fabs(qI(2) - q_true(2)) < eps);
-    TEST(fabs(qI(3) - q_true(3)) < eps);
+    TEST(isEqual(qI, q_true));
 
     // rotate quaternion (zero rotation)
     qI = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
@@ -240,10 +237,14 @@ int main()
     rot(1) = rot(2) = 0.0f;
     qI.rotate(rot);
     q_true = Quatf(cos(0.0f), sin(0.0f), 0.0f, 0.0f);
-    TEST(fabs(qI(0) - q_true(0)) < eps);
-    TEST(fabs(qI(1) - q_true(1)) < eps);
-    TEST(fabs(qI(2) - q_true(2)) < eps);
-    TEST(fabs(qI(3) - q_true(3)) < eps);
+    TEST(isEqual(qI, q_true));
+
+    // rotate quaternion (random non-commutating rotation)
+    q = Quatf(AxisAnglef(5.1f, 3.2f, 8.4f));
+    rot = Vector3f(1.1f, 2.5f, 3.8f);
+    q.rotate(rot);
+    q_true = Quatf(0.3019f, 0.2645f, 0.2268f, 0.8874f);
+    TEST(isEqual(q, q_true));
 
     // get rotation axis from quaternion (nonzero rotation)
     q = Quatf(cos(1.0f / 2), 0.0f, sin(1.0f / 2), 0.0f);
@@ -263,10 +264,7 @@ int main()
     rot(0) = rot(1) = rot(2) = 0.0f;
     q.from_axis_angle(rot, 0.0f);
     q_true = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
-    TEST(fabs(q(0) - q_true(0)) < eps);
-    TEST(fabs(q(1) - q_true(1)) < eps);
-    TEST(fabs(q(2) - q_true(2)) < eps);
-    TEST(fabs(q(3) - q_true(3)) < eps);
+    TEST(isEqual(q, q_true));
 
     // Quaternion initialisation per array
     float q_array[] = {0.9833f, -0.0343f, -0.1060f, -0.1436f};
@@ -346,6 +344,7 @@ int main()
     TEST(fabs(q(2) - dst[2]) < eps);
     TEST(fabs(q(3) - dst[3]) < eps);
 
+    return 0;
 }
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
