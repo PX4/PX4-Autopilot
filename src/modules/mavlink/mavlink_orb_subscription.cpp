@@ -82,8 +82,6 @@ MavlinkOrbSubscription::get_instance() const
 bool
 MavlinkOrbSubscription::update(uint64_t *time, void *data)
 {
-
-
 	// TODO this is NOT atomic operation, we can get data newer than time
 	// if topic was published between orb_stat and orb_copy calls.
 

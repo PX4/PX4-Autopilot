@@ -1256,10 +1256,9 @@ protected:
 	bool send(const hrt_abstime t)
 	{
 		struct transponder_report_s pos;
-		bool sent = false;
 
-		while (_pos_sub->update(&_pos_time, &pos)) {
-			mavlink_adsb_vehicle_t msg = {};
+		if (_pos_sub->update(&_pos_time, &pos)) {
+			mavlink_adsb_vehicle_t msg;
 
 			msg.ICAO_address = pos.ICAO_address;
 			msg.lat = pos.lat * 1e7;
@@ -1269,17 +1268,18 @@ protected:
 			msg.heading = (pos.heading + M_PI_F) / M_PI_F * 180.0f * 100.0f;
 			msg.hor_velocity = pos.hor_velocity * 100.0f;
 			msg.ver_velocity = pos.ver_velocity * 100.0f;
-			memcpy(&msg.callsign[0], &pos.callsign[0], sizeof(msg.callsign));
+			strncpy(msg.callsign, pos.callsign, sizeof(msg.callsign));
 			msg.emitter_type = pos.emitter_type;
 			msg.tslc = pos.tslc;
 			msg.flags = pos.flags;
 			msg.squawk = pos.squawk;
 
 			mavlink_msg_adsb_vehicle_send_struct(_mavlink->get_channel(), &msg);
-			sent = true;
+
+			return true;
 		}
 
-		return sent;
+		return false;
 	}
 };
 
@@ -1333,11 +1333,9 @@ protected:
 	bool send(const hrt_abstime t)
 	{
 		struct collision_report_s report;
-		bool sent = false;
 
-		while (_collision_sub->update(&_collision_time, &report)) {
-			mavlink_collision_t msg = {};
-
+		if (_collision_sub->update(&_collision_time, &report)) {
+			mavlink_collision_t msg;
 			msg.src = report.src;
 			msg.id = report.id;
 			msg.action = report.action;
@@ -1347,10 +1345,11 @@ protected:
 			msg.horizontal_minimum_delta = report.horizontal_minimum_delta;
 
 			mavlink_msg_collision_send_struct(_mavlink->get_channel(), &msg);
-			sent = true;
+
+			return true;
 		}
 
-		return sent;
+		return false;
 	}
 };
 

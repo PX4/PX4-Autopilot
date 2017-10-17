@@ -189,7 +189,6 @@ mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 static void usage();
 
 bool Mavlink::_boot_complete = false;
-bool Mavlink::_config_link_on = false;
 
 Mavlink::Mavlink() :
 	_device_name("/dev/ttyS1"),
@@ -1263,14 +1262,9 @@ Mavlink::init_udp()
 void
 Mavlink::handle_message(const mavlink_message_t *msg)
 {
-	if (!accepting_commands()) {
-		return;
-	}
-
 	/*
 	 *  NOTE: this is called from the receiver thread
 	 */
-
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
 		Mavlink::forward_message(msg, this);
@@ -2610,7 +2604,7 @@ Mavlink::display_status()
 		       (double)_mavlink_ulog->maximum_data_rate() * 100.);
 	}
 
-	printf("\taccepting commands: %s, FTP enabled: %s\n", accepting_commands() ? "YES" : "NO", _ftp_on ? "YES" : "NO");
+	printf("\tFTP enabled: %s\n", _ftp_on ? "YES" : "NO");
 	printf("\tMAVLink version: %i\n", _protocol_version);
 
 	printf("\ttransport protocol: ");
