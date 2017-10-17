@@ -40,6 +40,7 @@ set(geometry_files
 	quad_wide.toml
 	quad_deadcat.toml
 	quad_vtail.toml
+	quad_s250aq.toml
 	quad_y.toml
 	quad_x_pusher.toml
 	hex_x.toml
