@@ -583,7 +583,7 @@ void Ekf2::run()
 						range_finder_updated = false;
 
 					} else {
-						range_finder.current_distance = _params->rng_gnd_clearance;
+						range_finder.current_distance = _rng_gnd_clearance.get();
 					}
 				}
 			}
