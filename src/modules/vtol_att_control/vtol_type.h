@@ -60,6 +60,7 @@ struct Params {
 	int vtol_type;
 	int elevons_mc_lock;		// lock elevons in multicopter mode
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
+	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
 	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
 	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
 	float front_trans_time_openloop;
@@ -166,6 +167,7 @@ protected:
 	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
 	struct actuator_armed_s				*_armed;					//actuator arming status
 	struct vehicle_local_position_s			*_local_pos;
+	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
 	struct airspeed_s 				*_airspeed;					// airspeed
 	struct battery_status_s 			*_batt_status; 				// battery status
 	struct tecs_status_s				*_tecs_status;
