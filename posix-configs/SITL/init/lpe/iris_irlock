@@ -43,8 +43,11 @@ param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 # GPS only mode
 param set LPE_FUSION 145
+param set LPE_EPH_MAX 5
 # enable fusion of beacon velocity
 param set BEST_MODE 1
+param set MIS_PRECLAND_EN 0
+param set PLD_HACC_RAD 0.1
 
 replay tryapplyparams
 simulator start -s

@@ -101,6 +101,14 @@ private:
 	float _approach_alt; /**< altitude at which to stay during horizontal approach */
 
 	PrecLandState _state;
+
+	control::BlockParamFloat _param_timeout;
+	control::BlockParamFloat _param_hacc_rad;
+	control::BlockParamFloat _param_final_approach_alt;
+	control::BlockParamFloat _param_search_alt;
+	control::BlockParamFloat _param_search_timeout;
+	control::BlockParamInt _param_max_searches;
+
 };
 
 #endif

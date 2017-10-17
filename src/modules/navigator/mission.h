@@ -251,6 +251,7 @@ private:
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
 	control::BlockParamFloat _param_fw_climbout_diff;
+	control::BlockParamInt _param_precland_enabled;
 
 	struct mission_s _onboard_mission {};
 	struct mission_s _offboard_mission {};

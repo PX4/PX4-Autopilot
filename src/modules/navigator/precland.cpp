@@ -38,6 +38,9 @@
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
+#include "precland.h"
+#include "navigator.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -52,19 +55,16 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
 
-#include "precland.h"
-#include "navigator.h"
-
-static const uint64_t 	BEACON_TIMEOUT = 5000000; // [us] consider beacon lost if last measurement older than this
-static const float 		ERROR_THRESH = 0.2; // [m] start descending if horizontal error smaller than this
-static const float 		DESCEND_ALT = 0.1; // [m] go into descend/final approach mode if losing beacon closer to ground than this
-static const float 		SEARCH_ALT = 10; // [m] altitude above ground to which to climb to search for beacon
-static const uint64_t 	SEARCH_TIMEOUT = 10000000; // [us] time allowed to search for beacon
-static const unsigned 	MAX_SEARCHES = 3; // number of times the beacon may be searched after losing it
-
+#define SEC2USEC 1000000.0f
 
 PrecLand::PrecLand(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name)
+	MissionBlock(navigator, name),
+	_param_timeout(this, "PLD_BTOUT", false),
+	_param_hacc_rad(this, "PLD_HACC_RAD", false),
+	_param_final_approach_alt(this, "PLD_FAPPR_ALT", false),
+	_param_search_alt(this, "PLD_SRCH_ALT", false),
+	_param_search_timeout(this, "PLD_SRCH_TOUT", false),
+	_param_max_searches(this, "PLD_MAX_SRCH", false)
 {
 	/* load initial params */
 	updateParams();
@@ -90,15 +90,36 @@ PrecLand::on_activation()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->previous.valid = false;
 
-	_first_sp = pos_sp_triplet->current; // store the current setpoint for later
-
 	pos_sp_triplet->next.valid = false;
 
+	// Check that the current position setpoint is valid and close to current position
+	bool reset_to_cur_pos = false;
+	if (!pos_sp_triplet->current.valid)
+	{
+		reset_to_cur_pos = true;
+	} else {
+		float dist = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
+				  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+		if (dist > _navigator->get_acceptance_radius())
+		{
+			reset_to_cur_pos = true;
+		}
+	}
+
+	if (reset_to_cur_pos)
+	{
+		PX4_WARN("Resetting landing position to current position");
+		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
+		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
+		pos_sp_triplet->current.valid = true;
+	}
+
+	_first_sp = pos_sp_triplet->current; // store the current setpoint for later
+	pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
+	pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
+
 	switch_to_state_start();
-
-	_navigator->set_position_setpoint_triplet_updated();
-
-	// TODO check that pos_sp_triplet->current.valid and close to current position
 
 }
 
@@ -114,7 +135,7 @@ PrecLand::on_active()
 		_beacon_position_valid = true;
 	}
 
-	if (hrt_absolute_time() - _beacon_position.timestamp > BEACON_TIMEOUT)
+	if (hrt_absolute_time() - _beacon_position.timestamp > _param_timeout.get()*SEC2USEC)
 	{
 		_beacon_position_valid = false;
 	}
@@ -272,7 +293,7 @@ PrecLand::run_state_search()
 	}
 
 	// check if search timed out and go to fallback
-	if (hrt_absolute_time() - _state_start_time > SEARCH_TIMEOUT)
+	if (hrt_absolute_time() - _state_start_time > _param_search_timeout.get()*SEC2USEC)
 	{
 		PX4_WARN("Search timed out");
 		if (!switch_to_state_fallback())
@@ -376,7 +397,7 @@ PrecLand::switch_to_state_search()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current = _first_sp;
-	pos_sp_triplet->current.alt = vehicle_local_position->ref_alt + SEARCH_ALT;
+	pos_sp_triplet->current.alt = vehicle_local_position->ref_alt + _param_search_alt.get();
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	_navigator->set_position_setpoint_triplet_updated();
 
@@ -405,7 +426,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 	switch(state) {
 		case PrecLandState::Start:
-			return _search_cnt < MAX_SEARCHES;
+			return _search_cnt <= _param_max_searches.get();
 
 		case PrecLandState::HorizontalApproach:
 			return _beacon_position_valid && _beacon_position.abs_pos_valid;
@@ -424,11 +445,11 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 			} else {
 				// if not already in this state, need to be above beacon to enter it
 				return _beacon_position_valid && _beacon_position.abs_pos_valid
-				&& fabsf(_beacon_position.x_rel) < ERROR_THRESH && fabsf(_beacon_position.x_rel) < ERROR_THRESH;
+				&& fabsf(_beacon_position.x_rel) < _param_hacc_rad.get() && fabsf(_beacon_position.x_rel) < _param_hacc_rad.get();
 			}
 		
 		case PrecLandState::FinalApproach:
-			return vehicle_local_position->dist_bottom_valid && vehicle_local_position->dist_bottom < DESCEND_ALT;
+			return vehicle_local_position->dist_bottom_valid && vehicle_local_position->dist_bottom < _param_final_approach_alt.get();
 		
 		case PrecLandState::Search:
 			return true;

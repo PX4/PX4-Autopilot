@@ -174,3 +174,15 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
+
+/**
+ * Enable precision landing
+ *
+ * When enabled, attempt to do a precision landing for all landing waypoints.
+ * A precision landing may include a search behavior (climb to a specified altitude)
+ * if the landing beacon is not visible at the waypoint.
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(MIS_PRECLAND_EN, 0);

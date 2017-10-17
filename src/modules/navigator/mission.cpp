@@ -67,6 +67,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
+	_param_precland_enabled(this, "MIS_PRECLAND_EN", false),
 	_missionFeasibilityChecker(navigator)
 {
 }
@@ -207,7 +208,6 @@ Mission::on_active()
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
-
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
 		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
@@ -590,7 +590,10 @@ Mission::set_mission_items()
 		}
 
 		/* we have a new position item so set previous position setpoint to current */
-		set_previous_pos_setpoint();
+		if (_work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND)
+		{
+			set_previous_pos_setpoint();
+		}
 
 		/* do takeoff before going to setpoint if needed and not already in takeoff */
 		/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
@@ -776,9 +779,8 @@ Mission::set_mission_items()
 		    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-			/* XXX: noop */
 
-			if (1) { // TODO param
+			if (_param_precland_enabled.get()) {
 				const hrt_abstime now = hrt_absolute_time();
 
 				struct vehicle_command_s cmd = {};
@@ -802,6 +804,7 @@ Mission::set_mission_items()
 				_mission_item.autocontinue = true;
 				_mission_item.time_inside = 0.0f;
 				_mission_item.disable_mc_yaw = true;
+
 			}
 		}
 
