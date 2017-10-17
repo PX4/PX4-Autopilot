@@ -414,10 +414,6 @@ bool Ekf::realignYawGPS()
 			// update transformation matrix from body to world frame using the current state estimate
 			_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
-			// reset the velocity and posiiton states as they will be inaccurate due to bad yaw
-			resetVelocity();
-			resetPosition();
-
 			// Use the last magnetometer measurements to reset the field states
 			_state.mag_B.zero();
 			_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
