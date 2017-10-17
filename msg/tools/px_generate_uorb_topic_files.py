@@ -45,8 +45,6 @@ import argparse
 import sys
 
 px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(px4_tools_dir + "/genmsg/src")
-sys.path.append(px4_tools_dir + "/gencpp/src")
 px4_msg_dir = os.path.join(px4_tools_dir, "..")
 
 try:
@@ -59,7 +57,7 @@ Required python packages not installed.
 
 On a Debian/Ubuntu system please run:
 
-  sudo apt-get install python-empy
+  sudo apt-get install python-empy python-gencpp python-genmsg
   sudo pip install catkin_pkg
 
 On MacOS please run:

@@ -53,8 +53,8 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/actuator_controls.h>
 
-#include <v1.0/mavlink_types.h>
-#include <v1.0/common/mavlink.h>
+#include <v2.0/mavlink_types.h>
+#include <v2.0/common/mavlink.h>
 
 #include "drivers/drv_pwm_output.h"
 #include <drivers/drv_hrt.h>
@@ -66,7 +66,7 @@ namespace snapdragon_rc_pwm
 {
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
-static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+static const mavlink_msg_entry_t mavlink_message_crcs[] = MAVLINK_MESSAGE_CRCS;
 
 volatile bool _task_should_exit = false; // flag indicating if snapdragon_rc_pwm task should exit
 static char _device[MAX_LEN_DEV_PATH];
@@ -279,7 +279,7 @@ void send_rc_mavlink()
 	uint16_t checksum;
 	crc_init(&checksum);
 	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
-	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
+	crc_accumulate(mavlink_message_crcs[msgid].crc_extra, &checksum);
 
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);

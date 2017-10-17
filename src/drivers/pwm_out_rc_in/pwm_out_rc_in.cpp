@@ -51,9 +51,9 @@
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_serial.h>
-#include <v1.0/checksum.h>
-#include <v1.0/mavlink_types.h>
-#include <v1.0/common/mavlink.h>
+#include <v2.0/checksum.h>
+#include <v2.0/mavlink_types.h>
+#include <v2.0/common/mavlink.h>
 
 /*
  * This driver is supposed to run on Snapdragon. It sends actuator_controls (PWM)
@@ -64,7 +64,7 @@ namespace pwm_out_rc_in
 {
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
-static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+static const mavlink_msg_entry_t mavlink_message_crcs[] = MAVLINK_MESSAGE_CRCS;
 
 volatile bool _task_should_exit = false; // flag indicating if pwm_out_rc_in task should exit
 static char _device[32] = {};

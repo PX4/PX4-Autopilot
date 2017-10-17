@@ -56,7 +56,7 @@ extern "C" __EXPORT hrt_abstime hrt_reset(void);
 #define DENSITY 1.2041f
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
-static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+static const mavlink_msg_entry_t mavlink_message_crcs[] = MAVLINK_MESSAGE_CRCS;
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 #ifdef ENABLE_UART_RC_INPUT
@@ -553,7 +553,7 @@ void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8
 	uint16_t checksum;
 	crc_init(&checksum);
 	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
-	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
+	crc_accumulate(mavlink_message_crcs[msgid].crc_extra, &checksum);
 
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
