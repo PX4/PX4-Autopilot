@@ -454,6 +454,8 @@ void Ekf::controlGpsFusion()
 				if (_control_status.flags.fixed_wing) {
 					// if flying a fixed wing aircraft, do a complete reset that includes yaw, velocity and position
 					realignYawGPS();
+					resetVelocity();
+					resetPosition();
 				} else {
 					resetVelocity();
 					resetPosition();
