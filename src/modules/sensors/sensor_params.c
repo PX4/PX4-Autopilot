@@ -176,6 +176,15 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
 
 /**
+ * Optical Flow minimum focus distance
+ *
+ * This parameter defines the minimum distance from ground required for the optical flow sensor to operate reliably. The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
+ * *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_FLOW_MINRNG, 0.7f);
+
+/**
  * Board rotation Y (Pitch) offset
  *
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
