@@ -108,10 +108,10 @@ else
 endif
 
 # additional config parameters passed to cmake
-CMAKE_ARGS := -Wno-deprecated
+CMAKE_ARGS += -Wno-deprecated
 
 ifdef EXTERNAL_MODULES_LOCATION
-	CMAKE_ARGS := -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
+	CMAKE_ARGS += -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
 endif
 
 ifdef PX4_CMAKE_BUILD_TYPE
@@ -296,7 +296,7 @@ format:
 .PHONY: tests tests_coverage
 
 tests:
-	$(MAKE) --no-print-directory posix_sitl_default test_results
+	$(MAKE) --no-print-directory posix_sitl_default test_results ASAN_OPTIONS="color=always"
 
 tests_coverage:
 	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
