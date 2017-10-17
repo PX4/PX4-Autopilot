@@ -63,6 +63,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_onboard_enabled(this, "MIS_ONBOARD_EN", false),
 	_param_takeoff_alt(this, "MIS_TAKEOFF_ALT", false),
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
+	_param_dist_between_wps(this, "MIS_DIST_WPS", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
@@ -1439,7 +1440,10 @@ Mission::check_mission_valid(bool force)
 	if ((!_home_inited && _navigator->home_position_valid()) || force) {
 
 		_navigator->get_mission_result()->valid =
-			_missionFeasibilityChecker.checkMissionFeasible(_offboard_mission, _param_dist_1wp.get(), false);
+			_missionFeasibilityChecker.checkMissionFeasible(_offboard_mission,
+					_param_dist_1wp.get(),
+					_param_dist_between_wps.get(),
+					false);
 
 		_navigator->get_mission_result()->seq_total = _offboard_mission.count;
 		_navigator->increment_mission_instance_count();
