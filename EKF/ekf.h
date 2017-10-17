@@ -462,7 +462,7 @@ private:
 	// calculate the magnetic declination to be used by the alignment and fusion processing
 	void calcMagDeclination();
 
-	// reset position states of the ekf (only vertical position)
+	// reset position states of the ekf (only horizontal position)
 	bool resetPosition();
 
 	// reset height state of the ekf
