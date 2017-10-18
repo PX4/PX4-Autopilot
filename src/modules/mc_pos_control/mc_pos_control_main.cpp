@@ -293,6 +293,8 @@ private:
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
 
+	float _min_hagl_limit; /**< minimum continuous height above ground (m) */
+
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
 	uint8_t _z_reset_counter;
@@ -469,6 +471,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_jerk_limit_xy(1.0f),
 	_manual_jerk_limit_z(1.0f),
 	_takeoff_vel_limit(0.0f),
+	_min_hagl_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -697,6 +700,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
 		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
 
+		param_t handle = param_find("SENS_FLOW_MINRNG");
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &_min_hagl_limit);
+		}
 
 	}
 
@@ -1356,6 +1363,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
+
 	}
 
 	/* prepare yaw to rotate into NED frame */
@@ -2460,6 +2468,17 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 						_params.slow_land_alt2, _params.slow_land_alt1,
 						_params.tko_speed, _params.vel_max_up);
 		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
+	}
+
+	// encourage pilot to respect respect flow sensor minimum height limitations
+	if (_local_pos.limit_hagl && _local_pos.dist_bottom_valid && _control_mode.flag_control_manual_enabled && _control_mode.flag_control_altitude_enabled) {
+		// If distance to ground is less than limit, increment set point upwards at up to the landing descent rate
+		if (_local_pos.dist_bottom < _min_hagl_limit) {
+			float climb_rate_bias = fminf(_params.pos_p(2) * (_min_hagl_limit - _local_pos.dist_bottom) , _params.land_speed);
+			_vel_sp(2) -= climb_rate_bias;
+			_pos_sp(2) -= climb_rate_bias * dt;
+
+		}
 	}
 
 	/* limit vertical downwards speed (positive z) close to ground
