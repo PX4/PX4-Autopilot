@@ -227,7 +227,7 @@ void VtolType::check_quadchute_condition()
 
 		// adaptive quadchute
 		// We use tecs for tracking in FW and local_pos_sp during transitions
-		if (_params->fw_alt_err > FLT_EPSILON) {
+		if (_params->fw_alt_err > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled) {
 			float altErr = 0.0f;
 
 			if (_tecs_running) {
