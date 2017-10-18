@@ -57,7 +57,6 @@ public:
 		_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 		_hold_max_xy(parent, "MPC_HOLD_MAX_XY", false),
 		_hold_max_z(parent, "MPC_HOLD_MAX_Z", false),
-		_sub_control_state(ORB_ID(control_state), 0, 0, &getSubscriptions()),
 		_jerk_hor_max(parent, "MPC_JERK_MAX", false),
 		_jerk_hor_min(parent, "MPC_JERK_MIN", false),
 		_deceleration_hor_slow(parent, "MPC_DEC_HOR_SLOW", false),
@@ -176,8 +175,6 @@ private:
 	control::BlockParamFloat _z_vel_max_down; /**< maximal vertical velocity when flying downwards with the stick */
 	control::BlockParamFloat _hold_max_xy; /**< velocity threshold to switch into horizontal position hold */
 	control::BlockParamFloat _hold_max_z; /**< velocity threshold to switch into vertical position hold */
-
-	uORB::Subscription<control_state_s> _sub_control_state;
 
 	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
 
