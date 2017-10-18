@@ -394,7 +394,7 @@ void Ekf::controlOpticalFlowFusion()
 			_last_known_posNE(0) = _state.pos(0);
 			_last_known_posNE(1) = _state.pos(1);
 			_state.vel.setZero();
-			ECL_WARN("EKF Resetting states");
+			ECL_WARN("EKF stopping navigation");
 		}
 	}
 
@@ -493,19 +493,20 @@ void Ekf::controlGpsFusion()
 
 	} else {
 		// handle the case where we do not have GPS and have not been using it for an extended period, but are still relying on it
-		if ((_time_last_imu - _time_last_gps > 10e6) && _control_status.flags.gps) {
-			// if we don't have a source of aiding to constrain attitude drift,
-			// then we need to switch to the non-aiding mode, zero the velocity states
-			// and set the synthetic GPS position to the current estimate
+		bool lost_gps = _control_status.flags.gps && (_time_last_imu - _time_last_gps > 10e6);
+		bool no_velpos_aiding = !_control_status.flags.opt_flow && !_control_status.flags.ev_pos;
+		bool no_airdata_aiding = (_time_last_imu - _time_last_arsp_fuse > 10e6) || (_time_last_imu - _time_last_beta_fuse > 10e6);
+		// If we don't have a source of aiding to constrain attitude drift, then we need to switch
+		// to the non-aiding mode, zero the velocity states and set the position to the current estimate.
+		// Air data aiding prevents loss of attitude reference, constrains velocity drift and can assist
+		// a FW vehicle to recover to the launch area.
+		if (lost_gps && no_velpos_aiding && no_airdata_aiding) {
 			_control_status.flags.gps = false;
-			ECL_INFO("EKF Stopping GPS Use");
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+			_state.vel.setZero();
+			ECL_WARN("EKF stopping navigation");
 
-			if (!_control_status.flags.opt_flow && !_control_status.flags.ev_pos) {
-				_last_known_posNE(0) = _state.pos(0);
-				_last_known_posNE(1) = _state.pos(1);
-				_state.vel.setZero();
-				ECL_WARN("EKF Resetting states");
-			}
 		}
 	}
 }
