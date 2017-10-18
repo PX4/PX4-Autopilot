@@ -384,16 +384,17 @@ void Ekf::controlOpticalFlowFusion()
 	}
 
 	// handle the case when we are relying on optical flow fusion and lose it
-	if (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos) {
+	if ((_time_last_imu - _time_last_of_fuse > 5e6) && _control_status.flags.opt_flow) {
+		ECL_INFO("EKF Stopping Optical Flow Use");
+		_control_status.flags.opt_flow = false;
 		// We are relying on flow aiding to constrain attitude drift so after 5s without aiding we need to do something
-		if ((_time_last_imu - _time_last_of_fuse > 5e6)) {
+		if (!_control_status.flags.gps && !_control_status.flags.ev_pos) {
 			// Switch to the non-aiding mode, zero the velocity states
 			// and set the synthetic position to the current estimate
-			_control_status.flags.opt_flow = false;
 			_last_known_posNE(0) = _state.pos(0);
 			_last_known_posNE(1) = _state.pos(1);
 			_state.vel.setZero();
-			ECL_WARN("EKF Stopping Optical Flow Use");
+			ECL_WARN("EKF Resetting states");
 		}
 	}
 
@@ -492,16 +493,19 @@ void Ekf::controlGpsFusion()
 
 	} else {
 		// handle the case where we do not have GPS and have not been using it for an extended period, but are still relying on it
-		if ((_time_last_imu - _time_last_gps > 10e6) && (_time_last_imu - _time_last_airspeed > 1e6) && (_time_last_imu - _time_last_optflow > 1e6) && _control_status.flags.gps) {
+		if ((_time_last_imu - _time_last_gps > 10e6) && _control_status.flags.gps) {
 			// if we don't have a source of aiding to constrain attitude drift,
 			// then we need to switch to the non-aiding mode, zero the velocity states
 			// and set the synthetic GPS position to the current estimate
 			_control_status.flags.gps = false;
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
-			_state.vel.setZero();
-			ECL_WARN("EKF measurement timeout - stopping navigation");
+			ECL_INFO("EKF Stopping GPS Use");
 
+			if (!_control_status.flags.opt_flow && !_control_status.flags.ev_pos) {
+				_last_known_posNE(0) = _state.pos(0);
+				_last_known_posNE(1) = _state.pos(1);
+				_state.vel.setZero();
+				ECL_WARN("EKF Resetting states");
+			}
 		}
 	}
 }
