@@ -33,7 +33,10 @@ param set EKF2_AID_MASK 1
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_HGT_MODE 0
-param set EKF2_MAG_TYPE 1
+param set EKF2_MAG_TYPE 0
+param set EKF2_FUSE_BETA 1
+param set EKF2_ARSP_THR 10.0
+param set FW_ARSP_MODE 0
 
 param set FW_LND_ANG 8
 param set FW_THR_IDLE 0.15
