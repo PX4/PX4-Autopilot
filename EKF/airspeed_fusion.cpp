@@ -98,8 +98,19 @@ void Ekf::fuseAirspeed()
 
 		} else { // Reset the estimator covarinace matrix
 			_fault_status.flags.bad_airspeed = true;
-			initialiseCovariance();
-			ECL_ERR("EKF airspeed fusion numerical error - covariance reset");
+
+			// if we are getting aiding from other sources, warn and reset the wind states and covariances only
+			if (update_wind_only) {
+				resetWindStates();
+				resetWindCovariance();
+				ECL_ERR("EKF airspeed fusion badly conditioned - wind covariance reset");
+
+			} else {
+				initialiseCovariance();
+				_state.wind_vel.setZero();
+				ECL_ERR("EKF airspeed fusion badly conditioned - full covariance reset");
+			}
+
 			return;
 		}
 
