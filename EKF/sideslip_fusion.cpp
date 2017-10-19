@@ -79,7 +79,7 @@ void Ekf::fuseSideslip()
 	rel_wind = earth_to_body * rel_wind;
 
 	// perform fusion of assumed sideslip  = 0
-	if (rel_wind(0) > 7.0f) {
+	if (rel_wind.norm() > 7.0f) {
 		// Calculate the observation jacobians
 
 		// intermediate variable from algebraic optimisation
