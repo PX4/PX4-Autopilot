@@ -728,7 +728,8 @@ PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
 PARAM_DEFINE_FLOAT(EKF2_OF_GATE, 3.0f);
 
 /**
- * Optical Flow data will not fused if the magnitude of the flow rate > EKF2_OF_RMAX
+ * Optical Flow data will not fused if the magnitude of the flow rate > EKF2_OF_RMAX.
+ * Control loops will be instructed to limit ground speed such that the flow rate produced by movement over ground is less than 50% of EKF2_OF_RMAX.
  *
  * @group EKF2
  * @min 1.0
