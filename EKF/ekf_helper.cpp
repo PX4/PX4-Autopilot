@@ -464,8 +464,8 @@ bool Ekf::realignYawGPS()
 		}
 
 	} else {
-		// we were unable to verify the alignment
-		return false;
+		// attempt a normal alignment using the magnetometer
+		return resetMagHeading(_mag_sample_delayed.mag);
 
 	}
 }
