@@ -59,9 +59,13 @@ docker run -it --rm -w "${SRC_DIR}" \
 	--env=CODECOV_TOKEN \
 	--env=COVERALLS_REPO_TOKEN \
 	--env=LOCAL_USER_ID="$(id -u)" \
+	--env=PX4_ASAN \
+	--env=PX4_MSAN \
+	--env=PX4_TSAN \
+	--env=PX4_UBSAN \
 	--env=TRAVIS_BRANCH \
 	--env=TRAVIS_BUILD_ID \
 	--publish 14556:14556/udp \
 	--volume=${CCACHE_DIR}:${CCACHE_DIR}:rw \
 	--volume=${SRC_DIR}:${SRC_DIR}:rw \
-	${PX4_DOCKER_REPO} /bin/bash -c "$@"
+	${PX4_DOCKER_REPO} /bin/bash -c "$1 $2 $3"

@@ -128,7 +128,7 @@ string(REPLACE "_" ";" config_args ${CONFIG})
 list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
-set(target_name "${OS}-${BOARD}-${LABEL}")
+set(target_name "${OS}_${BOARD}_${LABEL}")
 
 file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
