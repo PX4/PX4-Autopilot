@@ -131,11 +131,10 @@ void Ekf::controlFusionModes()
 	// Additional data from an external vision sensor can also be fused.
 	controlExternalVisionFusion();
 
-	// report dead reckoning if we are no longer fusing measurements that constrain velocity drift
+	// report dead reckoning if we are no longer fusing measurements that directly constrain velocity drift
 	_is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > _params.no_aid_timeout_max)
 			&& (_time_last_imu - _time_last_vel_fuse > _params.no_aid_timeout_max)
-			&& (_time_last_imu - _time_last_of_fuse > _params.no_aid_timeout_max)
-			&& ((_time_last_imu - _time_last_arsp_fuse > _params.no_aid_timeout_max) || (_time_last_imu - _time_last_beta_fuse > _params.no_aid_timeout_max));
+			&& (_time_last_imu - _time_last_of_fuse > _params.no_aid_timeout_max);
 
 }
 
