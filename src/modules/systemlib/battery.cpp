@@ -40,6 +40,7 @@
  */
 
 #include "battery.h"
+#include <mathlib/mathlib.h>
 
 Battery::Battery() :
 	SuperBlock(nullptr, "BAT"),
@@ -181,13 +182,10 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 		bat_v_empty_dynamic -= _param_v_load_drop.get() * thr;
 	}
 
-	// the range from full to empty is the same for batteries under load and without load,
-	// since the voltage drop applies to both the full and empty state
-	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
-
 	// remaining battery capacity based on voltage
-	const float rvoltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
-			       / (_param_n_cells.get() * voltage_range);
+	const float cell_voltage = voltage_v / _param_n_cells.get();
+	const float rvoltage = math::gradual(cell_voltage, _param_v_empty.get(), _param_v_full.get(), 0.f, 1.f);
+
 	const float rvoltage_filt = _remaining_voltage * 0.99f + rvoltage * 0.01f;
 
 	if (PX4_ISFINITE(rvoltage_filt)) {
