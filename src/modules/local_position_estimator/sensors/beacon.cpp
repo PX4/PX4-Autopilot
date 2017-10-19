@@ -23,7 +23,7 @@ void BlockLocalPositionEstimator::beaconInit()
 
 int BlockLocalPositionEstimator::beaconMeasure(Vector<float, n_y_beacon> &y)
 {
-	if (_beacon_mode.get() == Beacon_Moving) {
+	if (_beacon_mode.get() == Beacon_Stationary) {
 		if (_sub_beacon_position.get().rel_vel_valid) {
 			y(0) = _sub_beacon_position.get().vx_rel;
 			y(1) = _sub_beacon_position.get().vy_rel;

@@ -57,6 +57,8 @@
 
 #define SEC2USEC 1000000.0f
 
+#define STATE_TIMEOUT 10000000 // [us] Maximum time to spend in any state
+
 PrecLand::PrecLand(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_timeout(this, "PLD_BTOUT", false),
@@ -88,7 +90,6 @@ PrecLand::on_activation()
 	_search_cnt = 0;
 	
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->previous.valid = false;
 
 	pos_sp_triplet->next.valid = false;
 
@@ -118,6 +119,8 @@ PrecLand::on_activation()
 	_first_sp = pos_sp_triplet->current; // store the current setpoint for later
 	pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
 	pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
+	pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
+	pos_sp_triplet->previous.valid = true;
 
 	switch_to_state_start();
 
@@ -219,6 +222,14 @@ PrecLand::run_state_horizontal_approach()
 	if (switch_to_state_descend_above_beacon())
 	{
 		return;
+	}
+
+	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT){
+		PX4_ERR("Precision landing took too long during horizontal approach phase.");
+		if (!switch_to_state_fallback())
+		{
+			PX4_ERR("Can't switch to fallback landing");
+		}
 	}
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -359,9 +370,9 @@ PrecLand::switch_to_state_descend_above_beacon()
 bool
 PrecLand::switch_to_state_final_approach()
 {
-	vehicle_status_s *vstatus = _navigator->get_vstatus();
 	if (check_state_conditions(PrecLandState::FinalApproach))
 	{
+		vehicle_status_s *vstatus = _navigator->get_vstatus();
 		vehicle_command_s cmd = {
 			.timestamp = 0,
 			.param5 = NAN,
@@ -379,8 +390,6 @@ PrecLand::switch_to_state_final_approach()
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
-		// since there is no vehicle command to descend, set the vehicle status to that manually
-		_navigator->get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();

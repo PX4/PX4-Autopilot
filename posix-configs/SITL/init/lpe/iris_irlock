@@ -39,6 +39,10 @@ param set MC_ROLL_P 6
 param set MPC_HOLD_MAX_Z 2.0
 param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
+param set MPC_XY_VEL_P 0.13
+param set MPC_XY_P 1.2
+param set MC_PITCHRATE_MAX 150
+param set MC_ROLLRATE_MAX 150
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 # GPS only mode
@@ -46,7 +50,7 @@ param set LPE_FUSION 145
 param set LPE_EPH_MAX 5
 # enable fusion of beacon velocity
 param set BEST_MODE 1
-param set MIS_PRECLAND_EN 0
+param set MIS_PRECLAND_EN 1
 param set PLD_HACC_RAD 0.1
 
 replay tryapplyparams
