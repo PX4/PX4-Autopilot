@@ -368,20 +368,11 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 					batt_sim_start = now;
 				}
 
-				unsigned cellcount = _battery.cell_count();
-
-				float vbatt = _battery.full_cell_voltage() ;
 				float ibatt = -1.0f;
 
-				float discharge_v = _battery.full_cell_voltage() - _battery.empty_cell_voltage();
-
-				vbatt = (_battery.full_cell_voltage() - (discharge_v * ((now - batt_sim_start) / discharge_interval_us)))  * cellcount;
-
-				float batt_voltage_loaded = _battery.empty_cell_voltage() - 0.05f;
-
-				if (!PX4_ISFINITE(vbatt) || (vbatt < (cellcount * batt_voltage_loaded))) {
-					vbatt = cellcount * batt_voltage_loaded;
-				}
+				const float battery_time = (now - batt_sim_start) / discharge_interval_us;
+				float vbatt = math::gradual(battery_time, 0.f, 1.f, _battery.full_cell_voltage(), _battery.empty_cell_voltage());
+				vbatt *= _battery.cell_count();
 
 				// TODO: don't hard-code throttle.
 				const float throttle = 0.5f;
