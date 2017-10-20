@@ -11,25 +11,25 @@ pipeline {
       parallel {
         stage('nuttx_px4fmu-v2_default') {
           steps {
-            sh '''make distclean
+            sh '''make distclean;
 make px4fmu-v2_default'''
           }
         }
         stage('posix_sitl_default') {
           steps {
-            sh '''make distclean
+            sh '''make distclean;
 make posix_sitl_default'''
           }
         }
         stage('nuttx_px4fmu-v3_default') {
           steps {
-            sh '''make distclean
+            sh '''make distclean;
 make px4fmu-v3_default'''
           }
         }
         stage('nuttx_px4fmu-v4_default') {
           steps {
-            sh '''make distclean
+            sh '''make distclean;
 make px4fmu-v4_default'''
           }
         }
@@ -39,7 +39,7 @@ make px4fmu-v4_default'''
       parallel {
         stage('tests') {
           steps {
-            sh '''make distclean
+            sh '''make distclean;
 make tests'''
           }
         }
@@ -50,15 +50,14 @@ make tests'''
         }
         stage('clang-tidy') {
           steps {
-            sh '''make distclean
+            sh '''make distclean;
 make clang-tidy-quiet'''
           }
         }
         stage('tests_coverage') {
           steps {
-            sh '''make distclean
+            sh '''make distclean;
 make tests_coverage'''
-            archiveArtifacts(artifacts: 'build/posix_sitl_default/coverage-html/', onlyIfSuccessful: true)
           }
         }
       }
