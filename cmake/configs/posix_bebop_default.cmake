@@ -86,6 +86,7 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
+	lib/wind_estimator
 
 	#
 	# POSIX

@@ -89,6 +89,7 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/rc
 	platforms/nuttx
+	lib/wind_estimator
 	platforms/common
 	platforms/nuttx/px4_layer
 )
