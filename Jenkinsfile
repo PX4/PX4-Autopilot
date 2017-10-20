@@ -2,25 +2,35 @@ pipeline {
   agent {
     docker {
       image 'px4io/px4-dev-simulation:2017-09-26'
-      args '--env=CCACHE_DISABLE=1'
+      args '--env=CCACHE_DISABLE=1 --env=CI=1'
     }
+    
   }
   stages {
     stage('Build') {
       parallel {
         stage('nuttx_px4fmu-v2_default') {
           steps {
-            sh 'make px4fmu-v2_default'
+            sh '''make distclean
+make px4fmu-v2_default'''
           }
         }
         stage('posix_sitl_default') {
           steps {
-            sh 'make posix_sitl_default'
+            sh '''make distclean
+make posix_sitl_default'''
           }
         }
         stage('nuttx_px4fmu-v3_default') {
           steps {
-            sh 'make px4fmu-v3_default'
+            sh '''make distclean
+make px4fmu-v3_default'''
+          }
+        }
+        stage('nuttx_px4fmu-v4_default') {
+          steps {
+            sh '''make distclean
+make px4fmu-v4_default'''
           }
         }
       }
@@ -29,7 +39,8 @@ pipeline {
       parallel {
         stage('tests') {
           steps {
-            sh 'make tests'
+            sh '''make distclean
+make tests'''
           }
         }
         stage('check_format') {
@@ -39,12 +50,14 @@ pipeline {
         }
         stage('clang-tidy') {
           steps {
-            sh 'make clang-tidy-quiet'
+            sh '''make distclean
+make clang-tidy-quiet'''
           }
         }
         stage('tests_coverage') {
           steps {
-            sh 'make tests_coverage'
+            sh '''make distclean
+make tests_coverage'''
             archiveArtifacts(artifacts: 'build/posix_sitl_default/coverage-html/', onlyIfSuccessful: true)
           }
         }
@@ -53,5 +66,6 @@ pipeline {
   }
   environment {
     CI = '1'
+    CCACHE_DISABLE = '1'
   }
 }
