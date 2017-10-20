@@ -61,6 +61,11 @@
 
 PrecLand::PrecLand(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
+	_beaconPositionSub(0),
+	_beacon_position_valid(false),
+	_state_start_time(0),
+	_search_cnt(0),
+	_approach_alt(0),
 	_param_timeout(this, "PLD_BTOUT", false),
 	_param_hacc_rad(this, "PLD_HACC_RAD", false),
 	_param_final_approach_alt(this, "PLD_FAPPR_ALT", false),
@@ -71,7 +76,6 @@ PrecLand::PrecLand(Navigator *navigator, const char *name) :
 	/* load initial params */
 	updateParams();
 
-	_beaconPositionSub = orb_subscribe(ORB_ID(beacon_position));
 }
 
 PrecLand::~PrecLand()
@@ -86,6 +90,12 @@ PrecLand::on_inactive()
 void
 PrecLand::on_activation()
 {
+	// We need to subscribe here and not in the constructor because constructor is called before the navigator task is spawned
+	if (!_beaconPositionSub)
+	{
+		_beaconPositionSub = orb_subscribe(ORB_ID(beacon_position));
+	}
+
 	_state = PrecLandState::Start;
 	_search_cnt = 0;
 	
@@ -138,7 +148,7 @@ PrecLand::on_active()
 		_beacon_position_valid = true;
 	}
 
-	if (hrt_absolute_time() - _beacon_position.timestamp > _param_timeout.get()*SEC2USEC)
+	if (hrt_absolute_time() - _beacon_position.timestamp > (uint64_t)(_param_timeout.get()*SEC2USEC))
 	{
 		_beacon_position_valid = false;
 	}
