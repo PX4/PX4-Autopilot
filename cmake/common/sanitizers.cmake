@@ -47,7 +47,7 @@ elseif(DEFINED ENV{PX4_UBSAN})
 endif()
 
 if (SANITIZE_ADDRESS)
-        message(STATUS "address sanitizer enabled")
+        message(STATUS "AddressSanitizer enabled")
 
         # environment variables
         #  ASAN_OPTIONS=detect_stack_use_after_return=1
@@ -56,20 +56,22 @@ if (SANITIZE_ADDRESS)
                 -g3
                 -fno-omit-frame-pointer
                 -fsanitize=address
-                #-fsanitize-address-use-after-scope
+		#-fsanitize-address-use-after-scope
+		-fno-optimize-sibling-calls
         )
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address" CACHE INTERNAL "" FORCE)
 
 elseif(SANITIZE_MEMORY)
-        message(STATUS "thread sanitizer enabled")
+        message(STATUS "MemorySanitizer enabled")
 
         add_compile_options(
                 -g3
                 -fsanitize=memory
         )
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=memory" CACHE INTERNAL "" FORCE)
 
 elseif(SANITIZE_THREAD)
-        message(STATUS "thread sanitizer enabled")
+        message(STATUS "ThreadSanitizer enabled")
 
         add_compile_options(
                 -g3
@@ -78,21 +80,26 @@ elseif(SANITIZE_THREAD)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread" CACHE INTERNAL "" FORCE)
 
 elseif(SANITIZE_UNDEFINED)
-        message(STATUS "undefined behaviour sanitizer enabled")
+        message(STATUS "UndefinedBehaviorSanitizer enabled")
 
         add_compile_options(
                 -g3
                 #-fsanitize=alignment
                 -fsanitize=bool
+		#-fsanitize=builtin
                 -fsanitize=bounds
                 -fsanitize=enum
-                #-fsanitize=float-cast-overflow
+                -fsanitize=float-cast-overflow
                 -fsanitize=float-divide-by-zero
                 #-fsanitize=function
                 -fsanitize=integer-divide-by-zero
                 -fsanitize=nonnull-attribute
                 -fsanitize=null
+		#-fsanitize=nullability-arg
+		#-fsanitize=nullability-assign
+		#-fsanitize=nullability-return
                 -fsanitize=object-size
+		#-fsanitize=pointer-overflow
                 -fsanitize=return
                 -fsanitize=returns-nonnull-attribute
                 -fsanitize=shift
@@ -101,6 +108,8 @@ elseif(SANITIZE_UNDEFINED)
                 #-fsanitize=unsigned-integer-overflow
                 -fsanitize=vla-bound
                 -fsanitize=vptr
+
+		-fno-sanitize-recover=bounds,null
         )
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined" CACHE INTERNAL "" FORCE)
 
