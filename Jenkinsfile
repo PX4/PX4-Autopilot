@@ -1,19 +1,13 @@
 pipeline {
   agent {
     docker {
-      args '2017-09-26'
-      image 'px4io/px4-dev-simulation'
+      image 'px4io/px4-dev-simulation:2017-09-26'
     }
     
   }
   stages {
     stage('Build') {
       parallel {
-        stage('check_format') {
-          steps {
-            sh 'make check_format'
-          }
-        }
         stage('nuttx_px4fmu-v2_default') {
           steps {
             sh 'make px4fmu-v2_default'
@@ -22,6 +16,25 @@ pipeline {
         stage('posix_sitl_default') {
           steps {
             sh 'make posix_sitl_default'
+          }
+        }
+      }
+    }
+    stage('Test') {
+      parallel {
+        stage('tests') {
+          steps {
+            sh 'make tests'
+          }
+        }
+        stage('check_format') {
+          steps {
+            sh 'make check_format'
+          }
+        }
+        stage('clang-tidy') {
+          steps {
+            sh 'make clang-tidy-quiet'
           }
         }
       }
