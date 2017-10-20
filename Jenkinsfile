@@ -37,6 +37,12 @@ pipeline {
             sh 'make clang-tidy-quiet'
           }
         }
+        stage('tests_coverage') {
+          steps {
+            sh 'make tests_coverage'
+            archiveArtifacts(artifacts: 'build/posix_sitl_default/coverage-html/', onlyIfSuccessful: true)
+          }
+        }
       }
     }
   }
