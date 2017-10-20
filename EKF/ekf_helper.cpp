@@ -1144,9 +1144,8 @@ void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first
 
 bool Ekf::global_position_is_valid()
 {
-	// return true if the position estimate is valid
-	// TODO implement proper check based on published GPS accuracy, innovation consistency checks and timeout status
-	return (_NED_origin_initialised && ((_time_last_imu - _time_last_gps) < 5e6) && _control_status.flags.gps);
+	// return true if we are not doing unconstrained free inertial navigation and the origin is set
+	return (_NED_origin_initialised && !inertial_dead_reckoning());
 }
 
 // return true if we are totally reliant on inertial dead-reckoning for position
