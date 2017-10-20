@@ -256,12 +256,12 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
 			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;
-			output_config.pitch_range = params.mnt_range_pitch;
-			output_config.roll_range = params.mnt_range_roll;
-			output_config.yaw_range = params.mnt_range_yaw;
-			output_config.pitch_offset = params.mnt_off_pitch;
-			output_config.roll_offset = params.mnt_off_roll;
-			output_config.yaw_offset = params.mnt_off_yaw;
+			output_config.pitch_scale = 1.0f / ((params.mnt_range_pitch / 2.0f) * M_DEG_TO_RAD_F);
+			output_config.roll_scale = 1.0f / ((params.mnt_range_roll / 2.0f) * M_DEG_TO_RAD_F);
+			output_config.yaw_scale = 1.0f / ((params.mnt_range_yaw / 2.0f) * M_DEG_TO_RAD_F);
+			output_config.pitch_offset = params.mnt_off_pitch * M_DEG_TO_RAD_F;
+			output_config.roll_offset = params.mnt_off_roll * M_DEG_TO_RAD_F;
+			output_config.yaw_offset = params.mnt_off_yaw * M_DEG_TO_RAD_F;
 			output_config.mavlink_sys_id = params.mnt_mav_sysid;
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
 

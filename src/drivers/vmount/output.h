@@ -50,17 +50,21 @@ namespace vmount
 {
 
 struct OutputConfig {
-	float gimbal_retracted_mode_value; /**< mixer output value for selecting gimbal retracted mode */
-	float gimbal_normal_mode_value; /**< mixer output value for selecting gimbal normal mode */
+	float gimbal_retracted_mode_value;	/**< Mixer output value for selecting gimbal retracted mode */
+	float gimbal_normal_mode_value;		/**< Mixer output value for selecting gimbal normal mode */
 
-	float pitch_range;
-	float roll_range;
-	float yaw_range;
-	float pitch_offset;
-	float roll_offset;
-	float yaw_offset;
+	/** Scale factor for pitch channel (maps from angle in radians to actuator output in [-1,1]). OutputRC only. */
+	float pitch_scale;
+	/** Scale factor for roll channel (maps from angle in radians to actuator output in [-1,1]). OutputRC only. */
+	float roll_scale;
+	/** Scale factor for yaw channel (maps from angle in radians to actuator output in [-1,1]). OutputRC only. */
+	float yaw_scale;
 
-	uint32_t mavlink_sys_id; /**< mavlink target system id for mavlink output */
+	float pitch_offset;	/**< Offset for pitch channel in radians */
+	float roll_offset;	/**< Offset for roll channel in radians */
+	float yaw_offset;	/**< Offset for yaw channel in radians */
+
+	uint32_t mavlink_sys_id;	/**< Mavlink target system id for mavlink output */
 	uint32_t mavlink_comp_id;
 };
 
