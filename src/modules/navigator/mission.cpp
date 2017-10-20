@@ -1,4 +1,4 @@
-/****************************************************************************
+F/****************************************************************************
  *
  *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
@@ -741,6 +741,8 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
 		}
 
+		bool landing = false; // are we descending to land?
+
 		/* move to landing waypoint before descent if necessary */
 		if (do_need_move_to_land() &&
 		    (_work_item_type == WORK_ITEM_TYPE_DEFAULT ||
@@ -772,6 +774,8 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
+		} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _work_item_type == WORK_ITEM_TYPE_DEFAULT) {
+			landing = true;
 		}
 
 		/* we just moved to the landing waypoint, now descend */
@@ -780,32 +784,35 @@ Mission::set_mission_items()
 
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
-			if (_param_precland_enabled.get()) {
-				const hrt_abstime now = hrt_absolute_time();
+			landing = true;
 
-				struct vehicle_command_s cmd = {};
-				cmd.timestamp = now;
-				cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_PRECLAND;
-				cmd.target_system = (uint8_t)_navigator->get_vstatus()->system_id;
-				cmd.target_component = (uint8_t)_navigator->get_vstatus()->component_id;
+		}
 
-				_navigator->publish_vehicle_cmd(cmd);
+		if (landing && _param_precland_enabled.get())
+		{
+			const hrt_abstime now = hrt_absolute_time();
 
-				float altitude = _navigator->get_global_position()->alt;
+			struct vehicle_command_s cmd = {};
+			cmd.timestamp = now;
+			cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_PRECLAND;
+			cmd.target_system = (uint8_t)_navigator->get_vstatus()->system_id;
+			cmd.target_component = (uint8_t)_navigator->get_vstatus()->component_id;
 
-				if (pos_sp_triplet->current.valid
-				    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-					altitude = pos_sp_triplet->current.alt;
-				}
+			_navigator->publish_vehicle_cmd(cmd);
 
-				_mission_item.altitude = altitude;
-				_mission_item.altitude_is_relative = false;
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-				_mission_item.autocontinue = true;
-				_mission_item.time_inside = 0.0f;
-				_mission_item.disable_mc_yaw = true;
+			float altitude = _navigator->get_global_position()->alt;
 
+			if (pos_sp_triplet->current.valid
+			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+				altitude = pos_sp_triplet->current.alt;
 			}
+
+			_mission_item.altitude = altitude;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0.0f;
+			_mission_item.disable_mc_yaw = true;
 		}
 
 		/* ignore yaw for landing items */
