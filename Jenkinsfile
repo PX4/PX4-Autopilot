@@ -1,27 +1,26 @@
 pipeline {
-  agent {
-    docker {
-      image 'px4io/px4-dev-simulation:2017-09-26'
-      args '--env=CCACHE_DISABLE=1'
-    }
-    
-  }
+  agent any
   stages {
     stage('Build') {
       parallel {
-        stage('nuttx_px4fmu-v2_default') {
+        stage('px4fmu_firmware') {
           steps {
-            sh 'make px4fmu-v2_default'
+            sh './Tools/docker_run.sh \'make px4fmu_firmware\''
           }
         }
         stage('posix_sitl_default') {
           steps {
-            sh 'make posix_sitl_default'
+            sh './Tools/docker_run.sh \'make posix_sitl_default\''
           }
         }
-        stage('nuttx_px4fmu-v3_default') {
+        stage('alt_firmware') {
           steps {
-            sh 'make px4fmu-v3_default'
+            sh './Tools/docker_run.sh \'make alt_firmware\''
+          }
+        }
+        stage('misc_qgc_extra_firmware') {
+          steps {
+            sh './Tools/docker_run.sh \'make misc_qgc_extra_firmware\''
           }
         }
       }
@@ -30,29 +29,28 @@ pipeline {
       parallel {
         stage('tests') {
           steps {
-            sh 'make tests'
+            sh './Tools/docker_run.sh \'make tests\''
           }
         }
         stage('check_format') {
           steps {
-            sh 'make check_format'
+            sh './Tools/docker_run.sh \'make check_format\''
           }
         }
         stage('clang-tidy') {
           steps {
-            sh 'make clang-tidy-quiet'
+            sh './Tools/docker_run.sh \'make clang-tidy-quiet\''
           }
         }
         stage('tests_coverage') {
           steps {
-            sh 'make tests_coverage'
-            archiveArtifacts(artifacts: 'build/posix_sitl_default/coverage-html/', onlyIfSuccessful: true)
+            sh './Tools/docker_run.sh \'make tests_coverage\''
           }
         }
       }
     }
   }
   environment {
-    CCACHE_DISABLE = '1'
+    CI = '1'
   }
 }
