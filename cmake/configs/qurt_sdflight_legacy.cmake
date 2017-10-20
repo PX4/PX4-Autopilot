@@ -92,6 +92,7 @@ set(config_module_list
 	lib/rc
 	lib/terrain_estimation
 	lib/version
+	lib/wind_estimator
 
 	#
 	# sources for muorb over fastrpc
