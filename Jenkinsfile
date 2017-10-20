@@ -2,7 +2,7 @@ pipeline {
   agent {
     docker {
       image 'px4io/px4-dev-simulation:2017-09-26'
-      args '--env=LOCAL_USER_ID="$(id -u)" --env=CCACHE_DIR=${HOME}/.ccache'
+      args '--env=CCACHE_DISABLE=1'
     }
     
   }
@@ -17,6 +17,11 @@ pipeline {
         stage('posix_sitl_default') {
           steps {
             sh 'make posix_sitl_default'
+          }
+        }
+        stage('nuttx_px4fmu-v3_default') {
+          steps {
+            sh 'make px4fmu-v3_default'
           }
         }
       }
@@ -46,5 +51,8 @@ pipeline {
         }
       }
     }
+  }
+  environment {
+    CCACHE_DISABLE = '1'
   }
 }
