@@ -80,20 +80,22 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
  *
  * Set bits in the following positions to enable:
  * 0 : Set to true to use the default set (used for general log analysis)
- * 1 : Set to true to enable estimator (EKF2) replay topics
- * 2 : Set to true to enable topics for thermal calibration (raw IMU sensor data)
+ * 1 : Set to true to enable full rate estimator (EKF2) replay topics
+ * 2 : Set to true to enable topics for thermal calibration (high rate raw IMU and Baro sensor data)
  * 3 : Set to true to enable topics for system identification (high rate actuator control and IMU data)
  * 4 : Set to true to enable full rates for analysis of fast maneuvers (RC, attitude, rates and actuators)
  * 5 : Set to true to enable debugging topics (debug_*.msg topics, for custom code)
+ * 6 : Set to true to enable topics for sensor comparison (low rate raw IMU, Baro and Magnetomer data)
  *
  * @min 0
- * @max 63
+ * @max 127
  * @bit 0 default set (log analysis)
  * @bit 1 estimator replay (EKF2)
  * @bit 2 thermal calibration
  * @bit 3 system identification
  * @bit 4 high rate
  * @bit 5 debug
+ * @bit 6 sensor comparison
  * @reboot_required true
  * @group SD Logging
  */
