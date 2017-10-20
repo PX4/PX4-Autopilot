@@ -7,9 +7,23 @@ pipeline {
     
   }
   stages {
-    stage('build') {
-      steps {
-        sh 'make check_format'
+    stage('Build') {
+      parallel {
+        stage('check_format') {
+          steps {
+            sh 'make check_format'
+          }
+        }
+        stage('nuttx_px4fmu-v2_default') {
+          steps {
+            sh 'make px4fmu-v2_default'
+          }
+        }
+        stage('posix_sitl_default') {
+          steps {
+            sh 'make posix_sitl_default'
+          }
+        }
       }
     }
   }
