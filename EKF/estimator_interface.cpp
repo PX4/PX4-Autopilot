@@ -464,8 +464,6 @@ void EstimatorInterface::unallocate_buffers()
 
 bool EstimatorInterface::local_position_is_valid()
 {
-	// return true if the position estimate is valid
-	return (((_time_last_imu - _time_last_optflow) < 5e6) && _control_status.flags.opt_flow) ||
-	       (((_time_last_imu - _time_last_ext_vision) < 5e6) && _control_status.flags.ev_pos) ||
-	       global_position_is_valid();
+	// return true if we are not doing unconstrained free inertial navigation
+	return !inertial_dead_reckoning();
 }
