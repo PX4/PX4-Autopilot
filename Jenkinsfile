@@ -2,6 +2,7 @@ pipeline {
   agent {
     docker {
       image 'px4io/px4-dev-simulation:2017-09-26'
+      args '--env=LOCAL_USER_ID="$(id -u)" --env=CCACHE_DIR=${HOME}/.ccache'
     }
     
   }
