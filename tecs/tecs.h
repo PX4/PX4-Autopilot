@@ -150,7 +150,7 @@ public:
 	 * Must be called at 50Hz or greater
 	 */
 	void update_vehicle_state_estimates(float airspeed, const math::Matrix<3, 3> &rotMat,
-			  const math::Vector<3> &accel_body, bool altitude_lock, bool in_air,
+					    const math::Vector<3> &accel_body, bool altitude_lock, bool in_air,
 					    float altitude, bool vz_valid, float vz, float az);
 
 	/**
@@ -158,7 +158,7 @@ public:
 	 */
 	void update_pitch_throttle(const math::Matrix<3, 3> &rotMat, float pitch, float baro_altitude, float hgt_setpoint,
 				   float EAS_setpoint, float indicated_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
-				   float throttle_min, float _throttle_setpoint_max, float throttle_cruise,
+				   float throttle_min, float throttle_setpoint_max, float throttle_cruise,
 				   float pitch_limit_min, float pitch_limit_max);
 
 	float get_throttle_setpoint(void) { return _throttle_setpoint; }
@@ -478,7 +478,8 @@ private:
 	/**
 	 * Initialize the controller
 	 */
-	void _initialize_states(float pitch, float throttle_cruise, float baro_altitude, float min_pitch, float eas_to_tas);
+	void _initialize_states(float pitch, float throttle_cruise, float baro_altitude, float pitch_min_climbout,
+				float eas_to_tas);
 
 	/**
 	 * Calculate specific total energy rate limits
