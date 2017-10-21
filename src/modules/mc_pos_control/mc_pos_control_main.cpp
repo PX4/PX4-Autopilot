@@ -231,6 +231,7 @@ private:
 		param_t opt_recover;
 		param_t rc_flt_smp_rate;
 		param_t rc_flt_cutoff;
+		param_t acc_max_flow_xy;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -257,6 +258,7 @@ private:
 		int32_t opt_recover;
 		float rc_flt_smp_rate;
 		float rc_flt_cutoff;
+		float acc_max_flow_xy;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -538,6 +540,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 	_params_handles.rc_flt_cutoff = param_find("RC_FLT_CUTOFF");
 	_params_handles.rc_flt_smp_rate = param_find("RC_FLT_SMP_RATE");
+	_params_handles.acc_max_flow_xy = param_find("MPC_ACC_HOR_FLOW");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -700,9 +703,14 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
 		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
 
+		/* Get parameter values used to fly within optical flow sensor limits */
 		param_t handle = param_find("SENS_FLOW_MINRNG");
 		if (handle != PARAM_INVALID) {
 			param_get(handle, &_min_hagl_limit);
+		}
+
+		if (_params_handles.acc_max_flow_xy != PARAM_INVALID) {
+			param_get(handle, &_params.acc_max_flow_xy);
 		}
 
 	}
@@ -3048,14 +3056,19 @@ MulticopterPositionControl::task_main()
 		/* set dt for control blocks */
 		setDt(dt);
 
-		/* set default max velocity in xy to vel_max */
-		_vel_max_xy = _params.vel_max_xy;
-
-		/* Apply estimator limits if applicable */
+			/* set default max velocity in xy to vel_max
+			 * Apply estimator limits if applicable */
 		if (PX4_ISFINITE(_local_pos.vxy_max)) {
-			_vel_max_xy = fminf(_vel_max_xy , _local_pos.vxy_max);
+			_vel_max_xy = fminf(_params.vel_max_xy , _local_pos.vxy_max);
 			// Allow for a minimum of 0.3 m/s for repositioning
 			_vel_max_xy = fmaxf(_vel_max_xy , 0.3f);
+
+		} else {
+			if (_vel_max_xy < _params.vel_max_xy) {
+				_vel_max_xy += dt * _params.acc_max_flow_xy;
+			}
+			_vel_max_xy = fminf(_vel_max_xy , _params.vel_max_xy);
+
 		}
 
 		/* reset flags when landed */
