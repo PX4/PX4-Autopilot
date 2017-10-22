@@ -226,6 +226,9 @@ public:
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status);
 
+	// return the quaternion defining the rotation from the EKF to the External Vision reference frame
+	void get_ekf2ev_quaternion(float *quat);
+
 private:
 
 	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
@@ -258,11 +261,17 @@ private:
 	bool _fuse_hor_vel{false};	///< true when gps horizontal velocity measurement should be fused
 	bool _fuse_vert_vel{false};	///< true when gps vertical velocity measurement should be fused
 
+	float _posObsNoiseNE;		///< 1-STD observtion noise used for the fusion of NE position data (m)
+	float _posInnovGateNE;		///< Number of standard deviations used for the NE position fusion innovation consistency check
+
 	// variables used when position data is being fused using a relative position odometry model
-	bool _hpos_odometry{false};		///< true when the NE position data is being fused using an odometry assumption
-	Vector2f _hpos_meas_prev;		///< previous value of NE position measurement fused using odometry assumption (m)
+	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
+	Vector3f _pos_meas_prev;		///< previous value of NED position measurement fused using odometry assumption (m)
 	Vector2f _hpos_pred_prev;		///< previous value of NE position state used by odometry fusion (m)
 	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
+	Vector3f _ev_rot_vec_filt;		///< filtered rotation vector defining the rotation from EKF to EV reference (rad)
+	Dcmf _ev_rot_mat;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame
+	uint64_t _ev_rot_last_time_us{0};	///< previous time that the calculation of the ekf to ev rotation matrix was updated (uSec)
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
@@ -276,6 +285,7 @@ private:
 	uint64_t _time_last_fake_gps{0};	///< last time we faked GPS position measurements to constrain tilt errors during operation without external aiding (uSec)
 
 	uint64_t _time_last_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
+	uint64_t _time_last_delpos_fuse{0};	///< time the last fusion of incremental horizontal position measurements was performed (uSec)
 	uint64_t _time_last_vel_fuse{0};	///< time the last fusion of velocity measurements was performed (uSec)
 	uint64_t _time_last_hgt_fuse{0};	///< time the last fusion of height measurements was performed (uSec)
 	uint64_t _time_last_of_fuse{0};		///< time the last fusion of optical flow measurements were performed (uSec)
@@ -486,6 +496,15 @@ private:
 
 	// modify output filter to match the the EKF state at the fusion time horizon
 	void alignOutputFilter();
+
+	// update the estimated angular misalignment vector between the EV naigration frame and the EKF navigation frame
+	// and update the rotation matrix which transforms EV navigation frame measurements into NED
+	void calcExtVisRotMat();
+
+
+	// reset the estimated angular misalignment vector between the EV naigration frame and the EKF navigation frame
+	// and reset the rotation matrix which transforms EV navigation frame measurements into NED
+	void resetExtVisRotMat();
 
 	// limit the diagonal of the covariance matrix
 	void fixCovarianceErrors();

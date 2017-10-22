@@ -273,6 +273,11 @@ bool Ekf::initialiseFilter()
 		// calculate the initial magnetic field and yaw alignment
 		_control_status.flags.yaw_align = resetMagHeading(mag_init);
 
+		// initialise the rotation from EV to EKF navigation frame if required
+		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !(_params.fusion_mode & MASK_USE_EVYAW)) {
+			resetExtVisRotMat();
+		}
+
 		if (_control_status.flags.rng_hgt) {
 			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
 			// so it can be used as a backup ad set the initial height using the range finder
@@ -297,6 +302,7 @@ bool Ekf::initialiseFilter()
 		// reset the essential fusion timeout counters
 		_time_last_hgt_fuse = _time_last_imu;
 		_time_last_pos_fuse = _time_last_imu;
+		_time_last_delpos_fuse = _time_last_imu;
 		_time_last_vel_fuse = _time_last_imu;
 		_time_last_hagl_fuse = _time_last_imu;
 		_time_last_of_fuse = _time_last_imu;
