@@ -158,8 +158,8 @@ PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
 PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
 
 /**
-* Stabilize the mount (true for servo gimbal, false for passthrough).
-* Only affects RC input; Mavlink input can set this with the DO_MOUNT_CONFIGURE command.
+* Stabilize the mount (set to true for servo gimbal, false for passthrough).
+* Does not affect MAVLINK_ROI input.
 *
 * @boolean
 * @group Mount

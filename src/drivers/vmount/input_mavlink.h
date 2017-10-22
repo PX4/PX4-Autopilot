@@ -82,7 +82,7 @@ private:
 class InputMavlinkCmdMount : public InputBase
 {
 public:
-	InputMavlinkCmdMount();
+	InputMavlinkCmdMount(bool stabilize);
 	virtual ~InputMavlinkCmdMount();
 
 	virtual void print_status();
