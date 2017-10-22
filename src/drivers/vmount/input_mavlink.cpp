@@ -173,7 +173,8 @@ void InputMavlinkROI::print_status()
 }
 
 
-InputMavlinkCmdMount::InputMavlinkCmdMount()
+InputMavlinkCmdMount::InputMavlinkCmdMount(bool stabilize)
+	: _stabilize {stabilize, stabilize, stabilize}
 {
 	param_t handle = param_find("MAV_SYS_ID");
 
