@@ -1,36 +1,33 @@
-sudo: required
 language: cpp
+os: linux
+dist: trusty
+
 python:
-- '3.5'
+  - '3.5'
+
+addons:
+  apt:
+    packages:
+     - clang
+     - cmake
+     - libeigen3-dev
+     - python-dev
+     - swig3.0
+
 matrix:
   fast_finish: true
   include:
-    - os: linux
-      dist: trusty
-      compiler: gcc
-      env:
-        - MATRIX_EVAL=""
-    - os: linux
-      dist: trusty
-      compiler: clang
-      env:
-        - CC=clang CXX=clang++
-        - MATRIX_EVAL=""
-    - os: linux
-      dist: trusty
-      compiler: gcc
-      env:
-        - RUN_PYTEST=1
-        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+    - compiler: gcc
+    - compiler: clang
+      env: CC=clang CXX=clang++
+    - env: RUN_PYTEST=1
+  allow_failures:
+    - env: RUN_PYTEST=1
+
 
 before_install:
-  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-  - sudo add-apt-repository ppa:deadsnakes/ppa -y # ppa with latest Python versions to Ubuntu 14.04
-  - sudo apt-get -qq update
-  - sudo pip install --egg pyenv
-  - sudo apt-get install -y clang cmake g++ gcc libeigen3-dev swig3.0 python-dev gcc-5 g++-5 python3.5
-  - pyenv shell 3.5
-  - eval "${MATRIX_EVAL}"
-  - if [ -n "${RUN_PYTEST}" ]; then pip3 install -r ./EKF/tests/pytest/requirements.txt; fi
+  - if [ -n "${RUN_PYTEST}" ]; then
+      pip install --user -r ./EKF/tests/pytest/requirements.txt;
+    fi
 
 script: ./build.sh
