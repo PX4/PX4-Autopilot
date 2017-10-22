@@ -95,7 +95,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			paramreset_successful = true;
 
 		} else {
-			calibration_log_critical(mavlink_log_pub, "[cal] airspeed offset zero failed");
+            calibration_log_critical(mavlink_log_pub, "airspeed offset zero failed");
 		}
 
 		px4_close(fd);
@@ -109,7 +109,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		float analog_scaling = 0.0f;
 		param_get(param_find("SENS_DPRES_ANSC"), &(analog_scaling));
 		if (fabsf(analog_scaling) < 0.1f) {
-			calibration_log_critical(mavlink_log_pub, "[cal] No airspeed sensor, refer to the following:");
+            calibration_log_critical(mavlink_log_pub, "No airspeed sensor, refer to the following:");
 			calibration_log_critical(mavlink_log_pub, "http://px4.io/docs/sensor-selection/");
 			calibration_log_critical(mavlink_log_pub, "http://px4.io/docs/vtols-without-airspeed-sensor/");
 			goto error_return;
@@ -122,7 +122,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		}
 	}
 
-	calibration_log_critical(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");
+    calibration_log_critical(mavlink_log_pub, "Ensure sensor is not measuring wind");
 	usleep(500 * 1000);
 
 	while (calibration_counter < calibration_count) {
@@ -146,8 +146,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			/* any differential pressure failure a reason to abort */
 			if (diff_pres.error_count != 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%llu)", diff_pres.error_count);
-				calibration_log_critical(mavlink_log_pub, "[cal] Check your wiring before trying again");
+                calibration_log_critical(mavlink_log_pub, "Airspeed sensor is reporting errors (%llu)", diff_pres.error_count);
+                calibration_log_critical(mavlink_log_pub, "Check your wiring before trying again");
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
 			}
@@ -171,7 +171,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		airscale.offset_pa = diff_pres_offset;
 		if (fd_scale > 0) {
 			if (PX4_OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
-				calibration_log_critical(mavlink_log_pub, "[cal] airspeed offset update failed");
+                calibration_log_critical(mavlink_log_pub, "airspeed offset update failed");
 			}
 
 			px4_close(fd_scale);
@@ -192,7 +192,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);
 
-	calibration_log_critical(mavlink_log_pub, "[cal] Blow across front of pitot without touching");
+    calibration_log_critical(mavlink_log_pub, "Blow across front of pitot without touching");
 
 	calibration_counter = 0;
 
