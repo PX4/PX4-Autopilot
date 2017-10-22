@@ -902,7 +902,10 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_recko
 	// TODO - allow for baro drift in vertical position error
 	float hpos_err;
 	float vpos_err;
-	bool vel_pos_aiding = (_control_status.flags.gps || _control_status.flags.opt_flow || _control_status.flags.ev_pos);
+	bool vel_pos_aiding = (_control_status.flags.gps ||
+			       _control_status.flags.opt_flow ||
+			       _control_status.flags.ev_pos ||
+			       (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd));
 
 	if (vel_pos_aiding && _NED_origin_initialised) {
 		hpos_err = sqrtf(P[7][7] + P[8][8] + sq(_gps_origin_eph));
@@ -933,7 +936,10 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_recko
 	// TODO - allow for baro drift in vertical position error
 	float hpos_err;
 	float vpos_err;
-	bool vel_pos_aiding = (_control_status.flags.gps || _control_status.flags.opt_flow || _control_status.flags.ev_pos);
+	bool vel_pos_aiding = (_control_status.flags.gps ||
+			       _control_status.flags.opt_flow ||
+			       _control_status.flags.ev_pos ||
+			       (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd));
 
 	if (vel_pos_aiding && _NED_origin_initialised) {
 		hpos_err = sqrtf(P[7][7] + P[8][8]);
@@ -963,7 +969,10 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckon
 {
 	float hvel_err;
 	float vvel_err;
-	bool vel_pos_aiding = (_control_status.flags.gps || _control_status.flags.opt_flow || _control_status.flags.ev_pos);
+	bool vel_pos_aiding = (_control_status.flags.gps ||
+			       _control_status.flags.opt_flow ||
+			       _control_status.flags.ev_pos ||
+			       (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd));
 
 	if (vel_pos_aiding && _NED_origin_initialised) {
 		hvel_err = sqrtf(P[4][4] + P[5][5]);
@@ -1000,6 +1009,36 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckon
 	memcpy(dead_reckoning, &_is_dead_reckoning, sizeof(bool));
 }
 
+/*
+Returns the following vehicle control limits required by the estimator.
+vxy_max : Maximum ground relative horizontal speed (metres/sec). NaN when no limiting required.
+limit_hagl : Boolean true when height above ground needs to be controlled to remain between optical flow focus and rang efinder max range limits.
+*/
+void Ekf::get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl)
+{
+	float flow_gnd_spd_max;
+	bool flow_limit_hagl;
+
+	// If relying on optical flow for navigation we need to keep within flow and range sensor limits
+	bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos);
+	if (relying_on_optical_flow) {
+		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
+		flow_gnd_spd_max = 0.5f * _params.flow_rate_max * (_terrain_vpos - _state.pos(2));
+		flow_gnd_spd_max = fmaxf(flow_gnd_spd_max , 0.0f);
+
+		flow_limit_hagl = true;
+
+	} else {
+		flow_gnd_spd_max = NAN;
+		flow_limit_hagl = false;
+
+	}
+
+	memcpy(vxy_max, &flow_gnd_spd_max, sizeof(float));
+	memcpy(limit_hagl, &flow_limit_hagl, sizeof(bool));
+
+}
+
 // get EKF innovation consistency check status information comprising of:
 // status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
@@ -1028,9 +1067,9 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 {
 	ekf_solution_status soln_status{};
 	soln_status.flags.attitude = _control_status.flags.tilt_align && _control_status.flags.yaw_align && (_fault_status.value == 0);
-	soln_status.flags.velocity_horiz = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow) && (_fault_status.value == 0);
+	soln_status.flags.velocity_horiz = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
 	soln_status.flags.velocity_vert = (_control_status.flags.baro_hgt || _control_status.flags.ev_hgt || _control_status.flags.gps_hgt || _control_status.flags.rng_hgt) && (_fault_status.value == 0);
-	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow) && (_fault_status.value == 0);
+	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow ) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos) && (_fault_status.value == 0);
 	soln_status.flags.pos_vert_abs = soln_status.flags.velocity_vert;
 	soln_status.flags.pos_vert_agl = get_terrain_valid();
@@ -1105,18 +1144,17 @@ void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first
 
 bool Ekf::global_position_is_valid()
 {
-	// return true if the position estimate is valid
-	// TODO implement proper check based on published GPS accuracy, innovation consistency checks and timeout status
-	return (_NED_origin_initialised && ((_time_last_imu - _time_last_gps) < 5e6) && _control_status.flags.gps);
+	// return true if we are not doing unconstrained free inertial navigation and the origin is set
+	return (_NED_origin_initialised && !inertial_dead_reckoning());
 }
 
 // return true if we are totally reliant on inertial dead-reckoning for position
 bool Ekf::inertial_dead_reckoning()
 {
 	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos)
-			    && ((_time_last_imu - _time_last_pos_fuse <= 1E6) || (_time_last_imu - _time_last_vel_fuse <= 1E6));
-	bool optFlowAiding = _control_status.flags.opt_flow && (_time_last_imu - _time_last_of_fuse <= 1E6);
-	bool airDataAiding = _control_status.flags.wind && (_time_last_imu - _time_last_arsp_fuse <= 1E6);
+			    && ((_time_last_imu - _time_last_pos_fuse <= _params.no_aid_timeout_max) || (_time_last_imu - _time_last_vel_fuse <= _params.no_aid_timeout_max));
+	bool optFlowAiding = _control_status.flags.opt_flow && (_time_last_imu - _time_last_of_fuse <= _params.no_aid_timeout_max);
+	bool airDataAiding = _control_status.flags.wind && (_time_last_imu - _time_last_arsp_fuse <= _params.no_aid_timeout_max) && (_time_last_imu - _time_last_beta_fuse <= _params.no_aid_timeout_max);
 
 	return !velPosAiding && !optFlowAiding && !airDataAiding;
 }

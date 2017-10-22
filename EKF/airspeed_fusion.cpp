@@ -72,6 +72,9 @@ void Ekf::fuseAirspeed()
 
 	// Perform fusion of True Airspeed measurement
 	if (v_tas_pred > 1.0f) {
+		// determine if we need the sideslip fusion to correct states other than wind
+		bool update_wind_only = !_is_dead_reckoning;
+
 		// Calculate the observation jacobian
 		// intermediate variable from algebraic optimisation
 		SH_TAS[0] = 1.0f/v_tas_pred;
@@ -95,14 +98,25 @@ void Ekf::fuseAirspeed()
 
 		} else { // Reset the estimator covarinace matrix
 			_fault_status.flags.bad_airspeed = true;
-			initialiseCovariance();
-			ECL_ERR("EKF airspeed fusion numerical error - covariance reset");
+
+			// if we are getting aiding from other sources, warn and reset the wind states and covariances only
+			if (update_wind_only) {
+				resetWindStates();
+				resetWindCovariance();
+				ECL_ERR("EKF airspeed fusion badly conditioned - wind covariance reset");
+
+			} else {
+				initialiseCovariance();
+				_state.wind_vel.setZero();
+				ECL_ERR("EKF airspeed fusion badly conditioned - full covariance reset");
+			}
+
 			return;
 		}
 
 		SK_TAS[1] = SH_TAS[1];
 
-		if (((_time_last_imu - _time_last_gps) < 1e6) || ((_time_last_imu - _time_last_ext_vision) < 1e6) || ((_time_last_imu - _time_last_optflow) < 1e6)) {
+		if (update_wind_only) {
 			// If we are getting aiding from other sources, then don't allow the airspeed measurements to affect the non-windspeed states
 			for (unsigned row = 0; row <= 21; row++) {
 				Kfusion[row] = 0.0f;
