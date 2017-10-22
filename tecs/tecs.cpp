@@ -126,7 +126,7 @@ void TECS::update_vehicle_state_estimates(float airspeed, const math::Matrix<3, 
 	}
 
 	// Update and average speed rate of change if airspeed is being measured
-	if (PX4_ISFINITE(airspeed) && airspeed_sensor_enabled()) {
+	if (ISFINITE(airspeed) && airspeed_sensor_enabled()) {
 		// Assuming the vehicle is flying X axis forward, use the X axis measured acceleration
 		// compensated for gravity to estimate the rate of change of speed
 		float speed_deriv_raw = rotMat(2, 0) * CONSTANTS_ONE_G + accel_body(0);
@@ -163,7 +163,7 @@ void TECS::_update_speed_states(float airspeed_setpoint, float indicated_airspee
 
 	// If airspeed measurements are not being used, fix the airspeed estimate to halfway between
 	// min and max limits
-	if (!PX4_ISFINITE(indicated_airspeed) || !airspeed_sensor_enabled()) {
+	if (!ISFINITE(indicated_airspeed) || !airspeed_sensor_enabled()) {
 		_EAS = 0.5f * (_indicated_airspeed_min + _indicated_airspeed_max);
 
 	} else {
@@ -236,13 +236,13 @@ void TECS::_update_speed_setpoint()
 void TECS::_update_height_setpoint(float desired, float state)
 {
 	// Detect first time through and initialize previous value to demand
-	if (PX4_ISFINITE(desired) && fabsf(_hgt_setpoint_in_prev) < 0.1f) {
+	if (ISFINITE(desired) && fabsf(_hgt_setpoint_in_prev) < 0.1f) {
 		_hgt_setpoint_in_prev = desired;
 	}
 
 	// Apply a 2 point moving average to demanded height to reduce
 	// intersampling noise effects.
-	if (PX4_ISFINITE(desired)) {
+	if (ISFINITE(desired)) {
 		_hgt_setpoint = 0.5f * (desired + _hgt_setpoint_in_prev);
 
 	} else {
