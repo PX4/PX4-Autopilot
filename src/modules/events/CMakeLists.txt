@@ -39,10 +39,12 @@ px4_add_module(
 		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		send_event.cpp
+		calibration.cpp
 		temperature_calibration/accel.cpp
 		temperature_calibration/baro.cpp
 		temperature_calibration/gyro.cpp
 		temperature_calibration/task.cpp
+		gyro_calibration/gyro_calibration.cpp
 	DEPENDS
 		platforms__common
 		modules__uORB

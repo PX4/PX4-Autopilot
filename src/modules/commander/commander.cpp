@@ -53,7 +53,6 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 #include "esc_calibration.h"
-#include "gyro_calibration.h"
 #include "mag_calibration.h"
 #include "arm_auth.h"
 #include "PreflightCheck.h"
@@ -95,6 +94,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/calibration_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/geofence_result.h>
@@ -446,7 +446,25 @@ int commander_main(int argc, char *argv[])
 			} else if (!strcmp(argv[2], "accel")) {
 				calib_ret = do_accel_calibration(&mavlink_log_pub);
 			} else if (!strcmp(argv[2], "gyro")) {
-				calib_ret = do_gyro_calibration(&mavlink_log_pub);
+				/* send vehicle_command to trigger gyro calibration */
+				struct vehicle_command_s cmd = {
+					.timestamp = hrt_absolute_time(),
+					.param5 = NAN,
+					.param6 = NAN,
+					/* gyro calibration */
+					.param1 = 1,
+					.param2 = NAN,
+					.param3 = NAN,
+					.param4 = NAN,
+					.param7 = NAN,
+					.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION,
+					.target_system = (uint8_t)status.system_id,
+					.target_component = (uint8_t)status.component_id
+				};
+
+				orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+				(void)orb_unadvertise(h);
+
 			} else if (!strcmp(argv[2], "level")) {
 				calib_ret = do_level_calibration(&mavlink_log_pub);
 			} else if (!strcmp(argv[2], "esc")) {
@@ -1664,6 +1682,11 @@ int commander_thread_main(int argc, char *argv[])
 	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
 	memset(&cpuload, 0, sizeof(cpuload));
 
+	/* Subscribe for calibration status */
+	int calibration_status_sub = orb_subscribe(ORB_ID(calibration_status));
+	struct calibration_status_s calib_status;
+	memset(&calib_status, 0, sizeof(calib_status));
+
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
 	/* Get parameter values controlloing activation of position failure failsafe and convert to required units*/
@@ -2408,6 +2431,23 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
+		}
+
+		if (status_flags.condition_calibration_enabled) {
+			/* check if the calibration status is updated */
+			orb_check(calibration_status_sub, &updated);
+
+			if (updated) {
+				orb_copy(ORB_ID(calibration_status), calibration_status_sub, &calib_status);
+				status_flags.condition_calibration_enabled = false;
+				if (calib_status.result != calibration_status_s::CALIBRATION_OK) {
+					mavlink_log_critical(&mavlink_log_pub, "Sensor calibration failed: %d", calib_status.result);
+				} else {
+					status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
+						!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), arm_requirements & ARM_REQ_GPS_BIT,
+						true, is_vtol(&status), hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
+				}
+			}
 		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
@@ -4227,9 +4267,8 @@ void *commander_low_prio_loop(void *arg)
 					}
 
 					if ((int)(cmd.param1) == 1) {
-						/* gyro calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						calib_ret = do_gyro_calibration(&mavlink_log_pub);
+						/* gyro calibration: handled in events module */
+						break;
 
 					} else if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
 							(int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||

@@ -32,17 +32,21 @@
  ****************************************************************************/
 
 #include "send_event.h"
+#include "calibration.h"
 #include "temperature_calibration/temperature_calibration.h"
+#include "gyro_calibration/gyro_calibration.h"
 
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
+#include <syslog.h>
+#include <uORB/topics/calibration_status.h>
 
 struct work_s SendEvent::_work = {};
 
 // Run it at 30 Hz.
 const unsigned SEND_EVENT_INTERVAL_US = 33000;
-
 
 int SendEvent::task_spawn(int argc, char *argv[])
 {
@@ -137,6 +141,19 @@ void SendEvent::process_commands()
 
 	switch (cmd.command) {
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
+
+		if ((int)(cmd.param1) == 1) {
+
+			if (run_calibration("gyro calibration", do_gyro_calibration) == calibration_status_s::CALIBRATION_OK) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+
+			break;
+		}
+
 		if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 			gyro = true;
 			got_temperature_calibration_command = true;
@@ -153,6 +170,7 @@ void SendEvent::process_commands()
 		}
 
 		if (got_temperature_calibration_command) {
+
 			if (run_temperature_calibration(accel, baro, gyro) == 0) {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -212,6 +230,7 @@ The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, e
 	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("gyro_calibration", "Run gyro calibration process");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -277,6 +296,13 @@ int SendEvent::custom_command(int argc, char *argv[])
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
 
+	} else if (!strcmp(argv[0], "gyro_calibration")) {
+		if (!is_running()) {
+			PX4_ERR("background task not running");
+			return -1;
+		}
+
+		run_calibration("gyro calibration", do_gyro_calibration);
 	} else {
 		print_usage("unrecognized command");
 	}
