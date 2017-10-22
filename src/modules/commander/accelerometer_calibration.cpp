@@ -469,7 +469,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 
 	// Warn that we will not calibrate more than max_accels accelerometers
 	if (orb_accel_count > max_accel_sens) {
-		calibration_log_critical(mavlink_log_pub, "[cal] Detected %u accels, but will calibrate only %u", orb_accel_count, max_accel_sens);
+		calibration_log_critical(mavlink_log_pub, "Detected %u accels, but will calibrate only %u", orb_accel_count, max_accel_sens);
 	}
 
 	for (unsigned cur_accel = 0; cur_accel < orb_accel_count && cur_accel < max_accel_sens; cur_accel++) {
@@ -507,7 +507,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 		}
 
 		if(!found_cur_accel) {
-			calibration_log_critical(mavlink_log_pub, "[cal] Accel #%u (ID %u) no matching uORB devid", cur_accel, device_id[cur_accel]);
+			calibration_log_critical(mavlink_log_pub, "Accel #%u (ID %u) no matching uORB devid", cur_accel, device_id[cur_accel]);
 			result = calibrate_return_error;
 			break;
 		}
@@ -522,7 +522,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 				device_id_primary = device_id[cur_accel];
 			}
 		} else {
-			calibration_log_critical(mavlink_log_pub, "[cal] Accel #%u no device id, abort", cur_accel);
+			calibration_log_critical(mavlink_log_pub, "Accel #%u no device id, abort", cur_accel);
 			result = calibrate_return_error;
 			break;
 		}
@@ -554,7 +554,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 			result = calculate_calibration_values(i, worker_data.accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
 
 			if (result != calibrate_return_ok) {
-				calibration_log_critical(mavlink_log_pub, "[cal] ERROR: calibration calculation error");
+				calibration_log_critical(mavlink_log_pub, "ERROR: calibration calculation error");
 				break;
 			}
 		}
