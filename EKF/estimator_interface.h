@@ -148,6 +148,13 @@ public:
 	// get the 1-sigma horizontal and vertical velocity uncertainty
 	virtual void get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckoning) = 0;
 
+	/*
+	Returns the following vehicle control limits required by the estimator.
+	vxy_max : Maximum ground relative horizontal speed (metres/sec). NaN when no limiting required.
+	limit_hagl : Boolean true when height above ground needs to be controlled to remain between optical flow focus and rang efinder max range limits.
+	*/
+	virtual void get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl) = 0;
+
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
 
@@ -192,7 +199,7 @@ public:
 	void set_is_fixed_wing(bool is_fixed_wing) {_control_status.flags.fixed_wing = is_fixed_wing;}
 
 	// set flag if synthetic sideslip measurement should be fused
-	void set_fuse_beta_flag(bool fuse_beta) {_control_status.flags.fuse_beta = fuse_beta;}
+	void set_fuse_beta_flag(bool fuse_beta) {_control_status.flags.fuse_beta = (fuse_beta && _control_status.flags.in_air);}
 
 	// set flag if only only mag states should be updated by the magnetometer
 	void set_update_mag_states_only_flag(bool update_mag_states_only) {_control_status.flags.update_mag_states_only = update_mag_states_only;}

@@ -131,7 +131,7 @@ void Ekf::controlFusionModes()
 	// Additional data from an external vision sensor can also be fused.
 	controlExternalVisionFusion();
 
-	// report dead reckoning if we are no longer fusing measurements that constrain velocity drift
+	// report dead reckoning if we are no longer fusing measurements that directly constrain velocity drift
 	_is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > _params.no_aid_timeout_max)
 			&& (_time_last_imu - _time_last_vel_fuse > _params.no_aid_timeout_max)
 			&& (_time_last_imu - _time_last_of_fuse > _params.no_aid_timeout_max);
@@ -261,20 +261,11 @@ void Ekf::controlExternalVisionFusion()
 			fuseHeading();
 
 		}
-	}
+	} else if (_control_status.flags.ev_pos && (_time_last_imu - _time_last_ext_vision > 5e6)) {
+		// Turn off EV fusion mode if no data has been received
+		_control_status.flags.ev_pos = false;
+		ECL_INFO("EKF External Vision Data Stopped");
 
-	// handle the case when we are relying on ev data and lose it
-	if (_control_status.flags.ev_pos && !_control_status.flags.gps && !_control_status.flags.opt_flow) {
-		// We are relying on ev aiding to constrain drift so after 5s without aiding we need to do something
-		if ((_time_last_imu - _time_last_pos_fuse > 5e6)) {
-			// Switch to the non-aiding mode, zero the velocity states
-			// and set the synthetic position to the current estimate
-			_control_status.flags.ev_pos = false;
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
-			_state.vel.setZero();
-
-		}
 	}
 }
 
@@ -381,20 +372,10 @@ void Ekf::controlOpticalFlowFusion()
 			_last_known_posNE(1) = _state.pos(1);
 
 		}
-	}
+	} else if (_control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow > 5e6)) {
+		ECL_INFO("EKF Optical Flow Data Stopped");
+		_control_status.flags.opt_flow = false;
 
-	// handle the case when we are relying on optical flow fusion and lose it
-	if (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos) {
-		// We are relying on flow aiding to constrain attitude drift so after 5s without aiding we need to do something
-		if ((_time_last_imu - _time_last_of_fuse > 5e6)) {
-			// Switch to the non-aiding mode, zero the velocity states
-			// and set the synthetic position to the current estimate
-			_control_status.flags.opt_flow = false;
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
-			_state.vel.setZero();
-			ECL_WARN("EKF Stopping Optical Flow Use");
-		}
 	}
 
 }
@@ -490,19 +471,10 @@ void Ekf::controlGpsFusion()
 
 		}
 
-	} else {
-		// handle the case where we do not have GPS and have not been using it for an extended period, but are still relying on it
-		if ((_time_last_imu - _time_last_gps > 10e6) && (_time_last_imu - _time_last_airspeed > 1e6) && (_time_last_imu - _time_last_optflow > 1e6) && _control_status.flags.gps) {
-			// if we don't have a source of aiding to constrain attitude drift,
-			// then we need to switch to the non-aiding mode, zero the velocity states
-			// and set the synthetic GPS position to the current estimate
+	} else if (_control_status.flags.gps && (_time_last_imu - _time_last_gps > 10e6)) {
 			_control_status.flags.gps = false;
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
-			_state.vel.setZero();
-			ECL_WARN("EKF measurement timeout - stopping navigation");
+			ECL_WARN("EKF GPS data stopped");
 
-		}
 	}
 }
 
@@ -1005,9 +977,18 @@ void Ekf::controlAirDataFusion()
 
 	}
 
-	// Always try to fuse airspeed data if available and we are in flight and the filter is operating in a normal aiding mode
-	bool is_aiding = _control_status.flags.gps || _control_status.flags.opt_flow || _control_status.flags.ev_pos;
-	if (_tas_data_ready && _control_status.flags.in_air && is_aiding) {
+	if (_control_status.flags.fuse_aspd && airspeed_timed_out) {
+		_control_status.flags.fuse_aspd = false;
+
+	}
+
+	// Always try to fuse airspeed data if available and we are in flight
+	if (_tas_data_ready && _control_status.flags.in_air) {
+		// always fuse airsped data if we are flying and data is present
+		if (!_control_status.flags.fuse_aspd) {
+			_control_status.flags.fuse_aspd = true;
+		}
+
 		// If starting wind state estimation, reset the wind states and covariances before fusing any data
 		if (!_control_status.flags.wind) {
 			// activate the wind states
@@ -1042,10 +1023,7 @@ void Ekf::controlBetaFusion()
 	// Suffient time has lapsed sice the last fusion
 	bool beta_fusion_time_triggered = _time_last_imu - _time_last_beta_fuse > _params.beta_avg_ft_us;
 
-	// The filter is operating in a mode where velocity states can be used
-	bool vel_states_active = _control_status.flags.gps || _control_status.flags.opt_flow || _control_status.flags.ev_pos;
-
-	if(beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air && vel_states_active) {
+	if(beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air) {
 		// If starting wind state estimation, reset the wind states and covariances before fusing any data
 		if (!_control_status.flags.wind) {
 			// activate the wind states
@@ -1262,8 +1240,21 @@ void Ekf::controlVelPosFusion()
 {
 	// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
 	// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
-	if (!_control_status.flags.gps && !_control_status.flags.opt_flow && !_control_status.flags.ev_pos
-	    && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
+	if (!_control_status.flags.gps &&
+			!_control_status.flags.opt_flow &&
+			!_control_status.flags.ev_pos &&
+			!(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta) &&
+			((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height))
+	{
+		// Reset position and velocity states if we re-commence this aiding method
+		if ((_time_last_imu - _time_last_fake_gps) > 4E5) {
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+			_state.vel.setZero();
+			ECL_WARN("EKF stopping navigation");
+
+		}
+
 		_fuse_pos = true;
 		_time_last_fake_gps = _time_last_imu;
 
