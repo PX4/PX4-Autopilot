@@ -40,89 +40,18 @@
 #pragma once
 
 #include <mathlib/mathlib.h>
-#include <stdint.h>
 
 class __EXPORT TECS
 {
 public:
-	TECS() :
-		_state_update_timestamp(0),
-		_speed_update_timestamp(0),
-		_pitch_update_timestamp(0),
-		_hgt_estimate_freq(0.0f),
-		_tas_estimate_freq(0.0f),
-		_max_climb_rate(2.0f),
-		_min_sink_rate(1.0f),
-		_max_sink_rate(2.0f),
-		_pitch_time_constant(5.0f),
-		_throttle_time_constant(8.0f),
-		_pitch_damping_gain(0.0f),
-		_throttle_damping_gain(0.0f),
-		_integrator_gain(0.0f),
-		_vert_accel_limit(0.0f),
-		_load_factor_correction(0.0f),
-		_pitch_speed_weight(1.0f),
-		_height_error_gain(0.0f),
-		_height_setpoint_gain_ff(0.0f),
-		_speed_error_gain(0.0f),
-		_throttle_setpoint(0.0f),
-		_pitch_setpoint(0.0f),
-		_vert_accel_state(0.0f),
-		_vert_vel_state(0.0f),
-		_vert_pos_state(0.0f),
-		_tas_rate_state(0.0f),
-		_tas_state(0.0f),
-		_throttle_integ_state(0.0f),
-		_pitch_integ_state(0.0f),
-		_last_throttle_setpoint(0.0f),
-		_last_pitch_setpoint(0.0f),
-		_speed_derivative(0.0f),
-		_EAS(0.0f),
-		_TAS_max(30.0f),
-		_TAS_min(3.0f),
-		_TAS_setpoint(0.0f),
-		_TAS_setpoint_last(0.0f),
-		_EAS_setpoint(0.0f),
-		_TAS_setpoint_adj(0.0f),
-		_TAS_rate_setpoint(0.0f),
-		_indicated_airspeed_min(3.0f),
-		_indicated_airspeed_max(30.0f),
-		_hgt_setpoint(0.0f),
-		_hgt_setpoint_in_prev(0.0f),
-		_hgt_setpoint_prev(0.0f),
-		_hgt_setpoint_adj(0.0f),
-		_hgt_setpoint_adj_prev(0.0f),
-		_hgt_rate_setpoint(0.0f),
-		_pitch_setpoint_unc(0.0f),
-		_STE_rate_max(0.0f),
-		_STE_rate_min(0.0f),
-		_throttle_setpoint_max(0.0f),
-		_throttle_setpoint_min(0.0f),
-		_pitch_setpoint_max(0.5f),
-		_pitch_setpoint_min(-0.5f),
-		_throttle_slewrate(0.0f),
-		_SPE_setpoint(0.0f),
-		_SKE_setpoint(0.0f),
-		_SPE_rate_setpoint(0.0f),
-		_SKE_rate_setpoint(0.0f),
-		_SPE_estimate(0.0f),
-		_SKE_estimate(0.0f),
-		_SPE_rate(0.0f),
-		_SKE_rate(0.0f),
-		_STE_error(0.0f),
-		_STE_rate_error(0.0f),
-		_SEB_error(0.0f),
-		_SEB_rate_error(0.0f),
-		_dt(0.02f),
-		_underspeed_detected(false),
-		_detect_underspeed_enabled(true),
-		_uncommanded_descent_recovery(false),
-		_climbout_mode_active(false),
-		_airspeed_enabled(false),
-		_states_initalized(false),
-		_in_air(false)
-	{
-	}
+	TECS() = default;
+	~TECS() = default;
+
+	// no copy, assignment, move, move assignment
+	TECS(const TECS &) = delete;
+	TECS &operator=(const TECS &) = delete;
+	TECS(TECS &&) = delete;
+	TECS &operator=(TECS &&) = delete;
 
 	/**
 	 * Get the current airspeed status
@@ -170,7 +99,7 @@ public:
 
 	void set_detect_underspeed_enabled(bool enabled) { _detect_underspeed_enabled = enabled; }
 
-
+	// setters for controller parameters
 	void set_time_const(float time_const) { _pitch_time_constant = time_const; }
 	void set_integrator_gain(float gain) { _integrator_gain = gain; }
 
@@ -245,109 +174,109 @@ public:
 
 private:
 
-	enum ECL_TECS_MODE _tecs_mode;
+	enum ECL_TECS_MODE _tecs_mode {ECL_TECS_MODE_NORMAL};
 
 	// timestamps
-	uint64_t _state_update_timestamp;			///< last timestamp of the 50 Hz function call
-	uint64_t _speed_update_timestamp;			///< last timestamp of the speed function call
-	uint64_t _pitch_update_timestamp;			///< last timestamp of the pitch function call
+	uint64_t _state_update_timestamp{0};				///< last timestamp of the 50 Hz function call
+	uint64_t _speed_update_timestamp{0};				///< last timestamp of the speed function call
+	uint64_t _pitch_update_timestamp{0};				///< last timestamp of the pitch function call
 
 	// controller parameters
-	float _hgt_estimate_freq;					///< cross-over frequency of the height rate complementary filter (rad/sec)
-	float _tas_estimate_freq;					///< cross-over frequency of the true airspeed complementary filter (rad/sec)
-	float _max_climb_rate;						///< climb rate produced by max allowed throttle (m/sec)
-	float _min_sink_rate;						///< sink rate produced by min allowed throttle (m/sec)
-	float _max_sink_rate;						///< maximum safe sink rate (m/sec)
-	float _pitch_time_constant;					///< control time constant used by the pitch demand calculation (sec)
-	float _throttle_time_constant;				///< control time constant used by the throttle demand calculation (sec)
-	float _pitch_damping_gain;					///< damping gain of the pitch demand calculation (sec)
-	float _throttle_damping_gain;				///< damping gain of the throttle demand calculation (sec)
-	float _integrator_gain;						///< integrator gain used by the throttle and pitch demand calculation
-	float _vert_accel_limit;					///< magnitude of the maximum vertical acceleration allowed (m/sec**2)
-	float _load_factor_correction;				///< gain from normal load factor increase to total energy rate demand (m**2/sec**3)
-	float _pitch_speed_weight;					///< speed control weighting used by pitch demand calculation
-	float _height_error_gain;					///< gain from height error to demanded climb rate (1/sec)
-	float _height_setpoint_gain_ff;				///< gain from height demand derivative to demanded climb rate
-	float _speed_error_gain;					///< gain from speed error to demanded speed rate (1/sec)
+	float _hgt_estimate_freq{0.0f};					///< cross-over frequency of the height rate complementary filter (rad/sec)
+	float _tas_estimate_freq{0.0f};					///< cross-over frequency of the true airspeed complementary filter (rad/sec)
+	float _max_climb_rate{2.0f};					///< climb rate produced by max allowed throttle (m/sec)
+	float _min_sink_rate{1.0f};					///< sink rate produced by min allowed throttle (m/sec)
+	float _max_sink_rate{2.0f};					///< maximum safe sink rate (m/sec)
+	float _pitch_time_constant{5.0f};				///< control time constant used by the pitch demand calculation (sec)
+	float _throttle_time_constant{8.0f};				///< control time constant used by the throttle demand calculation (sec)
+	float _pitch_damping_gain{0.0f};				///< damping gain of the pitch demand calculation (sec)
+	float _throttle_damping_gain{0.0f};				///< damping gain of the throttle demand calculation (sec)
+	float _integrator_gain{0.0f};					///< integrator gain used by the throttle and pitch demand calculation
+	float _vert_accel_limit{0.0f};					///< magnitude of the maximum vertical acceleration allowed (m/sec**2)
+	float _load_factor_correction{0.0f};				///< gain from normal load factor increase to total energy rate demand (m**2/sec**3)
+	float _pitch_speed_weight{1.0f};				///< speed control weighting used by pitch demand calculation
+	float _height_error_gain{0.0f};					///< gain from height error to demanded climb rate (1/sec)
+	float _height_setpoint_gain_ff{0.0f};				///< gain from height demand derivative to demanded climb rate
+	float _speed_error_gain{0.0f};					///< gain from speed error to demanded speed rate (1/sec)
+	float _indicated_airspeed_min{3.0f};				///< equivalent airspeed demand lower limit (m/sec)
+	float _indicated_airspeed_max{30.0f};				///< equivalent airspeed demand upper limit (m/sec)
+	float _throttle_slewrate{0.0f};					///< throttle demand slew rate limit (1/sec)
 
 	// controller outputs
-	float _throttle_setpoint;					///< normalized throttle demand (0..1)
-	float _pitch_setpoint;						///< pitch angle demand (radians)
+	float _throttle_setpoint{0.0f};					///< normalized throttle demand (0..1)
+	float _pitch_setpoint{0.0f};					///< pitch angle demand (radians)
 
 	// complimentary filter states
-	float _vert_accel_state;					///< complimentary filter state - height second derivative (m/sec**2)
-	float _vert_vel_state;						///< complimentary filter state - height rate (m/sec)
-	float _vert_pos_state;						///< complimentary filter state - height (m)
-	float _tas_rate_state;						///< complimentary filter state - true airspeed first derivative (m/sec**2)
-	float _tas_state;							///< complimentary filter state - true airspeed (m/sec)
+	float _vert_accel_state{0.0f};					///< complimentary filter state - height second derivative (m/sec**2)
+	float _vert_vel_state{0.0f};					///< complimentary filter state - height rate (m/sec)
+	float _vert_pos_state{0.0f};					///< complimentary filter state - height (m)
+	float _tas_rate_state{0.0f};					///< complimentary filter state - true airspeed first derivative (m/sec**2)
+	float _tas_state{0.0f};						///< complimentary filter state - true airspeed (m/sec)
 
 	// controller states
-	float _throttle_integ_state;				///< throttle integrator state
-	float _pitch_integ_state;					///< pitch integrator state (rad)
-	float _last_throttle_setpoint;				///< throttle demand rate limiter state (1/sec)
-	float _last_pitch_setpoint;					///< pitch demand rate limiter state (rad/sec)
-	float _speed_derivative;					///< rate of change of speed along X axis (m/sec**2)
+	float _throttle_integ_state{0.0f};				///< throttle integrator state
+	float _pitch_integ_state{0.0f};					///< pitch integrator state (rad)
+	float _last_throttle_setpoint{0.0f};				///< throttle demand rate limiter state (1/sec)
+	float _last_pitch_setpoint{0.0f};				///< pitch demand rate limiter state (rad/sec)
+	float _speed_derivative{0.0f};					///< rate of change of speed along X axis (m/sec**2)
 
 	// speed demand calculations
-	float _EAS;									///< equivalent airspeed (m/sec)
-	float _TAS_max;								///< true airpeed demand upper limit (m/sec)
-	float _TAS_min;								///< true airpeed demand lower limit (m/sec)
-	float _TAS_setpoint;						///< current airpeed demand (m/sec)
-	float _TAS_setpoint_last;					///< previous true airpeed demand (m/sec)
-	float _EAS_setpoint;						///< Equivalent airspeed demand (m/sec)
-	float _TAS_setpoint_adj;					///< true airspeed demand tracked by the TECS algorithm (m/sec)
-	float _TAS_rate_setpoint;					///< true airspeed rate demand tracked by the TECS algorithm (m/sec**2)
-	float _indicated_airspeed_min;				///< equivalent airspeed demand lower limit (m/sec)
-	float _indicated_airspeed_max;				///< equivalent airspeed demand upper limit (m/sec)
+	float _EAS{0.0f};						///< equivalent airspeed (m/sec)
+	float _TAS_max{30.0f};						///< true airpeed demand upper limit (m/sec)
+	float _TAS_min{3.0f};						///< true airpeed demand lower limit (m/sec)
+	float _TAS_setpoint{0.0f};					///< current airpeed demand (m/sec)
+	float _TAS_setpoint_last{0.0f};					///< previous true airpeed demand (m/sec)
+	float _EAS_setpoint{0.0f};					///< Equivalent airspeed demand (m/sec)
+	float _TAS_setpoint_adj{0.0f};					///< true airspeed demand tracked by the TECS algorithm (m/sec)
+	float _TAS_rate_setpoint{0.0f};					///< true airspeed rate demand tracked by the TECS algorithm (m/sec**2)
 
 	// height demand calculations
-	float _hgt_setpoint;						///< demanded height tracked by the TECS algorithm (m)
-	float _hgt_setpoint_in_prev;				///< previous value of _hgt_setpoint after noise filtering (m)
-	float _hgt_setpoint_prev;					///< previous value of _hgt_setpoint after noise filtering and rate limiting (m)
-	float _hgt_setpoint_adj;					///< demanded height used by the control loops after all filtering has been applied (m)
-	float _hgt_setpoint_adj_prev;				///< value of _hgt_setpoint_adj from previous frame (m)
-	float _hgt_rate_setpoint;					///< demanded climb rate tracked by the TECS algorithm
+	float _hgt_setpoint{0.0f};					///< demanded height tracked by the TECS algorithm (m)
+	float _hgt_setpoint_in_prev{0.0f};				///< previous value of _hgt_setpoint after noise filtering (m)
+	float _hgt_setpoint_prev{0.0f};					///< previous value of _hgt_setpoint after noise filtering and rate limiting (m)
+	float _hgt_setpoint_adj{0.0f};					///< demanded height used by the control loops after all filtering has been applied (m)
+	float _hgt_setpoint_adj_prev{0.0f};				///< value of _hgt_setpoint_adj from previous frame (m)
+	float _hgt_rate_setpoint{0.0f};					///< demanded climb rate tracked by the TECS algorithm
 
 	// vehicle physical limits
-	float _pitch_setpoint_unc;					///< pitch demand before limiting (rad)
-	float _STE_rate_max;						///< specific total energy rate upper limit achieved when throttle is at _throttle_setpoint_max (m**2/sec**3)
-	float _STE_rate_min;						///< specific total energy rate lower limit acheived when throttle is at _throttle_setpoint_min (m**2/sec**3)
-	float _throttle_setpoint_max;				///< normalised throttle upper limit
-	float _throttle_setpoint_min;				///< normalised throttle lower limit
-	float _pitch_setpoint_max;					///< pitch demand upper limit (rad)
-	float _pitch_setpoint_min;					///< pitch demand lower limit (rad)
-	float _throttle_slewrate;					///< throttle demand slew rate limit (1/sec)
+	float _pitch_setpoint_unc{0.0f};				///< pitch demand before limiting (rad)
+	float _STE_rate_max{0.0f};					///< specific total energy rate upper limit achieved when throttle is at _throttle_setpoint_max (m**2/sec**3)
+	float _STE_rate_min{0.0f};					///< specific total energy rate lower limit acheived when throttle is at _throttle_setpoint_min (m**2/sec**3)
+	float _throttle_setpoint_max{0.0f};				///< normalised throttle upper limit
+	float _throttle_setpoint_min{0.0f};				///< normalised throttle lower limit
+	float _pitch_setpoint_max{0.5f};				///< pitch demand upper limit (rad)
+	float _pitch_setpoint_min{-0.5f};				///< pitch demand lower limit (rad)
 
 	// specific energy quantities
-	float _SPE_setpoint;						///< specific potential energy demand (m**2/sec**2)
-	float _SKE_setpoint;						///< specific kinetic energy demand (m**2/sec**2)
-	float _SPE_rate_setpoint;					///< specific potential energy rate demand (m**2/sec**3)
-	float _SKE_rate_setpoint;					///< specific kinetic energy rate demand (m**2/sec**3)
-	float _SPE_estimate;						///< specific potential energy estimate (m**2/sec**2)
-	float _SKE_estimate;						///< specific kinetic energy estimate (m**2/sec**2)
-	float _SPE_rate;							///< specific potential energy rate estimate (m**2/sec**3)
-	float _SKE_rate;							///< specific kinetic energy rate estimate (m**2/sec**3)
+	float _SPE_setpoint{0.0f};					///< specific potential energy demand (m**2/sec**2)
+	float _SKE_setpoint{0.0f};					///< specific kinetic energy demand (m**2/sec**2)
+	float _SPE_rate_setpoint{0.0f};					///< specific potential energy rate demand (m**2/sec**3)
+	float _SKE_rate_setpoint{0.0f};					///< specific kinetic energy rate demand (m**2/sec**3)
+	float _SPE_estimate{0.0f};					///< specific potential energy estimate (m**2/sec**2)
+	float _SKE_estimate{0.0f};					///< specific kinetic energy estimate (m**2/sec**2)
+	float _SPE_rate{0.0f};						///< specific potential energy rate estimate (m**2/sec**3)
+	float _SKE_rate{0.0f};						///< specific kinetic energy rate estimate (m**2/sec**3)
 
 	// specific energy error quantities
-	float _STE_error;							///< specific total energy error (m**2/sec**2)
-	float _STE_rate_error;						///< specific total energy rate error (m**2/sec**3)
-	float _SEB_error;							///< specific energy balance error (m**2/sec**2)
-	float _SEB_rate_error;						///< specific energy balance rate error (m**2/sec**3)
+	float _STE_error{0.0f};						///< specific total energy error (m**2/sec**2)
+	float _STE_rate_error{0.0f};					///< specific total energy rate error (m**2/sec**3)
+	float _SEB_error{0.0f};						///< specific energy balance error (m**2/sec**2)
+	float _SEB_rate_error{0.0f};					///< specific energy balance rate error (m**2/sec**3)
 
 	// time steps (non-fixed)
-	float _dt;									///< Time since last update of main TECS loop (sec)
-	static constexpr float DT_MIN = 0.001f;		///< minimum allowed value of _dt (sec)
-	static constexpr float DT_DEFAULT = 0.02f;	///< default value for _dt (sec)
-	static constexpr float DT_MAX = 1.0f;		///< max value of _dt allowed before a filter state reset is performed (sec)
+	float _dt{DT_DEFAULT};						///< Time since last update of main TECS loop (sec)
+	static constexpr float DT_MIN = 0.001f;				///< minimum allowed value of _dt (sec)
+	static constexpr float DT_DEFAULT = 0.02f;			///< default value for _dt (sec)
+	static constexpr float DT_MAX = 1.0f;				///< max value of _dt allowed before a filter state reset is performed (sec)
 
 	// controller mode logic
-	bool _underspeed_detected;					///< true when an underspeed condition has been detected
-	bool _detect_underspeed_enabled;			///< true when underspeed detection is enabled
-	bool _uncommanded_descent_recovery;			///< true when a continuous descent caused by an unachievable airspeed demand has been detected
-	bool _climbout_mode_active;					///< true when in climbout mode
-	bool _airspeed_enabled;						///< true when airspeed use has been enabled
-	bool _states_initalized;					///< true when TECS states have been iniitalized
-	bool _in_air;								///< true when the vehicle is flying
+	bool _underspeed_detected{false};				///< true when an underspeed condition has been detected
+	bool _detect_underspeed_enabled{true};				///< true when underspeed detection is enabled
+	bool _uncommanded_descent_recovery{false};			///< true when a continuous descent caused by an unachievable airspeed demand has been detected
+	bool _climbout_mode_active{false};				///< true when in climbout mode
+	bool _airspeed_enabled{false};					///< true when airspeed use has been enabled
+	bool _states_initalized{false};					///< true when TECS states have been iniitalized
+	bool _in_air{false};						///< true when the vehicle is flying
 
 	/**
 	 * Update the airspeed internal state using a second order complementary filter
