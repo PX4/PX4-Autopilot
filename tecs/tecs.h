@@ -129,18 +129,12 @@ public:
 	 *
 	 * @return true if airspeed is enabled for control
 	 */
-	bool airspeed_sensor_enabled()
-	{
-		return _airspeed_enabled;
-	}
+	bool airspeed_sensor_enabled() { return _airspeed_enabled; }
 
 	/**
 	 * Set the airspeed enable state
 	 */
-	void enable_airspeed(bool enabled)
-	{
-		_airspeed_enabled = enabled;
-	}
+	void enable_airspeed(bool enabled) { _airspeed_enabled = enabled; }
 
 	/**
 	 * Updates the following vehicle kineamtic state estimates:
@@ -165,10 +159,7 @@ public:
 	float get_pitch_setpoint() { return _pitch_setpoint; }
 	float get_speed_weight() { return _pitch_speed_weight; }
 
-	void reset_state()
-	{
-		_states_initalized = false;
-	}
+	void reset_state() { _states_initalized = false; }
 
 	enum ECL_TECS_MODE {
 		ECL_TECS_MODE_NORMAL = 0,
@@ -177,139 +168,60 @@ public:
 		ECL_TECS_MODE_CLIMBOUT
 	};
 
-	enum ECL_TECS_MODE _tecs_mode;
+	void set_detect_underspeed_enabled(bool enabled) { _detect_underspeed_enabled = enabled; }
 
-	void set_time_const(float time_const)
-	{
-		_pitch_time_constant = time_const;
-	}
 
-	void set_time_const_throt(float time_const_throt)
-	{
-		_throttle_time_constant = time_const_throt;
-	}
+	void set_time_const(float time_const) { _pitch_time_constant = time_const; }
+	void set_integrator_gain(float gain) { _integrator_gain = gain; }
 
-	void set_min_sink_rate(float rate)
-	{
-		_min_sink_rate = rate;
-	}
+	void set_min_sink_rate(float rate) { _min_sink_rate = rate; }
+	void set_max_sink_rate(float sink_rate) { _max_sink_rate = sink_rate; }
+	void set_max_climb_rate(float climb_rate) { _max_climb_rate = climb_rate; }
 
-	void set_max_sink_rate(float sink_rate)
-	{
-		_max_sink_rate = sink_rate;
-	}
+	void set_height_comp_filter_omega(float omega) { _hgt_estimate_freq = omega; }
+	void set_heightrate_ff(float heightrate_ff) { _height_setpoint_gain_ff = heightrate_ff; }
+	void set_heightrate_p(float heightrate_p) { _height_error_gain = heightrate_p; }
 
-	void set_max_climb_rate(float climb_rate)
-	{
-		_max_climb_rate = climb_rate;
-	}
+	void set_indicated_airspeed_max(float airspeed) { _indicated_airspeed_max = airspeed; }
+	void set_indicated_airspeed_min(float airspeed) { _indicated_airspeed_min = airspeed; }
 
-	void set_throttle_damp(float throttle_damp)
-	{
-		_throttle_damping_gain = throttle_damp;
-	}
+	void set_pitch_damping(float damping) { _pitch_damping_gain = damping; }
+	void set_vertical_accel_limit(float limit) { _vert_accel_limit = limit; }
 
-	void set_integrator_gain(float gain)
-	{
-		_integrator_gain = gain;
-	}
+	void set_speed_comp_filter_omega(float omega) { _tas_estimate_freq = omega; }
+	void set_speed_weight(float weight) { _pitch_speed_weight = weight; }
+	void set_speedrate_p(float speedrate_p) { _speed_error_gain = speedrate_p; }
 
-	void set_vertical_accel_limit(float limit)
-	{
-		_vert_accel_limit = limit;
-	}
+	void set_time_const_throt(float time_const_throt) { _throttle_time_constant = time_const_throt; }
+	void set_throttle_damp(float throttle_damp) { _throttle_damping_gain = throttle_damp; }
+	void set_throttle_slewrate(float slewrate) { _throttle_slewrate = slewrate; }
 
-	void set_height_comp_filter_omega(float omega)
-	{
-		_hgt_estimate_freq = omega;
-	}
+	void set_roll_throttle_compensation(float compensation) { _load_factor_correction = compensation; }
 
-	void set_speed_comp_filter_omega(float omega)
-	{
-		_tas_estimate_freq = omega;
-	}
-
-	void set_roll_throttle_compensation(float compensation)
-	{
-		_load_factor_correction = compensation;
-	}
-
-	void set_speed_weight(float weight)
-	{
-		_pitch_speed_weight = weight;
-	}
-
-	void set_pitch_damping(float damping)
-	{
-		_pitch_damping_gain = damping;
-	}
-
-	void set_throttle_slewrate(float slewrate)
-	{
-		_throttle_slewrate = slewrate;
-	}
-
-	void set_indicated_airspeed_min(float airspeed)
-	{
-		_indicated_airspeed_min = airspeed;
-	}
-
-	void set_indicated_airspeed_max(float airspeed)
-	{
-		_indicated_airspeed_max = airspeed;
-	}
-
-	void set_heightrate_p(float heightrate_p)
-	{
-		_height_error_gain = heightrate_p;
-	}
-
-	void set_heightrate_ff(float heightrate_ff)
-	{
-		_height_setpoint_gain_ff = heightrate_ff;
-	}
-
-	void set_speedrate_p(float speedrate_p)
-	{
-		_speed_error_gain = speedrate_p;
-	}
-
-	void set_detect_underspeed_enabled(bool enabled)
-	{
-		_detect_underspeed_enabled = enabled;
-	}
+	// TECS status
+	uint64_t timestamp() { return _pitch_update_timestamp; }
+	ECL_TECS_MODE tecs_mode() { return _tecs_mode; }
 
 	float hgt_setpoint_adj() { return _hgt_setpoint_adj; }
-
 	float vert_pos_state() { return _vert_pos_state; }
 
 	float TAS_setpoint_adj() { return _TAS_setpoint_adj; }
-
 	float tas_state() { return _tas_state; }
 
 	float hgt_rate_setpoint() { return _hgt_rate_setpoint; }
-
 	float vert_vel_state() { return _vert_vel_state; }
 
 	float TAS_rate_setpoint() { return _TAS_rate_setpoint; }
-
 	float speed_derivative() { return _speed_derivative; }
 
 	float STE_error() { return _STE_error; }
-
 	float STE_rate_error() { return _STE_rate_error; }
 
 	float SEB_error() { return _SEB_error; }
-
 	float SEB_rate_error() { return _SEB_rate_error; }
 
 	float throttle_integ_state() { return _throttle_integ_state; }
-
 	float pitch_integ_state() { return _pitch_integ_state; }
-
-	int tecs_mode() { return _tecs_mode; }
-
-	uint64_t timestamp() { return _pitch_update_timestamp; }
 
 	/**
 	 * Handle the altitude reset
@@ -332,6 +244,8 @@ public:
 	}
 
 private:
+
+	enum ECL_TECS_MODE _tecs_mode;
 
 	// timestamps
 	uint64_t _state_update_timestamp;			///< last timestamp of the 50 Hz function call
@@ -453,12 +367,12 @@ private:
 	/**
 	 * Detect if the system is not capable of maintaining airspeed
 	 */
-	void _detect_underspeed(void);
+	void _detect_underspeed();
 
 	/**
 	 * Update specific energy
 	 */
-	void _update_energy_estimates(void);
+	void _update_energy_estimates();
 
 	/**
 	 * Update throttle setpoint
@@ -468,12 +382,12 @@ private:
 	/**
 	 * Detect an uncommanded descent
 	 */
-	void _detect_uncommanded_descent(void);
+	void _detect_uncommanded_descent();
 
 	/**
 	 * Update the pitch setpoint
 	 */
-	void _update_pitch_setpoint(void);
+	void _update_pitch_setpoint();
 
 	/**
 	 * Initialize the controller
@@ -484,6 +398,6 @@ private:
 	/**
 	 * Calculate specific total energy rate limits
 	 */
-	void _update_STE_rate_lim(void);
+	void _update_STE_rate_lim();
 
 };
