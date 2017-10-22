@@ -174,6 +174,7 @@ struct dragSample {
 #define MASK_USE_EVPOS	(1<<3)		///< set to true to use external vision NED position data
 #define MASK_USE_EVYAW  (1<<4)		///< set to true to use exernal vision quaternion data for yaw
 #define MASK_USE_DRAG  (1<<5)		///< set to true to use the multi-rotor drag model to estimate wind
+#define MASK_ROTATE_EV  (1<<6)		///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0	///< The selection of either heading or 3D magnetometer fusion will be automatic
