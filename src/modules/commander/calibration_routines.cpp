@@ -664,7 +664,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 		return DETECT_ORIENTATION_RIGHTSIDE_UP;        // [ 0, 0, -g ]
 	}
 
-	calibration_log_critical(mavlink_log_pub, "[cal] ERROR: invalid orientation");
+	calibration_log_critical(mavlink_log_pub, "ERROR: invalid orientation");
 
 	return DETECT_ORIENTATION_ERROR;	// Can't detect orientation
 }
