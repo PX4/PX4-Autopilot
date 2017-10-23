@@ -1747,7 +1747,7 @@ int commander_thread_main(int argc, char *argv[])
 	float ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
-	int32_t disarm_when_landed = 0;
+	float disarm_when_landed = 0;
 	int32_t low_bat_action = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
