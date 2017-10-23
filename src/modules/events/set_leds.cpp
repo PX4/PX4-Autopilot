@@ -31,58 +31,18 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file set_leds.cpp
+ * Separate the set_leds() function
+ *
+ * @author Christoph Tobler <christoph@px4.io>
+ */
 
-#include "subscriber_handler.h"
 #include "status_display.h"
 
-#include <px4_workqueue.h>
-#include <px4_module.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
+using namespace status;
 
-extern "C" __EXPORT int send_event_main(int argc, char *argv[]);
-
-class SendEvent : public ModuleBase<SendEvent>
+void StatusDisplay::set_leds()
 {
-public:
-	SendEvent();
-
-	/**
-	 * Initialize class in the same context as the work queue. And start the background listener.
-	 * @return 0 if successful, <0 on error */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-private:
-
-	/** Start background listening for commands
-	 *
-	 * @return 0 if successful, <0 on error. */
-	int start();
-
-
-	/** Trampoline for initialisation. */
-	static void initialize_trampoline(void *arg);
-	/** Trampoline for the work queue. */
-	static void cycle_trampoline(void *arg);
-
-	/** call process_commands() and schedule the next cycle. */
-	void cycle();
-
-	/** check for new commands and process them. */
-	void process_commands();
-
-	/** return an ACK to a vehicle_command */
-	void answer_command(const vehicle_command_s &cmd, unsigned result);
-
-	static struct work_s _work;
-	events::SubscriberHandler _subscriber_handler;
-	status::StatusDisplay _status_display;
-	orb_advert_t _command_ack_pub = nullptr;
-};
+	// Put your LED handling here
+}
