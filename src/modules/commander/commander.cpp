@@ -1524,8 +1524,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
-	unsigned stick_off_counter = 0;
-	unsigned stick_on_counter = 0;
 
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
@@ -2724,6 +2722,10 @@ int commander_thread_main(int argc, char *argv[])
 				(status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
 				(stick_in_lower_left || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_disarm_transition) ) {
 
+				/* counter for having stick in disarming position */
+				static unsigned stick_off_counter = 0;
+				stick_off_counter++;
+
 				/* default is set to disarm */
 				bool disarm = false;
 
@@ -2755,7 +2757,6 @@ int commander_thread_main(int argc, char *argv[])
 
 					if ((stick_off_counter == rc_arm_hyst) || arm_switch_to_disarm_transition) {
 						disarm = true;
-						stick_off_counter = 0;
 					} else {
 						stick_off_counter++;
 					}
@@ -2765,6 +2766,9 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				if (disarm) {
+
+					stick_off_counter = 0;
+
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
@@ -2798,7 +2802,14 @@ int commander_thread_main(int argc, char *argv[])
 			if (!in_armed_state &&
 				status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 				(stick_in_lower_right || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_arm_transition) ) {
+
+				// counter for stick in arming position
+				static unsigned stick_on_counter = 0;
+				stick_on_counter++;
+
 				if ((stick_on_counter == rc_arm_hyst) || arm_switch_to_arm_transition) {
+
+					stick_on_counter = 0;
 
 					/* we check outside of the transition function here because the requirement
 					 * for being in manual mode only applies to manual arming actions.
@@ -2841,10 +2852,6 @@ int commander_thread_main(int argc, char *argv[])
 						}
 					}
 				}
-				stick_on_counter++;
-			/* do not reset the counter when holding the arm button longer than needed */
-			} else {
-				stick_on_counter = 0;
 			}
 
 			_last_sp_man_arm_switch = sp_man.arm_switch;
