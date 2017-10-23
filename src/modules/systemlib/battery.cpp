@@ -44,22 +44,22 @@
 
 Battery::Battery() :
 	SuperBlock(nullptr, "BAT"),
-	_param_v_empty(this, "V_EMPTY"),
-	_param_v_full(this, "V_CHARGED"),
-	_param_n_cells(this, "N_CELLS"),
-	_param_capacity(this, "CAPACITY"),
-	_param_v_load_drop(this, "V_LOAD_DROP"),
-	_param_r_internal(this, "R_INTERNAL"),
-	_param_low_thr(this, "LOW_THR"),
-	_param_crit_thr(this, "CRIT_THR"),
-	_param_emergency_thr(this, "EMERGEN_THR"),
-	_voltage_filtered_v(-1.0f),
-	_current_filtered_a(-1.0f),
-	_discharged_mah(0.0f),
-	_remaining_voltage(1.0f),
-	_remaining_capacity(1.0f),
-	_remaining(1.0f),
-	_scale(1.0f),
+	_v_empty(this, "V_EMPTY"),
+	_v_charged(this, "V_CHARGED"),
+	_n_cells(this, "N_CELLS"),
+	_capacity(this, "CAPACITY"),
+	_v_load_drop(this, "V_LOAD_DROP"),
+	_r_internal(this, "R_INTERNAL"),
+	_low_thr(this, "LOW_THR"),
+	_crit_thr(this, "CRIT_THR"),
+	_emergency_thr(this, "EMERGEN_THR"),
+	_voltage_filtered_v(-1.f),
+	_current_filtered_a(-1.f),
+	_discharged_mah(0.f),
+	_remaining_voltage(1.f),
+	_remaining_capacity(1.f),
+	_remaining(1.f),
+	_scale(1.f),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
@@ -75,10 +75,10 @@ void
 Battery::reset(battery_status_s *battery_status)
 {
 	memset(battery_status, 0, sizeof(*battery_status));
-	battery_status->current_a = -1.0f;
-	battery_status->remaining = 1.0f;
-	battery_status->scale = 1.0f;
-	battery_status->cell_count = _param_n_cells.get();
+	battery_status->current_a = -1.f;
+	battery_status->remaining = 1.f;
+	battery_status->scale = 1.f;
+	battery_status->cell_count = _n_cells.get();
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
 	battery_status->connected = false;
@@ -117,7 +117,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 void
 Battery::filterVoltage(float voltage_v)
 {
-	if (_voltage_filtered_v < 0.0f) {
+	if (_voltage_filtered_v < 0.f) {
 		_voltage_filtered_v = voltage_v;
 	}
 
@@ -132,7 +132,7 @@ Battery::filterVoltage(float voltage_v)
 void
 Battery::filterCurrent(float current_a)
 {
-	if (_current_filtered_a < 0.0f) {
+	if (_current_filtered_a < 0.f) {
 		_current_filtered_a = current_a;
 	}
 
@@ -149,7 +149,7 @@ void
 Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 {
 	// Not a valid measurement
-	if (current_a < 0.0f) {
+	if (current_a < 0.f) {
 		// Because the measurement was invalid we need to stop integration
 		// and re-initialize with the next valid measurement
 		_last_timestamp = 0;
@@ -158,7 +158,7 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 
 	// Ignore first update because we don't know dT.
 	if (_last_timestamp != 0) {
-		_discharged_mah += current_a * ((float)(timestamp - _last_timestamp)) / 1e3f / 3600.0f;
+		_discharged_mah += current_a * ((float)(timestamp - _last_timestamp)) / 1e3f / 3600.f;
 	}
 
 	_last_timestamp = timestamp;
@@ -168,33 +168,33 @@ void
 Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
 {
 	// correct battery voltage locally for load drop to avoid estimation fluctuations
-	const float bat_r = _param_r_internal.get();
+	const float bat_r = _r_internal.get();
 
-	if (bat_r >= 0.0f) {
+	if (bat_r >= 0.f) {
 		voltage_v += bat_r * current_a;
 
 	} else {
 		// assume quadratic relation between throttle and current
 		// good assumption if throttle represents RPM
-		voltage_v += throttle_normalized * throttle_normalized * _param_v_load_drop.get();
+		voltage_v += throttle_normalized * throttle_normalized * _v_load_drop.get();
 	}
 
 	// remaining battery capacity based on voltage
-	const float cell_voltage = voltage_v / _param_n_cells.get();
-	_remaining_voltage = math::gradual(cell_voltage, _param_v_empty.get(), _param_v_full.get(), 0.f, 1.f);
+	const float cell_voltage = voltage_v / _n_cells.get();
+	_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);
 
 	// remaining battery capacity based on used current integrated time
-	_remaining_capacity = 1.0f - _discharged_mah / _param_capacity.get();
+	_remaining_capacity = 1.f - _discharged_mah / _capacity.get();
 
 	// limit to sane values
-	_remaining_voltage = (_remaining_voltage < 0.0f) ? 0.0f : _remaining_voltage;
-	_remaining_voltage = (_remaining_voltage > 1.0f) ? 1.0f : _remaining_voltage;
+	_remaining_voltage = (_remaining_voltage < 0.f) ? 0.f : _remaining_voltage;
+	_remaining_voltage = (_remaining_voltage > 1.f) ? 1.f : _remaining_voltage;
 
-	_remaining_capacity = (_remaining_capacity < 0.0f) ? 0.0f : _remaining_capacity;
-	_remaining_capacity = (_remaining_capacity > 1.0f) ? 1.0f : _remaining_capacity;
+	_remaining_capacity = (_remaining_capacity < 0.f) ? 0.f : _remaining_capacity;
+	_remaining_capacity = (_remaining_capacity > 1.f) ? 1.f : _remaining_capacity;
 
 	// choose which quantity we're using for final reporting
-	if (_param_capacity.get() > 0.0f) {
+	if (_capacity.get() > 0.f) {
 		// if battery capacity is known, use discharged current for estimate,
 		// but don't show more than voltage estimate
 		_remaining = fminf(_remaining_voltage, _remaining_capacity);
@@ -210,13 +210,13 @@ Battery::determineWarning(bool connected)
 {
 	if (connected) {
 		// propagate warning state only if the state is higher, otherwise remain in current warning state
-		if (_remaining < _param_emergency_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
+		if (_remaining < _emergency_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
 			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (_remaining < _param_crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		} else if (_remaining < _crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (_remaining < _param_low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		} else if (_remaining < _low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			_warning = battery_status_s::BATTERY_WARNING_LOW;
 		}
 	}
@@ -225,17 +225,17 @@ Battery::determineWarning(bool connected)
 void
 Battery::computeScale()
 {
-	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
+	const float voltage_range = (_v_charged.get() - _v_empty.get());
 
 	// reusing capacity calculation to get single cell voltage before drop
-	const float bat_v = _param_v_empty.get() + (voltage_range * _remaining_voltage);
+	const float bat_v = _v_empty.get() + (voltage_range * _remaining_voltage);
 
-	_scale = _param_v_full.get() / bat_v;
+	_scale = _v_charged.get() / bat_v;
 
 	if (_scale > 1.3f) { // Allow at most 30% compensation
 		_scale = 1.3f;
 
-	} else if (!PX4_ISFINITE(_scale) || _scale < 1.0f) { // Shouldn't ever be more than the power at full battery
-		_scale = 1.0f;
+	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
+		_scale = 1.f;
 	}
 }
