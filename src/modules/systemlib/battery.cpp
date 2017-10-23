@@ -156,9 +156,11 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 		return;
 	}
 
-	// Ignore first update because we don't know dT.
+	// Ignore first update because we don't know dt.
 	if (_last_timestamp != 0) {
-		_discharged_mah += current_a * ((float)(timestamp - _last_timestamp)) / 1e3f / 3600.f;
+		const float dt = (timestamp - _last_timestamp) / 1e6;
+		// current[A] * 1000 = [mA]; dt[s] / 3600 = [h]
+		_discharged_mah += (current_a * 1e3f) * (dt / 3600.f);
 	}
 
 	_last_timestamp = timestamp;
