@@ -68,17 +68,17 @@ public:
 	/**
 	 * Get the battery cell count
 	 */
-	int cell_count() { return _param_n_cells.get(); }
+	int cell_count() { return _n_cells.get(); }
 
 	/**
 	 * Get the empty voltage per cell
 	 */
-	float empty_cell_voltage() { return _param_v_empty.get(); }
+	float empty_cell_voltage() { return _v_empty.get(); }
 
 	/**
 	 * Get the full voltage per cell
 	 */
-	float full_cell_voltage() { return _param_v_full.get(); }
+	float full_cell_voltage() { return _v_charged.get(); }
 
 	/**
 	 * Update current battery status message.
@@ -103,15 +103,15 @@ private:
 	void determineWarning(bool connected);
 	void computeScale();
 
-	control::BlockParamFloat _param_v_empty;
-	control::BlockParamFloat _param_v_full;
-	control::BlockParamInt _param_n_cells;
-	control::BlockParamFloat _param_capacity;
-	control::BlockParamFloat _param_v_load_drop;
-	control::BlockParamFloat _param_r_internal;
-	control::BlockParamFloat _param_low_thr;
-	control::BlockParamFloat _param_crit_thr;
-	control::BlockParamFloat _param_emergency_thr;
+	control::BlockParamFloat _v_empty;
+	control::BlockParamFloat _v_charged;
+	control::BlockParamInt _n_cells;
+	control::BlockParamFloat _capacity;
+	control::BlockParamFloat _v_load_drop;
+	control::BlockParamFloat _r_internal;
+	control::BlockParamFloat _low_thr;
+	control::BlockParamFloat _crit_thr;
+	control::BlockParamFloat _emergency_thr;
 
 	float _voltage_filtered_v;
 	float _current_filtered_a;
