@@ -173,6 +173,13 @@ int ver_main(int argc, char *argv[])
 					printf("FW version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
 				}
 
+				if (show_all) {
+					const char *git_branch = px4_firmware_git_branch();
+
+					if (git_branch && git_branch[0]) {
+						printf("FW git-branch: %s\n", git_branch);
+					}
+				}
 
 				fwver = px4_os_version();
 				major = (fwver >> (8 * 3)) & 0xFF;
