@@ -95,7 +95,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	filterVoltage(voltage_v);
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(voltage_v, current_a, throttle_normalized, armed);
+	estimateRemaining(_voltage_filtered_v, _current_filtered_a, throttle_normalized, armed);
 	determineWarning(connected);
 	computeScale();
 
@@ -181,21 +181,10 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 
 	// remaining battery capacity based on voltage
 	const float cell_voltage = voltage_v / _param_n_cells.get();
-	const float rvoltage = math::gradual(cell_voltage, _param_v_empty.get(), _param_v_full.get(), 0.f, 1.f);
-
-	const float rvoltage_filt = _remaining_voltage * 0.99f + rvoltage * 0.01f;
-
-	if (PX4_ISFINITE(rvoltage_filt)) {
-		_remaining_voltage = rvoltage_filt;
-	}
+	_remaining_voltage = math::gradual(cell_voltage, _param_v_empty.get(), _param_v_full.get(), 0.f, 1.f);
 
 	// remaining battery capacity based on used current integrated time
-	const float rcap = 1.0f - _discharged_mah / _param_capacity.get();
-	const float rcap_filt = _remaining_capacity * 0.99f + rcap * 0.01f;
-
-	if (PX4_ISFINITE(rcap_filt)) {
-		_remaining_capacity = rcap_filt;
-	}
+	_remaining_capacity = 1.0f - _discharged_mah / _param_capacity.get();
 
 	// limit to sane values
 	_remaining_voltage = (_remaining_voltage < 0.0f) ? 0.0f : _remaining_voltage;
