@@ -31,58 +31,71 @@
  *
  ****************************************************************************/
 
+/**
+ * @file status_display.h
+ * Status Display decouple the LED and tune form the original commander
+ *
+ * @author Simone Guscetti <simone@px4.io>
+ */
+
 #pragma once
 
 #include "subscriber_handler.h"
-#include "status_display.h"
 
-#include <px4_workqueue.h>
-#include <px4_module.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
+#include <drivers/drv_hrt.h>
 
-extern "C" __EXPORT int send_event_main(int argc, char *argv[]);
+#include <uORB/uORB.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/cpuload.h>
+#include <uORB/topics/led_control.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_status_flags.h>
 
-class SendEvent : public ModuleBase<SendEvent>
+namespace status
+{
+
+class StatusDisplay
 {
 public:
-	SendEvent();
+
+	StatusDisplay(const events::SubscriberHandler &subscriber_handler);
+
+	/** regularily called to handle state updates */
+	void process();
+
+protected:
+	/**
+	 * check for topic updates
+	 * @return true if one or more topic got updated
+	 */
+	bool check_for_updates();
 
 	/**
-	 * Initialize class in the same context as the work queue. And start the background listener.
-	 * @return 0 if successful, <0 on error */
-	static int task_spawn(int argc, char *argv[]);
+	 * handle LED logic changes & call publish()
+	 */
+	void set_leds();
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	/** publish LED control */
+	void publish();
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+	// TODO: review if there is a better variant that allocate this in the memory
+	struct battery_status_s _battery_status = {};
+	struct cpuload_s _cpu_load = {};
+	struct vehicle_status_s _vehicle_status = {};
+	struct vehicle_status_flags_s _vehicle_status_flags = {};
+	struct vehicle_attitude_s _vehicle_attitude = {};
+
+	struct led_control_s _led_control = {};
 
 private:
-
-	/** Start background listening for commands
-	 *
-	 * @return 0 if successful, <0 on error. */
-	int start();
-
-
-	/** Trampoline for initialisation. */
-	static void initialize_trampoline(void *arg);
-	/** Trampoline for the work queue. */
-	static void cycle_trampoline(void *arg);
-
-	/** call process_commands() and schedule the next cycle. */
-	void cycle();
-
-	/** check for new commands and process them. */
-	void process_commands();
-
-	/** return an ACK to a vehicle_command */
-	void answer_command(const vehicle_command_s &cmd, unsigned result);
-
-	static struct work_s _work;
-	events::SubscriberHandler _subscriber_handler;
-	status::StatusDisplay _status_display;
-	orb_advert_t _command_ack_pub = nullptr;
+	bool _old_gps_lock_valid = false;
+	bool _old_home_position_valid = false;
+	bool _low_battery = false;
+	bool _critical_battery = false;
+	int _old_nav_state = -1;
+	int _old_battery_status_warning = -1;
+	orb_advert_t _led_control_pub = nullptr;
+	const events::SubscriberHandler &_subscriber_handler;
 };
+
+} /* status */
