@@ -183,18 +183,11 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 	const float cell_voltage = voltage_v / _n_cells.get();
 	_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);
 
-	// remaining battery capacity based on used current integrated time
-	_remaining_capacity = 1.f - _discharged_mah / _capacity.get();
-
-	// limit to sane values
-	_remaining_voltage = (_remaining_voltage < 0.f) ? 0.f : _remaining_voltage;
-	_remaining_voltage = (_remaining_voltage > 1.f) ? 1.f : _remaining_voltage;
-
-	_remaining_capacity = (_remaining_capacity < 0.f) ? 0.f : _remaining_capacity;
-	_remaining_capacity = (_remaining_capacity > 1.f) ? 1.f : _remaining_capacity;
-
 	// choose which quantity we're using for final reporting
 	if (_capacity.get() > 0.f) {
+		// remaining battery capacity based on used current integrated time
+		_remaining_capacity = math::max(1.f - _discharged_mah / _capacity.get(), 0.f);
+
 		// if battery capacity is known, use discharged current for estimate,
 		// but don't show more than voltage estimate
 		_remaining = fminf(_remaining_voltage, _remaining_capacity);
