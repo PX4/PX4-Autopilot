@@ -131,7 +131,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bo
 	if (!h.isValid()) {
 		if (!optional) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO MAG SENSOR #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO MAGNETOMETER SENSOR #%u.", instance);
 			}
 		}
 
@@ -142,7 +142,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bo
 
 	if (ret) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAG #%u UNCALIBRATED", instance);
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAGNETOMETER #%u UNCALIBRATED.", instance);
 		}
 		success = false;
 		goto out;
@@ -152,7 +152,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bo
 
 	if (ret != OK) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAG #%u SELFTEST FAILED", instance);
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAGNETOMETER #%u SELFTEST FAILED.", instance);
 		}
 		success = false;
 		goto out;
@@ -251,7 +251,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance,
 	if (!h.isValid()) {
 		if (!optional) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO ACCEL SENSOR #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO ACCELEROMETER SENSOR #%u.", instance);
 			}
 		}
 
@@ -262,7 +262,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance,
 
 	if (ret) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL #%u UNCALIBRATED", instance);
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCELEROMETER #%u UNCALIBRATED.", instance);
 		}
 		success = false;
 		goto out;
@@ -272,7 +272,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance,
 
 	if (ret != OK) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL #%u TEST FAILED: %d", instance, ret);
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCELEROMETER #%u TEST FAILED: %d.", instance, ret);
 		}
 		success = false;
 		goto out;
@@ -290,7 +290,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance,
 
 			if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
 				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL RANGE, hold still on arming");
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL RANGE, hold still on arming.");
 				}
 				/* this is frickin' fatal */
 				success = false;
@@ -298,7 +298,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance,
 			}
 		} else {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL READ");
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCELEROMETER READ.");
 			}
 			/* this is frickin' fatal */
 			success = false;
@@ -324,7 +324,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool opt
 	if (!h.isValid()) {
 		if (!optional) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO GYRO SENSOR #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO GYRO SENSOR #%u.", instance);
 			}
 		}
 
@@ -335,7 +335,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool opt
 
 	if (ret) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO #%u UNCALIBRATED", instance);
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO #%u UNCALIBRATED.", instance);
 		}
 		success = false;
 		goto out;
@@ -345,7 +345,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool opt
 
 	if (ret != OK) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO #%u SELFTEST FAILED", instance);
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO #%u SELFTEST FAILED.", instance);
 		}
 		success = false;
 		goto out;
@@ -368,7 +368,7 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool opt
 	if (!h.isValid()) {
 		if (!optional) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO BARO SENSOR #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO BAROMETER SENSOR #%u.", instance);
 			}
 		}
 
@@ -405,7 +405,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	if ((orb_copy(ORB_ID(differential_pressure), fd_diffpres, &differential_pressure) != PX4_OK) ||
 	    (hrt_elapsed_time(&differential_pressure.timestamp) > 1000000)) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING.");
 		}
 		success = false;
 		goto out;
@@ -414,7 +414,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	if ((orb_copy(ORB_ID(airspeed), fd_airspeed, &airspeed) != PX4_OK) ||
 	    (hrt_elapsed_time(&airspeed.timestamp) > 1000000)) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING.");
 		}
 		success = false;
 		goto out;
@@ -428,7 +428,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	 */
 	if (prearm && fabsf(airspeed.confidence) < 0.95f) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR STUCK");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR STUCK.");
 		}
 		success = false;
 		goto out;
@@ -441,7 +441,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	 */
 	if (fabsf(differential_pressure.differential_pressure_filtered_pa) > 15.0f && !prearm) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: CHECK AIRSPEED CAL OR PITOT");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: CHECK AIRSPEED CAL OR PITOT.");
 		}
 		success = false;
 		goto out;
@@ -481,7 +481,7 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool &loc
 	//Report failure to detect module
 	if (!success) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS RECEIVER MISSING");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS RECEIVER MISSING.");
 		}
 	}
 
@@ -506,7 +506,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
 	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HGT ERROR");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HGT ERROR.");
 		}
 		success = false;
 		goto out;
@@ -516,7 +516,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
 	if (status.vel_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VEL ERROR");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VEL ERROR.");
 		}
 		success = false;
 		goto out;
@@ -526,7 +526,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	param_get(param_find("COM_ARM_EKF_POS"), &test_limit);
 	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS ERROR");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS ERROR.");
 		}
 		success = false;
 		goto out;
@@ -562,7 +562,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	param_get(param_find("COM_ARM_EKF_YAW"), &test_limit);
 	if (status.mag_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW ERROR");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW ERROR.");
 		}
 		success = false;
 		goto out;
@@ -572,7 +572,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
 	if (fabsf(status.states[13]) > test_limit || fabsf(status.states[14]) > test_limit || fabsf(status.states[15]) > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCELEROMETER BIAS.");
 		}
 		success = false;
 		goto out;
@@ -582,7 +582,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	param_get(param_find("COM_ARM_EKF_GB"), &test_limit);
 	if (fabsf(status.states[10]) > test_limit || fabsf(status.states[11]) > test_limit || fabsf(status.states[12]) > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS.");
 		}
 		success = false;
 		goto out;
@@ -643,7 +643,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "Warning: Primary compass not found");
+				mavlink_log_critical(mavlink_log_pub, "Primary compass not found.");
 			}
 			failed = true;
 		}
@@ -678,7 +678,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "Warning: Primary accelerometer not found");
+				mavlink_log_critical(mavlink_log_pub, "Primary accelerometer not found.");
 			}
 			failed = true;
 		}
@@ -707,7 +707,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "Warning: Primary gyro not found");
+				mavlink_log_critical(mavlink_log_pub, "Primary gyro not found.");
 			}
 			failed = true;
 		}
@@ -737,7 +737,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		// // check if the primary device is present
 		if (!prime_found && prime_id != 0) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "warning: primary barometer not operational");
+				mavlink_log_critical(mavlink_log_pub, "Primary barometer not operational.");
 			}
 			failed = true;
 		}
@@ -761,7 +761,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 	if (checkRC) {
 		if (rc_calibration_check(mavlink_log_pub, reportFailures, isVTOL) != OK) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "RC calibration check failed");
+				mavlink_log_critical(mavlink_log_pub, "RC calibration check failed.");
 			}
 			failed = true;
 		}
