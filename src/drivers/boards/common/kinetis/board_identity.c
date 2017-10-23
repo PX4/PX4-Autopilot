@@ -51,10 +51,12 @@ static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID;
 void board_get_uuid(uuid_byte_t uuid_bytes)
 {
 	uint32_t *chip_uuid = (uint32_t *) KINETIS_SIM_UIDH;
-	uint32_t  *uuid_words = (uint32_t *) uuid_bytes;
+	uint32_t *uuid_words = (uint32_t *) uuid_bytes;
 
 	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
-		*uuid_words++ = SWAP_UINT32(chip_uuid[i]);
+		uint32_t current_uuid_bytes = SWAP_UINT32(chip_uuid[i]);
+		memcpy(uuid_words, &current_uuid_bytes, sizeof(uint32_t));
+		++uuid_words;
 	}
 }
 

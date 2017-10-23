@@ -141,7 +141,9 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 	uint32_t *chip_uuid = (uint32_t *) STM32_SYSMEM_UID;
 
 	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
-		*rv++ = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);
+		uint32_t uuid_bytes = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);
+		memcpy(rv, &uuid_bytes, sizeof(uint32_t));
+		++rv;
 	}
 
 	return PX4_GUID_BYTE_LENGTH;
