@@ -62,7 +62,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-typedef enum : uint8_t {
+typedef enum : int32_t {
 	CAMERA_FEEDBACK_MODE_NONE = 0,
 	CAMERA_FEEDBACK_MODE_TRIGGER,
 	CAMERA_FEEDBACK_MODE_PWM
