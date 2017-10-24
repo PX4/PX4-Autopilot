@@ -1754,9 +1754,9 @@ int commander_thread_main(int argc, char *argv[])
 
 
 	/* Thresholds for engine failure detection */
-	int32_t ef_throttle_thres = 1.0f;
-	int32_t ef_current2throttle_thres = 0.0f;
-	int32_t ef_time_thres = 1000.0f;
+	float ef_throttle_thres = 1.0f;
+	float ef_current2throttle_thres = 0.0f;
+	float ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
 	int32_t disarm_when_landed = 0;
@@ -2918,7 +2918,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* potential failure, measure time */
 				if (timestamp_engine_healthy > 0 &&
 				    hrt_elapsed_time(&timestamp_engine_healthy) >
-				    ef_time_thres * 1e6 &&
+				    ef_time_thres * 1e6f &&
 				    !status.engine_failure) {
 					status.engine_failure = true;
 					status_changed = true;
