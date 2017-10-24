@@ -71,7 +71,10 @@ PrecLand::PrecLand(Navigator *navigator, const char *name) :
 	_param_final_approach_alt(this, "PLD_FAPPR_ALT", false),
 	_param_search_alt(this, "PLD_SRCH_ALT", false),
 	_param_search_timeout(this, "PLD_SRCH_TOUT", false),
-	_param_max_searches(this, "PLD_MAX_SRCH", false)
+	_param_max_searches(this, "PLD_MAX_SRCH", false),
+	_param_acceleration_hor(this, "MPC_ACC_HOR", false),
+	_param_xy_vel_cruise(this, "MPC_XY_CRUISE", false)
+
 {
 	/* load initial params */
 	updateParams();
@@ -98,26 +101,19 @@ PrecLand::on_activation()
 
 	_state = PrecLandState::Start;
 	_search_cnt = 0;
+	_last_slewrate_time = 0;
+
+	vehicle_local_position_s * vehicle_local_position = _navigator->get_local_position();
+	if (!map_projection_initialized(&_map_ref)) {
+		map_projection_init(&_map_ref, vehicle_local_position->ref_lat, vehicle_local_position->ref_lon);
+	}
 	
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	pos_sp_triplet->next.valid = false;
 
-	// Check that the current position setpoint is valid and close to current position
-	bool reset_to_cur_pos = false;
+	// Check that the current position setpoint is valid, otherwise land at current position
 	if (!pos_sp_triplet->current.valid)
-	{
-		reset_to_cur_pos = true;
-	} else {
-		float dist = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
-				  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-		if (dist > _navigator->get_acceptance_radius())
-		{
-			reset_to_cur_pos = true;
-		}
-	}
-
-	if (reset_to_cur_pos)
 	{
 		PX4_WARN("Resetting landing position to current position");
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -127,10 +123,10 @@ PrecLand::on_activation()
 	}
 
 	_first_sp = pos_sp_triplet->current; // store the current setpoint for later
-	pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
-	pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
-	pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
-	pos_sp_triplet->previous.valid = true;
+
+	_sp_pev = matrix::Vector2f(0,0);
+	_sp_pev_prev = matrix::Vector2f(0,0);
+	_last_slewrate_time = 0;
 
 	switch_to_state_start();
 
@@ -188,22 +184,35 @@ PrecLand::run_state_start()
 		return;
 	}
 
-	// if no, go to search (after 2 seconds)
-	if (hrt_absolute_time() - _state_start_time > 2000000)
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	float dist = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
+			  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+
+	// check if we've reached the start point
+	if (dist < _navigator->get_acceptance_radius())
 	{
-		// check if we've reached the start point
-		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		float dist = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
-				  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-		
-		if (dist < _navigator->get_acceptance_radius())
+		if (!_start_point_reached_time)
 		{
-			if (!switch_to_state_search())
+			_start_point_reached_time = hrt_absolute_time();
+		}
+
+		// if we don't see the beacon after 2 seconds, search for it
+		if (_param_search_timeout.get() > 0)
+		{
+			if (hrt_absolute_time() - _state_start_time > 2000000)
 			{
-				if (!switch_to_state_fallback())
+				if (!switch_to_state_search())
 				{
-					PX4_ERR("Can't switch to search or fallback landing");
+					if (!switch_to_state_fallback())
+					{
+						PX4_ERR("Can't switch to search or fallback landing");
+					}
 				}
+			}
+		} else {
+			if (!switch_to_state_fallback())
+			{
+				PX4_ERR("Can't switch to search or fallback landing");
 			}
 		}
 	}
@@ -212,8 +221,6 @@ PrecLand::run_state_start()
 void
 PrecLand::run_state_horizontal_approach()
 {
-	vehicle_local_position_s * vehicle_local_position = _navigator->get_local_position();
-
 	// check if beacon visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach))
 	{
@@ -244,11 +251,13 @@ PrecLand::run_state_horizontal_approach()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	if (!map_projection_initialized(&_map_ref)) {
-		map_projection_init(&_map_ref, vehicle_local_position->ref_lat, vehicle_local_position->ref_lon);
-	}
+	float x = _beacon_position.x_abs;
+	float y = _beacon_position.y_abs;
+
+	slewrate(x, y);
+
 	double lat, lon;
-	map_projection_reproject(&_map_ref, _beacon_position.x_abs, _beacon_position.y_abs, &lat, &lon); // XXX need to transform to GPS coords because mc_pos_control only looks at that
+	map_projection_reproject(&_map_ref, x, y, &lat, &lon); // XXX need to transform to GPS coords because mc_pos_control only looks at that
 
 	pos_sp_triplet->current.lat = lat;
 	pos_sp_triplet->current.lon = lon;
@@ -262,8 +271,6 @@ PrecLand::run_state_horizontal_approach()
 void
 PrecLand::run_state_descend_above_beacon()
 {
-	vehicle_local_position_s * vehicle_local_position = _navigator->get_local_position();
-
 	// check if beacon visible
 	if (!check_state_conditions(PrecLandState::DescendAboveBeacon))
 	{
@@ -283,9 +290,6 @@ PrecLand::run_state_descend_above_beacon()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	if (!map_projection_initialized(&_map_ref)) {
-		map_projection_init(&_map_ref, vehicle_local_position->ref_lat, vehicle_local_position->ref_lon);
-	}
 	double lat, lon;
 	map_projection_reproject(&_map_ref, _beacon_position.x_abs, _beacon_position.y_abs, &lat, &lon); // XXX need to transform to GPS coords because mc_pos_control only looks at that
 
@@ -307,10 +311,29 @@ PrecLand::run_state_final_approach()
 void
 PrecLand::run_state_search()
 {
-	// try to switch to horizontal approach
-	if (switch_to_state_horizontal_approach())
+	// check if we can see the beacon
+	if (check_state_conditions(PrecLandState::HorizontalApproach))
 	{
-		return;
+		if (!_beacon_acquired_time)
+		{
+			// beacon just became visible. Stop climbing, but give it some margin so we don't stop too apruptly
+			_beacon_acquired_time = hrt_absolute_time();
+			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+			float new_alt = _navigator->get_global_position()->alt + 1.0f;
+			pos_sp_triplet->current.alt = new_alt < pos_sp_triplet->current.alt ? new_alt : pos_sp_triplet->current.alt;
+			_navigator->set_position_setpoint_triplet_updated();
+		}
+
+	}
+
+	// stay at that height for a second to allow the vehicle to settle
+	if (_beacon_acquired_time && (hrt_absolute_time() - _beacon_acquired_time) > 1000000)
+	{
+		// try to switch to horizontal approach
+		if (switch_to_state_horizontal_approach())
+		{
+			return;
+		}
 	}
 
 	// check if search timed out and go to fallback
@@ -336,10 +359,12 @@ PrecLand::switch_to_state_start()
 	if (check_state_conditions(PrecLandState::Start))
 	{
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		pos_sp_triplet->current = _first_sp;
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		pos_sp_triplet->current = _first_sp;
 		_navigator->set_position_setpoint_triplet_updated();
 		_search_cnt++;
+
+		_start_point_reached_time = 0;
 		
 		_state = PrecLandState::Start;
 		_state_start_time = hrt_absolute_time();
@@ -420,6 +445,8 @@ PrecLand::switch_to_state_search()
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	_navigator->set_position_setpoint_triplet_updated();
 
+	_beacon_acquired_time = 0;
+
 	_state = PrecLandState::Search;
 	_state_start_time = hrt_absolute_time();
 	return true;
@@ -479,4 +506,66 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		default:
 			return false;
 	}
+}
+
+void PrecLand::slewrate(float &sp_x, float &sp_y)
+{
+	matrix::Vector2f sp_curr(sp_x, sp_y);
+	uint64_t now = hrt_absolute_time();
+
+	float dt = (now - _last_slewrate_time);
+	if (dt < 1)
+	{
+		// bad dt, can't divide by it
+		return;
+	}
+	dt /= SEC2USEC;
+
+	if (!_last_slewrate_time)
+	{
+		// running the first time since switching to precland
+
+		// assume dt will be about 50000us
+		dt = 50000/SEC2USEC;
+
+		// set a best guess for previous setpoints for smooth transition
+		map_projection_project(&_map_ref, _navigator->get_position_setpoint_triplet()->current.lat, _navigator->get_position_setpoint_triplet()->current.lon, &_sp_pev(0), &_sp_pev(1));
+		_sp_pev_prev(0) = _sp_pev(0) - _navigator->get_local_position()->vx * dt;
+		_sp_pev_prev(1) = _sp_pev(1) - _navigator->get_local_position()->vy * dt;
+	}
+
+	_last_slewrate_time = now;
+
+	// limit the setpoint speed to the maximum cruise speed
+	matrix::Vector2f sp_vel = (sp_curr - _sp_pev) / dt; // velocity of the setpoints
+	if (sp_vel.length() > _param_xy_vel_cruise.get())
+	{
+		sp_vel = sp_vel.normalized() * _param_xy_vel_cruise.get();
+		sp_curr = _sp_pev + sp_vel * dt;
+	}
+
+	// limit the setpoint acceleration to the maximum acceleration
+	matrix::Vector2f sp_acc = (sp_curr - _sp_pev * 2 + _sp_pev_prev) / (dt * dt); // acceleration of the setpoints
+	if (sp_acc.length() > _param_acceleration_hor.get())
+	{
+		sp_acc = sp_acc.normalized() * _param_acceleration_hor.get();
+		sp_curr = _sp_pev * 2 - _sp_pev_prev + sp_acc * (dt * dt);
+	}
+
+	// limit the setpoint speed such that we can stop at the setpoint given the maximum acceleration/deceleration
+	float max_spd = sqrtf(_param_acceleration_hor.get() * ((matrix::Vector2f)(_sp_pev - matrix::Vector2f(sp_x, sp_y))).length());
+	sp_vel = (sp_curr - _sp_pev) / dt; // velocity of the setpoints
+	if (sp_vel.length() > max_spd)
+	{
+		sp_vel = sp_vel.normalized() * max_spd;
+		sp_curr = _sp_pev + sp_vel * dt;
+	}
+
+
+
+	_sp_pev_prev = _sp_pev;
+	_sp_pev = sp_curr;
+
+	sp_x = sp_curr(0);
+	sp_y = sp_curr(1);
 }

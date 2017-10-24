@@ -90,15 +90,22 @@ private:
 
 	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
 	bool check_state_conditions(PrecLandState state);
+	void slewrate(float &sp_x, float &sp_y);
 
 	beacon_position_s _beacon_position{}; /**< precision land beacon position */
 	int _beaconPositionSub;
 	bool _beacon_position_valid; /**< wether we have received a beacon position message */
 	struct map_projection_reference_s _map_ref{}; /**< reference for local/global projections */
 	uint64_t _state_start_time; /**< time when we entered current state */
+	uint64_t _last_slewrate_time; /**< time when we last limited setpoint changes */
+	uint64_t _beacon_acquired_time; /**< time when we first saw the beacon during search */
+	uint64_t _start_point_reached_time; /**< time when we reached the start waypoint */
 	position_setpoint_s _first_sp; /**< the position setpoint that was set before we started */
 	int _search_cnt; /**< counter of how many times we had to search for the beacon again */
 	float _approach_alt; /**< altitude at which to stay during horizontal approach */
+
+	matrix::Vector2f _sp_pev;
+	matrix::Vector2f _sp_pev_prev;
 
 	PrecLandState _state;
 
@@ -108,6 +115,8 @@ private:
 	control::BlockParamFloat _param_search_alt;
 	control::BlockParamFloat _param_search_timeout;
 	control::BlockParamInt _param_max_searches;
+	control::BlockParamFloat _param_acceleration_hor;
+	control::BlockParamFloat _param_xy_vel_cruise;
 
 };
 
