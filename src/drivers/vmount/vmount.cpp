@@ -86,8 +86,8 @@ struct Parameters {
 	int32_t mnt_mode_out;
 	int32_t mnt_mav_sysid;
 	int32_t mnt_mav_compid;
-	int32_t mnt_ob_lock_mode;
-	int32_t mnt_ob_norm_mode;
+	float mnt_ob_lock_mode;
+	float mnt_ob_norm_mode;
 	int32_t mnt_man_pitch;
 	int32_t mnt_man_roll;
 	int32_t mnt_man_yaw;
@@ -107,8 +107,8 @@ struct Parameters {
 		       mnt_mode_out != p.mnt_mode_out ||
 		       mnt_mav_sysid != p.mnt_mav_sysid ||
 		       mnt_mav_compid != p.mnt_mav_compid ||
-		       mnt_ob_lock_mode != p.mnt_ob_lock_mode ||
-		       mnt_ob_norm_mode != p.mnt_ob_norm_mode ||
+		       fabs(mnt_ob_lock_mode - p.mnt_ob_lock_mode) > 1e-6 ||
+		       fabs(mnt_ob_norm_mode - p.mnt_ob_norm_mode) > 1e-6 ||
 		       mnt_man_pitch != p.mnt_man_pitch ||
 		       mnt_man_roll != p.mnt_man_roll ||
 		       mnt_man_yaw != p.mnt_man_yaw ||
