@@ -798,7 +798,7 @@ Mission::set_mission_items()
 			cmd.target_system = (uint8_t)_navigator->get_vstatus()->system_id;
 			cmd.target_component = (uint8_t)_navigator->get_vstatus()->component_id;
 
-			_navigator->publish_vehicle_cmd(cmd);
+			_navigator->publish_vehicle_cmd(&cmd);
 
 			float altitude = _navigator->get_global_position()->alt;
 
