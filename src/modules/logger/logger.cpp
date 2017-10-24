@@ -787,7 +787,7 @@ void Logger::run()
 		SDLogProfileMask sdlog_profile = SDLogProfileMask::DEFAULT;
 
 		if (_sdlog_profile_handle != PARAM_INVALID) {
-			param_get(_sdlog_profile_handle, &sdlog_profile);
+			param_get(_sdlog_profile_handle, (int32_t*)&sdlog_profile);
 		}
 		if ((int32_t)sdlog_profile == 0) {
 			PX4_WARN("No logging profile selected. Using default set");
@@ -1797,7 +1797,7 @@ void Logger::write_version()
 	param_t write_uuid_param = param_find("SDLOG_UUID");
 
 	if (write_uuid_param != PARAM_INVALID) {
-		uint32_t write_uuid;
+		int32_t write_uuid;
 		param_get(write_uuid_param, &write_uuid);
 
 		if (write_uuid == 1) {
@@ -1864,7 +1864,18 @@ void Logger::write_parameters()
 			size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 			/* copy parameter value directly to buffer */
-			param_get(param, &buffer[msg_size]);
+			switch (type) {
+			case PARAM_TYPE_INT32:
+				param_get(param, (int32_t*)&buffer[msg_size]);
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				param_get(param, (float*)&buffer[msg_size]);
+				break;
+
+			default:
+				continue;
+			}
 			msg_size += value_size;
 
 			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
@@ -1922,7 +1933,18 @@ void Logger::write_changed_parameters()
 			size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 			/* copy parameter value directly to buffer */
-			param_get(param, &buffer[msg_size]);
+			switch (type) {
+			case PARAM_TYPE_INT32:
+				param_get(param, (int32_t*)&buffer[msg_size]);
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				param_get(param, (float*)&buffer[msg_size]);
+				break;
+
+			default:
+				continue;
+			}
 			msg_size += value_size;
 
 			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
