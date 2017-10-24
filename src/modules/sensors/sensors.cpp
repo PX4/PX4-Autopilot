@@ -345,8 +345,8 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 		/* don't risk to feed negative airspeed into the system */
 		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
-						   calc_indicated_airspeed_corrected((enum AIRSPEED_PITOT_MODEL)_parameters.air_pmodel,
-								   smodel, _parameters.air_tube_length,
+						   calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
+								   smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
 								   _diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
 								   air_temperature_celsius));
 

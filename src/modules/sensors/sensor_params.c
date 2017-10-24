@@ -815,13 +815,15 @@ PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
 PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
 
 /**
- * Airspeed sensor pitot model
+ * Airspeed sensor compensation model for the SDP3x
  *
- * @value 0 HB Pitot
+ * @value 0 Model with Pitot
+ * @value 1 Model without Pitot
+ * @value 2 Tube Pressure Drop
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_AIR_PMODEL, 0);
+PARAM_DEFINE_INT32(CAL_AIR_CMODEL, 0);
 
 /**
  * Airspeed sensor tube length
@@ -832,6 +834,17 @@ PARAM_DEFINE_INT32(CAL_AIR_PMODEL, 0);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
+
+/**
+ * Airspeed sensor tube diameter. Only used for the Tube Pressure Drop Compensation.
+ *
+ * @min 0.1
+ * @max 100
+ * @unit meter
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
 
 /**
  * Differential pressure sensor offset
