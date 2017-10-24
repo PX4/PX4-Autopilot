@@ -109,5 +109,7 @@ struct gyro_calibration_s {
 /** determine if hardware is external or onboard */
 #define GYROIOCGEXTERNAL	_GYROIOC(12)
 
+/** get the current gyro type */
+#define GYROIOCTYPE			_GYROIOC(13)
 
 #endif /* _DRV_GYRO_H */
