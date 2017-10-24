@@ -531,7 +531,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 	// Collect: As defined by configuration
 	// start with a full mask, all six bits set
-	uint32_t cal_mask = (1 << 6) - 1;
+	int32_t cal_mask = (1 << 6) - 1;
 	param_get(param_find("CAL_MAG_SIDES"), &cal_mask);
 
 	calibration_sides = 0;
