@@ -27,9 +27,6 @@ public:
 	int get_vehicle_command_sub() const { return _vehicle_command_sub; }
 	int get_vehicle_status_sub() const { return _vehicle_status_sub; }
 	int get_vehicle_status_flags_sub() const { return _vehicle_status_flags_sub; }
-	int get_vehicle_attitude_sub() const { return _vehicle_attitude_sub; }
-	// TODO: incorporate an add_topic method, this will push back the sub handler
-	// in the subscriber vector
 
 	/* update checking methods */
 	bool battery_status_updated() const { return _update_bitfield & (uint32_t)StatusMask::BatteryStatus; }
@@ -37,7 +34,6 @@ public:
 	bool vehicle_command_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleCommand; }
 	bool vehicle_status_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleStatus; }
 	bool vehicle_status_flags_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleStatusFlags; }
-	bool vehicle_attitude_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleAttitude; }
 
 
 private:
@@ -47,16 +43,13 @@ private:
 		VehicleStatusFlags = (0x01 << 2),
 		BatteryStatus = (0x01 << 3),
 		CpuLoad = (0x01 << 4),
-		VehicleAttitude = (0x01 << 5),
 	};
 
-	// TODO: incorporate the subscriber into a vector of int
 	int _battery_status_sub = -1;
 	int _cpuload_sub = -1;
 	int _vehicle_command_sub = -1;
 	int _vehicle_status_sub = -1;
 	int _vehicle_status_flags_sub = -1;
-	int _vehicle_attitude_sub = -1;
 
 	uint32_t _update_bitfield = 0;
 };
