@@ -59,7 +59,7 @@ CameraFeedback::CameraFeedback() :
 	// Parameters
 	_p_feedback = param_find("CAM_FBACK_MODE");
 
-	param_get(_p_feedback, &_camera_feedback_mode);
+	param_get(_p_feedback, (int32_t *)&_camera_feedback_mode);
 
 }
 
