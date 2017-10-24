@@ -1681,7 +1681,9 @@ int commander_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
-	param_get(_param_sys_type, &(status.system_type)); // get system type
+	int32_t system_type;
+	param_get(_param_sys_type, &system_type); // get system type
+	status.system_type = (uint8_t)system_type;
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 	status.is_vtol = is_vtol(&status);
 
@@ -1801,8 +1803,10 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update parameters */
 			if (!armed.armed) {
-				if (param_get(_param_sys_type, &(status.system_type)) != OK) {
-					warnx("failed getting new system type");
+				if (param_get(_param_sys_type, &system_type) != OK) {
+					PX4_ERR("failed getting new system type");
+				} else {
+					status.system_type = (uint8_t)system_type;
 				}
 
 				/* disable manual override for all systems that rely on electronic stabilization */
