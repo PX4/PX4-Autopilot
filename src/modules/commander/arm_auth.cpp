@@ -181,7 +181,7 @@ uint8_t arm_auth_check()
 
 void arm_auth_update(hrt_abstime now)
 {
-	param_get(param_arm_parameters, &arm_parameters);
+	param_get(param_arm_parameters, (int32_t*)&arm_parameters);
 
 	switch (state) {
 	case ARM_AUTH_WAITING_AUTH:
