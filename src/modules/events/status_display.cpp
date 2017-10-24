@@ -83,11 +83,6 @@ bool StatusDisplay::check_for_updates()
 		got_updates = true;
 	}
 
-	if (_subscriber_handler.vehicle_attitude_updated()) {
-		orb_copy(ORB_ID(vehicle_attitude), _subscriber_handler.get_vehicle_attitude_sub(), &_vehicle_attitude);
-		got_updates = true;
-	}
-
 	return got_updates;
 }
 
