@@ -593,7 +593,7 @@ private:
 	pthread_mutex_t		_send_mutex;
 
 	bool			_param_initialized;
-	uint32_t		_broadcast_mode;
+	int32_t			_broadcast_mode;
 
 	param_t			_param_system_id;
 	param_t			_param_component_id;
