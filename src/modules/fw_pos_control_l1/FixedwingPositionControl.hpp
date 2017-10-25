@@ -33,21 +33,14 @@
 
 
 /**
- * @file fw_pos_control_l1_main.c
+ * @file fw_pos_control_l1_main.hpp
  * Implementation of a generic position controller based on the L1 norm. Outputs a bank / roll
  * angle, equivalent to a lateral motion (for copters and rovers).
  *
- * Original publication for horizontal control class:
- *    S. Park, J. Deyst, and J. P. How, "A New Nonlinear Guidance Logic for Trajectory Tracking,"
- *    Proceedings of the AIAA Guidance, Navigation and Control
- *    Conference, Aug 2004. AIAA-2004-4900.
+ * The implementation for the controllers is in the ECL library. This class only
+ * interfaces to the library.
  *
- * Original implementation for total energy control class:
- *    Paul Riseborough and Andrew Tridgell, 2013 (code in lib/external_lgpl)
- *
- * More details and acknowledgements in the referenced library headers.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Andreas Antener <andreas@uaventure.com>
  */
@@ -66,7 +59,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
-#include <external_lgpl/tecs/tecs.h>
+#include <ecl/tecs/tecs.h>
 #include <geo/geo.h>
 #include <launchdetection/LaunchDetector.h>
 #include <mathlib/mathlib.h>
@@ -85,6 +78,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
@@ -152,6 +146,7 @@ private:
 	bool		_task_running{false};			///< if true, task is running in its mainloop */
 
 	int		_global_pos_sub{-1};
+	int		_local_pos_sub{-1};
 	int		_pos_sp_triplet_sub{-1};
 	int		_control_mode_sub{-1};			///< control mode subscription */
 	int		_vehicle_attitude_sub{-1};		///< vehicle attitude subscription */
@@ -175,6 +170,7 @@ private:
 	vehicle_command_s		_vehicle_command {};		///< vehicle commands */
 	vehicle_control_mode_s		_control_mode {};		///< control mode */
 	vehicle_global_position_s	_global_pos {};			///< global vehicle position */
+	vehicle_local_position_s	_local_pos {};			///< vehicle local position */
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 

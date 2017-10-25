@@ -36,6 +36,7 @@
  * @author Leon Müller (thedevleon)
  * @author Beat Küng <beat-kueng@gmx.net>
  * @author Julian Oes <julian@oes.ch>
+ * @author Matthew Edwards (mje-nz)
  *
  * Driver for to control mounts such as gimbals or servos.
  * Inputs for the mounts can RC and/or mavlink commands.
@@ -90,9 +91,18 @@ struct Parameters {
 	int32_t mnt_man_pitch;
 	int32_t mnt_man_roll;
 	int32_t mnt_man_yaw;
+	int32_t mnt_do_stab;
+	float mnt_range_pitch;
+	float mnt_range_roll;
+	float mnt_range_yaw;
+	float mnt_off_pitch;
+	float mnt_off_roll;
+	float mnt_off_yaw;
 
 	bool operator!=(const Parameters &p)
 	{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 		return mnt_mode_in != p.mnt_mode_in ||
 		       mnt_mode_out != p.mnt_mode_out ||
 		       mnt_mav_sysid != p.mnt_mav_sysid ||
@@ -101,7 +111,16 @@ struct Parameters {
 		       mnt_ob_norm_mode != p.mnt_ob_norm_mode ||
 		       mnt_man_pitch != p.mnt_man_pitch ||
 		       mnt_man_roll != p.mnt_man_roll ||
-		       mnt_man_yaw != p.mnt_man_yaw;
+		       mnt_man_yaw != p.mnt_man_yaw ||
+		       mnt_do_stab != p.mnt_do_stab ||
+		       mnt_range_pitch != p.mnt_range_pitch ||
+		       mnt_range_roll != p.mnt_range_roll ||
+		       mnt_range_yaw != p.mnt_range_yaw ||
+		       mnt_off_pitch != p.mnt_off_pitch ||
+		       mnt_off_roll != p.mnt_off_roll ||
+		       mnt_off_yaw != p.mnt_off_yaw;
+#pragma GCC diagnostic pop
+
 	}
 };
 
@@ -115,6 +134,13 @@ struct ParameterHandles {
 	param_t mnt_man_pitch;
 	param_t mnt_man_roll;
 	param_t mnt_man_yaw;
+	param_t mnt_do_stab;
+	param_t mnt_range_pitch;
+	param_t mnt_range_roll;
+	param_t mnt_range_yaw;
+	param_t mnt_off_pitch;
+	param_t mnt_off_roll;
+	param_t mnt_off_yaw;
 };
 
 
@@ -230,6 +256,12 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
 			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;
+			output_config.pitch_scale = 1.0f / ((params.mnt_range_pitch / 2.0f) * M_DEG_TO_RAD_F);
+			output_config.roll_scale = 1.0f / ((params.mnt_range_roll / 2.0f) * M_DEG_TO_RAD_F);
+			output_config.yaw_scale = 1.0f / ((params.mnt_range_yaw / 2.0f) * M_DEG_TO_RAD_F);
+			output_config.pitch_offset = params.mnt_off_pitch * M_DEG_TO_RAD_F;
+			output_config.roll_offset = params.mnt_off_roll * M_DEG_TO_RAD_F;
+			output_config.yaw_offset = params.mnt_off_yaw * M_DEG_TO_RAD_F;
 			output_config.mavlink_sys_id = params.mnt_mav_sysid;
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
 
@@ -244,19 +276,19 @@ static int vmount_thread_main(int argc, char *argv[])
 				case 0:
 
 					// Automatic
-					thread_data.input_objs[0] = new InputMavlinkCmdMount();
+					thread_data.input_objs[0] = new InputMavlinkCmdMount(params.mnt_do_stab);
 					thread_data.input_objs[1] = new InputMavlinkROI();
 
 					// RC is on purpose last here so that if there are any mavlink
 					// messages, they will take precedence over RC.
 					// This logic is done further below while update() is called.
-					thread_data.input_objs[2] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+					thread_data.input_objs[2] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
 					thread_data.input_objs_len = 3;
 
 					break;
 
 				case 1: //RC
-					thread_data.input_objs[0] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+					thread_data.input_objs[0] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
 					break;
 
 				case 2: //MAVLINK_ROI
@@ -264,7 +296,7 @@ static int vmount_thread_main(int argc, char *argv[])
 					break;
 
 				case 3: //MAVLINK_DO_MOUNT
-					thread_data.input_objs[0] = new InputMavlinkCmdMount();
+					thread_data.input_objs[0] = new InputMavlinkCmdMount(params.mnt_do_stab);
 					break;
 
 				default:
@@ -525,6 +557,13 @@ void update_params(ParameterHandles &param_handles, Parameters &params, bool &go
 	param_get(param_handles.mnt_man_pitch, &params.mnt_man_pitch);
 	param_get(param_handles.mnt_man_roll, &params.mnt_man_roll);
 	param_get(param_handles.mnt_man_yaw, &params.mnt_man_yaw);
+	param_get(param_handles.mnt_do_stab, &params.mnt_do_stab);
+	param_get(param_handles.mnt_range_pitch, &params.mnt_range_pitch);
+	param_get(param_handles.mnt_range_roll, &params.mnt_range_roll);
+	param_get(param_handles.mnt_range_yaw, &params.mnt_range_yaw);
+	param_get(param_handles.mnt_off_pitch, &params.mnt_off_pitch);
+	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
+	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
 
 	got_changes = prev_params != params;
 }
@@ -540,6 +579,13 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_man_pitch = param_find("MNT_MAN_PITCH");
 	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
 	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
+	param_handles.mnt_do_stab = param_find("MNT_DO_STAB");
+	param_handles.mnt_range_pitch = param_find("MNT_RANGE_PITCH");
+	param_handles.mnt_range_roll = param_find("MNT_RANGE_ROLL");
+	param_handles.mnt_range_yaw = param_find("MNT_RANGE_YAW");
+	param_handles.mnt_off_pitch = param_find("MNT_OFF_PITCH");
+	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
+	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -549,7 +595,14 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_ob_norm_mode == PARAM_INVALID ||
 	    param_handles.mnt_man_pitch == PARAM_INVALID ||
 	    param_handles.mnt_man_roll == PARAM_INVALID ||
-	    param_handles.mnt_man_yaw == PARAM_INVALID) {
+	    param_handles.mnt_man_yaw == PARAM_INVALID ||
+		param_handles.mnt_do_stab == PARAM_INVALID ||
+		param_handles.mnt_range_pitch == PARAM_INVALID ||
+		param_handles.mnt_range_roll == PARAM_INVALID ||
+		param_handles.mnt_range_yaw == PARAM_INVALID ||
+		param_handles.mnt_off_pitch == PARAM_INVALID ||
+		param_handles.mnt_off_roll == PARAM_INVALID ||
+		param_handles.mnt_off_yaw == PARAM_INVALID) {
 		return false;
 	}
 

@@ -121,7 +121,6 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
 	lib/launchdetection
@@ -144,7 +143,7 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	modules/bottle_drop
+	examples/bottle_drop
 
 	#
 	# Rover apps

@@ -34,6 +34,7 @@
 /**
 * @file vmount_params.c
 * @author Leon Müller (thedevleon)
+* @author Matthew Edwards (mje-nz)
 *
 */
 
@@ -156,3 +157,71 @@ PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
 */
 PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
 
+/**
+* Stabilize the mount (set to true for servo gimbal, false for passthrough).
+* Does not affect MAVLINK_ROI input.
+*
+* @boolean
+* @group Mount
+*/
+PARAM_DEFINE_INT32(MNT_DO_STAB, 0);
+
+/**
+* Range of pitch channel output in degrees (only in AUX output mode).
+*
+* @min 1.0
+* @max 720.0
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_RANGE_PITCH, 360.0f);
+
+/**
+* Range of roll channel output in degrees (only in AUX output mode).
+*
+* @min 1.0
+* @max 720.0
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_RANGE_ROLL, 360.0f);
+
+/**
+* Range of yaw channel output in degrees (only in AUX output mode).
+*
+* @min 1.0
+* @max 720.0
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_RANGE_YAW, 360.0f);
+
+/**
+* Offset for pitch channel output in degrees.
+*
+* @min -360.0
+* @max 360.0
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_OFF_PITCH, 0.0f);
+
+/**
+* Offset for roll channel output in degrees.
+*
+* @min -360.0
+* @max 360.0
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_OFF_ROLL, 0.0f);
+
+/**
+* Offset for yaw channel output in degrees.
+*
+* @min -360.0
+* @max 360.0
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);

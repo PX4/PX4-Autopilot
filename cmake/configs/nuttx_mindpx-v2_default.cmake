@@ -142,7 +142,6 @@ set(config_module_list
 	lib/mathlib/math/filter
 	lib/rc
 	lib/ecl
-	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
@@ -162,7 +161,7 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	#modules/bottle_drop
+	#examples/bottle_drop
 
 	#
 	# Rover apps

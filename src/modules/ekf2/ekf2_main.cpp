@@ -904,6 +904,13 @@ void Ekf2::run()
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
 			lpos.z_deriv = pos_d_deriv; // vertical position time derivative (m/s)
 
+			// Acceleration of body origin in local NED frame
+			float vel_deriv[3] = {};
+			_ekf.get_vel_deriv_ned(vel_deriv);
+			lpos.ax = vel_deriv[0];
+			lpos.ay = vel_deriv[1];
+			lpos.az = vel_deriv[2];
+
 			// TODO: better status reporting
 			lpos.xy_valid = _ekf.local_position_is_valid() && !_vel_innov_preflt_fail;
 			lpos.z_valid = !_vel_innov_preflt_fail;

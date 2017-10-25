@@ -43,6 +43,9 @@ px4_add_module(
 		temperature_calibration/baro.cpp
 		temperature_calibration/gyro.cpp
 		temperature_calibration/task.cpp
+		subscriber_handler.cpp
+		status_display.cpp
+		set_leds.cpp
 	DEPENDS
 		platforms__common
 		modules__uORB
