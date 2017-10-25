@@ -190,7 +190,7 @@ Syslink::update_params(bool force_set)
 
 	// reading parameter values into temp variables
 
-	uint32_t channel, rate, addr1, addr2;
+	int32_t channel, rate, addr1, addr2;
 	uint64_t addr = 0;
 
 	param_get(_param_radio_channel, &channel);
@@ -198,7 +198,8 @@ Syslink::update_params(bool force_set)
 	param_get(_param_radio_addr1, &addr1);
 	param_get(_param_radio_addr2, &addr2);
 
-	memcpy(&addr, &addr2, 4); memcpy(((char *)&addr) + 4, &addr1, 4);
+	memcpy(&addr, &addr2, 4);
+	memcpy(((char *)&addr) + 4, &addr1, 4);
 
 
 	hrt_abstime t = hrt_absolute_time();
