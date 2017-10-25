@@ -478,6 +478,8 @@ static inline int param_get_cplusplus(param_t param, int32_t *val)
 	CHECK_PARAM_TYPE(param, PARAM_TYPE_INT32);
 	return param_get(param, val);
 }
+#undef CHECK_PARAM_TYPE
+
 #define param_get(param, val) param_get_cplusplus(param, val)
 
 #endif /* __cplusplus */
