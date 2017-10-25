@@ -1039,6 +1039,36 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl)
 
 }
 
+bool Ekf::reset_imu_bias()
+{
+	if (_imu_sample_delayed.time_us - _last_imu_bias_cov_reset_us < 10 * (1000 * 1000)) {
+		return false;
+
+	}
+
+	// Zero the delta angle and delta velocity bias states
+	_state.gyro_bias.zero();
+	_state.accel_bias.zero();
+
+	// Zero the corresponding covariances
+	zeroCols(P, 10, 15);
+	zeroRows(P, 10, 15);
+
+	// Set the corresponding variances to the values use for initial alignment
+	float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
+	P[12][12] = P[11][11] = P[10][10] = sq(_params.switch_on_gyro_bias * dt);
+	P[15][15] = P[14][14] = P[13][13] = sq(_params.switch_on_accel_bias * dt);
+	_last_imu_bias_cov_reset_us = _imu_sample_delayed.time_us;
+
+	// Set previous frame values
+	_prev_dvel_bias_var(0) = P[13][13];
+	_prev_dvel_bias_var(1) = P[14][14];
+	_prev_dvel_bias_var(2) = P[15][15];
+
+	return true;
+
+}
+
 // get EKF innovation consistency check status information comprising of:
 // status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
