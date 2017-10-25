@@ -127,7 +127,7 @@ private:
 	int _params_sub;
 
 	// Current parameter values
-	uint32_t _channel, _rate;
+	int32_t _channel, _rate;
 	uint64_t _addr;
 	hrt_abstime _params_update[3]; // Time at which the parameters were updated
 	hrt_abstime _params_ack[3]; // Time at which the parameters were acknowledged by the nrf module
