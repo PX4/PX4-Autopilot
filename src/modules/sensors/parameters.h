@@ -66,40 +66,40 @@ struct Parameters {
 	float diff_pres_offset_pa;
 	float diff_pres_analog_scale;
 
-	int board_rotation;
+	int32_t board_rotation;
 
 	float board_offset[3];
 
-	int rc_map_roll;
-	int rc_map_pitch;
-	int rc_map_yaw;
-	int rc_map_throttle;
-	int rc_map_failsafe;
+	int32_t rc_map_roll;
+	int32_t rc_map_pitch;
+	int32_t rc_map_yaw;
+	int32_t rc_map_throttle;
+	int32_t rc_map_failsafe;
 
-	int rc_map_mode_sw;
-	int rc_map_return_sw;
-	int rc_map_rattitude_sw;
-	int rc_map_posctl_sw;
-	int rc_map_loiter_sw;
-	int rc_map_acro_sw;
-	int rc_map_offboard_sw;
-	int rc_map_kill_sw;
-	int rc_map_arm_sw;
-	int rc_map_trans_sw;
-	int rc_map_gear_sw;
-	int rc_map_stab_sw;
-	int rc_map_man_sw;
-	int rc_map_flaps;
+	int32_t rc_map_mode_sw;
+	int32_t rc_map_return_sw;
+	int32_t rc_map_rattitude_sw;
+	int32_t rc_map_posctl_sw;
+	int32_t rc_map_loiter_sw;
+	int32_t rc_map_acro_sw;
+	int32_t rc_map_offboard_sw;
+	int32_t rc_map_kill_sw;
+	int32_t rc_map_arm_sw;
+	int32_t rc_map_trans_sw;
+	int32_t rc_map_gear_sw;
+	int32_t rc_map_stab_sw;
+	int32_t rc_map_man_sw;
+	int32_t rc_map_flaps;
 
-	int rc_map_aux1;
-	int rc_map_aux2;
-	int rc_map_aux3;
-	int rc_map_aux4;
-	int rc_map_aux5;
+	int32_t rc_map_aux1;
+	int32_t rc_map_aux2;
+	int32_t rc_map_aux3;
+	int32_t rc_map_aux4;
+	int32_t rc_map_aux5;
 
-	int rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
+	int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
-	int rc_map_flightmode;
+	int32_t rc_map_flightmode;
 
 	int32_t rc_fails_thr;
 	float rc_assist_th;
