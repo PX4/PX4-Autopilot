@@ -61,7 +61,7 @@ start(uint8_t i2c_bus)
 
 	g_dev = new SDP3X(i2c_bus, I2C_ADDRESS_1_SDP3X, PATH_SDP3X);
 
-	/* check if the MS4525DO was instantiated */
+	/* check if the SDP3XDSO was instantiated */
 	if (g_dev == nullptr) {
 		goto fail;
 	}
