@@ -2023,7 +2023,7 @@ int commander_thread_main(int argc, char *argv[])
 					status_flags.barometer_failure = false;
 					status_changed = true;
 					if (status_flags.ever_had_barometer_data) {
-						mavlink_log_critical(&mavlink_log_pub, "Barometer healthy.");
+						mavlink_log_info(&mavlink_log_pub, "Barometer healthy.");
 					}
 					status_flags.ever_had_barometer_data = true;
 				}
