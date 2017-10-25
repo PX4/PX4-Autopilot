@@ -926,7 +926,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				} else {
 					// Refuse to arm if preflight checks have failed
 					if ((!status_local->hil_state) != vehicle_status_s::HIL_STATE_ON && !status_flags.condition_system_sensors_initialized) {
-						mavlink_log_info(&mavlink_log_pub, "Arming DENIED. Preflight checks have failed.");
+						mavlink_log_critical(&mavlink_log_pub, "Arming DENIED. Preflight checks have failed.");
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 						break;
 					}
