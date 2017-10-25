@@ -184,6 +184,15 @@ PrecLand::run_state_start()
 		return;
 	}
 
+	if (_mode == PrecLandMode::Opportunistic)
+	{
+		// could not see the beacon immediately, so just fall back to normal landing
+		if (!switch_to_state_fallback())
+		{
+			PX4_ERR("Can't switch to search or fallback landing");
+		}
+	}
+
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	float dist = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
 			  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);

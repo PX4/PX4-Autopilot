@@ -584,7 +584,7 @@ int commander_main(int argc, char *argv[])
 			} else if (!strcmp(argv[2], "auto:land")) {
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 			} else if (!strcmp(argv[2], "auto:precland")) {
-				new_main_state = commander_state_s::MAIN_STATE_AUTO_PRECLAND;
+				new_main_state = commander_state_s::MAIN_STATE_AUTO_PRECLAND_REQUIRED;
 			} else {
 				warnx("argument %s unsupported.", argv[2]);
 			}
@@ -1114,8 +1114,19 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_PRECLAND: {
-			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_PRECLAND, main_state_prev, &status_flags, &internal_state)) {
-				mavlink_and_console_log_info(&mavlink_log_pub, "Precision landing at current position");
+			uint8_t cmd_state;
+
+			if (static_cast<int>(cmd->param2 + 0.5f) == 1)
+			{
+				cmd_state = commander_state_s::MAIN_STATE_AUTO_PRECLAND_OPPORTUNISTIC;
+			} else if (static_cast<int>(cmd->param2 + 0.5f) == 2) {
+				cmd_state = commander_state_s::MAIN_STATE_AUTO_PRECLAND_REQUIRED;
+			} else {
+				//bad param, fall back to normal landing
+				cmd_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+			}
+			if (TRANSITION_CHANGED == main_state_transition(&status, cmd_state, main_state_prev, &status_flags, &internal_state)) {
+				mavlink_and_console_log_info(&mavlink_log_pub, "Precision landing");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -3946,7 +3957,8 @@ set_control_mode()
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND_OPPORTUNISTIC:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND_REQUIRED:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:

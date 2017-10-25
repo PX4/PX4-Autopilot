@@ -58,6 +58,11 @@ enum class PrecLandState {
 	Fallback // Fallback landing method
 };
 
+enum class PrecLandMode {
+	Opportunistic = 1, // only do precision landing if beacon visible at the beginning
+	Required = 2 // try to find beacon if not visible at the beginning
+};
+
 class PrecLand : public MissionBlock
 {
 public:
@@ -70,6 +75,10 @@ public:
 	virtual void on_activation();
 
 	virtual void on_active();
+
+	void set_mode(PrecLandMode mode){ _mode = mode; };
+
+	PrecLandMode get_mode() { return _mode; };
 
 private:
 	// run the control loop for each state
@@ -108,6 +117,8 @@ private:
 	matrix::Vector2f _sp_pev_prev;
 
 	PrecLandState _state;
+
+	PrecLandMode _mode;
 
 	control::BlockParamFloat _param_timeout;
 	control::BlockParamFloat _param_hacc_rad;

@@ -67,7 +67,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
-	_param_precland_enabled(this, "MIS_PRECLAND_EN", false),
 	_missionFeasibilityChecker(navigator)
 {
 }
@@ -788,13 +787,13 @@ Mission::set_mission_items()
 
 		}
 
-		if (landing && _param_precland_enabled.get())
+		// switch to precision land if set in the mission item
+		if (landing && _mission_item.land_precision > 0)
 		{
-			const hrt_abstime now = hrt_absolute_time();
-
 			struct vehicle_command_s cmd = {};
-			cmd.timestamp = now;
+			cmd.timestamp = hrt_absolute_time();;
 			cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_PRECLAND;
+			cmd.param2 = _mission_item.land_precision;
 			cmd.target_system = (uint8_t)_navigator->get_vstatus()->system_id;
 			cmd.target_component = (uint8_t)_navigator->get_vstatus()->component_id;
 
@@ -809,7 +808,7 @@ Mission::set_mission_items()
 
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT; // set to waypoint type to prevent starting to descend before precland takes over
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
 			_mission_item.disable_mc_yaw = true;

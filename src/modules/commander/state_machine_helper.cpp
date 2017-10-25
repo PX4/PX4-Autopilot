@@ -482,7 +482,8 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 		break;
 
-	case commander_state_s::MAIN_STATE_AUTO_PRECLAND:
+	case commander_state_s::MAIN_STATE_AUTO_PRECLAND_OPPORTUNISTIC:
+	case commander_state_s::MAIN_STATE_AUTO_PRECLAND_REQUIRED:
 
 		/* need local and global position, and precision land only implemented for multicopters */
 		if (status_flags->condition_local_position_valid && status_flags->condition_global_position_valid && status->is_rotary_wing) {
@@ -859,7 +860,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		break;
 
-	case commander_state_s::MAIN_STATE_AUTO_PRECLAND:
+	case commander_state_s::MAIN_STATE_AUTO_PRECLAND_OPPORTUNISTIC:
+	case commander_state_s::MAIN_STATE_AUTO_PRECLAND_REQUIRED:
 
 		/* must be rotary wing plus same requirements as normal landing */
 
@@ -870,7 +872,12 @@ bool set_nav_state(struct vehicle_status_s *status,
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+			if (internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND_OPPORTUNISTIC)
+			{
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND_OPPORTUNISTIC;
+			} else {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND_REQUIRED;
+			}
 		}
 
 		break;
