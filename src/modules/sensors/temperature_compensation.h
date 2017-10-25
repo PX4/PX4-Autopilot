@@ -118,7 +118,7 @@ private:
 
 	*/
 	struct SensorCalData1D {
-		int ID;
+		int32_t ID;
 		float x5;
 		float x4;
 		float x3;
@@ -162,7 +162,7 @@ private:
 
 	 */
 	struct SensorCalData3D {
-		int ID;			/**< sensor device ID*/
+		int32_t ID;		/**< sensor device ID*/
 		float x3[3];		/**< x^3 term of polynomial */
 		float x2[3];		/**< x^2 term of polynomial */
 		float x1[3];		/**< x^1 term of polynomial */
@@ -187,11 +187,11 @@ private:
 
 	// create a struct containing all thermal calibration parameters
 	struct Parameters {
-		int gyro_tc_enable;
+		int32_t gyro_tc_enable;
 		SensorCalData3D gyro_cal_data[GYRO_COUNT_MAX];
-		int accel_tc_enable;
+		int32_t accel_tc_enable;
 		SensorCalData3D accel_cal_data[ACCEL_COUNT_MAX];
-		int baro_tc_enable;
+		int32_t baro_tc_enable;
 		SensorCalData1D baro_cal_data[BARO_COUNT_MAX];
 	};
 
