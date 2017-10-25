@@ -261,13 +261,13 @@ private:
 		float acro_superexpo;				/**< function parameter for superexpo stick curve shape */
 		float rattitude_thres;
 
-		int32_t vtol_type;						/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
+		int32_t vtol_type;					/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
 		bool vtol_opt_recovery_enabled;
 		float vtol_wv_yaw_rate_scale;			/**< Scale value [0, 1] for yaw rate setpoint  */
 
-		int bat_scale_en;
+		int32_t bat_scale_en;
 
-		int board_rotation;
+		int32_t board_rotation;
 
 		float board_offset[3];
 
