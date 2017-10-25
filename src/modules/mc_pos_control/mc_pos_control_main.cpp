@@ -297,8 +297,6 @@ private:
 	// they are used to identify a reset event
 	uint8_t _z_reset_counter;
 	uint8_t _xy_reset_counter;
-	uint8_t _vz_reset_counter;
-	uint8_t _vxy_reset_counter;
 	uint8_t _heading_reset_counter;
 
 	matrix::Dcmf _R_setpoint;
@@ -471,8 +469,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_takeoff_vel_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
-	_vz_reset_counter(0),
-	_vxy_reset_counter(0),
 	_heading_reset_counter(0)
 {
 	/* Make the attitude quaternion valid */
@@ -778,32 +774,18 @@ MulticopterPositionControl::poll_subscriptions()
 		// since we want the vehicle to track the original state.
 		if (_control_mode.flag_control_manual_enabled) {
 			if (_z_reset_counter != _local_pos.z_reset_counter) {
-				_pos_sp(2) += _local_pos.delta_z;
+				_pos_sp(2) = _local_pos.z;
 			}
 
 			if (_xy_reset_counter != _local_pos.xy_reset_counter) {
-				_pos_sp(0) += _local_pos.delta_xy[0];
-				_pos_sp(1) += _local_pos.delta_xy[1];
-			}
-
-			if (_vz_reset_counter != _local_pos.vz_reset_counter) {
-				_vel_sp(2) += _local_pos.delta_vz;
-				_vel_sp_prev(2) +=  _local_pos.delta_vz;
-			}
-
-			if (_vxy_reset_counter != _local_pos.vxy_reset_counter) {
-				_vel_sp(0) += _local_pos.delta_vxy[0];
-				_vel_sp(1) += _local_pos.delta_vxy[1];
-				_vel_sp_prev(0) += _local_pos.delta_vxy[0];
-				_vel_sp_prev(1) += _local_pos.delta_vxy[1];
+				_pos_sp(0) = _local_pos.x;
+				_pos_sp(1) = _local_pos.y;
 			}
 		}
 
 		// update the reset counters in any case
 		_z_reset_counter = _local_pos.z_reset_counter;
 		_xy_reset_counter = _local_pos.xy_reset_counter;
-		_vz_reset_counter = _local_pos.vz_reset_counter;
-		_vxy_reset_counter = _local_pos.vxy_reset_counter;
 	}
 
 	orb_check(_pos_sp_triplet_sub, &updated);
