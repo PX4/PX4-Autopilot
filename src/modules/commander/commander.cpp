@@ -182,9 +182,6 @@ static orb_advert_t mavlink_log_pub = nullptr;
 
 static orb_advert_t power_button_state_pub = nullptr;
 
-/* System autostart ID */
-static int autostart_id;
-
 /* flags */
 static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
@@ -1322,7 +1319,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
-	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
 	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
 	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
 	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
@@ -1701,7 +1697,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t rc_in_off = 0;
 	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
-	param_get(_param_autostart_id, &autostart_id);
 	param_get(_param_rc_in_off, &rc_in_off);
 
 	int32_t arm_switch_is_button = 0;
@@ -1874,9 +1869,6 @@ int commander_thread_main(int argc, char *argv[])
 			arm_requirements = (arm_without_gps_param == 1) ? ARM_REQ_NONE : ARM_REQ_GPS_BIT;
 			param_get(_param_arm_mission_required, &arm_mission_required_param);
 			arm_requirements |= (arm_mission_required_param & (ARM_REQ_MISSION_BIT | ARM_REQ_ARM_AUTH_BIT));
-
-			/* Autostart id */
-			param_get(_param_autostart_id, &autostart_id);
 
 			/* EPH / EPV */
 			param_get(_param_eph, &eph_threshold);
