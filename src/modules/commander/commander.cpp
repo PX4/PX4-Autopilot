@@ -1747,7 +1747,7 @@ int commander_thread_main(int argc, char *argv[])
 	float ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
-	float disarm_when_landed = 0;
+	float disarm_when_landed = 0.f;
 	int32_t low_bat_action = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
@@ -1850,7 +1850,7 @@ int commander_thread_main(int argc, char *argv[])
 			// machine based on the arming state.
 			if (param_init_forced) {
 				auto_disarm_hysteresis.set_hysteresis_time_from(false,
-									(hrt_abstime)disarm_when_landed * 1000000);
+									(hrt_abstime)disarm_when_landed * 1000000.f);
 			}
 
 			param_get(_param_low_bat_act, &low_bat_action);
@@ -2232,7 +2232,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* pilot has ten seconds time to take off */
 			auto_disarm_hysteresis.set_hysteresis_time_from(false, 10 * 1000000);
 		} else {
-			auto_disarm_hysteresis.set_hysteresis_time_from(false, disarm_when_landed * 1000000);
+			auto_disarm_hysteresis.set_hysteresis_time_from(false, disarm_when_landed * 1000000.f);
 		}
 
 		if (armed.armed && land_detector.landed && disarm_when_landed > FLT_EPSILON) {
