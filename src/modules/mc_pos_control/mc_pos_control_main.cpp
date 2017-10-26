@@ -231,6 +231,7 @@ private:
 		param_t opt_recover;
 		param_t rc_flt_smp_rate;
 		param_t rc_flt_cutoff;
+		param_t acc_max_flow_xy;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -257,6 +258,7 @@ private:
 		int32_t opt_recover;
 		float rc_flt_smp_rate;
 		float rc_flt_cutoff;
+		float acc_max_flow_xy;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -292,6 +294,8 @@ private:
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
+
+	float _min_hagl_limit; /**< minimum continuous height above ground (m) */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -469,6 +473,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_jerk_limit_xy(1.0f),
 	_manual_jerk_limit_z(1.0f),
 	_takeoff_vel_limit(0.0f),
+	_min_hagl_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -535,6 +540,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 	_params_handles.rc_flt_cutoff = param_find("RC_FLT_CUTOFF");
 	_params_handles.rc_flt_smp_rate = param_find("RC_FLT_SMP_RATE");
+	_params_handles.acc_max_flow_xy = param_find("MPC_ACC_HOR_FLOW");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -697,6 +703,15 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
 		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
 
+		/* Get parameter values used to fly within optical flow sensor limits */
+		param_t handle = param_find("SENS_FLOW_MINRNG");
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &_min_hagl_limit);
+		}
+
+		if (_params_handles.acc_max_flow_xy != PARAM_INVALID) {
+			param_get(handle, &_params.acc_max_flow_xy);
+		}
 
 	}
 
@@ -1356,6 +1371,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
+
 	}
 
 	/* prepare yaw to rotate into NED frame */
@@ -2462,6 +2478,17 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
 	}
 
+	// encourage pilot to respect respect flow sensor minimum height limitations
+	if (_local_pos.limit_hagl && _local_pos.dist_bottom_valid && _control_mode.flag_control_manual_enabled && _control_mode.flag_control_altitude_enabled) {
+		// If distance to ground is less than limit, increment set point upwards at up to the landing descent rate
+		if (_local_pos.dist_bottom < _min_hagl_limit) {
+			float climb_rate_bias = fminf(_params.pos_p(2) * (_min_hagl_limit - _local_pos.dist_bottom) , _params.land_speed);
+			_vel_sp(2) -= climb_rate_bias;
+			_pos_sp(2) -= climb_rate_bias * dt;
+
+		}
+	}
+
 	/* limit vertical downwards speed (positive z) close to ground
 	 * for now we use the altitude above home and assume that we want to land at same height as we took off */
 	float vel_limit = math::gradual(altitude_above_home,
@@ -3029,9 +3056,20 @@ MulticopterPositionControl::task_main()
 		/* set dt for control blocks */
 		setDt(dt);
 
-		/* set default max velocity in xy to vel_max */
-		_vel_max_xy = _params.vel_max_xy;
+			/* set default max velocity in xy to vel_max
+			 * Apply estimator limits if applicable */
+		if (PX4_ISFINITE(_local_pos.vxy_max)) {
+			_vel_max_xy = fminf(_params.vel_max_xy , _local_pos.vxy_max);
+			// Allow for a minimum of 0.3 m/s for repositioning
+			_vel_max_xy = fmaxf(_vel_max_xy , 0.3f);
 
+		} else {
+			if (_vel_max_xy < _params.vel_max_xy) {
+				_vel_max_xy += dt * _params.acc_max_flow_xy;
+			}
+			_vel_max_xy = fminf(_vel_max_xy , _params.vel_max_xy);
+
+		}
 
 		/* reset flags when landed */
 		if (_vehicle_land_detected.landed) {
