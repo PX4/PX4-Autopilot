@@ -56,6 +56,7 @@ Battery::Battery() :
 	_voltage_filtered_v(-1.f),
 	_current_filtered_a(-1.f),
 	_discharged_mah(0.f),
+	_discharged_mah_loop(0.f),
 	_remaining_voltage(1.f),
 	_remaining_capacity(1.f),
 	_remaining(1.f),
@@ -159,8 +160,9 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 	// Ignore first update because we don't know dt.
 	if (_last_timestamp != 0) {
 		const float dt = (timestamp - _last_timestamp) / 1e6;
-		// current[A] * 1000 = [mA]; dt[s] / 3600 = [h]
-		_discharged_mah += (current_a * 1e3f) * (dt / 3600.f);
+		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
+		_discharged_mah_loop = (current_a * 1e3f) * (dt / 3600.f);
+		_discharged_mah += _discharged_mah_loop;
 	}
 
 	_last_timestamp = timestamp;
@@ -170,10 +172,8 @@ void
 Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
 {
 	// correct battery voltage locally for load drop to avoid estimation fluctuations
-	const float bat_r = _r_internal.get();
-
-	if (bat_r >= 0.f) {
-		voltage_v += bat_r * current_a;
+	if (_r_internal.get() >= 0.f) {
+		voltage_v += _r_internal.get() * current_a;
 
 	} else {
 		// assume quadratic relation between throttle and current
@@ -190,9 +190,10 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 		// remaining battery capacity based on used current integrated time
 		_remaining_capacity = math::max(1.f - _discharged_mah / _capacity.get(), 0.f);
 
-		// if battery capacity is known, use discharged current for estimate,
-		// but don't show more than voltage estimate
-		_remaining = fminf(_remaining_voltage, _remaining_capacity);
+		// if battery capacity is known, fuse voltage measurement with used capacity
+		_remaining = 0.999f * _remaining + 0.001f * _remaining_voltage;
+		_remaining -= _discharged_mah_loop / _capacity.get();
+		_remaining = math::max(_remaining, 0.f);
 
 	} else {
 		// else use voltage
