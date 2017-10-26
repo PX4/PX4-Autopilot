@@ -45,54 +45,6 @@
 #include <systemlib/param/param.h>
 
 /**
- * Roll trim
- *
- * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
- *
- * @group Radio Calibration
- * @min -0.25
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
-
-/**
- * Pitch trim
- *
- * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
- *
- * @group Radio Calibration
- * @min -0.25
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
-
-/**
- * Yaw trim
- *
- * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
- *
- * @group Radio Calibration
- * @min -0.25
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
-
-/**
  * Datalink loss time threshold
  *
  * After this amount of seconds without datalink the data link lost mode triggers
@@ -326,11 +278,10 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
+ * @group Commander
  * @value 0 Land at current position
  * @value 1 Loiter
  * @value 2 Return to Land
- *
- * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 
@@ -340,13 +291,13 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
+ * @group Commander
  * @value 0 Position control
  * @value 1 Altitude control
  * @value 2 Manual
  * @value 3 Return to Land
  * @value 4 Land at current position
  * @value 5 Loiter
- * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 
@@ -626,15 +577,14 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * This sets the flight mode that will be used if navigation accuracy is no longer adequte for position control.
  * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection for all flight modes.
  *
+ * @group Commander
  * @value 0 Assume use of remote control after fallback. Switch to ALTCTL if a height estimate is available, else switch to MANUAL.
  * @value 1 Assume no use of remote control after fallback. Switch to DESCEND if a height estimate is available, else switch to TERMINATION.
- *
- * @group Mission
  */
 PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
 
 /**
- * Arm authorization parameters, this uint32_t will be splitted between starting from the LSB:
+ * Arm authorization parameters, this uint32_t will be split between starting from the LSB:
  * - 8bits to authorizer system id
  * - 16bits to authentication method parameter, this will be used to store a timeout for the first 2 methods but can be used to another parameter for other new authentication methods.
  * - 7bits to authentication method

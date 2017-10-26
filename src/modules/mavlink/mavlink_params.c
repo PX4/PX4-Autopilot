@@ -76,6 +76,35 @@ PARAM_DEFINE_INT32(MAV_RADIO_ID, 0);
  * MAVLink airframe type
  *
  * @min 1
+ * @max 27
+ * @value 0 Generic micro air vehicle
+ * @value 1 Fixed wing aircraft
+ * @value 2 Quadrotor
+ * @value 3 Coaxial helicopter
+ * @value 4 Normal helicopter with tail rotor
+ * @value 5 Ground installation
+ * @value 6 Operator control unit / ground control station
+ * @value 7 Airship, controlled
+ * @value 8 Free balloon, uncontrolled
+ * @value 9 Rocket
+ * @value 10 Ground rover
+ * @value 11 Surface vessel, boat, ship
+ * @value 12 Submarine
+ * @value 13 Hexarotor
+ * @value 14 Octorotor
+ * @value 15 Tricopter
+ * @value 16 Flapping wing
+ * @value 17 Kite
+ * @value 18 Onboard companion controller
+ * @value 19 Two-rotor VTOL using control surfaces in vertical operation in addition. Tailsitter.
+ * @value 20 Quad-rotor VTOL using a V-shaped quad config in vertical operation. Tailsitter.
+ * @value 21 Tiltrotor VTOL
+ * @value 22 VTOL reserved 2
+ * @value 23 VTOL reserved 3
+ * @value 24 VTOL reserved 4
+ * @value 25 VTOL reserved 5
+ * @value 26 Onboard gimbal
+ * @value 27 Onboard ADSB peripheral
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_TYPE, 2);
@@ -112,15 +141,3 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_BROADCAST, 0);
-
-/**
- * Test parameter
- *
- * This parameter is not actively used by the system. Its purpose is to allow
- * testing the parameter interface on the communication level.
- *
- * @group MAVLink
- * @min -1000
- * @max 1000
- */
-PARAM_DEFINE_INT32(MAV_TEST_PAR, 1);

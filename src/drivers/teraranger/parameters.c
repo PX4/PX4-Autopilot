@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,28 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file rcloss_params.c
+ * TeraRanger Rangefinder (i2c)
  *
- * Parameters for RC Loss (OBC)
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @reboot_required true
+ * @min 0
+ * @max 3
+ * @group Sensor Enable
+ * @value 0 Disabled
+ * @value 1 Autodetect
+ * @value 2 TROne
+ * @value 3 TREvo
  */
-
-/*
- * OBC RC Loss mode parameters, accessible via MAVLink
- */
-
-/**
- * RC Loss Loiter Time (CASA Outback Challenge rules)
- *
- * The amount of time in seconds the system should loiter at current position before termination.
- * Only applies if NAV_RCL_ACT is set to 2 (CASA Outback Challenge rules).
- * Set to -1 to make the system skip loitering.
- *
- * @unit s
- * @min -1.0
- * @decimal 1
- * @increment 0.1
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_RCL_LT, 120.0f);
+PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);

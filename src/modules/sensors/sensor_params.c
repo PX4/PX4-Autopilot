@@ -42,13 +42,6 @@
  */
 
 /**
- * ID of the board this parameter set was calibrated on.
- *
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_BOARD_ID, 0);
-
-/**
  * ID of the Gyro that the calibration is for.
  *
  * @group Sensor Calibration
@@ -766,7 +759,6 @@ PARAM_DEFINE_FLOAT(CAL_MAG3_YSCALE, 1.0f);
  */
 PARAM_DEFINE_FLOAT(CAL_MAG3_ZSCALE, 1.0f);
 
-
 /**
  * Primary accel ID
  *
@@ -854,7 +846,7 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
+PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0.0f);
 
 /**
  * QNH for barometer
@@ -865,7 +857,6 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
  * @unit hPa
  */
 PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
-
 
 /**
  * Board rotation
@@ -961,19 +952,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Select primary magnetometer.
- * DEPRECATED, only used on V1 hardware
- *
- * @min 0
- * @max 2
- * @value 0 Auto-select Mag
- * @value 1 External is primary Mag
- * @value 2 Internal is primary Mag
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
-
-/**
  * Threshold (of RMS) to warn about high vibration levels
  *
  * @group Sensor Calibration
@@ -982,15 +960,6 @@ PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);
-
-/**
- * Scaling factor for battery voltage sensor on PX4IO.
- *
- * @min 1
- * @max 100000
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 
 /**
  * Scaling from ADC counts to volt on the ADC input (battery voltage)
@@ -1066,75 +1035,6 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
  * @group Battery Calibration
  */
 PARAM_DEFINE_INT32(BAT_SOURCE, 0);
-
-/**
- * Lidar-Lite (LL40LS)
- *
- * @reboot_required true
- * @min 0
- * @max 2
- * @group Sensor Enable
- * @value 0 Disabled
- * @value 1 PWM
- * @value 2 I2C
- */
-PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
-
-/**
- * Lightware laser rangefinder (serial)
- *
- * @reboot_required true
- * @min 0
- * @max 4
- * @group Sensor Enable
- * @value 0 Disabled
- * @value 1 SF02
- * @value 2 SF10/a
- * @value 3 SF10/b
- * @value 4 SF10/c
- * @value 5 SF11/c
- */
-PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
-
-/**
- * Maxbotix Soanr (mb12xx)
- *
- * @reboot_required true
- *
- * @boolean
- * @group Sensor Enable
- */
-PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
-
-/**
- * TeraRanger Rangefinder (i2c)
- *
- * @reboot_required true
- * @min 0
- * @max 3
- * @group Sensor Enable
- * @value 0 Disabled
- * @value 1 Autodetect
- * @value 2 TROne
- * @value 3 TREvo
- */
-PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);
-
-/**
- * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
- *
- * @reboot_required true
- * @min 0
- * @max 5
- * @group Sensor Enable
- * @value 0 Disabled
- * @value 1 SF10/a
- * @value 2 SF10/b
- * @value 3 SF10/c
- * @value 4 SF11/c
- * @value 5 SF/LW20
- */
-PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 
 /**
  * Thermal control of sensor temperature

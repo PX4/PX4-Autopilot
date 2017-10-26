@@ -208,7 +208,7 @@ private:
 
 	/**
 	 * initialize ParameterHandles struct
-	 * @return 0 on succes, <0 on error
+	 * @return 0 on success, <0 on error
 	 */
 	static int initialize_parameter_handles(ParameterHandles &parameter_handles);
 

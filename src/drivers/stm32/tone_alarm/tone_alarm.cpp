@@ -402,7 +402,7 @@ ToneAlarm::ToneAlarm() :
 	_user_tune(nullptr),
 	_tune(nullptr),
 	_next(nullptr),
-	_cbrk(CBRK_OFF)
+	_cbrk(CBRK_UNINIT)
 {
 	_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
 	_default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
