@@ -417,10 +417,10 @@ Ekf2::Ekf2():
 	_mag_bias_id(this, "MAGBIAS_ID"),
 	_mag_bias_saved_variance(this, "MAGB_VREF"),
 	_mag_bias_alpha(this, "MAGB_K"),
-	_acc_bias_lim(this, "EKF2_ABL_LIM", false, _params->acc_bias_lim),
-	_acc_bias_learn_acc_lim(this, "EKF2_ABL_ACCLIM", false, _params->acc_bias_learn_acc_lim),
-	_acc_bias_learn_gyr_lim(this, "EKF2_ABL_GYRLIM", false, _params->acc_bias_learn_gyr_lim),
-	_acc_bias_learn_tc(this, "EKF2_ABL_TAU", false, _params->acc_bias_learn_tc),
+	_acc_bias_lim(this, "ABL_LIM", true, _params->acc_bias_lim),
+	_acc_bias_learn_acc_lim(this, "ABL_ACCLIM", true, _params->acc_bias_learn_acc_lim),
+	_acc_bias_learn_gyr_lim(this, "ABL_GYRLIM", true, _params->acc_bias_learn_gyr_lim),
+	_acc_bias_learn_tc(this, "ABL_TAU", true, _params->acc_bias_learn_tc),
 	_drag_noise(this, "DRAG_NOISE", true, _params->drag_noise),
 	_bcoef_x(this, "BCOEF_X", true, _params->bcoef_x),
 	_bcoef_y(this, "BCOEF_Y", true, _params->bcoef_y),
@@ -560,7 +560,20 @@ void Ekf2::run()
 		orb_check(sensor_selection_sub, &sensor_selection_updated);
 
 		if (sensor_selection_updated) {
+			sensor_selection_s sensor_selection_prev = sensor_selection;
 			orb_copy(ORB_ID(sensor_selection), sensor_selection_sub, &sensor_selection);
+
+			if ((sensor_selection_prev.timestamp > 0) && (sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
+				if (sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
+					PX4_WARN("accel id changed, resetting IMU bias");
+					_ekf.reset_imu_bias();
+				}
+
+				if (sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
+					PX4_WARN("gyro id changed, resetting IMU bias");
+					_ekf.reset_imu_bias();
+				}
+			}
 		}
 
 		orb_check(optical_flow_sub, &optical_flow_updated);
