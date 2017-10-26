@@ -1738,32 +1738,27 @@ void
 start(enum Rotation rotation)
 {
 	int fd;
-    ADIS16448 **g_dev_ptr = &g_dev;
 
-	const char *path_accel 	= ADIS16448_DEVICE_PATH_ACCEL;
-	const char *path_gyro 	= ADIS16448_DEVICE_PATH_GYRO;
-	const char *path_mag 	= ADIS16448_DEVICE_PATH_MAG;
-
-	if (*g_dev_ptr != nullptr)
+	if (g_dev != nullptr)
 		/* if already started, the still command succeeded */
 		errx(0, "already started");
 
 	/* create the driver */
 #if defined(PX4_SPI_BUS_EXT)
-	*g_dev_ptr  = new ADIS16448(PX4_SPI_BUS_EXT, path_accel, path_gyro, path_mag, PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
+	g_dev = new ADIS16448(PX4_SPI_BUS_EXT, ADIS16448_DEVICE_PATH_ACCEL, ADIS16448_DEVICE_PATH_GYRO, ADIS16448_DEVICE_PATH_MAG, PX4_SPIDEV_EXT_MPU, rotation);
 #else
 		PX4_ERR("External SPI not available");
 		exit(0);
 #endif
 
-	if (*g_dev_ptr == nullptr)
+	if (g_dev == nullptr)
 		goto fail;
 
-	if (OK != (*g_dev_ptr)->init())
+	if (OK != (g_dev)->init())
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(path_accel, O_RDONLY);
+	fd = open(ADIS16448_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -1771,12 +1766,12 @@ start(enum Rotation rotation)
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
 
+	close(fd);
 	exit(0);
 fail:
-
-	if (*g_dev_ptr != nullptr) {
-		delete *g_dev_ptr;
-		*g_dev_ptr = nullptr;
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
 	}
 
 	errx(1, "driver start failed");
@@ -1790,10 +1785,6 @@ fail:
 void
 test()
 {
-	const char *path_accel 	= ADIS16448_DEVICE_PATH_ACCEL;
-	const char *path_gyro 	= ADIS16448_DEVICE_PATH_GYRO;
-	const char *path_mag 	= ADIS16448_DEVICE_PATH_MAG;
-
 	accel_report a_report;
 	gyro_report  g_report;
 	mag_report 	 m_report;
@@ -1801,23 +1792,23 @@ test()
 	ssize_t sz;
 
 	/* get the driver */
-	int fd = open(path_accel, O_RDONLY);
+	int fd = open(ADIS16448_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "%s open failed (try 'adis16448 start' if the driver is not running)",
-				path_accel);
+				ADIS16448_DEVICE_PATH_ACCEL);
 
 	/* get the mag driver */
-	int fd_mag = open(path_mag, O_RDONLY);
+	int fd_mag = open(ADIS16448_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed", path_mag);
+		err(1, "%s open failed", ADIS16448_DEVICE_PATH_MAG);
 
 	/* get the gyro driver */
-	int fd_gyro = open(path_gyro, O_RDONLY);
+	int fd_gyro = open(ADIS16448_DEVICE_PATH_GYRO, O_RDONLY);
 
 	if (fd_gyro < 0)
-		err(1, "%s open failed", path_gyro);
+		err(1, "%s open failed", ADIS16448_DEVICE_PATH_GYRO);
 
 	/* reset to manual polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
@@ -1890,9 +1881,7 @@ test()
 void
 reset()
 {
-	const char *path_accel 	= ADIS16448_DEVICE_PATH_ACCEL;
-
-	int fd = open(path_accel, O_RDONLY);
+	int fd = open(ADIS16448_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
