@@ -499,13 +499,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		}
 	}
 
-	/* store board ID */
-	uuid_uint32_t mcu_id;
-	board_get_uuid32(mcu_id);
-
-	/* store last 32bit number - not unique, but unique in a given set */
-	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[PX4_CPU_UUID_WORD32_UNIQUE_H]);
-
 	/* if there is a any preflight-check system response, let the barrage of messages through */
 	usleep(200000);
 
