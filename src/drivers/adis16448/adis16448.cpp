@@ -1795,13 +1795,12 @@ test()
 	int fd = open(ADIS16448_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'adis16448 start' if the driver is not running)",
-				ADIS16448_DEVICE_PATH_ACCEL);
+		err(1, "%s open failed", ADIS16448_DEVICE_PATH_ACCEL);
 
 	/* get the mag driver */
 	int fd_mag = open(ADIS16448_DEVICE_PATH_MAG, O_RDONLY);
 
-	if (fd < 0)
+	if (fd_mag < 0)
 		err(1, "%s open failed", ADIS16448_DEVICE_PATH_MAG);
 
 	/* get the gyro driver */
@@ -1809,10 +1808,6 @@ test()
 
 	if (fd_gyro < 0)
 		err(1, "%s open failed", ADIS16448_DEVICE_PATH_GYRO);
-
-	/* reset to manual polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
-		err(1, "reset to manual polling");
 
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
@@ -1870,6 +1865,9 @@ test()
 	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
 	/* XXX add poll-rate tests here too */
+	close(fd_mag);
+	close(fd_gyro);
+	close(fd);
 
 	reset();
 	errx(0, "PASS");
@@ -1884,13 +1882,15 @@ reset()
 	int fd = open(ADIS16448_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "failed ");
+		err(1, "open failed");
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
 		err(1, "driver reset failed");
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "driver poll restart failed");
+
+	close(fd);
 
 	exit(0);
 }
@@ -1901,13 +1901,11 @@ reset()
 void
 info()
 {
-    ADIS16448 **g_dev_ptr = &g_dev;
-
-	if (*g_dev_ptr == nullptr)
+	if (g_dev == nullptr)
 		errx(1, "driver not running");
 
-	printf("state @ %p\n", *g_dev_ptr);
-	(*g_dev_ptr)->print_info();
+	printf("state @ %p\n", g_dev);
+	g_dev->print_info();
 
 	exit(0);
 }
@@ -1918,12 +1916,10 @@ info()
 void
 info_cal()
 {
-    ADIS16448 **g_dev_ptr = &g_dev;
-
-	if (*g_dev_ptr == nullptr)
+	if (g_dev == nullptr)
 		errx(1, "driver not running");
 
-	(*g_dev_ptr)->print_calibration_data();
+	g_dev->print_calibration_data();
 
 	exit(0);
 }
