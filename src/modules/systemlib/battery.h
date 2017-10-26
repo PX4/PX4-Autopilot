@@ -116,6 +116,7 @@ private:
 	float _voltage_filtered_v;
 	float _current_filtered_a;
 	float _discharged_mah;
+	float _discharged_mah_loop;
 	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
 	float _remaining_capacity;		///< normalized battery charge level remaining based on capacity
 	float _remaining;			///< normalized battery charge level, selected based on config param
