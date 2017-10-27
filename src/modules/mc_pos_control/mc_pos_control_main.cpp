@@ -692,7 +692,7 @@ MulticopterPositionControl::parameters_update(bool force)
 			_acceleration_z_max_up.set(_acceleration_z_max_down.get());
 		}
 
-		/* acceleration horizontal max > decerleration hor */
+		/* acceleration horizontal max > deceleration hor */
 		if (_acceleration_hor_max.get() < _deceleration_hor_slow.get()) {
 			_acceleration_hor_max.set(_deceleration_hor_slow.get());
 		}
