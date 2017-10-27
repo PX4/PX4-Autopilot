@@ -46,6 +46,14 @@ PARAM_DEFINE_INT32(CAL_GYRO_PRIME, 0);
 PARAM_DEFINE_INT32(CAL_GYRO0_ID, 0);
 
 /**
+ * Gyro 0 enabled
+ *
+ * @boolean
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_GYRO0_EN, 1);
+
+/**
  * Gyro X-axis offset
  *
  * @group Sensor Calibration
@@ -95,6 +103,14 @@ PARAM_DEFINE_FLOAT(CAL_GYRO0_ZSCALE, 1.0f);
 PARAM_DEFINE_INT32(CAL_GYRO1_ID, 0);
 
 /**
+ * Gyro 1 enabled
+ *
+ * @boolean
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_GYRO1_EN, 1);
+
+/**
  * Gyro X-axis offset
  *
  * @group Sensor Calibration
@@ -142,6 +158,14 @@ PARAM_DEFINE_FLOAT(CAL_GYRO1_ZSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_GYRO2_ID, 0);
+
+/**
+ * Gyro 2 enabled
+ *
+ * @boolean
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_GYRO2_EN, 1);
 
 /**
  * Gyro X-axis offset
