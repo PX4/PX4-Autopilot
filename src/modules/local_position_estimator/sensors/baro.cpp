@@ -33,7 +33,6 @@ void BlockLocalPositionEstimator::baroInit()
 			_altOriginInitialized = true;
 			_altOriginGlobal = false;
 			_altOrigin = _baroAltOrigin;
-			_x(X_vz) = 0;
 		}
 	}
 }
