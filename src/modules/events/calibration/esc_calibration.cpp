@@ -40,8 +40,8 @@
  */
 
 #include "esc_calibration.h"
-#include "calibration_messages.h"
-#include "calibration_routines.h"
+#include <commander/calibration_messages.h>
+#include <commander/calibration_routines.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,17 +74,16 @@ int check_if_batt_disconnected(orb_advert_t *mavlink_log_pub) {
 	return PX4_OK;
 }
 
-int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* armed)
+int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 {
 	int	return_code = PX4_OK;
-	
+
 #if defined(__PX4_POSIX_OCPOC)
 	hrt_abstime timeout_start;
 	hrt_abstime timeout_wait = 60*1000*1000;
-	armed->in_esc_calibration_mode = true;
 	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "begin esc");
 	timeout_start = hrt_absolute_time();
-	
+
 	while (true) {
 		if (hrt_absolute_time() - timeout_start > timeout_wait) {
 			break;
@@ -93,13 +92,12 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 		}
 	}
 
-	armed->in_esc_calibration_mode = false;
 	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "end esc");
 
 	if (return_code == OK) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "esc");
 	}
-		  
+
 	return return_code;
 
 #else
@@ -129,7 +127,6 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 		goto Error;
 	}
 
-	armed->in_esc_calibration_mode = true;
 
 	fd = px4_open(PWM_OUTPUT0_DEVICE_PATH, 0);
 
@@ -206,7 +203,6 @@ Out:
 		}
 		px4_close(fd);
 	}
-	armed->in_esc_calibration_mode = false;
 
 	if (return_code == PX4_OK) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "esc");
