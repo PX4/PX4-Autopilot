@@ -155,8 +155,9 @@ void SendEvent::process_commands()
 				orb_copy(ORB_ID(vehicle_status), _subscriber_handler.get_vehicle_status_sub(), &vehicle_status);
 			}
 
-			if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_INIT)
+			if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 				break;
+			}
 
 		} while (hrt_absolute_time() < (t_start + timeout));
 
@@ -176,6 +177,7 @@ void SendEvent::process_commands()
 			}
 
 			break;
+
 		} else if ((int)(cmd.param2) == 1) {
 			if (run_calibration("mag calibration", do_mag_calibration) == calibration_status_s::CALIBRATION_OK) {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -183,7 +185,9 @@ void SendEvent::process_commands()
 			} else {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 			}
+
 			break;
+
 		} else if ((int)(cmd.param4) == 2) {
 			if (run_calibration("trim calibration", do_trim_calibration) == calibration_status_s::CALIBRATION_OK) {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -191,7 +195,9 @@ void SendEvent::process_commands()
 			} else {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 			}
+
 			break;
+
 		} else if ((int)(cmd.param5) == 1) {
 			if (run_calibration("accel calibration", do_accel_calibration) == calibration_status_s::CALIBRATION_OK) {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -199,7 +205,9 @@ void SendEvent::process_commands()
 			} else {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 			}
+
 			break;
+
 		} else if ((int)(cmd.param5) == 2) {
 			// board offset calibration
 			if (run_calibration("level calibration", do_level_calibration) == calibration_status_s::CALIBRATION_OK) {
@@ -208,6 +216,7 @@ void SendEvent::process_commands()
 			} else {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 			}
+
 		} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
 			// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 			if (run_calibration("airspeed calibration", do_airspeed_calibration) == calibration_status_s::CALIBRATION_OK) {
@@ -226,6 +235,7 @@ void SendEvent::process_commands()
 			} else {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 			}
+
 			break;
 		}
 
