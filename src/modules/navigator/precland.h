@@ -76,7 +76,7 @@ public:
 
 	virtual void on_active();
 
-	void set_mode(PrecLandMode mode){ _mode = mode; };
+	void set_mode(PrecLandMode mode) { _mode = mode; };
 
 	PrecLandMode get_mode() { return _mode; };
 
@@ -104,7 +104,7 @@ private:
 	beacon_position_s _beacon_position{}; /**< precision land beacon position */
 	int _beaconPositionSub;
 	bool _beacon_position_valid; /**< wether we have received a beacon position message */
-	struct map_projection_reference_s _map_ref{}; /**< reference for local/global projections */
+	struct map_projection_reference_s _map_ref {}; /**< reference for local/global projections */
 	uint64_t _state_start_time; /**< time when we entered current state */
 	uint64_t _last_slewrate_time; /**< time when we last limited setpoint changes */
 	uint64_t _beacon_acquired_time; /**< time when we first saw the beacon during search */

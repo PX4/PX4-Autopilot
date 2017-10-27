@@ -14,8 +14,8 @@ void BlockLocalPositionEstimator::beaconInit()
 	}
 
 	Vector<float, n_y_beacon> y;
-	if (beaconMeasure(y) == OK)
-	{
+
+	if (beaconMeasure(y) == OK) {
 		mavlink_and_console_log_info(&mavlink_log_pub, "Beacon init");
 		_beaconInitialized = true;
 	}
@@ -28,6 +28,7 @@ int BlockLocalPositionEstimator::beaconMeasure(Vector<float, n_y_beacon> &y)
 			y(0) = _sub_beacon_position.get().vx_rel;
 			y(1) = _sub_beacon_position.get().vy_rel;
 			_time_last_beacon = _timeStamp;
+
 		} else {
 			return -1;
 		}

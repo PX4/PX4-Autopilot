@@ -94,8 +94,7 @@ void
 PrecLand::on_activation()
 {
 	// We need to subscribe here and not in the constructor because constructor is called before the navigator task is spawned
-	if (!_beaconPositionSub)
-	{
+	if (!_beaconPositionSub) {
 		_beaconPositionSub = orb_subscribe(ORB_ID(beacon_position));
 	}
 
@@ -103,18 +102,18 @@ PrecLand::on_activation()
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
 
-	vehicle_local_position_s * vehicle_local_position = _navigator->get_local_position();
+	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+
 	if (!map_projection_initialized(&_map_ref)) {
 		map_projection_init(&_map_ref, vehicle_local_position->ref_lat, vehicle_local_position->ref_lon);
 	}
-	
+
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	pos_sp_triplet->next.valid = false;
 
 	// Check that the current position setpoint is valid, otherwise land at current position
-	if (!pos_sp_triplet->current.valid)
-	{
+	if (!pos_sp_triplet->current.valid) {
 		PX4_WARN("Resetting landing position to current position");
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
@@ -124,8 +123,8 @@ PrecLand::on_activation()
 
 	_first_sp = pos_sp_triplet->current; // store the current setpoint for later
 
-	_sp_pev = matrix::Vector2f(0,0);
-	_sp_pev_prev = matrix::Vector2f(0,0);
+	_sp_pev = matrix::Vector2f(0, 0);
+	_sp_pev_prev = matrix::Vector2f(0, 0);
 	_last_slewrate_time = 0;
 
 	switch_to_state_start();
@@ -144,33 +143,38 @@ PrecLand::on_active()
 		_beacon_position_valid = true;
 	}
 
-	if (hrt_absolute_time() - _beacon_position.timestamp > (uint64_t)(_param_timeout.get()*SEC2USEC))
-	{
+	if (hrt_absolute_time() - _beacon_position.timestamp > (uint64_t)(_param_timeout.get()*SEC2USEC)) {
 		_beacon_position_valid = false;
 	}
 
-	switch(_state) {
-		case PrecLandState::Start:
-			run_state_start();
-			break;
-		case PrecLandState::HorizontalApproach:
-			run_state_horizontal_approach();
-			break;
-		case PrecLandState::DescendAboveBeacon:
-			run_state_descend_above_beacon();
-			break;
-		case PrecLandState::FinalApproach:
-			run_state_final_approach();
-			break;
-		case PrecLandState::Search:
-			run_state_search();
-			break;
-		case PrecLandState::Fallback:
-			run_state_fallback();
-			break;
-		default:
-			// unknown state
-			break;
+	switch (_state) {
+	case PrecLandState::Start:
+		run_state_start();
+		break;
+
+	case PrecLandState::HorizontalApproach:
+		run_state_horizontal_approach();
+		break;
+
+	case PrecLandState::DescendAboveBeacon:
+		run_state_descend_above_beacon();
+		break;
+
+	case PrecLandState::FinalApproach:
+		run_state_final_approach();
+		break;
+
+	case PrecLandState::Search:
+		run_state_search();
+		break;
+
+	case PrecLandState::Fallback:
+		run_state_fallback();
+		break;
+
+	default:
+		// unknown state
+		break;
 	}
 
 }
@@ -179,48 +183,39 @@ void
 PrecLand::run_state_start()
 {
 	// check if beacon visible and go to horizontal approach
-	if (switch_to_state_horizontal_approach())
-	{
+	if (switch_to_state_horizontal_approach()) {
 		return;
 	}
 
-	if (_mode == PrecLandMode::Opportunistic)
-	{
+	if (_mode == PrecLandMode::Opportunistic) {
 		// could not see the beacon immediately, so just fall back to normal landing
-		if (!switch_to_state_fallback())
-		{
+		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to search or fallback landing");
 		}
 	}
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	float dist = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
-			  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
 	// check if we've reached the start point
-	if (dist < _navigator->get_acceptance_radius())
-	{
-		if (!_start_point_reached_time)
-		{
+	if (dist < _navigator->get_acceptance_radius()) {
+		if (!_start_point_reached_time) {
 			_start_point_reached_time = hrt_absolute_time();
 		}
 
 		// if we don't see the beacon after 2 seconds, search for it
-		if (_param_search_timeout.get() > 0)
-		{
-			if (hrt_absolute_time() - _state_start_time > 2000000)
-			{
-				if (!switch_to_state_search())
-				{
-					if (!switch_to_state_fallback())
-					{
+		if (_param_search_timeout.get() > 0) {
+			if (hrt_absolute_time() - _state_start_time > 2000000) {
+				if (!switch_to_state_search()) {
+					if (!switch_to_state_fallback()) {
 						PX4_ERR("Can't switch to search or fallback landing");
 					}
 				}
 			}
+
 		} else {
-			if (!switch_to_state_fallback())
-			{
+			if (!switch_to_state_fallback()) {
 				PX4_ERR("Can't switch to search or fallback landing");
 			}
 		}
@@ -231,29 +226,27 @@ void
 PrecLand::run_state_horizontal_approach()
 {
 	// check if beacon visible, if not go to start
-	if (!check_state_conditions(PrecLandState::HorizontalApproach))
-	{
+	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
 		PX4_WARN("Lost beacon while landig.");
-		if (!switch_to_state_start())
-		{
-			if (!switch_to_state_fallback())
-			{
+
+		if (!switch_to_state_start()) {
+			if (!switch_to_state_fallback()) {
 				PX4_ERR("Can't switch to fallback landing");
 			}
 		}
+
 		return;
 	}
 
 	// if close enough for descent above beacon go to descend above beacon
-	if (switch_to_state_descend_above_beacon())
-	{
+	if (switch_to_state_descend_above_beacon()) {
 		return;
 	}
 
-	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT){
+	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT) {
 		PX4_ERR("Precision landing took too long during horizontal approach phase.");
-		if (!switch_to_state_fallback())
-		{
+
+		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to fallback landing");
 		}
 	}
@@ -265,8 +258,9 @@ PrecLand::run_state_horizontal_approach()
 
 	slewrate(x, y);
 
+	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	double lat, lon;
-	map_projection_reproject(&_map_ref, x, y, &lat, &lon); // XXX need to transform to GPS coords because mc_pos_control only looks at that
+	map_projection_reproject(&_map_ref, x, y, &lat, &lon);
 
 	pos_sp_triplet->current.lat = lat;
 	pos_sp_triplet->current.lon = lon;
@@ -281,26 +275,25 @@ void
 PrecLand::run_state_descend_above_beacon()
 {
 	// check if beacon visible
-	if (!check_state_conditions(PrecLandState::DescendAboveBeacon))
-	{
-		if (!switch_to_state_final_approach())
-		{
+	if (!check_state_conditions(PrecLandState::DescendAboveBeacon)) {
+		if (!switch_to_state_final_approach()) {
 			PX4_WARN("Lost beacon while landing");
-			if (!switch_to_state_start())
-			{
-				if (!switch_to_state_fallback())
-				{
+
+			if (!switch_to_state_start()) {
+				if (!switch_to_state_fallback()) {
 					PX4_ERR("Can't switch to fallback landing");
 				}
 			}
 		}
+
 		return;
 	}
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	double lat, lon;
-	map_projection_reproject(&_map_ref, _beacon_position.x_abs, _beacon_position.y_abs, &lat, &lon); // XXX need to transform to GPS coords because mc_pos_control only looks at that
+	map_projection_reproject(&_map_ref, _beacon_position.x_abs, _beacon_position.y_abs, &lat, &lon);
 
 	pos_sp_triplet->current.lat = lat;
 	pos_sp_triplet->current.lon = lon;
@@ -321,10 +314,8 @@ void
 PrecLand::run_state_search()
 {
 	// check if we can see the beacon
-	if (check_state_conditions(PrecLandState::HorizontalApproach))
-	{
-		if (!_beacon_acquired_time)
-		{
+	if (check_state_conditions(PrecLandState::HorizontalApproach)) {
+		if (!_beacon_acquired_time) {
 			// beacon just became visible. Stop climbing, but give it some margin so we don't stop too apruptly
 			_beacon_acquired_time = hrt_absolute_time();
 			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -336,21 +327,18 @@ PrecLand::run_state_search()
 	}
 
 	// stay at that height for a second to allow the vehicle to settle
-	if (_beacon_acquired_time && (hrt_absolute_time() - _beacon_acquired_time) > 1000000)
-	{
+	if (_beacon_acquired_time && (hrt_absolute_time() - _beacon_acquired_time) > 1000000) {
 		// try to switch to horizontal approach
-		if (switch_to_state_horizontal_approach())
-		{
+		if (switch_to_state_horizontal_approach()) {
 			return;
 		}
 	}
 
 	// check if search timed out and go to fallback
-	if (hrt_absolute_time() - _state_start_time > _param_search_timeout.get()*SEC2USEC)
-	{
+	if (hrt_absolute_time() - _state_start_time > _param_search_timeout.get()*SEC2USEC) {
 		PX4_WARN("Search timed out");
-		if (!switch_to_state_fallback())
-		{
+
+		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to fallback landing");
 		}
 	}
@@ -365,8 +353,7 @@ PrecLand::run_state_fallback()
 bool
 PrecLand::switch_to_state_start()
 {
-	if (check_state_conditions(PrecLandState::Start))
-	{
+	if (check_state_conditions(PrecLandState::Start)) {
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current = _first_sp;
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -374,52 +361,50 @@ PrecLand::switch_to_state_start()
 		_search_cnt++;
 
 		_start_point_reached_time = 0;
-		
+
 		_state = PrecLandState::Start;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
-	
+
 	return false;
 }
 
 bool
 PrecLand::switch_to_state_horizontal_approach()
 {
-	if (check_state_conditions(PrecLandState::HorizontalApproach))
-	{
+	if (check_state_conditions(PrecLandState::HorizontalApproach)) {
 		_approach_alt = _navigator->get_global_position()->alt;
 
 		_state = PrecLandState::HorizontalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
-	
+
 	return false;
 }
 
 bool
 PrecLand::switch_to_state_descend_above_beacon()
 {
-	if (check_state_conditions(PrecLandState::DescendAboveBeacon))
-	{
+	if (check_state_conditions(PrecLandState::DescendAboveBeacon)) {
 		_state = PrecLandState::DescendAboveBeacon;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
-	
+
 	return false;
 }
 
 bool
 PrecLand::switch_to_state_final_approach()
 {
-	if (check_state_conditions(PrecLandState::FinalApproach))
-	{
+	if (check_state_conditions(PrecLandState::FinalApproach)) {
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
+
 	return false;
 }
 
@@ -427,7 +412,7 @@ bool
 PrecLand::switch_to_state_search()
 {
 	PX4_INFO("Climbing to search altitude.");
-	vehicle_local_position_s * vehicle_local_position = _navigator->get_local_position();
+	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current = _first_sp;
@@ -458,43 +443,45 @@ PrecLand::switch_to_state_fallback()
 
 bool PrecLand::check_state_conditions(PrecLandState state)
 {
-	vehicle_local_position_s * vehicle_local_position = _navigator->get_local_position();
+	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
-	switch(state) {
-		case PrecLandState::Start:
-			return _search_cnt <= _param_max_searches.get();
+	switch (state) {
+	case PrecLandState::Start:
+		return _search_cnt <= _param_max_searches.get();
 
-		case PrecLandState::HorizontalApproach:
-			return _beacon_position_valid && _beacon_position.abs_pos_valid;
-		
-		case PrecLandState::DescendAboveBeacon:
-			// if we're already in this state, only leave it if beacon becomes unusable, don't care about horizontall offset to beacon
-			if (_state == PrecLandState::DescendAboveBeacon)
-			{
-				// if we're close to the ground, we're more critical of beacon timeouts so we quickly go into descend
-				if (check_state_conditions(PrecLandState::FinalApproach))
-				{
-					return hrt_absolute_time() - _beacon_position.timestamp < 500000; // 0.5s
-				} else {
-					return _beacon_position_valid && _beacon_position.abs_pos_valid;
-				}
+	case PrecLandState::HorizontalApproach:
+		return _beacon_position_valid && _beacon_position.abs_pos_valid;
+
+	case PrecLandState::DescendAboveBeacon:
+
+		// if we're already in this state, only leave it if beacon becomes unusable, don't care about horizontall offset to beacon
+		if (_state == PrecLandState::DescendAboveBeacon) {
+			// if we're close to the ground, we're more critical of beacon timeouts so we quickly go into descend
+			if (check_state_conditions(PrecLandState::FinalApproach)) {
+				return hrt_absolute_time() - _beacon_position.timestamp < 500000; // 0.5s
+
 			} else {
-				// if not already in this state, need to be above beacon to enter it
-				return _beacon_position_valid && _beacon_position.abs_pos_valid
-				&& fabsf(_beacon_position.x_rel) < _param_hacc_rad.get() && fabsf(_beacon_position.x_rel) < _param_hacc_rad.get();
+				return _beacon_position_valid && _beacon_position.abs_pos_valid;
 			}
-		
-		case PrecLandState::FinalApproach:
-			return vehicle_local_position->dist_bottom_valid && vehicle_local_position->dist_bottom < _param_final_approach_alt.get();
-		
-		case PrecLandState::Search:
-			return true;
-		
-		case PrecLandState::Fallback:
-			return true;
-		
-		default:
-			return false;
+
+		} else {
+			// if not already in this state, need to be above beacon to enter it
+			return _beacon_position_valid && _beacon_position.abs_pos_valid
+			       && fabsf(_beacon_position.x_rel) < _param_hacc_rad.get() && fabsf(_beacon_position.x_rel) < _param_hacc_rad.get();
+		}
+
+	case PrecLandState::FinalApproach:
+		return vehicle_local_position->dist_bottom_valid
+		       && vehicle_local_position->dist_bottom < _param_final_approach_alt.get();
+
+	case PrecLandState::Search:
+		return true;
+
+	case PrecLandState::Fallback:
+		return true;
+
+	default:
+		return false;
 	}
 }
 
@@ -504,22 +491,23 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 	uint64_t now = hrt_absolute_time();
 
 	float dt = (now - _last_slewrate_time);
-	if (dt < 1)
-	{
+
+	if (dt < 1) {
 		// bad dt, can't divide by it
 		return;
 	}
+
 	dt /= SEC2USEC;
 
-	if (!_last_slewrate_time)
-	{
+	if (!_last_slewrate_time) {
 		// running the first time since switching to precland
 
 		// assume dt will be about 50000us
-		dt = 50000/SEC2USEC;
+		dt = 50000 / SEC2USEC;
 
 		// set a best guess for previous setpoints for smooth transition
-		map_projection_project(&_map_ref, _navigator->get_position_setpoint_triplet()->current.lat, _navigator->get_position_setpoint_triplet()->current.lon, &_sp_pev(0), &_sp_pev(1));
+		map_projection_project(&_map_ref, _navigator->get_position_setpoint_triplet()->current.lat,
+				       _navigator->get_position_setpoint_triplet()->current.lon, &_sp_pev(0), &_sp_pev(1));
 		_sp_pev_prev(0) = _sp_pev(0) - _navigator->get_local_position()->vx * dt;
 		_sp_pev_prev(1) = _sp_pev(1) - _navigator->get_local_position()->vy * dt;
 	}
@@ -528,25 +516,26 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 
 	// limit the setpoint speed to the maximum cruise speed
 	matrix::Vector2f sp_vel = (sp_curr - _sp_pev) / dt; // velocity of the setpoints
-	if (sp_vel.length() > _param_xy_vel_cruise.get())
-	{
+
+	if (sp_vel.length() > _param_xy_vel_cruise.get()) {
 		sp_vel = sp_vel.normalized() * _param_xy_vel_cruise.get();
 		sp_curr = _sp_pev + sp_vel * dt;
 	}
 
 	// limit the setpoint acceleration to the maximum acceleration
 	matrix::Vector2f sp_acc = (sp_curr - _sp_pev * 2 + _sp_pev_prev) / (dt * dt); // acceleration of the setpoints
-	if (sp_acc.length() > _param_acceleration_hor.get())
-	{
+
+	if (sp_acc.length() > _param_acceleration_hor.get()) {
 		sp_acc = sp_acc.normalized() * _param_acceleration_hor.get();
 		sp_curr = _sp_pev * 2 - _sp_pev_prev + sp_acc * (dt * dt);
 	}
 
 	// limit the setpoint speed such that we can stop at the setpoint given the maximum acceleration/deceleration
-	float max_spd = sqrtf(_param_acceleration_hor.get() * ((matrix::Vector2f)(_sp_pev - matrix::Vector2f(sp_x, sp_y))).length());
+	float max_spd = sqrtf(_param_acceleration_hor.get() * ((matrix::Vector2f)(_sp_pev - matrix::Vector2f(sp_x,
+			      sp_y))).length());
 	sp_vel = (sp_curr - _sp_pev) / dt; // velocity of the setpoints
-	if (sp_vel.length() > max_spd)
-	{
+
+	if (sp_vel.length() > max_spd) {
 		sp_vel = sp_vel.normalized() * max_spd;
 		sp_curr = _sp_pev + sp_vel * dt;
 	}

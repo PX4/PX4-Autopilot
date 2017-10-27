@@ -153,13 +153,12 @@ void BeaconPositionEstimator::update()
 				bool update_x = _kalman_filter_x.update(_rel_pos(0), _params.meas_unc);
 				bool update_y = _kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
 
-				if (!update_x || !update_y)
-				{
-					if (!_faulty)
-					{
+				if (!update_x || !update_y) {
+					if (!_faulty) {
 						_faulty = true;
 						PX4_WARN("Beacon measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
 					}
+
 				} else {
 					_faulty = false;
 				}
@@ -189,11 +188,11 @@ void BeaconPositionEstimator::update()
 					_beacon_position.cov_vx_rel = covx_v;
 					_beacon_position.cov_vy_rel = covy_v;
 
-					if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid)
-					{
+					if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid) {
 						_beacon_position.x_abs = x + _vehicleLocalPosition.x;
 						_beacon_position.y_abs = y + _vehicleLocalPosition.y;
 						_beacon_position.abs_pos_valid = true;
+
 					} else {
 						_beacon_position.abs_pos_valid = false;
 					}

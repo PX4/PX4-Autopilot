@@ -251,13 +251,12 @@ Mission::on_active()
 		do_abort_landing();
 	}
 
-	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND)
-	{
+	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND) {
 		// switch out of precision land once landed
-		if (_navigator->get_land_detected()->landed)
-		{
+		if (_navigator->get_land_detected()->landed) {
 			_navigator->get_precland()->on_inactivation();
 			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+
 		} else {
 			_navigator->get_precland()->on_active();
 		}
@@ -601,8 +600,7 @@ Mission::set_mission_items()
 		}
 
 		/* we have a new position item so set previous position setpoint to current */
-		if (_work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND)
-		{
+		if (_work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) {
 			set_previous_pos_setpoint();
 		}
 
@@ -784,15 +782,16 @@ Mission::set_mission_items()
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
 		} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _work_item_type == WORK_ITEM_TYPE_DEFAULT) {
-			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3)
-			{
+			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
 				new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
-				if (_mission_item.land_precision == 1)
-				{
+
+				if (_mission_item.land_precision == 1) {
 					_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+
 				} else { //_mission_item.land_precision == 2
 					_navigator->get_precland()->set_mode(PrecLandMode::Required);
 				}
+
 				_navigator->get_precland()->on_activation();
 
 			}
@@ -802,15 +801,16 @@ Mission::set_mission_items()
 		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND &&
 		    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
-			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3)
-			{
+			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
 				new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
-				if (_mission_item.land_precision == 1)
-				{
+
+				if (_mission_item.land_precision == 1) {
 					_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+
 				} else { //_mission_item.land_precision == 2
 					_navigator->get_precland()->set_mode(PrecLandMode::Required);
 				}
+
 				_navigator->get_precland()->on_activation();
 
 			}
@@ -883,8 +883,7 @@ Mission::set_mission_items()
 	/*********************************** set setpoints and check next *********************************************/
 
 	/* set current position setpoint from mission item (is protected against non-position items) */
-	if (new_work_item_type != WORK_ITEM_TYPE_PRECISION_LAND)
-	{
+	if (new_work_item_type != WORK_ITEM_TYPE_PRECISION_LAND) {
 		mission_apply_limitation(_mission_item);
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	}
