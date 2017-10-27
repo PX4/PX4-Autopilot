@@ -10,7 +10,7 @@ pipeline {
     stage('Quick Check') {
       steps {
         sh '''make distclean;
-make quick_check;'''
+make posix_sitl_default;'''
       }
     }
   }
