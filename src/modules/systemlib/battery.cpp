@@ -59,7 +59,7 @@ Battery::Battery() :
 	_discharged_mah_loop(0.f),
 	_remaining_voltage(1.f),
 	_remaining_capacity(1.f),
-	_remaining(1.f),
+	_remaining(2.f),
 	_scale(1.f),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
@@ -191,9 +191,15 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 		_remaining_capacity = math::max(1.f - _discharged_mah / _capacity.get(), 0.f);
 
 		// if battery capacity is known, fuse voltage measurement with used capacity
-		_remaining = 0.999f * _remaining + 0.001f * _remaining_voltage;
-		_remaining -= _discharged_mah_loop / _capacity.get();
-		_remaining = math::max(_remaining, 0.f);
+		if (_remaining > 1.f) {
+			// initialization of the state
+			_remaining = _remaining_voltage;
+
+		} else {
+			_remaining = 0.9995f * _remaining + 0.0005f * _remaining_voltage;
+			_remaining -= _discharged_mah_loop / _capacity.get();
+			_remaining = math::max(_remaining, 0.f);
+		}
 
 	} else {
 		// else use voltage
