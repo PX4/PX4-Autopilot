@@ -307,15 +307,6 @@ void print_status();
 
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const char *armedBy);
 
-/**
-* @brief This function initializes the home position of the vehicle. This happens first time we get a good GPS fix and each
-*		 time the vehicle is armed with a good GPS fix.
-**/
-static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
-					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
-					const vehicle_attitude_s &attitude,
-					bool set_alt_only_to_lpos_ref);
-
 static void answer_command(struct vehicle_command_s &cmd, unsigned result,
 					orb_advert_t &command_ack_pub);
 
@@ -2500,7 +2491,7 @@ Commander::run()
 				if (calib_status.result != calibration_status_s::CALIBRATION_OK) {
 					mavlink_log_critical(&mavlink_log_pub, "Sensor calibration failed: %d", calib_status.result);
 				} else {
-					status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
+					status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
 						!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), arm_requirements & ARM_REQ_GPS_BIT,
 						true, is_vtol(&status), hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
 				}
@@ -4271,7 +4262,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 	}
 }
 
-void publish_status_flags(orb_advert_t &vehicle_status_flags_pub) {
+void publish_status_flags(orb_advert_t &vehicle_status_flags_pub, vehicle_status_flags_s& vehicle_status_flags) {
 	struct vehicle_status_flags_s v_flags;
 	memset(&v_flags, 0, sizeof(v_flags));
 	/* set condition status flags */
