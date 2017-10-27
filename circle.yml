@@ -27,4 +27,4 @@ dependencies:
 
 test:
   override:
-    - make quick_check
+    - NO_NINJA_BUILD=1 make quick_check
