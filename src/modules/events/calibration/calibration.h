@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,20 +31,13 @@
  *
  ****************************************************************************/
 
-/**
- * @file esc_calibration.h
- *
- * Definition of esc calibration
- *
- * @author Roman Bapst <roman@px4.io>
- */
+#ifndef CALIBRATION_H_
+#define CALIBRATION_H_
 
-#ifndef ESC_CALIBRATION_H_
-#define ESC_CALIBRATION_H_
+#define TASK_NAME_LEN 32
 
-#include <uORB/topics/actuator_armed.h>
+typedef int calibration_routine(orb_advert_t *mavlink_log_pub);
 
-int check_if_batt_disconnected(orb_advert_t *mavlink_log_pub);
-int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* armed);
+int run_calibration(const char *task_name, calibration_routine routine);
 
-#endif
+#endif /* CALIBRATION_H_ */

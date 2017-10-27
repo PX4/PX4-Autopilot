@@ -32,17 +32,26 @@
  ****************************************************************************/
 
 #include "send_event.h"
+#include "calibration/calibration.h"
+#include "calibration/gyro_calibration.h"
+#include "calibration/mag_calibration.h"
+#include "calibration/accelerometer_calibration.h"
+#include "calibration/esc_calibration.h"
+#include "calibration/airspeed_calibration.h"
+#include "calibration/rc_calibration.h"
 #include "temperature_calibration/temperature_calibration.h"
 
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/topics/calibration_status.h>
+#include <uORB/topics/vehicle_status.h>
 
 struct work_s SendEvent::_work = {};
 
 // Run it at 30 Hz.
 const unsigned SEND_EVENT_INTERVAL_US = 33000;
-
 
 int SendEvent::task_spawn(int argc, char *argv[])
 {
@@ -136,6 +145,90 @@ void SendEvent::process_commands()
 
 	switch (cmd.command) {
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
+
+		vehicle_status_s vehicle_status = {};
+		hrt_abstime t_start = hrt_absolute_time();
+		hrt_abstime timeout = 2000000; /* 2secs */
+
+		do {
+			if (_subscriber_handler.vehicle_status_updated()) {
+				orb_copy(ORB_ID(vehicle_status), _subscriber_handler.get_vehicle_status_sub(), &vehicle_status);
+			}
+
+			if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_INIT)
+				break;
+
+		} while (hrt_absolute_time() < (t_start + timeout));
+
+		if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_INIT) {
+			answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			break;
+		}
+
+		/* wait until the arming state is moved to ARMING_STATE_INIT */
+		if ((int)(cmd.param1) == 1) {
+
+			if (run_calibration("gyro calibration", do_gyro_calibration) == calibration_status_s::CALIBRATION_OK) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+
+			break;
+		} else if ((int)(cmd.param2) == 1) {
+			if (run_calibration("mag calibration", do_mag_calibration) == calibration_status_s::CALIBRATION_OK) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+			break;
+		} else if ((int)(cmd.param4) == 2) {
+			if (run_calibration("trim calibration", do_trim_calibration) == calibration_status_s::CALIBRATION_OK) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+			break;
+		} else if ((int)(cmd.param5) == 1) {
+			if (run_calibration("accel calibration", do_accel_calibration) == calibration_status_s::CALIBRATION_OK) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+			break;
+		} else if ((int)(cmd.param5) == 2) {
+			// board offset calibration
+			if (run_calibration("level calibration", do_level_calibration) == calibration_status_s::CALIBRATION_OK) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+		} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
+			// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
+			if (run_calibration("airspeed calibration", do_airspeed_calibration) == calibration_status_s::CALIBRATION_OK) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+
+			break;
+
+		} else if ((int)(cmd.param7) == 1) {
+			if (run_calibration("esc calibration", do_esc_calibration) == calibration_status_s::CALIBRATION_OK) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+			break;
+		}
+
 		if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 			gyro = true;
 			got_temperature_calibration_command = true;
@@ -152,6 +245,7 @@ void SendEvent::process_commands()
 		}
 
 		if (got_temperature_calibration_command) {
+
 			if (run_temperature_calibration(accel, baro, gyro) == 0) {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -211,6 +305,12 @@ The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, e
 	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("gyro_calibration", "Run gyro calibration process");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mag_calibration", "Run mag calibration process");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("accel_calibration", "Run accel calibration process");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("level_calibration", "Run level calibration process");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("esc_calibration", "Run esc calibration process");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("airspeed_calibration", "Run airspeed calibration process");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -276,6 +376,48 @@ int SendEvent::custom_command(int argc, char *argv[])
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
 
+	} else if (!strcmp(argv[0], "gyro_calibration")) {
+		if (!is_running()) {
+			PX4_ERR("background task not running");
+			return -1;
+		}
+
+		run_calibration("gyro calibration", do_gyro_calibration);
+	} else if (!strcmp(argv[0], "mag_calibration")) {
+		if (!is_running()) {
+			PX4_ERR("background task not running");
+			return -1;
+		}
+
+		run_calibration("mag calibration", do_mag_calibration);
+	} else if (!strcmp(argv[0], "accel_calibration")) {
+		if (!is_running()) {
+			PX4_ERR("background task not running");
+			return -1;
+		}
+
+		run_calibration("accel calibration", do_accel_calibration);
+	} else if (!strcmp(argv[0], "level_calibration")) {
+		if (!is_running()) {
+			PX4_ERR("background task not running");
+			return -1;
+		}
+
+		run_calibration("level calibration", do_level_calibration);
+	} else if (!strcmp(argv[0], "esc_calibration")) {
+		if (!is_running()) {
+			PX4_ERR("background task not running");
+			return -1;
+		}
+
+		run_calibration("esc calibration", do_esc_calibration);
+	} else if (!strcmp(argv[0], "airspeed_calibration")) {
+		if (!is_running()) {
+			PX4_ERR("background task not running");
+			return -1;
+		}
+
+		run_calibration("airspeed calibration", do_airspeed_calibration);
 	} else {
 		print_usage("unrecognized command");
 	}

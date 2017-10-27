@@ -37,9 +37,8 @@
  */
 
 #include "airspeed_calibration.h"
-#include "calibration_messages.h"
-#include "calibration_routines.h"
-#include "commander_helper.h"
+#include <commander/calibration_messages.h>
+#include <commander/calibration_routines.h>
 
 #include <px4_defines.h>
 #include <px4_posix.h>
@@ -246,7 +245,6 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			if (calibration_counter % 500 == 0) {
 				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)", (int)diff_pres.differential_pressure_filtered_pa);
-				tune_neutral(true);
 			}
 			calibration_counter++;
 
@@ -265,7 +263,6 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
-	tune_neutral(true);
 
 	/* Wait 2sec for the airflow to stop and ensure the driver filter has caught up, otherwise
 	 * the followup preflight checks might fail. */

@@ -41,7 +41,6 @@
 #include <px4_defines.h>
 
 #include "rc_calibration.h"
-#include "commander_helper.h"
 
 #include <poll.h>
 #include <unistd.h>

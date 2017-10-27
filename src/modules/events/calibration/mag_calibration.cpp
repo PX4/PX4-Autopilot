@@ -38,9 +38,8 @@
  */
 
 #include "mag_calibration.h"
-#include "commander_helper.h"
-#include "calibration_routines.h"
-#include "calibration_messages.h"
+#include <commander/calibration_routines.h>
+#include <commander/calibration_messages.h>
 
 #include <px4_defines.h>
 #include <px4_posix.h>
@@ -342,9 +341,6 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	unsigned int calibration_counter_side;
 
 	mag_worker_data_t *worker_data = (mag_worker_data_t *)(data);
-
-	// notify user to start rotating
-	set_tune(TONE_SINGLE_BEEP_TUNE);
 
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Rotate vehicle around the detected orientation");
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Continue rotation for %s %u s",

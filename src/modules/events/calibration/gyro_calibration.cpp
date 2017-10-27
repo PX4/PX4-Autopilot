@@ -39,9 +39,8 @@
 
 #include <px4_config.h>
 #include "gyro_calibration.h"
-#include "calibration_messages.h"
-#include "calibration_routines.h"
-#include "commander_helper.h"
+#include <commander/calibration_messages.h>
+#include <commander/calibration_routines.h>
 
 #include <px4_posix.h>
 #include <px4_defines.h>
@@ -165,7 +164,7 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 
 				}
 
-				// Maintain the sample count of the slowest sensor 
+				// Maintain the sample count of the slowest sensor
 				if (calibration_counter[s] && calibration_counter[s] < update_count) {
 					update_count = calibration_counter[s];
 				}
