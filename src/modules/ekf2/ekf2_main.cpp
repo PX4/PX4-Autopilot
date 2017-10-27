@@ -457,6 +457,8 @@ void Ekf2::run()
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
 	int sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 
+	bool imu_bias_reset_request = false;
+
 	// because we can have several distance sensor instances with different orientations
 	int range_finder_subs[ORB_MULTI_MAX_INSTANCES];
 	int range_finder_sub_index = -1; // index for downward-facing range finder subscription
@@ -566,14 +568,19 @@ void Ekf2::run()
 			if ((sensor_selection_prev.timestamp > 0) && (sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
 				if (sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
 					PX4_WARN("accel id changed, resetting IMU bias");
-					_ekf.reset_imu_bias();
+					imu_bias_reset_request = true;
 				}
 
 				if (sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
 					PX4_WARN("gyro id changed, resetting IMU bias");
-					_ekf.reset_imu_bias();
+					imu_bias_reset_request = true;
 				}
 			}
+		}
+
+		// attempt reset until successful
+		if (imu_bias_reset_request) {
+			imu_bias_reset_request = !_ekf.reset_imu_bias();
 		}
 
 		orb_check(optical_flow_sub, &optical_flow_updated);
