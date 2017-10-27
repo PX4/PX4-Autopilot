@@ -647,16 +647,10 @@ Navigator::task_main()
 			navigation_mode_new = &_land;
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND_OPPORTUNISTIC:
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND_REQUIRED:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_precland;
-			if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND_OPPORTUNISTIC)
-			{
-				_precland.set_mode(PrecLandMode::Opportunistic);
-			} else {
-				_precland.set_mode(PrecLandMode::Required);
-			}
+			_precland.set_mode(PrecLandMode::Required);
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:

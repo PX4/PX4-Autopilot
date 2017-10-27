@@ -368,8 +368,8 @@ PrecLand::switch_to_state_start()
 	if (check_state_conditions(PrecLandState::Start))
 	{
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		pos_sp_triplet->current = _first_sp;
+		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		_navigator->set_position_setpoint_triplet_updated();
 		_search_cnt++;
 
@@ -416,25 +416,6 @@ PrecLand::switch_to_state_final_approach()
 {
 	if (check_state_conditions(PrecLandState::FinalApproach))
 	{
-		vehicle_status_s *vstatus = _navigator->get_vstatus();
-		vehicle_command_s cmd = {
-			.timestamp = 0,
-			.param5 = NAN,
-			.param6 = NAN,
-			/* minimum pitch */
-			.param1 = NAN,
-			.param2 = NAN,
-			.param3 = NAN,
-			.param4 = NAN,
-			.param7 = NAN,
-			.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND,
-			.target_system = (uint8_t)vstatus->system_id,
-			.target_component = (uint8_t)vstatus->component_id
-		};
-
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
-
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;

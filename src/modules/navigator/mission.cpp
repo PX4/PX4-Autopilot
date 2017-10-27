@@ -250,6 +250,18 @@ Mission::on_active()
 
 		do_abort_landing();
 	}
+
+	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND)
+	{
+		// switch out of precision land once landed
+		if (_navigator->get_land_detected()->landed)
+		{
+			_navigator->get_precland()->on_inactivation();
+			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+		} else {
+			_navigator->get_precland()->on_active();
+		}
+	}
 }
 
 bool
@@ -740,8 +752,6 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
 		}
 
-		bool landing = false; // are we descending to land?
-
 		/* move to landing waypoint before descent if necessary */
 		if (do_need_move_to_land() &&
 		    (_work_item_type == WORK_ITEM_TYPE_DEFAULT ||
@@ -774,44 +784,37 @@ Mission::set_mission_items()
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
 		} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _work_item_type == WORK_ITEM_TYPE_DEFAULT) {
-			landing = true;
+			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3)
+			{
+				new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
+				if (_mission_item.land_precision == 1)
+				{
+					_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+				} else { //_mission_item.land_precision == 2
+					_navigator->get_precland()->set_mode(PrecLandMode::Required);
+				}
+				_navigator->get_precland()->on_activation();
+
+			}
 		}
 
 		/* we just moved to the landing waypoint, now descend */
 		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND &&
 		    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
-			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3)
+			{
+				new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
+				if (_mission_item.land_precision == 1)
+				{
+					_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+				} else { //_mission_item.land_precision == 2
+					_navigator->get_precland()->set_mode(PrecLandMode::Required);
+				}
+				_navigator->get_precland()->on_activation();
 
-			landing = true;
-
-		}
-
-		// switch to precision land if set in the mission item
-		if (landing && _mission_item.land_precision > 0)
-		{
-			struct vehicle_command_s cmd = {};
-			cmd.timestamp = hrt_absolute_time();;
-			cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_PRECLAND;
-			cmd.param2 = _mission_item.land_precision;
-			cmd.target_system = (uint8_t)_navigator->get_vstatus()->system_id;
-			cmd.target_component = (uint8_t)_navigator->get_vstatus()->component_id;
-
-			_navigator->publish_vehicle_cmd(&cmd);
-
-			float altitude = _navigator->get_global_position()->alt;
-
-			if (pos_sp_triplet->current.valid
-			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
 			}
 
-			_mission_item.altitude = altitude;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT; // set to waypoint type to prevent starting to descend before precland takes over
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0.0f;
-			_mission_item.disable_mc_yaw = true;
 		}
 
 		/* ignore yaw for landing items */
@@ -880,8 +883,11 @@ Mission::set_mission_items()
 	/*********************************** set setpoints and check next *********************************************/
 
 	/* set current position setpoint from mission item (is protected against non-position items) */
-	mission_apply_limitation(_mission_item);
-	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	if (new_work_item_type != WORK_ITEM_TYPE_PRECISION_LAND)
+	{
+		mission_apply_limitation(_mission_item);
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	}
 
 	/* issue command if ready (will do nothing for position mission items) */
 	issue_command(_mission_item);
