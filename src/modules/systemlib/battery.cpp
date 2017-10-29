@@ -167,19 +167,16 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 void
 Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
 {
+	// correct battery voltage locally for load drop to avoid estimation fluctuations
 	const float bat_r = _param_r_internal.get();
 
-	// remaining charge estimate based on voltage and internal resistance (drop under load)
-	float bat_v_empty_dynamic = _param_v_empty.get();
-
 	if (bat_r >= 0.0f) {
-		bat_v_empty_dynamic -= current_a * bat_r;
+		voltage_v += bat_r * current_a;
 
 	} else {
-		// assume 10% voltage drop of the full drop range with motors idle
-		const float thr = (armed) ? ((fabsf(throttle_normalized) + 0.1f) / 1.1f) : 0.0f;
-
-		bat_v_empty_dynamic -= _param_v_load_drop.get() * thr;
+		// assume quadratic relation between throttle and current
+		// good assumption if throttle represents RPM
+		voltage_v += throttle_normalized * throttle_normalized * _param_v_load_drop.get();
 	}
 
 	// remaining battery capacity based on voltage
