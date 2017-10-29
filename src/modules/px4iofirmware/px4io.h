@@ -191,6 +191,7 @@ extern pwm_limit_t pwm_limit;
  * Mixer
  */
 extern void	mixer_tick(void);
+extern int	mixer_handle_text_create_mixer(void);
 extern int	mixer_handle_text(const void *buffer, size_t length);
 /* Set the failsafe values of all mixed channels (based on zero throttle, controls centered) */
 extern void	mixer_set_failsafe(void);
