@@ -114,6 +114,8 @@ int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits)
 void
 mixer_tick(void)
 {
+	/* check if the mixer got modified */
+	mixer_handle_text_create_mixer();
 
 	/* check that we are receiving fresh data from the FMU */
 	if ((system_state.fmu_data_received_time == 0) ||
@@ -487,6 +489,50 @@ mixer_callback(uintptr_t handle,
 
 static char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
+static bool mixer_update_pending = false;
+
+int
+mixer_handle_text_create_mixer()
+{
+	/* only run on update */
+	if (!mixer_update_pending) {
+		return 0;
+	}
+
+	/* do not allow a mixer change while safety off and FMU armed */
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
+	    (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+		return 1;
+	}
+
+	/* abort if we're in the mixer - it will be tried again in the next iteration */
+	if (in_mixer) {
+		return 1;
+	}
+
+	/* process the text buffer, adding new mixers as their descriptions can be parsed */
+	unsigned resid = mixer_text_length;
+	mixer_group.load_from_buf(&mixer_text[0], resid);
+
+	/* if anything was parsed */
+	if (resid != mixer_text_length) {
+
+		isr_debug(2, "used %u", mixer_text_length - resid);
+
+		/* copy any leftover text to the base of the buffer for re-use */
+		if (resid > 0) {
+			memmove(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+			/* enforce null termination */
+			mixer_text[resid] = '\0';
+		}
+
+		mixer_text_length = resid;
+	}
+
+	mixer_update_pending = false;
+
+	return 0;
+}
 
 int
 mixer_handle_text(const void *buffer, size_t length)
@@ -533,30 +579,19 @@ mixer_handle_text(const void *buffer, size_t length)
 			return 0;
 		}
 
+		/* check if the last item has been processed - bail out if not */
+		if (mixer_update_pending) {
+			return 1;
+		}
+
 		/* append mixer text and nul-terminate, guard against overflow */
 		memcpy(&mixer_text[mixer_text_length], msg->text, text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
 		isr_debug(2, "buflen %u", mixer_text_length);
 
-		/* process the text buffer, adding new mixers as their descriptions can be parsed */
-		unsigned resid = mixer_text_length;
-		mixer_group.load_from_buf(&mixer_text[0], resid);
-
-		/* if anything was parsed */
-		if (resid != mixer_text_length) {
-
-			isr_debug(2, "used %u", mixer_text_length - resid);
-
-			/* copy any leftover text to the base of the buffer for re-use */
-			if (resid > 0) {
-				memmove(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
-				/* enforce null termination */
-				mixer_text[resid] = '\0';
-			}
-
-			mixer_text_length = resid;
-		}
+		/* flag the buffer as ready */
+		mixer_update_pending = true;
 
 		break;
 	}
