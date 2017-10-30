@@ -9,13 +9,21 @@ pipeline {
   stages {
     stage('Quality Checks') {
       steps {
-        sh '''make check_format'''
+        sh 'make check_format'
       }
     }
     stage('Build') {
-      steps {
-        sh '''make distclean;
-make posix_sitl_default;'''
+      parallel {
+        stage('posix_sitl_default') {
+          steps {
+            sh 'make posix_sitl_default'
+          }
+        }
+        stage('nuttx_px4fmu-v2_default') {
+          steps {
+            sh 'make nuttx_px4fmu-v2_default'
+          }
+        }
       }
     }
     stage('Generate Metadata') {
@@ -42,7 +50,7 @@ make posix_sitl_default;'''
     }
     stage('Test') {
       steps {
-        sh '''make tests'''
+        sh 'make tests'
       }
     }
     stage('Deploy') {
@@ -55,6 +63,11 @@ make posix_sitl_default;'''
         stage('Dev Guide Update') {
           steps {
             sh 'git clone https://github.com/PX4/Devguide.git'
+          }
+        }
+        stage('S3 Upload') {
+          steps {
+            sh 'echo "uploading to S3"'
           }
         }
       }
