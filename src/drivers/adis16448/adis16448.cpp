@@ -170,7 +170,7 @@
 #define FW_FILTER									false
 
 #define SPI_BUS_SPEED								1000000
-
+#define T_STALL										5
 class ADIS16448_gyro;
 class ADIS16448_mag;
 
@@ -253,6 +253,27 @@ private:
 	math::LowPassFilter2p	_mag_filter_x;
 	math::LowPassFilter2p	_mag_filter_y;
 	math::LowPassFilter2p	_mag_filter_z;
+
+#pragma pack(push, 1)
+	/**
+	 * Report conversation with in the ADIS16448, including command byte and interrupt status.
+	 */
+	struct ADISReport {
+		uint16_t		cmd;
+		uint16_t		status;
+		uint16_t		gyro_x;
+		uint16_t		gyro_y;
+		uint16_t		gyro_z;
+		uint16_t		accel_x;
+		uint16_t		accel_y;
+		uint16_t		accel_z;
+		uint16_t		mag_x;
+		uint16_t		mag_y;
+		uint16_t		mag_z;
+		uint16_t		baro;
+		uint16_t		temp;
+	};
+#pragma pack(pop)
 
 	/**
 	 * Start automatic measurement.
@@ -367,27 +388,6 @@ private:
 	  set the gyroscope dynamic range
 	*/
 	void _set_gyro_dyn_range(uint16_t desired_gyro_dyn_range);
-
-#pragma pack(push, 1)
-	/**
-	 * Report conversation with in the ADIS16448, including command byte and interrupt status.
-	 */
-	struct ADISReport {
-		uint16_t		cmd;
-		uint16_t		status;
-		uint16_t		gyro_x;
-		uint16_t		gyro_y;
-		uint16_t		gyro_z;
-		uint16_t		accel_x;
-		uint16_t		accel_y;
-		uint16_t		accel_z;
-		uint16_t		mag_x;
-		uint16_t		mag_y;
-		uint16_t		mag_z;
-		uint16_t		baro;
-		uint16_t		temp;
-	};
-#pragma pack(pop)
 
 	ADIS16448(const ADIS16448&);
 	ADIS16448 operator=(const ADIS16448&);
@@ -1300,14 +1300,14 @@ ADIS16448::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 uint16_t
 ADIS16448::read_reg16(unsigned reg)
 {
-	uint16_t cmd[2];
+	uint16_t cmd[1];
 
 	cmd[0] = ((reg | DIR_READ) << 8) & 0xff00;
-	cmd[1] = 0x0;
+	transferword(cmd, nullptr, 1);
+	up_udelay(T_STALL);
+	transferword(nullptr, cmd, 1);
 
-	transferword(cmd, cmd, 2);
-
-	return cmd[1];
+	return cmd[0];
 }
 
 void
@@ -1319,7 +1319,8 @@ ADIS16448::write_reg16(unsigned reg, uint16_t value)
 	cmd[1] = (((reg + 0x1) | DIR_WRITE) << 8) | ((0xff00 & value) >> 8);
 
 	transferword(cmd, nullptr, 1);
-	transferword(cmd +1, nullptr, 1);
+	up_udelay(T_STALL);
+	transferword(cmd+1, nullptr, 1);
 }
 
 void
@@ -1382,7 +1383,6 @@ ADIS16448::measure_trampoline(void *arg)
 void
 ADIS16448::measure()
 {
-
 	struct ADISReport adis_report;
 	struct Report {
 		int16_t		gyro_x;
@@ -1402,12 +1402,12 @@ ADIS16448::measure()
 	perf_begin(_sample_perf);
 
 	/*
-	 * Fetch the full set of measurements from the ADIS16448 in one pass.
+	 * Fetch the full set of measurements from the ADIS16448 in one pass (burst read).
 	 */
 
 	adis_report.cmd = ((ADIS16448_GLOB_CMD | DIR_READ) << 8) & 0xff00;
 	if (OK != transferword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report)/sizeof(uint16_t)))
-			return;
+		return;
 
 	/*
 	 * Convert from big to little endian
@@ -1423,7 +1423,6 @@ ADIS16448::measure()
 	report.mag_z   = (int16_t) adis_report.mag_z;
 	report.baro    = (int16_t) adis_report.baro;
 	report.temp    = convert12BitToINT16(adis_report.temp);
-
 
 #if 0  // don't apply axes swap
 	/*
