@@ -54,40 +54,12 @@ pipeline {
         }
       }
     }
-    stage('Deploy') {
-      parallel {
-        stage('Dev Guide Update') {
-          when {
-            branch 'master'
-          }
-          steps {
-            sh 'git clone https://github.com/PX4/Devguide.git'
-          }
-        }
-        stage('User Guide Update') {
-          when {
-            branch 'master'
-          }
-          steps {
-            sh 'git clone https://github.com/PX4/px4_user_guide.git'
-          }
-        }
-        stage('QGC Metadata Update') {
-          when {
-            branch 'master'
-          }
-          steps {
-            sh 'git clone https://github.com/mavlink/qgroundcontrol.git'
-          }
-        }
-        stage('S3 Upload') {
-          when {
-            branch 'master|beta|stable'
-          }
-          steps {
-            sh 'echo "uploading to S3"'
-          }
-        }
+    stage('S3 Upload') {
+      when {
+        branch 'master|beta|stable'
+      }
+      steps {
+        sh 'echo "uploading to S3"'
       }
     }
   }
