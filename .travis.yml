@@ -28,7 +28,6 @@ matrix:
     - env: BUILD_TARGET=check_stack
     - env: BUILD_TARGET=clang-tidy-quiet
     - env: BUILD_TARGET=cppcheck
-    - env: BUILD_TARGET=px4_metadata
     - env: BUILD_TARGET=scan-build
     - env: BUILD_TARGET=tests
     - env: BUILD_TARGET=tests PX4_ASAN=1
@@ -64,11 +63,8 @@ script:
     fi
 
 after_success:
-  # upload metadata and static analysis to s3
+  # upload code coverage
   - if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
-      [ "${BUILD_TARGET}" = "px4_metadata" ] && ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
-      [ "${BUILD_TARGET}" = "scan-build" ] && ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/scan-build"';
-      [ "${BUILD_TARGET}" = "cppcheck" ] && ./Tools/docker_run.sh 'make s3put_cppcheck AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/cppcheck"';
       [ "${BUILD_TARGET}" = "tests_coverage" ] && bash <(curl -s https://codecov.io/bash) -F unittests;
     fi
 
