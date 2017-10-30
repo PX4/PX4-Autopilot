@@ -13,9 +13,28 @@ pipeline {
 make posix_sitl_default;'''
       }
     }
-    stage('px4_metadata') {
-      steps {
-        sh 'make px4_metadata'
+    stage('Deploy') {
+      parallel {
+        stage('airframe') {
+          steps {
+            sh 'make airframe_metadata'
+            archiveArtifacts 'airframes.md, airframes.xml'
+            sh '''git clone --branch master https://github.com/PX4/Devguide.git
+ls Devguide'''
+          }
+        }
+        stage('parameters') {
+          steps {
+            sh 'make parameters_metadata'
+            archiveArtifacts 'parameters.md, parameters.xml'
+          }
+        }
+        stage('modules') {
+          steps {
+            sh 'make module_documentation'
+            archiveArtifacts 'modules/*.md'
+          }
+        }
       }
     }
   }
