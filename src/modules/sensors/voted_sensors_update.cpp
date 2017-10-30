@@ -168,10 +168,10 @@ void VotedSensorsUpdate::parameters_update()
 				if (temp < 0) {
 					PX4_ERR("gyro temp compensation init: failed to find device ID %u for instance %i",
 						report.device_id, topic_instance);
-					_corrections.gyro_mapping[topic_instance] = 0;
+					_corrections.gyro_mapping[topic_instance] =  0;
 
 				} else {
-					_corrections.gyro_mapping[topic_instance] = temp;
+					_corrections.gyro_mapping[topic_instance] =  temp;
 
 				}
 			}
@@ -192,10 +192,10 @@ void VotedSensorsUpdate::parameters_update()
 				if (temp < 0) {
 					PX4_ERR("accel temp compensation init: failed to find device ID %u for instance %i",
 						report.device_id, topic_instance);
-					_corrections.accel_mapping[topic_instance] = 0;
+					_corrections.accel_mapping[topic_instance] =  0;
 
 				} else {
-					_corrections.accel_mapping[topic_instance] = temp;
+					_corrections.accel_mapping[topic_instance] =  temp;
 
 				}
 			}
@@ -215,10 +215,10 @@ void VotedSensorsUpdate::parameters_update()
 				if (temp < 0) {
 					PX4_ERR("baro temp compensation init: failed to find device ID %u for instance %i",
 						report.device_id, topic_instance);
-					_corrections.baro_mapping[topic_instance] = 0;
+					_corrections.baro_mapping[topic_instance] =  0;
 
 				} else {
-					_corrections.baro_mapping[topic_instance] = temp;
+					_corrections.baro_mapping[topic_instance] =  temp;
 
 				}
 			}
@@ -257,12 +257,6 @@ void VotedSensorsUpdate::parameters_update()
 			(void)sprintf(str, "CAL_GYRO%u_ID", i);
 			int32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
-
-			(void)sprintf(str, "CAL_GYRO%u_EN", i);
-			int32_t device_enabled = 0;
-			failed = failed || (OK != param_get(param_find(str), &device_enabled));
-
-			_gyro.enabled[i] = (device_enabled == 1);
 
 			if (failed) {
 				continue;
@@ -345,12 +339,6 @@ void VotedSensorsUpdate::parameters_update()
 			(void)sprintf(str, "CAL_ACC%u_ID", i);
 			int32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
-
-			(void)sprintf(str, "CAL_ACC%u_EN", i);
-			int32_t device_enabled = 0;
-			failed = failed || (OK != param_get(param_find(str), &device_enabled));
-
-			_accel.enabled[i] = (device_enabled == 1);
 
 			if (failed) {
 				continue;
@@ -462,12 +450,6 @@ void VotedSensorsUpdate::parameters_update()
 			int32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
-			(void)sprintf(str, "CAL_MAG%u_EN", i);
-			int32_t device_enabled = 0;
-			failed = failed || (OK != param_get(param_find(str), &device_enabled));
-
-			_mag.enabled[i] = (device_enabled == 1);
-
 			if (failed) {
 				continue;
 			}
@@ -549,7 +531,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 		bool accel_updated;
 		orb_check(_accel.subscription[uorb_index], &accel_updated);
 
-		if (accel_updated && _accel.enabled[uorb_index]) {
+		if (accel_updated) {
 			struct accel_report accel_report;
 
 			orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
@@ -656,7 +638,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		bool gyro_updated;
 		orb_check(_gyro.subscription[uorb_index], &gyro_updated);
 
-		if (gyro_updated && _gyro.enabled[uorb_index]) {
+		if (gyro_updated) {
 			struct gyro_report gyro_report;
 
 			orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
@@ -761,7 +743,7 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 		bool mag_updated;
 		orb_check(_mag.subscription[uorb_index], &mag_updated);
 
-		if (mag_updated && _mag.enabled[uorb_index]) {
+		if (mag_updated) {
 			struct mag_report mag_report;
 
 			orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
@@ -821,7 +803,7 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 		bool baro_updated;
 		orb_check(_baro.subscription[uorb_index], &baro_updated);
 
-		if (baro_updated && _baro.enabled[uorb_index]) {
+		if (baro_updated) {
 			struct baro_report baro_report;
 
 			orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);

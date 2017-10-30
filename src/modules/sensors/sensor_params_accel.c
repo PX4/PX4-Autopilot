@@ -46,14 +46,6 @@ PARAM_DEFINE_INT32(CAL_ACC_PRIME, 0);
 PARAM_DEFINE_INT32(CAL_ACC0_ID, 0);
 
 /**
- * Accelerometer 0 enabled
- *
- * @boolean
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_ACC0_EN, 1);
-
-/**
  * Accelerometer X-axis offset
  *
  * @group Sensor Calibration
@@ -103,14 +95,6 @@ PARAM_DEFINE_FLOAT(CAL_ACC0_ZSCALE, 1.0f);
 PARAM_DEFINE_INT32(CAL_ACC1_ID, 0);
 
 /**
- * Accelerometer 1 enabled
- *
- * @boolean
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_ACC1_EN, 1);
-
-/**
  * Accelerometer X-axis offset
  *
  * @group Sensor Calibration
@@ -158,14 +142,6 @@ PARAM_DEFINE_FLOAT(CAL_ACC1_ZSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_ACC2_ID, 0);
-
-/**
- * Accelerometer 2 enabled
- *
- * @boolean
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_ACC2_EN, 1);
 
 /**
  * Accelerometer X-axis offset
