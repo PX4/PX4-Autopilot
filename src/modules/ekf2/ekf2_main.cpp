@@ -561,7 +561,8 @@ void Ekf2::run()
 
 		orb_check(sensor_selection_sub, &sensor_selection_updated);
 
-		if (sensor_selection_updated) {
+		// Always update sensor selction first time through if time stamp is non zero
+		if (sensor_selection_updated || (sensor_selection.timestamp == 0)) {
 			sensor_selection_s sensor_selection_prev = sensor_selection;
 			orb_copy(ORB_ID(sensor_selection), sensor_selection_sub, &sensor_selection);
 
