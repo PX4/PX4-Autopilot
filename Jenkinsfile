@@ -22,22 +22,6 @@ pipeline {
         stage('nuttx_px4fmu-v2_default') {
           steps {
             sh 'make nuttx_px4fmu-v2_default'
-            memoryMap {
-              wordSize 32
-              showBytesOnGraphs true
-              scale "KILO"
-              parser("GCC", "gcc-5391", "cmd.ld", "mem.map") {
-                parserTitle "gcc graphs"
-                graph{
-                  graphCaption "RAM"
-                  graphData    "ram08+ram09"
-                }
-                graph {
-                  graphCaption "ETC"
-                  graphData    "etc."
-                }
-              }
-            }
           }
         }
       }
