@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -92,7 +92,8 @@ RTL::on_activation()
 	if (_navigator->get_land_detected()->landed) {
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt + get_rtl_altitude())) {
+	} else if ((_rtl_alt_min
+		    || _navigator->get_global_position()->alt < (_navigator->get_home_position()->alt + get_rtl_altitude()))) {
 
 		/* if lower than return altitude, climb up first */
 		_rtl_state = RTL_STATE_CLIMB;
@@ -116,6 +117,12 @@ RTL::on_active()
 		advance_rtl();
 		set_rtl_item();
 	}
+}
+
+void
+RTL::set_return_alt_min(bool min)
+{
+	_rtl_alt_min = min;
 }
 
 void
@@ -276,6 +283,7 @@ RTL::set_rtl_item()
 
 	case RTL_STATE_LANDED: {
 			set_idle_item(&_mission_item);
+			set_return_alt_min(false);
 			break;
 		}
 

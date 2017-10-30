@@ -36,6 +36,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef NAVIGATOR_H
@@ -107,6 +108,24 @@ public:
 	void		publish_geofence_result();
 
 	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
+
+	/**
+	 * Generate an artificial traffic indication
+	 *
+	 * @param distance Horizontal distance to this vehicle
+	 * @param direction Direction in earth frame from this vehicle in radians
+	 * @param traffic_heading Travel direction of the traffic in earth frame in radians
+	 * @param altitude_diff Altitude difference, positive is up
+	 * @param hor_velocity Horizontal velocity of traffic, in m/s
+	 * @param ver_velocity Vertical velocity of traffic, in m/s
+	 */
+	void		fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
+				     float hor_velocity, float ver_velocity);
+
+	/**
+	 * Check nearby traffic for potential collisions
+	 */
+	void		check_traffic();
 
 	/**
 	 * Setters
@@ -242,7 +261,8 @@ private:
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
-	int		_vstatus_sub{-1};		/**< vehicle status subscription */
+	int		_vstatus_sub{-1};			/**< vehicle status subscription */
+	int		_traffic_sub{-1};			/**< traffic subscription */
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
@@ -302,6 +322,7 @@ private:
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
 	control::BlockParamInt _param_force_vtol;	/**< acceptance radius for multicopter altitude */
+	control::BlockParamInt _param_traffic_avoidance_mode;	/**< avoiding other aircraft is enabled */
 
 	// non-navigator parameters
 	control::BlockParamFloat _param_loiter_min_alt;
