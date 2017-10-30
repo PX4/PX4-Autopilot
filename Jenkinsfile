@@ -22,6 +22,7 @@ pipeline {
         stage('nuttx_px4fmu-v2_default') {
           steps {
             sh 'make nuttx_px4fmu-v2_default'
+            archiveArtifacts 'build/*/*.px4'
           }
         }
       }
@@ -51,6 +52,7 @@ pipeline {
     stage('Test') {
       steps {
         sh 'make tests'
+        junit 'build/*/JUnitTestResults.xml'
       }
     }
     stage('Deploy') {
