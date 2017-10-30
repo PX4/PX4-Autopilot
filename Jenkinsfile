@@ -50,10 +50,20 @@ pipeline {
       }
     }
     stage('Test') {
-      steps {
-        sh '''make tests
+      parallel {
+        stage('tests') {
+          steps {
+            sh '''make posix_sitl_default test_results_junit
 find . -name \\*.xml'''
-        junit 'build/**/JUnitTestResults.xml'
+            junit 'build/**/JUnitTestResults.xml'
+          }
+        }
+        stage('coverage') {
+          steps {
+            sh '''make tests_coverage
+ls build/*/*'''
+          }
+        }
       }
     }
     stage('Deploy') {
