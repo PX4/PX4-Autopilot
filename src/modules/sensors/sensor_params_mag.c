@@ -66,14 +66,6 @@ PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
 PARAM_DEFINE_INT32(CAL_MAG0_ID, 0);
 
 /**
- * Mag 0 enabled
- *
- * @boolean
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_MAG0_EN, 1);
-
-/**
  * Rotation of magnetometer 0 relative to airframe.
  *
  * An internal magnetometer will force a value of -1, so a GCS
@@ -163,14 +155,6 @@ PARAM_DEFINE_FLOAT(CAL_MAG0_ZSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
-
-/**
- * Mag 1 enabled
- *
- * @boolean
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_MAG1_EN, 1);
 
 /**
  * Rotation of magnetometer 1 relative to airframe.
@@ -264,14 +248,6 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_ZSCALE, 1.0f);
 PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
 
 /**
- * Mag 2 enabled
- *
- * @boolean
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_MAG2_EN, 1);
-
-/**
  * Rotation of magnetometer 2 relative to airframe.
  *
  * An internal magnetometer will force a value of -1, so a GCS
@@ -363,14 +339,6 @@ PARAM_DEFINE_FLOAT(CAL_MAG2_ZSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG3_ID, 0);
-
-/**
- * Mag 3 enabled
- *
- * @boolean
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_MAG3_EN, 1);
 
 /**
  * Rotation of magnetometer 2 relative to airframe.
