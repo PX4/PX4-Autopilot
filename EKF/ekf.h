@@ -145,6 +145,13 @@ public:
 	*/
 	void get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl);
 
+	/*
+	Reset all IMU bias states and covariances to initial alignment values.
+	Use when the IMU sensor has changed.
+	Returns true if reset performed, false if rejected due to less than 10 seconds lapsed since last reset.
+	*/
+	bool reset_imu_bias();
+
 	void get_vel_var(Vector3f &vel_var);
 
 	void get_pos_var(Vector3f &pos_var);
@@ -281,6 +288,8 @@ private:
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
 	uint64_t _delta_time_baro_us{0};	///< delta time between two consecutive delayed baro samples from the buffer (uSec)
+
+	uint64_t _last_imu_bias_cov_reset_us{0};	///< time the last reset of IMU delta angle and velocity state covariances was performed (uSec)
 
 	Vector3f _earth_rate_NED;	///< earth rotation vector (NED) in rad/s
 
