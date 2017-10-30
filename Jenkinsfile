@@ -14,7 +14,7 @@ pipeline {
     }
     stage('Build') {
       parallel {
-        stage('Build') {
+        stage('posix_sitl_default') {
           steps {
             sh 'make posix_sitl_default'
           }
@@ -22,6 +22,7 @@ pipeline {
         stage('nuttx_px4fmu-v2_default') {
           steps {
             sh 'make nuttx_px4fmu-v2_default'
+            archiveArtifacts 'build/*/*.px4'
           }
         }
       }
