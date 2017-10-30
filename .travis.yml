@@ -24,7 +24,6 @@ env:
 matrix:
   fast_finish: true
   include:
-    - env: BUILD_TARGET=check_format
     - env: BUILD_TARGET=check_stack
     - env: BUILD_TARGET=clang-tidy-quiet
     - env: BUILD_TARGET=cppcheck
