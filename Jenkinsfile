@@ -13,8 +13,17 @@ pipeline {
       }
     }
     stage('Build') {
-      steps {
-        sh 'make posix_sitl_default'
+      parallel {
+        stage('Build') {
+          steps {
+            sh 'make posix_sitl_default'
+          }
+        }
+        stage('nuttx_px4fmu-v2_default') {
+          steps {
+            sh 'make nuttx_px4fmu-v2_default'
+          }
+        }
       }
     }
     stage('Generate Metadata') {
@@ -40,19 +49,8 @@ pipeline {
       }
     }
     stage('Test') {
-      parallel {
-        stage('tests') {
-          steps {
-            sh 'make tests'
-            junit 'build/**/JUnitTestResults.xml'
-          }
-        }
-        stage('coverage') {
-          steps {
-            sh '''make tests_coverage;
-ls build/*/*;'''
-          }
-        }
+      steps {
+        sh 'make tests'
       }
     }
     stage('Deploy') {
