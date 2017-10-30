@@ -140,6 +140,21 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 
 /**
+ * Set traffic avoidance mode
+ *
+ * Enabling this will allow the system to respond
+ * to transponder data from e.g. ADSB transponders
+ *
+ * @value 0 Disabled
+ * @value 1 Warn only
+ * @value 2 Return to Land
+ * @value 3 Land immediately
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_TRAFF_AVOID, 1)
+
+/**
  * Airfield home Lat
  *
  * Latitude of airfield home waypoint
