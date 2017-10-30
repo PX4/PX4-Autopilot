@@ -25,7 +25,6 @@ matrix:
   fast_finish: true
   include:
     - env: BUILD_TARGET=clang-tidy-quiet
-    - env: BUILD_TARGET=scan-build
     - env: BUILD_TARGET=tests
     - env: BUILD_TARGET=tests PX4_ASAN=1
     - env: BUILD_TARGET=tests PX4_UBSAN=1
