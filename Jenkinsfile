@@ -51,8 +51,9 @@ pipeline {
     }
     stage('Test') {
       steps {
-        sh 'make tests'
-        junit 'build/*/JUnitTestResults.xml'
+        sh '''make tests
+find . -name \\*.xml'''
+        junit 'build/**/JUnitTestResults.xml'
       }
     }
     stage('Deploy') {
