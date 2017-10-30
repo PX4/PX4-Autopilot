@@ -722,14 +722,6 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
-	// For HIL platforms, require that simulated sensors are connected
-	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
-		status.hil_state == vehicle_status_s::HIL_STATE_ON) {
-
-		mavlink_log_critical(mavlink_log_pub_local, "HITL: Connect to simulator before arming.");
-		return TRANSITION_DENIED;
-	}
-
 	// Transition the armed state. By passing mavlink_log_pub to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
 	arming_res = arming_state_transition(&status,
