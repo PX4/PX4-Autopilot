@@ -13,6 +13,11 @@ pipeline {
 make posix_sitl_default;'''
       }
     }
+    stage('px4_metadata') {
+      steps {
+        sh 'make px4_metadata'
+      }
+    }
   }
   environment {
     CI = '1'
