@@ -115,7 +115,7 @@ public:
 
 private:
 
-	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, int ret);
+	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result);
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
