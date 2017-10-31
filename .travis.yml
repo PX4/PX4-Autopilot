@@ -37,7 +37,6 @@ matrix:
       dist: trusty
       if: branch = coverity_scan
   allow_failures:
-    - env: BUILD_TARGET=tests PX4_ASAN=1
     - env: BUILD_TARGET=tests PX4_UBSAN=1
     - env: BUILD_TARGET=tests_coverage
 
