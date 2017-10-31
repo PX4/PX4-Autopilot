@@ -278,7 +278,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_GET_COUNT");
-		return 1;
+		goto cleanup;
 	}
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
@@ -286,7 +286,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_SET_ARM_OK");
-		return 1;
+		goto cleanup;
 	}
 
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
@@ -294,7 +294,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_ARM");
-		return 1;
+		goto cleanup;
 	}
 
 	printf("Outputs armed");
