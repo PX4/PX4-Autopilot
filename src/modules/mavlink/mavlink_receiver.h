@@ -119,6 +119,12 @@ private:
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
+	/**
+	 * common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t
+	 */
+	template<class T>
+	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
+					 const vehicle_command_s &vehicle_command);
 	void handle_message_command_ack(mavlink_message_t *msg);
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
 	void handle_message_hil_optical_flow(mavlink_message_t *msg);
