@@ -249,7 +249,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			if (req_read.target_system == mavlink_system.sysid && req_read.target_component < 127 &&
 			    (req_read.target_component != mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
-				uavcan_parameter_request_s req;
+				uavcan_parameter_request_s req = {};
+				req.timestamp = hrt_absolute_time();
 				req.message_type = msg->msgid;
 				req.node_id = req_read.target_component;
 				req.param_index = req_read.param_index;
