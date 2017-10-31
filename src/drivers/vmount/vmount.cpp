@@ -239,6 +239,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	if (!get_params(param_handles, params)) {
 		PX4_ERR("could not get mount parameters!");
+		delete test_input;
 		return -1;
 	}
 
