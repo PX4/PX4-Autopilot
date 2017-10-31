@@ -152,7 +152,7 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  *
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_TRAFF_AVOID, 1)
+PARAM_DEFINE_INT32(NAV_TRAFF_AVOID, 1);
 
 /**
  * Airfield home Lat
