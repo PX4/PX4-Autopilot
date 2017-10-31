@@ -547,21 +547,33 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		}
 
 		if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
-			// we already instanciate the streaming object, because at this point we know on which
-			// mavlink channel streaming was requested. But in fact it's possible that the logger is
-			// not even running. The main mavlink thread takes care of this by waiting for an ack
-			// from the logger.
-			_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+			// check that we have enough bandwidth available: this is given by the configured logger topics
+			// and rates. The 5000 is somewhat arbitrary, but makes sure that we cannot enable log streaming
+			// on a radio link
+			if (_mavlink->get_data_rate() < 5000) {
+				send_ack = true;
+				ret = PX4_ERROR;
+				_mavlink->send_statustext_critical("Not enough bandwidth to enable log streaming");
+
+			} else {
+				// we already instanciate the streaming object, because at this point we know on which
+				// mavlink channel streaming was requested. But in fact it's possible that the logger is
+				// not even running. The main mavlink thread takes care of this by waiting for an ack
+				// from the logger.
+				_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+			}
 
 		} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
 			_mavlink->request_stop_ulog_streaming();
 		}
 
-		if (_cmd_pub == nullptr) {
-			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vehicle_command, vehicle_command_s::ORB_QUEUE_LENGTH);
+		if (!send_ack) {
+			if (_cmd_pub == nullptr) {
+				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vehicle_command, vehicle_command_s::ORB_QUEUE_LENGTH);
 
-		} else {
-			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vehicle_command);
+			} else {
+				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vehicle_command);
+			}
 		}
 	}
 
