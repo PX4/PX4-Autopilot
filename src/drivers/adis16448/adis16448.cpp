@@ -254,6 +254,8 @@ private:
 	math::LowPassFilter2p	_mag_filter_y;
 	math::LowPassFilter2p	_mag_filter_z;
 
+	enum Rotation		_rotation;
+
 #pragma pack(push, 1)
 	/**
 	 * Report conversation with in the ADIS16448, including command byte and interrupt status.
@@ -278,12 +280,12 @@ private:
 	/**
 	 * Start automatic measurement.
 	 */
-	void			start();
+	void		start();
 
 	/**
 	 * Stop automatic measurement.
 	 */
-	void			stop();
+	void		stop();
 
 	/**
 	 * Reset chip.
@@ -400,7 +402,7 @@ class ADIS16448_gyro : public device::CDev
 {
 public:
 	ADIS16448_gyro(ADIS16448 *parent, const char *path);
-	~ADIS16448_gyro();
+	virtual ~ADIS16448_gyro();
 
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
@@ -429,8 +431,7 @@ class ADIS16448_mag : public device::CDev
 {
 public:
 	ADIS16448_mag(ADIS16448 *parent, const char *path);
-	~ADIS16448_mag();
-
+	virtual ~ADIS16448_mag();
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
@@ -490,8 +491,8 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_accel_filter_z(ADIS16448_ACCEL_DEFAULT_RATE, ADIS16448_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_x(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_y(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
-	_mag_filter_z(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ)
-
+	_mag_filter_z(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
+	_rotation(rotation)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -1458,9 +1459,16 @@ ADIS16448::measure()
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
 
-	float x_gyro_in_new = ((report.gyro_x * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((report.gyro_y * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((report.gyro_z * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	float xraw_f = report.gyro_x;
+	float yraw_f = report.gyro_y;
+	float zraw_f = report.gyro_z;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	float x_gyro_in_new = ((xraw_f * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	float y_gyro_in_new = ((yraw_f * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	float z_gyro_in_new = ((zraw_f * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
 	if(FW_FILTER){
 		grb.x = _gyro_filter_x.apply(x_gyro_in_new);
@@ -1481,9 +1489,16 @@ ADIS16448::measure()
 	arb.y_raw = report.accel_y;
 	arb.z_raw = report.accel_z;
 
-	float x_in_new = ((report.accel_x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((report.accel_y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((report.accel_z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	xraw_f = report.accel_x;
+	yraw_f = report.accel_y;
+	zraw_f = report.accel_z;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
 	if(FW_FILTER){
 		arb.x = _accel_filter_x.apply(x_in_new);
@@ -1504,9 +1519,16 @@ ADIS16448::measure()
 	mrb.y_raw = report.mag_y;
 	mrb.z_raw = report.mag_z;
 
-	float x_mag_new = ((report.mag_x * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	float y_mag_new = ((report.mag_y * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	float z_mag_new = ((report.mag_z * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+	xraw_f = report.mag_x;
+	yraw_f = report.mag_y;
+	zraw_f = report.mag_z;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	float x_mag_new = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	float y_mag_new = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	float z_mag_new = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
 
 	if(FW_FILTER){
 		mrb.x = _mag_filter_x.apply(x_mag_new) / 1000.0f;
@@ -1729,7 +1751,7 @@ void	test();
 void	reset();
 void	info();
 void 	info_cal();
-
+void	usage();
 /**
  * Start the driver.
  */
@@ -1923,6 +1945,14 @@ info_cal()
 	exit(0);
 }
 
+void
+usage()
+{
+	warnx("missing command: try 'start', 'info', 'info_cal', 'reset',\n");
+	warnx("options:");
+	warnx("    -R rotation");
+}
+
 }
 // namespace
 
@@ -1930,37 +1960,54 @@ int
 adis16448_main(int argc, char *argv[])
 {
 	enum Rotation rotation = ROTATION_NONE;
+	int ch;
+
+	/* start options */
+	while ((ch = getopt(argc, argv, "R:")) != EOF) {
+		switch (ch) {
+		case 'R':
+			rotation = (enum Rotation)atoi(optarg);
+			break;
+
+		default:
+			adis16448::usage();
+			exit(0);
+		}
+	}
+
+	const char *verb = argv[optind];
 
 	/*
 	 * Start/load the driver.
 
 	 */
-	if (!strcmp(argv[1], "start"))
+	if (!strcmp(verb, "start"))
 		adis16448::start(rotation);
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(verb, "test"))
 		adis16448::test();
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(verb, "reset"))
 		adis16448::reset();
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(verb, "info"))
 		adis16448::info();
 
 	/*
 	 * Print sensor calibration information.
 	 */
-	if (!strcmp(argv[1], "info_cal"))
+	if (!strcmp(verb, "info_cal"))
 		adis16448::info_cal();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'info_cal'");
+	adis16448::usage();
+	exit(1);
 }
