@@ -58,7 +58,6 @@ Battery::Battery() :
 	_discharged_mah(0.f),
 	_discharged_mah_loop(0.f),
 	_remaining_voltage(1.f),
-	_remaining_capacity(1.f),
 	_remaining(2.f),
 	_scale(1.f),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
@@ -187,16 +186,16 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 
 	// choose which quantity we're using for final reporting
 	if (_capacity.get() > 0.f) {
-		// remaining battery capacity based on used current integrated time
-		_remaining_capacity = math::max(1.f - _discharged_mah / _capacity.get(), 0.f);
-
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		if (_remaining > 1.f) {
-			// initialization of the state
+			// initialization of the estimation state
 			_remaining = _remaining_voltage;
 
 		} else {
-			_remaining = 0.9995f * _remaining + 0.0005f * _remaining_voltage;
+			// The lower the voltage the more adjust the estimate with it to avoid deep discharge
+			const float weight_v = 3e-4f * (1 - _remaining_voltage);
+			_remaining = (1 - weight_v) * _remaining + weight_v * _remaining_voltage;
+			// directly apply current capacity slope calculated using current
 			_remaining -= _discharged_mah_loop / _capacity.get();
 			_remaining = math::max(_remaining, 0.f);
 		}
