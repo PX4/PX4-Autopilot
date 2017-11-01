@@ -130,9 +130,20 @@ public:
 	 */
 	void getCovariance(float &cov00, float &cov11);
 
+	/**
+	 * Get measurement innovation and covariance of last update call
+	 * @param innov Measurement innovation
+	 * @param innovCov Measurement innovation covariance
+	 */
+	void getInnovations(float &innov, float &innovCov);
+
 private:
 	matrix::Vector<float, 2> _x; // state
 
 	matrix::Matrix<float, 2, 2> _covariance; // state covariance
+
+	float _residual; // residual of last measurement update
+
+	float _innovCov; // innovation covariance of last measurement update
 };
 } // namespace beacon_position_estimator

@@ -87,14 +87,14 @@ void KalmanFilter::predict(float dt, float acc, float acc_unc)
 bool KalmanFilter::update(float meas, float measUnc)
 {
 
-	// Implicitly take H = [1, 0]
-	float residual = meas - _x(0);
+	// H = [1, 0]
+	_residual = meas - _x(0);
 
 	// H * P * H^T simply selects P(0,0)
-	float innovCovar = _covariance(0, 0) + measUnc;
+	_innovCov = _covariance(0, 0) + measUnc;
 
 	// outlier rejection
-	float beta = residual / innovCovar * residual;
+	float beta = _residual / _innovCov * _residual;
 
 	// 5% false alarm probability
 	if (beta > 3.84f) {
@@ -104,9 +104,9 @@ bool KalmanFilter::update(float meas, float measUnc)
 	matrix::Vector<float, 2> kalmanGain;
 	kalmanGain(0) = _covariance(0, 0);
 	kalmanGain(1) = _covariance(1, 0);
-	kalmanGain /= innovCovar;
+	kalmanGain /= _innovCov;
 
-	_x += kalmanGain * residual;
+	_x += kalmanGain * _residual;
 
 	matrix::Matrix<float, 2, 2> identity;
 	identity.identity();
@@ -141,6 +141,12 @@ void KalmanFilter::getCovariance(float &cov00, float &cov11)
 {
 	cov00 = _covariance(0, 0);
 	cov11 = _covariance(1, 1);
+}
+
+void KalmanFilter::getInnovations(float &innov, float &innovCov)
+{
+	innov = _residual;
+	innovCov = _innovCov;
 }
 
 } // namespace beacon_position_estimator

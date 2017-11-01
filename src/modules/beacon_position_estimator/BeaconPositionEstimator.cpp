@@ -51,6 +51,7 @@ namespace beacon_position_estimator
 
 BeaconPositionEstimator::BeaconPositionEstimator() :
 	_beaconPositionPub(nullptr),
+	_beaconInnovationsPub(nullptr),
 	_paramHandle(),
 	_vehicleLocalPosition_valid(false),
 	_vehicleAttitude_valid(false),
@@ -66,6 +67,8 @@ BeaconPositionEstimator::BeaconPositionEstimator() :
 	_paramHandle.pos_unc_init = param_find("BEST_POS_UNC_IN");
 	_paramHandle.vel_unc_init = param_find("BEST_VEL_UNC_IN");
 	_paramHandle.mode = param_find("BEST_MODE");
+	_paramHandle.scale_x = param_find("BEST_SCALE_X");
+	_paramHandle.scale_y = param_find("BEST_SCALE_Y");
 
 	// Initialize uORB topics.
 	_initialize_topics();
@@ -122,8 +125,8 @@ void BeaconPositionEstimator::update()
 		// default orientation has camera x pointing in body y, camera y in body -x
 
 		matrix::Vector<float, 3> sensor_ray; // ray pointing towards beacon in body frame
-		sensor_ray(0) = -_irlockReport.pos_y; // forward
-		sensor_ray(1) = _irlockReport.pos_x; // right
+		sensor_ray(0) = -_irlockReport.pos_y * _params.scale_y; // forward
+		sensor_ray(1) = _irlockReport.pos_x * _params.scale_x; // right
 		sensor_ray(2) = 1.0f;
 
 		// rotate the unit ray into the navigation frame, assume sensor frame = body frame
@@ -150,8 +153,10 @@ void BeaconPositionEstimator::update()
 
 			} else {
 				// update
-				bool update_x = _kalman_filter_x.update(_rel_pos(0), _params.meas_unc);
-				bool update_y = _kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
+				bool update_x = _kalman_filter_x.update(_rel_pos(0),
+									_params.meas_unc * _vehicleLocalPosition.dist_bottom * _vehicleLocalPosition.dist_bottom);
+				bool update_y = _kalman_filter_y.update(_rel_pos(1),
+									_params.meas_unc * _vehicleLocalPosition.dist_bottom * _vehicleLocalPosition.dist_bottom);
 
 				if (!update_x || !update_y) {
 					if (!_faulty) {
@@ -206,6 +211,23 @@ void BeaconPositionEstimator::update()
 
 					_last_update = hrt_absolute_time();
 					_last_predict = _last_update;
+				}
+
+				float innov_x, innov_cov_x, innov_y, innov_cov_y;
+				_kalman_filter_x.getInnovations(innov_x, innov_cov_x);
+				_kalman_filter_y.getInnovations(innov_y, innov_cov_y);
+
+				_beacon_innovations.timestamp = hrt_absolute_time();
+				_beacon_innovations.innov_x = innov_x;
+				_beacon_innovations.innov_cov_x = innov_cov_x;
+				_beacon_innovations.innov_y = innov_y;
+				_beacon_innovations.innov_cov_y = innov_cov_y;
+
+				if (_beaconInnovationsPub == nullptr) {
+					_beaconInnovationsPub = orb_advertise(ORB_ID(beacon_innovations), &_beacon_innovations);
+
+				} else {
+					orb_publish(ORB_ID(beacon_innovations), _beaconInnovationsPub, &_beacon_innovations);
 				}
 			}
 
@@ -281,6 +303,8 @@ void BeaconPositionEstimator::_update_params()
 	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
 	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
 	param_get(_paramHandle.mode, &_params.mode);
+	param_get(_paramHandle.scale_x, &_params.scale_x);
+	param_get(_paramHandle.scale_y, &_params.scale_y);
 }
 
 

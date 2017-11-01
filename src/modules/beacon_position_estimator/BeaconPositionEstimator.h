@@ -49,6 +49,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/beacon_position.h>
+#include <uORB/topics/beacon_innovations.h>
 #include <uORB/topics/parameter_update.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -100,6 +101,9 @@ protected:
 	orb_advert_t _beaconPositionPub;
 	struct beacon_position_s _beacon_position;
 
+	orb_advert_t _beaconInnovationsPub;
+	struct beacon_innovations_s _beacon_innovations;
+
 	int _parameterSub;
 
 private:
@@ -118,6 +122,8 @@ private:
 		param_t pos_unc_init;
 		param_t vel_unc_init;
 		param_t mode;
+		param_t scale_x;
+		param_t scale_y;
 	} _paramHandle;
 
 	struct {
@@ -126,6 +132,8 @@ private:
 		float pos_unc_init;
 		float vel_unc_init;
 		BeaconMode mode;
+		float scale_x;
+		float scale_y;
 	} _params;
 
 	int _vehicleLocalPositionSub;

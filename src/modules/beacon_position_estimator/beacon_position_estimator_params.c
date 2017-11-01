@@ -74,12 +74,12 @@ PARAM_DEFINE_FLOAT(BEST_ACC_UNC, 0.1f);
  * Variance of the beacon measurement from the driver.
  * Higher values results in less agressive following of the measurement and a smoother output as well as fewer rejected measurements.
  *
- * @unit m^2
+ * @unit tan(rad)^2
  * @decimal 4
  *
  * @group Beacon Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_MEAS_UNC, 0.0005f);
+PARAM_DEFINE_FLOAT(BEST_MEAS_UNC, 0.005f);
 
 /**
  * Initial beacon position uncertainty
@@ -106,3 +106,27 @@ PARAM_DEFINE_FLOAT(BEST_POS_UNC_IN, 0.1f);
  * @group Beacon Estimator
  */
 PARAM_DEFINE_FLOAT(BEST_VEL_UNC_IN, 1.0f);
+
+/**
+ * Scale factor for sensor measurements in sensor x axis
+ *
+ * Beacon x measurements are scaled by this factor before being used
+ *
+ * @min 0.01
+ * @decimal 3
+ *
+ * @group Beacon Estimator
+ */
+PARAM_DEFINE_FLOAT(BEST_SCALE_X, 1.0f);
+
+/**
+ * Scale factor for sensor measurements in sensor y axis
+ *
+ * Beacon y measurements are scaled by this factor before being used
+ *
+ * @min 0.01
+ * @decimal 3
+ *
+ * @group Beacon Estimator
+ */
+PARAM_DEFINE_FLOAT(BEST_SCALE_Y, 1.0f);
