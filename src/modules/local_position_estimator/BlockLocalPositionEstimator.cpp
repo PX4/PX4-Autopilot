@@ -31,7 +31,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_sensor(ORB_ID(sensor_combined), 1000 / 100, 0, &getSubscriptions()),
 	// status updates 2 hz
 	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
-	_sub_manual(ORB_ID(manual_control_setpoint), 1000 / 2, 0, &getSubscriptions()),
 	// gps 10 hz
 	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
 	// vision 50 hz
