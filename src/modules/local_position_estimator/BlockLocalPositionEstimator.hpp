@@ -122,6 +122,7 @@ public:
 		FUSE_PUB_AGL_Z = 1 << 5,
 		FUSE_FLOW_GYRO_COMP = 1 << 6,
 		FUSE_BARO = 1 << 7,
+		FUSE_LAND_TARGET = 1 << 8
 	};
 
 	enum sensor_t {
@@ -133,6 +134,7 @@ public:
 		SENSOR_VISION = 1 << 5,
 		SENSOR_MOCAP = 1 << 6,
 		SENSOR_LAND = 1 << 7,
+		SENSOR_LAND_TARGET = 1 << 8,
 	};
 
 	enum estimate_t {
@@ -369,8 +371,8 @@ private:
 	bool _lastArmedState;
 
 	// masks
-	uint8_t _sensorTimeout;
-	uint8_t _sensorFault;
+	uint16_t _sensorTimeout;
+	uint16_t _sensorFault;
 	uint8_t _estimatorInitialized;
 
 	// state space
