@@ -97,7 +97,7 @@ int beacon_position_estimator_main(int argc, char *argv[])
 		daemon_task = px4_task_spawn_cmd("beacon_position_estimator",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT,
-						 5000,
+						 1800,
 						 beacon_position_estimator_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		return 0;
