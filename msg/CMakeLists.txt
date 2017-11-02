@@ -123,6 +123,7 @@ set(msg_files
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	beacon_position.msg
+	beacon_innovations.msg
 	)
 
 px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
