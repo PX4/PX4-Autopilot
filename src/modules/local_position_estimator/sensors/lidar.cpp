@@ -7,8 +7,8 @@ extern orb_advert_t mavlink_log_pub;
 // required number of samples for sensor
 // to initialize
 //
-static const uint32_t 		REQ_LIDAR_INIT_COUNT = 10;
-static const uint32_t 		LIDAR_TIMEOUT =   1000000; // 1.0 s
+static const uint32_t		REQ_LIDAR_INIT_COUNT = 10;
+static const uint32_t		LIDAR_TIMEOUT = 1000000;	// 1.0 s
 
 void BlockLocalPositionEstimator::lidarInit()
 {
@@ -34,7 +34,7 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 {
 	// measure
 	float d = _sub_lidar->get().current_distance;
-	float eps = 0.01f; // 1 cm
+	float eps = 0.01f;	// 1 cm
 	float min_dist = _sub_lidar->get().min_distance + eps;
 	float max_dist = _sub_lidar->get().max_distance - eps;
 
@@ -70,8 +70,8 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	C.setZero();
 	// y = -(z - tz)
 	// TODO could add trig to make this an EKF correction
-	C(Y_lidar_z, X_z) = -1; // measured altitude, negative down dir.
-	C(Y_lidar_z, X_tz) = 1; // measured altitude, negative down dir.
+	C(Y_lidar_z, X_z) = -1;	// measured altitude, negative down dir.
+	C(Y_lidar_z, X_tz) = 1;	// measured altitude, negative down dir.
 
 	// use parameter covariance unless sensor provides reasonable value
 	SquareMatrix<float, n_y_lidar> R;

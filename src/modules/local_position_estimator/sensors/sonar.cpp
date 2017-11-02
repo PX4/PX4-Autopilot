@@ -6,9 +6,9 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const int 		REQ_SONAR_INIT_COUNT = 10;
-static const uint32_t 	SONAR_TIMEOUT =   5000000; // 2.0 s
-static const float  	SONAR_MAX_INIT_STD =   0.3f; // meters
+static const int	REQ_SONAR_INIT_COUNT = 10;
+static const uint32_t	SONAR_TIMEOUT = 5000000;	// 2.0 s
+static const float	SONAR_MAX_INIT_STD = 0.3f;	// meters
 
 void BlockLocalPositionEstimator::sonarInit()
 {
@@ -48,7 +48,7 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 {
 	// measure
 	float d = _sub_sonar->get().current_distance;
-	float eps = 0.01f; // 1 cm
+	float eps = 0.01f;	// 1 cm
 	float min_dist = _sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
 
@@ -95,8 +95,8 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	C.setZero();
 	// y = -(z - tz)
 	// TODO could add trig to make this an EKF correction
-	C(Y_sonar_z, X_z) = -1; // measured altitude, negative down dir.
-	C(Y_sonar_z, X_tz) = 1; // measured altitude, negative down dir.
+	C(Y_sonar_z, X_z) = -1;	// measured altitude, negative down dir.
+	C(Y_sonar_z, X_tz) = 1;	// measured altitude, negative down dir.
 
 	// covariance matrix
 	SquareMatrix<float, n_y_sonar> R;
