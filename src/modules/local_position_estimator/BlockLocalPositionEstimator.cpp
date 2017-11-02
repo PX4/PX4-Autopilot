@@ -146,7 +146,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_lastArmedState(false),
 
 	// masks
-	_sensorTimeout(255),
+	_sensorTimeout(UINT16_MAX),
 	_sensorFault(0),
 	_estimatorInitialized(0)
 {
