@@ -6,8 +6,8 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const uint32_t 		REQ_MOCAP_INIT_COUNT = 20;
-static const uint32_t 		MOCAP_TIMEOUT =     200000;	// 0.2 s
+static const uint32_t		REQ_MOCAP_INIT_COUNT = 20;
+static const uint32_t		MOCAP_TIMEOUT = 200000;	// 0.2 s
 
 void BlockLocalPositionEstimator::mocapInit()
 {
@@ -67,7 +67,7 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	// noise matrix
 	Matrix<float, n_y_mocap, n_y_mocap> R;
 	R.setZero();
-	float mocap_p_var = _mocap_p_stddev.get()* \
+	float mocap_p_var = _mocap_p_stddev.get() * \
 			    _mocap_p_stddev.get();
 	R(Y_mocap_x, Y_mocap_x) = mocap_p_var;
 	R(Y_mocap_y, Y_mocap_y) = mocap_p_var;
@@ -79,11 +79,12 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	Matrix<float, n_y_mocap, n_y_mocap> S = C * _P * C.transpose() + R;
 
 	// publish innovations
-	for (int i = 0; i < 3; i ++) {
+	for (int i = 0; i < 3; i++) {
 		_pub_innov.get().vel_pos_innov[i] = r(i);
 		_pub_innov.get().vel_pos_innov_var[i] = S(i, i);
 	}
-	for (int i = 3; i < 6; i ++) {
+
+	for (int i = 3; i < 6; i++) {
 		_pub_innov.get().vel_pos_innov[i] = 0;
 		_pub_innov.get().vel_pos_innov_var[i] = 1;
 	}

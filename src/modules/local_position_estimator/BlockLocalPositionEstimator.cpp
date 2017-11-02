@@ -9,14 +9,14 @@
 orb_advert_t mavlink_log_pub = nullptr;
 
 // required standard deviation of estimate for estimator to publish data
-static const uint32_t 		EST_STDDEV_XY_VALID = 2.0; // 2.0 m
-static const uint32_t 		EST_STDDEV_Z_VALID = 2.0; // 2.0 m
-static const uint32_t 		EST_STDDEV_TZ_VALID = 2.0; // 2.0 m
+static const uint32_t		EST_STDDEV_XY_VALID = 2.0;	// 2.0 m
+static const uint32_t		EST_STDDEV_Z_VALID = 2.0;	// 2.0 m
+static const uint32_t		EST_STDDEV_TZ_VALID = 2.0;	// 2.0 m
 
-static const float P_MAX = 1.0e6f; // max allowed value in state covariance
-static const float LAND_RATE = 10.0f; // rate of land detector correction
+static const float P_MAX = 1.0e6f;	// max allowed value in state covariance
+static const float LAND_RATE = 10.0f;	// rate of land detector correction
 
-static const char *msg_label = "[lpe] ";  // rate of land detector correction
+static const char *msg_label = "[lpe] ";	// rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
@@ -192,8 +192,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
-{
-}
+{}
 
 Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dynamics(
 	float t,
@@ -205,7 +204,6 @@ Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dyn
 
 void BlockLocalPositionEstimator::update()
 {
-
 	// wait for a sensor update, check for exit condition every 100 ms
 	int ret = px4_poll(_polls, 3, 100);
 
@@ -224,7 +222,6 @@ void BlockLocalPositionEstimator::update()
 	bool armedState = _sub_armed.get().armed;
 
 	if (!armedState && (_sub_lidar == nullptr || _sub_sonar == nullptr)) {
-
 		// detect distance sensors
 		for (int i = 0; i < N_DIST_SUBS; i++) {
 			uORB::Subscription<distance_sensor_s> *s = _dist_subs[i];
@@ -260,22 +257,22 @@ void BlockLocalPositionEstimator::update()
 
 	// if (!_lastArmedState && armedState) {
 
-	// 	// we just armed, we are at origin on the ground
-	// 	_x(X_x) = 0;
-	// 	_x(X_y) = 0;
-	// 	// reset Z or not? _x(X_z) = 0;
+	//      // we just armed, we are at origin on the ground
+	//      _x(X_x) = 0;
+	//      _x(X_y) = 0;
+	//      // reset Z or not? _x(X_z) = 0;
 
-	// 	// we aren't moving, all velocities are zero
-	// 	_x(X_vx) = 0;
-	// 	_x(X_vy) = 0;
-	// 	_x(X_vz) = 0;
+	//      // we aren't moving, all velocities are zero
+	//      _x(X_vx) = 0;
+	//      _x(X_vy) = 0;
+	//      _x(X_vz) = 0;
 
-	// 	// assume we are on the ground, so terrain alt is local alt
-	// 	_x(X_tz) = _x(X_z);
+	//      // assume we are on the ground, so terrain alt is local alt
+	//      _x(X_tz) = _x(X_z);
 
-	// 	// reset lowpass filter as well
-	// 	_xLowPass.setState(_x);
-	// 	_aglLowPass.setState(0);
+	//      // reset lowpass filter as well
+	//      _xLowPass.setState(_x);
+	//      _aglLowPass.setState(0);
 	// }
 
 	_lastArmedState = armedState;
@@ -288,7 +285,7 @@ void BlockLocalPositionEstimator::update()
 		int32_t baro_timestamp_relative = _sub_sensor.get().baro_timestamp_relative;
 
 		if (baro_timestamp_relative != _sub_sensor.get().RELATIVE_TIMESTAMP_INVALID) {
-			uint64_t baro_timestamp = _sub_sensor.get().timestamp + \
+			uint64_t baro_timestamp = _sub_sensor.get().timestamp +	\
 						  _sub_sensor.get().baro_timestamp_relative;
 
 			if (baro_timestamp != _timeStampLastBaro) {
@@ -305,7 +302,7 @@ void BlockLocalPositionEstimator::update()
 	bool lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
 	bool landUpdated = landed()
-			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle rate
+			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);		// throttle rate
 
 	// get new data
 	updateSubscriptions();
@@ -319,7 +316,7 @@ void BlockLocalPositionEstimator::update()
 	// is xy valid?
 	bool vxy_stddev_ok = false;
 
-	if (math::max(_P(X_vx, X_vx), _P(X_vy, X_vy)) < _vxy_pub_thresh.get()*_vxy_pub_thresh.get()) {
+	if (math::max(_P(X_vx, X_vx), _P(X_vy, X_vy)) < _vxy_pub_thresh.get() * _vxy_pub_thresh.get()) {
 		vxy_stddev_ok = true;
 	}
 
@@ -386,7 +383,6 @@ void BlockLocalPositionEstimator::update()
 
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
 					     double(_init_origin_lat.get()), double(_init_origin_lon.get()), double(_altOrigin));
-
 	}
 
 	// reinitialize x if necessary
@@ -599,19 +595,19 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().z_valid = _estimatorInitialized & EST_Z;
 		_pub_lpos.get().v_xy_valid = _estimatorInitialized & EST_XY;
 		_pub_lpos.get().v_z_valid = _estimatorInitialized & EST_Z;
-		_pub_lpos.get().x = xLP(X_x); 	// north
-		_pub_lpos.get().y = xLP(X_y);  	// east
+		_pub_lpos.get().x = xLP(X_x);	// north
+		_pub_lpos.get().y = xLP(X_y);	// east
 
 		if (_fusion.get() & FUSE_PUB_AGL_Z) {
-			_pub_lpos.get().z = -_aglLowPass.getState(); // agl
+			_pub_lpos.get().z = -_aglLowPass.getState();	// agl
 
 		} else {
-			_pub_lpos.get().z = xLP(X_z); 	// down
+			_pub_lpos.get().z = xLP(X_z);	// down
 		}
 
-		_pub_lpos.get().vx = xLP(X_vx); // north
-		_pub_lpos.get().vy = xLP(X_vy); // east
-		_pub_lpos.get().vz = xLP(X_vz); // down
+		_pub_lpos.get().vx = xLP(X_vx);	// north
+		_pub_lpos.get().vy = xLP(X_vy);	// east
+		_pub_lpos.get().vz = xLP(X_vz);	// down
 
 		// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
 		_pub_lpos.get().z_deriv = xLP(X_vz);
@@ -624,7 +620,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
 		_pub_lpos.get().ref_alt = _altOrigin;
 		_pub_lpos.get().dist_bottom = _aglLowPass.getState();
-		_pub_lpos.get().dist_bottom_rate = - xLP(X_vz);
+		_pub_lpos.get().dist_bottom_rate = -xLP(X_vz);
 		// we estimate agl even when we don't have terrain info
 		// if you are in terrain following mode this is important
 		// so that if terrain estimation fails there isn't a
@@ -801,7 +797,6 @@ void BlockLocalPositionEstimator::updateSSParams()
 		_pn_t_noise_density.get() +
 		(_t_max_grade.get() / 100.0f) * sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
 	_Q(X_tz, X_tz) = pn_t_noise_density * pn_t_noise_density;
-
 }
 
 void BlockLocalPositionEstimator::predict()
@@ -813,7 +808,7 @@ void BlockLocalPositionEstimator::predict()
 	Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 	// note, bias is removed in dynamics function
 	_u = _R_att * a;
-	_u(U_az) += 9.81f; // add g
+	_u(U_az) += 9.81f;	// add g
 
 	// update state space based on new states
 	updateSSStates();

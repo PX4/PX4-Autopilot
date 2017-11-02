@@ -6,8 +6,8 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const uint32_t 		REQ_BARO_INIT_COUNT = 100;
-static const uint32_t 		BARO_TIMEOUT =   	100000;	// 0.1 s
+static const uint32_t		REQ_BARO_INIT_COUNT = 100;
+static const uint32_t		BARO_TIMEOUT = 100000;	// 0.1 s
 
 void BlockLocalPositionEstimator::baroInit()
 {
@@ -59,7 +59,7 @@ void BlockLocalPositionEstimator::baroCorrect()
 	// baro measurement matrix
 	Matrix<float, n_y_baro, n_x> C;
 	C.setZero();
-	C(Y_baro_z, X_z) = -1; // measured altitude, negative down dir.
+	C(Y_baro_z, X_z) = -1;	// measured altitude, negative down dir.
 
 	Matrix<float, n_y_baro, n_y_baro> R;
 	R.setZero();
