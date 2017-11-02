@@ -155,8 +155,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// masks
 	_sensorTimeout(UINT16_MAX),
 	_sensorFault(0),
-	_estimatorInitialized(0),
-	_targetFault(0)
+	_estimatorInitialized(0)
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -534,7 +533,7 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	if (targetPositionUpdated) {
-		if (!_targetInitialized) {
+		if (_sensorTimeout & SENSOR_TARGET) {
 			landingTargetInit();
 
 		} else {

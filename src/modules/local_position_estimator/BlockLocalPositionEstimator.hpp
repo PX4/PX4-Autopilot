@@ -380,9 +380,6 @@ private:
 	uint64_t _time_last_land;
 	uint64_t _time_last_target;
 
-	// initialization flags
-	bool _targetInitialized;
-
 	// reference altitudes
 	float _altOrigin;
 	bool _altOriginInitialized;
@@ -398,8 +395,6 @@ private:
 	uint16_t _sensorTimeout;
 	uint16_t _sensorFault;
 	uint8_t _estimatorInitialized;
-
-	bool _targetFault; // TODO add to _sensorFault
 
 	// state space
 	Vector<float, n_x>  _x;	// state vector
