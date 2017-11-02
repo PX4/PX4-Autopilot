@@ -74,8 +74,22 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	R(Y_mocap_z, Y_mocap_z) = mocap_p_var;
 
 	// residual
-	Matrix<float, n_y_mocap, n_y_mocap> S_I = inv<float, n_y_mocap>((C * _P * C.transpose()) + R);
-	Matrix<float, n_y_mocap, 1> r = y - C * _x;
+	Vector<float, n_y_mocap> r = y - C * _x;
+	// residual covariance
+	Matrix<float, n_y_mocap, n_y_mocap> S = C * _P * C.transpose()) + R;
+
+	// publish innovations
+	for (int i = 0; i < 3; i ++) {
+		_pub_innov.get().vel_pos_innov[i] = r(i);
+		_pub_innov.get().vel_pos_innov_var[i] = S(i, i);
+	}
+	for (int i = 3; i < 6; i ++) {
+		_pub_innov.get().vel_pos_innov[i] = 0;
+		_pub_innov.get().vel_pos_innov_var[i] = 1;
+	}
+
+	// residual covariance, (inverse)
+	Matrix<float, n_y_mocap, n_y_mocap> S_I = inv(C);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
