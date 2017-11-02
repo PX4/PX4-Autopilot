@@ -180,14 +180,16 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// print fusion settings to console
 	printf("[lpe] fuse gps: %d, flow: %d, vis_pos: %d, "
-	       "vis_yaw: %d, land: %d, pub_agl_z: %d, flow_gyro: %d\n",
+	       "vis_yaw: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
+	       "landing_target %d\n",
 	       (_fusion.get() & FUSE_GPS) != 0,
 	       (_fusion.get() & FUSE_FLOW) != 0,
 	       (_fusion.get() & FUSE_VIS_POS) != 0,
 	       (_fusion.get() & FUSE_VIS_YAW) != 0,
 	       (_fusion.get() & FUSE_LAND) != 0,
 	       (_fusion.get() & FUSE_PUB_AGL_Z) != 0,
-	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0);
+	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
+	       (_fusion.get() & FUSE_LAND_TARGET) != 0);
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
@@ -335,6 +337,7 @@ void BlockLocalPositionEstimator::update()
 			    || !(_sensorTimeout & SENSOR_VISION)
 			    || !(_sensorTimeout & SENSOR_MOCAP)
 			    || !(_sensorTimeout & SENSOR_LAND)
+			    || !(_sensorTimeout & SENSOR_LAND_TARGET)
 			   ) {
 				_estimatorInitialized |= EST_XY;
 			}
