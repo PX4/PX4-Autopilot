@@ -60,13 +60,13 @@ PARAM_DEFINE_INT32(BEST_MODE, 0);
  * Variance of acceleration measurement used for beacon position prediction.
  * Higher values results in tighter following of the measurements and more lenient outlier rejection
  *
- * @unit (m/2^2)^2
+ * @unit (m/s^2)^2
  * @min 0.01
  * @decimal 2
  *
  * @group Beacon Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_ACC_UNC, 0.1f);
+PARAM_DEFINE_FLOAT(BEST_ACC_UNC, 10.0f);
 
 /**
  * Beacon measurement uncertainty
