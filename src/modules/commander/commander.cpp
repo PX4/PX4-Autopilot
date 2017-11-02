@@ -1849,8 +1849,7 @@ int commander_thread_main(int argc, char *argv[])
 			// After that it will be set in the main state
 			// machine based on the arming state.
 			if (param_init_forced) {
-				auto_disarm_hysteresis.set_hysteresis_time_from(false,
-									(hrt_abstime)disarm_when_landed * 1000000.f);
+				auto_disarm_hysteresis.set_hysteresis_time_from(false, disarm_when_landed * 1000000.f);
 			}
 
 			param_get(_param_low_bat_act, &low_bat_action);
