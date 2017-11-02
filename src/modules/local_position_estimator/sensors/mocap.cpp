@@ -76,7 +76,7 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	// residual
 	Vector<float, n_y_mocap> r = y - C * _x;
 	// residual covariance
-	Matrix<float, n_y_mocap, n_y_mocap> S = C * _P * C.transpose()) + R;
+	Matrix<float, n_y_mocap, n_y_mocap> S = C * _P * C.transpose() + R;
 
 	// publish innovations
 	for (int i = 0; i < 3; i ++) {
@@ -89,7 +89,7 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	}
 
 	// residual covariance, (inverse)
-	Matrix<float, n_y_mocap, n_y_mocap> S_I = inv(C);
+	Matrix<float, n_y_mocap, n_y_mocap> S_I = inv<float, n_y_mocap>(S);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);

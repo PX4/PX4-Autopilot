@@ -106,14 +106,14 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	// residual
 	Vector<float, n_y_sonar> r = y - C * _x;
 	// residual covariance
-	Matrix<float, n_y_sonar, n_y_sonar> S = C * _P * C.transpose()) + R;
+	Matrix<float, n_y_sonar, n_y_sonar> S = C * _P * C.transpose() + R;
 
 	// publish innovations
 	_pub_innov.get().hagl_innov = r(0);
 	_pub_innov.get().hagl_innov_var = S(0, 0);
 
 	// residual covariance, (inverse)
-	Matrix<float, n_y_sonar, n_y_sonar> S_I = inv(C);
+	Matrix<float, n_y_sonar, n_y_sonar> S_I = inv<float, n_y_sonar>(S);
 
 	// fault detection
 	float beta = (r.transpose()  * (S_I * r))(0, 0);
