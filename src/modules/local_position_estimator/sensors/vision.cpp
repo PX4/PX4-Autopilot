@@ -7,12 +7,12 @@ extern orb_advert_t mavlink_log_pub;
 // required number of samples for sensor to initialize.
 // This is a vision based position measurement so we assume
 // as soon as we get one measurement it is initialized.
-static const uint32_t 		REQ_VISION_INIT_COUNT = 1;
+static const uint32_t		REQ_VISION_INIT_COUNT = 1;
 
 // We don't want to deinitialize it because
 // this will throw away a correction before it starts using the data so we
 // set the timeout to 0.5 seconds
-static const uint32_t 		VISION_TIMEOUT =    500000;	// 0.5 s
+static const uint32_t		VISION_TIMEOUT = 500000;	// 0.5 s
 
 void BlockLocalPositionEstimator::visionInit()
 {
@@ -102,7 +102,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// vision delayed x
 	uint8_t i_hist = 0;
 
-	float vision_delay = (_timeStamp - _sub_vision_pos.get().timestamp) * 1e-6f; // measurement delay in seconds
+	float vision_delay = (_timeStamp - _sub_vision_pos.get().timestamp) * 1e-6f;	// measurement delay in seconds
 
 	if (vision_delay < 0.0f) { vision_delay = 0.0f; }
 

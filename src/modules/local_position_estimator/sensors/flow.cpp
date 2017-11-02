@@ -7,8 +7,8 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const uint32_t 		REQ_FLOW_INIT_COUNT = 10;
-static const uint32_t 		FLOW_TIMEOUT = 1000000;	// 1 s
+static const uint32_t		REQ_FLOW_INIT_COUNT = 10;
+static const uint32_t		FLOW_TIMEOUT = 1000000;	// 1 s
 
 // minimum flow altitude
 static const float flow_min_agl = 0.3;
@@ -89,8 +89,8 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	// compute velocities in body frame using ground distance
 	// note that the integral rates in the optical_flow uORB topic are RH rotations about body axes
 	Vector3f delta_b(
-		+(flow_y_rad - gyro_y_rad)*d,
-		-(flow_x_rad - gyro_x_rad)*d,
+		+(flow_y_rad - gyro_y_rad) * d,
+		-(flow_x_rad - gyro_x_rad) * d,
 		0);
 
 	// rotation of flow from body to nav frame
@@ -201,9 +201,7 @@ void BlockLocalPositionEstimator::flowCorrect()
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
 		_P -= K * C * _P;
-
 	}
-
 }
 
 void BlockLocalPositionEstimator::flowCheckTimeout()
