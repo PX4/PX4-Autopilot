@@ -185,7 +185,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	Vector<float, n_y_gps> r = y - C * x0;
 
 	// residual covariance
-	Matrix<float, n_y_gps, n_y_gps> S = C * _P * C.transpose()) + R;
+	Matrix<float, n_y_gps, n_y_gps> S = C * _P * C.transpose() + R;
 
 	// publish innovations
 	for (int i = 0; i < 6; i ++) {
@@ -194,7 +194,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	}
 
 	// residual covariance, (inverse)
-	Matrix<float, n_y_gps, n_y_gps> S_I = inv(C);
+	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, n_y_gps>(S);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
