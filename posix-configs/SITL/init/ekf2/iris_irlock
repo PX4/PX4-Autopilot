@@ -44,8 +44,8 @@ param set SENS_BOARD_X_OFF 0.000001
 param set SYS_AUTOSTART 4010
 param set SYS_MC_EST_GROUP 2
 param set SYS_RESTART_TYPE 2
-# enable fusion of beacon velocity
-param set BEST_MODE 1
+# enable fusion of landing target velocity
+param set LTEST_MODE 1
 
 replay tryapplyparams
 simulator start -s
@@ -61,7 +61,7 @@ commander start
 land_detector start multicopter
 navigator start
 ekf2 start
-beacon_position_estimator start
+landing_target_estimator start
 mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_dc.main.mix

@@ -32,101 +32,101 @@
  ****************************************************************************/
 
 /**
- * @file beacon_position_estimator_params.c
- * Beacon estimator algorithm parameters.
+ * @file landing_target_estimator_params.c
+ * Landing target estimator algorithm parameters.
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
 /**
- * Beacon mode
+ * Landing target mode
  *
- * Configure the mode of the beacon. Depending on the mode, the beacon observations are used differently to aid position estimation.
+ * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
  *
- * Mode Moving:			The beacon may be moving around while in the field of view of the vehicle. Beacon measurements are not used to aid positioning.
- * Mode Stationary:		The beacon is stationary. Measured velocity w.r.t. the beacon is used to aid velocity estimation.
+ * Mode Moving:			The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning.
+ * Mode Stationary:		The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.
  *
  * @min 0
  * @max 1
- * @group Beacon Estimator
+ * @group Landing target Estimator
  * @value 0 Moving
  * @value 1 Stationary
  */
-PARAM_DEFINE_INT32(BEST_MODE, 0);
+PARAM_DEFINE_INT32(LTEST_MODE, 0);
 
 /**
  * Acceleration uncertainty
  *
- * Variance of acceleration measurement used for beacon position prediction.
+ * Variance of acceleration measurement used for landing target position prediction.
  * Higher values results in tighter following of the measurements and more lenient outlier rejection
  *
  * @unit (m/s^2)^2
  * @min 0.01
  * @decimal 2
  *
- * @group Beacon Estimator
+ * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_ACC_UNC, 10.0f);
+PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
 
 /**
- * Beacon measurement uncertainty
+ * Landing target measurement uncertainty
  *
- * Variance of the beacon measurement from the driver.
+ * Variance of the landing target measurement from the driver.
  * Higher values results in less agressive following of the measurement and a smoother output as well as fewer rejected measurements.
  *
  * @unit tan(rad)^2
  * @decimal 4
  *
- * @group Beacon Estimator
+ * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_MEAS_UNC, 0.005f);
+PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
 
 /**
- * Initial beacon position uncertainty
+ * Initial landing target position uncertainty
  *
- * Initial variance of the relative beacon position in x and y direction
+ * Initial variance of the relative landing target position in x and y direction
  *
  * @unit m^2
  * @min 0.001
  * @decimal 3
  *
- * @group Beacon Estimator
+ * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_POS_UNC_IN, 0.1f);
+PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
 
 /**
- * Initial beacon velocity uncertainty
+ * Initial landing target velocity uncertainty
  *
- * Initial variance of the relative beacon velocity in x and y direction
+ * Initial variance of the relative landing target velocity in x and y direction
  *
  * @unit (m/s)^2
  * @min 0.001
  * @decimal 3
  *
- * @group Beacon Estimator
+ * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_VEL_UNC_IN, 1.0f);
+PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 1.0f);
 
 /**
  * Scale factor for sensor measurements in sensor x axis
  *
- * Beacon x measurements are scaled by this factor before being used
+ * Landing target x measurements are scaled by this factor before being used
  *
  * @min 0.01
  * @decimal 3
  *
- * @group Beacon Estimator
+ * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_SCALE_X, 1.0f);
+PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
 
 /**
  * Scale factor for sensor measurements in sensor y axis
  *
- * Beacon y measurements are scaled by this factor before being used
+ * Landing target y measurements are scaled by this factor before being used
  *
  * @min 0.01
  * @decimal 3
  *
- * @group Beacon Estimator
+ * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(BEST_SCALE_Y, 1.0f);
+PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);

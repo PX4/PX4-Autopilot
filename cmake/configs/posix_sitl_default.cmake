@@ -111,7 +111,7 @@ set(config_module_list
 	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
-	modules/beacon_position_estimator
+	modules/landing_target_estimator
 
 	#
 	# Libraries

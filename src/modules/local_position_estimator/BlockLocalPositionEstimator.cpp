@@ -45,7 +45,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_dist_subs(),
 	_sub_lidar(nullptr),
 	_sub_sonar(nullptr),
-	_sub_beacon_position(ORB_ID(beacon_position), 1000 / 40, 0, &getSubscriptions()),
+	_sub_landing_target_pose(ORB_ID(landing_target_pose), 1000 / 40, 0, &getSubscriptions()),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -93,9 +93,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pn_t_noise_density(this, "PN_T"),
 	_t_max_grade(this, "T_MAX_GRADE"),
 
-	// beacon
-	_beacon_min_cov(this, "BCN_COV"),
-	_beacon_mode(this, "BEST_MODE", false),
+	// landing target
+	_target_min_cov(this, "LT_COV"),
+	_target_mode(this, "LTEST_MODE", false),
 
 	// init origin
 	_fake_origin(this, "FAKE_ORIGIN"),
@@ -139,7 +139,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
 	_time_last_land(0),
-	_time_last_beacon(0),
+	_time_last_target(0),
 
 	// reference altitudes
 	_altOrigin(0),
@@ -156,7 +156,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sensorTimeout(UINT16_MAX),
 	_sensorFault(0),
 	_estimatorInitialized(0),
-	_beaconFault(0)
+	_targetFault(0)
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -316,8 +316,8 @@ void BlockLocalPositionEstimator::update()
 	bool lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
 	bool landUpdated = landed()
-			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);		// throttle rate
-	bool beaconPositionUpdated = _sub_beacon_position.updated();
+			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle rate
+	bool targetPositionUpdated = _sub_landing_target_pose.updated();
 
 	// get new data
 	updateSubscriptions();
@@ -533,12 +533,12 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (beaconPositionUpdated) {
-		if (!_beaconInitialized) {
-			beaconInit();
+	if (targetPositionUpdated) {
+		if (!_targetInitialized) {
+			landingTargetInit();
 
 		} else {
-			beaconCorrect();
+			landingTargetCorrect();
 		}
 	}
 
@@ -577,7 +577,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	visionCheckTimeout();
 	mocapCheckTimeout();
 	landCheckTimeout();
-	beaconCheckTimeout();
+	landingTargetCheckTimeout();
 }
 
 bool BlockLocalPositionEstimator::landed()

@@ -21,7 +21,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/beacon_position.h>
+#include <uORB/topics/landing_target_pose.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -113,7 +113,7 @@ public:
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
 	enum {Y_land_vx = 0, Y_land_vy, Y_land_agl, n_y_land};
-	enum {Y_beacon_x = 0, Y_beacon_y, n_y_beacon};
+	enum {Y_target_x = 0, Y_target_y, n_y_target};
 	enum {POLL_FLOW = 0, POLL_SENSORS, POLL_PARAM, n_poll};
 	enum {
 		FUSE_GPS = 1 << 0,
@@ -218,11 +218,11 @@ private:
 	void landInit();
 	void landCheckTimeout();
 
-	// beacon
-	int  beaconMeasure(Vector<float, n_y_beacon> &y);
-	void beaconCorrect();
-	void beaconInit();
-	void beaconCheckTimeout();
+	// landing target
+	int  landingTargetMeasure(Vector<float, n_y_target> &y);
+	void landingTargetCorrect();
+	void landingTargetInit();
+	void landingTargetCheckTimeout();
 
 	// timeouts
 	void checkTimeouts();
@@ -260,7 +260,7 @@ private:
 	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
 	uORB::Subscription<distance_sensor_s> *_sub_lidar;
 	uORB::Subscription<distance_sensor_s> *_sub_sonar;
-	uORB::Subscription<beacon_position_s> _sub_beacon_position;
+	uORB::Subscription<landing_target_pose_s> _sub_landing_target_pose;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
@@ -328,13 +328,13 @@ private:
 	BlockParamFloat  _pn_t_noise_density;
 	BlockParamFloat  _t_max_grade;
 
-	// beacon mode paramters from beacon_position_estimator module
-	enum BeaconMode {
-		Beacon_Moving = 0,
-		Beacon_Stationary = 1
+	// target mode paramters from landing_target_estimator module
+	enum TargetMode {
+		Target_Moving = 0,
+		Target_Stationary = 1
 	};
-	BlockParamFloat _beacon_min_cov;
-	BlockParamInt 	_beacon_mode;
+	BlockParamFloat _target_min_cov;
+	BlockParamInt 	_target_mode;
 
 	// init origin
 	BlockParamInt    _fake_origin;
@@ -378,10 +378,10 @@ private:
 	uint64_t _time_last_vision_p;
 	uint64_t _time_last_mocap;
 	uint64_t _time_last_land;
-	uint64_t _time_last_beacon;
+	uint64_t _time_last_target;
 
 	// initialization flags
-	bool _beaconInitialized;
+	bool _targetInitialized;
 
 	// reference altitudes
 	float _altOrigin;
@@ -399,7 +399,7 @@ private:
 	uint16_t _sensorFault;
 	uint8_t _estimatorInitialized;
 
-	bool _beaconFault; // TODO add to _sensorFault
+	bool _targetFault; // TODO add to _sensorFault
 
 	// state space
 	Vector<float, n_x>  _x;	// state vector

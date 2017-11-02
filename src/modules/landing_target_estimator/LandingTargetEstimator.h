@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /*
- * @file BeaconPositionEstimator.h
- * Beacon position estimator. Filter and publish the position of a ground beacon as observed by an onboard sensor.
+ * @file LandingTargetEstimator.h
+ * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
@@ -48,8 +48,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/irlock_report.h>
-#include <uORB/topics/beacon_position.h>
-#include <uORB/topics/beacon_innovations.h>
+#include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/landing_target_innovations.h>
 #include <uORB/topics/parameter_update.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -57,15 +57,15 @@
 #include "KalmanFilter.h"
 
 
-namespace beacon_position_estimator
+namespace landing_target_estimator
 {
 
-class BeaconPositionEstimator
+class LandingTargetEstimator
 {
 public:
 
-	BeaconPositionEstimator();
-	virtual ~BeaconPositionEstimator();
+	LandingTargetEstimator();
+	virtual ~LandingTargetEstimator();
 
 	/*
 	 * Get new measurements and update the state estimate
@@ -95,20 +95,20 @@ protected:
 	 */
 	static bool _orb_update(const struct orb_metadata *meta, int handle, void *buffer);
 
-	/* timeout after which filter is reset if beacon not seen */
-	static constexpr uint32_t beacon_position_estimator_TIMEOUT_US = 2000000;
+	/* timeout after which filter is reset if target not seen */
+	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 2000000;
 
-	orb_advert_t _beaconPositionPub;
-	struct beacon_position_s _beacon_position;
+	orb_advert_t _targetPosePub;
+	struct landing_target_pose_s _target_pose;
 
-	orb_advert_t _beaconInnovationsPub;
-	struct beacon_innovations_s _beacon_innovations;
+	orb_advert_t _targetInnovationsPub;
+	struct landing_target_innovations_s _target_innovations;
 
 	int _parameterSub;
 
 private:
 
-	enum class BeaconMode {
+	enum class TargetMode {
 		Moving = 0,
 		Stationary
 	};
@@ -131,7 +131,7 @@ private:
 		float meas_unc;
 		float pos_unc_init;
 		float vel_unc_init;
-		BeaconMode mode;
+		TargetMode mode;
 		float scale_x;
 		float scale_y;
 	} _params;
@@ -168,4 +168,4 @@ private:
 };
 
 
-} // namespace beacon_position_estimator
+} // namespace landing_target_estimator

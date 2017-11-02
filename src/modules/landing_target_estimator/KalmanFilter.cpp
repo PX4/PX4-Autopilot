@@ -40,7 +40,7 @@
 
 #include "KalmanFilter.h"
 
-namespace beacon_position_estimator
+namespace landing_target_estimator
 {
 KalmanFilter::KalmanFilter(matrix::Vector<float, 2> initial, matrix::Matrix<float, 2, 2> covInit)
 {
@@ -149,4 +149,4 @@ void KalmanFilter::getInnovations(float &innov, float &innovCov)
 	innovCov = _innovCov;
 }
 
-} // namespace beacon_position_estimator
+} // namespace landing_target_estimator

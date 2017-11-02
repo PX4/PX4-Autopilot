@@ -48,7 +48,7 @@ px4_add_module(
 		sensors/vision.cpp
 		sensors/mocap.cpp
 		sensors/land.cpp
-		sensors/beacon.cpp
+		sensors/landing_target.cpp
 	DEPENDS
 		platforms__common
 	)

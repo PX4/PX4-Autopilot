@@ -33,7 +33,7 @@
 /**
  * @file precland.h
  *
- * Helper class to do precision landing with a beacon
+ * Helper class to do precision landing with a landing target
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
@@ -43,7 +43,7 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
-#include <uORB/topics/beacon_position.h>
+#include <uORB/topics/landing_target_pose.h>
 #include <geo/geo.h>
 
 #include "navigator_mode.h"
@@ -51,16 +51,16 @@
 
 enum class PrecLandState {
 	Start, // Starting state
-	HorizontalApproach, // Positioning over beacon while maintaining altitude
-	DescendAboveBeacon, // Stay over beacon while descending
-	FinalApproach, // Final landing approach, even without beacon
-	Search, // Search for beacon
+	HorizontalApproach, // Positioning over landing target while maintaining altitude
+	DescendAboveTarget, // Stay over landing target while descending
+	FinalApproach, // Final landing approach, even without landing target
+	Search, // Search for landing target
 	Fallback // Fallback landing method
 };
 
 enum class PrecLandMode {
-	Opportunistic = 1, // only do precision landing if beacon visible at the beginning
-	Required = 2 // try to find beacon if not visible at the beginning
+	Opportunistic = 1, // only do precision landing if landing target visible at the beginning
+	Required = 2 // try to find landing target if not visible at the beginning
 };
 
 class PrecLand : public MissionBlock
@@ -84,7 +84,7 @@ private:
 	// run the control loop for each state
 	void run_state_start();
 	void run_state_horizontal_approach();
-	void run_state_descend_above_beacon();
+	void run_state_descend_above_target();
 	void run_state_final_approach();
 	void run_state_search();
 	void run_state_fallback();
@@ -92,7 +92,7 @@ private:
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
 	bool switch_to_state_start();
 	bool switch_to_state_horizontal_approach();
-	bool switch_to_state_descend_above_beacon();
+	bool switch_to_state_descend_above_target();
 	bool switch_to_state_final_approach();
 	bool switch_to_state_search();
 	bool switch_to_state_fallback();
@@ -101,15 +101,15 @@ private:
 	bool check_state_conditions(PrecLandState state);
 	void slewrate(float &sp_x, float &sp_y);
 
-	beacon_position_s _beacon_position{}; /**< precision land beacon position */
-	int _beaconPositionSub;
-	bool _beacon_position_valid; /**< wether we have received a beacon position message */
+	landing_target_pose_s _target_pose{}; /**< precision landing target position */
+	int _targetPoseSub;
+	bool _target_pose_valid; /**< wether we have received a landing target position message */
 	struct map_projection_reference_s _map_ref {}; /**< reference for local/global projections */
 	uint64_t _state_start_time; /**< time when we entered current state */
 	uint64_t _last_slewrate_time; /**< time when we last limited setpoint changes */
-	uint64_t _beacon_acquired_time; /**< time when we first saw the beacon during search */
+	uint64_t _target_acquired_time; /**< time when we first saw the landing target during search */
 	uint64_t _start_point_reached_time; /**< time when we reached the start waypoint */
-	int _search_cnt; /**< counter of how many times we had to search for the beacon */
+	int _search_cnt; /**< counter of how many times we had to search for the landing target */
 	float _approach_alt; /**< altitude at which to stay during horizontal approach */
 
 	matrix::Vector2f _sp_pev;

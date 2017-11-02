@@ -425,7 +425,7 @@ PARAM_DEFINE_FLOAT(LPE_LAND_Z, 0.03f);
 PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
 
 /**
- * Minimum Beacon standard covariance, uses reported covariance if greater.
+ * Minimum landing target standard covariance, uses reported covariance if greater.
  *
  * @group Local Position Estimator
  * @unit m^2
@@ -433,7 +433,7 @@ PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
  * @max 10
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(LPE_BCN_COV, 0.0001f);
+PARAM_DEFINE_FLOAT(LPE_LT_COV, 0.0001f);
 
 /**
  * Integer bitmask controlling data fusion

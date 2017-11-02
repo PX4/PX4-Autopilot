@@ -52,7 +52,7 @@
 
 #pragma once
 
-namespace beacon_position_estimator
+namespace landing_target_estimator
 {
 class KalmanFilter
 {
@@ -146,4 +146,4 @@ private:
 
 	float _innovCov; // innovation covariance of last measurement update
 };
-} // namespace beacon_position_estimator
+} // namespace landing_target_estimator

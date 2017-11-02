@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file BeaconPositionEstimator.cpp
+ * @file LandingTargetEstimator.cpp
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
@@ -41,17 +41,17 @@
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 
-#include "BeaconPositionEstimator.h"
+#include "LandingTargetEstimator.h"
 
 #define SEC2USEC 1000000.0f
 
 
-namespace beacon_position_estimator
+namespace landing_target_estimator
 {
 
-BeaconPositionEstimator::BeaconPositionEstimator() :
-	_beaconPositionPub(nullptr),
-	_beaconInnovationsPub(nullptr),
+LandingTargetEstimator::LandingTargetEstimator() :
+	_targetPosePub(nullptr),
+	_targetInnovationsPub(nullptr),
 	_paramHandle(),
 	_vehicleLocalPosition_valid(false),
 	_vehicleAttitude_valid(false),
@@ -62,13 +62,13 @@ BeaconPositionEstimator::BeaconPositionEstimator() :
 	_last_predict(0),
 	_last_update(0)
 {
-	_paramHandle.acc_unc = param_find("BEST_ACC_UNC");
-	_paramHandle.meas_unc = param_find("BEST_MEAS_UNC");
-	_paramHandle.pos_unc_init = param_find("BEST_POS_UNC_IN");
-	_paramHandle.vel_unc_init = param_find("BEST_VEL_UNC_IN");
-	_paramHandle.mode = param_find("BEST_MODE");
-	_paramHandle.scale_x = param_find("BEST_SCALE_X");
-	_paramHandle.scale_y = param_find("BEST_SCALE_Y");
+	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
+	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
+	_paramHandle.pos_unc_init = param_find("LTEST_POS_UNC_IN");
+	_paramHandle.vel_unc_init = param_find("LTEST_VEL_UNC_IN");
+	_paramHandle.mode = param_find("LTEST_MODE");
+	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
+	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
 
 	// Initialize uORB topics.
 	_initialize_topics();
@@ -76,11 +76,11 @@ BeaconPositionEstimator::BeaconPositionEstimator() :
 	_check_params(true);
 }
 
-BeaconPositionEstimator::~BeaconPositionEstimator()
+LandingTargetEstimator::~LandingTargetEstimator()
 {
 }
 
-void BeaconPositionEstimator::update()
+void LandingTargetEstimator::update()
 {
 	_check_params(false);
 
@@ -88,7 +88,7 @@ void BeaconPositionEstimator::update()
 
 	/* predict */
 	if (_estimator_initialized) {
-		if (hrt_absolute_time() - _last_update > beacon_position_estimator_TIMEOUT_US) {
+		if (hrt_absolute_time() - _last_update > landing_target_estimator_TIMEOUT_US) {
 			PX4_WARN("Timeout");
 			_estimator_initialized = false;
 
@@ -96,7 +96,7 @@ void BeaconPositionEstimator::update()
 			   && _vehicleLocalPosition.v_xy_valid) {
 			float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
-			// predict beacon position with the help of accel data
+			// predict target position with the help of accel data
 			matrix::Vector3f a;
 
 			if (_sensorCombined_valid) {
@@ -124,7 +124,7 @@ void BeaconPositionEstimator::update()
 		// TODO account for sensor orientation as set by parameter
 		// default orientation has camera x pointing in body y, camera y in body -x
 
-		matrix::Vector<float, 3> sensor_ray; // ray pointing towards beacon in body frame
+		matrix::Vector<float, 3> sensor_ray; // ray pointing towards target in body frame
 		sensor_ray(0) = -_irlockReport.pos_y * _params.scale_y; // forward
 		sensor_ray(1) = _irlockReport.pos_x * _params.scale_x; // right
 		sensor_ray(2) = 1.0f;
@@ -161,7 +161,7 @@ void BeaconPositionEstimator::update()
 				if (!update_x || !update_y) {
 					if (!_faulty) {
 						_faulty = true;
-						PX4_WARN("Beacon measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
+						PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
 					}
 
 				} else {
@@ -171,7 +171,7 @@ void BeaconPositionEstimator::update()
 				if (!_faulty) {
 					// only publish if both measurements were good
 
-					_beacon_position.timestamp = hrt_absolute_time();
+					_target_pose.timestamp = hrt_absolute_time();
 
 					float x, xvel, y, yvel, covx, covx_v, covy, covy_v;
 					_kalman_filter_x.getState(x, xvel);
@@ -180,33 +180,33 @@ void BeaconPositionEstimator::update()
 					_kalman_filter_y.getState(y, yvel);
 					_kalman_filter_y.getCovariance(covy, covy_v);
 
-					_beacon_position.rel_pos_valid = true;
-					_beacon_position.rel_vel_valid = true;
-					_beacon_position.x_rel = x;
-					_beacon_position.y_rel = y;
-					_beacon_position.vx_rel = xvel;
-					_beacon_position.vy_rel = yvel;
+					_target_pose.rel_pos_valid = true;
+					_target_pose.rel_vel_valid = true;
+					_target_pose.x_rel = x;
+					_target_pose.y_rel = y;
+					_target_pose.vx_rel = xvel;
+					_target_pose.vy_rel = yvel;
 
-					_beacon_position.cov_x_rel = covx;
-					_beacon_position.cov_y_rel = covy;
+					_target_pose.cov_x_rel = covx;
+					_target_pose.cov_y_rel = covy;
 
-					_beacon_position.cov_vx_rel = covx_v;
-					_beacon_position.cov_vy_rel = covy_v;
+					_target_pose.cov_vx_rel = covx_v;
+					_target_pose.cov_vy_rel = covy_v;
 
 					if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid) {
-						_beacon_position.x_abs = x + _vehicleLocalPosition.x;
-						_beacon_position.y_abs = y + _vehicleLocalPosition.y;
-						_beacon_position.abs_pos_valid = true;
+						_target_pose.x_abs = x + _vehicleLocalPosition.x;
+						_target_pose.y_abs = y + _vehicleLocalPosition.y;
+						_target_pose.abs_pos_valid = true;
 
 					} else {
-						_beacon_position.abs_pos_valid = false;
+						_target_pose.abs_pos_valid = false;
 					}
 
-					if (_beaconPositionPub == nullptr) {
-						_beaconPositionPub = orb_advertise(ORB_ID(beacon_position), &_beacon_position);
+					if (_targetPosePub == nullptr) {
+						_targetPosePub = orb_advertise(ORB_ID(landing_target_pose), &_target_pose);
 
 					} else {
-						orb_publish(ORB_ID(beacon_position), _beaconPositionPub, &_beacon_position);
+						orb_publish(ORB_ID(landing_target_pose), _targetPosePub, &_target_pose);
 					}
 
 					_last_update = hrt_absolute_time();
@@ -217,17 +217,17 @@ void BeaconPositionEstimator::update()
 				_kalman_filter_x.getInnovations(innov_x, innov_cov_x);
 				_kalman_filter_y.getInnovations(innov_y, innov_cov_y);
 
-				_beacon_innovations.timestamp = hrt_absolute_time();
-				_beacon_innovations.innov_x = innov_x;
-				_beacon_innovations.innov_cov_x = innov_cov_x;
-				_beacon_innovations.innov_y = innov_y;
-				_beacon_innovations.innov_cov_y = innov_cov_y;
+				_target_innovations.timestamp = hrt_absolute_time();
+				_target_innovations.innov_x = innov_x;
+				_target_innovations.innov_cov_x = innov_cov_x;
+				_target_innovations.innov_y = innov_y;
+				_target_innovations.innov_cov_y = innov_cov_y;
 
-				if (_beaconInnovationsPub == nullptr) {
-					_beaconInnovationsPub = orb_advertise(ORB_ID(beacon_innovations), &_beacon_innovations);
+				if (_targetInnovationsPub == nullptr) {
+					_targetInnovationsPub = orb_advertise(ORB_ID(landing_target_innovations), &_target_innovations);
 
 				} else {
-					orb_publish(ORB_ID(beacon_innovations), _beaconInnovationsPub, &_beacon_innovations);
+					orb_publish(ORB_ID(landing_target_innovations), _targetInnovationsPub, &_target_innovations);
 				}
 			}
 
@@ -239,7 +239,7 @@ void BeaconPositionEstimator::update()
 	}
 }
 
-void BeaconPositionEstimator::_check_params(const bool force)
+void LandingTargetEstimator::_check_params(const bool force)
 {
 	bool updated;
 	parameter_update_s paramUpdate;
@@ -255,7 +255,7 @@ void BeaconPositionEstimator::_check_params(const bool force)
 	}
 }
 
-void BeaconPositionEstimator::_initialize_topics()
+void LandingTargetEstimator::_initialize_topics()
 {
 	// subscribe to position, attitude, arming and velocity changes
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -265,7 +265,7 @@ void BeaconPositionEstimator::_initialize_topics()
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 }
 
-void BeaconPositionEstimator::_update_topics()
+void LandingTargetEstimator::_update_topics()
 {
 	_vehicleLocalPosition_valid = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub,
 				      &_vehicleLocalPosition);
@@ -276,7 +276,7 @@ void BeaconPositionEstimator::_update_topics()
 }
 
 
-bool BeaconPositionEstimator::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)
+bool LandingTargetEstimator::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)
 {
 	bool newData = false;
 
@@ -296,7 +296,7 @@ bool BeaconPositionEstimator::_orb_update(const struct orb_metadata *meta, int h
 	return true;
 }
 
-void BeaconPositionEstimator::_update_params()
+void LandingTargetEstimator::_update_params()
 {
 	param_get(_paramHandle.acc_unc, &_params.acc_unc);
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
@@ -308,4 +308,4 @@ void BeaconPositionEstimator::_update_params()
 }
 
 
-} // namespace beacon_position_estimator
+} // namespace landing_target_estimator

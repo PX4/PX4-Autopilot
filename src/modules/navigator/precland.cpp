@@ -33,7 +33,7 @@
 /**
  * @file precland.cpp
  *
- * Helper class to do precision landing with a beacon
+ * Helper class to do precision landing with a landing target
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
@@ -61,8 +61,8 @@
 
 PrecLand::PrecLand(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_beaconPositionSub(0),
-	_beacon_position_valid(false),
+	_targetPoseSub(0),
+	_target_pose_valid(false),
 	_state_start_time(0),
 	_search_cnt(0),
 	_approach_alt(0),
@@ -94,8 +94,8 @@ void
 PrecLand::on_activation()
 {
 	// We need to subscribe here and not in the constructor because constructor is called before the navigator task is spawned
-	if (!_beaconPositionSub) {
-		_beaconPositionSub = orb_subscribe(ORB_ID(beacon_position));
+	if (!_targetPoseSub) {
+		_targetPoseSub = orb_subscribe(ORB_ID(landing_target_pose));
 	}
 
 	_state = PrecLandState::Start;
@@ -132,17 +132,17 @@ PrecLand::on_activation()
 void
 PrecLand::on_active()
 {
-	// get new beacon measurement
+	// get new target measurement
 	bool updated = false;
-	orb_check(_beaconPositionSub, &updated);
+	orb_check(_targetPoseSub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(beacon_position), _beaconPositionSub, &_beacon_position);
-		_beacon_position_valid = true;
+		orb_copy(ORB_ID(landing_target_pose), _targetPoseSub, &_target_pose);
+		_target_pose_valid = true;
 	}
 
-	if (hrt_absolute_time() - _beacon_position.timestamp > (uint64_t)(_param_timeout.get()*SEC2USEC)) {
-		_beacon_position_valid = false;
+	if (hrt_absolute_time() - _target_pose.timestamp > (uint64_t)(_param_timeout.get()*SEC2USEC)) {
+		_target_pose_valid = false;
 	}
 
 	switch (_state) {
@@ -154,8 +154,8 @@ PrecLand::on_active()
 		run_state_horizontal_approach();
 		break;
 
-	case PrecLandState::DescendAboveBeacon:
-		run_state_descend_above_beacon();
+	case PrecLandState::DescendAboveTarget:
+		run_state_descend_above_target();
 		break;
 
 	case PrecLandState::FinalApproach:
@@ -180,13 +180,13 @@ PrecLand::on_active()
 void
 PrecLand::run_state_start()
 {
-	// check if beacon visible and go to horizontal approach
+	// check if target visible and go to horizontal approach
 	if (switch_to_state_horizontal_approach()) {
 		return;
 	}
 
 	if (_mode == PrecLandMode::Opportunistic) {
-		// could not see the beacon immediately, so just fall back to normal landing
+		// could not see the target immediately, so just fall back to normal landing
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to search or fallback landing");
 		}
@@ -202,7 +202,7 @@ PrecLand::run_state_start()
 			_start_point_reached_time = hrt_absolute_time();
 		}
 
-		// if we don't see the beacon after 2 seconds, search for it
+		// if we don't see the target after 2 seconds, search for it
 		if (_param_search_timeout.get() > 0) {
 			if (hrt_absolute_time() - _state_start_time > 2000000) {
 				if (!switch_to_state_search()) {
@@ -225,11 +225,11 @@ PrecLand::run_state_horizontal_approach()
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	// check if beacon visible, if not go to start
+	// check if target visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
-		PX4_WARN("Lost beacon while landig (horizontal approach).");
+		PX4_WARN("Lost landing target while landig (horizontal approach).");
 
-		// Stay at current position for searching for the beacon
+		// Stay at current position for searching for the landing target
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
@@ -243,8 +243,8 @@ PrecLand::run_state_horizontal_approach()
 		return;
 	}
 
-	// if close enough for descent above beacon go to descend above beacon
-	if (switch_to_state_descend_above_beacon()) {
+	// if close enough for descent above target go to descend above target
+	if (switch_to_state_descend_above_target()) {
 		return;
 	}
 
@@ -256,8 +256,8 @@ PrecLand::run_state_horizontal_approach()
 		}
 	}
 
-	float x = _beacon_position.x_abs;
-	float y = _beacon_position.y_abs;
+	float x = _target_pose.x_abs;
+	float y = _target_pose.y_abs;
 
 	slewrate(x, y);
 
@@ -275,16 +275,16 @@ PrecLand::run_state_horizontal_approach()
 }
 
 void
-PrecLand::run_state_descend_above_beacon()
+PrecLand::run_state_descend_above_target()
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	// check if beacon visible
-	if (!check_state_conditions(PrecLandState::DescendAboveBeacon)) {
+	// check if target visible
+	if (!check_state_conditions(PrecLandState::DescendAboveTarget)) {
 		if (!switch_to_state_final_approach()) {
-			PX4_WARN("Lost beacon while landing (descending).");
+			PX4_WARN("Lost landing target while landing (descending).");
 
-			// Stay at current position for searching for the beacon
+			// Stay at current position for searching for the target
 			pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 			pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
 			pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
@@ -301,7 +301,7 @@ PrecLand::run_state_descend_above_beacon()
 
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	double lat, lon;
-	map_projection_reproject(&_map_ref, _beacon_position.x_abs, _beacon_position.y_abs, &lat, &lon);
+	map_projection_reproject(&_map_ref, _target_pose.x_abs, _target_pose.y_abs, &lat, &lon);
 
 	pos_sp_triplet->current.lat = lat;
 	pos_sp_triplet->current.lon = lon;
@@ -321,11 +321,11 @@ PrecLand::run_state_final_approach()
 void
 PrecLand::run_state_search()
 {
-	// check if we can see the beacon
+	// check if we can see the target
 	if (check_state_conditions(PrecLandState::HorizontalApproach)) {
-		if (!_beacon_acquired_time) {
-			// beacon just became visible. Stop climbing, but give it some margin so we don't stop too apruptly
-			_beacon_acquired_time = hrt_absolute_time();
+		if (!_target_acquired_time) {
+			// target just became visible. Stop climbing, but give it some margin so we don't stop too apruptly
+			_target_acquired_time = hrt_absolute_time();
 			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 			float new_alt = _navigator->get_global_position()->alt + 1.0f;
 			pos_sp_triplet->current.alt = new_alt < pos_sp_triplet->current.alt ? new_alt : pos_sp_triplet->current.alt;
@@ -335,7 +335,7 @@ PrecLand::run_state_search()
 	}
 
 	// stay at that height for a second to allow the vehicle to settle
-	if (_beacon_acquired_time && (hrt_absolute_time() - _beacon_acquired_time) > 1000000) {
+	if (_target_acquired_time && (hrt_absolute_time() - _target_acquired_time) > 1000000) {
 		// try to switch to horizontal approach
 		if (switch_to_state_horizontal_approach()) {
 			return;
@@ -392,10 +392,10 @@ PrecLand::switch_to_state_horizontal_approach()
 }
 
 bool
-PrecLand::switch_to_state_descend_above_beacon()
+PrecLand::switch_to_state_descend_above_target()
 {
-	if (check_state_conditions(PrecLandState::DescendAboveBeacon)) {
-		_state = PrecLandState::DescendAboveBeacon;
+	if (check_state_conditions(PrecLandState::DescendAboveTarget)) {
+		_state = PrecLandState::DescendAboveTarget;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
@@ -426,7 +426,7 @@ PrecLand::switch_to_state_search()
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	_navigator->set_position_setpoint_triplet_updated();
 
-	_beacon_acquired_time = 0;
+	_target_acquired_time = 0;
 
 	_state = PrecLandState::Search;
 	_state_start_time = hrt_absolute_time();
@@ -459,38 +459,38 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 	case PrecLandState::HorizontalApproach:
 
-		// if we're already in this state, only want to make it invalid if we reached the beacon but can't see it anymore
+		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
 		if (_state == PrecLandState::HorizontalApproach) {
-			if (fabsf(_beacon_position.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
-			    && fabsf(_beacon_position.y_rel - vehicle_local_position->y) < _param_hacc_rad.get()) {
-				// we've reached the position where we last saw the beacon. If we don't see it now, we need to do something
-				return _beacon_position_valid && _beacon_position.abs_pos_valid;
+			if (fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
+			    && fabsf(_target_pose.y_rel - vehicle_local_position->y) < _param_hacc_rad.get()) {
+				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
+				return _target_pose_valid && _target_pose.abs_pos_valid;
 
 			} else {
-				// We've seen the beacon sometime during horizontal approach. Even if we don't see it as we're moving towards it, continue approaching last known location
+				// We've seen the target sometime during horizontal approach. Even if we don't see it as we're moving towards it, continue approaching last known location
 				return true;
 			}
 		}
 
-		// If we're trying to switch to this state, the beacon needs to be visible
-		return _beacon_position_valid && _beacon_position.abs_pos_valid;
+		// If we're trying to switch to this state, the target needs to be visible
+		return _target_pose_valid && _target_pose.abs_pos_valid;
 
-	case PrecLandState::DescendAboveBeacon:
+	case PrecLandState::DescendAboveTarget:
 
-		// if we're already in this state, only leave it if beacon becomes unusable, don't care about horizontall offset to beacon
-		if (_state == PrecLandState::DescendAboveBeacon) {
-			// if we're close to the ground, we're more critical of beacon timeouts so we quickly go into descend
+		// if we're already in this state, only leave it if target becomes unusable, don't care about horizontall offset to target
+		if (_state == PrecLandState::DescendAboveTarget) {
+			// if we're close to the ground, we're more critical of target timeouts so we quickly go into descend
 			if (check_state_conditions(PrecLandState::FinalApproach)) {
-				return hrt_absolute_time() - _beacon_position.timestamp < 500000; // 0.5s
+				return hrt_absolute_time() - _target_pose.timestamp < 500000; // 0.5s
 
 			} else {
-				return _beacon_position_valid && _beacon_position.abs_pos_valid;
+				return _target_pose_valid && _target_pose.abs_pos_valid;
 			}
 
 		} else {
-			// if not already in this state, need to be above beacon to enter it
-			return _beacon_position_valid && _beacon_position.abs_pos_valid
-			       && fabsf(_beacon_position.x_rel) < _param_hacc_rad.get() && fabsf(_beacon_position.y_rel) < _param_hacc_rad.get();
+			// if not already in this state, need to be above target to enter it
+			return _target_pose_valid && _target_pose.abs_pos_valid
+			       && fabsf(_target_pose.x_rel) < _param_hacc_rad.get() && fabsf(_target_pose.y_rel) < _param_hacc_rad.get();
 		}
 
 	case PrecLandState::FinalApproach:

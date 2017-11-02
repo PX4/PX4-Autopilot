@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file beacon_position_estimator_main.cpp
- * Beacon position estimator. Filter and publish the position of a ground beacon as observed by an onboard sensor.
+ * @file landing_target_estimator_main.cpp
+ * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
@@ -42,19 +42,19 @@
 #include <px4_defines.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <unistd.h>					//usleep
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <drivers/drv_hrt.h>
-#include <systemlib/systemlib.h>	//Scheduler
-#include <systemlib/err.h>			//print to console
+#include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 
-#include "BeaconPositionEstimator.h"
+#include "LandingTargetEstimator.h"
 
 
-namespace beacon_position_estimator
+namespace landing_target_estimator
 {
 
 static bool thread_should_exit = false;	/**< daemon exit flag */
@@ -62,24 +62,24 @@ static bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
 
 /* Run main loop at this rate in Hz. */
-static constexpr uint32_t beacon_position_estimator_UPDATE_RATE_HZ = 50;
+static constexpr uint32_t landing_target_estimator_UPDATE_RATE_HZ = 50;
 
 /**
- * Beacon position estimator app start / stop handling function
+ * Landing target position estimator app start / stop handling function
  * This makes the module accessible from the nuttx shell
  * @ingroup apps
  */
-extern "C" __EXPORT int beacon_position_estimator_main(int argc, char *argv[]);
+extern "C" __EXPORT int landing_target_estimator_main(int argc, char *argv[]);
 
 /**
  * Mainloop of daemon.
  */
-int beacon_position_estimator_thread_main(int argc, char *argv[]);
+int landing_target_estimator_thread_main(int argc, char *argv[]);
 
 /**
 * Main entry point for this module
 **/
-int beacon_position_estimator_main(int argc, char *argv[])
+int landing_target_estimator_main(int argc, char *argv[])
 {
 
 	if (argc < 2) {
@@ -94,11 +94,11 @@ int beacon_position_estimator_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = px4_task_spawn_cmd("beacon_position_estimator",
+		daemon_task = px4_task_spawn_cmd("landing_target_estimator",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT,
 						 1800,
-						 beacon_position_estimator_thread_main,
+						 landing_target_estimator_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		return 0;
 	}
@@ -107,7 +107,7 @@ int beacon_position_estimator_main(int argc, char *argv[])
 		thread_should_exit = true;
 
 		if (!thread_running) {
-			PX4_WARN("beacon_position_estimator not running");
+			PX4_WARN("landing_target_estimator not running");
 		}
 
 		return 0;
@@ -125,21 +125,21 @@ int beacon_position_estimator_main(int argc, char *argv[])
 	}
 
 exiterr:
-	PX4_WARN("usage: beacon_position_estimator {start|stop|status}");
+	PX4_WARN("usage: landing_target_estimator {start|stop|status}");
 	return 1;
 }
 
-int beacon_position_estimator_thread_main(int argc, char *argv[])
+int landing_target_estimator_thread_main(int argc, char *argv[])
 {
 	PX4_DEBUG("starting");
 
 	thread_running = true;
 
-	BeaconPositionEstimator est;
+	LandingTargetEstimator est;
 
 	while (!thread_should_exit) {
 		est.update();
-		usleep(1000000 / beacon_position_estimator_UPDATE_RATE_HZ);
+		usleep(1000000 / landing_target_estimator_UPDATE_RATE_HZ);
 	}
 
 	PX4_DEBUG("exiting");
