@@ -121,8 +121,6 @@ PrecLand::on_activation()
 		pos_sp_triplet->current.valid = true;
 	}
 
-	_first_sp = pos_sp_triplet->current; // store the current setpoint for later
-
 	_sp_pev = matrix::Vector2f(0, 0);
 	_sp_pev_prev = matrix::Vector2f(0, 0);
 	_last_slewrate_time = 0;
@@ -225,9 +223,16 @@ PrecLand::run_state_start()
 void
 PrecLand::run_state_horizontal_approach()
 {
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
 	// check if beacon visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
-		PX4_WARN("Lost beacon while landig.");
+		PX4_WARN("Lost beacon while landig (horizontal approach).");
+
+		// Stay at current position for searching for the beacon
+		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
+		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 
 		if (!switch_to_state_start()) {
 			if (!switch_to_state_fallback()) {
@@ -251,8 +256,6 @@ PrecLand::run_state_horizontal_approach()
 		}
 	}
 
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
 	float x = _beacon_position.x_abs;
 	float y = _beacon_position.y_abs;
 
@@ -274,10 +277,17 @@ PrecLand::run_state_horizontal_approach()
 void
 PrecLand::run_state_descend_above_beacon()
 {
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
 	// check if beacon visible
 	if (!check_state_conditions(PrecLandState::DescendAboveBeacon)) {
 		if (!switch_to_state_final_approach()) {
-			PX4_WARN("Lost beacon while landing");
+			PX4_WARN("Lost beacon while landing (descending).");
+
+			// Stay at current position for searching for the beacon
+			pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
+			pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+			pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 
 			if (!switch_to_state_start()) {
 				if (!switch_to_state_fallback()) {
@@ -288,8 +298,6 @@ PrecLand::run_state_descend_above_beacon()
 
 		return;
 	}
-
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	double lat, lon;
@@ -355,7 +363,6 @@ PrecLand::switch_to_state_start()
 {
 	if (check_state_conditions(PrecLandState::Start)) {
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		pos_sp_triplet->current = _first_sp;
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		_navigator->set_position_setpoint_triplet_updated();
 		_search_cnt++;
@@ -415,7 +422,6 @@ PrecLand::switch_to_state_search()
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->current = _first_sp;
 	pos_sp_triplet->current.alt = vehicle_local_position->ref_alt + _param_search_alt.get();
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	_navigator->set_position_setpoint_triplet_updated();
@@ -432,7 +438,9 @@ PrecLand::switch_to_state_fallback()
 {
 	PX4_WARN("Falling back to normal land.");
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->current = _first_sp; // should this be at current position?
+	pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
+	pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+	pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 	_navigator->set_position_setpoint_triplet_updated();
 
@@ -450,6 +458,21 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		return _search_cnt <= _param_max_searches.get();
 
 	case PrecLandState::HorizontalApproach:
+
+		// if we're already in this state, only want to make it invalid if we reached the beacon but can't see it anymore
+		if (_state == PrecLandState::HorizontalApproach) {
+			if (fabsf(_beacon_position.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
+			    && fabsf(_beacon_position.y_rel - vehicle_local_position->y) < _param_hacc_rad.get()) {
+				// we've reached the position where we last saw the beacon. If we don't see it now, we need to do something
+				return _beacon_position_valid && _beacon_position.abs_pos_valid;
+
+			} else {
+				// We've seen the beacon sometime during horizontal approach. Even if we don't see it as we're moving towards it, continue approaching last known location
+				return true;
+			}
+		}
+
+		// If we're trying to switch to this state, the beacon needs to be visible
 		return _beacon_position_valid && _beacon_position.abs_pos_valid;
 
 	case PrecLandState::DescendAboveBeacon:
@@ -467,7 +490,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		} else {
 			// if not already in this state, need to be above beacon to enter it
 			return _beacon_position_valid && _beacon_position.abs_pos_valid
-			       && fabsf(_beacon_position.x_rel) < _param_hacc_rad.get() && fabsf(_beacon_position.x_rel) < _param_hacc_rad.get();
+			       && fabsf(_beacon_position.x_rel) < _param_hacc_rad.get() && fabsf(_beacon_position.y_rel) < _param_hacc_rad.get();
 		}
 
 	case PrecLandState::FinalApproach:

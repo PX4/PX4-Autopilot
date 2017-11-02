@@ -109,8 +109,7 @@ private:
 	uint64_t _last_slewrate_time; /**< time when we last limited setpoint changes */
 	uint64_t _beacon_acquired_time; /**< time when we first saw the beacon during search */
 	uint64_t _start_point_reached_time; /**< time when we reached the start waypoint */
-	position_setpoint_s _first_sp; /**< the position setpoint that was set before we started */
-	int _search_cnt; /**< counter of how many times we had to search for the beacon again */
+	int _search_cnt; /**< counter of how many times we had to search for the beacon */
 	float _approach_alt; /**< altitude at which to stay during horizontal approach */
 
 	matrix::Vector2f _sp_pev;
@@ -125,7 +124,7 @@ private:
 	control::BlockParamFloat _param_final_approach_alt;
 	control::BlockParamFloat _param_search_alt;
 	control::BlockParamFloat _param_search_timeout;
-	control::BlockParamInt _param_max_searches;
+	control::BlockParamInt   _param_max_searches;
 	control::BlockParamFloat _param_acceleration_hor;
 	control::BlockParamFloat _param_xy_vel_cruise;
 
