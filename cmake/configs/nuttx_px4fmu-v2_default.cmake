@@ -23,7 +23,7 @@ set(config_module_list
 	#drivers/hott/hott_sensors
 	#drivers/hott/hott_telemetry
 	#drivers/iridiumsbd
-	drivers/irlock
+	#drivers/irlock
 	#drivers/ist8310
 	drivers/l3gd20
 	drivers/led
@@ -115,7 +115,7 @@ set(config_module_list
 	modules/ekf2
 	#modules/local_position_estimator
 	#modules/position_estimator_inav
-	modules/landing_target_estimator
+	#modules/landing_target_estimator
 
 	#
 	# Vehicle Control

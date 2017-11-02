@@ -27,7 +27,6 @@ void BlockLocalPositionEstimator::lidarInit()
 					     int(100 * _lidarStats.getStdDev()(0)));
 		_sensorTimeout &= ~SENSOR_LIDAR;
 		_sensorFault &= ~SENSOR_LIDAR;
-
 	}
 }
 

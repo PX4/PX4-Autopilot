@@ -1,4 +1,4 @@
-F/****************************************************************************
+/****************************************************************************
  *
  *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
@@ -781,6 +781,7 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
+
 		} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
 				new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;

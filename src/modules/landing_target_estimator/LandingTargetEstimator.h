@@ -141,10 +141,10 @@ private:
 	int _sensorCombinedSub;
 	int _irlockReportSub;
 
-	struct vehicle_local_position_s		_vehicleLocalPosition;
-	struct vehicle_attitude_s			_vehicleAttitude;
-	struct sensor_combined_s			_sensorCombined;
-	struct irlock_report_s				_irlockReport;
+	struct vehicle_local_position_s	_vehicleLocalPosition;
+	struct vehicle_attitude_s	_vehicleAttitude;
+	struct sensor_combined_s	_sensorCombined;
+	struct irlock_report_s		_irlockReport;
 
 	// keep track of which topics we have received
 	bool _vehicleLocalPosition_valid;

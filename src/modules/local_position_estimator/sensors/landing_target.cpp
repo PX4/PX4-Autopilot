@@ -79,17 +79,9 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 	// residual
 	Vector<float, n_y_target> r = y - C * _x;
 
-	Matrix<float, n_y_target, n_y_target> S = C * _P * C.transpose() + R;
-
 	// residual covariance, (inverse)
 	Matrix<float, n_y_target, n_y_target> S_I =
 		inv<float, n_y_target>(C * _P * C.transpose() + R);
-
-	// XXX abuse flow innov for debugging
-	_pub_innov.get().flow_innov[0] = r(0);
-	_pub_innov.get().flow_innov[1] = r(1);
-	_pub_innov.get().flow_innov_var[0] = S(0, 0);
-	_pub_innov.get().flow_innov_var[1] = S(1, 1);
 
 	// fault detection
 	float beta = (r.transpose()  * (S_I * r))(0, 0);
@@ -97,7 +89,7 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 	if (beta > BETA_TABLE[n_y_target]) {
 		if (!_targetFault) {
 			_targetFault = true;
-			mavlink_and_console_log_info(&mavlink_log_pub, "Landing target fault,  beta %5.2f", double(beta));
+			mavlink_and_console_log_info(&mavlink_log_pub, "Landing target fault, beta %5.2f", double(beta));
 		}
 
 		// abort correction

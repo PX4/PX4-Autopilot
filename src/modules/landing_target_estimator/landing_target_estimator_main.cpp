@@ -59,7 +59,7 @@ namespace landing_target_estimator
 
 static bool thread_should_exit = false;	/**< daemon exit flag */
 static bool thread_running = false;		/**< daemon status flag */
-static int daemon_task;					/**< Handle of daemon task / thread */
+static int daemon_task;			/**< Handle of daemon task / thread */
 
 /* Run main loop at this rate in Hz. */
 static constexpr uint32_t landing_target_estimator_UPDATE_RATE_HZ = 50;

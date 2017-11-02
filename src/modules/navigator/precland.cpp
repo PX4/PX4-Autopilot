@@ -563,8 +563,6 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 		sp_curr = _sp_pev + sp_vel * dt;
 	}
 
-
-
 	_sp_pev_prev = _sp_pev;
 	_sp_pev = sp_curr;
 

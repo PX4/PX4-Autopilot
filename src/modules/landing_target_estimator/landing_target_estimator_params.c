@@ -43,8 +43,8 @@
  *
  * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
  *
- * Mode Moving:			The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning.
- * Mode Stationary:		The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.
+ * Mode Moving:     The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning.
+ * Mode Stationary: The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.
  *
  * @min 0
  * @max 1
