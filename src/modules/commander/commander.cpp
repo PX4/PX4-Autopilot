@@ -1943,7 +1943,7 @@ Commander::run()
 					low_battery_voltage_actions_done = true;
 
 					if (armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAND ADVISED");
+						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAUNCH ADVISED");
 
 					} else {
 						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, TAKEOFF DISCOURAGED");
@@ -1964,7 +1964,7 @@ Commander::run()
 							// let us send the critical message even if already in RTL
 							if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state)) {
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
+								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAUNCH");
 
 							} else {
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED");
@@ -1999,14 +1999,14 @@ Commander::run()
 						if (low_bat_action == 2 || low_bat_action == 3) {
 							if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state)) {
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING IMMEDIATELY");
+								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, LANDING IMMEDIATELY");
 
 							} else {
-								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING FAILED");
+								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, LANDING FAILED");
 							}
 
 						} else {
-							mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
+							mavlink_log_emergency(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, LANDING ADVISED!");
 						}
 					}
 
