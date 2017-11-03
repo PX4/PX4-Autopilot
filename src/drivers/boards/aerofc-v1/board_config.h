@@ -50,6 +50,8 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
+#include "aerofc_configuration.h"
+
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -129,8 +131,12 @@
  * RC Serial port
  */
 #define RC_SERIAL_PORT		"/dev/ttyS2"
-/* No invert support */
-#define INVERT_RC_INPUT(_invert_true)		while(0)
+#define INVERT_RC_INPUT(_invert_true) aerofc_fpga_config_invert_rc_uart(_invert_true)
+
+#define INVERT_UART_INPUT(uart, _invert_true) \
+	if (!strcmp("/dev/ttyS5", uart)) { \
+		aerofc_fpga_config_telem_connector(_invert_true); \
+	}
 
 /*
  * High-resolution timer

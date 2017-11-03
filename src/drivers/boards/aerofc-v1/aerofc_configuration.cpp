@@ -44,6 +44,10 @@
 #define SLAVE_ADDR 0x51
 #define VERSION_REG 0x00
 
+#define UART_INVERTED_REG 0x01
+#define UART_INVERTED_RC_UART_VALUE 0x01
+#define UART_INVERTED_TELEMETRY_UART_VALUE 0x02
+
 #define TELEMETRY_CONNECTOR_SEL_REG 0x02
 #define TELEMETRY_CONNECTOR_SEL_I2C_VALUE 0x01
 
@@ -141,3 +145,22 @@ static int _invert_uart(uint8_t uart, bool invert)
 
 	return _write_uint8_reg(UART_INVERTED_REG, buffer);
 }
+
+int aerofc_fpga_config_invert_telem_uart(bool invert)
+{
+	if (!_dev && _init()) {
+		return -1;
+	}
+
+	return _invert_uart(UART_INVERTED_TELEMETRY_UART_VALUE, invert);
+}
+
+int aerofc_fpga_config_invert_rc_uart(bool invert)
+{
+	if (!_dev && _init()) {
+		return -1;
+	}
+
+	return _invert_uart(UART_INVERTED_RC_UART_VALUE, invert);
+}
+

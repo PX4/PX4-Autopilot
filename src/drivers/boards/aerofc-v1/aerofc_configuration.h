@@ -36,3 +36,5 @@
 #include <stdbool.h>
 
 int aerofc_fpga_config_telem_connector(bool enable_i2c);
+int aerofc_fpga_config_invert_telem_uart(bool invert);
+int aerofc_fpga_config_invert_rc_uart(bool invert);
