@@ -192,6 +192,9 @@ struct dragSample {
 #define BADACC_PROBATION  (uint64_t)10e6	///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
 #define BADACC_BIAS_PNOISE	4.9f	///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
 
+// ground effect compensation
+#define GNDEFFECT_TIMEOUT	10E6	///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
+
 struct parameters {
 	// measurement source control
 	int32_t fusion_mode{MASK_USE_GPS};		///< bitmasked integer that selects which aiding sources will be used
@@ -235,6 +238,8 @@ struct parameters {
 	float baro_innov_gate{5.0f};		///< barometric and GPS height innovation consistency gate size (STD)
 	float posNE_innov_gate{5.0f};		///< GPS horizontal position innovation consistency gate size (STD)
 	float vel_innov_gate{5.0f};		///< GPS velocity innovation consistency gate size (STD)
+	float gnd_effect_deadzone{5.0f};	///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
+	float gnd_effect_max_hgt{0.5f};		///< Height above ground at which baro ground effect becomes insignificant (m)
 
 	// magnetometer fusion
 	float mag_heading_noise{3.0e-1f};	///< measurement noise used for simple heading fusion (rad)
@@ -416,7 +421,8 @@ union filter_control_status_u {
 		uint32_t update_mag_states_only   : 1; ///< 16 - true when only the magnetometer states are updated by the magnetometer
 		uint32_t fixed_wing  : 1; ///< 17 - true when the vehicle is operating as a fixed wing vehicle
 		uint32_t mag_fault   : 1; ///< 18 - true when the magnetomer has been declared faulty and is no longer being used
-		uint32_t fuse_aspd   : 1; ///< 19 - true when airspedd measurements are being fused
+		uint32_t fuse_aspd   : 1; ///< 19 - true when airspeed measurements are being fused
+		uint32_t gnd_effect  : 1; ///< 20 - true when protection from ground effect induced static pressure rise is active
 	} flags;
 	uint32_t value;
 };
