@@ -47,6 +47,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <cstdint>
+#include <string.h>
 
 class Mavlink2Dev;
 class RtpsDev;
@@ -135,9 +136,9 @@ protected:
 
 	void lock(enum Operation op)
 	{
-		sem_t *lock = op == Read ? &objects->r_lock : &objects->w_lock;
+		sem_t *this_lock = op == Read ? &objects->r_lock : &objects->w_lock;
 
-		while (sem_wait(lock) != 0) {
+		while (sem_wait(this_lock) != 0) {
 			/* The only case that an error should occur here is if
 			 * the wait was awakened by a signal.
 			 */
@@ -147,8 +148,8 @@ protected:
 
 	void unlock(enum Operation op)
 	{
-		sem_t *lock = op == Read ? &objects->r_lock : &objects->w_lock;
-		sem_post(lock);
+		sem_t *this_lock = op == Read ? &objects->r_lock : &objects->w_lock;
+		sem_post(this_lock);
 	}
 
 	int _fd = -1;
@@ -292,14 +293,14 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	// Search for a mavlink packet on buffer to send it
 	i = 0;
 
-	while (i < (_read_buffer->buf_size - 3)
+	while ((unsigned)i < (_read_buffer->buf_size - 3)
 	       && _read_buffer->buffer[i] != 253
 	       && _read_buffer->buffer[i] != 254) {
 		i++;
 	}
 
 	// We need at least the first three bytes to get packet len
-	if (i >= _read_buffer->buf_size - 3) {
+	if ((unsigned)i >= _read_buffer->buf_size - 3) {
 		goto end;
 	}
 
@@ -317,7 +318,7 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	// packet is bigger than what we've read, better luck next time
-	if (i + packet_len > _read_buffer->buf_size) {
+	if ((unsigned)i + packet_len > _read_buffer->buf_size) {
 		goto end;
 	}
 
@@ -451,12 +452,12 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 	// Search for a rtps packet on buffer to send it
 	i = 0;
 
-	while (i < (_read_buffer->buf_size - HEADER_SIZE) && (memcmp(_read_buffer->buffer + i, ">>>", 3) != 0)) {
+	while ((unsigned)i < (_read_buffer->buf_size - HEADER_SIZE) && (memcmp(_read_buffer->buffer + i, ">>>", 3) != 0)) {
 		i++;
 	}
 
 	// We need at least the first six bytes to get packet len
-	if (i >= _read_buffer->buf_size - HEADER_SIZE) {
+	if ((unsigned)i >= _read_buffer->buf_size - HEADER_SIZE) {
 		goto end;
 	}
 
@@ -464,7 +465,7 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 	packet_len = payload_len + HEADER_SIZE;
 
 	// packet is bigger than what we've read, better luck next time
-	if (i + packet_len > _read_buffer->buf_size) {
+	if ((unsigned)i + packet_len > _read_buffer->buf_size) {
 		goto end;
 	}
 
@@ -516,7 +517,7 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 			::ioctl(_fd, FIONSPACE, (unsigned long)&buf_free);
 
 			// TODO should I care about this for rtps?
-			if (buf_free < buflen) {
+			if ((unsigned)buf_free < buflen) {
 				//let write fail, to let rtps know the buffer would overflow
 				//(this is because in the ioctl we pretend there is always enough space)
 				ret = -1;
