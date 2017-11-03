@@ -828,6 +828,17 @@ void Ekf::controlHeightFusion()
 			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
 				_hgt_sensor_offset = 0.0f;
 			}
+
+			// Turn off ground effect compensation if it times out or sufficient height has been gained
+			// since takeoff.
+			if (_control_status.flags.gnd_effect) {
+				if ((_time_last_imu - _time_last_gnd_effect_on > GNDEFFECT_TIMEOUT) ||
+						(((_last_on_ground_posD - _state.pos(2)) > _params.gnd_effect_max_hgt) &&
+						 _control_status.flags.in_air)) {
+					_control_status.flags.gnd_effect = false;
+				}
+			}
+
 		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
 			// switch to gps if there was a reset to gps
 			_fuse_height = true;
@@ -1124,11 +1135,6 @@ void Ekf::controlDragFusion()
 
 void Ekf::controlMagFusion()
 {
-	// If we are using external vision data for heading then no magnetometer fusion is used
-	if (_control_status.flags.ev_yaw) {
-		return;
-	}
-
 	// If we are on ground, store the local position and time to use as a reference
 	// Also reset the flight alignment flag so that the mag fields will be re-initialised next time we achieve flight altitude
 	if (!_control_status.flags.in_air) {
@@ -1138,7 +1144,8 @@ void Ekf::controlMagFusion()
 	}
 
 	// check for new magnetometer data that has fallen behind the fusion time horizon
-	if (_mag_data_ready) {
+	// If we are using external vision data for heading then no magnetometer fusion is used
+	if (!_control_status.flags.ev_yaw && _mag_data_ready) {
 
 		// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
 		// or the more accurate 3-axis fusion
