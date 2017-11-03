@@ -38,6 +38,7 @@ px4_add_module(
 		aerofc_spi.c
 		aerofc_led.c
 		aerofc_timer_config.c
+		aerofc_configuration.cpp
 	DEPENDS
 		platforms__common
 	)
