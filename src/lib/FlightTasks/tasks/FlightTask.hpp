@@ -49,7 +49,6 @@ public:
 	{
 		_vehicle_position = nullptr;
 		_manual_control_setpoint = nullptr;
-		_reset_time();
 	};
 	virtual ~FlightTask() {};
 
@@ -60,7 +59,8 @@ public:
 	 */
 	virtual int activate()
 	{
-		_reset_time();
+		_starting_time_stamp = hrt_absolute_time();
+		FlightTask::update();
 		return 0;
 	};
 
@@ -77,7 +77,7 @@ public:
 	virtual int update()
 	{
 		_time = hrt_elapsed_time(&_starting_time_stamp) / 1e6f;
-		_deltatime  = math::min(hrt_elapsed_time(&_last_time_stamp) / 1e6f, (float)_timeout);
+		_deltatime  = math::min((int)hrt_elapsed_time(&_last_time_stamp), _timeout) / 1e6f;
 		_last_time_stamp = hrt_absolute_time();
 		updateSubscriptions();
 		_evaluate_sticks();
@@ -107,13 +107,12 @@ protected:
 
 	float _time = 0; /*< passed time in seconds since the task was activated */
 	float _deltatime = 0; /*< passed time in seconds since the task was last updated */
-	void _reset_time() { _starting_time_stamp = hrt_absolute_time(); };
 
 	/* Prepared general inputs for every task */
 	matrix::Vector<float, 4> _sticks;
 	matrix::Vector3f _position; /*< current vehicle position */
 	matrix::Vector3f _velocity; /*< current vehicle velocity */
-	float _yaw;
+	float _yaw = 0.f;
 
 	/**
 	 * Put the position vector produced by the task into the setpoint message
@@ -157,10 +156,10 @@ protected:
 	};
 
 private:
-	static const int _timeout = 500000;
+	static constexpr int _timeout = 500000; /*< maximal time in us before a loop or data times out */
 
-	hrt_abstime _starting_time_stamp; /*< time stamp when task was activated */
-	hrt_abstime _last_time_stamp; /*< time stamp when task was last updated */
+	hrt_abstime _starting_time_stamp = 0; /*< time stamp when task was activated */
+	hrt_abstime _last_time_stamp = 0; /*< time stamp when task was last updated */
 
 	/* General input that every task has */
 	const vehicle_local_position_s *_vehicle_position;
