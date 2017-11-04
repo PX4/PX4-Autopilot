@@ -107,21 +107,23 @@ public:
 	 */
 	int switch_task(int task_number)
 	{
+		/* switch to the running task, nothing to do */
 		if (task_number == _current_task) {
 			return 0;
 		}
 
+		/* disable the old task if there is any */
 		if (is_any_task_active()) {
 			_tasks[_current_task]->disable();
 		}
 
-		_current_task = task_number;
-
-		if (is_any_task_active()) {
-			_tasks[_current_task]->activate();
+		/* if the new task exists and it activates succesfully we switched */
+		if (is_task_number_valid(task_number) && !_tasks[task_number]->activate()) {
+			_current_task = task_number;
 			return 0;
 		}
 
+		/* something went wrong, no task running anymore */
 		_current_task = -1;
 		return 1;
 	};
@@ -134,16 +136,21 @@ public:
 
 	/**
 	 * Check if any task is active
-	 * @return true if a task is active, flase if not
+	 * @return true if a task is active, false if not
 	 */
-	bool is_any_task_active() const { return _current_task > -1 && _current_task < _task_count; };
+	bool is_any_task_active() const { return is_task_number_valid(_current_task); };
+
+	/**
+	 * Check if the task number exists
+	 * @return true if yes, false if not
+	 */
+	bool is_task_number_valid(int task_number) const { return task_number > -1 && task_number < _task_count; };
 
 private:
-	int _current_task = -1;
-
+	static constexpr int _task_count = 2;
+	FlightTask *_tasks[_task_count] = {&Manual, &Orbit};
 	FlightTaskManual Manual;
 	FlightTaskOrbit Orbit;
-	static const int _task_count = 2;
-	FlightTask *_tasks[_task_count] = {&Manual, &Orbit};
 
+	int _current_task = -1;
 };
