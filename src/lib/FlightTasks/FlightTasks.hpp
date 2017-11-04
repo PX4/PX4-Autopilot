@@ -70,25 +70,19 @@ public:
 	};
 
 	/**
-	 * Call this function initially to point all tasks to the general input data
+	 * Get the output data from the current task
 	 */
-	void set_general_input_pointers(vehicle_local_position_s *vehicle_local_position,
-					manual_control_setpoint_s *manual_control_setpoint)
+	const vehicle_local_position_setpoint_s &get_position_setpoint()
 	{
-		for (int i = 0; i < _task_count; i++) {
-			_tasks[i]->set_vehicle_local_position_pointer(vehicle_local_position);
-			_tasks[i]->set_manual_control_setpoint_pointer(manual_control_setpoint);
-		}
+		return _tasks[_current_task]->get_position_setpoint();
 	};
 
 	/**
 	 * Call this function initially to point all tasks to the general output data
 	 */
-	void set_general_output_pointers(vehicle_local_position_setpoint_s *vehicle_local_position_setpoint)
+	inline const vehicle_local_position_setpoint_s &operator()()
 	{
-		for (int i = 0; i < _task_count; i++) {
-			_tasks[i]->set_vehicle_local_position_setpoint_pointer(vehicle_local_position_setpoint);
-		}
+		return get_position_setpoint();
 	};
 
 	/**
@@ -107,21 +101,23 @@ public:
 	 */
 	int switch_task(int task_number)
 	{
+		/* switch to the running task, nothing to do */
 		if (task_number == _current_task) {
 			return 0;
 		}
 
+		/* disable the old task if there is any */
 		if (is_any_task_active()) {
 			_tasks[_current_task]->disable();
 		}
 
-		_current_task = task_number;
-
-		if (is_any_task_active()) {
-			_tasks[_current_task]->activate();
+		/* if the new task exists and it activates succesfully we switched */
+		if (is_task_number_valid(task_number) && !_tasks[task_number]->activate()) {
+			_current_task = task_number;
 			return 0;
 		}
 
+		/* something went wrong, no task running anymore */
 		_current_task = -1;
 		return 1;
 	};
@@ -134,16 +130,21 @@ public:
 
 	/**
 	 * Check if any task is active
-	 * @return true if a task is active, flase if not
+	 * @return true if a task is active, false if not
 	 */
-	bool is_any_task_active() const { return _current_task > -1 && _current_task < _task_count; };
+	bool is_any_task_active() const { return is_task_number_valid(_current_task); };
+
+	/**
+	 * Check if the task number exists
+	 * @return true if yes, false if not
+	 */
+	bool is_task_number_valid(int task_number) const { return task_number > -1 && task_number < _task_count; };
 
 private:
-	int _current_task = -1;
-
+	static constexpr int _task_count = 2;
+	FlightTask *_tasks[_task_count] = {&Manual, &Orbit};
 	FlightTaskManual Manual;
 	FlightTaskOrbit Orbit;
-	static const int _task_count = 2;
-	FlightTask *_tasks[_task_count] = {&Manual, &Orbit};
 
+	int _current_task = -1;
 };

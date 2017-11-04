@@ -553,10 +553,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	/* fetch initial parameter values */
 	parameters_update(true);
-
-	_flight_tasks.set_general_input_pointers(&_local_pos, &_manual);
-	_flight_tasks.set_general_output_pointers(&_local_pos_sp);
-	//_flight_tasks.switch_task(0);
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -2453,28 +2449,36 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	const bool gear_transition_to_on = gear_switch_last == manual_control_setpoint_s::SWITCH_POS_OFF
 					   && _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON;
 
-	if (gear_transition_to_on) {
+	static bool stick_move_last = false;
+	const bool stick_move = _manual.r < -0.9f && _manual.y > 0.9f;
+	const bool stick_move_transition_to_on = !stick_move_last && stick_move;
+
+	if (gear_transition_to_on || stick_move_transition_to_on) {
 		//_flight_tasks.switch_task();
+		//printf("Switched to task: %d\n", _flight_tasks.get_active_task());
 	}
 
 	gear_switch_last = _manual.gear_switch;
+	stick_move_last = stick_move;
 
 	/* get position controller setpoints from the active flight task, this will be through uORB from Trajectory module to position controller module in the future */
 	/* TODO: as soon as legacy stuff gets ported setting velocity and position setpoint at the same time (feed-forward) will be supported through addition of setpoints */
 	if (_flight_tasks.is_any_task_active()) {
 		if (!_flight_tasks.update()) {
 			/* take over position setpoint from task if there is any */
-			if (PX4_ISFINITE(_local_pos_sp.x) && PX4_ISFINITE(_local_pos_sp.y)) {
-				_pos_sp(0) = _local_pos_sp.x;
-				_pos_sp(1) = _local_pos_sp.y;
+			if (PX4_ISFINITE(_flight_tasks().x) && PX4_ISFINITE(_flight_tasks().y)) {
+				printf("pos xy\n");
+				_pos_sp(0) = _flight_tasks().x;
+				_pos_sp(1) = _flight_tasks().y;
 				_run_pos_control = true;
 
 			} else {
 				_run_pos_control = false;
 			}
 
-			if (PX4_ISFINITE(_local_pos_sp.z)) {
-				_pos_sp(2) = _local_pos_sp.z;
+			if (PX4_ISFINITE(_flight_tasks().z)) {
+				printf("pos z\n");
+				_pos_sp(2) = _flight_tasks().z;
 				_run_alt_control = true;
 
 			} else {
@@ -2482,14 +2486,21 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 			}
 
 			/* take over velocity setpoint from task if there is any */
-			if (PX4_ISFINITE(_local_pos_sp.vx)
-			    && PX4_ISFINITE(_local_pos_sp.vy)) {
-				_vel_sp(0) = _local_pos_sp.vx;
-				_vel_sp(1) = _local_pos_sp.vy;
+			if (PX4_ISFINITE(_flight_tasks().vx)
+			    && PX4_ISFINITE(_flight_tasks().vy)) {
+				printf("vel xy\n");
+				_vel_sp(0) = _flight_tasks().vx;
+				_vel_sp(1) = _flight_tasks().vy;
 			}
 
-			if (PX4_ISFINITE(_local_pos_sp.vz)) {
-				_vel_sp(2) = _local_pos_sp.vz;
+			if (PX4_ISFINITE(_flight_tasks().vz)) {
+				printf("vel z\n");
+				_vel_sp(2) = _flight_tasks().vz;
+			}
+
+			if (PX4_ISFINITE(_flight_tasks().yaw)) {
+				printf("yaw\n");
+				_att_sp.yaw_body = _flight_tasks().yaw;
 			}
 
 		} else {

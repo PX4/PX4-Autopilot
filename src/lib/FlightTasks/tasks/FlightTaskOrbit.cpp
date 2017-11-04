@@ -32,30 +32,59 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskOrbit.hpp
+ * @file FlightTaskManual.hpp
  *
- * Flight task for orbiting in a circle around a target position
+ * Flight task for the normal, legacy, manual position controlled flight
+ * where stick inputs map basically to the velocity setpoint
  *
  * @author Matthias Grob <maetugr@gmail.com>
  */
 
-#pragma once
+#include "FlightTaskOrbit.hpp"
 
-#include "FlightTaskManual.hpp"
+using namespace matrix;
 
-class FlightTaskOrbit : public FlightTaskManual
+int FlightTaskOrbit::activate()
 {
-public:
-	FlightTaskOrbit(SuperBlock *parent, const char *name) :
-		FlightTaskManual(parent, name)
-	{};
-	virtual ~FlightTaskOrbit() {};
+	FlightTask::activate();
+	r = 1.f;
+	v =  0.5f;
+	z = _position(2);
+	_center = Vector2f(_position.data());
+	_center(0) -= r;
+	return 0;
+}
 
-private:
+int FlightTaskOrbit::disable()
+{
+	FlightTask::disable();
+	return 0;
+}
 
-	float r = 0.f; /* radius with which to orbit the target */
-	float v =  0.f; /* linear velocity for orbiting in m/s */
-	float z = 0.f; /* local z coordinate in meters */
-	matrix::Vector2f _center;
+int FlightTaskOrbit::update()
+{
+	int ret = FlightTaskManual::update();
 
-};
+	r += _sticks(0) * _deltatime;
+	r = math::constrain(r, 1.f, 20.f);
+	v -= _sticks(1) * _deltatime;
+	v = math::constrain(v, -7.f, 7.f);
+	z += _sticks(2) * _deltatime;
+
+	Vector2f center_to_position = Vector2f(_position.data()) - _center;
+
+	/* xy velocity to go around in a circle */
+	Vector2f velocity_xy = Vector2f(center_to_position(1), -center_to_position(0));
+	velocity_xy = velocity_xy.unit_or_zero();
+	velocity_xy *= v;
+
+	/* xy velocity adjustment to stay on the radius distance */
+	velocity_xy += (r - center_to_position.norm()) * center_to_position.unit_or_zero();
+
+	float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+
+	_set_position_setpoint(Vector3f(NAN, NAN, z));
+	_set_velocity_setpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
+	_set_yaw_setpoint(yaw);
+	return ret;
+}
