@@ -2005,6 +2005,16 @@ Commander::run()
 								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, LANDING FAILED");
 							}
 
+						} else if (low_bat_action == 1 && !critical_battery_voltage_actions_done) {
+							/* In case of transition to BATTERY_WARNING_EMERGENCY bypassing BATTERY_WARNING_CRITICAL */
+							if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state)) {
+								warning_action_on = true;
+								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, RETURNING TO LAUNCH");
+
+							} else {
+								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, RTL FAILED");
+							}
+
 						} else {
 							mavlink_log_emergency(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, LANDING ADVISED!");
 						}
