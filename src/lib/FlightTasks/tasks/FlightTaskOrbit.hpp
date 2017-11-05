@@ -99,9 +99,11 @@ public:
 
 		/* xy velocity adjustment to stay on the radius distance */
 		velocity_xy += (r - center_to_position.norm()) * center_to_position.normalized();
+		float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 
 		_set_position_setpoint(matrix::Vector3f(NAN, NAN, z));
 		_set_velocity_setpoint(matrix::Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
+		_set_yaw_setpoint(yaw);
 		return ret;
 	};
 
