@@ -70,13 +70,19 @@ public:
 	};
 
 	/**
+	 * Get the output data from the current task
+	 */
+	const vehicle_local_position_setpoint_s &get_position_setpoint()
+	{
+		return _tasks[_current_task]->get_position_setpoint();
+	};
+
+	/**
 	 * Call this function initially to point all tasks to the general output data
 	 */
-	void set_general_output_pointers(vehicle_local_position_setpoint_s *vehicle_local_position_setpoint)
+	inline const vehicle_local_position_setpoint_s &operator()()
 	{
-		for (int i = 0; i < _task_count; i++) {
-			_tasks[i]->set_vehicle_local_position_setpoint_pointer(vehicle_local_position_setpoint);
-		}
+		return get_position_setpoint();
 	};
 
 	/**
