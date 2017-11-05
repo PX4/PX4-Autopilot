@@ -41,13 +41,13 @@
 
 #pragma once
 
-#include "FlightTask.hpp"
+#include "FlightTaskManual.hpp"
 
-class FlightTaskOrbit : public FlightTask
+class FlightTaskOrbit : public FlightTaskManual
 {
 public:
 	FlightTaskOrbit(SuperBlock *parent, const char *name) :
-		FlightTask(parent, name)
+		FlightTaskManual(parent, name)
 	{};
 	virtual ~FlightTaskOrbit() {};
 
@@ -60,7 +60,9 @@ public:
 		FlightTask::activate();
 		r = 1.f;
 		v =  0.5f;
-		altitude = 6.f;
+		z = _position(2);
+		_center = matrix::Vector2f(_position.data());
+		_center(0) -= r;
 		return 0;
 	};
 
@@ -80,37 +82,34 @@ public:
 	 */
 	virtual int update()
 	{
-		FlightTask::update();
+		int ret = FlightTaskManual::update();
 
 		r += _sticks(0) * _deltatime;
 		r = math::constrain(r, 1.f, 20.f);
 		v -= _sticks(1) * _deltatime;
 		v = math::constrain(v, -7.f, 7.f);
-		altitude += _sticks(2) * _deltatime;
-		altitude = math::constrain(altitude, 2.f, 5.f);
+		z += _sticks(2) * _deltatime;
 
-		matrix::Vector2<float> target_to_position = matrix::Vector2f(_position.data()) - matrix::Vector2f();
-		// TODO: add local frame target position here
+		matrix::Vector2<float> center_to_position = matrix::Vector2f(_position.data()) - _center;
 
 		/* xy velocity to go around in a circle */
-		matrix::Vector2<float> velocity_xy = matrix::Vector2f(target_to_position(1), -target_to_position(0));
+		matrix::Vector2<float> velocity_xy = matrix::Vector2f(center_to_position(1), -center_to_position(0));
 		velocity_xy.normalize();
 		velocity_xy *= v;
 
 		/* xy velocity adjustment to stay on the radius distance */
-		velocity_xy += (r - target_to_position.norm()) * target_to_position.normalized();
+		velocity_xy += (r - center_to_position.norm()) * center_to_position.normalized();
 
-		//printf("%f %f %f\n", (double)altitude, (double)r, (double)v);
-
-		_set_position_setpoint(matrix::Vector3f(NAN, NAN, -altitude));
+		_set_position_setpoint(matrix::Vector3f(NAN, NAN, z));
 		_set_velocity_setpoint(matrix::Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
-		return 0;
+		return ret;
 	};
 
 private:
 
-	float r = 1.f; /* radius with which to orbit the target */
-	float v =  0.1f; /* linear velocity for orbiting in m/s */
-	float altitude = 2.f; /* altitude in meters */
+	float r = 0.f; /* radius with which to orbit the target */
+	float v =  0.f; /* linear velocity for orbiting in m/s */
+	float z = 0.f; /* local z coordinate in meters */
+	matrix::Vector2f _center;
 
 };
