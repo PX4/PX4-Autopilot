@@ -45,11 +45,9 @@ class FlightTask : public control::SuperBlock
 {
 public:
 	FlightTask(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name)
-	{
-		_vehicle_position = nullptr;
-		_manual_control_setpoint = nullptr;
-	};
+		SuperBlock(parent, name),
+		_sub_vehicle_local_position(ORB_ID(vehicle_local_position), 0, 0, &getSubscriptions())
+	{ };
 	virtual ~FlightTask() {};
 
 	/**
@@ -80,22 +78,9 @@ public:
 		_deltatime  = math::min((int)hrt_elapsed_time(&_last_time_stamp), _timeout) / 1e6f;
 		_last_time_stamp = hrt_absolute_time();
 		updateSubscriptions();
-		_evaluate_sticks();
 		_evaluate_vehicle_position();
 		return 0;
 	};
-
-	/**
-	 * Set vehicle local position input data pointer
-	 * @param pointer to vehicle local position
-	 */
-	void set_vehicle_local_position_pointer(const vehicle_local_position_s *vehicle_local_position) { _vehicle_position = vehicle_local_position; };
-
-	/**
-	 * Set manual control setpoint input data pointer if it's needed for the task
-	 * @param pointer to manual control setpoint
-	 */
-	void set_manual_control_setpoint_pointer(const manual_control_setpoint_s *manual_control_setpoint) { _manual_control_setpoint = manual_control_setpoint; };
 
 	/**
 	 * Set local position setpoint data pointer if it's needed for the task
@@ -104,12 +89,12 @@ public:
 	void set_vehicle_local_position_setpoint_pointer(vehicle_local_position_setpoint_s *vehicle_position_setpoint) { _vehicle_position_setpoint = vehicle_position_setpoint; };
 
 protected:
+	static constexpr int _timeout = 500000; /*< maximal time in us before a loop or data times out */
 
 	float _time = 0; /*< passed time in seconds since the task was activated */
 	float _deltatime = 0; /*< passed time in seconds since the task was last updated */
 
-	/* Prepared general inputs for every task */
-	matrix::Vector<float, 4> _sticks;
+	/* Current vehicle position for every task */
 	matrix::Vector3f _position; /*< current vehicle position */
 	matrix::Vector3f _velocity; /*< current vehicle velocity */
 	float _yaw = 0.f;
@@ -156,41 +141,23 @@ protected:
 	};
 
 private:
-	static constexpr int _timeout = 500000; /*< maximal time in us before a loop or data times out */
+	uORB::Subscription<vehicle_local_position_s> _sub_vehicle_local_position;
 
 	hrt_abstime _starting_time_stamp = 0; /*< time stamp when task was activated */
 	hrt_abstime _last_time_stamp = 0; /*< time stamp when task was last updated */
-
-	/* General input that every task has */
-	const vehicle_local_position_s *_vehicle_position;
-	const manual_control_setpoint_s *_manual_control_setpoint;
 
 	/* General output that every task has */
 	vehicle_local_position_setpoint_s *_vehicle_position_setpoint;
 
 	void _evaluate_vehicle_position()
 	{
-		if (_vehicle_position != nullptr && hrt_elapsed_time(&_vehicle_position->timestamp) < _timeout) {
-			_position = matrix::Vector3f(&_vehicle_position->x);
-			_velocity = matrix::Vector3f(&_vehicle_position->vx);
-			_yaw = _vehicle_position->yaw;
+		if (hrt_elapsed_time(&_sub_vehicle_local_position.get().timestamp) < _timeout) {
+			_position = matrix::Vector3f(&_sub_vehicle_local_position.get().x);
+			_velocity = matrix::Vector3f(&_sub_vehicle_local_position.get().vx);
+			_yaw = _sub_vehicle_local_position.get().yaw;
 
 		} else {
-			_velocity = matrix::Vector3f(); /* default velocity is all zero */
+			_velocity.zero(); /* default velocity is all zero */
 		}
 	}
-
-	void _evaluate_sticks()
-	{
-		if (_manual_control_setpoint != nullptr && hrt_elapsed_time(&_manual_control_setpoint->timestamp) < _timeout) {
-			_sticks(0) = _manual_control_setpoint->x; /* NED x, "pitch" [-1,1] */
-			_sticks(1) = _manual_control_setpoint->y; /* NED y, "roll" [-1,1] */
-			_sticks(2) = (_manual_control_setpoint->z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
-			_sticks(3) = _manual_control_setpoint->r; /* "yaw" [-1,1] */
-
-		} else {
-			_sticks = matrix::Vector<float, 4>(); /* default is all zero */
-		}
-	}
-
 };
