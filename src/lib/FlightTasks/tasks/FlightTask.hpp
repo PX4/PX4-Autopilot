@@ -83,10 +83,12 @@ public:
 	};
 
 	/**
-	 * Set local position setpoint data pointer if it's needed for the task
-	 * @param pointer to manual control setpoint
+	 * Get the output data
 	 */
-	void set_vehicle_local_position_setpoint_pointer(vehicle_local_position_setpoint_s *vehicle_position_setpoint) { _vehicle_position_setpoint = vehicle_position_setpoint; };
+	const vehicle_local_position_setpoint_s &get_position_setpoint()
+	{
+		return _vehicle_local_position_setpoint;
+	};
 
 protected:
 	static constexpr int _timeout = 500000; /*< maximal time in us before a loop or data times out */
@@ -104,11 +106,9 @@ protected:
 	 */
 	void _set_position_setpoint(const matrix::Vector3f position_setpoint)
 	{
-		if (_vehicle_position_setpoint != nullptr) {
-			_vehicle_position_setpoint->x = position_setpoint(0);
-			_vehicle_position_setpoint->y = position_setpoint(1);
-			_vehicle_position_setpoint->z = position_setpoint(2);
-		}
+		_vehicle_local_position_setpoint.x = position_setpoint(0);
+		_vehicle_local_position_setpoint.y = position_setpoint(1);
+		_vehicle_local_position_setpoint.z = position_setpoint(2);
 	};
 
 	/**
@@ -116,29 +116,25 @@ protected:
 	 */
 	void _set_velocity_setpoint(const matrix::Vector3f velocity_setpoint)
 	{
-		if (_vehicle_position_setpoint != nullptr) {
-			_vehicle_position_setpoint->vx = velocity_setpoint(0);
-			_vehicle_position_setpoint->vy = velocity_setpoint(1);
-			_vehicle_position_setpoint->vz = velocity_setpoint(2);
-		}
+		_vehicle_local_position_setpoint.vx = velocity_setpoint(0);
+		_vehicle_local_position_setpoint.vy = velocity_setpoint(1);
+		_vehicle_local_position_setpoint.vz = velocity_setpoint(2);
 	};
 
 	/**
 	 * Put the acceleration vector produced by the task into the setpoint message
-	 * @return 0 on success, >0 on error
 	 */
-	int _set_acceleration_setpoint(const matrix::Vector3f acceleration_setpoint)
+	void _set_acceleration_setpoint(const matrix::Vector3f acceleration_setpoint)
 	{
-		if (_vehicle_position_setpoint != nullptr) {
-			_vehicle_position_setpoint->acc_x = acceleration_setpoint(0);
-			_vehicle_position_setpoint->acc_y = acceleration_setpoint(1);
-			_vehicle_position_setpoint->acc_z = acceleration_setpoint(2);
-			return 0;
-
-		} else {
-			return 1;
-		}
+		_vehicle_local_position_setpoint.acc_x = acceleration_setpoint(0);
+		_vehicle_local_position_setpoint.acc_y = acceleration_setpoint(1);
+		_vehicle_local_position_setpoint.acc_z = acceleration_setpoint(2);
 	};
+
+	/**
+	 * Put the yaw angle produced by the task into the setpoint message
+	 */
+	void _set_yaw_setpoint(float yaw) { _vehicle_local_position_setpoint.yaw = yaw; };
 
 private:
 	uORB::Subscription<vehicle_local_position_s> _sub_vehicle_local_position;
@@ -146,8 +142,8 @@ private:
 	hrt_abstime _starting_time_stamp = 0; /*< time stamp when task was activated */
 	hrt_abstime _last_time_stamp = 0; /*< time stamp when task was last updated */
 
-	/* General output that every task has */
-	vehicle_local_position_setpoint_s *_vehicle_position_setpoint;
+	/* Output position setpoint that every task has */
+	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint;
 
 	void _evaluate_vehicle_position()
 	{
