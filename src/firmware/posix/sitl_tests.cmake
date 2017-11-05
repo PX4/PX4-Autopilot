@@ -99,6 +99,7 @@ endif()
 
 add_custom_target(test_results_junit
 		COMMAND xsltproc ${PX4_SOURCE_DIR}/Tools/CTest2JUnit.xsl Testing/`head -n 1 < Testing/TAG`/Test.xml > JUnitTestResults.xml
+		DEPENDS test_results
 		COMMENT "Converting ctest output to junit xml"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results_junit PROPERTIES EXCLUDE_FROM_ALL TRUE)

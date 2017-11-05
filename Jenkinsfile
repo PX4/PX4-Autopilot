@@ -4,7 +4,6 @@ pipeline {
       image 'px4io/px4-dev-simulation:2017-09-26'
       args '--env CCACHE_DISABLE=1 --env CI=true'
     }
-    
   }
   stages {
     stage('Quality Checks') {
@@ -13,23 +12,15 @@ pipeline {
       }
     }
     stage('Build') {
-      parallel {
-        stage('posix_sitl_default') {
-          steps {
-            sh 'make posix_sitl_default'
-          }
-        }
-        stage('nuttx_px4fmu-v2_default') {
           steps {
             sh 'make nuttx_px4fmu-v2_default'
             archiveArtifacts 'build/*/*.px4'
           }
-        }
-      }
     }
     stage('Test') {
       steps {
-        sh 'make tests'
+        sh 'make posix_sitl_default test_results_junit'
+        junit 'build/posix_sitl_default/JUnitTestResults.xml'
       }
     }
     stage('Generate Metadata') {
