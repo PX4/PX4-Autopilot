@@ -49,6 +49,7 @@ class FlightTaskManual : public FlightTask
 public:
 	FlightTaskManual(SuperBlock *parent, const char *name) :
 		FlightTask(parent, name),
+		_sub_manual_control_setpoint(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
 		_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
 		_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
 		_hold_dz(parent, "MPC_HOLD_DZ", false),
@@ -103,13 +104,11 @@ public:
 	 */
 	virtual int update()
 	{
-		FlightTask::update();
+		int ret = FlightTask::update();
+		ret += _evaluate_sticks();
 
 		/* prepare stick input */
-		matrix::Vector2f stick_xy; /**< horizontal two dimensional stick input within a unit circle */
-		stick_xy(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
-		stick_xy(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
-		float stick_z = -math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
+		matrix::Vector2f stick_xy(_sticks.data()); /**< horizontal two dimensional stick input within a unit circle */
 
 		const float stick_xy_norm = stick_xy.norm();
 
@@ -119,7 +118,7 @@ public:
 		}
 
 		/* rotate stick input to produce velocity setpoint in NED frame */
-		matrix::Vector3f velocity_setpoint(stick_xy(0), stick_xy(1), stick_z);
+		matrix::Vector3f velocity_setpoint(stick_xy(0), stick_xy(1), _sticks(3));
 		velocity_setpoint = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, get_input_frame_yaw())) * velocity_setpoint;
 
 		/* scale [0,1] length velocity vector to maximal manual speed (in m/s) */
@@ -129,14 +128,14 @@ public:
 		velocity_setpoint = velocity_setpoint.emult(vel_scale);
 
 		/* smooth out velocity setpoint by slewrate and return it */
-		vel_sp_slewrate(velocity_setpoint, stick_xy, stick_z);
+		vel_sp_slewrate(velocity_setpoint, stick_xy, _sticks(3));
 		_set_velocity_setpoint(velocity_setpoint);
 
 		/* handle position and altitude hold */
 		const bool stick_xy_zero = stick_xy_norm <= FLT_EPSILON;
-		const bool stick_z_zero = fabsf(stick_z) <= FLT_EPSILON;
+		const bool stick_z_zero = fabsf(_sticks(3)) <= FLT_EPSILON;
 
-		float velocity_xy_norm = matrix::Vector2f(_velocity._data).norm();
+		float velocity_xy_norm = matrix::Vector2f(_velocity.data()).norm();
 		const bool stopped_xy = (_hold_max_xy.get() < FLT_EPSILON || velocity_xy_norm < _hold_max_xy.get());
 		const bool stopped_z = (_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _hold_max_z.get());
 
@@ -157,16 +156,20 @@ public:
 		}
 
 		_set_position_setpoint(_hold_position);
-		return 0;
+		return ret;
 	};
 
 protected:
+	matrix::Vector<float, 4> _sticks;
+
 	float get_input_frame_yaw()
 	{
 		return _yaw;
 	};
 
 private:
+	uORB::Subscription<manual_control_setpoint_s> _sub_manual_control_setpoint;
+
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
@@ -178,6 +181,27 @@ private:
 
 	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
 
+	int _evaluate_sticks()
+	{
+		if (hrt_elapsed_time(&_sub_manual_control_setpoint.get().timestamp) < _timeout) {
+			/* get data and scale correctly */
+			_sticks(0) = _sub_manual_control_setpoint.get().x; /* NED x, "pitch" [-1,1] */
+			_sticks(1) = _sub_manual_control_setpoint.get().y; /* NED y, "roll" [-1,1] */
+			_sticks(2) = -(_sub_manual_control_setpoint.get().z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
+			_sticks(3) = _sub_manual_control_setpoint.get().r; /* "yaw" [-1,1] */
+
+			/* apply expo and deadzone */
+			_sticks(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
+			_sticks(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
+			_sticks(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
+
+			return 0;
+
+		} else {
+			_sticks.zero(); /* default is all zero */
+			return 1;
+		}
+	}
 
 
 	/* --- Acceleration Smoothing --- */
