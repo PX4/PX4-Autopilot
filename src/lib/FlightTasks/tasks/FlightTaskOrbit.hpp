@@ -94,11 +94,12 @@ public:
 
 		/* xy velocity to go around in a circle */
 		matrix::Vector2<float> velocity_xy = matrix::Vector2f(center_to_position(1), -center_to_position(0));
-		velocity_xy.normalize();
+		velocity_xy = velocity_xy.unit_or_zero();
 		velocity_xy *= v;
 
 		/* xy velocity adjustment to stay on the radius distance */
-		velocity_xy += (r - center_to_position.norm()) * center_to_position.normalized();
+		velocity_xy += (r - center_to_position.norm()) * center_to_position.unit_or_zero();
+
 		float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 
 		_set_position_setpoint(matrix::Vector3f(NAN, NAN, z));
