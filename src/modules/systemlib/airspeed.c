@@ -75,6 +75,9 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
     break;
 
     case AIRSPEED_SENSOR_MODEL_SDP3X: {
+        // assumes a metal pitot tube with round tip as here: https://drotek.com/shop/2986-large_default/sdp3x-airspeed-sensor-kit-sdp31.jpg
+        // and tubing as provided by px4/drotek (1.5 mm diameter)
+        // The tube_len represents the length of the tubes connecting the pitot to the sensor.
         switch (pmodel) {
         case AIRSPEED_COMPENSATION_MODEL_PITOT:
         case AIRSPEED_COMPENSATION_MODEL_NO_PITOT: {
@@ -109,6 +112,10 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
         }
         break;
         case AIRSPEED_COMPENSATION_TUBE_PRESSURE_LOSS: {
+            // Pressure loss compensation as defined in https://goo.gl/UHV1Vv.
+            // tube_dia_mm: Diameter in mm of the pitot and tubes, must have the same diameter.
+            // tube_len: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
+
             // check if the tube diameter and dp is nonzero to avoid division by 0
             if ((tube_dia_mm > 0.0f) && (dp > 0.0f)) {
                 const double d_tubePow4 = pow((double)tube_dia_mm * 1e-3, 4);
