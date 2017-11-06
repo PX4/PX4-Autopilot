@@ -11,6 +11,7 @@ import re
 
 raw_messages = glob.glob(sys.argv[1]+"/msg/*.msg")
 messages = []
+topics = []
 message_elements = []
 
 
@@ -20,6 +21,7 @@ for index,m in enumerate(raw_messages):
 	temp_list_bool = []
 	if("pwm_input" not in m and "position_setpoint" not in m):
 		temp_list = []
+		topic_list = []
 		f = open(m,'r')
 		for line in f.readlines():
 			items = re.split('\s+', line.strip())
@@ -64,14 +66,22 @@ for index,m in enumerate(raw_messages):
 				temp_list.append(("uint8",items[1]))
 			elif (items[0] == "int8") and len(line.split('=')) == 1:
 				temp_list.append(("int8",items[1]))
+			elif '# TOPICS' == ' '.join(items[:2]):
+				for topic in items[2:]:
+					topic_list.append(topic)
 
 		f.close()
+
 		(m_head, m_tail) = os.path.split(m)
 		message = m_tail.split('.')[0]
-		if message != "actuator_controls":
+
+		if len(topic_list) == 0:		
+			topic_list.append(message)
+
+		for topic in topic_list:
 			messages.append(message)
+			topics.append(topic)
 			message_elements.append(temp_list)
-		#messages.append(m.split('/')[-1].split('.')[0])
 
 num_messages = len(messages);
 
@@ -146,7 +156,7 @@ static bool check_timeout(const hrt_abstime& time) {
 }
 
 """)
-for m in messages:
+for m in set(messages):
 	print("#include <uORB/topics/%s.h>" % m)
 
 
@@ -162,16 +172,14 @@ int listener_main(int argc, char *argv[]) {
 	}
 """)
 print("\tunsigned num_msgs = (argc > 2) ? atoi(argv[2]) : 1;")
-print("\tunsigned topic_instance = (argc > 3) ? atoi(argv[3]) : 0;")
-print("\tif (strncmp(argv[1],\"%s\",50) == 0) {" % messages[0])
-print("\t\tsub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % messages[0])
-print("\t\tID = ORB_ID(%s);" % messages[0])
-print("\t\tstruct %s_s container;" % messages[0])
-print("\t\tmemset(&container, 0, sizeof(container));")
-for index,m in enumerate(messages[1:]):
-	print("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {" % m)
-	print("\t\tsub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % m)
-	print("\t\tID = ORB_ID(%s);" % m)
+print("\tunsigned topic_instance = (argc > 3) ? atoi(argv[3]) : 0;\n")
+for index, (m, t) in enumerate(zip(messages, topics)):
+	if index == 0:
+		print("\tif (strncmp(argv[1],\"%s\",50) == 0) {" % t)
+	else:
+		print("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {" % t)
+	print("\t\tsub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % t)
+	print("\t\tID = ORB_ID(%s);" % t)
 	print("\t\tstruct %s_s container;" % m)
 	print("\t\tmemset(&container, 0, sizeof(container));")
 	print("\t\tbool updated;")
@@ -183,10 +191,10 @@ for index,m in enumerate(messages[1:]):
 	print("\t\t\tif (updated) {")
 	print("\t\t\tstart_time = hrt_absolute_time();")
 	print("\t\t\ti++;")
-	print("\t\t\tprintf(\"\\nTOPIC: %s instance %%d #%%d\\n\", topic_instance, i);" % m)
+	print("\t\t\tprintf(\"\\nTOPIC: %s instance %%d #%%d\\n\", topic_instance, i);" % t)
 	print("\t\t\torb_copy(ID,sub,&container);")
 	print("\t\t\tprintf(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);")
-	for item in message_elements[index+1]:
+	for item in message_elements[index]:
 		if item[0] == "float":
 			print("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
 		elif item[0] == "float_array":
