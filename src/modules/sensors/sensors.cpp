@@ -60,6 +60,7 @@
 #include <errno.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
+#include <matrix/matrix/math.hpp>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
@@ -73,6 +74,7 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/battery.h>
+#include <wind_estimator/WindEstimator.hpp>
 
 #include <conversion/rotation.h>
 
@@ -84,6 +86,9 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 #include <DevMgr.hpp>
 
@@ -166,6 +171,8 @@ private:
 	int		_diff_pres_sub{-1};			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle control mode subscription */
 	int 		_params_sub{-1};			/**< notification of parameter updates */
+	int		_vehicle_local_position_sub{-1};	/**< notification of local position updates from the nav estimator*/
+	int		_vehicle_attitude_sub{-1};		/**< notification of attitude quaternion updates from the nav estimator*/
 
 	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
@@ -178,6 +185,8 @@ private:
 	orb_advert_t	_diff_pres_pub{nullptr};			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight{nullptr};		/**< sensor preflight topic */
 
+	orb_advert_t 	_wind_est_pub;			/**< wind estimate topic */
+
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
@@ -185,6 +194,10 @@ private:
 	battery_status_s _battery_status[BOARD_NUMBER_BRICKS] {};	/**< battery status */
 	differential_pressure_s _diff_pres{};
 	airspeed_s _airspeed{};
+	struct wind_estimate_s _wind_est;		/**< wind estimate */
+
+	struct vehicle_local_position_s _vehicle_local_position = {};	/**< local position and velocity estimates */
+	struct vehicle_attitude_s _vehicle_attitude = {};		/**< attitude quaternion estimates */
 
 	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
 
@@ -193,6 +206,12 @@ private:
 
 	RCUpdate		_rc_update;
 	VotedSensorsUpdate _voted_sensors_update;
+
+	WindEstimator _wind_estimator;
+
+	hrt_abstime
+	_time_last_airspeed_fused;		/* timestamp of when last time airspeed measurement was fused into wind estimator */
+	hrt_abstime _time_last_beta_fused;		/* timestamp of when last time sideslip measurement was fused into wind estimator */
 
 
 	/**
@@ -224,6 +243,16 @@ private:
 	void 		parameter_update_poll(bool forced = false);
 
 	/**
+	 * Check for changes in local position and velocity estimates.
+	 */
+	void 		vehicle_local_position_poll();
+
+	/**
+	 * Check for changes in attitude quaternion estimates.
+	 */
+	void 		vehicle_attitude_poll();
+
+	/**
 	 * Poll the ADC and update readings to suit.
 	 *
 	 * @param raw			Combined sensor data structure into which
@@ -236,7 +265,10 @@ Sensors::Sensors(bool hil_enabled) :
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_rc_update(_parameters),
-	_voted_sensors_update(_parameters, hil_enabled)
+	_voted_sensors_update(_parameters, hil_enabled),
+	_wind_estimator(),
+	_time_last_airspeed_fused(0),
+	_time_last_beta_fused(0)
 {
 	initialize_parameter_handles(_parameter_handles);
 
@@ -359,9 +391,55 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 						   _voted_sensors_update.baro_pressure(), air_temperature_celsius));
 
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
+		_airspeed.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
+	}
+
+	// update wind and airspeed estimator
+	_wind_estimator.update(raw.gyro_integral_dt);
+
+	bool fuse_airspeed = updated && (hrt_elapsed_time(&_time_last_airspeed_fused) > 5e4);
+	bool fuse_beta = updated && (hrt_elapsed_time(&_time_last_beta_fused) > 5e4) && _vehicle_local_position.v_xy_valid;
+
+	if (fuse_beta || fuse_airspeed) {
+		matrix::Dcmf R_to_earth(matrix::Quatf(_vehicle_attitude.q));
+		matrix::Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
+		vI = R_to_earth * vI;
+
+		if (fuse_beta) {
+			_wind_estimator.fuse_beta(&vI._data[0][0], _vehicle_attitude.q);
+			_time_last_beta_fused = hrt_absolute_time();
+		}
+
+		if (fuse_airspeed) {
+			matrix::Vector3f vel_var(_vehicle_local_position.evh, _vehicle_local_position.evh, _vehicle_local_position.evv);
+			vel_var = R_to_earth * vel_var;
+			_wind_estimator.fuse_airspeed(_airspeed.indicated_airspeed_m_s, &vI._data[0][0], &vel_var._data[0][0]);
+			_time_last_airspeed_fused = hrt_absolute_time();
+		}
+	}
+
+	if (updated) {
+		_airspeed.scale = _wind_estimator.get_tas_scale();
 
 		int instance;
 		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &_airspeed, &instance, ORB_PRIO_DEFAULT);
+
+		_wind_est.timestamp = _airspeed.timestamp;
+		float wind[2];
+		_wind_estimator.get_wind(wind);
+		_wind_est.windspeed_north = wind[0];
+		_wind_est.windspeed_east = wind[1];
+		float wind_cov[2];
+		_wind_estimator.get_wind_var(wind_cov);
+		_wind_est.variance_north = wind_cov[0];
+		_wind_est.variance_east = wind_cov[1];
+		_wind_est.tas_innov = _wind_estimator.get_tas_innov();
+		_wind_est.tas_innov_var = _wind_estimator.get_tas_innov_var();
+		_wind_est.beta_innov = _wind_estimator.get_beta_innov();
+		_wind_est.beta_innov_var = _wind_estimator.get_beta_innov_var();
+		_wind_est.tas_scale = _wind_estimator.get_tas_scale();
+
+		orb_publish_auto(ORB_ID(wind_estimate), &_wind_est_pub, &_wind_est, &instance, ORB_PRIO_DEFAULT);
 	}
 }
 
@@ -395,6 +473,12 @@ Sensors::parameter_update_poll(bool forced)
 
 		parameters_update();
 
+		// update wind & airspeed scale estimator parameters
+		_wind_estimator.set_wind_p_noise(_parameters.wind_p_noise);
+		_wind_estimator.set_tas_scale_p_noise(_parameters.tas_scale_p_noise);
+		_wind_estimator.set_tas_noise(_parameters.tas_noise);
+		_wind_estimator.set_beta_noise(_parameters.beta_noise);
+
 		/* update airspeed scale */
 		int fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 
@@ -415,6 +499,28 @@ Sensors::parameter_update_poll(bool forced)
 		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 			_battery[b].updateParams();
 		}
+	}
+}
+
+void Sensors::vehicle_local_position_poll()
+{
+	bool updated;
+
+	orb_check(_vehicle_local_position_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &_vehicle_local_position);
+	}
+}
+
+void Sensors::vehicle_attitude_poll()
+{
+	bool updated;
+
+	orb_check(_vehicle_attitude_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_attitude);
 	}
 }
 
@@ -713,6 +819,12 @@ Sensors::run()
 		/* Look for new r/c input data */
 		_rc_update.rc_poll(_parameter_handles);
 
+		/* Look for new attitude and velocity data required for wind estimation */
+		vehicle_attitude_poll();
+		vehicle_local_position_poll();
+
+		diff_pres_poll(raw);
+
 		perf_end(_loop_perf);
 	}
 
@@ -721,6 +833,8 @@ Sensors::run()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_actuator_ctrl_0_sub);
 	orb_unadvertise(_sensor_pub);
+	orb_unsubscribe(_vehicle_attitude_sub);
+	orb_unsubscribe(_vehicle_local_position_sub);
 
 	_rc_update.deinit();
 	_voted_sensors_update.deinit();

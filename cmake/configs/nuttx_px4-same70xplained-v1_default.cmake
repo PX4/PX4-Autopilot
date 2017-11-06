@@ -130,6 +130,7 @@ set(config_module_list
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	platforms/nuttx
+	lib/wind_estimator
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common

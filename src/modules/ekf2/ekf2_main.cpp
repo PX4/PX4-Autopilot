@@ -68,7 +68,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/wind_estimate.h>
+//#include <uORB/topics/wind_estimate.h>
 
 using control::BlockParamFloat;
 using control::BlockParamExtFloat;
@@ -1177,32 +1177,32 @@ void Ekf2::run()
 					_total_cal_time_us = 0;
 				}
 
-				{
-					float velNE_wind[2];
-					_ekf.get_wind_velocity(velNE_wind);
+//				{
+//					float velNE_wind[2];
+//					_ekf.get_wind_velocity(velNE_wind);
 
-					// Calculate wind-compensated velocity in body frame
-					Vector3f v_wind_comp(velocity);
-					matrix::Dcmf R_to_body(q.inversed());
-					v_wind_comp(0) -= velNE_wind[0];
-					v_wind_comp(1) -= velNE_wind[1];
-					_vel_body_wind = R_to_body * v_wind_comp; // TODO: move this elsewhere
+//					// Calculate wind-compensated velocity in body frame
+//					Vector3f v_wind_comp(velocity);
+//					matrix::Dcmf R_to_body(q.inversed());
+//					v_wind_comp(0) -= velNE_wind[0];
+//					v_wind_comp(1) -= velNE_wind[1];
+//					_vel_body_wind = R_to_body * v_wind_comp; // TODO: move this elsewhere
 
-					// Publish wind estimate
-					wind_estimate_s wind_estimate;
-					wind_estimate.timestamp = now;
-					wind_estimate.windspeed_north = velNE_wind[0];
-					wind_estimate.windspeed_east = velNE_wind[1];
-					wind_estimate.variance_north = status.covariances[22];
-					wind_estimate.variance_east = status.covariances[23];
+//					// Publish wind estimate
+//					wind_estimate_s wind_estimate;
+//					wind_estimate.timestamp = now;
+//					wind_estimate.windspeed_north = velNE_wind[0];
+//					wind_estimate.windspeed_east = velNE_wind[1];
+//					wind_estimate.variance_north = status.covariances[22];
+//					wind_estimate.variance_east = status.covariances[23];
 
-					if (_wind_pub == nullptr) {
-						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+//					if (_wind_pub == nullptr) {
+//						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
 
-					} else {
-						orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-					}
-				}
+//					} else {
+//						orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+//					}
+//				}
 			}
 
 			{
