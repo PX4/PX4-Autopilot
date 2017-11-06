@@ -69,7 +69,8 @@ enum AIRSPEED_COMPENSATION_MODEL {
  * @param static_pressure pressure at the side of the tube/airplane
  * @return indicated airspeed in m/s
  */
-__EXPORT float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
+__EXPORT float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
+		enum AIRSPEED_SENSOR_MODEL smodel,
 		float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius);
 
 /**

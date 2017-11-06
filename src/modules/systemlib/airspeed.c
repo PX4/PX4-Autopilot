@@ -56,125 +56,130 @@
  * @return indicated airspeed in m/s
  */
 float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
-                                        float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius)
+					float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius)
 {
 
-    // air density in kg/m3
-    const double rho_air = get_air_density(pressure_ambient, temperature_celsius);
+	// air density in kg/m3
+	const double rho_air = get_air_density(pressure_ambient, temperature_celsius);
 
-    const float dp = fabsf(differential_pressure);
-    float dp_tot = dp;
+	const float dp = fabsf(differential_pressure);
+	float dp_tot = dp;
 
-    float dv = 0.0f;
+	float dv = 0.0f;
 
-    switch (smodel) {
+	switch (smodel) {
 
-    case AIRSPEED_SENSOR_MODEL_MEMBRANE: {
-        // do nothing
-    }
-    break;
+	case AIRSPEED_SENSOR_MODEL_MEMBRANE: {
+			// do nothing
+		}
+		break;
 
-    case AIRSPEED_SENSOR_MODEL_SDP3X: {
-        // assumes a metal pitot tube with round tip as here: https://drotek.com/shop/2986-large_default/sdp3x-airspeed-sensor-kit-sdp31.jpg
-        // and tubing as provided by px4/drotek (1.5 mm diameter)
-        // The tube_len represents the length of the tubes connecting the pitot to the sensor.
-        switch (pmodel) {
-        case AIRSPEED_COMPENSATION_MODEL_PITOT:
-        case AIRSPEED_COMPENSATION_MODEL_NO_PITOT: {
-            const double dp_corr = (double)dp * 96600.0 / (double)pressure_ambient;
-            // flow through sensor
-            double flow_SDP33 = (300.805 - 300.878 / (0.00344205 * pow(dp_corr, 0.68698) + 1)) * 1.29 / rho_air;
+	case AIRSPEED_SENSOR_MODEL_SDP3X: {
+			// assumes a metal pitot tube with round tip as here: https://drotek.com/shop/2986-large_default/sdp3x-airspeed-sensor-kit-sdp31.jpg
+			// and tubing as provided by px4/drotek (1.5 mm diameter)
+			// The tube_len represents the length of the tubes connecting the pitot to the sensor.
+			switch (pmodel) {
+			case AIRSPEED_COMPENSATION_MODEL_PITOT:
+			case AIRSPEED_COMPENSATION_MODEL_NO_PITOT: {
+					const double dp_corr = (double)dp * 96600.0 / (double)pressure_ambient;
+					// flow through sensor
+					double flow_SDP33 = (300.805 - 300.878 / (0.00344205 * pow(dp_corr, 0.68698) + 1)) * 1.29 / rho_air;
 
-            // for too small readings the compensation might result in a negative flow which causes numerical issues
-            if (flow_SDP33 < 0.0) {
-                flow_SDP33 = 0.0;
-            }
+					// for too small readings the compensation might result in a negative flow which causes numerical issues
+					if (flow_SDP33 < 0.0) {
+						flow_SDP33 = 0.0;
+					}
 
-            float dp_pitot = 0.0f;
-            switch (pmodel) {
-            case AIRSPEED_COMPENSATION_MODEL_PITOT:
-                dp_pitot = (0.0032 * flow_SDP33 * flow_SDP33 + 0.0123 * flow_SDP33 + 1.0) * 1.29 / rho_air;
-                break;
+					float dp_pitot = 0.0f;
 
-            default:
-                // do nothing
-                break;
-            }
+					switch (pmodel) {
+					case AIRSPEED_COMPENSATION_MODEL_PITOT:
+						dp_pitot = (0.0032 * flow_SDP33 * flow_SDP33 + 0.0123 * flow_SDP33 + 1.0) * 1.29 / rho_air;
+						break;
 
-            // pressure drop through tube
-            const float dp_tube = (flow_SDP33 * 0.674) / 450.0 * (double)tube_len * rho_air / 1.29;
+					default:
+						// do nothing
+						break;
+					}
 
-            // speed at pitot-tube tip due to flow through sensor
-            dv = 0.125 * flow_SDP33;
+					// pressure drop through tube
+					const float dp_tube = (flow_SDP33 * 0.674) / 450.0 * (double)tube_len * rho_air / 1.29;
 
-            // sum of all pressure drops
-            dp_tot = (float)dp_corr + dp_tube + dp_pitot;
-        }
-        break;
-        case AIRSPEED_COMPENSATION_TUBE_PRESSURE_LOSS: {
-            // Pressure loss compensation as defined in https://goo.gl/UHV1Vv.
-            // tube_dia_mm: Diameter in mm of the pitot and tubes, must have the same diameter.
-            // tube_len: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
+					// speed at pitot-tube tip due to flow through sensor
+					dv = 0.125 * flow_SDP33;
 
-            // check if the tube diameter and dp is nonzero to avoid division by 0
-            if ((tube_dia_mm > 0.0f) && (dp > 0.0f)) {
-                const double d_tubePow4 = pow((double)tube_dia_mm * 1e-3, 4);
-                const double denominator = M_PI * d_tubePow4 * rho_air * (double)dp;
+					// sum of all pressure drops
+					dp_tot = (float)dp_corr + dp_tube + dp_pitot;
+				}
+				break;
 
-                // avoid division by 0
-                double eps = 0.0f;
-                if (fabs(denominator)> 1e-32) {
-                    const double viscosity = (18.205 + 0.0484 * ((double)temperature_celsius - 20.0)) * 1e-6;
+			case AIRSPEED_COMPENSATION_TUBE_PRESSURE_LOSS: {
+					// Pressure loss compensation as defined in https://goo.gl/UHV1Vv.
+					// tube_dia_mm: Diameter in mm of the pitot and tubes, must have the same diameter.
+					// tube_len: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
 
-                    // 4.79 * 1e-7 -> mass flow through sensor
-                    // 59.5 -> dp sensor constant where linear and quadratic contribution to dp vs flow is equal
-                    eps = -64.0 * (double)tube_len * viscosity * 4.79 * 1e-7 * (sqrt(1.0 + 8.0 * (double)dp / 59.3319) - 1.0) / denominator;
-                }
+					// check if the tube diameter and dp is nonzero to avoid division by 0
+					if ((tube_dia_mm > 0.0f) && (dp > 0.0f)) {
+						const double d_tubePow4 = pow((double)tube_dia_mm * 1e-3, 4);
+						const double denominator = M_PI * d_tubePow4 * rho_air * (double)dp;
 
-                // range check on eps
-                if (fabs(eps) >= 1.0)
-                    eps = 0.0;
+						// avoid division by 0
+						double eps = 0.0f;
 
-                // pressure correction
-                dp_tot = dp / (1.0f + (float)eps);
-            }
-        }
-        break;
-        default: {
-            // do nothing
-        }
-        break;
-        }
+						if (fabs(denominator) > 1e-32) {
+							const double viscosity = (18.205 + 0.0484 * ((double)temperature_celsius - 20.0)) * 1e-6;
 
-    }
-    break;
+							// 4.79 * 1e-7 -> mass flow through sensor
+							// 59.5 -> dp sensor constant where linear and quadratic contribution to dp vs flow is equal
+							eps = -64.0 * (double)tube_len * viscosity * 4.79 * 1e-7 * (sqrt(1.0 + 8.0 * (double)dp / 59.3319) - 1.0) / denominator;
+						}
 
-    default: {
-        // do nothing
-    }
-    break;
-    }
+						// range check on eps
+						if (fabs(eps) >= 1.0) {
+							eps = 0.0;
+						}
 
-    // if (!PX4_ISFINITE(dp_tube)) {
-    // 	dp_tube = 0.0f;
-    // }
+						// pressure correction
+						dp_tot = dp / (1.0f + (float)eps);
+					}
+				}
+				break;
 
-    // if (!PX4_ISFINITE(dp_pitot)) {
-    // 	dp_pitot = 0.0f;
-    // }
+			default: {
+					// do nothing
+				}
+				break;
+			}
 
-    // if (!PX4_ISFINITE(dv)) {
-    // 	dv = 0.0f;
-    // }
+		}
+		break;
 
-    // computed airspeed without correction for inflow-speed at tip of pitot-tube
-    const float airspeed_uncorrected = sqrtf(2 * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+	default: {
+			// do nothing
+		}
+		break;
+	}
 
-    // corrected airspeed
-    const float airspeed_corrected = airspeed_uncorrected + dv;
+	// if (!PX4_ISFINITE(dp_tube)) {
+	// 	dp_tube = 0.0f;
+	// }
 
-    // return result with correct sign
-    return (differential_pressure > 0.0f) ? airspeed_corrected : -airspeed_corrected;
+	// if (!PX4_ISFINITE(dp_pitot)) {
+	// 	dp_pitot = 0.0f;
+	// }
+
+	// if (!PX4_ISFINITE(dv)) {
+	// 	dv = 0.0f;
+	// }
+
+	// computed airspeed without correction for inflow-speed at tip of pitot-tube
+	const float airspeed_uncorrected = sqrtf(2 * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+
+	// corrected airspeed
+	const float airspeed_corrected = airspeed_uncorrected + dv;
+
+	// return result with correct sign
+	return (differential_pressure > 0.0f) ? airspeed_corrected : -airspeed_corrected;
 }
 
 
@@ -192,12 +197,12 @@ float calc_indicated_airspeed(float differential_pressure)
 {
 
 
-    if (differential_pressure > 0.0f) {
-        return sqrtf((2.0f * differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+	if (differential_pressure > 0.0f) {
+		return sqrtf((2.0f * differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 
-    } else {
-        return -sqrtf((2.0f * fabsf(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
-    }
+	} else {
+		return -sqrtf((2.0f * fabsf(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+	}
 
 }
 
@@ -213,8 +218,8 @@ float calc_indicated_airspeed(float differential_pressure)
  */
 float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_ambient, float temperature_celsius)
 {
-    return speed_indicated * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient,
-                                   temperature_celsius));
+	return speed_indicated * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient,
+				       temperature_celsius));
 }
 
 /**
@@ -229,23 +234,23 @@ float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_am
  */
 float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius)
 {
-    float density = get_air_density(static_pressure, temperature_celsius);
+	float density = get_air_density(static_pressure, temperature_celsius);
 
-    if (density < 0.0001f || !isfinite(density)) {
-        density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
-    }
+	if (density < 0.0001f || !isfinite(density)) {
+		density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
+	}
 
-    float pressure_difference = total_pressure - static_pressure;
+	float pressure_difference = total_pressure - static_pressure;
 
-    if (pressure_difference > 0) {
-        return sqrtf((2.0f * (pressure_difference)) / density);
+	if (pressure_difference > 0) {
+		return sqrtf((2.0f * (pressure_difference)) / density);
 
-    } else {
-        return -sqrtf((2.0f * fabsf(pressure_difference)) / density);
-    }
+	} else {
+		return -sqrtf((2.0f * fabsf(pressure_difference)) / density);
+	}
 }
 
 float get_air_density(float static_pressure, float temperature_celsius)
 {
-    return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
 }
