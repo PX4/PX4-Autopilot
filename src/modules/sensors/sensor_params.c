@@ -817,15 +817,19 @@ PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
 /**
  * Airspeed sensor compensation model for the SDP3x
  *
- * @value 0 Model with Pitot
+ * Model with Pitot
  * 		CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed.
  * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
- * @value 1 Model without Pitot (1.5 mm tubes)
+ * Model without Pitot (1.5 mm tubes)
  * 		CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed.
  * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
- * @value 2 Tube Pressure Drop
+ * Tube Pressure Drop
  * 		CAL_AIR_TUBED_MM: Diameter in mm of the pitot and tubes, must have the same diameter.
  * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
+ *
+ * @value 0 Model with Pitot
+ * @value 1 Model without Pitot (1.5 mm tubes)
+ * @value 2 Tube Pressure Drop
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_AIR_CMODEL, 0);
