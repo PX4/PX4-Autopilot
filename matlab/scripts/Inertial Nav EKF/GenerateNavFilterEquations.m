@@ -228,25 +228,43 @@ reset(symengine);
 %% derive equations for sequential fusion of optical flow measurements
 load('StatePrediction.mat');
 
-% range is defined as distance from camera focal point to centre of sensor fov
+% Range is defined as distance from camera focal point to object measured
+% along sensor Z axis
 syms range real;
 
-% calculate relative velocity in body frame
-relVelBody = transpose(Tbn)*[vn;ve;vd];
+% Define rotation matrix from body to sensor frame
+syms Tbs_a_x Tbs_a_y Tbs_a_z real;
+syms Tbs_b_x Tbs_b_y Tbs_b_z real;
+syms Tbs_c_x Tbs_c_y Tbs_c_z real;
+Tbs = [ ...
+    Tbs_a_x Tbs_a_y Tbs_a_z ; ...
+    Tbs_b_x Tbs_b_y Tbs_b_z ; ...
+    Tbs_c_x Tbs_c_y Tbs_c_z ...
+    ];
 
-% divide by range to get predicted angular LOS rates relative to X and Y
-% axes. Note these are body angular rate motion compensated optical flow rates
-losRateX = +relVelBody(2)/range;
-losRateY = -relVelBody(1)/range;
+% Calculate earth relative velocity in a non-rotating sensor frame
+relVelSensor = Tbs * transpose(Tbn) * [vn;ve;vd];
 
-save('temp1.mat','losRateX','losRateY');
+% Divide by range to get predicted angular LOS rates relative to X and Y
+% axes. Note these are rates in a non-rotating sensor frame
+losRateSensorX = +relVelSensor(2)/range;
+losRateSensorY = -relVelSensor(1)/range;
 
-% calculate the observation Jacobian for the X axis
-H_LOSX = jacobian(losRateX,stateVector); % measurement Jacobian
+save('temp1.mat','losRateSensorX','losRateSensorY');
+
+clear all;
+reset(symengine);
+load('StatePrediction.mat');
+load('temp1.mat');
+
+% calculate the observation Jacobian and Kalman gain for the X axis
+H_LOSX = jacobian(losRateSensorX,stateVector); % measurement Jacobian
 H_LOSX = simplify(H_LOSX);
-save('temp2.mat','H_LOSX');
-ccode(H_LOSX,'file','H_LOSX.c');
-fix_c_code('H_LOSX.c');
+K_LOSX = (P*transpose(H_LOSX))/(H_LOSX*P*transpose(H_LOSX) + R_LOS); % Kalman gain vector
+K_LOSX = simplify(K_LOSX);
+save('temp2.mat','H_LOSX','K_LOSX');
+ccode([H_LOSX;transpose(K_LOSX)],'file','LOSX.c');
+fix_c_code('LOSX.c');
 
 clear all;
 reset(symengine);
@@ -254,35 +272,13 @@ load('StatePrediction.mat');
 load('temp1.mat');
 
 % calculate the observation Jacobian for the Y axis
-H_LOSY = jacobian(losRateY,stateVector); % measurement Jacobian
+H_LOSY = jacobian(losRateSensorY,stateVector); % measurement Jacobian
 H_LOSY = simplify(H_LOSY);
-save('temp3.mat','H_LOSY');
-ccode(H_LOSY,'file','H_LOSY.c');
-fix_c_code('H_LOSY.c');
-
-clear all;
-reset(symengine);
-load('StatePrediction.mat');
-load('temp1.mat');
-load('temp2.mat');
-
-% calculate Kalman gain vector for the X axis
-K_LOSX = (P*transpose(H_LOSX))/(H_LOSX*P*transpose(H_LOSX) + R_LOS); % Kalman gain vector
-K_LOSX = simplify(K_LOSX);
-ccode(K_LOSX,'file','K_LOSX.c');
-fix_c_code('K_LOSX.c');
-
-clear all;
-reset(symengine);
-load('StatePrediction.mat');
-load('temp1.mat');
-load('temp3.mat');
-
-% calculate Kalman gain vector for the Y axis
 K_LOSY = (P*transpose(H_LOSY))/(H_LOSY*P*transpose(H_LOSY) + R_LOS); % Kalman gain vector
 K_LOSY = simplify(K_LOSY);
-ccode(K_LOSY,'file','K_LOSY.c');
-fix_c_code('K_LOSY.c');
+save('temp3.mat','H_LOSY','K_LOSY');
+ccode([H_LOSY;transpose(K_LOSY)],'file','LOSY.c');
+fix_c_code('LOSY.c');
 
 % reset workspace
 clear all;
