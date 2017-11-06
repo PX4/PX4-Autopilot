@@ -56,10 +56,6 @@
 #include <termios.h>
 #include <time.h>
 
-#ifdef __PX4_POSIX
-#include <net/if.h>
-#endif
-
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1121,7 +1117,6 @@ Mavlink::find_broadcast_address()
 	     offset += sizeof(struct ifreq)
 #endif
 	    ) {
-
 		// Point to next network interface in buffer.
 		cur_ifreq = (struct ifreq *) & (((uint8_t *)ifconf.ifc_req)[offset]);
 
@@ -1133,19 +1128,6 @@ Mavlink::find_broadcast_address()
 		    strcmp(cur_ifreq->ifr_name, "lo1") == 0 ||
 		    strcmp(cur_ifreq->ifr_name, "lo2") == 0) {
 			PX4_DEBUG("skipping loopback");
-			continue;
-		}
-
-		struct ifreq bc_ifreq;
-
-		memset(&bc_ifreq, 0, sizeof(bc_ifreq));
-
-		strncpy(bc_ifreq.ifr_name, cur_ifreq->ifr_name, IF_NAMESIZE);
-
-		ret = ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_ifreq);
-
-		if (ret != 0) {
-			PX4_DEBUG("getting broadcast address failed for %s", cur_ifreq->ifr_name);
 			continue;
 		}
 
@@ -1162,19 +1144,21 @@ Mavlink::find_broadcast_address()
 		}
 
 		if (!_broadcast_address_found) {
-			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+			const struct in_addr netmask_addr = query_netmask_addr(_socket_fd, *cur_ifreq);
+			const struct in_addr broadcast_addr = compute_broadcast_addr(sin_addr, netmask_addr);
 
-			struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
-			PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
+			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+			PX4_INFO("with netmask: %s", inet_ntoa(netmask_addr));
+			PX4_INFO("and broadcast IP: %s", inet_ntoa(broadcast_addr));
 
 			_bcast_addr.sin_family = AF_INET;
-			_bcast_addr.sin_addr = bc_addr;
+			_bcast_addr.sin_addr = broadcast_addr;
 
 			_broadcast_address_found = true;
 
 		} else {
-			PX4_INFO("ignoring additional network interface %s, IP:  %s",
-				 cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+			PX4_DEBUG("ignoring additional network interface %s, IP:  %s",
+				  cur_ifreq->ifr_name, inet_ntoa(sin_addr));
 		}
 	}
 
@@ -1200,6 +1184,28 @@ Mavlink::find_broadcast_address()
 
 #endif
 }
+
+#ifdef __PX4_POSIX
+const in_addr
+Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
+{
+	struct ifreq netmask_ifreq;
+	memset(&netmask_ifreq, 0, sizeof(netmask_ifreq));
+	strncpy(netmask_ifreq.ifr_name, ifreq.ifr_name, IF_NAMESIZE);
+	ioctl(socket_fd, SIOCGIFNETMASK, &netmask_ifreq);
+
+	return ((struct sockaddr_in *)&netmask_ifreq.ifr_addr)->sin_addr;
+}
+
+const in_addr
+Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
+{
+	struct in_addr broadcast_addr;
+	broadcast_addr.s_addr = ~netmask_addr.s_addr | host_addr.s_addr;
+
+	return broadcast_addr;
+}
+#endif
 
 void
 Mavlink::init_udp()

@@ -59,6 +59,10 @@
 #include <systemlib/mavlink_log.h>
 #include <drivers/device/ringbuffer.h>
 
+#ifdef __PX4_POSIX
+#include <net/if.h>
+#endif
+
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -417,6 +421,10 @@ public:
 
 	int 			get_socket_fd() { return _socket_fd; };
 #ifdef __PX4_POSIX
+	const in_addr query_netmask_addr(const int socket_fd, const ifreq &ifreq);
+
+	const in_addr compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr);
+
 	struct sockaddr_in 	*get_client_source_address() { return &_src_addr; }
 
 	void			set_client_source_initialized() { _src_addr_initialized = true; }
