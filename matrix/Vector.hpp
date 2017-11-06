@@ -83,6 +83,14 @@ public:
         return (*this) / norm();
     }
 
+    Vector unit_or_zero(const Type eps = 1e-5f) {
+        const Type n = norm();
+        if (n > eps) {
+            return (*this) / n;
+        }
+        return Vector();
+    }
+
     inline Vector normalized() const {
         return unit();
     }
