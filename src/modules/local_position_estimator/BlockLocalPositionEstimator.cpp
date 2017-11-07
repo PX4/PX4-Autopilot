@@ -692,9 +692,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().vel_e = xLP(X_vy);
 		_pub_gpos.get().vel_d = xLP(X_vz);
 
-		// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
-		_pub_gpos.get().pos_d_deriv = xLP(X_vz);
-
 		_pub_gpos.get().yaw = _eul(2);
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
@@ -703,9 +700,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().terrain_alt_valid = _estimatorInitialized & EST_TZ;
 		_pub_gpos.get().dead_reckoning = !(_estimatorInitialized & EST_XY);
 		_pub_gpos.update();
-		// TODO provide calculated values for these
-		_pub_gpos.get().evh = 0.0f;
-		_pub_gpos.get().evv = 0.0f;
 	}
 }
 

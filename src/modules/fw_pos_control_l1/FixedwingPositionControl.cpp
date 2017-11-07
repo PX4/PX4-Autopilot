@@ -1580,15 +1580,15 @@ FixedwingPositionControl::task_main()
 
 			// handle estimator reset events. we only adjust setpoins for manual modes
 			if (_control_mode.flag_control_manual_enabled) {
-				if (_control_mode.flag_control_altitude_enabled && _global_pos.alt_reset_counter != _alt_reset_counter) {
-					_hold_alt += _global_pos.delta_alt;
+				if (_control_mode.flag_control_altitude_enabled && _local_pos.z_reset_counter != _alt_reset_counter) {
+					_hold_alt += -_local_pos.delta_z;
 					// make TECS accept step in altitude and demanded altitude
-					_tecs.handle_alt_step(_global_pos.delta_alt, _global_pos.alt);
+					_tecs.handle_alt_step(-_local_pos.delta_z, _global_pos.alt);
 				}
 
 				// adjust navigation waypoints in position control mode
 				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
-				    && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
+				    && _local_pos.xy_reset_counter != _pos_reset_counter) {
 
 					// reset heading hold flag, which will re-initialise position control
 					_hdg_hold_enabled = false;
@@ -1596,8 +1596,8 @@ FixedwingPositionControl::task_main()
 			}
 
 			// update the reset counters in any case
-			_alt_reset_counter = _global_pos.alt_reset_counter;
-			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
+			_alt_reset_counter = _local_pos.z_reset_counter;
+			_pos_reset_counter = _local_pos.xy_reset_counter;
 
 			airspeed_poll();
 			vehicle_attitude_poll();
