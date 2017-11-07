@@ -113,7 +113,7 @@ private:
 	// time slip monitoring
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
-	uint64_t _last_time_slip_us = 0;	///< Last time slip (uSec)
+	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint64_t _timestamp_mag_us = 0;		///< magnetomer data timestamp (uSec)
@@ -437,7 +437,7 @@ int Ekf2::print_status()
 {
 	PX4_INFO("local position OK %s", (_ekf.local_position_is_valid()) ? "yes" : "no");
 	PX4_INFO("global position OK %s", (_ekf.global_position_is_valid()) ? "yes" : "no");
-	PX4_INFO("time slip: %" PRIu64 " us", _last_time_slip_us);
+	PX4_INFO("time slip: %" PRId64 " us", _last_time_slip_us);
 	return 0;
 }
 
@@ -867,9 +867,11 @@ void Ekf2::run()
 			// integrate time to monitor time slippage
 			if (_start_time_us == 0) {
 				_start_time_us = now;
+				_last_time_slip_us = 0;
 
 			} else if (_start_time_us > 0) {
 				_integrated_time_us += sensors.gyro_integral_dt;
+				_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
 			}
 
 			matrix::Quatf q;
@@ -1087,15 +1089,7 @@ void Ekf2::run()
 		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
 		_ekf.get_ekf_soln_status(&status.solution_status_flags);
 		_ekf.get_imu_vibe_metrics(status.vibe);
-
-		// monitor time slippage
-		if (_start_time_us != 0 && now > _start_time_us) {
-			status.time_slip = (float)(1e-6 * ((double)(now - _start_time_us) - (double) _integrated_time_us));
-			_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
-
-		} else {
-			status.time_slip = 0.0f;
-		}
+		status.time_slip = _last_time_slip_us / 1e6f;
 
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
