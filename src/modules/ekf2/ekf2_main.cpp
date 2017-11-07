@@ -106,7 +106,7 @@ public:
 	int print_status() override;
 
 private:
-	int getRangeSubIndex(const int *subs); ///< get subscribtion index of first downward-facing range sensor
+	int getRangeSubIndex(const int *subs); ///< get subscription index of first downward-facing range sensor
 
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
