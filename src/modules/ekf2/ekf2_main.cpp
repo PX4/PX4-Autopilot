@@ -50,7 +50,6 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
-#include <systemlib/systemlib.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_innovations.h>
@@ -861,7 +860,9 @@ void Ekf2::run()
 		}
 
 		// run the EKF update and output
-		if (_ekf.update()) {
+		const bool updated = _ekf.update();
+
+		if (updated) {
 
 			// integrate time to monitor time slippage
 			if (_start_time_us == 0) {
@@ -1067,42 +1068,44 @@ void Ekf2::run()
 					orb_publish(ORB_ID(sensor_bias), _sensor_bias_pub, &bias);
 				}
 			}
+		}
 
+		// publish estimator status
+		estimator_status_s status;
+		status.timestamp = now;
+		_ekf.get_state_delayed(status.states);
+		_ekf.get_covariances(status.covariances);
+		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
+		_ekf.get_control_mode(&status.control_mode_flags);
+		_ekf.get_filter_fault_status(&status.filter_fault_flags);
+		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
+						&status.vel_test_ratio, &status.pos_test_ratio,
+						&status.hgt_test_ratio, &status.tas_test_ratio,
+						&status.hagl_test_ratio);
+
+		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
+		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
+		_ekf.get_ekf_soln_status(&status.solution_status_flags);
+		_ekf.get_imu_vibe_metrics(status.vibe);
+
+		// monitor time slippage
+		if (_start_time_us != 0 && now > _start_time_us) {
+			status.time_slip = (float)(1e-6 * ((double)(now - _start_time_us) - (double) _integrated_time_us));
+			_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
+
+		} else {
+			status.time_slip = 0.0f;
+		}
+
+		if (_estimator_status_pub == nullptr) {
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+
+		} else {
+			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+		}
+
+		if (updated) {
 			{
-				// publish estimator status
-				estimator_status_s status;
-				status.timestamp = now;
-				_ekf.get_state_delayed(status.states);
-				_ekf.get_covariances(status.covariances);
-				_ekf.get_gps_check_status(&status.gps_check_fail_flags);
-				_ekf.get_control_mode(&status.control_mode_flags);
-				_ekf.get_filter_fault_status(&status.filter_fault_flags);
-				_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
-								&status.vel_test_ratio, &status.pos_test_ratio,
-								&status.hgt_test_ratio, &status.tas_test_ratio,
-								&status.hagl_test_ratio);
-
-				status.pos_horiz_accuracy = lpos.eph;
-				status.pos_vert_accuracy = lpos.epv;
-				_ekf.get_ekf_soln_status(&status.solution_status_flags);
-				_ekf.get_imu_vibe_metrics(status.vibe);
-
-				// monitor time slippage
-				if (_start_time_us != 0 && now > _start_time_us) {
-					status.time_slip = (float)(1e-6 * ((double)(now - _start_time_us) - (double) _integrated_time_us));
-					_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
-
-				} else {
-					status.time_slip = 0.0f;
-				}
-
-				if (_estimator_status_pub == nullptr) {
-					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
-
-				} else {
-					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
-				}
-
 				/* Check and save learned magnetometer bias estimates */
 
 				// Check if conditions are OK to for learning of magnetometer bias values
@@ -1178,12 +1181,20 @@ void Ekf2::run()
 				}
 
 				{
-					float velNE_wind[2];
-					_ekf.get_wind_velocity(velNE_wind);
+					// Velocity of body origin in local NED frame (m/s)
+					float velocity[3];
+					_ekf.get_velocity(velocity);
+
+					matrix::Quatf q;
+					_ekf.copy_quaternion(q.data());
 
 					// Calculate wind-compensated velocity in body frame
 					Vector3f v_wind_comp(velocity);
 					matrix::Dcmf R_to_body(q.inversed());
+
+					float velNE_wind[2];
+					_ekf.get_wind_velocity(velNE_wind);
+
 					v_wind_comp(0) -= velNE_wind[0];
 					v_wind_comp(1) -= velNE_wind[1];
 					_vel_body_wind = R_to_body * v_wind_comp; // TODO: move this elsewhere
