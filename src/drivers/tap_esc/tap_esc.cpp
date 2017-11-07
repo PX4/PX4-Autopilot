@@ -33,6 +33,8 @@
 
 #include <stdint.h>
 
+#include <px4_defines.h>
+#include <px4_module.h>
 #include <px4_tasks.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
@@ -71,11 +73,15 @@
 #  define BOARD_TAP_ESC_MODE 0
 #endif
 
+#if !defined(DEVICE_ARGUMENT_MAX_LENGTH)
+#  define DEVICE_ARGUMENT_MAX_LENGTH 32
+#endif
+
 /*
  * This driver connects to TAP ESCs via serial.
  */
 
-class TAP_ESC : public device::CDev, public ModuleParams
+class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>, public ModuleParams
 {
 public:
 	enum Mode {
@@ -91,15 +97,31 @@ public:
 		MODE_5CAP,
 		MODE_6CAP,
 	};
-	TAP_ESC(int channels_count, int uart_fd);
+	TAP_ESC();
 	virtual ~TAP_ESC();
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static TAP_ESC *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
 	virtual int	init();
 	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 	void cycle();
 
 private:
+	static char _device[DEVICE_ARGUMENT_MAX_LENGTH];
 	int _uart_fd;
-
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
 
@@ -128,7 +150,7 @@ private:
 	orb_advert_t        _esc_feedback_pub = nullptr;
 	orb_advert_t      _to_mixer_status; 	///< mixer status flags
 	esc_status_s      _esc_feedback;
-	uint8_t           _channels_count; // The number of ESC channels
+	static uint8_t    _channels_count; // The number of ESC channels
 
 	MixerGroup	*_mixers;
 	uint32_t	_groups_required;
@@ -146,8 +168,6 @@ private:
 
 	void		subscribe();
 
-	void		work_start();
-	void		work_stop();
 	void send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm);
 
 	static int control_callback_trampoline(uintptr_t handle,
@@ -157,18 +177,15 @@ private:
 
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
-
-namespace
-{
-TAP_ESC	*tap_esc = nullptr;
-}
+char TAP_ESC::_device[DEVICE_ARGUMENT_MAX_LENGTH] = {};
+uint8_t TAP_ESC::_channels_count = 0;
 
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
 
-TAP_ESC::TAP_ESC(int channels_count, int uart_fd):
+TAP_ESC::TAP_ESC():
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	ModuleParams(nullptr),
-	_uart_fd(uart_fd),
+	_uart_fd(-1),
 	_is_armed(false),
 	_poll_fds_num(0),
 	_mode(MODE_4PWM), //FIXME: what is this mode used for???
@@ -180,7 +197,6 @@ TAP_ESC::TAP_ESC(int channels_count, int uart_fd):
 	_esc_feedback_pub(nullptr),
 	_to_mixer_status(nullptr),
 	_esc_feedback{},
-	_channels_count(channels_count),
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
@@ -214,24 +230,52 @@ TAP_ESC::TAP_ESC(int channels_count, int uart_fd):
 TAP_ESC::~TAP_ESC()
 {
 	if (_initialized) {
-		/* tell the task we want it to go away */
-		work_stop();
+		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if (_control_subs[i] >= 0) {
+				orb_unsubscribe(_control_subs[i]);
+				_control_subs[i] = -1;
+			}
+		}
 
-		int i = 10;
+		orb_unsubscribe(_armed_sub);
+		_armed_sub = -1;
+		orb_unsubscribe(_test_motor_sub);
+		_test_motor_sub = -1;
+		orb_unsubscribe(_params_sub);
 
-		do {
-			/* wait 50ms - it should wake every 100ms or so worst-case */
-			usleep(50000);
-			i--;
+		orb_unadvertise(_outputs_pub);
+		orb_unadvertise(_esc_feedback_pub);
+		orb_unadvertise(_to_mixer_status);
 
-		} while (_initialized && i > 0);
+		tap_esc_common::deinitialise_uart(_uart_fd);
+
+		DEVICE_LOG("stopping");
+		_initialized = false;
+	}
+}
+
+/** @see ModuleBase */
+TAP_ESC *
+TAP_ESC::instantiate(int argc, char *argv[])
+{
+	TAP_ESC *tap_esc = new TAP_ESC();
+
+	if (tap_esc->init() != 0) {
+		PX4_ERR("failed to initialize module");
+		delete tap_esc;
+		return nullptr;
 	}
 
-	// clean up the alternate device node
-	//unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
-
-	tap_esc = nullptr;
+	return tap_esc;
 }
+
+/** @see ModuleBase */
+int
+TAP_ESC::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
 
 int
 TAP_ESC::init()
@@ -239,6 +283,13 @@ TAP_ESC::init()
 	int ret;
 
 	ASSERT(!_initialized);
+
+	ret = tap_esc_common::initialise_uart(_device, _uart_fd);
+
+	if (ret < 0) {
+		PX4_ERR("failed to initialise UART.");
+		return ret;
+	}
 
 	/* Respect boot time required by the ESC FW */
 
@@ -659,25 +710,6 @@ TAP_ESC::cycle()
 
 }
 
-void TAP_ESC::work_stop()
-{
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] >= 0) {
-			orb_unsubscribe(_control_subs[i]);
-			_control_subs[i] = -1;
-		}
-	}
-
-	orb_unsubscribe(_armed_sub);
-	_armed_sub = -1;
-	orb_unsubscribe(_test_motor_sub);
-	_test_motor_sub = -1;
-	orb_unsubscribe(_params_sub);
-
-	DEVICE_LOG("stopping");
-	_initialized = false;
-}
-
 int TAP_ESC::control_callback_trampoline(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
 {
 	TAP_ESC *obj = (TAP_ESC *)handle;
@@ -779,214 +811,121 @@ TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-namespace tap_esc_drv
+/** @see ModuleBase */
+void TAP_ESC::run()
 {
-volatile bool _task_should_exit = false; // flag indicating if tap_esc task should exit
-static int _uart_fd = -1;
-static char _device[32] = {};
-static bool _is_running = false;         // flag indicating if tap_esc app is running
-static px4_task_t _task_handle = -1;     // handle to the task main thread
-static int _supported_channel_count = 0;
-
-void usage();
-
-void start();
-void stop();
-int tap_esc_start(void);
-int tap_esc_stop(void);
-
-void task_main_trampoline(int argc, char *argv[]);
-
-void task_main(int argc, char *argv[]);
-
-int tap_esc_start(void)
-{
-	int ret = OK;
-
-	if (tap_esc == nullptr) {
-
-		tap_esc = new TAP_ESC(_supported_channel_count, _uart_fd);
-
-		if (tap_esc == nullptr) {
-			ret = -ENOMEM;
-
-		} else {
-			ret = tap_esc->init();
-
-			if (ret != OK) {
-				PX4_ERR("failed to initialize tap_esc (%i)", ret);
-				delete tap_esc;
-				tap_esc = nullptr;
-			}
-		}
-	}
-
-	return ret;
-}
-
-int tap_esc_stop(void)
-{
-	int ret = OK;
-
-	if (tap_esc != nullptr) {
-
-		delete tap_esc;
-		tap_esc = nullptr;
-	}
-
-	return ret;
-}
-
-
-void task_main(int argc, char *argv[])
-{
-
-	_is_running = true;
-
-	if (tap_esc_common::initialise_uart(_device, _uart_fd) < 0) {
-		PX4_ERR("Failed to initialize UART.");
-
-		while (_task_should_exit == false) {
-			usleep(100000);
-		}
-
-		_is_running = false;
-		return;
-	}
-
-	if (tap_esc_start() != OK) {
-		PX4_ERR("failed to start tap_esc.");
-		_is_running = false;
-		return;
-	}
-
-
 	// Main loop
-	while (!_task_should_exit) {
-
-		tap_esc->cycle();
-
-	}
-
-
-	_is_running = false;
-}
-
-void task_main_trampoline(int argc, char *argv[])
-{
-	task_main(argc, argv);
-}
-
-void start()
-{
-	ASSERT(_task_handle == -1);
-
-	_task_should_exit = false;
-
-	/* start the task */
-	_task_handle = px4_task_spawn_cmd("tap_esc",
-					  SCHED_DEFAULT,
-					  SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-					  1100,
-					  (px4_main_t)&task_main_trampoline,
-					  nullptr);
-
-	if (_task_handle < 0) {
-		PX4_ERR("task start failed");
-		_task_handle = -1;
-		return;
+	while (!should_exit()) {
+		cycle();
 	}
 }
 
-void stop()
+/** @see ModuleBase */
+int TAP_ESC::task_spawn(int argc, char *argv[])
 {
-	_task_should_exit = true;
-
-	while (_is_running) {
-		usleep(200000);
-		PX4_INFO("tap_esc_stop");
-	}
-
-	tap_esc_stop();
-	tap_esc_common::deinitialise_uart(_uart_fd);
-	_task_handle = -1;
-}
-
-void usage()
-{
-	PX4_INFO("usage: tap_esc start -d /dev/ttyS2 -n <1-8>");
-	PX4_INFO("       tap_esc stop");
-	PX4_INFO("       tap_esc status");
-}
-
-} // namespace tap_esc
-
-// driver 'main' command
-extern "C" __EXPORT int tap_esc_main(int argc, char *argv[]);
-
-int tap_esc_main(int argc, char *argv[])
-{
+	/* Parse arguments */
 	const char *device = nullptr;
+	bool error_flag = false;
+
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	char *verb = nullptr;
-
-	if (argc >= 2) {
-		verb = argv[1];
+	if (argc < 2) {
+		print_usage("not enough arguments");
+		error_flag = true;
 	}
 
 	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
-			strncpy(tap_esc_drv::_device, device, strlen(device));
+			strncpy(_device, device, sizeof(_device));
+
+			// Fix in case of overflow
+			_device[sizeof(_device) - 1] = '\0';
 			break;
 
 		case 'n':
-			tap_esc_drv::_supported_channel_count = atoi(myoptarg);
+			_channels_count = atoi(myoptarg);
 			break;
 		}
 	}
 
-	if (!tap_esc && tap_esc_drv::_task_handle != -1) {
-		tap_esc_drv::_task_handle = -1;
+	if (error_flag) {
+		return -1;
 	}
 
-	// Start/load the driver.
-	if (!strcmp(verb, "start")) {
-		if (tap_esc_drv::_is_running) {
-			PX4_WARN("tap_esc already running");
-			return 1;
-		}
-
-		// Check on required arguments
-		if (tap_esc_drv::_supported_channel_count == 0 || device == nullptr || strlen(device) == 0) {
-			tap_esc_drv::usage();
-			return 1;
-		}
-
-		tap_esc_drv::start();
+	/* Sanity check on arguments */
+	if (_channels_count == 0) {
+		print_usage("Channel count is invalid (0)");
+		return PX4_ERROR;
 	}
 
-	else if (!strcmp(verb, "stop")) {
-		if (!tap_esc_drv::_is_running) {
-			PX4_WARN("tap_esc is not running");
-			return 1;
-		}
-
-		tap_esc_drv::stop();
+	if (device == nullptr || strlen(device) == 0) {
+		print_usage("no device psecified");
+		return PX4_ERROR;
 	}
 
-	else if (!strcmp(verb, "status")) {
-		PX4_WARN("tap_esc is %s", tap_esc_drv::_is_running ? "running" : "not running");
-		return 0;
+	/* start the task */
+	_task_id = px4_task_spawn_cmd("tap_esc",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+				      1100,
+				      (px4_main_t)&run_trampoline,
+				      nullptr);
 
-	} else {
-		tap_esc_drv::usage();
-		return 1;
+	if (_task_id < 0) {
+		PX4_ERR("task start failed");
+		_task_id = -1;
+		return PX4_ERROR;
 	}
 
-	return 0;
+	// wait until task is up & running
+	if (wait_until_running() < 0) {
+		_task_id = -1;
+		return -1;
+	}
+
+	return PX4_OK;
+}
+
+/** @see ModuleBase */
+int
+TAP_ESC::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+This module controls the TAP_ESC hardware via UART. It listens on the
+actuator_controls topics, does the mixing and writes the PWM outputs.
+
+### Implementation
+Currently the module is implementd as a threaded version only, meaning that it
+runs in its own thread instead of on the work queue.
+
+### Example
+The module is typically started with:
+tap_esc start -d /dev/ttyS2 -n <1-8>
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("tap_esc", "driver");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", true);
+	PRINT_MODULE_USAGE_PARAM_INT('n', 4, 0, 8, "Number of ESCs", true);
+	return PX4_OK;
+}
+
+extern "C" __EXPORT int tap_esc_main(int argc, char *argv[]);
+
+int
+tap_esc_main(int argc, char *argv[])
+{
+	return TAP_ESC::main(argc, argv);
 }
