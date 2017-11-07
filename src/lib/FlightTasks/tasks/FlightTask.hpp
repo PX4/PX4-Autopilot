@@ -41,6 +41,8 @@
 
 #pragma once
 
+#include <matrix/matrix/math.hpp>
+
 class FlightTask : public control::SuperBlock
 {
 public:
