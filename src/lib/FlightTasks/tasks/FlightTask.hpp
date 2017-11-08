@@ -91,12 +91,12 @@ public:
 protected:
 	static constexpr int _timeout = 500000; /*< maximal time in us before a loop or data times out */
 
-	float _time = 0; /*< passed time in seconds since the task was activated */
-	float _deltatime = 0; /*< passed time in seconds since the task was last updated */
+	float _time = 0; /**< passed time in seconds since the task was activated */
+	float _deltatime = 0; /**< passed time in seconds since the task was last updated */
 
 	/* Current vehicle position for every task */
-	matrix::Vector3f _position; /*< current vehicle position */
-	matrix::Vector3f _velocity; /*< current vehicle velocity */
+	matrix::Vector3f _position; /**< current vehicle position */
+	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f;
 
 	/**
@@ -122,11 +122,10 @@ protected:
 private:
 	uORB::Subscription<vehicle_local_position_s> _sub_vehicle_local_position;
 
-	hrt_abstime _starting_time_stamp = 0; /*< time stamp when task was activated */
-	hrt_abstime _last_time_stamp = 0; /*< time stamp when task was last updated */
+	hrt_abstime _starting_time_stamp = 0; /**< time stamp when task was activated */
+	hrt_abstime _last_time_stamp = 0; /**< time stamp when task was last updated */
 
-	/* Output position setpoint that every task has */
-	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint;
+	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint; /**< Output position setpoint that every task has */
 
 	void _evaluate_vehicle_position();
 };
