@@ -799,7 +799,7 @@ void Ekf::fixCovarianceErrors()
 
 		// if we have failed for 7 seconds continuously, reset the accel bias covariances to fix bad conditioning of
 		// the covariance matrix but preserve the variances (diagonals) to allow bias learning to continue
-		if (_time_last_imu - _time_acc_bias_check > 7E6) {
+		if (_time_last_imu - _time_acc_bias_check > (uint64_t)7e6) {
 			float varX = P[13][13];
 			float varY = P[14][14];
 			float varZ = P[15][15];
@@ -870,7 +870,7 @@ void Ekf::resetWindCovariance()
 	zeroRows(P,22,23);
 	zeroCols(P,22,23);
 
-	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < 5e5)) {
+	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < (uint64_t)5e5)) {
 		// Use airspeed and zer sideslip assumption to set initial covariance values for wind states
 
 		// calculate the wind speed and bearing
