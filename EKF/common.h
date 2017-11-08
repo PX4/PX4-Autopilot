@@ -182,13 +182,13 @@ struct dragSample {
 #define MAG_FUSE_TYPE_AUTOFW    3	///< The same as option 0, but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states.
 
 // Maximum sensor intervals in usec
-#define GPS_MAX_INTERVAL	5e5	///< Maximum allowable time interval between GPS measurements (uSec)
-#define BARO_MAX_INTERVAL	2e5	///< Maximum allowable time interval between pressure altitude measurements (uSec)
-#define RNG_MAX_INTERVAL	2e5	///< Maximum allowable time interval between range finder  measurements (uSec)
-#define EV_MAX_INTERVAL		2e5	///< Maximum allowable time interval between external vision system measurements (uSec)
+#define GPS_MAX_INTERVAL  (uint64_t)5e5	///< Maximum allowable time interval between GPS measurements (uSec)
+#define BARO_MAX_INTERVAL (uint64_t)2e5	///< Maximum allowable time interval between pressure altitude measurements (uSec)
+#define RNG_MAX_INTERVAL  (uint64_t)2e5	///< Maximum allowable time interval between range finder  measurements (uSec)
+#define EV_MAX_INTERVAL   (uint64_t)2e5	///< Maximum allowable time interval between external vision system measurements (uSec)
 
 // bad accelerometer detection and mitigation
-#define BADACC_PROBATION	10E6	///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
+#define BADACC_PROBATION  (uint64_t)10e6	///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
 #define BADACC_BIAS_PNOISE	4.9f	///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
 
 struct parameters {

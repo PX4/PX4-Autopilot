@@ -1041,7 +1041,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl)
 
 bool Ekf::reset_imu_bias()
 {
-	if (_imu_sample_delayed.time_us - _last_imu_bias_cov_reset_us < 10 * (1000 * 1000)) {
+	if (_imu_sample_delayed.time_us - _last_imu_bias_cov_reset_us < (uint64_t)10e6) {
 		return false;
 
 	}
