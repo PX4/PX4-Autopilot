@@ -97,7 +97,7 @@ uint32_t version_tag_to_number(const char *tag)
 	if ((dash_count == 1 && point_count == 2 && firmware_type == FIRMWARE_TYPE_RELEASE) ||
 	    (dash_count == 2 && point_count == 2) ||
 	    (dash_count == 3 && point_count == 4) ||
-		(dash_count == 4 && point_count == 4)) {
+	    (dash_count == 4 && point_count == 4)) {
 		firmware_type = FIRMWARE_TYPE_DEV;
 	}
 
@@ -185,7 +185,7 @@ uint32_t version_tag_to_vendor_version_number(const char *tag)
 	if ((dash_count == 1 && point_count == 2 && firmware_type == FIRMWARE_TYPE_RELEASE) ||
 	    (dash_count == 2 && point_count == 2) ||
 	    (dash_count == 3 && point_count == 4) ||
-		(dash_count == 4 && point_count == 4)) {
+	    (dash_count == 4 && point_count == 4)) {
 		firmware_type = FIRMWARE_TYPE_DEV;
 	}
 
