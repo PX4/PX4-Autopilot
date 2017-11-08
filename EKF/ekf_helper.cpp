@@ -461,9 +461,23 @@ bool Ekf::realignYawGPS()
 			return true;
 
 		} else {
-			// attempt a normal alignment using the magnetometer
-			return resetMagHeading(_mag_sample_delayed.mag);
+			// align mag states only
 
+			// calculate initial earth magnetic field states
+			_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
+
+			// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
+			zeroRows(P, 16, 21);
+			zeroCols(P, 16, 21);
+
+			for (uint8_t index = 16; index <= 21; index ++) {
+				P[index][index] = sq(_params.mag_noise);
+			}
+
+			// record the start time for the magnetic field alignment
+			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+
+			return true;
 		}
 
 	} else {
