@@ -44,6 +44,8 @@
 
 #include "FlightTask.hpp"
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <systemlib/hysteresis/hysteresis.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 class FlightTaskManual : public FlightTask
 {
@@ -76,6 +78,9 @@ public:
 	};
 	virtual ~FlightTaskManual() {};
 
+	int activate() override;
+	int disable() override;
+	int update() override;
 
 protected:
 	matrix::Vector<float, 4> _sticks;

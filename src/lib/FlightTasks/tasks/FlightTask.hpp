@@ -41,7 +41,12 @@
 
 #pragma once
 
+#include <controllib/blocks.hpp>
+#include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+
 
 class FlightTask : public control::SuperBlock
 {
@@ -54,7 +59,6 @@ public:
 
 	/**
 	 * Call once on the event where you switch to the task
-	 * Note: Set the necessary input and output pointers first!
 	 * @return 0 on success, >0 on error
 	 */
 	virtual int activate()
@@ -66,7 +70,7 @@ public:
 
 	/**
 	 * Call once on the event of switching away from the task
-	 * 	@return 0 on success, >0 on error
+	 * @return 0 on success, >0 on error
 	 */
 	virtual int disable() { return 0; };
 
@@ -74,15 +78,7 @@ public:
 	 * To be called regularly in the control loop cycle to execute the task
 	 * @return 0 on success, >0 on error
 	 */
-	virtual int update()
-	{
-		_time = hrt_elapsed_time(&_starting_time_stamp) / 1e6f;
-		_deltatime  = math::min((int)hrt_elapsed_time(&_last_time_stamp), _timeout) / 1e6f;
-		_last_time_stamp = hrt_absolute_time();
-		updateSubscriptions();
-		_evaluate_vehicle_position();
-		return 0;
-	};
+	virtual int update();
 
 	/**
 	 * Get the output data
@@ -106,32 +102,17 @@ protected:
 	/**
 	 * Put the position vector produced by the task into the setpoint message
 	 */
-	void _set_position_setpoint(const matrix::Vector3f position_setpoint)
-	{
-		_vehicle_local_position_setpoint.x = position_setpoint(0);
-		_vehicle_local_position_setpoint.y = position_setpoint(1);
-		_vehicle_local_position_setpoint.z = position_setpoint(2);
-	};
+	void _set_position_setpoint(const matrix::Vector3f position_setpoint);
 
 	/**
 	 * Put the velocity vector produced by the task into the setpoint message
 	 */
-	void _set_velocity_setpoint(const matrix::Vector3f velocity_setpoint)
-	{
-		_vehicle_local_position_setpoint.vx = velocity_setpoint(0);
-		_vehicle_local_position_setpoint.vy = velocity_setpoint(1);
-		_vehicle_local_position_setpoint.vz = velocity_setpoint(2);
-	};
+	void _set_velocity_setpoint(const matrix::Vector3f velocity_setpoint);
 
 	/**
 	 * Put the acceleration vector produced by the task into the setpoint message
 	 */
-	void _set_acceleration_setpoint(const matrix::Vector3f acceleration_setpoint)
-	{
-		_vehicle_local_position_setpoint.acc_x = acceleration_setpoint(0);
-		_vehicle_local_position_setpoint.acc_y = acceleration_setpoint(1);
-		_vehicle_local_position_setpoint.acc_z = acceleration_setpoint(2);
-	};
+	void _set_acceleration_setpoint(const matrix::Vector3f acceleration_setpoint);
 
 	/**
 	 * Put the yaw angle produced by the task into the setpoint message
@@ -147,15 +128,5 @@ private:
 	/* Output position setpoint that every task has */
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint;
 
-	void _evaluate_vehicle_position()
-	{
-		if (hrt_elapsed_time(&_sub_vehicle_local_position.get().timestamp) < _timeout) {
-			_position = matrix::Vector3f(&_sub_vehicle_local_position.get().x);
-			_velocity = matrix::Vector3f(&_sub_vehicle_local_position.get().vx);
-			_yaw = _sub_vehicle_local_position.get().yaw;
-
-		} else {
-			_velocity.zero(); /* default velocity is all zero */
-		}
-	}
+	void _evaluate_vehicle_position();
 };
