@@ -380,6 +380,7 @@ private:
 	bool _flt_mag_align_complete{true};	///< true when the in-flight mag field alignment has been completed
 	uint64_t _time_last_movement{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	float _saved_mag_variance[6] {};	///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
+	bool _velpos_reset_request{false};	///< true when a large yaw error has been fixed and a velocity and position state reset is required
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
