@@ -34,17 +34,16 @@
 /**
  * @file device.cpp
  *
- * Fundamental driver base class for the virtual device framework.
+ * Fundamental driver base class for the device framework.
  */
 
-#include "device.h"
+#include "Device.hpp"
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <drivers/drv_device.h>
+#include "px4_log.h"
+
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/stat.h>
+#include <drivers/drv_device.h>
 
 namespace device
 {
@@ -58,7 +57,7 @@ Device::Device(const char *name) :
 	int ret = px4_sem_init(&_lock, 0, 1);
 
 	if (ret != 0) {
-		PX4_WARN("SEM INIT FAIL: ret %d, %s", ret, strerror(errno));
+		PX4_WARN("SEM INIT FAIL: ret %d", ret);
 	}
 
 	/* setup a default device ID. When bus_type is UNKNOWN the
@@ -84,19 +83,19 @@ Device::init()
 }
 
 int
-Device::dev_read(unsigned offset, void *data, unsigned count)
+Device::read(unsigned offset, void *data, unsigned count)
 {
 	return -ENODEV;
 }
 
 int
-Device::dev_write(unsigned offset, void *data, unsigned count)
+Device::write(unsigned offset, void *data, unsigned count)
 {
 	return -ENODEV;
 }
 
 int
-Device::dev_ioctl(unsigned operation, unsigned arg)
+Device::ioctl(unsigned operation, unsigned &arg)
 {
 	switch (operation) {
 	case DEVIOCGDEVICEID:
