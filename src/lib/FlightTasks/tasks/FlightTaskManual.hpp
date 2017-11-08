@@ -133,7 +133,7 @@ private:
 	math::LowPassFilter2p _filter_roll_stick;
 	math::LowPassFilter2p _filter_pitch_stick;
 
-	void vel_sp_slewrate(matrix::Vector3f &vel_sp, const matrix::Vector2f &stick_xy, const float &stick_z);
+	void vel_sp_slewrate(const matrix::Vector2f &stick_xy, const float &stick_z, matrix::Vector3f &vel_sp);
 
 	void reset_slewrate_xy();
 
