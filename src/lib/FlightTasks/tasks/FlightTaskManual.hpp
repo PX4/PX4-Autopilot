@@ -105,7 +105,7 @@ private:
 
 
 	/* --- Acceleration Smoothing --- */
-	static constexpr uint64_t DIRECTION_CHANGE_TIME_US = 1e5; /** Time in us to switch into direction change state */
+	static constexpr uint64_t DIRECTION_CHANGE_TIME_US = 1e5; /**< Time in us to switch into direction change state */
 
 	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk only applied when braking to zero */
 	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk only applied when braking to zero */
@@ -118,7 +118,7 @@ private:
 	control::BlockParamFloat _rc_flt_cutoff; /**< cutoff frequency for stick lowpass filter */
 
 	matrix::Vector2f _stick_input_xy_prev;
-	matrix::Vector3f _vel_sp_prev; /* velocity setpoint of last loop to calculate setpoint slewrate - acceleration */
+	matrix::Vector3f _vel_sp_prev; /**< velocity setpoint of last loop to calculate setpoint slewrate - acceleration */
 	enum stick_user_intention {
 		brake,
 		direction_change,
@@ -133,7 +133,7 @@ private:
 	math::LowPassFilter2p _filter_roll_stick;
 	math::LowPassFilter2p _filter_pitch_stick;
 
-	void vel_sp_slewrate(matrix::Vector3f &vel_sp, const matrix::Vector2f &stick_xy, const float &stick_z);
+	void vel_sp_slewrate(const matrix::Vector2f &stick_xy, const float &stick_z, matrix::Vector3f &vel_sp);
 
 	void reset_slewrate_xy();
 

@@ -87,7 +87,7 @@ int FlightTaskManual::update()
 	velocity_setpoint = velocity_setpoint.emult(vel_scale);
 
 	/* smooth out velocity setpoint by slewrate and return it */
-	vel_sp_slewrate(velocity_setpoint, stick_xy, _sticks(3));
+	vel_sp_slewrate(stick_xy, _sticks(3), velocity_setpoint);
 	_set_velocity_setpoint(velocity_setpoint);
 
 	/* handle position and altitude hold */
@@ -146,7 +146,7 @@ void FlightTaskManual::reset_slewrate_xy()
 	_vel_sp_prev(1) = _velocity(1);
 }
 
-void FlightTaskManual::vel_sp_slewrate(Vector3f &vel_sp, const Vector2f &stick_xy, const float &stick_z)
+void FlightTaskManual::vel_sp_slewrate(const Vector2f &stick_xy, const float &stick_z, Vector3f &vel_sp)
 {
 	Vector2f vel_sp_xy(vel_sp(0), vel_sp(1));
 	const Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));

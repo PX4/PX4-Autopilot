@@ -67,7 +67,7 @@ public:
 		} else {
 			return 1;
 		}
-	};
+	}
 
 	/**
 	 * Get the output data from the current task
@@ -75,7 +75,7 @@ public:
 	const vehicle_local_position_setpoint_s &get_position_setpoint()
 	{
 		return _tasks[_current_task]->get_position_setpoint();
-	};
+	}
 
 	/**
 	 * Call this function initially to point all tasks to the general output data
@@ -83,7 +83,7 @@ public:
 	inline const vehicle_local_position_setpoint_s &operator()()
 	{
 		return get_position_setpoint();
-	};
+	}
 
 	/**
 	 * Switch to the next task in the available list (for testing)
@@ -92,7 +92,7 @@ public:
 	void switch_task()
 	{
 		switch_task(_current_task + 1);
-	};
+	}
 
 	/**
 	 * Switch to a specific task (for normal usage)
@@ -120,7 +120,7 @@ public:
 		/* something went wrong, no task running anymore */
 		_current_task = -1;
 		return 1;
-	};
+	}
 
 	/**
 	 * Get the number of the active task

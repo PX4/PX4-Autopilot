@@ -48,11 +48,11 @@ using namespace matrix;
 int FlightTaskOrbit::activate()
 {
 	FlightTask::activate();
-	r = 1.f;
-	v =  0.5f;
-	z = _position(2);
+	_r = 1.f;
+	_v =  0.5f;
+	_z = _position(2);
 	_center = Vector2f(_position.data());
-	_center(0) -= r;
+	_center(0) -= _r;
 	return 0;
 }
 
@@ -66,25 +66,25 @@ int FlightTaskOrbit::update()
 {
 	int ret = FlightTaskManual::update();
 
-	r += _sticks(0) * _deltatime;
-	r = math::constrain(r, 1.f, 20.f);
-	v -= _sticks(1) * _deltatime;
-	v = math::constrain(v, -7.f, 7.f);
-	z += _sticks(2) * _deltatime;
+	_r += _sticks(0) * _deltatime;
+	_r = math::constrain(_r, 1.f, 20.f);
+	_v -= _sticks(1) * _deltatime;
+	_v = math::constrain(_v, -7.f, 7.f);
+	_z += _sticks(2) * _deltatime;
 
 	Vector2f center_to_position = Vector2f(_position.data()) - _center;
 
 	/* xy velocity to go around in a circle */
 	Vector2f velocity_xy = Vector2f(center_to_position(1), -center_to_position(0));
 	velocity_xy = velocity_xy.unit_or_zero();
-	velocity_xy *= v;
+	velocity_xy *= _v;
 
 	/* xy velocity adjustment to stay on the radius distance */
-	velocity_xy += (r - center_to_position.norm()) * center_to_position.unit_or_zero();
+	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
 
 	float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 
-	_set_position_setpoint(Vector3f(NAN, NAN, z));
+	_set_position_setpoint(Vector3f(NAN, NAN, _z));
 	_set_velocity_setpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
 	_set_yaw_setpoint(yaw);
 	return ret;
