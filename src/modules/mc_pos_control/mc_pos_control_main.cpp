@@ -2453,12 +2453,9 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
-
-	if (!_control_mode.flag_control_auto_enabled) {
+	if (!_control_mode.flag_control_auto_enabled && !_in_smooth_takeoff) {
 		vel_sp_slewrate(dt);
 	}
-
-	_vel_sp_prev = _vel_sp;
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_smooth_takeoff) {
@@ -2478,6 +2475,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	}
 
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_params.vel_max_up, _params.vel_max_down);
+
+	_vel_sp_prev = _vel_sp;
 }
 
 void
