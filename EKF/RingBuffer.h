@@ -130,7 +130,7 @@ public:
 			int index = (_head - i);
 			index = index < 0 ? _size + index : index;
 
-			if (timestamp >= _buffer[index].time_us && timestamp - _buffer[index].time_us < 100000) {
+			if (timestamp >= _buffer[index].time_us && timestamp - _buffer[index].time_us < (uint64_t)1e5) {
 
 				// TODO Re-evaluate the static cast and usage patterns
 				memcpy(static_cast<void *>(sample), static_cast<void *>(&_buffer[index]), sizeof(*sample));

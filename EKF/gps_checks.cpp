@@ -232,6 +232,5 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	}
 
 	// continuous period without fail of 10 seconds required to return a healthy status
-	return (_time_last_imu - _last_gps_fail_us > 1e7);
+	return (_time_last_imu - _last_gps_fail_us > (uint64_t)1e7);
 }
-
