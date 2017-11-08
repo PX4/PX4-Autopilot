@@ -37,49 +37,66 @@
  * POSIX-like API for virtual character device
  */
 
+#include "cdev_platform.hpp"
+
+#include <string>
+#include <map>
+
+#include "vfile.h"
+#include "../CDev.hpp"
+
 #include <px4_log.h>
 #include <px4_posix.h>
 #include <px4_time.h>
-#include "device.h"
-#include "vfile.h"
 
-#include <hrt_work.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <pthread.h>
-#include <unistd.h>
+#include "DevMgr.hpp"
 
-using namespace device;
+using namespace std;
+using namespace DriverFramework;
 
+const device::px4_file_operations_t device::CDev::fops = {};
+
+pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
+
 px4_sem_t lockstep_sem;
 bool sim_lockstep = false;
 volatile bool sim_delay = false;
 
-extern "C" {
-
 #define PX4_MAX_FD 350
-	static device::file_t filemap[PX4_MAX_FD] = {};
+static map<string, void *> devmap;
+static device::file_t filemap[PX4_MAX_FD] = {};
+
+extern "C" {
 
 	int px4_errno;
 
-	inline bool valid_fd(int fd)
+	static device::CDev *getDev(const char *path)
 	{
-		pthread_mutex_lock(&filemutex);
-		bool ret = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd].vdev);
-		pthread_mutex_unlock(&filemutex);
-		return ret;
+		PX4_DEBUG("CDev::getDev");
+
+		pthread_mutex_lock(&devmutex);
+
+		auto item = devmap.find(path);
+
+		if (item != devmap.end()) {
+			pthread_mutex_unlock(&devmutex);
+			return (device::CDev *)item->second;
+		}
+
+		pthread_mutex_unlock(&devmutex);
+
+		return nullptr;
 	}
 
-	inline CDev *get_vdev(int fd)
+	static device::CDev *get_vdev(int fd)
 	{
 		pthread_mutex_lock(&filemutex);
 		bool valid = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd].vdev);
-		CDev *dev;
+		device::CDev *dev;
 
 		if (valid) {
-			dev = (CDev *)(filemap[fd].vdev);
+			dev = (device::CDev *)(filemap[fd].vdev);
 
 		} else {
 			dev = nullptr;
@@ -89,10 +106,58 @@ extern "C" {
 		return dev;
 	}
 
+	int register_driver(const char *name, const device::px4_file_operations_t *fops, mode_t mode, void *data)
+	{
+		PX4_DEBUG("CDev::register_driver %s", name);
+		int ret = 0;
+
+		if (name == nullptr || data == nullptr) {
+			return -EINVAL;
+		}
+
+		pthread_mutex_lock(&devmutex);
+
+		// Make sure the device does not already exist
+		auto item = devmap.find(name);
+
+		if (item != devmap.end()) {
+			pthread_mutex_unlock(&devmutex);
+			return -EEXIST;
+		}
+
+		devmap[name] = (void *)data;
+		PX4_DEBUG("Registered DEV %s", name);
+
+		pthread_mutex_unlock(&devmutex);
+
+		return ret;
+	}
+
+	int unregister_driver(const char *name)
+	{
+		PX4_DEBUG("CDev::unregister_driver %s", name);
+		int ret = -EINVAL;
+
+		if (name == nullptr) {
+			return -EINVAL;
+		}
+
+		pthread_mutex_lock(&devmutex);
+
+		if (devmap.erase(name) > 0) {
+			PX4_DEBUG("Unregistered DEV %s", name);
+			ret = 0;
+		}
+
+		pthread_mutex_unlock(&devmutex);
+
+		return ret;
+	}
+
 	int px4_open(const char *path, int flags, ...)
 	{
 		PX4_DEBUG("px4_open");
-		CDev *dev = CDev::getDev(path);
+		device::CDev *dev = getDev(path);
 		int ret = 0;
 		int i;
 		mode_t mode;
@@ -107,7 +172,7 @@ extern "C" {
 
 			// Create the file
 			PX4_DEBUG("Creating virtual file %s", path);
-			dev = VFile::createFile(path, mode);
+			dev = device::VFile::createFile(path, mode);
 		}
 
 		if (dev) {
@@ -151,7 +216,6 @@ extern "C" {
 		}
 
 		if (ret < 0) {
-			px4_errno = -ret;
 			return -1;
 		}
 
@@ -163,7 +227,7 @@ extern "C" {
 	{
 		int ret;
 
-		CDev *dev = get_vdev(fd);
+		device::CDev *dev = get_vdev(fd);
 
 		if (dev) {
 			pthread_mutex_lock(&filemutex);
@@ -190,7 +254,7 @@ extern "C" {
 	{
 		int ret;
 
-		CDev *dev = get_vdev(fd);
+		device::CDev *dev = get_vdev(fd);
 
 		if (dev) {
 			PX4_DEBUG("px4_read fd = %d", fd);
@@ -212,7 +276,7 @@ extern "C" {
 	{
 		int ret;
 
-		CDev *dev = get_vdev(fd);
+		device::CDev *dev = get_vdev(fd);
 
 		if (dev) {
 			PX4_DEBUG("px4_write fd = %d", fd);
@@ -235,7 +299,7 @@ extern "C" {
 		PX4_DEBUG("px4_ioctl fd = %d", fd);
 		int ret = 0;
 
-		CDev *dev = get_vdev(fd);
+		device::CDev *dev = get_vdev(fd);
 
 		if (dev) {
 			ret = dev->ioctl(&filemap[fd], cmd, arg);
@@ -294,7 +358,7 @@ extern "C" {
 			fds[i].revents = 0;
 			fds[i].priv    = nullptr;
 
-			CDev *dev = get_vdev(fds[i].fd);
+			device::CDev *dev = get_vdev(fds[i].fd);
 
 			// If fd is valid
 			if (dev) {
@@ -355,7 +419,7 @@ extern "C" {
 			// go through all fds and count how many have data
 			for (i = 0; i < nfds; ++i) {
 
-				CDev *dev = get_vdev(fds[i].fd);
+				device::CDev *dev = get_vdev(fds[i].fd);
 
 				// If fd is valid
 				if (dev) {
@@ -393,23 +457,69 @@ extern "C" {
 			return -1;
 		}
 
-		CDev *dev = CDev::getDev(pathname);
+		device::CDev *dev = getDev(pathname);
 		return (dev != nullptr) ? 0 : -1;
 	}
 
 	void px4_show_devices()
 	{
-		CDev::showDevices();
+		int i = 0;
+		PX4_INFO("PX4 Devices:");
+
+		pthread_mutex_lock(&devmutex);
+
+		for (const auto &dev : devmap) {
+			if (strncmp(dev.first.c_str(), "/dev/", 5) == 0) {
+				PX4_INFO("   %s", dev.first.c_str());
+			}
+		}
+
+		pthread_mutex_unlock(&devmutex);
+
+		PX4_INFO("DF Devices:");
+		const char *dev_path;
+		unsigned int index = 0;
+		i = 0;
+
+		do {
+			// Each look increments index and returns -1 if end reached
+			i = DevMgr::getNextDeviceName(index, &dev_path);
+
+			if (i == 0) {
+				PX4_INFO("   %s", dev_path);
+			}
+		} while (i == 0);
 	}
 
 	void px4_show_topics()
 	{
-		CDev::showTopics();
+		PX4_INFO("Devices:");
+
+		pthread_mutex_lock(&devmutex);
+
+		for (const auto &dev : devmap) {
+			if (strncmp(dev.first.c_str(), "/obj/", 5) == 0) {
+				PX4_INFO("   %s", dev.first.c_str());
+			}
+		}
+
+		pthread_mutex_unlock(&devmutex);
 	}
 
 	void px4_show_files()
 	{
-		CDev::showFiles();
+		PX4_INFO("Files:");
+
+		pthread_mutex_lock(&devmutex);
+
+		for (const auto &dev : devmap) {
+			if (strncmp(dev.first.c_str(), "/obj/", 5) != 0 &&
+			    strncmp(dev.first.c_str(), "/dev/", 5) != 0) {
+				PX4_INFO("   %s", dev.first.c_str());
+			}
+		}
+
+		pthread_mutex_unlock(&devmutex);
 	}
 
 	void px4_enable_sim_lockstep()
@@ -417,7 +527,6 @@ extern "C" {
 		px4_sem_init(&lockstep_sem, 0, 0);
 
 		// lockstep_sem use case is a signal
-
 		px4_sem_setprotocol(&lockstep_sem, SEM_PRIO_NONE);
 
 		sim_lockstep = true;
@@ -439,5 +548,4 @@ extern "C" {
 		return sim_delay;
 	}
 
-}
-
+} // extern "C"

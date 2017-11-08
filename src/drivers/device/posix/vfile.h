@@ -40,22 +40,23 @@
 
 #pragma once
 
-#include <px4_tasks.h>
-#include <drivers/drv_device.h>
-#include "device.h"
-#include <unistd.h>
-#include <stdio.h>
+#include "../CDev.hpp"
 
-class VFile : public device::CDev
+namespace device
+{
+
+class VFile : public CDev
 {
 public:
 
 	static VFile *createFile(const char *fname, mode_t mode);
 	~VFile() {}
 
-	virtual ssize_t write(device::file_t *handlep, const char *buffer, size_t buflen);
+	ssize_t write(file_t *handlep, const char *buffer, size_t buflen) override;
 
 private:
 	VFile(const char *fname, mode_t mode);
 	VFile(const VFile &);
 };
+
+} // namespace device
