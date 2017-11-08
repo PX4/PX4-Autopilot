@@ -81,11 +81,6 @@ public:
 	 */
 	virtual ~Device();
 
-	/**
-	 * Interrupt handler.
-	 */
-	virtual void	interrupt(void *ctx);	/**< interrupt handler */
-
 	/*
 	 * Direct access methods.
 	 */
@@ -193,10 +188,8 @@ protected:
 	 * Constructor
 	 *
 	 * @param name		Driver name
-	 * @param irq		Interrupt assigned to the device.
 	 */
-	Device(const char *name,
-	       int irq = 0);
+	Device(const char *name);
 
 	/**
 	 * Enable the device interrupt
@@ -235,34 +228,12 @@ protected:
 	sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:
-	int		_irq; /**< if non-zero, it's a valid IRQ */
 
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);
 
 	/** disable assignment for this and all subclasses */
 	Device &operator = (const Device &);
-
-	/**
-	 * Register ourselves as a handler for an interrupt
-	 *
-	 * @param irq		The interrupt to claim
-	 * @return		OK if the interrupt was registered
-	 */
-	int		dev_register_interrupt(int irq);
-
-	/**
-	 * Unregister ourselves as a handler for any interrupt
-	 */
-	void		dev_unregister_interrupt();
-
-	/**
-	 * Interrupt dispatcher
-	 *
-	 * @param irq		The interrupt that has been triggered.
-	 * @param context	Pointer to the interrupted context.
-	 */
-	static void	dev_interrupt(int irq, void *context);
 
 };
 
@@ -277,9 +248,8 @@ public:
 	 *
 	 * @param name		Driver name
 	 * @param devname	Device node name
-	 * @param irq		Interrupt assigned to the device
 	 */
-	CDev(const char *name, const char *devname, int irq = 0);
+	CDev(const char *name, const char *devname);
 
 	/**
 	 * Destructor

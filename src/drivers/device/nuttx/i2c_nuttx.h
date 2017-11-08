@@ -84,14 +84,12 @@ protected:
 	 * @param bus		I2C bus on which the device lives
 	 * @param address	I2C bus address, or zero if set_address will be used
 	 * @param frequency	I2C bus frequency for the device (currently not used)
-	 * @param irq		Interrupt assigned to the device (or zero if none)
 	 */
 	I2C(const char *name,
 	    const char *devname,
 	    int bus,
 	    uint16_t address,
-	    uint32_t frequency,
-	    int irq = 0);
+	    uint32_t frequency);
 	virtual ~I2C();
 
 	virtual int	init();
