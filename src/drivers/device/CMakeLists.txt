@@ -38,25 +38,30 @@ list(APPEND SRCS
 	integrator.cpp
 )
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 if(${OS} STREQUAL "nuttx")
+	include_directories(nuttx)
 	list(APPEND SRCS
-		device_nuttx.cpp
+		nuttx/device_nuttx.cpp
 		cdev.cpp
 	)
+
 	if ("${CONFIG_I2C}" STREQUAL "y")
-		list(APPEND SRCS i2c_nuttx.cpp)
+		list(APPEND SRCS nuttx/i2c_nuttx.cpp)
 	endif()
+
 	if ("${CONFIG_SPI}" STREQUAL "y")
-		list(APPEND SRCS spi.cpp)
+		list(APPEND SRCS nuttx/spi.cpp)
 	endif()
 else()
+	include_directories(posix)
 	list(APPEND SRCS
-		device_posix.cpp
-		vdev.cpp
-		vfile.cpp
-		vdev_posix.cpp
-		i2c_posix.cpp
-		sim.cpp
+		posix/device_posix.cpp
+		posix/vdev.cpp
+		posix/vfile.cpp
+		posix/vdev_posix.cpp
+		posix/i2c_posix.cpp
 	)
 
 endif()

@@ -40,7 +40,7 @@
 #ifndef _DEVICE_I2C_H
 #define _DEVICE_I2C_H
 
-#include "device.h"
+#include "../device.h"
 
 #include <px4_i2c.h>
 
