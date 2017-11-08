@@ -75,10 +75,10 @@ set(config_module_list
 	lib/mixer
 	lib/terrain_estimation
 	lib/version
+        lib/FlightTasks
 
 	#
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp
 	)
-

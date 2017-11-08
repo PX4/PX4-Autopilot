@@ -142,6 +142,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/tunes
 	lib/version
+	lib/FlightTasks
 
 	#
 	# OBC challenge

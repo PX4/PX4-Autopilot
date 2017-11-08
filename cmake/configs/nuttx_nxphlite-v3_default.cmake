@@ -140,6 +140,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/tunes
 	lib/version
+	lib/FlightTasks
 	lib/DriverFramework/framework
 
 	#
