@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE lib__flight_tasks
 	SRCS
-		FlightTask.h
+		tasks/FlightTask.cpp
 		tasks/FlightTaskManual.cpp
 		tasks/FlightTaskOrbit.cpp
 	DEPENDS

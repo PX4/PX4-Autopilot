@@ -51,6 +51,10 @@ public:
 	{};
 	virtual ~FlightTaskOrbit() {};
 
+	int activate() override;
+	int disable() override;
+	int update() override;
+
 private:
 
 	float r = 0.f; /* radius with which to orbit the target */

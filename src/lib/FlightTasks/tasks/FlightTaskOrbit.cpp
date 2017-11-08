@@ -41,6 +41,7 @@
  */
 
 #include "FlightTaskOrbit.hpp"
+#include <mathlib/mathlib.h>
 
 using namespace matrix;
 

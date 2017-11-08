@@ -41,6 +41,7 @@
  */
 
 #include "FlightTaskManual.hpp"
+#include <float.h>
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
