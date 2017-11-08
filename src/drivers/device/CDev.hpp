@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,180 +32,33 @@
  ****************************************************************************/
 
 /**
- * @file vdevice.h
+ * @file CDev.hpp
  *
- * Definitions for the generic base classes in the virtual device framework.
+ * Definitions for the generic base classes in the device framework.
  */
 
-#pragma once
+#ifndef _DEVICE_CDEV_HPP
+#define _DEVICE_CDEV_HPP
 
-/*
- * Includes here should only cover the needs of the framework definitions.
- */
+#include "Device.hpp"
+
+#include <px4_config.h>
 #include <px4_posix.h>
 
-#include <errno.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <semaphore.h>
-
-#define DEVICE_LOG(FMT, ...) PX4_LOG_NAMED(_name, FMT, ##__VA_ARGS__)
-#define DEVICE_DEBUG(FMT, ...) PX4_LOG_NAMED_COND(_name, _debug_enabled, FMT, ##__VA_ARGS__)
+#ifdef __PX4_NUTTX
+#include "nuttx/cdev_platform.hpp"
+#else
+#include "posix/cdev_platform.hpp"
+#endif
 
 /**
  * Namespace encapsulating all device framework classes, functions and data.
  */
-namespace device __EXPORT
+namespace device
 {
 
-struct file_t {
-	int flags;
-	void *priv;
-	void *vdev;
-
-	file_t() : flags(0), priv(NULL), vdev(NULL) {}
-	file_t(int f, void *c) : flags(f), priv(NULL), vdev(c) {}
-};
-
 /**
- * Fundamental base class for all physical drivers (I2C, SPI).
- *
- * This class provides the basic driver template for I2C and SPI devices
- */
-class __EXPORT Device
-{
-public:
-	/**
-	 * Destructor.
-	 *
-	 * Public so that anonymous devices can be destroyed.
-	 */
-	virtual ~Device();
-
-	/*
-	 * Direct access methods.
-	 */
-
-	/**
-	 * Initialise the driver and make it ready for use.
-	 *
-	 * @return	OK if the driver initialized OK, negative errno otherwise;
-	 */
-	virtual int	init();
-
-	/**
-	 * Read directly from the device.
-	 *
-	 * The actual size of each unit quantity is device-specific.
-	 *
-	 * @param offset	The device address at which to start reading
-	 * @param data		The buffer into which the read values should be placed.
-	 * @param count		The number of items to read.
-	 * @return		The number of items read on success, negative errno otherwise.
-	 */
-	virtual int	dev_read(unsigned address, void *data, unsigned count);
-
-	/**
-	 * Write directly to the device.
-	 *
-	 * The actual size of each unit quantity is device-specific.
-	 *
-	 * @param address	The device address at which to start writing.
-	 * @param data		The buffer from which values should be read.
-	 * @param count		The number of items to write.
-	 * @return		The number of items written on success, negative errno otherwise.
-	 */
-	virtual int	dev_write(unsigned address, void *data, unsigned count);
-
-	/**
-	 * Perform a device-specific operation.
-	 *
-	 * @param operation     The operation to perform.
-	 * @param arg           An argument to the operation.
-	 * @return              Negative errno on error, OK or positive value on success.
-	 */
-	virtual int     dev_ioctl(unsigned operation, unsigned arg);
-
-	/*
-	  device bus types for DEVID
-	 */
-	enum DeviceBusType {
-		DeviceBusType_UNKNOWN = 0,
-		DeviceBusType_I2C     = 1,
-		DeviceBusType_SPI     = 2,
-		DeviceBusType_UAVCAN  = 3,
-		DeviceBusType_SIM     = 4,
-	};
-
-	/*
-	  broken out device elements. The bitfields are used to keep
-	  the overall value small enough to fit in a float accurately,
-	  which makes it possible to transport over the MAVLink
-	  parameter protocol without loss of information.
-	 */
-	struct DeviceStructure {
-		enum DeviceBusType bus_type : 3;
-		uint8_t bus: 5;    // which instance of the bus type
-		uint8_t address;   // address on the bus (eg. I2C address)
-		uint8_t devtype;   // device class specific device type
-	};
-
-	union DeviceId {
-		struct DeviceStructure devid_s;
-		uint32_t devid;
-	};
-
-protected:
-	const char	*_name;			/**< driver name */
-	char		*_lock_name;		/**< name of the semaphore */
-	bool		_debug_enabled;		/**< if true, debug messages are printed */
-	union DeviceId	_device_id;             /**< device identifier information */
-
-	/**
-	 * Constructor
-	 *
-	 * @param name		Driver name
-	 */
-	Device(const char *name);
-
-	/**
-	 * Take the driver lock.
-	 *
-	 * Each driver instance has its own lock/semaphore.
-	 *
-	 * Note that we must loop as the wait may be interrupted by a signal.
-	 *
-	 * Careful: lock() calls cannot be nested!
-	 */
-	void		lock()
-	{
-		//DEVICE_DEBUG("lock");
-		do {} while (px4_sem_wait(&_lock) != 0);
-	}
-
-	/**
-	 * Release the driver lock.
-	 */
-	void		unlock()
-	{
-		//DEVICE_DEBUG("unlock");
-		px4_sem_post(&_lock);
-	}
-
-	px4_sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
-
-private:
-	/** disable copy construction for this and all subclasses */
-	Device(const Device &);
-
-	/** disable assignment for this and all subclasses */
-	Device &operator = (const Device &);
-};
-
-/**
- * Abstract class for any virtual character device
+ * Abstract class for any character device
  */
 class __EXPORT CDev : public Device
 {
@@ -216,37 +69,11 @@ public:
 	 * @param name		Driver name
 	 * @param devname	Device node name
 	 */
-	CDev(const char *name, const char *devname);
+	CDev(const char *name, const char *devname); // TODO: dagar remove name and Device inheritance
 
-	/**
-	 * Destructor
-	 */
 	virtual ~CDev();
 
 	virtual int	init();
-
-	/**
-	 * Perform a poll setup/teardown operation. Based on NuttX implementation.
-	 *
-	 * This is handled internally and should not normally be overridden.
-	 *
-	 * @param filep	Pointer to the internal file structure.
-	 * @param fds		Poll descriptor being waited on.
-	 * @param setup		True if this is establishing a request, false if
-	 *			it is being torn down.
-	 * @return		OK on success, or -errno otherwise.
-	 */
-	virtual int	poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
-
-	/**
-	 * Test whether the device is currently open.
-	 *
-	 * This can be used to avoid tearing down a device that is still active.
-	 * Note - not virtual, cannot be overridden by a subclass.
-	 *
-	 * @return              True if the device is currently open.
-	 */
-	bool            is_open() { return _open_count > 0; }
 
 	/**
 	 * Handle an open of the device.
@@ -320,22 +147,35 @@ public:
 	 */
 	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg);
 
-	static CDev *getDev(const char *path);
-	static void showFiles(void);
-	static void showDevices(void);
-	static void showTopics(void);
+	/**
+	 * Perform a poll setup/teardown operation.
+	 *
+	 * This is handled internally and should not normally be overridden.
+	 *
+	 * @param filep		Pointer to the internal file structure.
+	 * @param fds		Poll descriptor being waited on.
+	 * @param setup		True if this is establishing a request, false if
+	 *			it is being torn down.
+	 * @return		OK on success, or -errno otherwise.
+	 */
+	virtual int	poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
 
 	/**
-	 * Get the device name.
+	 * Test whether the device is currently open.
 	 *
-	 * @return the file system string of the device handle
+	 * This can be used to avoid tearing down a device that is still active.
+	 * Note - not virtual, cannot be overridden by a subclass.
+	 *
+	 * @return              True if the device is currently open.
 	 */
-	const char	*get_devname() { return _devname; }
+	bool            is_open() { return _open_count > 0; }
 
 protected:
-
-	int register_driver(const char *name, void *data);
-	int unregister_driver(const char *name);
+	/**
+	 * Pointer to the default cdev file operations table; useful for
+	 * registering clone devices etc.
+	 */
+	static const px4_file_operations_t	fops;
 
 	/**
 	 * Check the current state of the device for poll events from the
@@ -345,8 +185,6 @@ protected:
 	 * a poll is set up to determine whether the poll should return immediately.
 	 *
 	 * The default implementation returns no events.
-	 *
-	 * Lock must already be held when calling this.
 	 *
 	 * @param filep		The file that's interested.
 	 * @return		The current set of poll events.
@@ -365,8 +203,6 @@ protected:
 
 	/**
 	 * Internal implementation of poll_notify.
-	 *
-	 * Lock must already be held when calling this.
 	 *
 	 * @param fds		A poll waiter to notify.
 	 * @param events	The event(s) to send to the waiter.
@@ -418,13 +254,20 @@ protected:
 	 */
 	virtual int unregister_class_devname(const char *class_devname, unsigned class_instance);
 
-	bool		_pub_blocked;		/**< true if publishing should be blocked */
+	/**
+	 * Get the device name.
+	 *
+	 * @return the file system string of the device handle
+	 */
+	const char	*get_devname() { return _devname; }
+
+	bool		_pub_blocked{false};		/**< true if publishing should be blocked */
 
 private:
 	const char	*_devname;		/**< device node name */
-	bool		_registered;		/**< true if device name was registered */
+	bool		_registered{false};		/**< true if device name was registered */
 	uint8_t		_max_pollwaiters; /**< size of the _pollset array */
-	unsigned	_open_count;		/**< number of successful opens */
+	uint16_t	_open_count;		/**< number of successful opens */
 
 	px4_pollfd_struct_t	**_pollset;
 
@@ -446,7 +289,7 @@ private:
 
 	/* do not allow copying this class */
 	CDev(const CDev &);
-	//CDev operator=(const CDev&);
+	CDev operator=(const CDev &);
 };
 
 } // namespace device
@@ -458,3 +301,4 @@ enum CLASS_DEVICE {
 	CLASS_DEVICE_TERTIARY = 2
 };
 
+#endif /* _DEVICE_CDEV_HPP */
