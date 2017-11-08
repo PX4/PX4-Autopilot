@@ -411,6 +411,9 @@ bool Ekf::realignYawGPS()
 			// calculate new filter quaternion states using corected yaw angle
 			_state.quat_nominal = Quatf(euler321);
 
+			// If heading was bad, then we alos need to reset the velocity and position states
+			_velpos_reset_request = badMagYaw;
+
 			// update transformation matrix from body to world frame using the current state estimate
 			_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
@@ -453,8 +456,6 @@ bool Ekf::realignYawGPS()
 			// capture the reset event
 			_state_reset_status.quat_counter++;
 
-			// the alignment using GPS has been successful
-			_control_status.flags.yaw_align = true;
 			return true;
 
 		} else {
