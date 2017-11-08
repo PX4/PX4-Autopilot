@@ -48,50 +48,11 @@
 namespace device
 {
 
-/**
- * Interrupt dispatch table entry.
- */
-struct irq_entry {
-	int	irq;
-	Device	*owner;
-};
-
-static const unsigned	irq_nentries = 8;		/**< size of the interrupt dispatch table */
-static irq_entry	irq_entries[irq_nentries];	/**< interrupt dispatch table (XXX should be a vector) */
-
-/**
- * Register an interrupt to a specific device.
- *
- * @param irq		The interrupt number to register.
- * @param owner		The device receiving the interrupt.
- * @return		OK if the interrupt was registered.
- */
-static int	register_interrupt(int irq, Device *owner);
-
-/**
- * Unregister an interrupt.
- *
- * @param irq		The previously-registered interrupt to be de-registered.
- */
-static void	unregister_interrupt(int irq);
-
-/**
- * Handle an interrupt.
- *
- * @param irq		The interrupt being invoked.
- * @param context	The interrupt register context.
- * @return		Always returns OK.
- */
-static int	interrupt(int irq, void *context, void *arg);
-
-Device::Device(const char *name,
-	       int irq) :
+Device::Device(const char *name) :
 	// public
 	// protected
 	_name(name),
-	_debug_enabled(false),
-	// private
-	_irq(irq)
+	_debug_enabled(false)
 {
 	sem_init(&_lock, 0, 1);
 
@@ -107,10 +68,6 @@ Device::Device(const char *name,
 Device::~Device()
 {
 	sem_destroy(&_lock);
-
-	if (_irq) {
-		unregister_interrupt(_irq);
-	}
 }
 
 int
@@ -118,91 +75,7 @@ Device::init()
 {
 	int ret = OK;
 
-	// If assigned an interrupt, connect it
-	if (_irq) {
-		/* ensure it's disabled */
-		up_disable_irq(_irq);
-
-		/* register */
-		ret = register_interrupt(_irq, this);
-
-		if (ret != OK) {
-			_irq = 0;
-		}
-	}
-
 	return ret;
-}
-
-void
-Device::interrupt_enable()
-{
-	if (_irq) {
-		up_enable_irq(_irq);
-	}
-}
-
-void
-Device::interrupt_disable()
-{
-	if (_irq) {
-		up_disable_irq(_irq);
-	}
-}
-
-void
-Device::interrupt(void *context)
-{
-	// default action is to disable the interrupt so we don't get called again
-	interrupt_disable();
-}
-
-static int
-register_interrupt(int irq, Device *owner)
-{
-	int ret = -ENOMEM;
-
-	// look for a slot where we can register the interrupt
-	for (unsigned i = 0; i < irq_nentries; i++) {
-		if (irq_entries[i].irq == 0) {
-
-			// great, we could put it here; try attaching it
-			ret = irq_attach(irq, &interrupt, owner);
-
-			if (ret == OK) {
-				irq_entries[i].irq = irq;
-				irq_entries[i].owner = owner;
-			}
-
-			break;
-		}
-	}
-
-	return ret;
-}
-
-static void
-unregister_interrupt(int irq)
-{
-	for (unsigned i = 0; i < irq_nentries; i++) {
-		if (irq_entries[i].irq == irq) {
-			irq_entries[i].irq = 0;
-			irq_entries[i].owner = nullptr;
-		}
-	}
-}
-
-static int
-interrupt(int irq, void *context, void *arg)
-{
-	for (unsigned i = 0; i < irq_nentries; i++) {
-		if (irq_entries[i].irq == irq) {
-			irq_entries[i].owner->interrupt(context);
-			break;
-		}
-	}
-
-	return OK;
 }
 
 int

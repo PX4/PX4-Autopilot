@@ -62,15 +62,13 @@ protected:
 	 * @param device	Device handle (used by SPI_SELECT)
 	 * @param mode		SPI clock/data mode
 	 * @param frequency	SPI clock frequency
-	 * @param irq		Interrupt assigned to the device (or zero if none)
 	 */
 	SPI(const char *name,
 	    const char *devname,
 	    int bus,
 	    uint32_t device,
 	    enum spi_mode_e mode,
-	    uint32_t frequency,
-	    int irq = 0);
+	    uint32_t frequency);
 	virtual ~SPI();
 
 	/**
