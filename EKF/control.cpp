@@ -1244,6 +1244,9 @@ void Ekf::controlMagFusion()
 			_control_status.flags.update_mag_states_only = (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW)
 					&& _control_status.flags.fixed_wing;
 
+			// For the first 10 seconds after switching to 3-axis fusion we allow the magnetic field state estimates to stabilise
+			_flt_mag_align_converging = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) < (uint64_t)1e7);
+
 			if (!_control_status.flags.update_mag_states_only && _control_status_prev.flags.update_mag_states_only) {
 				// When re-commencing use of magnetometer to correct vehicle states
 				// set the field state variance to the observation variance and zero
@@ -1291,6 +1294,12 @@ void Ekf::controlMagFusion()
 
 			if (_control_status.flags.mag_dec) {
 				fuseDeclination();
+			}
+
+			if (_flt_mag_align_converging) {
+				_control_status.flags.mag_hdg = true;
+				fuseHeading();
+				_control_status.flags.mag_hdg = false;
 			}
 
 		} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
