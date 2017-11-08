@@ -1,4 +1,5 @@
 # Local position setpoint in NED frame
+# setting something to NaN means the state should not be controlled
 
 float32 x		# in meters NED
 float32 y		# in meters NED
