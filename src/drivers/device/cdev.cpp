@@ -89,10 +89,9 @@ poll	: cdev_poll
 };
 
 CDev::CDev(const char *name,
-	   const char *devname,
-	   int irq) :
+	   const char *devname) :
 	// base class
-	Device(name, irq),
+	Device(name),
 	// public
 	// protected
 	_pub_blocked(false),

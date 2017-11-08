@@ -55,10 +55,9 @@ I2C::I2C(const char *name,
 	 const char *devname,
 	 int bus,
 	 uint16_t address,
-	 uint32_t frequency,
-	 int irq) :
+	 uint32_t frequency) :
 	// base class
-	CDev(name, devname, irq),
+	CDev(name, devname),
 	// public
 	// protected
 	_retries(0),

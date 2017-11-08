@@ -61,10 +61,9 @@ SPI::SPI(const char *name,
 	 int bus,
 	 uint32_t device,
 	 enum spi_mode_e mode,
-	 uint32_t frequency,
-	 int irq) :
+	 uint32_t frequency) :
 	// base class
-	CDev(name, devname, irq),
+	CDev(name, devname),
 	// public
 	// protected
 	locking_mode(LOCK_PREEMPTION),
