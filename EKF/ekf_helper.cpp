@@ -492,6 +492,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	Quatf quat_before_reset = _state.quat_nominal;
+	Quatf quat_after_reset = _state.quat_nominal;
 
 	// calculate the variance for the rotation estimate expressed as a rotation vector
 	// this will be used later to reset the quaternion state covariances
@@ -532,26 +533,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		// calculate initial quaternion states for the ekf
 		// we don't change the output attitude to avoid jumps
-		_state.quat_nominal = Quatf(euler321);
-
-		// calculate the amount that the quaternion has changed by
-		_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
-
-		// add the reset amount to the output observer buffered data
-		outputSample output_states;
-		unsigned output_length = _output_buffer.get_length();
-		for (unsigned i = 0; i < output_length; i++) {
-			output_states = _output_buffer.get_from_index(i);
-			output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
-			_output_buffer.push_to_index(i, output_states);
-		}
-
-		// apply the change in attitude quaternion to our newest quaternion estimate
-		// which was already taken out from the output buffer
-		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
-
-		// capture the reset event
-		_state_reset_status.quat_counter++;
+		quat_after_reset = Quatf(euler321);
 
 	} else {
 		// use a 312 sequence
@@ -618,32 +600,12 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		// calculate initial quaternion states for the ekf
 		// we don't change the output attitude to avoid jumps
-		_state.quat_nominal = Quatf(R_to_earth);
+		quat_after_reset = Quatf(R_to_earth);
 	}
 
-	// update transformation matrix from body to world frame using the current estimate
-	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
-
-	// reset the rotation from the EV to EKF frame of reference if it is being used
-	if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !(_params.fusion_mode & MASK_USE_EVYAW)) {
-		resetExtVisRotMat();
-	}
-
-	// update the yaw angle variance using the variance of the measurement
-	if (_params.fusion_mode & MASK_USE_EVYAW) {
-		// using error estimate from external vision data
-		angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
-
-	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
-		// using magnetic heading tuning parameter
-		angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
-	}
-
-	// reset the quaternion covariances using the rotation vector variances
-	initialiseQuatCovariances(angle_err_var_vec);
-
-	// calculate initial earth magnetic field states
-	_state.mag_I = _R_to_earth * mag_init;
+	// set the earth magnetic field states using the updated rotation
+	Dcmf _R_to_earth_after = quat_to_invrotmat(quat_after_reset);
+	_state.mag_I = _R_to_earth_after * mag_init;
 
 	// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
 	zeroRows(P, 16, 21);
@@ -653,28 +615,76 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		P[index][index] = sq(_params.mag_noise);
 	}
 
-	// record the start time for the magnetic field alignment
+	// record the time for the magnetic field alignment event
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 
 	// calculate the amount that the quaternion has changed by
-	_state_reset_status.quat_change =  quat_before_reset.inversed() * _state.quat_nominal;
+	Quatf q_error =  quat_before_reset.inversed() * quat_after_reset;
+	q_error.normalize();
 
-	// add the reset amount to the output observer buffered data
-	outputSample output_states = {};
-	unsigned output_length = _output_buffer.get_length();
+	// convert the quaternion delta to a delta angle
+	Vector3f delta_ang_error;
+	float scalar;
 
-	for (unsigned i = 0; i < output_length; i++) {
-		output_states = _output_buffer.get_from_index(i);
-		output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
-		_output_buffer.push_to_index(i, output_states);
+	if (q_error(0) >= 0.0f) {
+		scalar = -2.0f;
+
+	} else {
+		scalar = 2.0f;
 	}
 
-	// apply the change in attitude quaternion to our newest quaternion estimate
-	// which was already taken out from the output buffer
-	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+	delta_ang_error(0) = scalar * q_error(1);
+	delta_ang_error(1) = scalar * q_error(2);
+	delta_ang_error(2) = scalar * q_error(3);
 
-	// capture the reset event
-	_state_reset_status.quat_counter++;
+
+	// update the quaternion state estimates and corresponding covariances only if the change in angle has been large
+	if (delta_ang_error.norm() > math::radians(15.0f)) {
+		// update quaternion states
+		_state.quat_nominal = quat_after_reset;
+
+		// record the state change
+		_state_reset_status.quat_change = q_error;
+
+		// update transformation matrix from body to world frame using the current estimate
+		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+
+		// reset the rotation from the EV to EKF frame of reference if it is being used
+		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !(_params.fusion_mode & MASK_USE_EVYAW)) {
+			resetExtVisRotMat();
+		}
+
+		// update the yaw angle variance using the variance of the measurement
+		if (_params.fusion_mode & MASK_USE_EVYAW) {
+			// using error estimate from external vision data
+			angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
+
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
+			// using magnetic heading tuning parameter
+			angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+		}
+
+		// reset the quaternion covariances using the rotation vector variances
+		initialiseQuatCovariances(angle_err_var_vec);
+
+		// add the reset amount to the output observer buffered data
+		outputSample output_states = {};
+		unsigned output_length = _output_buffer.get_length();
+
+		for (unsigned i = 0; i < output_length; i++) {
+			output_states = _output_buffer.get_from_index(i);
+			output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
+			_output_buffer.push_to_index(i, output_states);
+		}
+
+		// apply the change in attitude quaternion to our newest quaternion estimate
+		// which was already taken out from the output buffer
+		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+
+		// capture the reset event
+		_state_reset_status.quat_counter++;
+
+	}
 
 	return true;
 }
