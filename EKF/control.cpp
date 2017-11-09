@@ -483,8 +483,8 @@ void Ekf::controlGpsFusion()
 			do_reset = do_reset || (_time_last_imu - _time_last_pos_fuse > 2 * _params.no_gps_timeout_max);
 
 			if (do_reset) {
-				// Reset states to the last GPS measurement
-				if (_control_status.flags.fixed_wing) {
+				// use GPS velocity data to cehck and correct yaw angle if a FW vehicle
+				if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
 					// if flying a fixed wing aircraft, do a complete reset that includes yaw
 					realignYawGPS();
 				}
