@@ -1220,11 +1220,11 @@ void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first
 
 void Ekf::zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
 {
-	// store diagonals
+	// save diagonal elements
 	uint8_t row;
-	float variances[last-first+1];
+	float variances[_k_num_states];
 	for (row = first; row <= last; row++) {
-		variances[row-first] = cov_mat[row][row];
+		variances[row] = cov_mat[row][row];
 	}
 
 	// zero rows and columns
@@ -1233,9 +1233,8 @@ void Ekf::zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t fi
 
 	// restore diagonals
 	for (row = first; row <= last; row++) {
-		cov_mat[row][row] = variances[row-first];
+		cov_mat[row][row] = variances[row];
 	}
-
 }
 
 void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance)
