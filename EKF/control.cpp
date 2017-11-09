@@ -483,7 +483,7 @@ void Ekf::controlGpsFusion()
 			do_reset = do_reset || (_time_last_imu - _time_last_pos_fuse > 2 * _params.no_gps_timeout_max);
 
 			if (do_reset) {
-				// use GPS velocity data to cehck and correct yaw angle if a FW vehicle
+				// use GPS velocity data to check and correct yaw angle if a FW vehicle
 				if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
 					// if flying a fixed wing aircraft, do a complete reset that includes yaw
 					realignYawGPS();
@@ -1296,7 +1296,7 @@ void Ekf::controlMagFusion()
 				fuseDeclination();
 			}
 
-			if (_flt_mag_align_converging) {
+			if (_flt_mag_align_converging && !_control_status.flags.fixed_wing) {
 				_control_status.flags.mag_hdg = true;
 				fuseHeading();
 				_control_status.flags.mag_hdg = false;
