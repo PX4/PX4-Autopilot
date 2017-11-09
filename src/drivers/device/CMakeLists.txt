@@ -35,7 +35,6 @@ set(SRCS)
 
 list(APPEND SRCS
 	CDev.cpp
-	Device.cpp
 	ringbuffer.cpp
 	integrator.cpp
 )
