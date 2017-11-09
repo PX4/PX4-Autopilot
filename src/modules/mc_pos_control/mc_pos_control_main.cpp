@@ -3014,8 +3014,8 @@ MulticopterPositionControl::task_main()
 		/* set default max velocity in xy to vel_max */
 		_vel_max_xy = _params.vel_max_xy;
 
-		/* reset flags when landed */
-		if (_vehicle_land_detected.landed) {
+		/* reset flags when landed and not taking off */
+		if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
 			_reset_pos_sp = true;
 			_reset_alt_sp = true;
 			_do_reset_alt_pos_flag = true;
