@@ -160,16 +160,6 @@ public:
 	 */
 	virtual int	poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
 
-	/**
-	 * Test whether the device is currently open.
-	 *
-	 * This can be used to avoid tearing down a device that is still active.
-	 * Note - not virtual, cannot be overridden by a subclass.
-	 *
-	 * @return              True if the device is currently open.
-	 */
-	bool            is_open() { return _open_count > 0; }
-
 protected:
 	/**
 	 * Pointer to the default cdev file operations table; useful for
@@ -261,15 +251,40 @@ protected:
 	 */
 	const char	*get_devname() { return _devname; }
 
+	/**
+	 * Take the driver lock.
+	 *
+	 * Each driver instance has its own lock/semaphore.
+	 *
+	 * Note that we must loop as the wait may be interrupted by a signal.
+	 *
+	 * Careful: lock() calls cannot be nested!
+	 */
+	void		lock()
+	{
+		do {} while (px4_sem_wait(&_lock) != 0);
+	}
+
+	/**
+	 * Release the driver lock.
+	 */
+	void		unlock()
+	{
+		px4_sem_post(&_lock);
+	}
+
+	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
+
 	bool		_pub_blocked{false};		/**< true if publishing should be blocked */
 
 private:
 	const char	*_devname;		/**< device node name */
 	bool		_registered{false};		/**< true if device name was registered */
-	uint8_t		_max_pollwaiters; /**< size of the _pollset array */
-	uint16_t	_open_count;		/**< number of successful opens */
 
-	px4_pollfd_struct_t	**_pollset;
+	uint8_t		_max_pollwaiters{0}; /**< size of the _pollset array */
+	uint16_t	_open_count{0};		/**< number of successful opens */
+
+	px4_pollfd_struct_t	**_pollset{nullptr};
 
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.

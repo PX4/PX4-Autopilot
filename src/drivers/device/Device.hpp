@@ -46,6 +46,8 @@
 #include <px4_config.h>
 #include <px4_posix.h>
 
+#include <drivers/drv_device.h>
+
 #define DEVICE_LOG(FMT, ...) PX4_LOG_NAMED(_name, FMT, ##__VA_ARGS__)
 #define DEVICE_DEBUG(FMT, ...) PX4_LOG_NAMED_COND(_name, _debug_enabled, FMT, ##__VA_ARGS__)
 
@@ -68,7 +70,7 @@ public:
 	 *
 	 * Public so that anonymous devices can be destroyed.
 	 */
-	virtual ~Device();
+	virtual ~Device() = default;
 
 	/*
 	 * Direct access methods.
@@ -79,7 +81,7 @@ public:
 	 *
 	 * @return	OK if the driver initialized OK, negative errno otherwise;
 	 */
-	virtual int	init();
+	virtual int	init() { return PX4_OK; }
 
 	/**
 	 * Read directly from the device.
@@ -91,7 +93,7 @@ public:
 	 * @param count		The number of items to read.
 	 * @return		The number of items read on success, negative errno otherwise.
 	 */
-	virtual int	read(unsigned address, void *data, unsigned count);
+	virtual int	read(unsigned address, void *data, unsigned count) { return -ENODEV; }
 
 	/**
 	 * Write directly to the device.
@@ -103,7 +105,7 @@ public:
 	 * @param count		The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
 	 */
-	virtual int	write(unsigned address, void *data, unsigned count);
+	virtual int	write(unsigned address, void *data, unsigned count) { return -ENODEV; }
 
 	/**
 	 * Perform a device-specific operation.
@@ -112,7 +114,15 @@ public:
 	 * @param arg		An argument to the operation.
 	 * @return		Negative errno on error, OK or positive value on success.
 	 */
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	virtual int	ioctl(unsigned operation, unsigned &arg)
+	{
+		switch (operation) {
+		case DEVIOCGDEVICEID:
+			return (int)_device_id.devid;
+		}
+
+		return -ENODEV;
+	}
 
 	/** Device bus types for DEVID */
 	enum DeviceBusType {
@@ -150,6 +160,8 @@ public:
 	 */
 	virtual void set_device_type(uint8_t devtype) { _device_id.devid_s.devtype = devtype; }
 
+	//virtual bool external() = 0;
+
 	/*
 	  broken out device elements. The bitfields are used to keep
 	  the overall value small enough to fit in a float accurately,
@@ -169,51 +181,36 @@ public:
 	};
 
 protected:
-	const char	*_name;			/**< driver name */
-	char		*_lock_name;		/**< name of the semaphore */
-	bool		_debug_enabled;		/**< if true, debug messages are printed */
 	union DeviceId	_device_id;             /**< device identifier information */
 
-	/**
-	 * Constructor
-	 *
-	 * @param name		Driver name
-	 */
-	Device(const char *name);
+	const char	*_name;			/**< driver name */
+	bool		_debug_enabled{false};		/**< if true, debug messages are printed */
 
-	/**
-	 * Take the driver lock.
-	 *
-	 * Each driver instance has its own lock/semaphore.
-	 *
-	 * Note that we must loop as the wait may be interrupted by a signal.
-	 *
-	 * Careful: lock() calls cannot be nested!
-	 */
-	void		lock()
+	Device(const char *name) : _name(name)
 	{
-		do {} while (px4_sem_wait(&_lock) != 0);
+		/* setup a default device ID. When bus_type is UNKNOWN the
+		   other fields are invalid */
+		_device_id.devid = 0;
+		_device_id.devid_s.bus_type = DeviceBusType_UNKNOWN;
+		_device_id.devid_s.bus = 0;
+		_device_id.devid_s.address = 0;
+		_device_id.devid_s.devtype = 0;
 	}
 
-	/**
-	 * Release the driver lock.
-	 */
-	void		unlock()
+	Device(DeviceBusType bus_type, uint8_t bus, uint8_t address, uint8_t devtype = 0)
 	{
-		px4_sem_post(&_lock);
+		_device_id.devid = 0;
+		_device_id.devid_s.bus_type = bus_type;
+		_device_id.devid_s.bus = bus;
+		_device_id.devid_s.address = address;
+		_device_id.devid_s.devtype = devtype;
 	}
 
-	DeviceId &get_device_id() { return _device_id; }
-
-	px4_sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
-
-private:
-
-	/** disable copy construction for this and all subclasses */
-	Device(const Device &);
-
-	/** disable assignment for this and all subclasses */
-	Device &operator = (const Device &);
+	// no copy, assignment, move, move assignment
+	Device(const Device &) = delete;
+	Device &operator=(const Device &) = delete;
+	Device(Device &&) = delete;
+	Device &operator=(Device &&) = delete;
 
 };
 
