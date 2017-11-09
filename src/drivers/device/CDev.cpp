@@ -48,19 +48,16 @@ namespace device
 {
 
 CDev::CDev(const char *name, const char *devname) :
-	// base class
 	Device(name),
-	// public
-	// protected
-	_pub_blocked(false),
-	// private
-	_devname(devname),
-	_registered(false),
-	_max_pollwaiters(0),
-	_open_count(0),
-	_pollset(nullptr)
+	_devname(devname)
 {
 	DEVICE_DEBUG("CDev::CDev");
+
+	int ret = px4_sem_init(&_lock, 0, 1);
+
+	if (ret != 0) {
+		PX4_WARN("SEM INIT FAIL: ret %d", ret);
+	}
 }
 
 CDev::~CDev()
@@ -74,6 +71,8 @@ CDev::~CDev()
 	if (_pollset) {
 		delete[](_pollset);
 	}
+
+	px4_sem_destroy(&_lock);
 }
 
 int
