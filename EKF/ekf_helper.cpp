@@ -56,8 +56,12 @@ bool Ekf::resetVelocity()
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.vel = _gps_sample_delayed.vel;
 
+		// use GPS accuracy to reset variances
+		setDiag(P,4,6,sq(_gps_sample_delayed.sacc));
+
 	} else if (_control_status.flags.opt_flow || _control_status.flags.ev_pos) {
 		_state.vel.setZero();
+		zeroOffDiag(P,4,6);
 
 	} else {
 		return false;
@@ -106,14 +110,21 @@ bool Ekf::resetPosition()
 		_state.pos(0) = _gps_sample_delayed.pos(0);
 		_state.pos(1) = _gps_sample_delayed.pos(1);
 
+		// use GPS accuracy to reset variances
+		setDiag(P,7,8,sq(_gps_sample_delayed.hacc));
+
 	} else if (_control_status.flags.opt_flow) {
 		_state.pos(0) = 0.0f;
 		_state.pos(1) = 0.0f;
+		zeroOffDiag(P,7,8);
 
 	} else if (_control_status.flags.ev_pos) {
 		// this reset is only called if we have new ev data at the fusion time horizon
 		_state.pos(0) = _ev_sample_delayed.posNED(0);
 		_state.pos(1) = _ev_sample_delayed.posNED(1);
+
+		// use EV accuracy to reset variances
+		setDiag(P,7,8,sq(_ev_sample_delayed.posErr));
 
 	} else {
 		return false;
