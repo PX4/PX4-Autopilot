@@ -125,10 +125,11 @@ private:
 	bool 		_run_alt_control = true; 			/**<true if altitude controller should be used */
 	bool 		_reset_int_z = true; 				/**<true if reset integral in z */
 	bool 		_reset_int_xy = true; 				/**<true if reset integral in xy */
-	bool		 _reset_yaw_sp = true; 				/**<true if reset yaw setpoint */
+	bool		_reset_yaw_sp = true; 				/**<true if reset yaw setpoint */
 	bool 		_hold_offboard_xy = false; 			/**<TODO : check if we need this extra hold_offboard flag */
 	bool 		_hold_offboard_z = false;
-	bool 		_in_smooth_takeoff = false; 				/**<true if takeoff ramp is applied */
+	bool		_going_to_takeoff = false;			/**<true for the first pass of control cycle of takeoff */
+	bool 		_in_smooth_takeoff = false;			/**<true if takeoff acceleration limit is applied */
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
 	bool 		_triplet_lat_lon_finite = true; 		/**<true if triplets current is non-finite */
@@ -291,9 +292,9 @@ private:
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
 	float _acceleration_state_dependent_xy; /**< acceleration limit applied in manual mode */
 	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
+	float _acceleration_z_max_takeoff; /**< acceleration limit applied in smooth takeoff */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
-	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -466,9 +467,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_max_xy(0.0f),
 	_acceleration_state_dependent_xy(0.0f),
 	_acceleration_state_dependent_z(0.0f),
+	_acceleration_z_max_takeoff(0.0f),
 	_manual_jerk_limit_xy(1.0f),
 	_manual_jerk_limit_z(1.0f),
-	_takeoff_vel_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_heading_reset_counter(0)
@@ -695,10 +696,15 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* for z direction we use fixed jerk for now
 		 * TODO: check if other jerk value is required */
 		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+
+		/* calculate smooth takeoff acceleration based on takeoff ramp time and takeoff speed */
+		_acceleration_z_max_takeoff = _params.tko_speed / _takeoff_ramp_time.get();
+
+		/* smooth takeoff acceleration must not exceed maximum */
+		_acceleration_z_max_takeoff = fminf(_acceleration_z_max_takeoff, _acceleration_z_max_up.get());
+
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
 		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
-
-
 	}
 
 	return OK;
@@ -1656,7 +1662,16 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
 	float max_acc_z;
 
-	if (_control_mode.flag_control_manual_enabled) {
+	if (_in_smooth_takeoff) {
+		if (acc_z < -_acceleration_z_max_takeoff) {
+			max_acc_z = -_acceleration_z_max_takeoff;
+
+		} else {
+			_in_smooth_takeoff = false;
+			max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
+		}
+
+	} else if (_control_mode.flag_control_manual_enabled) {
 		max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
 
 	} else {
@@ -2453,20 +2468,21 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
-
-	if (!_control_mode.flag_control_auto_enabled) {
+	if (!_control_mode.flag_control_auto_enabled || in_auto_takeoff()) {
 		vel_sp_slewrate(dt);
 	}
 
-	_vel_sp_prev = _vel_sp;
-
-	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
+	/*  special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_smooth_takeoff) {
-		_in_smooth_takeoff = _takeoff_vel_limit < -_vel_sp(2);
-		/* ramp vertical velocity limit up to takeoff speed */
-		_takeoff_vel_limit += -_vel_sp(2) * dt / _takeoff_ramp_time.get();
-		/* limit vertical velocity to the current ramp value */
-		_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_vel_limit);
+		_in_smooth_takeoff = _params.tko_speed > -_vel_sp(2);
+
+		if (_going_to_takeoff) {
+			_going_to_takeoff = false;
+
+			// Takeoff speed starts positive and goes to negative (upward) later because we want to
+			// be as smooth as possible. If we start at 0, we already jump to hover throttle.
+			_vel_sp(2) = 0.5;
+		}
 	}
 
 	/* make sure velocity setpoint is constrained in all directions (xyz) */
@@ -2478,6 +2494,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	}
 
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_params.vel_max_up, _params.vel_max_down);
+
+	_vel_sp_prev = _vel_sp;
 }
 
 void
@@ -3056,9 +3074,8 @@ MulticopterPositionControl::task_main()
 		if (!_in_smooth_takeoff && _vehicle_land_detected.landed && _control_mode.flag_armed &&
 		    (in_auto_takeoff() || manual_wants_takeoff())) {
 			_in_smooth_takeoff = true;
-			// This ramp starts negative and goes to positive later because we want to
-			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
-			_takeoff_vel_limit = -0.5f;
+
+			_going_to_takeoff = true;
 		}
 
 		else if (!_control_mode.flag_armed) {
