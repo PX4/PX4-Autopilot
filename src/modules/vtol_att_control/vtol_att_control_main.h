@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -159,6 +160,7 @@ private:
 	orb_advert_t	_vtol_vehicle_status_pub;
 	orb_advert_t	_v_rates_sp_pub;
 	orb_advert_t	_v_att_sp_pub;
+	orb_advert_t	_v_cmd_ack_pub;
 
 //*******************data containers***********************************************************
 	struct vehicle_attitude_s			_v_att;				//vehicle attitude
