@@ -1207,6 +1207,26 @@ void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first
 	}
 }
 
+void Ekf::zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+{
+	// store diagonals
+	uint8_t row;
+	float variances[last-first+1];
+	for (row = first; row <= last; row++) {
+		variances[row-first] = cov_mat[row][row];
+	}
+
+	// zero rows and columns
+	zeroRows(cov_mat, first, last);
+	zeroCols(cov_mat, first, last);
+
+	// restore diagonals
+	for (row = first; row <= last; row++) {
+		cov_mat[row][row] = variances[row-first];
+	}
+
+}
+
 bool Ekf::global_position_is_valid()
 {
 	// return true if we are not doing unconstrained free inertial navigation and the origin is set

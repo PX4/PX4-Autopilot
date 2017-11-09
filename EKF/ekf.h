@@ -596,6 +596,9 @@ private:
 	// zero the specified range of columns in the state covariance matrix
 	void zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
+	// zero the specified range of off diagonals the state covariance matrix
+	void zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar();
 
