@@ -167,12 +167,6 @@ void Ekf::controlExternalVisionFusion()
 				} else {
 					resetPosition();
 					resetVelocity();
-					// we cannot use an absolue position from a rotating reference frame
-					if (_params.fusion_mode & MASK_ROTATE_EV) {
-						_fuse_hpos_as_odom = true;
-					} else {
-						_fuse_hpos_as_odom = false;
-					}
 
 				}
 			}
