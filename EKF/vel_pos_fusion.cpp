@@ -82,76 +82,12 @@ void Ekf::fuseVelPosHeight()
 	}
 
 	if (_fuse_pos) {
+		// enable fusion for the NE position axes
 		fuse_map[3] = fuse_map[4] = true;
 
-		// Calculate innovations and observation variance depending on type of observations
-		// being used
-		if (_control_status.flags.gps) {
-			// we are using GPS measurements
-			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
-			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-			R[3] = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
-			_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
-			_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
-
-			// innovation gate size
-			gate_size[3] = fmaxf(_params.posNE_innov_gate, 1.0f);
-
-
-		} else if (_control_status.flags.ev_pos) {
-			// calculate innovations
-			if(_hpos_odometry) {
-				if(!_hpos_prev_available) {
-					// no previous observation available to calculate position change
-					fuse_map[3] = fuse_map[4] = false;
-					_hpos_prev_available = true;
-
-				} else {
-					// use the change in position since the last measurement
-					_vel_pos_innov[3] = _state.pos(0) - _hpos_pred_prev(0) - _ev_sample_delayed.posNED(0) + _hpos_meas_prev(0);
-					_vel_pos_innov[4] = _state.pos(1) - _hpos_pred_prev(1) - _ev_sample_delayed.posNED(1) + _hpos_meas_prev(1);
-
-				}
-
-				// record observation and estimate for use next time
-				_hpos_meas_prev(0) = _ev_sample_delayed.posNED(0);
-				_hpos_meas_prev(1) = _ev_sample_delayed.posNED(1);
-				_hpos_pred_prev(0) = _state.pos(0);
-				_hpos_pred_prev(1) = _state.pos(1);
-
-			} else {
-				// use the absolute position
-				_vel_pos_innov[3] = _state.pos(0) - _ev_sample_delayed.posNED(0);
-				_vel_pos_innov[4] = _state.pos(1) - _ev_sample_delayed.posNED(1);
-			}
-
-			// observation 1-STD error
-			R[3] = fmaxf(_ev_sample_delayed.posErr, 0.01f);
-
-			// innovation gate size
-			gate_size[3] = fmaxf(_params.ev_innov_gate, 1.0f);
-
-		} else {
-			// No observations - use a static position to constrain drift
-			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-				R[3] = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
-			} else {
-				R[3] = 0.5f;
-			}
-			_vel_pos_innov[3] = _state.pos(0) - _last_known_posNE(0);
-			_vel_pos_innov[4] = _state.pos(1) - _last_known_posNE(1);
-
-			// glitch protection is not required so set gate to a large value
-			gate_size[3] = 100.0f;
-
-		}
-
-		// convert North position noise to variance
-		R[3] = R[3] * R[3];
-
-		// copy North axis values to East axis
-		R[4] = R[3];
-		gate_size[4] = gate_size[3];
+		// Set observation noise variance and innovation consistency check gate size for the NE position observations
+		R[4] = R[3] = sq(_posObsNoiseNE);
+		gate_size[4] = gate_size[3] = _posInnovGateNE;
 
 	}
 
@@ -234,7 +170,11 @@ void Ekf::fuseVelPosHeight()
 
 	// record the successful position fusion event
 	if (pos_check_pass && _fuse_pos) {
-		_time_last_pos_fuse = _time_last_imu;
+		if (!_fuse_hpos_as_odom) {
+			_time_last_pos_fuse = _time_last_imu;
+		} else {
+			_time_last_delpos_fuse = _time_last_imu;
+		}
 		_innov_check_fail_status.flags.reject_pos_NE = false;
 	} else if (!pos_check_pass) {
 		_innov_check_fail_status.flags.reject_pos_NE = true;

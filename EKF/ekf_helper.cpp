@@ -607,6 +607,11 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	// update transformation matrix from body to world frame using the current estimate
 	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
+	// reset the rotation from the EV to EKF frame of reference if it is being used
+	if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !(_params.fusion_mode & MASK_USE_EVYAW)) {
+		resetExtVisRotMat();
+	}
+
 	// update the yaw angle variance using the variance of the measurement
 	if (_params.fusion_mode & MASK_USE_EVYAW) {
 		// using error estimate from external vision data
@@ -1182,7 +1187,9 @@ bool Ekf::global_position_is_valid()
 bool Ekf::inertial_dead_reckoning()
 {
 	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos)
-			    && ((_time_last_imu - _time_last_pos_fuse <= _params.no_aid_timeout_max) || (_time_last_imu - _time_last_vel_fuse <= _params.no_aid_timeout_max));
+			    && ((_time_last_imu - _time_last_pos_fuse <= _params.no_aid_timeout_max)
+				|| (_time_last_imu - _time_last_vel_fuse <= _params.no_aid_timeout_max)
+				|| (_time_last_imu - _time_last_delpos_fuse <= _params.no_aid_timeout_max));
 	bool optFlowAiding = _control_status.flags.opt_flow && (_time_last_imu - _time_last_of_fuse <= _params.no_aid_timeout_max);
 	bool airDataAiding = _control_status.flags.wind && (_time_last_imu - _time_last_arsp_fuse <= _params.no_aid_timeout_max) && (_time_last_imu - _time_last_beta_fuse <= _params.no_aid_timeout_max);
 
@@ -1422,3 +1429,111 @@ void Ekf::setControlEVHeight()
 	_control_status.flags.gps_hgt = false;
 	_control_status.flags.rng_hgt = false;
 }
+
+// update the estimated misalignment between the EV navigation frame and the EKF navigation frame
+// and calculate a rotation matrix which rotates EV measurements into the EKF's navigatin frame
+void Ekf::calcExtVisRotMat()
+{
+	// calculate the quaternion delta between the EKF and EV reference frames at the EKF fusion time horizon
+	Quatf quat_inv = _ev_sample_delayed.quat.inversed();
+	Quatf q_error =   quat_inv * _state.quat_nominal;
+	q_error.normalize();
+
+	// convert to a delta angle and apply a spike and low pass filter
+	Vector3f rot_vec;
+	float delta;
+	float scaler;
+	if (q_error(0) >= 0.0f) {
+	    delta = 2 * acosf(q_error(0));
+	    if (delta > 1e-6f) {
+		    scaler = 1.0f /  sinf(delta/2);
+	    } else {
+		    // The rotation is too small to calculate a vector accurately
+		    // Make the rotation vector zero
+		    scaler = 0.0f;
+	    }
+	} else {
+	    delta = 2 * acosf(-q_error(0));
+	    if (delta > 1e-6f) {
+		   scaler = -1.0f /  sinf(delta/2);
+	    } else {
+		    // The rotation is too small to calculate a vector accurately
+		    // Make the rotation vector zero
+		    scaler = 0.0f;
+	    }
+	}
+	rot_vec(0) = q_error(2) * scaler;
+	rot_vec(1) = q_error(3) * scaler;
+	rot_vec(2) = q_error(4) * scaler;
+
+	float rot_vec_norm = rot_vec.norm();
+	if (rot_vec_norm > 1e-6f) {
+		// ensure magnitude of rotation matches the quaternion
+		rot_vec = rot_vec * (delta / rot_vec_norm);
+
+		// apply an input limiter to protect from spikes
+		Vector3f _input_delta_vec = rot_vec - _ev_rot_vec_filt;
+		float input_delta_mag = _input_delta_vec.norm();
+		if (input_delta_mag > 0.1f) {
+			rot_vec = _ev_rot_vec_filt + rot_vec * (0.1f / input_delta_mag);
+		}
+
+		// Apply a first order IIR low pass filter
+		const float omega_lpf_us = 0.2e-6f; // cutoff frequency in rad/uSec
+		float alpha = math::constrain(omega_lpf_us * (float)(_time_last_imu - _ev_rot_last_time_us) , 0.0f , 1.0f);
+		_ev_rot_last_time_us = _time_last_imu;
+		_ev_rot_vec_filt = _ev_rot_vec_filt * (1.0f - alpha) + rot_vec * alpha;
+
+	}
+
+	// convert filtered vector to a quaternion and then to a rotation matrix
+	q_error.from_axis_angle(_ev_rot_vec_filt);
+	_ev_rot_mat = quat_to_invrotmat(q_error);
+
+}
+
+// reset the estimated misalignment between the EV navigation frame and the EKF navigation frame
+// and update the rotation matrix which rotates EV measurements into the EKF's navigation frame
+void Ekf::resetExtVisRotMat()
+{
+	// calculate the quaternion delta between the EKF and EV reference frames at the EKF fusion time horizon
+	Quatf quat_inv = _ev_sample_delayed.quat.inversed();
+	Quatf q_error =   quat_inv * _state.quat_nominal;
+	q_error.normalize();
+
+	// convert to a delta angle and reset
+	Vector3f rot_vec;
+	float delta;
+	if (q_error(0) >= 0.0f) {
+	    delta = 2 * acosf(q_error(0));
+	    rot_vec(0) = q_error(1) / sinf(delta/2);
+	    rot_vec(1) = q_error(2) / sinf(delta/2);
+	    rot_vec(2) = q_error(3) / sinf(delta/2);
+	} else {
+	    delta = 2 * acosf(-q_error(1));
+	    rot_vec(0) = -q_error(2) / sinf(delta/2);
+	    rot_vec(1) = -q_error(3) / sinf(delta/2);
+	    rot_vec(2) = -q_error(4) / sinf(delta/2);
+	}
+
+	float rot_vec_norm = rot_vec.norm();
+	if (rot_vec_norm > 1e-9f) {
+		_ev_rot_vec_filt = rot_vec * delta / rot_vec_norm;
+	} else {
+		_ev_rot_vec_filt.zero();
+	}
+
+	// reset the rotation matrix
+	_ev_rot_mat = quat_to_invrotmat(q_error);
+}
+
+// return the quaternions for the rotation from the EKF to the External Vision system frame of reference
+void Ekf::get_ekf2ev_quaternion(float *quat)
+{
+	Quatf quat_ekf2ev;
+	quat_ekf2ev.from_axis_angle(_ev_rot_vec_filt);
+	for (unsigned i = 0; i < 4; i++) {
+		quat[i] = quat_ekf2ev(i);
+	}
+}
+
