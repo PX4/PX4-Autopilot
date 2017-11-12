@@ -79,7 +79,7 @@ private:
 	/**
 	 * Get RTL altitude
 	 */
-	float 		get_rtl_altitude();
+	float 		get_rtl_altitude() const;
 
 
 	enum RTLState {
