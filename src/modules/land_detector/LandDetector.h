@@ -120,17 +120,17 @@ protected:
 	/**
 	 * @return true if UAV is in almost landed state
 	 */
-	virtual bool _get_maybe_landed_state() = 0;
+	virtual bool _get_maybe_landed_state() { return false; }
 
 	/**
 	 * @return true if UAV is touching ground but not landed
 	 */
-	virtual bool _get_ground_contact_state()  = 0;
+	virtual bool _get_ground_contact_state() { return false; }
 
 	/**
 	 * @return true if UAV is in free-fall state.
 	 */
-	virtual bool _get_freefall_state() = 0;
+	virtual bool _get_freefall_state() { return false; }
 
 	/**
 	 *  @return maximum altitude that can be reached
@@ -167,7 +167,7 @@ private:
 
 	void _cycle();
 
-	void _check_params(const bool force);
+	void _check_params(bool force = false);
 
 	void _update_state();
 
