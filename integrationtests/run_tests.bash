@@ -6,6 +6,7 @@
 set -e
 
 # TODO move to docker image
+pip install --upgrade numpy -q
 pip install px4tools pymavlink -q
 
 # A POSIX variable
