@@ -78,6 +78,7 @@ WindEstimator::initialise(const Vector3f &velI, const Vector2f &velIvar, const f
 
 	// get an estimate of the state covariance matrix given the estimated variance of ground velocity
 	// and measured airspeed
+	_P.setZero();
 	_P(w_n, w_n) = velIvar(0);
 	_P(w_e, w_e) = velIvar(1);
 	_P(tas, tas) = 0.0001f;
@@ -88,11 +89,21 @@ WindEstimator::initialise(const Vector3f &velI, const Vector2f &velIvar, const f
 }
 
 void
-WindEstimator::update(const float dt)
+WindEstimator::update(uint64_t time_now)
 {
 	if (!_initialised) {
 		return;
 	}
+
+	// run covariance prediction at 1Hz
+	if (time_now - _time_last_update < 1e6 || _time_last_update == 0) {
+		if (_time_last_update == 0)
+			_time_last_update = time_now;
+		return;
+	}
+
+	float dt = (float)(time_now - _time_last_update) * 0.000001f;
+	_time_last_update = time_now;
 
 	float q_w = _wind_p_var;
 	float q_k_tas = _tas_scale_p_var;
@@ -112,12 +123,11 @@ WindEstimator::update(const float dt)
 	P_next(2, 0) = _P(0, 2);
 	P_next(2, 1) = _P(1, 2);
 	P_next(2, 2) = SPP0 * q_k_tas + _P(2, 2);
-
 	_P = P_next;
 }
 
 void
-WindEstimator::fuse_airspeed(const float true_airspeed, const Vector3f &velI, const Vector2f &velIvar)
+WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const Vector3f &velI, const Vector2f &velIvar)
 {
 	Vector2f velIvar_constrained = { max(0.01f, velIvar(0)), max(0.01f, velIvar(1)) };
 
@@ -126,6 +136,13 @@ WindEstimator::fuse_airspeed(const float true_airspeed, const Vector3f &velI, co
 		_initialised =	initialise(velI, velIvar_constrained, true_airspeed);
 		return;
 	}
+
+	// don't fuse faster than 10Hz
+	if (time_now - _time_last_airspeed_fuse < 1e5) {
+		return;
+	}
+
+	_time_last_airspeed_fuse = time_now;
 
 	// assign helper variables
 	const float v_n = velI(0);
@@ -148,7 +165,6 @@ WindEstimator::fuse_airspeed(const float true_airspeed, const Vector3f &velI, co
 	const Matrix<float, 1, 1> S = H_tas * _P * H_tas.transpose() + _tas_var;
 
 	K /= (S._data[0][0]);
-
 	// compute innovation
 	const float airspeed_pred = _state(tas) * sqrtf((v_n - _state(w_n)) * (v_n - _state(w_n)) + (v_e - _state(w_e)) *
 				    (v_e - _state(w_e)) + v_d * v_d);
@@ -157,6 +173,10 @@ WindEstimator::fuse_airspeed(const float true_airspeed, const Vector3f &velI, co
 
 	// innovation variance
 	_tas_innov_var = S._data[0][0];
+
+	if (_tas_innov_var < 0.0f) {
+		return;
+	}
 
 	// apply correction to state
 	_state(w_n) += _tas_innov * K(0, 0);
@@ -170,9 +190,19 @@ WindEstimator::fuse_airspeed(const float true_airspeed, const Vector3f &velI, co
 }
 
 void
-WindEstimator::fuse_beta(const Vector3f &velI, const Quatf &q_att)
+WindEstimator::fuse_beta(uint64_t time_now, const Vector3f &velI, const Quatf &q_att)
 {
-	if (!_initialised) {return;}
+	if (!_initialised) {
+		_initialised =	initialise(velI, Vector2f(0.1f, 0.1f), velI.length());
+		return;
+	}
+
+	// don't fuse faster than 10Hz
+	if (time_now - _time_last_beta_fuse < 1e5) {
+		return;
+	}
+
+	_time_last_beta_fuse = time_now;
 
 	const float v_n = velI(0);
 	const float v_e = velI(1);
@@ -261,7 +291,7 @@ WindEstimator::run_sanity_checks()
 	}
 
 	// constrain airspeed scale factor
-	_state(tas) = constrain(_state(tas), 0.7f, 1.0f);
+	_state(tas) = constrain(_state(tas), 0.7f, 1.2f);
 
 	// attain symmetry
 	for (unsigned row = 0; row < 3; row++) {

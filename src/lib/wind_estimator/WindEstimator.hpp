@@ -56,10 +56,10 @@ public:
 	WindEstimator(WindEstimator &&) = delete;
 	WindEstimator &operator=(WindEstimator &&) = delete;
 
-	void update(float dt);
+	void update(uint64_t time_now);
 
-	void fuse_airspeed(float true_airspeed, const Vector3f &velI, const Vector2f &velIvar);
-	void fuse_beta(const Vector3f &velI, const Quatf &q_att);
+	void fuse_airspeed(uint64_t time_now, float true_airspeed, const Vector3f &velI, const Vector2f &velIvar);
+	void fuse_beta(uint64_t time_now, const Vector3f &velI, const Quatf &q_att);
 
 	void get_wind(float wind[2])
 	{
@@ -103,10 +103,14 @@ private:
 
 	bool _initialised{false};	// True: filter has been initialised
 
-	float _wind_p_var{0.0f};	// wind process noise variance
-	float _tas_scale_p_var{0.0f};	// true airspeed scale process noise variance
-	float _tas_var{0.0f};		// true airspeed measurement noise variance
-	float _beta_var{0.0f};	// sideslip measurement noise variance
+	float _wind_p_var{0.1f};	// wind process noise variance
+	float _tas_scale_p_var{0.0001f};	// true airspeed scale process noise variance
+	float _tas_var{1.4f};		// true airspeed measurement noise variance
+	float _beta_var{0.5f};	// sideslip measurement noise variance
+
+	uint64_t _time_last_airspeed_fuse = 0;	// timestamp of last airspeed fusion
+	uint64_t _time_last_beta_fuse = 0;		// timestamp of last sideslip fusion
+	uint64_t _time_last_update = 0;			// timestamp of last covariance prediction
 
 	// initialise state and state covariance matrix
 	bool initialise(const Vector3f &velI, const Vector2f &velIvar, const float tas_meas);
