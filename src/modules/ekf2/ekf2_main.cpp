@@ -1436,7 +1436,7 @@ int Ekf2::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("ekf2",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ESTIMATOR,
-				      5720,
+				      6600,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
