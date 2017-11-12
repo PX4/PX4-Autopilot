@@ -404,7 +404,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	}
 
 	// update wind and airspeed estimator
-	_wind_estimator.update(raw.gyro_integral_dt);
+	_wind_estimator.update(hrt_absolute_time());
 
 	bool fuse_airspeed = updated && (hrt_elapsed_time(&_time_last_airspeed_fused) > 5e4);
 	bool fuse_beta = updated && (hrt_elapsed_time(&_time_last_beta_fused) > 5e4) && _vehicle_local_position.v_xy_valid;
@@ -412,17 +412,16 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	if (fuse_beta || fuse_airspeed) {
 		matrix::Dcmf R_to_earth(matrix::Quatf(_vehicle_attitude.q));
 		matrix::Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
-		vI = R_to_earth * vI;
 
 		if (fuse_beta) {
-			_wind_estimator.fuse_beta(&vI._data[0][0], _vehicle_attitude.q);
+			_wind_estimator.fuse_beta(hrt_absolute_time(), &vI._data[0][0], _vehicle_attitude.q);
 			_time_last_beta_fused = hrt_absolute_time();
 		}
 
 		if (fuse_airspeed) {
 			matrix::Vector3f vel_var(_vehicle_local_position.evh, _vehicle_local_position.evh, _vehicle_local_position.evv);
 			vel_var = R_to_earth * vel_var;
-			_wind_estimator.fuse_airspeed(_airspeed.indicated_airspeed_m_s, &vI._data[0][0], &vel_var._data[0][0]);
+			_wind_estimator.fuse_airspeed(hrt_absolute_time(), _airspeed.indicated_airspeed_m_s , &vI._data[0][0], &vel_var._data[0][0]);
 			_time_last_airspeed_fused = hrt_absolute_time();
 		}
 	}
