@@ -55,7 +55,8 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
 	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
 	_param_land_delay(this, "RTL_LAND_DELAY", false),
-	_param_rtl_min_dist(this, "RTL_MIN_DIST", false)
+	_param_rtl_min_dist(this, "RTL_MIN_DIST", false),
+	_param_rtl_land_type(this, "RTL_LAND_TYPE", false)
 {
 }
 
@@ -66,12 +67,23 @@ RTL::on_inactive()
 	_rtl_state = RTL_STATE_NONE;
 }
 
+bool
+RTL::mission_landing_required()
+{
+	// returns true if navigator should use planned mission landing
+	return (_param_rtl_land_type.get() == 1);
+}
+
 void
 RTL::on_activation()
 {
 	if (_navigator->get_land_detected()->landed) {
 		// for safety reasons don't go into RTL if landed
 		_rtl_state = RTL_STATE_LANDED;
+
+	} else if (mission_landing_required() && _navigator->on_mission_landing()) {
+		// RTL straight to RETURN state, but mission will takeover for landing
+		_rtl_state = RTL_STATE_RETURN;
 
 	} else if ((_navigator->get_global_position()->alt < _navigator->get_home_position()->alt + _param_return_alt.get())
 		   || _rtl_alt_min) {
@@ -106,6 +118,22 @@ RTL::set_return_alt_min(bool min)
 void
 RTL::set_rtl_item()
 {
+	// RTL_TYPE: mission landing
+	// landing using planned mission landing, fly to DO_LAND_START instead of returning HOME
+	// do nothing, let navigator takeover with mission landing
+	if (mission_landing_required()) {
+		if (_rtl_state > RTL_STATE_CLIMB) {
+			if (_navigator->start_mission_landing()) {
+				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");
+				return;
+
+			} else {
+				// otherwise use regular RTL
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unable to use mission landing");
+			}
+		}
+	}
+
 	_navigator->set_can_loiter_at_sp(false);
 
 	const home_position_s &home = *_navigator->get_home_position();

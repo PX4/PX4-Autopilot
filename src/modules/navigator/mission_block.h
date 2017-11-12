@@ -106,8 +106,6 @@ protected:
 	 */
 	void set_land_item(struct mission_item_s *item, bool at_current_location);
 
-	void set_current_position_item(struct mission_item_s *item);
-
 	/**
 	 * Set idle mission item
 	 */
