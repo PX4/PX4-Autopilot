@@ -163,6 +163,8 @@ void Ekf::fuseMag()
 		return;
 	}
 
+	bool update_all_states = !_control_status.flags.update_mag_states_only && !_flt_mag_align_converging;
+
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
 
@@ -187,7 +189,7 @@ void Ekf::fuseMag()
 			SK_MX[3] = 2.0f*q0*q2 - 2.0f*q1*q3;
 			SK_MX[4] = 2.0f*q0*q3 + 2.0f*q1*q2;
 
-			if (!_control_status.flags.update_mag_states_only) {
+			if (update_all_states) {
 				Kfusion[0] = SK_MX[0]*(P[0][19] + P[0][1]*SH_MAG[0] - P[0][2]*SH_MAG[1] + P[0][3]*SH_MAG[2] + P[0][0]*SK_MX[2] - P[0][16]*SK_MX[1] + P[0][17]*SK_MX[4] - P[0][18]*SK_MX[3]);
 				Kfusion[1] = SK_MX[0]*(P[1][19] + P[1][1]*SH_MAG[0] - P[1][2]*SH_MAG[1] + P[1][3]*SH_MAG[2] + P[1][0]*SK_MX[2] - P[1][16]*SK_MX[1] + P[1][17]*SK_MX[4] - P[1][18]*SK_MX[3]);
 				Kfusion[2] = SK_MX[0]*(P[2][19] + P[2][1]*SH_MAG[0] - P[2][2]*SH_MAG[1] + P[2][3]*SH_MAG[2] + P[2][0]*SK_MX[2] - P[2][16]*SK_MX[1] + P[2][17]*SK_MX[4] - P[2][18]*SK_MX[3]);
@@ -241,7 +243,7 @@ void Ekf::fuseMag()
 			SK_MY[3] = 2.0f*q0*q3 - 2.0f*q1*q2;
 			SK_MY[4] = 2.0f*q0*q1 + 2.0f*q2*q3;
 
-			if (!_control_status.flags.update_mag_states_only) {
+			if (update_all_states) {
 				Kfusion[0] = SK_MY[0]*(P[0][20] + P[0][0]*SH_MAG[2] + P[0][1]*SH_MAG[1] + P[0][2]*SH_MAG[0] - P[0][3]*SK_MY[2] - P[0][17]*SK_MY[1] - P[0][16]*SK_MY[3] + P[0][18]*SK_MY[4]);
 				Kfusion[1] = SK_MY[0]*(P[1][20] + P[1][0]*SH_MAG[2] + P[1][1]*SH_MAG[1] + P[1][2]*SH_MAG[0] - P[1][3]*SK_MY[2] - P[1][17]*SK_MY[1] - P[1][16]*SK_MY[3] + P[1][18]*SK_MY[4]);
 				Kfusion[2] = SK_MY[0]*(P[2][20] + P[2][0]*SH_MAG[2] + P[2][1]*SH_MAG[1] + P[2][2]*SH_MAG[0] - P[2][3]*SK_MY[2] - P[2][17]*SK_MY[1] - P[2][16]*SK_MY[3] + P[2][18]*SK_MY[4]);
@@ -295,7 +297,7 @@ void Ekf::fuseMag()
 			SK_MZ[3] = 2.0f*q0*q1 - 2.0f*q2*q3;
 			SK_MZ[4] = 2.0f*q0*q2 + 2.0f*q1*q3;
 
-			if (!_control_status.flags.update_mag_states_only) {
+			if (update_all_states) {
 				Kfusion[0] = SK_MZ[0]*(P[0][21] + P[0][0]*SH_MAG[1] - P[0][1]*SH_MAG[2] + P[0][3]*SH_MAG[0] + P[0][2]*SK_MZ[2] + P[0][18]*SK_MZ[1] + P[0][16]*SK_MZ[4] - P[0][17]*SK_MZ[3]);
 				Kfusion[1] = SK_MZ[0]*(P[1][21] + P[1][0]*SH_MAG[1] - P[1][1]*SH_MAG[2] + P[1][3]*SH_MAG[0] + P[1][2]*SK_MZ[2] + P[1][18]*SK_MZ[1] + P[1][16]*SK_MZ[4] - P[1][17]*SK_MZ[3]);
 				Kfusion[2] = SK_MZ[0]*(P[2][21] + P[2][0]*SH_MAG[1] - P[2][1]*SH_MAG[2] + P[2][3]*SH_MAG[0] + P[2][2]*SK_MZ[2] + P[2][18]*SK_MZ[1] + P[2][16]*SK_MZ[4] - P[2][17]*SK_MZ[3]);
@@ -467,7 +469,12 @@ void Ekf::fuseHeading()
 			Dcmf R_to_earth(euler321);
 
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+			if (_control_status.flags.mag_3D) {
+				// don't apply bias corrections if we are learning them
+				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+			} else {
+				mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
+			}
 
 			// the angle of the projection onto the horizontal gives the yaw angle
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
@@ -554,7 +561,12 @@ void Ekf::fuseHeading()
 			R_to_earth(2,2) = cp*cr;
 
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+			if (_control_status.flags.mag_3D) {
+				// don't apply bias corrections if we are learning them
+				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+			} else {
+				mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
+			}
 
 			// the angle of the projection onto the horizontal gives the yaw angle
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
