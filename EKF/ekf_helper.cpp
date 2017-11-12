@@ -56,8 +56,12 @@ bool Ekf::resetVelocity()
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.vel = _gps_sample_delayed.vel;
 
+		// use GPS accuracy to reset variances
+		setDiag(P,4,6,sq(_gps_sample_delayed.sacc));
+
 	} else if (_control_status.flags.opt_flow || _control_status.flags.ev_pos) {
 		_state.vel.setZero();
+		zeroOffDiag(P,4,6);
 
 	} else {
 		return false;
@@ -106,14 +110,21 @@ bool Ekf::resetPosition()
 		_state.pos(0) = _gps_sample_delayed.pos(0);
 		_state.pos(1) = _gps_sample_delayed.pos(1);
 
+		// use GPS accuracy to reset variances
+		setDiag(P,7,8,sq(_gps_sample_delayed.hacc));
+
 	} else if (_control_status.flags.opt_flow) {
 		_state.pos(0) = 0.0f;
 		_state.pos(1) = 0.0f;
+		zeroOffDiag(P,7,8);
 
 	} else if (_control_status.flags.ev_pos) {
 		// this reset is only called if we have new ev data at the fusion time horizon
 		_state.pos(0) = _ev_sample_delayed.posNED(0);
 		_state.pos(1) = _ev_sample_delayed.posNED(1);
+
+		// use EV accuracy to reset variances
+		setDiag(P,7,8,sq(_ev_sample_delayed.posErr));
 
 	} else {
 		return false;
@@ -411,6 +422,9 @@ bool Ekf::realignYawGPS()
 			// calculate new filter quaternion states using corected yaw angle
 			_state.quat_nominal = Quatf(euler321);
 
+			// If heading was bad, then we alos need to reset the velocity and position states
+			_velpos_reset_request = badMagYaw;
+
 			// update transformation matrix from body to world frame using the current state estimate
 			_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
@@ -434,6 +448,8 @@ bool Ekf::realignYawGPS()
 				P[index][index] = sq(_params.mag_noise);
 			}
 
+			// record the start time for the magnetic field alignment
+			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 			// calculate the amount that the quaternion has changed by
 			_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
@@ -453,14 +469,26 @@ bool Ekf::realignYawGPS()
 			// capture the reset event
 			_state_reset_status.quat_counter++;
 
-			// the alignment using GPS has been successful
-			_control_status.flags.yaw_align = true;
 			return true;
 
 		} else {
-			// attempt a normal alignment using the magnetometer
-			return resetMagHeading(_mag_sample_delayed.mag);
+			// align mag states only
 
+			// calculate initial earth magnetic field states
+			_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
+
+			// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
+			zeroRows(P, 16, 21);
+			zeroCols(P, 16, 21);
+
+			for (uint8_t index = 16; index <= 21; index ++) {
+				P[index][index] = sq(_params.mag_noise);
+			}
+
+			// record the start time for the magnetic field alignment
+			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+
+			return true;
 		}
 
 	} else {
@@ -475,6 +503,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	Quatf quat_before_reset = _state.quat_nominal;
+	Quatf quat_after_reset = _state.quat_nominal;
 
 	// calculate the variance for the rotation estimate expressed as a rotation vector
 	// this will be used later to reset the quaternion state covariances
@@ -515,26 +544,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		// calculate initial quaternion states for the ekf
 		// we don't change the output attitude to avoid jumps
-		_state.quat_nominal = Quatf(euler321);
-
-		// calculate the amount that the quaternion has changed by
-		_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
-
-		// add the reset amount to the output observer buffered data
-		outputSample output_states;
-		unsigned output_length = _output_buffer.get_length();
-		for (unsigned i = 0; i < output_length; i++) {
-			output_states = _output_buffer.get_from_index(i);
-			output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
-			_output_buffer.push_to_index(i, output_states);
-		}
-
-		// apply the change in attitude quaternion to our newest quaternion estimate
-		// which was already taken out from the output buffer
-		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
-
-		// capture the reset event
-		_state_reset_status.quat_counter++;
+		quat_after_reset = Quatf(euler321);
 
 	} else {
 		// use a 312 sequence
@@ -601,32 +611,12 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		// calculate initial quaternion states for the ekf
 		// we don't change the output attitude to avoid jumps
-		_state.quat_nominal = Quatf(R_to_earth);
+		quat_after_reset = Quatf(R_to_earth);
 	}
 
-	// update transformation matrix from body to world frame using the current estimate
-	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
-
-	// reset the rotation from the EV to EKF frame of reference if it is being used
-	if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !(_params.fusion_mode & MASK_USE_EVYAW)) {
-		resetExtVisRotMat();
-	}
-
-	// update the yaw angle variance using the variance of the measurement
-	if (_params.fusion_mode & MASK_USE_EVYAW) {
-		// using error estimate from external vision data
-		angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
-
-	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
-		// using magnetic heading tuning parameter
-		angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
-	}
-
-	// reset the quaternion covariances using the rotation vector variances
-	initialiseQuatCovariances(angle_err_var_vec);
-
-	// calculate initial earth magnetic field states
-	_state.mag_I = _R_to_earth * mag_init;
+	// set the earth magnetic field states using the updated rotation
+	Dcmf _R_to_earth_after = quat_to_invrotmat(quat_after_reset);
+	_state.mag_I = _R_to_earth_after * mag_init;
 
 	// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
 	zeroRows(P, 16, 21);
@@ -636,25 +626,76 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		P[index][index] = sq(_params.mag_noise);
 	}
 
+	// record the time for the magnetic field alignment event
+	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+
 	// calculate the amount that the quaternion has changed by
-	_state_reset_status.quat_change =  quat_before_reset.inversed() * _state.quat_nominal;
+	Quatf q_error =  quat_before_reset.inversed() * quat_after_reset;
+	q_error.normalize();
 
-	// add the reset amount to the output observer buffered data
-	outputSample output_states = {};
-	unsigned output_length = _output_buffer.get_length();
+	// convert the quaternion delta to a delta angle
+	Vector3f delta_ang_error;
+	float scalar;
 
-	for (unsigned i = 0; i < output_length; i++) {
-		output_states = _output_buffer.get_from_index(i);
-		output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
-		_output_buffer.push_to_index(i, output_states);
+	if (q_error(0) >= 0.0f) {
+		scalar = -2.0f;
+
+	} else {
+		scalar = 2.0f;
 	}
 
-	// apply the change in attitude quaternion to our newest quaternion estimate
-	// which was already taken out from the output buffer
-	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+	delta_ang_error(0) = scalar * q_error(1);
+	delta_ang_error(1) = scalar * q_error(2);
+	delta_ang_error(2) = scalar * q_error(3);
 
-	// capture the reset event
-	_state_reset_status.quat_counter++;
+
+	// update the quaternion state estimates and corresponding covariances only if the change in angle has been large
+	if (delta_ang_error.norm() > math::radians(15.0f)) {
+		// update quaternion states
+		_state.quat_nominal = quat_after_reset;
+
+		// record the state change
+		_state_reset_status.quat_change = q_error;
+
+		// update transformation matrix from body to world frame using the current estimate
+		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+
+		// reset the rotation from the EV to EKF frame of reference if it is being used
+		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !(_params.fusion_mode & MASK_USE_EVYAW)) {
+			resetExtVisRotMat();
+		}
+
+		// update the yaw angle variance using the variance of the measurement
+		if (_params.fusion_mode & MASK_USE_EVYAW) {
+			// using error estimate from external vision data
+			angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
+
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
+			// using magnetic heading tuning parameter
+			angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+		}
+
+		// reset the quaternion covariances using the rotation vector variances
+		initialiseQuatCovariances(angle_err_var_vec);
+
+		// add the reset amount to the output observer buffered data
+		outputSample output_states = {};
+		unsigned output_length = _output_buffer.get_length();
+
+		for (unsigned i = 0; i < output_length; i++) {
+			output_states = _output_buffer.get_from_index(i);
+			output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
+			_output_buffer.push_to_index(i, output_states);
+		}
+
+		// apply the change in attitude quaternion to our newest quaternion estimate
+		// which was already taken out from the output buffer
+		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+
+		// capture the reset event
+		_state_reset_status.quat_counter++;
+
+	}
 
 	return true;
 }
@@ -1175,6 +1216,39 @@ void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first
 	for (row = 0; row <= 23; row++) {
 		memset(&cov_mat[row][first], 0, sizeof(cov_mat[0][0]) * (1 + last - first));
 	}
+}
+
+void Ekf::zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+{
+	// save diagonal elements
+	uint8_t row;
+	float variances[_k_num_states];
+	for (row = first; row <= last; row++) {
+		variances[row] = cov_mat[row][row];
+	}
+
+	// zero rows and columns
+	zeroRows(cov_mat, first, last);
+	zeroCols(cov_mat, first, last);
+
+	// restore diagonals
+	for (row = first; row <= last; row++) {
+		cov_mat[row][row] = variances[row];
+	}
+}
+
+void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance)
+{
+	// zero rows and columns
+	zeroRows(cov_mat, first, last);
+	zeroCols(cov_mat, first, last);
+
+	// set diagonals
+	uint8_t row;
+	for (row = first; row <= last; row++) {
+		cov_mat[row][row] = variance;
+	}
+
 }
 
 bool Ekf::global_position_is_valid()

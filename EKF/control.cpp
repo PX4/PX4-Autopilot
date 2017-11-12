@@ -483,16 +483,14 @@ void Ekf::controlGpsFusion()
 			do_reset = do_reset || (_time_last_imu - _time_last_pos_fuse > 2 * _params.no_gps_timeout_max);
 
 			if (do_reset) {
-				// Reset states to the last GPS measurement
-				if (_control_status.flags.fixed_wing) {
-					// if flying a fixed wing aircraft, do a complete reset that includes yaw, velocity and position
+				// use GPS velocity data to check and correct yaw angle if a FW vehicle
+				if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
+					// if flying a fixed wing aircraft, do a complete reset that includes yaw
 					realignYawGPS();
-					resetVelocity();
-					resetPosition();
-				} else {
-					resetVelocity();
-					resetPosition();
 				}
+				resetVelocity();
+				resetPosition();
+				_velpos_reset_request = false;
 				ECL_WARN("EKF GPS fusion timeout - reset to GPS");
 
 				// Reset the timeout counters
@@ -1200,12 +1198,16 @@ void Ekf::controlMagFusion()
 					if (!_flt_mag_align_complete) {
 						// If we are flying a vehicle that flies forward, eg plane, then we can use the GPS course to check and correct the heading
 						if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
-							_control_status.flags.yaw_align = realignYawGPS();
-							_flt_mag_align_complete = _control_status.flags.yaw_align;
+							_flt_mag_align_complete = realignYawGPS();
+							if (_velpos_reset_request) {
+								resetVelocity();
+								resetPosition();
+								_velpos_reset_request = false;
+							}
 						} else {
-							_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
-							_flt_mag_align_complete = _control_status.flags.yaw_align;
+							_flt_mag_align_complete = resetMagHeading(_mag_sample_delayed.mag);
 						}
+						_control_status.flags.yaw_align = _control_status.flags.yaw_align || _flt_mag_align_complete;
 					} else {
 						// reset the mag field covariances
 						zeroRows(P, 16, 21);
@@ -1242,6 +1244,10 @@ void Ekf::controlMagFusion()
 			_control_status.flags.update_mag_states_only = (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW)
 					&& _control_status.flags.fixed_wing;
 
+			// For the first 5 seconds after switching to 3-axis fusion we allow the magnetic field state estimates to stabilise
+			// before they are used to constrain heading drift
+			_flt_mag_align_converging = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) < (uint64_t)5e6);
+
 			if (!_control_status.flags.update_mag_states_only && _control_status_prev.flags.update_mag_states_only) {
 				// When re-commencing use of magnetometer to correct vehicle states
 				// set the field state variance to the observation variance and zero
@@ -1261,7 +1267,7 @@ void Ekf::controlMagFusion()
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
 			// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
 			if (!_control_status.flags.mag_3D) {
-				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag) || _control_status.flags.yaw_align;
 			}
 
 			// always use 3-axis mag fusion

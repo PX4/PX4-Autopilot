@@ -377,9 +377,12 @@ private:
 
 	// Variables used to control activation of post takeoff functionality
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
-	bool _flt_mag_align_complete{true};	///< true when the in-flight mag field alignment has been completed
+	bool _flt_mag_align_complete{false};	///< true when the in-flight mag field alignment has been completed
+	bool _flt_mag_align_converging{false};	///< true when the in-flight mag field post alignment convergence is being performd
+	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_movement{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	float _saved_mag_variance[6] {};	///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
+	bool _velpos_reset_request{false};	///< true when a large yaw error has been fixed and a velocity and position state reset is required
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
@@ -592,6 +595,13 @@ private:
 
 	// zero the specified range of columns in the state covariance matrix
 	void zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+
+	// zero the specified range of off diagonals in the state covariance matrix
+	void zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+
+	// zero the specified range of off diagonals in the state covariance matrix
+	// set the diagonals to the supplied value
+	void setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance);
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar();
