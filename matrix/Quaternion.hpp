@@ -186,6 +186,47 @@ public:
         }
     }
 
+    /**
+     * Quaternion from two vectors
+     * Generates shortest rotation from source to destination vector
+     * Default destination if not specified is [0,0,1]
+     *
+     * @param dst destination vector (no need to normalize)
+     * @param src source vector (no need to normalize)
+     * @param eps epsilon threshold which decides if a value is considered zero
+     */
+    Quaternion(const Vector3<Type> &src, const Vector<Type, 3> dst = Vector3<Type>(0, 0, 1), const Type eps = 1e-5f) :
+        Vector<Type, 4>()
+    {
+        Quaternion &q = *this;
+        Vector3<Type> cr = src.cross(dst);
+        float dt = src.dot(dst);
+        if (cr.norm() < eps && dt < 0) {
+            cr = src.abs();
+            if (cr(0) < cr(1)) {
+                if (cr(0) < cr(2)) {
+                    cr = Vector3<Type>(1, 0, 0);
+                } else {
+                    cr = Vector3<Type>(0, 0, 1);
+                }
+            } else {
+                if (cr(1) < cr(2)) {
+                    cr = Vector3<Type>(0, 1, 0);
+                } else {
+                    cr = Vector3<Type>(0, 0, 1);
+                }
+            }
+            q(0) = Type(0);
+            cr = src.cross(cr);
+        } else {
+            q(0) = src.dot(dst) + sqrt(src.norm_squared() * dst.norm_squared());
+        }
+        q(1) = cr(0);
+        q(2) = cr(1);
+        q(3) = cr(2);
+        q.normalize();
+    }
+
 
     /**
      * Constructor from quaternion values
