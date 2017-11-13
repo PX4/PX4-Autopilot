@@ -85,7 +85,7 @@ private:
 		FOLLOW_FROM_LEFT
 	};
 
-	float _follow_position_matricies[4][9] = {
+	static constexpr float _follow_position_matricies[4][9] = {
 		{
 			1.0F,  -1.0F, 0.0F,
 			1.0F,   1.0F, 0.0F,
