@@ -36,8 +36,9 @@ file(GLOB_RECURSE copy_apps_files
 	${CMAKE_CURRENT_SOURCE_DIR}/apps/*)
 
 # copy nuttx to build directory
+file(RELATIVE_PATH CP_SRC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/nuttx)
 add_custom_command(OUTPUT nuttx_copy.stamp
-	COMMAND ${cp_cmd} ${cp_opts} ${CMAKE_CURRENT_SOURCE_DIR}/nuttx ${CMAKE_CURRENT_BINARY_DIR}
+	COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} .
 	COMMAND cmake -E touch nuttx_copy.stamp
 	DEPENDS ${copy_nuttx_files}
 	COMMENT "Copying NuttX/nuttx to ${CMAKE_CURRENT_BINARY_DIR}"
@@ -47,8 +48,9 @@ set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
 set(NUTTX_CONFIG_DIR ${PX4_SOURCE_DIR}/nuttx-configs)
 
 # copy apps to build directory
+file(RELATIVE_PATH CP_SRC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/apps)
 add_custom_command(OUTPUT apps_copy.stamp
-	COMMAND ${cp_cmd} ${cp_opts} ${CMAKE_CURRENT_SOURCE_DIR}/apps ${CMAKE_CURRENT_BINARY_DIR}
+	COMMAND ${cp_cmd} ${cp_opts} ${CMAKE_CURRENT_SOURCE_DIR}/apps .
 	COMMAND cmake -E touch apps_copy.stamp
 	DEPENDS ${copy_apps_files}
 	COMMENT "Copying NuttX/apps to ${CMAKE_CURRENT_BINARY_DIR}"
