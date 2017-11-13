@@ -18,6 +18,7 @@ int main()
 
     // norm, dot product
     TEST(isEqualF(v1.norm(), 7.416198487095663f));
+    TEST(isEqualF(v1.norm_squared(), v1.norm() * v1.norm()));
     TEST(isEqualF(v1.norm(), v1.length()));
     TEST(isEqualF(v1.dot(v2), 130.0f));
     TEST(isEqualF(v1.dot(v2), v1 * v2));
