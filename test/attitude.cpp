@@ -27,10 +27,7 @@ int main()
     TEST(isEqual(e, e));
 
     // euler vector ctor
-    Vector<float, 3> v;
-    v(0) = 0.1f;
-    v(1) = 0.2f;
-    v(2) = 0.3f;
+    Vector3f v(0.1f, 0.2f, 0.3f);
     Eulerf euler_copy(v);
     TEST(isEqual(euler_copy, euler_check));
 
@@ -41,6 +38,33 @@ int main()
     TEST(fabs(q(1) - 2) < eps);
     TEST(fabs(q(2) - 3) < eps);
     TEST(fabs(q(3) - 4) < eps);
+
+    // quaternion ctor: vector to vector
+    Vector3f v1(0.f, 0.f, 1.f);
+    // identity & default destination vector test
+    Quatf quat_v(v1);
+    TEST(isEqual(quat_v.conjugate(v1), v1));
+    // random test (vector norm can not be preserved with a pure rotation)
+    v1 = Vector3f(-80.1f, 1.5f, -6.89f);
+    quat_v = Quatf(v1, v);
+    TEST(isEqual(quat_v.conjugate(v1).normalized() * v.norm(), v));
+    // special 180 degree case 1
+    v1 = Vector3f(0.f, 1.f, 1.f);
+    quat_v = Quatf(v1, -v1);
+    TEST(isEqual(quat_v.conjugate(v1), -v1));
+    // special 180 degree case 2
+    v1 = Vector3f(1.f, 2.f, 0.f);
+    quat_v = Quatf(v1, -v1);
+    TEST(isEqual(quat_v.conjugate(v1), -v1));
+    // special 180 degree case 3
+    v1 = Vector3f(0.f, 0.f, 1.f);
+    quat_v = Quatf(v1, -v1);
+    TEST(isEqual(quat_v.conjugate(v1), -v1));
+    // special 180 degree case 4
+    v1 = Vector3f(1.f, 1.f, 1.f);
+    quat_v = Quatf(v1, -v1);
+    TEST(isEqual(quat_v.conjugate(v1), -v1));
+
 
     // quat normalization
     q.normalize();
@@ -297,7 +321,7 @@ int main()
     TEST(isEqual(Dcmf(q), q.to_dcm()));
 
     // conjugate
-    Vector3f v1(1.5f, 2.2f, 3.2f);
+    v = Vector3f(1.5f, 2.2f, 3.2f);
     TEST(isEqual(q.conjugate_inversed(v1), Dcmf(q).T()*v1));
     TEST(isEqual(q.conjugate(v1), Dcmf(q)*v1));
 
