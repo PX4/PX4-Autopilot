@@ -71,6 +71,11 @@ public:
         return Type(sqrt(a.dot(a)));
     }
 
+    Type norm_squared() const {
+        const Vector &a(*this);
+        return Type(a.dot(a));
+    }
+
     inline Type length() const {
         return norm();
     }
