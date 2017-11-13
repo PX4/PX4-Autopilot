@@ -1664,7 +1664,9 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 
 	if (_in_smooth_takeoff) {
 		if (acc_z < -_acceleration_z_max_takeoff) {
-			max_acc_z = -_acceleration_z_max_takeoff;
+			/* if _vel_sp(2) < -_params.tko_speed, vehicle is controlled manually and sticks don't command full throttle
+			 * we decrease max acceleration in this case to make takeoff behavior adapted to sticks input */
+			max_acc_z = -_acceleration_z_max_takeoff * (_vel_sp(2) / -_params.tko_speed);
 
 		} else {
 			_in_smooth_takeoff = false;
