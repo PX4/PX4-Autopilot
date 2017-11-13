@@ -56,6 +56,8 @@
 
 #include "navigator.h"
 
+constexpr float FollowTarget::_follow_position_matricies[4][9];
+
 FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_navigator(navigator),
