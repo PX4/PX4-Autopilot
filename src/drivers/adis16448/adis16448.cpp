@@ -168,9 +168,8 @@
 #define ADIS16448_MAG_DEFAULT_RATE					100
 #define ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ	30
 
-#define ADIS16448_ACCEL_MAX_OUTPUT_RATE              100
-#define ADIS16448_GYRO_MAX_OUTPUT_RATE               100
-#define ADIS16448_MAG_MAX_OUTPUT_RATE                100
+#define ADIS16448_ACCEL_MAX_OUTPUT_RATE              1221
+#define ADIS16448_GYRO_MAX_OUTPUT_RATE               1221
 
 #define ADIS16448_ONE_G								9.80665f
 
@@ -263,7 +262,6 @@ private:
 
 	Integrator			_accel_int;
 	Integrator			_gyro_int;
-	Integrator			_mag_int;
 
 	enum Rotation		_rotation;
 
@@ -329,7 +327,6 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg);
 	uint16_t		read_reg16(unsigned reg);
 
 	/**
@@ -338,7 +335,6 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	void			write_reg(unsigned reg, uint8_t value);
 	void 			write_reg16(unsigned reg, uint16_t value);
 
 	/**
@@ -350,7 +346,6 @@ private:
 	 * @param clearbits	Bits in the register to clear.
 	 * @param setbits	Bits in the register to set.
 	 */
-	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
 	void			modify_reg16(unsigned reg, uint16_t clearbits, uint16_t setbits);
 
 	/**
@@ -507,7 +502,6 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_mag_filter_z(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, true),
 	_gyro_int(1000000 / ADIS16448_GYRO_MAX_OUTPUT_RATE, true),
-	_mag_int(1000000 / ADIS16448_MAG_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
 {
@@ -1247,38 +1241,6 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 }
 
-uint8_t
-ADIS16448::read_reg(unsigned reg)
-{
-	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
-
-	transfer(cmd, cmd, sizeof(cmd));
-
-	return cmd[1];
-}
-
-void
-ADIS16448::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t	cmd[2];
-
-	cmd[0] = reg | DIR_WRITE;
-	cmd[1] = value;
-
-	transfer(cmd, nullptr, sizeof(cmd));
-}
-
-void
-ADIS16448::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
-{
-	uint8_t	val;
-
-	val = read_reg(reg);
-	val &= ~clearbits;
-	val |= setbits;
-	write_reg(reg, val);
-}
-
 uint16_t
 ADIS16448::read_reg16(unsigned reg)
 {
@@ -1335,7 +1297,9 @@ void
 ADIS16448::start()
 {
 	/* make sure we are stopped first */
+	uint32_t last_call_interval = _call_interval;
 	stop();
+	_call_interval = last_call_interval;
 
 	/* discard any stale data in the buffers */
 	_gyro_reports->flush();
@@ -1366,6 +1330,7 @@ int
 ADIS16448::measure()
 {
 	struct ADISReport adis_report;
+
 	struct Report {
 		int16_t		gyro_x;
 		int16_t		gyro_y;
@@ -1407,9 +1372,9 @@ ADIS16448::measure()
 		report.accel_x == 0 && report.accel_y == 0 && report.accel_z == 0 &&
 		report.mag_x == 0 && report.mag_y == 0 && report.mag_z == 0 &&
 		report.baro == 0 && report.temp == 0) {
-			perf_count(_bad_transfers);
-			perf_end(_sample_perf);
-			return -EIO;
+		perf_count(_bad_transfers);
+		perf_end(_sample_perf);
+		return -EIO;
 	}
 
 	/*
@@ -1949,7 +1914,7 @@ info_cal()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'info_cal', 'reset',\n");
+	warnx("missing command: try 'start', 'test', 'info', 'info_cal', 'reset',\n");
 	warnx("options:");
 	warnx("    -R rotation");
 }
