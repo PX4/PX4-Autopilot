@@ -272,6 +272,18 @@ PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 
 /**
+ * Sonar range finder sensor SRF02 (i2c)
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 1
+ * @group Sensors
+ * @value 0 Disabled
+ * @value 1 Enable
+ */
+PARAM_DEFINE_INT32(SENS_EN_SRF02, 0);
+
+/**
 * Driver level cut frequency for gyro
 *
 * The cut frequency for the 2nd order butterworth filter on the gyro driver. This features

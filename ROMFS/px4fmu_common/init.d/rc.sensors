@@ -366,6 +366,12 @@ then
 	mb12xx start
 fi
 
+# srf02 sonar sensor
+if param greater SENS_EN_SRF02 0
+then
+	srf02 start
+fi
+
 # teraranger one tof sensor
 if param greater SENS_EN_TRANGER 0
 then
