@@ -81,6 +81,7 @@
 #define MB12XX_DEVICE_PATH	"/dev/mb12xx"
 
 /* MB12xx Registers addresses */
+#define MB12XX_MAX_RANGEFINDERS	12	// Maximum number of Maxbotix sensors on bus
 
 #define MB12XX_TAKE_RANGE_REG	0x51		/* Measure range Register */
 #define MB12XX_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
