@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'px4io/px4-dev-simulation:2017-09-26'
+      image 'px4io/px4-dev-simulation:2017-10-23'
       args '--env CCACHE_DISABLE=1 --env CI=true'
     }
   }
