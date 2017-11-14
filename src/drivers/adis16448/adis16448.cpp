@@ -267,6 +267,8 @@ private:
 
 	enum Rotation		_rotation;
 
+	perf_counter_t		_controller_latency_perf;
+
 #pragma pack(push, 1)
 	/**
 	 * Report conversation with in the ADIS16448, including command byte and interrupt status.
@@ -506,7 +508,8 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, true),
 	_gyro_int(1000000 / ADIS16448_GYRO_MAX_OUTPUT_RATE, true),
 	_mag_int(1000000 / ADIS16448_MAG_MAX_OUTPUT_RATE, true),
-	_rotation(rotation)
+	_rotation(rotation),
+	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -1523,34 +1526,40 @@ ADIS16448::measure()
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
 
-	_gyro_reports ->force(&grb);
-	_accel_reports->force(&arb);
-	_mag_reports  ->force(&mrb);
-
 	/* return device ID */
 	arb.device_id = _device_id.devid;
 	grb.device_id = _gyro->_device_id.devid;
 	mrb.device_id = _mag->_device_id.devid;
 
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-	_gyro->parent_poll_notify();
-	_mag->parent_poll_notify();
+	_gyro_reports ->force(&grb);
+	_accel_reports->force(&arb);
+	_mag_reports  ->force(&mrb);
 
-	/* and publish for subscribers */
+	/* notify anyone waiting for data */
 	if (accel_notify) {
 		poll_notify(POLLIN);
-		if (!(_pub_blocked)) {
-			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
-		}
 	}
 
 	if (gyro_notify) {
-		if (!(_pub_blocked)) {
-			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
-		}
+		_gyro->parent_poll_notify();
 	}
-	if ((!(_pub_blocked)) && ((adis_report.status >> 7) & 0x1)) {			/* Mag data validity bit (bit 8 DIAG_STAT) */
+
+	_mag->parent_poll_notify();
+
+	if (accel_notify && !(_pub_blocked)) {
+		/* log the time of this report */
+		perf_begin(_controller_latency_perf);
+		/* publish it */
+		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+	}
+
+	if (gyro_notify && !(_pub_blocked)) {
+		/* publish it */
+		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+	}
+
+	if (!(_pub_blocked) && ((adis_report.status >> 7) & 0x1)) {			/* Mag data validity bit (bit 8 DIAG_STAT) */
+		/* publish it */
 		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mrb);
 	}
 
