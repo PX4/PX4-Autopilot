@@ -40,28 +40,21 @@
 #ifndef NAVIGATOR_DATALINKLOSS_H
 #define NAVIGATOR_DATALINKLOSS_H
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-
-#include <uORB/Subscription.hpp>
-
 #include "navigator_mode.h"
 #include "mission_block.h"
 
 class Navigator;
 
-class DataLinkLoss : public MissionBlock
+class DataLinkLoss final : public MissionBlock
 {
 public:
 	DataLinkLoss(Navigator *navigator, const char *name);
 
-	~DataLinkLoss();
+	~DataLinkLoss() = default;
 
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
 
 private:
 	/* Params */
@@ -82,7 +75,7 @@ private:
 		DLL_STATE_FLYTOAIRFIELDHOMEWP = 2,
 		DLL_STATE_TERMINATE = 3,
 		DLL_STATE_END = 4
-	} _dll_state;
+	} _dll_state{DLL_STATE_NONE};
 
 	/**
 	 * Set the DLL item

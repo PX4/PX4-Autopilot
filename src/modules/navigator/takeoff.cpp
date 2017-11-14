@@ -38,35 +38,11 @@
  * @author Lorenz Meier <lorenz@px4.io
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <fcntl.h>
-
-#include <systemlib/mavlink_log.h>
-#include <systemlib/err.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-
 #include "takeoff.h"
 #include "navigator.h"
 
 Takeoff::Takeoff(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
-{
-	// load initial params
-	updateParams();
-}
-
-Takeoff::~Takeoff()
-{
-}
-
-void
-Takeoff::on_inactive()
+	MissionBlock(navigator, name)
 {
 }
 
@@ -108,10 +84,10 @@ Takeoff::set_takeoff_position()
 	float min_abs_altitude;
 
 	if (_navigator->home_position_valid()) { //only use home position if it is valid
-		min_abs_altitude = _navigator->get_global_position()->alt + _param_min_alt.get();
+		min_abs_altitude = _navigator->get_global_position()->alt + _navigator->get_takeoff_min_alt();
 
 	} else { //e.g. flow
-		min_abs_altitude = _param_min_alt.get();
+		min_abs_altitude = _navigator->get_takeoff_min_alt();
 	}
 
 	// Use altitude if it has been set. If home position is invalid use min_abs_altitude
@@ -122,22 +98,21 @@ Takeoff::set_takeoff_position()
 		if (abs_altitude < min_abs_altitude) {
 			abs_altitude = min_abs_altitude;
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-					     "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
+					     "Using minimum takeoff altitude: %.2f m", (double)_navigator->get_takeoff_min_alt());
 		}
 
 	} else {
 		// Use home + minimum clearance but only notify.
 		abs_altitude = min_abs_altitude;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
+				 "Using minimum takeoff altitude: %.2f m", (double)_navigator->get_takeoff_min_alt());
 	}
 
 
 	if (abs_altitude < _navigator->get_global_position()->alt) {
 		// If the suggestion is lower than our current alt, let's not go down.
 		abs_altitude = _navigator->get_global_position()->alt;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-				     "Already higher than takeoff altitude");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude");
 	}
 
 	// set current mission item to takeoff
