@@ -61,13 +61,10 @@
 Mission::Mission(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_onboard_enabled(this, "MIS_ONBOARD_EN", false),
-	_param_takeoff_alt(this, "MIS_TAKEOFF_ALT", false),
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_param_dist_between_wps(this, "MIS_DIST_WPS", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
-	_param_yawmode(this, "MIS_YAWMODE", false),
-	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
-	_missionFeasibilityChecker(navigator)
+	_param_yawmode(this, "MIS_YAWMODE", false)
 {
 }
 
@@ -487,7 +484,7 @@ void
 Mission::set_mission_items()
 {
 	/* reset the altitude foh (first order hold) logic, if altitude foh is enabled (param) a new foh element starts now */
-	altitude_sp_foh_reset();
+	_min_current_sp_distance_xy = FLT_MAX;
 
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
@@ -544,7 +541,7 @@ Mission::set_mission_items()
 		_mission_type = MISSION_TYPE_NONE;
 
 		/* set loiter mission item and ensure that there is a minimum clearance from home */
-		set_loiter_item(&_mission_item, _param_takeoff_alt.get());
+		set_loiter_item(&_mission_item, _navigator->get_takeoff_min_alt());
 
 		/* update position setpoint triplet  */
 		pos_sp_triplet->previous.valid = false;
@@ -555,7 +552,9 @@ Mission::set_mission_items()
 		/* reuse setpoint for LOITER only if it's not IDLE */
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 
-		set_mission_finished();
+		// set mission finished
+		_navigator->get_mission_result()->finished = true;
+		_navigator->set_mission_result_updated();
 
 		if (!user_feedback_done) {
 			/* only tell users that we got no mission if there has not been any
@@ -585,12 +584,11 @@ Mission::set_mission_items()
 
 		/* force vtol land */
 		if (_navigator->force_vtol() && _mission_item.nav_cmd == NAV_CMD_LAND) {
-
 			_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
 		}
 
 		/* we have a new position item so set previous position setpoint to current */
-		set_previous_pos_setpoint();
+		pos_sp_triplet->previous = pos_sp_triplet->current;
 
 		/* do takeoff before going to setpoint if needed and not already in takeoff */
 		/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
@@ -601,7 +599,7 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
 
 			/* use current mission item as next position item */
-			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
+			mission_item_next_position = _mission_item;
 			mission_item_next_position.nav_cmd = NAV_CMD_WAYPOINT;
 			has_next_position_item = true;
 
@@ -707,7 +705,7 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
 
 			/* use current mission item as next position item */
-			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
+			mission_item_next_position = _mission_item;
 			has_next_position_item = true;
 
 			float altitude = _navigator->get_global_position()->alt;
@@ -747,7 +745,7 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
 
 			/* use current mission item as next position item */
-			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
+			mission_item_next_position = _mission_item;
 			has_next_position_item = true;
 
 			/*
@@ -813,7 +811,7 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
 			/* set position setpoint to target during the transition */
-			set_previous_pos_setpoint();
+			pos_sp_triplet->previous = pos_sp_triplet->current;
 			generate_waypoint_from_heading(&pos_sp_triplet->current, pos_sp_triplet->current.yaw);
 		}
 
@@ -889,10 +887,8 @@ Mission::set_mission_items()
 	if (pos_sp_triplet->current.valid && pos_sp_triplet->previous.valid) {
 
 		_distance_current_previous = get_distance_to_next_waypoint(
-						     pos_sp_triplet->current.lat,
-						     pos_sp_triplet->current.lon,
-						     pos_sp_triplet->previous.lat,
-						     pos_sp_triplet->previous.lon);
+						     pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
+						     pos_sp_triplet->previous.lat, pos_sp_triplet->previous.lon);
 	}
 
 	_navigator->set_position_setpoint_triplet_updated();
@@ -1006,10 +1002,10 @@ Mission::calculate_takeoff_altitude(struct mission_item_s *mission_item)
 
 	/* takeoff to at least MIS_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
 	if (_navigator->get_land_detected()->landed) {
-		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _param_takeoff_alt.get());
+		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _navigator->get_takeoff_min_alt());
 
 	} else {
-		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _param_takeoff_alt.get());
+		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _navigator->get_takeoff_min_alt());
 	}
 
 	return takeoff_alt;
@@ -1082,10 +1078,8 @@ Mission::heading_sp_update()
 		/* stop if positions are close together to prevent excessive yawing */
 		if (d_current > _navigator->get_acceptance_radius()) {
 			float yaw = get_bearing_to_next_waypoint(
-					    point_from_latlon[0],
-					    point_from_latlon[1],
-					    point_to_latlon[0],
-					    point_to_latlon[1]);
+					    point_from_latlon[0], point_from_latlon[1],
+					    point_to_latlon[0], point_to_latlon[1]);
 
 			/* always keep the back of the rotary wing pointing towards home */
 			if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
@@ -1173,12 +1167,6 @@ Mission::altitude_sp_foh_update()
 }
 
 void
-Mission::altitude_sp_foh_reset()
-{
-	_min_current_sp_distance_xy = FLT_MAX;
-}
-
-void
 Mission::cruising_speed_sp_update()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -1209,7 +1197,7 @@ Mission::do_abort_landing()
 	// loiter at the larger of MIS_LTRMIN_ALT above the landing point
 	//  or 2 * FW_CLMBOUT_DIFF above the current altitude
 	float alt_landing = get_absolute_altitude_for_item(_mission_item);
-	float min_climbout = _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get());
+	float min_climbout = _navigator->get_global_position()->alt + 20.0f;
 	float alt_sp = math::max(alt_landing + _navigator->get_loiter_min_alt(), min_climbout);
 
 	// turn current landing waypoint into an indefinite loiter
@@ -1458,16 +1446,11 @@ Mission::set_current_offboard_mission_item()
 }
 
 void
-Mission::set_mission_finished()
-{
-	_navigator->get_mission_result()->finished = true;
-	_navigator->set_mission_result_updated();
-}
-
-void
 Mission::check_mission_valid(bool force)
 {
 	if ((!_home_inited && _navigator->home_position_valid()) || force) {
+
+		MissionFeasibilityChecker _missionFeasibilityChecker(_navigator);
 
 		_navigator->get_mission_result()->valid =
 			_missionFeasibilityChecker.checkMissionFeasible(_offboard_mission,
@@ -1554,12 +1537,9 @@ void
 Mission::generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw)
 {
 	waypoint_from_heading_and_distance(
-		_navigator->get_global_position()->lat,
-		_navigator->get_global_position()->lon,
-		yaw,
-		1000000.0f,
-		&(setpoint->lat),
-		&(setpoint->lon));
+		_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+		yaw, 1000000.0f,
+		&(setpoint->lat), &(setpoint->lon));
 	setpoint->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	setpoint->yaw = yaw;
 }
