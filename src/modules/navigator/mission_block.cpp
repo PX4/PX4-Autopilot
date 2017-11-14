@@ -558,16 +558,6 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 }
 
 void
-MissionBlock::set_previous_pos_setpoint()
-{
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	if (pos_sp_triplet->current.valid) {
-		memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
-	}
-}
-
-void
 MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 {
 	if (_navigator->get_land_detected()->landed) {

@@ -91,7 +91,7 @@ RCLoss::set_rcl_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	set_previous_pos_setpoint();
+	pos_sp_triplet->previous = pos_sp_triplet->current;
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_rcl_state) {
