@@ -49,7 +49,7 @@
  * @max 50
  * @decimal 1
  * @increment 0.5
- * @group Mission
+ * @group Precision Land
  */
 PARAM_DEFINE_FLOAT(PLD_BTOUT, 5.0f);
 
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(PLD_BTOUT, 5.0f);
  * @max 10
  * @decimal 2
  * @increment 0.1
- * @group Mission
+ * @group Precision Land
  */
 PARAM_DEFINE_FLOAT(PLD_HACC_RAD, 0.2f);
 
@@ -77,7 +77,7 @@ PARAM_DEFINE_FLOAT(PLD_HACC_RAD, 0.2f);
  * @max 10
  * @decimal 2
  * @increment 0.1
- * @group Mission
+ * @group Precision Land
  */
 PARAM_DEFINE_FLOAT(PLD_FAPPR_ALT, 0.1f);
 
@@ -91,7 +91,7 @@ PARAM_DEFINE_FLOAT(PLD_FAPPR_ALT, 0.1f);
  * @max 100
  * @decimal 1
  * @increment 0.1
- * @group Mission
+ * @group Precision Land
  */
 PARAM_DEFINE_FLOAT(PLD_SRCH_ALT, 10.0f);
 
@@ -105,7 +105,7 @@ PARAM_DEFINE_FLOAT(PLD_SRCH_ALT, 10.0f);
  * @max 100
  * @decimal 1
  * @increment 0.1
- * @group Mission
+ * @group Precision Land
  */
 PARAM_DEFINE_FLOAT(PLD_SRCH_TOUT, 10.0f);
 
@@ -116,6 +116,6 @@ PARAM_DEFINE_FLOAT(PLD_SRCH_TOUT, 10.0f);
  *
  * @min 0.0
  * @max 100
- * @group Mission
+ * @group Precision Land
  */
 PARAM_DEFINE_INT32(PLD_MAX_SRCH, 3);
