@@ -321,7 +321,7 @@ private:
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
-	void			measure();
+	int			measure();
 
 	/**
 	 * Read a register from the ADIS16448
@@ -1362,7 +1362,7 @@ ADIS16448::measure_trampoline(void *arg)
 	dev->measure();
 }
 
-void
+int
 ADIS16448::measure()
 {
 	struct ADISReport adis_report;
@@ -1389,7 +1389,7 @@ ADIS16448::measure()
 
 	adis_report.cmd = ((ADIS16448_GLOB_CMD | DIR_READ) << 8) & 0xff00;
 	if (OK != transferword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report)/sizeof(uint16_t)))
-		return;
+		return -EIO;
 
 	report.gyro_x  = (int16_t) adis_report.gyro_x;
 	report.gyro_y  = (int16_t) adis_report.gyro_y;
@@ -1403,6 +1403,15 @@ ADIS16448::measure()
 	report.baro    = (int16_t) adis_report.baro;
 	report.temp    = convert12BitToINT16(adis_report.temp);
 
+	if (report.gyro_x == 0 && report.gyro_y == 0 && report.gyro_z == 0 &&
+		report.accel_x == 0 && report.accel_y == 0 && report.accel_z == 0 &&
+		report.mag_x == 0 && report.mag_y == 0 && report.mag_z == 0 &&
+		report.baro == 0 && report.temp == 0) {
+			perf_count(_bad_transfers);
+			perf_end(_sample_perf);
+			return -EIO;
+	}
+
 	/*
 	 * Report buffers.
 	 */
@@ -1411,7 +1420,7 @@ ADIS16448::measure()
 	mag_report		mrb;
 
 	grb.timestamp = arb.timestamp = mrb.timestamp = hrt_absolute_time();
-    grb.error_count = arb.error_count = mrb.error_count = 0;
+    grb.error_count = arb.error_count = mrb.error_count = perf_event_count(_bad_transfers);
 
 	/* Gyro report: */
 	grb.x_raw = report.gyro_x;
@@ -1565,6 +1574,7 @@ ADIS16448::measure()
 
 	/* stop measuring */
 	perf_end(_sample_perf);
+	return OK;
 }
 
 void
@@ -1605,6 +1615,7 @@ ADIS16448::print_info()
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
 	perf_print_counter(_mag_reads);
+	perf_print_counter(_bad_transfers);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
 	_mag_reports->print_info("mag queue");
