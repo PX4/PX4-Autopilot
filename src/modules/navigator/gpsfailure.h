@@ -40,18 +40,11 @@
 #ifndef NAVIGATOR_GPSFAILURE_H
 #define NAVIGATOR_GPSFAILURE_H
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-
-#include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-
 #include "mission_block.h"
 
 class Navigator;
 
-class GpsFailure : public MissionBlock
+class GpsFailure final : public MissionBlock
 {
 public:
 	GpsFailure(Navigator *navigator, const char *name);
