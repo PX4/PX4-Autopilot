@@ -32,8 +32,58 @@
  ****************************************************************************/
 
 /**
- * Primary accel ID
+ * ID of the Gyro that the calibration is for.
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_ACC_PRIME, 0);
+PARAM_DEFINE_INT32(CAL_GYRO2_ID, 0);
+
+/**
+ * Gyro 2 enabled
+ *
+ * @boolean
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_GYRO2_EN, 1);
+
+/**
+ * Gyro X-axis offset
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_XOFF, 0.0f);
+
+/**
+ * Gyro Y-axis offset
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_YOFF, 0.0f);
+
+/**
+ * Gyro Z-axis offset
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_ZOFF, 0.0f);
+
+/**
+ * Gyro X-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_XSCALE, 1.0f);
+
+/**
+ * Gyro Y-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_YSCALE, 1.0f);
+
+/**
+ * Gyro Z-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_ZSCALE, 1.0f);
