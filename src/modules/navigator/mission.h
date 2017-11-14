@@ -51,8 +51,6 @@
 
 #include <cfloat>
 
-#include <controllib/block/BlockParam.hpp>
-#include <controllib/blocks.hpp>
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/home_position.h>
@@ -66,7 +64,7 @@
 
 class Navigator;
 
-class Mission : public MissionBlock
+class Mission final : public MissionBlock
 {
 public:
 	Mission(Navigator *navigator, const char *name);
