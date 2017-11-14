@@ -72,6 +72,9 @@
 
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/integrator.h>
+
+#include <board_config.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
@@ -165,6 +168,10 @@
 #define ADIS16448_MAG_DEFAULT_RATE					100
 #define ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ	30
 
+#define ADIS16448_ACCEL_MAX_OUTPUT_RATE              100
+#define ADIS16448_GYRO_MAX_OUTPUT_RATE               100
+#define ADIS16448_MAG_MAX_OUTPUT_RATE                100
+
 #define ADIS16448_ONE_G								9.80665f
 
 #define FW_FILTER									false
@@ -253,6 +260,10 @@ private:
 	math::LowPassFilter2p	_mag_filter_x;
 	math::LowPassFilter2p	_mag_filter_y;
 	math::LowPassFilter2p	_mag_filter_z;
+
+	Integrator			_accel_int;
+	Integrator			_gyro_int;
+	Integrator			_mag_int;
 
 	enum Rotation		_rotation;
 
@@ -492,6 +503,9 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_mag_filter_x(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_y(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_z(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, true),
+	_gyro_int(1000000 / ADIS16448_GYRO_MAX_OUTPUT_RATE, true),
+	_mag_int(1000000 / ADIS16448_MAG_MAX_OUTPUT_RATE, true),
 	_rotation(rotation)
 {
 	// disable debug() calls
@@ -848,24 +862,6 @@ ADIS16448::accel_self_test()
 	if (self_test())
 		return 1;
 
-#if 0	// left for future pixhawk compatibility
-	/* inspect accel offsets */
-	if (fabsf(_accel_scale.x_offset) < 0.000001f)
-		return 1;
-	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f)
-		return 1;
-
-	if (fabsf(_accel_scale.y_offset) < 0.000001f)
-		return 1;
-	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f)
-		return 1;
-
-	if (fabsf(_accel_scale.z_offset) < 0.000001f)
-		return 1;
-	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f)
-		return 1;
-#endif
-
 	return 0;
 }
 
@@ -874,24 +870,6 @@ ADIS16448::gyro_self_test()
 {
 	if (self_test())
 		return 1;
-
-#if 0	// left for future pixhawk compatibility
-	/* evaluate gyro offsets, complain if offset -> zero or larger than 6 dps */
-	if (fabsf(_gyro_scale.x_offset) > 0.1f || fabsf(_gyro_scale.x_offset) < 0.000001f)
-		return 1;
-	if (fabsf(_gyro_scale.x_scale - 1.0f) > 0.3f)
-		return 1;
-
-	if (fabsf(_gyro_scale.y_offset) > 0.1f || fabsf(_gyro_scale.y_offset) < 0.000001f)
-		return 1;
-	if (fabsf(_gyro_scale.y_scale - 1.0f) > 0.3f)
-		return 1;
-
-	if (fabsf(_gyro_scale.z_offset) > 0.1f || fabsf(_gyro_scale.z_offset) < 0.000001f)
-		return 1;
-	if (fabsf(_gyro_scale.z_scale - 1.0f) > 0.3f)
-		return 1;
-#endif
 
 	return 0;
 }
@@ -1410,9 +1388,6 @@ ADIS16448::measure()
 	if (OK != transferword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report)/sizeof(uint16_t)))
 		return;
 
-	/*
-	 * Convert from big to little endian
-	 */
 	report.gyro_x  = (int16_t) adis_report.gyro_x;
 	report.gyro_y  = (int16_t) adis_report.gyro_y;
 	report.gyro_z  = (int16_t) adis_report.gyro_z;
@@ -1424,25 +1399,6 @@ ADIS16448::measure()
 	report.mag_z   = (int16_t) adis_report.mag_z;
 	report.baro    = (int16_t) adis_report.baro;
 	report.temp    = convert12BitToINT16(adis_report.temp);
-
-#if 0  // don't apply axes swap
-	/*
-	 * Swap axes and negate y
-	 */
-	int16_t accel_xt = report.accel_y;
-	int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
-
-	int16_t gyro_xt = report.gyro_y;
-	int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
-
-	/*
-	 * Apply the swap
-	 */
-	report.accel_x = accel_xt;
-	report.accel_y = accel_yt;
-	report.gyro_x = gyro_xt;
-	report.gyro_y = gyro_yt;
-#endif
 
 	/*
 	 * Report buffers.
@@ -1551,9 +1507,30 @@ ADIS16448::measure()
 	arb.temperature_raw = report.temp;
 	arb.temperature 	= (report.temp * 0.07386f) + 31.0f;
 
+	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
+	math::Vector<3> aval_integrated;
+
+	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
+	arb.x_integral = aval_integrated(0);
+	arb.y_integral = aval_integrated(1);
+	arb.z_integral = aval_integrated(2);
+
+	math::Vector<3> gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
+	math::Vector<3> gval_integrated;
+
+	bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, grb.integral_dt);
+	grb.x_integral = gval_integrated(0);
+	grb.y_integral = gval_integrated(1);
+	grb.z_integral = gval_integrated(2);
+
 	_gyro_reports ->force(&grb);
 	_accel_reports->force(&arb);
 	_mag_reports  ->force(&mrb);
+
+	/* return device ID */
+	arb.device_id = _device_id.devid;
+	grb.device_id = _gyro->_device_id.devid;
+	mrb.device_id = _mag->_device_id.devid;
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -1561,14 +1538,18 @@ ADIS16448::measure()
 	_mag->parent_poll_notify();
 
 	/* and publish for subscribers */
-	if (!(_pub_blocked)) {
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+	if (accel_notify) {
+		poll_notify(POLLIN);
+		if (!(_pub_blocked)) {
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+		}
 	}
 
-	if (!(_pub_blocked)) {
-		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+	if (gyro_notify) {
+		if (!(_pub_blocked)) {
+			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+		}
 	}
-
 	if ((!(_pub_blocked)) && ((adis_report.status >> 7) & 0x1)) {			/* Mag data validity bit (bit 8 DIAG_STAT) */
 		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mrb);
 	}
