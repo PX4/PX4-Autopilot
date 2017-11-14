@@ -55,24 +55,22 @@ private:
 	Navigator *_navigator{nullptr};
 
 	/* Checks for all airframes */
-	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_valid);
+	bool checkGeofence(const mission_s &mission, float home_alt, bool home_valid);
 
-	bool checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_alt_valid,
-				       bool throw_error);
+	bool checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid, bool throw_error);
 
-	bool checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems);
+	bool checkMissionItemValidity(const mission_s &mission);
 
-	bool checkDistanceToFirstWaypoint(dm_item_t dm_current, size_t nMissionItems, float max_distance);
-	bool checkDistancesBetweenWaypoints(dm_item_t dm_current, size_t nMissionItems, float max_distance);
+	bool checkDistanceToFirstWaypoint(const mission_s &mission, float max_distance);
+	bool checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance);
 
 	/* Checks specific to fixedwing airframes */
-	bool checkFixedwing(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_alt_valid, bool land_start_req);
-
-	bool checkFixedWingTakeoff(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_alt_valid);
-	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems, bool land_start_req);
+	bool checkFixedwing(const mission_s &mission, float home_alt, bool home_alt_valid, bool land_start_req);
+	bool checkFixedWingTakeoff(const mission_s &mission, float home_alt, bool home_alt_valid);
+	bool checkFixedWingLanding(const mission_s &mission, bool land_start_req);
 
 	/* Checks specific to rotarywing airframes */
-	bool checkRotarywing(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_alt_valid);
+	bool checkRotarywing(const mission_s &mission, float home_alt, bool home_alt_valid);
 
 public:
 	MissionFeasibilityChecker(Navigator *navigator) : _navigator(navigator) {}
