@@ -58,8 +58,6 @@ typedef enum {
 	DM_KEY_NUM_KEYS			/* Total number of item types defined */
 } dm_item_t;
 
-#define DM_KEY_WAYPOINTS_OFFBOARD(_id) (_id == 0 ? DM_KEY_WAYPOINTS_OFFBOARD_0 : DM_KEY_WAYPOINTS_OFFBOARD_1)
-
 #if defined(MEMORY_CONSTRAINED_SYSTEM)
 enum {
 	DM_KEY_SAFE_POINTS_MAX = 8,

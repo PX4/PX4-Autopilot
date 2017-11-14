@@ -1522,18 +1522,15 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
-
-	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	mission_s mission;
-
 	orb_advert_t commander_state_pub = nullptr;
-
 	orb_advert_t vehicle_status_flags_pub = nullptr;
 
+	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
+	mission_s mission = {};
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
-		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
+		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
 			if (mission.count > 0) {
-				mavlink_log_info(&mavlink_log_pub, "[cmd] Mission #%d loaded, %u WPs, curr: %d",
+				mavlink_log_info(&mavlink_log_pub, "Mission #%d loaded, %u WPs, curr: %d",
 						 mission.dataman_id, mission.count, mission.current_seq);
 			}
 
@@ -1541,13 +1538,12 @@ int commander_thread_main(int argc, char *argv[])
 			mavlink_log_critical(&mavlink_log_pub, "reading mission state failed");
 
 			/* initialize mission state in dataman */
-			mission.dataman_id = 0;
-			mission.count = 0;
-			mission.current_seq = 0;
+			mission.timestamp = hrt_absolute_time();
+			mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
 		}
 
-		orb_advert_t mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+		orb_advert_t mission_pub = orb_advertise(ORB_ID(mission), &mission);
 		orb_unadvertise(mission_pub);
 	}
 

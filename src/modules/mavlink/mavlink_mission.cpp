@@ -54,7 +54,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
-int8_t MavlinkMissionManager::_dataman_id = 0;
+int8_t MavlinkMissionManager::_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 bool MavlinkMissionManager::_dataman_init = false;
 uint16_t MavlinkMissionManager::_count[3] = { 0, 0, 0 };
 int32_t MavlinkMissionManager::_current_seq = 0;
@@ -71,7 +71,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_verbose(mavlink->verbose()),
 	_mavlink(mavlink)
 {
-	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
 
 	init_offboard_mission();
@@ -162,10 +162,10 @@ MavlinkMissionManager::update_active_mission(int8_t dataman_id, uint16_t count, 
 
 		/* mission state saved successfully, publish offboard_mission topic */
 		if (_offboard_mission_pub == nullptr) {
-			_offboard_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+			_offboard_mission_pub = orb_advertise(ORB_ID(mission), &mission);
 
 		} else {
-			orb_publish(ORB_ID(offboard_mission), _offboard_mission_pub, &mission);
+			orb_publish(ORB_ID(mission), _offboard_mission_pub, &mission);
 		}
 
 		return PX4_OK;
@@ -299,9 +299,15 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 	switch (_mission_type) {
 
 	case MAV_MISSION_TYPE_MISSION: {
-			dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_dataman_id);
-			read_success = dm_read(dm_item, seq, &mission_item, sizeof(struct mission_item_s)) ==
-				       sizeof(struct mission_item_s);
+
+			if (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0) {
+				dm_item = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+			} else {
+				dm_item = DM_KEY_WAYPOINTS_OFFBOARD_0;
+			}
+
+			read_success = dm_read(dm_item, seq, &mission_item, sizeof(struct mission_item_s)) == sizeof(struct mission_item_s);
 		}
 		break;
 
@@ -864,8 +870,16 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 
 				switch (_mission_type) {
 				case MAV_MISSION_TYPE_MISSION:
+
 					/* alternate dataman ID anyway to let navigator know about changes */
-					update_active_mission(_dataman_id == 0 ? 1 : 0, 0, 0);
+
+					if (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0) {
+						update_active_mission(DM_KEY_WAYPOINTS_OFFBOARD_1, 0, 0);
+
+					} else {
+						update_active_mission(DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
+					}
+
 					break;
 
 				case MAV_MISSION_TYPE_FENCE:
@@ -893,7 +907,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_transfer_partner_sysid = msg->sysid;
 			_transfer_partner_compid = msg->compid;
 			_transfer_count = wpc.count;
-			_transfer_dataman_id = _dataman_id == 0 ? 1 : 0;	// use inactive storage for transmission
+			_transfer_dataman_id = (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+						DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
 			_transfer_current_seq = -1;
 
 			if (_mission_type == MAV_MISSION_TYPE_FENCE) {
@@ -1045,7 +1060,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 					check_failed = true;
 
 				} else {
-					dm_item_t dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_transfer_dataman_id);
+					dm_item_t dm_item = (_transfer_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+							     DM_KEY_WAYPOINTS_OFFBOARD_0);
 
 					write_failed = dm_write(dm_item, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item,
 								sizeof(struct mission_item_s)) != sizeof(struct mission_item_s);
@@ -1192,7 +1208,8 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 			switch (wpca.mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
-				ret = update_active_mission(_dataman_id == 0 ? 1 : 0, 0, 0);
+				ret = update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
 				break;
 
 			case MAV_MISSION_TYPE_FENCE:
@@ -1204,7 +1221,8 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 				break;
 
 			case MAV_MISSION_TYPE_ALL:
-				ret = update_active_mission(_dataman_id == 0 ? 1 : 0, 0, 0);
+				ret = update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
 				ret = update_geofence_count(0) || ret;
 				ret = update_safepoint_count(0) || ret;
 				break;

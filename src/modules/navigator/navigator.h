@@ -153,7 +153,6 @@ public:
 
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_hpos && _home_pos.valid_alt); }
 
-	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 
 	Geofence	&get_geofence() { return _geofence; }
@@ -265,7 +264,6 @@ private:
 	int		_land_detected_sub{-1};		/**< vehicle land detected subscription */
 	int		_local_pos_sub{-1};		/**< local position subscription */
 	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
-	int		_onboard_mission_sub{-1};	/**< onboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */

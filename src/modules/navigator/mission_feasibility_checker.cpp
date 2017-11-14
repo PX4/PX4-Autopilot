@@ -55,9 +55,6 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 		float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
 		bool land_start_req)
 {
-	const dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(mission.dataman_id);
-	const size_t nMissionItems = mission.count;
-
 	bool failed = false;
 	bool warned = false;
 
@@ -70,36 +67,36 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Not yet ready for mission, no position lock.");
 
 	} else {
-		failed = failed || !checkDistanceToFirstWaypoint(dm_current, nMissionItems, max_distance_to_1st_waypoint);
+		failed = failed || !checkDistanceToFirstWaypoint(mission, max_distance_to_1st_waypoint);
 	}
 
 	const float home_alt = _navigator->get_home_position()->alt;
 
 	// check if all mission item commands are supported
-	failed = failed || !checkMissionItemValidity(dm_current, nMissionItems);
-	failed = failed || !checkDistancesBetweenWaypoints(dm_current, nMissionItems, max_distance_between_waypoints);
-	failed = failed || !checkGeofence(dm_current, nMissionItems, home_alt, home_valid);
-	failed = failed || !checkHomePositionAltitude(dm_current, nMissionItems, home_alt, home_valid, warned);
+	failed = failed || !checkMissionItemValidity(mission);
+	failed = failed || !checkDistancesBetweenWaypoints(mission, max_distance_between_waypoints);
+	failed = failed || !checkGeofence(mission, home_alt, home_valid);
+	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_valid, warned);
 
 	// VTOL always respects rotary wing feasibility
 	if (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol) {
-		failed = failed || !checkRotarywing(dm_current, nMissionItems, home_alt, home_valid);
+		failed = failed || !checkRotarywing(mission, home_alt, home_valid);
 
 	} else {
-		failed = failed || !checkFixedwing(dm_current, nMissionItems, home_alt, home_valid, land_start_req);
+		failed = failed || !checkFixedwing(mission, home_alt, home_valid, land_start_req);
 	}
 
 	return !failed;
 }
 
 bool
-MissionFeasibilityChecker::checkRotarywing(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_valid)
+MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_alt, bool home_valid)
 {
-	for (size_t i = 0; i < nMissionItems; i++) {
+	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
 		const ssize_t len = sizeof(struct mission_item_s);
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return false;
 		}
@@ -130,19 +127,19 @@ MissionFeasibilityChecker::checkRotarywing(dm_item_t dm_current, size_t nMission
 }
 
 bool
-MissionFeasibilityChecker::checkFixedwing(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_valid,
+MissionFeasibilityChecker::checkFixedwing(const mission_s &mission, float home_alt, bool home_valid,
 		bool land_start_req)
 {
 	/* Perform checks and issue feedback to the user for all checks */
-	bool resTakeoff = checkFixedWingTakeoff(dm_current, nMissionItems, home_alt, home_valid);
-	bool resLanding = checkFixedWingLanding(dm_current, nMissionItems, land_start_req);
+	bool resTakeoff = checkFixedWingTakeoff(mission, home_alt, home_valid);
+	bool resLanding = checkFixedWingLanding(mission, land_start_req);
 
 	/* Mission is only marked as feasible if all checks return true */
 	return (resTakeoff && resLanding);
 }
 
 bool
-MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_valid)
+MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_alt, bool home_valid)
 {
 	if (_navigator->get_geofence().isHomeRequired() && !home_valid) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position");
@@ -151,11 +148,11 @@ MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionIt
 
 	/* Check if all mission items are inside the geofence (if we have a valid geofence) */
 	if (_navigator->get_geofence().valid()) {
-		for (size_t i = 0; i < nMissionItems; i++) {
+		for (size_t i = 0; i < mission.count; i++) {
 			struct mission_item_s missionitem = {};
 			const ssize_t len = sizeof(missionitem);
 
-			if (dm_read(dm_current, i, &missionitem, len) != len) {
+			if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
 				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 				return false;
 			}
@@ -180,15 +177,15 @@ MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionIt
 }
 
 bool
-MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems, float home_alt,
-		bool home_valid, bool throw_error)
+MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_valid,
+		bool throw_error)
 {
 	/* Check if all waypoints are above the home altitude */
-	for (size_t i = 0; i < nMissionItems; i++) {
+	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
 		const ssize_t len = sizeof(struct mission_item_s);
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
 			_navigator->get_mission_result()->warning = true;
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return false;
@@ -231,14 +228,14 @@ MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_
 }
 
 bool
-MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems)
+MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 {
 	// do not allow mission if we find unsupported item
-	for (size_t i = 0; i < nMissionItems; i++) {
+	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(struct mission_item_s);
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
 			// not supposed to happen unless the datamanager can't access the SD card, etc.
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Cannot access SD card");
 			return false;
@@ -309,14 +306,13 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 }
 
 bool
-MissionFeasibilityChecker::checkFixedWingTakeoff(dm_item_t dm_current, size_t nMissionItems, float home_alt,
-		bool home_valid)
+MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float home_alt, bool home_valid)
 {
-	for (size_t i = 0; i < nMissionItems; i++) {
+	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
 		const ssize_t len = sizeof(struct mission_item_s);
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return false;
 		}
@@ -349,7 +345,7 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(dm_item_t dm_current, size_t nM
 }
 
 bool
-MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems, bool land_start_req)
+MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool land_start_req)
 {
 	/* Go through all mission items and search for a landing waypoint
 	 * if landing waypoint is found: the previous waypoint is checked to be at a feasible distance and altitude given the landing slope */
@@ -360,11 +356,11 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 	size_t do_land_start_index = 0;
 	size_t landing_approach_index = 0;
 
-	for (size_t i = 0; i < nMissionItems; i++) {
+	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(missionitem);
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return false;
 		}
@@ -387,7 +383,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 			if (i > 0) {
 				landing_approach_index = i - 1;
 
-				if (dm_read(dm_current, landing_approach_index, &missionitem_previous, len) != len) {
+				if (dm_read((dm_item_t)mission.dataman_id, landing_approach_index, &missionitem_previous, len) != len) {
 					/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 					return false;
 				}
@@ -466,7 +462,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 }
 
 bool
-MissionFeasibilityChecker::checkDistanceToFirstWaypoint(dm_item_t dm_current, size_t nMissionItems, float max_distance)
+MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission, float max_distance)
 {
 	if (max_distance <= 0.0f) {
 		/* param not set, check is ok */
@@ -474,11 +470,11 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(dm_item_t dm_current, si
 	}
 
 	/* find first waypoint (with lat/lon) item in datamanager */
-	for (size_t i = 0; i < nMissionItems; i++) {
+	for (size_t i = 0; i < mission.count; i++) {
 
 		struct mission_item_s mission_item {};
 
-		if (!(dm_read(dm_current, i, &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s))) {
+		if (!(dm_read((dm_item_t)mission.dataman_id, i, &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s))) {
 			/* error reading, mission is invalid */
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Error reading offboard mission.");
 			return false;
@@ -522,8 +518,7 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(dm_item_t dm_current, si
 }
 
 bool
-MissionFeasibilityChecker::checkDistancesBetweenWaypoints(dm_item_t dm_current, size_t nMissionItems,
-		float max_distance)
+MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance)
 {
 	if (max_distance <= 0.0f) {
 		/* param not set, check is ok */
@@ -534,11 +529,11 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(dm_item_t dm_current, 
 	double last_lon = NAN;
 
 	/* Go through all waypoints */
-	for (size_t i = 0; i < nMissionItems; i++) {
+	for (size_t i = 0; i < mission.count; i++) {
 
 		struct mission_item_s mission_item {};
 
-		if (!(dm_read(dm_current, i, &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s))) {
+		if (!(dm_read((dm_item_t)mission.dataman_id, i, &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s))) {
 			/* error reading, mission is invalid */
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Error reading offboard mission.");
 			return false;
