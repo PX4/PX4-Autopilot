@@ -54,8 +54,6 @@
 #include "navigator.h"
 #include "datalinkloss.h"
 
-#define DELAY_SIGMA	0.01f
-
 DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_commsholdwaittime(this, "CH_T"),
@@ -69,12 +67,6 @@ DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	_param_numberdatalinklosses(this, "N"),
 	_param_skipcommshold(this, "CHSK"),
 	_dll_state(DLL_STATE_NONE)
-{
-	/* initial reset */
-	on_inactive();
-}
-
-DataLinkLoss::~DataLinkLoss()
 {
 }
 

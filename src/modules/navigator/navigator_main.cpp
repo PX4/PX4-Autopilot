@@ -105,7 +105,12 @@ Navigator::Navigator() :
 	_param_force_vtol(this, "FORCE_VT"),
 	_param_traffic_avoidance_mode(this, "TRAFF_AVOID"),
 	// non-navigator params
-	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false)
+	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
+	_param_takeoff_min_alt(this, "MIS_TAKEOFF_ALT", false),
+	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
+	_param_yaw_err(this, "MIS_YAW_ERR", false),
+	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
+	_param_reverse_delay(this, "VT_B_REV_DEL", false)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;

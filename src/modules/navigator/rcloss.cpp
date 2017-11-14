@@ -53,18 +53,10 @@
 #include "navigator.h"
 #include "datalinkloss.h"
 
-#define DELAY_SIGMA	0.01f
-
 RCLoss::RCLoss(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_loitertime(this, "LT"),
 	_rcl_state(RCL_STATE_NONE)
-{
-	/* initial reset */
-	on_inactive();
-}
-
-RCLoss::~RCLoss()
 {
 }
 

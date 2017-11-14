@@ -42,8 +42,12 @@
 #define NAVIGATOR_MISSION_BLOCK_H
 
 #include "navigator_mode.h"
+#include "navigation.h"
 
-#include <navigator/navigation.h>
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+#include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
@@ -59,7 +63,7 @@ public:
 	 * Constructor
 	 */
 	MissionBlock(Navigator *navigator, const char *name);
-	~MissionBlock() = default;
+	virtual ~MissionBlock() = default;
 
 	MissionBlock(const MissionBlock &) = delete;
 	MissionBlock &operator=(const MissionBlock &) = delete;
@@ -130,13 +134,6 @@ protected:
 	hrt_abstime _time_wp_reached{0};
 
 	orb_advert_t    _actuator_pub{nullptr};
-
-	control::BlockParamFloat _param_yaw_timeout;
-	control::BlockParamFloat _param_yaw_err;
-
-	// VTOL parameters
-	control::BlockParamFloat _param_back_trans_dec_mss;
-	control::BlockParamFloat _param_reverse_delay;
 };
 
 #endif
