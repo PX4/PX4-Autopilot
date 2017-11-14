@@ -155,11 +155,6 @@ private:
 	void altitude_sp_foh_update();
 
 	/**
-	 * Resets the altitude sp foh logic
-	 */
-	void altitude_sp_foh_reset();
-
-	/**
 	 * Update the cruising speed setpoint.
 	 */
 	void cruising_speed_sp_update();
@@ -209,11 +204,6 @@ private:
 	void set_current_offboard_mission_item();
 
 	/**
-	 * Set that the mission is finished if one exists or that none exists
-	 */
-	void set_mission_finished();
-
-	/**
 	 * Check whether a mission is ready to go
 	 */
 	void check_mission_valid(bool force);
@@ -235,12 +225,10 @@ private:
 	void generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw);
 
 	control::BlockParamInt _param_onboard_enabled;
-	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
 	control::BlockParamFloat _param_dist_between_wps;
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
-	control::BlockParamFloat _param_fw_climbout_diff;
 
 	struct mission_s _onboard_mission {};
 	struct mission_s _offboard_mission {};
@@ -258,8 +246,6 @@ private:
 	bool _inited{false};
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
-
-	MissionFeasibilityChecker _missionFeasibilityChecker; /**< class that checks if a mission is feasible */
 
 	float _min_current_sp_distance_xy{FLT_MAX}; /**< minimum distance which was achieved to the current waypoint  */
 
