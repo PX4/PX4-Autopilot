@@ -53,6 +53,6 @@ PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
  * @value 34 Two side calibration
  * @value 38 Three side calibration
  * @value 63 Six side calibration
- * @group Sensor Calibration
+ * @group Sensors
  */
 PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
