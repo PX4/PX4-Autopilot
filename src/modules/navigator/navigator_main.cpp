@@ -611,6 +611,7 @@ Navigator::task_main()
 
 		/* Do stuff according to navigation state set by commander */
 		NavigatorMode *navigation_mode_new{nullptr};
+
 		switch (_vstatus.nav_state) {
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
@@ -682,8 +683,7 @@ Navigator::task_main()
 		}
 
 		/* we have a new navigation mode: reset triplet */
-		if(_navigation_mode != navigation_mode_new)
-		{
+		if (_navigation_mode != navigation_mode_new) {
 			reset_triplets();
 		}
 
