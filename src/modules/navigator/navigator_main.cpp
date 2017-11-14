@@ -610,60 +610,62 @@ Navigator::task_main()
 		}
 
 		/* Do stuff according to navigation state set by commander */
+		NavigatorMode *navigation_mode_new{nullptr};
+
 		switch (_vstatus.nav_state) {
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_mission;
+			navigation_mode_new = &_mission;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_loiter;
+			navigation_mode_new = &_loiter;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_rcLoss;
+			navigation_mode_new = &_rcLoss;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_rtl;
+			navigation_mode_new = &_rtl;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_takeoff;
+			navigation_mode_new = &_takeoff;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_land;
+			navigation_mode_new = &_land;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_land;
+			navigation_mode_new = &_land;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_dataLinkLoss;
+			navigation_mode_new = &_dataLinkLoss;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_engineFailure;
+			navigation_mode_new = &_engineFailure;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_gpsFailure;
+			navigation_mode_new = &_gpsFailure;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_follow_target;
+			navigation_mode_new = &_follow_target;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
@@ -675,10 +677,17 @@ Navigator::task_main()
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
 		default:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = nullptr;
+			navigation_mode_new = nullptr;
 			_can_loiter_at_sp = false;
 			break;
 		}
+
+		/* we have a new navigation mode: reset triplet */
+		if (_navigation_mode != navigation_mode_new) {
+			reset_triplets();
+		}
+
+		_navigation_mode = navigation_mode_new;
 
 		/* iterate through navigation modes and set active/inactive for each */
 		for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
