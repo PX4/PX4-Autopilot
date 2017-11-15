@@ -15,6 +15,6 @@ float32 cov_y_rel		# Y/east position variance [meters^2]
 float32 cov_vx_rel		# X/north velocity variance [(meters/second)^2]
 float32 cov_vy_rel		# Y/east velocity variance [(meters/second)^2]
 
-bool abs_pos_valid		# Flag showing whether relative position is valid
+bool abs_pos_valid		# Flag showing whether absolute position is valid
 float32 x_abs			# X/north position of target, relative to origin (navigation frame) [meters]
 float32 y_abs			# Y/east position of target, relative to origin (navigation frame) [meters]
