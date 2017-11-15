@@ -36,7 +36,7 @@
  *
  * Driver for the Analog device ADIS16448 connected via SPI.
  *
- * @author Amir Melzer <amir.melzer@mavt.ethz.ch>
+ * @author Amir Melzer
  * @author Andrew Tridgell
  * @author Pat Hickey
  * @author Lorenz Meier <lm@inf.ethz.ch>
@@ -177,6 +177,13 @@
 
 #define SPI_BUS_SPEED								1000000
 #define T_STALL										5
+
+#define GYROINITIALSENSITIVITY						250
+#define ACCELINITIALSENSITIVITY						(1.0f / 1200.0f)
+#define MAGINITIALSENSITIVITY						(1.0f / 7.0f)
+#define ACCELDYNAMICRANGE							18.0f
+#define MAGDYNAMICRANGE								1900.0f
+
 class ADIS16448_gyro;
 class ADIS16448_mag;
 
@@ -683,22 +690,22 @@ out:
 int ADIS16448::reset()
 {
 
-	// Set gyroscope scale to 250 deg/s
-	_set_gyro_dyn_range(250);
+	/* Set gyroscope scale to default value */
+	_set_gyro_dyn_range(GYROINITIALSENSITIVITY);
 	usleep(1000);
 
-	// Set digital FIR filter tap
+	/* Set digital FIR filter tap */
 	_set_dlpf_filter(BITS_FIR_16_TAP_CFG);
 	usleep(1000);
 
-	// Set IMU sample rate
+	/* Set IMU sample rate */
 	_set_sample_rate(_sample_rate);
 	usleep(1000);
 
-	_accel_range_scale = (ADIS16448_ONE_G / 1200.0f);
-	_accel_range_m_s2  = (18.0f * ADIS16448_ONE_G);
-	_mag_range_scale   = (1.0f / 7.0f);
-	_mag_range_mgauss  = (1900.0f);
+	_accel_range_scale = ADIS16448_ONE_G * ACCELINITIALSENSITIVITY;
+	_accel_range_m_s2  = ADIS16448_ONE_G * ACCELDYNAMICRANGE;
+	_mag_range_scale   = MAGINITIALSENSITIVITY;
+	_mag_range_mgauss  = MAGDYNAMICRANGE;
 
 	return OK;
 
@@ -1075,10 +1082,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case ACCELIOCSRANGE:
-		/* XXX Not implemented */
-		// XXX change these two values on set:
-		// _accel_range_scale = (9.81f / 4096.0f);
-		// _accel_range_m_s2 = 8.0f * 9.81f;
 		return -EINVAL;
 	case ACCELIOCGRANGE:
 		return (unsigned long)((_accel_range_m_s2)/ADIS16448_ONE_G + 0.5f);
