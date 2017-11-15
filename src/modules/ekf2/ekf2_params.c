@@ -416,6 +416,8 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
 /**
  * Gate size for magnetic heading fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -425,6 +427,8 @@ PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 2.6f);
 
 /**
  * Gate size for magnetometer XYZ component fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
@@ -491,7 +495,9 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_ACCLIM, 0.5f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.25f);
 
 /**
- * Gate size for barometric height fusion
+ * Gate size for barometric and GPS height fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
@@ -503,6 +509,8 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
 /**
  * Gate size for GPS horizontal position fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -513,6 +521,8 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 /**
  * Gate size for GPS velocity fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -522,6 +532,8 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 
 /**
  * Gate size for TAS fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
@@ -593,6 +605,8 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_SFE, 0.05f);
 /**
  * Gate size for range finder fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -633,6 +647,8 @@ PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.05f);
 
 /**
  * Gate size for vision estimate fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
@@ -675,6 +691,8 @@ PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
 
 /**
  * Gate size for optical flow fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
