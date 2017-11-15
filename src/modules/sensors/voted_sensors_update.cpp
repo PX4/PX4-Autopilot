@@ -821,7 +821,7 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 		bool baro_updated;
 		orb_check(_baro.subscription[uorb_index], &baro_updated);
 
-		if (baro_updated && _baro.enabled[uorb_index]) {
+		if (baro_updated) {
 			struct baro_report baro_report;
 
 			orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
