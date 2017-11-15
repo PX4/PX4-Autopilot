@@ -232,7 +232,7 @@ struct parameters {
 	float gps_pos_noise{0.5f};		///< minimum allowed observation noise for gps position fusion (m)
 	float pos_noaid_noise{10.0f};		///< observation noise for non-aiding position fusion (m)
 	float baro_noise{2.0f};			///< observation noise for barometric height fusion (m)
-	float baro_innov_gate{5.0f};		///< barometric height innovation consistency gate size (STD)
+	float baro_innov_gate{5.0f};		///< barometric and GPS height innovation consistency gate size (STD)
 	float posNE_innov_gate{5.0f};		///< GPS horizontal position innovation consistency gate size (STD)
 	float vel_innov_gate{5.0f};		///< GPS velocity innovation consistency gate size (STD)
 	float hgt_reset_lim{0.0f};		///< The maximum 1-sigma uncertainty in height that can be tolerated before the height state is reset (m)
