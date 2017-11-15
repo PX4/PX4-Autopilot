@@ -450,6 +450,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_roll_max		= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitch_max		= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yaw_max		= 	param_find("MC_ACRO_Y_MAX");
+	_params_handles.acro_expo		= 	param_find("MC_ACRO_EXPO");
+	_params_handles.acro_superexpo		= 	param_find("MC_ACRO_SUPEXPO");
 
 	_params_handles.rattitude_thres 	= 	param_find("MC_RATT_TH");
 
@@ -602,6 +604,10 @@ MulticopterAttitudeControl::parameters_update()
 		_params.vtol_opt_recovery_enabled = (tmp == 1);
 
 		param_get(_params_handles.vtol_wv_yaw_rate_scale, &_params.vtol_wv_yaw_rate_scale);
+
+	} else {
+		_params.vtol_opt_recovery_enabled = false;
+		_params.vtol_wv_yaw_rate_scale = 0.f;
 	}
 
 	param_get(_params_handles.bat_scale_en, &_params.bat_scale_en);
