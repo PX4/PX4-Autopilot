@@ -80,11 +80,13 @@ void Ekf::controlFusionModes()
 	}
 
 	// check faultiness (before pop_first_older_than) to see if we can change back to original height sensor
-	baroSample baro_init = _baro_buffer.get_newest();
+	const baroSample& baro_init = _baro_buffer.get_newest();
 	_baro_hgt_faulty = !((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
-	gpsSample gps_init = _gps_buffer.get_newest();
+
+	const gpsSample& gps_init = _gps_buffer.get_newest();
 	_gps_hgt_faulty = !((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
-	rangeSample rng_init = _range_buffer.get_newest();
+
+	const rangeSample& rng_init = _range_buffer.get_newest();
 	_rng_hgt_faulty = !((_time_last_imu - rng_init.time_us) < 2 * RNG_MAX_INTERVAL);
 
 	// check for arrival of new sensor data at the fusion time horizon
@@ -182,7 +184,7 @@ void Ekf::controlExternalVisionFusion()
 				Eulerf euler_init(q_init);
 
 				// get initial yaw from the observation quaternion
-				extVisionSample ev_newest = _ext_vision_buffer.get_newest();
+				const extVisionSample& ev_newest = _ext_vision_buffer.get_newest();
 				Quatf q_obs(ev_newest.quat);
 				Eulerf euler_obs(q_obs);
 				euler_init(2) = euler_obs(2);
@@ -197,12 +199,8 @@ void Ekf::controlExternalVisionFusion()
 				_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
 				// add the reset amount to the output observer buffered data
-				outputSample output_states;
-				unsigned output_length = _output_buffer.get_length();
-				for (unsigned i=0; i < output_length; i++) {
-					output_states = _output_buffer.get_from_index(i);
-					output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
-					_output_buffer.push_to_index(i, output_states);
+				for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+					_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
 				}
 
 				// apply the change in attitude quaternion to our newest quaternion estimate
@@ -530,8 +528,6 @@ void Ekf::controlGpsFusion()
 
 			// set innovation gate size
 			_posInnovGateNE = fmaxf(_params.posNE_innov_gate, 1.0f);
-
-
 		}
 
 	} else if (_control_status.flags.gps && (_time_last_imu - _time_last_gps > (uint64_t)10e6)) {
@@ -588,10 +584,11 @@ void Ekf::controlHeightSensorTimeouts()
 		// handle the case where we are using baro for height
 		if (_control_status.flags.baro_hgt) {
 			// check if GPS height is available
-			gpsSample gps_init = _gps_buffer.get_newest();
+			const gpsSample& gps_init = _gps_buffer.get_newest();
 			bool gps_hgt_available = ((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
 			bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
-			baroSample baro_init = _baro_buffer.get_newest();
+
+			const baroSample& baro_init = _baro_buffer.get_newest();
 			bool baro_hgt_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
 			// check for inertial sensing errors in the last 10 seconds
@@ -642,12 +639,12 @@ void Ekf::controlHeightSensorTimeouts()
 		// handle the case we are using GPS for height
 		if (_control_status.flags.gps_hgt) {
 			// check if GPS height is available
-			gpsSample gps_init = _gps_buffer.get_newest();
+			const gpsSample& gps_init = _gps_buffer.get_newest();
 			bool gps_hgt_available = ((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
 			bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
 
 			// check the baro height source for consistency and freshness
-			baroSample baro_init = _baro_buffer.get_newest();
+			const baroSample& baro_init = _baro_buffer.get_newest();
 			bool baro_data_fresh = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 			float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
 			bool baro_data_consistent = fabsf(baro_innov) < (sq(_params.baro_noise) + P[8][8]) * sq(_params.baro_innov_gate);
@@ -694,11 +691,11 @@ void Ekf::controlHeightSensorTimeouts()
 		// handle the case we are using range finder for height
 		if (_control_status.flags.rng_hgt) {
 			// check if range finder data is available
-			rangeSample rng_init = _range_buffer.get_newest();
+			const rangeSample& rng_init = _range_buffer.get_newest();
 			bool rng_data_available = ((_time_last_imu - rng_init.time_us) < 2 * RNG_MAX_INTERVAL);
 
 			// check if baro data is available
-			baroSample baro_init = _baro_buffer.get_newest();
+			const baroSample& baro_init = _baro_buffer.get_newest();
 			bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
 			// reset to baro if we have no range data and baro data is available
@@ -740,11 +737,11 @@ void Ekf::controlHeightSensorTimeouts()
 		// handle the case where we are using external vision data for height
 		if (_control_status.flags.ev_hgt) {
 			// check if vision data is available
-			extVisionSample ev_init = _ext_vision_buffer.get_newest();
+			const extVisionSample& ev_init = _ext_vision_buffer.get_newest();
 			bool ev_data_available = ((_time_last_imu - ev_init.time_us) < 2 * EV_MAX_INTERVAL);
 
 			// check if baro data is available
-			baroSample baro_init = _baro_buffer.get_newest();
+			const baroSample& baro_init = _baro_buffer.get_newest();
 			bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
 			// reset to baro if we have no vision data and baro data is available

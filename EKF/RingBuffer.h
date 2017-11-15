@@ -45,54 +45,51 @@ template <typename data_type>
 class RingBuffer
 {
 public:
-	RingBuffer()
-	{
-		_buffer = NULL;
-		_head = _tail = _size = 0;
-		_first_write = true;
-	}
+	RingBuffer() = default;
 	~RingBuffer() { delete[] _buffer; }
 
-	bool allocate(int size)
-	{
-		if (size <= 0) {
-			return false;
-		}
+	// no copy, assignment, move, move assignment
+	RingBuffer(const RingBuffer &) = delete;
+	RingBuffer &operator=(const RingBuffer &) = delete;
+	RingBuffer(RingBuffer &&) = delete;
+	RingBuffer &operator=(RingBuffer &&) = delete;
 
-		if (_buffer != NULL) {
+	bool allocate(uint8_t size)
+	{
+		if (_buffer != nullptr) {
 			delete[] _buffer;
 		}
 
 		_buffer = new data_type[size];
 
-		if (_buffer == NULL) {
+		if (_buffer == nullptr) {
 			return false;
 		}
 
 		_size = size;
+
+		_head = 0;
+		_tail = 0;
+
 		// set the time elements to zero so that bad data is not retrieved from the buffers
 		for (unsigned index = 0; index < _size; index++) {
 			_buffer[index].time_us = 0;
 		}
 		_first_write = true;
+
 		return true;
 	}
 
-	void unallocate()
-	{
-		if (_buffer != NULL) {
-			delete[] _buffer;
-		}
+	void unallocate() {
+		delete[] _buffer;
+		_buffer = nullptr;
 	}
 
-	inline void push(data_type sample)
+	void push(const data_type& sample)
 	{
-		int head_new = _head;
+		uint8_t head_new = _head;
 
-		if (_first_write) {
-			head_new = _head;
-
-		} else {
+		if (!_first_write) {
 			head_new = (_head + 1) % _size;
 		}
 
@@ -108,36 +105,29 @@ public:
 		}
 	}
 
-	inline data_type get_oldest()
-	{
-		return _buffer[_tail];
-	}
+	uint8_t get_length() const { return _size; }
 
-	unsigned get_oldest_index()
-	{
-		return _tail;
-	}
+	data_type &operator[](const uint8_t index) { return _buffer[index]; }
 
-	inline data_type get_newest()
-	{
-		return _buffer[_head];
-	}
+	const data_type& get_newest() { return _buffer[_head]; }
+	const data_type& get_oldest() { return _buffer[_tail]; }
 
-	inline bool pop_first_older_than(uint64_t timestamp, data_type *sample)
+	uint8_t get_oldest_index() const { return _tail; }
+
+	bool pop_first_older_than(const uint64_t& timestamp, data_type *sample)
 	{
 		// start looking from newest observation data
-		for (unsigned i = 0; i < _size; i++) {
+		for (uint8_t i = 0; i < _size; i++) {
 			int index = (_head - i);
 			index = index < 0 ? _size + index : index;
 
 			if (timestamp >= _buffer[index].time_us && timestamp - _buffer[index].time_us < (uint64_t)1e5) {
 
-				// TODO Re-evaluate the static cast and usage patterns
-				memcpy(static_cast<void *>(sample), static_cast<void *>(&_buffer[index]), sizeof(*sample));
+				*sample = _buffer[index];
 
 				// Now we can set the tail to the item which comes after the one we removed
 				// since we don't want to have any older data in the buffer
-				if (index == static_cast<int>(_head)) {
+				if (index == _head) {
 					_tail = _head;
 					_first_write = true;
 
@@ -150,7 +140,7 @@ public:
 				return true;
 			}
 
-			if (index == static_cast<int>(_tail)) {
+			if (index == _tail) {
 				// we have reached the tail and haven't got a match
 				return false;
 			}
@@ -159,38 +149,14 @@ public:
 		return false;
 	}
 
-	data_type &operator[](unsigned index)
-	{
-		return _buffer[index];
-	}
 
-	// return data at the specified index
-	inline data_type get_from_index(unsigned index)
-	{
-		if (index >= _size) {
-			index = _size-1;
-		}
-		return _buffer[index];
-	}
-
-	// push data to the specified index
-	inline void push_to_index(unsigned index, data_type sample)
-	{
-		if (index >= _size) {
-			index = _size-1;
-		}
-		_buffer[index] = sample;
-	}
-
-	// return the length of the buffer
-	unsigned get_length()
-	{
-		return _size;
-	}
 
 private:
-	data_type *_buffer;
-	unsigned _head, _tail, _size;
-	bool _first_write;
+	data_type *_buffer{nullptr};
 
+	uint8_t _head{0};
+	uint8_t _tail{0};
+	uint8_t _size{0};
+
+	bool _first_write{true};
 };

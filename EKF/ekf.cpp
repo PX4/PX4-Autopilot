@@ -138,7 +138,7 @@ bool Ekf::initialiseFilter()
 	// Keep accumulating measurements until we have a minimum of 10 samples for the required sensors
 
 	// Sum the IMU delta angle measurements
-	imuSample imu_init = _imu_buffer.get_newest();
+	const imuSample& imu_init = _imu_buffer.get_newest();
 	_delVel_sum += imu_init.delta_vel;
 
 	// Sum the magnetometer measurements
@@ -281,7 +281,7 @@ bool Ekf::initialiseFilter()
 		if (_control_status.flags.rng_hgt) {
 			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
 			// so it can be used as a backup ad set the initial height using the range finder
-			baroSample baro_newest = _baro_buffer.get_newest();
+			const baroSample& baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt;
 			_state.pos(2) = -math::max(_rng_filt_state * _R_rng_to_earth_2_2, _params.rng_gnd_clearance);
 			ECL_INFO("EKF using range finder height - commencing alignment");
@@ -379,11 +379,7 @@ bool Ekf::collect_imu(imuSample &imu)
 	// accumulate and downsample IMU data across a period FILTER_UPDATE_PERIOD_MS long
 
 	// copy imu data to local variables
-	_imu_sample_new.delta_ang	= imu.delta_ang;
-	_imu_sample_new.delta_vel	= imu.delta_vel;
-	_imu_sample_new.delta_ang_dt	= imu.delta_ang_dt;
-	_imu_sample_new.delta_vel_dt	= imu.delta_vel_dt;
-	_imu_sample_new.time_us		= imu.time_us;
+	_imu_sample_new = imu;
 
 	// accumulate the time deltas
 	_imu_down_sampled.delta_ang_dt += imu.delta_ang_dt;
@@ -393,7 +389,7 @@ bool Ekf::collect_imu(imuSample &imu)
 	// this quaternion represents the rotation from the start to end of the accumulation period
 	Quatf delta_q;
 	delta_q.rotate(imu.delta_ang);
-	_q_down_sampled =  _q_down_sampled * delta_q;
+	_q_down_sampled = _q_down_sampled * delta_q;
 	_q_down_sampled.normalize();
 
 	// rotate the accumulated delta velocity data forward each time so it is always in the updated rotation frame
@@ -406,7 +402,7 @@ bool Ekf::collect_imu(imuSample &imu)
 
 	// if the target time delta between filter prediction steps has been exceeded
 	// write the accumulated IMU data to the ring buffer
-	float target_dt = (float)(FILTER_UPDATE_PERIOD_MS) / 1000;
+	const float target_dt = FILTER_UPDATE_PERIOD_MS / 1000.0f;
 
 	if (_imu_down_sampled.delta_ang_dt >= target_dt - _imu_collection_time_adj) {
 
@@ -446,7 +442,7 @@ bool Ekf::collect_imu(imuSample &imu)
 void Ekf::calculateOutputStates()
 {
 	// Use full rate IMU data at the current time horizon
-	imuSample imu_new = _imu_sample_new;
+	const imuSample& imu_new = _imu_sample_new;
 
 	// correct delta angles for bias offsets
 	Vector3f delta_angle;
@@ -496,7 +492,7 @@ void Ekf::calculateOutputStates()
 		_vel_deriv_ned = delta_vel_NED * (1.0f / imu_new.delta_vel_dt);
 	}
 
-	// save the previous velocity so we can use trapezidal integration
+	// save the previous velocity so we can use trapezoidal integration
 	Vector3f vel_last = _output_new.vel;
 
 	// increment the INS velocity states by the measurement plus corrections
@@ -539,7 +535,7 @@ void Ekf::calculateOutputStates()
 
 		// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
 		Quatf quat_inv = _state.quat_nominal.inversed();
-		Quatf q_error =   quat_inv * _output_sample_delayed.quat_nominal;
+		Quatf q_error =  quat_inv * _output_sample_delayed.quat_nominal;
 		q_error.normalize();
 
 		// convert the quaternion delta to a delta angle
@@ -579,7 +575,7 @@ void Ekf::calculateOutputStates()
 		/*
 		 * Loop through the output filter state history and apply the corrections to the velocity and position states.
 		 * This method is too expensive to use for the attitude states due to the quaternion operations required
-		 * but becasue it eliminates the time delay in the 'correction loop' it allows higher tracking gains
+		 * but because it eliminates the time delay in the 'correction loop' it allows higher tracking gains
 		 * to be used and reduces tracking error relative to EKF states.
 		 */
 
@@ -612,29 +608,23 @@ void Ekf::calculateOutputStates()
 
 			// loop through the vertical output filter state history starting at the oldest and apply the corrections to the
 			// vel_d states and propagate vel_d_integ forward using the corrected vel_d
-			outputVert current_state;
-			outputVert next_state;
-			unsigned index = _output_vert_buffer.get_oldest_index();
-			unsigned index_next;
-			unsigned size = _output_vert_buffer.get_length();
+			uint8_t index = _output_vert_buffer.get_oldest_index();
 
-			for (unsigned counter = 0; counter < (size - 1); counter++) {
-				index_next = (index + 1) % size;
-				current_state = _output_vert_buffer.get_from_index(index);
-				next_state = _output_vert_buffer.get_from_index(index_next);
+			const uint8_t size = _output_vert_buffer.get_length();
+
+			for (uint8_t counter = 0; counter < (size - 1); counter++) {
+				const uint8_t index_next = (index + 1) % size;
+				outputVert& current_state = _output_vert_buffer[index];
+				outputVert& next_state = _output_vert_buffer[index_next];
 
 				// correct the velocity
 				if (counter == 0) {
 					current_state.vel_d += vel_d_correction;
-					_output_vert_buffer.push_to_index(index, current_state);
 				}
 				next_state.vel_d += vel_d_correction;
 
 				// position is propagated forward using the corrected velocity and a trapezoidal integrator
 				next_state.vel_d_integ = current_state.vel_d_integ + (current_state.vel_d + next_state.vel_d) * 0.5f * next_state.dt;
-
-				// push the updated data to the buffer
-				_output_vert_buffer.push_to_index(index_next, next_state);
 
 				// advance the index
 				index = (index + 1) % size;
@@ -663,20 +653,12 @@ void Ekf::calculateOutputStates()
 			Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
 
 			// loop through the output filter state history and apply the corrections to the velocity and position states
-			outputSample output_states;
-			unsigned max_index = _output_buffer.get_length() - 1;
-			for (unsigned index = 0; index <= max_index; index++) {
-				output_states = _output_buffer.get_from_index(index);
-
-				// a constant  velocity correction is applied
-				output_states.vel += vel_correction;
+			for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
+				// a constant velocity correction is applied
+				_output_buffer[index].vel += vel_correction;
 
 				// a constant position correction is applied
-				output_states.pos += pos_correction;
-
-				// push the updated data to the buffer
-				_output_buffer.push_to_index(index, output_states);
-
+				_output_buffer[index].pos += pos_correction;
 			}
 
 			// update output state to corrected values
