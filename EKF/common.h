@@ -235,7 +235,6 @@ struct parameters {
 	float baro_innov_gate{5.0f};		///< barometric and GPS height innovation consistency gate size (STD)
 	float posNE_innov_gate{5.0f};		///< GPS horizontal position innovation consistency gate size (STD)
 	float vel_innov_gate{5.0f};		///< GPS velocity innovation consistency gate size (STD)
-	float hgt_reset_lim{0.0f};		///< The maximum 1-sigma uncertainty in height that can be tolerated before the height state is reset (m)
 
 	// magnetometer fusion
 	float mag_heading_noise{3.0e-1f};	///< measurement noise used for simple heading fusion (rad)

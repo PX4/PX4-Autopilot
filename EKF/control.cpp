@@ -581,7 +581,7 @@ void Ekf::controlHeightSensorTimeouts()
 	bool hgt_fusion_timeout = ((_time_last_imu - _time_last_hgt_fuse) > (uint64_t)5e6);
 
 	// reset the vertical position and velocity states
-	if ((P[9][9] > sq(_params.hgt_reset_lim)) && (hgt_fusion_timeout || continuous_bad_accel_hgt)) {
+	if (hgt_fusion_timeout || continuous_bad_accel_hgt) {
 		// boolean that indicates we will do a height reset
 		bool reset_height = false;
 
