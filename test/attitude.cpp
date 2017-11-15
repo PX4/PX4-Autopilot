@@ -334,16 +334,6 @@ int main()
     R = Dcmf(q);
     TEST(isEqual(q, Quatf(R)));
 
-
-    // Quaternion copyTo
-    q = Quatf(1, 2, 3, 4);
-    float dst[4] = {};
-    q.copyTo(dst);
-    TEST(fabs(q(0) - dst[0]) < eps);
-    TEST(fabs(q(1) - dst[1]) < eps);
-    TEST(fabs(q(2) - dst[2]) < eps);
-    TEST(fabs(q(3) - dst[3]) < eps);
-
     return 0;
 }
 
