@@ -151,6 +151,11 @@ public:
 
 
 
+	// return ttrue if allocated
+	unsigned is_allocated()
+	{
+		return (_buffer != NULL);
+	}
 private:
 	data_type *_buffer{nullptr};
 
