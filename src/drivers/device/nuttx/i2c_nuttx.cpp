@@ -61,9 +61,6 @@ I2C::I2C(const char *name,
 	// public
 	// protected
 	_retries(0),
-	// private
-	_bus(bus),
-	_address(address),
 	_frequency(frequency),
 	_dev(nullptr)
 {
@@ -108,7 +105,7 @@ I2C::init()
 	unsigned bus_index;
 
 	// attach to the i2c bus
-	_dev = px4_i2cbus_initialize(_bus);
+	_dev = px4_i2cbus_initialize(get_device_bus());
 
 	if (_dev == nullptr) {
 		DEVICE_DEBUG("failed to init I2C");
@@ -118,7 +115,7 @@ I2C::init()
 
 	// the above call fails for a non-existing bus index,
 	// so the index math here is safe.
-	bus_index = _bus - 1;
+	bus_index = get_device_bus() - 1;
 
 	// abort if the max frequency we allow (the frequency we ask)
 	// is smaller than the bus frequency
@@ -126,7 +123,7 @@ I2C::init()
 		(void)px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
 		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
-			   _bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+			   get_device_bus(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -165,7 +162,7 @@ I2C::init()
 
 	// tell the world where we are
 	DEVICE_LOG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
-		   _bus, _address, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+		   get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
 
@@ -198,8 +195,8 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		msgs = 0;
 
 		if (send_len > 0) {
-			msgv[msgs].frequency = _bus_clocks[_bus - 1];
-			msgv[msgs].addr = _address;
+			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];
+			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = 0;
 			msgv[msgs].buffer = const_cast<uint8_t *>(send);
 			msgv[msgs].length = send_len;
@@ -207,8 +204,8 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		}
 
 		if (recv_len > 0) {
-			msgv[msgs].frequency = _bus_clocks[_bus - 1];
-			msgv[msgs].addr = _address;
+			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];
+			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = I2C_M_READ;
 			msgv[msgs].buffer = recv;
 			msgv[msgs].length = recv_len;
@@ -245,8 +242,8 @@ I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
 
 	/* force the device address and Frequency into the message vector */
 	for (unsigned i = 0; i < msgs; i++) {
-		msgv[i].frequency = _bus_clocks[_bus - 1];
-		msgv[i].addr = _address;
+		msgv[i].frequency = _bus_clocks[get_device_address() - 1];
+		msgv[i].addr = get_device_address();
 	}
 
 

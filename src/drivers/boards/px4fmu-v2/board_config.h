@@ -424,7 +424,6 @@ extern void board_peripheral_reset(int ms);
 
 extern void stm32_usbinitialize(void);
 
-
 #include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */

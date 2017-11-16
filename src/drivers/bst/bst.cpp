@@ -273,7 +273,7 @@ void BST::start()
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 
-	set_address(0x00);	// General call address
+	set_device_address(0x00);	// General call address
 
 	work_queue(LPWORK, &_work, BST::cycle_trampoline, this, 0);
 }

@@ -106,7 +106,7 @@ extern "C" {
 		return dev;
 	}
 
-	int register_driver(const char *name, const device::px4_file_operations_t *fops, mode_t mode, void *data)
+	int register_driver(const char *name, const device::px4_file_operations_t *fops, device::mode_t mode, void *data)
 	{
 		PX4_DEBUG("CDev::register_driver %s", name);
 		int ret = 0;

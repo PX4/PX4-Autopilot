@@ -60,22 +60,12 @@ class __EXPORT I2C : public CDev
 
 public:
 
-	/**
-	 * Get the address
-	 */
-	int16_t		get_address() const { return _address; }
-
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
 	 * error.
 	 */
 	unsigned		_retries;
-
-	/**
-	 * The I2C bus number the device is attached to.
-	 */
-	int			_bus;
 
 	/**
 	 * @ Constructor
@@ -110,8 +100,7 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	int		transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len);
+	int		transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
 
 	/**
 	 * Perform a multi-part I2C transaction to the device.
@@ -123,22 +112,9 @@ protected:
 	 */
 	int		transfer(struct i2c_msg *msgv, unsigned msgs);
 
-	/**
-	 * Change the bus address.
-	 *
-	 * Most often useful during probe() when the driver is testing
-	 * several possible bus addresses.
-	 *
-	 * @param address	The new bus address to set.
-	 */
-	void		set_address(uint16_t address)
-	{
-		_address = address;
-		_device_id.devid_s.address = _address;
-	}
+	bool		external() { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
-	uint16_t		_address;
 	int 			_fd;
 	std::string		_dname;
 

@@ -1,8 +1,6 @@
 /****************************************************************************
- * include/nuttx/i2c.h
  *
- *   Copyright(C) 2009-2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -23,22 +21,35 @@
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES(INCLUDING,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
  * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-#include <stdint.h>
+/**
+ * @file px4fmu_i2c.c
+ *
+ * Board-specific I2C functions.
+ */
 
-struct i2c_msg_s {
-	uint16_t  addr;                  /* Slave address */
-	uint16_t  flags;                 /* See I2C_M_* definitions */
-	uint8_t  *buffer;
-	int       length;
-};
+#include "board_config.h"
+
+__EXPORT bool px4_i2c_bus_external(int bus)
+{
+	if (HW_VER_FMUV3 == board_get_hw_version()) {
+		/* All FMUV3 2.1 i2c buses are external */
+		return true;
+
+	} else {
+		if (bus != PX4_I2C_BUS_ONBOARD) {
+			return true;
+		}
+	}
+
+	return false;
+}

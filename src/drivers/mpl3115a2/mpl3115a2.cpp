@@ -175,13 +175,6 @@ protected:
 	void			cycle();
 
 	/**
-	 * Get the internal / external state
-	 *
-	 * @return true if the sensor is not on the main MCU board
-	 */
-	bool			is_external() { return (_orb_class_instance == 0); /* XXX put this into the interface class */ }
-
-	/**
 	 * Static trampoline from the workq context; because we don't have a
 	 * generic workq wrapper yet.
 	 *
@@ -324,7 +317,7 @@ MPL3115A2::init()
 		ret = OK;
 
 		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-						  &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+						  &_orb_class_instance, (external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 		if (_baro_topic == nullptr) {
 			warnx("failed to create sensor_baro publication");
