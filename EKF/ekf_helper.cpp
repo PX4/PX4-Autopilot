@@ -68,15 +68,10 @@ bool Ekf::resetVelocity()
 	}
 
 	// calculate the change in velocity and apply to the output predictor state history
-	Vector3f velocity_change = _state.vel - vel_before_reset;
-	outputSample output_states = {};
-	unsigned max_index = _output_buffer.get_length() - 1;
+	const Vector3f velocity_change = _state.vel - vel_before_reset;
 
-	for (unsigned index = 0; index <= max_index; index++) {
-		output_states = _output_buffer.get_from_index(index);
-		output_states.vel += velocity_change;
-		_output_buffer.push_to_index(index, output_states);
-
+	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
+		_output_buffer[index].vel += velocity_change;
 	}
 
 	// apply the change in velocity to our newest velocity estimate
@@ -131,17 +126,11 @@ bool Ekf::resetPosition()
 	}
 
 	// calculate the change in position and apply to the output predictor state history
-	Vector2f posNE_change;
-	posNE_change(0) = _state.pos(0) - posNE_before_reset(0);
-	posNE_change(1) = _state.pos(1) - posNE_before_reset(1);
-	outputSample output_states = {};
-	unsigned max_index = _output_buffer.get_length() - 1;
+	const Vector2f posNE_change{_state.pos(0) - posNE_before_reset(0), _state.pos(1) - posNE_before_reset(1)};
 
-	for (unsigned index = 0; index <= max_index; index++) {
-		output_states = _output_buffer.get_from_index(index);
-		output_states.pos(0) += posNE_change(0);
-		output_states.pos(1) += posNE_change(1);
-		_output_buffer.push_to_index(index, output_states);
+	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
+		_output_buffer[index].pos(0) += posNE_change(0);
+		_output_buffer[index].pos(1) += posNE_change(1);
 	}
 
 	// apply the change in position to our newest position estimate
@@ -160,7 +149,7 @@ bool Ekf::resetPosition()
 void Ekf::resetHeight()
 {
 	// Get the most recent GPS data
-	gpsSample gps_newest = _gps_buffer.get_newest();
+	const gpsSample& gps_newest = _gps_buffer.get_newest();
 
 	// store the current vertical position and velocity for reference so we can calculate and publish the reset amount
 	float old_vert_pos = _state.pos(2);
@@ -193,7 +182,7 @@ void Ekf::resetHeight()
 			vert_pos_reset = true;
 
 			// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
-			baroSample baro_newest = _baro_buffer.get_newest();
+			const baroSample& baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
 
 		} else {
@@ -203,7 +192,7 @@ void Ekf::resetHeight()
 
 	} else if (_control_status.flags.baro_hgt) {
 		// initialize vertical position with newest baro measurement
-		baroSample baro_newest = _baro_buffer.get_newest();
+		const baroSample& baro_newest = _baro_buffer.get_newest();
 
 		if (_time_last_imu - baro_newest.time_us < 2 * BARO_MAX_INTERVAL) {
 			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
@@ -236,7 +225,7 @@ void Ekf::resetHeight()
 			vert_pos_reset = true;
 
 			// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
-			baroSample baro_newest = _baro_buffer.get_newest();
+			const baroSample& baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
 
 		} else {
@@ -245,7 +234,7 @@ void Ekf::resetHeight()
 
 	} else if (_control_status.flags.ev_hgt) {
 		// initialize vertical position with newest measurement
-		extVisionSample ev_newest = _ext_vision_buffer.get_newest();
+		const extVisionSample& ev_newest = _ext_vision_buffer.get_newest();
 
 		// use the most recent data if it's time offset from the fusion time horizon is smaller
 		int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
@@ -306,22 +295,14 @@ void Ekf::resetHeight()
 	}
 
 	// add the reset amount to the output observer buffered data
-	outputSample output_states = {};
-	unsigned output_length = _output_buffer.get_length();
-
-	for (unsigned i = 0; i < output_length; i++) {
-		output_states = _output_buffer.get_from_index(i);
-
+	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
 		if (vert_pos_reset) {
-			output_states.pos(2) += _state_reset_status.posD_change;
+			_output_buffer[i].pos(2) += _state_reset_status.posD_change;
 		}
 
 		if (vert_vel_reset) {
-			output_states.vel(2) += _state_reset_status.velD_change;
+			_output_buffer[i].vel(2) += _state_reset_status.velD_change;
 		}
-
-		_output_buffer.push_to_index(i, output_states);
-
 	}
 }
 
@@ -329,25 +310,20 @@ void Ekf::resetHeight()
 void Ekf::alignOutputFilter()
 {
 	// calculate the quaternion delta between the output and EKF quaternions at the EKF fusion time horizon
-	Quatf quat_inv = _state.quat_nominal.inversed();
-	Quatf q_delta =   quat_inv * _output_sample_delayed.quat_nominal;
+	Quatf q_delta = _state.quat_nominal.inversed() * _output_sample_delayed.quat_nominal;
 	q_delta.normalize();
 
 	// calculate the velocity and posiiton deltas between the output and EKF at the EKF fusion time horizon
-	Vector3f vel_delta = _state.vel - _output_sample_delayed.vel;
-	Vector3f pos_delta = _state.pos - _output_sample_delayed.pos;
+	const Vector3f vel_delta = _state.vel - _output_sample_delayed.vel;
+	const Vector3f pos_delta = _state.pos - _output_sample_delayed.pos;
 
 	// loop through the output filter state history and add the deltas
-	outputSample output_states = {};
-	unsigned output_length = _output_buffer.get_length();
-
-	for (unsigned i = 0; i < output_length; i++) {
-		output_states = _output_buffer.get_from_index(i);
-		output_states.quat_nominal = q_delta * output_states.quat_nominal;
-		output_states.quat_nominal.normalize();
-		output_states.vel += vel_delta;
-		output_states.pos += pos_delta;
-		_output_buffer.push_to_index(i, output_states);
+	// Note q1 *= q2 is equivalent to q1 = q2 * q1
+	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+		_output_buffer[i].quat_nominal *= q_delta;
+		_output_buffer[i].quat_nominal.normalize();
+		_output_buffer[i].vel += vel_delta;
+		_output_buffer[i].pos += pos_delta;
 	}
 }
 
@@ -454,12 +430,9 @@ bool Ekf::realignYawGPS()
 			_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
 			// add the reset amount to the output observer buffered data
-			outputSample output_states;
-			unsigned output_length = _output_buffer.get_length();
-			for (unsigned i = 0; i < output_length; i++) {
-				output_states = _output_buffer.get_from_index(i);
-				output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
-				_output_buffer.push_to_index(i, output_states);
+			// Note q1 *= q2 is equivalent to q1 = q2 * q1
+			for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+				_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
 			}
 
 			// apply the change in attitude quaternion to our newest quaternion estimate
@@ -679,13 +652,9 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		initialiseQuatCovariances(angle_err_var_vec);
 
 		// add the reset amount to the output observer buffered data
-		outputSample output_states = {};
-		unsigned output_length = _output_buffer.get_length();
-
-		for (unsigned i = 0; i < output_length; i++) {
-			output_states = _output_buffer.get_from_index(i);
-			output_states.quat_nominal = _state_reset_status.quat_change * output_states.quat_nominal;
-			_output_buffer.push_to_index(i, output_states);
+		for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+			// Note q1 *= q2 is equivalent to q1 = q2 * q1
+			_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
 		}
 
 		// apply the change in attitude quaternion to our newest quaternion estimate

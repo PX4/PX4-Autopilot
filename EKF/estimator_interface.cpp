@@ -55,9 +55,7 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 		_initialised = true;
 	}
 
-	float dt = (float)(time_usec - _time_last_imu) / 1000 / 1000;
-	dt = math::max(dt, 1.0e-4f);
-	dt = math::min(dt, 0.02f);
+	const float dt = math::constrain((time_usec - _time_last_imu) / 1e6f, 1.0e-4f, 0.02f);
 
 	_time_last_imu = time_usec;
 
@@ -66,7 +64,7 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 	}
 
 	// copy data
-	imuSample imu_sample_new = {};
+	imuSample imu_sample_new;
 	imu_sample_new.delta_ang = Vector3f(delta_ang);
 	imu_sample_new.delta_vel = Vector3f(delta_vel);
 
@@ -151,7 +149,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_mag > _min_obs_interval_us) {
 
-		magSample mag_sample_new = {};
+		magSample mag_sample_new;
 		mag_sample_new.time_us = time_usec - _params.mag_delay_ms * 1000;
 
 		mag_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
@@ -173,7 +171,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 	bool need_gps = (_params.fusion_mode & MASK_USE_GPS) || (_params.vdist_sensor_type == VDIST_SENSOR_GPS);
 
 	if (((time_usec - _time_last_gps) > _min_obs_interval_us) && need_gps && gps->fix_type > 2) {
-		gpsSample gps_sample_new = {};
+		gpsSample gps_sample_new;
 		gps_sample_new.time_us = gps->time_usec - _params.gps_delay_ms * 1000;
 
 		gps_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
@@ -215,7 +213,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_baro > _min_obs_interval_us) {
 
-		baroSample baro_sample_new{};
+		baroSample baro_sample_new;
 		baro_sample_new.hgt = data;
 		baro_sample_new.time_us = time_usec - _params.baro_delay_ms * 1000;
 
@@ -236,7 +234,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_airspeed > _min_obs_interval_us) {
-		airspeedSample airspeed_sample_new{};
+		airspeedSample airspeed_sample_new;
 		airspeed_sample_new.true_airspeed = true_airspeed;
 		airspeed_sample_new.eas2tas = eas2tas;
 		airspeed_sample_new.time_us = time_usec - _params.airspeed_delay_ms * 1000;
@@ -246,8 +244,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 		_airspeed_buffer.push(airspeed_sample_new);
 	}
 }
-static float rng;
-// set range data
+
 void EstimatorInterface::setRangeData(uint64_t time_usec, float data)
 {
 	if (!_initialised) {
@@ -256,9 +253,8 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float data)
 
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_range > _min_obs_interval_us) {
-		rangeSample range_sample_new = {};
+		rangeSample range_sample_new;
 		range_sample_new.rng = data;
-		rng = data;
 		range_sample_new.time_us = time_usec - _params.range_delay_ms * 1000;
 		_time_last_range = time_usec;
 
