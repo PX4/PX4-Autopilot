@@ -284,7 +284,7 @@ SF1XX::init()
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
-	set_address(SF1XX_BASEADDR);
+	set_device_address(SF1XX_BASEADDR);
 
 	if (_reports == nullptr) {
 		return ret;

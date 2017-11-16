@@ -168,11 +168,7 @@ MPU9250_SPI::ioctl(unsigned operation, unsigned &arg)
 	switch (operation) {
 
 	case ACCELIOCGEXTERNAL:
-#if defined(PX4_SPI_BUS_EXT)
-		return _bus == PX4_SPI_BUS_EXT ? 1 : 0;
-#else
-		return 0;
-#endif
+		external();
 
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);

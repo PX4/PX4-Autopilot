@@ -68,8 +68,7 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, uint8_t rotation, int addr
 	_acquire_time_usec(0),
 	_pause_measurements(false),
 	_hw_version(0),
-	_sw_version(0),
-	_bus(bus)
+	_sw_version(0)
 {
 	// up the retries since the device misses the first measure attempts
 	_retries = 3;

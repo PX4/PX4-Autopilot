@@ -77,8 +77,8 @@ void start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
 	if (external_bus) {
-#if defined(PX4_I2C_BUS_BMM150)
-		*g_dev_ptr = new BMM150(PX4_I2C_BUS_BMM150, path, external_bus, rotation);
+#if defined(PX4_I2C_BUS_EXPANSION)
+		*g_dev_ptr = new BMM150(PX4_I2C_BUS_EXPANSION, path, rotation);
 #else
 		PX4_ERR("External I2C not available");
 		exit(0);
@@ -242,13 +242,11 @@ usage()
 
 }
 
+} // namespace bmm150
 
-}
 
-
-BMM150 :: BMM150(int bus, const char *path, bool external, enum Rotation rotation) :
+BMM150 :: BMM150(int bus, const char *path, enum Rotation rotation) :
 	I2C("BMM150", path, bus, BMM150_SLAVE_ADDRESS, BMM150_BUS_SPEED),
-	_external(false),
 	_running(false),
 	_call_interval(0),
 	_reports(nullptr),
@@ -283,7 +281,6 @@ BMM150 :: BMM150(int bus, const char *path, bool external, enum Rotation rotatio
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_BMM150;
 
-	_external = external;
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 
@@ -294,9 +291,7 @@ BMM150 :: BMM150(int bus, const char *path, bool external, enum Rotation rotatio
 	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
 	_scale.z_scale = 1.0f;
-
 }
-
 
 BMM150 :: ~BMM150()
 {
@@ -383,7 +378,7 @@ int BMM150::init()
 
 	/* measurement will have generated a report, publish */
 	_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrb,
-				     &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
+				     &_orb_class_instance, (external()) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 	if (_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
@@ -682,7 +677,7 @@ BMM150::collect()
 
 
 	mrb.timestamp = hrt_absolute_time();
-	mrb.is_external = is_external();
+	mrb.is_external = external();
 
 	// report the error count as the number of bad transfers.
 	// This allows the higher level code to decide if it
@@ -876,12 +871,6 @@ BMM150::self_test()
 	/* return 0 on success, 1 else */
 	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
 }
-
-bool BMM150::is_external()
-{
-	return _external;
-}
-
 
 uint8_t
 BMM150::read_reg(uint8_t reg)

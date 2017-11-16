@@ -869,4 +869,44 @@ static inline int board_register_power_state_notification_cb(power_button_state_
 static inline int board_shutdown(void) { return -EINVAL; }
 #endif
 
+/************************************************************************************
+ * Name: px4_i2c_bus_external
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+
+__EXPORT bool px4_i2c_bus_external(int bus);
+
+#else
+
+#ifdef PX4_I2C_BUS_ONBOARD
+#define px4_i2c_bus_external(bus) (bus != PX4_I2C_BUS_ONBOARD)
+#else
+#define px4_i2c_bus_external(bus) true
+#endif /* PX4_I2C_BUS_ONBOARD */
+
+#endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
+
+
+/************************************************************************************
+ * Name: px4_spi_bus_external
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+
+__EXPORT bool px4_spi_bus_external(int bus);
+
+#else
+
+#ifdef PX4_SPI_BUS_EXT
+#define px4_spi_bus_external(bus) (bus == PX4_SPI_BUS_EXT)
+#else
+#define px4_spi_bus_external(bus) false
+#endif /* PX4_SPI_BUS_EXT */
+
+#endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
+
+
 #include "board_internal_common.h"

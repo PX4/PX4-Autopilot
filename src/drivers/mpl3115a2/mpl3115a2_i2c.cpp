@@ -107,7 +107,7 @@ int
 MPL3115A2_I2C::init()
 {
 	/* this will call probe() */
-	set_address(MPL3115A2_ADDRESS);
+	set_device_address(MPL3115A2_ADDRESS);
 	return I2C::init();
 }
 

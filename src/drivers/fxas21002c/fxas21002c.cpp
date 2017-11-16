@@ -205,12 +205,6 @@
 
 #define FXAS21002C_MAX_OFFSET			0.45f /**< max offset: 25 degrees/s */
 
-#ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
-#else
-#define EXTERNAL_BUS 0
-#endif
-
 /*
   we set the timer interrupt to run a bit faster than the desired
   sample rate and then throw away duplicates using the data ready bit.
@@ -318,13 +312,6 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
-
-	/**
-	 * Get the internal / external state
-	 *
-	 * @return true if the sensor is not on the main MCU board
-	 */
-	bool			is_external() { return (_bus == EXTERNAL_BUS); }
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -534,7 +521,7 @@ FXAS21002C::init()
 
 	/* measurement will have generated a report, publish */
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-					  &_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
+					  &_orb_class_instance, (external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_gyro_topic == nullptr) {
 		PX4_ERR("ADVERT ERR");

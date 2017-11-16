@@ -137,30 +137,32 @@ public:
 	 *
 	 * @return The bus ID
 	 */
-	virtual uint8_t get_device_bus() { return _device_id.devid_s.bus; }
+	uint8_t get_device_bus() { return _device_id.devid_s.bus; }
 
 	/**
 	 * Return the bus type the device is connected to.
 	 *
 	 * @return The bus type
 	 */
-	virtual DeviceBusType get_device_bus_type() { return _device_id.devid_s.bus_type; }
+	DeviceBusType get_device_bus_type() { return _device_id.devid_s.bus_type; }
 
 	/**
 	 * Return the bus address of the device.
 	 *
 	 * @return The bus address
 	 */
-	virtual uint8_t get_device_address() { return _device_id.devid_s.address; }
+	uint8_t get_device_address() { return _device_id.devid_s.address; }
+
+	void set_device_address(int address) { _device_id.devid_s.address = address; }
 
 	/**
 	 * Set the device type
 	 *
 	 * @return The device type
 	 */
-	virtual void set_device_type(uint8_t devtype) { _device_id.devid_s.devtype = devtype; }
+	void set_device_type(uint8_t devtype) { _device_id.devid_s.devtype = devtype; }
 
-	//virtual bool external() = 0;
+	virtual bool external() { return false; }
 
 	/*
 	  broken out device elements. The bitfields are used to keep

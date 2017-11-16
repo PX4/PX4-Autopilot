@@ -382,6 +382,7 @@ function(px4_add_common_flags)
 
 	set(cxx_warnings
 		-Wno-missing-field-initializers
+		-Wno-overloaded-virtual # TODO: fix and remove
 		-Wreorder
 		)
 
