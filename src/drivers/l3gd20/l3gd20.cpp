@@ -178,12 +178,6 @@
 
 #define L3GD20_MAX_OFFSET			0.45f /**< max offset: 25 degrees/s */
 
-#ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
-#else
-#define EXTERNAL_BUS 0
-#endif
-
 #ifndef SENSOR_BOARD_ROTATION_DEFAULT
 #define SENSOR_BOARD_ROTATION_DEFAULT		SENSOR_BOARD_ROTATION_270_DEG
 #endif
@@ -287,13 +281,6 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
-
-	/**
-	 * Get the internal / external state
-	 *
-	 * @return true if the sensor is not on the main MCU board
-	 */
-	bool			is_external() { return (_bus == EXTERNAL_BUS); }
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -493,7 +480,7 @@ L3GD20::init()
 	_reports->get(&grp);
 
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-					  &_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
+					  &_orb_class_instance, (external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_gyro_topic == nullptr) {
 		DEVICE_DEBUG("failed to create sensor_gyro publication");

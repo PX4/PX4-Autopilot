@@ -289,10 +289,10 @@ TERARANGER::init()
 
 	case 1: /* Autodetect */
 		/* Assume TROne */
-		set_address(TRONE_BASEADDR);
+		set_device_address(TRONE_BASEADDR);
 
 		if (I2C::init() != OK) {
-			set_address(TREVO_BASEADDR);
+			set_device_address(TREVO_BASEADDR);
 
 			if (I2C::init() != OK) {
 				goto out;
@@ -310,7 +310,7 @@ TERARANGER::init()
 		break;
 
 	case 2: /* TROne */
-		set_address(TRONE_BASEADDR);
+		set_device_address(TRONE_BASEADDR);
 
 		if (I2C::init() != OK) {
 			goto out;
@@ -321,7 +321,7 @@ TERARANGER::init()
 		break;
 
 	case 3: /* TREvo */
-		set_address(TREVO_BASEADDR);
+		set_device_address(TREVO_BASEADDR);
 
 		/* do I2C init (and probe) first */
 		if (I2C::init() != OK) {

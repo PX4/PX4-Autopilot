@@ -55,11 +55,6 @@ class __EXPORT I2C : public CDev
 
 public:
 
-	/**
-	 * Get the address
-	 */
-	int16_t		get_address() const { return _address; }
-
 	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
 
 	static unsigned	int	_bus_clocks[BOARD_NUMBER_I2C_BUSES];
@@ -70,11 +65,6 @@ protected:
 	 * error.
 	 */
 	unsigned		_retries;
-
-	/**
-	 * The I2C bus number the device is attached to.
-	 */
-	int			_bus;
 
 	/**
 	 * @ Constructor
@@ -111,8 +101,7 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	int		transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len);
+	int		transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
 
 	/**
 	 * Perform a multi-part I2C transaction to the device.
@@ -124,22 +113,9 @@ protected:
 	 */
 	int		transfer(px4_i2c_msg_t *msgv, unsigned msgs);
 
-	/**
-	 * Change the bus address.
-	 *
-	 * Most often useful during probe() when the driver is testing
-	 * several possible bus addresses.
-	 *
-	 * @param address	The new bus address to set.
-	 */
-	void		set_address(uint16_t address)
-	{
-		_address = address;
-		_device_id.devid_s.address = _address;
-	}
+	bool		external() { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
-	uint16_t		_address;
 	uint32_t		_frequency;
 	px4_i2c_dev_t		*_dev;
 

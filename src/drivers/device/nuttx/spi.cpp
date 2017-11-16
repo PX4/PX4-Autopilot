@@ -71,8 +71,7 @@ SPI::SPI(const char *name,
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
-	_dev(nullptr),
-	_bus(bus)
+	_dev(nullptr)
 {
 	// fill in _device_id fields for a SPI device
 	_device_id.devid_s.bus_type = DeviceBusType_SPI;
@@ -94,7 +93,7 @@ SPI::init()
 
 	/* attach to the spi bus */
 	if (_dev == nullptr) {
-		_dev = px4_spibus_initialize(_bus);
+		_dev = px4_spibus_initialize(get_device_bus());
 	}
 
 	if (_dev == nullptr) {
@@ -123,7 +122,7 @@ SPI::init()
 	}
 
 	/* tell the workd where we are */
-	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", _bus, PX4_SPI_DEV_ID(_device), _frequency / 1000);
+	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", get_device_bus(), PX4_SPI_DEV_ID(_device), _frequency / 1000);
 
 out:
 	return ret;

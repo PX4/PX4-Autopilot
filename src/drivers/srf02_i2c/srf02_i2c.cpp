@@ -258,7 +258,7 @@ SRF02_I2C::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 	_index_counter = SRF02_I2C_BASEADDR;	/* set temp sonar i2c address to base adress */
-	set_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
+	set_device_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
 
 	if (_reports == nullptr) {
 		return ret;
@@ -284,7 +284,7 @@ SRF02_I2C::init()
 	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
 	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
 		_index_counter = SRF02_I2C_BASEADDR + counter * 2;	/* set temp sonar i2c address to base adress - counter */
-		set_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
+		set_device_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
 		int ret2 = measure();
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
@@ -295,7 +295,7 @@ SRF02_I2C::init()
 	}
 
 	_index_counter = SRF02_I2C_BASEADDR;
-	set_address(_index_counter); /* set i2c port back to base adress for rest of driver */
+	set_device_address(_index_counter); /* set i2c port back to base adress for rest of driver */
 
 	/* if only one sonar detected, no special timing is required between firing, so use default */
 	if (addr_ind.size() == 1) {
@@ -651,7 +651,7 @@ SRF02_I2C::cycle()
 {
 	if (_collect_phase) {
 		_index_counter = addr_ind[_cycle_counter]; /*sonar from previous iteration collect is now read out */
-		set_address(_index_counter);
+		set_device_address(_index_counter);
 
 		/* perform collection */
 		if (OK != collect()) {
@@ -690,7 +690,7 @@ SRF02_I2C::cycle()
 
 	/* ensure sonar i2c adress is still correct */
 	_index_counter = addr_ind[_cycle_counter];
-	set_address(_index_counter);
+	set_device_address(_index_counter);
 
 	/* Perform measurement */
 	if (OK != measure()) {

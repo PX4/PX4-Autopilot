@@ -142,9 +142,9 @@ private:
 	SPI operator=(const SPI &);
 
 protected:
-	int			_bus;
-
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
+
+	bool	external() { return px4_spi_bus_external(get_device_bus()); }
 
 };
 

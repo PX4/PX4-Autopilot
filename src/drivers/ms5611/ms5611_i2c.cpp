@@ -194,7 +194,7 @@ int
 MS5611_I2C::_probe_address(uint8_t address)
 {
 	/* select the address we are going to try */
-	set_address(address);
+	set_device_address(address);
 
 	/* send reset command */
 	if (PX4_OK != _reset()) {
