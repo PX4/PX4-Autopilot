@@ -808,7 +808,7 @@ ADIS16448::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 	if((read_reg16(ADIS16448_SENS_AVG) & 0x0700) != gyro_range_selection) {
 		DEVICE_DEBUG("failed to set gyro range");
 	} else {
-		_gyro_range_rad_s  = (((float) desired_gyro_dyn_range) / 180.0f) * M_PI_F;
+		_gyro_range_rad_s  = ((float)(gyro_range_selection >> 8) * 250.0f / 180.0f) * M_PI_F;
 		_gyro_range_scale  = (float)(gyro_range_selection >> 8) / 100.0f;
 	}
 }
@@ -1154,8 +1154,8 @@ ADIS16448::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case GYROIOCSRANGE:
-		/* XXX not implemented */
-		return -EINVAL;
+		_set_gyro_dyn_range(arg);
+		return OK;
 	case GYROIOCGRANGE:
 		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
