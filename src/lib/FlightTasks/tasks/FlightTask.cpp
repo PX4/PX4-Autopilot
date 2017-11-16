@@ -24,24 +24,3 @@ void FlightTask::_evaluate_vehicle_position()
 		_velocity.zero(); /* default velocity is all zero */
 	}
 }
-
-void FlightTask::_set_position_setpoint(const matrix::Vector3f position_setpoint)
-{
-	_vehicle_local_position_setpoint.x = position_setpoint(0);
-	_vehicle_local_position_setpoint.y = position_setpoint(1);
-	_vehicle_local_position_setpoint.z = position_setpoint(2);
-}
-
-void FlightTask::_set_velocity_setpoint(const matrix::Vector3f velocity_setpoint)
-{
-	_vehicle_local_position_setpoint.vx = velocity_setpoint(0);
-	_vehicle_local_position_setpoint.vy = velocity_setpoint(1);
-	_vehicle_local_position_setpoint.vz = velocity_setpoint(2);
-}
-
-void FlightTask::_set_acceleration_setpoint(const matrix::Vector3f acceleration_setpoint)
-{
-	_vehicle_local_position_setpoint.acc_x = acceleration_setpoint(0);
-	_vehicle_local_position_setpoint.acc_y = acceleration_setpoint(1);
-	_vehicle_local_position_setpoint.acc_z = acceleration_setpoint(2);
-}
