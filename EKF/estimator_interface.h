@@ -463,16 +463,6 @@ protected:
 	bool _ev_buffer_fail{false};
 	bool _drag_buffer_fail{false};
 
-	// observation buffer final allocation succeeded
-	bool _gps_buffer_pass{false};
-	bool _mag_buffer_pass{false};
-	bool _baro_buffer_pass{false};
-	bool _range_buffer_pass{false};
-	bool _airspeed_buffer_pass{false};
-	bool _flow_buffer_pass{false};
-	bool _ev_buffer_pass{false};
-	bool _drag_buffer_pass{false};
-
 	uint64_t _time_last_imu{0};	// timestamp of last imu sample in microseconds
 	uint64_t _time_last_gps{0};	// timestamp of last gps measurement in microseconds
 	uint64_t _time_last_mag{0};	// timestamp of last magnetometer measurement in microseconds
