@@ -352,6 +352,8 @@ public:
 		return _imu_updated;
 	}
 
+	void print_status();
+
 	static const unsigned FILTER_UPDATE_PERIOD_MS = 8;	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
 
 protected:
