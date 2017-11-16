@@ -352,6 +352,8 @@ public:
 		return _imu_updated;
 	}
 
+	void print_status();
+
 	static const unsigned FILTER_UPDATE_PERIOD_MS = 8;	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
 
 protected:
@@ -462,16 +464,6 @@ protected:
 	bool _flow_buffer_fail{false};
 	bool _ev_buffer_fail{false};
 	bool _drag_buffer_fail{false};
-
-	// observation buffer final allocation succeeded
-	bool _gps_buffer_pass{false};
-	bool _mag_buffer_pass{false};
-	bool _baro_buffer_pass{false};
-	bool _range_buffer_pass{false};
-	bool _airspeed_buffer_pass{false};
-	bool _flow_buffer_pass{false};
-	bool _ev_buffer_pass{false};
-	bool _drag_buffer_pass{false};
 
 	uint64_t _time_last_imu{0};	// timestamp of last imu sample in microseconds
 	uint64_t _time_last_gps{0};	// timestamp of last gps measurement in microseconds
