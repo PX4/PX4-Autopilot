@@ -199,6 +199,7 @@ void Ekf::controlExternalVisionFusion()
 				_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
 				// add the reset amount to the output observer buffered data
+				// Note q1 *= q2 is equivalent to q1 = q2 * q1
 				for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
 					_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
 				}
