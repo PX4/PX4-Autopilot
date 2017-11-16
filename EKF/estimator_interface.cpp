@@ -94,19 +94,27 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 		_imu_ticks = 0;
 		_imu_updated = true;
 
-		// Allocate the required buffer size if not previously done
-		// Do not retry if allocation has failed previously
-		if (!_drag_buffer_pass && !_drag_buffer_fail) {
-			_drag_buffer_pass = _drag_buffer.allocate(_obs_buffer_length);
-			_drag_buffer_fail = !_drag_buffer_pass;
-			if (_drag_buffer_fail) {
-				ECL_ERR("EKF drag buffer allocation failed");
-			}
-		}
+		// get the oldest data from the buffer
+		_imu_sample_delayed = _imu_buffer.get_oldest();
+
+		// calculate the minimum interval between observations required to guarantee no loss of data
+		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
+		_min_obs_interval_us = (_imu_sample_new.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
 
 		// down-sample the drag specific force data by accumulating and calculating the mean when
 		// sufficient samples have been collected
-		if ((_params.fusion_mode & MASK_USE_DRAG) && _drag_buffer_pass) {
+		if ((_params.fusion_mode & MASK_USE_DRAG) && !_drag_buffer_fail) {
+
+			// Allocate the required buffer size if not previously done
+			// Do not retry if allocation has failed previously
+			if (_drag_buffer.get_length() < _obs_buffer_length) {
+				_drag_buffer_fail = !_drag_buffer.allocate(_obs_buffer_length);
+				if (_drag_buffer_fail) {
+					ECL_ERR("EKF drag buffer allocation failed");
+					return;
+				}
+			}
+
 			_drag_sample_count ++;
 			// note acceleration is accumulated as a delta velocity
 			_drag_down_sampled.accelXY(0) += imu_sample_new.delta_vel(0);
@@ -119,7 +127,6 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 
 			if (min_sample_ratio < 5) {
 				min_sample_ratio = 5;
-
 			}
 
 			// calculate and store means from accumulated values
@@ -129,6 +136,7 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 				_drag_down_sampled.accelXY(1) /= _drag_sample_time_dt;
 				_drag_down_sampled.time_us /= _drag_sample_count;
 
+				// write to buffer
 				_drag_buffer.push(_drag_down_sampled);
 
 				// reset accumulators
@@ -140,13 +148,6 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 			}
 		}
 
-		// get the oldest data from the buffer
-		_imu_sample_delayed = _imu_buffer.get_oldest();
-
-		// calculate the minimum interval between observations required to guarantee no loss of data
-		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
-		_min_obs_interval_us = (_imu_sample_new.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
-
 	} else {
 		_imu_updated = false;
 
@@ -155,22 +156,22 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 
 void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 {
-	if (!_initialised) {
+	if (!_initialised || _mag_buffer_fail) {
 		return;
 	}
 
 	// Allocate the required buffer size if not previously done
 	// Do not retry if allocation has failed previously
-	if (!_mag_buffer_pass && !_mag_buffer_fail) {
-		_mag_buffer_pass = _mag_buffer.allocate(_obs_buffer_length);
-		_mag_buffer_fail = !_mag_buffer_pass;
+	if (_mag_buffer.get_length() < _obs_buffer_length) {
+		_mag_buffer_fail = !_mag_buffer.allocate(_obs_buffer_length);
 		if (_mag_buffer_fail) {
 			ECL_ERR("EKF mag buffer allocation failed");
+			return;
 		}
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_mag > _min_obs_interval_us) && _mag_buffer_pass) {
+	if (time_usec - _time_last_mag > _min_obs_interval_us) {
 
 		magSample mag_sample_new;
 		mag_sample_new.time_us = time_usec - _params.mag_delay_ms * 1000;
@@ -181,28 +182,23 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 		mag_sample_new.mag = Vector3f(data);
 
 		_mag_buffer.push(mag_sample_new);
-
 	}
 }
 
 void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 {
-	if (!_initialised) {
+	if (!_initialised || _gps_buffer_fail) {
 		return;
 	}
 
 	// Allocate the required buffer size if not previously done
 	// Do not retry if allocation has failed previously
-	if (!_gps_buffer_pass && !_gps_buffer_fail) {
-		_gps_buffer_pass = _gps_buffer.allocate(_obs_buffer_length);
-		_gps_buffer_fail = !_gps_buffer_pass;
+	if (_gps_buffer.get_length() < _obs_buffer_length) {
+		_gps_buffer_fail = !_gps_buffer.allocate(_obs_buffer_length);
 		if (_gps_buffer_fail) {
 			ECL_ERR("EKF GPS buffer allocation failed");
+			return;
 		}
-	}
-
-	if (!_gps_buffer_pass) {
-		return;
 	}
 
 	// limit data rate to prevent data being lost
@@ -236,7 +232,6 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		} else {
 			gps_sample_new.pos(0) = 0.0f;
 			gps_sample_new.pos(1) = 0.0f;
-
 		}
 
 		_gps_buffer.push(gps_sample_new);
@@ -245,22 +240,22 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 {
-	if (!_initialised) {
+	if (!_initialised || _baro_buffer_fail) {
 		return;
 	}
 
 	// Allocate the required buffer size if not previously done
 	// Do not retry if allocation has failed previously
-	if (!_baro_buffer_pass && !_baro_buffer_fail) {
-		_baro_buffer_pass = _baro_buffer.allocate(_obs_buffer_length);
-		_baro_buffer_fail = !_baro_buffer_pass;
+	if (_baro_buffer.get_length() < _obs_buffer_length) {
+		_baro_buffer_fail = !_baro_buffer.allocate(_obs_buffer_length);
 		if (_baro_buffer_fail) {
 			ECL_ERR("EKF baro buffer allocation failed");
+			return;
 		}
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_baro > _min_obs_interval_us) && _baro_buffer_pass) {
+	if (time_usec - _time_last_baro > _min_obs_interval_us) {
 
 		baroSample baro_sample_new;
 		baro_sample_new.hgt = data;
@@ -277,22 +272,22 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 
 void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed, float eas2tas)
 {
-	if (!_initialised) {
+	if (!_initialised || _airspeed_buffer_fail) {
 		return;
 	}
 
 	// Allocate the required buffer size if not previously done
 	// Do not retry if allocation has failed previously
-	if (!_airspeed_buffer_pass && !_airspeed_buffer_fail) {
-		_airspeed_buffer_pass = _airspeed_buffer.allocate(_obs_buffer_length);
-		_airspeed_buffer_fail = !_airspeed_buffer_pass;
+	if (_airspeed_buffer.get_length() < _obs_buffer_length) {
+		_airspeed_buffer_fail = !_airspeed_buffer.allocate(_obs_buffer_length);
 		if (_airspeed_buffer_fail) {
 			ECL_ERR("EKF airspeed buffer allocation failed");
+			return;
 		}
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_airspeed > _min_obs_interval_us) && _airspeed_buffer_pass) {
+	if (time_usec - _time_last_airspeed > _min_obs_interval_us) {
 		airspeedSample airspeed_sample_new;
 		airspeed_sample_new.true_airspeed = true_airspeed;
 		airspeed_sample_new.eas2tas = eas2tas;
@@ -306,22 +301,22 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 
 void EstimatorInterface::setRangeData(uint64_t time_usec, float data)
 {
-	if (!_initialised) {
+	if (!_initialised || _range_buffer_fail) {
 		return;
 	}
 
 	// Allocate the required buffer size if not previously done
 	// Do not retry if allocation has failed previously
-	if (!_range_buffer_pass && !_range_buffer_fail) {
-		_range_buffer_pass = _range_buffer.allocate(_obs_buffer_length);
-		_range_buffer_fail = !_range_buffer_pass;
+	if (_range_buffer.get_length() < _obs_buffer_length) {
+		_range_buffer_fail = !_range_buffer.allocate(_obs_buffer_length);
 		if (_range_buffer_fail) {
 			ECL_ERR("EKF range finder buffer allocation failed");
+			return;
 		}
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_range > _min_obs_interval_us) && _range_buffer_pass) {
+	if (time_usec - _time_last_range > _min_obs_interval_us) {
 		rangeSample range_sample_new;
 		range_sample_new.rng = data;
 		range_sample_new.time_us = time_usec - _params.range_delay_ms * 1000;
@@ -334,22 +329,22 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float data)
 // set optical flow data
 void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *flow)
 {
-	if (!_initialised) {
+	if (!_initialised || _flow_buffer_fail) {
 		return;
 	}
 
 	// Allocate the required buffer size if not previously done
 	// Do not retry if allocation has failed previously
-	if (!_flow_buffer_pass && !_flow_buffer_fail) {
-		_flow_buffer_pass = _flow_buffer.allocate(_obs_buffer_length);
-		_flow_buffer_fail = !_flow_buffer_pass;
+	if (_flow_buffer.get_length() < _obs_buffer_length) {
+		_flow_buffer_fail = !_flow_buffer.allocate(_obs_buffer_length);
 		if (_flow_buffer_fail) {
 			ECL_ERR("EKF optical flow buffer allocation failed");
+			return;
 		}
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_optflow > _min_obs_interval_us) && _flow_buffer_pass) {
+	if (time_usec - _time_last_optflow > _min_obs_interval_us) {
 		// check if enough integration time and fail if integration time is less than 50%
 		// of min arrival interval because too much data is being lost
 		float delta_time = 1e-6f * (float)flow->dt;
@@ -413,22 +408,22 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 // set attitude and position data derived from an external vision system
 void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message *evdata)
 {
-	if (!_initialised) {
+	if (!_initialised || _ev_buffer_fail) {
 		return;
 	}
 
 	// Allocate the required buffer size if not previously done
 	// Do not retry if allocation has failed previously
-	if (!_ev_buffer_pass && !_ev_buffer_fail) {
-		_ev_buffer_pass = _ext_vision_buffer.allocate(_obs_buffer_length);
-		_ev_buffer_fail = !_ev_buffer_pass;
+	if (_ext_vision_buffer.get_length() < _obs_buffer_length) {
+		_ev_buffer_fail = !_ext_vision_buffer.allocate(_obs_buffer_length);
 		if (_ev_buffer_fail) {
 			ECL_ERR("EKF external vision buffer allocation failed");
+			return;
 		}
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_ext_vision > _min_obs_interval_us) && _ev_buffer_pass) {
+	if (time_usec - _time_last_ext_vision > _min_obs_interval_us) {
 		extVisionSample ev_sample_new;
 		// calculate the system time-stamp for the mid point of the integration period
 		ev_sample_new.time_us = time_usec - _params.ev_delay_ms * 1000;
@@ -471,47 +466,12 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	_obs_buffer_length = math::min(_obs_buffer_length, _imu_buffer_length);
 
 	if (!(_imu_buffer.allocate(_imu_buffer_length) &&
-	      _gps_buffer.allocate(1) &&
-	      _mag_buffer.allocate(1) &&
-	      _baro_buffer.allocate(1) &&
-	      _range_buffer.allocate(1) &&
-	      _airspeed_buffer.allocate(1) &&
-	      _flow_buffer.allocate(1) &&
-	      _ext_vision_buffer.allocate(1) &&
-	      _drag_buffer.allocate(1) &&
 	      _output_buffer.allocate(_imu_buffer_length) &&
 	      _output_vert_buffer.allocate(_imu_buffer_length))) {
+
 		ECL_ERR("EKF buffer allocation failed!");
 		unallocate_buffers();
 		return false;
-	}
-
-	// zero the data in the observation buffers
-	for (int index = 0; index < _obs_buffer_length; index++) {
-		gpsSample gps_sample_init = {};
-		_gps_buffer.push(gps_sample_init);
-		magSample mag_sample_init = {};
-		_mag_buffer.push(mag_sample_init);
-		baroSample baro_sample_init = {};
-		_baro_buffer.push(baro_sample_init);
-		rangeSample range_sample_init = {};
-		_range_buffer.push(range_sample_init);
-		airspeedSample airspeed_sample_init = {};
-		_airspeed_buffer.push(airspeed_sample_init);
-		flowSample flow_sample_init = {};
-		_flow_buffer.push(flow_sample_init);
-		extVisionSample ext_vision_sample_init = {};
-		_ext_vision_buffer.push(ext_vision_sample_init);
-		dragSample drag_sample_init = {};
-		_drag_buffer.push(drag_sample_init);
-	}
-
-	// zero the data in the imu data and output observer state buffers
-	for (int index = 0; index < _imu_buffer_length; index++) {
-		imuSample imu_sample_init = {};
-		_imu_buffer.push(imu_sample_init);
-		outputSample output_sample_init = {};
-		_output_buffer.push(output_sample_init);
 	}
 
 	_dt_imu_avg = 0.0f;
