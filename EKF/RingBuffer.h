@@ -45,7 +45,13 @@ template <typename data_type>
 class RingBuffer
 {
 public:
-	RingBuffer() = default;
+	RingBuffer() {
+		if (allocate(1)) {
+			// initialize with one empty sample
+			data_type d = {};
+			push(d);
+		}
+	}
 	~RingBuffer() { delete[] _buffer; }
 
 	// no copy, assignment, move, move assignment
@@ -72,8 +78,8 @@ public:
 		_tail = 0;
 
 		// set the time elements to zero so that bad data is not retrieved from the buffers
-		for (unsigned index = 0; index < _size; index++) {
-			_buffer[index].time_us = 0;
+		for (uint8_t index = 0; index < _size; index++) {
+			_buffer[index] = {};
 		}
 		_first_write = true;
 
@@ -149,13 +155,8 @@ public:
 		return false;
 	}
 
+	int get_total_size() { return sizeof(*this) + sizeof(data_type) * _size; }
 
-
-	// return ttrue if allocated
-	unsigned is_allocated()
-	{
-		return (_buffer != NULL);
-	}
 private:
 	data_type *_buffer{nullptr};
 
