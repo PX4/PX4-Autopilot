@@ -318,6 +318,7 @@ void Ekf::alignOutputFilter()
 	const Vector3f pos_delta = _state.pos - _output_sample_delayed.pos;
 
 	// loop through the output filter state history and add the deltas
+	// Note q1 *= q2 is equivalent to q1 = q2 * q1
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
 		_output_buffer[i].quat_nominal *= q_delta;
 		_output_buffer[i].quat_nominal.normalize();
@@ -429,6 +430,7 @@ bool Ekf::realignYawGPS()
 			_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
 			// add the reset amount to the output observer buffered data
+			// Note q1 *= q2 is equivalent to q1 = q2 * q1
 			for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
 				_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
 			}
@@ -651,6 +653,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		// add the reset amount to the output observer buffered data
 		for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+			// Note q1 *= q2 is equivalent to q1 = q2 * q1
 			_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
 		}
 
