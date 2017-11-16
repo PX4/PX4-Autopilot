@@ -99,6 +99,9 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 		if (!_drag_buffer_pass && !_drag_buffer_fail) {
 			_drag_buffer_pass = _drag_buffer.allocate(_obs_buffer_length);
 			_drag_buffer_fail = !_drag_buffer_pass;
+			if (_drag_buffer_fail) {
+				ECL_ERR("EKF drag buffer allocation failed");
+			}
 		}
 
 		// down-sample the drag specific force data by accumulating and calculating the mean when
@@ -161,10 +164,8 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 	if (!_mag_buffer_pass && !_mag_buffer_fail) {
 		_mag_buffer_pass = _mag_buffer.allocate(_obs_buffer_length);
 		_mag_buffer_fail = !_mag_buffer_pass;
-
 		if (_mag_buffer_fail) {
 			ECL_ERR("EKF mag buffer allocation failed");
-
 		}
 	}
 
@@ -195,6 +196,9 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 	if (!_gps_buffer_pass && !_gps_buffer_fail) {
 		_gps_buffer_pass = _gps_buffer.allocate(_obs_buffer_length);
 		_gps_buffer_fail = !_gps_buffer_pass;
+		if (_gps_buffer_fail) {
+			ECL_ERR("EKF GPS buffer allocation failed");
+		}
 	}
 
 	if (!_gps_buffer_pass) {
@@ -250,6 +254,9 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 	if (!_baro_buffer_pass && !_baro_buffer_fail) {
 		_baro_buffer_pass = _baro_buffer.allocate(_obs_buffer_length);
 		_baro_buffer_fail = !_baro_buffer_pass;
+		if (_baro_buffer_fail) {
+			ECL_ERR("EKF baro buffer allocation failed");
+		}
 	}
 
 	// limit data rate to prevent data being lost
@@ -279,6 +286,9 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 	if (!_airspeed_buffer_pass && !_airspeed_buffer_fail) {
 		_airspeed_buffer_pass = _airspeed_buffer.allocate(_obs_buffer_length);
 		_airspeed_buffer_fail = !_airspeed_buffer_pass;
+		if (_airspeed_buffer_fail) {
+			ECL_ERR("EKF airspeed buffer allocation failed");
+		}
 	}
 
 	// limit data rate to prevent data being lost
@@ -305,6 +315,9 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float data)
 	if (!_range_buffer_pass && !_range_buffer_fail) {
 		_range_buffer_pass = _range_buffer.allocate(_obs_buffer_length);
 		_range_buffer_fail = !_range_buffer_pass;
+		if (_range_buffer_fail) {
+			ECL_ERR("EKF range finder buffer allocation failed");
+		}
 	}
 
 	// limit data rate to prevent data being lost
@@ -330,6 +343,9 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 	if (!_flow_buffer_pass && !_flow_buffer_fail) {
 		_flow_buffer_pass = _flow_buffer.allocate(_obs_buffer_length);
 		_flow_buffer_fail = !_flow_buffer_pass;
+		if (_flow_buffer_fail) {
+			ECL_ERR("EKF optical flow buffer allocation failed");
+		}
 	}
 
 	// limit data rate to prevent data being lost
@@ -406,6 +422,9 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 	if (!_ev_buffer_pass && !_ev_buffer_fail) {
 		_ev_buffer_pass = _ext_vision_buffer.allocate(_obs_buffer_length);
 		_ev_buffer_fail = !_ev_buffer_pass;
+		if (_ev_buffer_fail) {
+			ECL_ERR("EKF external vision buffer allocation failed");
+		}
 	}
 
 	// limit data rate to prevent data being lost
