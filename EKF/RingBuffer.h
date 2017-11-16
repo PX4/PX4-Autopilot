@@ -155,6 +155,8 @@ public:
 		return false;
 	}
 
+	int get_total_size() { return sizeof(*this) + sizeof(data_type) * _size; }
+
 private:
 	data_type *_buffer{nullptr};
 
