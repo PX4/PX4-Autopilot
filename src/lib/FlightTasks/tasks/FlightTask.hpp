@@ -102,22 +102,37 @@ protected:
 	/**
 	 * Put the position vector produced by the task into the setpoint message
 	 */
-	void _set_position_setpoint(const matrix::Vector3f position_setpoint);
+	void _set_position_setpoint(const matrix::Vector3f &position_setpoint)
+	{
+		_vehicle_local_position_setpoint.x = position_setpoint(0);
+		_vehicle_local_position_setpoint.y = position_setpoint(1);
+		_vehicle_local_position_setpoint.z = position_setpoint(2);
+	}
 
 	/**
 	 * Put the velocity vector produced by the task into the setpoint message
 	 */
-	void _set_velocity_setpoint(const matrix::Vector3f velocity_setpoint);
+	void _set_velocity_setpoint(const matrix::Vector3f &velocity_setpoint)
+	{
+		_vehicle_local_position_setpoint.vx = velocity_setpoint(0);
+		_vehicle_local_position_setpoint.vy = velocity_setpoint(1);
+		_vehicle_local_position_setpoint.vz = velocity_setpoint(2);
+	}
 
 	/**
 	 * Put the acceleration vector produced by the task into the setpoint message
 	 */
-	void _set_acceleration_setpoint(const matrix::Vector3f acceleration_setpoint);
+	void _set_acceleration_setpoint(const matrix::Vector3f &acceleration_setpoint)
+	{
+		_vehicle_local_position_setpoint.acc_x = acceleration_setpoint(0);
+		_vehicle_local_position_setpoint.acc_y = acceleration_setpoint(1);
+		_vehicle_local_position_setpoint.acc_z = acceleration_setpoint(2);
+	}
 
 	/**
 	 * Put the yaw angle produced by the task into the setpoint message
 	 */
-	void _set_yaw_setpoint(float yaw) { _vehicle_local_position_setpoint.yaw = yaw; };
+	void _set_yaw_setpoint(const float &yaw) { _vehicle_local_position_setpoint.yaw = yaw; };
 
 private:
 	uORB::Subscription<vehicle_local_position_s> _sub_vehicle_local_position;
