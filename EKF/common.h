@@ -156,6 +156,12 @@ struct dragSample {
 	uint64_t time_us;	///< timestamp of the measurement (uSec)
 };
 
+struct auxVelSample {
+	Vector2f velNE;		///< measured NE velocity relative to the local origin (m/sec)
+	Vector2f velVarNE;	///< estimated error variance of the NE velocity (m/sec)**2
+	uint64_t time_us;	///< timestamp of the measurement (uSec)
+};
+
 // Integer definitions for vdist_sensor_type
 #define VDIST_SENSOR_BARO  0	///< Use baro height
 #define VDIST_SENSOR_GPS   1	///< Use GPS height
@@ -210,6 +216,7 @@ struct parameters {
 	float flow_delay_ms{5.0f};		///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 	float range_delay_ms{5.0f};		///< range finder measurement delay relative to the IMU (mSec)
 	float ev_delay_ms{100.0f};		///< off-board vision measurement delay relative to the IMU (mSec)
+	float auxvel_delay_ms{0.0f};		///< auxiliary velocity measurement delay relative to the IMU (mSec)
 
 	// input noise
 	float gyro_noise{1.5e-2f};		///< IMU angular rate noise used for covariance prediction (rad/sec)
@@ -326,6 +333,9 @@ struct parameters {
 	float vert_innov_test_lim{4.5f};	///< Number of standard deviations allowed before the combined vertical velocity and position test is declared as failed
 	int bad_acc_reset_delay_us{500000};	///< Continuous time that the vertical position and velocity innovation test must fail before the states are reset (uSec)
 
+	// auxilliary velocity fusion
+	float auxvel_noise{0.5f};		///< minimum observation noise, uses reported noise if greater (m/s)
+	float auxvel_gate{5.0f};		///< velocity fusion innovation consistency gate size (STD)
 };
 
 struct stateSample {

@@ -264,6 +264,9 @@ private:
 	float _posObsNoiseNE;		///< 1-STD observtion noise used for the fusion of NE position data (m)
 	float _posInnovGateNE;		///< Number of standard deviations used for the NE position fusion innovation consistency check
 
+	Vector2f _velObsVarNE;		///< 1-STD observation noise variance used for the fusion of NE velocity data (m/sec)**2
+	float _hvelInnovGate;		///< Number of standard deviations used for the horizontal velocity fusion innovation consistency check
+
 	// variables used when position data is being fused using a relative position odometry model
 	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
 	Vector3f _pos_meas_prev;		///< previous value of NED position measurement fused using odometry assumption (m)
@@ -560,6 +563,9 @@ private:
 
 	// control fusion of velocity and position observations
 	void controlVelPosFusion();
+
+	// control fusion of auxiliary velocity observations
+	void controlAuxVelFusion();
 
 	// control for height sensor timeouts, sensor changes and state resets
 	void controlHeightSensorTimeouts();
