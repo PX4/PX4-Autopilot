@@ -72,6 +72,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -100,6 +101,8 @@ static constexpr float THROTTLE_THRESH =
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
 	0.85f; ///< a throttle / pitch input above this value leads to the system switching to climbout mode
 static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
+
+static constexpr float MSL_PRESSURE_MILLIBAR = 1013.25f; ///< standard atmospheric pressure in millibar
 
 using math::constrain;
 using math::max;
@@ -155,6 +158,7 @@ private:
 	int		_vehicle_land_detected_sub{-1};		///< vehicle land detected subscription */
 	int		_params_sub{-1};			///< notification of parameter updates */
 	int		_manual_control_sub{-1};		///< notification of manual control updates */
+	int		_sensor_baro_sub{-1};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
 	orb_advert_t	_tecs_status_pub{nullptr};		///< TECS status publication */
@@ -293,6 +297,7 @@ private:
 		float throttle_idle;
 		float throttle_cruise;
 		float throttle_slew_max;
+		float throttle_alt_scale;
 
 		float man_roll_max_rad;
 		float man_pitch_max_rad;
@@ -351,6 +356,7 @@ private:
 		param_t throttle_idle;
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
+		param_t throttle_alt_scale;
 
 		param_t man_roll_max_deg;
 		param_t man_pitch_max_deg;
