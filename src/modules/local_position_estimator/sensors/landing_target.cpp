@@ -17,8 +17,8 @@ void BlockLocalPositionEstimator::landingTargetInit()
 
 	if (landingTargetMeasure(y) == OK) {
 		mavlink_and_console_log_info(&mavlink_log_pub, "Landing target init");
-		_sensorTimeout &= ~SENSOR_TARGET;
-		_sensorFault &= ~SENSOR_TARGET;
+		_sensorTimeout &= ~SENSOR_LAND_TARGET;
+		_sensorFault &= ~SENSOR_LAND_TARGET;
 	}
 }
 
@@ -88,16 +88,16 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 	float beta = (r.transpose()  * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_target]) {
-		if (!(_sensorFault & SENSOR_TARGET)) {
+		if (!(_sensorFault & SENSOR_LAND_TARGET)) {
 			mavlink_and_console_log_info(&mavlink_log_pub, "Landing target fault, beta %5.2f", double(beta));
-			_sensorFault |= SENSOR_TARGET;
+			_sensorFault |= SENSOR_LAND_TARGET;
 		}
 
 		// abort correction
 		return;
 
-	} else if (_sensorFault & SENSOR_TARGET) {
-		_sensorFault &= ~SENSOR_TARGET;
+	} else if (_sensorFault & SENSOR_LAND_TARGET) {
+		_sensorFault &= ~SENSOR_LAND_TARGET;
 		mavlink_and_console_log_info(&mavlink_log_pub, "Landing target OK");
 	}
 
@@ -113,8 +113,8 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 void BlockLocalPositionEstimator::landingTargetCheckTimeout()
 {
 	if (_timeStamp - _time_last_target > TARGET_TIMEOUT) {
-		if (!(_sensorTimeout & SENSOR_TARGET)) {
-			_sensorTimeout |= SENSOR_TARGET;
+		if (!(_sensorTimeout & SENSOR_LAND_TARGET)) {
+			_sensorTimeout |= SENSOR_LAND_TARGET;
 			mavlink_and_console_log_info(&mavlink_log_pub, "Landing target timeout");
 		}
 	}

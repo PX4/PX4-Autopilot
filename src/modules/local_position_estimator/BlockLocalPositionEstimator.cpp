@@ -196,12 +196,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	       (_fusion.get() & FUSE_PUB_AGL_Z) != 0,
 	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
 	       (_fusion.get() & FUSE_LAND_TARGET) != 0);
-	_bestParamHandle.mode = param_find("BEST_MODE");
-	_bestParamHandle.lat = param_find("BEST_LAT");
-	_bestParamHandle.lon = param_find("BEST_LON");
-	param_get(_bestParamHandle.mode, &_bestParams.mode);
-	param_get(_bestParamHandle.lat, &_bestParams.lat);
-	param_get(_bestParamHandle.lon, &_bestParams.lon);
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
@@ -533,7 +527,7 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	if (targetPositionUpdated) {
-		if (_sensorTimeout & SENSOR_TARGET) {
+		if (_sensorTimeout & SENSOR_LAND_TARGET) {
 			landingTargetInit();
 
 		} else {
