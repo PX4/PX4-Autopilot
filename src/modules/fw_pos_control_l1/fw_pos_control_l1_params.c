@@ -88,6 +88,24 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
 
 /**
+ * Scale throttle by pressure change
+ *
+ * Automatically adjust throttle to account for decreased air density at higher altitudes.
+ * Start with a scale factor of 1.0 and adjust for different propulsion systems.
+ *
+ * When flying without airspeed sensor this will help to keep a constant performance over large altitude ranges.
+ *
+ * The default value of 0 will disable scaling.
+ *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_THR_ALT_SCL, 0.0f);
+
+/**
  * Throttle max slew rate
  *
  * Maximum slew rate for the commanded throttle
