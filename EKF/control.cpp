@@ -130,8 +130,11 @@ void Ekf::controlFusionModes()
 	// in a single function using sensor data from multiple sources (GPS, baro, range finder, etc)
 	controlVelPosFusion();
 
-	// Additional data from an external vision sensor can also be fused.
+	// Additional data from an external vision pose estimator can be fused.
 	controlExternalVisionFusion();
+
+	// Additional NE velocity data from an auxiliary sensor can be fused
+	controlAuxVelFusion();
 
 	// report dead reckoning if we are no longer fusing measurements that directly constrain velocity drift
 	_is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > _params.no_aid_timeout_max)
@@ -522,13 +525,17 @@ void Ekf::controlGpsFusion()
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
 			_posObsNoiseNE = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
+			_velObsVarNE(1) = _velObsVarNE(0) = sq(fmaxf(_params.gps_vel_noise, 0.01f));
 
 			// calculate innovations
+			_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
+			_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
 			_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
 			_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
 
 			// set innovation gate size
 			_posInnovGateNE = fmaxf(_params.posNE_innov_gate, 1.0f);
+			_hvelInnovGate = fmaxf(_params.vel_innov_gate, 1.0f);
 		}
 
 	} else if (_control_status.flags.gps && (_time_last_imu - _time_last_gps > (uint64_t)10e6)) {
@@ -1353,5 +1360,22 @@ void Ekf::controlVelPosFusion()
 		fuseVelPosHeight();
 		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
 
+	}
+}
+
+void Ekf::controlAuxVelFusion()
+{
+	bool data_ready = _auxvel_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
+	bool primary_aiding = _control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow;
+
+	if (data_ready && primary_aiding) {
+		_fuse_vert_vel = _fuse_pos = _fuse_height = false;
+		_fuse_hor_vel = true;
+		_vel_pos_innov[0] = _state.vel(0) - _auxvel_sample_delayed.velNE(0);
+		_vel_pos_innov[1] = _state.vel(1) - _auxvel_sample_delayed.velNE(1);
+		_velObsVarNE = _auxvel_sample_delayed.velVarNE;
+		_hvelInnovGate = _params.auxvel_gate;
+		fuseVelPosHeight();
+		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
 	}
 }

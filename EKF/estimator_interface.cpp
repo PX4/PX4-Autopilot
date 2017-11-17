@@ -442,6 +442,38 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 	}
 }
 
+void EstimatorInterface::setAuxVelData(uint64_t time_usec, float (&data)[2], float (&variance)[2])
+{
+	if (!_initialised || _auxvel_buffer_fail) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	// Do not retry if allocation has failed previously
+	if (_auxvel_buffer.get_length() < _obs_buffer_length) {
+		_auxvel_buffer_fail = !_auxvel_buffer.allocate(_obs_buffer_length);
+		if (_auxvel_buffer_fail) {
+			ECL_ERR("EKF aux vel buffer allocation failed");
+			return;
+		}
+	}
+
+	// limit data rate to prevent data being lost
+	if (time_usec - _time_last_auxvel > _min_obs_interval_us) {
+
+		auxVelSample auxvel_sample_new;
+		auxvel_sample_new.time_us = time_usec - _params.auxvel_delay_ms * 1000;
+
+		auxvel_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		_time_last_auxvel = time_usec;
+
+		auxvel_sample_new.velNE = Vector2f(data);
+		auxvel_sample_new.velVarNE = Vector2f(variance);
+
+		_auxvel_buffer.push(auxvel_sample_new);
+	}
+}
+
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
 	// find the maximum time delay the buffers are required to handle
@@ -450,8 +482,9 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 					     math::max(_params.gps_delay_ms,
 						 math::max(_params.flow_delay_ms,
 						     math::max(_params.ev_delay_ms,
-							 math::max(_params.min_delay_ms,
-								math::max(_params.airspeed_delay_ms, _params.baro_delay_ms)))))));
+							 math::max(_params.auxvel_delay_ms,
+							     math::max(_params.min_delay_ms,
+								 math::max(_params.airspeed_delay_ms, _params.baro_delay_ms))))))));
 
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
 	_imu_buffer_length = (max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
@@ -511,6 +544,7 @@ void EstimatorInterface::unallocate_buffers()
 	_output_buffer.unallocate();
 	_output_vert_buffer.unallocate();
 	_drag_buffer.unallocate();
+	_auxvel_buffer.unallocate();
 
 }
 

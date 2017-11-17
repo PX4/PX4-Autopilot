@@ -54,18 +54,13 @@ void Ekf::fuseVelPosHeight()
 
 	// calculate innovations, innovations gate sizes and observation variances
 	if (_fuse_hor_vel) {
+		// enable fusion for NE velocity axes
 		fuse_map[0] = fuse_map[1] = true;
-		// horizontal velocity innovations
-		_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
-		_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
-		// observation variance - use receiver reported accuracy with parameter setting the minimum value
-		R[0] = fmaxf(_params.gps_vel_noise, 0.01f);
-		R[0] = fmaxf(R[0], _gps_sample_delayed.sacc);
-		R[0] = R[0] * R[0];
-		R[1] = R[0];
-		// innovation gate sizes
-		gate_size[0] = fmaxf(_params.vel_innov_gate, 1.0f);
-		gate_size[1] = gate_size[0];
+
+		// Set observation noise variance and innovation consistency check gate size for the NE position observations
+		R[0] = _velObsVarNE(0);
+		R[1] = _velObsVarNE(1);
+		gate_size[1] = gate_size[0] = _hvelInnovGate;
 	}
 
 	if (_fuse_vert_vel) {
