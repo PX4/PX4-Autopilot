@@ -53,6 +53,7 @@ set(config_module_list
 	drivers/tap_esc
 	drivers/teraranger
 	drivers/vmount
+	drivers/adis16448
 	modules/sensors
 
 	#
