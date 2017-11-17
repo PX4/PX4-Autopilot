@@ -41,6 +41,7 @@ static int _control_task = -1;			///< task handle for sensor task */
 FixedwingPositionControl::FixedwingPositionControl() :
 	_sub_airspeed(ORB_ID(airspeed), 0, 0, nullptr),
 	_sub_sensors(ORB_ID(sensor_bias), 0, 0, nullptr),
+	_sub_baro(ORB_ID(sensor_baro), 0, 0, nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control"))
 {
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
@@ -59,6 +60,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_idle = param_find("FW_THR_IDLE");
 	_parameter_handles.throttle_slew_max = param_find("FW_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
+	_parameter_handles.throttle_alt_scale = param_find("FW_THR_ALT_SC_EN");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 	_parameter_handles.man_roll_max_deg = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max_deg = param_find("FW_MAN_P_MAX");
@@ -141,6 +143,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_idle, &(_parameters.throttle_idle));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+	param_get(_parameter_handles.throttle_alt_scale, &(_parameters.throttle_alt_scale));
 	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
@@ -1548,6 +1551,7 @@ FixedwingPositionControl::task_main()
 		vehicle_land_detected_poll();
 		vehicle_status_poll();
 		_sub_sensors.update();
+		_sub_baro.update();
 
 		/* only update parameters if they changed */
 		bool params_updated = false;
@@ -1822,6 +1826,11 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	_tecs.update_vehicle_state_estimates(_airspeed, _R_nb,
 					     accel_body, (_global_pos.timestamp > 0), in_air_alt_control,
 					     _global_pos.alt, _local_pos.v_z_valid, _local_pos.vz, _local_pos.az);
+
+	/* scale effort by baro pressure */
+	if (_parameters.throttle_alt_scale > 0 && throttle_cruise > 0.1f) {
+		throttle_cruise *= (float)sqrt(1013.25f / _sub_baro.get().pressure);
+	}
 
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
 				    _global_pos.alt, alt_sp,

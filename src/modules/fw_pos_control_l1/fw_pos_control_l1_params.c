@@ -88,6 +88,18 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
 
 /**
+ * Scale throttle by altitude AMSL
+ *
+ * This parameter enables throttle scaling based on barometric pressure
+ * When flying without airspeed sensor this will help to keep a constant performance
+ * over large altitude ranges.
+ *
+ * @boolean
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_THR_ALT_SC_EN, 0);
+
+/**
  * Throttle max slew rate
  *
  * Maximum slew rate for the commanded throttle
