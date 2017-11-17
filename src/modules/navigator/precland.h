@@ -55,7 +55,8 @@ enum class PrecLandState {
 	DescendAboveTarget, // Stay over landing target while descending
 	FinalApproach, // Final landing approach, even without landing target
 	Search, // Search for landing target
-	Fallback // Fallback landing method
+	Fallback, // Fallback landing method
+	Done // Done landing
 };
 
 enum class PrecLandMode {
@@ -96,6 +97,7 @@ private:
 	bool switch_to_state_final_approach();
 	bool switch_to_state_search();
 	bool switch_to_state_fallback();
+	bool switch_to_state_done();
 
 	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
 	bool check_state_conditions(PrecLandState state);

@@ -145,6 +145,11 @@ PrecLand::on_active()
 		_target_pose_valid = false;
 	}
 
+	// stop if we are landed
+	if (_navigator->get_land_detected()->landed) {
+		switch_to_state_done();
+	}
+
 	switch (_state) {
 	case PrecLandState::Start:
 		run_state_start();
@@ -168,6 +173,10 @@ PrecLand::on_active()
 
 	case PrecLandState::Fallback:
 		run_state_fallback();
+		break;
+
+	case PrecLandState::Done:
+		// nothing to do
 		break;
 
 	default:
@@ -445,6 +454,14 @@ PrecLand::switch_to_state_fallback()
 	_navigator->set_position_setpoint_triplet_updated();
 
 	_state = PrecLandState::Fallback;
+	_state_start_time = hrt_absolute_time();
+	return true;
+}
+
+bool
+PrecLand::switch_to_state_done()
+{
+	_state = PrecLandState::Done;
 	_state_start_time = hrt_absolute_time();
 	return true;
 }
