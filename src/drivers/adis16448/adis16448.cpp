@@ -190,7 +190,8 @@ class ADIS16448_mag;
 class ADIS16448 : public device::SPI
 {
 public:
-	ADIS16448(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, uint32_t device, enum Rotation rotation);
+	ADIS16448(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, uint32_t device,
+		  enum Rotation rotation);
 	virtual ~ADIS16448();
 
 	virtual int		init();
@@ -370,7 +371,7 @@ private:
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	 int 			self_test();
+	int 			self_test();
 
 	/**
 	 * Accel self test
@@ -384,7 +385,7 @@ private:
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	 int 			gyro_self_test();
+	int 			gyro_self_test();
 
 	/*
 	  set low pass filter frequency
@@ -406,8 +407,8 @@ private:
 	*/
 	void _set_gyro_dyn_range(uint16_t desired_gyro_dyn_range);
 
-	ADIS16448(const ADIS16448&);
-	ADIS16448 operator=(const ADIS16448&);
+	ADIS16448(const ADIS16448 &);
+	ADIS16448 operator=(const ADIS16448 &);
 };
 
 /**
@@ -435,8 +436,8 @@ private:
 	int					_gyro_class_instance;
 
 	/* do not allow to copy this class due to pointer data members */
-	ADIS16448_gyro(const ADIS16448_gyro&);
-	ADIS16448_gyro operator=(const ADIS16448_gyro&);
+	ADIS16448_gyro(const ADIS16448_gyro &);
+	ADIS16448_gyro operator=(const ADIS16448_gyro &);
 
 };
 /**
@@ -463,14 +464,15 @@ private:
 	int					_mag_class_instance;
 
 	/* do not allow to copy this class due to pointer data members */
-	ADIS16448_mag(const ADIS16448_mag&);
-	ADIS16448_mag operator=(const ADIS16448_mag&);
+	ADIS16448_mag(const ADIS16448_mag &);
+	ADIS16448_mag operator=(const ADIS16448_mag &);
 
 };
 /** driver 'main' command */
 extern "C" { __EXPORT int adis16448_main(int argc, char *argv[]); }
 
-ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, uint32_t device, enum Rotation rotation) :
+ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, uint32_t device,
+		     enum Rotation rotation) :
 	SPI("ADIS16448", path_accel, bus, device, SPIDEV_MODE3, SPI_BUS_SPEED),
 	_gyro(new ADIS16448_gyro(this, path_gyro)),
 	_mag(new ADIS16448_mag(this, path_mag)),
@@ -560,15 +562,21 @@ ADIS16448::~ADIS16448()
 	delete _mag;
 
 	/* free any existing reports */
-	if (_gyro_reports != nullptr)
+	if (_gyro_reports != nullptr) {
 		delete _gyro_reports;
-	if (_accel_reports != nullptr)
-		delete _accel_reports;
-	if (_mag_reports != nullptr)
-		delete _mag_reports;
+	}
 
-	if (_accel_class_instance != -1)
+	if (_accel_reports != nullptr) {
+		delete _accel_reports;
+	}
+
+	if (_mag_reports != nullptr) {
+		delete _mag_reports;
+	}
+
+	if (_accel_class_instance != -1) {
 		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
+	}
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -594,19 +602,26 @@ ADIS16448::init()
 
 	/* allocate basic report buffers */
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
-	if (_gyro_reports == nullptr)
+
+	if (_gyro_reports == nullptr) {
 		goto out;
+	}
 
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
-	if (_accel_reports == nullptr)
+
+	if (_accel_reports == nullptr) {
 		goto out;
+	}
 
 	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
-	if (_mag_reports == nullptr)
-		goto out;
 
-	if (reset() != OK)
+	if (_mag_reports == nullptr) {
 		goto out;
+	}
+
+	if (reset() != OK) {
+		goto out;
+	}
 
 	/* Initialize offsets and scales */
 	_gyro_scale.x_offset = 0;
@@ -632,6 +647,7 @@ ADIS16448::init()
 
 	/* do CDev init for the gyro device node, keep it optional */
 	ret = _gyro->init();
+
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("gyro init failed");
@@ -640,6 +656,7 @@ ADIS16448::init()
 
 	/* do CDev init for the gyro device node, keep it optional */
 	ret = _mag->init();
+
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("mag init failed");
@@ -657,31 +674,33 @@ ADIS16448::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-			&_accel_orb_class_instance, ORB_PRIO_MAX);
+					   &_accel_orb_class_instance, ORB_PRIO_MAX);
 
 	if (_accel_topic == nullptr) {
 		warnx("ADVERT FAIL");
 	}
 
 	struct gyro_report grp;
+
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			&_gyro->_gyro_orb_class_instance, ORB_PRIO_MAX);
+			     &_gyro->_gyro_orb_class_instance, ORB_PRIO_MAX);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		warnx("ADVERT FAIL");
 	}
 
 	struct mag_report mrp;
+
 	_mag_reports->get(&mrp);
 
 	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-			&_mag->_mag_orb_class_instance, ORB_PRIO_MAX);
+					       &_mag->_mag_orb_class_instance, ORB_PRIO_MAX);
 
-		if (_mag->_mag_topic == nullptr) {
-			warnx("ADVERT FAIL");
-		}
+	if (_mag->_mag_topic == nullptr) {
+		warnx("ADVERT FAIL");
+	}
 
 out:
 	return ret;
@@ -718,11 +737,12 @@ ADIS16448::probe()
 
 	/* retry 5 time to get the ADIS16448 PRODUCT ID number */
 	for (int i = 0; i < 5; i++) {
-	/* recognize product ID */
-	_product = read_reg16(ADIS16448_PRODUCT_ID);
+		/* recognize product ID */
+		_product = read_reg16(ADIS16448_PRODUCT_ID);
 
-	if (_product != 0)
-		break;
+		if (_product != 0) {
+			break;
+		}
 	}
 
 	/* recognize product serial number */
@@ -748,20 +768,25 @@ ADIS16448::_set_sample_rate(uint16_t desired_sample_rate_hz)
 
 	if (desired_sample_rate_hz <= 51) {
 		smpl_prd = BITS_SMPL_PRD_16_TAP_CFG;
+
 	} else if (desired_sample_rate_hz <= 102) {
 		smpl_prd = BITS_SMPL_PRD_8_TAP_CFG;
+
 	} else if (desired_sample_rate_hz <= 204) {
 		smpl_prd = BITS_SMPL_PRD_4_TAP_CFG;
+
 	} else if (desired_sample_rate_hz <= 409) {
 		smpl_prd = BITS_SMPL_PRD_2_TAP_CFG;
+
 	} else {
 		smpl_prd = BITS_SMPL_PRD_NO_TAP_CFG;
 	}
 
 	modify_reg16(ADIS16448_SMPL_PRD, 0x0700, smpl_prd);
 
-	if((read_reg16(ADIS16448_SMPL_PRD) & 0x0700) != smpl_prd)
+	if ((read_reg16(ADIS16448_SMPL_PRD) & 0x0700) != smpl_prd) {
 		DEVICE_DEBUG("failed to set IMU sample rate");
+	}
 
 }
 
@@ -773,8 +798,9 @@ ADIS16448::_set_dlpf_filter(uint16_t desired_filter_tap)
 
 	/* Verify data write on the IMU */
 
-	if((read_reg16(ADIS16448_SENS_AVG) & 0x0007) != desired_filter_tap)
+	if ((read_reg16(ADIS16448_SENS_AVG) & 0x0007) != desired_filter_tap) {
 		DEVICE_DEBUG("failed to set IMU filter");
+	}
 
 }
 
@@ -795,8 +821,10 @@ ADIS16448::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 
 	if (desired_gyro_dyn_range <= 250) {
 		gyro_range_selection = BITS_GYRO_DYN_RANGE_250_CFG;
+
 	} else if (desired_gyro_dyn_range <= 500) {
 		gyro_range_selection = BITS_GYRO_DYN_RANGE_500_CFG;
+
 	} else {
 		gyro_range_selection = BITS_GYRO_DYN_RANGE_1000_CFG;
 	}
@@ -805,8 +833,9 @@ ADIS16448::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 
 	/* Verify data write on the IMU */
 
-	if((read_reg16(ADIS16448_SENS_AVG) & 0x0700) != gyro_range_selection) {
+	if ((read_reg16(ADIS16448_SENS_AVG) & 0x0700) != gyro_range_selection) {
 		DEVICE_DEBUG("failed to set gyro range");
+
 	} else {
 		_gyro_range_rad_s  = ((float)(gyro_range_selection >> 8) * 250.0f / 180.0f) * M_PI_F;
 		_gyro_range_scale  = (float)(gyro_range_selection >> 8) / 100.0f;
@@ -820,8 +849,9 @@ ADIS16448::read(struct file *filp, char *buffer, size_t buflen)
 	unsigned count = buflen / sizeof(accel_report);
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
 	if (_call_interval == 0) {
@@ -830,17 +860,21 @@ ADIS16448::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if no data, error (we could block here) */
-	if (_accel_reports->empty())
+	if (_accel_reports->empty()) {
 		return -EAGAIN;
+	}
 
 	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
 	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
 	int transferred = 0;
+
 	while (count--) {
-		if (!_accel_reports->get(arp))
+		if (!_accel_reports->get(arp)) {
 			break;
+		}
+
 		transferred++;
 		arp++;
 	}
@@ -863,8 +897,9 @@ ADIS16448::self_test()
 int
 ADIS16448::accel_self_test()
 {
-	if (self_test())
+	if (self_test()) {
 		return 1;
+	}
 
 	return 0;
 }
@@ -872,8 +907,9 @@ ADIS16448::accel_self_test()
 int
 ADIS16448::gyro_self_test()
 {
-	if (self_test())
+	if (self_test()) {
 		return 1;
+	}
 
 	return 0;
 }
@@ -884,8 +920,9 @@ ADIS16448::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	unsigned count = buflen / sizeof(gyro_report);
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
 	if (_call_interval == 0) {
@@ -894,17 +931,21 @@ ADIS16448::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if no data, error (we could block here) */
-	if (_gyro_reports->empty())
+	if (_gyro_reports->empty()) {
 		return -EAGAIN;
+	}
 
 	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
 	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
 	int transferred = 0;
+
 	while (count--) {
-		if (!_gyro_reports->get(grp))
+		if (!_gyro_reports->get(grp)) {
 			break;
+		}
+
 		transferred++;
 		grp++;
 	}
@@ -919,8 +960,9 @@ ADIS16448::mag_read(struct file *filp, char *buffer, size_t buflen)
 	unsigned count = buflen / sizeof(mag_report);
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
 	if (_call_interval == 0) {
@@ -929,17 +971,21 @@ ADIS16448::mag_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if no data, error (we could block here) */
-	if (_mag_reports->empty())
+	if (_mag_reports->empty()) {
 		return -EAGAIN;
+	}
 
 	perf_count(_mag_reads);
 
 	/* copy reports out of our buffer to the caller */
 	mag_report *mrp = reinterpret_cast<mag_report *>(buffer);
 	int transferred = 0;
+
 	while (count--) {
-		if (!_mag_reports->get(mrp))
+		if (!_mag_reports->get(mrp)) {
 			break;
+		}
+
 		transferred++;
 		mrp++;
 	}
@@ -959,27 +1005,27 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-				/* switching to manual polling */
+			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop();
 				_call_interval = 0;
 				return OK;
 
-				/* external signalling not supported */
+			/* external signalling not supported */
 			case SENSOR_POLLRATE_EXTERNAL:
 
-				/* zero would be bad */
+			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-				/* set default/max polling rate */
+			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
 
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, ADIS16448_ACCEL_DEFAULT_RATE);
 
-				/* adjust to a legal polling interval in Hz */
+			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
 					bool want_start = (_call_interval == 0);
@@ -988,12 +1034,13 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000)
+					if (ticks < 1000) {
 						return -EINVAL;
+					}
 
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f/ticks;
+					float sample_rate = 1.0e6f / ticks;
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
@@ -1015,8 +1062,9 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 					_call.period = _call_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start();
+					}
 
 					return OK;
 				}
@@ -1024,25 +1072,29 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0)
+		if (_call_interval == 0) {
 			return SENSOR_POLLRATE_MANUAL;
+		}
 
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-		return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		irqstate_t flags = px4_enter_critical_section();
-		if (!_accel_reports->resize(arg)) {
+			irqstate_t flags = px4_enter_critical_section();
+
+			if (!_accel_reports->resize(arg)) {
+				px4_leave_critical_section(flags);
+				return -ENOMEM;
+			}
+
 			px4_leave_critical_section(flags);
-			return -ENOMEM;
+
+			return OK;
 		}
-		px4_leave_critical_section(flags);
-		
-		return OK;
-	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _accel_reports->size();
@@ -1063,14 +1115,15 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
-	case ACCELIOCSSCALE:
-		{
+	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
+
 			if (sum > 2.0f && sum < 4.0f) {
 				memcpy(&_accel_scale, s, sizeof(_accel_scale));
 				return OK;
+
 			} else {
 				return -EINVAL;
 			}
@@ -1083,8 +1136,9 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSRANGE:
 		return -EINVAL;
+
 	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2)/ADIS16448_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / ADIS16448_ONE_G + 0.5f);
 
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
@@ -1103,26 +1157,29 @@ ADIS16448::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-		/* these are shared with the accel side */
+	/* these are shared with the accel side */
 	case SENSORIOCSPOLLRATE:
 	case SENSORIOCGPOLLRATE:
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		irqstate_t flags = px4_enter_critical_section();
-		if (!_gyro_reports->resize(arg)) {
+			irqstate_t flags = px4_enter_critical_section();
+
+			if (!_gyro_reports->resize(arg)) {
+				px4_leave_critical_section(flags);
+				return -ENOMEM;
+			}
+
 			px4_leave_critical_section(flags);
-			return -ENOMEM;
-		}
-		px4_leave_critical_section(flags);
 
-		return OK;
-	}
+			return OK;
+		}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _gyro_reports->size();
@@ -1136,6 +1193,7 @@ ADIS16448::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCGLOWPASS:
 		return _gyro_filter_x.get_cutoff_freq();
+
 	case GYROIOCSLOWPASS:
 		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1156,6 +1214,7 @@ ADIS16448::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSRANGE:
 		_set_gyro_dyn_range(arg);
 		return OK;
+
 	case GYROIOCGRANGE:
 		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
@@ -1176,71 +1235,75 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-			/* these are shared with the accel side */
-		case SENSORIOCSPOLLRATE:
-		case SENSORIOCGPOLLRATE:
-		case SENSORIOCRESET:
-			return ioctl(filp, cmd, arg);
+	/* these are shared with the accel side */
+	case SENSORIOCSPOLLRATE:
+	case SENSORIOCGPOLLRATE:
+	case SENSORIOCRESET:
+		return ioctl(filp, cmd, arg);
 
-		case SENSORIOCSQUEUEDEPTH: {
+	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100))
+			if ((arg < 1) || (arg > 100)) {
 				return -EINVAL;
+			}
 
 			irqstate_t flags = px4_enter_critical_section();
+
 			if (!_mag_reports->resize(arg)) {
 				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
+
 			px4_leave_critical_section(flags);
 
 			return OK;
 		}
 
-		case SENSORIOCGQUEUEDEPTH:
-			return _mag_reports->size();
+	case SENSORIOCGQUEUEDEPTH:
+		return _mag_reports->size();
 
-		case MAGIOCGSAMPLERATE:
-			return _sample_rate;
+	case MAGIOCGSAMPLERATE:
+		return _sample_rate;
 
-		case MAGIOCSSAMPLERATE:
-			_set_sample_rate(arg);
-			return OK;
+	case MAGIOCSSAMPLERATE:
+		_set_sample_rate(arg);
+		return OK;
 
-		case MAGIOCGLOWPASS:
-			return _mag_filter_x.get_cutoff_freq();
-		case MAGIOCSLOWPASS:
-			_mag_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-			_mag_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-			_mag_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-			return OK;
+	case MAGIOCGLOWPASS:
+		return _mag_filter_x.get_cutoff_freq();
 
-		case MAGIOCSSCALE:
-			/* copy scale in */
-			memcpy(&_mag_scale, (struct mag_calibration_s *) arg, sizeof(_mag_scale));
-			return OK;
+	case MAGIOCSLOWPASS:
+		_mag_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_mag_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_mag_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		return OK;
 
-		case MAGIOCGSCALE:
-			/* copy scale out */
-			memcpy((struct mag_calibration_s *) arg, &_mag_scale, sizeof(_mag_scale));
-			return OK;
+	case MAGIOCSSCALE:
+		/* copy scale in */
+		memcpy(&_mag_scale, (struct mag_calibration_s *) arg, sizeof(_mag_scale));
+		return OK;
 
-		case MAGIOCSRANGE:
-			return -EINVAL;
+	case MAGIOCGSCALE:
+		/* copy scale out */
+		memcpy((struct mag_calibration_s *) arg, &_mag_scale, sizeof(_mag_scale));
+		return OK;
 
-		case MAGIOCGRANGE:
-			return (unsigned long)(_mag_range_mgauss);
+	case MAGIOCSRANGE:
+		return -EINVAL;
 
-		case MAGIOCSELFTEST:
-			return OK;
+	case MAGIOCGRANGE:
+		return (unsigned long)(_mag_range_mgauss);
 
-		case MAGIOCTYPE:
-			return (ADIS16448_Product);
+	case MAGIOCSELFTEST:
+		return OK;
 
-		default:
-			/* give it to the superclass */
-			return SPI::ioctl(filp, cmd, arg);
-		}
+	case MAGIOCTYPE:
+		return (ADIS16448_Product);
+
+	default:
+		/* give it to the superclass */
+		return SPI::ioctl(filp, cmd, arg);
+	}
 
 }
 
@@ -1267,7 +1330,7 @@ ADIS16448::write_reg16(unsigned reg, uint16_t value)
 
 	transferword(cmd, nullptr, 1);
 	up_udelay(T_STALL);
-	transferword(cmd+1, nullptr, 1);
+	transferword(cmd + 1, nullptr, 1);
 }
 
 void
@@ -1282,18 +1345,19 @@ ADIS16448::modify_reg16(unsigned reg, uint16_t clearbits, uint16_t setbits)
 }
 
 int16_t
-ADIS16448::convert12BitToINT16(int16_t word){
+ADIS16448::convert12BitToINT16(int16_t word)
+{
 
-	int16_t outputbuffer=0;
+	int16_t outputbuffer = 0;
 
-    if ((word >> 11) & 0x1){
-        outputbuffer = (word & 0xfff) | 0xf000;
-    }
-    else{
-        outputbuffer = (word & 0x0fff);
-    }
+	if ((word >> 11) & 0x1) {
+		outputbuffer = (word & 0xfff) | 0xf000;
 
-    return (outputbuffer);
+	} else {
+		outputbuffer = (word & 0x0fff);
+	}
+
+	return (outputbuffer);
 }
 
 void
@@ -1356,8 +1420,10 @@ ADIS16448::measure()
 	 */
 
 	adis_report.cmd = ((ADIS16448_GLOB_CMD | DIR_READ) << 8) & 0xff00;
-	if (OK != transferword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report)/sizeof(uint16_t)))
+
+	if (OK != transferword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report) / sizeof(uint16_t))) {
 		return -EIO;
+	}
 
 	report.gyro_x  = (int16_t) adis_report.gyro_x;
 	report.gyro_y  = (int16_t) adis_report.gyro_y;
@@ -1372,9 +1438,9 @@ ADIS16448::measure()
 	report.temp    = convert12BitToINT16(adis_report.temp);
 
 	if (report.gyro_x == 0 && report.gyro_y == 0 && report.gyro_z == 0 &&
-		report.accel_x == 0 && report.accel_y == 0 && report.accel_z == 0 &&
-		report.mag_x == 0 && report.mag_y == 0 && report.mag_z == 0 &&
-		report.baro == 0 && report.temp == 0) {
+	    report.accel_x == 0 && report.accel_y == 0 && report.accel_z == 0 &&
+	    report.mag_x == 0 && report.mag_y == 0 && report.mag_z == 0 &&
+	    report.baro == 0 && report.temp == 0) {
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
@@ -1388,7 +1454,7 @@ ADIS16448::measure()
 	mag_report		mrb;
 
 	grb.timestamp = arb.timestamp = mrb.timestamp = hrt_absolute_time();
-    grb.error_count = arb.error_count = mrb.error_count = perf_event_count(_bad_transfers);
+	grb.error_count = arb.error_count = mrb.error_count = perf_event_count(_bad_transfers);
 
 	/* Gyro report: */
 	grb.x_raw = report.gyro_x;
@@ -1402,22 +1468,22 @@ ADIS16448::measure()
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	float x_gyro_in_new = ((xraw_f * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((yraw_f * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((zraw_f * _gyro_range_scale)*M_PI_F/180.0f - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) * M_PI_F / 180.0f - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) * M_PI_F / 180.0f - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) * M_PI_F / 180.0f - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
-	if(FW_FILTER){
+	if (FW_FILTER) {
 		grb.x = _gyro_filter_x.apply(x_gyro_in_new);
 		grb.y = _gyro_filter_y.apply(y_gyro_in_new);
 		grb.z = _gyro_filter_z.apply(z_gyro_in_new);
-	}
-	else{
+
+	} else {
 		grb.x = x_gyro_in_new;
 		grb.y = y_gyro_in_new;
 		grb.z = z_gyro_in_new;
 	}
 
-	grb.scaling = _gyro_range_scale*M_PI_F/180.0f;
+	grb.scaling = _gyro_range_scale * M_PI_F / 180.0f;
 	grb.range_rad_s = _gyro_range_rad_s;
 
 	/* Accel report: */
@@ -1436,12 +1502,12 @@ ADIS16448::measure()
 	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
-	if(FW_FILTER){
+	if (FW_FILTER) {
 		arb.x = _accel_filter_x.apply(x_in_new);
 		arb.y = _accel_filter_y.apply(y_in_new);
 		arb.z = _accel_filter_z.apply(z_in_new);
-	}
-	else{
+
+	} else {
 		arb.x = x_in_new;
 		arb.y = y_in_new;
 		arb.z = z_in_new;
@@ -1466,12 +1532,12 @@ ADIS16448::measure()
 	float y_mag_new = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
 	float z_mag_new = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
 
-	if(FW_FILTER){
+	if (FW_FILTER) {
 		mrb.x = _mag_filter_x.apply(x_mag_new) / 1000.0f;
 		mrb.y = _mag_filter_y.apply(y_mag_new) / 1000.0f;
 		mrb.z = _mag_filter_z.apply(z_mag_new) / 1000.0f;
-	}
-	else{
+
+	} else {
 		mrb.x = x_mag_new / 1000.0f;
 		mrb.y = y_mag_new / 1000.0f;
 		mrb.z = z_mag_new / 1000.0f;
@@ -1480,7 +1546,7 @@ ADIS16448::measure()
 	mrb.scaling  = _mag_range_scale / 1000.0f;
 	mrb.range_ga = _mag_range_mgauss / 1000.0f;
 
-    /* Temperature report: */
+	/* Temperature report: */
 	grb.temperature_raw = report.temp;
 	grb.temperature 	= (report.temp * 0.07386f) + 31.0f;
 
@@ -1588,7 +1654,8 @@ ADIS16448::print_info()
 	_gyro_reports->print_info("gyro queue");
 	_mag_reports->print_info("mag queue");
 
-	printf("DEVICE ID:\nACCEL:\t%d\nGYRO:\t%d\nMAG:\t%d\n", _device_id.devid, _gyro->_device_id.devid, _mag->_device_id.devid);
+	printf("DEVICE ID:\nACCEL:\t%d\nGYRO:\t%d\nMAG:\t%d\n", _device_id.devid, _gyro->_device_id.devid,
+	       _mag->_device_id.devid);
 }
 
 ADIS16448_gyro::ADIS16448_gyro(ADIS16448 *parent, const char *path) :
@@ -1602,8 +1669,9 @@ ADIS16448_gyro::ADIS16448_gyro(ADIS16448 *parent, const char *path) :
 
 ADIS16448_gyro::~ADIS16448_gyro()
 {
-	if (_gyro_class_instance != -1)
+	if (_gyro_class_instance != -1) {
 		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
+	}
 }
 
 int
@@ -1641,11 +1709,12 @@ int
 ADIS16448_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-		case DEVIOCGDEVICEID:
-			return (int)CDev::ioctl(filp, cmd, arg);
-			break;
-		default:
-			return _parent->gyro_ioctl(filp, cmd, arg);
+	case DEVIOCGDEVICEID:
+		return (int)CDev::ioctl(filp, cmd, arg);
+		break;
+
+	default:
+		return _parent->gyro_ioctl(filp, cmd, arg);
 	}
 }
 
@@ -1660,8 +1729,9 @@ ADIS16448_mag::ADIS16448_mag(ADIS16448 *parent, const char *path) :
 
 ADIS16448_mag::~ADIS16448_mag()
 {
-	if (_mag_class_instance != -1)
+	if (_mag_class_instance != -1) {
 		unregister_class_devname(MAG_BASE_DEVICE_PATH, _mag_class_instance);
+	}
 }
 
 int
@@ -1699,11 +1769,12 @@ int
 ADIS16448_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-		case DEVIOCGDEVICEID:
-			return (int)CDev::ioctl(filp, cmd, arg);
-			break;
-		default:
-			return _parent->mag_ioctl(filp, cmd, arg);
+	case DEVIOCGDEVICEID:
+		return (int)CDev::ioctl(filp, cmd, arg);
+		break;
+
+	default:
+		return _parent->mag_ioctl(filp, cmd, arg);
 	}
 }
 
@@ -1731,34 +1802,42 @@ start(enum Rotation rotation)
 
 	if (g_dev != nullptr)
 		/* if already started, the still command succeeded */
+	{
 		errx(0, "already started");
+	}
 
 	/* create the driver */
 #if defined(PX4_SPI_BUS_EXT)
-	g_dev = new ADIS16448(PX4_SPI_BUS_EXT, ADIS16448_DEVICE_PATH_ACCEL, ADIS16448_DEVICE_PATH_GYRO, ADIS16448_DEVICE_PATH_MAG, PX4_SPIDEV_EXT_MPU, rotation);
+	g_dev = new ADIS16448(PX4_SPI_BUS_EXT, ADIS16448_DEVICE_PATH_ACCEL, ADIS16448_DEVICE_PATH_GYRO,
+			      ADIS16448_DEVICE_PATH_MAG, PX4_SPIDEV_EXT_MPU, rotation);
 #else
-		PX4_ERR("External SPI not available");
-		exit(0);
+	PX4_ERR("External SPI not available");
+	exit(0);
 #endif
 
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		goto fail;
+	}
 
-	if (OK != (g_dev)->init())
+	if (OK != (g_dev)->init()) {
 		goto fail;
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(ADIS16448_DEVICE_PATH_ACCEL, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		goto fail;
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
+	}
 
 	close(fd);
 	exit(0);
 fail:
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
@@ -1784,20 +1863,23 @@ test()
 	/* get the driver */
 	int fd = open(ADIS16448_DEVICE_PATH_ACCEL, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "%s open failed", ADIS16448_DEVICE_PATH_ACCEL);
+	}
 
 	/* get the mag driver */
 	int fd_mag = open(ADIS16448_DEVICE_PATH_MAG, O_RDONLY);
 
-	if (fd_mag < 0)
+	if (fd_mag < 0) {
 		err(1, "%s open failed", ADIS16448_DEVICE_PATH_MAG);
+	}
 
 	/* get the gyro driver */
 	int fd_gyro = open(ADIS16448_DEVICE_PATH_GYRO, O_RDONLY);
 
-	if (fd_gyro < 0)
+	if (fd_gyro < 0) {
 		err(1, "%s open failed", ADIS16448_DEVICE_PATH_GYRO);
+	}
 
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
@@ -1871,14 +1953,17 @@ reset()
 {
 	int fd = open(ADIS16448_DEVICE_PATH_ACCEL, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "open failed");
+	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "driver reset failed");
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		err(1, "driver poll restart failed");
+	}
 
 	close(fd);
 
@@ -1891,8 +1976,9 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		errx(1, "driver not running");
+	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
@@ -1906,8 +1992,9 @@ info()
 void
 info_cal()
 {
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		errx(1, "driver not running");
+	}
 
 	g_dev->print_calibration_data();
 
@@ -1950,32 +2037,37 @@ adis16448_main(int argc, char *argv[])
 	 * Start/load the driver.
 
 	 */
-	if (!strcmp(verb, "start"))
+	if (!strcmp(verb, "start")) {
 		adis16448::start(rotation);
+	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(verb, "test"))
+	if (!strcmp(verb, "test")) {
 		adis16448::test();
+	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(verb, "reset"))
+	if (!strcmp(verb, "reset")) {
 		adis16448::reset();
+	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info"))
+	if (!strcmp(verb, "info")) {
 		adis16448::info();
+	}
 
 	/*
 	 * Print sensor calibration information.
 	 */
-	if (!strcmp(verb, "info_cal"))
+	if (!strcmp(verb, "info_cal")) {
 		adis16448::info_cal();
+	}
 
 	adis16448::usage();
 	exit(1);
