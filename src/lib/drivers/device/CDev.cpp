@@ -56,7 +56,7 @@ CDev::CDev(const char *name, const char *devname) :
 	int ret = px4_sem_init(&_lock, 0, 1);
 
 	if (ret != 0) {
-		PX4_WARN("SEM INIT FAIL: ret %d", ret);
+		PX4_ERR("SEM INIT FAIL: ret %d", ret);
 	}
 }
 
@@ -120,7 +120,7 @@ CDev::init()
 {
 	DEVICE_DEBUG("CDev::init");
 
-	int ret = PX4_ERROR;
+	int ret = PX4_OK;
 
 	// now register the driver
 	if (_devname != nullptr) {
@@ -166,13 +166,6 @@ CDev::open(file_t *filep)
 }
 
 int
-CDev::open_first(file_t *filep)
-{
-	DEVICE_DEBUG("CDev::open_first");
-	return PX4_OK;
-}
-
-int
 CDev::close(file_t *filep)
 {
 	DEVICE_DEBUG("CDev::close");
@@ -196,34 +189,6 @@ CDev::close(file_t *filep)
 	unlock();
 
 	return ret;
-}
-
-int
-CDev::close_last(file_t *filep)
-{
-	DEVICE_DEBUG("CDev::close_last");
-	return PX4_OK;
-}
-
-ssize_t
-CDev::read(file_t *filep, char *buffer, size_t buflen)
-{
-	DEVICE_DEBUG("CDev::read");
-	return -ENOSYS;
-}
-
-ssize_t
-CDev::write(file_t *filep, const char *buffer, size_t buflen)
-{
-	DEVICE_DEBUG("CDev::write");
-	return -ENOSYS;
-}
-
-off_t
-CDev::seek(file_t *filep, off_t offset, int whence)
-{
-	DEVICE_DEBUG("CDev::seek");
-	return -ENOSYS;
 }
 
 int
@@ -346,21 +311,13 @@ CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 	/* update the reported event set */
 	fds->revents |= fds->events & events;
 
-	DEVICE_DEBUG(" Events fds=%p %0x %0x %0x %d", fds, fds->revents, fds->events, events, value);
+	//DEVICE_DEBUG("Events fds=%p %0x %0x %0x %d", fds, fds->revents, fds->events, events, value);
 
 	/* if the state is now interesting, wake the waiter if it's still asleep */
 	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
 	if ((fds->revents != 0) && (value <= 0)) {
 		px4_sem_post(fds->sem);
 	}
-}
-
-pollevent_t
-CDev::poll_state(file_t *filep)
-{
-	DEVICE_DEBUG("CDev::poll_notify");
-	/* by default, no poll events to report */
-	return 0;
 }
 
 int
@@ -416,7 +373,6 @@ CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 
 			_pollset[i] = nullptr;
 			return PX4_OK;
-
 		}
 	}
 
