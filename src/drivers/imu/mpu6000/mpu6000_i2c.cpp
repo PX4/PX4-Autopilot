@@ -67,13 +67,10 @@ class MPU6000_I2C : public device::I2C
 {
 public:
 	MPU6000_I2C(int bus, int device_type);
-	virtual ~MPU6000_I2C();
+	virtual ~MPU6000_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 protected:
 	virtual int	probe();
@@ -95,40 +92,6 @@ MPU6000_I2C::MPU6000_I2C(int bus, int device_type) :
 	_device_type(device_type)
 {
 	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU6000;
-}
-
-MPU6000_I2C::~MPU6000_I2C()
-{
-}
-
-int
-MPU6000_I2C::init()
-{
-	/* this will call probe() */
-	return I2C::init();
-}
-
-int
-MPU6000_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	case MPUIOCGIS_I2C:
-		return 1;
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
 }
 
 int

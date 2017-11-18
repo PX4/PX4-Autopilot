@@ -354,7 +354,7 @@ private:
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	int			reset();
+	int			reset() override;
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a

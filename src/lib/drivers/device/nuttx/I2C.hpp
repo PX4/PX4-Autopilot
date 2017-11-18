@@ -55,7 +55,7 @@ class __EXPORT I2C : public CDev
 
 public:
 
-	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
+	static int		set_bus_clock(unsigned bus, unsigned clock_hz);
 
 	static unsigned	int	_bus_clocks[BOARD_NUMBER_I2C_BUSES];
 
@@ -75,7 +75,7 @@ protected:
 	 * @param address	I2C bus address, or zero if set_address will be used
 	 * @param frequency	I2C bus frequency for the device (currently not used)
 	 */
-	I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency);
+	I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency = 0);
 	virtual ~I2C();
 
 	virtual int	init();

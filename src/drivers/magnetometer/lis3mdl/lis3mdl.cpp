@@ -366,7 +366,6 @@ LIS3MDL::collect()
 	float zraw_f;
 
 	struct mag_report new_mag_report;
-	bool sensor_is_onboard = false;
 
 	perf_begin(_sample_perf);
 
@@ -399,11 +398,7 @@ LIS3MDL::collect()
 	float temperature = report.t;
 	new_mag_report.temperature = 25.0f + (temperature / 8.0f);
 
-	// XXX revisit for SPI part, might require a bus type IOCTL
-
-	unsigned dummy = 0;
-	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
-	new_mag_report.is_external = !sensor_is_onboard;
+	new_mag_report.is_external = _interface->external();
 
 	/**
 	 * RAW outputs
@@ -433,7 +428,7 @@ LIS3MDL::collect()
 
 		} else {
 			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &new_mag_report,
-							 &_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
+							 &_orb_class_instance, (new_mag_report.is_external) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 			if (_mag_topic == nullptr) {
 				DEVICE_DEBUG("ADVERT FAIL");
@@ -524,8 +519,6 @@ LIS3MDL::init()
 int
 LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 {
-	unsigned dummy = 0;
-
 	switch (cmd) {
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
@@ -633,13 +626,8 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 	case MAGIOCSELFTEST:
 		return check_calibration();
 
-
 	case MAGIOCGEXTERNAL:
-		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
-		return _interface->ioctl(cmd, dummy);
-
-	case DEVIOCGDEVICEID:
-		return _interface->ioctl(cmd, dummy);
+		return _interface->external();
 
 	default:
 		/* give it to the superclass */

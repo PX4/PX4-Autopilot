@@ -69,13 +69,10 @@ class AK8963_I2C : public device::I2C
 {
 public:
 	AK8963_I2C(int bus);
-	virtual ~AK8963_I2C();
+	virtual ~AK8963_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 protected:
 	virtual int	probe();
@@ -92,41 +89,7 @@ AK8963_I2C_interface(int bus, bool external_bus)
 AK8963_I2C::AK8963_I2C(int bus) :
 	I2C("AK8963_I2C", nullptr, bus, AK8963_I2C_ADDR, 400000)
 {
-	_device_id.devid_s.devtype =  DRV_MAG_DEVTYPE_MPU9250;
-}
-
-AK8963_I2C::~AK8963_I2C()
-{
-}
-
-int
-AK8963_I2C::init()
-{
-	/* this will call probe() */
-	return I2C::init();
-}
-
-int
-AK8963_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	case MPUIOCGIS_I2C:
-		return 1;
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_MPU9250;
 }
 
 int
@@ -149,7 +112,6 @@ AK8963_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	uint8_t cmd = MPU9250_REG(reg_speed);
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
-
 
 int
 AK8963_I2C::probe()

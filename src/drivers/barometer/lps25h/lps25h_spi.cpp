@@ -73,14 +73,11 @@ class LPS25H_SPI : public device::SPI
 {
 public:
 	LPS25H_SPI(int bus, uint32_t device);
-	virtual ~LPS25H_SPI();
+	virtual ~LPS25H_SPI() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
 };
 
 device::Device *
@@ -93,10 +90,6 @@ LPS25H_SPI::LPS25H_SPI(int bus, uint32_t device) :
 	SPI("LPS25H_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000 /* will be rounded to 10.4 MHz */)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LPS25H;
-}
-
-LPS25H_SPI::~LPS25H_SPI()
-{
 }
 
 int
@@ -125,24 +118,6 @@ LPS25H_SPI::init()
 	}
 
 	return OK;
-}
-
-int
-LPS25H_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
 }
 
 int

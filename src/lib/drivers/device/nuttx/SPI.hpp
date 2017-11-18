@@ -63,12 +63,8 @@ protected:
 	 * @param mode		SPI clock/data mode
 	 * @param frequency	SPI clock frequency
 	 */
-	SPI(const char *name,
-	    const char *devname,
-	    int bus,
-	    uint32_t device,
-	    enum spi_mode_e mode,
-	    uint32_t frequency);
+	SPI(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency);
+
 	virtual ~SPI();
 
 	/**
@@ -163,7 +159,7 @@ private:
 	SPI operator=(const SPI &);
 
 protected:
-	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
+	int		_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
 	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 

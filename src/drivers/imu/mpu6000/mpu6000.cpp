@@ -259,7 +259,7 @@ private:
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	int			reset();
+	int			reset() override;
 
 	/**
 	 * is_icm_device
@@ -368,17 +368,6 @@ private:
 	 * Swap a 16-bit value read from the MPU6000 to native byte order.
 	 */
 	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
-
-	/**
-	 * Get the internal / external state
-	 *
-	 * @return true if the sensor is not on the main MCU board
-	 */
-	bool			is_external()
-	{
-		unsigned dummy;
-		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
-	}
 
 	/**
 	 * Measurement self test
@@ -628,8 +617,7 @@ MPU6000::init()
 {
 
 #if defined(USE_I2C)
-	unsigned dummy;
-	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
+	use_i2c(_interface->get_device_bus_type() == DeviceBusType_I2C);
 #endif
 
 
@@ -738,7 +726,7 @@ MPU6000::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
+					   &_accel_orb_class_instance, _interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_accel_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
@@ -749,7 +737,7 @@ MPU6000::init()
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
+			     &_gyro->_gyro_orb_class_instance, _interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
@@ -766,8 +754,6 @@ int MPU6000::reset()
 	// come as zero
 	uint8_t tries = 5;
 	irqstate_t state;
-
-
 
 	while (--tries != 0) {
 		state = px4_enter_critical_section();
@@ -1358,8 +1344,6 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 int
 MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	unsigned dummy = arg;
-
 	switch (cmd) {
 
 	case SENSORIOCRESET:
@@ -1500,7 +1484,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return accel_self_test();
 
 	case ACCELIOCGEXTERNAL:
-		return _interface->ioctl(cmd, dummy);
+		return _interface->external();
 
 	default:
 		/* give it to the superclass */
@@ -2189,15 +2173,7 @@ MPU6000_gyro::read(struct file *filp, char *buffer, size_t buflen)
 int
 MPU6000_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-
-	switch (cmd) {
-	case DEVIOCGDEVICEID:
-		return (int)CDev::ioctl(filp, cmd, arg);
-		break;
-
-	default:
-		return _parent->gyro_ioctl(filp, cmd, arg);
-	}
+	return _parent->gyro_ioctl(filp, cmd, arg);
 }
 
 /**

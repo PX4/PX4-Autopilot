@@ -89,14 +89,12 @@ public:
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
-	virtual int	ioctl(unsigned operation, unsigned &arg);
 protected:
 	virtual int probe();
 
 private:
 
 	/* Helper to set the desired speed and isolate the register on return */
-
 	void set_bus_frequency(unsigned &reg_speed_reg_out);
 };
 
@@ -121,44 +119,16 @@ MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus)
 MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device) :
 	SPI("MPU9250", nullptr, bus, device, SPIDEV_MODE3, MPU9250_LOW_SPI_BUS_SPEED)
 {
-	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
-}
-
-int
-MPU9250_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		external();
-
-	/* FALLTHROUGH */
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	case MPUIOCGIS_I2C:
-		return 0;
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
 }
 
 void
 MPU9250_SPI::set_bus_frequency(unsigned &reg_speed)
 {
 	/* Set the desired speed */
-
 	set_frequency(MPU9250_IS_HIGH_SPEED(reg_speed) ? MPU9250_HIGH_SPI_BUS_SPEED : MPU9250_LOW_SPI_BUS_SPEED);
 
-	/* Isoolate the register on return */
-
+	/* Isolate the register on return */
 	reg_speed = MPU9250_REG(reg_speed);
 }
 
@@ -172,7 +142,6 @@ MPU9250_SPI::write(unsigned reg_speed, void *data, unsigned count)
 	}
 
 	/* Set the desired speed and isolate the register */
-
 	set_bus_frequency(reg_speed);
 
 	cmd[0] = reg_speed | DIR_WRITE;
@@ -195,32 +164,24 @@ MPU9250_SPI::read(unsigned reg_speed, void *data, unsigned count)
 
 
 	if (count < sizeof(MPUReport))  {
-
 		/* add command */
-
 		count++;
 	}
 
 	set_bus_frequency(reg_speed);
 
 	/* Set command */
-
 	pbuff[0] = reg_speed | DIR_READ ;
 
 	/* Transfer the command and get the data */
-
 	int ret = transfer(pbuff, pbuff, count);
 
 	if (ret == OK && pbuff == &cmd[0]) {
-
 		/* Adjust the count back */
-
 		count--;
 
 		/* Return the data */
-
 		memcpy(data, &cmd[1], count);
-
 	}
 
 	return ret;

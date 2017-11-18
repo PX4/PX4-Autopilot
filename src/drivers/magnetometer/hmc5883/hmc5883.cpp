@@ -195,7 +195,7 @@ private:
 	/**
 	 * Reset the device
 	 */
-	int			reset();
+	int			reset() override;
 
 	/**
 	 * Perform the on-sensor scale calibration routine.
@@ -617,8 +617,6 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 int
 HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	unsigned dummy = arg;
-
 	switch (cmd) {
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
@@ -743,8 +741,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return check_calibration();
 
 	case MAGIOCGEXTERNAL:
-		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
-		return _interface->ioctl(cmd, dummy);
+		return _interface->external();
 
 	case MAGIOCSTEMPCOMP:
 		return set_temperature_compensation(arg);
@@ -985,8 +982,7 @@ HMC5883::collect()
 	/* scale values for output */
 
 	// XXX revisit for SPI part, might require a bus type IOCTL
-	unsigned dummy;
-	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
+	sensor_is_onboard = !_interface->external();
 	new_report.is_external = !sensor_is_onboard;
 
 	if (sensor_is_onboard) {

@@ -275,7 +275,7 @@ private:
 	/**
 	 * Reset the driver
 	 */
-	void			reset();
+	int			reset() override;
 
 	/**
 	 * disable I2C on the chip
@@ -870,7 +870,7 @@ L3GD20::disable_i2c(void)
 	DEVICE_DEBUG("FAILED TO DISABLE I2C");
 }
 
-void
+int
 L3GD20::reset()
 {
 	// ensure the chip doesn't interpret any other bus traffic as I2C
@@ -895,6 +895,8 @@ L3GD20::reset()
 	set_driver_lowpass_filter(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ);
 
 	_read = 0;
+
+	return PX4_OK;
 }
 
 void

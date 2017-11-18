@@ -256,8 +256,7 @@ MPU9250::init()
 {
 
 #if defined(USE_I2C)
-	unsigned dummy;
-	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
+	use_i2c(_interface->get_device_bus_type() == DeviceBusType_I2C);
 #endif
 
 	/*
@@ -400,7 +399,7 @@ MPU9250::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+					   &_accel_orb_class_instance, _interface->external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_accel_topic == nullptr) {
 		PX4_ERR("ADVERT FAIL");
@@ -412,7 +411,7 @@ MPU9250::init()
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+			     &_gyro->_gyro_orb_class_instance, _interface->external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		PX4_ERR("ADVERT FAIL");

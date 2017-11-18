@@ -104,22 +104,11 @@ public:
 	 */
 	virtual int	write(unsigned address, void *data, unsigned count) { return -ENODEV; }
 
-	/**
-	 * Perform a device-specific operation.
-	 *
-	 * @param operation	The operation to perform.
-	 * @param arg		An argument to the operation.
-	 * @return		Negative errno on error, OK or positive value on success.
-	 */
-	virtual int	ioctl(unsigned operation, unsigned &arg)
-	{
-		switch (operation) {
-		case DEVIOCGDEVICEID:
-			return get_device_id();
-		}
+	virtual int reset() { return PX4_OK; }
 
-		return -ENODEV;
-	}
+	virtual int test(unsigned arg1 = 0, unsigned arg2 = 0) { return PX4_ERROR; }
+
+	virtual int measure(unsigned address = 0) { return PX4_ERROR; }
 
 	/** Device bus types for DEVID */
 	enum DeviceBusType {
@@ -146,12 +135,7 @@ protected:
 	union DeviceId {
 		uint32_t devid;
 
-		/*
-		  broken out device elements. The bitfields are used to keep
-		  the overall value small enough to fit in a float accurately,
-		  which makes it possible to transport over the MAVLink
-		  parameter protocol without loss of information.
-		 */
+		// broken out device elements
 		struct DeviceStructure {
 			enum DeviceBusType bus_type : 3;
 			uint8_t bus: 5;    // which instance of the bus type

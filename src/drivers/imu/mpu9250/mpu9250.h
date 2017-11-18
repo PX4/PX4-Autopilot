@@ -190,9 +190,6 @@
 
 #define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	92
 
-#define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
-
-
 #pragma pack(push, 1)
 /**
  * Report conversation within the mpu, including command byte and
@@ -406,9 +403,6 @@ private:
 
 	bool is_i2c(void) { return !_use_hrt; }
 
-
-
-
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
 	 * generic hrt wrapper yet.
@@ -484,17 +478,6 @@ private:
 	 * Swap a 16-bit value read from the mpu to native byte order.
 	 */
 	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
-
-	/**
-	 * Get the internal / external state
-	 *
-	 * @return true if the sensor is not on the main MCU board
-	 */
-	bool			is_external()
-	{
-		unsigned dummy;
-		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
-	}
 
 	/**
 	 * Measurement self test

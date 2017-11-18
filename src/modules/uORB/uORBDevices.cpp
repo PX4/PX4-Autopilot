@@ -703,7 +703,7 @@ uORB::DeviceNode::update_deferred_trampoline(void *arg)
 }
 
 bool
-uORB::DeviceNode::print_statistics(bool reset)
+uORB::DeviceNode::print_statistics(bool should_reset)
 {
 	if (!_lost_messages) {
 		return false;
@@ -713,7 +713,7 @@ uORB::DeviceNode::print_statistics(bool reset)
 	//This can be wrong: if a reader never reads, _lost_messages will not be increased either
 	uint32_t lost_messages = _lost_messages;
 
-	if (reset) {
+	if (should_reset) {
 		_lost_messages = 0;
 	}
 
@@ -951,7 +951,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	}
 }
 
-void uORB::DeviceMaster::printStatistics(bool reset)
+void uORB::DeviceMaster::printStatistics(bool should_reset)
 {
 	hrt_abstime current_time = hrt_absolute_time();
 	PX4_INFO("Statistics, since last output (%i ms):",
@@ -965,7 +965,7 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 	ITERATE_NODE_MAP() {
 		INIT_NODE_MAP_VARS(node, node_name)
 
-		if (node->print_statistics(reset)) {
+		if (node->print_statistics(should_reset)) {
 			had_print = true;
 		}
 	}

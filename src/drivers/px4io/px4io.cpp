@@ -3267,7 +3267,7 @@ if_test(unsigned mode)
 	int result;
 
 	if (interface) {
-		result = interface->ioctl(1, mode); /* XXX magic numbers */
+		result = interface->test(1, mode); /* XXX magic numbers */
 		delete interface;
 
 	} else {

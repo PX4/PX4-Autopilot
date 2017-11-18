@@ -33,6 +33,7 @@ Checks:          '*
 		,-cppcoreguidelines-pro-type-vararg
 		,-cppcoreguidelines-special-member-functions
 		,-google-build-using-namespace
+		,-google-default-arguments
 		,-google-explicit-constructor
 		,-google-global-names-in-headers
 		,-google-readability-casting

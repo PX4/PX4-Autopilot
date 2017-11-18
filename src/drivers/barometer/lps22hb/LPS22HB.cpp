@@ -103,8 +103,6 @@ out:
 int
 LPS22HB::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	unsigned dummy = arg;
-
 	switch (cmd) {
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
@@ -175,9 +173,6 @@ LPS22HB::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCRESET:
 		return reset();
-
-	case DEVIOCGDEVICEID:
-		return _interface->ioctl(cmd, dummy);
 
 	default:
 		/* give it to the superclass */

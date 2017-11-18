@@ -67,17 +67,13 @@ class LPS25H_I2C : public device::I2C
 {
 public:
 	LPS25H_I2C(int bus);
-	virtual ~LPS25H_I2C();
+	virtual ~LPS25H_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
 protected:
 	virtual int	probe();
-
 };
 
 device::Device *
@@ -89,34 +85,6 @@ LPS25H_I2C_interface(int bus)
 LPS25H_I2C::LPS25H_I2C(int bus) :
 	I2C("LPS25H_I2C", nullptr, bus, LPS25H_ADDRESS, 400000)
 {
-}
-
-LPS25H_I2C::~LPS25H_I2C()
-{
-}
-
-int
-LPS25H_I2C::init()
-{
-	/* this will call probe() */
-	return I2C::init();
-}
-
-int
-LPS25H_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
 }
 
 int

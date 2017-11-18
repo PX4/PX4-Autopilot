@@ -119,13 +119,5 @@ MPU9250_gyro::read(struct file *filp, char *buffer, size_t buflen)
 int
 MPU9250_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-
-	switch (cmd) {
-	case DEVIOCGDEVICEID:
-		return (int)CDev::ioctl(filp, cmd, arg);
-		break;
-
-	default:
-		return _parent->gyro_ioctl(filp, cmd, arg);
-	}
+	return _parent->gyro_ioctl(filp, cmd, arg);
 }

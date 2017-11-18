@@ -72,8 +72,6 @@ public:
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
 protected:
 	virtual int	probe();
 
@@ -89,29 +87,6 @@ MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
 	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
 {
 	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
-}
-
-int
-MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret = PX4_ERROR;
-
-	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	case MPUIOCGIS_I2C:
-		return 1;
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
 }
 
 int

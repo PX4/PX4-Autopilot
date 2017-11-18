@@ -67,11 +67,10 @@ class MS5611_SPI : public device::SPI
 {
 public:
 	MS5611_SPI(uint8_t bus, uint32_t device, ms5611::prom_u &prom_buf);
-	virtual ~MS5611_SPI();
+	virtual ~MS5611_SPI() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 private:
 	ms5611::prom_u	&_prom;
@@ -81,14 +80,14 @@ private:
 	 *
 	 * This is required after any bus reset.
 	 */
-	int		_reset();
+	int		reset() override;
 
 	/**
 	 * Send a measure command to the MS5611.
 	 *
 	 * @param addr		Which address to use for the measure operation.
 	 */
-	int		_measure(unsigned addr);
+	int		measure(unsigned addr) override;
 
 	/**
 	 * Read the MS5611 PROM
@@ -136,10 +135,6 @@ MS5611_SPI::MS5611_SPI(uint8_t bus, uint32_t device, ms5611::prom_u &prom_buf) :
 {
 }
 
-MS5611_SPI::~MS5611_SPI()
-{
-}
-
 int
 MS5611_SPI::init()
 {
@@ -158,7 +153,7 @@ MS5611_SPI::init()
 	}
 
 	/* send reset command */
-	ret = _reset();
+	ret = reset();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("reset failed");
@@ -203,33 +198,7 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 }
 
 int
-MS5611_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-	case IOCTL_RESET:
-		ret = _reset();
-		break;
-
-	case IOCTL_MEASURE:
-		ret = _measure(arg);
-		break;
-
-	default:
-		ret = EINVAL;
-	}
-
-	if (ret != OK) {
-		errno = ret;
-		return -1;
-	}
-
-	return 0;
-}
-
-int
-MS5611_SPI::_reset()
+MS5611_SPI::reset()
 {
 	uint8_t cmd = ADDR_RESET_CMD | DIR_WRITE;
 
@@ -237,13 +206,12 @@ MS5611_SPI::_reset()
 }
 
 int
-MS5611_SPI::_measure(unsigned addr)
+MS5611_SPI::measure(unsigned addr)
 {
 	uint8_t cmd = addr | DIR_WRITE;
 
 	return _transfer(&cmd, nullptr, 1);
 }
-
 
 int
 MS5611_SPI::_read_prom()

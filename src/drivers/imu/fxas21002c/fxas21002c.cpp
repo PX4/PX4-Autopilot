@@ -306,7 +306,7 @@ private:
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	void			reset();
+	int			reset() override;
 
 	/**
 	 * disable I2C on the chip
@@ -532,7 +532,7 @@ out:
 }
 
 
-void
+int
 FXAS21002C::reset()
 {
 	/* write 0 0 0 000 00 = 0x00 to CTRL_REG1 to place FXOS21002 in Standby
@@ -564,6 +564,8 @@ FXAS21002C::reset()
 	set_range(FXAS21002C_DEFAULT_RANGE_DPS);
 	set_driver_lowpass_filter(FXAS21002C_DEFAULT_RATE, FXAS21002C_DEFAULT_FILTER_FREQ);
 	_read = 0;
+
+	return PX4_OK;
 }
 
 int

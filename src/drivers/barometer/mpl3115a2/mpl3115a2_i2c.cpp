@@ -64,27 +64,26 @@ class MPL3115A2_I2C : public device::I2C
 {
 public:
 	MPL3115A2_I2C(uint8_t bus);
-	virtual ~MPL3115A2_I2C();
+	virtual ~MPL3115A2_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
-protected:
-	virtual int	probe();
-
-private:
 
 	/**
 	 * Send a measure command to the MPL3115A2.
 	 *
 	 * @param addr		Which address to use for the measure operation.
 	 */
-	int		_measure(unsigned addr);
+	int		measure(unsigned addr) override;
+
+	int	reset() override;
+
+protected:
+	virtual int	probe();
+
+private:
 
 	int reg_read(uint8_t reg, void *data, unsigned count = 1);
 	int reg_write(uint8_t reg, uint8_t data);
-	int	reset();
 
 };
 
@@ -97,18 +96,8 @@ MPL3115A2_i2c_interface(uint8_t busnum)
 MPL3115A2_I2C::MPL3115A2_I2C(uint8_t bus) :
 	I2C("MPL3115A2_I2C", nullptr, bus, 0, 400000)
 {
-}
-
-MPL3115A2_I2C::~MPL3115A2_I2C()
-{
-}
-
-int
-MPL3115A2_I2C::init()
-{
 	/* this will call probe() */
 	set_device_address(MPL3115A2_ADDRESS);
-	return I2C::init();
 }
 
 int
@@ -165,27 +154,6 @@ MPL3115A2_I2C::read(unsigned offset, void *data, unsigned count)
 }
 
 int
-MPL3115A2_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-	case IOCTL_RESET:
-		ret = reset();
-		break;
-
-	case IOCTL_MEASURE:
-		ret = _measure(arg);
-		break;
-
-	default:
-		ret = EINVAL;
-	}
-
-	return ret;
-}
-
-int
 MPL3115A2_I2C::probe()
 {
 	_retries = 10;
@@ -204,7 +172,7 @@ MPL3115A2_I2C::probe()
 }
 
 int
-MPL3115A2_I2C::_measure(unsigned addr)
+MPL3115A2_I2C::measure(unsigned addr)
 {
 	/*
 	 * Disable retries on this command; we can't know whether failure

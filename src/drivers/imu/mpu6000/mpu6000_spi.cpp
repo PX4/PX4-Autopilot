@@ -101,13 +101,11 @@ class MPU6000_SPI : public device::SPI
 {
 public:
 	MPU6000_SPI(int bus, uint32_t device, int device_type);
-	virtual ~MPU6000_SPI();
+	virtual ~MPU6000_SPI() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
-	virtual int	ioctl(unsigned operation, unsigned &arg);
 protected:
 	virtual int probe();
 
@@ -210,63 +208,16 @@ MPU6000_SPI::MPU6000_SPI(int bus, uint32_t device, int device_type) :
 	SPI("MPU6000", nullptr, bus, device, SPIDEV_MODE3, MPU6000_LOW_SPI_BUS_SPEED),
 	_device_type(device_type)
 {
-	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU6000;
-}
-
-MPU6000_SPI::~MPU6000_SPI()
-{
-}
-
-int
-MPU6000_SPI::init()
-{
-	int ret;
-
-	ret = SPI::init();
-
-	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
-		return -EIO;
-	}
-
-	return OK;
-}
-
-int
-MPU6000_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		external();
-
-	/* FALLTHROUGH */
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	case MPUIOCGIS_I2C:
-		return 0;
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU6000;
 }
 
 void
 MPU6000_SPI::set_bus_frequency(unsigned &reg_speed)
 {
 	/* Set the desired speed */
-
 	set_frequency(MPU6000_IS_HIGH_SPEED(reg_speed) ? _max_frequency : MPU6000_LOW_SPI_BUS_SPEED);
 
 	/* Isolate the register on return */
-
 	reg_speed = MPU6000_REG(reg_speed);
 }
 

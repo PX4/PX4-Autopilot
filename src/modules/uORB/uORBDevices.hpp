@@ -174,10 +174,10 @@ public:
 
 	/**
 	 * Print statistics (nr of lost messages)
-	 * @param reset if true, reset statistics afterwards
+	 * @param should_reset if true, reset statistics afterwards
 	 * @return true if printed something, false otherwise (if no lost messages)
 	 */
-	bool print_statistics(bool reset);
+	bool print_statistics(bool should_reset);
 
 	unsigned int get_queue_size() const { return _queue_size; }
 	int16_t subscriber_count() const { return _subscriber_count; }
@@ -285,7 +285,7 @@ public:
 	 * Print statistics for each existing topic.
 	 * @param reset if true, reset statistics afterwards
 	 */
-	void printStatistics(bool reset);
+	void printStatistics(bool should_reset);
 
 	/**
 	 * Continuously print statistics, like the unix top command for processes.

@@ -331,7 +331,7 @@ private:
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	void			reset();
+	int			reset() override;
 
 	/**
 	 * disable I2C on the chip
@@ -364,7 +364,7 @@ private:
 	/**
 	 * Fetch accel measurements from the sensor and update the report ring.
 	 */
-	void			measure();
+	int			measure(unsigned addr = 0) override;
 
 	/**
 	 * Fetch mag measurements from the sensor and update the report ring.
@@ -520,7 +520,7 @@ private:
 	int				_mag_orb_class_instance;
 	int				_mag_class_instance;
 
-	void				measure();
+	int				measure(unsigned addr = 0) override;
 
 	void				measure_trampoline(void *arg);
 
@@ -700,7 +700,7 @@ LSM303D::disable_i2c(void)
 	write_reg(0x02, (0xE7 & a));
 }
 
-void
+int
 LSM303D::reset()
 {
 	// ensure the chip doesn't interpret any other bus traffic as I2C
@@ -731,6 +731,8 @@ LSM303D::reset()
 
 	_accel_read = 0;
 	_mag_read = 0;
+
+	return PX4_OK;
 }
 
 int
@@ -1450,8 +1452,8 @@ LSM303D::check_registers(void)
 	_checked_next = (_checked_next + 1) % LSM303D_NUM_CHECKED_REGISTERS;
 }
 
-void
-LSM303D::measure()
+int
+LSM303D::measure(unsigned addr)
 {
 	/* status register and data as read back from the device */
 
@@ -1477,7 +1479,7 @@ LSM303D::measure()
 		// the sensor again.
 		_register_wait--;
 		perf_end(_accel_sample_perf);
-		return;
+		return 0;
 	}
 
 	/* fetch data from the sensor */
@@ -1488,7 +1490,7 @@ LSM303D::measure()
 	if (!(raw_accel_report.status & REG_STATUS_A_NEW_ZYXADA)) {
 		perf_end(_accel_sample_perf);
 		perf_count(_accel_duplicates);
-		return;
+		return 0;
 	}
 
 	/*
@@ -1598,6 +1600,8 @@ LSM303D::measure()
 
 	/* stop the perf counter */
 	perf_end(_accel_sample_perf);
+
+	return 0;
 }
 
 void
@@ -1825,20 +1829,14 @@ LSM303D_mag::read(struct file *filp, char *buffer, size_t buflen)
 int
 LSM303D_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	switch (cmd) {
-	case DEVIOCGDEVICEID:
-		return (int)CDev::ioctl(filp, cmd, arg);
-		break;
-
-	default:
-		return _parent->mag_ioctl(filp, cmd, arg);
-	}
+	return _parent->mag_ioctl(filp, cmd, arg);
 }
 
-void
-LSM303D_mag::measure()
+int
+LSM303D_mag::measure(unsigned addr)
 {
 	_parent->mag_measure();
+	return PX4_OK;
 }
 
 void

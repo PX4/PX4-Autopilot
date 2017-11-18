@@ -74,13 +74,11 @@ class HMC5883_SPI : public device::SPI
 {
 public:
 	HMC5883_SPI(int bus, uint32_t device);
-	virtual ~HMC5883_SPI();
+	virtual ~HMC5883_SPI() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 };
 
@@ -96,16 +94,10 @@ HMC5883_SPI::HMC5883_SPI(int bus, uint32_t device) :
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 }
 
-HMC5883_SPI::~HMC5883_SPI()
-{
-}
-
 int
 HMC5883_SPI::init()
 {
-	int ret;
-
-	ret = SPI::init();
+	int ret = SPI::init();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI init failed");
@@ -129,32 +121,6 @@ HMC5883_SPI::init()
 	}
 
 	return OK;
-}
-
-int
-HMC5883_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case MAGIOCGEXTERNAL:
-		/*
-		 * Even if this sensor is on the external SPI
-		 * bus it is still internal to the autopilot
-		 * assembly, so always return 0 for internal.
-		 */
-		return 0;
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
 }
 
 int

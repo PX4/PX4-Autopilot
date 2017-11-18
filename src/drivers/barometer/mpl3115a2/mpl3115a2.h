@@ -54,10 +54,6 @@
 #  define CTRL_REG1_OST          (1 << 1)
 #  define CTRL_REG1_SBYB         (1 << 0)
 
-/* interface ioctls */
-#define IOCTL_RESET         1
-#define IOCTL_MEASURE       2
-
 typedef begin_packed_struct struct MPL3115A2_data_t {
 	union {
 		uint32_t q;

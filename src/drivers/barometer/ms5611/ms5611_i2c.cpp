@@ -67,11 +67,9 @@ class MS5611_I2C : public device::I2C
 {
 public:
 	MS5611_I2C(uint8_t bus, ms5611::prom_u &prom_buf);
-	virtual ~MS5611_I2C();
+	virtual ~MS5611_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 protected:
 	virtual int	probe();
@@ -86,14 +84,14 @@ private:
 	 *
 	 * This is required after any bus reset.
 	 */
-	int		_reset();
+	int		reset() override;
 
 	/**
 	 * Send a measure command to the MS5611.
 	 *
 	 * @param addr		Which address to use for the measure operation.
 	 */
-	int		_measure(unsigned addr);
+	int		measure(unsigned addr) override;
 
 	/**
 	 * Read the MS5611 PROM
@@ -116,17 +114,6 @@ MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom) :
 {
 }
 
-MS5611_I2C::~MS5611_I2C()
-{
-}
-
-int
-MS5611_I2C::init()
-{
-	/* this will call probe(), and thereby _probe_address */
-	return I2C::init();
-}
-
 int
 MS5611_I2C::read(unsigned offset, void *data, unsigned count)
 {
@@ -146,27 +133,6 @@ MS5611_I2C::read(unsigned offset, void *data, unsigned count)
 		cvt->b[1] = buf[1];
 		cvt->b[2] = buf[0];
 		cvt->b[3] = 0;
-	}
-
-	return ret;
-}
-
-int
-MS5611_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-	case IOCTL_RESET:
-		ret = _reset();
-		break;
-
-	case IOCTL_MEASURE:
-		ret = _measure(arg);
-		break;
-
-	default:
-		ret = EINVAL;
 	}
 
 	return ret;
@@ -197,7 +163,7 @@ MS5611_I2C::_probe_address(uint8_t address)
 	set_device_address(address);
 
 	/* send reset command */
-	if (PX4_OK != _reset()) {
+	if (PX4_OK != reset()) {
 		return -EIO;
 	}
 
@@ -210,7 +176,7 @@ MS5611_I2C::_probe_address(uint8_t address)
 }
 
 int
-MS5611_I2C::_reset()
+MS5611_I2C::reset()
 {
 	unsigned	old_retrycount = _retries;
 	uint8_t		cmd = ADDR_RESET_CMD;
@@ -225,7 +191,7 @@ MS5611_I2C::_reset()
 }
 
 int
-MS5611_I2C::_measure(unsigned addr)
+MS5611_I2C::measure(unsigned addr)
 {
 	/*
 	 * Disable retries on this command; we can't know whether failure
