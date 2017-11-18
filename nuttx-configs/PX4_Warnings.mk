@@ -43,9 +43,9 @@ PX4_ARCHWARNINGS = -Wall \
                    -Wpointer-arith \
                    -Wshadow \
                    -Wno-sign-compare \
-                   -Wno-unused-parameter \
-                   -Wno-nonnull-compare \
-                   -Wno-misleading-indentation
+                   -Wno-unused-parameter
+                   #-Wno-nonnull-compare \ # re-enable GCC >= 6
+                   #-Wno-misleading-indentation # re-enable GCC >= 6
 
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
