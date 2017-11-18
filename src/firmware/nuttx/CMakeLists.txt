@@ -10,13 +10,8 @@ get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
 # build NuttX
 add_subdirectory(${PX4_SOURCE_DIR}/platforms/nuttx/NuttX ${PX4_BINARY_DIR}/NuttX)
 
-target_link_libraries(${fw_name}
-	-T${PX4_BINARY_DIR}/NuttX/nuttx/configs/${BOARD}/scripts/ld.script
-	-Wl,-Map=${PX4_BINARY_DIR}/${CONFIG}.map
-	-Wl,--warn-common
-	-Wl,--gc-sections
-	-Wl,--start-group
-	${module_libraries}
+set(nuttx_libs)
+list(APPEND nuttx_libs
 	nuttx_apps
 	nuttx_arch
 	nuttx_binfmt
@@ -28,6 +23,20 @@ target_link_libraries(${fw_name}
 	nuttx_fs
 	nuttx_mm
 	nuttx_sched
+	)
+
+if (CONFIG_NET)
+	list(APPEND nuttx_libs nuttx_net)
+endif()
+
+target_link_libraries(${fw_name}
+	-T${PX4_BINARY_DIR}/NuttX/nuttx/configs/${BOARD}/scripts/ld.script
+	-Wl,-Map=${PX4_BINARY_DIR}/${CONFIG}.map
+	-Wl,--warn-common
+	-Wl,--gc-sections
+	-Wl,--start-group
+	${module_libraries}
+	${nuttx_libs}
 	-Wl,--end-group
 	m
 	gcc
