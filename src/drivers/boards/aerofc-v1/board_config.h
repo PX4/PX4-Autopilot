@@ -50,6 +50,8 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
+#include "aerofc_configuration.h"
+
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -83,6 +85,8 @@
 #define PX4_I2C_BUS_EXPANSION   1
 #define PX4_I2C_BUS_EXPANSION1  2
 #define PX4_I2C_BUS_ONBOARD	3
+
+#define PX4_I2C_RUNTIME_BUS (1 << PX4_I2C_BUS_EXPANSION1)
 
 #define PX4_I2C_OBDEV_HMC5883	0x1e
 
@@ -121,14 +125,18 @@
 /*
  * GPS
  */
-#define GPS_DEFAULT_UART_PORT	"/dev/ttyS5"
+#define GPS_DEFAULT_UART_PORT	"/dev/ttyS4"
 
 /*
  * RC Serial port
  */
 #define RC_SERIAL_PORT		"/dev/ttyS2"
-/* No invert support */
-#define INVERT_RC_INPUT(_invert_true)		while(0)
+#define INVERT_RC_INPUT(_invert_true) aerofc_fpga_config_invert_rc_uart(_invert_true)
+
+#define INVERT_UART_INPUT(uart, _invert_true) \
+	if (!strcmp("/dev/ttyS5", uart)) { \
+		aerofc_fpga_config_telem_connector(_invert_true); \
+	}
 
 /*
  * High-resolution timer
@@ -151,6 +159,9 @@
 #define MEMORY_CONSTRAINED_SYSTEM
 
 #define CRASHDUMP_RESET_ONLY
+
+/* This board provides a DMA pool and APIs */
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 __BEGIN_DECLS
 
@@ -180,16 +191,6 @@ extern void stm32_spiinitialize(void);
 
 #define board_spi_reset(ms)
 #define board_peripheral_reset(ms)
-
-/************************************************************************************
- * Name: board_sdio_initialize
- *
- * Description:
- *   Called to configure SDIO.
- *
- ************************************************************************************/
-
-extern int board_sdio_initialize(void);
 
 #include "../common/board_common.h"
 

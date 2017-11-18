@@ -1,7 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
-#         Author: David Sidrane <david_s5@nscdg.com>
+#   Copyright (C) 2017  Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,13 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__boards__aerofc-v1
+	MODULE systemcmds__aerofc_configuration
+	MAIN aerofc_fpga_config
+	COMPILE_FLAGS
 	SRCS
-		aerofc_init.c
-		aerofc_spi.c
-		aerofc_led.c
-		aerofc_timer_config.c
 		aerofc_configuration.cpp
 	DEPENDS
 		platforms__common
 	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

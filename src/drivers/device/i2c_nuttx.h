@@ -64,6 +64,10 @@ public:
 
 	static unsigned	int	_bus_clocks[BOARD_NUMBER_I2C_BUSES];
 
+#ifdef PX4_I2C_RUNTIME_BUS
+	static void enable_runtime_bus(unsigned bus, bool enable);
+#endif
+
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
@@ -144,6 +148,10 @@ private:
 	uint16_t		_address;
 	uint32_t		_frequency;
 	px4_i2c_dev_t		*_dev;
+
+#ifdef PX4_I2C_RUNTIME_BUS
+	static uint8_t _runtime_bus_enabled;
+#endif
 
 	I2C(const device::I2C &);
 	I2C operator=(const device::I2C &);

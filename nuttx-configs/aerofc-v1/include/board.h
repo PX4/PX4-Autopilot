@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The TAP V1 uses a 16MHz crystal connected to the HSE.
+/* The AeroFC V1 uses a 16MHz crystal connected to the HSE.
  *
  * This is the canonical configuration:
  *   System Clock source           : PLL (HSE)
@@ -167,6 +167,24 @@
 #define BOARD_TIM13_FREQUENCY   STM32_APB1_TIM13_CLKIN
 #define BOARD_TIM14_FREQUENCY   STM32_APB1_TIM14_CLKIN
 
+/* SDIO */
+#define SDIO_INIT_CLKDIV      (118 << SDIO_CLKCR_CLKDIV_SHIFT)
+#define SDIO_MMCXFR_CLKDIV    (2 << SDIO_CLKCR_CLKDIV_SHIFT)
+#define SDIO_SDXFR_CLKDIV     (2 << SDIO_CLKCR_CLKDIV_SHIFT)
+
+/* DMA Channl/Stream Selections *****************************************************/
+/* Stream selections are arbitrary for now but might become important in the future
+ * is we set aside more DMA channels/streams.
+ *
+ * SDIO DMA
+ *   DMAMAP_SDIO_1 = Channel 4, Stream 3 <- may later be used by SPI DMA
+ *   DMAMAP_SDIO_2 = Channel 4, Stream 6
+ */
+
+#define DMAMAP_SDIO DMAMAP_SDIO_1
+
+/* SDIO end */
+
 /* LED definitions ******************************************************************/
 /* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any
  * way.  The following definitions are used to access individual LEDs.
@@ -240,27 +258,19 @@
 #define GPIO_UART4_RTS	0 // unused
 
 // Mavlink
-// UART5
+// UART8
 
 // Serial console
 #define GPIO_USART6_TX	GPIO_USART6_TX_1
 #define GPIO_USART6_RX	GPIO_USART6_RX_1
 #define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
 
+/* CAN */
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_3
+#define GPIO_CAN1_TX     GPIO_CAN1_TX_3
+
 /*
  * I2C
- *
- * Peripheral   Port     Signal Name               CONN
- * I2C1_SDA     PB9     I2C1_SDA                  J2-4,9,16,21 mpu6050, U4 MS6507
- * I2C1_SDL     PB8     I2C1_SCL                  J2-3,10,15,22 mpu6050, U4 MS6507
- * I2C2_SDA     PB11    Sonar Echo/I2C_SDA        JP2-31,32
- * I2C2_SDL     PB10    Sonar Trig/I2C_SCL        JP2-29,30
- * I2C3_SDA     PC9     COMPASS_I2C3_SDA          JP1-27,28
- * I2C3_SDL     PA8     COMPASS_I2C3_SCL          JP1-25,26
- *
- * The optional _GPIO configurations allow the I2C driver to manually
- * reset the bus to clear stuck slaves.  They match the pin configuration,
- * but are normally-high GPIOs.
  */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_2
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2
@@ -273,11 +283,6 @@
 
 /*
  * SPI
- *
- * Peripheral   Port     Signal Name               CONN
- * SPI2_NSS       PB12    SD_SPI2_NSS               SD-2 CS
- * TBD
- *
  */
 
 #define GPIO_SPI1_NSS   (GPIO_SPI1_NSS_2  | GPIO_SPEED_50MHz)

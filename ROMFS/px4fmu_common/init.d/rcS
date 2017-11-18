@@ -562,11 +562,6 @@ then
 			mavlink start -r 20000 -b 921600 -d /dev/ttyS0
 		fi
 
-		if ver hwcmp AEROFC_V1
-		then
-			set MAVLINK_F "-r 1200 -d /dev/ttyS3"
-		fi
-
 		if ver hwcmp CRAZYFLIE
 		then
 			# Avoid using either of the two available serials
@@ -723,7 +718,11 @@ then
 
 		if ver hwcmp AEROFC_V1
 		then
-			set LOGGER_ARGS "-m mavlink"
+			if cd /fs/microsd
+			then
+			else
+				set LOGGER_ARGS "-m mavlink"
+			fi
 		fi
 
 		logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
