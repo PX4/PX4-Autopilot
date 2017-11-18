@@ -46,9 +46,6 @@
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #endif
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
 
 #ifdef __PX4_QURT
 #define PX4_SIMULATE_I2C 1
@@ -62,18 +59,8 @@ static constexpr const int simulate = PX4_SIMULATE_I2C;
 namespace device
 {
 
-I2C::I2C(const char *name,
-	 const char *devname,
-	 int bus,
-	 uint16_t address,
-	 uint32_t frequency) :
-	// base class
-	CDev(name, devname),
-	// public
-	// protected
-	_retries(0),
-	// private
-	_fd(-1)
+I2C::I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency) :
+	CDev(name, devname)
 {
 	DEVICE_DEBUG("I2C::I2C name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a I2C device
@@ -89,7 +76,7 @@ I2C::~I2C()
 	if (_fd >= 0) {
 #ifndef __PX4_QURT
 		::close(_fd);
-#endif
+#endif /* !__PX4_QURT */
 		_fd = -1;
 	}
 }
@@ -97,13 +84,11 @@ I2C::~I2C()
 int
 I2C::init()
 {
-	int ret = PX4_OK;
-
 	// Assume the driver set the desired bus frequency. There is no standard
 	// way to set it from user space.
 
 	// do base class init, which will create device node, etc
-	ret = CDev::init();
+	int ret = CDev::init();
 
 	if (ret != PX4_OK) {
 		DEVICE_DEBUG("CDev::init failed");
@@ -127,7 +112,7 @@ I2C::init()
 			return PX4_ERROR;
 		}
 
-#endif
+#endif /* !__PX4_QURT */
 	}
 
 	return ret;
@@ -137,12 +122,11 @@ int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
 #ifndef __PX4_LINUX
-	return 1;
+	return PX4_ERROR;
 #else
 	struct i2c_msg msgv[2];
 	unsigned msgs;
-	struct i2c_rdwr_ioctl_data packets;
-	int ret;
+	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
 	if (_fd < 0) {
@@ -174,7 +158,10 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 			return -EINVAL;
 		}
 
+		struct i2c_rdwr_ioctl_data packets;
+
 		packets.msgs  = msgv;
+
 		packets.nmsgs = msgs;
 
 		if (simulate) {
@@ -201,95 +188,6 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	} while (retry_count++ < _retries);
 
 	return ret;
-#endif
-}
-
-int
-I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
-{
-#ifndef __PX4_LINUX
-	return 1;
-#else
-	struct i2c_rdwr_ioctl_data packets;
-	int ret;
-	unsigned retry_count = 0;
-
-	/* force the device address into the message vector */
-	for (unsigned i = 0; i < msgs; i++) {
-		msgv[i].addr = get_device_address();
-	}
-
-	do {
-		packets.msgs  = msgv;
-		packets.nmsgs = msgs;
-
-		if (simulate) {
-			DEVICE_DEBUG("I2C SIM: transfer_2 on %s", get_devname());
-			ret = PX4_OK;
-
-		} else {
-			ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
-		}
-
-		if (ret < 0) {
-			DEVICE_DEBUG("I2C transfer failed");
-			return 1;
-		}
-
-		/* success */
-		if (ret == PX4_OK) {
-			break;
-		}
-
-	} while (retry_count++ < _retries);
-
-	return ret;
-#endif
-}
-
-int I2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	//struct i2c_rdwr_ioctl_data *packets = (i2c_rdwr_ioctl_data *)(void *)arg;
-	switch (cmd) {
-#ifdef __PX4_LINUX
-
-	case I2C_RDWR:
-		DEVICE_DEBUG("Use I2C::transfer, not ioctl");
-		return 0;
-#endif
-
-	default:
-		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
-	}
-}
-
-ssize_t	I2C::read(file_t *filp, char *buffer, size_t buflen)
-{
-	if (simulate) {
-		// FIXME no idea what this should be
-		DEVICE_DEBUG("2C SIM I2C::read");
-		return 0;
-	}
-
-#ifndef __PX4_QURT
-	return ::read(_fd, buffer, buflen);
-#else
-	return 0;
-#endif
-}
-
-ssize_t	I2C::write(file_t *filp, const char *buffer, size_t buflen)
-{
-	if (simulate) {
-		DEVICE_DEBUG("2C SIM I2C::write");
-		return buflen;
-	}
-
-#ifndef __PX4_QURT
-	return ::write(_fd, buffer, buflen);
-#else
-	return buflen;
 #endif
 }
 

@@ -51,19 +51,11 @@ namespace device
 
 unsigned int I2C::_bus_clocks[BOARD_NUMBER_I2C_BUSES] = BOARD_I2C_BUS_CLOCK_INIT;
 
-I2C::I2C(const char *name,
-	 const char *devname,
-	 int bus,
-	 uint16_t address,
-	 uint32_t frequency) :
-	// base class
+I2C::I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency) :
 	CDev(name, devname),
-	// public
-	// protected
-	_retries(0),
-	_frequency(frequency),
-	_dev(nullptr)
+	_frequency(frequency)
 {
+	DEVICE_DEBUG("I2C::I2C name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
@@ -101,7 +93,7 @@ I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
 int
 I2C::init()
 {
-	int ret = OK;
+	int ret = PX4_ERROR;
 	unsigned bus_index;
 
 	// attach to the i2c bus
@@ -175,23 +167,20 @@ out:
 }
 
 int
-I2C::probe()
-{
-	// Assume the device is too stupid to be discoverable.
-	return OK;
-}
-
-int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
-	struct i2c_msg_s msgv[2];
+	px4_i2c_msg_t msgv[2];
 	unsigned msgs;
-	int ret;
+	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
-	do {
-		//	DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+	if (_dev == nullptr) {
+		PX4_ERR("I2C device not opened");
+		return 1;
+	}
 
+	do {
+		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 		msgs = 0;
 
 		if (send_len > 0) {
@@ -219,39 +208,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
 		/* success */
-		if (ret == OK) {
-			break;
-		}
-
-		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries)) {
-			I2C_RESET(_dev);
-		}
-
-	} while (retry_count++ < _retries);
-
-	return ret;
-
-}
-
-int
-I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
-{
-	int ret;
-	unsigned retry_count = 0;
-
-	/* force the device address and Frequency into the message vector */
-	for (unsigned i = 0; i < msgs; i++) {
-		msgv[i].frequency = _bus_clocks[get_device_address() - 1];
-		msgv[i].addr = get_device_address();
-	}
-
-
-	do {
-		ret = I2C_TRANSFER(_dev, msgv, msgs);
-
-		/* success */
-		if (ret == OK) {
+		if (ret == PX4_OK) {
 			break;
 		}
 
