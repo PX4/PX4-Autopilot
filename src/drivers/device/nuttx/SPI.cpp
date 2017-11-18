@@ -45,9 +45,10 @@
  * non-interrupt-mode client.
  */
 
+#include "SPI.hpp"
+
 #include <px4_config.h>
 #include <nuttx/arch.h>
-#include "spi.h"
 
 #ifndef CONFIG_SPI_EXCHANGE
 # error This driver requires CONFIG_SPI_EXCHANGE
@@ -129,13 +130,6 @@ out:
 }
 
 int
-SPI::probe()
-{
-	// assume the device is too stupid to be discoverable
-	return OK;
-}
-
-int
 SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
 	int result;
@@ -168,12 +162,6 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	}
 
 	return result;
-}
-
-void
-SPI::set_frequency(uint32_t frequency)
-{
-	_frequency = frequency;
 }
 
 int

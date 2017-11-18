@@ -40,7 +40,7 @@
  *       that is supplied.  Should we just depend on the bus knowing?
  */
 
-#include "i2c.h"
+#include "I2C.hpp"
 
 namespace device
 {
