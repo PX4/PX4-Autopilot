@@ -73,7 +73,7 @@
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>

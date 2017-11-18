@@ -52,7 +52,7 @@
 #include <rc/sbus.h>
 
 #include <systemlib/pwm_limit/pwm_limit.h>
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
 #include "mixer.h"

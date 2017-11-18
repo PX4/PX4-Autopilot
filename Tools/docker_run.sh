@@ -4,26 +4,25 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	echo "guessing PX4_DOCKER_REPO based on input";
 	if [[ $@ =~ .*px4fmu.* ]]; then
 		# nuttx-px4fmu-v{1,2,3,4,5}
-		PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-08-29"
+		PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-10-23"
 	elif [[ $@ =~ .*rpi.* ]] || [[ $@ =~ .*bebop.* ]]; then
 		# posix_rpi_cross, posix_bebop_default
-		PX4_DOCKER_REPO="px4io/px4-dev-raspi:2017-08-29"
+		PX4_DOCKER_REPO="px4io/px4-dev-raspi:2017-10-23"
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
-		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2017-07-28"
+		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2017-10-23"
 	elif [[ $@ =~ .*ocpoc.* ]]; then
 		# posix_ocpoc_ubuntu
-		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2017-09-26"
-	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then
+		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2017-10-23"
+	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then	
 		# clang tools
-		PX4_DOCKER_REPO="px4io/px4-dev-clang:2017-08-29"
+		PX4_DOCKER_REPO="px4io/px4-dev-clang:2017-10-23"
 	elif [[ $@ =~ .*cppcheck.* ]]; then
-		# need Ubuntu 17.04 for cppcheck cmake support
 		# TODO: remove this once px4io/px4-dev-base updates
-		PX4_DOCKER_REPO=px4io/px4-dev-base:ubuntu17.04
+		PX4_DOCKER_REPO="px4io/px4-dev-base:ubuntu17.10"
 	elif [[ $@ =~ .*tests* ]]; then
 		# run all tests with simulation
-		PX4_DOCKER_REPO="px4io/px4-dev-simulation:2017-08-29"
+		PX4_DOCKER_REPO="px4io/px4-dev-simulation:2017-10-23"
 	fi
 else
 	echo "PX4_DOCKER_REPO is set to '$PX4_DOCKER_REPO'";
@@ -31,7 +30,7 @@ fi
 
 # otherwise default to nuttx
 if [ -z ${PX4_DOCKER_REPO+x} ]; then
-	PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-08-29"
+	PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-10-23"
 fi
 
 # docker hygiene

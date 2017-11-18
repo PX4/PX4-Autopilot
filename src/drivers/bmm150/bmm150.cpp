@@ -77,7 +77,7 @@ void start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
 	if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
+#if defined(PX4_I2C_BUS_BMM150)
 		*g_dev_ptr = new BMM150(PX4_I2C_BUS_BMM150, path, external_bus, rotation);
 #else
 		PX4_ERR("External I2C not available");
@@ -85,7 +85,8 @@ void start(bool external_bus, enum Rotation rotation)
 #endif
 
 	} else {
-		*g_dev_ptr = new BMM150(PX4_I2C_BUS_BMM150, path, external_bus, rotation);
+		PX4_ERR("Internal I2C not available");
+		exit(0);
 	}
 
 	if (*g_dev_ptr == nullptr) {

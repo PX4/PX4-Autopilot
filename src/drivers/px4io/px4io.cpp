@@ -67,7 +67,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>

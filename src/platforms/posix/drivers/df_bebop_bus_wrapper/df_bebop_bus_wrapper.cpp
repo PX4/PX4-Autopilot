@@ -53,7 +53,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
 
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 #include <systemlib/battery.h>
 
 #include <bebop_bus/BebopBus.hpp>

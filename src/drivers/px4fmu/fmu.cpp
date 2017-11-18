@@ -58,7 +58,7 @@
 #include <px4_module.h>
 #include <systemlib/board_serial.h>
 #include <systemlib/circuit_breaker.h>
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>

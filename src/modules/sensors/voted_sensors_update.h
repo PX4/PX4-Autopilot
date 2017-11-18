@@ -159,10 +159,13 @@ private:
 			  last_failover_count(0)
 		{
 			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+				enabled[i] = true;
 				subscription[i] = -1;
 				priority[i] = 0;
 			}
 		}
+
+		bool enabled[SENSOR_COUNT_MAX];
 
 		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */

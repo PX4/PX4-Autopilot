@@ -370,9 +370,9 @@ test(enum MPU9250_BUS busid)
 		err(1, "immediate mag read failed");
 	}
 
-	warnx("mag x: \t% 9.5f\trad/s", (double)m_report.x);
-	warnx("mag y: \t% 9.5f\trad/s", (double)m_report.y);
-	warnx("mag z: \t% 9.5f\trad/s", (double)m_report.z);
+	warnx("mag x: \t% 9.5f\tGa", (double)m_report.x);
+	warnx("mag y: \t% 9.5f\tGa", (double)m_report.y);
+	warnx("mag z: \t% 9.5f\tGa", (double)m_report.z);
 	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
 	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
 	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
