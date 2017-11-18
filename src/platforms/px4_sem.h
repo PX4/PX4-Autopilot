@@ -50,7 +50,7 @@
 #define sem_setprotocol(s,p)
 #endif
 
-#ifdef __PX4_DARWIN
+#if defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 
 __BEGIN_DECLS
 

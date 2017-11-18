@@ -50,6 +50,10 @@
 #include <nshlib/nshlib.h>
 #endif /* __PX4_NUTTX */
 
+#ifdef __PX4_CYGWIN
+#include <asm/socket.h>
+#endif
+
 
 MavlinkShell::MavlinkShell()
 {
