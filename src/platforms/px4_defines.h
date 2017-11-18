@@ -152,7 +152,9 @@ using ::isfinite;
  ****************************************************************************/
 
 // Flag is meaningless on Linux
+#ifndef O_BINARY
 #define O_BINARY 0
+#endif
 
 // mode for open with O_CREAT
 #define PX4_O_MODE_777 (S_IRWXU | S_IRWXG | S_IRWXO)

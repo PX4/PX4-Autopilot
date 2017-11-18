@@ -16,7 +16,7 @@ __EXPORT unsigned int sleep(unsigned int sec);
 
 __END_DECLS
 
-#elif defined(__PX4_LINUX) || defined(__PX4_NUTTX) || defined(__PX4_DARWIN)
+#elif defined(__PX4_LINUX) || defined(__PX4_NUTTX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 
 #define px4_clock_gettime clock_gettime
 #define px4_clock_settime clock_settime

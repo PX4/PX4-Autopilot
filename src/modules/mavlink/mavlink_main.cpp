@@ -836,7 +836,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 		_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB;
 	}
 
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 	/* Put in raw mode */
 	cfmakeraw(&uart_config);
 #endif
@@ -933,11 +933,11 @@ Mavlink::get_free_tx_buf()
 
 	} else {
 		// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
-#if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
-		(void) ioctl(_uart_fd, FIONSPACE, (unsigned long)&buf_free);
-#else
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 		//Linux cp210x does not support TIOCOUTQ
 		buf_free = 256;
+#else
+		(void) ioctl(_uart_fd, FIONSPACE, (unsigned long)&buf_free);
 #endif
 
 		if (get_flow_control_enabled() && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
@@ -1084,7 +1084,7 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 void
 Mavlink::find_broadcast_address()
 {
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 	struct ifconf ifconf;
 	int ret;
 
@@ -1231,7 +1231,7 @@ Mavlink::find_broadcast_address()
 void
 Mavlink::init_udp()
 {
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN) || defined(__PX4_CYGWIN)
 
 	PX4_DEBUG("Setting up UDP with port %d", _network_port);
 

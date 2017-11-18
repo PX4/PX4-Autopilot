@@ -212,6 +212,11 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
+#ifdef __PX4_CYGWIN
+	/* Priorities on Windows are defined a lot differently */
+	priority = SCHED_PRIORITY_DEFAULT;
+#endif
+
 	param.sched_priority = priority;
 
 	rv = pthread_attr_setschedparam(&attr, &param);
