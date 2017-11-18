@@ -202,6 +202,10 @@ add_nuttx_dir(c libc n "")
 add_nuttx_dir(cxx libxx n "")
 add_nuttx_dir(mm mm n "")
 
+if (CONFIG_NET)
+	add_nuttx_dir(net net y -D__KERNEL__)
+endif()
+
 # oldconfig helper
 add_custom_target(oldconfig
 	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} oldconfig
