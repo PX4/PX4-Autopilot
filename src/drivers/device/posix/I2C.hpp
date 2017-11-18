@@ -43,11 +43,11 @@
 #include "../CDev.hpp"
 
 #include <px4_i2c.h>
+
 #ifdef __PX4_LINUX
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #endif
-#include <string>
 
 namespace device __EXPORT
 {
@@ -65,7 +65,7 @@ protected:
 	 * The number of times a read or write operation will be retried on
 	 * error.
 	 */
-	unsigned		_retries;
+	uint8_t		_retries{0};
 
 	/**
 	 * @ Constructor
@@ -74,19 +74,17 @@ protected:
 	 * @param devname	Device node name
 	 * @param bus		I2C bus on which the device lives
 	 * @param address	I2C bus address, or zero if set_address will be used
+	 * @param frequency	I2C bus frequency for the device (currently not used)
 	 */
-	I2C(const char *name,
-	    const char *devname,
-	    int bus,
-	    uint16_t address,
-	    uint32_t frequency = 0);
+	I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency = 0);
 	virtual ~I2C();
 
 	virtual int	init();
 
-	virtual ssize_t	read(file_t *handlep, char *buffer, size_t buflen);
-	virtual ssize_t	write(file_t *handlep, const char *buffer, size_t buflen);
-	virtual int	ioctl(file_t *handlep, int cmd, unsigned long arg);
+	/**
+	 * Check for the presence of the device on the bus.
+	 */
+	virtual int	probe() { return PX4_OK; }
 
 	/**
 	 * Perform an I2C transaction to the device.
@@ -102,21 +100,10 @@ protected:
 	 */
 	int		transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
 
-	/**
-	 * Perform a multi-part I2C transaction to the device.
-	 *
-	 * @param msgv		An I2C message vector.
-	 * @param msgs		The number of entries in the message vector.
-	 * @return		OK if the transfer was successful, -errno
-	 *			otherwise.
-	 */
-	int		transfer(struct i2c_msg *msgv, unsigned msgs);
-
 	bool		external() { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
-	int 			_fd;
-	std::string		_dname;
+	int 			_fd{-1};
 
 	I2C(const device::I2C &);
 	I2C operator=(const device::I2C &);
