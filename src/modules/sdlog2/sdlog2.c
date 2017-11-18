@@ -1442,7 +1442,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		if (gps_pos_updated && log_name_timestamp) {
 			gps_time_sec = buf_gps_pos.time_utc_usec / 1e6;
-			has_gps_3d_fix = buf_gps_pos.fix_type == 3;
+			has_gps_3d_fix = buf_gps_pos.fix_type >= 3;
 		}
 
 		if (!logging_enabled) {
