@@ -196,8 +196,17 @@ function(px4_os_add_flags)
 				)
 		endif()
 
-	else()
+	elseif(CYGWIN)
+		set(added_definitions
+			-D__PX4_POSIX
+			-D__PX4_CYGWIN
+			-D_GNU_SOURCE
+			-D__USE_LINUX_IOCTL_DEFS
+			-Dnoreturn_function=__attribute__\(\(noreturn\)\)
+			-U __CUSTOM_FILE_IO__
+			)
 
+	else()
 		set(added_definitions
 			-D__PX4_POSIX
 			-D__PX4_LINUX
