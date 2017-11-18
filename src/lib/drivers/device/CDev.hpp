@@ -73,6 +73,12 @@ public:
 
 	virtual ~CDev();
 
+	// no copy, assignment, move, move assignment
+	CDev(const CDev &) = delete;
+	CDev &operator=(const CDev &) = delete;
+	CDev(CDev &&) = delete;
+	CDev &operator=(CDev &&) = delete;
+
 	virtual int	init();
 
 	/**
@@ -301,10 +307,6 @@ private:
 	 * @return		OK, or -errno on error.
 	 */
 	int		remove_poll_waiter(px4_pollfd_struct_t *fds);
-
-	/* do not allow copying this class */
-	CDev(const CDev &);
-	CDev operator=(const CDev &);
 };
 
 } // namespace device

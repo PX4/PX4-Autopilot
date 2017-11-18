@@ -120,12 +120,7 @@ CDev::init()
 {
 	DEVICE_DEBUG("CDev::init");
 
-	// base class init first
-	int ret = Device::init();
-
-	if (ret != PX4_OK) {
-		goto out;
-	}
+	int ret = PX4_ERROR;
 
 	// now register the driver
 	if (_devname != nullptr) {
@@ -255,7 +250,8 @@ CDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 		break;
 
 	case DEVIOCGDEVICEID:
-		ret = (int)_device_id.devid;
+		// TODO: split CDev and Device
+		ret = get_device_id();
 		break;
 
 	default:

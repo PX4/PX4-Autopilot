@@ -65,23 +65,20 @@ namespace device
 class __EXPORT Device
 {
 public:
-	/**
-	 * Destructor.
-	 *
-	 * Public so that anonymous devices can be destroyed.
-	 */
 	virtual ~Device() = default;
 
-	/*
-	 * Direct access methods.
-	 */
+	// no copy, assignment, move, move assignment
+	Device(const Device &) = delete;
+	Device &operator=(const Device &) = delete;
+	Device(Device &&) = delete;
+	Device &operator=(Device &&) = delete;
 
 	/**
 	 * Initialise the driver and make it ready for use.
 	 *
 	 * @return	OK if the driver initialized OK, negative errno otherwise;
 	 */
-	virtual int	init() { return PX4_OK; }
+	virtual int	init() = 0;
 
 	/**
 	 * Read directly from the device.
@@ -118,7 +115,7 @@ public:
 	{
 		switch (operation) {
 		case DEVIOCGDEVICEID:
-			return (int)_device_id.devid;
+			return get_device_id();
 		}
 
 		return -ENODEV;
@@ -132,88 +129,58 @@ public:
 		DeviceBusType_UAVCAN  = 3,
 	};
 
-	/**
-	 * Return the bus ID the device is connected to.
-	 *
-	 * @return The bus ID
-	 */
-	uint8_t get_device_bus() { return _device_id.devid_s.bus; }
+	uint32_t get_device_id() const { return _device_id.devid; }
 
-	/**
-	 * Return the bus type the device is connected to.
-	 *
-	 * @return The bus type
-	 */
-	DeviceBusType get_device_bus_type() { return _device_id.devid_s.bus_type; }
+	DeviceBusType get_device_bus_type() const { return _device_id.devid_s.bus_type; }
+	uint8_t get_device_bus() const { return _device_id.devid_s.bus; }
+	uint8_t get_device_address() const { return _device_id.devid_s.address; }
 
-	/**
-	 * Return the bus address of the device.
-	 *
-	 * @return The bus address
-	 */
-	uint8_t get_device_address() { return _device_id.devid_s.address; }
-
-	void set_device_address(int address) { _device_id.devid_s.address = address; }
-
-	/**
-	 * Set the device type
-	 *
-	 * @return The device type
-	 */
 	void set_device_type(uint8_t devtype) { _device_id.devid_s.devtype = devtype; }
+	void set_device_address(int address) { _device_id.devid_s.address = address; }
 
 	virtual bool external() { return false; }
 
-	/*
-	  broken out device elements. The bitfields are used to keep
-	  the overall value small enough to fit in a float accurately,
-	  which makes it possible to transport over the MAVLink
-	  parameter protocol without loss of information.
-	 */
-	struct DeviceStructure {
-		enum DeviceBusType bus_type : 3;
-		uint8_t bus: 5;    // which instance of the bus type
-		uint8_t address;   // address on the bus (eg. I2C address)
-		uint8_t devtype;   // device class specific device type
-	};
-
-	union DeviceId {
-		struct DeviceStructure devid_s;
-		uint32_t devid;
-	};
-
 protected:
-	union DeviceId	_device_id;             /**< device identifier information */
 
-	const char	*_name;			/**< driver name */
+	// TODO: make _device_id private
+	union DeviceId {
+		uint32_t devid;
+
+		/*
+		  broken out device elements. The bitfields are used to keep
+		  the overall value small enough to fit in a float accurately,
+		  which makes it possible to transport over the MAVLink
+		  parameter protocol without loss of information.
+		 */
+		struct DeviceStructure {
+			enum DeviceBusType bus_type : 3;
+			uint8_t bus: 5;    // which instance of the bus type
+			uint8_t address;   // address on the bus (eg. I2C address)
+			uint8_t devtype;   // device class specific device type
+		} devid_s;
+
+	} _device_id;             /**< device identifier information */
+
+	const char	*_name{nullptr};			/**< driver name */
 	bool		_debug_enabled{false};		/**< if true, debug messages are printed */
 
 	Device(const char *name) : _name(name)
 	{
 		/* setup a default device ID. When bus_type is UNKNOWN the
 		   other fields are invalid */
-		_device_id.devid = 0;
 		_device_id.devid_s.bus_type = DeviceBusType_UNKNOWN;
 		_device_id.devid_s.bus = 0;
 		_device_id.devid_s.address = 0;
 		_device_id.devid_s.devtype = 0;
 	}
 
-	Device(DeviceBusType bus_type, uint8_t bus, uint8_t address, uint8_t devtype = 0)
+	Device(DeviceBusType bus_type, uint8_t bus, uint8_t address, uint8_t devtype)
 	{
-		_device_id.devid = 0;
 		_device_id.devid_s.bus_type = bus_type;
 		_device_id.devid_s.bus = bus;
 		_device_id.devid_s.address = address;
 		_device_id.devid_s.devtype = devtype;
 	}
-
-	// no copy, assignment, move, move assignment
-	Device(const Device &) = delete;
-	Device &operator=(const Device &) = delete;
-	Device(Device &&) = delete;
-	Device &operator=(Device &&) = delete;
-
 };
 
 } // namespace device
