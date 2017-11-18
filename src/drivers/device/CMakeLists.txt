@@ -31,42 +31,33 @@
 #
 ############################################################################
 
-set(SRCS)
-
-list(APPEND SRCS
-	CDev.cpp
-	ringbuffer.cpp
-	integrator.cpp
-)
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-if(${OS} STREQUAL "nuttx")
-	include_directories(nuttx)
-	list(APPEND SRCS
+set(SRCS_PLATFORM)
+if (${OS} STREQUAL "nuttx")
+	list(APPEND SRCS_PLATFORM
 		nuttx/cdev_platform.cpp
 	)
-
 	if ("${CONFIG_I2C}" STREQUAL "y")
-		list(APPEND SRCS nuttx/i2c_nuttx.cpp)
+		list(APPEND SRCS_PLATFORM nuttx/I2C.cpp)
 	endif()
 
 	if ("${CONFIG_SPI}" STREQUAL "y")
-		list(APPEND SRCS nuttx/spi.cpp)
+		list(APPEND SRCS_PLATFORM nuttx/SPI.cpp)
 	endif()
 else()
-	include_directories(posix)
-	list(APPEND SRCS
+	list(APPEND SRCS_PLATFORM
+		posix/I2C.cpp
 		posix/cdev_platform.cpp
 		posix/vfile.cpp
-		posix/i2c_posix.cpp
 	)
-
 endif()
 
 px4_add_module(
 	MODULE drivers__device
-	SRCS ${SRCS}
+	SRCS
+		CDev.cpp
+		ringbuffer.cpp
+		integrator.cpp
+		${SRCS_PLATFORM}
 	DEPENDS
 		platforms__common
 	)

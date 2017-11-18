@@ -40,7 +40,7 @@
  *       that is supplied.  Should we just depend on the bus knowing?
  */
 
-#include "i2c_posix.h"
+#include "I2C.hpp"
 
 #ifdef __PX4_LINUX
 #include <linux/i2c.h>
