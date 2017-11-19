@@ -102,6 +102,8 @@ static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
 	0.85f; ///< a throttle / pitch input above this value leads to the system switching to climbout mode
 static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
+static constexpr float MSL_PRESSURE_MILLIBAR = 1013.25f; ///< standard atmospheric pressure in millibar
+
 using math::constrain;
 using math::max;
 using math::min;
@@ -146,16 +148,17 @@ private:
 	bool		_task_should_exit{false};		///< if true, sensor task should exit */
 	bool		_task_running{false};			///< if true, task is running in its mainloop */
 
-	int		_global_pos_sub{ -1};
-	int		_local_pos_sub{ -1};
-	int		_pos_sp_triplet_sub{ -1};
-	int		_control_mode_sub{ -1};			///< control mode subscription */
-	int		_vehicle_attitude_sub{ -1};		///< vehicle attitude subscription */
-	int		_vehicle_command_sub{ -1};		///< vehicle command subscription */
-	int		_vehicle_status_sub{ -1};		///< vehicle status subscription */
-	int		_vehicle_land_detected_sub{ -1};		///< vehicle land detected subscription */
-	int		_params_sub{ -1};			///< notification of parameter updates */
-	int		_manual_control_sub{ -1};		///< notification of manual control updates */
+	int		_global_pos_sub{-1};
+	int		_local_pos_sub{-1};
+	int		_pos_sp_triplet_sub{-1};
+	int		_control_mode_sub{-1};			///< control mode subscription */
+	int		_vehicle_attitude_sub{-1};		///< vehicle attitude subscription */
+	int		_vehicle_command_sub{-1};		///< vehicle command subscription */
+	int		_vehicle_status_sub{-1};		///< vehicle status subscription */
+	int		_vehicle_land_detected_sub{-1};		///< vehicle land detected subscription */
+	int		_params_sub{-1};			///< notification of parameter updates */
+	int		_manual_control_sub{-1};		///< notification of manual control updates */
+	int		_sensor_baro_sub{-1};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
 	orb_advert_t	_tecs_status_pub{nullptr};		///< TECS status publication */
@@ -177,7 +180,6 @@ private:
 
 	Subscription<airspeed_s> _sub_airspeed;
 	Subscription<sensor_bias_s> _sub_sensors;
-	Subscription<sensor_baro_s> _sub_baro;
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 
@@ -295,7 +297,7 @@ private:
 		float throttle_idle;
 		float throttle_cruise;
 		float throttle_slew_max;
-		int32_t throttle_alt_scale;
+		bool throttle_alt_scale;
 
 		float man_roll_max_rad;
 		float man_pitch_max_rad;

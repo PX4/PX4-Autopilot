@@ -39,9 +39,8 @@ FixedwingPositionControl *l1_control::g_control;
 static int _control_task = -1;			///< task handle for sensor task */
 
 FixedwingPositionControl::FixedwingPositionControl() :
-	_sub_airspeed(ORB_ID(airspeed), 0, 0, nullptr),
-	_sub_sensors(ORB_ID(sensor_bias), 0, 0, nullptr),
-	_sub_baro(ORB_ID(sensor_baro), 0, 0, nullptr),
+	_sub_airspeed(ORB_ID(airspeed)),
+	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control"))
 {
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
@@ -143,8 +142,11 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_idle, &(_parameters.throttle_idle));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
-	param_get(_parameter_handles.throttle_alt_scale, &(_parameters.throttle_alt_scale));
 	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
+
+	int32_t i = 0;
+	param_get(_parameter_handles.throttle_alt_scale, &i);
+	_parameters.throttle_alt_scale = (i == 1);
 
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
@@ -1504,15 +1506,22 @@ FixedwingPositionControl::task_main()
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
+
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vehicle_status_sub, 200);
+
 	/* rate limit vehicle land detected updates to 5Hz */
 	orb_set_interval(_vehicle_land_detected_sub, 200);
+
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
+
+	/* rate limit barometer updates to 1 Hz */
+	orb_set_interval(_sensor_baro_sub, 0);
 
 	/* abort on a nonzero return value from the parameter init */
 	if (parameters_update() != PX4_OK) {
@@ -1551,7 +1560,6 @@ FixedwingPositionControl::task_main()
 		vehicle_land_detected_poll();
 		vehicle_status_poll();
 		_sub_sensors.update();
-		_sub_baro.update();
 
 		/* only update parameters if they changed */
 		bool params_updated = false;
@@ -1827,9 +1835,19 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 					     accel_body, (_global_pos.timestamp > 0), in_air_alt_control,
 					     _global_pos.alt, _local_pos.v_z_valid, _local_pos.vz, _local_pos.az);
 
-	/* scale effort by baro pressure */
-	if (_parameters.throttle_alt_scale > 0 && throttle_cruise > 0.1f) {
-		throttle_cruise *= (float)sqrt(1013.25f / _sub_baro.get().pressure);
+	/* scale throttle cruise by baro pressure */
+	if (_parameters.throttle_alt_scale) {
+
+		bool baro_updated = false;
+		orb_check(_sensor_baro_sub, &baro_updated);
+
+		sensor_baro_s baro;
+
+		if (orb_copy(ORB_ID(parameter_update), _sensor_baro_sub, &baro) == PX4_OK) {
+			// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
+			const float scale = constrain(sqrtf(MSL_PRESSURE_MILLIBAR / baro.pressure), 0.0f, 1.0f);
+			throttle_cruise = throttle_cruise * scale;
+		}
 	}
 
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,

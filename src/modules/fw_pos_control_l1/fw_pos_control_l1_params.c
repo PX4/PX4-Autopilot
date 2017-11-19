@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
  * over large altitude ranges.
  *
  * @boolean
- * @group FW Attitude Control
+ * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_THR_ALT_SC_EN, 0);
 
