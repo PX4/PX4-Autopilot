@@ -102,6 +102,20 @@ void Ekf::fuseVelPosHeight()
 			// innovation gate size
 			gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
 
+			// Compensate for positive static pressure transients (negative vertical position innovations)
+			// casued by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
+			float deadzone_start = 0.25f * _params.baro_noise;
+			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
+			if (_control_status.flags.gnd_effect) {
+				if (_vel_pos_innov[5] < -deadzone_start) {
+					if (_vel_pos_innov[5] <= -deadzone_end) {
+						_vel_pos_innov[5] += deadzone_end;
+					} else {
+						_vel_pos_innov[5] = -deadzone_start;
+					}
+				}
+			}
+
 		} else if (_control_status.flags.gps_hgt) {
 			fuse_map[5] = true;
 			// vertical position innovation - gps measurement has opposite sign to earth z axis
