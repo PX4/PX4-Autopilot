@@ -68,6 +68,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/landing_target_pose.h>
 
 using control::BlockParamFloat;
 using control::BlockParamExtFloat;
@@ -326,6 +327,7 @@ private:
 	BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
 
 	BlockParamInt _airspeed_disabled;	///< airspeed mode parameter
+	BlockParamInt _land_tgt_static;		///< 0 when landing target is moving, 1 when stationary
 
 };
 
@@ -439,7 +441,9 @@ Ekf2::Ekf2():
 	_K_pstatic_coef_y(this, "PCOEF_Y"),
 	_K_pstatic_coef_z(this, "PCOEF_Z"),
 	// non EKF2 parameters
-	_airspeed_disabled(this, "FW_ARSP_MODE", false)
+	_airspeed_disabled(this, "FW_ARSP_MODE", false),
+	_land_tgt_static(this, "LTEST_MODE", false)
+
 {
 }
 
@@ -465,6 +469,7 @@ void Ekf2::run()
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
 	int sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	int landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
 
 	bool imu_bias_reset_request = false;
 
@@ -498,6 +503,7 @@ void Ekf2::run()
 	sensor_selection_s sensor_selection = {};
 	sensor_baro_s sensor_baro = {};
 	sensor_baro.pressure = 1013.5f; // initialise pressure to sea level
+	landing_target_pose_s landing_target_pose = {};
 
 	while (!should_exit()) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -537,6 +543,7 @@ void Ekf2::run()
 		bool vision_position_updated = false;
 		bool vision_attitude_updated = false;
 		bool vehicle_status_updated = false;
+		bool landing_target_pose_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), sensors_sub, &sensors);
 		// update all other topics if they have new data
@@ -870,6 +877,23 @@ void Ekf2::run()
 		if (vehicle_land_detected_updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), vehicle_land_detected_sub, &vehicle_land_detected);
 			_ekf.set_in_air_status(!vehicle_land_detected.landed);
+		}
+
+		// use the landing target pose estimate as another source of velocity data
+		orb_check(landing_target_pose_sub, &landing_target_pose_updated);
+		if (landing_target_pose_updated) {
+			orb_copy(ORB_ID(landing_target_pose), landing_target_pose_sub, &landing_target_pose);
+			// we can only use the landing target if it has a fixed position and  a valid velocity estimate
+			if (landing_target_pose.rel_vel_valid && _land_tgt_static.get() == 1) {
+				// velocity of vehicle relative to target has opposite sign to target relative to vehicle
+				float velocity[2];
+				velocity[0] = -landing_target_pose.vx_rel;
+				velocity[1] = -landing_target_pose.vy_rel;
+				float variance[2];
+				variance[0] = landing_target_pose.cov_vx_rel;
+				variance[1] = landing_target_pose.cov_vy_rel;
+				_ekf.setAuxVelData(now, velocity, variance);
+			}
 		}
 
 		// run the EKF update and output
@@ -1411,6 +1435,7 @@ void Ekf2::run()
 	orb_unsubscribe(status_sub);
 	orb_unsubscribe(sensor_selection_sub);
 	orb_unsubscribe(sensor_baro_sub);
+	orb_unsubscribe(landing_target_pose_sub);
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		orb_unsubscribe(range_finder_subs[i]);
