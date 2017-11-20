@@ -59,7 +59,7 @@ public:
 
 	/**
 	 * Call once on the event where you switch to the task
-	 * @return 0 on success, >0 on error
+	 * @return 0 on success, <0 on error
 	 */
 	virtual int activate()
 	{
@@ -70,13 +70,13 @@ public:
 
 	/**
 	 * Call once on the event of switching away from the task
-	 * @return 0 on success, >0 on error
+	 * @return 0 on success, <0 on error
 	 */
 	virtual int disable() { return 0; };
 
 	/**
 	 * To be called regularly in the control loop cycle to execute the task
-	 * @return 0 on success, >0 on error
+	 * @return 0 on success, <0 on error
 	 */
 	virtual int update();
 
@@ -122,5 +122,5 @@ private:
 
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint; /**< Output position setpoint that every task has */
 
-	void _evaluate_vehicle_position();
+	int _evaluate_vehicle_position();
 };
