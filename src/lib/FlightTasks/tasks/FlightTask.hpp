@@ -54,25 +54,11 @@ public:
 	FlightTask(SuperBlock *parent, const char *name) :
 		SuperBlock(parent, name),
 		_sub_vehicle_local_position(ORB_ID(vehicle_local_position), 0, 0, &getSubscriptions())
-	{ };
-	virtual ~FlightTask() {};
-
-	/**
-	 * Call once on the event where you switch to the task
-	 * @return 0 on success, <0 on error
-	 */
-	virtual int activate()
 	{
 		_time_stamp_activate = hrt_absolute_time();
-		FlightTask::update();
-		return 0;
 	};
 
-	/**
-	 * Call once on the event of switching away from the task
-	 * @return 0 on success, <0 on error
-	 */
-	virtual int disable() { return 0; };
+	virtual ~FlightTask() = default;
 
 	/**
 	 * To be called regularly in the control loop cycle to execute the task
