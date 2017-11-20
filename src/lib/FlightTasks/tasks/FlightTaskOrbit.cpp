@@ -45,7 +45,7 @@
 
 using namespace matrix;
 
-FlightTaskOrbit::FlightTaskOrbit(SuperBlock *parent, const char *name) :
+FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) :
 	FlightTaskManual(parent, name)
 {
 	_r = 1.f;

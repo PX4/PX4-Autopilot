@@ -50,11 +50,11 @@
 #include "../SubscriptionArray.hpp"
 
 
-class FlightTask : public control::SuperBlock
+class FlightTask : public control::Block
 {
 public:
-	FlightTask(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name)
+	FlightTask(control::SuperBlock *parent, const char *name) :
+		Block(parent, name)
 	{
 		_time_stamp_activate = hrt_absolute_time();
 	};
