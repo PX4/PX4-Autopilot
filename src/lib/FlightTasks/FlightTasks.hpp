@@ -57,7 +57,7 @@ public:
 
 	/**
 	 * Call regularly in the control loop cycle to execute the task
-	 * @return 0 on success, >0 on error
+	 * @return 0 on success, <0 on error
 	 */
 	int update()
 	{
@@ -87,7 +87,7 @@ public:
 
 	/**
 	 * Switch to the next task in the available list (for testing)
-	 * @return 0 on success, >0 on error
+	 * @return 0 on success, <0 on error
 	 */
 	void switch_task()
 	{
@@ -97,7 +97,7 @@ public:
 	/**
 	 * Switch to a specific task (for normal usage)
 	 * @param task number to switch to
-	 * @return 0 on success, >0 on error
+	 * @return 0 on success, <0 on error
 	 */
 	int switch_task(int task_number)
 	{

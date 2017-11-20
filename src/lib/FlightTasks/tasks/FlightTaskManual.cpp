@@ -136,7 +136,7 @@ int FlightTaskManual::_evaluate_sticks()
 
 	} else {
 		_sticks.zero(); /* default is all zero */
-		return 1;
+		return -1;
 	}
 }
 
