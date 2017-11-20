@@ -63,7 +63,7 @@ public:
 	 */
 	virtual int activate()
 	{
-		_starting_time_stamp = hrt_absolute_time();
+		_time_stamp_activate = hrt_absolute_time();
 		FlightTask::update();
 		return 0;
 	};
@@ -89,10 +89,13 @@ public:
 	};
 
 protected:
+	/* time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
-
 	float _time = 0; /**< passed time in seconds since the task was activated */
 	float _deltatime = 0; /**< passed time in seconds since the task was last updated */
+	hrt_abstime _time_stamp_activate = 0; /**< time stamp when task was activated */
+	hrt_abstime _time_stamp_current = 0; /**< time stamp at the beginning of the current task update */
+	hrt_abstime _time_stamp_last = 0; /**< time stamp when task was last updated */
 
 	/* Current vehicle position for every task */
 	matrix::Vector3f _position; /**< current vehicle position */
@@ -116,9 +119,6 @@ protected:
 
 private:
 	uORB::Subscription<vehicle_local_position_s> _sub_vehicle_local_position;
-
-	hrt_abstime _starting_time_stamp = 0; /**< time stamp when task was activated */
-	hrt_abstime _last_time_stamp = 0; /**< time stamp when task was last updated */
 
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint; /**< Output position setpoint that every task has */
 
