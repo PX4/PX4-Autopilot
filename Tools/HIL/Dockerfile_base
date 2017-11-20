@@ -1,0 +1,113 @@
+#
+# PX4 base development environment
+#
+
+FROM ubuntu:xenial
+MAINTAINER Daniel Agar <daniel@agar.ca>
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update \
+	&& DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		bzip2 \
+		ca-certificates \
+		ccache \
+		cmake \
+		curl \
+		g++ \
+		gcc \
+		genromfs \
+		git \
+		gosu \
+		lcov \
+		make \
+		ninja-build \
+		openjdk-8-jdk \
+		patch \
+		python-argparse \
+		python-empy \
+		python-pip \
+		python-serial \
+		python-software-properties \
+		rsync \
+		s3cmd \
+		software-properties-common \
+		sudo \
+		unzip \
+		vim-common \
+		wget \
+		xsltproc \
+		zip \
+	&& apt-get -y autoremove \
+	&& apt-get clean autoclean \
+	# pip
+	&& pip install --upgrade pip \
+	&& pip install setuptools \
+	# coveralls code coverage reporting
+	&& pip install cpp-coveralls \
+	# jinja template generation
+	&& pip install jinja2 \
+	# astyle v2.06
+	&& wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%202.06/astyle_2.06_linux.tar.gz -O /tmp/astyle.tar.gz \
+	&& tar -xvf /tmp/astyle.tar.gz && cd astyle/src && make -f ../build/gcc/Makefile && cp bin/astyle /usr/local/bin && cd .. && rm -rf astyle \
+	# manual ccache setup
+	&& ln -s /usr/bin/ccache /usr/lib/ccache/cc \
+	&& ln -s /usr/bin/ccache /usr/lib/ccache/c++ \
+	# cleanup
+	&& rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/* \
+	# Add Fast-RTPS
+	&& cd /opt && curl http://www.eprosima.com/index.php/component/ars/repository/eprosima-fast-rtps/eprosima-fast-rtps-1-5-0/eprosima_fastrtps-1-5-0-linux-tar-gz?format=raw | tar xz eProsima_FastRTPS-1.5.0-Linux/share/fastrtps/fastrtpsgen.jar eProsima_FastRTPS-1.5.0-Linux/bin/fastrtpsgen \
+	&& ln -s /opt/eProsima_FastRTPS-1.5.0-Linux/bin/fastrtpsgen /usr/local/bin/fastrtpsgen \
+	&& mkdir -p /usr/local/share/fastrtps && ln -s /opt/eProsima_FastRTPS-1.5.0-Linux/share/fastrtps/fastrtpsgen.jar /usr/local/share/fastrtps/fastrtpsgen.jar
+
+ENV CCACHE_CPP2=1
+ENV CCACHE_MAXSIZE=1G
+ENV DISPLAY :0
+ENV PATH "/usr/lib/ccache:$PATH"
+ENV TERM=xterm
+
+# SITL UDP PORTS
+EXPOSE 14556/udp
+EXPOSE 14557/udp
+
+RUN dpkg --add-architecture i386 \
+	&& apt-get update \
+	&& apt-get -y --quiet --no-install-recommends install \
+		autoconf \
+		automake \
+		bison \
+		build-essential \
+		file \
+		flex \
+		genromfs \
+		gperf \
+		libc6:i386 \
+		libgcc1:i386 \
+		libncurses-dev \
+		libtool \
+		pkg-config \
+	&& apt-get -y autoremove \
+	&& apt-get clean autoclean \
+	# gcc-arm-embedded 5-2016-q3-update (https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads)
+	&& mkdir -p /opt/gcc && cd /opt/gcc \
+	&& wget -qO- "https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2?product=GNU%20ARM%20Embedded%20Toolchain,32-bit,,Linux,5-2016-q3-update" | tar jx --strip 1 \
+	&& rm -rf /opt/gcc/share/doc \
+	# manual ccache setup for arm-none-eabi-g++/arm-none-eabi-gcc
+	&& ln -s /usr/bin/ccache /usr/lib/ccache/arm-none-eabi-g++ \
+	&& ln -s /usr/bin/ccache /usr/lib/ccache/arm-none-eabi-gcc \
+	# nuttx tools
+	&& git clone --depth 1 https://bitbucket.org/nuttx/tools.git /tmp/tools \
+	&& cd /tmp/tools/kconfig-frontends \
+	&& autoreconf -f -i \
+	&& ./configure --enable-mconf --disable-nconf --disable-gconf --disable-qconf -prefix=/usr && make && make install \
+	# cleanup
+	&& rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
+
+ENV PATH "$PATH:/opt/gcc/bin"
+
+
+# create and start as LOCAL_USER_ID
+#COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+#ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+CMD ["/bin/bash"]

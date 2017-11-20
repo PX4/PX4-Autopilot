@@ -1,0 +1,9 @@
+[
+    {
+        "UID": "360023:32365108:36363331",
+        "HW": "PX4FMU_V4",
+        "JENKINS_SLAVE_ID": 1,
+        "JENKINS_SLAVE_SECRET": "981734aaa51dec5902e971c7e9e4202e7dda0870ddfc3b3d8e4cc586855ad0e5",
+        "JENKINS_MASTER_URL": "172.17.0.1:8888"
+    }
+]
