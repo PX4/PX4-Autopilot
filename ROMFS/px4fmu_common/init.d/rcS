@@ -697,6 +697,10 @@ fi
 	then
 		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -m minimal -r 1000
 	fi
+	if param compare SYS_COMPANION 6460800
+	then
+		micrortps_client start -t UART -d /dev/ttyS2 -b 460800
+	fi
 	if param compare SYS_COMPANION 1921600
 	then
 		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -r 20000
