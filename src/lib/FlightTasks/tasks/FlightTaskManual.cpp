@@ -46,20 +46,35 @@
 
 using namespace matrix;
 
-int FlightTaskManual::activate()
+FlightTaskManual::FlightTaskManual(SuperBlock *parent, const char *name) :
+	FlightTask(parent, name),
+	_sub_manual_control_setpoint(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
+	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
+	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
+	_hold_dz(parent, "MPC_HOLD_DZ", false),
+	_velocity_hor_manual(parent, "MPC_VEL_MANUAL", false),
+	_z_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
+	_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
+	_hold_max_xy(parent, "MPC_HOLD_MAX_XY", false),
+	_hold_max_z(parent, "MPC_HOLD_MAX_Z", false),
+	_jerk_hor_max(parent, "MPC_JERK_MAX", false),
+	_jerk_hor_min(parent, "MPC_JERK_MIN", false),
+	_deceleration_hor_slow(parent, "MPC_DEC_HOR_SLOW", false),
+	_acceleration_hor_max(this, "MPC_ACC_HOR_MAX", false),
+	_acceleration_hor_manual(this, "MPC_ACC_HOR_MAN", false),
+	_acceleration_z_max_up(this, "MPC_ACC_UP_MAX", false),
+	_acceleration_z_max_down(this, "MPC_ACC_DOWN_MAX", false),
+	_rc_flt_smp_rate(parent, "RC_FLT_SMP_RATE", false),
+	_rc_flt_cutoff(parent, "RC_FLT_CUTOFF", false),
+	_manual_direction_change_hysteresis(false),
+	_filter_roll_stick(50.0f, 10.0f),
+	_filter_pitch_stick(50.0f, 10.0f)
 {
-	FlightTask::activate();
+	_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TIME_US);
 	_filter_roll_stick.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
 	_filter_pitch_stick.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
 	_hold_position = Vector3f(NAN, NAN, NAN);
-	return 0;
-}
-
-int FlightTaskManual::disable()
-{
-	FlightTask::disable();
-	return 0;
-}
+};
 
 int FlightTaskManual::update()
 {
