@@ -1358,7 +1358,6 @@ void Ekf::controlVelPosFusion()
 	// Fuse available NED velocity and position data into the main filter
 	if (_fuse_height || _fuse_pos || _fuse_hor_vel || _fuse_vert_vel) {
 		fuseVelPosHeight();
-		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
 
 	}
 }
@@ -1376,6 +1375,5 @@ void Ekf::controlAuxVelFusion()
 		_velObsVarNE = _auxvel_sample_delayed.velVarNE;
 		_hvelInnovGate = _params.auxvel_gate;
 		fuseVelPosHeight();
-		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
 	}
 }

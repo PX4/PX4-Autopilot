@@ -176,6 +176,7 @@ void Ekf::fuseVelPosHeight()
 	} else if (!vel_check_pass) {
 		_innov_check_fail_status.flags.reject_vel_NED = true;
 	}
+	_fuse_hor_vel = false;
 
 	// record the successful position fusion event
 	if (pos_check_pass && _fuse_pos) {
@@ -188,6 +189,7 @@ void Ekf::fuseVelPosHeight()
 	} else if (!pos_check_pass) {
 		_innov_check_fail_status.flags.reject_pos_NE = true;
 	}
+	_fuse_pos = false;
 
 	// record the successful height fusion event
 	if (innov_check_pass_map[5] && _fuse_height) {
@@ -196,6 +198,7 @@ void Ekf::fuseVelPosHeight()
 	} else if (!innov_check_pass_map[5]) {
 		_innov_check_fail_status.flags.reject_pos_D = true;
 	}
+	_fuse_height = false;
 
 	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
 		// skip fusion if not requested or checks have failed
