@@ -50,7 +50,7 @@
 class FlightTaskManual : public FlightTask
 {
 public:
-	FlightTaskManual(SuperBlock *parent, const char *name);
+	FlightTaskManual(control::SuperBlock *parent, const char *name);
 
 	virtual ~FlightTaskManual() = default;
 

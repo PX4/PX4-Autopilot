@@ -46,7 +46,7 @@
 class FlightTaskOrbit : public FlightTaskManual
 {
 public:
-	FlightTaskOrbit(SuperBlock *parent, const char *name);
+	FlightTaskOrbit(control::SuperBlock *parent, const char *name);
 
 	virtual ~FlightTaskOrbit() = default;
 

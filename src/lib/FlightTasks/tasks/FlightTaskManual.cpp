@@ -46,7 +46,7 @@
 
 using namespace matrix;
 
-FlightTaskManual::FlightTaskManual(SuperBlock *parent, const char *name) :
+FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name) :
 	FlightTask(parent, name),
 	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
 	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
