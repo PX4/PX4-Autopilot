@@ -54,6 +54,8 @@ public:
 
 	virtual ~FlightTaskManual() = default;
 
+	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
+
 	int update() override;
 
 protected:
@@ -62,7 +64,7 @@ protected:
 	float get_input_frame_yaw() { return _yaw; };
 
 private:
-	uORB::Subscription<manual_control_setpoint_s> _sub_manual_control_setpoint;
+	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
