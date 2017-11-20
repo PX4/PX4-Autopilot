@@ -48,7 +48,6 @@ using namespace matrix;
 
 FlightTaskManual::FlightTaskManual(SuperBlock *parent, const char *name) :
 	FlightTask(parent, name),
-	_sub_manual_control_setpoint(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
 	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
 	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
 	_hold_dz(parent, "MPC_HOLD_DZ", false),
@@ -76,6 +75,18 @@ FlightTaskManual::FlightTaskManual(SuperBlock *parent, const char *name) :
 	_hold_position = Vector3f(NAN, NAN, NAN);
 };
 
+bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_array)
+{
+	if (!FlightTask::initializeSubscriptions(subscription_array)) {
+		return false;
+	}
+
+	if (!subscription_array.get(ORB_ID(manual_control_setpoint), _sub_manual_control_setpoint)) {
+		return false;
+	}
+
+	return true;
+}
 int FlightTaskManual::update()
 {
 	int ret = FlightTask::update();
@@ -135,12 +146,12 @@ int FlightTaskManual::update()
 
 int FlightTaskManual::_evaluate_sticks()
 {
-	if ((_time_stamp_current - _sub_manual_control_setpoint.get().timestamp) < _timeout) {
+	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < _timeout) {
 		/* get data and scale correctly */
-		_sticks(0) = _sub_manual_control_setpoint.get().x; /* NED x, "pitch" [-1,1] */
-		_sticks(1) = _sub_manual_control_setpoint.get().y; /* NED y, "roll" [-1,1] */
-		_sticks(2) = -(_sub_manual_control_setpoint.get().z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
-		_sticks(3) = _sub_manual_control_setpoint.get().r; /* "yaw" [-1,1] */
+		_sticks(0) = _sub_manual_control_setpoint->get().x; /* NED x, "pitch" [-1,1] */
+		_sticks(1) = _sub_manual_control_setpoint->get().y; /* NED y, "roll" [-1,1] */
+		_sticks(2) = -(_sub_manual_control_setpoint->get().z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
+		_sticks(3) = _sub_manual_control_setpoint->get().r; /* "yaw" [-1,1] */
 
 		/* apply expo and deadzone */
 		_sticks(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());

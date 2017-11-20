@@ -47,16 +47,23 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
+#include "../SubscriptionArray.hpp"
+
 
 class FlightTask : public control::SuperBlock
 {
 public:
 	FlightTask(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name),
-		_sub_vehicle_local_position(ORB_ID(vehicle_local_position), 0, 0, &getSubscriptions())
+		SuperBlock(parent, name)
 	{
 		_time_stamp_activate = hrt_absolute_time();
 	};
+
+	/**
+	 * initialize the uORB subscriptions using an array
+	 * @return true on success, false on error
+	 */
+	virtual bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	virtual ~FlightTask() = default;
 
@@ -104,7 +111,7 @@ protected:
 	void _set_yawspeed_setpoint(const float &yawspeed) { _vehicle_local_position_setpoint.yawspeed = yawspeed; };
 
 private:
-	uORB::Subscription<vehicle_local_position_s> _sub_vehicle_local_position;
+	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
 
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint; /**< Output position setpoint that every task has */
 
