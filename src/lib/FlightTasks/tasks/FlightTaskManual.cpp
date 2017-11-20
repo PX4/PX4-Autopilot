@@ -120,7 +120,7 @@ int FlightTaskManual::update()
 
 int FlightTaskManual::_evaluate_sticks()
 {
-	if (hrt_elapsed_time(&_sub_manual_control_setpoint.get().timestamp) < _timeout) {
+	if ((_time_stamp_current - _sub_manual_control_setpoint.get().timestamp) < _timeout) {
 		/* get data and scale correctly */
 		_sticks(0) = _sub_manual_control_setpoint.get().x; /* NED x, "pitch" [-1,1] */
 		_sticks(1) = _sub_manual_control_setpoint.get().y; /* NED y, "roll" [-1,1] */
