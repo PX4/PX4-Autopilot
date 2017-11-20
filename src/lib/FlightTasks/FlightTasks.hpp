@@ -45,6 +45,8 @@
 #include "tasks/FlightTaskManual.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 
+#include "SubscriptionArray.hpp"
+
 #include <new>
 
 class FlightTasks : control::SuperBlock
@@ -68,6 +70,7 @@ public:
 	int update()
 	{
 		if (is_any_task_active()) {
+			_subscription_array.update();
 			return _current_task->update();
 		}
 
@@ -132,6 +135,13 @@ public:
 			return 1;
 		}
 
+		if (!_current_task->initializeSubscriptions(_subscription_array)) {
+			_current_task->~FlightTask();
+			_current_task = nullptr;
+			_current_task_index = -1;
+			return 1;
+		}
+
 		_current_task_index = task_number;
 		_current_task->update();
 		return 0;
@@ -172,4 +182,6 @@ private:
 
 	FlightTask *_current_task = nullptr;
 	int _current_task_index = -1;
+
+	SubscriptionArray _subscription_array;
 };
