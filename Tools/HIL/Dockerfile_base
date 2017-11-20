@@ -26,9 +26,11 @@ RUN apt-get update \
 		patch \
 		python-argparse \
 		python-empy \
+		python-numpy \
 		python-pip \
 		python-serial \
 		python-software-properties \
+		python-toml \
 		rsync \
 		s3cmd \
 		software-properties-common \
