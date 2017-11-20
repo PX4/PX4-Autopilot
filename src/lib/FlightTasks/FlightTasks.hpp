@@ -45,15 +45,21 @@
 #include "tasks/FlightTaskManual.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 
+#include <new>
+
 class FlightTasks : control::SuperBlock
 {
 public:
 	FlightTasks() :
-		SuperBlock(nullptr, "TSK"),
-		Manual(this, "MAN"),
-		Orbit(this, "ORB")
+		SuperBlock(nullptr, "TSK")
 	{};
-	~FlightTasks() {};
+
+	~FlightTasks()
+	{
+		if (_current_task) {
+			_current_task->~FlightTask();
+		}
+	};
 
 	/**
 	 * Call regularly in the control loop cycle to execute the task
@@ -62,11 +68,10 @@ public:
 	int update()
 	{
 		if (is_any_task_active()) {
-			return _tasks[_current_task]->update();
-
-		} else {
-			return 1;
+			return _current_task->update();
 		}
+
+		return 1;
 	}
 
 	/**
@@ -74,7 +79,7 @@ public:
 	 */
 	const vehicle_local_position_setpoint_s &get_position_setpoint()
 	{
-		return _tasks[_current_task]->get_position_setpoint();
+		return _current_task->get_position_setpoint();
 	}
 
 	/**
@@ -89,9 +94,9 @@ public:
 	 * Switch to the next task in the available list (for testing)
 	 * @return 0 on success, <0 on error
 	 */
-	void switch_task()
+	int switch_task()
 	{
-		switch_task(_current_task + 1);
+		return switch_task(_current_task_index + 1);
 	}
 
 	/**
@@ -102,37 +107,47 @@ public:
 	int switch_task(int task_number)
 	{
 		/* switch to the running task, nothing to do */
-		if (task_number == _current_task) {
+		if (task_number == _current_task_index) {
 			return 0;
 		}
 
 		/* disable the old task if there is any */
-		if (is_any_task_active()) {
-			_tasks[_current_task]->disable();
+		if (_current_task) {
+			_current_task->~FlightTask();
+			_current_task = nullptr;
+			_current_task_index = -1;
 		}
 
-		/* if the new task exists and it activates succesfully we switched */
-		if (is_task_number_valid(task_number) && !_tasks[task_number]->activate()) {
-			_current_task = task_number;
-			return 0;
+		switch (task_number) {
+		case 0:
+			_current_task = new (&_task_union.manual) FlightTaskManual(this, "MAN");
+			break;
+
+		case 1:
+			_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
+			break;
+
+		default:
+			/* invalid task */
+			return 1;
 		}
 
-		/* something went wrong, no task running anymore */
-		_current_task = -1;
-		return 1;
+		_current_task_index = task_number;
+		_current_task->update();
+		return 0;
 	}
 
 	/**
 	 * Get the number of the active task
 	 * @return number of active task, -1 if there is none
 	 */
-	int get_active_task() const { return _current_task; };
+	int get_active_task() const { return _current_task_index; };
 
 	/**
 	 * Check if any task is active
 	 * @return true if a task is active, false if not
 	 */
-	bool is_any_task_active() const { return is_task_number_valid(_current_task); };
+	bool is_any_task_active() const { return _current_task; };
 
 	/**
 	 * Check if the task number exists
@@ -142,9 +157,19 @@ public:
 
 private:
 	static constexpr int _task_count = 2;
-	FlightTask *_tasks[_task_count] = {&Manual, &Orbit};
-	FlightTaskManual Manual;
-	FlightTaskOrbit Orbit;
 
-	int _current_task = -1;
+	/** union with all existing tasks: we use it to make sure that only the memory of the largest existing
+	 * task is needed, and to avoid using dynamic memory allocations.
+	 */
+	union TaskUnion {
+		TaskUnion() {}
+		~TaskUnion() {}
+
+		FlightTaskManual manual;
+		FlightTaskOrbit orbit;
+	};
+	TaskUnion _task_union; ///< storage for the currently active task
+
+	FlightTask *_current_task = nullptr;
+	int _current_task_index = -1;
 };

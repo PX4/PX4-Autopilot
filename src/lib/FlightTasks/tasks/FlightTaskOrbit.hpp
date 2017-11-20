@@ -46,13 +46,10 @@
 class FlightTaskOrbit : public FlightTaskManual
 {
 public:
-	FlightTaskOrbit(SuperBlock *parent, const char *name) :
-		FlightTaskManual(parent, name)
-	{};
-	virtual ~FlightTaskOrbit() {};
+	FlightTaskOrbit(SuperBlock *parent, const char *name);
 
-	int activate() override;
-	int disable() override;
+	virtual ~FlightTaskOrbit() = default;
+
 	int update() override;
 
 private:
