@@ -41,7 +41,13 @@ if(NOT FASTRTPSGEN)
 endif()
 
 set(config_rtps_send_topics
-   sensor_combined
+	sensor_combined
+	sensor_baro
+	sensor_selection
+	vehicle_gps_position
+	airspeed
+	vehicle_land_detected
+	vehicle_status
    )
 
 set(config_rtps_receive_topics
