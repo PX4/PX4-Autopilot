@@ -756,6 +756,12 @@ void Ekf::get_vel_pos_innov(float vel_pos_innov[6])
 	memcpy(vel_pos_innov, _vel_pos_innov, sizeof(float) * 6);
 }
 
+// gets the innovations of the earth magnetic field measurements
+void Ekf::get_aux_vel_innov(float aux_vel_innov[2])
+{
+	memcpy(aux_vel_innov, _aux_vel_innov, sizeof(float) * 2);
+}
+
 // writes the innovations of the earth magnetic field measurements
 void Ekf::get_mag_innov(float mag_innov[3])
 {

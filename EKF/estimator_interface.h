@@ -61,6 +61,9 @@ public:
 	// 0-2 vel, 3-5 pos
 	virtual void get_vel_pos_innov(float vel_pos_innov[6]) = 0;
 
+	// gets the innovations for of the NE auxiliary velocity measurement
+	virtual void get_aux_vel_innov(float aux_vel_innov[2]) = 0;
+
 	// gets the innovations of the earth magnetic field measurements
 	virtual void get_mag_innov(float mag_innov[3]) = 0;
 

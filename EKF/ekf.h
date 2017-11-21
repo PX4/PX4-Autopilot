@@ -60,6 +60,9 @@ public:
 	// 0-2 vel, 3-5 pos
 	void get_vel_pos_innov(float vel_pos_innov[6]);
 
+	// gets the innovations for of the NE auxiliary velocity measurement
+	void get_aux_vel_innov(float aux_vel_innov[2]);
+
 	// gets the innovations of the earth magnetic field measurements
 	void get_mag_innov(float mag_innov[3]);
 
@@ -260,6 +263,7 @@ private:
 	bool _fuse_pos{false};		///< true when gps position data should be fused
 	bool _fuse_hor_vel{false};	///< true when gps horizontal velocity measurement should be fused
 	bool _fuse_vert_vel{false};	///< true when gps vertical velocity measurement should be fused
+	bool _fuse_hor_vel_aux{false};	///< true when auxiliary horizontal velocity measurement should be fused
 
 	float _posObsNoiseNE;		///< 1-STD observtion noise used for the fusion of NE position data (m)
 	float _posInnovGateNE;		///< Number of standard deviations used for the NE position fusion innovation consistency check
@@ -319,8 +323,9 @@ private:
 
 	float P[_k_num_states][_k_num_states] {};	///< state covariance matrix
 
-	float _vel_pos_innov[6] {};	///< NED velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m**2)
+	float _vel_pos_innov[6] {};	///< NED velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
 	float _vel_pos_innov_var[6] {};	///< NED velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
+	float _aux_vel_innov[2] {};	///< NE auxiliary velocity innovations: (m/sec)
 
 	float _mag_innov[3] {};		///< earth magnetic field innovations (Gauss)
 	float _mag_innov_var[3] {};	///< earth magnetic field innovation variance (Gauss**2)
