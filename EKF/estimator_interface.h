@@ -61,6 +61,9 @@ public:
 	// 0-2 vel, 3-5 pos
 	virtual void get_vel_pos_innov(float vel_pos_innov[6]) = 0;
 
+	// gets the innovations for of the NE auxiliary velocity measurement
+	virtual void get_aux_vel_innov(float aux_vel_innov[2]) = 0;
+
 	// gets the innovations of the earth magnetic field measurements
 	virtual void get_mag_innov(float mag_innov[3]) = 0;
 
@@ -184,6 +187,9 @@ public:
 
 	// set external vision position and attitude data
 	void setExtVisionData(uint64_t time_usec, ext_vision_message *evdata);
+
+	// set auxiliary velocity data
+	void setAuxVelData(uint64_t time_usec, float (&data)[2], float (&variance)[2]);
 
 	// return a address to the parameters struct
 	// in order to give access to the application
@@ -402,6 +408,7 @@ protected:
 	extVisionSample _ev_sample_delayed{};
 	dragSample _drag_sample_delayed{};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
+	auxVelSample _auxvel_sample_delayed{};
 
 	// Used by the multi-rotor specific drag force fusion
 	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
@@ -463,6 +470,7 @@ protected:
 	RingBuffer<outputSample> _output_buffer;
 	RingBuffer<outputVert> _output_vert_buffer;
 	RingBuffer<dragSample> _drag_buffer;
+	RingBuffer<auxVelSample> _auxvel_buffer;
 
 	// observation buffer final allocation failed
 	bool _gps_buffer_fail{false};
@@ -473,6 +481,7 @@ protected:
 	bool _flow_buffer_fail{false};
 	bool _ev_buffer_fail{false};
 	bool _drag_buffer_fail{false};
+	bool _auxvel_buffer_fail{false};
 
 	uint64_t _time_last_imu{0};	// timestamp of last imu sample in microseconds
 	uint64_t _time_last_gps{0};	// timestamp of last gps measurement in microseconds
@@ -483,6 +492,7 @@ protected:
 	uint64_t _time_last_ext_vision{0}; // timestamp of last external vision measurement in microseconds
 	uint64_t _time_last_optflow{0};
 	uint64_t _time_last_gnd_effect_on{0};	//last time the baro ground effect compensation was turned on externally (uSec)
+	uint64_t _time_last_auxvel{0};
 
 	fault_status_u _fault_status{};
 
