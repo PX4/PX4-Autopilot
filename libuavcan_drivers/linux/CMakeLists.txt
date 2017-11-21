@@ -43,7 +43,7 @@ endif ()
 # Applications - tests, tools.
 #
 include_directories(include)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic -std=c++11")  # GCC or Clang
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -std=c++11")  # GCC or Clang
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DUAVCAN_DEBUG=1)
