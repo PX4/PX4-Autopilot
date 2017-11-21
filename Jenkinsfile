@@ -1,24 +1,39 @@
 pipeline {
-  agent {
-    docker {
-      image 'px4io/px4-dev-simulation:2017-10-23'
-      args '--env CCACHE_DISABLE=1 --env CI=true'
-      label 'docker'
-    }
-  }
+  agent none
   stages {
     stage('Quality Checks') {
+      agent {
+        docker {
+          image 'px4io/px4-dev-simulation:2017-10-23'
+          args '--env CCACHE_DISABLE=1 --env CI=true'
+          label 'docker'
+        }
+      }
       steps {
         sh 'make check_format'
       }
     }
     stage('Build') {
-          steps {
-            sh 'make nuttx_px4fmu-v2_default'
-            archiveArtifacts 'build/*/*.px4'
-          }
+      agent {
+        docker {
+          image 'px4io/px4-dev-simulation:2017-10-23'
+          args '--env CCACHE_DISABLE=1 --env CI=true'
+          label 'docker'
+        }
+      }
+      steps {
+        sh 'make nuttx_px4fmu-v2_default'
+        archiveArtifacts 'build/*/*.px4'
+      }
     }
     stage('Test') {
+      agent {
+        docker {
+          image 'px4io/px4-dev-simulation:2017-10-23'
+          args '--env CCACHE_DISABLE=1 --env CI=true'
+          label 'docker'
+        }
+      }
       steps {
         sh 'make posix_sitl_default test_results_junit'
         junit 'build/posix_sitl_default/JUnitTestResults.xml'
@@ -27,18 +42,39 @@ pipeline {
     stage('Generate Metadata') {
       parallel {
         stage('airframe') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-simulation:2017-10-23'
+              args '--env CCACHE_DISABLE=1 --env CI=true'
+              label 'docker'
+            }
+          }
           steps {
             sh 'make airframe_metadata'
             archiveArtifacts 'airframes.md, airframes.xml'
           }
         }
         stage('parameters') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-simulation:2017-10-23'
+              args '--env CCACHE_DISABLE=1 --env CI=true'
+              label 'docker'
+            }
+          }
           steps {
             sh 'make parameters_metadata'
             archiveArtifacts 'parameters.md, parameters.xml'
           }
         }
         stage('modules') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-simulation:2017-10-23'
+              args '--env CCACHE_DISABLE=1 --env CI=true'
+              label 'docker'
+            }
+          }
           steps {
             sh 'make module_documentation'
             archiveArtifacts 'modules/*.md'
@@ -47,6 +83,13 @@ pipeline {
       }
     }
     stage('S3 Upload') {
+      agent {
+        docker {
+          image 'px4io/px4-dev-simulation:2017-10-23'
+          args '--env CCACHE_DISABLE=1 --env CI=true'
+          label 'docker'
+        }
+      }
       when {
         branch 'master|beta|stable'
       }
