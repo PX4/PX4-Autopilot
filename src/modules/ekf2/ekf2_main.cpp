@@ -881,8 +881,10 @@ void Ekf2::run()
 
 		// use the landing target pose estimate as another source of velocity data
 		orb_check(landing_target_pose_sub, &landing_target_pose_updated);
+
 		if (landing_target_pose_updated) {
 			orb_copy(ORB_ID(landing_target_pose), landing_target_pose_sub, &landing_target_pose);
+
 			// we can only use the landing target if it has a fixed position and  a valid velocity estimate
 			if (landing_target_pose.rel_vel_valid && _land_tgt_static.get() == 1) {
 				// velocity of vehicle relative to target has opposite sign to target relative to vehicle
@@ -1259,6 +1261,7 @@ void Ekf2::run()
 				ekf2_innovations_s innovations;
 				innovations.timestamp = now;
 				_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+				_ekf.get_aux_vel_innov(&innovations.aux_vel_innov[0]);
 				_ekf.get_mag_innov(&innovations.mag_innov[0]);
 				_ekf.get_heading_innov(&innovations.heading_innov);
 				_ekf.get_airspeed_innov(&innovations.airspeed_innov);
