@@ -51,22 +51,31 @@ void Ekf::fuseVelPosHeight()
 	float R[6] = {}; // observation variances for [VN,VE,VD,PN,PE,PD]
 	float gate_size[6] = {}; // innovation consistency check gate sizes for [VN,VE,VD,PN,PE,PD] observations
 	float Kfusion[24] = {}; // Kalman gain vector for any single observation - sequential fusion is used
+	float innovation[6]; // local copy of innovations for  [VN,VE,VD,PN,PE,PD]
+	memcpy(innovation, _vel_pos_innov, sizeof(_vel_pos_innov));
 
 	// calculate innovations, innovations gate sizes and observation variances
-	if (_fuse_hor_vel) {
+	if (_fuse_hor_vel || _fuse_hor_vel_aux) {
 		// enable fusion for NE velocity axes
 		fuse_map[0] = fuse_map[1] = true;
+
+		// handle special case where we are getting velocity observations from an auxiliary source
+		if (!_fuse_hor_vel) {
+			innovation[0] = _aux_vel_innov[0];
+			innovation[1] = _aux_vel_innov[1];
+		}
 
 		// Set observation noise variance and innovation consistency check gate size for the NE position observations
 		R[0] = _velObsVarNE(0);
 		R[1] = _velObsVarNE(1);
 		gate_size[1] = gate_size[0] = _hvelInnovGate;
+
 	}
 
 	if (_fuse_vert_vel) {
 		fuse_map[2] = true;
 		// vertical velocity innovation
-		_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
+		innovation[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
 		// observation variance - use receiver reported accuracy with parameter setting the minimum value
 		R[2] = fmaxf(_params.gps_vel_noise, 0.01f);
 		// use scaled horizontal speed accuracy assuming typical ratio of VDOP/HDOP
@@ -90,7 +99,7 @@ void Ekf::fuseVelPosHeight()
 		if (_control_status.flags.baro_hgt) {
 			fuse_map[5] = true;
 			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			_vel_pos_innov[5] = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
+			innovation[5] = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
 			// observation variance - user parameter defined
 			R[5] = fmaxf(_params.baro_noise, 0.01f);
 			R[5] = R[5] * R[5];
@@ -114,7 +123,7 @@ void Ekf::fuseVelPosHeight()
 		} else if (_control_status.flags.gps_hgt) {
 			fuse_map[5] = true;
 			// vertical position innovation - gps measurement has opposite sign to earth z axis
-			_vel_pos_innov[5] = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
+			innovation[5] = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
 			// observation variance - receiver defined and parameter limited
 			// use scaled horizontal position accuracy assuming typical ratio of VDOP/HDOP
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
@@ -127,7 +136,7 @@ void Ekf::fuseVelPosHeight()
 		} else if (_control_status.flags.rng_hgt && (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt)) {
 			fuse_map[5] = true;
 			// use range finder with tilt correction
-			_vel_pos_innov[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
+			innovation[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
 							     _params.rng_gnd_clearance)) - _hgt_sensor_offset;
 			// observation variance - user parameter defined
 			R[5] = fmaxf((sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng)) * sq(_R_rng_to_earth_2_2), 0.01f);
@@ -136,7 +145,7 @@ void Ekf::fuseVelPosHeight()
 		} else if (_control_status.flags.ev_hgt) {
 			fuse_map[5] = true;
 			// calculate the innovation assuming the external vision observaton is in local NED frame
-			_vel_pos_innov[5] = _state.pos(2) - _ev_sample_delayed.posNED(2);
+			innovation[5] = _state.pos(2) - _ev_sample_delayed.posNED(2);
 			// observation variance - defined externally
 			R[5] = fmaxf(_ev_sample_delayed.posErr, 0.01f);
 			R[5] = R[5] * R[5];
@@ -153,7 +162,7 @@ void Ekf::fuseVelPosHeight()
 			unsigned state_index = obs_index + 4;	// we start with vx and this is the 4. state
 			_vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
 			// Compute the ratio of innovation to gate size
-			_vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) *
+			_vel_pos_test_ratio[obs_index] = sq(innovation[obs_index]) / (sq(gate_size[obs_index]) *
 							 _vel_pos_innov_var[obs_index]);
 		}
 	}
@@ -170,13 +179,13 @@ void Ekf::fuseVelPosHeight()
 	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f) || !_control_status.flags.tilt_align;
 
 	// record the successful velocity fusion event
-	if (vel_check_pass && _fuse_hor_vel) {
+	if ((_fuse_hor_vel || _fuse_hor_vel_aux) && vel_check_pass) {
 		_time_last_vel_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_vel_NED = false;
 	} else if (!vel_check_pass) {
 		_innov_check_fail_status.flags.reject_vel_NED = true;
 	}
-	_fuse_hor_vel = false;
+	_fuse_hor_vel = _fuse_hor_vel_aux = false;
 
 	// record the successful position fusion event
 	if (pos_check_pass && _fuse_pos) {
@@ -278,7 +287,7 @@ void Ekf::fuseVelPosHeight()
 			fixCovarianceErrors();
 
 			// apply the state corrections
-			fuse(Kfusion, _vel_pos_innov[obs_index]);
+			fuse(Kfusion, innovation[obs_index]);
 		}
 	}
 }

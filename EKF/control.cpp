@@ -1368,10 +1368,10 @@ void Ekf::controlAuxVelFusion()
 	bool primary_aiding = _control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow;
 
 	if (data_ready && primary_aiding) {
-		_fuse_vert_vel = _fuse_pos = _fuse_height = false;
-		_fuse_hor_vel = true;
-		_vel_pos_innov[0] = _state.vel(0) - _auxvel_sample_delayed.velNE(0);
-		_vel_pos_innov[1] = _state.vel(1) - _auxvel_sample_delayed.velNE(1);
+		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
+		_fuse_hor_vel_aux = true;
+		_aux_vel_innov[0] = _state.vel(0) - _auxvel_sample_delayed.velNE(0);
+		_aux_vel_innov[1] = _state.vel(1) - _auxvel_sample_delayed.velNE(1);
 		_velObsVarNE = _auxvel_sample_delayed.velVarNE;
 		_hvelInnovGate = _params.auxvel_gate;
 		fuseVelPosHeight();
