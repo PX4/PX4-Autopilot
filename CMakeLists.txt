@@ -397,33 +397,22 @@ execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 #=============================================================================
 # external modules
 #
+set(external_module_paths)
 if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	message(STATUS "External modules: ${EXTERNAL_MODULES_LOCATION}")
-	add_subdirectory("${EXTERNAL_MODULES_LOCATION}/src" external_modules_src)
+	add_subdirectory("${EXTERNAL_MODULES_LOCATION}/src" external_modules)
 
-	set(config_module_list_external_expanded)
 	foreach(external_module ${config_module_list_external})
-		list(APPEND config_module_list_external_expanded
-			${EXTERNAL_MODULES_LOCATION}/src/${external_module})
+		add_subdirectory(${EXTERNAL_MODULES_LOCATION}/src/${external_module} external_modules/${external_module})
+		list(APPEND external_module_paths ${EXTERNAL_MODULES_LOCATION}/src/${external_module})
 	endforeach()
-	set(config_module_list
-		${config_module_list}
-		${config_module_list_external_expanded}
-		)
 endif()
 
 #=============================================================================
 # subdirectories
 #
 foreach(module ${config_module_list})
-	string(REGEX MATCH "^[./]" external_module ${module})
-	if (external_module)
-		STRING(REGEX REPLACE "//" "/" EXT_MODULE ${module})
-		STRING(REGEX REPLACE "/" "__" EXT_MODULE_PREFIX ${EXT_MODULE})
-		add_subdirectory(${module} ${PX4_BINARY_DIR}/${EXT_MODULE_PREFIX})
-	else()
-		add_subdirectory(src/${module})
-	endif()
+	add_subdirectory(src/${module})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
