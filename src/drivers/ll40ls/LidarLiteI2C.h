@@ -123,9 +123,6 @@ private:
 	uint8_t		_hw_version;
 	uint8_t		_sw_version;
 
-	/**< the bus the device is connected to */
-	int         _bus;
-
 	/**
 	 * LidarLite specific transfer function. This is needed
 	 * to avoid a stop transition with SCL high

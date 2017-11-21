@@ -45,9 +45,10 @@
  * non-interrupt-mode client.
  */
 
+#include "SPI.hpp"
+
 #include <px4_config.h>
 #include <nuttx/arch.h>
-#include "spi.h"
 
 #ifndef CONFIG_SPI_EXCHANGE
 # error This driver requires CONFIG_SPI_EXCHANGE
@@ -61,10 +62,9 @@ SPI::SPI(const char *name,
 	 int bus,
 	 uint32_t device,
 	 enum spi_mode_e mode,
-	 uint32_t frequency,
-	 int irq) :
+	 uint32_t frequency) :
 	// base class
-	CDev(name, devname, irq),
+	CDev(name, devname),
 	// public
 	// protected
 	locking_mode(LOCK_PREEMPTION),
@@ -72,8 +72,7 @@ SPI::SPI(const char *name,
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
-	_dev(nullptr),
-	_bus(bus)
+	_dev(nullptr)
 {
 	// fill in _device_id fields for a SPI device
 	_device_id.devid_s.bus_type = DeviceBusType_SPI;
@@ -95,7 +94,7 @@ SPI::init()
 
 	/* attach to the spi bus */
 	if (_dev == nullptr) {
-		_dev = px4_spibus_initialize(_bus);
+		_dev = px4_spibus_initialize(get_device_bus());
 	}
 
 	if (_dev == nullptr) {
@@ -124,17 +123,10 @@ SPI::init()
 	}
 
 	/* tell the workd where we are */
-	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", _bus, PX4_SPI_DEV_ID(_device), _frequency / 1000);
+	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", get_device_bus(), PX4_SPI_DEV_ID(_device), _frequency / 1000);
 
 out:
 	return ret;
-}
-
-int
-SPI::probe()
-{
-	// assume the device is too stupid to be discoverable
-	return OK;
 }
 
 int
@@ -170,12 +162,6 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	}
 
 	return result;
-}
-
-void
-SPI::set_frequency(uint32_t frequency)
-{
-	_frequency = frequency;
 }
 
 int

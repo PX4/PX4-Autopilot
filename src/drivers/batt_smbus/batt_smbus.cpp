@@ -440,11 +440,11 @@ BATT_SMBUS::search()
 {
 	bool found_slave = false;
 	uint16_t tmp;
-	int16_t orig_addr = get_address();
+	int16_t orig_addr = get_device_address();
 
 	// search through all valid SMBus addresses
 	for (uint8_t i = BATT_SMBUS_ADDR_MIN; i <= BATT_SMBUS_ADDR_MAX; i++) {
-		set_address(i);
+		set_device_address(i);
 
 		if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
 			warnx("battery found at 0x%x", (int)i);
@@ -456,7 +456,7 @@ BATT_SMBUS::search()
 	}
 
 	// restore original i2c address
-	set_address(orig_addr);
+	set_device_address(orig_addr);
 
 	// display completion message
 	if (found_slave) {
@@ -869,7 +869,7 @@ BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len
 	}
 
 	uint8_t tmp_buff[tmp_buff_len];
-	tmp_buff[0] = (uint8_t)get_address() << 1;
+	tmp_buff[0] = (uint8_t)get_device_address() << 1;
 	tmp_buff[1] = cmd;
 
 	if (reading) {

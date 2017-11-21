@@ -138,12 +138,6 @@
 #define FXOS8701C_MAG_DEFAULT_RATE                   100
 #define FXOS8701C_ONE_G                              9.80665f
 
-#ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
-#else
-#define EXTERNAL_BUS 0
-#endif
-
 /*
   we set the timer interrupt to run a bit faster than the desired
   sample rate and then throw away duplicates using the data ready bit.
@@ -277,13 +271,6 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
-
-	/**
-	 * Get the internal / external state
-	 *
-	 * @return true if the sensor is not on the main MCU board
-	 */
-	bool			is_external() { return (_bus == EXTERNAL_BUS); }
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -633,7 +620,7 @@ FXOS8701CQ::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
+					   &_accel_orb_class_instance, (external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_accel_topic == nullptr) {
 		PX4_ERR("ADVERT ERR");
@@ -1551,7 +1538,7 @@ FXOS8701CQ::mag_measure()
 	 */
 
 	mag_report.timestamp = hrt_absolute_time();
-	mag_report.is_external = is_external();
+	mag_report.is_external = external();
 
 	mag_report.x_raw = _last_raw_mag_x;
 	mag_report.y_raw = _last_raw_mag_y;

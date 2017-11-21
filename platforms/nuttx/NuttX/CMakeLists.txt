@@ -119,8 +119,8 @@ set(nuttx_builtin_list)
 if (CONFIG_NSH_LIBRARY)
 	# force builtins regeneration and apps rebuild if nuttx or px4 configuration have changed
 	add_custom_command(OUTPUT builtins_clean.stamp
-		COMMAND find ${APPS_DIR}/builtin/registry -name \*.bdat -delete
-		COMMAND find ${APPS_DIR}/builtin/registry -name \*.pdat -delete
+		COMMAND find ${APPS_DIR}/builtin/registry -name px4_\*.bdat -delete
+		COMMAND find ${APPS_DIR}/builtin/registry -name px4_\*.pdat -delete
 		COMMAND rm -f ${APPS_DIR}/builtin/builtin_list.h
 		COMMAND ${CMAKE_COMMAND} -E touch builtins_clean.stamp
 		DEPENDS
@@ -135,21 +135,21 @@ if (CONFIG_NSH_LIBRARY)
 		get_target_property(PRIORITY ${module} PRIORITY)
 
 		if(MAIN)
-			add_custom_command(OUTPUT ${APPS_DIR}/builtin/registry/${MAIN}_main.bdat
-				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${APPS_DIR}/builtin/registry/${MAIN}_main.bdat
+			add_custom_command(OUTPUT ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.bdat
+				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.bdat
 				COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
 				DEPENDS nuttx_context builtins_clean.stamp
 				VERBATIM
 				)
-			list(APPEND nuttx_builtin_list ${APPS_DIR}/builtin/registry/${MAIN}_main.bdat)
+			list(APPEND nuttx_builtin_list ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.bdat)
 
-			add_custom_command(OUTPUT ${APPS_DIR}/builtin/registry/${MAIN}_main.pdat
-				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${APPS_DIR}/builtin/registry/${MAIN}_main.pdat
+			add_custom_command(OUTPUT ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.pdat
+				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.pdat
 				COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
 				DEPENDS nuttx_context builtins_clean.stamp
 				VERBATIM
 				)
-			list(APPEND nuttx_builtin_list ${APPS_DIR}/builtin/registry/${MAIN}_main.pdat)
+			list(APPEND nuttx_builtin_list ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.pdat)
 
 		endif()
 	endforeach()

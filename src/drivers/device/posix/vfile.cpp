@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,85 +32,36 @@
  ****************************************************************************/
 
 /**
- * @file sim.cpp
+ * @file vdev_file.cpp
+ * Virtual file
  *
- * Base class for simulated devices.
- *
- * @todo Bus frequency changes; currently we do nothing with the value
- *       that is supplied.  Should we just depend on the bus knowing?
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include <px4_log.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include "sim.h"
+#include "vfile.h"
 
 namespace device
 {
 
-SIM::SIM(const char *name,
-	 const char *devname,
-	 int bus,
-	 uint16_t address) :
-	// base class
-	Device(name),
-	// public
-	// protected
-	// private
-	_bus(bus),
-	_address(address),
-	_devname(devname)
-{
-
-	PX4_DEBUG("SIM::SIM name = %s devname = %s", name, devname);
-	// fill in _device_id fields for a SIM device
-	_device_id.devid_s.bus_type = DeviceBusType_SIM;
-	_device_id.devid_s.bus = bus;
-	_device_id.devid_s.address = address;
-	// devtype needs to be filled in by the driver
-	_device_id.devid_s.devtype = 0;
-}
-
-SIM::~SIM()
+VFile::VFile(const char *fname, mode_t mode) :
+	CDev("vfile", fname)
 {
 }
 
-int
-SIM::init()
+VFile *VFile::createFile(const char *fname, mode_t mode)
 {
-	int ret = PX4_OK;
-
-	// Assume the driver set the desired bus frequency. There is no standard
-	// way to set it from user space.
-
-	// do base class init, which registers the virtual driver
-	ret = Device::init();
-
-	if (ret != PX4_OK) {
-		PX4_ERR("CDev::init failed");
-		return ret;
-	}
-
-	return ret;
+	VFile *me = new VFile(fname, mode);
+	px4_file_operations_t *fops = nullptr;
+	register_driver(fname, fops, 0666, (void *)me);
+	return me;
 }
 
-int
-SIM::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+ssize_t VFile::write(file_t *handlep, const char *buffer, size_t buflen)
 {
-	if (send_len > 0) {
-		PX4_DEBUG("SIM: sending %d bytes", send_len);
-	}
+	// ignore what was written, but let pollers know something was written
+	poll_notify(POLLIN);
 
-	if (recv_len > 0) {
-		PX4_DEBUG("SIM: receiving %d bytes", recv_len);
-
-		// TODO - write data to recv;
-	}
-
-	PX4_DEBUG("I2C SIM: transfer_4 on %s", _devname);
-
-	return PX4_OK;
+	return buflen;
 }
 
 } // namespace device

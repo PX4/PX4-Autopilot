@@ -32,61 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file sim.h
+ * @file i2c.h
  *
- * Base class for devices on simulation bus.
+ * Base class for devices connected via I2C.
  */
 
-#pragma once
+#ifndef _DEVICE_I2C_H
+#define _DEVICE_I2C_H
 
-#include "vdev.h"
+#include "../CDev.hpp"
+
+#include <px4_i2c.h>
 
 namespace device __EXPORT
 {
 
 /**
- * Abstract class for character device on SIM
+ * Abstract class for character device on I2C
  */
-class __EXPORT SIM : public Device
+class __EXPORT I2C : public CDev
 {
 
 public:
 
-	/**
-	 * Get the address
-	 */
-	int16_t		get_address() const { return _address; }
+	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
+
+	static unsigned	int	_bus_clocks[BOARD_NUMBER_I2C_BUSES];
 
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
 	 * error.
 	 */
-	unsigned		_retries;
-
-	/**
-	 * The SIM bus number the device is attached to.
-	 */
-	int			_bus;
+	uint8_t		_retries{0};
 
 	/**
 	 * @ Constructor
 	 *
 	 * @param name		Driver name
 	 * @param devname	Device node name
-	 * @param bus		SIM bus on which the device lives
-	 * @param address	SIM bus address, or zero if set_address will be used
+	 * @param bus		I2C bus on which the device lives
+	 * @param address	I2C bus address, or zero if set_address will be used
+	 * @param frequency	I2C bus frequency for the device (currently not used)
 	 */
-	SIM(const char *name,
-	    const char *devname,
-	    int bus,
-	    uint16_t address);
-	virtual ~SIM();
+	I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency);
+	virtual ~I2C();
 
 	virtual int	init();
 
 	/**
-	 * Perform an SIM transaction to the device.
+	 * Check for the presence of the device on the bus.
+	 */
+	virtual int	probe() { return PX4_OK; }
+
+	/**
+	 * Perform an I2C transaction to the device.
 	 *
 	 * At least one of send_len and recv_len must be non-zero.
 	 *
@@ -97,16 +97,18 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	virtual int	transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len);
+	int		transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
+
+	bool		external() { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
-	uint16_t		_address;
-	const char 		*_devname;
+	uint32_t		_frequency{0};
+	px4_i2c_dev_t		*_dev{nullptr};
 
-	SIM(const device::SIM &);
-	SIM operator=(const device::SIM &);
+	I2C(const device::I2C &);
+	I2C operator=(const device::I2C &);
 };
 
 } // namespace device
 
+#endif /* _DEVICE_I2C_H */

@@ -451,3 +451,18 @@ __EXPORT void board_spi_reset(int ms)
 
 	stm32_spi1_initialize();
 }
+
+__EXPORT bool px4_spi_bus_external(int bus)
+{
+	if (HW_VER_FMUV3 == board_get_hw_version()) {
+		/* all FMUv3 2.1 spi buses are internal */
+		return false;
+
+	} else {
+		if (bus == PX4_SPI_BUS_EXT) {
+			return true;
+		}
+	}
+
+	return false;
+}

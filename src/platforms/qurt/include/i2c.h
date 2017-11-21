@@ -34,6 +34,8 @@
  ****************************************************************************/
 #pragma once
 
+#include <stdint.h>
+
 struct i2c_msg_s {
 	uint16_t  addr;                  /* Slave address */
 	uint16_t  flags;                 /* See I2C_M_* definitions */

@@ -251,12 +251,6 @@
 /* Mask definitions for Gyro bandwidth */
 #define BMI055_GYRO_BW_MASK                  0x0F
 
-#ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
-#else
-#define EXTERNAL_BUS 0
-#endif
-
 class BMI055 : public device::SPI
 {
 
@@ -441,14 +435,6 @@ private:
 	*/
 	int         set_accel_range(unsigned max_g);
 
-
-	/**
-	* Get the internal / external state
-	*
-	* @return true if the sensor is not on the main MCU board
-	*/
-	bool            is_external() { return (_bus == EXTERNAL_BUS); }
-
 	/**
 	* Measurement self test
 	*
@@ -601,14 +587,6 @@ private:
 	 * @return      OK if the value can be supported, -EINVAL otherwise.
 	 */
 	int         set_gyro_range(unsigned max_dps);
-
-
-	/**
-	 * Get the internal / external state
-	 *
-	 * @return true if the sensor is not on the main MCU board
-	 */
-	bool            is_external() { return (_bus == EXTERNAL_BUS); }
 
 	/**
 	 * Measurement self test

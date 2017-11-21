@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,30 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file vfile.cpp
- * Virtual file
+ * @file spi.h
  *
- * @author Mark Charlebois <charlebm@gmail.com>
+ * Base class for devices connected via SPI.
  */
 
-#pragma once
+#ifndef _DEVICE_SPI_H
+#define _DEVICE_SPI_H
 
-#include <px4_tasks.h>
-#include <drivers/drv_device.h>
-#include "device.h"
-#include <unistd.h>
-#include <stdio.h>
+#include "CDev.hpp"
 
-class VFile : public device::CDev
+#include <px4_spi.h>
+
+namespace device __EXPORT
 {
-public:
 
-	static VFile *createFile(const char *fname, mode_t mode);
-	~VFile() {}
+// TODO: implement posix spi
 
-	virtual ssize_t write(device::file_t *handlep, const char *buffer, size_t buflen);
+} // namespace device
 
-private:
-	VFile(const char *fname, mode_t mode);
-	VFile(const VFile &);
-};
+#endif /* _DEVICE_SPI_H */
