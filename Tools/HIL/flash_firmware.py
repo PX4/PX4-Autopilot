@@ -13,7 +13,7 @@ def flash_firmware():
     flash_cmd = './Tools/px_uploader.py --port /dev/ttyACM0 \
                                         --baud-flightstack 115200 \
                                         --baud-bootloader 115200 \
-                                        ./build/px4fmu-v4_default/nuttx_px4fmu-v4_default.px4'
+                                        ./build/px4fmu-v4_default/px4fmu-v4_default.px4'
 
     proc = subprocess.Popen(flash_cmd, shell= True, stdout=subprocess.PIPE, cwd="../../")
 

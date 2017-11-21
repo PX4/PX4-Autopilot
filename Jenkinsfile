@@ -16,7 +16,7 @@ pipeline {
               'Flashing (USB)': {
                   timeout(time: 120, unit: 'SECONDS') {
                       sh './Tools/HIL/reboot_device.sh USB'
-                      sh './Tools/px_uploader.py --port $USB_DEVICE --baud-flightstack 115200 --baud-bootloader 115200 ./build/px4fmu-v4_default/nuttx_px4fmu-v4_default.px4'
+                      sh './Tools/px_uploader.py --port $USB_DEVICE --baud-flightstack 115200 --baud-bootloader 115200 ./build/px4fmu-v4_default/px4fmu-v4_default.px4'
                       sh './Tools/HIL/reboot_device.sh USB'
                   }
               },
