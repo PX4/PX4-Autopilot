@@ -225,7 +225,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		adc_poll(struct sensor_combined_s &raw);
+	void		adc_poll();
 };
 
 Sensors::Sensors(bool hil_enabled) :
@@ -421,7 +421,7 @@ Sensors::parameter_update_poll(bool forced)
 }
 
 void
-Sensors::adc_poll(struct sensor_combined_s &raw)
+Sensors::adc_poll()
 {
 	/* only read if not in HIL mode */
 	if (_hil_enabled) {
@@ -669,7 +669,7 @@ Sensors::run()
 		_voted_sensors_update.sensors_poll(raw);
 
 		/* check battery voltage */
-		adc_poll(raw);
+		adc_poll();
 
 		diff_pres_poll(raw);
 
