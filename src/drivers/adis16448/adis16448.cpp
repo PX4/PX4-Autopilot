@@ -1313,9 +1313,9 @@ ADIS16448::read_reg16(unsigned reg)
 	uint16_t cmd[1];
 
 	cmd[0] = ((reg | DIR_READ) << 8) & 0xff00;
-	transferword(cmd, nullptr, 1);
+	transferhword(cmd, nullptr, 1);
 	up_udelay(T_STALL);
-	transferword(nullptr, cmd, 1);
+	transferhword(nullptr, cmd, 1);
 
 	return cmd[0];
 }
@@ -1328,9 +1328,9 @@ ADIS16448::write_reg16(unsigned reg, uint16_t value)
 	cmd[0] = ((reg | DIR_WRITE) << 8) | (0x00ff & value);
 	cmd[1] = (((reg + 0x1) | DIR_WRITE) << 8) | ((0xff00 & value) >> 8);
 
-	transferword(cmd, nullptr, 1);
+	transferhword(cmd, nullptr, 1);
 	up_udelay(T_STALL);
-	transferword(cmd + 1, nullptr, 1);
+	transferhword(cmd + 1, nullptr, 1);
 }
 
 void
@@ -1421,7 +1421,7 @@ ADIS16448::measure()
 
 	adis_report.cmd = ((ADIS16448_GLOB_CMD | DIR_READ) << 8) & 0xff00;
 
-	if (OK != transferword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report) / sizeof(uint16_t))) {
+	if (OK != transferhword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report) / sizeof(uint16_t))) {
 		return -EIO;
 	}
 

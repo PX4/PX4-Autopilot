@@ -182,7 +182,7 @@ SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 }
 
 int
-SPI::transferword(uint16_t *send, uint16_t *recv, unsigned len)
+SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 {
 	int result;
 
@@ -197,19 +197,19 @@ SPI::transferword(uint16_t *send, uint16_t *recv, unsigned len)
 	default:
 	case LOCK_PREEMPTION: {
 			irqstate_t state = px4_enter_critical_section();
-			result = _transferword(send, recv, len);
+			result = _transferhword(send, recv, len);
 			px4_leave_critical_section(state);
 		}
 		break;
 
 	case LOCK_THREADS:
 		SPI_LOCK(_dev, true);
-		result = _transferword(send, recv, len);
+		result = _transferhword(send, recv, len);
 		SPI_LOCK(_dev, false);
 		break;
 
 	case LOCK_NONE:
-		result = _transferword(send, recv, len);
+		result = _transferhword(send, recv, len);
 		break;
 	}
 
@@ -217,7 +217,7 @@ SPI::transferword(uint16_t *send, uint16_t *recv, unsigned len)
 }
 
 int
-SPI::_transferword(uint16_t *send, uint16_t *recv, unsigned len)
+SPI::_transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 {
 	SPI_SETFREQUENCY(_dev, _frequency);
 	SPI_SETMODE(_dev, _mode);

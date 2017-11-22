@@ -127,7 +127,7 @@ protected:
 	 * @return		OK if the exchange was successful, -errno
 	 *			otherwise.
 	 */
-	int		transferword(uint16_t *send, uint16_t *recv, unsigned len);
+	int		transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
 	/**
 	 * Set the SPI bus frequency
@@ -165,7 +165,7 @@ private:
 protected:
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
-	int	_transferword(uint16_t *send, uint16_t *recv, unsigned len);
+	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
 	bool	external() { return px4_spi_bus_external(get_device_bus()); }
 
