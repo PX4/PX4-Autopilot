@@ -821,9 +821,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					mscale.x_offset = sphere_x[cur_mag];
 					mscale.y_offset = sphere_y[cur_mag];
 					mscale.z_offset = sphere_z[cur_mag];
-					mscale.x_scale = diag_x[cur_mag];
-					mscale.y_scale = diag_y[cur_mag];
-					mscale.z_scale = diag_z[cur_mag];
+					mscale.x_scale *= diag_x[cur_mag];
+					mscale.y_scale *= diag_y[cur_mag];
+					mscale.z_scale *= diag_z[cur_mag];
 
 #ifdef __PX4_NUTTX
 
