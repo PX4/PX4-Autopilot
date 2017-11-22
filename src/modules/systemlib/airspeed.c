@@ -60,7 +60,7 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
 {
 
 	// air density in kg/m3
-	const double rho_air = get_air_density(pressure_ambient, temperature_celsius);
+	const float rho_air = get_air_density(pressure_ambient, temperature_celsius);
 
 	const float dp = fabsf(differential_pressure);
 	float dp_tot = dp;
@@ -81,20 +81,20 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
 			switch (pmodel) {
 			case AIRSPEED_COMPENSATION_MODEL_PITOT:
 			case AIRSPEED_COMPENSATION_MODEL_NO_PITOT: {
-					const double dp_corr = (double)dp * 96600.0 / (double)pressure_ambient;
+					const float dp_corr = dp * 96600.0f / pressure_ambient;
 					// flow through sensor
-					double flow_SDP33 = (300.805 - 300.878 / (0.00344205 * pow(dp_corr, 0.68698) + 1)) * 1.29 / rho_air;
+					float flow_SDP33 = (300.805f - 300.878f / (0.00344205f * powf(dp_corr, 0.68698f) + 1.0f)) * 1.29f / rho_air;
 
 					// for too small readings the compensation might result in a negative flow which causes numerical issues
-					if (flow_SDP33 < 0.0) {
-						flow_SDP33 = 0.0;
+					if (flow_SDP33 < 0.0f) {
+						flow_SDP33 = 0.0f;
 					}
 
 					float dp_pitot = 0.0f;
 
 					switch (pmodel) {
 					case AIRSPEED_COMPENSATION_MODEL_PITOT:
-						dp_pitot = (0.0032 * flow_SDP33 * flow_SDP33 + 0.0123 * flow_SDP33 + 1.0) * 1.29 / rho_air;
+						dp_pitot = (0.0032f * flow_SDP33 * flow_SDP33 + 0.0123f * flow_SDP33 + 1.0f) * 1.29f / rho_air;
 						break;
 
 					default:
@@ -103,13 +103,13 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
 					}
 
 					// pressure drop through tube
-					const float dp_tube = (flow_SDP33 * 0.674) / 450.0 * (double)tube_len * rho_air / 1.29;
+					const float dp_tube = (flow_SDP33 * 0.674f) / 450.0f * tube_len * rho_air / 1.29f;
 
 					// speed at pitot-tube tip due to flow through sensor
-					dv = 0.125 * flow_SDP33;
+					dv = 0.125f * flow_SDP33;
 
 					// sum of all pressure drops
-					dp_tot = (float)dp_corr + dp_tube + dp_pitot;
+					dp_tot = dp_corr + dp_tube + dp_pitot;
 				}
 				break;
 
@@ -120,27 +120,27 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
 
 					// check if the tube diameter and dp is nonzero to avoid division by 0
 					if ((tube_dia_mm > 0.0f) && (dp > 0.0f)) {
-						const double d_tubePow4 = pow((double)tube_dia_mm * 1e-3, 4);
-						const double denominator = M_PI * d_tubePow4 * rho_air * (double)dp;
+						const float d_tubePow4 = powf(tube_dia_mm * 1e-3f, 4);
+						const float denominator = (float)M_PI * d_tubePow4 * rho_air * dp;
 
 						// avoid division by 0
-						double eps = 0.0f;
+						float eps = 0.0f;
 
-						if (fabs(denominator) > 1e-32) {
-							const double viscosity = (18.205 + 0.0484 * ((double)temperature_celsius - 20.0)) * 1e-6;
+						if (fabsf(denominator) > 1e-32f) {
+							const float viscosity = (18.205f + 0.0484f * (temperature_celsius - 20.0f)) * 1e-6f;
 
 							// 4.79 * 1e-7 -> mass flow through sensor
 							// 59.5 -> dp sensor constant where linear and quadratic contribution to dp vs flow is equal
-							eps = -64.0 * (double)tube_len * viscosity * 4.79 * 1e-7 * (sqrt(1.0 + 8.0 * (double)dp / 59.3319) - 1.0) / denominator;
+							eps = -64.0f * tube_len * viscosity * 4.79f * 1e-7f * (sqrtf(1.0f + 8.0f * dp / 59.3319f) - 1.0f) / denominator;
 						}
 
 						// range check on eps
-						if (fabs(eps) >= 1.0) {
-							eps = 0.0;
+						if (fabsf(eps) >= 1.0f) {
+							eps = 0.0f;
 						}
 
 						// pressure correction
-						dp_tot = dp / (1.0f + (float)eps);
+						dp_tot = dp / (1.0f + eps);
 					}
 				}
 				break;
@@ -173,7 +173,7 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
 	// }
 
 	// computed airspeed without correction for inflow-speed at tip of pitot-tube
-	const float airspeed_uncorrected = sqrtf(2 * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+	const float airspeed_uncorrected = sqrtf(2.0f * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 
 	// corrected airspeed
 	const float airspeed_corrected = airspeed_uncorrected + dv;
