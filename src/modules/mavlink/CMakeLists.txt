@@ -31,7 +31,8 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+px4_add_git_submodule(TARGET git_mavlink PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v1.0")
+px4_add_git_submodule(TARGET git_mavlink2 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v2.0")
 
 px4_add_module(
 	MODULE modules__mavlink
@@ -41,6 +42,8 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-extra-semi
 		-Wno-sign-compare # TODO: fix all sign-compare
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		mavlink.c
 		mavlink_command_sender.cpp
@@ -58,5 +61,6 @@ px4_add_module(
 		mavlink_ulog.cpp
 	DEPENDS
 		platforms__common
+		git_mavlink
+		git_mavlink2
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

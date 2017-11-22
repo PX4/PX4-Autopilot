@@ -30,11 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+px4_add_git_submodule(TARGET git_gps_devices PATH "devices")
+
 px4_add_module(
 	MODULE drivers__gps
 	MAIN gps
 	STACK_MAIN 1200
-	COMPILE_FLAGS
 	SRCS
 		gps.cpp
 		devices/src/gps_helper.cpp
@@ -43,5 +45,5 @@ px4_add_module(
 		devices/src/ubx.cpp
 	DEPENDS
 		platforms__common
+		git_gps_devices
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

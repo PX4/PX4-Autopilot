@@ -68,6 +68,10 @@ function(px4_add_git_submodule)
 		REQUIRED TARGET PATH
 		ARGN ${ARGN})
 
+	execute_process(COMMAND ${PX4_SOURCE_DIR}/Tools/check_submodules.sh ${PATH}
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+			)
+
 	string(REPLACE "/" "_" NAME ${PATH})
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp

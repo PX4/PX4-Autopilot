@@ -43,4 +43,3 @@ px4_add_module(
 		platforms__common
 		git_ecl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
