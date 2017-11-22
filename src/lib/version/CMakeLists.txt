@@ -41,11 +41,12 @@ if (EXISTS ${PX4_SOURCE_DIR}/.git)
 		file(READ ${PX4_SOURCE_DIR}/.git git_dir_path)
 		string(STRIP ${git_dir_path} git_dir_path)
 		string(REPLACE "gitdir: " "" git_dir_path ${git_dir_path})
-		get_filename_component(git_dir_path ${git_dir_path} ABSOLUTE)
+		get_filename_component(git_dir_path "${git_dir_path}" REALPATH BASE_DIR ${PX4_SOURCE_DIR})
 	endif()
 else()
 	message(FATAL_ERROR "is not a git repository")
 endif()
+
 if(NOT IS_DIRECTORY "${git_dir_path}")
 	message(FATAL_ERROR "${git_dir_path} is not a directory")
 endif()
@@ -72,4 +73,4 @@ px4_add_module(
 		ver_gen
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
