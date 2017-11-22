@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN adis16448
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		adis16448.cpp
 	DEPENDS
