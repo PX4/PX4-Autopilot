@@ -235,6 +235,10 @@ check_%:
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
+.PHONY: coverity_scan
+
+coverity_scan: posix_sitl_default
+
 # Documentation
 # --------------------------------------------------------------------
 .PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata
