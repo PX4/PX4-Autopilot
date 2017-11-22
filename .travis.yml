@@ -39,20 +39,14 @@ cache:
 before_install:
   # install dependencies for the coverity build (target and branch), otherwise exit early
   - if [[ "${TRAVIS_BRANCH}" = "coverity_scan" ]]; then
-      if [[ "${BUILD_TARGET}" = "coverity_scan" ]]; then
-        sudo apt-get install python-empy python-jinja2 python-toml python-numpy;
-        echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-;
-      else
-        exit 0;
-      fi
+      sudo pip install empy jinja2 numpy toml;
+      echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-;
     fi
   # use git:// to fetch instead of https://
   - git config --global url."git://".insteadOf https://
 
 script:
-  - if [[ "${BUILD_TARGET}" != "coverity_scan" ]]; then
-      ./Tools/docker_run.sh make ${BUILD_TARGET};
-    fi
+  - ./Tools/docker_run.sh make ${BUILD_TARGET}
 
 after_success:
   # upload code coverage
