@@ -29,8 +29,12 @@ if (CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
 endif()
 
+if (NOT LD_SCRIPT)
+	set(LD_SCRIPT ld.script)
+endif()
+
 target_link_libraries(${fw_name}
-	-T${PX4_BINARY_DIR}/NuttX/nuttx/configs/${BOARD}/scripts/ld.script
+	-T${PX4_BINARY_DIR}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
 	-Wl,-Map=${PX4_BINARY_DIR}/${CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
