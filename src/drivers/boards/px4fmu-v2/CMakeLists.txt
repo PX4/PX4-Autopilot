@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__boards__px4fmu-v2
 	SRCS
 		px4fmu_can.c
+		px4fmu_i2c.c
 		px4fmu_init.c
 		px4fmu_led.c
 		px4fmu_spi.c

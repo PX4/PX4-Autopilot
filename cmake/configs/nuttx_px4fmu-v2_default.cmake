@@ -15,7 +15,7 @@ set(config_module_list
 	drivers/boards
 	drivers/rgbled
 	drivers/mpu6000
-	#drivers/mpu9250
+	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/hmc5883
@@ -49,20 +49,20 @@ set(config_module_list
 	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 	#drivers/iridiumsbd
-	drivers/ulanding
+	#drivers/ulanding
 
 	#
 	# System commands
 	#
-	systemcmds/bl_update
-	systemcmds/config
+	#systemcmds/bl_update
+	#systemcmds/config
 	#systemcmds/dumpfile
 	#systemcmds/esc_calib
 	systemcmds/hardfault_log
 	systemcmds/mixer
 	#systemcmds/motor_ramp
 	systemcmds/mtd
-	systemcmds/nshterm
+	#systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
@@ -92,7 +92,7 @@ set(config_module_list
 	modules/load_mon
 	modules/navigator
 	modules/mavlink
-	modules/gpio_led
+	#modules/gpio_led
 	#modules/uavcan
 	modules/land_detector
 	modules/camera_feedback
@@ -146,7 +146,7 @@ set(config_module_list
 	lib/mixer
 	lib/runway_takeoff
 	lib/tailsitter_recovery
-	lib/terrain_estimation
+	#lib/terrain_estimation
 	lib/version
 	platforms/nuttx
 
