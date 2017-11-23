@@ -1,3 +1,8 @@
+
+# FMUv3 is FMUv2 with access to the full 2MB flash
+set(BOARD px4fmu-v2 CACHE string "" FORCE)
+set(LD_SCRIPT ld_full.script CACHE string "" FORCE)
+
 include(nuttx/px4_impl_nuttx)
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4io-v2)
 
