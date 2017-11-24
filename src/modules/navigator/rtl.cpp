@@ -48,6 +48,8 @@
 using math::max;
 using math::min;
 
+static constexpr float DELAY_SIGMA = 0.01f;
+
 RTL::RTL(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
@@ -305,7 +307,7 @@ RTL::advance_rtl()
 	case RTL_STATE_DESCEND:
 
 		/* only go to land if autoland is enabled */
-		if (_param_land_delay.get() > FLT_EPSILON) {
+		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
 			_rtl_state = RTL_STATE_LOITER;
 
 		} else {
