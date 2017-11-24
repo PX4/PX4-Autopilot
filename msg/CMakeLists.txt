@@ -61,7 +61,6 @@ set(msg_files
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
-	hil_sensor.msg
 	home_position.msg
 	input_rc.msg
 	led_control.msg
