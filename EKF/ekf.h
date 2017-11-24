@@ -265,8 +265,8 @@ private:
 	bool _fuse_vert_vel{false};	///< true when gps vertical velocity measurement should be fused
 	bool _fuse_hor_vel_aux{false};	///< true when auxiliary horizontal velocity measurement should be fused
 
-	float _posObsNoiseNE;		///< 1-STD observtion noise used for the fusion of NE position data (m)
-	float _posInnovGateNE;		///< Number of standard deviations used for the NE position fusion innovation consistency check
+	float _posObsNoiseNE{0.0f};		///< 1-STD observtion noise used for the fusion of NE position data (m)
+	float _posInnovGateNE{0.0f};		///< Number of standard deviations used for the NE position fusion innovation consistency check
 
 	Vector2f _velObsVarNE;		///< 1-STD observation noise variance used for the fusion of NE velocity data (m/sec)**2
 	float _hvelInnovGate;		///< Number of standard deviations used for the horizontal velocity fusion innovation consistency check
@@ -405,7 +405,7 @@ private:
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
 	float _hagl_innov{0.0f};		///< innovation of the last height above terrain measurement (m)
 	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
-	uint64_t _time_last_hagl_fuse;		///< last system time that the hagl measurement failed it's checks (uSec)
+	uint64_t _time_last_hagl_fuse{0};		///< last system time that the hagl measurement failed it's checks (uSec)
 	bool _terrain_initialised{false};	///< true when the terrain estimator has been intialised
 	float _sin_tilt_rng{0.0f};		///< sine of the range finder tilt rotation about the Y body axis
 	float _cos_tilt_rng{0.0f};		///< cosine of the range finder tilt rotation about the Y body axis
@@ -425,7 +425,7 @@ private:
 	bool _bad_vert_accel_detected{false};	///< true when bad vertical accelerometer data has been detected
 
 	// variables used to control range aid functionality
-	bool _in_range_aid_mode;		///< true when range finder is to be used as the height reference instead of the primary height sensor
+	bool _in_range_aid_mode{false};		///< true when range finder is to be used as the height reference instead of the primary height sensor
 
 	// variables used to check for "stuck" rng data
 	bool _rng_stuck{false};		///< true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
