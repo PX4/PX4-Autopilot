@@ -97,3 +97,5 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 # 10 - True if the EKF has detected a GPS glitch
 
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
+
+bool pre_flt_fail # true when estimator has failed pre-flight checks and the vehicle should not be flown regardless of flight mode
