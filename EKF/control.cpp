@@ -530,6 +530,7 @@ void Ekf::controlGpsFusion()
 			// calculate innovations
 			_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
 			_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
+			_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
 			_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
 			_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
 
