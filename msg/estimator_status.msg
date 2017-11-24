@@ -44,7 +44,7 @@ uint32 control_mode_flags	# Bitmask to indicate EKF logic state
 # 16 - true when only the magnetic field states are updated by the magnetometer
 # 17 - true when the vehicle is operating as a fixed wing vehicle
 # 18 - true when the magnetomer has been declared faulty and is no longer being used
-# 19 - true when airspedd measurements are being fused
+# 19 - true when airspeed measurements are being fused
 
 uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
