@@ -472,7 +472,8 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig* filter
         {
             can_->FilterRegister[filter_start_index].FR1 = 0;
             can_->FilterRegister[filter_start_index].FR2 = 0;
-            can_->FA1R = 1 << filter_start_index;
+            // We can't directly overwrite FA1R because that breaks the other CAN interface
+            can_->FA1R |= 1U << filter_start_index;              // Other filters may still be enabled, we don't care
         }
         else
         {
