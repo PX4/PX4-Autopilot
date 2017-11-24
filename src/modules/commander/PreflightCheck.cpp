@@ -502,6 +502,12 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 		goto out;
 	}
 
+	// Check if preflight check perfomred by estimator has failed
+	if (status.pre_flt_fail) {
+		success = false;
+		goto out;
+	}
+
 	// check vertical position innovation test ratio
 	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
 	if (status.hgt_test_ratio > test_limit) {
