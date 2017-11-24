@@ -74,8 +74,6 @@ void Ekf::fuseVelPosHeight()
 
 	if (_fuse_vert_vel) {
 		fuse_map[2] = true;
-		// vertical velocity innovation
-		innovation[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
 		// observation variance - use receiver reported accuracy with parameter setting the minimum value
 		R[2] = fmaxf(_params.gps_vel_noise, 0.01f);
 		// use scaled horizontal speed accuracy assuming typical ratio of VDOP/HDOP
@@ -111,11 +109,11 @@ void Ekf::fuseVelPosHeight()
 			float deadzone_start = 0.25f * _params.baro_noise;
 			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
 			if (_control_status.flags.gnd_effect) {
-				if (_vel_pos_innov[5] < -deadzone_start) {
-					if (_vel_pos_innov[5] <= -deadzone_end) {
-						_vel_pos_innov[5] += deadzone_end;
+				if (innovation[5] < -deadzone_start) {
+					if (innovation[5] <= -deadzone_end) {
+						innovation[5] += deadzone_end;
 					} else {
-						_vel_pos_innov[5] = -deadzone_start;
+						innovation[5] = -deadzone_start;
 					}
 				}
 			}
@@ -153,6 +151,8 @@ void Ekf::fuseVelPosHeight()
 			gate_size[5] = fmaxf(_params.ev_innov_gate, 1.0f);
 		}
 
+		// update innovation class variable for logging purposes
+		_vel_pos_innov[5] = innovation[5];
 	}
 
 	// calculate innovation test ratios
