@@ -219,18 +219,17 @@ class SocketCanIface : public uavcan::ICanIface
         iov.iov_base = &sockcan_frame;
         iov.iov_len  = sizeof(sockcan_frame);
 
-        struct Control
-        {
-            cmsghdr cm;
-            std::uint8_t data[sizeof(::timeval)];
-        };
-        auto control = Control();
+        static constexpr size_t ControlSize = sizeof(cmsghdr) + sizeof(::timeval);
+        using ControlStorage = typename std::aligned_storage<ControlSize>::type;
+        ControlStorage control_storage;
+        auto control = reinterpret_cast<std::uint8_t *>(&control_storage);
+        std::fill(control, control + ControlSize, 0x00);
 
         auto msg = ::msghdr();
         msg.msg_iov    = &iov;
         msg.msg_iovlen = 1;
-        msg.msg_control = &control;
-        msg.msg_controllen = sizeof(control);
+        msg.msg_control = control;
+        msg.msg_controllen = ControlSize;
 
         const int res = ::recvmsg(fd_, &msg, MSG_DONTWAIT);
         if (res <= 0)
