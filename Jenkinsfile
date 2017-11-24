@@ -13,12 +13,14 @@ pipeline {
     }
     stage('Build') {
           steps {
+            sh 'make clean'
             sh 'make nuttx_px4fmu-v2_default'
             archiveArtifacts 'build/*/*.px4'
           }
     }
     stage('Test') {
       steps {
+        sh 'make clean'
         sh 'make posix_sitl_default test_results_junit'
         junit 'build/posix_sitl_default/JUnitTestResults.xml'
       }
@@ -27,18 +29,21 @@ pipeline {
       parallel {
         stage('airframe') {
           steps {
+            sh 'make clean'
             sh 'make airframe_metadata'
             archiveArtifacts 'airframes.md, airframes.xml'
           }
         }
         stage('parameters') {
           steps {
+            sh 'make clean'
             sh 'make parameters_metadata'
             archiveArtifacts 'parameters.md, parameters.xml'
           }
         }
         stage('modules') {
           steps {
+            sh 'make clean'
             sh 'make module_documentation'
             archiveArtifacts 'modules/*.md'
           }
