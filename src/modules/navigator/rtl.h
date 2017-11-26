@@ -57,6 +57,7 @@ public:
 	void on_active() override;
 
 	void set_return_alt_min(bool min);
+	void set_rtl_alt();
 
 private:
 	/**
@@ -82,10 +83,14 @@ private:
 
 	bool _rtl_alt_min{false};
 
+	float _highest_alt{0.0f};
+	float _rtl_alt{0.0f};
+
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;
+	control::BlockParamInt _param_rtl_highest;
 };
 
 #endif

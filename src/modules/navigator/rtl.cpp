@@ -55,7 +55,8 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
 	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
 	_param_land_delay(this, "RTL_LAND_DELAY", false),
-	_param_rtl_min_dist(this, "RTL_MIN_DIST", false)
+	_param_rtl_min_dist(this, "RTL_MIN_DIST", false),
+	_param_rtl_highest(this, "RTL_ALT_HIGHEST", false)
 {
 }
 
@@ -64,17 +65,22 @@ RTL::on_inactive()
 {
 	// reset RTL state
 	_rtl_state = RTL_STATE_NONE;
+
+	if (_navigator->get_global_position()->alt > _highest_alt) {
+		_highest_alt = _navigator->get_global_position()->alt;
+	}
 }
 
 void
 RTL::on_activation()
 {
+	set_rtl_alt();
+
 	if (_navigator->get_land_detected()->landed) {
 		// for safety reasons don't go into RTL if landed
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if ((_navigator->get_global_position()->alt < _navigator->get_home_position()->alt + _param_return_alt.get())
-		   || _rtl_alt_min) {
+	} else if ((_navigator->get_global_position()->alt < _rtl_alt) || _rtl_alt_min) {
 
 		// if lower than return altitude, climb up first
 		// if rtl_alt_min is true then forcing altitude change even if above
@@ -104,8 +110,20 @@ RTL::set_return_alt_min(bool min)
 }
 
 void
+RTL::set_rtl_alt()
+{
+	// set RTL altitude based on RTL ALT or highest flown altitude
+	_rtl_alt = _navigator->get_home_position()->alt + _param_return_alt.get();
+
+	if (_param_rtl_highest.get() > 0 && _highest_alt > _rtl_alt) {
+		_rtl_alt = _highest_alt;
+	}
+}
+
+void
 RTL::set_rtl_item()
 {
+	set_rtl_alt();
 	_navigator->set_can_loiter_at_sp(false);
 
 	const home_position_s &home = *_navigator->get_home_position();
@@ -120,7 +138,7 @@ RTL::set_rtl_item()
 			const float home_dist = get_distance_to_next_waypoint(home.lat, home.lon, gpos.lat, gpos.lon);
 
 			// if we are close to home we do not climb as high, otherwise we climb to return alt
-			float climb_alt = home.alt + _param_return_alt.get();
+			float climb_alt = _rtl_alt;
 
 			// we are close to home, limit climb to min
 			if (home_dist < _param_rtl_min_dist.get()) {

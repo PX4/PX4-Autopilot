@@ -103,3 +103,14 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
  * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
+
+/**
+ * Climb to highest altitude flown for RTL
+ *
+ * This enables the vehicle to climb to the highest altitude flown since last reset
+ * when engaging RTL
+ *
+ * @boolean
+ * @group Return To Land
+ */
+PARAM_DEFINE_INT32(RTL_ALT_HIGHEST, 1);
