@@ -7,6 +7,7 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	#drivers/adis16448
 	drivers/airspeed
 	#drivers/blinkm
 	#drivers/bmi160
