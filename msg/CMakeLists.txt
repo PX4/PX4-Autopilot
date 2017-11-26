@@ -73,7 +73,6 @@ set(msg_files
 	multirotor_motor_limits.msg
 	offboard_control_mode.msg
 	optical_flow.msg
-	output_pwm.msg
 	parameter_update.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
