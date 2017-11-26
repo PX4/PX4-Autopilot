@@ -110,7 +110,6 @@ set(msg_files
 	vehicle_command.msg
 	vehicle_command_ack.msg
 	vehicle_control_mode.msg
-	vehicle_force_setpoint.msg
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
 	vehicle_land_detected.msg
