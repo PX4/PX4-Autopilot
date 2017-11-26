@@ -15,7 +15,7 @@ msg_id_map = {
     'camera_trigger': 10,
     'collision_report': 11,
     'commander_state': 12,
-    'control_state': 13,
+
     'cpuload': 14,
     'debug_key_value': 15,
     'differential_pressure': 16,
@@ -28,13 +28,13 @@ msg_id_map = {
     'estimator_status': 23,
     'fence': 24,
     'fence_vertex': 25,
-    'filtered_bottom_flow': 26,
+
     'follow_target': 27,
     'fw_pos_ctrl_status': 28,
     'geofence_result': 29,
     'gps_dump': 30,
     'gps_inject_data': 31,
-    'hil_sensor': 32,
+
     'home_position': 33,
     'input_rc': 34,
     'led_control': 35,
