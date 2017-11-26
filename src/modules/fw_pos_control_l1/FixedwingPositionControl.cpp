@@ -39,8 +39,8 @@ FixedwingPositionControl *l1_control::g_control;
 static int _control_task = -1;			///< task handle for sensor task */
 
 FixedwingPositionControl::FixedwingPositionControl() :
-	_sub_airspeed(ORB_ID(airspeed), 0, 0, nullptr),
-	_sub_sensors(ORB_ID(sensor_bias), 0, 0, nullptr),
+	_sub_airspeed(ORB_ID(airspeed)),
+	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control"))
 {
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
@@ -59,6 +59,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_idle = param_find("FW_THR_IDLE");
 	_parameter_handles.throttle_slew_max = param_find("FW_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
+	_parameter_handles.throttle_alt_scale = param_find("FW_THR_ALT_SCL");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 	_parameter_handles.man_roll_max_deg = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max_deg = param_find("FW_MAN_P_MAX");
@@ -141,8 +142,8 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_idle, &(_parameters.throttle_idle));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+	param_get(_parameter_handles.throttle_alt_scale, &(_parameters.throttle_alt_scale));
 	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
-
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
 	param_get(_parameter_handles.man_roll_max_deg, &_parameters.man_roll_max_rad);
@@ -1501,15 +1502,22 @@ FixedwingPositionControl::task_main()
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
+
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vehicle_status_sub, 200);
+
 	/* rate limit vehicle land detected updates to 5Hz */
 	orb_set_interval(_vehicle_land_detected_sub, 200);
+
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
+
+	/* rate limit barometer updates to 1 Hz */
+	orb_set_interval(_sensor_baro_sub, 1000);
 
 	/* abort on a nonzero return value from the parameter init */
 	if (parameters_update() != PX4_OK) {
@@ -1636,7 +1644,7 @@ FixedwingPositionControl::task_main()
 				}
 
 				/* XXX check if radius makes sense here */
-				float turn_distance = _l1_control.switch_distance(100.0f);
+				float turn_distance = _l1_control.switch_distance(500.0f);
 
 				/* lazily publish navigation capabilities */
 				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1000000)
@@ -1823,6 +1831,26 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 					     accel_body, (_global_pos.timestamp > 0), in_air_alt_control,
 					     _global_pos.alt, _local_pos.v_z_valid, _local_pos.vz, _local_pos.az);
 
+	/* scale throttle cruise by baro pressure */
+	if (_parameters.throttle_alt_scale > FLT_EPSILON) {
+
+		bool baro_updated = false;
+		orb_check(_sensor_baro_sub, &baro_updated);
+
+		sensor_baro_s baro;
+
+		if (orb_copy(ORB_ID(sensor_baro), _sensor_baro_sub, &baro) == PX4_OK) {
+			if (PX4_ISFINITE(baro.pressure) && PX4_ISFINITE(_parameters.throttle_alt_scale)) {
+				// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
+				const float eas2tas = sqrtf(MSL_PRESSURE_MILLIBAR / baro.pressure);
+				const float scale = constrain(eas2tas * _parameters.throttle_alt_scale, 0.9f, 2.0f);
+
+				throttle_max = constrain(throttle_max * scale, throttle_min, 1.0f);
+				throttle_cruise = constrain(throttle_cruise * scale, throttle_min + 0.01f, throttle_max - 0.01f);
+			}
+		}
+	}
+
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
 				    _global_pos.alt, alt_sp,
 				    airspeed_sp, _airspeed, _eas2tas,
@@ -1887,7 +1915,7 @@ FixedwingPositionControl::start()
 	_control_task = px4_task_spawn_cmd("fw_pos_ctrl_l1",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_POSITION_CONTROL,
-					   1700,
+					   1810,
 					   (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
 					   nullptr);
 

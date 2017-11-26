@@ -1,3 +1,8 @@
+
+# FMUv3 is FMUv2 with access to the full 2MB flash
+set(BOARD px4fmu-v2 CACHE string "" FORCE)
+set(LD_SCRIPT ld_full.script CACHE string "" FORCE)
+
 include(nuttx/px4_impl_nuttx)
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4io-v2)
 
@@ -22,6 +27,7 @@ set(config_module_list
 	drivers/hott
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
+	drivers/irlock
 	drivers/iridiumsbd
 	drivers/l3gd20
 	drivers/led
@@ -36,6 +42,7 @@ set(config_module_list
 	drivers/ms5525_airspeed
 	drivers/ms5611
 	drivers/oreoled
+	drivers/protocol_splitter
 	drivers/pwm_input
 	drivers/pwm_out_sim
 	drivers/px4flow
@@ -52,6 +59,7 @@ set(config_module_list
 	drivers/stm32/tone_alarm
 	drivers/tap_esc
 	drivers/teraranger
+	drivers/ulanding
 	drivers/vmount
 	drivers/adis16448
 	modules/sensors
@@ -84,9 +92,9 @@ set(config_module_list
 	#
 	drivers/sf0x/sf0x_tests
 	drivers/test_ppm
+	lib/controllib/controllib_test
 	#lib/rc/rc_tests
 	modules/commander/commander_tests
-	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/mc_pos_control/mc_pos_control_tests
 	modules/uORB/uORB_tests
@@ -95,6 +103,7 @@ set(config_module_list
 	#
 	# General system control
 	#
+	modules/camera_feedback
 	modules/commander
 	modules/events
 	modules/gpio_led
@@ -103,7 +112,6 @@ set(config_module_list
 	modules/mavlink
 	modules/navigator
 	modules/uavcan
-	modules/camera_feedback
 
 	#
 	# Estimation modules
@@ -134,8 +142,8 @@ set(config_module_list
 	# Library modules
 	#
 	modules/dataman
-	modules/systemlib/param
 	modules/systemlib
+	modules/systemlib/param
 	modules/uORB
 
 	#

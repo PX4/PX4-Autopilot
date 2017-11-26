@@ -52,8 +52,10 @@ enum AIRSPEED_SENSOR_MODEL {
 	AIRSPEED_SENSOR_MODEL_SDP3X,
 };
 
-enum AIRSPEED_PITOT_MODEL {
-	AIRSPEED_PITOT_MODEL_HB = 0
+enum AIRSPEED_COMPENSATION_MODEL {
+	AIRSPEED_COMPENSATION_MODEL_PITOT = 0,
+	AIRSPEED_COMPENSATION_MODEL_NO_PITOT = 1,
+	AIRSPEED_COMPENSATION_TUBE_PRESSURE_LOSS = 2
 };
 
 /**
@@ -67,8 +69,9 @@ enum AIRSPEED_PITOT_MODEL {
  * @param static_pressure pressure at the side of the tube/airplane
  * @return indicated airspeed in m/s
  */
-__EXPORT float calc_indicated_airspeed_corrected(enum AIRSPEED_PITOT_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
-		float tube_len, float differential_pressure, float pressure_ambient, float temperature_celsius);
+__EXPORT float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
+		enum AIRSPEED_SENSOR_MODEL smodel,
+		float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius);
 
 /**
  * Calculate indicated airspeed.

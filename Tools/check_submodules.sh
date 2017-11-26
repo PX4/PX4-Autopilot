@@ -34,8 +34,8 @@ then
 			echo "Continuing build with manually overridden submodule.."
 		elif [ "$user_cmd" == "u" ]
 		then
-			git submodule sync --recursive
-			git submodule update --init --recursive
+			git submodule sync --recursive -- $1
+			git submodule update --init --recursive -- $1
 			echo "Submodule fixed, continuing build.."
 		else
 			echo "Build aborted."
@@ -43,10 +43,9 @@ then
 		fi
 	fi
 else
-	echo "REINITIALIZING GIT SUBMODULES"
-	echo "no git repo found in $1/.git"
+	echo "REINITIALIZING GIT SUBMODULE $1"
 	git submodule sync --recursive -- $1;
-	git submodule update --init --recursive $1;
+	git submodule update --init --recursive -- $1;
 fi
 
 }
@@ -54,15 +53,14 @@ fi
 # If called with a path then respect $GIT_SUBMODULES_ARE_EVIL but do normal processing
 if [ "$#" != "0" ];
 then
-# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
-
+	# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
 	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
 		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
 		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping submodules $1 update."
 		exit 0
 	}
 
-	git submodule update --recursive $1
+	git submodule update --init --recursive -- $1
 
 else
 
@@ -79,4 +77,5 @@ else
 	done
 
 fi
-	exit 0
+
+exit 0

@@ -99,12 +99,9 @@
 #
 #=============================================================================
 
-# check submodules before we do anything
-execute_process(COMMAND Tools/check_submodules.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
 # Warning: Changing this modifies CMake's internal workings
 # and leads to wrong toolchain detection
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
@@ -187,23 +184,24 @@ execute_process(
 	)
 
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
-px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
+px4_add_git_submodule(TARGET git_uavcan_board_ident PATH "cmake/configs/uavcan_board_ident")
 px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
-px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
-px4_add_git_submodule(TARGET git_gazebo_flow PATH "Tools/sitl_gazebo/external/OpticalFlow")
-px4_add_git_submodule(TARGET git_gazebo_klt PATH "Tools/sitl_gazebo/external/OpticalFlow/external/klt_feature_tracker")
-px4_add_git_submodule(TARGET git_gps_devices PATH "src/drivers/gps/devices")
-px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
-px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
-px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
-px4_add_git_submodule(TARGET git_nuttx PATH "platforms/nuttx/NuttX/nuttx")
-px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
 
 #=============================================================================
 
 message(STATUS "PX4 VERSION: ${git_tag}")
 message(STATUS "CONFIG: ${target_name}")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+
+#=============================================================================
+# project definition
+#
+project(px4 CXX C ASM)
+
+set(package-contact "px4users@googlegroups.com")
+
+#=============================================================================
 
 # The URL for the elf file for crash logging
 if (DEFINED ENV{BUILD_URI})
@@ -214,14 +212,19 @@ endif()
 
 add_definitions(-DBUILD_URI=${BUILD_URI})
 
-# Define GNU standard installation directories
-include(GNUInstallDirs)
-
 # Setup install paths
 if (${OS} STREQUAL "posix")
+
+	# Define GNU standard installation directories
+	include(GNUInstallDirs)
+
 	if (NOT CMAKE_INSTALL_PREFIX)
 		set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
 	endif()
+
+	# cmake testing only on posix
+	enable_testing()
+	include(CTest)
 endif()
 
 #=============================================================================
@@ -257,13 +260,6 @@ if (CCACHE AND CCACHE_PROGRAM)
 endif()
 
 #=============================================================================
-# project definition
-#
-project(px4 CXX C ASM)
-
-set(package-contact "px4users@googlegroups.com")
-
-#=============================================================================
 # find programs and packages
 #
 
@@ -280,12 +276,6 @@ endif()
 
 find_package(PythonInterp REQUIRED)
 px4_find_python_module(jinja2 REQUIRED)
-
-#=============================================================================
-# cmake testing
-#
-enable_testing()
-include(CTest)
 
 #=============================================================================
 # generate compile command database
@@ -368,6 +358,8 @@ px4_generate_airframes_xml(BOARD ${BOARD})
 # DriverFramework
 #
 
+px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
+
 # List the DriverFramework drivers
 if (DEFINED config_df_driver_list)
 	message("DF Drivers: ${config_df_driver_list}")
@@ -397,33 +389,22 @@ execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 #=============================================================================
 # external modules
 #
+set(external_module_paths)
 if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	message(STATUS "External modules: ${EXTERNAL_MODULES_LOCATION}")
-	add_subdirectory("${EXTERNAL_MODULES_LOCATION}/src" external_modules_src)
+	add_subdirectory("${EXTERNAL_MODULES_LOCATION}/src" external_modules)
 
-	set(config_module_list_external_expanded)
 	foreach(external_module ${config_module_list_external})
-		list(APPEND config_module_list_external_expanded
-			${EXTERNAL_MODULES_LOCATION}/src/${external_module})
+		add_subdirectory(${EXTERNAL_MODULES_LOCATION}/src/${external_module} external_modules/${external_module})
+		list(APPEND external_module_paths ${EXTERNAL_MODULES_LOCATION}/src/${external_module})
 	endforeach()
-	set(config_module_list
-		${config_module_list}
-		${config_module_list_external_expanded}
-		)
 endif()
 
 #=============================================================================
 # subdirectories
 #
 foreach(module ${config_module_list})
-	string(REGEX MATCH "^[./]" external_module ${module})
-	if (external_module)
-		STRING(REGEX REPLACE "//" "/" EXT_MODULE ${module})
-		STRING(REGEX REPLACE "/" "__" EXT_MODULE_PREFIX ${EXT_MODULE})
-		add_subdirectory(${module} ${PX4_BINARY_DIR}/${EXT_MODULE_PREFIX})
-	else()
-		add_subdirectory(src/${module})
-	endif()
+	add_subdirectory(src/${module})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
