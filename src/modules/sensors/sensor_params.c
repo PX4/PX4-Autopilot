@@ -209,16 +209,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Threshold (of RMS) to warn about high vibration levels
- *
- * @group Sensors
- * @min 0.01
- * @max 10
- * @decimal 2
- */
-PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);
-
-/**
  * Lidar-Lite (LL40LS)
  *
  * @reboot_required true

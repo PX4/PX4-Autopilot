@@ -155,8 +155,6 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	/* Barometer QNH */
 	parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
 
-	parameter_handles.vibe_thresh = param_find("ATT_VIBE_THRESH");
-
 	parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
 	parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
@@ -489,8 +487,6 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.board_offset[2], &(parameters.board_offset[2]));
 
 	param_get(parameter_handles.baro_qnh, &(parameters.baro_qnh));
-
-	param_get(parameter_handles.vibe_thresh, &parameters.vibration_warning_threshold);
 
 	param_get(parameter_handles.air_cmodel, &parameters.air_cmodel);
 	param_get(parameter_handles.air_tube_length, &parameters.air_tube_length);
