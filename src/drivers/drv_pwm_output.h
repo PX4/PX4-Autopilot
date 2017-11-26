@@ -35,8 +35,7 @@
  * @file PWM servo output interface.
  *
  * Servo values can be set with the PWM_SERVO_SET ioctl, by writing a
- * pwm_output_values structure to the device, or by publishing to the
- * output_pwm ORB topic.
+ * pwm_output_values structure to the device
  * Writing a value of 0 to a channel suppresses any output for that
  * channel.
  */
@@ -44,8 +43,6 @@
 #pragma once
 
 #include <px4_defines.h>
-
-#include "uORB/topics/output_pwm.h"
 
 #include <stdint.h>
 #include <sys/ioctl.h>
@@ -64,11 +61,12 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
 #define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
-#define pwm_output_values output_pwm_s
+#define PWM_OUTPUT_MAX_CHANNELS 16
 
-#ifndef PWM_OUTPUT_MAX_CHANNELS
-#define PWM_OUTPUT_MAX_CHANNELS output_pwm_s::PWM_OUTPUT_MAX_CHANNELS
-#endif
+struct pwm_output_values {
+	uint32_t channel_count;
+	uint16_t values[16];
+};
 
 /**
  * Maximum number of PWM output channels supported by the device.
