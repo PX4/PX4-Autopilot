@@ -69,7 +69,6 @@ set(msg_files
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
-	mc_att_ctrl_status.msg
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
@@ -82,6 +81,7 @@ set(msg_files
 	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
+	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
 	safety.msg
