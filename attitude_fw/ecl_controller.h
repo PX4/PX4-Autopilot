@@ -97,6 +97,7 @@ public:
 	float get_rate_error();
 	float get_desired_rate();
 	float get_desired_bodyrate();
+	float get_integrator();
 
 	void reset_integrator();
 

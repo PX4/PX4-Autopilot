@@ -119,6 +119,11 @@ float ECL_Controller::get_desired_bodyrate()
 	return _bodyrate_setpoint;
 }
 
+float ECL_Controller::get_integrator()
+{
+	return _integrator;
+}
+
 float ECL_Controller::constrain_airspeed(float airspeed, float minspeed, float maxspeed)
 {
 	float airspeed_result = airspeed;
