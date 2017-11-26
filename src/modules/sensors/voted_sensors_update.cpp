@@ -962,34 +962,6 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 	return false;
 }
 
-bool VotedSensorsUpdate::check_vibration()
-{
-	bool ret = false;
-	hrt_abstime cur_time = hrt_absolute_time();
-
-	if (!_vibration_warning && (_gyro.voter.get_vibration_factor(cur_time) > _parameters.vibration_warning_threshold ||
-				    _accel.voter.get_vibration_factor(cur_time) > _parameters.vibration_warning_threshold ||
-				    _mag.voter.get_vibration_factor(cur_time) > _parameters.vibration_warning_threshold)) {
-
-		if (_vibration_warning_timestamp == 0) {
-			_vibration_warning_timestamp = cur_time;
-
-		} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000 * 1000) {
-			_vibration_warning = true;
-			mavlink_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
-					     (int)(100 * _gyro.voter.get_vibration_factor(cur_time)),
-					     (int)(100 * _accel.voter.get_vibration_factor(cur_time)),
-					     (int)(100 * _mag.voter.get_vibration_factor(cur_time)));
-			ret = true;
-		}
-
-	} else {
-		_vibration_warning_timestamp = 0;
-	}
-
-	return ret;
-}
-
 void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data,
 		uint8_t sensor_count_max)
 {

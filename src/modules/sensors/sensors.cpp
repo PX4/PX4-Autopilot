@@ -690,8 +690,6 @@ Sensors::run()
 				orb_publish(ORB_ID(sensor_preflight), _sensor_preflight, &preflt);
 
 			}
-
-			//_voted_sensors_update.check_vibration(); //disabled for now, as it does not seem to be reliable
 		}
 
 		/* keep adding sensors as long as we are not armed,
