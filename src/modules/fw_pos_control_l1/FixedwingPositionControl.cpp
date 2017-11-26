@@ -1644,7 +1644,7 @@ FixedwingPositionControl::task_main()
 				}
 
 				/* XXX check if radius makes sense here */
-				float turn_distance = _l1_control.switch_distance(100.0f);
+				float turn_distance = _l1_control.switch_distance(500.0f);
 
 				/* lazily publish navigation capabilities */
 				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1000000)
