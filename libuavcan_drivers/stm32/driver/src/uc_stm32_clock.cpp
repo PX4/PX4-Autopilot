@@ -369,7 +369,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
         {
             utc_locked =
                 (std::abs(utc_rel_rate_ppm) < utc_sync_params.lock_thres_rate_ppm) &&
-                (std::abs(utc_prev_adj) < utc_sync_params.lock_thres_offset.toUSec());
+                (std::abs(utc_prev_adj) < float(utc_sync_params.lock_thres_offset.toUSec()));
         }
     }
 }
