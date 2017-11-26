@@ -110,4 +110,5 @@ struct mag_calibration_s {
 
 /** get the current mag type */
 #define MAGIOCTYPE			_MAGIOC(13)
+
 #endif /* _DRV_MAG_H */
