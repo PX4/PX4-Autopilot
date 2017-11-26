@@ -52,8 +52,7 @@ Mavlink::Mavlink(std::string mavlink_fcu_url) :
 	_v_local_pos_sub(_n.subscribe("vehicle_local_position", 1, &Mavlink::VehicleLocalPositionCallback, this)),
 	_v_att_sp_pub(_n.advertise<vehicle_attitude_setpoint>("vehicle_attitude_setpoint", 1)),
 	_pos_sp_triplet_pub(_n.advertise<position_setpoint_triplet>("position_setpoint_triplet", 1)),
-	_offboard_control_mode_pub(_n.advertise<offboard_control_mode>("offboard_control_mode", 1)),
-	_force_sp_pub(_n.advertise<vehicle_force_setpoint>("vehicle_force_setpoint", 1))
+	_offboard_control_mode_pub(_n.advertise<offboard_control_mode>("offboard_control_mode", 1))
 {
 	_link = mavconn::MAVConnInterface::open_url(mavlink_fcu_url);
 	_link->message_received.connect(boost::bind(&Mavlink::handle_msg, this, _1, _2, _3));
@@ -234,13 +233,8 @@ void Mavlink::handle_msg_set_position_target_local_ned(const mavlink_message_t *
 	    offboard_control_mode.ignore_velocity) {
 		/* The offboard setpoint is a force setpoint only, directly writing to the force
 		 * setpoint topic and not publishing the setpoint triplet topic */
-		vehicle_force_setpoint	force_sp;
-		force_sp.x = set_position_target_local_ned.afx;
-		force_sp.y = set_position_target_local_ned.afy;
-		force_sp.z = set_position_target_local_ned.afz;
-		//XXX: yaw
 
-		_force_sp_pub.publish(force_sp);
+		PX4_WARN("force setpoint not supported");
 
 	} else {
 		/* It's not a pure force setpoint: publish to setpoint triplet  topic */
