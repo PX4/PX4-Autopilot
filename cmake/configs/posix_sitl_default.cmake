@@ -182,9 +182,6 @@ set(config_module_list
 
 	# Hardware test
 	#examples/hwtest
-
-	# EKF
-	examples/ekf_att_pos_estimator
 )
 
 # Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later

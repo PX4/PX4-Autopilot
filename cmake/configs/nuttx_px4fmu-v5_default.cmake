@@ -202,7 +202,4 @@ set(config_module_list
 
 	# Hardware test
 	#examples/hwtest
-
-	# EKF
-	#examples/ekf_att_pos_estimator
 )
