@@ -94,7 +94,7 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/time_offset.h>
-#include <uORB/topics/mc_att_ctrl_status.h>
+#include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -1186,7 +1186,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct wind_estimate_s wind_estimate;
 		struct vtol_vehicle_status_s vtol_status;
 		struct time_offset_s time_offset;
-		struct mc_att_ctrl_status_s mc_att_ctrl_status;
+		struct rate_ctrl_status_s rate_ctrl_status;
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
 		struct vehicle_land_detected_s land_detected;
@@ -1291,7 +1291,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int servorail_status_sub;
 		int wind_sub;
 		int tsync_sub;
-		int mc_att_ctrl_status_sub;
+		int rate_ctrl_status_sub;
 		int innov_sub;
 		int cam_trig_sub;
 		int land_detected_sub;
@@ -1333,7 +1333,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.servorail_status_sub = -1;
 	subs.wind_sub = -1;
 	subs.tsync_sub = -1;
-	subs.mc_att_ctrl_status_sub = -1;
+	subs.rate_ctrl_status_sub = -1;
 	subs.innov_sub = -1;
 	subs.cam_trig_sub = -1;
 	subs.land_detected_sub = -1;
@@ -2080,11 +2080,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 			/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
-			if (copy_if_updated(ORB_ID(mc_att_ctrl_status), &subs.mc_att_ctrl_status_sub, &buf.mc_att_ctrl_status)) {
+			if (copy_if_updated(ORB_ID(rate_ctrl_status), &subs.rate_ctrl_status_sub, &buf.rate_ctrl_status)) {
 				log_msg.msg_type = LOG_MACS_MSG;
-				log_msg.body.log_MACS.roll_rate_integ = buf.mc_att_ctrl_status.roll_rate_integ;
-				log_msg.body.log_MACS.pitch_rate_integ = buf.mc_att_ctrl_status.pitch_rate_integ;
-				log_msg.body.log_MACS.yaw_rate_integ = buf.mc_att_ctrl_status.yaw_rate_integ;
+				log_msg.body.log_MACS.roll_rate_integ = buf.rate_ctrl_status.roll_integ;
+				log_msg.body.log_MACS.pitch_rate_integ = buf.rate_ctrl_status.pitch_integ;
+				log_msg.body.log_MACS.yaw_rate_integ = buf.rate_ctrl_status.yaw_integ;
 				LOGBUFFER_WRITE_AND_COUNT(MACS);
 			}
 		}

@@ -41,11 +41,6 @@
  *
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
-
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
@@ -53,6 +48,10 @@
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_posix.h>
+#include <px4_tasks.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/Subscription.hpp>
@@ -61,6 +60,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -68,7 +68,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
 using matrix::Eulerf;
@@ -130,6 +129,7 @@ private:
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
 	orb_advert_t	_actuators_2_pub;		/**< actuator control group 1 setpoint (Airframe) */
+	orb_advert_t	_rate_ctrl_status_pub;		/**< rate controller status publication */
 
 	orb_id_t _rates_sp_id;	// pointer to correct rates setpoint uORB metadata structure
 	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
@@ -367,6 +367,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_attitude_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
 	_actuators_2_pub(nullptr),
+	_rate_ctrl_status_pub(nullptr),
 
 	_rates_sp_id(nullptr),
 	_actuators_id(nullptr),
@@ -1175,6 +1176,16 @@ FixedwingAttitudeControl::task_main()
 					/* advertise the attitude rates setpoint */
 					_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp);
 				}
+
+				rate_ctrl_status_s rate_ctrl_status;
+				rate_ctrl_status.timestamp = hrt_absolute_time();
+				rate_ctrl_status.roll_integ = _roll_ctrl.get_integrator();
+				rate_ctrl_status.pitch_integ = _pitch_ctrl.get_integrator();
+				rate_ctrl_status.yaw_integ = _yaw_ctrl.get_integrator();
+				rate_ctrl_status.additional_integ1 = _wheel_ctrl.get_integrator();
+
+				int instance;
+				orb_publish_auto(ORB_ID(rate_ctrl_status), &_rate_ctrl_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);
 
 			} else {
 				/* manual/direct control */
