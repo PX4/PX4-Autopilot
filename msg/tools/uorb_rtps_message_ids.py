@@ -48,7 +48,7 @@ msg_id_map = {
     'multirotor_motor_limits': 43,
     'offboard_control_mode': 44,
     'optical_flow': 45,
-    'output_pwm': 46,
+
     'parameter_update': 47,
     'position_setpoint': 48,
     'position_setpoint_triplet': 49,
@@ -86,7 +86,7 @@ msg_id_map = {
     'vehicle_control_mode': 81,
     'vehicle_force_setpoint': 82,
     'vehicle_global_position': 83,
-    'vehicle_global_velocity_setpoint': 84,
+
     'vehicle_gps_position': 85,
     'vehicle_land_detected': 86,
     'vehicle_local_position': 87,

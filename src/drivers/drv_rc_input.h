@@ -78,7 +78,6 @@
 #define RC_INPUT_MAX_DEADZONE_US	500
 
 #include <uORB/topics/input_rc.h>
-#define pwm_output_values output_pwm_s
 #define rc_input_values input_rc_s
 
 /**
