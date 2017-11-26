@@ -12,7 +12,7 @@ then
 	param set COM_POS_FS_GAIN 0
 
 	param set EKF2_ARSP_THR 8.0
-	param set EKF2_FUSE_BETA 0
+	param set EKF2_FUSE_BETA 1
 	param set EKF2_MAG_ACCLIM 0
 	param set EKF2_MAG_YAWLIM 0
 
