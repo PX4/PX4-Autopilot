@@ -59,7 +59,7 @@ class MarkdownTablesOutput():
 
                 if name == code:
                     name = ""
-                code='<strong id="%s">%s</strong>' % (code, code)
+                code='<strong id="%s" style="white-space: nowrap;">%s</strong>' % (code, code)
 
                 if reboot_required:
                     reboot_required='<p><b>Reboot required:</b> %s</p>\n' % reboot_required
