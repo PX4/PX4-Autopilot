@@ -46,8 +46,21 @@
 #  error "This UAVCAN_STM32_TIMER_NUMBER is not supported yet"
 # endif
 
-# if (TIMX_INPUT_CLOCK % 1000000) != 0
-#  error "No way, timer clock must be divisible to 1e6. FIXME!"
+/**
+ * UAVCAN_STM32_TIMX_INPUT_CLOCK can be used to manually override the auto-detected timer clock speed.
+ * This is useful at least with certain versions of ChibiOS which do not support the bit
+ * RCC_DKCFGR.TIMPRE that is available in newer models of STM32. In that case, if TIMPRE is active,
+ * the auto-detected value of TIMX_INPUT_CLOCK will be twice lower than the actual clock speed.
+ * Read this for additional context: http://www.chibios.com/forum/viewtopic.php?f=35&t=3870
+ * A normal way to use the override feature is to provide an alternative macro, e.g.:
+ *
+ *      -DUAVCAN_STM32_TIMX_INPUT_CLOCK=STM32_HCLK
+ *
+ * Alternatively, the new clock rate can be specified directly.
+ */
+# ifdef UAVCAN_STM32_TIMX_INPUT_CLOCK
+#  undef TIMX_INPUT_CLOCK
+#  define TIMX_INPUT_CLOCK      UAVCAN_STM32_TIMX_INPUT_CLOCK
 # endif
 
 extern "C" UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler);
@@ -121,7 +134,7 @@ void init()
     nvicEnableVector(TIMX_IRQn,  UAVCAN_STM32_IRQ_PRIORITY_MASK);
 
 # if (TIMX_INPUT_CLOCK % 1000000) != 0
-#  error "No way, timer clock must be divisible to 1e6. FIXME!"
+#  error "No way, timer clock must be divisible by 1e6. FIXME!"
 # endif
 
     // Start the timer
