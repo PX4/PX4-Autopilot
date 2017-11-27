@@ -50,6 +50,8 @@ public:
 
 	virtual ~FlightTaskOrbit() = default;
 
+	int activate() override;
+
 	int update() override;
 
 private:
