@@ -60,7 +60,7 @@ FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name
 	_jerk_hor_min(parent, "MPC_JERK_MIN", false),
 	_deceleration_hor_slow(parent, "MPC_DEC_HOR_SLOW", false),
 	_acceleration_hor_max(this, "MPC_ACC_HOR_MAX", false),
-	_acceleration_hor_manual(this, "MPC_ACC_HOR_MAN", false),
+	_acceleration_hor_manual(this, "MPC_ACC_HOR", false),
 	_acceleration_z_max_up(this, "MPC_ACC_UP_MAX", false),
 	_acceleration_z_max_down(this, "MPC_ACC_DOWN_MAX", false),
 	_rc_flt_smp_rate(parent, "RC_FLT_SMP_RATE", false),
@@ -73,7 +73,7 @@ FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name
 	_filter_roll_stick.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
 	_filter_pitch_stick.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
 	_hold_position = Vector3f(NAN, NAN, NAN);
-};
+}
 
 bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
@@ -87,6 +87,7 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 
 	return true;
 }
+
 int FlightTaskManual::update()
 {
 	int ret = FlightTask::update();

@@ -47,12 +47,17 @@ using namespace matrix;
 
 FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) :
 	FlightTaskManual(parent, name)
+{}
+
+int FlightTaskOrbit::activate()
 {
+	int ret = FlightTaskManual::activate();
 	_r = 1.f;
 	_v =  0.5f;
 	_z = _position(2);
 	_center = Vector2f(_position.data());
 	_center(0) -= _r;
+	return ret;
 }
 
 int FlightTaskOrbit::update()

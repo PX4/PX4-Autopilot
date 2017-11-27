@@ -13,6 +13,13 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 	return true;
 }
 
+int FlightTask::activate()
+{
+	_time_stamp_activate = hrt_absolute_time();
+	update(); /* to get subscriptions and evaluate them */
+	return 0;
+}
+
 int FlightTask::update()
 {
 	_time_stamp_current = hrt_absolute_time();

@@ -132,18 +132,26 @@ public:
 
 		default:
 			/* invalid task */
-			return 1;
+			return -1;
 		}
 
 		if (!_current_task->initializeSubscriptions(_subscription_array)) {
 			_current_task->~FlightTask();
 			_current_task = nullptr;
 			_current_task_index = -1;
-			return 1;
+			return -2;
+		}
+
+		_subscription_array.update();
+
+		if (_current_task->activate()) {
+			_current_task->~FlightTask();
+			_current_task = nullptr;
+			_current_task_index = -1;
+			return -3;
 		}
 
 		_current_task_index = task_number;
-		_current_task->update();
 		return 0;
 	}
 

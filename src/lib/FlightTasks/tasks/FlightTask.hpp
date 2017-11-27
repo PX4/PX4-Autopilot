@@ -55,15 +55,19 @@ class FlightTask : public control::Block
 public:
 	FlightTask(control::SuperBlock *parent, const char *name) :
 		Block(parent, name)
-	{
-		_time_stamp_activate = hrt_absolute_time();
-	};
+	{ }
 
 	/**
 	 * initialize the uORB subscriptions using an array
 	 * @return true on success, false on error
 	 */
 	virtual bool initializeSubscriptions(SubscriptionArray &subscription_array);
+
+	/**
+	* Call once on the event where you switch to the task
+	* @return 0 on success, <0 on error
+	*/
+	virtual int activate();
 
 	virtual ~FlightTask() = default;
 
@@ -79,7 +83,7 @@ public:
 	const vehicle_local_position_setpoint_s &get_position_setpoint()
 	{
 		return _vehicle_local_position_setpoint;
-	};
+	}
 
 protected:
 	/* time abstraction */
