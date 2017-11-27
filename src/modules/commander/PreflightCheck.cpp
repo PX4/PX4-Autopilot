@@ -502,6 +502,12 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 		goto out;
 	}
 
+	// Check if preflight check perfomred by estimator has failed
+	if (status.pre_flt_fail) {
+		success = false;
+		goto out;
+	}
+
 	// check vertical position innovation test ratio
 	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
 	if (status.hgt_test_ratio > test_limit) {
@@ -783,9 +789,9 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
 	int32_t estimator_type;
 	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
-	if (estimator_type == 2 && checkGNSS) {
+	if (estimator_type == 2) {
 		// don't fail if not using GPS for the first 20s after gaining 3D lock because quality checks take time to pass
-		bool enforce_gps_required = (_time_last_no_gps_lock > 20 * 1000000);
+		bool enforce_gps_required = (_time_last_no_gps_lock > 20 * 1000000) && checkGNSS;
 
 		if (!ekf2Check(mavlink_log_pub, true, reportFailures, enforce_gps_required)) {
 			failed = true;
