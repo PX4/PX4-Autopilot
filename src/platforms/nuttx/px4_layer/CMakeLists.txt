@@ -30,13 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE platforms__nuttx__px4_layer
-	COMPILE_FLAGS
-	SRCS
-		px4_nuttx_tasks.c
-		../../posix/px4_layer/px4_log.c
-	DEPENDS
-		platforms__common
+
+set(SRCS)
+list(APPEND SRCS
+	px4_nuttx_impl.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+# an IO board doesn't use the px4_layer
+if (NOT ${BOARD} MATCHES "io")
+	list(APPEND SRCS
+		../../posix/px4_layer/px4_log.c #TODO: don't do this
+		px4_nuttx_tasks.c
+		)
+endif()
+
+px4_add_library(px4_layer ${SRCS})
+add_library(platforms__nuttx ALIAS px4_layer) # TODO: remove once DriverFramework is updated

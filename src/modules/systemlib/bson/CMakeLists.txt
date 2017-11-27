@@ -30,11 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__mathlib__math__filter
-	SRCS
-		LowPassFilter2p.cpp
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+
+px4_add_library(tinybson tinybson.c)
+target_compile_options(tinybson PRIVATE -Wno-sign-compare)

@@ -31,13 +31,12 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
 px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	STACK_MAIN 1300
-	COMPILE_FLAGS
 	SRCS
 		navigator_main.cpp
 		navigator_mode.cpp
@@ -55,6 +54,5 @@ px4_add_module(
 		gpsfailure.cpp
 		follow_target.cpp
 	DEPENDS
-		platforms__common
+		controllib
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

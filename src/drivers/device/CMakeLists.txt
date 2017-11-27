@@ -31,33 +31,32 @@
 #
 ############################################################################
 
-set(SRCS_PLATFORM)
+set(SRCS)
+list(APPEND SRCS
+	CDev.cpp
+	ringbuffer.cpp
+	integrator.cpp
+)
+
 if (${OS} STREQUAL "nuttx")
-	list(APPEND SRCS_PLATFORM
-		nuttx/cdev_platform.cpp
-	)
+	if (NOT "${CONFIG_DISABLE_POLL}" STREQUAL "y")
+		list(APPEND SRCS
+			nuttx/cdev_platform.cpp
+		)
+	endif()
 	if ("${CONFIG_I2C}" STREQUAL "y")
-		list(APPEND SRCS_PLATFORM nuttx/I2C.cpp)
+		list(APPEND SRCS nuttx/I2C.cpp)
 	endif()
 
 	if ("${CONFIG_SPI}" STREQUAL "y")
-		list(APPEND SRCS_PLATFORM nuttx/SPI.cpp)
+		list(APPEND SRCS nuttx/SPI.cpp)
 	endif()
 else()
-	list(APPEND SRCS_PLATFORM
+	list(APPEND SRCS
 		posix/I2C.cpp
 		posix/cdev_platform.cpp
 		posix/vfile.cpp
 	)
 endif()
 
-px4_add_module(
-	MODULE drivers__device
-	SRCS
-		CDev.cpp
-		ringbuffer.cpp
-		integrator.cpp
-		${SRCS_PLATFORM}
-	DEPENDS
-		platforms__common
-	)
+px4_add_library(drivers_device ${SRCS})

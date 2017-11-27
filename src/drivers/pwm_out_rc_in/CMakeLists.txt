@@ -44,6 +44,5 @@ px4_add_module(
 		pwm_out_rc_in.cpp
 	DEPENDS
 		git_mavlink_v1
-		platforms__common
+		mixer
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

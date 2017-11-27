@@ -42,12 +42,8 @@ message(WARNING-"Configuraton is incomplete")
 message(WARNING-"Configuraton is incomplete")
 message(WARNING-"Configuraton is incomplete")
 
-px4_add_module(
-	MODULE drivers__boards__esc35-v1
-	SRCS
-		esc35_init.c
-		esc35_led.c
-		esc35_usb.c
-	DEPENDS
-		platforms__common
+px4_add_library(drivers_board
+	esc35_init.c
+	esc35_led.c
+	esc35_usb.c
 	)

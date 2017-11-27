@@ -41,7 +41,6 @@ set(config_module_list
 
 	drivers/stm32
 	drivers/led
-	drivers/boards
 
 	#
 	# System commands
@@ -52,21 +51,6 @@ set(config_module_list
 	systemcmds/ver
 
 	#
-	# General system control
-	#
-
-	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	lib/version
-
-	#
-	# Libraries
-	#
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/nuttx
-	platforms/common
-	platforms/nuttx/px4_layer
 )

@@ -44,6 +44,5 @@ px4_add_module(
 		devices/src/ashtech.cpp
 		devices/src/ubx.cpp
 	DEPENDS
-		platforms__common
 		git_gps_devices
 	)

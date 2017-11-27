@@ -13,10 +13,8 @@ set(config_module_list
 	drivers/bma180
 	drivers/bmi160
 	drivers/bmp280
-	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
-	drivers/device
 	drivers/ets_airspeed
 	drivers/frsky_telemetry
 	drivers/gps
@@ -134,35 +132,7 @@ set(config_module_list
 	# Library modules
 	#
 	modules/dataman
-	modules/systemlib/param
-	modules/systemlib
 	modules/uORB
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/launchdetection
-	lib/led
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/terrain_estimation
-	lib/version
-
-	#
-	# Platform
-	#
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge

@@ -1,19 +1,17 @@
 include (common/px4_upload)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 px4_posix_generate_builtin_commands(
 	OUT apps
-	MODULE_LIST ${module_libraries})
+	MODULE_LIST ${module_libraries}
+	)
 
-# Define build target
-set(APP_NAME px4)
-set(MAIN_SRC ${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp)
-set(UPLOAD_NAME upload)
-
-if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
+if ((${BOARD} STREQUAL "eagle") OR (${BOARD} STREQUAL "excelsior"))
 	include(fastrpc)
 	include(linux_app)
 
@@ -21,118 +19,69 @@ if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
-		APP_NAME ${APP_NAME}
+		APP_NAME px4
 		IDL_NAME px4muorb
 		APPS_DEST "/home/linaro"
-		SOURCES
-			px4muorb_stub.c
-			${MAIN_SRC}
-			apps.cpp
-		LINK_LIBS
-			-Wl,--start-group
-			${module_libraries}
-			${df_driver_libs}
-			${FASTRPC_ARM_LIBS}
-			pthread m rt
-			-Wl,--end-group
+		SOURCES main.cpp apps.cpp px4muorb_stub.c
+		LINK_LIBS ${FASTRPC_ARM_LIBS}
 		)
 
-	px4_add_adb_push(OUT ${UPLOAD_NAME}
-				OS ${OS}
-				BOARD ${BOARD}
-				FILES $<TARGET_FILE:${APP_NAME}>
-				${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
-				DEPENDS ${APP_NAME}
-				DEST /home/linaro)
+	# TODO: update cmake_hexagon and merge with the regular linux app
+	target_link_libraries(px4 ${module_libraries} ${df_driver_libs})
+	target_link_libraries(px4 lib__ecl) # temporary until we can update ecl cmake
+	target_link_libraries(px4 drivers_board px4_layer work_queue pthread)
+else()
+	add_executable(px4 main.cpp apps.cpp)
 
-elseif ("${BOARD}" STREQUAL "rpi")
+	target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})
+	target_link_libraries(px4 PUBLIC lib__ecl) # temporary until we can update ecl cmake
+	target_link_libraries(px4 PUBLIC drivers_board px4_layer work_queue pthread)
+endif()
 
-	px4_add_executable(${APP_NAME}
-		${MAIN_SRC}
-		apps.cpp
-		)
+if(UNIX AND NOT APPLE)
+   target_link_libraries(px4 PUBLIC rt)
+endif()
 
-	target_link_libraries(${APP_NAME}
-		-Wl,--start-group
-		${module_libraries}
-		df_driver_framework
-		${df_driver_libs}
-		pthread m rt
-		-Wl,--end-group
-		)
+# upload helpers
+if ("${BOARD}" STREQUAL "rpi")
 
 	file(GLOB RPI_CONFIG_FILES ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config)
-	px4_add_scp_push(OUT ${UPLOAD_NAME}
-				OS ${OS}
-				BOARD ${BOARD}
-				FILES $<TARGET_FILE:${APP_NAME}>
-				${RPI_CONFIG_FILES}
-				${PX4_SOURCE_DIR}/ROMFS
-				DEPENDS ${APP_NAME}
-				DEST /home/pi)
+	px4_add_scp_push(
+		OUT upload
+		OS ${OS}
+		BOARD ${BOARD}
+		FILES $<TARGET_FILE:px4> ${RPI_CONFIG_FILES} ${PX4_SOURCE_DIR}/ROMFS
+		DEPENDS px4
+		DEST /home/pi
+		)
 
 elseif ("${BOARD}" STREQUAL "bebop")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
-
-	px4_add_executable(${APP_NAME}
-		${MAIN_SRC}
-		apps.cpp
+	px4_add_adb_push_to_bebop(
+		OUT upload
+		OS ${OS}
+		BOARD ${BOARD}
+		FILES $<TARGET_FILE:px4>.stripped
+		DEPENDS px4
+		DEST /usr/bin
 		)
 
-	if (NOT APPLE)
-		target_link_libraries(${APP_NAME}
-			-Wl,--start-group
-			${module_libraries}
-			${df_driver_libs}
-			pthread m rt
-			-Wl,--end-group
-			)
-	else()
-		target_link_libraries(${APP_NAME}
-			${module_libraries}
-			${df_driver_libs}
-			pthread m
-			)
-	endif()
+elseif (${BOARD} STREQUAL "sitl")
 
-	px4_add_adb_push_to_bebop(OUT ${UPLOAD_NAME}
-				OS ${OS}
-				BOARD ${BOARD}
-				FILES $<TARGET_FILE:px4>.stripped
-				DEPENDS px4
-				DEST /usr/bin)
-
-elseif ("${BOARD}" STREQUAL "sitl")
-
-	include(./sitl_target.cmake)
+	include(sitl_target)
 	if(BUILD_TESTING)
-		include(./sitl_tests.cmake)
+		include(sitl_tests)
 	endif()
 
-else()
-
-	px4_add_executable(${APP_NAME}
-		${MAIN_SRC}
-		apps.cpp
+elseif ((${BOARD} STREQUAL "eagle") OR (${BOARD} STREQUAL "excelsior"))
+	px4_add_adb_push(
+		OUT upload
+		OS ${OS}
+		BOARD ${BOARD}
+		FILES $<TARGET_FILE:px4> ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
+		DEPENDS px4
+		DEST /home/linaro
 		)
-
-	if (NOT APPLE)
-		target_link_libraries(${APP_NAME}
-			-Wl,--start-group
-			${module_libraries}
-			${df_driver_libs}
-			pthread m rt
-			-Wl,--end-group
-			)
-	else()
-		target_link_libraries(${APP_NAME}
-			${module_libraries}
-			${df_driver_libs}
-			pthread m
-			)
-	endif()
 endif()
 
 #=============================================================================

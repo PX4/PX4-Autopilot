@@ -33,11 +33,9 @@
 px4_add_module(
 	MODULE drivers__rgbled
 	MAIN rgbled
-	COMPILE_FLAGS
 	SRCS
 		rgbled.cpp
 	DEPENDS
-		platforms__common
-		lib__led
+		ledcontroller
+		drivers_device
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

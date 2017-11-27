@@ -40,6 +40,8 @@ px4_add_module(
 	SRCS
 		ekf2_main.cpp
 	DEPENDS
-		platforms__common
 		git_ecl
+		controllib
+		geo
+		geo_lookup
 	)

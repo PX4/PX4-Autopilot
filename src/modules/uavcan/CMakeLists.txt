@@ -83,9 +83,7 @@ px4_add_module(
 
 	DEPENDS
 		git_uavcan
-		platforms__common
+		mixer
 		uavcan
 		uavcan_stm32_driver
 	)
-
-target_link_libraries(modules__uavcan uavcan uavcan_stm32_driver)

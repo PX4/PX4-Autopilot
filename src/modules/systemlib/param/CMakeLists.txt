@@ -31,18 +31,6 @@
 #
 ############################################################################
 
-set(SRCS)
-if ("${CONFIG_SHMEM}" STREQUAL "1")
-	message(STATUS "parameters shared memory enabled")
-	list(APPEND SRCS
-		param_shmem.c
-		)
-else()
-	list(APPEND SRCS
-		param.c
-		)
-endif()
-
 if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
 endif()
@@ -94,16 +82,29 @@ add_custom_command(OUTPUT px4_parameters.c px4_parameters.h
 		templates/px4_parameters.h.jinja
 	)
 
-px4_add_module(
-	MODULE modules__systemlib__param
-	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
-	INCLUDES
-		${CMAKE_CURRENT_BINARY_DIR}
-	SRCS
-		${SRCS}
-		px4_parameters.c
-		px4_parameters.h
-	DEPENDS
-		platforms__common
+
+set(SRCS)
+if ("${CONFIG_SHMEM}" STREQUAL "1")
+	message(STATUS "parameters shared memory enabled")
+	list(APPEND SRCS
+		param_shmem.c
+		)
+else()
+	list(APPEND SRCS
+		param.c
+		)
+endif()
+
+px4_add_library(parameters
+	${SRCS}
+	px4_parameters.c
+	px4_parameters.h
 	)
+
+if ("${CONFIG_SHMEM}" STREQUAL "1")
+	target_link_libraries(parameters PRIVATE px4_layer)
+endif()
+
+target_link_libraries(parameters PRIVATE tinybson)
+target_compile_options(parameters PRIVATE -Wno-sign-compare)
+target_include_directories(parameters PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

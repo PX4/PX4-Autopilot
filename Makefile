@@ -212,10 +212,10 @@ alt_firmware: \
 
 # builds with RTPS
 check_rtps: \
+	check_posix_sitl_rtps \
 	check_px4fmu-v3_rtps \
 	check_px4fmu-v4_rtps \
 	check_px4fmu-v4pro_rtps \
-	check_posix_sitl_rtps \
 	sizes
 
 .PHONY: sizes check quick_check check_rtps

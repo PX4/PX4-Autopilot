@@ -1,24 +1,19 @@
 #set toolchain
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-gcc-arm-linux-gnueabihf.cmake)
 
-set(CMAKE_PROGRAM_PATH
-	${CMAKE_PROGRAM_PATH}
-)
-
 include(posix/px4_impl_posix)
 
 add_definitions(
-  -D__PX4_POSIX_OCPOC
-  -D__DF_LINUX # For DriverFramework
-  -D__DF_OCPOC # For DriverFramework
-  -D__PX4_POSIX
+	-D__PX4_POSIX_OCPOC
+	-D__DF_LINUX # For DriverFramework
+	-D__DF_OCPOC # For DriverFramework
+	-D__PX4_POSIX
 )
 
 set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_ms5611_wrapper
@@ -58,8 +53,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/systemlib/param
-	modules/systemlib
 	modules/uORB
 	modules/dataman
 	modules/land_detector
@@ -76,33 +69,6 @@ set(config_module_list
 	drivers/rgbled
 	drivers/ulanding
 
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/launchdetection
-	lib/led
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/rc
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/terrain_estimation
-	lib/version
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
-	
 	examples/px4_simple_app
 )
 

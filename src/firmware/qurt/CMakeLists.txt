@@ -9,7 +9,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes")
 
-get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 px4_qurt_generate_builtin_commands(
 	OUT ${PX4_BINARY_DIR}/apps
@@ -28,7 +28,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		${PX4_BINARY_DIR}/src/firmware/qurt/px4muorb_skel.c
 		${PX4_BINARY_DIR}/apps.cpp)
 
-	target_link_libraries(px4
+	target_link_libraries(px4 PRIVATE
 		-Wl,--start-group
 		${module_libraries}
 		${df_driver_libs}

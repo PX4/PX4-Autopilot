@@ -35,15 +35,8 @@ include(hexagon_sdk)
 
 include_directories(${HEXAGON_8074_INCLUDES})
 
-set(QURT_LAYER_SRCS
-	px4_qurt_impl.cpp
-	px4_qurt_tasks.cpp
-	lib_crc32.c
-	../../posix/px4_layer/drv_hrt.c
-	qurt_stubs.c
-	main.cpp
-	shmem_qurt.c
-	)
+set(QURT_LAYER_SRCS)
+
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	list(APPEND QURT_LAYER_SRCS
 		../stubs/stubs_posix.c
@@ -51,14 +44,14 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		)
 endif()
 
-
-px4_add_module(
-	MODULE platforms__qurt__px4_layer
-	COMPILE_FLAGS
-	SRCS
-		${QURT_LAYER_SRCS}
-		${CONFIG_SRC}
-	DEPENDS
-		platforms__common
+px4_add_library(px4_layer
+	px4_qurt_impl.cpp
+	px4_qurt_tasks.cpp
+	lib_crc32.c
+	../../posix/px4_layer/drv_hrt.c
+	qurt_stubs.c
+	main.cpp
+	shmem_qurt.c
+	${QURT_LAYER_SRCS}
+	${CONFIG_SRC}
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

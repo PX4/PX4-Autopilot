@@ -8,11 +8,9 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
 	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/tap_esc
 	drivers/mpu9250
 	drivers/ms5611
@@ -68,27 +66,6 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
 	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/rc
-	lib/tailsitter_recovery
-	lib/version
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 )

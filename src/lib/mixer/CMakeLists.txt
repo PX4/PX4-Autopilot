@@ -93,20 +93,18 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.ge
 add_custom_target(mixer_gen_legacy
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h)
 
-px4_add_module(
-	MODULE lib__mixer
-	SRCS
-		mixer.cpp
-		mixer_group.cpp
-		mixer_helicopter.cpp
-		mixer_load.c
-		mixer_multirotor.cpp
-		mixer_simple.cpp
-	DEPENDS
-		platforms__common
-		mixer_gen
-		mixer_gen_norm
-		mixer_gen_6dof
-		mixer_gen_legacy
+px4_add_library(mixer
+	mixer.cpp
+	mixer_group.cpp
+	mixer_helicopter.cpp
+	mixer_load.c
+	mixer_multirotor.cpp
+	mixer_simple.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+add_dependencies(mixer
+	mixer_gen
+	mixer_gen_norm
+	mixer_gen_6dof
+	mixer_gen_legacy
+)

@@ -3,9 +3,7 @@ include(posix/px4_impl_posix)
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
-	drivers/boards
 	drivers/camera_trigger
-	drivers/device
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/vmount
@@ -109,36 +107,7 @@ set(config_module_list
 	# Library modules
 	#
 	modules/dataman
-	modules/systemlib/param
-	modules/systemlib
 	modules/uORB
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/launchdetection
-	lib/led
-	lib/mixer
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/rc
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/terrain_estimation
-	lib/version
-
-	#
-	# Platform
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# OBC challenge

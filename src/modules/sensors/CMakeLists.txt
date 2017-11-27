@@ -34,7 +34,6 @@
 px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
-	PRIORITY "SCHED_PRIORITY_MAX-5"
 	STACK_MAIN 1300
 	COMPILE_FLAGS
 		-Wno-sign-compare # TODO: fix all sign-compare
@@ -44,8 +43,7 @@ px4_add_module(
 		sensors.cpp
 		parameters.cpp
 		temperature_compensation.cpp
-
 	DEPENDS
-		platforms__common
+		df_driver_framework # needed for DevHandle
+		rotation
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -13,7 +13,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/linux_sbus
 	modules/sensors
 	platforms/posix/drivers/df_ms5607_wrapper
@@ -56,8 +55,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/systemlib/param
-	modules/systemlib
 	modules/uORB
 	modules/dataman
 	modules/land_detector
@@ -68,31 +65,6 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/launchdetection
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/terrain_estimation
-	lib/version
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 )
 
 set(config_df_driver_list

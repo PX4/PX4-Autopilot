@@ -19,8 +19,6 @@ else()
 endif()
 
 set(config_module_list
-	drivers/device
-	drivers/boards
 	drivers/led
 	drivers/linux_sbus
 
@@ -29,8 +27,6 @@ set(config_module_list
 
 	modules/mavlink
 
-	modules/systemlib/param
-	modules/systemlib
 	modules/uORB
 	modules/sensors
 	modules/dataman
@@ -39,19 +35,5 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 
-	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/conversion
-	lib/version
-	lib/DriverFramework/framework
-
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 	modules/muorb/krait
 	)
-

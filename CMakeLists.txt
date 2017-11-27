@@ -127,9 +127,14 @@ execute_process(
 px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
 
+define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
+                 BRIEF_DOCS "PX4 module libs"
+                 FULL_DOCS "List of all PX4 module libraries"
+                 )
+
 define_property(GLOBAL PROPERTY PX4_LIBRARIES
                  BRIEF_DOCS "PX4 libs"
-                 FULL_DOCS "List of all PX4 module libraries"
+                 FULL_DOCS "List of all PX4 libraries"
                  )
 
 #=============================================================================
@@ -237,9 +242,6 @@ foreach(conf ${px4_required_config})
 	endif()
 endforeach()
 
-# force static lib build
-set(BUILD_SHARED_LIBS OFF)
-
 #=============================================================================
 # ccache
 #
@@ -341,7 +343,7 @@ add_definitions(${definitions})
 #
 include(common/px4_metadata)
 
-add_subdirectory(msg)
+add_subdirectory(msg EXCLUDE_FROM_ALL)
 
 px4_generate_airframes_xml(BOARD ${BOARD})
 
@@ -394,10 +396,18 @@ endif()
 #=============================================================================
 # subdirectories
 #
+
+add_subdirectory(src/platforms EXCLUDE_FROM_ALL)
+add_subdirectory(src/modules/systemlib EXCLUDE_FROM_ALL)
+add_subdirectory(src/lib EXCLUDE_FROM_ALL)
+add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
+add_subdirectory(src/drivers/device EXCLUDE_FROM_ALL)
+
 foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()
 
+# firmware added last to generate the builtin for included modules
 add_subdirectory(src/firmware/${OS})
 
 #=============================================================================
@@ -424,8 +434,7 @@ set(CPACK_PACKAGE_CONTACT ${package-contact})
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(short-description "The px4 autopilot.")
-set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${short-description})
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "The PX4 Pro autopilot.")
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${git_tag}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${git_version}")

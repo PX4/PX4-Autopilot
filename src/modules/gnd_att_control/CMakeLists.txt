@@ -34,12 +34,8 @@ px4_add_module(
 	MODULE modules__gnd_att_control
 	MAIN gnd_att_control
 	STACK_MAIN 1200
-	COMPILE_FLAGS
 	SRCS
 		GroundRoverAttitudeControl.cpp
 	DEPENDS
-		platforms__common
 		git_ecl
-		lib__ecl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

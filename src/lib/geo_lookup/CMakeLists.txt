@@ -30,12 +30,5 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__geo_lookup
-	COMPILE_FLAGS
-	SRCS
-		geo_mag_declination.c
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+px4_add_library(geo_lookup geo_mag_declination.c)

@@ -161,6 +161,8 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 	set(DSPAL_ROOT src/lib/DriverFramework/dspal)
 	set(added_include_dirs
 		${DSPAL_ROOT}/include

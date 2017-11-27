@@ -59,6 +59,6 @@ px4_add_module(
 		mavlink_stream.cpp
 		mavlink_ulog.cpp
 	DEPENDS
-		platforms__common
 		git_mavlink_v2
+		version
 	)

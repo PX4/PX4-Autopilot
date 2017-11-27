@@ -42,11 +42,7 @@ message(WARNING-"Configuraton is incomplete")
 message(WARNING-"Configuraton is incomplete")
 message(WARNING-"Configuraton is incomplete")
 
-px4_add_module(
-	MODULE drivers__boards__s2740vc-v1
-	SRCS
-		s2740vc_init.c
-		s2740vc_can.c
-	DEPENDS
-		platforms__common
+px4_add_library(drivers_board
+	s2740vc_init.c
+	s2740vc_can.c
 	)

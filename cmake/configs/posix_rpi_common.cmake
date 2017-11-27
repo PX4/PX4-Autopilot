@@ -16,7 +16,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/ms4525_airspeed
@@ -68,8 +67,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/systemlib/param
-	modules/systemlib
 	modules/uORB
 	modules/dataman
 	modules/land_detector
@@ -88,32 +85,6 @@ set(config_module_list
 	drivers/navio_rgbled
 	drivers/pwm_out_sim
 	drivers/rpi_rc_in
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/launchdetection
-	lib/led
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/terrain_estimation
-	lib/version
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 )
 
 #

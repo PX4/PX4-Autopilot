@@ -30,10 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE platforms__posix__work_queue
-	COMPILE_FLAGS
-	SRCS
+px4_add_library(work_queue
 		hrt_thread.c
 		hrt_queue.c
 		hrt_work_cancel.c
@@ -48,7 +45,4 @@ px4_add_module(
 		sq_remfirst.c
 		sq_addafter.c
 		dq_rem.c
-	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
