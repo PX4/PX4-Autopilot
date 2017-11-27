@@ -1086,17 +1086,6 @@ PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
 /**
- * Relay control of relay 1 mapped to the Spektrum receiver power supply
- *
- * @min 0
- * @max 1
- * @value 0 Disabled
- * @value 1 Relay controls DSM power
- * @group Radio Calibration
- */
-PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
-
-/**
  * RC channel count
  *
  * This parameter is used by Ground Station software to save the number
