@@ -1276,7 +1276,7 @@ void Ekf2::run()
 									  innovations.vel_pos_innov[1] * innovations.vel_pos_innov[1]);
 					_preflt_horiz_fail = (_vel_ne_innov_lpf.norm() > _vel_innov_test_lim)
 							     || (vel_ne_innov_length > 2.0f * _vel_innov_test_lim)
-							     || (fabsf(innovations.heading_innov) > _yaw_innov_test_lim);
+							     || (_yaw_innov_magnitude_lpf > _yaw_innov_test_lim);
 
 					// check the vertical velocity and position innovations
 					_preflt_vert_fail = (fabsf(_vel_d_innov_lpf) > _vel_innov_test_lim)
