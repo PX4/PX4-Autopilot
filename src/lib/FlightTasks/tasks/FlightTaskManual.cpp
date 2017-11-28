@@ -88,11 +88,13 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 	return true;
 }
 
-int FlightTaskManual::update()
+bool FlightTaskManual::updateInitialize()
 {
-	int ret = FlightTask::update();
-	ret += _evaluate_sticks();
+	return FlightTask::updateInitialize() && _evaluate_sticks();
+}
 
+bool FlightTaskManual::update()
+{
 	/* prepare stick input */
 	Vector2f stick_xy(_sticks.data()); /**< horizontal two dimensional stick input within a unit circle */
 
@@ -142,10 +144,10 @@ int FlightTaskManual::update()
 	}
 
 	_set_position_setpoint(_hold_position);
-	return ret;
+	return true;
 }
 
-int FlightTaskManual::_evaluate_sticks()
+bool FlightTaskManual::_evaluate_sticks()
 {
 	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < _timeout) {
 		/* get data and scale correctly */
@@ -159,11 +161,11 @@ int FlightTaskManual::_evaluate_sticks()
 		_sticks(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
 		_sticks(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
 
-		return 0;
+		return true;
 
 	} else {
 		_sticks.zero(); /* default is all zero */
-		return -1;
+		return false;
 	}
 }
 

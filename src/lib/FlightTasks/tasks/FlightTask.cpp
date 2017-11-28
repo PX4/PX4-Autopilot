@@ -13,14 +13,13 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 	return true;
 }
 
-int FlightTask::activate()
+bool FlightTask::activate()
 {
 	_time_stamp_activate = hrt_absolute_time();
-	update(); /* to get subscriptions and evaluate them */
-	return 0;
+	return true;
 }
 
-int FlightTask::update()
+bool FlightTask::updateInitialize()
 {
 	_time_stamp_current = hrt_absolute_time();
 	_time = (_time_stamp_current - _time_stamp_activate) / 1e6f;
@@ -29,16 +28,16 @@ int FlightTask::update()
 	return _evaluate_vehicle_position();
 }
 
-int FlightTask::_evaluate_vehicle_position()
+bool FlightTask::_evaluate_vehicle_position()
 {
 	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout) {
 		_position = matrix::Vector3f(&_sub_vehicle_local_position->get().x);
 		_velocity = matrix::Vector3f(&_sub_vehicle_local_position->get().vx);
 		_yaw = _sub_vehicle_local_position->get().yaw;
-		return 0;
+		return true;
 
 	} else {
 		_velocity.zero(); /* default velocity is all zero */
-		return -1;
+		return false;
 	}
 }

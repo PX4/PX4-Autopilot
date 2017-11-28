@@ -57,6 +57,8 @@ public:
 		Block(parent, name)
 	{ }
 
+	virtual ~FlightTask() = default;
+
 	/**
 	 * initialize the uORB subscriptions using an array
 	 * @return true on success, false on error
@@ -65,17 +67,22 @@ public:
 
 	/**
 	 * Call once on the event where you switch to the task
-	 * @return 0 on success, <0 on error
+	 * @return true on success, false on error
 	 */
-	virtual int activate();
+	virtual bool activate();
 
-	virtual ~FlightTask() = default;
+	/**
+	 * Call before activate() or update()
+	 * to initialize time and input data
+	 * @return true on success, false on error
+	 */
+	virtual bool updateInitialize();
 
 	/**
 	 * To be called regularly in the control loop cycle to execute the task
-	 * @return 0 on success, <0 on error
+	 * @return true on success, false on error
 	 */
-	virtual int update();
+	virtual bool update() = 0;
 
 	/**
 	 * Get the output data
@@ -119,5 +126,5 @@ private:
 
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint; /**< Output position setpoint that every task has */
 
-	int _evaluate_vehicle_position();
+	bool _evaluate_vehicle_position();
 };
