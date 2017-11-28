@@ -59,6 +59,23 @@
 #include <up_internal.h>
 #include <up_arch.h>
 
+
+#if defined(CONFIG_ARCH_CHIP_STM32F7)
+#  include <stm32_dma.h>
+#  include <stm32_uart.h>
+#  define USART_BRR_MANT_SHIFT 0
+#  define USART_BRR_FRAC_SHIFT 0
+#  define USART_SR_TXE 0
+#  define STM32_USART_DR_OFFSET 0
+#  define USART_SR_ORE  0
+#  define USART_SR_RXNE 0
+#  define USART_SR_NE 0
+#  define USART_SR_FE 0
+#  define USART_SR_IDLE 0
+#  define rSR		REG(STM32_USART_ISR_OFFSET)
+#  define rDR		REG(STM32_USART_RDR_OFFSET)
+#endif
+
 #include <debug.h>
 
 #include <drivers/device/device.h>
@@ -75,8 +92,12 @@
 
 /* serial register accessors */
 #define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + _x))
-#define rSR		REG(STM32_USART_SR_OFFSET)
-#define rDR		REG(STM32_USART_DR_OFFSET)
+# if !defined(rSR)
+#  define rSR		REG(STM32_USART_SR_OFFSET)
+#endif
+# if !defined(rDR)
+#  define rDR		REG(STM32_USART_DR_OFFSET)
+#endif
 #define rBRR		REG(STM32_USART_BRR_OFFSET)
 #define rCR1		REG(STM32_USART_CR1_OFFSET)
 #define rCR2		REG(STM32_USART_CR2_OFFSET)
