@@ -61,7 +61,7 @@ public:
 protected:
 	matrix::Vector<float, 4> _sticks;
 
-	float get_input_frame_yaw() { return _yaw; };
+	float get_input_frame_yaw() { return _yaw; }
 
 private:
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
