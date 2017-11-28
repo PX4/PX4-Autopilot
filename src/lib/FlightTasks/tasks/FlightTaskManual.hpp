@@ -62,6 +62,7 @@ public:
 
 protected:
 	matrix::Vector<float, 4> _sticks;
+	bool _evaluateSticks();
 
 	float get_input_frame_yaw() { return _yaw; }
 
