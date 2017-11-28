@@ -1625,15 +1625,10 @@ PX4IO::io_handle_status(uint16_t status)
 	 */
 	struct safety_s safety;
 	safety.timestamp = hrt_absolute_time();
-
-	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
-		safety.safety_off = true;
-		safety.safety_switch_available = true;
-
-	} else {
-		safety.safety_off = false;
-		safety.safety_switch_available = true;
-	}
+	safety.safety_switch_available = true;
+	safety.safety_off = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? true : false;
+	safety.override_available = true; // XXX should be (arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? true : false;
+	safety.override_enabled = (status & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? true : false;
 
 	/* lazily publish the safety status */
 	if (_to_safety != nullptr) {
