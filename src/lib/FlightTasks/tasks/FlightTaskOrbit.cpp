@@ -80,8 +80,8 @@ bool FlightTaskOrbit::update()
 
 	float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 
-	_set_position_setpoint(Vector3f(NAN, NAN, _z));
-	_set_velocity_setpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
-	_set_yaw_setpoint(yaw);
+	_setPositionSetpoint(Vector3f(NAN, NAN, _z));
+	_setVelocitySetpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
+	_setYawSetpoint(yaw);
 	return true;
 }

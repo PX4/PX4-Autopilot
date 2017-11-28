@@ -90,7 +90,7 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 
 bool FlightTaskManual::updateInitialize()
 {
-	return FlightTask::updateInitialize() && _evaluate_sticks();
+	return FlightTask::updateInitialize() && _evaluateSticks();
 }
 
 bool FlightTaskManual::update()
@@ -117,7 +117,7 @@ bool FlightTaskManual::update()
 
 	/* smooth out velocity setpoint by slewrate and return it */
 	vel_sp_slewrate(stick_xy, _sticks(3), velocity_setpoint);
-	_set_velocity_setpoint(velocity_setpoint);
+	_setVelocitySetpoint(velocity_setpoint);
 
 	/* handle position and altitude hold */
 	const bool stick_xy_zero = stick_xy_norm <= FLT_EPSILON;
@@ -143,11 +143,11 @@ bool FlightTaskManual::update()
 		_hold_position(2) = NAN;
 	}
 
-	_set_position_setpoint(_hold_position);
+	_setPositionSetpoint(_hold_position);
 	return true;
 }
 
-bool FlightTaskManual::_evaluate_sticks()
+bool FlightTaskManual::_evaluateSticks()
 {
 	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < _timeout) {
 		/* get data and scale correctly */
