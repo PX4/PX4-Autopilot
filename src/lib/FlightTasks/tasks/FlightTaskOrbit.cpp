@@ -49,9 +49,9 @@ FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) 
 	FlightTaskManual(parent, name)
 {}
 
-int FlightTaskOrbit::activate()
+bool FlightTaskOrbit::activate()
 {
-	int ret = FlightTaskManual::activate();
+	bool ret = FlightTaskManual::activate();
 	_r = 1.f;
 	_v =  0.5f;
 	_z = _position(2);
@@ -60,10 +60,8 @@ int FlightTaskOrbit::activate()
 	return ret;
 }
 
-int FlightTaskOrbit::update()
+bool FlightTaskOrbit::update()
 {
-	int ret = FlightTaskManual::update();
-
 	_r += _sticks(0) * _deltatime;
 	_r = math::constrain(_r, 1.f, 20.f);
 	_v -= _sticks(1) * _deltatime;
@@ -85,5 +83,5 @@ int FlightTaskOrbit::update()
 	_set_position_setpoint(Vector3f(NAN, NAN, _z));
 	_set_velocity_setpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
 	_set_yaw_setpoint(yaw);
-	return ret;
+	return true;
 }
