@@ -56,7 +56,9 @@ public:
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
-	int update() override;
+	bool updateInitialize() override;
+
+	bool update() override;
 
 protected:
 	matrix::Vector<float, 4> _sticks;
@@ -77,7 +79,7 @@ private:
 
 	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
 
-	int _evaluate_sticks();
+	bool _evaluate_sticks();
 
 
 	/* --- Acceleration Smoothing --- */
