@@ -60,9 +60,14 @@ public:
 	bool get(const struct orb_metadata *meta, uORB::Subscription<T> *&subscription, unsigned instance = 0);
 
 	/**
-	 * update all subscriptions
+	 * update all subscriptions (if new data is available)
 	 */
 	void update();
+
+	/**
+	 * update all subscriptions
+	 */
+	void forcedUpdate();
 
 private:
 	void cleanup();

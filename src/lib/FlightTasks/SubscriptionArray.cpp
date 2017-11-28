@@ -76,3 +76,10 @@ void SubscriptionArray::update()
 		_subscriptions[i]->update();
 	}
 }
+
+void SubscriptionArray::forcedUpdate()
+{
+	for (int i = 0; i < _subscriptions_count; ++i) {
+		_subscriptions[i]->forcedUpdate();
+	}
+}
