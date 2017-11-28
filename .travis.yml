@@ -24,9 +24,6 @@ env:
 matrix:
   fast_finish: true
   include:
-    - env: BUILD_TARGET=clang-tidy-quiet
-    - env: BUILD_TARGET=tests
-    - env: BUILD_TARGET=tests_coverage
     - env: BUILD_TARGET=coverity_scan
       dist: trusty
       if: branch = coverity_scan
