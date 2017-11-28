@@ -11,8 +11,9 @@ pipeline {
         script {
           def builds = [:]
 
+          // nuttx default targets that are archived and uploaded to s3
           for (def option in ["px4fmu-v2", "px4fmu-v3", "px4fmu-v4", "px4fmu-v4pro", "px4fmu-v5", "aerocore2", "aerofc-v1", "auav-x21", "crazyflie", "mindpx-v2", "tap-v1", "nxphlite-v3"]) {
-            def node_name = "nuttx_${option}_default"
+            def node_name = "${option}"
 
             builds["${node_name}"] = {
               node {
@@ -20,7 +21,9 @@ pipeline {
                   docker.image('px4io/px4-dev-nuttx:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true") {
                     stage("${node_name}") {
                       checkout scm
-                      sh "ccache -z; make clean; make ${node_name}; ccache -s"
+                      sh "make clean"
+                      sh "make nuttx_${node_name}_default"
+                      sh "ccache -s"
                       archive 'build/*/*.px4'
                     }
                   }
@@ -29,8 +32,9 @@ pipeline {
             }
           }
 
-          for (def option in ["px4fmu-v2_lpe", "px4-same70xplained-v1_default", "px4-stm32f4discovery_default", "px4cannode-v1_default", "px4esc-v1_default", "px4nucleoF767ZI-v1_default", "s2740vc-v1_default"]) {
-            def node_name = "nuttx_${option}"
+          // other nuttx default targets
+          for (def option in ["px4-same70xplained-v1", "px4-stm32f4discovery", "px4cannode-v1", "px4esc-v1", "px4nucleoF767ZI-v1", "s2740vc-v1"]) {
+            def node_name = "${option}"
 
             builds["${node_name}"] = {
               node {
@@ -38,7 +42,9 @@ pipeline {
                   docker.image('px4io/px4-dev-nuttx:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true") {
                     stage("${node_name}") {
                       checkout scm
-                      sh "ccache -z; make clean; make ${node_name}; ccache -s"
+                      sh "make clean"
+                      sh "make nuttx_${node_name}_default"
+                      sh "ccache -s"
                     }
                   }
                 }
@@ -46,16 +52,39 @@ pipeline {
             }
           }
 
+          // nuttx non default targets
+          for (def option in ["px4fmu-v2_lpe", "px4fmu-v3_rtps", "px4fmu-v4_rtps", "px4fmu-v4pro_rtps", "px4fmu-v5_rtps"]) {
+            def node_name = "${option}"
+
+            builds["${node_name}"] = {
+              node {
+                stage("Build Test ${node_name}") {
+                  docker.image('px4io/px4-dev-nuttx:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true") {
+                    stage("${node_name}") {
+                      checkout scm
+                      sh "make clean"
+                      sh "make nuttx_${node_name}"
+                      sh "ccache -s"
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // raspberry pi and bebop (armhf)
           for (def option in ["rpi_cross", "bebop_default"]) {
-            def node_name = "posix_${option}"
+            def node_name = "${option}"
 
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-raspi:2017-10-23').inside("--env CCACHE_DISABLE=1 --env CI=true") {
+                  docker.image('px4io/px4-dev-raspi:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true") {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean; make ${node_name}"
+                      sh "make clean"
+                      sh "make posix_${node_name}"
+                      sh "ccache -s"
                     }
                   }
                 }
@@ -63,16 +92,19 @@ pipeline {
             }
           }
 
+          // other armhf (to be merged with raspi and bebop)
           for (def option in ["ocpoc_ubuntu"]) {
-            def node_name = "posix_${option}"
+            def node_name = "${option}"
 
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-armhf:2017-10-23').inside("--env CCACHE_DISABLE=1 --env CI=true") {
+                  docker.image('px4io/px4-dev-armhf:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true") {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean; make ${node_name}"
+                      sh "make clean"
+                      sh "make posix_${node_name}"
+                      sh "ccache -s"
                     }
                   }
                 }
@@ -105,7 +137,8 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; make clang-tidy-quiet'
+            sh 'make clean'
+            sh 'make clang-tidy-quiet'
           }
         }
         stage('tests') {
@@ -116,7 +149,8 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; make posix_sitl_default test_results_junit'
+            sh 'make clean'
+            sh 'make posix_sitl_default test_results_junit'
             junit 'build/posix_sitl_default/JUnitTestResults.xml'
           }
         }
@@ -128,7 +162,8 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; make tests_coverage'
+            sh 'make clean'
+            sh 'make tests_coverage'
             // publish html
             publishHTML target: [
               allowMissing: false,
