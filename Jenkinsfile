@@ -17,10 +17,10 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --env CI=true") {
+                  docker.image('px4io/px4-dev-nuttx:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true") {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean; make ${node_name}"
+                      sh "ccache -z; make clean; make ${node_name}; ccache -s"
                       archive 'build/*/*.px4'
                     }
                   }
@@ -35,11 +35,10 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --env CI=true") {
+                  docker.image('px4io/px4-dev-nuttx:2017-10-23').inside("--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true") {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean; make ${node_name}"
-                      archive 'build/*/*.px4'
+                      sh "ccache -z; make clean; make ${node_name}; ccache -s"
                     }
                   }
                 }
@@ -91,7 +90,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-base:2017-10-23'
-              args '--env CCACHE_DISABLE=1 --env CI=true'
+              args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
             }
           }
           steps {
@@ -102,7 +101,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-clang:2017-10-23'
-              args '--env CCACHE_DISABLE=1 --env CI=true'
+              args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
             }
           }
           steps {
@@ -113,7 +112,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-base:2017-10-23'
-              args '--env CCACHE_DISABLE=1 --env CI=true'
+              args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
             }
           }
           steps {
@@ -125,7 +124,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-base:2017-10-23'
-              args '--env CCACHE_DISABLE=1 --env CI=true'
+              args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
             }
           }
           steps {
