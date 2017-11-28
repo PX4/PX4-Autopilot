@@ -125,13 +125,18 @@ public:
 	 */
 	virtual bool update() = 0;
 
+	/**
+	 * Like update(), but does not check first if there is data available
+	 */
+	virtual bool forcedUpdate() = 0;
+
 };
 
 /**
  * Subscription wrapper class
  */
 template<class T>
-class __EXPORT Subscription final : public SubscriptionNode
+class __EXPORT Subscription : public SubscriptionNode
 {
 public:
 	/**
@@ -150,7 +155,7 @@ public:
 		_data() // initialize data structure to zero
 	{}
 
-	~Subscription() override final = default;
+	~Subscription() override = default;
 
 	// no copy, assignment, move, move assignment
 	Subscription(const Subscription &) = delete;
@@ -161,9 +166,14 @@ public:
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
-	bool update() override final
+	bool update() override
 	{
 		return SubscriptionBase::update((void *)(&_data));
+	}
+
+	bool forcedUpdate() override
+	{
+		return orb_copy(_meta, _handle, &_data) == PX4_OK;
 	}
 
 	/*

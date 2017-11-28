@@ -151,6 +151,8 @@ public:
 			return -3;
 		}
 
+		_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
+
 		_current_task_index = task_number;
 		return 0;
 	}
