@@ -64,9 +64,9 @@ public:
 	virtual bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	/**
-	* Call once on the event where you switch to the task
-	* @return 0 on success, <0 on error
-	*/
+	 * Call once on the event where you switch to the task
+	 * @return 0 on success, <0 on error
+	 */
 	virtual int activate();
 
 	virtual ~FlightTask() = default;
@@ -109,7 +109,7 @@ protected:
 	void _set_acceleration_setpoint(const matrix::Vector3f &acceleration_setpoint) { acceleration_setpoint.copyToRaw(&_vehicle_local_position_setpoint.acc_x); }
 
 	/* Put the yaw angle produced by the task into the setpoint message */
-	void _set_yaw_setpoint(const float &yaw) { _vehicle_local_position_setpoint.yaw = yaw; }
+	void _set_yaw_setpoint(const float yaw) { _vehicle_local_position_setpoint.yaw = yaw; }
 
 	/* Put the yaw anglular rate produced by the task into the setpoint message */
 	void _set_yawspeed_setpoint(const float &yawspeed) { _vehicle_local_position_setpoint.yawspeed = yawspeed; }
