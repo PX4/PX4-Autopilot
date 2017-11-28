@@ -54,14 +54,14 @@ class FlightTasks : control::SuperBlock
 public:
 	FlightTasks() :
 		SuperBlock(nullptr, "TSK")
-	{};
+	{}
 
 	~FlightTasks()
 	{
 		if (_current_task) {
 			_current_task->~FlightTask();
 		}
-	};
+	}
 
 	/**
 	 * Call regularly in the control loop cycle to execute the task
@@ -159,19 +159,19 @@ public:
 	 * Get the number of the active task
 	 * @return number of active task, -1 if there is none
 	 */
-	int get_active_task() const { return _current_task_index; };
+	int get_active_task() const { return _current_task_index; }
 
 	/**
 	 * Check if any task is active
 	 * @return true if a task is active, false if not
 	 */
-	bool is_any_task_active() const { return _current_task; };
+	bool is_any_task_active() const { return _current_task; }
 
 	/**
 	 * Check if the task number exists
 	 * @return true if yes, false if not
 	 */
-	bool is_task_number_valid(int task_number) const { return task_number > -1 && task_number < _task_count; };
+	bool is_task_number_valid(int task_number) const { return task_number > -1 && task_number < _task_count; }
 
 private:
 	static constexpr int _task_count = 2;
