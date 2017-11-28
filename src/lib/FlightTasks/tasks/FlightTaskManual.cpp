@@ -88,11 +88,20 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 	return true;
 }
 
-int FlightTaskManual::update()
+bool FlightTaskManual::updateInitialize()
 {
-	int ret = FlightTask::update();
-	ret += _evaluate_sticks();
+	bool ret = FlightTask::updateInitialize();
+	const bool sticks_available = _evaluateSticks();
 
+	if (_sticks_data_required) {
+		ret = ret && sticks_available;
+	}
+
+	return ret;
+}
+
+bool FlightTaskManual::update()
+{
 	/* prepare stick input */
 	Vector2f stick_xy(_sticks.data()); /**< horizontal two dimensional stick input within a unit circle */
 
@@ -115,7 +124,7 @@ int FlightTaskManual::update()
 
 	/* smooth out velocity setpoint by slewrate and return it */
 	vel_sp_slewrate(stick_xy, _sticks(3), velocity_setpoint);
-	_set_velocity_setpoint(velocity_setpoint);
+	_setVelocitySetpoint(velocity_setpoint);
 
 	/* handle position and altitude hold */
 	const bool stick_xy_zero = stick_xy_norm <= FLT_EPSILON;
@@ -141,11 +150,11 @@ int FlightTaskManual::update()
 		_hold_position(2) = NAN;
 	}
 
-	_set_position_setpoint(_hold_position);
-	return ret;
+	_setPositionSetpoint(_hold_position);
+	return true;
 }
 
-int FlightTaskManual::_evaluate_sticks()
+bool FlightTaskManual::_evaluateSticks()
 {
 	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < _timeout) {
 		/* get data and scale correctly */
@@ -159,11 +168,11 @@ int FlightTaskManual::_evaluate_sticks()
 		_sticks(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
 		_sticks(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
 
-		return 0;
+		return true;
 
 	} else {
 		_sticks.zero(); /* default is all zero */
-		return -1;
+		return false;
 	}
 }
 

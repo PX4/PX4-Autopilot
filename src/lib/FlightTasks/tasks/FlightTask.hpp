@@ -57,36 +57,43 @@ public:
 		Block(parent, name)
 	{ }
 
+	virtual ~FlightTask() = default;
+
 	/**
-	 * initialize the uORB subscriptions using an array
+	 * Initialize the uORB subscriptions using an array
 	 * @return true on success, false on error
 	 */
 	virtual bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	/**
-	* Call once on the event where you switch to the task
-	* @return 0 on success, <0 on error
-	*/
-	virtual int activate();
+	 * Call once on the event where you switch to the task
+	 * @return true on success, false on error
+	 */
+	virtual bool activate();
 
-	virtual ~FlightTask() = default;
+	/**
+	 * Call before activate() or update()
+	 * to initialize time and input data
+	 * @return true on success, false on error
+	 */
+	virtual bool updateInitialize();
 
 	/**
 	 * To be called regularly in the control loop cycle to execute the task
-	 * @return 0 on success, <0 on error
+	 * @return true on success, false on error
 	 */
-	virtual int update();
+	virtual bool update() = 0;
 
 	/**
 	 * Get the output data
 	 */
-	const vehicle_local_position_setpoint_s &get_position_setpoint()
+	const vehicle_local_position_setpoint_s &getPositionSetpoint()
 	{
 		return _vehicle_local_position_setpoint;
 	}
 
 protected:
-	/* time abstraction */
+	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
 	float _time = 0; /**< passed time in seconds since the task was activated */
 	float _deltatime = 0; /**< passed time in seconds since the task was last updated */
@@ -94,30 +101,31 @@ protected:
 	hrt_abstime _time_stamp_current = 0; /**< time stamp at the beginning of the current task update */
 	hrt_abstime _time_stamp_last = 0; /**< time stamp when task was last updated */
 
-	/* Current vehicle position for every task */
+	/* Current vehicle position */
 	matrix::Vector3f _position; /**< current vehicle position */
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f;
+	bool _evaluateVehiclePosition();
 
 	/* Put the position vector produced by the task into the setpoint message */
-	void _set_position_setpoint(const matrix::Vector3f &position_setpoint) { position_setpoint.copyToRaw(&_vehicle_local_position_setpoint.x); }
+	void _setPositionSetpoint(const matrix::Vector3f &position_setpoint) { position_setpoint.copyToRaw(&_vehicle_local_position_setpoint.x); }
 
 	/* Put the velocity vector produced by the task into the setpoint message */
-	void _set_velocity_setpoint(const matrix::Vector3f &velocity_setpoint) { velocity_setpoint.copyToRaw(&_vehicle_local_position_setpoint.vx); }
+	void _setVelocitySetpoint(const matrix::Vector3f &velocity_setpoint) { velocity_setpoint.copyToRaw(&_vehicle_local_position_setpoint.vx); }
 
 	/* Put the acceleration vector produced by the task into the setpoint message */
-	void _set_acceleration_setpoint(const matrix::Vector3f &acceleration_setpoint) { acceleration_setpoint.copyToRaw(&_vehicle_local_position_setpoint.acc_x); }
+	void _setAccelerationSetpoint(const matrix::Vector3f &acceleration_setpoint) { acceleration_setpoint.copyToRaw(&_vehicle_local_position_setpoint.acc_x); }
 
 	/* Put the yaw angle produced by the task into the setpoint message */
-	void _set_yaw_setpoint(const float &yaw) { _vehicle_local_position_setpoint.yaw = yaw; };
+	void _setYawSetpoint(const float yaw) { _vehicle_local_position_setpoint.yaw = yaw; }
 
 	/* Put the yaw anglular rate produced by the task into the setpoint message */
-	void _set_yawspeed_setpoint(const float &yawspeed) { _vehicle_local_position_setpoint.yawspeed = yawspeed; };
+	void _setYawspeedSetpoint(const float &yawspeed) { _vehicle_local_position_setpoint.yawspeed = yawspeed; }
 
 private:
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
 
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint; /**< Output position setpoint that every task has */
 
-	int _evaluate_vehicle_position();
+	bool _evaluate_vehicle_position();
 };

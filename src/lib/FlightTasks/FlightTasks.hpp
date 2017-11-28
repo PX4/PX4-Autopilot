@@ -54,24 +54,24 @@ class FlightTasks : control::SuperBlock
 public:
 	FlightTasks() :
 		SuperBlock(nullptr, "TSK")
-	{};
+	{}
 
 	~FlightTasks()
 	{
 		if (_current_task) {
 			_current_task->~FlightTask();
 		}
-	};
+	}
 
 	/**
 	 * Call regularly in the control loop cycle to execute the task
-	 * @return 0 on success, <0 on error
+	 * @return true on success, false on error
 	 */
-	int update()
+	bool update()
 	{
-		if (is_any_task_active()) {
+		if (isAnyTaskActive()) {
 			_subscription_array.update();
-			return _current_task->update();
+			return _current_task->updateInitialize() && _current_task->update();
 		}
 
 		return 1;
@@ -80,9 +80,9 @@ public:
 	/**
 	 * Get the output data from the current task
 	 */
-	const vehicle_local_position_setpoint_s &get_position_setpoint()
+	const vehicle_local_position_setpoint_s &getPositionSetpoint()
 	{
-		return _current_task->get_position_setpoint();
+		return _current_task->getPositionSetpoint();
 	}
 
 	/**
@@ -90,16 +90,16 @@ public:
 	 */
 	inline const vehicle_local_position_setpoint_s &operator()()
 	{
-		return get_position_setpoint();
+		return getPositionSetpoint();
 	}
 
 	/**
 	 * Switch to the next task in the available list (for testing)
-	 * @return 0 on success, <0 on error
+	 * @return true on success, false on error
 	 */
-	int switch_task()
+	int switchTask()
 	{
-		return switch_task(_current_task_index + 1);
+		return switchTask(_current_task_index + 1);
 	}
 
 	/**
@@ -107,11 +107,11 @@ public:
 	 * @param task number to switch to
 	 * @return 0 on success, <0 on error
 	 */
-	int switch_task(int task_number)
+	int switchTask(int task_number)
 	{
 		/* switch to the running task, nothing to do */
 		if (task_number == _current_task_index) {
-			return 0;
+			return true;
 		}
 
 		/* disable the old task if there is any */
@@ -135,6 +135,7 @@ public:
 			return -1;
 		}
 
+		/* subscription failed */
 		if (!_current_task->initializeSubscriptions(_subscription_array)) {
 			_current_task->~FlightTask();
 			_current_task = nullptr;
@@ -142,16 +143,15 @@ public:
 			return -2;
 		}
 
-		_subscription_array.update();
+		_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
-		if (_current_task->activate()) {
+		/* activation failed */
+		if (!_current_task->updateInitialize() || !_current_task->activate()) {
 			_current_task->~FlightTask();
 			_current_task = nullptr;
 			_current_task_index = -1;
 			return -3;
 		}
-
-		_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 		_current_task_index = task_number;
 		return 0;
@@ -161,24 +161,18 @@ public:
 	 * Get the number of the active task
 	 * @return number of active task, -1 if there is none
 	 */
-	int get_active_task() const { return _current_task_index; };
+	int getActiveTask() const { return _current_task_index; }
 
 	/**
 	 * Check if any task is active
 	 * @return true if a task is active, false if not
 	 */
-	bool is_any_task_active() const { return _current_task; };
-
-	/**
-	 * Check if the task number exists
-	 * @return true if yes, false if not
-	 */
-	bool is_task_number_valid(int task_number) const { return task_number > -1 && task_number < _task_count; };
+	bool isAnyTaskActive() const { return _current_task; }
 
 private:
-	static constexpr int _task_count = 2;
 
-	/** union with all existing tasks: we use it to make sure that only the memory of the largest existing
+	/**
+	 * Union with all existing tasks: we use it to make sure that only the memory of the largest existing
 	 * task is needed, and to avoid using dynamic memory allocations.
 	 */
 	union TaskUnion {
@@ -187,8 +181,7 @@ private:
 
 		FlightTaskManual manual;
 		FlightTaskOrbit orbit;
-	};
-	TaskUnion _task_union; ///< storage for the currently active task
+	} _task_union; /*< storage for the currently active task */
 
 	FlightTask *_current_task = nullptr;
 	int _current_task_index = -1;

@@ -56,12 +56,16 @@ public:
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
-	int update() override;
+	bool updateInitialize() override;
+
+	bool update() override;
 
 protected:
 	matrix::Vector<float, 4> _sticks;
+	bool _evaluateSticks();
+	bool _sticks_data_required = true; /**< let sibling task define if it depends on stick data */
 
-	float get_input_frame_yaw() { return _yaw; };
+	float get_input_frame_yaw() { return _yaw; }
 
 private:
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
@@ -77,7 +81,7 @@ private:
 
 	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
 
-	int _evaluate_sticks();
+	bool _evaluate_sticks();
 
 
 	/* --- Acceleration Smoothing --- */
