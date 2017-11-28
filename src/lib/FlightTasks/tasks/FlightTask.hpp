@@ -109,10 +109,10 @@ protected:
 	void _set_acceleration_setpoint(const matrix::Vector3f &acceleration_setpoint) { acceleration_setpoint.copyToRaw(&_vehicle_local_position_setpoint.acc_x); }
 
 	/* Put the yaw angle produced by the task into the setpoint message */
-	void _set_yaw_setpoint(const float &yaw) { _vehicle_local_position_setpoint.yaw = yaw; };
+	void _set_yaw_setpoint(const float &yaw) { _vehicle_local_position_setpoint.yaw = yaw; }
 
 	/* Put the yaw anglular rate produced by the task into the setpoint message */
-	void _set_yawspeed_setpoint(const float &yawspeed) { _vehicle_local_position_setpoint.yawspeed = yawspeed; };
+	void _set_yawspeed_setpoint(const float &yawspeed) { _vehicle_local_position_setpoint.yawspeed = yawspeed; }
 
 private:
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
