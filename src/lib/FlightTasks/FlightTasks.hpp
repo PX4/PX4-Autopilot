@@ -69,7 +69,7 @@ public:
 	 */
 	bool update()
 	{
-		if (is_any_task_active()) {
+		if (isAnyTaskActive()) {
 			_subscription_array.update();
 			return _current_task->updateInitialize() && _current_task->update();
 		}
@@ -80,9 +80,9 @@ public:
 	/**
 	 * Get the output data from the current task
 	 */
-	const vehicle_local_position_setpoint_s &get_position_setpoint()
+	const vehicle_local_position_setpoint_s &getPositionSetpoint()
 	{
-		return _current_task->get_position_setpoint();
+		return _current_task->getPositionSetpoint();
 	}
 
 	/**
@@ -90,24 +90,24 @@ public:
 	 */
 	inline const vehicle_local_position_setpoint_s &operator()()
 	{
-		return get_position_setpoint();
+		return getPositionSetpoint();
 	}
 
 	/**
 	 * Switch to the next task in the available list (for testing)
 	 * @return true on success, false on error
 	 */
-	int switch_task()
+	int switchTask()
 	{
-		return switch_task(_current_task_index + 1);
+		return switchTask(_current_task_index + 1);
 	}
 
 	/**
 	 * Switch to a specific task (for normal usage)
 	 * @param task number to switch to
-	 * @return true on success, false on error
+	 * @return 0 on success, <0 on error
 	 */
-	int switch_task(int task_number)
+	int switchTask(int task_number)
 	{
 		/* switch to the running task, nothing to do */
 		if (task_number == _current_task_index) {
@@ -161,17 +161,18 @@ public:
 	 * Get the number of the active task
 	 * @return number of active task, -1 if there is none
 	 */
-	int get_active_task() const { return _current_task_index; }
+	int getActiveTask() const { return _current_task_index; }
 
 	/**
 	 * Check if any task is active
 	 * @return true if a task is active, false if not
 	 */
-	bool is_any_task_active() const { return _current_task; }
+	bool isAnyTaskActive() const { return _current_task; }
 
 private:
 
-	/** union with all existing tasks: we use it to make sure that only the memory of the largest existing
+	/**
+	 * Union with all existing tasks: we use it to make sure that only the memory of the largest existing
 	 * task is needed, and to avoid using dynamic memory allocations.
 	 */
 	union TaskUnion {

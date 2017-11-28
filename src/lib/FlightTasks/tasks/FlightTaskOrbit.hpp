@@ -55,7 +55,6 @@ public:
 	bool update() override;
 
 private:
-
 	float _r = 0.f; /**< radius with which to orbit the target */
 	float _v = 0.f; /**< linear velocity for orbiting in m/s */
 	float _z = 0.f; /**< local z coordinate in meters */
