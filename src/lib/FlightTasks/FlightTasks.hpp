@@ -142,7 +142,7 @@ public:
 			return -2;
 		}
 
-		_subscription_array.update();
+		_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 		if (_current_task->activate()) {
 			_current_task->~FlightTask();
@@ -150,8 +150,6 @@ public:
 			_current_task_index = -1;
 			return -3;
 		}
-
-		_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 		_current_task_index = task_number;
 		return 0;
