@@ -21,4 +21,4 @@ LIBUAVCAN_DSDLC := $(LIBUAVCAN_DIR)dsdl_compiler/libuavcan_dsdlc
 #
 # Standard DSDL definitions
 #
-UAVCAN_DSDL_DIR := $(UAVCAN_DIR)/dsdl/uavcan
+UAVCAN_DSDL_DIR := $(UAVCAN_DIR)dsdl/uavcan
