@@ -63,6 +63,7 @@ public:
 protected:
 	matrix::Vector<float, 4> _sticks;
 	bool _evaluateSticks();
+	bool _sticks_data_required = true; /**< let sibling task define if it depends on stick data */
 
 	float get_input_frame_yaw() { return _yaw; }
 
