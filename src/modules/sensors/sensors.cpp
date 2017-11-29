@@ -432,7 +432,10 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		int instance;
 		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &_airspeed, &instance, ORB_PRIO_DEFAULT);
 
-		_wind_est.timestamp = _airspeed.timestamp;
+	}
+
+	if (fuse_beta) {
+		_wind_est.timestamp = hrt_absolute_time();
 		float wind[2];
 		_wind_estimator.get_wind(wind);
 		_wind_est.windspeed_north = wind[0];
