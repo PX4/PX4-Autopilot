@@ -226,12 +226,27 @@ void VtolType::check_quadchute_condition()
 		}
 
 		// adaptive quadchute
-		// We use tecs for tracking in FW and local_pos_sp during transitions
+
 		if (_params->fw_alt_err > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled) {
 			float altErr = 0.0f;
 
 			if (_tecs_running) {
-				altErr = _tecs_status->altitudeSp - _tecs_status->altitude_filtered;
+
+				// We use tecs for tracking in FW and local_pos_sp during transitions (2 second rolling average)
+				_ra_hrate = (99 * _ra_hrate + _tecs_status->flightPathAngle) / 100;
+				_ra_hrate_sp = (99 * _ra_hrate_sp + _tecs_status->flightPathAngleSp) / 100;
+
+
+				// are we dropping while requesting significant ascend?
+				if (_ra_hrate < -1.0f && _ra_hrate_sp > 1.0f) {
+					altErr = _tecs_status->altitudeSp - _tecs_status->altitude_filtered;
+				}
+
+				// are we dropping while having a large pitch rate error (stall)
+				if (_tecs_status->flightPathAngle < -1.0f && _tecs_status->flightPathAngleSp > 1.0f && _v_att->pitchspeed < 0.0f
+				    && _v_rates_sp->pitch > 0.5f) {
+					altErr = _tecs_status->altitudeSp - _tecs_status->altitude_filtered;
+				}
 
 			} else {
 				altErr = -_local_pos_sp->z - -_local_pos->z;
@@ -241,7 +256,8 @@ void VtolType::check_quadchute_condition()
 				}
 			}
 
-			if (altErr > _params->fw_alt_err) {
+			// trigger when altitude error too large and vehicle is descending
+			if (altErr > _params->fw_alt_err && _local_pos->vz > 0.1f) {
 				_attc->abort_front_transition("QuadChute: Altitude error too large");
 			}
 		}
