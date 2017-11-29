@@ -226,23 +226,29 @@ void VtolType::check_quadchute_condition()
 		}
 
 		// adaptive quadchute
-		// We use tecs for tracking in FW and local_pos_sp during transitions
 		if (_params->fw_alt_err > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled) {
-			float altErr = 0.0f;
 
+			// We use tecs for tracking in FW and local_pos_sp during transitions
 			if (_tecs_running) {
-				altErr = _tecs_status->altitudeSp - _tecs_status->altitude_filtered;
+				// 1 second rolling average
+				_ra_hrate = (49 * _ra_hrate + _tecs_status->flightPathAngle) / 50;
+				_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->flightPathAngleSp) / 50;
+
+				// are we dropping while requesting significant ascend?
+				if (((_tecs_status->altitudeSp - _tecs_status->altitude_filtered) > _params->fw_alt_err) &&
+				    (_ra_hrate < -1.0f) &&
+				    (_ra_hrate_sp > 1.0f)) {
+
+					_attc->abort_front_transition("QuadChute: loss of altitude");
+				}
 
 			} else {
-				altErr = -_local_pos_sp->z - -_local_pos->z;
+				const bool height_error = _local_pos->z_valid && ((-_local_pos_sp->z - -_local_pos->z) > _params->fw_alt_err);
+				const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
 
-				if (!_local_pos->z_valid) {
-					altErr = 0.0f;
+				if (height_error && height_rate_error) {
+					_attc->abort_front_transition("QuadChute: large altitude error");
 				}
-			}
-
-			if (altErr > _params->fw_alt_err) {
-				_attc->abort_front_transition("QuadChute: Altitude error too large");
 			}
 		}
 
