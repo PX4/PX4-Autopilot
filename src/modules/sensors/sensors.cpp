@@ -407,7 +407,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	_wind_estimator.update(hrt_absolute_time());
 
 	bool fuse_airspeed = updated && (hrt_elapsed_time(&_time_last_airspeed_fused) > 5e4);
-	bool fuse_beta = updated && (hrt_elapsed_time(&_time_last_beta_fused) > 5e4) && _vehicle_local_position.v_xy_valid;
+	bool fuse_beta = (hrt_elapsed_time(&_time_last_beta_fused) > 5e4) && _vehicle_local_position.v_xy_valid;
 
 	if (fuse_beta || fuse_airspeed) {
 		matrix::Dcmf R_to_earth(matrix::Quatf(_vehicle_attitude.q));
