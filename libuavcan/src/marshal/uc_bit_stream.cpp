@@ -84,7 +84,7 @@ std::string BitStream::toString() const
     for (unsigned offset = 0; true; offset++)
     {
         uint8_t byte = 0;
-        if (1U != buf_.read(offset, &byte, 1U))
+        if (1 != buf_.read(offset, &byte, 1U))
         {
             break;
         }
