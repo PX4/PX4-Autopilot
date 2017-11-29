@@ -426,10 +426,11 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		}
 	}
 
+	int instance;
+
 	if (updated) {
 		_airspeed.scale = _wind_estimator.get_tas_scale();
 
-		int instance;
 		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &_airspeed, &instance, ORB_PRIO_DEFAULT);
 
 	}
