@@ -121,6 +121,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/estimator_status.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -1664,6 +1665,16 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&vtol_status, 0, sizeof(vtol_status));
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
+	/* subscribe to estimator status topic */
+	int estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	struct estimator_status_s estimator_status;
+
+	/* class variables used to check for navigation failure after takeoff */
+	hrt_abstime time_at_takeoff = 0; // last time we were on the ground
+	hrt_abstime time_last_innov_pass = 0; // last time velocity innovations passed
+	bool nav_test_passed = false; // true if the post takeoff navigation test has passed
+	bool nav_test_failed = false; // true if the post takeoff navigation test has failed
+
 	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
 	memset(&cpuload, 0, sizeof(cpuload));
 
@@ -2173,11 +2184,59 @@ int commander_thread_main(int argc, char *argv[])
 			status_flags.condition_global_velocity_valid = false;
 		}
 
+		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
+		 * for a short time interval after takeoff. Fixed wing vehicles can recover using GPS heading,
+		 *  but rotary wing vehicles cannot so the position and velocity validity needs to be latched
+		 * to false after failure to prevent flyaway crashes */
+		if (run_quality_checks && status.is_rotary_wing) {
+			bool estimator_status_updated = false;
+			orb_check(estimator_status_sub, &estimator_status_updated);
+			if (estimator_status_updated) {
+				orb_copy(ORB_ID(estimator_status), estimator_status_sub, &estimator_status);
+
+				// record time of takeoff
+				if (land_detector.landed) {
+					time_at_takeoff = hrt_absolute_time();
+				} else {
+					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
+					bool sufficient_time = (hrt_absolute_time() - time_at_takeoff > 30*1000*1000);
+					bool sufficient_speed = local_position.vx*local_position.vx + local_position.vy*local_position.vy > 25.0f;
+					bool innovation_pass = estimator_status.vel_test_ratio < 1.0f && estimator_status.pos_test_ratio < 1.0f;
+					if (!nav_test_failed) {
+						if (!nav_test_passed) {
+							// pass if sufficient time or speed
+							if (sufficient_time || sufficient_speed) {
+								nav_test_passed = true;
+							}
+
+							// record the last time the innovation check passed
+							if (innovation_pass) {
+								time_last_innov_pass = hrt_absolute_time();
+							}
+
+							// if the innovation test has failed continuously, declare the nav as failed
+							if ((hrt_absolute_time() - time_last_innov_pass) > 1000*1000) {
+								nav_test_failed = true;
+								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
+							}
+						}
+					}
+				}
+			}
+		}
+
 		/* run global position accuracy checks */
 		if (gpos_updated) {
 			if (run_quality_checks) {
-				check_posvel_validity(true, global_position.eph, eph_threshold, global_position.timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
-				check_posvel_validity(true, global_position.evh, evh_threshold, global_position.timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, &status_changed);
+				// If nav is failed, then declare local position and velocity as invalid
+				if (nav_test_failed) {
+					status_flags.condition_global_position_valid = false;
+					status_flags.condition_global_velocity_valid = false;
+				} else {
+					// use global position message to determine validity
+					check_posvel_validity(true, global_position.eph, eph_threshold, global_position.timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
+					check_posvel_validity(true, global_position.evh, evh_threshold, global_position.timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, &status_changed);
+				}
 			}
 		}
 
@@ -2190,8 +2249,15 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
 
 			if (run_quality_checks) {
-				check_posvel_validity(local_position.xy_valid, local_position.eph, eph_threshold, local_position.timestamp, &last_lpos_fail_time_us, &lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
-				check_posvel_validity(local_position.v_xy_valid, local_position.evh, evh_threshold, local_position.timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
+				// If nav is failed, then declare local position and velocity as invalid
+				if (nav_test_failed) {
+					status_flags.condition_local_position_valid = false;
+					status_flags.condition_local_velocity_valid = false;
+				} else {
+					// use local position message to determine validity
+					check_posvel_validity(local_position.xy_valid, local_position.eph, eph_threshold, local_position.timestamp, &last_lpos_fail_time_us, &lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
+					check_posvel_validity(local_position.v_xy_valid, local_position.evh, evh_threshold, local_position.timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
+				}
 			}
 		}
 
