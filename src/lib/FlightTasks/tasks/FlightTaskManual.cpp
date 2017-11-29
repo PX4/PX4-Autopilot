@@ -90,7 +90,14 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 
 bool FlightTaskManual::updateInitialize()
 {
-	return FlightTask::updateInitialize() && _evaluateSticks();
+	bool ret = FlightTask::updateInitialize();
+	const bool sticks_available = _evaluateSticks();
+
+	if (_sticks_data_required) {
+		ret = ret && sticks_available;
+	}
+
+	return ret;
 }
 
 bool FlightTaskManual::update()
