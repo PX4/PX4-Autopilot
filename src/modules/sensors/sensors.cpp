@@ -185,7 +185,7 @@ private:
 	orb_advert_t	_diff_pres_pub{nullptr};			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight{nullptr};		/**< sensor preflight topic */
 
-	orb_advert_t 	_wind_est_pub;			/**< wind estimate topic */
+	orb_advert_t 	_wind_est_pub{nullptr};			/**< wind estimate topic */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
