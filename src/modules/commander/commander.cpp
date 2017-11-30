@@ -295,6 +295,19 @@ void get_circuit_breaker_params();
 
 void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed);
 
+/**
+ * Set the main system state based on RC and override device inputs
+ */
+transition_result_t set_main_state(struct vehicle_status_s *status, vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
+
+/**
+ * Enable override (manual reversion mode) on the system
+ */
+transition_result_t set_main_state_override_on(struct vehicle_status_s *status_local, bool *changed);
+
+/**
+ * Set the system main state based on the current RC inputs
+ */
 transition_result_t set_main_state_rc(struct vehicle_status_s *status, vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
 
 void reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
@@ -2784,7 +2797,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* evaluate the main state machine according to mode switches */
 			bool first_rc_eval = (_last_sp_man.timestamp == 0) && (sp_man.timestamp > 0);
-			transition_result_t main_res = set_main_state_rc(&status, &global_position, &local_position, &status_changed);
+			transition_result_t main_res = set_main_state(&status, &global_position, &local_position, &status_changed);
 
 			/* store last position lock state */
 			_last_condition_global_position_valid = status_flags.condition_global_position_valid;
@@ -3372,6 +3385,25 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 	}
 
 	leds_counter++;
+}
+
+transition_result_t
+set_main_state(struct vehicle_status_s *status_local, vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed)
+{
+	if (safety.override_available && safety.override_enabled) {
+		return set_main_state_override_on(status_local, changed);
+	} else {
+		return set_main_state_rc(status_local, global_position, local_position, changed);
+	}
+}
+
+transition_result_t
+set_main_state_override_on(struct vehicle_status_s *status_local, bool *changed)
+{
+	transition_result_t res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+	*changed = (res == TRANSITION_CHANGED);
+
+	return res;
 }
 
 transition_result_t
