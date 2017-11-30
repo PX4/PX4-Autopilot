@@ -39,29 +39,35 @@ file(GLOB_RECURSE copy_apps_files
 	${CMAKE_CURRENT_SOURCE_DIR}/apps/*)
 
 # copy nuttx to build directory
-file(RELATIVE_PATH CP_SRC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/nuttx)
-add_custom_command(OUTPUT nuttx_copy.stamp
-	COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} .
-	COMMAND cmake -E touch nuttx_copy.stamp
+file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/nuttx)
+file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+	COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST}
+	COMMAND cmake -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 	DEPENDS ${copy_nuttx_files} git_nuttx
 	COMMENT "Copying NuttX/nuttx to ${CMAKE_CURRENT_BINARY_DIR}"
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	)
 
 set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
 set(NUTTX_CONFIG_DIR ${PX4_SOURCE_DIR}/nuttx-configs)
 
 # copy apps to build directory
-file(RELATIVE_PATH CP_SRC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/apps)
-add_custom_command(OUTPUT apps_copy.stamp
-	COMMAND ${cp_cmd} ${cp_opts} ${CMAKE_CURRENT_SOURCE_DIR}/apps .
-	COMMAND cmake -E touch apps_copy.stamp
+file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/apps)
+file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+	COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST}
+	COMMAND cmake -E touch ${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
 	DEPENDS ${copy_apps_files} git_nuttx_apps
 	COMMENT "Copying NuttX/apps to ${CMAKE_CURRENT_BINARY_DIR}"
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	)
-set(APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
+set(APPS_DIR ${CMAKE_CURRENT_BINARY_DIR}/apps)
 
 # copy PX4 board config into nuttx
 file(GLOB_RECURSE board_config_files ${NUTTX_CONFIG_DIR}/${BOARD})
+file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${NUTTX_CONFIG_DIR}/${BOARD})
+file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${NUTTX_DIR}/configs)
 add_custom_command(OUTPUT
 					${NUTTX_DIR}/PX4_Config.mk
 					${NUTTX_DIR}/PX4_Warnings.mk
@@ -71,16 +77,16 @@ add_custom_command(OUTPUT
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/PX4_Warnings.mk ${NUTTX_DIR}/PX4_Warnings.mk
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/Make.defs ${NUTTX_DIR}/Make.defs
-	COMMAND ${cp_cmd} ${cp_opts} ${NUTTX_CONFIG_DIR}/${BOARD} ${NUTTX_DIR}/configs/
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
+	COMMAND cd ${CMAKE_SOURCE_DIR} && ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST}
 	DEPENDS
 		${NUTTX_CONFIG_DIR}/PX4_Config.mk
 		${NUTTX_CONFIG_DIR}/PX4_Warnings.mk
 		${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 		${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/Make.defs
 		${board_config_files}
-		nuttx_copy.stamp
-		apps_copy.stamp
+		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+		${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	COMMENT "Copying NuttX config ${BOARD} and configuring"
 	)
