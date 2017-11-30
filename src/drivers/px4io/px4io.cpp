@@ -275,6 +275,7 @@ private:
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 	bool			_lockdown_override;	///< allow to override the safety lockdown
 	bool			_armed;			///< wether the system is armed
+	bool			_override_available;	///< true if manual reversion mode is enabled
 
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
@@ -494,6 +495,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_primary_pwm_device(false),
 	_lockdown_override(false),
 	_armed(false),
+	_override_available(false),
 	_cb_flighttermination(true),
 	_in_esc_calibration_mode(false),
 	_rssi_pwm_chan(0),
@@ -1399,9 +1401,11 @@ PX4IO::io_set_arming_state()
 	if (have_control_mode == OK) {
 		if (control_mode.flag_external_manual_override_ok) {
 			set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
+			_override_available = true;
 
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
+			_override_available = false;
 		}
 	}
 
@@ -1627,7 +1631,7 @@ PX4IO::io_handle_status(uint16_t status)
 	safety.timestamp = hrt_absolute_time();
 	safety.safety_switch_available = true;
 	safety.safety_off = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? true : false;
-	safety.override_available = true; // XXX should be (arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? true : false;
+	safety.override_available = _override_available;
 	safety.override_enabled = (status & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? true : false;
 
 	/* lazily publish the safety status */
@@ -2912,11 +2916,13 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_OVERRIDE_OK:
 		/* set the 'OVERRIDE OK' bit */
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK);
+		_override_available = true;
 		break;
 
 	case PWM_SERVO_CLEAR_OVERRIDE_OK:
 		/* clear the 'OVERRIDE OK' bit */
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK, 0);
+		_override_available = false;
 		break;
 
 	default:
