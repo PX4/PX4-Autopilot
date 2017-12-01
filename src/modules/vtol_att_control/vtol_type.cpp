@@ -230,9 +230,10 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_alt_err > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled) {
 			float altErr = 0.0f;
 
+			// We use tecs for tracking in FW and local_pos_sp during transitions
 			if (_tecs_running) {
 
-				// We use tecs for tracking in FW and local_pos_sp during transitions (2 second rolling average)
+				// 2 second rolling average
 				_ra_hrate = (99 * _ra_hrate + _tecs_status->flightPathAngle) / 100;
 				_ra_hrate_sp = (99 * _ra_hrate_sp + _tecs_status->flightPathAngleSp) / 100;
 
