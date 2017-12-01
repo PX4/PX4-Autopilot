@@ -31,6 +31,10 @@ parser.add_argument('--use-topic-union', action='store_true',
 Use the union of all publication and subscription topics (useful for complete
 graphs or only few/single module(s)). The default is to use the intersection
 (remove topics that have no subscriber or no publisher)''')
+parser.add_argument('-m', '--modules', action='store',
+                    help='Comma-separated whitelist of modules (the module\'s '+
+                    'MAIN, e.g. from a startup script)',
+                    default='')
 
 args = parser.parse_args()
 
@@ -593,41 +597,18 @@ class OutputJSON:
             json.dump(data, outfile) # add indent=2 for readable formatting
 
 
-# SITL startup script modules
-# extract with: cat typhoon_h480|cut -f1 -d' '|sort|uniq|awk '{ print ",\"" $0 "\""; }'
-whitelist_sitl = [
-     'accelsim'
-    , 'adcsim'
-    , 'barosim'
-    , 'camera_trigger'
-    , 'commander'
-    , 'dataman'
-    , 'ekf2'
-    , 'gpssim'
-    , 'gyrosim'
-    , 'land_detector'
-    , 'logger'
-    , 'mavlink'
-    , 'mc_att_control'
-    , 'mc_pos_control'
-    , 'mixer'
-    , 'navigator'
-    , 'param'
-    , 'pwm_out_sim'
-    , 'replay'
-    , 'sensors'
-    , 'simulator'
-    , 'tone_alarm'
-    , 'uorb'
-    , 'vmount' ]
-
 
 # ignore topics that are subscribed/published by many topics, but are not really
 # useful to show in the graph
 topic_blacklist = [ 'parameter_update', 'mavlink_log', 'log_message' ]
 print('Excluded topics: '+str(topic_blacklist))
 
-graph = Graph(module_whitelist=[], topic_blacklist=topic_blacklist)
+if len(args.modules) == 0:
+    module_whitelist = []
+else:
+    module_whitelist = [ m.strip() for m in args.modules.split(',')]
+
+graph = Graph(module_whitelist=module_whitelist, topic_blacklist=topic_blacklist)
 if len(args.src_path) == 0:
     args.src_path = ['src']
 graph.build(args.src_path, args.exclude_path, use_topic_pubsub_union=args.use_topic_union)
