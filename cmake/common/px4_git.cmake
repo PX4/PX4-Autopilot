@@ -73,6 +73,7 @@ function(px4_add_git_submodule)
 			)
 
 	string(REPLACE "/" "_" NAME ${PATH})
+	string(REPLACE "." "_" NAME ${NAME})
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
 		COMMAND bash ${PX4_SOURCE_DIR}/Tools/check_submodules.sh ${PATH}
