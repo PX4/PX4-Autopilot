@@ -94,13 +94,13 @@ static int parse_options(int argc, char *argv[])
 
 		case 'w': _options.sleep_ms       = strtol(myoptarg, nullptr, 10);    break;
 
-		case 'b': _options.baudrate       = strtoul(optarg, nullptr, 10);     break;
+		case 'b': _options.baudrate       = strtoul(myoptarg, nullptr, 10);     break;
 
-		case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10);      break;
+		case 'p': _options.poll_ms        = strtol(myoptarg, nullptr, 10);      break;
 
-		case 'r': _options.recv_port      = strtoul(optarg, nullptr, 10);     break;
+		case 'r': _options.recv_port      = strtoul(myoptarg, nullptr, 10);     break;
 
-		case 's': _options.send_port      = strtoul(optarg, nullptr, 10);     break;
+		case 's': _options.send_port      = strtoul(myoptarg, nullptr, 10);     break;
 
 		default:
 			usage(argv[1]);

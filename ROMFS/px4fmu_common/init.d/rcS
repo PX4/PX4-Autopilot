@@ -602,7 +602,7 @@ then
 			if protocol_splitter start ${MAVLINK_COMPANION_DEVICE}
 			then
 				mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
-				micrortps_client start -d /dev/rtps -b 0 -l -1 -s 2000
+				micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
 			else
 				 mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
 			fi
