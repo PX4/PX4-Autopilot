@@ -100,7 +100,7 @@ public:
 	TAP_ESC(int channels_count);
 	virtual ~TAP_ESC();
 	virtual int	init();
-	virtual int	ioctl(FILE *filp, int cmd, unsigned long arg);
+	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 	void cycle();
 
 private:
@@ -852,7 +852,7 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 }
 
 int
-TAP_ESC::ioctl(FILE *filp, int cmd, unsigned long arg)
+TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
