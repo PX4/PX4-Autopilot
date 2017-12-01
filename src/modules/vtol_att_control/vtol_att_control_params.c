@@ -170,13 +170,15 @@ PARAM_DEFINE_FLOAT(VT_PROP_EFF, 0.0f);
 PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN, 0.3f);
 
 /**
- * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
+ * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2, Kitepower=3)
  *
  * @value 0 Tailsitter
  * @value 1 Tiltrotor
  * @value 2 Standard
+ * @value 3 Kitepower
+
  * @min 0
- * @max 2
+ * @max 3
  * @decimal 0
  * @group VTOL Attitude Control
  */

@@ -78,7 +78,8 @@ enum mode {
 enum vtol_type {
 	TAILSITTER = 0,
 	TILTROTOR,
-	STANDARD
+    STANDARD,
+    KITEPOWER,
 };
 
 class VtolAttitudeControl;
