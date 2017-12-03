@@ -1336,7 +1336,9 @@ void Ekf::controlVelPosFusion()
 			_last_known_posNE(1) = _state.pos(1);
 			_state.vel.setZero();
 			_fuse_hpos_as_odom = false;
-			ECL_WARN("EKF stopping navigation");
+			if (_time_last_fake_gps != 0) {
+				ECL_WARN("EKF stopping navigation");
+			}
 
 		}
 
