@@ -73,7 +73,7 @@ public:
 
     Type norm_squared() const {
         const Vector &a(*this);
-        return Type(a.dot(a));
+        return a.dot(a);
     }
 
     inline Type length() const {
@@ -88,7 +88,7 @@ public:
         return (*this) / norm();
     }
 
-    Vector unit_or_zero(const Type eps = 1e-5f) {
+    Vector unit_or_zero(const Type eps = Type(1e-5)) {
         const Type n = norm();
         if (n > eps) {
             return (*this) / n;

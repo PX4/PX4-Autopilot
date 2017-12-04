@@ -40,12 +40,11 @@ int main()
     TEST(fabs(q(3) - 4) < eps);
 
     // quaternion ctor: vector to vector
-    Vector3f v1(0.f, 0.f, 1.f);
-    // identity & default destination vector test
-    Quatf quat_v(v1);
-    TEST(isEqual(quat_v.conjugate(v1), v1));
+    // identity test
+    Quatf quat_v(v,v);
+    TEST(isEqual(quat_v.conjugate(v), v));
     // random test (vector norm can not be preserved with a pure rotation)
-    v1 = Vector3f(-80.1f, 1.5f, -6.89f);
+    Vector3f v1(-80.1f, 1.5f, -6.89f);
     quat_v = Quatf(v1, v);
     TEST(isEqual(quat_v.conjugate(v1).normalized() * v.norm(), v));
     // special 180 degree case 1
