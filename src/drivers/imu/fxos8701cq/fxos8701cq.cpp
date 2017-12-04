@@ -98,6 +98,7 @@
 #  define XYZ_DATA_CFG_FS_8G       (2 << XYZ_DATA_CFG_FS_SHIFTS)
 
 #define FXOS8701CQ_WHOAMI          0x0d
+#  define FXOS8700CQ_WHOAMI_VAL    0xC7
 #  define FXOS8701CQ_WHOAMI_VAL    0xCA
 
 #define FXOS8701CQ_CTRL_REG1       0x2a
@@ -670,10 +671,11 @@ int
 FXOS8701CQ::probe()
 {
 	/* verify that the device is attached and functioning */
-	bool success = (read_reg(FXOS8701CQ_WHOAMI) == FXOS8701CQ_WHOAMI_VAL);
+	uint8_t whoami = read_reg(FXOS8701CQ_WHOAMI);
+	bool success = (whoami == FXOS8700CQ_WHOAMI_VAL) || (whoami == FXOS8701CQ_WHOAMI_VAL);
 
 	if (success) {
-		_checked_values[0] = FXOS8701CQ_WHOAMI_VAL;
+		_checked_values[0] = whoami;
 		return OK;
 	}
 
