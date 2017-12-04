@@ -184,8 +184,12 @@ protected:
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
 	float _mc_throttle_weight = 1.0f;	// weight for multicopter throttle command. Used to avoid
+
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
+
+	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
+	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
 	hrt_abstime _trans_finished_ts = 0;
