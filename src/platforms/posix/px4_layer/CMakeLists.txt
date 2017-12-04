@@ -43,7 +43,7 @@ if("${CONFIG_SHMEM}" STREQUAL "1")
 	)
 
 	# TODO: This didn't seem to be tracked correctly from posix_eagle_release.cmake
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCONFIG_SHMEM")
+	add_definitions(-DCONFIG_SHMEM)
 endif()
 
 px4_add_library(px4_layer

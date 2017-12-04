@@ -1,6 +1,5 @@
-include(nuttx/px4_impl_nuttx)
 
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT tap_common)
+px4_nuttx_configure(HWCLASS m4 ROMFSROOT tap_common)
 
 set(target_definitions MEMORY_CONSTRAINED_SYSTEM)
 
@@ -76,6 +75,5 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/uORB
 	modules/dataman
 )

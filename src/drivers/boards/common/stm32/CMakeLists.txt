@@ -31,17 +31,13 @@
 #
 ############################################################################
 
-set(SRCS
+px4_add_library(drivers_boards_common_arch
+	board_hw_rev_ver.c
 	board_identity.c
-)
+	board_mcu_version.c
+	board_reset.c
+	)
 
-if (NOT ${LABEL} STREQUAL "bootloader")
-	list(APPEND SRCS
-		board_mcu_version.c
-		board_reset.c
-		board_hw_rev_ver.c
-		)
+if ("${CONFIG_STM32F7_ADC}" STREQUAL "y")
+	target_link_libraries(drivers_boards_common_arch PUBLIC drivers__stm32__adc)
 endif()
-
-px4_add_library(board_stm32 ${SRCS})
-add_dependencies(board_stm32 nuttx_build)

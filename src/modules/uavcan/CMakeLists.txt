@@ -54,6 +54,12 @@ add_definitions(
 add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
+target_include_directories(uavcan_stm32_driver
+	PRIVATE
+		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/chip
+		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/common
+	)
+
 px4_add_module(
 	MODULE modules__uavcan
 	MAIN uavcan

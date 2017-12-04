@@ -55,4 +55,5 @@ px4_add_module(
 		follow_target.cpp
 	DEPENDS
 		controllib
+		geo
 	)

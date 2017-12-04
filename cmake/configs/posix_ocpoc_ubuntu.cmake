@@ -1,13 +1,9 @@
 #set toolchain
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-gcc-arm-linux-gnueabihf.cmake)
-
-include(posix/px4_impl_posix)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
 
 add_definitions(
 	-D__PX4_POSIX_OCPOC
-	-D__DF_LINUX # For DriverFramework
 	-D__DF_OCPOC # For DriverFramework
-	-D__PX4_POSIX
 )
 
 set(config_module_list
@@ -53,7 +49,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/uORB
 	modules/dataman
 	modules/land_detector
 	modules/navigator

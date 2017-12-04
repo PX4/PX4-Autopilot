@@ -30,17 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__stm32
-	COMPILE_FLAGS
-	SRCS
-		drv_hrt.c
-		drv_io_timer.c
-		drv_pwm_servo.c
-		drv_pwm_trigger.c
-		drv_input_capture.c
-		drv_led_pwm.cpp
-	DEPENDS
-		platforms__common
+
+px4_add_library(drivers_arch
+	drv_hrt.c
+	drv_io_timer.c
+	drv_pwm_servo.c
+	drv_pwm_trigger.c
+	drv_input_capture.c
+	drv_led_pwm.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+target_link_libraries(drivers_arch PRIVATE drivers_board)

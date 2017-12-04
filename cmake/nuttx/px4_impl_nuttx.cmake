@@ -110,7 +110,8 @@ function(px4_nuttx_make_uavcan_bootloadable)
 	add_custom_command(OUTPUT ${uavcan_bl_imange_name}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/make_can_boot_descriptor.py
 			-v --use-git-hash ${BIN} ${uavcan_bl_imange_name}
-		DEPENDS ${BIN})
+		DEPENDS ${BIN}
+		)
 	add_custom_target(build_uavcan_bl_${BOARD} ALL DEPENDS ${uavcan_bl_imange_name})
 endfunction()
 
@@ -120,91 +121,21 @@ endfunction()
 #
 #	Set the nuttx build flags.
 #
-#	Usage:
-#		px4_os_add_flags(
-#			C_FLAGS <inout-variable>
-#			CXX_FLAGS <inout-variable>
-#			OPTIMIZATION_FLAGS <inout-variable>
-#			EXE_LINKER_FLAGS <inout-variable>
-#			INCLUDE_DIRS <inout-variable>
-#			LINK_DIRS <inout-variable>
-#			DEFINITIONS <inout-variable>)
-#
-#	Input:
-#		BOARD					: flags depend on board/nuttx config
-#
-#	Input/Output: (appends to existing variable)
-#		C_FLAGS					: c compile flags variable
-#		CXX_FLAGS				: c++ compile flags variable
-#		OPTIMIZATION_FLAGS			: optimization compile flags variable
-#		EXE_LINKER_FLAGS			: executable linker flags variable
-#		INCLUDE_DIRS				: include directories
-#		LINK_DIRS				: link directories
-#		DEFINITIONS				: definitions
-#
-#	Note that EXE_LINKER_FLAGS is not suitable for adding libraries because
-#	these flags are added before any of the object files and static libraries.
-#	Add libraries in src/firmware/nuttx/CMakeLists.txt.
-#
-#	Example:
-#		px4_os_add_flags(
-#			C_FLAGS CMAKE_C_FLAGS
-#			CXX_FLAGS CMAKE_CXX_FLAGS
-#			OPTIMIZATION_FLAGS optimization_flags
-#			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
-#			INCLUDES <list>)
-#
 function(px4_os_add_flags)
 
-	set(inout_vars
-		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
-
-	px4_parse_function_args(
-		NAME px4_os_add_flags
-		ONE_VALUE ${inout_vars} BOARD
-		REQUIRED ${inout_vars} BOARD
-		ARGN ${ARGN})
-
-	px4_add_common_flags(
-		BOARD ${BOARD}
-		C_FLAGS ${C_FLAGS}
-		CXX_FLAGS ${CXX_FLAGS}
-		OPTIMIZATION_FLAGS ${OPTIMIZATION_FLAGS}
-		EXE_LINKER_FLAGS ${EXE_LINKER_FLAGS}
-		INCLUDE_DIRS ${INCLUDE_DIRS}
-		LINK_DIRS ${LINK_DIRS}
-		DEFINITIONS ${DEFINITIONS})
-
-	set(added_include_dirs
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/armv7-m
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/chip
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/common
-		${PX4_BINARY_DIR}/NuttX/nuttx/include
-		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
-		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps/include
+	include_directories(BEFORE
+		${PX4_BINARY_DIR}/NuttX/apps/include # apps cxx init
 		)
 
-	#set(added_exe_linker_flags)
-	#set(added_link_dirs ${nuttx_export_dir}/libs)
-	set(added_definitions -D__PX4_NUTTX)
-
-	list(APPEND added_definitions -D__DF_NUTTX)
+	include_directories(BEFORE SYSTEM
+		${PX4_BINARY_DIR}/NuttX/nuttx/include
+		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
+		)
 
 	if("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
-		set(instrument_flags
-			-finstrument-functions
-			-ffixed-r10
-			)
-		list(APPEND c_flags ${instrument_flags})
-		list(APPEND cxx_flags ${instrument_flags})
+		message(STATUS "enabling ARMV7 stack check")
+		add_compile_options(-finstrument-functions -ffixed-r10)
 	endif()
-
-	# output
-	foreach(var ${inout_vars})
-		string(TOLOWER ${var} lower_var)
-		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-		#message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
-	endforeach()
 endfunction()
 
 #=============================================================================
@@ -212,31 +143,28 @@ endfunction()
 #	px4_os_prebuild_targets
 #
 #	This function generates os dependent targets
-
+#
 #	Usage:
 #		px4_os_prebuild_targets(
 #			OUT <out-list_of_targets>
-#			BOARD <in-string>
 #			)
-#
-#	Input:
-#		BOARD		: board
-#		THREADS		: number of threads for building
 #
 #	Output:
 #		OUT	: the target list
 #
 #	Example:
-#		px4_os_prebuild_targets(OUT target_list BOARD px4fmu-v2)
+#		px4_os_prebuild_targets(OUT target_list)
 #
 function(px4_os_prebuild_targets)
 	px4_parse_function_args(
 			NAME px4_os_prebuild_targets
-			ONE_VALUE OUT BOARD THREADS
-			REQUIRED OUT BOARD
+			ONE_VALUE OUT
+			REQUIRED OUT
 			ARGN ${ARGN})
 
-	add_custom_target(${OUT} DEPENDS nuttx_context uorb_headers)
+	add_library(${OUT} INTERFACE)
+	target_link_libraries(${OUT} INTERFACE nuttx_build drivers_boards_common drivers_arch m gcc)
+	add_dependencies(${OUT} nuttx_context uorb_headers)
 
 	# parse nuttx config options for cmake
 	file(STRINGS ${PX4_SOURCE_DIR}/nuttx-configs/${BOARD}/nsh/defconfig ConfigContents)
@@ -292,19 +220,28 @@ function(px4_nuttx_configure)
 			REQUIRED HWCLASS
 			ARGN ${ARGN})
 
-	# HWCLASS -> CMAKE_SYSTEM_PROCESSOR
-	if(HWCLASS STREQUAL "m7")
-		set(CMAKE_SYSTEM_PROCESSOR "cortex-m7" PARENT_SCOPE)
-	elseif(HWCLASS STREQUAL "m4")
-		set(CMAKE_SYSTEM_PROCESSOR "cortex-m4" PARENT_SCOPE)
-	elseif(HWCLASS STREQUAL "m3")
-		set(CMAKE_SYSTEM_PROCESSOR "cortex-m3" PARENT_SCOPE)
+	# HWCLASS for toolchain
+	set(HWCLASS ${HWCLASS} CACHE INTERNAL "HWCLASS" FORCE)
+
+	if (${HWCLASS} STREQUAL "m7")
+		set(cpu_flags -mcpu=cortex-m7 -mthumb -mfpu=fpv5-sp-d16 -mfloat-abi=hard)
+	elseif (${HWCLASS} STREQUAL "m4")
+		set(cpu_flags -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard)
+	elseif (${HWCLASS} STREQUAL "m3")
+		set(cpu_flags -mcpu=cortex-m3 -mthumb -march=armv7-m)
 	endif()
-	set(CMAKE_SYSTEM_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR} CACHE INTERNAL "system processor" FORCE)
-	set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake CACHE INTERNAL "toolchain file" FORCE)
+
+	add_compile_options(${cpu_flags})
+	add_compile_options($<$<COMPILE_LANGUAGE:ASM>:-D__ASSEMBLY__>)
+	link_libraries(${cpu_flags} -nostdlib -Wl,--warn-common,--gc-sections)
+
+	# all nuttx boards currently use the same toolchain
+	set(CMAKE_TOOLCHAIN_FILE toolchains/Toolchain-arm-none-eabi CACHE INTERNAL "toolchain file" FORCE)
 
 	# ROMFS
-	if("${ROMFS}" STREQUAL "y")
+	if("${ROMFS}" STREQUAL "n")
+		# skip
+	else((NOT ROMFS) OR ("${ROMFS}" STREQUAL "y"))
 		if (NOT DEFINED ROMFSROOT)
 			set(config_romfs_root px4fmu_common)
 		else()

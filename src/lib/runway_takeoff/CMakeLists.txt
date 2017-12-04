@@ -31,5 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(runway_takeoff RunwayTakeoff.cpp)
+px4_add_library(runway_takeoff
+	RunwayTakeoff.cpp
+	)
 target_link_libraries(runway_takeoff PRIVATE controllib)

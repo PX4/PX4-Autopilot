@@ -55,6 +55,12 @@ set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
 add_subdirectory(${LIBUAVCAN_DIR} uavcannode_libuavcan)
 add_dependencies(uavcan prebuild_targets)
 
+target_include_directories(uavcan_stm32_driver
+	PRIVATE
+		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/common
+		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/stm32
+	)
+
 px4_add_module(
 	MODULE modules__uavcannode
 	MAIN uavcannode
@@ -80,4 +86,5 @@ px4_add_module(
 		uavcan
 		uavcan_stm32_driver
 	)
-set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES uavcan_stm32_driver)
+
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES uavcan_stm32_driver)

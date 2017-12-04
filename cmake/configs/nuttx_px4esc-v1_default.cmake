@@ -1,4 +1,3 @@
-include(nuttx/px4_impl_nuttx)
 
 add_definitions(
 	-DFLASH_BASED_PARAMS
@@ -7,7 +6,7 @@ add_definitions(
 	-DPARAMETER_BUFFER_SIZE=1024
 )
 
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh)
+px4_nuttx_configure(HWCLASS m4 ROMFS n)
 
 # UAVCAN boot loadable Module ID
 set(uavcanblid_sw_version_major 0)
@@ -56,7 +55,6 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/uORB
 
 	#
 	# General system control

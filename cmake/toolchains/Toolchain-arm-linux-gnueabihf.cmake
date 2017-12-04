@@ -1,30 +1,46 @@
-# More on cross-compilation: https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html
+# arm-linux-gnueabihf-gcc toolchain
 
 set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR arm)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
 set(CMAKE_SYSTEM_VERSION 1)
 
-IF (NOT CMAKE_C_COMPILER OR NOT CMAKE_CXX_COMPILER)
-	SET(CMAKE_C_COMPILER arm-linux-gnueabihf-gcc)
-	SET(CMAKE_CXX_COMPILER arm-linux-gnueabihf-g++)
-ENDIF()
+set(triple arm-linux-gnueabihf)
+set(CMAKE_LIBRARY_ARCHITECTURE ${triple})
+set(TOOLCHAIN_PREFIX ${triple})
 
-# os tools
-foreach(tool echo grep rm mkdir nm cp touch make unzip)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}-gcc)
+set(CMAKE_C_COMPILER_TARGET ${triple})
+
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++)
+set(CMAKE_CXX_COMPILER_TARGET ${triple})
+
+set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+
+# compiler tools
+foreach(tool nm ld objcopy ranlib strip)
 	string(TOUPPER ${tool} TOOL)
-	find_program(${TOOL} ${tool})
-	if(NOT ${TOOL})
-		message(FATAL_ERROR "could not find ${TOOL}")
+	find_program(CMAKE_${TOOL} ${TOOLCHAIN_PREFIX}-${tool})
+	if(CMAKE-${TOOL} MATCHES "NOTFOUND")
+		message(FATAL_ERROR "could not find ${TOOLCHAIN_PREFIX}-${tool}")
 	endif()
 endforeach()
 
-FIND_PROGRAM(STRIP_TOOL "arm-linux-gnueabihf-strip")
-
-set(CMAKE_EXE_LINKER_FLAGS "-Wl,-gc-sections")
-#set(CMAKE_C_FLAGS ${C_FLAGS})
-#set(CMAKE_CXX_LINKER_FLAGS ${C_FLAGS})
-
+set(CMAKE_FIND_ROOT_PATH get_file_component(${CMAKE_C_COMPILER} PATH))
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+# os tools
+foreach(tool grep make)
+	string(TOUPPER ${tool} TOOL)
+	find_program(${TOOL} ${tool})
+	if(NOT ${TOOL})
+		message(FATAL_ERROR "could not find ${tool}")
+	endif()
+endforeach()
+
+# optional compiler tools
+foreach(tool gdb gdbtui)
+	string(TOUPPER ${tool} TOOL)
+	find_program(${TOOL} arm-none-eabi-${tool})
+endforeach()

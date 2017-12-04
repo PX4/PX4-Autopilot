@@ -7,7 +7,6 @@ endif()
 add_executable(${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 add_dependencies(${FW_NAME} git_nuttx nuttx_build)
 
-get_property(libraries GLOBAL PROPERTY PX4_LIBRARIES)
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 # build NuttX
@@ -36,23 +35,40 @@ if (NOT LD_SCRIPT)
 	set(LD_SCRIPT ld.script)
 endif()
 
+target_link_libraries(nuttx_arch INTERFACE drivers_board)
+
 target_link_libraries(${FW_NAME} PRIVATE
+
+	-nodefaultlibs
+	-nostdlib
+
+	-fno-exceptions
+	-fno-rtti
+
 	-T${PX4_BINARY_DIR}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
+
 	-Wl,-Map=${PX4_BINARY_DIR}/${CONFIG}.map
+
 	-Wl,--warn-common
 	-Wl,--gc-sections
 
 	-Wl,--start-group
-	${libraries}
-	${module_libraries}
 	${nuttx_libs}
 	-Wl,--end-group
 
-	systemlib
-	m
-	gcc
+	# temporary hack to resolve circular dependency
+	# px4_layer depends on the uORB module (push into platform layer)
+	-Wl,--start-group
+	px4_layer
+	modules__uORB
+	uorb_msgs
+	-Wl,--end-group
 
 	)
+
+target_link_libraries(${FW_NAME} PRIVATE ${module_libraries})
+target_link_libraries(${FW_NAME} PRIVATE lib__ecl) # temporary until we can update ecl cmake
+target_link_libraries(${FW_NAME} PRIVATE nuttx_cxx nuttx_c)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
@@ -98,6 +114,7 @@ endif()
 add_custom_target(size
 	COMMAND size $<TARGET_FILE:${FW_NAME}>
 	DEPENDS ${FW_NAME}
+	USES_TERMINAL
 	)
 
 # print weak symbols
@@ -105,9 +122,11 @@ add_custom_target(check_weak
 	COMMAND ${NM} $<TARGET_FILE:${FW_NAME}> | ${GREP} " w " | cat
 	DEPENDS ${FW_NAME}
 	VERBATIM
+	USES_TERMINAL
 	)
 
 # debugger helpers
+set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 configure_file(gdbinit.in .gdbinit)
 
 add_custom_target(debug

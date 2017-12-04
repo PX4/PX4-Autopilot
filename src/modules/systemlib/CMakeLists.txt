@@ -76,9 +76,3 @@ endif()
 
 px4_add_library(systemlib ${SRCS})
 target_compile_options(systemlib PRIVATE -Wno-sign-compare) # TODO: fix sign compare
-
-# TODO: only temporary
-if (NOT ${BOARD} MATCHES "io")
-	add_subdirectory(param)
-	target_link_libraries(systemlib PUBLIC parameters)
-endif()

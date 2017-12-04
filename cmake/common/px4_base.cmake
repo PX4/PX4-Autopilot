@@ -154,7 +154,6 @@ endfunction()
 #	Usage:
 #		px4_add_module(MODULE <string>
 #			[ MAIN <string> ]
-#			[ STACK <string> ] !!!!!DEPRECATED, USE STACK_MAIN INSTEAD!!!!!!!!!
 #			[ STACK_MAIN <string> ]
 #			[ STACK_MAX <string> ]
 #			[ COMPILE_FLAGS <list> ]
@@ -166,7 +165,6 @@ endfunction()
 #	Input:
 #		MODULE			: unique name of module
 #		MAIN			: entry point, if not given, assumed to be library
-#		STACK			: deprecated use stack main instead
 #		STACK_MAIN		: size of stack for main function
 #		STACK_MAX		: maximum stack size of any frame
 #		COMPILE_FLAGS		: compile flags
@@ -199,10 +197,11 @@ function(px4_add_module)
 		ARGN ${ARGN})
 
 	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
-	add_dependencies(${MODULE} prebuild_targets uorb_headers)
-	target_link_libraries(${MODULE} PRIVATE platforms__common px4_layer systemlib uorb_msgs)
+	add_dependencies(${MODULE} uorb_headers)
+	target_link_libraries(${MODULE} PRIVATE prebuild_targets platforms__common px4_layer systemlib)
 
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 
 	# TODO: reevaluate per target optimization helpers
 	px4_add_optimization_flags_for_target(${MODULE})
@@ -228,9 +227,7 @@ function(px4_add_module)
 	endif()
 	set_target_properties(${MODULE} PROPERTIES STACK_MAX ${STACK_MAX})
 
-	if(${OS} STREQUAL "qurt" )
-		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-	elseif(${OS} STREQUAL "nuttx" )
+	if(${OS} STREQUAL "nuttx" )
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 
@@ -289,49 +286,13 @@ endfunction()
 #	Set the default build flags.
 #
 #	Usage:
-#		px4_add_common_flags(
-#			BOARD <in-string>
-#			C_FLAGS <inout-variable>
-#			CXX_FLAGS <inout-variable>
-#			OPTIMIZATION_FLAGS <inout-variable>
-#			EXE_LINKER_FLAGS <inout-variable>
-#			INCLUDE_DIRS <inout-variable>
-#			LINK_DIRS <inout-variable>
-#			DEFINITIONS <inout-variable>)
+#		px4_add_common_flags()
 #
-#	Input:
-#		BOARD					: board
-#
-#	Input/Output: (appends to existing variable)
-#		C_FLAGS					: c compile flags variable
-#		CXX_FLAGS				: c++ compile flags variable
-#		OPTIMIZATION_FLAGS			: optimization compile flags variable
-#		EXE_LINKER_FLAGS			: executable linker flags variable
-#		INCLUDE_DIRS				: include directories
-#		LINK_DIRS				: link directories
-#		DEFINITIONS				: definitions
-#
-#	Example:
-#		px4_add_common_flags(
-#			BOARD px4fmu-v2
-#			C_FLAGS CMAKE_C_FLAGS
-#			CXX_FLAGS CMAKE_CXX_FLAGS
-#			OPTIMIZATION_FLAGS optimization_flags
-#			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
-#			INCLUDES <list>)
 #
 function(px4_add_common_flags)
 
-	set(inout_vars
-		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
-
-	px4_parse_function_args(
-		NAME px4_add_common_flags
-		ONE_VALUE ${inout_vars} BOARD
-		REQUIRED ${inout_vars} BOARD
-		ARGN ${ARGN})
-
-	set(warnings
+	add_compile_options(
+		# warnings
 		-Wall
 		-Warray-bounds
 		-Wdisabled-optimization
@@ -352,12 +313,29 @@ function(px4_add_common_flags)
 		-Wunused-variable
 
 		-Wno-unused-parameter
+
+		# optimizations
+		-fno-common
+		-fno-strict-aliasing
+
+		-fomit-frame-pointer
+		-funsafe-math-optimizations # TODO: review unsafe math
+
+		-ffunction-sections
+		-fdata-sections
+
+		-fvisibility=hidden
+		-include visibility.h
 		)
+
+	set(c_flags)
+	set(cxx_flags)
 
 	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT ${OS} STREQUAL "qurt")
-			list(APPEND warnings
+			add_compile_options(
+				-fcolor-diagnostics
 				-Qunused-arguments
 				-Wno-unused-const-variable
 				-Wno-varargs
@@ -368,137 +346,79 @@ function(px4_add_common_flags)
 			)
 		endif()
 	else()
-		list(APPEND warnings
+		add_compile_options(
+			-fno-strength-reduce
+			-fno-builtin-printf
+
 			-Wunused-but-set-variable
 			-Wformat=1
 			-Wdouble-promotion
-		)
-	endif()
-
-	set(_optimization_flags
-		-fno-strict-aliasing
-		-fomit-frame-pointer
-		-funsafe-math-optimizations
-		-ffunction-sections
-		-fdata-sections
-		)
-
-	set(c_warnings
-		-Wbad-function-cast
-		-Wstrict-prototypes
-		-Wmissing-prototypes
-		-Wnested-externs
-		)
-
-	set(c_compile_flags
-		-g
-		-std=gnu99
-		-fno-common
-		)
-
-	set(cxx_warnings
-		-Wno-missing-field-initializers
-		-Wno-overloaded-virtual # TODO: fix and remove
-		-Wreorder
-		)
-
-	set(cxx_compile_flags
-		-g
-		-fno-exceptions
-		-fno-rtti
-		-std=gnu++11
-		-fno-threadsafe-statics
-		-DCONFIG_WCHAR_BUILTIN
-		-D__CUSTOM_FILE_IO__
-		)
-
-	# regular Clang or AppleClang
-	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		# force color for clang (needed for clang + ccache)
-		list(APPEND _optimization_flags
-			-fcolor-diagnostics
-		)
-	else()
-		list(APPEND _optimization_flags
-			-fno-strength-reduce
-			-fno-builtin-printf
 		)
 
 		# -fcheck-new is a no-op for Clang in general
 		# and has no effect, but can generate a compile
 		# error for some OS
-		list(APPEND cxx_compile_flags
+		list(APPEND cxx_flags
 			-fcheck-new
 		)
-	endif()
 
-	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
 			# force color for gcc > 4.9
-			list(APPEND _optimization_flags
-				-fdiagnostics-color=always
-			)
+			add_compile_options(-fdiagnostics-color=always)
 		endif()
 	endif()
 
-	set(visibility_flags
-		-fvisibility=hidden
-		-include visibility.h
+	list(APPEND c_flags
+		-Wbad-function-cast
+		-Wstrict-prototypes
+		-Wmissing-prototypes
+		-Wnested-externs
 		)
+	add_compile_options("$<$<COMPILE_LANGUAGE:C>:${c_flags}>")
 
-	set(added_c_flags
-		${c_compile_flags}
-		${warnings}
-		${c_warnings}
-		${visibility_flags}
+	list(APPEND cxx_flags
+		-Wno-missing-field-initializers
+		-Wno-overloaded-virtual
+		-Wreorder
+
+		-fno-exceptions
+		-fno-rtti
+		-fno-threadsafe-statics
+
+		-DCONFIG_WCHAR_BUILTIN
+		-D__CUSTOM_FILE_IO__
 		)
+	add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${cxx_flags}>")
 
-	set(added_cxx_flags
-		${cxx_compile_flags}
-		${warnings}
-		${cxx_warnings}
-		${visibility_flags}
-		)
-
-	set(added_optimization_flags
-		${_optimization_flags}
-		)
-
-	set(added_include_dirs
+	# TODO: cleanup and start using INTERFACE_INCLUDE_DIRECTORIES
+	include_directories(
 		${PX4_BINARY_DIR}
-		${PX4_BINARY_DIR}/src/modules
-		${PX4_BINARY_DIR}/src
 
 		# TODO: replace with cmake PUBLIC target_include_directories
-		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
-		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		${PX4_SOURCE_DIR}/src/lib/matrix
+		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
+
+		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
 
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/modules
 		${PX4_SOURCE_DIR}/src/platforms
+		${PX4_SOURCE_DIR}/src/platforms/${OS}/include
 		)
-
-	set(added_link_dirs) # none used currently
-	set(added_exe_linker_flags)
 
 	string(TOUPPER ${BOARD} board_upper)
 	string(REPLACE "-" "_" board_config ${board_upper})
 
-	set(added_definitions
-		-DCONFIG_ARCH_BOARD_${board_config}
+	string(TOUPPER ${OS} os_upper)
+
+	add_definitions(
+		-DCONFIG_ARCH_BOARD_${board_config} # TODO: remove?
+		-D__PX4_${os_upper}
+		-D__DF_${os_upper}
 		-D__STDC_FORMAT_MACROS
 		)
-
-	# output
-	foreach(var ${inout_vars})
-		string(TOLOWER ${var} lower_var)
-		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-		#message(STATUS "set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
-	endforeach()
-
 endfunction()
 
 #=============================================================================
@@ -564,13 +484,12 @@ endfunction()
 #	Like add_library but with optimization flag fixup.
 #
 function(px4_add_library target)
+
 	add_library(${target} STATIC EXCLUDE_FROM_ALL ${ARGN})
-	add_dependencies(${target} prebuild_targets uorb_headers)
-	#target_link_libraries(${target} PRIVATE systemlib)
+	target_link_libraries(${target} PRIVATE prebuild_targets)
 
 	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
-
-	set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES ${target})
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
 
 #=============================================================================

@@ -1,8 +1,6 @@
 include(common/px4_git)
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
 
-include(posix/px4_impl_posix)
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 
 # Disable the creation of the parameters.xml file by scanning individual
@@ -45,7 +43,6 @@ set(config_module_list
 	modules/mc_pos_control
 	modules/mc_att_control
 
-	modules/uORB
 	modules/muorb/krait
 	modules/sensors
 	modules/dataman

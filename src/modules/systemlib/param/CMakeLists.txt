@@ -36,7 +36,7 @@ if (NOT PARAM_DEFAULT_OVERRIDES)
 endif()
 
 # get full path for each module
-set(module_list)
+get_property(module_list GLOBAL PROPERTY PX4_MODULE_PATHS)
 if (DISABLE_PARAMS_MODULE_SCOPING)
 	# search all directories with .c files (potentially containing parameters)
 	file(GLOB_RECURSE new_list
@@ -48,13 +48,6 @@ if (DISABLE_PARAMS_MODULE_SCOPING)
 		list(APPEND module_list "${dir_path}")
 	endforeach()
 	list(REMOVE_DUPLICATES module_list)
-else()
-	foreach(module ${config_module_list})
-		list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
-	endforeach()
-	list(APPEND module_list
-		${external_module_paths}
-		)
 endif()
 
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
@@ -95,16 +88,20 @@ else()
 		)
 endif()
 
-px4_add_library(parameters
-	${SRCS}
-	px4_parameters.c
-	px4_parameters.h
-	)
+# TODO: IO work around only temporary
+if (NOT ${BOARD} MATCHES "io")
 
-if ("${CONFIG_SHMEM}" STREQUAL "1")
-	target_link_libraries(parameters PRIVATE px4_layer)
+	px4_add_library(parameters
+		${SRCS}
+		px4_parameters.c
+		px4_parameters.h
+		)
+
+	if ("${CONFIG_SHMEM}" STREQUAL "1")
+		target_link_libraries(parameters PRIVATE px4_layer)
+	endif()
+
+	target_link_libraries(parameters PRIVATE tinybson)
+	target_compile_options(parameters PRIVATE -Wno-sign-compare)
+	target_include_directories(parameters PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 endif()
-
-target_link_libraries(parameters PRIVATE tinybson)
-target_compile_options(parameters PRIVATE -Wno-sign-compare)
-target_include_directories(parameters PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

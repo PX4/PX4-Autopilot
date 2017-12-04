@@ -209,7 +209,7 @@ ADC::~ADC()
 	}
 }
 
-int board_adc_init()
+extern "C" __EXPORT int board_adc_init()
 {
 	static bool once = false;
 
@@ -464,7 +464,7 @@ ADC::update_system_power(hrt_abstime now)
 #endif // BOARD_ADC_USB_CONNECTED
 }
 
-uint16_t board_adc_sample(unsigned channel)
+extern "C" __EXPORT uint16_t board_adc_sample(unsigned channel)
 {
 	/* clear any previous EOC */
 

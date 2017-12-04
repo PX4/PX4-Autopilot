@@ -1,4 +1,3 @@
-include(posix/px4_impl_posix)
 
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
@@ -107,7 +106,6 @@ set(config_module_list
 	# Library modules
 	#
 	modules/dataman
-	modules/uORB
 
 	#
 	# OBC challenge

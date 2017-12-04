@@ -1,16 +1,12 @@
 # This file is shared between posix_rpi_native.cmake
 # and posix_rpi_cross.cmake.
 
-include(posix/px4_impl_posix)
-
 # This definition allows to differentiate if this just the usual POSIX build
 # or if it is for the RPi.
 add_definitions(
 	-D__PX4_POSIX_RPI
-	-D__DF_LINUX # For DriverFramework
 	-D__DF_RPI # For DriverFramework
 )
-
 
 set(config_module_list
 	#
@@ -67,7 +63,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/uORB
 	modules/dataman
 	modules/land_detector
 	modules/navigator

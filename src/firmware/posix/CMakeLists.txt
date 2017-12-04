@@ -17,7 +17,12 @@ if ((${BOARD} STREQUAL "eagle") OR (${BOARD} STREQUAL "excelsior"))
 
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
+	list(APPEND c_flags
+		-Wno-missing-prototypes
+		-Wno-missing-declarations
+	)
+	add_compile_options("$<$<COMPILE_LANGUAGE:C>:${c_flags}>")
+
 	LINUX_APP(
 		APP_NAME px4
 		IDL_NAME px4muorb
@@ -29,13 +34,13 @@ if ((${BOARD} STREQUAL "eagle") OR (${BOARD} STREQUAL "excelsior"))
 	# TODO: update cmake_hexagon and merge with the regular linux app
 	target_link_libraries(px4 ${module_libraries} ${df_driver_libs})
 	target_link_libraries(px4 lib__ecl) # temporary until we can update ecl cmake
-	target_link_libraries(px4 drivers_board px4_layer work_queue pthread)
+	target_link_libraries(px4 drivers_board modules__uORB parameters px4_layer work_queue pthread)
 else()
 	add_executable(px4 main.cpp apps.cpp)
 
 	target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})
 	target_link_libraries(px4 PUBLIC lib__ecl) # temporary until we can update ecl cmake
-	target_link_libraries(px4 PUBLIC drivers_board px4_layer work_queue pthread)
+	target_link_libraries(px4 PUBLIC drivers_board modules__uORB parameters px4_layer work_queue pthread)
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -44,6 +49,11 @@ endif()
 
 # upload helpers
 if ("${BOARD}" STREQUAL "rpi")
+
+	target_link_libraries(px4 PRIVATE
+		-B${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/lib
+		-L${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/lib
+	)
 
 	file(GLOB RPI_CONFIG_FILES ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config)
 	px4_add_scp_push(
@@ -73,7 +83,20 @@ elseif (${BOARD} STREQUAL "sitl")
 		include(sitl_tests)
 	endif()
 
-elseif ((${BOARD} STREQUAL "eagle") OR (${BOARD} STREQUAL "excelsior"))
+
+elseif (${BOARD} STREQUAL "eagle")
+
+	px4_add_adb_push(
+		OUT upload
+		OS ${OS}
+		BOARD ${BOARD}
+		FILES $<TARGET_FILE:px4> ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config
+		DEPENDS px4
+		DEST /home/linaro
+		)
+
+elseif (${BOARD} STREQUAL "excelsior")
+
 	px4_add_adb_push(
 		OUT upload
 		OS ${OS}
@@ -92,8 +115,8 @@ install(TARGETS px4 DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 
-add_custom_command(OUTPUT ${APP_NAME}.stripped
-			COMMAND ${STRIP_TOOL} -R .comment -R .gnu.version -o $<TARGET_FILE:px4>.stripped $<TARGET_FILE:px4>
+add_custom_command(OUTPUT px4.stripped
+			COMMAND ${CMAKE_STRIP} -R .comment -R .gnu.version -o $<TARGET_FILE:px4>.stripped $<TARGET_FILE:px4>
 			DEPENDS px4
 			)
-add_custom_target(strip DEPENDS "${APP_NAME}.stripped")
+add_custom_target(strip DEPENDS px4.stripped)

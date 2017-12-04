@@ -1,4 +1,3 @@
-include(qurt/px4_impl_qurt)
 
 set(CONFIG_SHMEM "1")
 
@@ -55,7 +54,6 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/uORB
 	modules/commander
 
 	#

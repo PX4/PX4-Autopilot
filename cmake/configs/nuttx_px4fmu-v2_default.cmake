@@ -1,5 +1,4 @@
-include(nuttx/px4_impl_nuttx)
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4io-v2)
+px4_nuttx_configure(HWCLASS m4 IO px4io-v2)
 
 #set(config_uavcan_num_ifaces 2)
 
@@ -136,7 +135,6 @@ set(config_module_list
 	# Library modules
 	#
 	modules/dataman
-	modules/uORB
 
 	#
 	# OBC challenge

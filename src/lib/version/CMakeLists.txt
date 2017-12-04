@@ -64,5 +64,16 @@ add_custom_command(OUTPUT ${px4_git_ver_header}
 set_source_files_properties(${px4_git_ver_header} PROPERTIES GENERATED TRUE)
 add_custom_target(ver_gen ALL DEPENDS ${px4_git_ver_header})
 
-add_library(version version.c ${px4_git_ver_header})
+
+# The URL for the elf file for crash logging
+if (DEFINED ENV{BUILD_URI})
+	set(BUILD_URI $ENV{BUILD_URI})
+else()
+	set(BUILD_URI "localhost")
+endif()
+
+add_definitions(-DBUILD_URI=${BUILD_URI})
+
+
+px4_add_library(version version.c ${px4_git_ver_header})
 add_dependencies(version prebuild_targets)

@@ -45,4 +45,13 @@ if (NOT ${BOARD} MATCHES "io")
 endif()
 
 px4_add_library(px4_layer ${SRCS})
+target_link_libraries(px4_layer
+	PRIVATE
+		drivers_boards_common_arch # board_system_reset
+		nuttx_c # vprintf for px4_log
+		nuttx_drivers # pipe for nuttx_c
+		nuttx_sched # clearenv
+		modules__uORB
+	)
+
 add_library(platforms__nuttx ALIAS px4_layer) # TODO: remove once DriverFramework is updated

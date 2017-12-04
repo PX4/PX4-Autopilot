@@ -1,8 +1,6 @@
 include(common/px4_git)
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
 
-include(qurt/px4_impl_qurt)
-
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
 	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
 else()
@@ -60,7 +58,6 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/uORB
 	modules/commander
 	modules/land_detector
 

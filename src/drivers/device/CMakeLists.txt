@@ -60,3 +60,7 @@ else()
 endif()
 
 px4_add_library(drivers_device ${SRCS})
+target_link_libraries(drivers_device
+	PRIVATE
+		px4_layer # px4_log_modulename
+	)

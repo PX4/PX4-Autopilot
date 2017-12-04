@@ -32,4 +32,4 @@
 ############################################################################
 
 px4_add_library(drivers_led led.cpp)
-target_link_libraries(drivers_led PRIVATE drivers_board)
+target_link_libraries(drivers_led PRIVATE drivers_board drivers_device)
