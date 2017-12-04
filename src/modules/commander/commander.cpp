@@ -2193,9 +2193,13 @@ int commander_thread_main(int argc, char *argv[])
 			orb_check(estimator_status_sub, &estimator_status_updated);
 			if (estimator_status_updated) {
 				orb_copy(ORB_ID(estimator_status), estimator_status_sub, &estimator_status);
-
-				// record time of takeoff
-				if (land_detector.landed) {
+				if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+					// reset flags and timer
+					time_at_takeoff = hrt_absolute_time();
+					nav_test_failed = false;
+					nav_test_passed = false;
+				} else if (land_detector.landed) {
+					// record time of takeoff
 					time_at_takeoff = hrt_absolute_time();
 				} else {
 					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
