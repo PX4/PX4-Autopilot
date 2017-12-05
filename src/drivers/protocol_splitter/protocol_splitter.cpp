@@ -379,7 +379,8 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 			return 0;
 		}
 
-	//no break
+	/* FALLTHROUGH */
+
 	case ParserState::GotLength: {
 			_packet_len -= buflen;
 			int buf_free;
@@ -509,8 +510,8 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 		_parser_state = ParserState::GotLength;
 		lock(Write);
 
+	/* FALLTHROUGH */
 
-	//no break
 	case ParserState::GotLength: {
 			_packet_len -= buflen;
 			int buf_free;

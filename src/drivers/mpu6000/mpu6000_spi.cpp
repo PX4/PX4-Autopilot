@@ -242,6 +242,8 @@ MPU6000_SPI::ioctl(unsigned operation, unsigned &arg)
 	case ACCELIOCGEXTERNAL:
 		external();
 
+	/* FALLTHROUGH */
+
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 
