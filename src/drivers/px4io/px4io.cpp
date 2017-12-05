@@ -994,7 +994,7 @@ PX4IO::task_main()
 			}
 		}
 
-		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
+		if (!_armed && (now >= orb_check_last + ORB_CHECK_INTERVAL)) {
 			/* run at 5Hz */
 			orb_check_last = now;
 
