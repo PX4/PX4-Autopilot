@@ -1251,7 +1251,10 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	home.timestamp = hrt_absolute_time();
 	home.lat = globalPosition.lat;
 	home.lon = globalPosition.lon;
+	home.valid_hpos = true;
+
 	home.alt = globalPosition.alt;
+	home.valid_alt = true;
 
 	home.x = localPosition.x;
 	home.y = localPosition.y;
@@ -3112,6 +3115,25 @@ int commander_thread_main(int argc, char *argv[])
 			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
 
+		}
+
+		/* Set home position altitude to EKF origin height if home is not set and the EKF has a global origin.
+		 * This allows home atitude to be used in the calculation of height above takeoff location when GPS
+		 * use has commenced after takeoff. */
+		if (!_home.valid_alt && local_position.z_global) {
+			_home.timestamp = hrt_absolute_time();
+			_home.alt = local_position.ref_alt;
+			_home.valid_alt = true;
+
+			/* publish new home altitude */
+			if (home_pub != nullptr) {
+				orb_publish(ORB_ID(home_position), home_pub, &_home);
+
+			} else {
+				home_pub = orb_advertise(ORB_ID(home_position), &_home);
+			}
+
+			PX4_INFO("home alt: %.2f", (double)_home.alt);
 		}
 
 		// check for arming state change
