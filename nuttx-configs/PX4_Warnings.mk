@@ -43,13 +43,16 @@ PX4_ARCHWARNINGS = -Wall \
                    -Wpointer-arith \
                    -Wshadow \
                    -Wno-sign-compare \
-                   -Wno-unused-parameter
-                   #-Wno-nonnull-compare \ # re-enable GCC >= 6
+                   -Wno-unused-parameter \
+                   -Wno-nonnull-compare \
+                   -Wno-implicit-fallthrough
                    #-Wno-misleading-indentation # re-enable GCC >= 6
 
-#   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
-#   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
-#   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
+#   -Wimplicit-fallthrough - generates compilation errors with GCC >= 7
+#   -Wnonnull-compare      - generates compilation errors with GCC >= 7
+#   -Wcast-qual            - generates spurious noreturn attribute warnings, try again later
+#   -Wconversion           - would be nice, but too many "risky-but-safe" conversions in the code
+#   -Wcast-align           - would help catch bad casts in some cases, but generates too many false positives
 
 PX4_ARCHCWARNINGS = \
                    -Wbad-function-cast \
