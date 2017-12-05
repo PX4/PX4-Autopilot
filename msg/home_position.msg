@@ -12,3 +12,6 @@ float32 yaw				# Yaw angle in radians
 float32 direction_x		# Takeoff direction in NED X
 float32 direction_y		# Takeoff direction in NED Y
 float32 direction_z		# Takeoff direction in NED Z
+
+bool valid_alt		# true when the altitude has been set
+bool valid_hpos		# true when the latitude and longitude have been set
