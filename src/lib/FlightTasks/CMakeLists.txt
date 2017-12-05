@@ -37,6 +37,7 @@ px4_add_module(
 		tasks/FlightTaskManual.cpp
 		tasks/FlightTaskOrbit.cpp
 		SubscriptionArray.cpp
+		FlightTasks.cpp
 	DEPENDS
 		platforms__common
 		modules__uORB
