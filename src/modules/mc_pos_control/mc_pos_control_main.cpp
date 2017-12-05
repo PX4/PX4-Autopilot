@@ -1811,7 +1811,7 @@ void MulticopterPositionControl::control_auto(float dt)
 			diff = fabsf(_curr_pos_sp(2) - curr_pos_sp(2));
 		}
 
-		if (diff > FLT_EPSILON) {
+		if (diff > FLT_EPSILON || !PX4_ISFINITE(diff)) {
 			triplet_updated = true;
 		}
 
@@ -2373,6 +2373,7 @@ MulticopterPositionControl::do_control(float dt)
 		 * have been updated */
 		_pos_sp_triplet.current.valid = false;
 		_pos_sp_triplet.previous.valid = false;
+		_curr_pos_sp = math::Vector<3>(NAN, NAN, NAN);
 
 		_hold_offboard_xy = false;
 		_hold_offboard_z = false;
