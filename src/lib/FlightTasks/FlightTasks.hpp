@@ -69,29 +69,27 @@ public:
 	 */
 	bool update()
 	{
+		_updateCommand();
+
 		if (isAnyTaskActive()) {
 			_subscription_array.update();
 			return _current_task->updateInitialize() && _current_task->update();
 		}
 
-		return 1;
+		return false;
 	}
 
 	/**
 	 * Get the output data from the current task
+	 * Only call when task is active!
 	 */
-	const vehicle_local_position_setpoint_s &getPositionSetpoint()
-	{
-		return _current_task->getPositionSetpoint();
-	}
+	const vehicle_local_position_setpoint_s &getPositionSetpoint() { return _current_task->getPositionSetpoint(); }
 
 	/**
-	 * Call this function initially to point all tasks to the general output data
+	 * Convenient operator to get the output data from the current task
+	 * Only call when task is active!
 	 */
-	inline const vehicle_local_position_setpoint_s &operator()()
-	{
-		return getPositionSetpoint();
-	}
+	inline const vehicle_local_position_setpoint_s &operator()() { return getPositionSetpoint(); }
 
 	/**
 	 * Switch to the next task in the available list (for testing)
@@ -187,4 +185,12 @@ private:
 	int _current_task_index = -1;
 
 	SubscriptionArray _subscription_array;
+
+	/**
+	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
+	 * @return true if there was a new command, false if not
+	 */
+	bool _updateCommand();
+	int	_sub_vehicle_command = -1; /*< topic handle on which commands are received */
+	orb_advert_t _pub_vehicle_command_ack = nullptr; /*< topic handle to which commands get acknowledged */
 };
