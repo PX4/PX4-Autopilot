@@ -41,6 +41,7 @@
 #include <px4_getopt.h>
 #include <px4_log.h>
 
+#include <string.h>
 #include <unistd.h>
 
 #include <lib/tunes/tunes.h>
