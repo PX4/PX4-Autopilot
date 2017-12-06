@@ -31,6 +31,7 @@ void BlockLocalPositionEstimator::baroInit()
 
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
+			_altOriginGlobal = false;
 			_altOrigin = _baroAltOrigin;
 		}
 	}
