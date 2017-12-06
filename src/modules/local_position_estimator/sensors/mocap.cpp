@@ -34,6 +34,7 @@ void BlockLocalPositionEstimator::mocapInit()
 
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
+			_altOriginGlobal = false;
 			_altOrigin = 0;
 		}
 	}

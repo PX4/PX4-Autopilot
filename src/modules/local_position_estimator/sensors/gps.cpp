@@ -73,6 +73,7 @@ void BlockLocalPositionEstimator::gpsInit()
 				// possible baro offset in global altitude at init
 				_altOrigin = _gpsAltOrigin;
 				_altOriginInitialized = true;
+				_altOriginGlobal = true;
 
 				mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (gps) : lat %6.2f lon %6.2f alt %5.1f m",
 							     gpsLatOrigin, gpsLonOrigin, double(_gpsAltOrigin));

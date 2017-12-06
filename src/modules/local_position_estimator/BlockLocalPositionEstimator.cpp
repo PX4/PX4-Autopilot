@@ -138,6 +138,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// reference altitudes
 	_altOrigin(0),
 	_altOriginInitialized(false),
+	_altOriginGlobal(false),
 	_baroAltOrigin(0),
 	_gpsAltOrigin(0),
 
@@ -614,7 +615,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 
 		_pub_lpos.get().yaw = _eul(2);
 		_pub_lpos.get().xy_global = _estimatorInitialized & EST_XY;
-		_pub_lpos.get().z_global = !(_sensorTimeout & SENSOR_BARO);
+		_pub_lpos.get().z_global = !(_sensorTimeout & SENSOR_BARO) && _altOriginGlobal;
 		_pub_lpos.get().ref_timestamp = _time_origin;
 		_pub_lpos.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;

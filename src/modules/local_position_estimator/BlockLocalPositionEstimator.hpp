@@ -365,6 +365,7 @@ private:
 	// reference altitudes
 	float _altOrigin;
 	bool _altOriginInitialized;
+	bool _altOriginGlobal; // true when the altitude of the origin is defined wrt a global reference frame
 	float _baroAltOrigin;
 	float _gpsAltOrigin;
 
