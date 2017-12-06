@@ -333,7 +333,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const ch
 **/
 static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
 					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
-					const vehicle_attitude_s &attitude);
+					const vehicle_attitude_s &attitude,
+					bool set_alt_only_to_lpos_ref);
 
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
@@ -972,7 +973,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					if (cmd_arms && (arming_res == TRANSITION_CHANGED) &&
 						(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
 
-						commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude);
+						commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude, false);
 					}
 				}
 			}
@@ -1230,18 +1231,24 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 }
 
 /**
-* @brief This function initializes the home position of the vehicle. This happens first time we get a good GPS fix and each
+* @brief This function initializes the home position an altitude of the vehicle. This happens first time we get a good GPS fix and each
 *		 time the vehicle is armed with a good GPS fix.
 **/
 static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
 					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
-					const vehicle_attitude_s &attitude)
+					const vehicle_attitude_s &attitude,
+					bool set_alt_only_to_lpos_ref)
 {
-	// Need global and local position fix to be able to set home
-	// Ensure that the GPS accuracy is good enough
-	if (status_flags.condition_global_position_valid
-			&& status_flags.condition_local_position_valid
-			&& (globalPosition.eph > eph_threshold || globalPosition.epv > epv_threshold)) {
+	if (!set_alt_only_to_lpos_ref) {
+		//Need global and local position fix to be able to set home
+		if (!status_flags.condition_global_position_valid || !status_flags.condition_local_position_valid) {
+			return;
+		}
+
+		//Ensure that the GPS accuracy is good enough for intializing home
+		if (globalPosition.eph > eph_threshold || globalPosition.epv > epv_threshold) {
+			return;
+		}
 
 		//Set home position
 		home.timestamp = hrt_absolute_time();
@@ -1261,6 +1268,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 		PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
+
 		//Play tune first time we initialize HOME
 		if (!status_flags.condition_home_position_valid) {
 			tune_home_set(true);
@@ -1270,11 +1278,12 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 		status_flags.condition_home_position_valid = true;
 
 	} else if (!home.valid_alt && localPosition.z_global) {
-		// Handle case where we have started global height estimation after takeoff and can only set the home altitude
+		// handle special case where we are setting only altitude using local position reference
 		home.timestamp = hrt_absolute_time();
 		home.alt = localPosition.ref_alt;
 		home.valid_alt = true;
 		PX4_INFO("home alt: %.2f", (double)home.alt);
+
 	} else {
 		return;
 	}
@@ -1282,6 +1291,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	/* announce new home position */
 	if (homePub != nullptr) {
 		orb_publish(ORB_ID(home_position), homePub, &home);
+
 	} else {
 		homePub = orb_advertise(ORB_ID(home_position), &home);
 	}
@@ -3112,21 +3122,21 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* First time home position update - but only if disarmed */
 		if (!status_flags.condition_home_position_valid && !armed.armed) {
-			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, false);
 		}
 
 		/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
 		else if (((!was_armed && armed.armed) || (was_landed && !land_detector.landed)) &&
 			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
-			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, false);
 
 		}
 
 		/* Set home position altitude to EKF origin height if home is not set and the EKF has a global origin.
 		 * This allows home atitude to be used in the calculation of height above takeoff location when GPS
 		 * use has commenced after takeoff. */
-		else if (!_home.valid_alt && local_position.z_global) {
-			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
+		if (!_home.valid_alt && local_position.z_global) {
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, true);
 
 		}
 
