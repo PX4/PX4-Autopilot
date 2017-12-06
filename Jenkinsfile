@@ -131,6 +131,26 @@ pipeline {
             }
           }
 
+          // GCC7 tests
+          for (def option in ["posix_sitl_default", "nuttx_px4fmu-v5_default"]) {
+            def node_name = "${option}"
+
+            builds["${node_name} (GCC7)"] = {
+              node {
+                stage("Build Test ${node_name} (GCC7)") {
+                  docker.image('px4io/px4-dev-base-archlinux:2017-12-06').inside("--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true") {
+                    stage("${node_name}") {
+                      checkout scm
+                      sh "make clean"
+                      sh "make ${node_name}"
+                      sh "ccache -s"
+                    }
+                  }
+                }
+              }
+            }
+          }
+
           parallel builds
         }
       }
