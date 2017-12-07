@@ -2112,6 +2112,8 @@ MPU6000::measure()
 	_gyro_reports->force(&grb);
 
 	/* notify anyone waiting for data */
+	accel_notify=true;
+	gyro_notify=true;
 	if (accel_notify) {
 		poll_notify(POLLIN);
 	}
