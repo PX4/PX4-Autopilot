@@ -159,7 +159,7 @@ private:
 	static constexpr float _nav_yaw_innov_test_lim =
 		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
 	static constexpr float _yaw_innov_test_lim =
-		1.0f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
+		0.52f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 	filter_control_status_u _ekf_control_mask; ///< Integer mask used by ekf control status
@@ -1272,6 +1272,7 @@ void Ekf2::run()
 					float yaw_test_limit;
 					_ekf.get_control_mode(&_ekf_control_mask.value);
 					bool doing_ne_aiding = _ekf_control_mask.flags.gps ||  _ekf_control_mask.flags.ev_pos;
+
 					if (doing_ne_aiding) {
 						// use a smaller tolerance when doing NE inertial frame aiding
 						yaw_test_limit = _nav_yaw_innov_test_lim;
