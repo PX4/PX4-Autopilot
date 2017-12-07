@@ -6,6 +6,19 @@ pipeline {
     timestamps()
   }
   stages {
+
+    stage('Quality Checks') {
+      agent {
+        docker {
+          image 'px4io/px4-dev-base:2017-10-23'
+          args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
+        }
+      }
+      steps {
+        sh 'make check_format'
+      }
+    }
+
     stage('Build') {
       steps {
         script {
@@ -116,31 +129,24 @@ pipeline {
         }
       }
     }
+
     stage('Test') {
       parallel {
-        stage('check_format') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-base:2017-10-23'
-              args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
-            }
-          }
-          steps {
-            sh 'make check_format'
-          }
-        }
-        stage('clang-tidy') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-clang:2017-10-23'
-              args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
-            }
-          }
-          steps {
-            sh 'make clean'
-            sh 'make clang-tidy-quiet'
-          }
-        }
+
+        // temporarily disabled until build resources are available
+        //stage('clang-tidy') {
+        //  agent {
+        //    docker {
+        //      image 'px4io/px4-dev-clang:2017-10-23'
+        //      args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
+        //    }
+        //  }
+        //  steps {
+        //    sh 'make clean'
+        //    sh 'make clang-tidy-quiet'
+        //  }
+        //}
+
         stage('tests') {
           agent {
             docker {
@@ -154,29 +160,33 @@ pipeline {
             junit 'build/posix_sitl_default/JUnitTestResults.xml'
           }
         }
-        stage('tests coverage') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-base:2017-10-23'
-              args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
-            }
-          }
-          steps {
-            sh 'make clean'
-            sh 'make tests_coverage'
-            // publish html
-            publishHTML target: [
-              allowMissing: false,
-              alwaysLinkToLastBuild: false,
-              keepAll: true,
-              reportDir: 'build/posix_sitl_default/coverage-html',
-              reportFiles: '*',
-              reportName: 'Coverage Report'
-            ]
-          }
-        }
+
+        // temporarily disabled until stable
+        //stage('tests coverage') {
+        //  agent {
+        //    docker {
+        //      image 'px4io/px4-dev-base:2017-10-23'
+        //      args '--env CCACHE_DIR=/tmp/ccache --volume=/tmp/ccache:/tmp/ccache:rw --env CI=true'
+        //    }
+        //  }
+        //  steps {
+        //    sh 'make clean'
+        //    sh 'make tests_coverage'
+        //    // publish html
+        //    publishHTML target: [
+        //      allowMissing: false,
+        //      alwaysLinkToLastBuild: false,
+        //      keepAll: true,
+        //      reportDir: 'build/posix_sitl_default/coverage-html',
+        //      reportFiles: '*',
+        //      reportName: 'Coverage Report'
+        //    ]
+        //  }
+        //}
+
       }
     }
+
     stage('Generate Metadata') {
       agent {
         docker {
@@ -192,6 +202,7 @@ pipeline {
         archive 'modules/*.md'
       }
     }
+
     stage('S3 Upload') {
       agent {
         docker {
@@ -205,5 +216,6 @@ pipeline {
         sh 'echo "uploading to S3"'
       }
     }
+
   }
 }
