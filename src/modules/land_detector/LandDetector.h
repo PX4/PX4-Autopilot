@@ -48,6 +48,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
 namespace land_detector
@@ -150,6 +151,7 @@ protected:
 	vehicle_land_detected_s _landDetected{};
 
 	int _parameterSub{-1};
+	int _armingSub{-1};
 
 	LandDetectionState _state{LandDetectionState::LANDED};
 
@@ -157,6 +159,8 @@ protected:
 	systemlib::Hysteresis _landed_hysteresis{true};
 	systemlib::Hysteresis _maybe_landed_hysteresis{true};
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
+
+	struct actuator_armed_s	_arming {};
 
 private:
 	static void _cycle_trampoline(void *arg);
@@ -175,6 +179,8 @@ private:
 	struct work_s	_work {};
 
 	perf_counter_t	_cycle_perf;
+
+	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
 };
 
 

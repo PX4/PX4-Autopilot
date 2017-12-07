@@ -42,7 +42,6 @@
 
 #pragma once
 
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -86,12 +85,10 @@ private:
 		float maxIntVelocity;
 	} _params{};
 
-	int _armingSub{-1};
 	int _airspeedSub{-1};
 	int _sensor_bias_sub{-1};
 	int _local_pos_sub{-1};
 
-	actuator_armed_s _arming{};
 	airspeed_s _airspeed{};
 	sensor_bias_s _sensors{};
 	vehicle_local_position_s _local_pos{};
