@@ -77,7 +77,6 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_vehicleLocalPositionSub(-1),
 	_vehicleLocalPositionSetpointSub(-1),
 	_actuatorsSub(-1),
-	_armingSub(-1),
 	_attitudeSub(-1),
 	_sensor_bias_sub(-1),
 	_vehicle_control_mode_sub(-1),
@@ -85,7 +84,6 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_vehicleLocalPosition{},
 	_vehicleLocalPositionSetpoint{},
 	_actuators{},
-	_arming{},
 	_vehicleAttitude{},
 	_sensors{},
 	_control_mode{},
@@ -113,12 +111,11 @@ MulticopterLandDetector::MulticopterLandDetector() :
 
 void MulticopterLandDetector::_initialize_topics()
 {
-	// subscribe to position, attitude, arming and velocity changes
+	// subscribe to position, attitude and velocity changes
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_vehicleLocalPositionSetpointSub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
-	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -131,7 +128,6 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(vehicle_local_position_setpoint), _vehicleLocalPositionSetpointSub, &_vehicleLocalPositionSetpoint);
 	_orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
 	_orb_update(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuators);
-	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
 	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
