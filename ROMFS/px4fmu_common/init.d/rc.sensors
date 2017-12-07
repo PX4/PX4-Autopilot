@@ -285,7 +285,7 @@ then
 	ist8310 -C -b 2 start
 
 	# Possible internal compass
-	ist8310 -C -b 3 start
+	ist8310 -C -b 5 start
 fi
 
 if ver hwcmp AEROCORE2
