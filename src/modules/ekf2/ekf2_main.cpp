@@ -156,10 +156,13 @@ private:
 		0.5f;	///< Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
 	static constexpr float _hgt_innov_test_lim =
 		1.5f;	///< Maximum permissible height innovation to pass pre-flight checks (m)
+	static constexpr float _nav_yaw_innov_test_lim =
+		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
 	static constexpr float _yaw_innov_test_lim =
-		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks (rad)
+		1.0f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
+	filter_control_status_u _ekf_control_mask; ///< Integer mask used by ekf control status
 
 	orb_advert_t _att_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
@@ -1264,9 +1267,23 @@ void Ekf2::run()
 					_vel_d_innov_lpf = beta * _vel_d_innov_lpf + alpha * constrain(innovations.vel_pos_innov[2],
 							   -_vel_innov_spike_lim, _vel_innov_spike_lim);
 
+					// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
+					// observations in the NE reference frame.
+					float yaw_test_limit;
+					_ekf.get_control_mode(&_ekf_control_mask.value);
+					bool doing_ne_aiding = _ekf_control_mask.flags.gps ||  _ekf_control_mask.flags.ev_pos;
+					if (doing_ne_aiding) {
+						// use a smaller tolerance when doing NE inertial frame aiding
+						yaw_test_limit = _nav_yaw_innov_test_lim;
+
+					} else {
+						// use a larger tolerance when not doing NE inertial frame aiding
+						yaw_test_limit = _yaw_innov_test_lim;
+					}
+
 					// filter the yaw innovations using a decaying envelope filter to prevent innovation sign changes due to angle wrapping allowinging large innvoations to pass checks after filtering.
 					_yaw_innov_magnitude_lpf = fmaxf(beta * _yaw_innov_magnitude_lpf,
-									 fminf(fabsf(innovations.heading_innov), 2.0f * _yaw_innov_test_lim));
+									 fminf(fabsf(innovations.heading_innov), 2.0f * yaw_test_limit));
 
 					_hgt_innov_lpf = beta * _hgt_innov_lpf + alpha * constrain(innovations.vel_pos_innov[5], -_hgt_innov_spike_lim,
 							 _hgt_innov_spike_lim);
@@ -1276,7 +1293,7 @@ void Ekf2::run()
 									  innovations.vel_pos_innov[1] * innovations.vel_pos_innov[1]);
 					_preflt_horiz_fail = (_vel_ne_innov_lpf.norm() > _vel_innov_test_lim)
 							     || (vel_ne_innov_length > 2.0f * _vel_innov_test_lim)
-							     || (_yaw_innov_magnitude_lpf > _yaw_innov_test_lim);
+							     || (_yaw_innov_magnitude_lpf > yaw_test_limit);
 
 					// check the vertical velocity and position innovations
 					_preflt_vert_fail = (fabsf(_vel_d_innov_lpf) > _vel_innov_test_lim)
