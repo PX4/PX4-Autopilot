@@ -35,6 +35,7 @@ pipeline {
                     stage("${node_name}") {
                       checkout scm
                       sh "make clean"
+                      sh "ccache -z"
                       sh "make nuttx_${node_name}_default"
                       sh "ccache -s"
                       archive 'build/*/*.px4'
@@ -56,6 +57,7 @@ pipeline {
                     stage("${node_name}") {
                       checkout scm
                       sh "make clean"
+                      sh "ccache -z"
                       sh "make nuttx_${node_name}_default"
                       sh "ccache -s"
                     }
@@ -76,6 +78,7 @@ pipeline {
                     stage("${node_name}") {
                       checkout scm
                       sh "make clean"
+                      sh "ccache -z"
                       sh "make nuttx_${node_name}"
                       sh "ccache -s"
                     }
@@ -96,6 +99,7 @@ pipeline {
                     stage("${node_name}") {
                       checkout scm
                       sh "make clean"
+                      sh "ccache -z"
                       sh "make posix_${node_name}"
                       sh "ccache -s"
                     }
@@ -116,6 +120,7 @@ pipeline {
                     stage("${node_name}") {
                       checkout scm
                       sh "make clean"
+                      sh "ccache -z"
                       sh "make posix_${node_name}"
                       sh "ccache -s"
                     }
