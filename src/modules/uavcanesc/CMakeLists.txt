@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+px4_add_git_submodule(TARGET git_uavcan PATH "../uavcan/libuavcan")
+
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
 
