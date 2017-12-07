@@ -752,7 +752,7 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCGEXTERNAL:
 		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
-		return 1;
+		return external();
 
 	default:
 		/* give it to the superclass */
@@ -909,7 +909,7 @@ IST8310::collect()
 
 	perf_begin(_sample_perf);
 	struct mag_report new_report;
-	bool sensor_is_onboard = false;
+	const bool sensor_is_external = external();
 
 	float xraw_f;
 	float yraw_f;
@@ -917,7 +917,7 @@ IST8310::collect()
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
-	new_report.is_external = !sensor_is_onboard;
+	new_report.is_external = sensor_is_external;
 	new_report.error_count = perf_event_count(_comms_errors);
 	new_report.scaling = _range_scale;
 	new_report.device_id = _device_id.devid;
@@ -988,7 +988,7 @@ IST8310::collect()
 
 		} else {
 			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &new_report,
-							 &_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
+							 &_orb_class_instance, sensor_is_external ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 			if (_mag_topic == nullptr) {
 				DEVICE_DEBUG("ADVERT FAIL");
