@@ -48,7 +48,7 @@ using math::min;
 
 /*
  * This function implements a complementary filter to estimate the climb rate when
- * inertial nav data is not available. It also calculates a true airpseed derivative
+ * inertial nav data is not available. It also calculates a true airspeed derivative
  * which is used by the airspeed complimentary filter.
  */
 void TECS::update_vehicle_state_estimates(float airspeed, const math::Matrix<3, 3> &rotMat,
@@ -90,7 +90,7 @@ void TECS::update_vehicle_state_estimates(float airspeed, const math::Matrix<3, 
 
 	_in_air = in_air;
 
-	// Genrate the height and climb rate state estimates
+	// Generate the height and climb rate state estimates
 	if (vz_valid) {
 		// Set the velocity and position state to the the INS data
 		_vert_vel_state = -vz;
@@ -211,7 +211,7 @@ void TECS::_update_speed_setpoint()
 
 	_TAS_setpoint = constrain(_TAS_setpoint, _TAS_min, _TAS_max);
 
-	// Apply limits on the demanded rate of change of speed based based on physical performance limits
+	// Apply limits on the demanded rate of change of speed based on physical performance limits
 	// with a 50% margin to allow the total energy controller to correct for errors.
 	float velRateMax;
 	float velRateMin;
@@ -265,7 +265,7 @@ void TECS::_update_height_setpoint(float desired, float state)
 	_hgt_setpoint_adj = 0.1f * _hgt_setpoint + 0.9f * _hgt_setpoint_adj_prev;
 
 	// Calculate the demanded climb rate proportional to height error plus a feedforward term to provide
-	// tight tracking during steady climb and descent manouvres.
+	// tight tracking during steady climb and descent manoeuvres.
 	_hgt_rate_setpoint = (_hgt_setpoint_adj - state) * _height_error_gain + _height_setpoint_gain_ff *
 			     (_hgt_setpoint_adj - _hgt_setpoint_adj_prev) / _dt;
 	_hgt_setpoint_adj_prev = _hgt_setpoint_adj;
@@ -311,7 +311,7 @@ void TECS::_update_energy_estimates()
 	_SKE_estimate = 0.5f * _tas_state * _tas_state; // kinetic energy
 
 	// Calculate specific energy rates in units of (m**2/sec**3)
-	_SPE_rate = _vert_vel_state * CONSTANTS_ONE_G; // potential ernegy rate of change
+	_SPE_rate = _vert_vel_state * CONSTANTS_ONE_G; // potential energy rate of change
 	_SKE_rate = _tas_state * _speed_derivative;// kinetic energy rate of change
 }
 
@@ -341,9 +341,9 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const math::Ma
 
 		// Calculate a predicted throttle from the demanded rate of change of energy, using the cruise throttle
 		// as the starting point. Assume:
-		// Specific total energy rate = _STE_rate_max is acheived when throttle is set to to _throttle_setpoint_max
+		// Specific total energy rate = _STE_rate_max is achieved when throttle is set to _throttle_setpoint_max
 		// Specific total energy rate = 0 at cruise throttle
-		// Specific total energy rate = _STE_rate_min is acheived when throttle is set to to _throttle_setpoint_min
+		// Specific total energy rate = _STE_rate_min is achieved when throttle is set to _throttle_setpoint_min
 		float throttle_predicted = 0.0f;
 
 		if (STE_rate_setpoint >= 0) {
@@ -373,7 +373,7 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const math::Ma
 		_last_throttle_setpoint = _throttle_setpoint;
 
 		// Calculate throttle integrator state upper and lower limits with allowance for
-		// 10% throttle saturation to accoodate noise on the demand
+		// 10% throttle saturation to accommodate noise on the demand
 		float integ_state_max = (_throttle_setpoint_max - _throttle_setpoint + 0.1f);
 		float integ_state_min = (_throttle_setpoint_min - _throttle_setpoint - 0.1f);
 
@@ -383,7 +383,7 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const math::Ma
 
 		if (_climbout_mode_active) {
 			// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
-			// at end of climbout when we traniton to closed loop throttle control
+			// at end of climbout when we transition to closed loop throttle control
 			_throttle_integ_state = integ_state_max;
 
 		} else {
@@ -421,7 +421,7 @@ void TECS::_detect_uncommanded_descent()
 	bool enter_mode = !_uncommanded_descent_recovery && !_underspeed_detected && (_STE_error > 200.0f) && (STE_rate < 0.0f)
 			  && (_throttle_setpoint >= _throttle_setpoint_max * 0.9f);
 
-	// If we enter an underspeed cindition or recover the required total energy, then exit uncommanded descent recovery mode
+	// If we enter an underspeed condition or recover the required total energy, then exit uncommanded descent recovery mode
 	bool exit_mode = _uncommanded_descent_recovery && (_underspeed_detected || (_STE_error < 0.0f));
 
 	if (enter_mode) {
@@ -477,7 +477,7 @@ void TECS::_update_pitch_setpoint()
 	float pitch_integ_input = _SEB_error * _integrator_gain;
 
 	// Prevent the integrator changing in a direction that will increase pitch demand saturation
-	// Decay the integrator at the control loop time constant if the pitch demand fromthe previous time step is saturated
+	// Decay the integrator at the control loop time constant if the pitch demand from the previous time step is saturated
 	if (_pitch_setpoint_unc > _pitch_setpoint_max) {
 		pitch_integ_input = min(pitch_integ_input,
 					min((_pitch_setpoint_max - _pitch_setpoint_unc) * climb_angle_to_SEB_rate / _pitch_time_constant, 0.0f));
@@ -603,7 +603,7 @@ void TECS::update_pitch_throttle(const math::Matrix<3, 3> &rotMat, float pitch, 
 	// Initialize selected states and variables as required
 	_initialize_states(pitch, throttle_cruise, baro_altitude, pitch_min_climbout, eas_to_tas);
 
-	// Don't run TECS control agorithms when not in flight
+	// Don't run TECS control algorithms when not in flight
 	if (!_in_air) {
 		return;
 	}
