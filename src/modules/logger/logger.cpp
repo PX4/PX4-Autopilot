@@ -1005,9 +1005,10 @@ void Logger::run()
 			bool data_written = false;
 
 			/* Check if parameters have changed */
-			// this needs to change to a timestamped record to record a history of parameter changes
-			if (parameter_update_sub.update()) {
-				write_changed_parameters();
+			if (!_should_stop_file_log) { // do not record param changes after disarming
+				if (parameter_update_sub.update()) {
+					write_changed_parameters();
+				}
 			}
 
 			/* wait for lock on log buffer */
