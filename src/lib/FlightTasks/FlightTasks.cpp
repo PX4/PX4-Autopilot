@@ -41,8 +41,8 @@ int FlightTasks::switchTask(int task_number)
 
 	switch (task_number) {
 	case 0:
-		_current_task = new (&_task_union.manual) FlightTaskManual(this, "MAN");
-		break;
+		/* This part will change with the next PR that uses enum */
+		return -1;
 
 	case 1:
 		_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
@@ -50,6 +50,26 @@ int FlightTasks::switchTask(int task_number)
 
 	case 2:
 		_current_task = new (&_task_union.sport) FlightTaskSport(this, "SPO");
+		break;
+
+	case 3:
+		_current_task = new (&_task_union.altitude) FlightTaskManualAltitude(this, "MANALT");
+		break;
+
+	case 4:
+		_current_task = new (&_task_union.position) FlightTaskManualPosition(this, "MANPOS");
+		break;
+
+	case 5:
+		_current_task = new (&_task_union.stabilized) FlightTaskManualStabilized(this, "MANSTAB");
+		break;
+
+	case 6:
+		_current_task = new (&_task_union.altitude_smooth) FlightTaskManualAltitudeSmooth(this, "MANALTSM");
+		break;
+
+	case 7:
+		_current_task = new (&_task_union.position_smooth) FlightTaskManualPositionSmooth(this, "MANPOSSM");
 		break;
 
 	case -1:

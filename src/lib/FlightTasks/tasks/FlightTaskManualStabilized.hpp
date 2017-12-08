@@ -32,67 +32,46 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskOrbit.cpp
+ * @file FlightManualStabilized.hpp
+ *
+ * Flight task for manual controlled attitude.
+ * It generates thrust and yaw setpoints.
  */
 
-#include "FlightTaskOrbit.hpp"
-#include <mathlib/mathlib.h>
+#pragma once
 
-using namespace matrix;
+#include "FlightTaskManual.hpp"
 
-FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) :
-	FlightTaskManual(parent, name)
+class FlightTaskManualStabilized : public FlightTaskManual
 {
-	_sticks_data_required = false;
-}
+public:
+	FlightTaskManualStabilized(control::SuperBlock *parent, const char *name);
 
-bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
-{
-	const float &r = command.param3; /**< commanded radius */
-	const float &v = command.param4; /**< commanded velocity */
+	virtual ~FlightTaskManualStabilized() = default;
 
-	if (math::isInRange(r, 5.f, 50.f) && fabs(v) < 10.f) {
-		_r = r;
-		_v = v;
-		return FlightTaskManual::applyCommandParameters(command);
-	}
+	bool activate() override;
 
-	return false;
-}
+	bool update() override;
 
-bool FlightTaskOrbit::activate()
-{
-	bool ret = FlightTaskManual::activate();
-	_r = 1.f;
-	_v =  0.5f;
-	_z = _position(2);
-	_center = Vector2f(_position.data());
-	_center(0) -= _r;
-	return ret;
-}
+protected:
+	float _yaw_rate_sp{}; /**< Scaled yaw rate from stick. NAN if yaw is locked. */
+	float _yaw_sp{}; /**< Yaw setpoint once locked. Otherwise NAN. */
+	matrix::Vector3f _thr_sp{}; /**< Thrust setpoint from sticks */
 
-bool FlightTaskOrbit::update()
-{
-	_r += _sticks_expo(0) * _deltatime;
-	_r = math::constrain(_r, 1.f, 20.f);
-	_v -= _sticks_expo(1) * _deltatime;
-	_v = math::constrain(_v, -7.f, 7.f);
-	_z += _sticks_expo(2) * _deltatime;
+	virtual void _updateSetpoints(); /**< Updates all setpoints. */
+	virtual void _scaleSticks(); /**< Scales sticks to yaw and thrust. */
 
-	Vector2f center_to_position = Vector2f(_position.data()) - _center;
+private:
 
-	/* xy velocity to go around in a circle */
-	Vector2f velocity_xy = Vector2f(center_to_position(1), -center_to_position(0));
-	velocity_xy = velocity_xy.unit_or_zero();
-	velocity_xy *= _v;
+	float _throttle{}; /** Mapped from stick z. */
 
-	/* xy velocity adjustment to stay on the radius distance */
-	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
+	void _updateHeadingSetpoints(); /**< Sets yaw or yaw speed. */
+	void _updateThrustSetpoints(); /**< Sets thrust setpoint */
+	float _throttleCurve(); /**< Piecewise linear mapping from stick to throttle. */
 
-	float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
-
-	_setPositionSetpoint(Vector3f(NAN, NAN, _z));
-	_setVelocitySetpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
-	_setYawSetpoint(yaw);
-	return true;
-}
+	control::BlockParamFloat _yaw_rate_scaling; /**< Scaling factor from stick to yaw rate. */
+	control::BlockParamFloat _tilt_max_man; /**< Maximum tilt allowed for manual flight */
+	control::BlockParamFloat _throttle_min; /**< Minimum throttle that always has to be satisfied in flight*/
+	control::BlockParamFloat _throttle_max; /**< Maximum throttle that always has to be satisfied in flight*/
+	control::BlockParamFloat _throttle_hover; /**< Throttle value at which vehicle is at hover equilibrium */
+};

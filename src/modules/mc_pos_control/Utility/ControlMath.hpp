@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskManual.hpp
+ * @file ControlMath.hpp
  *
- * Linear and exponential map from stick inputs to range -1 and 1.
- *
+ * Simple functions for vector manipulation that do not fit into matrix lib.
+ * These functions are specific for controls.
  */
+
 
 #pragma once
 
-#include "FlightTask.hpp"
-#include <uORB/topics/manual_control_setpoint.h>
+#include <matrix/matrix/math.hpp>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 
-class FlightTaskManual : public FlightTask
+namespace ControlMath
 {
-public:
-	FlightTaskManual(control::SuperBlock *parent, const char *name);
-
-	virtual ~FlightTaskManual() = default;
-
-	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-
-	bool activate() override;
-
-	bool applyCommandParameters(const vehicle_command_s &command) override { return FlightTask::applyCommandParameters(command); };
-
-	bool updateInitialize() override;
-
-protected:
-
-	bool _sticks_data_required = true; /**< let inherited task-class define if it depends on stick data */
-	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
-	matrix::Vector3f _sticks_expo; /**< modified manual sticks using expo function*/
-	control::BlockParamFloat _stick_dz; /**< 0-deadzone around the center for the sticks */
-
-private:
-
-	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
-
-	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction */
-	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in z direction */
-
-
-	bool _evaluateSticks(); /**< checks and sets stick inputs */
-};
+matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_max);
+void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], const float d[2]);
+vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float &yaw_sp);
+}

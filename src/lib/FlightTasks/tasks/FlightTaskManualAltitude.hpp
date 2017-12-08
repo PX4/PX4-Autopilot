@@ -32,67 +32,36 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskOrbit.cpp
+ * @file FlightManualAltitude.hpp
+ *
+ * Flight task for manual controlled altitude.
  */
 
-#include "FlightTaskOrbit.hpp"
-#include <mathlib/mathlib.h>
+#pragma once
 
-using namespace matrix;
+#include "FlightTaskManualStabilized.hpp"
 
-FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) :
-	FlightTaskManual(parent, name)
+class FlightTaskManualAltitude : public FlightTaskManualStabilized
 {
-	_sticks_data_required = false;
-}
+public:
+	FlightTaskManualAltitude(control::SuperBlock *parent, const char *name);
 
-bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
-{
-	const float &r = command.param3; /**< commanded radius */
-	const float &v = command.param4; /**< commanded velocity */
+	virtual ~FlightTaskManualAltitude() = default;
 
-	if (math::isInRange(r, 5.f, 50.f) && fabs(v) < 10.f) {
-		_r = r;
-		_v = v;
-		return FlightTaskManual::applyCommandParameters(command);
-	}
+	bool activate() override;
 
-	return false;
-}
+	bool update() override;
 
-bool FlightTaskOrbit::activate()
-{
-	bool ret = FlightTaskManual::activate();
-	_r = 1.f;
-	_v =  0.5f;
-	_z = _position(2);
-	_center = Vector2f(_position.data());
-	_center(0) -= _r;
-	return ret;
-}
+protected:
+	float _vel_sp_z{}; /**< Scaled velocity from stick. During altitude lock it is equal to NAN. */
+	float _pos_sp_z{}; /**< Setpoint in z during lock. Otherwise NAN. */
 
-bool FlightTaskOrbit::update()
-{
-	_r += _sticks_expo(0) * _deltatime;
-	_r = math::constrain(_r, 1.f, 20.f);
-	_v -= _sticks_expo(1) * _deltatime;
-	_v = math::constrain(_v, -7.f, 7.f);
-	_z += _sticks_expo(2) * _deltatime;
+	control::BlockParamFloat _vel_max_down; /**< Maximum speed allowed to go up. */
+	control::BlockParamFloat _vel_max_up; /**< Maximum speed allowed to go down. */
+	control::BlockParamFloat _vel_z_dz; /**< velocity threshold/deadzone to switch into vertical position hold */
 
-	Vector2f center_to_position = Vector2f(_position.data()) - _center;
+	void _updateAltitudeLock(); /**< Checks for position lock. */
+	void _updateSetpoints() override; /**< Updates all setpoints. */
+	void _scaleSticks() override; /**< Scales sticks to velocity in z. */
 
-	/* xy velocity to go around in a circle */
-	Vector2f velocity_xy = Vector2f(center_to_position(1), -center_to_position(0));
-	velocity_xy = velocity_xy.unit_or_zero();
-	velocity_xy *= _v;
-
-	/* xy velocity adjustment to stay on the radius distance */
-	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
-
-	float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
-
-	_setPositionSetpoint(Vector3f(NAN, NAN, _z));
-	_setVelocitySetpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
-	_setYawSetpoint(yaw);
-	return true;
-}
+};

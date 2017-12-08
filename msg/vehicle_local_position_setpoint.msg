@@ -12,3 +12,4 @@ float32 vz		# in meters/sec
 float32 acc_x	# in meters/(sec*sec)
 float32 acc_y	# in meters/(sec*sec)
 float32 acc_z	# in meters/(sec*sec)
+float32[3] thr	# normalized thrust vector in NED
