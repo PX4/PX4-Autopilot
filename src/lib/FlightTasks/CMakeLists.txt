@@ -36,6 +36,7 @@ px4_add_module(
 		tasks/FlightTask.cpp
 		tasks/FlightTaskManual.cpp
 		tasks/FlightTaskOrbit.cpp
+		tasks/FlightTaskManualAltitude.cpp
 		SubscriptionArray.cpp
 		FlightTasks.cpp
 	DEPENDS
