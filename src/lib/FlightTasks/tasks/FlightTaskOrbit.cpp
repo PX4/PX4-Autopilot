@@ -78,11 +78,11 @@ bool FlightTaskOrbit::activate()
 
 bool FlightTaskOrbit::update()
 {
-	_r += _sticks(0) * _deltatime;
+	_r += _sticks_expo(0) * _deltatime;
 	_r = math::constrain(_r, 1.f, 20.f);
-	_v -= _sticks(1) * _deltatime;
+	_v -= _sticks_expo(1) * _deltatime;
 	_v = math::constrain(_v, -7.f, 7.f);
-	_z += _sticks(2) * _deltatime;
+	_z += _sticks_expo(2) * _deltatime;
 
 	Vector2f center_to_position = Vector2f(_position.data()) - _center;
 
