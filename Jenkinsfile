@@ -36,6 +36,7 @@ pipeline {
                       checkout scm
                       sh "make clean"
                       sh "ccache -z"
+                      sh "git fetch --tags"
                       sh "make nuttx_${node_name}_default"
                       sh "ccache -s"
                       archive 'build/*/*.px4'
