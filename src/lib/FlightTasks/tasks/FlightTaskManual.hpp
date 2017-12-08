@@ -63,32 +63,19 @@ public:
 	bool update() override;
 
 protected:
-	matrix::Vector<float, 4> _sticks;
-	bool _evaluateSticks();
+
 	bool _sticks_data_required = true; /**< let sibling task define if it depends on stick data */
-
-	float _get_input_frame_yaw();
-	virtual void _scaleVelocity(matrix::Vector3f &velocity);
-
-	control::BlockParamFloat _z_vel_max_up; /**< maximal vertical velocity when flying upwards with the stick */
-	control::BlockParamFloat _z_vel_max_down; /**< maximal vertical velocity when flying downwards with the stick */
+	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
+	matrix::Vector3f _sticks_expo; /**< modified manual sticks using expo function*/
 
 private:
+
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
-	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed */
-	control::BlockParamFloat _hold_max_xy; /**< velocity threshold to switch into horizontal position hold */
-	control::BlockParamFloat _hold_max_z; /**< velocity threshold to switch into vertical position hold */
-	control::BlockParamFloat _man_yaw_max; /**< maximal rotation speed around yaw axis with full stick input */
 
-	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
-	float _hold_yaw = 0.f; /**< absolute yaw which gets updated by the yawspeed input */
 
-	void _updateYaw();
-
-	bool _evaluate_sticks();
-
+	bool _evaluateSticks(); /**< checks and sets stick inputs */
 };
