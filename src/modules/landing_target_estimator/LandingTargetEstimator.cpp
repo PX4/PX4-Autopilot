@@ -118,129 +118,132 @@ void LandingTargetEstimator::update()
 		}
 	}
 
-	if (_new_irlockReport
-	    && _vehicleAttitude_valid
-	    && _vehicleLocalPosition_valid
-	    && _vehicleLocalPosition.dist_bottom_valid) {
+	if (!_new_irlockReport) {
+		// nothing to do
+		return;
+	}
 
-		// TODO account for sensor orientation as set by parameter
-		// default orientation has camera x pointing in body y, camera y in body -x
+	// mark this sensor measurement as consumed
+	_new_irlockReport = false;
 
-		matrix::Vector<float, 3> sensor_ray; // ray pointing towards target in body frame
-		sensor_ray(0) = -_irlockReport.pos_y * _params.scale_y; // forward
-		sensor_ray(1) = _irlockReport.pos_x * _params.scale_x; // right
-		sensor_ray(2) = 1.0f;
+	if (!_vehicleAttitude_valid || !_vehicleLocalPosition_valid || !_vehicleLocalPosition.dist_bottom_valid) {
+		// don't have the data needed for an update
+		return;
+	}
 
-		// rotate the unit ray into the navigation frame, assume sensor frame = body frame
-		matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
-		_R_att = matrix::Dcm<float>(q_att);
-		sensor_ray = _R_att * sensor_ray;
+	// TODO account for sensor orientation as set by parameter
+	// default orientation has camera x pointing in body y, camera y in body -x
 
-		if (fabs(sensor_ray(2)) < 1e-6) {
-			// z component of measurement unsafe, don't use this measurement
+	matrix::Vector<float, 3> sensor_ray; // ray pointing towards target in body frame
+	sensor_ray(0) = -_irlockReport.pos_y * _params.scale_y; // forward
+	sensor_ray(1) = _irlockReport.pos_x * _params.scale_x; // right
+	sensor_ray(2) = 1.0f;
 
-		} else {
-			// scale the ray s.t. the z component has length of HAGL
-			_rel_pos(0) = sensor_ray(0) / sensor_ray(2) * _vehicleLocalPosition.dist_bottom;
-			_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * _vehicleLocalPosition.dist_bottom;
+	// rotate the unit ray into the navigation frame, assume sensor frame = body frame
+	matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
+	_R_att = matrix::Dcm<float>(q_att);
+	sensor_ray = _R_att * sensor_ray;
 
-			if (!_estimator_initialized) {
-				PX4_INFO("Init");
-				_kalman_filter_x.init(_rel_pos(0), 0, _params.pos_unc_init, _params.vel_unc_init);
-				_kalman_filter_y.init(_rel_pos(1), 0, _params.pos_unc_init, _params.vel_unc_init);
+	if (fabsf(sensor_ray(2)) < 1e-6f) {
+		// z component of measurement unsafe, don't use this measurement
+		return;
+	}
 
-				_estimator_initialized = true;
-				_last_update = hrt_absolute_time();
-				_last_predict = _last_update;
+	float dist = _vehicleLocalPosition.dist_bottom;
 
-			} else {
-				// update
-				bool update_x = _kalman_filter_x.update(_rel_pos(0),
-									_params.meas_unc * _vehicleLocalPosition.dist_bottom * _vehicleLocalPosition.dist_bottom);
-				bool update_y = _kalman_filter_y.update(_rel_pos(1),
-									_params.meas_unc * _vehicleLocalPosition.dist_bottom * _vehicleLocalPosition.dist_bottom);
+	// scale the ray s.t. the z component has length of dist
+	_rel_pos(0) = sensor_ray(0) / sensor_ray(2) * dist;
+	_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * dist;
 
-				if (!update_x || !update_y) {
-					if (!_faulty) {
-						_faulty = true;
-						PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
-					}
+	if (!_estimator_initialized) {
+		PX4_INFO("Init");
+		_kalman_filter_x.init(_rel_pos(0), 0, _params.pos_unc_init, _params.vel_unc_init);
+		_kalman_filter_y.init(_rel_pos(1), 0, _params.pos_unc_init, _params.vel_unc_init);
 
-				} else {
-					_faulty = false;
-				}
+		_estimator_initialized = true;
+		_last_update = hrt_absolute_time();
+		_last_predict = _last_update;
 
-				if (!_faulty) {
-					// only publish if both measurements were good
+	} else {
+		// update
+		bool update_x = _kalman_filter_x.update(_rel_pos(0), _params.meas_unc * dist * dist);
+		bool update_y = _kalman_filter_y.update(_rel_pos(1), _params.meas_unc * dist * dist);
 
-					_target_pose.timestamp = hrt_absolute_time();
-
-					float x, xvel, y, yvel, covx, covx_v, covy, covy_v;
-					_kalman_filter_x.getState(x, xvel);
-					_kalman_filter_x.getCovariance(covx, covx_v);
-
-					_kalman_filter_y.getState(y, yvel);
-					_kalman_filter_y.getCovariance(covy, covy_v);
-
-					_target_pose.rel_pos_valid = true;
-					_target_pose.rel_vel_valid = true;
-					_target_pose.x_rel = x;
-					_target_pose.y_rel = y;
-					_target_pose.z_rel = _vehicleLocalPosition.dist_bottom;
-					_target_pose.vx_rel = xvel;
-					_target_pose.vy_rel = yvel;
-
-					_target_pose.cov_x_rel = covx;
-					_target_pose.cov_y_rel = covy;
-
-					_target_pose.cov_vx_rel = covx_v;
-					_target_pose.cov_vy_rel = covy_v;
-
-					if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid) {
-						_target_pose.x_abs = x + _vehicleLocalPosition.x;
-						_target_pose.y_abs = y + _vehicleLocalPosition.y;
-						_target_pose.z_abs = _vehicleLocalPosition.dist_bottom + _vehicleLocalPosition.z;
-						_target_pose.abs_pos_valid = true;
-
-					} else {
-						_target_pose.abs_pos_valid = false;
-					}
-
-					if (_targetPosePub == nullptr) {
-						_targetPosePub = orb_advertise(ORB_ID(landing_target_pose), &_target_pose);
-
-					} else {
-						orb_publish(ORB_ID(landing_target_pose), _targetPosePub, &_target_pose);
-					}
-
-					_last_update = hrt_absolute_time();
-					_last_predict = _last_update;
-				}
-
-				float innov_x, innov_cov_x, innov_y, innov_cov_y;
-				_kalman_filter_x.getInnovations(innov_x, innov_cov_x);
-				_kalman_filter_y.getInnovations(innov_y, innov_cov_y);
-
-				_target_innovations.timestamp = hrt_absolute_time();
-				_target_innovations.innov_x = innov_x;
-				_target_innovations.innov_cov_x = innov_cov_x;
-				_target_innovations.innov_y = innov_y;
-				_target_innovations.innov_cov_y = innov_cov_y;
-
-				if (_targetInnovationsPub == nullptr) {
-					_targetInnovationsPub = orb_advertise(ORB_ID(landing_target_innovations), &_target_innovations);
-
-				} else {
-					orb_publish(ORB_ID(landing_target_innovations), _targetInnovationsPub, &_target_innovations);
-				}
+		if (!update_x || !update_y) {
+			if (!_faulty) {
+				_faulty = true;
+				PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
 			}
 
+		} else {
+			_faulty = false;
 		}
 
-		// mark this sensor measurement as consumed
-		_new_irlockReport = false;
+		if (!_faulty) {
+			// only publish if both measurements were good
 
+			_target_pose.timestamp = hrt_absolute_time();
+
+			float x, xvel, y, yvel, covx, covx_v, covy, covy_v;
+			_kalman_filter_x.getState(x, xvel);
+			_kalman_filter_x.getCovariance(covx, covx_v);
+
+			_kalman_filter_y.getState(y, yvel);
+			_kalman_filter_y.getCovariance(covy, covy_v);
+
+			_target_pose.rel_pos_valid = true;
+			_target_pose.rel_vel_valid = true;
+			_target_pose.x_rel = x;
+			_target_pose.y_rel = y;
+			_target_pose.z_rel = dist;
+			_target_pose.vx_rel = xvel;
+			_target_pose.vy_rel = yvel;
+
+			_target_pose.cov_x_rel = covx;
+			_target_pose.cov_y_rel = covy;
+
+			_target_pose.cov_vx_rel = covx_v;
+			_target_pose.cov_vy_rel = covy_v;
+
+			if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid) {
+				_target_pose.x_abs = x + _vehicleLocalPosition.x;
+				_target_pose.y_abs = y + _vehicleLocalPosition.y;
+				_target_pose.z_abs = dist + _vehicleLocalPosition.z;
+				_target_pose.abs_pos_valid = true;
+
+			} else {
+				_target_pose.abs_pos_valid = false;
+			}
+
+			if (_targetPosePub == nullptr) {
+				_targetPosePub = orb_advertise(ORB_ID(landing_target_pose), &_target_pose);
+
+			} else {
+				orb_publish(ORB_ID(landing_target_pose), _targetPosePub, &_target_pose);
+			}
+
+			_last_update = hrt_absolute_time();
+			_last_predict = _last_update;
+		}
+
+		float innov_x, innov_cov_x, innov_y, innov_cov_y;
+		_kalman_filter_x.getInnovations(innov_x, innov_cov_x);
+		_kalman_filter_y.getInnovations(innov_y, innov_cov_y);
+
+		_target_innovations.timestamp = hrt_absolute_time();
+		_target_innovations.innov_x = innov_x;
+		_target_innovations.innov_cov_x = innov_cov_x;
+		_target_innovations.innov_y = innov_y;
+		_target_innovations.innov_cov_y = innov_cov_y;
+
+		if (_targetInnovationsPub == nullptr) {
+			_targetInnovationsPub = orb_advertise(ORB_ID(landing_target_innovations), &_target_innovations);
+
+		} else {
+			orb_publish(ORB_ID(landing_target_innovations), _targetInnovationsPub, &_target_innovations);
+		}
 	}
+
 }
 
 void LandingTargetEstimator::_check_params(const bool force)
