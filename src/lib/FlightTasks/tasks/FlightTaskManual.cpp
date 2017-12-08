@@ -41,8 +41,8 @@
  */
 
 #include "FlightTaskManual.hpp"
-#include <float.h>
 #include <mathlib/mathlib.h>
+#include <float.h>
 
 using namespace matrix;
 
@@ -52,12 +52,9 @@ FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name
 	_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
 	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
-	_hold_dz(parent, "MPC_HOLD_DZ", false),
-	_velocity_hor_manual(parent, "MPC_VEL_MANUAL", false),
-	_hold_max_xy(parent, "MPC_HOLD_MAX_XY", false),
-	_hold_max_z(parent, "MPC_HOLD_MAX_Z", false),
-	_man_yaw_max(parent, "MPC_MAN_Y_MAX", false)
-{ }
+	_hold_dz(parent, "MPC_HOLD_DZ", false)
+{
+}
 
 bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
@@ -94,54 +91,10 @@ bool FlightTaskManual::updateInitialize()
 
 bool FlightTaskManual::update()
 {
-	/* prepare stick input */
-	Vector2f stick_xy(_sticks.data()); /**< horizontal two dimensional stick input within a unit circle */
-	float &stick_z = _sticks(2);
-
-	const float stick_xy_norm = stick_xy.norm();
-
-	/* saturate such that magnitude in xy is never larger than 1 */
-	if (stick_xy_norm > 1.0f) {
-		stick_xy /= stick_xy_norm;
-	}
-
-	/* rotate stick input to produce velocity setpoint in NED frame */
-	Vector3f velocity_setpoint(stick_xy(0), stick_xy(1), stick_z);
-	velocity_setpoint = Dcmf(Eulerf(0.0f, 0.0f, _get_input_frame_yaw())) * velocity_setpoint;
-
-	/* scale [0,1] length velocity vector to maximal manual speed (in m/s) */
-	_scaleVelocity(velocity_setpoint);
-
-	/* smooth out velocity setpoint by slewrate and return it */
-	_setVelocitySetpoint(velocity_setpoint);
-
-	/* handle position and altitude hold */
-	const bool stick_xy_zero = stick_xy_norm <= FLT_EPSILON;
-	const bool stick_z_zero = fabsf(stick_z) <= FLT_EPSILON;
-
-	float velocity_xy_norm = Vector2f(_velocity.data()).norm();
-	const bool stopped_xy = (_hold_max_xy.get() < FLT_EPSILON || velocity_xy_norm < _hold_max_xy.get());
-	const bool stopped_z = (_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _hold_max_z.get());
-
-	if (stick_xy_zero && stopped_xy && !PX4_ISFINITE(_hold_position(0))) {
-		_hold_position(0) = _position(0);
-		_hold_position(1) = _position(1);
-
-	} else if (!stick_xy_zero) {
-		_hold_position(0) = NAN;
-		_hold_position(1) = NAN;
-	}
-
-	if (stick_z_zero && stopped_z && !PX4_ISFINITE(_hold_position(2))) {
-		_hold_position(2) = _position(2);
-
-	} else if (!stick_z_zero) {
-		_hold_position(2) = NAN;
-	}
-
-	_setPositionSetpoint(_hold_position);
-
-	_updateYaw();
+	/* TODO
+	 * FlightTask setpoint interface and Position Controller need to be updated to include
+	 * thrust setpoint. With thrust setpoint FlightTaskManual can be used as manual flight mode.
+	 */
 	return true;
 }
 
@@ -191,16 +144,15 @@ bool FlightTaskManual::_evaluateSticks()
 		_sticks(2) = -(_sub_manual_control_setpoint->get().z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
 		_sticks(3) = _sub_manual_control_setpoint->get().r; /* "yaw" [-1,1] */
 
-		/* apply expo and deadzone */
-		_sticks(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
-		_sticks(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
-		_sticks(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
-		_sticks(3) = math::deadzone(_sticks(3), _hold_dz.get());
+		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
+		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
+		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
 
 		return true;
 
 	} else {
 		_sticks.zero(); /* default is all zero */
+		_sticks_expo.zero();
 		return false;
 	}
 }
