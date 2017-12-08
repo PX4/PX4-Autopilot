@@ -43,6 +43,7 @@
 
 #include "tasks/FlightTask.hpp"
 #include "tasks/FlightTaskManual.hpp"
+#include "tasks/FlightTaskManualAltitude.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 #include "tasks/FlightTaskSport.hpp"
 
@@ -120,6 +121,7 @@ private:
 		~TaskUnion() {}
 
 		FlightTaskManual manual;
+		FlightTaskManualAltitude altitude;
 		FlightTaskOrbit orbit;
 		FlightTaskSport sport;
 	} _task_union; /**< storage for the currently active task */
