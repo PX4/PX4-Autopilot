@@ -54,37 +54,66 @@ FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, 
 
 bool FlightTaskManualAltitude::activate()
 {
-	_pos_sp_z = _position(2);
-	_yaw_sp = _yaw;
+	_pos_sp_predicted = _pos_sp_z = _position(2);
+	_yaw_sp_predicted = _yaw_sp = _yaw;
+	_yaw_rate_sp = _vel_sp_z = NAN;
+
 	return FlightTaskManual::activate();
+}
+
+void FlightTaskManualAltitude::scale_sticks()
+{
+
+	/* map stick to velocity */
+	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
+	_vel_sp_z = vel_max_z * _sticks_expo(2);
+	_yaw_rate_sp = _sticks(3) * _yaw_rate_scaling.get();
+
+}
+
+void FlightTaskManualAltitude::update_heading_setpoints()
+{
+	if (fabsf(_sticks(3) < FLT_EPSILON)) {
+		/* want to hold yaw */
+		_yaw_rate_sp = NAN;
+		_yaw_sp = _yaw_sp_predicted;
+
+	} else {
+		/* want to change yaw based on yaw-rate */
+		_yaw_sp = NAN;
+		_yaw_sp_predicted = _wrap_pi(_yaw_sp_predicted + _yaw_rate_sp * _deltatime);
+	}
+}
+
+void FlightTaskManualAltitude::update_z_setpoints()
+{
+	if (fabsf(_sticks(2)) < FLT_EPSILON) {
+		/* want to hold altitude */
+		_vel_sp_z = NAN;
+		_pos_sp_z = _pos_sp_predicted;
+
+	} else {
+		/* want to change altitude through velocity */
+		_pos_sp_z = NAN;
+		_pos_sp_predicted = _position(2) + _vel_sp_z * _deltatime;
+	}
+}
+
+void FlightTaskManualAltitude::update_setpoints()
+{
+	update_heading_setpoints();
+	update_z_setpoints();
 }
 
 bool FlightTaskManualAltitude::update()
 {
-	/* map stick to velocity */
-	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
-	float vel_sp_z = vel_max_z * _sticks_expo(2);
+	scale_sticks();
+	update_setpoints();
 
-	const float yaw_rate_sp = _sticks(3) * _yaw_rate_scaling;
-
-	if(fabsf(_sticks(2)) < FLT_EPSILON) {
-		_setPositionSetpoint(Vector3f(NAN, NAN, _pos_sp_z));
-		_setVelocitySetpoint(Vector3f(NAN, NAN, NAN));
-
-	} else {
-		_setPositionSetpoint(Vector3f(NAN, NAN, NAN));
-		_setVelocitySetpoint(Vector3f(NAN, NAN, vel_sp_z));
-		_pos_sp_z = _position(2) + vel_sp_z * _deltatime;
-	}
-
-	if(fabsf(_sticks(3) < FLT_EPSILON)) {
-		_setYawspeedSetpoint(NAN);
-		_setYawSetpoint(_yaw_sp);
-	} else {
-		_setYawspeedSetpoint(yaw_rate_sp);
-		_setYawSetpoint(NAN);
-		_yaw_sp = _wrap_pi(_yaw_sp + yaw_rate_sp * _deltatime)
-	}
+	_setPositionSetpoint(Vector3f(NAN, NAN, _pos_sp_z));
+	_setVelocitySetpoint(Vector3f(NAN, NAN, _vel_sp_z));
+	_setYawSetpoint(_yaw_sp);
+	_setYawspeedSetpoint(_yaw_rate_sp);
 
 	return true;
 }
