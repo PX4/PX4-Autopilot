@@ -54,13 +54,24 @@ public:
 	bool update() override;
 
 protected:
+
+	float _vel_sp_z{0.0f}; /**< scaled velocity directly from stick */
+	float _yaw_rate_sp{0.0f}; /** scaled yaw rate directly from stick */
 	float _pos_sp_z{0.0f};
 	float _yaw_sp{0.0f};
 
-private:
-
 	control::BlockParamFloat _vel_max_down; /**< maximum speed allowed to go up */
 	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */
-	control::BlockParamFloat _yaw_rate_scaling;
+	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
+
+	virtual void update_setpoints(); /**< updates all setpoints */
+	virtual void scale_sticks(); /**< scales sticks to velocity */
+
+private:
+	void update_heading_setpoints(); /**< sets yaw or yaw speed */
+	void update_z_setpoints(); /**< sets position or velocity setpoint */
+
+	float _pos_sp_predicted{0.0f}; /**< position setpoint computed in set_z_setpoints */
+	float _yaw_sp_predicted{0.0f}; /**< yaw setpoint computed in set_heading_setpoints */
 
 };
