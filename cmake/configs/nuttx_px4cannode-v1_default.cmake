@@ -16,6 +16,8 @@ add_definitions(
 	)
 
 # Bring in common uavcan hardware identity definitions
+include(common/px4_git)
+px4_add_git_submodule(TARGET git_uavcan_board_ident PATH "cmake/configs/uavcan_board_ident")
 include(configs/uavcan_board_ident/px4cannode-v1)
 add_definitions(
 	-DHW_UAVCAN_NAME=${uavcanblid_name}
