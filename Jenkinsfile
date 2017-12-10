@@ -148,6 +148,28 @@ pipeline {
           }
 
 
+          // snapdragon eagle (posix + qurt)
+          for (def node_name in ["eagle_default"]) {
+            builds["${node_name}"] = {
+              node {
+                stage("Build Test ${node_name}") {
+                  docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {
+                    docker.image("lorenzmeier/px4-dev-snapdragon:2017-10-23").inside {
+                      stage("${node_name}") {
+                        checkout scm
+                        sh "make clean"
+                        sh "ccache -z"
+                        sh "make ${node_name}"
+                        sh "ccache -s"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+
           // GCC7 tests
           for (def node_name in ["posix_sitl_default", "nuttx_px4fmu-v5_default"]) {
             builds["${node_name} (GCC7)"] = {
