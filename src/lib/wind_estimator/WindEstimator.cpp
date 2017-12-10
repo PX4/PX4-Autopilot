@@ -97,8 +97,10 @@ WindEstimator::update(uint64_t time_now)
 
 	// run covariance prediction at 1Hz
 	if (time_now - _time_last_update < 1e6 || _time_last_update == 0) {
-		if (_time_last_update == 0)
+		if (_time_last_update == 0) {
 			_time_last_update = time_now;
+		}
+
 		return;
 	}
 
@@ -127,7 +129,8 @@ WindEstimator::update(uint64_t time_now)
 }
 
 void
-WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const Vector3f &velI, const Vector2f &velIvar)
+WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const Vector3f &velI,
+			     const Vector2f &velIvar)
 {
 	Vector2f velIvar_constrained = { max(0.01f, velIvar(0)), max(0.01f, velIvar(1)) };
 
@@ -257,6 +260,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const Vector3f &velI, const Quatf &q
 
 	if (fabsf(_beta_innov) > sqrtf(_beta_innov_var)) {
 		_time_rejected_beta = _time_rejected_beta == 0 ? time_now : _time_rejected_beta;
+
 	} else {
 		_time_rejected_beta = 0;
 	}

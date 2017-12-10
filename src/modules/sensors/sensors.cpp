@@ -421,7 +421,8 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		if (fuse_airspeed) {
 			matrix::Vector3f vel_var(_vehicle_local_position.evh, _vehicle_local_position.evh, _vehicle_local_position.evv);
 			vel_var = R_to_earth * vel_var;
-			_wind_estimator.fuse_airspeed(hrt_absolute_time(), _airspeed.indicated_airspeed_m_s , &vI._data[0][0], &vel_var._data[0][0]);
+			_wind_estimator.fuse_airspeed(hrt_absolute_time(), _airspeed.indicated_airspeed_m_s, &vI._data[0][0],
+						      &vel_var._data[0][0]);
 			_time_last_airspeed_fused = hrt_absolute_time();
 		}
 	}
