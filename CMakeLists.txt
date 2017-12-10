@@ -124,7 +124,6 @@ execute_process(
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 
-px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
 px4_add_git_submodule(TARGET git_uavcan_board_ident PATH "cmake/configs/uavcan_board_ident")
 px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
