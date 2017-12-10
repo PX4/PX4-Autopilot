@@ -20,7 +20,8 @@ add_definitions(
 #
 # Bring in common uavcan hardware identity definitions
 #
-
+include(common/px4_git)
+px4_add_git_submodule(TARGET git_uavcan_board_ident PATH "cmake/configs/uavcan_board_ident")
 include(configs/uavcan_board_ident/s2740vc-v1)
 
 # N.B. this would be uncommented when there is an APP
