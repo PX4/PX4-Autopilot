@@ -35,6 +35,7 @@ then
 		elif [ "$user_cmd" == "u" ]
 		then
 			git submodule sync --recursive -- $1
+			git submodule update --init --recursive --force --quiet -- $1 || true
 			git submodule update --init --recursive -- $1
 			echo "Submodule fixed, continuing build.."
 		else
@@ -43,9 +44,9 @@ then
 		fi
 	fi
 else
-	echo "REINITIALIZING GIT SUBMODULE $1"
-	git submodule sync --recursive -- $1;
-	git submodule update --init --recursive -- $1;
+	git submodule sync --recursive -- $1
+	git submodule update --init --recursive -- $1  || true
+	git submodule update --init --recursive -- $1
 fi
 
 }
@@ -60,7 +61,7 @@ then
 		exit 0
 	}
 
-	git submodule update --init --recursive -- $1
+	check_git_submodule $1
 
 else
 
@@ -70,7 +71,7 @@ else
 		exit 0
 	}
 
-	submodules=$(git submodule status --recursive | awk '{ print $2 }')
+	submodules=$(git submodule status | awk '{ print $2 }')
 	for i in $submodules;
 	do
 		check_git_submodule $i
