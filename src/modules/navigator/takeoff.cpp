@@ -142,7 +142,6 @@ Takeoff::set_takeoff_position()
 
 	// set current mission item to takeoff
 	set_takeoff_item(&_mission_item, abs_altitude);
-	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
