@@ -1,9 +1,11 @@
 include(common/px4_upload)
 
-# add executable
-set(fw_name ${CONFIG}.elf)
-add_executable(${fw_name} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
-add_dependencies(${fw_name} git_nuttx nuttx_build)
+if (NOT FW_NAME)
+	set(FW_NAME ${CONFIG}.elf)
+endif()
+
+add_executable(${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+add_dependencies(${FW_NAME} git_nuttx nuttx_build)
 
 get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
 
@@ -33,7 +35,7 @@ if (NOT LD_SCRIPT)
 	set(LD_SCRIPT ld.script)
 endif()
 
-target_link_libraries(${fw_name}
+target_link_libraries(${FW_NAME}
 	-T${PX4_BINARY_DIR}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
 	-Wl,-Map=${PX4_BINARY_DIR}/${CONFIG}.map
 	-Wl,--warn-common
@@ -48,7 +50,7 @@ target_link_libraries(${fw_name}
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
-	target_link_libraries(${fw_name} romfs)
+	target_link_libraries(${FW_NAME} romfs)
 	if (config_io_board)
 		add_dependencies(romfs copy_px4io_bin)
 	endif()
@@ -58,8 +60,8 @@ endif()
 set(fw_file ${PX4_BINARY_DIR}/${BOARD}_${LABEL}.px4)
 
 add_custom_command(OUTPUT ${BOARD}.bin
-	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR}/${fw_name} ${BOARD}.bin
-	DEPENDS ${fw_name}
+	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR}/${FW_NAME} ${BOARD}.bin
+	DEPENDS ${FW_NAME}
 	)
 
 if (TARGET parameters_xml AND TARGET airframes_xml)
@@ -86,15 +88,15 @@ endif()
 
 # print size
 add_custom_target(size
-	COMMAND size ${fw_name}
-	DEPENDS ${fw_name}
+	COMMAND size ${FW_NAME}
+	DEPENDS ${FW_NAME}
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
 
 # print weak symbols
 add_custom_target(check_weak
-	COMMAND ${NM} ${fw_name} | ${GREP} " w " | cat
-	DEPENDS ${fw_name}
+	COMMAND ${NM} ${FW_NAME} | ${GREP} " w " | cat
+	DEPENDS ${FW_NAME}
 	VERBATIM
 	)
 
@@ -102,28 +104,28 @@ add_custom_target(check_weak
 configure_file(gdbinit.in .gdbinit)
 
 add_custom_target(debug
-	COMMAND ${GDB} $<TARGET_FILE:${fw_name}>
-	DEPENDS ${fw_name} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	COMMAND ${GDB} $<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 	)
 
 add_custom_target(debug_tui
-	COMMAND ${GDBTUI} $<TARGET_FILE:${fw_name}>
-	DEPENDS ${fw_name} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	COMMAND ${GDBTUI} $<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 	)
 
 add_custom_target(debug_ddd
-	COMMAND ${DDD} --debugger ${GDB} $<TARGET_FILE:${fw_name}>
-	DEPENDS ${fw_name} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	COMMAND ${DDD} --debugger ${GDB} $<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 	)
 
 add_custom_target(debug_io
 	COMMAND ${GDB} ${fw_io_path}
-	DEPENDS ${fw_name} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 	)
 
 add_custom_target(debug_io_tui
 	COMMAND ${GDBTUI} ${fw_io_path}
-	DEPENDS ${fw_name} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 	)
 
 add_custom_target(debug_io_ddd
