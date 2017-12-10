@@ -1131,7 +1131,6 @@ Navigator::publish_mission_result()
 	//_mission_result.seq_current = 0;
 
 	/* reset some of the flags */
-	_mission_result.reached = false;
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
