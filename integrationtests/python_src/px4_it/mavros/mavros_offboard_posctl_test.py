@@ -43,18 +43,14 @@ PKG = 'px4'
 import unittest
 import rospy
 import math
-import rosbag
-import time
-
-from numpy import linalg
 import numpy as np
-
-from std_msgs.msg import Header
-from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
-from mavros_msgs.srv import CommandLong
+from geometry_msgs.msg import PoseStamped, Quaternion
+from mavros_msgs.msg import State
+from mavros_msgs.srv import CommandBool, SetMode
 from sensor_msgs.msg import NavSatFix
-#from px4_test_helper import PX4TestHelper
+from std_msgs.msg import Header
+
 
 class MavrosOffboardPosctlTest(unittest.TestCase):
     """
@@ -66,22 +62,26 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
     """
 
     def setUp(self):
-        rospy.init_node('test_node', anonymous=True)
-        #self.helper = PX4TestHelper("mavros_offboard_posctl_test")
-        #self.helper.setUp()
-
-        rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.position_callback)
-        rospy.Subscriber("mavros/global_position/global", NavSatFix, self.global_position_callback)
-        self.pub_spt = rospy.Publisher('mavros/setpoint_position/local', PoseStamped, queue_size=10)
-        rospy.wait_for_service('mavros/cmd/command', 30)
-        self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
-        self.rate = rospy.Rate(10) # 10hz
+        self.rate = rospy.Rate(10)  # 10hz
         self.has_global_pos = False
         self.local_position = PoseStamped()
-        self.armed = False
+        self.state = State()
+
+        # setup ROS topics and services
+        rospy.wait_for_service('mavros/cmd/arming', 30)
+        rospy.wait_for_service('mavros/set_mode', 30)
+        self.set_arming_srv = rospy.ServiceProxy('/mavros/cmd/arming',
+                                                 CommandBool)
+        self.set_mode_srv = rospy.ServiceProxy('/mavros/set_mode', SetMode)
+        rospy.Subscriber('mavros/local_position/pose', PoseStamped,
+                         self.position_callback)
+        rospy.Subscriber('mavros/global_position/global', NavSatFix,
+                         self.global_position_callback)
+        rospy.Subscriber('mavros/state', State, self.state_callback)
+        self.pos_setpoint_pub = rospy.Publisher(
+            'mavros/setpoint_position/local', PoseStamped, queue_size=10)
 
     def tearDown(self):
-        #self.helper.tearDown()
         pass
 
     #
@@ -93,20 +93,28 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
     def global_position_callback(self, data):
         self.has_global_pos = True
 
+    def state_callback(self, data):
+        self.state = data
+
     #
     # Helper methods
     #
+    def wait_until_ready(self):
+        """FIXME: hack to wait for simulation to be ready"""
+        rospy.loginfo("waiting for global position")
+        while not self.has_global_pos:
+            self.rate.sleep()
+
     def is_at_position(self, x, y, z, offset):
-        rospy.logdebug("current position %f, %f, %f" %
-                       (self.local_position.pose.position.x,
-                       self.local_position.pose.position.y,
-                       self.local_position.pose.position.z))
+        rospy.logdebug("current position | x:{0}, y:{1}, z:{2}".format(
+            self.local_position.pose.position.x, self.local_position.pose.
+            position.y, self.local_position.pose.position.z))
 
         desired = np.array((x, y, z))
         pos = np.array((self.local_position.pose.position.x,
                         self.local_position.pose.position.y,
                         self.local_position.pose.position.z))
-        return linalg.norm(desired - pos) < offset
+        return np.linalg.norm(desired - pos) < offset
 
     def reach_position(self, x, y, z, timeout):
         # set a position setpoint
@@ -123,54 +131,75 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
         quaternion = quaternion_from_euler(0, 0, yaw)
         pos.pose.orientation = Quaternion(*quaternion)
 
-        # does it reach the position in X seconds?
-        count = 0
-        while count < timeout:
-            # update timestamp for each published SP
+        # send some setpoints before starting
+        for i in xrange(20):
             pos.header.stamp = rospy.Time.now()
-            self.pub_spt.publish(pos)
-            #self.helper.bag_write('mavros/setpoint_position/local', pos)
-
-            # FIXME: arm and switch to offboard
-            # (need to wait the first few rounds until PX4 has the offboard stream)
-            if not self.armed and count > 5:
-                self._srv_cmd_long(False, 176, False,
-                                   1, 6, 0, 0, 0, 0, 0)
-                # make sure the first command doesn't get lost
-                time.sleep(1)
-
-                self._srv_cmd_long(False, 400, False,
-                                   # arm
-                                   1, 0, 0, 0, 0, 0, 0)
-
-                self.armed = True
-
-            if self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 1):
-                break
-            count = count + 1
+            self.pos_setpoint_pub.publish(pos)
             self.rate.sleep()
 
-        self.assertTrue(count < timeout, "took too long to get to position")
+        rospy.loginfo("set mission mode and arm")
+        while self.state.mode != "OFFBOARD" or not self.state.armed:
+            if self.state.mode != "OFFBOARD":
+                try:
+                    self.set_mode_srv(0, 'OFFBOARD')
+                except rospy.ServiceException as e:
+                    rospy.logerr(e)
+            if not self.state.armed:
+                try:
+                    self.set_arming_srv(True)
+                except rospy.ServiceException as e:
+                    rospy.logerr(e)
+            rospy.sleep(2)
 
+        rospy.loginfo("run mission")
+        # does it reach the position in X seconds?
+        reached = False
+        for count in xrange(timeout):
+            # update timestamp for each published SP
+            pos.header.stamp = rospy.Time.now()
+            self.pos_setpoint_pub.publish(pos)
+
+            if self.is_at_position(pos.pose.position.x, pos.pose.position.y,
+                                   pos.pose.position.z, 1):
+                rospy.loginfo(
+                    "position reached | count: {0}, x: {0}, y: {1}, z: {2}".
+                    format(count, pos.pose.position.x, pos.pose.position.y,
+                           pos.pose.position.z))
+                reached = True
+                break
+
+            self.rate.sleep()
+
+        self.assertTrue(reached, (
+            "took too long to get to position | x: {0}, y: {1}, z: {2}, timeout: {3}".
+            format(self.local_position.pose.position.x,
+                   self.local_position.pose.position.y,
+                   self.local_position.pose.position.z, timeout)))
+
+    #
+    # Test method
+    #
     def test_posctl(self):
         """Test offboard position control"""
 
-        # FIXME: hack to wait for simulation to be ready
-        while not self.has_global_pos:
-            self.rate.sleep()
+        self.wait_until_ready()
 
-        positions = (
-            (0, 0, 0),
-            (2, 2, 2),
-            (2, -2, 2),
-            (-2, -2, 2),
-            (2, 2, 2))
+        positions = ((0, 0, 0), (2, 2, 2), (2, -2, 2), (-2, -2, 2), (2, 2, 2))
 
-        for i in range(0, len(positions)):
-            self.reach_position(positions[i][0], positions[i][1], positions[i][2], 180)
+        for i in xrange(len(positions)):
+            self.reach_position(positions[i][0], positions[i][1],
+                                positions[i][2], 180)
+
+        if self.state.armed:
+            try:
+                self.set_arming_srv(False)
+            except rospy.ServiceException as e:
+                rospy.logerr(e)
 
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'mavros_offboard_posctl_test', MavrosOffboardPosctlTest)
-    #unittest.main()
+    rospy.init_node('test_node', anonymous=True)
+
+    rostest.rosrun(PKG, 'mavros_offboard_posctl_test',
+                   MavrosOffboardPosctlTest)
