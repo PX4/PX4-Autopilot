@@ -31,16 +31,19 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+px4_add_git_submodule(TARGET git_mavlink_v1 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v1.0")
 
 px4_add_module(
 	MODULE drivers__snapdragon_rc_pwm
 	MAIN snapdragon_rc_pwm
 	COMPILE_FLAGS
 		-DMAVLINK_COMM_NUM_BUFFERS=1
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		snapdragon_rc_pwm.cpp
 	DEPENDS
+		git_mavlink_v1
 		platforms__common
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
