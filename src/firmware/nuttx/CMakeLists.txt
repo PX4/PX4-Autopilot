@@ -57,7 +57,9 @@ if (config_romfs_root)
 endif()
 
 # create px4 file (combined firmware and metadata)
-set(fw_file ${PX4_BINARY_DIR}/${BOARD}_${LABEL}.px4)
+set(fw_file ${PX4_BINARY_DIR}/${FW_NAME})
+string(REPLACE ".elf" ".px4" fw_file ${fw_file})
+string(REPLACE "nuttx_" "" fw_file ${fw_file})
 
 add_custom_command(OUTPUT ${BOARD}.bin
 	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR}/${FW_NAME} ${BOARD}.bin
