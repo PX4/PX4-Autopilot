@@ -255,6 +255,16 @@ WindEstimator::fuse_beta(uint64_t time_now, const Vector3f &velI, const Quatf &q
 	_beta_innov = 0.0f - beta_pred;
 	_beta_innov_var = S._data[0][0];
 
+	if (fabsf(_beta_innov) > sqrtf(_beta_innov_var)) {
+		_time_rejected_beta = _time_rejected_beta == 0 ? time_now : _time_rejected_beta;
+	} else {
+		_time_rejected_beta = 0;
+	}
+
+	if (time_now - _time_rejected_beta > 5e6 && _time_rejected_beta != 0) {
+		_initialised =	initialise(velI, Vector2f(0.1f, 0.1f), velI.length());
+	}
+
 	// apply correction to state
 	_state(w_n) += _beta_innov * K(0, 0);
 	_state(w_e) += _beta_innov * K(1, 0);

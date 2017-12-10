@@ -111,6 +111,7 @@ private:
 	uint64_t _time_last_airspeed_fuse = 0;	// timestamp of last airspeed fusion
 	uint64_t _time_last_beta_fuse = 0;		// timestamp of last sideslip fusion
 	uint64_t _time_last_update = 0;			// timestamp of last covariance prediction
+	uint64_t _time_rejected_beta = 0;
 
 	// initialise state and state covariance matrix
 	bool initialise(const Vector3f &velI, const Vector2f &velIvar, const float tas_meas);
