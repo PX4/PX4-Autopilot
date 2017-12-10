@@ -43,6 +43,8 @@ px4_add_module(
 		platforms__common
 	)
 
+include(cygwin_cygpath)
+
 # include the px4io binary in ROMFS
 message(STATUS "Building and including ${config_io_board}")
 
@@ -60,9 +62,15 @@ add_custom_command(OUTPUT ${fw_io_exe}
 	COMMENT "Building ${config_io_board}"
 	USES_TERMINAL
 	)
+
+# only in the cygwin environment: convert paths for
+# binary in and output to mixed windows paths (C:/...)
+CYGPATH(fw_io_exe fw_io_exe_cyg)
+CYGPATH(fw_io_bin fw_io_bin_cyg)
+
 add_custom_command(OUTPUT ${fw_io_bin}
 	COMMAND mkdir -p ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/
-	COMMAND ${OBJCOPY} -O binary ${fw_io_exe} ${fw_io_bin}
+	COMMAND ${OBJCOPY} -O binary ${fw_io_exe_cyg} ${fw_io_bin_cyg}
 	DEPENDS ${fw_io_exe}
 	COMMENT "Copying ${config_io_board} to ROMFS extras"
 	)
