@@ -20,7 +20,9 @@ pipeline {
 
 
           // nuttx default targets that are archived and uploaded to s3
-          for (def node_name in ["px4fmu-v4", "px4fmu-v4pro", "px4fmu-v5", "aerofc-v1"]) {
+          for (def option in ["px4fmu-v4", "px4fmu-v4pro", "px4fmu-v5", "aerofc-v1"]) {
+            def node_name = "${option}"
+
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
@@ -32,6 +34,7 @@ pipeline {
                       sh "git fetch --tags"
                       sh "make nuttx_${node_name}_default"
                       sh "make nuttx_${node_name}_rtps"
+                      sh "make sizes"
                       sh "ccache -s"
                       archiveArtifacts(artifacts: 'build/*/*.px4', fingerprint: true)
                     }
@@ -57,6 +60,7 @@ pipeline {
                     sh "make nuttx_px4fmu-v2_lpe"
                     sh "make nuttx_px4fmu-v3_default"
                     sh "make nuttx_px4fmu-v3_rtps"
+                    sh "make sizes"
                     sh "ccache -s"
                     archiveArtifacts(artifacts: 'build/*/*.px4', fingerprint: true)
                   }
@@ -67,7 +71,9 @@ pipeline {
 
 
           // nuttx default targets that are archived and uploaded to s3
-          for (def node_name in ["aerocore2", "auav-x21", "crazyflie", "mindpx-v2", "nxphlite-v3", "tap-v1"]) {
+          for (def option in ["aerocore2", "auav-x21", "crazyflie", "mindpx-v2", "nxphlite-v3", "tap-v1"]) {
+            def node_name = "${option}"
+
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
@@ -78,6 +84,7 @@ pipeline {
                       sh "ccache -z"
                       sh "git fetch --tags"
                       sh "make nuttx_${node_name}_default"
+                      sh "make sizes"
                       sh "ccache -s"
                       archiveArtifacts(artifacts: 'build/*/*.px4', fingerprint: true)
                     }
@@ -89,7 +96,9 @@ pipeline {
 
 
           // other nuttx default targets
-          for (def node_name in ["px4-same70xplained-v1", "px4-stm32f4discovery", "px4cannode-v1", "px4esc-v1", "px4nucleoF767ZI-v1", "s2740vc-v1"]) {
+          for (def option in ["px4-same70xplained-v1", "px4-stm32f4discovery", "px4cannode-v1", "px4esc-v1", "px4nucleoF767ZI-v1", "s2740vc-v1"]) {
+            def node_name = "${option}"
+
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
@@ -99,6 +108,7 @@ pipeline {
                       sh "make clean"
                       sh "ccache -z"
                       sh "make nuttx_${node_name}_default"
+                      sh "make sizes"
                       sh "ccache -s"
                     }
                   }
@@ -109,7 +119,9 @@ pipeline {
 
 
           // raspberry pi and bebop (armhf)
-          for (def node_name in ["rpi_cross", "bebop_default"]) {
+          for (def option in ["rpi_cross", "bebop_default"]) {
+            def node_name = "${option}"
+
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
@@ -129,7 +141,9 @@ pipeline {
 
 
           // other armhf (to be merged with raspi and bebop)
-          for (def node_name in ["ocpoc_ubuntu"]) {
+          for (def option in ["ocpoc_ubuntu"]) {
+            def node_name = "${option}"
+
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
@@ -149,7 +163,9 @@ pipeline {
 
 
           // snapdragon eagle (posix + qurt)
-          for (def node_name in ["eagle_default"]) {
+          for (def option in ["eagle_default"]) {
+            def node_name = "${option}"
+
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
@@ -171,7 +187,9 @@ pipeline {
 
 
           // GCC7 tests
-          for (def node_name in ["posix_sitl_default", "nuttx_px4fmu-v5_default"]) {
+          for (def option in ["posix_sitl_default", "nuttx_px4fmu-v5_default"]) {
+            def node_name = "${option}"
+
             builds["${node_name} (GCC7)"] = {
               node {
                 stage("Build Test ${node_name} (GCC7)") {
