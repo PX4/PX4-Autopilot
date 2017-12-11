@@ -118,8 +118,6 @@ Navigator::Navigator() :
 	_navigation_mode_array[7] = &_takeoff;
 	_navigation_mode_array[8] = &_land;
 	_navigation_mode_array[9] = &_follow_target;
-
-	updateParams();
 }
 
 Navigator::~Navigator()
@@ -214,10 +212,6 @@ Navigator::params_update()
 	parameter_update_s param_update;
 	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
 	updateParams();
-
-	if (_navigation_mode) {
-		_navigation_mode->updateParams();
-	}
 }
 
 void

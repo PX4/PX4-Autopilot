@@ -62,9 +62,6 @@ GpsFailure::GpsFailure(Navigator *navigator, const char *name) :
 	_gpsf_state(GPSF_STATE_NONE),
 	_timestamp_activation(0)
 {
-	/* load initial params */
-	updateParams();
-
 	/* initial reset */
 	on_inactive();
 }
