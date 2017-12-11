@@ -70,8 +70,6 @@ DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	_param_skipcommshold(this, "CHSK"),
 	_dll_state(DLL_STATE_NONE)
 {
-	/* load initial params */
-	updateParams();
 	/* initial reset */
 	on_inactive();
 }

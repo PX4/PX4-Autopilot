@@ -80,7 +80,6 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	_yaw_auto_max(0.0F),
 	_yaw_angle(0.0F)
 {
-	updateParams();
 	_current_target_motion = {};
 	_previous_target_motion =  {};
 	_current_vel.zero();
