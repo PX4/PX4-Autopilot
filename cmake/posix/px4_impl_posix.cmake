@@ -171,12 +171,15 @@ function(px4_os_add_flags)
 		)
 
 	# This block sets added_definitions and added_cxx_flags.
+	set(added_definitions
+		-D__PX4_POSIX
+		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
+		)
+
 	if(UNIX AND APPLE)
-		set(added_definitions
-			-D__PX4_POSIX
+		list(APPEND added_definitions
 			-D__PX4_DARWIN
 			-D__DF_DARWIN
-			-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 			)
 
 		set(added_cxx_flags)
@@ -197,21 +200,17 @@ function(px4_os_add_flags)
 		endif()
 
 	elseif(CYGWIN)
-		set(added_definitions
-			-D__PX4_POSIX
+		list(APPEND added_definitions
 			-D__PX4_CYGWIN
 			-D_GNU_SOURCE
 			-D__USE_LINUX_IOCTL_DEFS
-			-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 			-U __CUSTOM_FILE_IO__
 			)
 
 	else()
-		set(added_definitions
-			-D__PX4_POSIX
+		list(APPEND added_definitions
 			-D__PX4_LINUX
 			-D__DF_LINUX
-			-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 			)
 
 		# Use -pthread For linux/g++.
