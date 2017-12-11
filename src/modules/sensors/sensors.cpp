@@ -182,8 +182,6 @@ private:
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
-	differential_pressure_s _diff_pres{};
-
 	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
 
 	Parameters		_parameters{};			/**< local copies of interesting parameters */
@@ -307,25 +305,30 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	orb_check(_diff_pres_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
+		differential_pressure_s diff_pres;
+		int ret = orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &diff_pres);
 
-		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature :
+		if (ret != PX4_OK) {
+			return;
+		}
+
+		float air_temperature_celsius = (diff_pres.temperature > -300.0f) ? diff_pres.temperature :
 						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		airspeed_s airspeed;
-		airspeed.timestamp = _diff_pres.timestamp;
+		airspeed.timestamp = diff_pres.timestamp;
 
 		/* push data into validator */
-		float airspeed_input[3] = { _diff_pres.differential_pressure_raw_pa, _diff_pres.temperature, 0.0f };
+		float airspeed_input[3] = { diff_pres.differential_pressure_raw_pa, diff_pres.temperature, 0.0f };
 
-		_airspeed_validator.put(airspeed.timestamp, airspeed_input, _diff_pres.error_count,
+		_airspeed_validator.put(airspeed.timestamp, airspeed_input, diff_pres.error_count,
 					ORB_PRIO_HIGH);
 
 		airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
 
 		enum AIRSPEED_SENSOR_MODEL smodel;
 
-		switch ((_diff_pres.device_id >> 16) & 0xFF) {
+		switch ((diff_pres.device_id >> 16) & 0xFF) {
 		case DRV_DIFF_PRESS_DEVTYPE_SDP31:
 
 		/* fallthrough */
@@ -346,7 +349,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		airspeed.indicated_airspeed_m_s = math::max(0.0f,
 						  calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
 								  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-								  _diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
+								  diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
 								  air_temperature_celsius));
 
 		airspeed.true_airspeed_m_s = math::max(0.0f,
@@ -354,7 +357,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 								       _voted_sensors_update.baro_pressure(), air_temperature_celsius));
 
 		airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-							calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
+							calc_true_airspeed(diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
 									_voted_sensors_update.baro_pressure(), air_temperature_celsius));
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
@@ -485,19 +488,19 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
 
-						_diff_pres.timestamp = t;
-						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
+						differential_pressure_s diff_pres;
+						diff_pres.timestamp = t;
+						diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
+						diff_pres.differential_pressure_filtered_pa = (diff_pres.differential_pressure_filtered_pa * 0.9f) +
 								(diff_pres_pa_raw * 0.1f);
-						_diff_pres.temperature = -1000.0f;
+						diff_pres.temperature = -1000.0f;
 
 						int instance;
-						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &_diff_pres, &instance,
-								 ORB_PRIO_DEFAULT);
+						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &diff_pres, &instance, ORB_PRIO_DEFAULT);
 					}
 
 				} else
-#endif
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 				{
 					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
