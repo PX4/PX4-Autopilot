@@ -1025,8 +1025,10 @@ param_export(int fd, bool only_unsaved)
 	perf_begin(param_export_perf);
 
 	struct param_wbuf_s *s = NULL;
-	struct bson_encoder_s encoder;
 	int	result = -1;
+
+	struct bson_encoder_s encoder;
+	encoder.realloc_ok = 0;
 
 	int shutdown_lock_ret = px4_shutdown_lock();
 
@@ -1039,7 +1041,8 @@ param_export(int fd, bool only_unsaved)
 
 	param_lock_reader();
 
-	bson_encoder_init_file(&encoder, fd);
+	uint8_t bson_buffer[512];
+	bson_encoder_init_buf(&encoder, &bson_buffer, sizeof(bson_buffer));
 
 	/* no modified parameters -> we are done */
 	if (param_values == NULL) {
@@ -1048,10 +1051,6 @@ param_export(int fd, bool only_unsaved)
 	}
 
 	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
-
-		int32_t	i;
-		float	f;
-
 		/*
 		 * If we are only saving values changed since last save, and this
 		 * one hasn't, then skip it
@@ -1062,16 +1061,33 @@ param_export(int fd, bool only_unsaved)
 
 		s->unsaved = false;
 
+		const char *name = param_name(s->param);
+		const size_t size = param_size(s->param);
+
+		// check remaining buffer size and commit to disk
+		//  total size = name + param size + bson header + bson end
+		// size is doubled (floats saved as doubles)
+		const size_t total_size = strlen(name) + 2 * size + 2;
+
+		if (encoder.bufpos > encoder.bufsize - total_size) {
+			// write buffer to disk and continue
+			int ret = write(fd, encoder.buf, encoder.bufpos);
+
+			if (ret == encoder.bufpos) {
+				// reset buffer to beginning and continue
+				encoder.bufpos = 0;
+
+			} else {
+				PX4_ERR("param write error %d %d", ret, encoder.bufpos);
+				goto out;
+			}
+		}
+
 		/* append the appropriate BSON type object */
-
-
 		switch (param_type(s->param)) {
 
 		case PARAM_TYPE_INT32: {
-				i = s->val.i;
-				const char *name = param_name(s->param);
-
-				/* lock as short as possible */
+				const int32_t i = s->val.i;
 
 				if (bson_encoder_append_int(&encoder, name, i)) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1081,9 +1097,7 @@ param_export(int fd, bool only_unsaved)
 			break;
 
 		case PARAM_TYPE_FLOAT: {
-
-				f = s->val.f;
-				const char *name = param_name(s->param);
+				const float f = s->val.f;
 
 				if (bson_encoder_append_double(&encoder, name, f)) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1093,9 +1107,6 @@ param_export(int fd, bool only_unsaved)
 			break;
 
 		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX: {
-
-				const char *name = param_name(s->param);
-				const size_t size = param_size(s->param);
 				const void *value_ptr = param_get_value_ptr(s->param);
 
 				/* lock as short as possible */
@@ -1115,9 +1126,6 @@ param_export(int fd, bool only_unsaved)
 			PX4_ERR("unrecognized parameter type");
 			goto out;
 		}
-
-		/* allow this process to be interrupted by another process / thread */
-		usleep(5);
 	}
 
 	result = 0;
@@ -1126,6 +1134,14 @@ out:
 
 	if (result == 0) {
 		result = bson_encoder_fini(&encoder); // this will call fsync
+
+		// write and finish
+		if ((result != 0) || write(fd, encoder.buf, encoder.bufpos) != encoder.bufpos) {
+			PX4_ERR("param write error");
+
+		} else {
+			px4_fsync(fd);
+		}
 	}
 
 	param_unlock_reader();
