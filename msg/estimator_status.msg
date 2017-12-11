@@ -19,9 +19,9 @@ uint16 GPS_CHECK_FAIL_MIN_GDOP = 2				# 2 : minimum required GDoP fail
 uint16 GPS_CHECK_FAIL_MAX_HORZ_ERR = 3			# 3 : maximum allowed horizontal position error fail
 uint16 GPS_CHECK_FAIL_MAX_VERT_ERR = 4			# 4 : maximum allowed vertical position error fail
 uint16 GPS_CHECK_FAIL_MAX_SPD_ERR = 5			# 5 : maximum allowed speed error fail
-uint16 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 6		# 6 : maximum allowed horizontal position drift fail
-uint16 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 7		# 7 : maximum allowed vertical position drift fail
-uint16 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8		# 8 : maximum allowed horizontal velocity discrepancy fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 6		# 6 : maximum allowed horizontal position drift fail - requires stationary vehicle
+uint16 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 7		# 7 : maximum allowed vertical position drift fail - requires stationary vehicle
+uint16 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8		# 8 : maximum allowed horizontal speed fail - requires stationary vehicle
 uint16 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 9		# 9 : maximum allowed vertical velocity discrepancy fail
 
 uint32 control_mode_flags	# Bitmask to indicate EKF logic state
