@@ -1037,25 +1037,30 @@ limit_hagl : Boolean true when height above ground needs to be controlled to rem
 */
 void Ekf::get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl)
 {
-	float flow_gnd_spd_max;
 	bool flow_limit_hagl;
 
 	// If relying on optical flow for navigation we need to keep within flow and range sensor limits
 	bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos);
 	if (relying_on_optical_flow) {
 		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-		flow_gnd_spd_max = 0.5f * _params.flow_rate_max * (_terrain_vpos - _state.pos(2));
-		flow_gnd_spd_max = fmaxf(flow_gnd_spd_max , 0.0f);
-
+		_flow_gnd_spd_max = 0.5f * _params.flow_rate_max * (_terrain_vpos - _state.pos(2));
+		_flow_gnd_spd_max = fmaxf(_flow_gnd_spd_max , 0.0f);
 		flow_limit_hagl = true;
 
+	} else if (_control_status.flags.opt_flow) {
+		// We are using optical flow but not reliant on it
+		// Release the speed limit as the vehicle climbs, but do not reduce it when it descends
+		float lower_limit = fmaxf(0.5f * _params.flow_rate_max * (_terrain_vpos - _state.pos(2)) , 0.0f);
+		_flow_gnd_spd_max = fmaxf(_flow_gnd_spd_max , lower_limit);
+		flow_limit_hagl = false;
+
 	} else {
-		flow_gnd_spd_max = NAN;
+		_flow_gnd_spd_max = NAN;
 		flow_limit_hagl = false;
 
 	}
 
-	memcpy(vxy_max, &flow_gnd_spd_max, sizeof(float));
+	memcpy(vxy_max, &_flow_gnd_spd_max, sizeof(float));
 	memcpy(limit_hagl, &flow_limit_hagl, sizeof(bool));
 
 }
