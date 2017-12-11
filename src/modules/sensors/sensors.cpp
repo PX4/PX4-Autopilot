@@ -182,7 +182,6 @@ private:
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
-	battery_status_s _battery_status[BOARD_NUMBER_BRICKS] {};	/**< battery status */
 	differential_pressure_s _diff_pres{};
 	airspeed_s _airspeed{};
 
@@ -558,12 +557,13 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					actuator_controls_s ctrl;
 					orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
 
+					battery_status_s battery_status;
 					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
 									connected, selected_source == b, b,
 									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-									_armed,  &_battery_status[b]);
+									_armed, &battery_status);
 					int instance;
-					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &_battery_status[b], &instance, ORB_PRIO_DEFAULT);
+					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
 				}
 			}
 
@@ -605,10 +605,6 @@ Sensors::run()
 
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
-	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-		_battery[b].reset(&_battery_status[b]);
-	}
-
 	/* get a set of initial values */
 	_voted_sensors_update.sensors_poll(raw);
 
@@ -621,7 +617,9 @@ Sensors::run()
 
 	/* advertise the sensor_preflight topic and make the initial publication */
 	preflt.accel_inconsistency_m_s_s = 0.0f;
+
 	preflt.gyro_inconsistency_rad_s = 0.0f;
+
 	preflt.mag_inconsistency_ga = 0.0f;
 
 	_sensor_preflight = orb_advertise(ORB_ID(sensor_preflight), &preflt);
