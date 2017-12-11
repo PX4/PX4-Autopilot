@@ -1,5 +1,4 @@
 include(common/px4_upload)
-include(cygwin_cygpath)
 
 if (NOT FW_NAME)
 	set(FW_NAME ${CONFIG}.elf)
@@ -36,13 +35,9 @@ if (NOT LD_SCRIPT)
 	set(LD_SCRIPT ld.script)
 endif()
 
-# only in the cygwin environment: convert paths for
-# linker script, map file and binary output to mixed windows paths (C:/...)
-CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
-
 target_link_libraries(${FW_NAME}
-	-T${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
-	-Wl,-Map=${PX4_BINARY_DIR_CYG}/${CONFIG}.map
+	-TNuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
+	-Wl,-Map=${CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
 	-Wl,--start-group
@@ -66,8 +61,10 @@ set(fw_file ${PX4_BINARY_DIR}/${FW_NAME})
 string(REPLACE ".elf" ".px4" fw_file ${fw_file})
 string(REPLACE "nuttx_" "" fw_file ${fw_file})
 
+file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
+
 add_custom_command(OUTPUT ${BOARD}.bin
-	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_CYG}/${FW_NAME} ${BOARD}.bin
+	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${BOARD}.bin
 	DEPENDS ${FW_NAME}
 	)
 
