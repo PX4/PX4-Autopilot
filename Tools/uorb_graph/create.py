@@ -544,7 +544,10 @@ class OutputJSON:
         nodes = []
 
         # nodes
-        for module in modules:
+        # (sort by length, such that short names are last. The rendering order
+        # will be the same, so that in case of an overlap, the shorter label
+        # will be on top)
+        for module in sorted(modules, key=len, reverse=True):
             node = {}
             node['id'] = 'm_'+module
             node['name'] = module
@@ -553,7 +556,7 @@ class OutputJSON:
             # TODO: add url to open module documentation?
             nodes.append(node)
 
-        for topic in topics:
+        for topic in sorted(topics, key=len, reverse=True):
             node = {}
             node['id'] = 't_'+topic
             node['name'] = topic
