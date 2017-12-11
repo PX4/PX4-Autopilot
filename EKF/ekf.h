@@ -348,6 +348,7 @@ private:
 	Vector3f _flow_gyro_bias;	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector3f _imu_del_ang_of;	///< bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates (rad)
 	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
+	float _flow_gnd_spd_max{0.0f};	///< maximum ground speed that the flow sensor can reliably measure (m/s)
 
 	float _mag_declination{0.0f};	///< magnetic declination used by reset and fusion functions (rad)
 
