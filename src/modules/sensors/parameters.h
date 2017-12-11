@@ -64,7 +64,9 @@ struct Parameters {
 	float scaling_factor[RC_MAX_CHAN_COUNT];
 
 	float diff_pres_offset_pa;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	float diff_pres_analog_scale;
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	int32_t board_rotation;
 
@@ -157,7 +159,9 @@ struct ParameterHandles {
 	param_t dz[RC_MAX_CHAN_COUNT];
 
 	param_t diff_pres_offset_pa;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	param_t diff_pres_analog_scale;
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	param_t rc_map_roll;
 	param_t rc_map_pitch;
@@ -234,14 +238,13 @@ struct ParameterHandles {
 
 /**
  * initialize ParameterHandles struct
- * @return 0 on succes, <0 on error
  */
-int initialize_parameter_handles(ParameterHandles &parameter_handles);
+void initialize_parameter_handles(ParameterHandles &parameter_handles);
 
 
 /**
  * Read out the parameters using the handles into the parameters struct.
- * @return 0 on succes, <0 on error
+ * @return 0 on success, <0 on error
  */
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
 
