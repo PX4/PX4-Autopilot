@@ -19,5 +19,3 @@
         <test test-name="mavros_flow_offboard_attctl_test" pkg="px4" type="mavros_offboard_attctl_test.py" />
     </group>
 </launch>
-
-<!-- vim: set ft=xml et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->
