@@ -60,8 +60,6 @@ RCLoss::RCLoss(Navigator *navigator, const char *name) :
 	_param_loitertime(this, "LT"),
 	_rcl_state(RCL_STATE_NONE)
 {
-	/* load initial params */
-	updateParams();
 	/* initial reset */
 	on_inactive();
 }

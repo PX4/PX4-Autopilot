@@ -58,8 +58,6 @@ EngineFailure::EngineFailure(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_ef_state(EF_STATE_NONE)
 {
-	/* load initial params */
-	updateParams();
 	/* initial reset */
 	on_inactive();
 }

@@ -69,7 +69,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
 	_missionFeasibilityChecker(navigator)
 {
-	updateParams();
 }
 
 void
