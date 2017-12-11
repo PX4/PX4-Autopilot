@@ -2478,7 +2478,7 @@ void Mavlink::check_radio_config()
 
 		/* reset param and save */
 		_radio_id = 0;
-		param_set(_param_radio_id, &_radio_id);
+		param_set_no_notification(_param_radio_id, &_radio_id);
 	}
 }
 
