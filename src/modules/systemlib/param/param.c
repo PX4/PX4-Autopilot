@@ -163,6 +163,7 @@ static int reader_lock_holders = 0;
 static px4_sem_t reader_lock_holders_lock; ///< this protects against concurrent access to reader_lock_holders
 
 static perf_counter_t param_export_perf;
+static perf_counter_t param_find_perf;
 static perf_counter_t param_get_perf;
 static perf_counter_t param_set_perf;
 
@@ -232,6 +233,7 @@ param_init(void)
 	px4_sem_init(&reader_lock_holders_lock, 0, 1);
 
 	param_export_perf = perf_alloc(PC_ELAPSED, "param_export");
+	param_find_perf = perf_alloc(PC_ELAPSED, "param_find");
 	param_get_perf = perf_alloc(PC_ELAPSED, "param_get");
 	param_set_perf = perf_alloc(PC_ELAPSED, "param_set");
 }
@@ -326,6 +328,8 @@ param_notify_changes(void)
 param_t
 param_find_internal(const char *name, bool notification)
 {
+	perf_begin(param_find_perf);
+
 	param_t middle;
 	param_t front = 0;
 	param_t last = get_param_info_count();
@@ -341,6 +345,7 @@ param_find_internal(const char *name, bool notification)
 				param_set_used_internal(middle);
 			}
 
+			perf_end(param_find_perf);
 			return middle;
 
 		} else if (middle == front) {
@@ -354,6 +359,8 @@ param_find_internal(const char *name, bool notification)
 			front = middle;
 		}
 	}
+
+	perf_end(param_find_perf);
 
 	/* not found */
 	return PARAM_INVALID;
