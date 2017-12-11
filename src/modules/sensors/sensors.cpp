@@ -183,7 +183,6 @@ private:
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
 	differential_pressure_s _diff_pres{};
-	airspeed_s _airspeed{};
 
 	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
 
@@ -313,15 +312,16 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature :
 						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
-		_airspeed.timestamp = _diff_pres.timestamp;
+		airspeed_s airspeed;
+		airspeed.timestamp = _diff_pres.timestamp;
 
 		/* push data into validator */
 		float airspeed_input[3] = { _diff_pres.differential_pressure_raw_pa, _diff_pres.temperature, 0.0f };
 
-		_airspeed_validator.put(_airspeed.timestamp, airspeed_input, _diff_pres.error_count,
+		_airspeed_validator.put(airspeed.timestamp, airspeed_input, _diff_pres.error_count,
 					ORB_PRIO_HIGH);
 
-		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
+		airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
 
 		enum AIRSPEED_SENSOR_MODEL smodel;
 
@@ -343,24 +343,24 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		}
 
 		/* don't risk to feed negative airspeed into the system */
-		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
-						   calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
-								   smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-								   _diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
-								   air_temperature_celsius));
+		airspeed.indicated_airspeed_m_s = math::max(0.0f,
+						  calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
+								  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
+								  _diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
+								  air_temperature_celsius));
 
-		_airspeed.true_airspeed_m_s = math::max(0.0f,
-							calc_true_airspeed_from_indicated(_airspeed.indicated_airspeed_m_s,
+		airspeed.true_airspeed_m_s = math::max(0.0f,
+						       calc_true_airspeed_from_indicated(airspeed.indicated_airspeed_m_s,
+								       _voted_sensors_update.baro_pressure(), air_temperature_celsius));
+
+		airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
+							calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
 									_voted_sensors_update.baro_pressure(), air_temperature_celsius));
 
-		_airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-				calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
-						   _voted_sensors_update.baro_pressure(), air_temperature_celsius));
-
-		_airspeed.air_temperature_celsius = air_temperature_celsius;
+		airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		int instance;
-		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &_airspeed, &instance, ORB_PRIO_DEFAULT);
+		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &airspeed, &instance, ORB_PRIO_DEFAULT);
 	}
 }
 
