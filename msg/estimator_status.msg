@@ -13,15 +13,16 @@ float32[24] covariances	# Diagonal Elements of Covariance Matrix
 
 uint16 gps_check_fail_flags     # Bitmask to indicate status of GPS checks - see definition below
 # bits are true when corresponding test has failed
-uint16 GPS_CHECK_FAIL_MIN_SAT_COUNT = 0			# 0 : minimum required sat count fail
-uint16 GPS_CHECK_FAIL_MIN_GDOP = 1			# 1 : minimum required GDoP fail
-uint16 GPS_CHECK_FAIL_MAX_HORZ_ERR = 2			# 2 : maximum allowed horizontal position error fail
-uint16 GPS_CHECK_FAIL_MAX_VERT_ERR = 3			# 3 : maximum allowed vertical position error fail
-uint16 GPS_CHECK_FAIL_MAX_SPD_ERR = 4			# 4 : maximum allowed speed error fail
-uint16 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 5		# 5 : maximum allowed horizontal position drift fail
-uint16 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 6		# 6 : maximum allowed vertical position drift fail
-uint16 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 7		# 7 : maximum allowed horizontal velocity discrepancy fail
-uint16 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 8		# 8 : maximum allowed vertical velocity discrepancy fail
+uint16 GPS_CHECK_FAIL_GPS_FIX = 0				# 0 : insufficient fix type (no 3D solution)
+uint16 GPS_CHECK_FAIL_MIN_SAT_COUNT = 1			# 1 : minimum required sat count fail
+uint16 GPS_CHECK_FAIL_MIN_GDOP = 2				# 2 : minimum required GDoP fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_ERR = 3			# 3 : maximum allowed horizontal position error fail
+uint16 GPS_CHECK_FAIL_MAX_VERT_ERR = 4			# 4 : maximum allowed vertical position error fail
+uint16 GPS_CHECK_FAIL_MAX_SPD_ERR = 5			# 5 : maximum allowed speed error fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 6		# 6 : maximum allowed horizontal position drift fail - requires stationary vehicle
+uint16 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 7		# 7 : maximum allowed vertical position drift fail - requires stationary vehicle
+uint16 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8		# 8 : maximum allowed horizontal speed fail - requires stationary vehicle
+uint16 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 9		# 9 : maximum allowed vertical velocity discrepancy fail
 
 uint32 control_mode_flags	# Bitmask to indicate EKF logic state
 # 0 - true if the filter tilt alignment is complete
@@ -41,6 +42,9 @@ uint32 control_mode_flags	# Bitmask to indicate EKF logic state
 # 14 - true when height data from external vision measurements is being fused
 # 15 - true when synthetic sideslip measurements are being fused
 # 16 - true when only the magnetic field states are updated by the magnetometer
+# 17 - true when the vehicle is operating as a fixed wing vehicle
+# 18 - true when the magnetomer has been declared faulty and is no longer being used
+# 19 - true when airspeed measurements are being fused
 
 uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
@@ -95,6 +99,7 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 # 8 - True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 # 9 - True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
 # 10 - True if the EKF has detected a GPS glitch
+# 11 - True if the EKF has detected bad accelerometer data
 
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
 
