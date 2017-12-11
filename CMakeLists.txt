@@ -413,6 +413,27 @@ if (all_posix_cmake_targets)
 		)
 endif()
 
+
+#=============================================================================
+# uORB graph generation: add a custom target 'uorb_graph'
+#
+set(uorb_graph_config ${BOARD})
+
+set(graph_module_list "")
+foreach(module ${config_module_list})
+	set(graph_module_list "${graph_module_list}" "--src-path" "src/${module}")
+endforeach()
+
+add_custom_command(OUTPUT ${uorb_graph_config}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
+		${module_list}
+		--exclude-path src/examples
+		--file ${PX4_SOURCE_DIR}/Tools/uorb_graph/graph_${uorb_graph_config}
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	COMMENT "Generating uORB graph"
+)
+add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
+
 #=============================================================================
 # packaging
 #
