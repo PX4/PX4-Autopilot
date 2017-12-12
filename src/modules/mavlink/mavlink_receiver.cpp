@@ -281,13 +281,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_heartbeat(msg);
 		break;
 
-	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
-		if (_mavlink->accepting_commands()) {
-			handle_message_request_data_stream(msg);
-		}
-
-		break;
-
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
 		handle_message_system_time(msg);
 		break;
@@ -1677,12 +1670,6 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 	    (mavlink_system.compid == ping.target_component)) {
 		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &ping);
 	}
-}
-
-void
-MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
-{
-	// REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead
 }
 
 int
