@@ -54,7 +54,6 @@
 #include <asm/socket.h>
 #endif
 
-
 MavlinkShell::MavlinkShell()
 {
 }
