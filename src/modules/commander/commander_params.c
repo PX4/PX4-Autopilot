@@ -543,16 +543,17 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_HGT, 1.0f);
 PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
 
 /**
- * Maximum value of EKF accelerometer delta velocity bias estimate that will allow arming
+ * Maximum value of EKF accelerometer delta velocity bias estimate that will allow arming.
+ * Note: ekf2 will limit the delta velocity bias estimate magnitude to be less than EKF2_ABL_LIM * FILTER_UPDATE_PERIOD_MS * 0.001 so this parameter must be less than that to be useful.
  *
  * @group Commander
  * @unit m/s
  * @min 0.001
  * @max 0.01
  * @decimal 4
- * @increment 0.0005
+ * @increment 0.0001
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 5.0e-3f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 2.4e-3f);
 
 /**
  * Maximum value of EKF gyro delta angle bias estimate that will allow arming
