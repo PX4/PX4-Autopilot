@@ -141,7 +141,6 @@ private:
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_ping(mavlink_message_t *msg);
-	void handle_message_request_data_stream(mavlink_message_t *msg);
 	void handle_message_system_time(mavlink_message_t *msg);
 	void handle_message_timesync(mavlink_message_t *msg);
 	void handle_message_hil_sensor(mavlink_message_t *msg);
