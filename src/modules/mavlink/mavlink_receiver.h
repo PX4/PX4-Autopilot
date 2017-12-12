@@ -214,7 +214,6 @@ private:
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;
 	orb_advert_t _gps_pub;
-	orb_advert_t _sensors_pub;
 	orb_advert_t _gyro_pub;
 	orb_advert_t _accel_pub;
 	orb_advert_t _mag_pub;
@@ -228,7 +227,6 @@ private:
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _actuator_controls_pub;
-	orb_advert_t _global_vel_sp_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
