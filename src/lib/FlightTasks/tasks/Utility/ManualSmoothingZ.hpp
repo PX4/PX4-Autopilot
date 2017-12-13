@@ -41,39 +41,68 @@
 
 #include <systemlib/param/param.h>
 
+/* User intention: brake or acceleration */
+enum class ManualIntentionZ {
+	brake,
+	acceleration,
+};
 
 class ManualSmoothingZ
 {
 public:
 	ManualSmoothingZ(const float &vel, const float &stick);
-	~ManualSmoothingZ();
+	~ManualSmoothingZ() {};
 
+	/* Smooths velocity setpoint based
+	 * on flight direction.
+	 * @param vel_sp[2] array: vel_sp[0] = current velocity set-point;
+	 * 					 	   vel_sp[1] = previous velocity set-point
+	 * 		  vel_sp will contain smoothed current previous set-point.
+	 * @param dt: time delta in seconds
+	 */
 	void smoothVelFromSticks(float vel_sp[2], const float dt);
+
+
+	/* Getter methods */
+	float getMaxAcceleration(float vel_sp[2]);
+	ManualIntentionZ getIntention() {return _intention;};
+
+	/* Overwrite methods:
+	 * Needed if different parameter values than default required.
+	 */
+	void overwriteAccelerationUp(float acc_max_up) {_acc_max_up = acc_max_up;};
+	void overwriteAccelerationDown(float acc_max_down) {_acc_max_down = acc_max_down;};
+	void overwriteJerkMax(float jerk_max) {_jerk_max = jerk_max;};
 
 private:
 
-	enum class Intention {
-		brake,
-		acceleration,
-	};
-	Intention _intention{Intention::brake};
+	/* User intention: brake or acceleration */
+	ManualIntentionZ _intention{ManualIntentionZ::acceleration};
 
+	/* Dependency injection: vehicle velocity in z-direction;
+	 * stick input in z-direction
+	 */
 	const float &_vel;
 	const float &_stick;
 
+	/* Acceleration that depends on vehicle state
+	 * _acc_max_down <= _acc_state_dependent <= _acc_max_up
+	 */
+	float _acc_state_dependent{0.0f};
+
+	/* Params */
 	param_t _acc_max_up_h{PARAM_INVALID};
 	param_t _acc_max_down_h{PARAM_INVALID};
 	param_t _jerk_max_h{PARAM_INVALID};
 	float _acc_max_up{0.0f};
 	float _acc_max_down{0.0f};
 	float _jerk_max{10000.0f};
-	float _acc_state_dependent{0.0f};
 	int _parameter_sub{-1};
 
-
+	/* Helper methods */
 	void velocitySlewRate(float vel_sp[2], const float dt);
-	void updateParams();
-	void updateAcceleration(float &vel_sp_prev, const float dt);
 	void setParams();
-	float getMaxAcceleration();
+	void updateParams();
+	void updateAcceleration(float vel_sp[2], const float dt);
+
 };
