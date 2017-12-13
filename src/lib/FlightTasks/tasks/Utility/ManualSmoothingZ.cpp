@@ -37,7 +37,6 @@
  * This Class is used for smoothing the velocity setpoints in Z-direction.
  */
 
-
 #include "ManualSmoothingZ.hpp"
 #include "uORB/topics/parameter_update.h"
 #include <mathlib/mathlib.h>
@@ -81,6 +80,15 @@ ManualSmoothingZ::updateParams()
 		orb_copy(ORB_ID(parameter_update), _parameter_sub, &param_update);
 		setParams();
 	}
+}
+
+void
+ManualSmoothingZ::setParams()
+{
+	param_get(_acc_max_up_h, &_acc_max_up);
+	param_get(_acc_max_down_h, &_acc_max_down);
+	param_get(_jerk_max_h, &_jerk_max);
+
 }
 
 void
@@ -137,15 +145,6 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp_prev, const float dt)
 	}
 
 	_intention = intention;
-}
-
-void
-ManualSmoothingZ::setParams()
-{
-	param_get(_acc_max_up_h, &_acc_max_up);
-	param_get(_acc_max_down_h, &_acc_max_down);
-	param_get(_jerk_max_h, &_jerk_max);
-
 }
 
 float

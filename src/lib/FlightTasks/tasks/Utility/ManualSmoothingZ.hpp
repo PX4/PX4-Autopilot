@@ -50,9 +50,6 @@ public:
 
 	void smoothVelFromSticks(float vel_sp[2], const float dt);
 
-
-
-
 private:
 
 	enum class Intention {
