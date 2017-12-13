@@ -602,7 +602,7 @@ then
 			if protocol_splitter start ${MAVLINK_COMPANION_DEVICE}
 			then
 				mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
-				micrortps_client start -d /dev/rtps -b 0 -l -1 -s 2000
+				micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
 			else
 				 mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
 			fi
@@ -628,19 +628,19 @@ then
 	fi
 	if param compare SYS_COMPANION 319200
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000 -f
 	fi
 	if param compare SYS_COMPANION 338400
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -r 1000
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -r 1000 -f
 	fi
 	if param compare SYS_COMPANION 357600
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -f
 	fi
 	if param compare SYS_COMPANION 3115200
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000 -f
 	fi
 	if param compare SYS_COMPANION 419200
 	then

@@ -1238,7 +1238,7 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.control[7] = _v_att_sp.landing_gear;
 				_actuators.timestamp = hrt_absolute_time();
-				_actuators.timestamp_sample = _v_att.timestamp;
+				_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
 				/* scale effort by battery status */
 				if (_params.bat_scale_en && _battery_status.scale > 0.0f) {
@@ -1287,7 +1287,7 @@ MulticopterAttitudeControl::task_main()
 					_actuators.control[2] = 0.0f;
 					_actuators.control[3] = 0.0f;
 					_actuators.timestamp = hrt_absolute_time();
-					_actuators.timestamp_sample = _v_att.timestamp;
+					_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
 					if (!_actuators_0_circuit_breaker_enabled) {
 						if (_actuators_0_pub != nullptr) {

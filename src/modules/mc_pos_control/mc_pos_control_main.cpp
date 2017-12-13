@@ -268,6 +268,7 @@ private:
 
 	struct map_projection_reference_s _ref_pos;
 	float _ref_alt;
+	bool _ref_alt_is_global; /** true when the reference altitude is defined in a global reference frame */
 	hrt_abstime _ref_timestamp;
 	hrt_abstime _last_warn;
 
@@ -293,6 +294,8 @@ private:
 	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
+	float _z_derivative; /**< velocity in z that agrees with position rate */
+
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
 
 	// counters for reset events on position and velocity states
@@ -458,6 +461,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_user_intention_xy(brake),
 	_user_intention_z(brake),
 	_ref_alt(0.0f),
+	_ref_alt_is_global(false),
 	_ref_timestamp(0),
 	_last_warn(0),
 	_yaw(0.0f),
@@ -468,6 +472,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_state_dependent_z(0.0f),
 	_manual_jerk_limit_xy(1.0f),
 	_manual_jerk_limit_z(1.0f),
+	_z_derivative(0.0f),
 	_takeoff_vel_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
@@ -849,13 +854,15 @@ MulticopterPositionControl::update_ref()
 	// normal state when the estimator origin is set. Changing reference point in flight causes large controller
 	// setpoint changes. Changing reference point in other arming states is untested and shoud not be performed.
 	if ((_local_pos.ref_timestamp != _ref_timestamp)
-	    && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
+	    && ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+		|| (!_ref_alt_is_global && _local_pos.z_global))) {
 		double lat_sp, lon_sp;
 		float alt_sp = 0.0f;
 
 		if (_ref_timestamp != 0) {
 			// calculate current position setpoint in global frame
 			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
+
 			// the altitude setpoint is the reference altitude (Z up) plus the (Z down)
 			// NED setpoint, multiplied out to minus
 			alt_sp = _ref_alt - _pos_sp(2);
@@ -864,6 +871,10 @@ MulticopterPositionControl::update_ref()
 		// update local projection reference including altitude
 		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
 		_ref_alt = _local_pos.ref_alt;
+
+		if (_local_pos.z_global) {
+			_ref_alt_is_global = true;
+		}
 
 		if (_ref_timestamp != 0) {
 			// reproject position setpoint to new reference
@@ -1626,7 +1637,19 @@ MulticopterPositionControl::control_offboard(float dt)
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 
 		} else if (_pos_sp_triplet.current.yawspeed_valid) {
-			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
+			float yaw_target = _wrap_pi(_att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt);
+			float yaw_offs = _wrap_pi(yaw_target - _yaw);
+			const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
+						   _params.global_yaw_max;
+			const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+
+			// If the yaw offset became too big for the system to track stop
+			// shifting it, only allow if it would make the offset smaller again.
+			if (fabsf(yaw_offs) < yaw_offset_max ||
+			    (_pos_sp_triplet.current.yawspeed > 0 && yaw_offs < 0) ||
+			    (_pos_sp_triplet.current.yawspeed < 0 && yaw_offs > 0)) {
+				_att_sp.yaw_body = yaw_target;
+			}
 		}
 
 	} else {
@@ -1791,7 +1814,7 @@ void MulticopterPositionControl::control_auto(float dt)
 			diff = fabsf(_curr_pos_sp(2) - curr_pos_sp(2));
 		}
 
-		if (diff > FLT_EPSILON) {
+		if (diff > FLT_EPSILON || !PX4_ISFINITE(diff)) {
 			triplet_updated = true;
 		}
 
@@ -2327,10 +2350,25 @@ MulticopterPositionControl::update_velocity_derivative()
 		} else {
 			_vel(2) = _local_pos.vz;
 		}
+
+		if (!_run_alt_control) {
+			/* set velocity to the derivative of position
+			 * because it has less bias but blend it in across the landing speed range*/
+			float weighting = fminf(fabsf(_vel_sp(2)) / _params.land_speed, 1.0f);
+			_vel(2) = _z_derivative * weighting + _vel(2) * (1.0f - weighting);
+
+		}
+
 	}
 
+	if (PX4_ISFINITE(_local_pos.z_deriv)) {
+		_z_derivative = _local_pos.z_deriv;
+	};
+
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
+
 	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
+
 	_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 }
 
@@ -2353,6 +2391,7 @@ MulticopterPositionControl::do_control(float dt)
 		 * have been updated */
 		_pos_sp_triplet.current.valid = false;
 		_pos_sp_triplet.previous.valid = false;
+		_curr_pos_sp = math::Vector<3>(NAN, NAN, NAN);
 
 		_hold_offboard_xy = false;
 		_hold_offboard_z = false;

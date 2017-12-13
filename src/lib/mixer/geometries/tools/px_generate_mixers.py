@@ -46,11 +46,7 @@ except ImportError as e:
     print('''
 Required python packages not installed.
 
-On a Debian/Ubuntu system please run:
-
-  sudo apt-get install python-toml python-numpy
-
-On MacOS please run:
+On a GNU/Linux or MacOS system please run:
   sudo pip install numpy toml
 
 On Windows please run:

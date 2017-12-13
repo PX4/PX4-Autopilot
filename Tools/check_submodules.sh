@@ -3,7 +3,7 @@
 function check_git_submodule {
 
 # The .git exists in a submodule if init and update have been done.
-if [ -f $1"/.git" ] || [ -d $1"/.git" ];
+if [ "$CI" != "true" ] && [[ -f $1"/.git" || -d $1"/.git" ]];
 then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
 	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
@@ -34,8 +34,9 @@ then
 			echo "Continuing build with manually overridden submodule.."
 		elif [ "$user_cmd" == "u" ]
 		then
-			git submodule sync --recursive
-			git submodule update --init --recursive
+			git submodule sync --recursive -- $1
+			git submodule update --init --recursive --force --quiet -- $1 || true
+			git submodule update --init --recursive -- $1
 			echo "Submodule fixed, continuing build.."
 		else
 			echo "Build aborted."
@@ -43,10 +44,9 @@ then
 		fi
 	fi
 else
-	echo "REINITIALIZING GIT SUBMODULES"
-	echo "no git repo found in $1/.git"
-	git submodule sync --recursive -- $1;
-	git submodule update --init --recursive $1;
+	git submodule sync --recursive -- $1
+	git submodule update --init --recursive --force -- $1  || true
+	git submodule update --init --recursive --force -- $1
 fi
 
 }
@@ -54,15 +54,14 @@ fi
 # If called with a path then respect $GIT_SUBMODULES_ARE_EVIL but do normal processing
 if [ "$#" != "0" ];
 then
-# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
-
+	# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
 	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
 		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
 		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping submodules $1 update."
 		exit 0
 	}
 
-	git submodule update --recursive $1
+	check_git_submodule $1
 
 else
 
@@ -72,11 +71,12 @@ else
 		exit 0
 	}
 
-	submodules=$(git submodule status --recursive | awk '{ print $2 }')
+	submodules=$(git submodule status | awk '{ print $2 }')
 	for i in $submodules;
 	do
 		check_git_submodule $i
 	done
 
 fi
-	exit 0
+
+exit 0

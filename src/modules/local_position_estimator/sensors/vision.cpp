@@ -48,6 +48,7 @@ void BlockLocalPositionEstimator::visionInit()
 
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
+			_altOriginGlobal = true;
 			_altOrigin = _sub_vision_pos.get().z_global ? _sub_vision_pos.get().ref_alt : 0.0f;
 		}
 	}

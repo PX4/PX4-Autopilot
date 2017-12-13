@@ -377,6 +377,11 @@ transition_result_t
 main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,
 		      status_flags_s *status_flags, struct commander_state_s *internal_state)
 {
+	// IMPORTANT: The assumption of callers of this function is that the execution of
+	// this check if essentially "free". Therefore any runtime checking in here has to be
+	// kept super lightweight. No complex logic or calls on external function should be
+	// implemented here.
+
 	transition_result_t ret = TRANSITION_DENIED;
 
 	/* transition may be denied even if the same state is requested because conditions may have changed */

@@ -106,7 +106,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_local_pos_pub(nullptr),
 	_attitude_pub(nullptr),
 	_gps_pub(nullptr),
-	_sensors_pub(nullptr),
 	_gyro_pub(nullptr),
 	_accel_pub(nullptr),
 	_mag_pub(nullptr),
@@ -120,10 +119,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_distance_sensor_pub(nullptr),
 	_offboard_control_mode_pub(nullptr),
 	_actuator_controls_pub(nullptr),
-	_global_vel_sp_pub(nullptr),
 	_att_sp_pub(nullptr),
 	_rates_sp_pub(nullptr),
-	_force_sp_pub(nullptr),
 	_pos_sp_triplet_pub(nullptr),
 	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
@@ -280,13 +277,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		handle_message_heartbeat(msg);
-		break;
-
-	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
-		if (_mavlink->accepting_commands()) {
-			handle_message_request_data_stream(msg);
-		}
-
 		break;
 
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
@@ -894,20 +884,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			if (_control_mode.flag_control_offboard_enabled) {
 				if (is_force_sp && offboard_control_mode.ignore_position &&
 				    offboard_control_mode.ignore_velocity) {
-					/* The offboard setpoint is a force setpoint only, directly writing to the force
-					 * setpoint topic and not publishing the setpoint triplet topic */
-					struct vehicle_force_setpoint_s	force_sp;
-					force_sp.x = set_position_target_local_ned.afx;
-					force_sp.y = set_position_target_local_ned.afy;
-					force_sp.z = set_position_target_local_ned.afz;
 
-					//XXX: yaw
-					if (_force_sp_pub == nullptr) {
-						_force_sp_pub = orb_advertise(ORB_ID(vehicle_force_setpoint), &force_sp);
-
-					} else {
-						orb_publish(ORB_ID(vehicle_force_setpoint), _force_sp_pub, &force_sp);
-					}
+					PX4_WARN("force setpoint not supported");
 
 				} else {
 					/* It's not a pure force setpoint: publish to setpoint triplet  topic */
@@ -1690,12 +1668,6 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 	    (mavlink_system.compid == ping.target_component)) {
 		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &ping);
 	}
-}
-
-void
-MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
-{
-	// REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead
 }
 
 int

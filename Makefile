@@ -235,13 +235,17 @@ check_%:
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
+.PHONY: coverity_scan
+
+coverity_scan: posix_sitl_default
+
 # Documentation
 # --------------------------------------------------------------------
 .PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata
 
 parameters_metadata:
-	@python $(SRC_DIR)/Tools/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 3 -type d` --inject-xml $(SRC_DIR)/Tools/parameters_injected.xml --markdown
-	@python $(SRC_DIR)/Tools/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 3 -type d` --inject-xml $(SRC_DIR)/Tools/parameters_injected.xml --xml
+	@python $(SRC_DIR)/src/modules/systemlib/param/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 3 -type d` --inject-xml $(SRC_DIR)/src/modules/systemlib/param/parameters_injected.xml --markdown
+	@python $(SRC_DIR)/src/modules/systemlib/param/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 3 -type d` --inject-xml $(SRC_DIR)/src/modules/systemlib/param/parameters_injected.xml --xml
 
 airframe_metadata:
 	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --markdown

@@ -2070,31 +2070,31 @@ protected:
 			struct home_position_s home;
 
 			if (_home_sub->update(&home)) {
-				mavlink_home_position_t msg = {};
+				if (home.valid_hpos) {
+					mavlink_home_position_t msg;
 
-				msg.latitude = home.lat * 1e7;
-				msg.longitude = home.lon * 1e7;
-				msg.altitude = home.alt * 1e3f;
+					msg.latitude = home.lat * 1e7;
+					msg.longitude = home.lon * 1e7;
+					msg.altitude = home.alt * 1e3f;
 
-				msg.x = home.x;
-				msg.y = home.y;
-				msg.z = home.z;
+					msg.x = home.x;
+					msg.y = home.y;
+					msg.z = home.z;
 
-				matrix::Eulerf euler(0.0f, 0.0f, home.yaw);
-				matrix::Quatf q(euler);
+					matrix::Quatf q(matrix::Eulerf(0.0f, 0.0f, home.yaw));
+					msg.q[0] = q(0);
+					msg.q[1] = q(1);
+					msg.q[2] = q(2);
+					msg.q[3] = q(3);
 
-				msg.q[0] = q(0);
-				msg.q[1] = q(1);
-				msg.q[2] = q(2);
-				msg.q[3] = q(3);
+					msg.approach_x = 0.0f;
+					msg.approach_y = 0.0f;
+					msg.approach_z = 0.0f;
 
-				msg.approach_x = 0.0f;
-				msg.approach_y = 0.0f;
-				msg.approach_z = 0.0f;
+					mavlink_msg_home_position_send_struct(_mavlink->get_channel(), &msg);
 
-				mavlink_msg_home_position_send_struct(_mavlink->get_channel(), &msg);
-
-				return true;
+					return true;
+				}
 			}
 		}
 

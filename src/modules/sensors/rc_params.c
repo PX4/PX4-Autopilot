@@ -1086,17 +1086,6 @@ PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
 /**
- * Relay control of relay 1 mapped to the Spektrum receiver power supply
- *
- * @min 0
- * @max 1
- * @value 0 Disabled
- * @value 1 Relay controls DSM power
- * @group Radio Calibration
- */
-PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
-
-/**
  * RC channel count
  *
  * This parameter is used by Ground Station software to save the number
@@ -1109,21 +1098,6 @@ PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
  */
 
 PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
-
-/**
- * RC mode switch threshold automatic distribution
- *
- * This parameter is used by Ground Station software to specify whether
- * the threshold values for flight mode switches were automatically calculated.
- * 0 indicates that the threshold values were set by the user. Any other value
- * indicates that the threshold value where automatically set by the ground
- * station software. It is only meant for ground station use.
- *
- * @boolean
- * @group Radio Calibration
- */
-
-PARAM_DEFINE_INT32(RC_TH_USER, 1);
 
 /**
  * Roll control channel mapping.
@@ -1219,7 +1193,7 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
  * @value 18 Channel 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
+PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);
 
 /**
  * Throttle control channel mapping.

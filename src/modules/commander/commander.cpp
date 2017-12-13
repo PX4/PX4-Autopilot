@@ -121,6 +121,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/estimator_status.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -295,6 +296,19 @@ void get_circuit_breaker_params();
 
 void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed);
 
+/**
+ * Set the main system state based on RC and override device inputs
+ */
+transition_result_t set_main_state(struct vehicle_status_s *status, vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
+
+/**
+ * Enable override (manual reversion mode) on the system
+ */
+transition_result_t set_main_state_override_on(struct vehicle_status_s *status_local, bool *changed);
+
+/**
+ * Set the system main state based on the current RC inputs
+ */
 transition_result_t set_main_state_rc(struct vehicle_status_s *status, vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
 
 void reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
@@ -319,7 +333,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const ch
 **/
 static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
 					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
-					const vehicle_attitude_s &attitude);
+					const vehicle_attitude_s &attitude,
+					bool set_alt_only_to_lpos_ref);
 
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
@@ -958,7 +973,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					if (cmd_arms && (arming_res == TRANSITION_CHANGED) &&
 						(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
 
-						commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude);
+						commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude, false);
 					}
 				}
 			}
@@ -1195,6 +1210,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_START:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_STOP:
 	case vehicle_command_s::VEHICLE_CMD_NAV_DELAY:
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI:
+	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1214,37 +1231,62 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 }
 
 /**
-* @brief This function initializes the home position of the vehicle. This happens first time we get a good GPS fix and each
+* @brief This function initializes the home position an altitude of the vehicle. This happens first time we get a good GPS fix and each
 *		 time the vehicle is armed with a good GPS fix.
 **/
 static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
 					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
-					const vehicle_attitude_s &attitude)
+					const vehicle_attitude_s &attitude,
+					bool set_alt_only_to_lpos_ref)
 {
-	//Need global and local position fix to be able to set home
-	if (!status_flags.condition_global_position_valid || !status_flags.condition_local_position_valid) {
+	if (!set_alt_only_to_lpos_ref) {
+		//Need global and local position fix to be able to set home
+		if (!status_flags.condition_global_position_valid || !status_flags.condition_local_position_valid) {
+			return;
+		}
+
+		//Ensure that the GPS accuracy is good enough for intializing home
+		if (globalPosition.eph > eph_threshold || globalPosition.epv > epv_threshold) {
+			return;
+		}
+
+		//Set home position
+		home.timestamp = hrt_absolute_time();
+		home.lat = globalPosition.lat;
+		home.lon = globalPosition.lon;
+		home.valid_hpos = true;
+
+		home.alt = globalPosition.alt;
+		home.valid_alt = true;
+
+		home.x = localPosition.x;
+		home.y = localPosition.y;
+		home.z = localPosition.z;
+
+		matrix::Eulerf euler = matrix::Quatf(attitude.q);
+		home.yaw = euler.psi();
+
+		PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+
+
+		//Play tune first time we initialize HOME
+		if (!status_flags.condition_home_position_valid) {
+			tune_home_set(true);
+		}
+
+		/* mark home position as set */
+		status_flags.condition_home_position_valid = true;
+
+	} else if (!home.valid_alt && localPosition.z_global) {
+		// handle special case where we are setting only altitude using local position reference
+		home.timestamp = hrt_absolute_time();
+		home.alt = localPosition.ref_alt;
+		home.valid_alt = true;
+		PX4_INFO("home alt: %.2f", (double)home.alt);
+
+	} else {
 		return;
 	}
-
-	//Ensure that the GPS accuracy is good enough for intializing home
-	if (globalPosition.eph > eph_threshold || globalPosition.epv > epv_threshold) {
-		return;
-	}
-
-	//Set home position
-	home.timestamp = hrt_absolute_time();
-	home.lat = globalPosition.lat;
-	home.lon = globalPosition.lon;
-	home.alt = globalPosition.alt;
-
-	home.x = localPosition.x;
-	home.y = localPosition.y;
-	home.z = localPosition.z;
-
-	matrix::Eulerf euler = matrix::Quatf(attitude.q);
-	home.yaw = euler.psi();
-
-	PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 	/* announce new home position */
 	if (homePub != nullptr) {
@@ -1253,14 +1295,6 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	} else {
 		homePub = orb_advertise(ORB_ID(home_position), &home);
 	}
-
-	//Play tune first time we initialize HOME
-	if (!status_flags.condition_home_position_valid) {
-		tune_home_set(true);
-	}
-
-	/* mark home position as set */
-	status_flags.condition_home_position_valid = true;
 }
 
 int commander_thread_main(int argc, char *argv[])
@@ -1648,6 +1682,16 @@ int commander_thread_main(int argc, char *argv[])
 	//struct vtol_vehicle_status_s vtol_status;
 	memset(&vtol_status, 0, sizeof(vtol_status));
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
+
+	/* subscribe to estimator status topic */
+	int estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	struct estimator_status_s estimator_status;
+
+	/* class variables used to check for navigation failure after takeoff */
+	hrt_abstime time_at_takeoff = 0; // last time we were on the ground
+	hrt_abstime time_last_innov_pass = 0; // last time velocity innovations passed
+	bool nav_test_passed = false; // true if the post takeoff navigation test has passed
+	bool nav_test_failed = false; // true if the post takeoff navigation test has failed
 
 	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
 	memset(&cpuload, 0, sizeof(cpuload));
@@ -2158,11 +2202,63 @@ int commander_thread_main(int argc, char *argv[])
 			status_flags.condition_global_velocity_valid = false;
 		}
 
+		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
+		 * for a short time interval after takeoff. Fixed wing vehicles can recover using GPS heading,
+		 *  but rotary wing vehicles cannot so the position and velocity validity needs to be latched
+		 * to false after failure to prevent flyaway crashes */
+		if (run_quality_checks && status.is_rotary_wing) {
+			bool estimator_status_updated = false;
+			orb_check(estimator_status_sub, &estimator_status_updated);
+			if (estimator_status_updated) {
+				orb_copy(ORB_ID(estimator_status), estimator_status_sub, &estimator_status);
+				if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+					// reset flags and timer
+					time_at_takeoff = hrt_absolute_time();
+					nav_test_failed = false;
+					nav_test_passed = false;
+				} else if (land_detector.landed) {
+					// record time of takeoff
+					time_at_takeoff = hrt_absolute_time();
+				} else {
+					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
+					bool sufficient_time = (hrt_absolute_time() - time_at_takeoff > 30*1000*1000);
+					bool sufficient_speed = local_position.vx*local_position.vx + local_position.vy*local_position.vy > 25.0f;
+					bool innovation_pass = estimator_status.vel_test_ratio < 1.0f && estimator_status.pos_test_ratio < 1.0f;
+					if (!nav_test_failed) {
+						if (!nav_test_passed) {
+							// pass if sufficient time or speed
+							if (sufficient_time || sufficient_speed) {
+								nav_test_passed = true;
+							}
+
+							// record the last time the innovation check passed
+							if (innovation_pass) {
+								time_last_innov_pass = hrt_absolute_time();
+							}
+
+							// if the innovation test has failed continuously, declare the nav as failed
+							if ((hrt_absolute_time() - time_last_innov_pass) > 1000*1000) {
+								nav_test_failed = true;
+								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
+							}
+						}
+					}
+				}
+			}
+		}
+
 		/* run global position accuracy checks */
 		if (gpos_updated) {
 			if (run_quality_checks) {
-				check_posvel_validity(true, global_position.eph, eph_threshold, global_position.timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
-				check_posvel_validity(true, global_position.evh, evh_threshold, global_position.timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, &status_changed);
+				// If nav is failed, then declare local position and velocity as invalid
+				if (nav_test_failed) {
+					status_flags.condition_global_position_valid = false;
+					status_flags.condition_global_velocity_valid = false;
+				} else {
+					// use global position message to determine validity
+					check_posvel_validity(true, global_position.eph, eph_threshold, global_position.timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
+					check_posvel_validity(true, global_position.evh, evh_threshold, global_position.timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, &status_changed);
+				}
 			}
 		}
 
@@ -2175,8 +2271,15 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
 
 			if (run_quality_checks) {
-				check_posvel_validity(local_position.xy_valid, local_position.eph, eph_threshold, local_position.timestamp, &last_lpos_fail_time_us, &lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
-				check_posvel_validity(local_position.v_xy_valid, local_position.evh, evh_threshold, local_position.timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
+				// If nav is failed, then declare local position and velocity as invalid
+				if (nav_test_failed) {
+					status_flags.condition_local_position_valid = false;
+					status_flags.condition_local_velocity_valid = false;
+				} else {
+					// use local position message to determine validity
+					check_posvel_validity(local_position.xy_valid, local_position.eph, eph_threshold, local_position.timestamp, &last_lpos_fail_time_us, &lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
+					check_posvel_validity(local_position.v_xy_valid, local_position.evh, evh_threshold, local_position.timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
+				}
 			}
 		}
 
@@ -2782,7 +2885,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* evaluate the main state machine according to mode switches */
 			bool first_rc_eval = (_last_sp_man.timestamp == 0) && (sp_man.timestamp > 0);
-			transition_result_t main_res = set_main_state_rc(&status, &global_position, &local_position, &status_changed);
+			transition_result_t main_res = set_main_state(&status, &global_position, &local_position, &status_changed);
 
 			/* store last position lock state */
 			_last_condition_global_position_valid = status_flags.condition_global_position_valid;
@@ -3019,13 +3122,21 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* First time home position update - but only if disarmed */
 		if (!status_flags.condition_home_position_valid && !armed.armed) {
-			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, false);
 		}
 
 		/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
 		else if (((!was_armed && armed.armed) || (was_landed && !land_detector.landed)) &&
 			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
-			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, false);
+
+		}
+
+		/* Set home position altitude to EKF origin height if home is not set and the EKF has a global origin.
+		 * This allows home atitude to be used in the calculation of height above takeoff location when GPS
+		 * use has commenced after takeoff. */
+		if (!_home.valid_alt && local_position.z_global) {
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, true);
 
 		}
 
@@ -3370,6 +3481,25 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 	}
 
 	leds_counter++;
+}
+
+transition_result_t
+set_main_state(struct vehicle_status_s *status_local, vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed)
+{
+	if (safety.override_available && safety.override_enabled) {
+		return set_main_state_override_on(status_local, changed);
+	} else {
+		return set_main_state_rc(status_local, global_position, local_position, changed);
+	}
+}
+
+transition_result_t
+set_main_state_override_on(struct vehicle_status_s *status_local, bool *changed)
+{
+	transition_result_t res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+	*changed = (res == TRANSITION_CHANGED);
+
+	return res;
 }
 
 transition_result_t

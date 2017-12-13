@@ -109,6 +109,27 @@ protected:
 	int		transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
 	/**
+	 * Perform a SPI 16 bit transfer.
+	 *
+	 * If called from interrupt context, this interface does not lock
+	 * the bus and may interfere with non-interrupt-context callers.
+	 *
+	 * Clients in a mixed interrupt/non-interrupt configuration must
+	 * ensure appropriate interlocking.
+	 *
+	 * At least one of send or recv must be non-null.
+	 *
+	 * @param send		Words to send to the device, or nullptr if
+	 *			no data is to be sent.
+	 * @param recv		Words for receiving bytes from the device,
+	 *			or nullptr if no bytes are to be received.
+	 * @param len		Number of words to transfer.
+	 * @return		OK if the exchange was successful, -errno
+	 *			otherwise.
+	 */
+	int		transferhword(uint16_t *send, uint16_t *recv, unsigned len);
+
+	/**
 	 * Set the SPI bus frequency
 	 * This is used to change frequency on the fly. Some sensors
 	 * (such as the MPU6000) need a lower frequency for setup
@@ -143,6 +164,8 @@ private:
 
 protected:
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
+
+	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
 	bool	external() { return px4_spi_bus_external(get_device_bus()); }
 

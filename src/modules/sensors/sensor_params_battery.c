@@ -32,15 +32,6 @@
  ****************************************************************************/
 
 /**
- * Scaling factor for battery voltage sensor on PX4IO.
- *
- * @min 1
- * @max 100000
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
-
-/**
  * Scaling from ADC counts to volt on the ADC input (battery voltage)
  *
  * This is not the battery voltage, but the intermediate ADC voltage.

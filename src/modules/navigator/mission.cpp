@@ -139,6 +139,9 @@ Mission::on_inactive()
 
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+
+	/* reset so MISSION_ITEM_REACHED isn't published */
+	_navigator->get_mission_result()->seq_reached = -1;
 }
 
 void
@@ -329,9 +332,8 @@ Mission::update_onboard_mission()
 		/* reset mission failure if we have an updated valid mission */
 		_navigator->get_mission_result()->failure = false;
 
-		/* reset reached info as well */
-		_navigator->get_mission_result()->reached = false;
-		_navigator->get_mission_result()->seq_reached = 0;
+		/* reset sequence info as well */
+		_navigator->get_mission_result()->seq_reached = -1;
 		_navigator->get_mission_result()->seq_total = _onboard_mission.count;
 
 		/* reset work item if new mission has been accepted */
@@ -384,9 +386,8 @@ Mission::update_offboard_mission()
 			/* reset mission failure if we have an updated valid mission */
 			_navigator->get_mission_result()->failure = false;
 
-			/* reset reached info as well */
-			_navigator->get_mission_result()->reached = false;
-			_navigator->get_mission_result()->seq_reached = 0;
+			/* reset sequence info as well */
+			_navigator->get_mission_result()->seq_reached = -1;
 			_navigator->get_mission_result()->seq_total = _offboard_mission.count;
 
 			/* reset work item if new mission has been accepted */
@@ -1406,7 +1407,6 @@ Mission::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 void
 Mission::set_mission_item_reached()
 {
-	_navigator->get_mission_result()->reached = true;
 	_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
@@ -1415,7 +1415,6 @@ Mission::set_mission_item_reached()
 void
 Mission::set_current_offboard_mission_item()
 {
-	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->get_mission_result()->seq_current = _current_offboard_mission_index;
 	_navigator->set_mission_result_updated();

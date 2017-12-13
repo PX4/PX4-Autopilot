@@ -100,7 +100,7 @@ public:
 	TAP_ESC(int channels_count);
 	virtual ~TAP_ESC();
 	virtual int	init();
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
+	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 	void cycle();
 
 private:
@@ -123,7 +123,7 @@ private:
 	// It needs to support the number of ESC
 	int	_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
-	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
@@ -616,7 +616,7 @@ TAP_ESC::cycle()
 
 
 	/* check if anything updated */
-	int ret = ::poll(_poll_fds, _poll_fds_num, 5);
+	int ret = px4_poll(_poll_fds, _poll_fds_num, 5);
 
 
 	/* this would be bad... */
@@ -852,7 +852,7 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 }
 
 int
-TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
+TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -869,7 +869,7 @@ TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
+			unsigned buflen = strlen(buf);
 
 			if (_mixers == nullptr) {
 				_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);

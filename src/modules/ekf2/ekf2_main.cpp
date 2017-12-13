@@ -143,15 +143,23 @@ private:
 	float _last_valid_variance[3] = {};	///< variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
 
 	// Used to filter velocity innovations during pre-flight checks
-	bool _vel_innov_preflt_fail = false;	///< true if the norm of the filtered innovation vector is too large before flight
-	Vector3f _vel_innov_lpf_ned = {};	///< Preflight low pass filtered velocity innovations (m/sec)
+	bool _preflt_horiz_fail = false;	///< true if preflight horizontal innovation checks are failed
+	bool _preflt_vert_fail = false;		///< true if preflight vertical innovation checks are failed
+	bool _preflt_fail = false;		///< true if any preflight innovation checks are failed
+	Vector2f _vel_ne_innov_lpf = {};	///< Preflight low pass filtered NE axis velocity innovations (m/sec)
+	float _vel_d_innov_lpf = {};		///< Preflight low pass filtered D axis velocity innovations (m/sec)
 	float _hgt_innov_lpf = 0.0f;		///< Preflight low pass filtered height innovation (m)
+	float _yaw_innov_magnitude_lpf = 0.0f;	///< Preflight low pass filtered yaw innovation magntitude (rad)
 
 	static constexpr float _innov_lpf_tau_inv = 0.2f;	///< Preflight low pass filter time constant inverse (1/sec)
 	static constexpr float _vel_innov_test_lim =
 		0.5f;	///< Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
 	static constexpr float _hgt_innov_test_lim =
 		1.5f;	///< Maximum permissible height innovation to pass pre-flight checks (m)
+	static constexpr float _nav_yaw_innov_test_lim =
+		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
+	static constexpr float _yaw_innov_test_lim =
+		0.52f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 
@@ -937,10 +945,10 @@ void Ekf2::run()
 			lpos.az = vel_deriv[2];
 
 			// TODO: better status reporting
-			lpos.xy_valid = _ekf.local_position_is_valid() && !_vel_innov_preflt_fail;
-			lpos.z_valid = !_vel_innov_preflt_fail;
-			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_vel_innov_preflt_fail;
-			lpos.v_z_valid = !_vel_innov_preflt_fail;
+			lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+			lpos.z_valid = !_preflt_vert_fail;
+			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+			lpos.v_z_valid = !_preflt_vert_fail;
 
 			// Position of local NED origin in GPS / WGS84 frame
 			map_projection_reference_s ekf_origin;
@@ -987,7 +995,7 @@ void Ekf2::run()
 			// publish vehicle local position data
 			_vehicle_local_position_pub.update();
 
-			if (_ekf.global_position_is_valid() && !_vel_innov_preflt_fail) {
+			if (_ekf.global_position_is_valid() && !_preflt_fail) {
 				// generate and publish global position data
 				vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
 
@@ -1092,6 +1100,7 @@ void Ekf2::run()
 		_ekf.get_ekf_soln_status(&status.solution_status_flags);
 		_ekf.get_imu_vibe_metrics(status.vibe);
 		status.time_slip = _last_time_slip_us / 1e6f;
+		status.pre_flt_fail = _preflt_fail;
 
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
@@ -1245,23 +1254,64 @@ void Ekf2::run()
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
 				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+					// calculate coefficients for LPF applied to innovation sequences
 					float alpha = constrain(sensors.accelerometer_integral_dt / 1.e6f * _innov_lpf_tau_inv, 0.0f, 1.0f);
 					float beta = 1.0f - alpha;
-					_vel_innov_lpf_ned(0) = beta * _vel_innov_lpf_ned(0) + alpha * constrain(innovations.vel_pos_innov[0],
-								-_vel_innov_spike_lim, _vel_innov_spike_lim);
-					_vel_innov_lpf_ned(1) = beta * _vel_innov_lpf_ned(1) + alpha * constrain(innovations.vel_pos_innov[1],
-								-_vel_innov_spike_lim, _vel_innov_spike_lim);
-					_vel_innov_lpf_ned(2) = beta * _vel_innov_lpf_ned(2) + alpha * constrain(innovations.vel_pos_innov[2],
-								-_vel_innov_spike_lim, _vel_innov_spike_lim);
+
+					// filter the velocity and innvovations
+					_vel_ne_innov_lpf(0) = beta * _vel_ne_innov_lpf(0) + alpha * constrain(innovations.vel_pos_innov[0],
+							       -_vel_innov_spike_lim, _vel_innov_spike_lim);
+					_vel_ne_innov_lpf(1) = beta * _vel_ne_innov_lpf(1) + alpha * constrain(innovations.vel_pos_innov[1],
+							       -_vel_innov_spike_lim, _vel_innov_spike_lim);
+					_vel_d_innov_lpf = beta * _vel_d_innov_lpf + alpha * constrain(innovations.vel_pos_innov[2],
+							   -_vel_innov_spike_lim, _vel_innov_spike_lim);
+
+					// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
+					// observations in the NE reference frame.
+					filter_control_status_u _ekf_control_mask;
+					_ekf.get_control_mode(&_ekf_control_mask.value);
+					bool doing_ne_aiding = _ekf_control_mask.flags.gps ||  _ekf_control_mask.flags.ev_pos;
+
+					float yaw_test_limit;
+
+					if (doing_ne_aiding) {
+						// use a smaller tolerance when doing NE inertial frame aiding
+						yaw_test_limit = _nav_yaw_innov_test_lim;
+
+					} else {
+						// use a larger tolerance when not doing NE inertial frame aiding
+						yaw_test_limit = _yaw_innov_test_lim;
+					}
+
+					// filter the yaw innovations using a decaying envelope filter to prevent innovation sign changes due to angle wrapping allowinging large innvoations to pass checks after filtering.
+					_yaw_innov_magnitude_lpf = fmaxf(beta * _yaw_innov_magnitude_lpf,
+									 fminf(fabsf(innovations.heading_innov), 2.0f * yaw_test_limit));
+
 					_hgt_innov_lpf = beta * _hgt_innov_lpf + alpha * constrain(innovations.vel_pos_innov[5], -_hgt_innov_spike_lim,
 							 _hgt_innov_spike_lim);
-					_vel_innov_preflt_fail = ((_vel_innov_lpf_ned.norm() > _vel_innov_test_lim)
-								  || (fabsf(_hgt_innov_lpf) > _hgt_innov_test_lim));
+
+					// check the yaw and horizontal velocity innovations
+					float vel_ne_innov_length = sqrtf(innovations.vel_pos_innov[0] * innovations.vel_pos_innov[0] +
+									  innovations.vel_pos_innov[1] * innovations.vel_pos_innov[1]);
+					_preflt_horiz_fail = (_vel_ne_innov_lpf.norm() > _vel_innov_test_lim)
+							     || (vel_ne_innov_length > 2.0f * _vel_innov_test_lim)
+							     || (_yaw_innov_magnitude_lpf > yaw_test_limit);
+
+					// check the vertical velocity and position innovations
+					_preflt_vert_fail = (fabsf(_vel_d_innov_lpf) > _vel_innov_test_lim)
+							    || (fabsf(innovations.vel_pos_innov[2]) > 2.0f * _vel_innov_test_lim)
+							    || (fabsf(_hgt_innov_lpf) > _hgt_innov_test_lim);
+
+					// master pass-fail status
+					_preflt_fail = _preflt_horiz_fail || _preflt_vert_fail;
 
 				} else {
-					_vel_innov_lpf_ned.zero();
+					_vel_ne_innov_lpf.zero();
+					_vel_d_innov_lpf = 0.0f;
 					_hgt_innov_lpf = 0.0f;
-					_vel_innov_preflt_fail = false;
+					_preflt_horiz_fail = false;
+					_preflt_vert_fail = false;
+					_preflt_fail = false;
 				}
 
 				if (_estimator_innovations_pub == nullptr) {

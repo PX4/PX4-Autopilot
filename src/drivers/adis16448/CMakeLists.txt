@@ -31,12 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE examples__mc_pos_control_multiplatform
-	MAIN mc_pos_control_m
+	MODULE drivers__adis16448
+	MAIN adis16448
+	STACK_MAIN 1200
+	COMPILE_FLAGS
 	SRCS
-		mc_pos_control_main.cpp
-		mc_pos_control_start_nuttx.cpp
-		mc_pos_control.cpp
+		adis16448.cpp
 	DEPENDS
 		platforms__common
 	)

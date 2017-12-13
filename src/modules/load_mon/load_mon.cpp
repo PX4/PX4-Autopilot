@@ -246,14 +246,7 @@ float LoadMon::_ram_used()
 	// mem.fordblks: free (bytes)
 	// mem.mxordblk: largest remaining block (bytes)
 
-	float load = (float)mem.uordblks / mem.arena;
-
-	// Check for corruption of the allocation counters
-	if ((mem.arena > CONFIG_RAM_SIZE) || (mem.fordblks > CONFIG_RAM_SIZE)) {
-		load = 1.0f;
-	}
-
-	return load;
+	return (float)mem.uordblks / mem.arena;
 #else
 	return 0.0f;
 #endif

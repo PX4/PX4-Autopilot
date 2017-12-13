@@ -48,6 +48,8 @@
 using math::max;
 using math::min;
 
+static constexpr float DELAY_SIGMA = 0.01f;
+
 RTL::RTL(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
@@ -252,7 +254,7 @@ RTL::set_rtl_item()
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at home");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: land at home");
 			break;
 		}
 
@@ -305,7 +307,7 @@ RTL::advance_rtl()
 	case RTL_STATE_DESCEND:
 
 		/* only go to land if autoland is enabled */
-		if (_param_land_delay.get() > FLT_EPSILON) {
+		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
 			_rtl_state = RTL_STATE_LOITER;
 
 		} else {

@@ -15,7 +15,7 @@ msg_id_map = {
     'camera_trigger': 10,
     'collision_report': 11,
     'commander_state': 12,
-    'control_state': 13,
+
     'cpuload': 14,
     'debug_key_value': 15,
     'differential_pressure': 16,
@@ -28,13 +28,13 @@ msg_id_map = {
     'estimator_status': 23,
     'fence': 24,
     'fence_vertex': 25,
-    'filtered_bottom_flow': 26,
+
     'follow_target': 27,
     'fw_pos_ctrl_status': 28,
     'geofence_result': 29,
     'gps_dump': 30,
     'gps_inject_data': 31,
-    'hil_sensor': 32,
+
     'home_position': 33,
     'input_rc': 34,
     'led_control': 35,
@@ -48,7 +48,7 @@ msg_id_map = {
     'multirotor_motor_limits': 43,
     'offboard_control_mode': 44,
     'optical_flow': 45,
-    'output_pwm': 46,
+
     'parameter_update': 47,
     'position_setpoint': 48,
     'position_setpoint_triplet': 49,
@@ -84,9 +84,9 @@ msg_id_map = {
     'vehicle_command_ack': 79,
     'vehicle_command': 80,
     'vehicle_control_mode': 81,
-    'vehicle_force_setpoint': 82,
+
     'vehicle_global_position': 83,
-    'vehicle_global_velocity_setpoint': 84,
+
     'vehicle_gps_position': 85,
     'vehicle_land_detected': 86,
     'vehicle_local_position': 87,

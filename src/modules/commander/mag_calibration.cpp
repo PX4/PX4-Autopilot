@@ -575,7 +575,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 		worker_data.z[cur_mag] = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
 
 		if (worker_data.x[cur_mag] == nullptr || worker_data.y[cur_mag] == nullptr || worker_data.z[cur_mag] == nullptr) {
-			calibration_log_critical(mavlink_log_pub, "[cal] ERROR: out of memory");
+			calibration_log_critical(mavlink_log_pub, "ERROR: out of memory");
 			result = calibrate_return_error;
 		}
 	}
@@ -589,7 +589,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 		// Warn that we will not calibrate more than max_mags magnetometers
 		if (orb_mag_count > max_mags) {
-			calibration_log_critical(mavlink_log_pub, "[cal] Detected %u mags, but will calibrate only %u", orb_mag_count, max_mags);
+			calibration_log_critical(mavlink_log_pub, "Detected %u mags, but will calibrate only %u", orb_mag_count, max_mags);
 		}
 
 		for (unsigned cur_mag = 0; cur_mag < orb_mag_count && cur_mag < max_mags; cur_mag++) {
@@ -625,7 +625,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 			}
 
 			if(!found_cur_mag) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Mag #%u (ID %u) no matching uORB devid", cur_mag, device_ids[cur_mag]);
+				calibration_log_critical(mavlink_log_pub, "Mag #%u (ID %u) no matching uORB devid", cur_mag, device_ids[cur_mag]);
 				result = calibrate_return_error;
 				break;
 			}
@@ -641,7 +641,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				}
 
 			} else {
-				calibration_log_critical(mavlink_log_pub, "[cal] Mag #%u no device id, abort", cur_mag);
+				calibration_log_critical(mavlink_log_pub, "Mag #%u no device id, abort", cur_mag);
 				result = calibrate_return_error;
 				break;
 			}
@@ -804,13 +804,13 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				fd_mag = px4_open(str, 0);
 
 				if (fd_mag < 0) {
-					calibration_log_critical(mavlink_log_pub, "[cal] ERROR: unable to open mag device #%u", cur_mag);
+					calibration_log_critical(mavlink_log_pub, "ERROR: unable to open mag device #%u", cur_mag);
 					result = calibrate_return_error;
 				}
 
 				if (result == calibrate_return_ok) {
 					if (px4_ioctl(fd_mag, MAGIOCGSCALE, (long unsigned int)&mscale) != PX4_OK) {
-						calibration_log_critical(mavlink_log_pub, "[cal] ERROR: failed to get current calibration #%u", cur_mag);
+						calibration_log_critical(mavlink_log_pub, "ERROR: failed to get current calibration #%u", cur_mag);
 						result = calibrate_return_error;
 					}
 				}

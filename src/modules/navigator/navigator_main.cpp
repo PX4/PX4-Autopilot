@@ -525,7 +525,8 @@ Navigator::task_main()
 				// TODO: handle responses for supported DO_CHANGE_SPEED options?
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI) {
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI
+				   || cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_ROI) {
 				_vroi = {};
 				_vroi.mode = cmd.param1;
 
@@ -1130,7 +1131,6 @@ Navigator::publish_mission_result()
 	//_mission_result.seq_current = 0;
 
 	/* reset some of the flags */
-	_mission_result.reached = false;
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;

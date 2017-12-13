@@ -108,4 +108,7 @@ struct mag_calibration_s {
 /** enable/disable temperature compensation */
 #define MAGIOCSTEMPCOMP		_MAGIOC(12)
 
+/** get the current mag type */
+#define MAGIOCTYPE			_MAGIOC(13)
+
 #endif /* _DRV_MAG_H */

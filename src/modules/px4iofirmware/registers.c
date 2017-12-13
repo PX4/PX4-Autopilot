@@ -84,8 +84,6 @@ volatile uint16_t	r_page_status[] = {
 	[PX4IO_P_STATUS_CPULOAD]		= 0,
 	[PX4IO_P_STATUS_FLAGS]			= 0,
 	[PX4IO_P_STATUS_ALARMS]			= 0,
-	[PX4IO_P_STATUS_VBATT]			= 0,
-	[PX4IO_P_STATUS_IBATT]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
 	[PX4IO_P_STATUS_PRSSI]			= 0,
@@ -633,10 +631,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			}
 
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
-			break;
-
-		case PX4IO_P_SETUP_VBATT_SCALE:
-			r_page_setup[PX4IO_P_SETUP_VBATT_SCALE] = value;
 			break;
 
 		case PX4IO_P_SETUP_SET_DEBUG:

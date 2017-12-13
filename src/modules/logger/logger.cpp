@@ -593,6 +593,8 @@ void Logger::add_default_topics()
 	add_topic("estimator_status", 200);
 	add_topic("input_rc", 200);
 	add_topic("manual_control_setpoint", 200);
+	add_topic("mission_result");
+	add_topic("offboard_mission");
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("sensor_combined", 100);
@@ -1005,9 +1007,10 @@ void Logger::run()
 			bool data_written = false;
 
 			/* Check if parameters have changed */
-			// this needs to change to a timestamped record to record a history of parameter changes
-			if (parameter_update_sub.update()) {
-				write_changed_parameters();
+			if (!_should_stop_file_log) { // do not record param changes after disarming
+				if (parameter_update_sub.update()) {
+					write_changed_parameters();
+				}
 			}
 
 			/* wait for lock on log buffer */
