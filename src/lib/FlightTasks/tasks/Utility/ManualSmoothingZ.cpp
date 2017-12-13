@@ -34,7 +34,7 @@
 /**
  * @file ManualSmoothingZ.hpp
  *
- * This Class is used for smoothing the velocity setpoints in Z-direction.
+ * This Class is used for smoothing the velocity set-points in z-direction NED frame.
  */
 
 #include "ManualSmoothingZ.hpp"
@@ -47,7 +47,7 @@ ManualSmoothingZ::ManualSmoothingZ(const float &vel, const float &stick) :
 {
 	_acc_max_up_h = param_find("MPC_ACC_UP_MAX");
 	_acc_max_down_h = param_find("MPC_ACC_DOWN_MAX");
-	_jerk_max = param_find("MPC_JERK_MAX");
+	_jerk_max_h = param_find("MPC_JERK_MAX");
 
 	/* Load the params the very first time */
 	setParams();
@@ -98,23 +98,23 @@ ManualSmoothingZ::updateAcceleration(float vel_sp[2], const float dt)
 	const bool is_current_zero = (fabsf(_stick) <= FLT_EPSILON);
 
 	/* default is acceleration */
-	Intention intention = Intention::acceleration;
+	ManualIntentionZ intention = ManualIntentionZ::acceleration;
 
 	/* check zero input stick */
 	if (is_current_zero) {
-		intention = Intention::brake;
+		intention = ManualIntentionZ::brake;
 	}
 
 	/*
 	 * update intention
 	 */
-	if ((_intention != Intention::brake) && (intention == Intention::brake)) {
+	if ((_intention != ManualIntentionZ::brake) && (intention == ManualIntentionZ::brake)) {
 
 		/* we start with lowest acceleration */
 		_acc_state_dependent = _acc_max_down;
 
-		/* reset slewrate: this ensures that there
-		 * is no delay present because of the slewrate
+		/* reset slew-rate: this ensures that there
+		 * is no delay present when user demands to brake
 		 */
 
 		vel_sp[1] = _vel;
@@ -122,7 +122,7 @@ ManualSmoothingZ::updateAcceleration(float vel_sp[2], const float dt)
 	}
 
 	switch (intention) {
-	case Intention::brake: {
+	case ManualIntentionZ::brake: {
 
 			/* limit jerk when braking to zero */
 			float jerk = (_acc_max_up - _acc_state_dependent) / dt;
@@ -137,10 +137,9 @@ ManualSmoothingZ::updateAcceleration(float vel_sp[2], const float dt)
 			break;
 		}
 
-	case Intention::acceleration: {
+	case ManualIntentionZ::acceleration: {
 
 			_acc_state_dependent = (getMaxAcceleration(vel_sp) - _acc_max_down)
-			_acc_state_dependent = (getMaxAcceleration() - _acc_max_down)
 					       * fabsf(_stick) + _acc_max_down;
 			break;
 		}
@@ -170,7 +169,7 @@ ManualSmoothingZ::getMaxAcceleration(float vel_sp[2])
 			/* at rest */
 			return _acc_max_up;
 
-		} else if (vel_sp[0] < 0.0f ) {
+		} else if (vel_sp[0] < 0.0f) {
 			/* braking downward */
 			return _acc_max_down;
 
