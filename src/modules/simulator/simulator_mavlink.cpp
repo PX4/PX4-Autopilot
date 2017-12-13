@@ -529,6 +529,8 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_lpos.ref_lon = _hil_ref_lon;
 			hil_lpos.ref_alt = _hil_ref_alt;
 			hil_lpos.ref_timestamp = _hil_ref_timestamp;
+			hil_lpos.vxy_max = 0.0f;
+			hil_lpos.limit_hagl = false;
 
 			// always publish ground truth attitude message
 			int hil_lpos_multi;
