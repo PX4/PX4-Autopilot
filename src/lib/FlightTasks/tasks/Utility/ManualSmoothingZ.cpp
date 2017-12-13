@@ -63,7 +63,7 @@ ManualSmoothingZ::smoothVelFromSticks(float vel_sp[2], const float dt)
 {
 	updateParams();
 
-	updateAcceleration(vel_sp[1], dt);
+	updateAcceleration(vel_sp, dt);
 
 	velocitySlewRate(vel_sp, dt);
 
@@ -92,7 +92,7 @@ ManualSmoothingZ::setParams()
 }
 
 void
-ManualSmoothingZ::updateAcceleration(float &vel_sp_prev, const float dt)
+ManualSmoothingZ::updateAcceleration(float vel_sp[2], const float dt)
 {
 	/* check if zero input stick */
 	const bool is_current_zero = (fabsf(_stick) <= FLT_EPSILON);
@@ -116,7 +116,8 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp_prev, const float dt)
 		/* reset slewrate: this ensures that there
 		 * is no delay present because of the slewrate
 		 */
-		vel_sp_prev = _vel;
+
+		vel_sp[1] = _vel;
 
 	}
 
@@ -138,6 +139,7 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp_prev, const float dt)
 
 	case Intention::acceleration: {
 
+			_acc_state_dependent = (getMaxAcceleration(vel_sp) - _acc_max_down)
 			_acc_state_dependent = (getMaxAcceleration() - _acc_max_down)
 					       * fabsf(_stick) + _acc_max_down;
 			break;
@@ -148,9 +150,35 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp_prev, const float dt)
 }
 
 float
-ManualSmoothingZ::getMaxAcceleration()
+ManualSmoothingZ::getMaxAcceleration(float vel_sp[2])
 {
-	return (_stick <= 0.0f) ? _acc_max_up : _acc_max_down;
+	/* Note: NED frame */
+
+	if (_stick < 0.0f) {
+		/* accelerating upward */
+		return _acc_max_up;
+
+	} else if (_stick > 0.0f) {
+		/* accelerating downward */
+		return _acc_max_down;
+
+	} else {
+
+		/* want to brake */
+
+		if (fabsf(vel_sp[0] - vel_sp[1]) < FLT_EPSILON) {
+			/* at rest */
+			return _acc_max_up;
+
+		} else if (vel_sp[0] < 0.0f ) {
+			/* braking downward */
+			return _acc_max_down;
+
+		} else {
+			/* braking upward */
+			return _acc_max_up;
+		}
+	}
 }
 
 void
