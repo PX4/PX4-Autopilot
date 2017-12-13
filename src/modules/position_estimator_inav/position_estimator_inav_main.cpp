@@ -1362,6 +1362,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			// TODO provide calculated values for these
 			local_pos.evh = 0.0f;
 			local_pos.evv = 0.0f;
+			local_pos.vxy_max = 0.0f;
+			local_pos.limit_hagl = false;
 
 			// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
 			local_pos.z_deriv = z_est[1];
