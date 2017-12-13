@@ -183,6 +183,7 @@ DfBebopRangeFinderWrapper *g_dev = nullptr;
 int start();
 int stop();
 int info();
+int capture_signal();
 void usage();
 
 int start()
@@ -232,6 +233,21 @@ int stop()
 
 	delete g_dev;
 	g_dev = nullptr;
+	return 0;
+}
+
+/**
+ * Capture the recorded sound signal into a .csv file
+ */
+int capture_signal()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return 1;
+	}
+
+	g_dev->capture_signal();
+
 	return 0;
 }
 
@@ -296,6 +312,10 @@ df_bebop_rangefinder_wrapper_main(int argc, char *argv[])
 
 	else if (!strcmp(verb, "info")) {
 		ret = df_bebop_rangefinder_wrapper::info();
+	}
+
+	else if (!strcmp(verb, "capture")) {
+		ret = df_bebop_rangefinder_wrapper::capture_signal();
 	}
 
 	else {
