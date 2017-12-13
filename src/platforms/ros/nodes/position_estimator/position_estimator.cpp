@@ -94,6 +94,8 @@ void PositionEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	msg_v_l_pos.ref_lon = 8.538777;
 	msg_v_l_pos.ref_alt = 1200.0f;
 
+	msg_v_l_pos.vxy_max = 0.0f;
+	msg_v_l_pos.limit_hagl = false;
 
 	msg_v_l_pos.timestamp = px4::get_time_micros();
 	_vehicle_position_pub.publish(msg_v_l_pos);
