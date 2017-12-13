@@ -1,4 +1,4 @@
-# E-flite Convergence Tricopter Y-Configuration Mixer
+# Custom E-flite Convergence Tricopter Y-Configuration Mixer
 
 # Motors (Pin 1,2,3)
 R: 3y 10000 10000 10000 0
@@ -12,7 +12,7 @@ Tilt mechanism servo mixer
 ---------------------------
 #RIGHT up:2000 down:1000
 M: 3
-O:      10000  10000      0 -10000  10000
+O:     -10000 -10000      0 -10000  10000
 S: 1 4      0 -20000  10000 -10000  10000
 S: 0 2   8000   8000      0 -10000  10000
 S: 1 0   2000   2000      0 -10000  10000
