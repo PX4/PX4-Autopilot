@@ -80,9 +80,6 @@ struct gyro_calibration_s {
 #define GYROIOCGSAMPLERATE	_GYROIOC(1)
 
 /** set the gyro internal lowpass filter to no lower than (arg) Hz */
-#define GYROIOCSLOWPASS		_GYROIOC(2)
-
-/** set the gyro internal lowpass filter to no lower than (arg) Hz */
 #define GYROIOCGLOWPASS		_GYROIOC(3)
 
 /** set the gyro scaling constants to (arg) */
