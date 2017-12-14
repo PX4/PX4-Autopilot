@@ -56,6 +56,8 @@ public:
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
+	bool applyCommandParameters(vehicle_command_s command) override { return false; };
+
 	bool updateInitialize() override;
 
 	bool update() override;
