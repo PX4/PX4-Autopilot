@@ -1522,8 +1522,6 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 int
 MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	unsigned dummy = arg;
-
 	switch (cmd) {
 
 	/* these are shared with the accel side */
