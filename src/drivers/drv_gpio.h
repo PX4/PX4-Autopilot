@@ -79,7 +79,4 @@
 
 #define GPIO_PERIPHERAL_RAIL_RESET	GPIOC(14)
 
-/** configure the board GPIOs in (arg) as outputs, initially high */
-#define GPIO_SET_OUTPUT_HIGH	GPIOC(16)
-
 #endif /* _DRV_GPIO_H */
