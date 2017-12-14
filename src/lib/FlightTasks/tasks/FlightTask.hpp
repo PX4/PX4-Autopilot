@@ -46,6 +46,7 @@
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include "../SubscriptionArray.hpp"
 
@@ -70,6 +71,12 @@ public:
 	 * @return true on success, false on error
 	 */
 	virtual bool activate();
+
+	/**
+	 * To be called to adopt parameters from an arrived vehicle command
+	 * @return true if accepted, false if declined
+	 */
+	virtual bool applyCommandParameters(vehicle_command_s command) = 0;
 
 	/**
 	 * Call before activate() or update()
