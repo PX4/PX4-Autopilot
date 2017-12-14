@@ -152,18 +152,6 @@ int LidarLite::ioctl(struct file *filp, int cmd, unsigned long arg)
 		reset_sensor();
 		return OK;
 
-	case RANGEFINDERIOCSETMINIUMDISTANCE: {
-			set_minimum_distance(*(float *)arg);
-			return OK;
-		}
-		break;
-
-	case RANGEFINDERIOCSETMAXIUMDISTANCE: {
-			set_maximum_distance(*(float *)arg);
-			return OK;
-		}
-		break;
-
 	default:
 		return -EINVAL;
 	}
