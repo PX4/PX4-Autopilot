@@ -2671,13 +2671,6 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 	for (unsigned i = 0; i < _ngpio; i++) {
 		if (gpios & (1 << i)) {
 			switch (function) {
-			case GPIO_SET_INPUT:
-				if (_gpio_tab[i].input) {
-					px4_arch_configgpio(_gpio_tab[i].input);
-				}
-
-				break;
-
 			case GPIO_SET_OUTPUT:
 				if (_gpio_tab[i].output) {
 					px4_arch_configgpio(_gpio_tab[i].output);
@@ -2881,7 +2874,6 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		break;
 
 	case GPIO_SET_OUTPUT:
-	case GPIO_SET_INPUT:
 		ret = gpio_set_function(arg, cmd);
 		break;
 

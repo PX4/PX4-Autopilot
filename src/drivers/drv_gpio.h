@@ -68,9 +68,6 @@
 /** configure the board GPIOs in (arg) as outputs */
 #define GPIO_SET_OUTPUT	GPIOC(1)
 
-/** configure the board GPIOs in (arg) as inputs */
-#define GPIO_SET_INPUT	GPIOC(2)
-
 /** set the GPIOs in (arg) */
 #define GPIO_SET	GPIOC(10)
 
