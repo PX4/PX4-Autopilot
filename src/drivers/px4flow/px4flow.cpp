@@ -388,10 +388,6 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
 
-	case SENSORIOCSROTATION:
-		_sensor_rotation = (enum Rotation)arg;
-		return OK;
-
 	case SENSORIOCGROTATION:
 		return _sensor_rotation;
 
