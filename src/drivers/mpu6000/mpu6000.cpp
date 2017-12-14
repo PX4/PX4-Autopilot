@@ -1563,14 +1563,6 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCGLOWPASS:
 		return _gyro_filter_x.get_cutoff_freq();
 
-	case GYROIOCSLOWPASS:
-		// set hardware filtering
-		_set_dlpf_filter(arg);
-		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		return OK;
-
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));

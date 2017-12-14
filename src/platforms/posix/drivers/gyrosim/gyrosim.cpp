@@ -864,9 +864,6 @@ GYROSIM::gyro_ioctl(unsigned long cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case GYROIOCSLOWPASS:
-		return OK;
-
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
