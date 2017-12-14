@@ -751,13 +751,6 @@ BMI160::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
 
-#ifdef ACCELIOCGHWLOWPASS
-
-	case ACCELIOCGHWLOWPASS:
-		return _dlpf_freq;
-#endif
-
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
