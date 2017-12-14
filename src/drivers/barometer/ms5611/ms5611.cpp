@@ -163,9 +163,6 @@ protected:
 	float			_P;
 	float			_T;
 
-	/* altitude conversion calibration */
-	unsigned		_msl_pressure;	/* in Pa */
-
 	orb_advert_t		_baro_topic;
 	int			_orb_class_instance;
 	int			_class_instance;
@@ -243,7 +240,6 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *
 	_TEMP(0),
 	_OFF(0),
 	_SENS(0),
-	_msl_pressure(101325),
 	_baro_topic(nullptr),
 	_orb_class_instance(-1),
 	_class_instance(-1),
@@ -350,8 +346,6 @@ MS5611::init()
 
 		/* state machine will have generated a report, copy it out */
 		_reports->get(&brp);
-
-		// DEVICE_LOG("altitude (%u) = %.2f", _device_type, (double)brp.altitude);
 
 		if (autodetect) {
 			if (_device_type == MS5611_DEVICE) {
@@ -570,19 +564,6 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		 * PROM is correctly read and the part does not need to be configured.
 		 */
 		return OK;
-
-	case BAROIOCSMSLPRESSURE:
-
-		/* range-check for sanity */
-		if ((arg < 80000) || (arg > 120000)) {
-			return -EINVAL;
-		}
-
-		_msl_pressure = arg;
-		return OK;
-
-	case BAROIOCGMSLPRESSURE:
-		return _msl_pressure;
 
 	default:
 		break;
@@ -827,43 +808,6 @@ MS5611::collect()
 		/* return device ID */
 		report.device_id = _device_id.devid;
 
-		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
-
-		/*
-		 * PERFORMANCE HINT:
-		 *
-		 * The single precision calculation is 50 microseconds faster than the double
-		 * precision variant. It is however not obvious if double precision is required.
-		 * Pending more inspection and tests, we'll leave the double precision variant active.
-		 *
-		 * Measurements:
-		 * 	double precision: ms5611_read: 992 events, 258641us elapsed, min 202us max 305us
-		 *	single precision: ms5611_read: 963 events, 208066us elapsed, min 202us max 241us
-		 */
-
-		/* tropospheric properties (0-11km) for standard atmosphere */
-		const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
-		const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
-		const double g  = 9.80665;	/* gravity constant in m/s/s */
-		const double R  = 287.05;	/* ideal gas constant in J/kg/K */
-
-		/* current pressure at MSL in kPa */
-		double p1 = _msl_pressure / 1000.0;
-
-		/* measured pressure in kPa */
-		double p = P / 1000.0;
-
-		/*
-		 * Solve:
-		 *
-		 *     /        -(aR / g)     \
-		 *    | (p / p1)          . T1 | - T1
-		 *     \                      /
-		 * h = -------------------------------  + h1
-		 *                   a
-		 */
-		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
-
 		/* publish it */
 		if (!(_pub_blocked) && _baro_topic != nullptr) {
 			/* publish it */
@@ -892,18 +836,6 @@ MS5611::print_info()
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
-	printf("TEMP:           %d\n", _TEMP);
-	printf("SENS:           %lld\n", _SENS);
-	printf("OFF:            %lld\n", _OFF);
-
-	printf("factory_setup             %u\n", _prom.factory_setup);
-	printf("c1_pressure_sens          %u\n", _prom.c1_pressure_sens);
-	printf("c2_pressure_offset        %u\n", _prom.c2_pressure_offset);
-	printf("c3_temp_coeff_pres_sens   %u\n", _prom.c3_temp_coeff_pres_sens);
-	printf("c4_temp_coeff_pres_offset %u\n", _prom.c4_temp_coeff_pres_offset);
-	printf("c5_reference_temp         %u\n", _prom.c5_reference_temp);
-	printf("c6_temp_coeff_temp        %u\n", _prom.c6_temp_coeff_temp);
-	printf("serial_and_crc            %u\n", _prom.serial_and_crc);
 
 	sensor_baro_s brp = {};
 	_reports->get(&brp);
@@ -947,7 +879,6 @@ void	start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type);
 void	test(enum MS5611_BUS busid);
 void	reset(enum MS5611_BUS busid);
 void	info();
-void	calibrate(unsigned altitude, enum MS5611_BUS busid);
 void	usage();
 
 /**
@@ -1202,87 +1133,10 @@ info()
 	exit(0);
 }
 
-/**
- * Calculate actual MSL pressure given current altitude
- */
-void
-calibrate(unsigned altitude, enum MS5611_BUS busid)
-{
-	struct ms5611_bus_option &bus = find_bus(busid);
-	struct baro_report report;
-	float	pressure;
-	float	p1;
-
-	int fd;
-
-	fd = open(bus.devpath, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
-	}
-
-	/* start the sensor polling at max */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
-		errx(1, "failed to set poll rate");
-	}
-
-	/* average a few measurements */
-	pressure = 0.0f;
-
-	for (unsigned i = 0; i < 20; i++) {
-		struct pollfd fds;
-		int ret;
-		ssize_t sz;
-
-		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = poll(&fds, 1, 1000);
-
-		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
-		}
-
-		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
-
-		if (sz != sizeof(report)) {
-			err(1, "sensor read failed");
-		}
-
-		pressure += report.pressure;
-	}
-
-	pressure /= 20;		/* average */
-	pressure /= 10;		/* scale from millibar to kPa */
-
-	/* tropospheric properties (0-11km) for standard atmosphere */
-	const float T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
-	const float a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
-	const float g  = 9.80665f;	/* gravity constant in m/s/s */
-	const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
-
-	warnx("averaged pressure %10.4fkPa at %um", (double)pressure, altitude);
-
-	p1 = pressure * (powf(((T1 + (a * (float)altitude)) / T1), (g / (a * R))));
-
-	warnx("calculated MSL pressure %10.4fkPa", (double)p1);
-
-	/* save as integer Pa */
-	p1 *= 1000.0f;
-
-	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK) {
-		err(1, "BAROIOCSMSLPRESSURE");
-	}
-
-	close(fd);
-	exit(0);
-}
-
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
+	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset'");
 	warnx("options:");
 	warnx("    -X    (external I2C bus)");
 	warnx("    -I    (intternal I2C bus)");
@@ -1376,19 +1230,6 @@ ms5611_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "info")) {
 		ms5611::info();
-	}
-
-	/*
-	 * Perform MSL pressure calibration given an altitude in metres
-	 */
-	if (!strcmp(verb, "calibrate")) {
-		if (argc < 2) {
-			errx(1, "missing altitude");
-		}
-
-		long altitude = strtol(argv[optind + 1], nullptr, 10);
-
-		ms5611::calibrate(altitude, busid);
 	}
 
 	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
