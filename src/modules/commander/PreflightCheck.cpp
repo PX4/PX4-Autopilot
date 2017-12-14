@@ -80,12 +80,7 @@ namespace Preflight
 
 static int check_calibration(DevHandle &h, const char *param_template, int &devid)
 {
-	bool calibration_found;
-
-	/* new style: ask device for calibration state */
-	int ret = h.ioctl(SENSORIOCCALTEST, 0);
-
-	calibration_found = (ret == OK);
+	bool calibration_found = false;
 
 	devid = h.ioctl(DEVIOCGDEVICEID, 0);
 
