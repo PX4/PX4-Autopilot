@@ -88,9 +88,6 @@ typedef uint16_t		rc_input_t;
 
 #define _RC_INPUT_BASE		0x2b00
 
-/** Fetch R/C input values into (rc_input_values *)arg */
-#define RC_INPUT_GET			_IOC(_RC_INPUT_BASE, 0)
-
 /** Enable RSSI input via ADC */
 #define RC_INPUT_ENABLE_RSSI_ANALOG	_IOC(_RC_INPUT_BASE, 1)
 
