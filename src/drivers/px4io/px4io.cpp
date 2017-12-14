@@ -2746,10 +2746,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = -EINVAL;
 		break;
 
-	case GPIO_GET:
-		ret = -EINVAL;
-		break;
-
 	case MIXERIOCGETOUTPUTCOUNT:
 		*(unsigned *)arg = _max_actuators;
 		break;

@@ -2928,10 +2928,6 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		ret = gpio_write(arg, cmd);
 		break;
 
-	case GPIO_GET:
-		ret = gpio_read((uint32_t *)arg);
-		break;
-
 	default:
 		ret = -ENOTTY;
 	}
