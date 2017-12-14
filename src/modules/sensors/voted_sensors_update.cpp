@@ -42,16 +42,13 @@
 #include <systemlib/mavlink_log.h>
 
 #include <conversion/rotation.h>
+#include <geo/geo.h>
 
 #define MAG_ROT_VAL_INTERNAL		-1
 #define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
-
 using namespace sensors;
 using namespace DriverFramework;
-
-
-const double VotedSensorsUpdate::_msl_pressure = 101.325;
 
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
 	: _parameters(parameters), _hil_enabled(hil_enabled)
@@ -551,9 +548,9 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 		if (accel_updated && _accel.enabled[uorb_index]) {
 			struct accel_report accel_report;
 
-			orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
+			int ret = orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
 
-			if (accel_report.timestamp == 0) {
+			if (ret != PX4_OK || accel_report.timestamp == 0) {
 				continue; //ignore invalid data
 			}
 
@@ -629,6 +626,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 	// write the best sensor data to the output variables
 	if (best_index >= 0) {
 		raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
+		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[best_index].accelerometer_m_s2, sizeof(raw.accelerometer_m_s2));
 
 		if (best_index != _accel.last_best_vote) {
 			_accel.last_best_vote = (uint8_t)best_index;
@@ -639,10 +637,6 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 		if (_selection.accel_device_id != _accel_device_id[best_index]) {
 			_selection_changed = true;
 			_selection.accel_device_id = _accel_device_id[best_index];
-		}
-
-		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-			raw.accelerometer_m_s2[axis_index] = _last_sensor_data[best_index].accelerometer_m_s2[axis_index];
 		}
 	}
 }
@@ -659,9 +653,9 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		if (gyro_updated && _gyro.enabled[uorb_index]) {
 			struct gyro_report gyro_report;
 
-			orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
+			int ret = orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
 
-			if (gyro_report.timestamp == 0) {
+			if (ret != PX4_OK || gyro_report.timestamp == 0) {
 				continue; //ignore invalid data
 			}
 
@@ -736,8 +730,9 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 	// write data for the best sensor to output variables
 	if (best_index >= 0) {
-		raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
 		raw.timestamp = _last_sensor_data[best_index].timestamp;
+		raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
+		memcpy(&raw.gyro_rad, &_last_sensor_data[best_index].gyro_rad, sizeof(raw.gyro_rad));
 
 		if (_gyro.last_best_vote != best_index) {
 			_gyro.last_best_vote = (uint8_t)best_index;
@@ -748,10 +743,6 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		if (_selection.gyro_device_id != _gyro_device_id[best_index]) {
 			_selection_changed = true;
 			_selection.gyro_device_id = _gyro_device_id[best_index];
-		}
-
-		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-			raw.gyro_rad[axis_index] = _last_sensor_data[best_index].gyro_rad[axis_index];
 		}
 	}
 }
@@ -765,19 +756,14 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 		if (mag_updated && _mag.enabled[uorb_index]) {
 			struct mag_report mag_report;
 
-			orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
+			int ret = orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
 
-			if (mag_report.timestamp == 0) {
+			if (ret != PX4_OK || mag_report.timestamp == 0) {
 				continue; //ignore invalid data
 			}
 
 			// First publication with data
 			if (_mag.priority[uorb_index] == 0) {
-
-				// Parameters update to get offsets, scaling & mag rotation loaded (if not already loaded)
-				parameters_update();
-
-				// Set device priority for the voter
 				int32_t priority = 0;
 				orb_priority(_mag.subscription[uorb_index], &priority);
 				_mag.priority[uorb_index] = (uint8_t)priority;
@@ -799,15 +785,13 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 	_mag.voter.get_best(hrt_absolute_time(), &best_index);
 
 	if (best_index >= 0) {
-		raw.magnetometer_ga[0] = _last_sensor_data[best_index].magnetometer_ga[0];
-		raw.magnetometer_ga[1] = _last_sensor_data[best_index].magnetometer_ga[1];
-		raw.magnetometer_ga[2] = _last_sensor_data[best_index].magnetometer_ga[2];
+		memcpy(&raw.magnetometer_ga, &_last_sensor_data[best_index].magnetometer_ga, sizeof(raw.magnetometer_ga));
 		_mag.last_best_vote = (uint8_t)best_index;
-	}
 
-	if (_selection.mag_device_id != _mag_device_id[best_index]) {
-		_selection_changed = true;
-		_selection.mag_device_id = _mag_device_id[best_index];
+		if (_selection.mag_device_id != _mag_device_id[best_index]) {
+			_selection_changed = true;
+			_selection.mag_device_id = _mag_device_id[best_index];
+		}
 	}
 }
 
@@ -824,9 +808,9 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 		if (baro_updated) {
 			struct baro_report baro_report;
 
-			orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
+			int ret = orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
 
-			if (baro_report.timestamp == 0) {
+			if (ret != PX4_OK || baro_report.timestamp == 0) {
 				continue; //ignore invalid data
 			}
 
@@ -851,14 +835,13 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			_baro_device_id[uorb_index] = baro_report.device_id;
 
 			got_update = true;
-			matrix::Vector3f vect(baro_report.altitude, 0.f, 0.f);
+			matrix::Vector3f vect(baro_report.pressure, 0.f, 0.f);
 
-			_last_sensor_data[uorb_index].baro_alt_meter = baro_report.altitude;
 			_last_sensor_data[uorb_index].baro_temp_celcius = baro_report.temperature;
-			_last_baro_pressure[uorb_index] = corrected_pressure;
+			_last_sensor_data[uorb_index].baro_pressure_pa = corrected_pressure;
 
 			_last_baro_timestamp[uorb_index] = baro_report.timestamp;
-			_baro.voter.put(uorb_index, baro_report.timestamp, vect.data(), baro_report.error_count, _baro.priority[uorb_index]);
+			_baro.voter.put(uorb_index, baro_report.timestamp, vect.data, baro_report.error_count, _baro.priority[uorb_index]);
 		}
 	}
 
@@ -868,7 +851,7 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 
 		if (best_index >= 0) {
 			raw.baro_temp_celcius = _last_sensor_data[best_index].baro_temp_celcius;
-			_last_best_baro_pressure = _last_baro_pressure[best_index];
+			raw.baro_pressure_pa = _last_sensor_data[best_index].baro_pressure_pa;
 
 			if (_baro.last_best_vote != best_index) {
 				_baro.last_best_vote = (uint8_t)best_index;
@@ -881,31 +864,16 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 				_selection.baro_device_id = _baro_device_id[best_index];
 			}
 
-			/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
+			// calculate altitude using the hypsometric equation
 
-			/*
-			 * PERFORMANCE HINT:
-			 *
-			 * The single precision calculation is 50 microseconds faster than the double
-			 * precision variant. It is however not obvious if double precision is required.
-			 * Pending more inspection and tests, we'll leave the double precision variant active.
-			 *
-			 * Measurements:
-			 * 	double precision: ms5611_read: 992 events, 258641us elapsed, min 202us max 305us
-			 *	single precision: ms5611_read: 963 events, 208066us elapsed, min 202us max 241us
-			 */
+			static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS;	/* temperature at base height in Kelvin */
+			static constexpr float a  = -6.5f / 1000.0f;	/* temperature gradient in degrees per metre */
 
-			/* tropospheric properties (0-11km) for standard atmosphere */
-			const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
-			const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
-			const double g  = 9.80665;	/* gravity constant in m/s/s */
-			const double R  = 287.05;	/* ideal gas constant in J/kg/K */
-
-			/* current pressure at MSL in kPa */
-			const double p1 = _msl_pressure;
+			/* current pressure at MSL in kPa (QNH in hPa)*/
+			const float p1 = _parameters.baro_qnh * 0.1f;
 
 			/* measured pressure in kPa */
-			const double p = 0.001f * _last_best_baro_pressure;
+			const float p = raw.baro_pressure_pa * 0.001f;
 
 			/*
 			 * Solve:
@@ -916,7 +884,7 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			 * h = -------------------------------  + h1
 			 *                   a
 			 */
-			raw.baro_alt_meter = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+			raw.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
 
 		}
 	}

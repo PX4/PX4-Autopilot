@@ -217,9 +217,6 @@ private:
 	ringbuffer::RingBuffer	*_reports;
 	bool			_collect_phase;
 
-	/* altitude conversion calibration */
-	unsigned		_msl_pressure;	/* in Pa */
-
 	orb_advert_t		_baro_topic;
 	int			_orb_class_instance;
 	int			_class_instance;
@@ -246,17 +243,6 @@ private:
 	 * Reset the device
 	 */
 	int			reset();
-
-	/**
-	 * Perform the on-sensor scale calibration routine.
-	 *
-	 * @note The sensor will continue to provide measurements, these
-	 *	 will however reflect the uncalibrated sensor state until
-	 *	 the calibration routine has been completed.
-	 *
-	 * @param enable set to 1 to enable self-test strap, 0 to disable
-	 */
-	int			calibrate(struct file *filp, unsigned enable);
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -329,7 +315,6 @@ LPS25H::LPS25H(device::Device *interface, const char *path) :
 	_measure_ticks(0),
 	_reports(nullptr),
 	_collect_phase(false),
-	_msl_pressure(101325),
 	_baro_topic(nullptr),
 	_orb_class_instance(-1),
 	_class_instance(-1),
@@ -555,19 +540,6 @@ LPS25H::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return reset();
 
-	case BAROIOCSMSLPRESSURE:
-
-		/* range-check for sanity */
-		if ((arg < 80000) || (arg > 120000)) {
-			return -EINVAL;
-		}
-
-		_msl_pressure = arg;
-		return OK;
-
-	case BAROIOCGMSLPRESSURE:
-		return _msl_pressure;
-
 	case DEVIOCGDEVICEID:
 		return _interface->ioctl(cmd, dummy);
 
@@ -729,19 +701,15 @@ LPS25H::collect()
 	}
 
 	/* get measurements from the device */
-	new_report.temperature = 42.5 + (report.t / 480);
+	new_report.temperature = 42.5f + (report.t / 480);
 
 	/* raw pressure */
 	uint32_t raw = report.p_xl + (report.p_l << 8) + (report.p_h << 16);
 
 	/* Pressure and MSL in mBar */
-	double p = raw / 4096.0;
-	double msl = _msl_pressure / 100.0;
-
-	double alt = (1.0 - pow(p / msl, 0.190263)) * 44330.8;
+	float p = raw / 4096.0f;
 
 	new_report.pressure = p;
-	new_report.altitude = alt;
 
 	/* get device ID */
 	new_report.device_id = _device_id.devid;
@@ -836,7 +804,6 @@ struct lps25h_bus_option &find_bus(enum LPS25H_BUS busid);
 void	test(enum LPS25H_BUS busid);
 void	reset(enum LPS25H_BUS busid);
 void	info();
-void	calibrate(unsigned altitude, enum LPS25H_BUS busid);
 void	usage();
 
 /**
@@ -996,27 +963,6 @@ test(enum LPS25H_BUS busid)
 	errx(0, "PASS");
 }
 
-
-/**
- * Calculate actual MSL pressure given current altitude
- */
-void
-calibrate(unsigned altitude, enum LPS25H_BUS busid)
-{
-	struct lps25h_bus_option &bus = find_bus(busid);
-	const char *path = bus.devpath;
-
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed (try 'lps25h start' if the driver is not running", path);
-	}
-
-	// TODO: Implement calibration
-
-	close(fd);
-}
-
 /**
  * Reset the driver.
  */
@@ -1064,7 +1010,7 @@ info()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'calibrate'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset'");
 	warnx("options:");
 	warnx("    -X    (external I2C bus)");
 	warnx("    -I    (internal I2C bus)");
@@ -1131,19 +1077,6 @@ lps25h_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "info")) {
 		lps25h::info();
-	}
-
-	/*
-	 * Perform MSL pressure calibration given an altitude in metres
-	 */
-	if (!strcmp(verb, "calibrate")) {
-		if (argc < 2) {
-			errx(1, "missing altitude");
-		}
-
-		long altitude = strtol(argv[optind + 1], nullptr, 10);
-
-		lps25h::calibrate(altitude, busid);
 	}
 
 	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
