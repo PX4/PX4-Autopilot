@@ -900,10 +900,6 @@ hil_new_mode(PortMode new_mode)
 		break;
 	}
 
-//	/* adjust GPIO config for serial mode(s) */
-//	if (gpio_bits != 0)
-//		g_pwm_sim->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
-
 	/* (re)set the PWM output mode */
 	g_pwm_sim->set_mode(servo_mode);
 
