@@ -471,12 +471,6 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
 
-#ifdef ACCELIOCSHWLOWPASS
-
-	case ACCELIOCSHWLOWPASS:
-		return OK;
-#endif
-
 #ifdef ACCELIOCGHWLOWPASS
 
 	case ACCELIOCGHWLOWPASS:

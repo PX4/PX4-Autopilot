@@ -926,13 +926,6 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
 
-#ifdef ACCELIOCSHWLOWPASS
-
-	case ACCELIOCSHWLOWPASS:
-		_set_dlpf_filter(arg);
-		return OK;
-#endif
-
 #ifdef ACCELIOCGHWLOWPASS
 
 	case ACCELIOCGHWLOWPASS:
