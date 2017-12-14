@@ -2880,10 +2880,6 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		ret = gpio_reset();
 		break;
 
-	case GPIO_PERIPHERAL_RAIL_RESET:
-		peripheral_reset(arg);
-		break;
-
 	case GPIO_SET_OUTPUT:
 	case GPIO_SET_INPUT:
 		ret = gpio_set_function(arg, cmd);
