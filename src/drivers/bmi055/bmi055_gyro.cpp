@@ -473,12 +473,6 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSELFTEST:
 		return gyro_self_test();
 
-#ifdef GYROIOCSHWLOWPASS
-
-	case GYROIOCSHWLOWPASS:
-		return OK;
-#endif
-
 #ifdef GYROIOCGHWLOWPASS
 
 	case GYROIOCGHWLOWPASS:

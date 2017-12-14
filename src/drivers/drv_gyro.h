@@ -100,9 +100,6 @@ struct gyro_calibration_s {
 /** check the status of the sensor */
 #define GYROIOCSELFTEST		_GYROIOC(8)
 
-/** set the hardware low-pass filter cut-off no lower than (arg) Hz */
-#define GYROIOCSHWLOWPASS	_GYROIOC(9)
-
 /** get the hardware low-pass filter cut-off in Hz*/
 #define GYROIOCGHWLOWPASS	_GYROIOC(10)
 
