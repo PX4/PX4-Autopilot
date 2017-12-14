@@ -564,9 +564,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case SENSORIOCRESET:
 		// Nothing to do for simulator
 		return OK;
@@ -686,9 +683,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 
 			return OK;
 		}
-
-	case SENSORIOCGQUEUEDEPTH:
-		return _mag_reports->size();
 
 	case SENSORIOCRESET:
 		// Nothing to do for simulator

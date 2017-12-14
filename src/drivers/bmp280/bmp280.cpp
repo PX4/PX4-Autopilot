@@ -411,9 +411,6 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
-
 	case SENSORIOCRESET:
 		/*
 		 * Since we are initialized, we do not need to do anything, since the

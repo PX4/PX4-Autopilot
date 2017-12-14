@@ -259,9 +259,6 @@ AirspeedSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
-
 	case SENSORIOCRESET:
 		/* XXX implement this */
 		return -EINVAL;

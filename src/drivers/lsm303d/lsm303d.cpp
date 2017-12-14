@@ -916,9 +916,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
@@ -1043,9 +1040,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			return OK;
 		}
-
-	case SENSORIOCGQUEUEDEPTH:
-		return _mag_reports->size();
 
 	case SENSORIOCRESET:
 		reset();
