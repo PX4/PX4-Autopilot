@@ -388,9 +388,6 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
 
-	case SENSORIOCGROTATION:
-		return _sensor_rotation;
-
 	case SENSORIOCRESET:
 		/* XXX implement this */
 		return -EINVAL;
