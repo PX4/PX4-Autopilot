@@ -444,9 +444,6 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSSAMPLERATE:
 		return gyro_set_sample_rate(arg);
 
-	case GYROIOCGLOWPASS:
-		return _gyro_filter_x.get_cutoff_freq();
-
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
