@@ -1064,11 +1064,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
 
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
-
 	case MAGIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_mag_scale, (struct mag_calibration_s *) arg, sizeof(_mag_scale));
