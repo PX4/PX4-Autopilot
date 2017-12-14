@@ -824,12 +824,6 @@ BMI160::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSELFTEST:
 		return gyro_self_test();
 
-#ifdef GYROIOCGHWLOWPASS
-
-	case GYROIOCGHWLOWPASS:
-		return _dlpf_freq;
-#endif
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
