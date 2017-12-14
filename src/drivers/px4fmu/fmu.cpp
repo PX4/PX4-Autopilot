@@ -2910,10 +2910,6 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		ret = gpio_set_function(arg, cmd);
 		break;
 
-	case GPIO_SET_ALT_4:
-		ret = -EINVAL;
-		break;
-
 	case GPIO_SET:
 	case GPIO_CLEAR:
 		ret = gpio_write(arg, cmd);
