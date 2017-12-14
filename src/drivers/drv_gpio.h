@@ -77,6 +77,4 @@
 /** clear the GPIOs in (arg) */
 #define GPIO_CLEAR	GPIOC(11)
 
-#define GPIO_PERIPHERAL_RAIL_RESET	GPIOC(14)
-
 #endif /* _DRV_GPIO_H */
