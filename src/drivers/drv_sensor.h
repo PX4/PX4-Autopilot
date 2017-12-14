@@ -148,11 +148,6 @@
 #define SENSORIOCRESET		_SENSORIOC(4)
 
 /**
- * Get the sensor orientation
- */
-#define SENSORIOCGROTATION	_SENSORIOC(6)
-
-/**
  * Test the sensor calibration
  */
 #define SENSORIOCCALTEST	_SENSORIOC(7)
