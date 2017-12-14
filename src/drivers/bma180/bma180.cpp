@@ -484,9 +484,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCGSAMPLERATE:
 		return 1200;		/* always operating in low-noise mode */
 
-	case ACCELIOCGLOWPASS:
-		return _current_lowpass;
-
 	case ACCELIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_accel_scale, (struct accel_calibration_s *) arg, sizeof(_accel_scale));

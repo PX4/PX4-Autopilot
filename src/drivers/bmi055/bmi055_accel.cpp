@@ -443,9 +443,6 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSSAMPLERATE:
 		return accel_set_sample_rate(arg);
 
-	case ACCELIOCGLOWPASS:
-		return _accel_filter_x.get_cutoff_freq();
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
