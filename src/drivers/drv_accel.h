@@ -82,9 +82,6 @@ struct accel_calibration_s {
 /** return the accel internal sample rate in Hz */
 #define ACCELIOCGSAMPLERATE	_ACCELIOC(1)
 
-/** set the accel internal lowpass filter to no lower than (arg) Hz */
-#define ACCELIOCSLOWPASS	_ACCELIOC(2)
-
 /** return the accel internal lowpass filter in Hz */
 #define ACCELIOCGLOWPASS	_ACCELIOC(3)
 

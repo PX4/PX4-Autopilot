@@ -1124,12 +1124,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCGLOWPASS:
 		return _accel_filter_x.get_cutoff_freq();
 
-	case ACCELIOCSLOWPASS:
-		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		return OK;
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
