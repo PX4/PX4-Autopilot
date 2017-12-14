@@ -354,9 +354,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _mag_reports->size();
-
 	case MAGIOCGSAMPLERATE:
 		return MPU9250_AK8963_SAMPLE_RATE;
 

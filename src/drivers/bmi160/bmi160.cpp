@@ -714,9 +714,6 @@ BMI160::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case ACCELIOCGSAMPLERATE:
 		return _accel_sample_rate;
 
@@ -785,9 +782,6 @@ BMI160::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			return OK;
 		}
-
-	case SENSORIOCGQUEUEDEPTH:
-		return _gyro_reports->size();
 
 	case GYROIOCGSAMPLERATE:
 		return _gyro_sample_rate;
