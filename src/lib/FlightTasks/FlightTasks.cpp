@@ -3,6 +3,72 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
+bool FlightTasks::update()
+{
+	_updateCommand();
+
+	if (isAnyTaskActive()) {
+		_subscription_array.update();
+		return _current_task->updateInitialize() && _current_task->update();
+	}
+
+	return false;
+}
+
+int FlightTasks::switchTask(int task_number)
+{
+	/* switch to the running task, nothing to do */
+	if (task_number == _current_task_index) {
+		return 0;
+	}
+
+	/* disable the old task if there is any */
+	if (_current_task) {
+		_current_task->~FlightTask();
+		_current_task = nullptr;
+		_current_task_index = -1;
+	}
+
+	switch (task_number) {
+	case 0:
+		_current_task = new (&_task_union.manual) FlightTaskManual(this, "MAN");
+		break;
+
+	case 1:
+		_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
+		break;
+
+	case -1:
+		/* disable tasks is a success */
+		return 0;
+
+	default:
+		/* invalid task */
+		return -1;
+	}
+
+	/* subscription failed */
+	if (!_current_task->initializeSubscriptions(_subscription_array)) {
+		_current_task->~FlightTask();
+		_current_task = nullptr;
+		_current_task_index = -1;
+		return -2;
+	}
+
+	_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
+
+	/* activation failed */
+	if (!_current_task->updateInitialize() || !_current_task->activate()) {
+		_current_task->~FlightTask();
+		_current_task = nullptr;
+		_current_task_index = -1;
+		return -3;
+	}
+
+	_current_task_index = task_number;
+	return 0;
+}
+
 bool FlightTasks::_updateCommand()
 {
 	/* lazy subscription to command topic */
