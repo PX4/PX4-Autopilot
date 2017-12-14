@@ -71,9 +71,6 @@
 /** configure the board GPIOs in (arg) as inputs */
 #define GPIO_SET_INPUT	GPIOC(2)
 
-/** configure the board GPIO (arg) for the fourth alternate function (if supported) */
-#define GPIO_SET_ALT_4	GPIOC(6)
-
 /** set the GPIOs in (arg) */
 #define GPIO_SET	GPIOC(10)
 
