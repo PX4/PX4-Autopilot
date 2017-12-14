@@ -455,9 +455,6 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
-
 	case SENSORIOCRESET:
 		/* user has asked for the timer to be reset. This may
 		 * be needed if the pin was used for a different

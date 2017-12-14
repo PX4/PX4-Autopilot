@@ -139,9 +139,6 @@
  */
 #define SENSORIOCSQUEUEDEPTH	_SENSORIOC(2)
 
-/** return the internal queue depth */
-#define SENSORIOCGQUEUEDEPTH	_SENSORIOC(3)
-
 /**
  * Reset the sensor to its default configuration
  */

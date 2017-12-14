@@ -434,9 +434,6 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case ACCELIOCGSAMPLERATE:
 		return _accel_sample_rate;
 
