@@ -1121,9 +1121,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case ACCELIOCGLOWPASS:
-		return _accel_filter_x.get_cutoff_freq();
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
