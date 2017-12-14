@@ -929,9 +929,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
 
-	case ACCELIOCGLOWPASS:
-		return static_cast<int>(_accel_filter_x.get_cutoff_freq());
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -1983,13 +1980,6 @@ test()
 	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
 
 	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
-
-	if (PX4_ERROR == (ret = ioctl(fd_accel, ACCELIOCGLOWPASS, 0))) {
-		warnx("accel antialias filter bandwidth: fail");
-
-	} else {
-		warnx("accel antialias filter bandwidth: %d Hz", ret);
-	}
 
 	int fd_mag = -1;
 	struct mag_report m_report;
