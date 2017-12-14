@@ -89,9 +89,6 @@
 /** clear the GPIOs in (arg) */
 #define GPIO_CLEAR	GPIOC(11)
 
-/** read all the GPIOs and return their values in *(uint32_t *)arg */
-#define GPIO_GET	GPIOC(12)
-
 #define GPIO_SENSOR_RAIL_RESET	GPIOC(13)
 
 #define GPIO_PERIPHERAL_RAIL_RESET	GPIOC(14)
