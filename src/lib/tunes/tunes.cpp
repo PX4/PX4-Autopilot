@@ -106,6 +106,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 			reset_playing_tune = true;
 			config_tone(false);
 
+		/* FALLTHROUGH */
 		case tune_control_s::TUNE_ID_ARMING_WARNING:
 		case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
 		case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
