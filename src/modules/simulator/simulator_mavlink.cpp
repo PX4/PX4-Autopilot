@@ -1073,7 +1073,6 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 		baro.timestamp = timestamp;
 		baro.pressure = imu->abs_pressure;
-		baro.altitude = imu->pressure_alt;
 		baro.temperature = imu->temperature;
 
 		int baro_multi;

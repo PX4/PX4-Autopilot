@@ -267,30 +267,6 @@ Sensors::parameters_update()
 	_rc_update.update_rc_functions();
 	_voted_sensors_update.parameters_update();
 
-	/* update barometer qnh setting */
-	DevHandle h_baro;
-	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
-
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP) && !defined(__PX4_POSIX_OCPOC)
-
-	// TODO: this needs fixing for QURT and Raspberry Pi
-	if (!h_baro.isValid()) {
-		if (!_hil_enabled) { // in HIL we don't have a baro
-			PX4_ERR("no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-			ret = PX4_ERROR;
-		}
-
-	} else {
-		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
-
-		if (baroret) {
-			PX4_ERR("qnh for baro could not be set");
-			ret = PX4_ERROR;
-		}
-	}
-
-#endif
-
 	return ret;
 }
 
@@ -359,16 +335,15 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		airspeed.indicated_airspeed_m_s = math::max(0.0f,
 						  calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
 								  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-								  diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
+								  diff_pres.differential_pressure_filtered_pa, raw.baro_pressure_pa,
 								  air_temperature_celsius));
 
 		airspeed.true_airspeed_m_s = math::max(0.0f,
-						       calc_true_airspeed_from_indicated(airspeed.indicated_airspeed_m_s,
-								       _voted_sensors_update.baro_pressure(), air_temperature_celsius));
+						       calc_true_airspeed_from_indicated(airspeed.indicated_airspeed_m_s, raw.baro_pressure_pa, air_temperature_celsius));
 
 		airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-							calc_true_airspeed(diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
-									_voted_sensors_update.baro_pressure(), air_temperature_celsius));
+							calc_true_airspeed(diff_pres.differential_pressure_raw_pa + raw.baro_pressure_pa, raw.baro_pressure_pa,
+									air_temperature_celsius));
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
