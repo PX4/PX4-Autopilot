@@ -51,6 +51,21 @@ FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) 
 	_sticks_data_required = false;
 }
 
+bool FlightTaskOrbit::applyCommandParameters(vehicle_command_s command)
+{
+	float &r = command.param3;
+	float &v = command.param4;
+
+	if (math::isInRange(r, 5.f, 50.f) &&
+	    fabs(v) < 10.f) {
+		_r = r;
+		_v = v;
+		return true;
+	}
+
+	return false;
+}
+
 bool FlightTaskOrbit::activate()
 {
 	bool ret = FlightTaskManual::activate();
