@@ -2699,12 +2699,6 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 
 				break;
 
-			case GPIO_SET_ALT_1:
-				if (_gpio_tab[i].alt != 0) {
-					px4_arch_configgpio(_gpio_tab[i].alt);
-				}
-
-				break;
 			}
 		}
 	}
@@ -2913,7 +2907,6 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GPIO_SET_OUTPUT_LOW:
 	case GPIO_SET_OUTPUT_HIGH:
 	case GPIO_SET_INPUT:
-	case GPIO_SET_ALT_1:
 		ret = gpio_set_function(arg, cmd);
 		break;
 
