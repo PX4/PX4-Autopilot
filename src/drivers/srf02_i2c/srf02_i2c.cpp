@@ -446,18 +446,6 @@ SRF02_I2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* XXX implement this */
 		return -EINVAL;
 
-	case RANGEFINDERIOCSETMINIUMDISTANCE: {
-			set_minimum_distance(*(float *)arg);
-			return 0;
-		}
-		break;
-
-	case RANGEFINDERIOCSETMAXIUMDISTANCE: {
-			set_maximum_distance(*(float *)arg);
-			return 0;
-		}
-		break;
-
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
