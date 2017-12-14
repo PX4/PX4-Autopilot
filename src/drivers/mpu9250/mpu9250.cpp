@@ -1004,13 +1004,6 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSELFTEST:
 		return gyro_self_test();
 
-#ifdef GYROIOCSHWLOWPASS
-
-	case GYROIOCSHWLOWPASS:
-		_set_dlpf_filter(arg);
-		return OK;
-#endif
-
 #ifdef GYROIOCGHWLOWPASS
 
 	case GYROIOCGHWLOWPASS:
