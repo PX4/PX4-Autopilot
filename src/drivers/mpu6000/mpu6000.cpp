@@ -1583,9 +1583,6 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSELFTEST:
 		return gyro_self_test();
 
-	case GYROIOCGEXTERNAL:
-		return _interface->ioctl(cmd, dummy);
-
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
