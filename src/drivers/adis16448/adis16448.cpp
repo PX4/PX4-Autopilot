@@ -1284,15 +1284,6 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case MAGIOCGLOWPASS:
-		return _mag_filter_x.get_cutoff_freq();
-
-	case MAGIOCSLOWPASS:
-		_mag_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_mag_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_mag_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		return OK;
-
 	case MAGIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_mag_scale, (struct mag_calibration_s *) arg, sizeof(_mag_scale));

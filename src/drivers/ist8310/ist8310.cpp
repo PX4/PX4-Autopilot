@@ -726,12 +726,6 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCEXSTRAP:
 		return set_selftest(arg);
 
-
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
-
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));

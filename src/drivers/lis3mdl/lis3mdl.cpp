@@ -730,11 +730,6 @@ LIS3MDL::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGRANGE:
 		return _range_ga;
 
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
-
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));

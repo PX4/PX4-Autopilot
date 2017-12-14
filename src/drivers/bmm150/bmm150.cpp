@@ -827,11 +827,6 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGRANGE:
 		return OK;
 
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
-
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
