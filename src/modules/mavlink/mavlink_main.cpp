@@ -75,6 +75,7 @@
 
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/mavlink_log.h>
 
 #include "mavlink_bridge_header.h"
@@ -192,6 +193,7 @@ Mavlink::Mavlink() :
 	_task_should_exit(false),
 	next(nullptr),
 	_instance_id(0),
+	_transmitting_enabled(true),
 	_mavlink_log_pub(nullptr),
 	_task_running(false),
 	_mavlink_buffer{},
@@ -1957,6 +1959,8 @@ Mavlink::task_main(int argc, char *argv[])
 	/* Initialize system properties */
 	mavlink_update_system();
 
+	MavlinkOrbSubscription *cmd_sub = add_orb_subscription(ORB_ID(vehicle_command));
+	uint64_t cmd_time = 0;
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
@@ -1966,14 +1970,19 @@ Mavlink::task_main(int argc, char *argv[])
 	/* We don't want to miss the first advertise of an ACK, so we subscribe from the
 	 * beginning and not just when the topic exists. */
 	ack_sub->subscribe_from_beginning(true);
+	cmd_sub->subscribe_from_beginning(true);
 
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
 
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
 
-	/* add default streams depending on mode */
+	/* Activate sending the data by default except for the IRIDIUM mode */
+	_transmitting_enabled = true;
+	if (_mode == MAVLINK_MODE_IRIDIUM)
+		_transmitting_enabled = false;
 
+	/* add default streams depending on mode */
 	if (_mode != MAVLINK_MODE_IRIDIUM) {
 
 		/* HEARTBEAT is constant rate stream, rate never adjusted */
@@ -2184,6 +2193,21 @@ Mavlink::task_main(int argc, char *argv[])
 			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
 			set_manual_input_mode_generation(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+		}
+
+		struct vehicle_command_s vehicle_cmd;
+		if (cmd_sub->update(&cmd_time, &vehicle_cmd)) {
+			if (vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING) {
+				if (_mode == (int)round(vehicle_cmd.param1)) {
+					if (_transmitting_enabled != (int)vehicle_cmd.param2) {
+						if ((int)vehicle_cmd.param2)
+							PX4_INFO("Enable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
+						else
+							PX4_INFO("Disable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
+						_transmitting_enabled = (int)vehicle_cmd.param2;
+					}
+				}
+			}
 		}
 
 		/* send command ACK */
@@ -2593,6 +2617,8 @@ Mavlink::display_status()
 	}
 
 	printf("\taccepting commands: %s, FTP enabled: %s\n", accepting_commands() ? "YES" : "NO", _ftp_on ? "YES" : "NO");
+	printf("\ttransmitting enabled: %s\n", _transmitting_enabled ? "YES" : "NO");
+	printf("\tmode: %s\n", mavlink_mode_str(_mode));
 	printf("\tMAVLink version: %i\n", _protocol_version);
 
 	printf("\ttransport protocol: ");
