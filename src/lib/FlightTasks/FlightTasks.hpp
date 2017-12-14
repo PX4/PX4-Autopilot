@@ -109,7 +109,7 @@ public:
 	{
 		/* switch to the running task, nothing to do */
 		if (task_number == _current_task_index) {
-			return true;
+			return 0;
 		}
 
 		/* disable the old task if there is any */
@@ -127,6 +127,10 @@ public:
 		case 1:
 			_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
 			break;
+
+		case -1:
+			/* disable tasks is a success */
+			return 0;
 
 		default:
 			/* invalid task */
