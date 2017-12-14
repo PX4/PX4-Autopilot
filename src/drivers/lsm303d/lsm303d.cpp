@@ -929,10 +929,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
 
-	case ACCELIOCSLOWPASS: {
-			return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)arg);
-		}
-
 	case ACCELIOCGLOWPASS:
 		return static_cast<int>(_accel_filter_x.get_cutoff_freq());
 

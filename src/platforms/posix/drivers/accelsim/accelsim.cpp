@@ -578,10 +578,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
 
-	case ACCELIOCSLOWPASS: {
-			return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)ul_arg);
-		}
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
