@@ -44,7 +44,7 @@ pipeline {
                     sh "make clean"
                     sh "ccache -z"
                     sh "git fetch --tags"
-                    sh "make nuttx_px4io-v2_default"
+                    sh "make px4io-v2_default"
                     sh "make nuttx_px4fmu-v2_default"
                     sh "make nuttx_px4fmu-v2_lpe"
                     sh "make nuttx_px4fmu-v3_default"
