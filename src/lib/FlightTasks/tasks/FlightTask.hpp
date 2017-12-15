@@ -56,7 +56,7 @@ class FlightTask : public control::Block
 public:
 	FlightTask(control::SuperBlock *parent, const char *name) :
 		Block(parent, name)
-	{ }
+	{ _resetSetpoint(); }
 
 	virtual ~FlightTask() = default;
 
@@ -99,6 +99,8 @@ public:
 		return _vehicle_local_position_setpoint;
 	}
 
+	static constexpr vehicle_local_position_setpoint_s empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
+
 protected:
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
@@ -133,6 +135,8 @@ private:
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
 
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint; /**< Output position setpoint that every task has */
+
+	void _resetSetpoint() { _vehicle_local_position_setpoint = empty_setpoint; }
 
 	bool _evaluate_vehicle_position();
 };
