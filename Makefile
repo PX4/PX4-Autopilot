@@ -256,37 +256,6 @@ module_documentation:
 
 px4_metadata: parameters_metadata airframe_metadata module_documentation
 
-# S3 upload helpers
-# --------------------------------------------------------------------
-# s3cmd uses these ENV variables
-#  AWS_ACCESS_KEY_ID
-#  AWS_SECRET_ACCESS_KEY
-#  AWS_S3_BUCKET
-.PHONY: s3put_firmware s3put_qgc_firmware s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware s3put_metadata s3put_scan-build s3put_cppcheck s3put_coverage
-
-s3put_qgc_firmware: s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware
-
-s3put_px4fmu_firmware: px4fmu_firmware
-	@find $(SRC_DIR)/build -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
-
-s3put_misc_qgc_extra_firmware: misc_qgc_extra_firmware
-	@find $(SRC_DIR)/build -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
-
-s3put_metadata: px4_metadata
-	@$(SRC_DIR)/Tools/s3put.sh airframes.md
-	@$(SRC_DIR)/Tools/s3put.sh airframes.xml
-	@$(SRC_DIR)/Tools/s3put.sh parameters.xml
-	@$(SRC_DIR)/Tools/s3put.sh parameters.md
-
-s3put_scan-build: scan-build
-	@$(SRC_DIR)/Tools/s3put.sh `find $(SRC_DIR)/build/scan-build -mindepth 1 -maxdepth 1 -type d`/
-
-s3put_cppcheck: cppcheck
-	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build/cppcheck/
-
-s3put_coverage: tests_coverage
-	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build/posix_sitl_default/coverage-html/
-
 # Astyle
 # --------------------------------------------------------------------
 .PHONY: check_format format
