@@ -237,6 +237,28 @@ pipeline {
           }
         }
 
+        stage('clang analyzer') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-clang:2017-10-23'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
+            }
+          }
+          steps {
+            sh 'make clean'
+            sh 'make scan-build'
+            // publish html
+            publishHTML target: [
+              allowMissing: false,
+              alwaysLinkToLastBuild: false,
+              keepAll: true,
+              reportDir: 'build/scan-build/*',
+              reportFiles: '*',
+              reportName: 'Clang Static Analyzer'
+            ]
+          }
+        }
+
         stage('clang tidy') {
           agent {
             docker {
