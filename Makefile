@@ -320,9 +320,12 @@ tests_coverage:
 scan-build:
 	@export CCC_CC=clang
 	@export CCC_CXX=clang++
+	@rm -rf $(SRC_DIR)/build/posix_sitl_default-scan-build
+	@rm -rf $(SRC_DIR)/build/scan-build/report_latest
 	@mkdir -p $(SRC_DIR)/build/posix_sitl_default-scan-build
 	@cd $(SRC_DIR)/build/posix_sitl_default-scan-build && scan-build cmake $(SRC_DIR) -GNinja -DCONFIG=posix_sitl_default
 	@scan-build -o $(SRC_DIR)/build/scan-build cmake --build $(SRC_DIR)/build/posix_sitl_default-scan-build
+	@find $(SRC_DIR)/build/scan-build -maxdepth 1 -mindepth 1 -type d -exec cp -r "{}" $(SRC_DIR)/build/scan-build/report_latest \;
 
 posix_sitl_default-clang:
 	@mkdir -p $(SRC_DIR)/build/posix_sitl_default-clang
