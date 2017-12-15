@@ -215,19 +215,18 @@ pipeline {
     stage('Test') {
       parallel {
 
-        // temporarily disabled until build resources are available
-        //stage('clang-tidy') {
-        //  agent {
-        //    docker {
-        //      image 'px4io/px4-dev-clang:2017-10-23'
-        //      args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
-        //    }
-        //  }
-        //  steps {
-        //    sh 'make clean'
-        //    sh 'make clang-tidy-quiet'
-        //  }
-        //}
+        stage('clang tidy') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-clang:2017-10-23'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
+            }
+          }
+          steps {
+            sh 'make clean'
+            sh 'make clang-tidy-quiet'
+          }
+        }
 
         stage('tests') {
           agent {
