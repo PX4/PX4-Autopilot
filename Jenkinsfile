@@ -1,17 +1,6 @@
 pipeline {
   agent none
   stages {
-    stage('Quality Checks') {
-      agent {
-        docker {
-          image 'px4io/px4-dev-base:2017-10-23'
-          args '-e CI=true'
-        }
-      }
-      steps {
-        sh 'make check_format'
-      }
-    }
 
     stage('Build') {
       steps {
@@ -214,6 +203,18 @@ pipeline {
 
     stage('Test') {
       parallel {
+
+        stage('check style') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2017-10-23'
+              args '-e CI=true'
+            }
+          }
+          steps {
+            sh 'make check_format'
+          }
+        }
 
         stage('clang tidy') {
           agent {
