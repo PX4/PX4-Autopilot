@@ -9,5 +9,5 @@ startup_file="$SCRIPT_DIR"/../../posix-configs/SITL/init/ekf2/typhoon_h480
 modules=$(cat "$startup_file"|cut -f1 -d' '|sort|uniq|tr '\n' ,)
 
 cd "$SCRIPT_DIR/../.."
-"$SCRIPT_DIR"/create.py --src-path src -m "$modules" -f "$SCRIPT_DIR/graph_sitl"
+"$SCRIPT_DIR"/create.py --src-path src -m "$modules" -f "$SCRIPT_DIR/graph_runtime_sitl"
 
