@@ -2,6 +2,7 @@
 #include <mathlib/mathlib.h>
 
 constexpr uint64_t FlightTask::_timeout;
+constexpr vehicle_local_position_setpoint_s FlightTask::empty_setpoint;
 
 
 bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
@@ -21,6 +22,7 @@ bool FlightTask::activate()
 
 bool FlightTask::updateInitialize()
 {
+	_resetSetpoint();
 	_time_stamp_current = hrt_absolute_time();
 	_time = (_time_stamp_current - _time_stamp_activate) / 1e6f;
 	_deltatime  = math::min((_time_stamp_current - _time_stamp_last), _timeout) / 1e6f;

@@ -53,8 +53,8 @@ FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) 
 
 bool FlightTaskOrbit::applyCommandParameters(vehicle_command_s command)
 {
-	float &r = command.param3;
-	float &v = command.param4;
+	float &r = command.param3; /**< commanded radius */
+	float &v = command.param4; /**< commanded velocity */
 
 	if (math::isInRange(r, 5.f, 50.f) &&
 	    fabs(v) < 10.f) {
