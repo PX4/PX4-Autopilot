@@ -34,7 +34,7 @@
 /**
  * @file FlightTaskManual.hpp
  *
- * Flight task for the normal, legacy, manual position controlled flight
+ * Flight task for the normal, manual position controlled flight
  * where stick inputs map basically to the velocity setpoint
  *
  * @author Matthias Grob <maetugr@gmail.com>
@@ -43,8 +43,6 @@
 #pragma once
 
 #include "FlightTask.hpp"
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <systemlib/hysteresis/hysteresis.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
 class FlightTaskManual : public FlightTask
@@ -67,7 +65,8 @@ protected:
 	bool _evaluateSticks();
 	bool _sticks_data_required = true; /**< let sibling task define if it depends on stick data */
 
-	float get_input_frame_yaw() { return _yaw; }
+	float _get_input_frame_yaw() { return _yaw; }
+	virtual void _scaleVelocity(matrix::Vector3f &velocity);
 
 private:
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
@@ -84,43 +83,5 @@ private:
 	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
 
 	bool _evaluate_sticks();
-
-
-	/* --- Acceleration Smoothing --- */
-	static constexpr uint64_t DIRECTION_CHANGE_TIME_US = 1e5; /**< Time in us to switch into direction change state */
-
-	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk only applied when braking to zero */
-	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk only applied when braking to zero */
-	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
-	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto & fast manual brake */
-	control::BlockParamFloat _acceleration_hor_manual; /**< maximum velocity setpoint slewrate for manual acceleration */
-	control::BlockParamFloat _acceleration_z_max_up; /**< max acceleration up */
-	control::BlockParamFloat _acceleration_z_max_down; /**< max acceleration down */
-	control::BlockParamFloat _rc_flt_smp_rate; /**< sample rate for stick lowpass filter */
-	control::BlockParamFloat _rc_flt_cutoff; /**< cutoff frequency for stick lowpass filter */
-
-	matrix::Vector2f _stick_input_xy_prev;
-	matrix::Vector3f _vel_sp_prev; /**< velocity setpoint of last loop to calculate setpoint slewrate - acceleration */
-	enum stick_user_intention {
-		brake,
-		direction_change,
-		acceleration,
-		deceleration
-	};
-	stick_user_intention _intention_xy_prev = brake; /**< user intension derived from the xy stick input */
-	stick_user_intention _user_intention_z = brake; /**< user intension derived from the z stick input */
-	float _manual_jerk_limit_xy = 1.f; /**< jerk limit in manual mode dependent on stick input */
-	float _manual_jerk_limit_z = 1.f; /**< jerk limit in manual mode in z */
-	systemlib::Hysteresis _manual_direction_change_hysteresis;
-	math::LowPassFilter2p _filter_roll_stick;
-	math::LowPassFilter2p _filter_pitch_stick;
-
-	void vel_sp_slewrate(const matrix::Vector2f &stick_xy, const float &stick_z, matrix::Vector3f &vel_sp);
-
-	void reset_slewrate_xy();
-
-	float get_acceleration_xy(const matrix::Vector2f &stick_xy);
-
-	float get_acceleration_z(const float &stick_z);
 
 };
