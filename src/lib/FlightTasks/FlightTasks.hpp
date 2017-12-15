@@ -44,6 +44,7 @@
 #include "tasks/FlightTask.hpp"
 #include "tasks/FlightTaskManual.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
+#include "tasks/FlightTaskSport.hpp"
 
 #include "SubscriptionArray.hpp"
 
@@ -120,6 +121,7 @@ private:
 
 		FlightTaskManual manual;
 		FlightTaskOrbit orbit;
+		FlightTaskSport sport;
 	} _task_union; /**< storage for the currently active task */
 
 	FlightTask *_current_task = nullptr;

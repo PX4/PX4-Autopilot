@@ -48,6 +48,10 @@ int FlightTasks::switchTask(int task_number)
 		_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
 		break;
 
+	case 2:
+		_current_task = new (&_task_union.sport) FlightTaskSport(this, "SPO");
+		break;
+
 	case -1:
 		/* disable tasks is a success */
 		return 0;
