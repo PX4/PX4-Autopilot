@@ -76,7 +76,7 @@ int FlightTasks::switchTask(int task_number)
 	}
 
 	_current_task_index = task_number;
-	return 0;
+	return 1;
 }
 
 bool FlightTasks::_updateCommand()
@@ -103,17 +103,21 @@ bool FlightTasks::_updateCommand()
 	}
 
 	/* evaluate command */
-	uint8_t switch_result = switchTask(int(command.param1));
+	int switch_result = switchTask(int(command.param1));
 	uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 
-	/* switch succeeded */
-	if (!switch_result) {
+	/* if we are in the desired task */
+	if (switch_result >= 0) {
 		cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
-		/* if the correct task is running apply parameters to it and see if it rejects */
-		if (isAnyTaskActive()) {
-			if (!_current_task->applyCommandParameters(command)) {
-				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+		/* if the task is running apply parameters to it and see if it rejects */
+		if (isAnyTaskActive() && !_current_task->applyCommandParameters(command)) {
+			cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+
+			/* if we just switched and parameters are not accepted, go to failsafe */
+			if (switch_result == 1) {
+				switchTask(-1);
+				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 			}
 		}
 	}
