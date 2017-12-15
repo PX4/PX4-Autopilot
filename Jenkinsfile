@@ -272,6 +272,28 @@ pipeline {
           }
         }
 
+        stage('cppcheck') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:ubuntu17.10'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
+            }
+          }
+          steps {
+            sh 'make clean'
+            sh 'make cppcheck'
+            // publish html
+            publishHTML target: [
+              allowMissing: false,
+              alwaysLinkToLastBuild: false,
+              keepAll: true,
+              reportDir: 'build/cppcheck/*',
+              reportFiles: '*',
+              reportName: 'cppcheck'
+            ]
+          }
+        }
+
         stage('tests') {
           agent {
             docker {
