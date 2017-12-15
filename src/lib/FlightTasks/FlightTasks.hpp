@@ -73,7 +73,7 @@ public:
 	 * Get the output data from the current task
 	 * Only call when task is active!
 	 */
-	const vehicle_local_position_setpoint_s &getPositionSetpoint() { return _current_task->getPositionSetpoint(); }
+	const vehicle_local_position_setpoint_s &getPositionSetpoint();
 
 	/**
 	 * Convenient operator to get the output data from the current task
