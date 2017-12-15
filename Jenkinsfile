@@ -107,6 +107,28 @@ pipeline {
           }
 
 
+          // posix_sitl
+          for (def option in ["sitl_default", "sitl_rtps"]) {
+            def node_name = "${option}"
+
+            builds["${node_name}"] = {
+              node {
+                stage("Build Test ${node_name}") {
+                  docker.image('px4io/px4-dev-base:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                    stage("${node_name}") {
+                      checkout scm
+                      sh "make clean"
+                      sh "ccache -z"
+                      sh "make posix_${node_name}"
+                      sh "ccache -s"
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+
           // raspberry pi and bebop (armhf)
           for (def option in ["rpi_cross", "bebop_default"]) {
             def node_name = "${option}"
