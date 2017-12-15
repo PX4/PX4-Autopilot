@@ -218,7 +218,7 @@ check_rtps: \
 	check_posix_sitl_rtps \
 	sizes
 
-.PHONY: sizes check quick_check check_rtps
+.PHONY: sizes check quick_check check_rtps uorb_graphs
 
 sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
@@ -234,6 +234,14 @@ check_%:
 	$(call colorecho,"Building" $(subst check_,,$@))
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
+
+uorb_graphs:
+	@./Tools/uorb_graph/create_from_startupscript.sh
+	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --file Tools/uorb_graph/graph_full
+	@$(MAKE) --no-print-directory px4fmu-v2_default uorb_graph
+	@$(MAKE) --no-print-directory px4fmu-v4_default uorb_graph
+	@$(MAKE) --no-print-directory posix_sitl_default uorb_graph
+
 
 .PHONY: coverity_scan
 
