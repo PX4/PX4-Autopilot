@@ -76,7 +76,7 @@ bool FlightTaskManual::activate()
 {
 	bool ret = FlightTask::activate();
 	_hold_position = Vector3f(NAN, NAN, NAN);
-	_hold_yaw = _yaw;
+	_hold_yaw = NAN;
 	return ret;
 }
 
@@ -150,7 +150,15 @@ void FlightTaskManual::_updateYaw()
 	const float yaw_speed = _sticks(3) * math::radians(_man_yaw_max.get());
 	_setYawspeedSetpoint(yaw_speed);
 
-	_hold_yaw += yaw_speed * _deltatime;
+	const bool stick_yaw_zero = yaw_speed <= FLT_EPSILON;
+
+	if (stick_yaw_zero && !PX4_ISFINITE(_hold_position(2))) {
+		_hold_yaw = _yaw;
+
+	} else if (!stick_yaw_zero) {
+		_hold_yaw = NAN;
+	}
+
 	_setYawSetpoint(_hold_yaw);
 }
 
