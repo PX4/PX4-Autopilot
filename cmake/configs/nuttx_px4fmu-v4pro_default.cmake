@@ -25,6 +25,7 @@ set(config_module_list
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
 	drivers/iridiumsbd
+	drivers/ist8310
 	drivers/l3gd20
 	drivers/led
 	drivers/lis3mdl

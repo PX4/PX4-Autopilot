@@ -54,8 +54,10 @@ fi
 
 if ver hwcmp AUAV_X21
 then
-	# External I2C bus
+	# Possible external i2c compasses
 	hmc5883 -C -T -X start
+	ist8310 start
+	lis3mdl -X start
 
 	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
 	mpu6000 -R 2 -T 20608 start
@@ -69,8 +71,9 @@ fi
 
 if ver hwcmp PX4FMU_V2
 then
-	# External I2C bus
+	# Possible external i2c compasses
 	hmc5883 -C -T -X start
+	ist8310 start
 	lis3mdl -X start
 
 	# Internal I2C bus
@@ -147,8 +150,10 @@ fi
 
 if ver hwcmp PX4_SAME70XPLAINED_V1
 then
-	# External I2C bus
+	# Possible external i2c compasses
 	hmc5883 -C -T -X start
+	ist8310 start
+	lis3mdl -X start
 
 	# Internal SPI bus mpu9250 is rotated 90 deg yaw
 	mpu9250 -R 2 start
@@ -156,9 +161,11 @@ fi
 
 if ver hwcmp PX4FMU_V4
 then
-	# External I2C bus
+	# Possible external i2c compasses
 	hmc5883 -C -T -X start
+	ist8310 start
 	lis3mdl -X start
+
 	bmp280 -I start
 
 	# expansion i2c used for BMM150 rotated by 90deg
@@ -209,8 +216,10 @@ fi
 
 if ver hwcmp MINDPX_V2
 then
-	# External I2C bus
+	# Possible external i2c compasses
 	hmc5883 -C -T -X start
+	ist8310 start
+	lis3mdl -X start
 
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 12 start
@@ -245,6 +254,11 @@ fi
 
 if ver hwcmp PX4FMU_V4PRO
 then
+	# Possible external i2c compasses
+	hmc5883 -C -T -X start
+	ist8310 start
+	lis3mdl -X start
+
 	# Internal SPI bus ICM-20608-G
 	mpu6000 -R 2 -T 20608 start
 
@@ -256,9 +270,6 @@ then
 
 	# Internal SPI bus
 	lis3mdl -R 0 start
-
-	# Possible external compasses
-	hmc5883 -C -T -X start
 fi
 
 if ver hwcmp PX4FMU_V5
