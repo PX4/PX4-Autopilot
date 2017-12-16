@@ -114,7 +114,6 @@ protected:
 	matrix::Vector3f _position; /**< current vehicle position */
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f;
-	bool _evaluateVehiclePosition();
 
 	/* Put the position vector produced by the task into the setpoint message */
 	void _setPositionSetpoint(const matrix::Vector3f &position_setpoint) { position_setpoint.copyToRaw(&_vehicle_local_position_setpoint.x); }
@@ -138,5 +137,5 @@ private:
 
 	void _resetSetpoint() { _vehicle_local_position_setpoint = empty_setpoint; }
 
-	bool _evaluate_vehicle_position();
+	bool _evaluateVehiclePosition();
 };
