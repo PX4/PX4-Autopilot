@@ -55,7 +55,8 @@ FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name
 	_z_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
 	_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 	_hold_max_xy(parent, "MPC_HOLD_MAX_XY", false),
-	_hold_max_z(parent, "MPC_HOLD_MAX_Z", false)
+	_hold_max_z(parent, "MPC_HOLD_MAX_Z", false),
+	_man_yaw_max(parent, "MPC_MAN_Y_MAX", false)
 { }
 
 bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_array)
@@ -146,7 +147,10 @@ bool FlightTaskManual::update()
 
 void FlightTaskManual::_updateYaw()
 {
-	_hold_yaw += _sticks(3) * _deltatime;
+	const float yaw_speed = _sticks(3) * math::radians(_man_yaw_max.get());
+	_setYawspeedSetpoint(yaw_speed);
+
+	_hold_yaw += yaw_speed * _deltatime;
 	_setYawSetpoint(_hold_yaw);
 }
 
