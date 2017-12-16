@@ -2464,34 +2464,12 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	/* get position controller setpoints from the active flight task, this will be through uORB from Trajectory module to position controller module in the future */
 	/* TODO: as soon as legacy stuff gets ported setting velocity and position setpoint at the same time (feed-forward) will be supported through addition of setpoints */
 	if (_flight_tasks.update()) {
-		/* take over position setpoint from task if there is any */
-		if (PX4_ISFINITE(_flight_tasks().x) && PX4_ISFINITE(_flight_tasks().y)) {
-			_pos_sp(0) = _flight_tasks().x;
-			_pos_sp(1) = _flight_tasks().y;
-			_run_pos_control = true;
+		/* apply position and velocity setpoint from task */
+		_pos_sp = math::Vector<3>(&_flight_tasks().x);
+		_vel_sp = math::Vector<3>(&_flight_tasks().vx);
 
-		} else {
-			_run_pos_control = false;
-		}
-
-		if (PX4_ISFINITE(_flight_tasks().z)) {
-			_pos_sp(2) = _flight_tasks().z;
-			_run_alt_control = true;
-
-		} else {
-			_run_alt_control = false;
-		}
-
-		/* take over velocity setpoint from task if there is any */
-		if (PX4_ISFINITE(_flight_tasks().vx)
-		    && PX4_ISFINITE(_flight_tasks().vy)) {
-			_vel_sp(0) = _flight_tasks().vx;
-			_vel_sp(1) = _flight_tasks().vy;
-		}
-
-		if (PX4_ISFINITE(_flight_tasks().vz)) {
-			_vel_sp(2) = _flight_tasks().vz;
-		}
+		_run_pos_control = true;
+		_run_alt_control = true;
 
 		if (PX4_ISFINITE(_flight_tasks().yaw)) {
 			_att_sp.yaw_body = _flight_tasks().yaw;
@@ -2513,36 +2491,45 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		}
 	}
 
-	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
-	if (_run_pos_control) {
-
-		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
-		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
-			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
-
-		} else {
-			_vel_sp(0) = 0.0f;
-			_vel_sp(1) = 0.0f;
-			warn_rate_limited("Caught invalid pos_sp in x and y");
-
-		}
-	}
-
 	/* in auto the setpoint is already limited by the navigator */
 	if (!_control_mode.flag_control_auto_enabled) {
 		limit_altitude();
 	}
 
-	if (_run_alt_control) {
-		if (PX4_ISFINITE(_pos_sp(2))) {
-			_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+	/* if we don't set a position setpoint (NaN) make the position error zero */
+	if (!PX4_ISFINITE(_pos_sp(0)) || !PX4_ISFINITE(_pos_sp(1)) || !_run_pos_control) {
+		_pos_sp(0) = _pos(0);
+		_pos_sp(1) = _pos(1);
+	}
 
-		} else {
-			_vel_sp(2) = 0.0f;
-			warn_rate_limited("Caught invalid pos_sp in z");
+	if (!PX4_ISFINITE(_pos_sp(2)) || !_run_alt_control) {
+		_pos_sp(2) = _pos(2);
+	}
+
+	/* if we don't set velocity setpoint (NaN) make the velocity feed forward error zero */
+	if (!PX4_ISFINITE(_vel_sp(0)) || !PX4_ISFINITE(_vel_sp(1))) {
+		_vel_sp(0) = 0.f;
+		_vel_sp(1) = 0.f;
+	}
+
+	if (!PX4_ISFINITE(_vel_sp(2))) {
+		_vel_sp(2) = 0.f;
+	}
+
+	/* TODO: only flight tasks can handle feed forward setpoints so far */
+	if (!_flight_tasks.isAnyTaskActive()) {
+		if (_run_pos_control) {
+			_vel_sp(0) = 0.f;
+			_vel_sp(1) = 0.f;
+		}
+
+		if (_run_alt_control) {
+			_vel_sp(2) = 0.f;
 		}
 	}
+
+	/* run position controller */
+	_vel_sp += (_pos_sp - _pos).emult(_params.pos_p);
 
 	if (!_control_mode.flag_control_position_enabled) {
 		_reset_pos_sp = true;
