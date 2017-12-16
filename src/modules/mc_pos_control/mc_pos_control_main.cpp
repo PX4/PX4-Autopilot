@@ -2495,6 +2495,16 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 
 		if (PX4_ISFINITE(_flight_tasks().yaw)) {
 			_att_sp.yaw_body = _flight_tasks().yaw;
+
+		} else {
+			_att_sp.yaw_body = _yaw; // TODO: Need general way to disable yaw control.
+		}
+
+		if (PX4_ISFINITE(_flight_tasks().yawspeed)) {
+			_att_sp.yaw_sp_move_rate = _flight_tasks().yawspeed;
+
+		} else {
+			_att_sp.yaw_sp_move_rate = 0; // TODO: Need general way to disable yaw control
 		}
 
 	} else {
@@ -3285,13 +3295,15 @@ MulticopterPositionControl::task_main()
 		}
 
 		/* generate attitude setpoint from manual controls */
-		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
+		if (!_flight_tasks.isAnyTaskActive()) {
+			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
 			generate_attitude_setpoint();
 
-		} else {
-			_reset_yaw_sp = true;
-			_att_sp.yaw_sp_move_rate = 0.0f;
+			} else {
+				_reset_yaw_sp = true;
+				_att_sp.yaw_sp_move_rate = 0.0f;
+			}
 		}
 
 		/* update previous velocity for velocity controller D part */
