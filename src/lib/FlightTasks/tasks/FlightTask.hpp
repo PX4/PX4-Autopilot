@@ -76,7 +76,7 @@ public:
 	 * To be called to adopt parameters from an arrived vehicle command
 	 * @return true if accepted, false if declined
 	 */
-	virtual bool applyCommandParameters(vehicle_command_s command) = 0;
+	virtual bool applyCommandParameters(const vehicle_command_s &command) { return true; };
 
 	/**
 	 * Call before activate() or update()

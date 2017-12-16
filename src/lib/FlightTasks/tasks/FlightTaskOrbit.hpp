@@ -50,7 +50,7 @@ public:
 
 	virtual ~FlightTaskOrbit() = default;
 
-	bool applyCommandParameters(vehicle_command_s command) override;
+	bool applyCommandParameters(const vehicle_command_s &command) override;
 
 	bool activate() override;
 

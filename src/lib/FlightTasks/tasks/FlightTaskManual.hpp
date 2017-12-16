@@ -56,7 +56,7 @@ public:
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
-	bool applyCommandParameters(vehicle_command_s command) override { return false; };
+	bool applyCommandParameters(const vehicle_command_s &command) override { return FlightTask::applyCommandParameters(command); };
 
 	bool updateInitialize() override;
 
