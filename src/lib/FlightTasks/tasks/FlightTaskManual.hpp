@@ -81,9 +81,10 @@ private:
 	control::BlockParamFloat _z_vel_max_down; /**< maximal vertical velocity when flying downwards with the stick */
 	control::BlockParamFloat _hold_max_xy; /**< velocity threshold to switch into horizontal position hold */
 	control::BlockParamFloat _hold_max_z; /**< velocity threshold to switch into vertical position hold */
+	control::BlockParamFloat _man_yaw_max; /**< maximal rotation speed around yaw axis with full stick input */
 
 	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
-	float _hold_yaw;  /**< absolute yaw which gets updated by the yawspeed input */
+	float _hold_yaw = 0.f; /**< absolute yaw which gets updated by the yawspeed input */
 
 	void _updateYaw();
 
