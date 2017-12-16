@@ -51,16 +51,16 @@ FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) 
 	_sticks_data_required = false;
 }
 
-bool FlightTaskOrbit::applyCommandParameters(vehicle_command_s command)
+bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
-	float &r = command.param3; /**< commanded radius */
-	float &v = command.param4; /**< commanded velocity */
+	const float &r = command.param3; /**< commanded radius */
+	const float &v = command.param4; /**< commanded velocity */
 
 	if (math::isInRange(r, 5.f, 50.f) &&
 	    fabs(v) < 10.f) {
 		_r = r;
 		_v = v;
-		return true;
+		return FlightTaskManual::applyCommandParameters(command);
 	}
 
 	return false;
