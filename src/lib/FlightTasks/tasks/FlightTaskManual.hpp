@@ -54,6 +54,8 @@ public:
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
+	bool activate() override;
+
 	bool applyCommandParameters(const vehicle_command_s &command) override { return FlightTask::applyCommandParameters(command); };
 
 	bool updateInitialize() override;
@@ -81,6 +83,9 @@ private:
 	control::BlockParamFloat _hold_max_z; /**< velocity threshold to switch into vertical position hold */
 
 	matrix::Vector3f _hold_position; /**< position at which the vehicle stays while the input is zero velocity */
+	float _hold_yaw;  /**< absolute yaw which gets updated by the yawspeed input */
+
+	void _updateYaw();
 
 	bool _evaluate_sticks();
 

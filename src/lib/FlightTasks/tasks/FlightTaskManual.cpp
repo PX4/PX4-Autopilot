@@ -56,9 +56,7 @@ FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name
 	_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 	_hold_max_xy(parent, "MPC_HOLD_MAX_XY", false),
 	_hold_max_z(parent, "MPC_HOLD_MAX_Z", false)
-{
-	_hold_position = Vector3f(NAN, NAN, NAN);
-}
+{ }
 
 bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
@@ -71,6 +69,14 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 	}
 
 	return true;
+}
+
+bool FlightTaskManual::activate()
+{
+	bool ret = FlightTask::activate();
+	_hold_position = Vector3f(NAN, NAN, NAN);
+	_hold_yaw = _yaw;
+	return ret;
 }
 
 bool FlightTaskManual::updateInitialize()
@@ -89,6 +95,7 @@ bool FlightTaskManual::update()
 {
 	/* prepare stick input */
 	Vector2f stick_xy(_sticks.data()); /**< horizontal two dimensional stick input within a unit circle */
+	float &stick_z = _sticks(2);
 
 	const float stick_xy_norm = stick_xy.norm();
 
@@ -98,7 +105,7 @@ bool FlightTaskManual::update()
 	}
 
 	/* rotate stick input to produce velocity setpoint in NED frame */
-	Vector3f velocity_setpoint(stick_xy(0), stick_xy(1), _sticks(2));
+	Vector3f velocity_setpoint(stick_xy(0), stick_xy(1), stick_z);
 	velocity_setpoint = Dcmf(Eulerf(0.0f, 0.0f, _get_input_frame_yaw())) * velocity_setpoint;
 
 	/* scale [0,1] length velocity vector to maximal manual speed (in m/s) */
@@ -109,7 +116,7 @@ bool FlightTaskManual::update()
 
 	/* handle position and altitude hold */
 	const bool stick_xy_zero = stick_xy_norm <= FLT_EPSILON;
-	const bool stick_z_zero = fabsf(_sticks(3)) <= FLT_EPSILON;
+	const bool stick_z_zero = fabsf(stick_z) <= FLT_EPSILON;
 
 	float velocity_xy_norm = Vector2f(_velocity.data()).norm();
 	const bool stopped_xy = (_hold_max_xy.get() < FLT_EPSILON || velocity_xy_norm < _hold_max_xy.get());
@@ -132,7 +139,15 @@ bool FlightTaskManual::update()
 	}
 
 	_setPositionSetpoint(_hold_position);
+
+	_updateYaw();
 	return true;
+}
+
+void FlightTaskManual::_updateYaw()
+{
+	_hold_yaw += _sticks(3) * _deltatime;
+	_setYawSetpoint(_hold_yaw);
 }
 
 void FlightTaskManual::_scaleVelocity(Vector3f &velocity)
@@ -140,6 +155,7 @@ void FlightTaskManual::_scaleVelocity(Vector3f &velocity)
 	const Vector3f velocity_scale(_velocity_hor_manual.get(),
 				      _velocity_hor_manual.get(),
 				      (velocity(2) > 0.0f) ? _z_vel_max_down.get() : _z_vel_max_up.get());
+
 	velocity = velocity.emult(velocity_scale);
 }
 
@@ -156,6 +172,7 @@ bool FlightTaskManual::_evaluateSticks()
 		_sticks(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
 		_sticks(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
 		_sticks(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
+		_sticks(3) = math::deadzone(_sticks(3), _hold_dz.get());
 
 		return true;
 
