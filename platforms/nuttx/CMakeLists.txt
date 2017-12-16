@@ -35,15 +35,19 @@ if (NOT LD_SCRIPT)
 	set(LD_SCRIPT ld.script)
 endif()
 
+file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
+
 target_link_libraries(${FW_NAME}
-	-TNuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
+
+	-Wl,--script=${PX4_BINARY_DIR_REL}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
 	-Wl,-Map=${CONFIG}.map
-	-Wl,--warn-common
-	-Wl,--gc-sections
+	-Wl,--warn-common,--gc-sections
+
 	-Wl,--start-group
-	${module_libraries}
-	${nuttx_libs}
+		${module_libraries}
+		${nuttx_libs}
 	-Wl,--end-group
+
 	m
 	gcc
 	)
@@ -60,8 +64,6 @@ endif()
 set(fw_file ${PX4_BINARY_DIR}/${FW_NAME})
 string(REPLACE ".elf" ".px4" fw_file ${fw_file})
 string(REPLACE "nuttx_" "" fw_file ${fw_file})
-
-file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
 
 add_custom_command(OUTPUT ${BOARD}.bin
 	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${BOARD}.bin
