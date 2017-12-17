@@ -870,11 +870,11 @@ Mission::do_need_vertical_takeoff()
 			/* force takeoff if landed (additional protection) */
 			_need_takeoff = true;
 
-		} else if (_navigator->get_global_position()->alt > takeoff_alt - _navigator->get_acceptance_radius()) {
+		} else if (_navigator->get_global_position()->alt > takeoff_alt - _navigator->get_altitude_acceptance_radius()) {
 			/* if in-air and already above takeoff height, don't do takeoff */
 			_need_takeoff = false;
 
-		} else if (_navigator->get_global_position()->alt <= takeoff_alt - _navigator->get_acceptance_radius()
+		} else if (_navigator->get_global_position()->alt <= takeoff_alt - _navigator->get_altitude_acceptance_radius()
 			   && (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			       || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)) {
 			/* if in-air but below takeoff height and we have a takeoff item */
