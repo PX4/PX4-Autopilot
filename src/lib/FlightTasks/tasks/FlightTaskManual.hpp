@@ -70,6 +70,9 @@ protected:
 	float _get_input_frame_yaw() { return _yaw; }
 	virtual void _scaleVelocity(matrix::Vector3f &velocity);
 
+	control::BlockParamFloat _z_vel_max_up; /**< maximal vertical velocity when flying upwards with the stick */
+	control::BlockParamFloat _z_vel_max_down; /**< maximal vertical velocity when flying downwards with the stick */
+
 private:
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
@@ -77,8 +80,6 @@ private:
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed */
-	control::BlockParamFloat _z_vel_max_up; /**< maximal vertical velocity when flying upwards with the stick */
-	control::BlockParamFloat _z_vel_max_down; /**< maximal vertical velocity when flying downwards with the stick */
 	control::BlockParamFloat _hold_max_xy; /**< velocity threshold to switch into horizontal position hold */
 	control::BlockParamFloat _hold_max_z; /**< velocity threshold to switch into vertical position hold */
 	control::BlockParamFloat _man_yaw_max; /**< maximal rotation speed around yaw axis with full stick input */
