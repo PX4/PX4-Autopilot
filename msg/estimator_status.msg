@@ -86,6 +86,7 @@ float32 pos_test_ratio # ratio of the largest horizontal position innovation com
 float32 hgt_test_ratio # ratio of the vertical position innovation to the innovation test limit
 float32 tas_test_ratio # ratio of the true airspeed innovation to the innovation test limit
 float32 hagl_test_ratio # ratio of the height above ground innovation to the innovation test limit
+float32 beta_test_ratio # ratio of the synthetic sideslip innovation to the innovation test limit
 
 uint16 solution_status_flags # Bitmask indicating which filter kinematic state outputs are valid for flight control use.
 # 0 - True if the attitude estimate is good

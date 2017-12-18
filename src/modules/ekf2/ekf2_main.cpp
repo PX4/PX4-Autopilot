@@ -1095,7 +1095,7 @@ void Ekf2::run()
 		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
 						&status.vel_test_ratio, &status.pos_test_ratio,
 						&status.hgt_test_ratio, &status.tas_test_ratio,
-						&status.hagl_test_ratio);
+						&status.hagl_test_ratio, &status.beta_test_ratio);
 
 		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
 		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
