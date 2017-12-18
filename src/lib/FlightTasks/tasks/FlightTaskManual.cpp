@@ -48,12 +48,12 @@ using namespace matrix;
 
 FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name) :
 	FlightTask(parent, name),
+	_z_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
+	_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
 	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
 	_hold_dz(parent, "MPC_HOLD_DZ", false),
 	_velocity_hor_manual(parent, "MPC_VEL_MANUAL", false),
-	_z_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
-	_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 	_hold_max_xy(parent, "MPC_HOLD_MAX_XY", false),
 	_hold_max_z(parent, "MPC_HOLD_MAX_Z", false),
 	_man_yaw_max(parent, "MPC_MAN_Y_MAX", false)
@@ -150,9 +150,9 @@ void FlightTaskManual::_updateYaw()
 	const float yaw_speed = _sticks(3) * math::radians(_man_yaw_max.get());
 	_setYawspeedSetpoint(yaw_speed);
 
-	const bool stick_yaw_zero = yaw_speed <= FLT_EPSILON;
+	const bool stick_yaw_zero = fabsf(yaw_speed) <= FLT_EPSILON;
 
-	if (stick_yaw_zero && !PX4_ISFINITE(_hold_position(2))) {
+	if (stick_yaw_zero && !PX4_ISFINITE(_hold_yaw)) {
 		_hold_yaw = _yaw;
 
 	} else if (!stick_yaw_zero) {
