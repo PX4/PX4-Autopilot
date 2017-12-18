@@ -1,4 +1,4 @@
-## PX4 Pro Drone Autopilot ##
+# PX4 Pro Drone Autopilot
 
 [![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware)
 
@@ -8,29 +8,35 @@
 
 This repository holds the [PX4 Pro](http://px4.io) flight control solution for drones, with the main applications located in the [src/modules](https://github.com/PX4/Firmware/tree/master/src/modules) directory. It also contains the PX4 Drone Middleware Platform, which provides drivers and middleware to run drones.
 
-  * Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/Firmware/blob/master/LICENSE))
-  * Supported airframes:
-    * [Multicopters](http://px4.io/portfolio_category/multicopter/)
-    * [Fixed wing](http://px4.io/portfolio_category/plane/)
-    * [VTOL](http://px4.io/portfolio_category/vtol/)
-    * many more experimental types (Rovers, Blimps, Boats, Submarines, etc)
-  * Releases: [Downloads](https://github.com/PX4/Firmware/releases)
+* Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/Firmware/blob/master/LICENSE))
+* [Supported airframes](https://docs.px4.io/en/airframes/airframe_reference.html) ([portfolio](http://px4.io/#airframes)):
+  * [Multicopters](https://docs.px4.io/en/airframes/airframe_reference.html#copter)
+  * [Fixed wing](https://docs.px4.io/en/airframes/airframe_reference.html#plane)
+  * [VTOL](https://docs.px4.io/en/airframes/airframe_reference.html#vtol)
+  * many more experimental types (Rovers, Blimps, Boats, Submarines, etc)
+* Releases: [Downloads](https://github.com/PX4/Firmware/releases)
 
-Please refer to the [user documentation](https://docs.px4.io/en/) and [user forum](http://discuss.px4.io) for flying drones with the PX4 flight stack.
+
+## PX4 Users
+
+The [PX4 User Guide](https://docs.px4.io/en/) explains how to assemble [supported vehicles](https://docs.px4.io/en/airframes/airframe_reference.html) and fly drones with PX4. 
+See the [forum and chat](https://docs.px4.io/en/#support) if you need help!
+
+
+## PX4 Developers
+
+This [Developer Guide](https://dev.px4.io/) is for software developers who want to modify the flight stack and middleware (e.g. to add new flight modes), hardware integrators who want to support new flight controller boards and peripherals, any anyone who wants to get PX4 working on a new (unsupported) airframe/vehicle.
+
+Developers should read the [Guide for Contributions](https://dev.px4.io/en/contribute/).
+See the [forum and chat](https://dev.px4.io/en/#support) if you need help!
+
 
 ### Weekly Dev Call
 
-The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribute/).
+The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribute/#dev_call).
 
-  * [Wednesday 17:00 Central European Time, 11:00 Eastern Time, 08:00 Pacific Standard Time](https://www.google.com/calendar/embed?src=bGludXhmb3VuZGF0aW9uLm9yZ19nMjF0dmFtMjRtN3BtN2poZXYwMWJ2bHFoOEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t)
-  * [Uber conference (dial-in or web client)](https://www.uberconference.com/lf-dronecode)
-  * The agenda is announced in advance on the [PX4 Discuss](http://discuss.px4.io/c/weekly-dev-call)
-  * Issues and PRs may be labelled [devcall](https://github.com/PX4/Firmware/issues?q=is%3Aopen+is%3Aissue+label%3Adevcall) to flag them for discussion
+> **Note** The dev call is open to all interested developers (not just the core dev team). This is a great opportunity to meet the team and contribute to the ongoing development of the platform.
 
-### Developers ###
-  * [Developer Guide](https://dev.px4.io/)
-    * [Build instructions](https://dev.px4.io/en/setup/building_px4.html)
-    * [Guide for Contributions](https://dev.px4.io/en/contribute/)
 
 ## Maintenance Team
 
@@ -73,6 +79,8 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
   * [Airmind MindPX / MindRacer](https://github.com/PX4/Firmware/labels/mindpx) - [Henry Zhang](https://github.com/iZhangHui)
   * RTPS/ROS2 Interface - [Vicente Monge](https://github.com/vicenteeprosima)
 
+See also [About Us](http://px4.io/about-us/#development_team) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
+
 ## Supported Hardware
 
 This repository contains code supporting these boards:
@@ -95,6 +103,8 @@ This repository contains code supporting these boards:
   * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
   * [Bitcraze Crazyflie 2.0](https://docs.px4.io/en/flight_controller/crazyflie2.html)
 
-## Project Milestones
+Additional information about supported hardware can be found in [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/en/flight_controller/).
 
-The PX4 software and Pixhawk hardware (which has been designed for it) has been created in 2011 by [Lorenz Meier](https://github.com/LorenzMeier).
+## Project Roadmap
+
+A high level project roadmap is available [here](https://www.dronecode.org/roadmap/).
