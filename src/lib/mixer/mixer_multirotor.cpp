@@ -173,188 +173,120 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	float		pitch   = math::constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
 	float		yaw     = math::constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
 	float		thrust  = math::constrain(get_control(0, 3), 0.0f, 1.0f);
-	float		min_out = 1.0f;
-	float		max_out = 0.0f;
 
 	// clean out class variable used to capture saturation
 	_saturation_status.value = 0;
 
-	// thrust boost parameters
-	float thrust_increase_factor = 1.5f;
-	float thrust_decrease_factor = 0.6f;
+	// perform initial mix pass yielding unbounded outputs, ignore yaw, just to check if they already exceed the limits
+	float		min = 1.f;
+	float		max = 0.f;
 
-	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		float out = roll * _rotors[i].roll_scale +
-			    pitch * _rotors[i].pitch_scale +
-			    thrust;
+		outputs[i] = roll * _rotors[i].roll_scale + pitch *
+			     _rotors[i].pitch_scale; // first we mix only the moments for roll and pitch on outputs
 
-		out *= _rotors[i].out_scale;
+		float out = (outputs[i] + thrust) * _rotors[i].out_scale;
 
-		/* calculate min and max output values */
-		if (out < min_out) {
-			min_out = out;
-		}
+		if (out < min) { min = out; } 			// calculate min and max output values of any rotor
 
-		if (out > max_out) {
-			max_out = out;
-		}
-
-		outputs[i] = out;
+		if (out > max) { max = out; }
 	}
 
-	float boost = 0.0f;		// value added to demanded thrust (can also be negative)
-	float roll_pitch_scale = 1.0f;	// scale for demanded roll and pitch
+	float boost = 0.0f;						// value added to demanded thrust (can also be negative)
+	float limit_scale = 1.0f;				// scale for demanded roll and pitch
 
-	if (min_out < 0.0f && max_out < 1.0f && -min_out <= 1.0f - max_out) {
-		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
+	if (max - min >
+	    1) {						// hard case where we can't meet the controller output because it exceeds the maximal difference
+		boost = (1 - max - min) /
+			2;		// from equation: (max - 1) + b = -(min + b) which states that after the application of boost the violation above 1 and below 0 is equal
+		limit_scale = 1 / (max -
+				   min);		// we want to scale such that roll and pitch produce min = 0 and max = 1 with the boost from above applied
 
-		if (max_thrust_diff >= -min_out) {
-			boost = -min_out;
+	} else if (min < 0) {
+		boost = -min;        // easy cases where we just shift the the throttle such that the controller output can be met
 
-		} else {
-			boost = max_thrust_diff;
-			roll_pitch_scale = (thrust + boost) / (thrust - min_out);
-		}
+	} else if (max > 1) {
+		boost = 1 - max;
+	}
 
-	} else if (max_out > 1.0f && min_out > 0.0f && min_out >= max_out - 1.0f) {
-		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
+	thrust += boost;
 
-		if (max_thrust_diff >= max_out - 1.0f) {
-			boost = -(max_out - 1.0f);
-
-		} else {
-			boost = -max_thrust_diff;
-			roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
-		}
-
-	} else if (min_out < 0.0f && max_out < 1.0f && -min_out > 1.0f - max_out) {
-		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
-		boost = math::constrain(-min_out - (1.0f - max_out) / 2.0f, 0.0f, max_thrust_diff);
-		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
-
-	} else if (max_out > 1.0f && min_out > 0.0f && min_out < max_out - 1.0f) {
-		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
-		boost = math::constrain(-(max_out - 1.0f - min_out) / 2.0f, -max_thrust_diff, 0.0f);
-		roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
-
-	} else if (min_out < 0.0f && max_out > 1.0f) {
-		boost = math::constrain(-(max_out - 1.0f + min_out) / 2.0f, thrust_decrease_factor * thrust - thrust,
-					thrust_increase_factor * thrust - thrust);
-		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		outputs[i] = (outputs[i] * limit_scale);
 	}
 
 	// capture saturation
-	if (min_out < 0.0f) {
+	if (min < 0.0f) {
 		_saturation_status.flags.motor_neg = true;
 	}
 
-	if (max_out > 1.0f) {
+	if (max > 1.0f) {
 		_saturation_status.flags.motor_pos = true;
 	}
 
-	// Thrust reduction is used to reduce the collective thrust if we hit
-	// the upper throttle limit
-	float thrust_reduction = 0.0f;
-
 	// mix again but now with thrust boost, scale roll/pitch and also add yaw
+	min = 1;
+	max = 0;
+	float min_term = 0;
+	float max_term = 0;
+
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		float out = (roll * _rotors[i].roll_scale +
-			     pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
-			    yaw * _rotors[i].yaw_scale +
-			    thrust + boost;
+		float yaw_term = yaw * _rotors[i].yaw_scale;
+		float out = (outputs[i] + yaw_term + thrust) * _rotors[i].out_scale;
 
-		out *= _rotors[i].out_scale;
+		if (out < min) {
+			min = out;
+			min_term = yaw_term;
+		}
 
-		// scale yaw if it violates limits. inform about yaw limit reached
-		if (out < 0.0f) {
-			if (fabsf(_rotors[i].yaw_scale) <= FLT_EPSILON) {
-				yaw = 0.0f;
-
-			} else {
-				yaw = -((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-					roll_pitch_scale + thrust + boost) / _rotors[i].yaw_scale;
-			}
-
-		} else if (out > 1.0f) {
-			// allow to reduce thrust to get some yaw response
-			float prop_reduction = fminf(0.15f, out - 1.0f);
-			// keep the maximum requested reduction
-			thrust_reduction = fmaxf(thrust_reduction, prop_reduction);
-
-			if (fabsf(_rotors[i].yaw_scale) <= FLT_EPSILON) {
-				yaw = 0.0f;
-
-			} else {
-				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-					       roll_pitch_scale + (thrust - thrust_reduction) + boost)) / _rotors[i].yaw_scale;
-			}
+		if (out > max) {
+			max = out;
+			max_term = yaw_term;
 		}
 	}
 
-	// Apply collective thrust reduction, the maximum for one prop
-	thrust -= thrust_reduction;
+	boost = 0.0f;
+	float low_limit_scale = 1.0f;			// scale for demanded yaw only
+	float high_limit_scale = 1.0f;
 
-	// add yaw and scale outputs to range idle_speed...1
-	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] = (roll * _rotors[i].roll_scale +
-			      pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
-			     yaw * _rotors[i].yaw_scale +
-			     thrust + boost;
+	if (max - min >
+	    1) {						// hard case where we can't meet the controller output because it exceeds the maximal difference
+		boost = (1 - max - min) /
+			2;		// from equation: (max - 1) + b = -(min + b) which states that after the application of boost the violation above 1 and below 0 is equal
 
-		/*
-			implement simple model for static relationship between applied motor pwm and motor thrust
-			model: thrust = (1 - _thrust_factor) * PWM + _thrust_factor * PWM^2
-			this model assumes normalized input / output in the range [0,1] so this is the right place
-			to do it as at this stage the outputs are in that range.
-		 */
-		if (_thrust_factor > 0.0f) {
-			outputs[i] = -(1.0f - _thrust_factor) / (2.0f * _thrust_factor) + sqrtf((1.0f - _thrust_factor) *
-					(1.0f - _thrust_factor) / (4.0f * _thrust_factor * _thrust_factor) + (outputs[i] < 0.0f ? 0.0f : outputs[i] /
-							_thrust_factor));
+		if (min < 0
+		    && min_term <
+		    0) {		// we want to scale only the yaw term to fill up the remaining control actuation such that min 0 and max 1 and roll pitch does NOT get rescaled
+			limit_scale = (min + boost - min_term) / -(min_term);
+			//printf("-");
 		}
+
+		if (max > 1 && max_term > 0) {
+			limit_scale = (1 - (max + boost - max_term)) / max_term;
+			//printf("+");
+		}
+
+		limit_scale = low_limit_scale < high_limit_scale ? low_limit_scale : high_limit_scale;
+		limit_scale = limit_scale > 0 ? limit_scale : 0;
+
+	} else if (min < 0) {
+		boost = -min;        // easy cases where we just shift the the throttle such that the controller output can be met
+
+	} else if (max > 1) {
+		boost = 1 - max;
+	}
+
+	// inform about yaw limit reached
+	//if(status_reg != NULL) {
+	//	if (min < 0.0f || max > 1.0f) (*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
+	//}
+
+	/* add yaw and scale outputs to range idle_speed...1 */
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		outputs[i] = outputs[i] + yaw * _rotors[i].yaw_scale * limit_scale + thrust + boost;
 
 		outputs[i] = math::constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
-
 	}
-
-	/* slew rate limiting and saturation checking */
-	for (unsigned i = 0; i < _rotor_count; i++) {
-		bool clipping_high = false;
-		bool clipping_low = false;
-
-		// check for saturation against static limits
-		if (outputs[i] > 0.99f) {
-			clipping_high = true;
-
-		} else if (outputs[i] < _idle_speed + 0.01f) {
-			clipping_low = true;
-
-		}
-
-		// check for saturation against slew rate limits
-		if (_delta_out_max > 0.0f) {
-			float delta_out = outputs[i] - _outputs_prev[i];
-
-			if (delta_out > _delta_out_max) {
-				outputs[i] = _outputs_prev[i] + _delta_out_max;
-				clipping_high = true;
-
-			} else if (delta_out < -_delta_out_max) {
-				outputs[i] = _outputs_prev[i] - _delta_out_max;
-				clipping_low = true;
-
-			}
-		}
-
-		_outputs_prev[i] = outputs[i];
-
-		// update the saturation status report
-		update_saturation_status(i, clipping_high, clipping_low);
-	}
-
-	// this will force the caller of the mixer to always supply new slew rate values, otherwise no slew rate limiting will happen
-	_delta_out_max = 0.0f;
 
 	return _rotor_count;
 }
