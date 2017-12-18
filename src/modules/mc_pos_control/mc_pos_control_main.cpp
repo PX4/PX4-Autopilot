@@ -3237,8 +3237,17 @@ MulticopterPositionControl::task_main()
 			_alt_hold_engaged = false;
 		}
 
-		/* if there is an active flight task but the commander has switched to a mode different from POSCTL, disable the current task */
-		if (_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_POSCTL && _flight_tasks.isAnyTaskActive()) {
+		/* map commander modes to tasks */
+		switch (_vehicle_status.nav_state) {
+		case vehicle_status_s::NAVIGATION_STATE_SPORT:
+			_flight_tasks.switchTask(2);
+			break;
+
+		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+			/* in this mode any task can run */
+			break;
+
+		default:
 			_flight_tasks.switchTask(-1);
 		}
 
