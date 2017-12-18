@@ -127,7 +127,7 @@ class PubSub:
                 if not ignore_found:
                     # If we land here, we need to add another special case
                     raise Exception(self._method+' w/o ORB_ID(): '+match+' in '
-                            +file_name+' ('+module+')')
+                            +file_name+' ('+module+'). You need to add another special case.')
 
         # handle special cases
         for i, (module_match, file_match_re, src_match_re, _) in enumerate(self._special_cases):
