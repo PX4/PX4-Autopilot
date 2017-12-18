@@ -47,7 +47,8 @@ class FlightTaskSport : public FlightTaskManual
 {
 public:
 	FlightTaskSport(control::SuperBlock *parent, const char *name) :
-		FlightTaskManual(parent, name)
+		FlightTaskManual(parent, name),
+		_velocity_hor_max(parent, "MPC_XY_VEL_MAX", false)
 	{ }
 
 	virtual ~FlightTaskSport() = default;
@@ -55,8 +56,13 @@ public:
 protected:
 	void _scaleVelocity(matrix::Vector3f &velocity) override
 	{
-		const matrix::Vector3f velocity_scale(20.f, 20.f, 5.f);
+		const matrix::Vector3f velocity_scale(_velocity_hor_max.get(),
+						      _velocity_hor_max.get(),
+						      (velocity(2) > 0.0f) ? _z_vel_max_down.get() : _z_vel_max_up.get());
 		velocity = velocity.emult(velocity_scale);
 	}
+
+private:
+	control::BlockParamFloat _velocity_hor_max; /**< maximal allowed horizontal speed, in sport mode full stick input*/
 
 };
