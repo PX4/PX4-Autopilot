@@ -150,9 +150,9 @@ void FlightTaskManual::_updateYaw()
 	const float yaw_speed = _sticks(3) * math::radians(_man_yaw_max.get());
 	_setYawspeedSetpoint(yaw_speed);
 
-	const bool stick_yaw_zero = yaw_speed <= FLT_EPSILON;
+	const bool stick_yaw_zero = fabsf(yaw_speed) <= FLT_EPSILON;
 
-	if (stick_yaw_zero && !PX4_ISFINITE(_hold_position(2))) {
+	if (stick_yaw_zero && !PX4_ISFINITE(_hold_yaw)) {
 		_hold_yaw = _yaw;
 
 	} else if (!stick_yaw_zero) {
