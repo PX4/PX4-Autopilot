@@ -394,6 +394,18 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
 PARAM_DEFINE_FLOAT(EKF2_EAS_NOISE, 1.4f);
 
 /**
+ * Gate size for synthetic sideslip fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_BETA_GATE, 5.0f);
+
+/**
  * Noise for synthetic sideslip fusion.
  *
  * @group EKF2
