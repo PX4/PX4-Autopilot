@@ -73,6 +73,8 @@ public:
 	matrix::Vector3f getThrustSetpoint() {return _thr_sp;}
 	float getYawSetpoint() { return _yaw_sp;}
 	float getThrottle() {return _throttle;}
+	matrix::Vector3f getVelSp() {return _vel_sp;}
+	matrix::Vector3f getPosSp() {return _pos_sp;}
 
 private:
 
