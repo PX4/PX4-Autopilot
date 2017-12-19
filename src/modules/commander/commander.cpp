@@ -1046,6 +1046,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					home->lat = global_pos->lat;
 					home->lon = global_pos->lon;
 					home->alt = global_pos->alt;
+					home->manual_home = false;
 
 					home->timestamp = hrt_absolute_time();
 
@@ -1060,6 +1061,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				home->lat = cmd->param5;
 				home->lon = cmd->param6;
 				home->alt = cmd->param7;
+				home->manual_home = true;
 
 				home->timestamp = hrt_absolute_time();
 
