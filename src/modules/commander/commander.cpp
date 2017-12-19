@@ -3122,6 +3122,13 @@ int commander_thread_main(int argc, char *argv[])
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
 
+		/* distance from home */
+
+		float home_dist_xy = -1.0f;
+		float home_dist_z = -1.0f;
+		get_distance_to_point_global_wgs84(_home.lat, _home.lon, _home.alt, global_position.lat, global_position.lon,
+						   global_position.alt, &home_dist_xy, &home_dist_z);
+
 		/* First time home position update - but only if disarmed */
 		if (!status_flags.condition_home_position_valid && !armed.armed) {
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, false);
@@ -3129,9 +3136,15 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
 		else if (((!was_armed && armed.armed) || (was_landed && !land_detector.landed)) &&
-			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
+			 (now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL) && !_home.manual_home) {
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, false);
 
+		}
+
+		/* update when disarmed, landed and moved away from current home position */
+		else if (status_flags.condition_home_position_valid && !armed.armed && land_detector.landed && !_home.manual_home &&
+			 (home_dist_xy > global_position.epv * 2 || home_dist_z > global_position.eph * 2)) {
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, false);
 		}
 
 		/* Set home position altitude to EKF origin height if home is not set and the EKF has a global origin.

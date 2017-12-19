@@ -15,3 +15,4 @@ float32 direction_z		# Takeoff direction in NED Z
 
 bool valid_alt		# true when the altitude has been set
 bool valid_hpos		# true when the latitude and longitude have been set
+bool manual_home	# true when home position was set manually
