@@ -43,8 +43,19 @@
 
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <systemlib/param/param.h>
 
 #pragma once
+
+/* Variable constraints based on mode:
+ * Eventually this structure should be part of local position message
+ */
+namespace Controller
+{
+struct Constraints {
+	float tilt_max;
+};
+}
 
 class TranslationControl
 {
@@ -53,21 +64,74 @@ public:
 
 	~TranslationControl() {};
 
-	void updateState(struct vehicle_local_position_s state);
+	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f vel_dot,
+			 const matrix::Matrix<float, 3, 3> R);
 	void updateSetpoint(struct vehicle_local_position_setpoint_s setpoint);
+	void updateConstraints(const Controller::Constraints &constraints);
+	void generateThrustYawSetpoint(const float &dt);
+
+	matrix::Vector3f getThrustSetpoint() {return _thr_sp;}
+	float getYawSetpoint() { return _yaw_sp;}
+	float getThrottle() {return _throttle;}
 
 private:
 
+	/* states */
 	matrix::Vector3f _pos{0.0f, 0.0f, 0.0f};
 	matrix::Vector3f _vel{0.0f, 0.0f, 0.0f};
+	matrix::Vector3f _vel_dot{0.0f, 0.0f, 0.0f};
 	matrix::Vector3f _acc{0.0f, 0.0f, 0.0f};
 	matrix::Vector3f _thr{0.0f, 0.0f, 0.0f};
 	float _yaw{0.0f};
+	matrix::Matrix<float, 3, 3> _R;
 
+	/* setpoints */
 	matrix::Vector3f _pos_sp{0.0f, 0.0f, 0.0f};
 	matrix::Vector3f _vel_sp{0.0f, 0.0f, 0.0f};
 	matrix::Vector3f _acc_sp{0.0f, 0.0f, 0.0f};
 	matrix::Vector3f _thr_sp{0.0f, 0.0f, 0.0f};
 	float _yaw_sp{0.0f};
 	float _yawspeed_sp{0.0f};
+	float _throttle{};
+
+	/* other variables */
+	matrix::Vector3f _thr_int{};
+	float _yaw_sp_int{};
+	Controller::Constraints _constraints{};
+
+	/* params handles */
+	int _parameter_sub{-1};
+	param_t _Pz_h{PARAM_INVALID};
+	param_t _Pvz_h{PARAM_INVALID};
+	param_t _Ivz_h{PARAM_INVALID};
+	param_t _Dvz_h{PARAM_INVALID};
+	param_t _Pxy_h{PARAM_INVALID};
+	param_t _Pvxy_h{PARAM_INVALID};
+	param_t _Ivxy_h{PARAM_INVALID};
+	param_t _Dvxy_h{PARAM_INVALID};
+	param_t _VelMaxXY_h{PARAM_INVALID};
+	param_t _VelMaxZdown_h{PARAM_INVALID};
+	param_t _VelMaxZup_h{PARAM_INVALID};
+	param_t _ThrHover_h{PARAM_INVALID};
+	param_t _ThrMax_h{PARAM_INVALID};
+	param_t _ThrMin_h{PARAM_INVALID};
+	param_t _YawRateMax_h{PARAM_INVALID};
+	param_t _Pyaw_h{PARAM_INVALID}; //only temporary: this will be moved into attitude controller
+
+	/* params */
+	matrix::Vector3f Pp, Pv, Iv, Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
+	float _VelMaxXY{0.0f};
+	float _VelMaxZ[2] = {0.0f, 0.0f}; //index 0: index up; 1: down
+	float _ThrHover{0.5f};
+	float _ThrLimit[2] = {0.0f, 0.0f};
+	float _Pyaw{};
+	float _YawRateMax{};
+
+	/* helper methods */
+	void _interfaceMapping();
+	void _positionController();
+	void _velocityController(const float &dt);
+	void _yawController(const float &dt);
+	void _updateParams();
+	void _setParams();
 };
