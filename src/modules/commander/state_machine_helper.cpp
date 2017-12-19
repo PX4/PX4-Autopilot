@@ -454,9 +454,8 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
 		/* need global position, home position, and a valid mission */
-		// TODO: require mission? condition_auto_mission_available
 		if (status_flags->condition_global_position_valid &&
-		    status_flags->condition_home_position_valid) {
+		    status_flags->condition_auto_mission_available) {
 
 			ret = TRANSITION_CHANGED;
 		}
@@ -1128,7 +1127,6 @@ int prearm_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub,
 	// mission required
 	if ((arm_requirements & ARM_REQ_MISSION_BIT) &&
 		(!status_flags->condition_auto_mission_available ||
-		!status_flags->condition_home_position_valid ||
 		!status_flags->condition_global_position_valid)) {
 
 		prearm_ok = false;

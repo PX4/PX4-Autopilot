@@ -232,7 +232,7 @@ static struct commander_state_s internal_state = {};
 static struct mission_result_s _mission_result = {};
 
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
-static unsigned _last_mission_instance = 0;
+
 static manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
 static manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
 static uint8_t _last_sp_man_arm_switch = 0;
@@ -810,7 +810,7 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 							break;
 						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
-							if (_mission_result.valid) {
+							if (status_flags.condition_auto_mission_available) {
 								main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
 							} else {
 								main_ret = TRANSITION_DENIED;
@@ -1116,7 +1116,7 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 
 		// check if current mission and first item are valid
-		if (_mission_result.valid) {
+		if (status_flags.condition_auto_mission_available) {
 
 			// requested first mission item valid
 			if (PX4_ISFINITE(cmd->param1) && (cmd->param1 >= -1) && (cmd->param1 < _mission_result.seq_total)) {
@@ -2443,17 +2443,44 @@ Commander::run()
 		orb_check(mission_result_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(mission_result), mission_result_sub, &_mission_result);
+			mission_result_s new_mission_result = {};
 
-			status_flags.condition_auto_mission_available = _mission_result.valid && !_mission_result.finished;
+			if (orb_copy(ORB_ID(mission_result), mission_result_sub, &new_mission_result) == PX4_OK) {
 
-			if (status.mission_failure != _mission_result.failure) {
-				status.mission_failure = _mission_result.failure;
-				status_changed = true;
+				// if mission_result is valid for the current mission
+				const bool mission_result_ok = (new_mission_result.timestamp > commander_boot_timestamp) && (new_mission_result.instance_count > 0);
 
-				if (status.mission_failure) {
-					mavlink_log_critical(&mavlink_log_pub, "mission cannot be completed");
+				status_flags.condition_auto_mission_available = mission_result_ok && new_mission_result.valid;
+
+				if (mission_result_ok) {
+
+					if (status.mission_failure != new_mission_result.failure) {
+						status.mission_failure = new_mission_result.failure;
+						status_changed = true;
+
+						if (status.mission_failure) {
+							mavlink_log_critical(&mavlink_log_pub, "Mission cannot be completed");
+						}
+					}
+
+					/* Only evaluate mission state if home is set */
+					if (status_flags.condition_home_position_valid &&
+						(_mission_result.instance_count != new_mission_result.instance_count)) {
+
+						if (!status_flags.condition_auto_mission_available) {
+							/* the mission is invalid */
+							tune_mission_fail(true);
+						} else if (new_mission_result.warning) {
+							/* the mission has a warning */
+							tune_mission_fail(true);
+						} else {
+							/* the mission is valid */
+							tune_mission_ok(true);
+						}
+					}
 				}
+
+				_mission_result = new_mission_result;
 			}
 		}
 
@@ -2585,30 +2612,6 @@ Commander::run()
 			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
 				mavlink_log_critical(&mavlink_log_pub, "Flight termination active");
 			}
-		}
-
-		/* Only evaluate mission state if home is set,
-		 * this prevents false positives for the mission
-		 * rejection. Back off 3 seconds to not overlay
-		 * home tune.
-		 */
-		if (status_flags.condition_home_position_valid &&
-			(hrt_elapsed_time(&_home.timestamp) > 3000000) &&
-			_last_mission_instance != _mission_result.instance_count) {
-
-			if (!_mission_result.valid) {
-				/* the mission is invalid */
-				tune_mission_fail(true);
-			} else if (_mission_result.warning) {
-				/* the mission has a warning */
-				tune_mission_fail(true);
-			} else {
-				/* the mission is valid */
-				tune_mission_ok(true);
-			}
-
-			/* prevent further feedback until the mission changes */
-			_last_mission_instance = _mission_result.instance_count;
 		}
 
 		/* RC input check */
