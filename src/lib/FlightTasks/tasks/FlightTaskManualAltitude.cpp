@@ -67,13 +67,13 @@ void FlightTaskManualAltitude::scale_sticks()
 	/* map stick to velocity */
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
 	_vel_sp_z = vel_max_z * _sticks_expo(2);
-	_yaw_rate_sp = _sticks(3) * _yaw_rate_scaling.get();
+	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
 
 }
 
 void FlightTaskManualAltitude::update_heading_setpoints()
 {
-	if (fabsf(_sticks(3) < FLT_EPSILON)) {
+	if (fabsf(_sticks(3)) < FLT_EPSILON) {
 		/* want to hold yaw */
 		_yaw_rate_sp = NAN;
 		_yaw_sp = _yaw_sp_predicted;
@@ -109,6 +109,7 @@ bool FlightTaskManualAltitude::update()
 {
 	scale_sticks();
 	update_setpoints();
+
 
 	_setPositionSetpoint(Vector3f(NAN, NAN, _pos_sp_z));
 	_setVelocitySetpoint(Vector3f(NAN, NAN, _vel_sp_z));

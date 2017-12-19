@@ -87,7 +87,6 @@ void TranslationControl::updateSetpoint(struct vehicle_local_position_setpoint_s
 	_acc_sp = Data(&setpoint.acc_x);
 	_yaw_sp = setpoint.yaw; //integrate
 	_yawspeed_sp = setpoint.yawspeed;
-
 	_interfaceMapping();
 }
 
@@ -158,8 +157,6 @@ void TranslationControl::_positionController()
 	}
 
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ[0], _VelMaxZ[1]);
-
-	_velocityController(dt);
 }
 
 /* generates desired thrust vector */
@@ -278,7 +275,7 @@ void TranslationControl::_velocityController(const float &dt)
 
 void TranslationControl::_yawController(const float &dt)
 {
-	const float yaw_offset_max = _YawRateMax / _Pyaw;
+	const float yaw_offset_max = math::radians(_YawRateMax) / _Pyaw;
 	const float  yaw_target = _wrap_pi(_yaw_sp + _yawspeed_sp * dt);
 	const float yaw_offset = _wrap_pi(yaw_target - _yaw);
 
