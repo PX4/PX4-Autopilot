@@ -3128,8 +3128,8 @@ int commander_thread_main(int argc, char *argv[])
 
 		float home_dist_xy = -1.0f;
 		float home_dist_z = -1.0f;
-		get_distance_to_point_global_wgs84(_home.lat, _home.lon, _home.alt, global_position.lat, global_position.lon,
-						   global_position.alt, &home_dist_xy, &home_dist_z);
+		mavlink_wpm_distance_to_point_local(_home.x, _home.y, _home.z, local_position.x, local_position.y,
+						   local_position.z, &home_dist_xy, &home_dist_z);
 
 		/* First time home position update - but only if disarmed */
 		if (!status_flags.condition_home_position_valid && !armed.armed) {
@@ -3145,7 +3145,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* update when disarmed, landed and moved away from current home position */
 		else if (status_flags.condition_home_position_valid && !armed.armed && land_detector.landed && !_home.manual_home &&
-			 (home_dist_xy > global_position.epv * 2 || home_dist_z > global_position.eph * 2)) {
+			 (home_dist_xy > local_position.epv * 2 || home_dist_z > local_position.eph * 2)) {
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude, false);
 		}
 
