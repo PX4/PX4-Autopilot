@@ -14,7 +14,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow_rot.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/parameter_update.h>
@@ -239,7 +239,7 @@ private:
 	uORB::Subscription<actuator_armed_s> _sub_armed;
 	uORB::Subscription<vehicle_land_detected_s> _sub_land;
 	uORB::Subscription<vehicle_attitude_s> _sub_att;
-	uORB::Subscription<optical_flow_s> _sub_flow;
+	uORB::Subscription<optical_flow_rot_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
