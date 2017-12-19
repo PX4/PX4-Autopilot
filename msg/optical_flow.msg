@@ -14,4 +14,5 @@ uint16 frame_count_since_last_readout	# number of accumulated frames in timespan
 int16 gyro_temperature	# Temperature * 100 in centi-degrees Celsius
 uint8 quality	# Average of quality of accumulated frames, 0: bad quality, 255: maximum quality
 
+# optical_flow_raw is the unrotated msg which will be transformed in sensors.cpp and published as optical_flow
 # TOPICS optical_flow optical_flow_raw
