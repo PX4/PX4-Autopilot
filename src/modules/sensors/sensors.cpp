@@ -84,6 +84,8 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/optical_flow_raw.h>
+#include <uORB/topics/optical_flow.h>
 
 #include <DevMgr.hpp>
 
@@ -166,6 +168,7 @@ private:
 	int		_diff_pres_sub{-1};			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle control mode subscription */
 	int 		_params_sub{-1};			/**< notification of parameter updates */
+	int 		_optical_flow_raw_sub{-1}; /**< unrotated optical flow */
 
 	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
@@ -177,6 +180,7 @@ private:
 	orb_advert_t	_airspeed_pub{nullptr};			/**< airspeed */
 	orb_advert_t	_diff_pres_pub{nullptr};			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight{nullptr};		/**< sensor preflight topic */
+	orb_advert_t	_optical_flow_pub{nullptr};			/**< rotated optical flow */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -230,6 +234,11 @@ private:
 	 *				data should be returned.
 	 */
 	void		adc_poll(struct sensor_combined_s &raw);
+
+	/**
+	 * Check if there is a new optical flow msg that needs to be rotated and published
+	 */
+	void		rotate_optical_flow_raw();
 };
 
 Sensors::Sensors(bool hil_enabled) :
@@ -573,6 +582,35 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	}
 }
 
+void
+Sensors::rotate_optical_flow_raw()
+{
+	bool optical_flow_updated;
+	orb_check(_optical_flow_raw_sub, &optical_flow_updated);
+
+	if (optical_flow_updated) {
+
+		struct optical_flow_s flow_report;
+		orb_copy(ORB_ID(optical_flow_raw), _optical_flow_raw_sub, &flow_report);
+
+		// rotate measurements according to parameter
+		int32_t flow_rot_int;
+		param_get(param_find("SENS_FLOW_ROT"), &flow_rot_int);
+		const enum Rotation flow_rot = (Rotation)flow_rot_int;
+
+		float zeroval = 0.0f;
+		rotate_3f(flow_rot, flow_report.pixel_flow_x_integral, flow_report.pixel_flow_y_integral, zeroval);
+		rotate_3f(flow_rot, flow_report.gyro_x_rate_integral, flow_report.gyro_y_rate_integral,
+			  flow_report.gyro_z_rate_integral);
+
+		// publish on rotated topic (optical_flow.msg)
+		int instance;
+		orb_publish_auto(ORB_ID(optical_flow), &_optical_flow_pub, &flow_report, &instance,
+				 ORB_PRIO_DEFAULT);
+
+	}
+}
+
 
 void
 Sensors::run()
@@ -604,6 +642,8 @@ Sensors::run()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+
+	_optical_flow_raw_sub = orb_subscribe(ORB_ID(optical_flow_raw));
 
 	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 		_battery[b].reset(&_battery_status[b]);
@@ -659,6 +699,9 @@ Sensors::run()
 		}
 
 		perf_begin(_loop_perf);
+
+		/* check for new optical_flow_raw msgs to rotate */
+		rotate_optical_flow_raw();
 
 		/* check vehicle status for changes to publication state */
 		vehicle_control_mode_poll();
@@ -718,7 +761,9 @@ Sensors::run()
 	orb_unsubscribe(_vcontrol_mode_sub);
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_actuator_ctrl_0_sub);
+	orb_unsubscribe(_optical_flow_raw_sub);
 	orb_unadvertise(_sensor_pub);
+	orb_unadvertise(_optical_flow_pub);
 
 	_rc_update.deinit();
 	_voted_sensors_update.deinit();
