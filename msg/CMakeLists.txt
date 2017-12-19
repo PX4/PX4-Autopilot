@@ -72,6 +72,7 @@ set(msg_files
 	mount_orientation.msg
 	multirotor_motor_limits.msg
 	offboard_control_mode.msg
+	optical_flow_raw.msg
 	optical_flow.msg
 	parameter_update.msg
 	position_setpoint.msg
