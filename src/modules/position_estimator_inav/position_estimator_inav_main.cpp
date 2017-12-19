@@ -61,7 +61,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow_rot.h>
 #include <uORB/topics/distance_sensor.h>
 #include <poll.h>
 #include <systemlib/err.h>
@@ -356,7 +356,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&att, 0, sizeof(att));
 	struct vehicle_local_position_s local_pos;
 	memset(&local_pos, 0, sizeof(local_pos));
-	struct optical_flow_s flow;
+	struct optical_flow_rot_s flow;
 	memset(&flow, 0, sizeof(flow));
 	struct vehicle_local_position_s vision;
 	memset(&vision, 0, sizeof(vision));
@@ -375,7 +375,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
+	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow_rot));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	int vision_position_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
 	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
@@ -610,7 +610,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_check(optical_flow_sub, &updated);
 
 			if (updated && lidar_valid) {
-				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
+				orb_copy(ORB_ID(optical_flow_rot), optical_flow_sub, &flow);
 
 				flow_time = t;
 				float flow_q = flow.quality / 255.0f;
