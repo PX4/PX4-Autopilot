@@ -79,7 +79,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow_rot.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
@@ -1170,7 +1170,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct att_pos_mocap_s att_pos_mocap;
 		struct vehicle_local_position_s vision_pos;
 		struct vehicle_attitude_s vision_att;
-		struct optical_flow_s flow;
+		struct optical_flow_rot_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
 		struct airspeed_s airspeed;
@@ -1844,7 +1844,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 			/* --- FLOW --- */
-			if (copy_if_updated(ORB_ID(optical_flow), &subs.flow_sub, &buf.flow)) {
+			if (copy_if_updated(ORB_ID(optical_flow_rot), &subs.flow_sub, &buf.flow)) {
 				log_msg.msg_type = LOG_FLOW_MSG;
 				log_msg.body.log_FLOW.ground_distance_m = buf.flow.ground_distance_m;
 				log_msg.body.log_FLOW.gyro_temperature = buf.flow.gyro_temperature;
