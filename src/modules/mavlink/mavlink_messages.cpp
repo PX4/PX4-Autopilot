@@ -74,7 +74,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow_rot.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_bias.h>
@@ -3078,13 +3078,13 @@ private:
 
 protected:
 	explicit MavlinkStreamOpticalFlowRad(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_flow_sub(_mavlink->add_orb_subscription(ORB_ID(optical_flow))),
+		_flow_sub(_mavlink->add_orb_subscription(ORB_ID(optical_flow_rot))),
 		_flow_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		struct optical_flow_s flow;
+		struct optical_flow_rot_s flow;
 
 		if (_flow_sub->update(&_flow_time, &flow)) {
 			mavlink_optical_flow_rad_t msg = {};
