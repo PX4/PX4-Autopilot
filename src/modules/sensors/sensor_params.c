@@ -169,8 +169,6 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  * @value 6 Yaw 270°
  * @value 7 Yaw 315°
  *
- * @reboot_required true
- *
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
