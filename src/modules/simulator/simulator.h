@@ -57,7 +57,7 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 #include <uORB/uORB.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow_rot.h>
 #include <uORB/topics/distance_sensor.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>

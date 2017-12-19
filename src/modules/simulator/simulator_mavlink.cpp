@@ -1087,7 +1087,7 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	struct optical_flow_s flow;
+	struct optical_flow_rot_s flow;
 	memset(&flow, 0, sizeof(flow));
 
 	flow.sensor_id = flow_mavlink->sensor_id;
@@ -1115,7 +1115,7 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	rotate_3f(flow_rot, flow.gyro_x_rate_integral, flow.gyro_y_rate_integral, flow.gyro_z_rate_integral);
 
 	int flow_multi;
-	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
+	orb_publish_auto(ORB_ID(optical_flow_rot), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
 
 	return OK;
 }
