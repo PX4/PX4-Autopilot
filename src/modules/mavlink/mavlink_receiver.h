@@ -60,7 +60,7 @@
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow_raw.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
@@ -221,7 +221,7 @@ private:
 	orb_advert_t _airspeed_pub;
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
-	orb_advert_t _flow_pub;
+	orb_advert_t _flow_raw_pub;
 	orb_advert_t _hil_distance_sensor_pub;
 	orb_advert_t _flow_distance_sensor_pub;
 	orb_advert_t _distance_sensor_pub;
