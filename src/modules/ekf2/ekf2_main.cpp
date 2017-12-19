@@ -55,7 +55,7 @@
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow_rot.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_bias.h>
@@ -456,7 +456,7 @@ void Ekf2::run()
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	int airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	int params_sub = orb_subscribe(ORB_ID(parameter_update));
-	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
+	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow_rot));
 	int ev_pos_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
 	int ev_att_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
 	int vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -487,7 +487,7 @@ void Ekf2::run()
 	sensor_combined_s sensors = {};
 	vehicle_gps_position_s gps = {};
 	airspeed_s airspeed = {};
-	optical_flow_s optical_flow = {};
+	optical_flow_rot_s optical_flow = {};
 	distance_sensor_s range_finder = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
 	vehicle_local_position_s ev_pos = {};
@@ -594,7 +594,7 @@ void Ekf2::run()
 		orb_check(optical_flow_sub, &optical_flow_updated);
 
 		if (optical_flow_updated) {
-			orb_copy(ORB_ID(optical_flow), optical_flow_sub, &optical_flow);
+			orb_copy(ORB_ID(optical_flow_rot), optical_flow_sub, &optical_flow);
 		}
 
 		if (range_finder_sub_index >= 0) {

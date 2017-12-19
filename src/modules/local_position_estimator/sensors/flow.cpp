@@ -87,7 +87,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	//double(flow_x_rad), double(flow_y_rad), double(gyro_x_rad), double(gyro_y_rad), double(d));
 
 	// compute velocities in body frame using ground distance
-	// note that the integral rates in the optical_flow uORB topic are RH rotations about body axes
+	// note that the integral rates in the optical_flow_rot uORB topic are RH rotations about body axes
 	Vector3f delta_b(
 		+(flow_y_rad - gyro_y_rad) * d,
 		-(flow_x_rad - gyro_x_rad) * d,
