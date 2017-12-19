@@ -971,7 +971,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 					/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
 					if (cmd_arms && (arming_res == TRANSITION_CHANGED) &&
-						(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
+						(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) &&
+						!home->manual_home) {
 
 						commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude, false);
 					}
