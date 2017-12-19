@@ -84,7 +84,6 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
-#include <uORB/topics/optical_flow_raw.h>
 #include <uORB/topics/optical_flow.h>
 
 #include <DevMgr.hpp>

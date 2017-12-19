@@ -60,7 +60,7 @@
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/optical_flow_raw.h>
+#include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
