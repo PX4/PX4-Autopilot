@@ -62,7 +62,7 @@
 // for ekf2 replay
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow_rot.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -962,7 +962,7 @@ void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
 		_gps_msg_id = msg_id;
 
-	} else if (sub.orb_meta == ORB_ID(optical_flow)) {
+	} else if (sub.orb_meta == ORB_ID(optical_flow_rot)) {
 		_optical_flow_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(distance_sensor)) {
