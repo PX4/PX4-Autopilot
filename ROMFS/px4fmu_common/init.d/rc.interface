@@ -120,7 +120,7 @@ then
 	fi
 fi
 
-if ver hwcmp MINDPX_V2 CRAZYFLIE AEROFC_V1 PX4FMU_V4
+if ver hwcmp MINDPX_V2 CRAZYFLIE AEROFC_V1 PX4FMU_V4 NXPHLITE_V3
 then
 	set MIXER_AUX none
 fi
