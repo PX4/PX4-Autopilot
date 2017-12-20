@@ -782,9 +782,9 @@ ADIS16448::_set_sample_rate(uint16_t desired_sample_rate_hz)
 		smpl_prd = BITS_SMPL_PRD_NO_TAP_CFG;
 	}
 
-	modify_reg16(ADIS16448_SMPL_PRD, 0x0700, smpl_prd);
+	modify_reg16(ADIS16448_SMPL_PRD, 0x1f00, smpl_prd);
 
-	if ((read_reg16(ADIS16448_SMPL_PRD) & 0x0700) != smpl_prd) {
+	if ((read_reg16(ADIS16448_SMPL_PRD) & 0x1f00) != smpl_prd) {
 		DEVICE_DEBUG("failed to set IMU sample rate");
 	}
 
