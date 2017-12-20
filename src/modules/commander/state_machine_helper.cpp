@@ -584,7 +584,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 	const bool data_link_loss_act_configured = data_link_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_loss_act_configured = rc_loss_act > link_loss_actions_t::DISABLED;
-	const bool rc_lost = rc_loss_act_configured && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
+	const bool rc_lost = rc_loss_act_configured && (status->rc_signal_lost);
 
 	bool is_armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED
 			 || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
@@ -674,9 +674,6 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		} else if (status_flags->data_link_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
-
-		} else if (status_flags->rc_signal_lost_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
 
 		} else if (status_flags->vtol_transition_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;

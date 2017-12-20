@@ -43,7 +43,6 @@ uint16 OFFBOARD_CONTROL_SIGNAL_WEAK_MASK = 8
 uint16 OFFBOARD_CONTROL_SET_BY_COMMAND_MASK = 16
 uint16 OFFBOARD_CONTROL_LOSS_TIMEOUT_MASK = 32
 uint16 RC_SIGNAL_FOUND_ONCE_MASK = 64
-uint16 RC_SIGNAL_LOST_CMD_MASK = 128
 uint16 RC_INPUT_BLOCKED_MASK = 256
 uint16 DATA_LINK_LOST_CMD_MASK = 512
 uint16 VTOL_TRANSITION_FAILURE_MASK = 1024
@@ -57,7 +56,6 @@ uint16 GPS_FAILURE_MASK = 4096
 # 0x0010 offboard_control_set_by_command: true if the offboard mode was set by a mavlink command and should not be overridden by RC
 # 0x0020 offboard_control_loss_timeout: true if offboard is lost for a certain amount of time
 # 0x0040 rc_signal_found_once
-# 0x0080 rc_signal_lost_cmd: true if RC lost mode is commanded
 # 0x0100 rc_input_blocked: set if RC input should be ignored temporarily
 # 0x0200 data_link_lost_cmd: datalink to GCS lost mode commanded
 # 0x0400 vtol_transition_failure: Set to true if vtol transition failed
