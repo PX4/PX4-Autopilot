@@ -104,7 +104,6 @@ struct status_flags_s {
     bool offboard_control_loss_timeout;                // true if offboard is lost for a certain amount of time
     bool rc_signal_found_once;
     bool rc_input_blocked;                                // set if RC input should be ignored temporarily
-    bool data_link_lost_cmd;                        // datalink to GCS lost mode commanded
     bool vtol_transition_failure;                        // Set to true if vtol transition failed
     bool vtol_transition_failure_cmd;                // Set to true if vtol transition failure mode is commanded
     bool gps_failure;                                // Set to true if a gps failure is detected

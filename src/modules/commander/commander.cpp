@@ -959,7 +959,6 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 
 				/* param2 is currently used for other failsafe modes */
 				status_local->engine_failure_cmd = false;
-				status_flags.data_link_lost_cmd = false;
 				status_flags.vtol_transition_failure_cmd = false;
 
 				if ((int)cmd->param2 <= 0) {
@@ -970,11 +969,6 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 					/* trigger engine failure mode */
 					status_local->engine_failure_cmd = true;
 					warnx("engine failure mode commanded");
-
-				} else if ((int)cmd->param2 == 2) {
-					/* trigger data link loss mode */
-					status_flags.data_link_lost_cmd = true;
-					warnx("data link loss mode commanded");
 
 				} else if ((int)cmd->param2 == 5) {
 					/* trigger vtol transition failure mode */
@@ -2939,8 +2933,8 @@ Commander::run()
 			    internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
 			    internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL &&
 			    internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL &&
-			    ((status.data_link_lost && status_flags.gps_failure) ||
-			     (status_flags.data_link_lost_cmd))) {
+			    ((status.data_link_lost && status_flags.gps_failure))) {
+
 				armed.force_failsafe = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
@@ -4503,9 +4497,6 @@ void publish_status_flags(orb_advert_t &vehicle_status_flags_pub, vehicle_status
 	}
 	if (status_flags.rc_input_blocked) {
 		v_flags.other_flags |= vehicle_status_flags_s::RC_INPUT_BLOCKED_MASK;
-	}
-	if (status_flags.data_link_lost_cmd) {
-		v_flags.other_flags |= vehicle_status_flags_s::DATA_LINK_LOST_CMD_MASK;
 	}
 	if (status_flags.vtol_transition_failure) {
 		v_flags.other_flags |= vehicle_status_flags_s::VTOL_TRANSITION_FAILURE_MASK;
