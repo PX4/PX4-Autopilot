@@ -125,7 +125,7 @@ private:
 	float _VelMaxXY{0.0f};
 	float _VelMaxZ[2] = {0.0f, 0.0f}; //index 0: index up; 1: down
 	float _ThrHover{0.5f};
-	float _ThrLimit[2] = {0.0f, 0.0f};
+	float _ThrLimit[2] = {0.0f, 0.0f}; //index 0: max, index 1: min
 	float _Pyaw{};
 	float _YawRateMax{};
 
