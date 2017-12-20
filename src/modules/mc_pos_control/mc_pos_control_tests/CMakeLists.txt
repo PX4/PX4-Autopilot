@@ -36,6 +36,8 @@ px4_add_module(
 	SRCS
 		mc_pos_control_tests.cpp
 		../mc_pos_control_main.cpp
+		test_controlmath.cpp
+		../Utility/ControlMath.cpp
 	DEPENDS
 		platforms__common
 	)
