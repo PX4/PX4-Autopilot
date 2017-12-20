@@ -40,6 +40,7 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include "uORB/topics/parameter_update.h"
+#include "Utility/VectorMath.hpp"
 #include <lib/ecl/geo/geo.h>  //TODO: only used for wrap_pi -> move this to mathlib since
 // it makes more sense
 
@@ -162,115 +163,72 @@ void TranslationControl::_positionController()
 /* generates desired thrust vector */
 void TranslationControl::_velocityController(const float &dt)
 {
-	/* velocity error */
+	/* PID
+	 * u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral)
+	 * Umin <= u_des <= Umax
+	 *
+	 * Saturation for vel_integral;
+	 * u_des = _thr_sp; r = _vel_sp; y = _vel
+	 * u_des >= Umax and r - y >= 0 => Saturation = true
+	 * u_des >= Umax and r - y <= 0 => Saturation = false
+	 * u_des <= Umin and r - y <= 0 => Saturation = true
+	 * u_des <= Umin and r - y >= 0 => Saturation = false
+	 *
+	 */
+
 	Data vel_err = _vel_sp - _vel;
 
 	/* TODO: add offboard acceleration mode */
 	matrix::Vector3f offset(0.0f, 0.0f, _ThrHover);
 	_thr_sp = Pv.emult(vel_err) + Dv.emult(_vel_dot) + _thr_int - offset;
 
-	bool saturation_z, saturation_xy = false;
+	/* Limit tilt with priority on z
+	 * For manual controlled mode excluding pure manual and rate control, maximum tilt is 90;
+	 * It is to note that pure manual and rate control will never enter _velocityController method*/
+	float tilt_max = PX4_ISFINITE(_constraints.tilt_max) ? _constraints.tilt_max : M_PI_2_F;
+	tilt_max = math::min(tilt_max, M_PI_2_F);
+	_thr_sp = PosControl::constrainTilt(_thr_sp, tilt_max);
 
-	/* limit minimum lift
-	 * TODO: check if it is not better to limit magnitude
-	 * of thrust vector
-	 * TODO: case when thrust setpoint points down is not really considered
-	 * */
-	/* limit min lift */
-	if (-_thr_sp(2) < _ThrLimit[1]) {
-		_thr_sp(2) = -_ThrLimit[1];
-		/* Don't freeze altitude integral if it wants to throttle up */
-		saturation_z = vel_err(2) > 0.0f ? true : saturation_z;
-	}
-
-	/* limit max tilt */
-	if (PX4_ISFINITE(_constraints.tilt_max)) {
-		/* limit max tilt */
-		if (_ThrLimit[1] >= 0.0f && _constraints.tilt_max < M_PI_F / 2.0f - 0.05f) {
-			/* absolute horizontal thrust */
-			float thrust_sp_xy_len = matrix::Vector2f(_thr_sp(0), _thr_sp(1)).length();
-
-			if (thrust_sp_xy_len > 0.01f) {
-				/* max horizontal thrust for given vertical thrust*/
-				float thrust_xy_max = -_thr_sp(2) * tanf(_constraints.tilt_max);
-
-				if (thrust_sp_xy_len > thrust_xy_max) {
-					float k = thrust_xy_max / thrust_sp_xy_len;
-					_thr_sp(0) *= k;
-					_thr_sp(1) *= k;
-					/* Don't freeze x,y integrals if they both want to throttle down */
-					saturation_xy =
-						((vel_err(0) * _vel_sp(0) < 0.0f)
-						 && (vel_err(1) * _vel_sp(1) < 0.0f)) ?
-						saturation_xy : true;
-				}
-			}
-		}
-	}
-
-	/* TODO: compensation logic if altitude is enabled:
-	 * Check if it makes sense or not
-	 */
+	/*TODO: Check if it is beneficial to project thrust onto body z axis  */
 
 	/* Calculate desired total thrust amount in body z direction. */
 	/* To compensate for excess thrust during attitude tracking errors we
 	 * project the desired thrust force vector F onto the real vehicle's thrust axis in NED:
 	 * body thrust axis [0,0,-1]' rotated by R is: R*[0,0,-1]' = -R_z */
-	matrix::Vector3f R_z(_R(0, 2), _R(1, 2), _R(2, 2));
-	_throttle = _thr_sp.dot(-R_z); /* recalculate because it might have changed */
+//	matrix::Vector3f R_z(_R(0, 2), _R(1, 2), _R(2, 2));
+//	_throttle = thr_sp_tilt.dot(-R_z);
+//
+//	/* Re-scale thrust set-point based on throttle*/
+//	if (thr_sp_tilt.length() < 0.0001f) {
+//		_thr_sp = matrix::Vector3f(0.0f, 0.0f,  0.0f);
+//
+//	} else {
+//		_thr_sp = thr_sp_tilt.normalized() * _throttle;
+//	}
 
-
-	/* TODO: this logic seems very odd: check if it makes sense:
-	 * possibly even add a control function library that deals with
-	 * it and tests for it.
+	/* Constrain thrust set-point and update saturation flag */
+	/* To get (r-y) for horizontal direction, we look at the dot-product
+	 * for vel_err and _vel_sp. The sign of the dot product indicates
+	 * if (r-y) is greater or smaller than 0
 	 */
-	/* limit max thrust */
-	if (fabsf(_throttle) > _ThrLimit[0]) {
-		if (_thr_sp(2) < 0.0f) {
-			if (-_thr_sp(2) > _ThrLimit[0]) {
-				/* thrust Z component is too large, limit it */
-				_thr_sp(0) = 0.0f;
-				_thr_sp(1) = 0.0f;
-				_thr_sp(2) = -_ThrLimit[0];
-				saturation_xy = true;
-				/* Don't freeze altitude integral if it wants to throttle down */
-				saturation_z = vel_err(2) < 0.0f ? true : saturation_z;
+	float dot_xy = matrix::Vector2f(&vel_err(0)) * matrix::Vector2f(&_vel_sp(0));
+	float direction[2] = {dot_xy, vel_err(2)};
+	bool saturate[2] = {false, false};
+	PosControl::constrainPIDu(_thr_sp, saturate, _ThrLimit, direction);
 
-			} else {
-				/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
-				float thrust_xy_max = sqrtf(
-							      _ThrLimit[0] * _ThrLimit[0] - _thr_sp(2) * _thr_sp(2));
-				float thrust_xy_abs = matrix::Vector2f(_thr_sp(0),
-								       _thr_sp(1)).length();
-				float k = thrust_xy_max / thrust_xy_abs;
-				_thr_sp(0) *= k;
-				_thr_sp(1) *= k;
-				/* Don't freeze x,y integrals if they both want to throttle down */
-				saturation_xy =
-					((vel_err(0) * _vel_sp(0) < 0.0f)
-					 && (vel_err(1) * _vel_sp(1) < 0.0f)) ?
-					saturation_xy : true;
-			}
+	/* throttle is just thrust length */
+	_throttle = _thr_sp.length();
 
-		} else {
-			/* Z component is positive, going down (Z is positive down in NED), simply limit thrust vector */
-			float k = _ThrLimit[0] / fabsf(_throttle);
-			_thr_sp *= k;
-			saturation_xy = true;
-			saturation_z = true;
-		}
-
-		/* update integrals */
-		if (!saturation_xy) {
-			_thr_int(0) += vel_err(0) * Iv(0) * dt;
-			_thr_int(1) += vel_err(1) * Iv(1) * dt;
-		}
-
-
-		/* TODO: check this entire logic
-		 */
-		_throttle = _ThrLimit[0];
+	/* update integrals */
+	if (!saturate[0]) {
+		_thr_int(0) += vel_err(0) * Iv(0) * dt;
+		_thr_int(1) += vel_err(1) * Iv(1) * dt;
 	}
+
+	if (!saturate[1]) {
+		_thr_int(2) += vel_err(3) * Iv(2) * dt;
+	}
+
 }
 
 void TranslationControl::_yawController(const float &dt)
