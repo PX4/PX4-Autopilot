@@ -105,7 +105,6 @@ struct status_flags_s {
     bool rc_signal_found_once;
     bool rc_input_blocked;                                // set if RC input should be ignored temporarily
     bool vtol_transition_failure;                        // Set to true if vtol transition failed
-    bool vtol_transition_failure_cmd;                // Set to true if vtol transition failure mode is commanded
     bool gps_failure;                                // Set to true if a gps failure is detected
 };
 

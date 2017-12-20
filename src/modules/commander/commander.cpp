@@ -959,7 +959,6 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 
 				/* param2 is currently used for other failsafe modes */
 				status_local->engine_failure_cmd = false;
-				status_flags.vtol_transition_failure_cmd = false;
 
 				if ((int)cmd->param2 <= 0) {
 					/* reset all commanded failure modes */
@@ -969,11 +968,6 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 					/* trigger engine failure mode */
 					status_local->engine_failure_cmd = true;
 					warnx("engine failure mode commanded");
-
-				} else if ((int)cmd->param2 == 5) {
-					/* trigger vtol transition failure mode */
-					status_flags.vtol_transition_failure_cmd = true;
-					warnx("vtol transition failure mode commanded");
 				}
 
 			} else {
@@ -2041,7 +2035,6 @@ Commander::run()
 				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
 				status.in_transition_to_fw = vtol_status.in_transition_to_fw;
 				status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
-				status_flags.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
 
 				armed.soft_stop = !status.is_rotary_wing;
 			}
@@ -4500,9 +4493,6 @@ void publish_status_flags(orb_advert_t &vehicle_status_flags_pub, vehicle_status
 	}
 	if (status_flags.vtol_transition_failure) {
 		v_flags.other_flags |= vehicle_status_flags_s::VTOL_TRANSITION_FAILURE_MASK;
-	}
-	if (status_flags.vtol_transition_failure_cmd) {
-		v_flags.other_flags |= vehicle_status_flags_s::VTOL_TRANSITION_FAILURE_CMD_MASK;
 	}
 	if (status_flags.gps_failure) {
 		v_flags.other_flags |= vehicle_status_flags_s::GPS_FAILURE_MASK;

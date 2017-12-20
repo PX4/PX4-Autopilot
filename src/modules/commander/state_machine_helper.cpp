@@ -672,9 +672,6 @@ bool set_nav_state(struct vehicle_status_s *status,
 		if (status->engine_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (status_flags->vtol_transition_failure_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-
 		} else if (status_flags->gps_failure) {
 			if (status->is_rotary_wing) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
