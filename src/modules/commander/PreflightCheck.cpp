@@ -75,7 +75,7 @@
 
 using namespace DriverFramework;
 
-namespace Commander
+namespace Preflight
 {
 
 static int check_calibration(DevHandle &h, const char *param_template, int &devid)
