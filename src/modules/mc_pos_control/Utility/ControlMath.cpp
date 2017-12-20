@@ -40,7 +40,7 @@
  */
 
 
-#include "VectorMath.hpp"
+#include "ControlMath.hpp"
 #include <platforms/px4_defines.h>
 
 namespace PosControl
