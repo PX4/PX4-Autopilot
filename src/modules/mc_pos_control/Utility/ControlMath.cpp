@@ -75,12 +75,12 @@ matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_ma
 	}
 
 	/* desired and maximum allowed horizontal magnitude */
-	float xy_mag = matrix::Vector2f(vec(0), vec(0)).length();
+	float xy_mag = matrix::Vector2f(vec(0), vec(1)).length();
 	float xy_mag_max = fabsf(vec(2)) * tanf(tilt_max);
 
 	if (xy_mag_max < xy_mag) {
-		float x0 = vec(0) * xy_mag / xy_mag_max;
-		float x1 = vec(1) * xy_mag / xy_mag_max;
+		float x0 = vec(0) * xy_mag_max / xy_mag;
+		float x1 = vec(1) * xy_mag_max / xy_mag;
 		return matrix::Vector3f(x0, x1, vec(2));
 	}
 
