@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file VectorMath.cpp
+ * @file ControlMath.cpp
  *
  * Simple functions for vector manipulation that do not fit into matrix lib.
  * These functions are specific for controls.
