@@ -233,7 +233,7 @@ public:
 
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	void		increment_mission_instance_count() { _mission_instance_count++; }
+	void		increment_mission_instance_count() { _mission_result.instance_count++; }
 
 	void 		set_mission_failure(const char *reason);
 
@@ -289,8 +289,6 @@ private:
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
-
-	int		_mission_instance_count{-1};	/**< instance count for the current mission */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 

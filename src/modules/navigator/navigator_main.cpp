@@ -497,7 +497,7 @@ Navigator::task_main()
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
-				if (get_mission_result()->valid &&
+				if (_mission_result.valid &&
 				    PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0) && (cmd.param1 < _mission_result.seq_total)) {
 
 					_mission.set_current_offboard_mission_index(cmd.param1);
@@ -1114,7 +1114,6 @@ void
 Navigator::publish_mission_result()
 {
 	_mission_result.timestamp = hrt_absolute_time();
-	_mission_result.instance_count = _mission_instance_count;
 
 	/* lazily publish the mission result only once available */
 	if (_mission_result_pub != nullptr) {
