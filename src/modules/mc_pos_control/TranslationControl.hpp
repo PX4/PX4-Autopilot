@@ -64,8 +64,8 @@ public:
 
 	~TranslationControl() {};
 
-	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f vel_dot,
-			 const matrix::Matrix<float, 3, 3> R);
+	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot,
+			 const matrix::Matrix<float, 3, 3> &R);
 	void updateSetpoint(struct vehicle_local_position_setpoint_s setpoint);
 	void updateConstraints(const Controller::Constraints &constraints);
 	void generateThrustYawSetpoint(const float &dt);
