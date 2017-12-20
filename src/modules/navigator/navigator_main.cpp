@@ -105,7 +105,12 @@ Navigator::Navigator() :
 	_param_force_vtol(this, "FORCE_VT"),
 	_param_traffic_avoidance_mode(this, "TRAFF_AVOID"),
 	// non-navigator params
-	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false)
+	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
+	_param_takeoff_min_alt(this, "MIS_TAKEOFF_ALT", false),
+	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
+	_param_yaw_err(this, "MIS_YAW_ERR", false),
+	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
+	_param_reverse_delay(this, "VT_B_REV_DEL", false)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -214,10 +219,6 @@ Navigator::params_update()
 	parameter_update_s param_update;
 	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
 	updateParams();
-
-	if (_navigation_mode) {
-		_navigation_mode->updateParams();
-	}
 }
 
 void
@@ -249,8 +250,7 @@ Navigator::task_main()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
@@ -735,7 +735,6 @@ Navigator::task_main()
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_onboard_mission_sub);
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);
 	orb_unsubscribe(_vehicle_command_sub);

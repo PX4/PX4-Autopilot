@@ -39,33 +39,12 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <fcntl.h>
-
-#include <geo/geo.h>
-
-#include <systemlib/mavlink_log.h>
-#include <systemlib/err.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-
 #include "loiter.h"
 #include "navigator.h"
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_param_yawmode(this, "MIS_YAWMODE", false),
-	_loiter_pos_set(false)
-{
-	// load initial params
-	updateParams();
-}
-
-Loiter::~Loiter()
+	_param_yawmode(this, "MIS_YAWMODE", false)
 {
 }
 

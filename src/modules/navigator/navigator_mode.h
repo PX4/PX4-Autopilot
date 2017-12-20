@@ -42,14 +42,8 @@
 #ifndef NAVIGATOR_MODE_H
 #define NAVIGATOR_MODE_H
 
-#include <drivers/drv_hrt.h>
-
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
-
-#include <dataman/dataman.h>
-
-#include <uORB/topics/position_setpoint_triplet.h>
 
 class Navigator;
 

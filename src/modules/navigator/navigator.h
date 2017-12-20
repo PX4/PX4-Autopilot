@@ -66,6 +66,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -152,7 +153,6 @@ public:
 
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_hpos && _home_pos.valid_alt); }
 
-	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 
 	Geofence	&get_geofence() { return _geofence; }
@@ -242,6 +242,13 @@ public:
 	bool		abort_landing();
 
 	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
+	float		get_takeoff_min_alt() const { return _param_takeoff_min_alt.get(); }
+	float		get_yaw_timeout() const { return _param_yaw_timeout.get(); }
+	float		get_yaw_threshold() const { return _param_yaw_err.get(); }
+
+	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss.get(); }
+	float		get_vtol_reverse_delay() const { return _param_reverse_delay.get(); }
+
 
 	bool		force_vtol() const { return _vstatus.is_vtol && !_vstatus.is_rotary_wing && _param_force_vtol.get(); }
 
@@ -257,7 +264,6 @@ private:
 	int		_land_detected_sub{-1};		/**< vehicle land detected subscription */
 	int		_local_pos_sub{-1};		/**< local position subscription */
 	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
-	int		_onboard_mission_sub{-1};	/**< onboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
@@ -325,7 +331,15 @@ private:
 	control::BlockParamInt _param_traffic_avoidance_mode;	/**< avoiding other aircraft is enabled */
 
 	// non-navigator parameters
+	// Mission (MIS_*)
 	control::BlockParamFloat _param_loiter_min_alt;
+	control::BlockParamFloat _param_takeoff_min_alt;
+	control::BlockParamFloat _param_yaw_timeout;
+	control::BlockParamFloat _param_yaw_err;
+
+	// VTOL parameters TODO: get these out of navigator
+	control::BlockParamFloat _param_back_trans_dec_mss;
+	control::BlockParamFloat _param_reverse_delay;
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};

@@ -63,8 +63,6 @@ Geofence::Geofence(Navigator *navigator) :
 	_param_max_hor_distance(this, "GF_MAX_HOR_DIST", false),
 	_param_max_ver_distance(this, "GF_MAX_VER_DIST", false)
 {
-	updateParams();
-
 	// we assume there's no concurrent fence update on startup
 	_updateFence();
 }
