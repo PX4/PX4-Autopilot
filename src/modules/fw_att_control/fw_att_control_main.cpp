@@ -1125,10 +1125,8 @@ FixedwingAttitudeControl::task_main()
 						}
 
 						/* throttle passed through if it is finite and if no engine failure was detected */
-						_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
-								!(_vehicle_status.engine_failure ||
-								  _vehicle_status.engine_failure_cmd)) ?
-								throttle_sp : 0.0f;
+						_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp)
+								&& !_vehicle_status.engine_failure) ? throttle_sp : 0.0f;
 
 						/* scale effort by battery status */
 						if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
@@ -1169,10 +1167,7 @@ FixedwingAttitudeControl::task_main()
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 							_parameters.trim_yaw;
 
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
-							//!(_vehicle_status.engine_failure ||
-							!_vehicle_status.engine_failure_cmd) ?
-							throttle_sp : 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(throttle_sp) ? throttle_sp : 0.0f;
 				}
 
 				/*
