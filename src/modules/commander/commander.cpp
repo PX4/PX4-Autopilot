@@ -957,17 +957,9 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 				armed_local->force_failsafe = true;
 				warnx("forcing failsafe (termination)");
 
-				/* param2 is currently used for other failsafe modes */
-				status_local->engine_failure_cmd = false;
-
 				if ((int)cmd->param2 <= 0) {
 					/* reset all commanded failure modes */
 					warnx("reset all non-flighttermination failsafe commands");
-
-				} else if ((int)cmd->param2 == 1) {
-					/* trigger engine failure mode */
-					status_local->engine_failure_cmd = true;
-					warnx("engine failure mode commanded");
 				}
 
 			} else {

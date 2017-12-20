@@ -1786,7 +1786,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 		_reinitialize_tecs = false;
 	}
 
-	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
+	if (_vehicle_status.engine_failure) {
 		/* Force the slow downwards spiral */
 		pitch_min_rad = M_DEG_TO_RAD_F * -1.0f;
 		pitch_max_rad = M_DEG_TO_RAD_F * 5.0f;
