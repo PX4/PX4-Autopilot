@@ -1388,10 +1388,6 @@ Commander::run()
 	status_flags.offboard_control_signal_found_once = false;
 	status_flags.rc_signal_found_once = false;
 
-	/* assume we don't have a valid baro on startup */
-	status_flags.barometer_failure = true;
-	status_flags.ever_had_barometer_data = false;
-
 	/* mark all signals lost as long as they haven't been found */
 	status.rc_signal_lost = true;
 	status_flags.offboard_control_signal_lost = true;
@@ -1565,11 +1561,6 @@ Commander::run()
 	memset(&gps_position, 0, sizeof(gps_position));
 	gps_position.eph = FLT_MAX;
 	gps_position.epv = FLT_MAX;
-
-	/* Subscribe to sensor topic */
-	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s sensors;
-	memset(&sensors, 0, sizeof(sensors));
 
 	/* Subscribe to differential pressure topic */
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
@@ -1967,37 +1958,6 @@ Commander::run()
 
 				if (telemetry.heartbeat_time > 0) {
 					telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
-				}
-			}
-		}
-
-		orb_check(sensor_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
-
-			/* Check if the barometer is healthy and issue a warning in the GCS if not so.
-			 * Because the barometer is used for calculating AMSL altitude which is used to ensure
-			 * vertical separation from other airtraffic the operator has to know when the
-			 * barometer is inoperational.
-			 * */
-			hrt_abstime baro_timestamp = sensors.timestamp + sensors.baro_timestamp_relative;
-			if (hrt_elapsed_time(&baro_timestamp) < FAILSAFE_DEFAULT_TIMEOUT) {
-				/* handle the case where baro was regained */
-				if (status_flags.barometer_failure) {
-					status_flags.barometer_failure = false;
-					status_changed = true;
-					if (status_flags.ever_had_barometer_data) {
-						mavlink_log_critical(&mavlink_log_pub, "baro healthy");
-					}
-					status_flags.ever_had_barometer_data = true;
-				}
-
-			} else {
-				if (!status_flags.barometer_failure) {
-					status_flags.barometer_failure = true;
-					status_changed = true;
-					mavlink_log_critical(&mavlink_log_pub, "baro failed");
 				}
 			}
 		}
@@ -3257,7 +3217,6 @@ Commander::run()
 	px4_close(local_position_sub);
 	px4_close(global_position_sub);
 	px4_close(gps_sub);
-	px4_close(sensor_sub);
 	px4_close(safety_sub);
 	px4_close(cmd_sub);
 	px4_close(subsys_sub);
@@ -4574,12 +4533,6 @@ void publish_status_flags(orb_advert_t &vehicle_status_flags_pub, vehicle_status
 	}
 	if (status_flags.gps_failure_cmd) {
 		v_flags.other_flags |= vehicle_status_flags_s::GPS_FAILURE_CMD_MASK;
-	}
-	if (status_flags.barometer_failure) {
-		v_flags.other_flags |= vehicle_status_flags_s::BAROMETER_FAILURE_MASK;
-	}
-	if (status_flags.ever_had_barometer_data) {
-		v_flags.other_flags |= vehicle_status_flags_s::EVER_HAD_BAROMETER_DATA_MASK;
 	}
 
 	if ((v_flags.conditions != vehicle_status_flags.conditions) ||
