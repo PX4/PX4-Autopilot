@@ -50,8 +50,6 @@ uint16 VTOL_TRANSITION_FAILURE_MASK = 1024
 uint16 VTOL_TRANSITION_FAILURE_CMD_MASK = 2048
 uint16 GPS_FAILURE_MASK = 4096
 uint16 GPS_FAILURE_CMD_MASK = 8192
-uint16 BAROMETER_FAILURE_MASK = 16384
-uint16 EVER_HAD_BAROMETER_DATA_MASK = 32768
 
 # 0x0001 usb_connected: status of the USB power supply
 # 0x0002 offboard_control_signal_found_once
@@ -67,7 +65,5 @@ uint16 EVER_HAD_BAROMETER_DATA_MASK = 32768
 # 0x0800 vtol_transition_failure_cmd: Set to true if vtol transition failure mode is commanded
 # 0x1000 gps_failure: Set to true if a gps failure is detected
 # 0x2000 gps_failure_cmd: Set to true if a gps failure mode is commanded
-# 0x4000 barometer_failure: Set to true if a barometer failure is detected
-# 0x8000 ever_had_barometer_data: Set to true if ever had valid barometer data before
 
 uint16 other_flags
