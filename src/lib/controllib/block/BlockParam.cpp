@@ -82,6 +82,30 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 };
 
 template <>
+BlockParam<bool>::BlockParam(Block *block, const char *name, bool parent_prefix) :
+	BlockParamBase(block, name, parent_prefix),
+	_val()
+{
+	update();
+}
+
+template <>
+bool BlockParam<bool>::update()
+{
+	int32_t tmp = 0;
+	int ret = param_get(_handle, &tmp);
+
+	if (tmp == 1) {
+		_val = true;
+
+	} else {
+		_val = false;
+	}
+
+	return (ret == PX4_OK);
+}
+
+template <>
 BlockParam<int32_t>::BlockParam(Block *block, const char *name, bool parent_prefix) :
 	BlockParamBase(block, name, parent_prefix),
 	_val()
