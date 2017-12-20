@@ -38,6 +38,7 @@ px4_add_module(
 	SRCS
 		mc_pos_control_main.cpp
 		TranslationControl.cpp
+		Utility/VectorMath.cpp
 	DEPENDS
 		platforms__common
 	)
