@@ -960,7 +960,6 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 				/* param2 is currently used for other failsafe modes */
 				status_local->engine_failure_cmd = false;
 				status_flags.data_link_lost_cmd = false;
-				status_flags.gps_failure_cmd = false;
 				status_flags.rc_signal_lost_cmd = false;
 				status_flags.vtol_transition_failure_cmd = false;
 
@@ -977,11 +976,6 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 					/* trigger data link loss mode */
 					status_flags.data_link_lost_cmd = true;
 					warnx("data link loss mode commanded");
-
-				} else if ((int)cmd->param2 == 3) {
-					/* trigger gps loss mode */
-					status_flags.gps_failure_cmd = true;
-					warnx("GPS loss mode commanded");
 
 				} else if ((int)cmd->param2 == 4) {
 					/* trigger rc loss mode */
@@ -2952,7 +2946,7 @@ Commander::run()
 			    internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL &&
 			    internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL &&
 			    ((status.data_link_lost && status_flags.gps_failure) ||
-			     (status_flags.data_link_lost_cmd && status_flags.gps_failure_cmd))) {
+			     (status_flags.data_link_lost_cmd))) {
 				armed.force_failsafe = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
@@ -2977,7 +2971,7 @@ Commander::run()
 			     internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
 			     internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL) &&
 			    ((status.rc_signal_lost && status_flags.gps_failure) ||
-			     (status_flags.rc_signal_lost_cmd && status_flags.gps_failure_cmd))) {
+			     (status_flags.rc_signal_lost_cmd))) {
 				armed.force_failsafe = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
@@ -4530,9 +4524,6 @@ void publish_status_flags(orb_advert_t &vehicle_status_flags_pub, vehicle_status
 	}
 	if (status_flags.gps_failure) {
 		v_flags.other_flags |= vehicle_status_flags_s::GPS_FAILURE_MASK;
-	}
-	if (status_flags.gps_failure_cmd) {
-		v_flags.other_flags |= vehicle_status_flags_s::GPS_FAILURE_CMD_MASK;
 	}
 
 	if ((v_flags.conditions != vehicle_status_flags.conditions) ||

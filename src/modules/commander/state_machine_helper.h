@@ -109,7 +109,6 @@ struct status_flags_s {
     bool vtol_transition_failure;                        // Set to true if vtol transition failed
     bool vtol_transition_failure_cmd;                // Set to true if vtol transition failure mode is commanded
     bool gps_failure;                                // Set to true if a gps failure is detected
-    bool gps_failure_cmd;                                // Set to true if a gps failure mode is commanded
 };
 
 bool is_safe(const struct safety_s *safety, const struct actuator_armed_s *armed);
