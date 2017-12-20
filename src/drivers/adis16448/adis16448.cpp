@@ -745,6 +745,10 @@ ADIS16448::probe()
 		}
 	}
 
+	/* restore factory calibration */
+	_set_factory_default();
+	usleep(1000);
+
 	/* recognize product serial number */
 	serial_number = (read_reg16(ADIS16334_SERIAL_NUMBER) & 0xfff);
 
@@ -809,7 +813,6 @@ void
 ADIS16448::_set_factory_default()
 {
 	write_reg16(ADIS16448_GLOB_CMD, 0x02);
-	warnx("Set IMU to factory default!");
 }
 
 /* set the gyroscope dynamic range */
