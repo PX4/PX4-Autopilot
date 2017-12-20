@@ -74,7 +74,7 @@ public:
 	RunwayTakeoffState getState() { return _state; }
 	bool isInitialized() { return _initialized; }
 
-	bool runwayTakeoffEnabled() { return (bool)_runway_takeoff_enabled.get(); }
+	bool runwayTakeoffEnabled() { return _runway_takeoff_enabled.get(); }
 	float getMinAirspeedScaling() { return _min_airspeed_scaling.get(); }
 	float getInitYaw() { return _init_yaw; }
 
@@ -103,7 +103,7 @@ private:
 	math::Vector<2> _start_wp;
 
 	/** parameters **/
-	control::BlockParamInt _runway_takeoff_enabled;
+	control::BlockParamBool _runway_takeoff_enabled;
 	control::BlockParamInt _heading_mode;
 	control::BlockParamFloat _nav_alt;
 	control::BlockParamFloat _takeoff_throttle;
