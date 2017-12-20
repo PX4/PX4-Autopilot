@@ -212,7 +212,7 @@ void TranslationControl::_velocityController(const float &dt)
 	 * if (r-y) is greater or smaller than 0
 	 */
 	float dot_xy = matrix::Vector2f(&vel_err(0)) * matrix::Vector2f(&_vel_sp(0));
-	float direction[2] = {dot_xy, vel_err(2)};
+	float direction[2] = {dot_xy, -vel_err(2)}; // negative sign because of N-E-D
 	bool saturate[2] = {false, false};
 	PosControl::constrainPIDu(_thr_sp, saturate, _ThrLimit, direction);
 
