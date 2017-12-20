@@ -139,11 +139,8 @@ void constrainPIDu(matrix::Vector3f &u, bool sat[2], const float Ulimits[2], con
 	} else if (u.length() <= Ulimits[1]) {
 		/* The desired u is below minimum */
 
-		/* Maximum mag in xy is always reached
-		 * if desired u_z is below minimum */
-		sat[0] = true;
+		/* Check if z or xy are saturated */
 
-		/* Check if altitude is saturated */
 		if (d[1] <= 0.0f) {
 			sat[1] = true;
 		}
