@@ -1698,6 +1698,7 @@ void	start(bool external_bus, enum Rotation rotation, unsigned range);
 void	test();
 void	reset();
 void	info();
+void	stop();
 void	regdump();
 void	usage();
 void	test_error();
@@ -1941,6 +1942,20 @@ info()
 	exit(0);
 }
 
+void
+stop()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running\n");
+		exit(1);
+	}
+
+	delete g_dev;
+	g_dev = nullptr;
+
+	exit(0);
+}
+
 /**
  * dump registers from device
  */
@@ -1977,7 +1992,7 @@ test_error()
 void
 usage()
 {
-	PX4_INFO("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
+	PX4_INFO("missing command: try 'start', 'info', 'stop', 'test', 'reset', 'testerror' or 'regdump'");
 	PX4_INFO("options:");
 	PX4_INFO("    -X    (external bus)");
 	PX4_INFO("    -R rotation");
@@ -2034,6 +2049,10 @@ fxos8701cq_main(int argc, char *argv[])
 		fxos8701cq::test();
 	}
 
+	if (!strcmp(verb, "stop")) {
+		fxos8701cq::stop();
+	}
+
 	/*
 	 * Reset the driver.
 	 */
@@ -2062,5 +2081,5 @@ fxos8701cq_main(int argc, char *argv[])
 		fxos8701cq::test_error();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
+	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset', 'info', 'testerror' or 'regdump'");
 }
