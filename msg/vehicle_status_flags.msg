@@ -45,7 +45,6 @@ uint16 OFFBOARD_CONTROL_LOSS_TIMEOUT_MASK = 32
 uint16 RC_SIGNAL_FOUND_ONCE_MASK = 64
 uint16 RC_INPUT_BLOCKED_MASK = 256
 uint16 VTOL_TRANSITION_FAILURE_MASK = 1024
-uint16 VTOL_TRANSITION_FAILURE_CMD_MASK = 2048
 uint16 GPS_FAILURE_MASK = 4096
 
 # 0x0001 usb_connected: status of the USB power supply
@@ -57,7 +56,6 @@ uint16 GPS_FAILURE_MASK = 4096
 # 0x0040 rc_signal_found_once
 # 0x0100 rc_input_blocked: set if RC input should be ignored temporarily
 # 0x0400 vtol_transition_failure: Set to true if vtol transition failed
-# 0x0800 vtol_transition_failure_cmd: Set to true if vtol transition failure mode is commanded
 # 0x1000 gps_failure: Set to true if a gps failure is detected
 
 uint16 other_flags
