@@ -109,16 +109,14 @@ matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_ma
 void constrainPIDu(matrix::Vector3f &u, bool sat[2], const float Ulimits[2], const float d[2])
 {
 	sat[0] = sat[1] = false;
-	float xy_max = sqrtf(Ulimits[2] * Ulimits[2] - u(2) * u(2));
+	float xy_max = sqrtf(Ulimits[0] * Ulimits[0] - u(2) * u(2));
 	float xy_mag = matrix::Vector2f(u(0), u(0)).length();
-
 
 	if (u(2) * u(2) >= Ulimits[0] * Ulimits[0]) {
 		/* The desired u in D-direction exceeds maximum */
 
-		/* Check if altitude saturated
-		 * negative sign bc of N-E-D frame */
-		if (-d[1] >= 0.0f) {
+		/* Check if altitude saturated */
+		if (d[1] >= 0.0f) {
 			sat[1] = true;
 		}
 
@@ -127,7 +125,7 @@ void constrainPIDu(matrix::Vector3f &u, bool sat[2], const float Ulimits[2], con
 		u(1) = 0.0f;
 		u(2) = Ulimits[0];
 
-	} if (u.length() >= Ulimits[0]) {
+	} else if (u.length() >= Ulimits[0]) {
 
 		/* The desired u_xy exceeds maximum */
 
@@ -145,9 +143,8 @@ void constrainPIDu(matrix::Vector3f &u, bool sat[2], const float Ulimits[2], con
 		 * if desired u_z is below minimum */
 		sat[0] = true;
 
-		/* Check if altitude is saturated
-		 * negative sign bc of N-E-D frame */
-		if (-d[1] <= 0.0f) {
+		/* Check if altitude is saturated */
+		if (d[1] <= 0.0f) {
 			sat[1] = true;
 		}
 
