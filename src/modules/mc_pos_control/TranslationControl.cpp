@@ -71,8 +71,8 @@ TranslationControl::TranslationControl()
 	_setParams();
 };
 
-void TranslationControl::updateState(const struct vehicle_local_position_s state, const matrix::Vector3f vel_dot,
-				     const matrix::Matrix<float, 3, 3> R)
+void TranslationControl::updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot,
+				     const matrix::Matrix<float, 3, 3> &R)
 {
 	_pos = Data(&state.x);
 	_vel = Data(&state.vx);
