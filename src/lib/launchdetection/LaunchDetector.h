@@ -61,7 +61,7 @@ public:
 
 	void update(float accel_x);
 	LaunchDetectionResult getLaunchDetected();
-	bool launchDetectionEnabled() { return launchdetection_on.get() == 1; }
+	bool launchDetectionEnabled() { return launchdetection_on.get(); }
 
 	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
 	float getPitchMax(float pitchMaxDefault);
@@ -77,7 +77,7 @@ private:
 
 	LaunchMethod *launchMethods[1];
 
-	control::BlockParamInt launchdetection_on;
+	control::BlockParamBool launchdetection_on;
 };
 
 } // namespace launchdetection
