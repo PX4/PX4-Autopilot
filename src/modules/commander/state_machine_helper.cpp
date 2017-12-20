@@ -668,11 +668,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		 * - if we have vtol transition failure
 		 * - depending on datalink, RC and if the mission is finished */
 
-		/* first look at the commands */
-		if (status->engine_failure_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
-
-		} else if (status_flags->gps_failure) {
+		if (status_flags->gps_failure) {
 			if (status->is_rotary_wing) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
