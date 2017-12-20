@@ -40,7 +40,7 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include "uORB/topics/parameter_update.h"
-#include "Utility/VectorMath.hpp"
+#include "Utility/ControlMath.hpp"
 #include <lib/ecl/geo/geo.h>  //TODO: only used for wrap_pi -> move this to mathlib since
 // it makes more sense
 
