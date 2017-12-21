@@ -294,20 +294,20 @@ private:
 		uint16_t		baro;
 		uint16_t		temp;
 
-        ADISReport():
-            cmd(0),
-            status(0),
-            gyro_x(0),
-            gyro_y(0),
-            gyro_z(0),
-            accel_x(0),
-            accel_y(0),
-            accel_z(0),
+		ADISReport():
+			cmd(0),
+			status(0),
+			gyro_x(0),
+			gyro_y(0),
+			gyro_z(0),
+			accel_x(0),
+			accel_y(0),
+			accel_z(0),
 			mag_x(0),
 			mag_y(0),
 			mag_z(0),
 			baro(0),
-			temp(0){}
+			temp(0) {}
 	};
 #pragma pack(pop)
 
