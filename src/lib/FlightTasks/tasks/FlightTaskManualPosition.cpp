@@ -57,10 +57,10 @@ bool FlightTaskManualPosition::activate()
 	return FlightTaskManualAltitude::activate();
 }
 
-void FlightTaskManualPosition::scale_sticks()
+void FlightTaskManualPosition::scaleSticks()
 {
 	/* scale all sticks including altitude and yaw */
-	FlightTaskManualAltitude::scale_sticks();
+	FlightTaskManualAltitude::scaleSticks();
 
 	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
@@ -76,7 +76,7 @@ void FlightTaskManualPosition::scale_sticks()
 
 }
 
-void FlightTaskManualPosition::update_xy_setpoints()
+void FlightTaskManualPosition::updateXYsetpoints()
 {
 	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
@@ -92,21 +92,21 @@ void FlightTaskManualPosition::update_xy_setpoints()
 	}
 }
 
-void FlightTaskManualPosition::update_setpoints()
+void FlightTaskManualPosition::updateSetpoints()
 {
 	/* scale all sticks */
-	scale_sticks();
+	scaleSticks();
 
 	/* update all setpoints */
-	FlightTaskManualAltitude::update_setpoints();
-	update_xy_setpoints();
+	FlightTaskManualAltitude::updateSetpoints();
+	updateXYsetpoints();
 
 }
 
 bool FlightTaskManualPosition::update()
 {
-	scale_sticks();
-	update_setpoints();
+	scaleSticks();
+	updateSetpoints();
 
 	_setPositionSetpoint(Vector3f(_pos_sp_xy(0), _pos_sp_xy(1), _pos_sp_z));
 	_setVelocitySetpoint(Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), _vel_sp_z));
