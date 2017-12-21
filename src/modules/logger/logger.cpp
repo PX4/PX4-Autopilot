@@ -613,6 +613,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
+	add_topic("vehicle_status_flags");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
