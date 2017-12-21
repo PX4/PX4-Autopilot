@@ -176,7 +176,7 @@
 #define FW_FILTER									false
 
 #define SPI_BUS_SPEED								1000000
-#define T_STALL										5
+#define T_STALL										9
 
 #define GYROINITIALSENSITIVITY						250
 #define ACCELINITIALSENSITIVITY						(1.0f / 1200.0f)
