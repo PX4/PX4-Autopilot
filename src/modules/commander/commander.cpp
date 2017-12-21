@@ -588,7 +588,7 @@ void print_status()
 	warnx("avionics rail: %6.2f V", (double)avionics_power_rail_voltage);
 	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
-	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
+	warnx("datalink: %s %s", (status.data_link_lost) ? "LOST" : "OK", (status.high_latency_data_link_active) ? "(high latency)" : " ");
 	warnx("main state: %d", internal_state.main_state);
 	warnx("nav state: %d", status.nav_state);
 	warnx("arming: %s", arming_state_names[status.arming_state]);
@@ -1179,8 +1179,10 @@ Commander::run()
 	param_t _param_offboard_loss_rc_act = param_find("COM_OBL_RC_ACT");
 	param_t _param_enable_rc_loss = param_find("NAV_RCL_ACT");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
+	param_t _param_highlatencydatalink_loss_timeout = param_find("COM_HLDL_LOSS_T");
 	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
 	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
+	param_t _param_highlatencydatalink_regain_timeout = param_find("COM_HLDL_REG_T");
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
@@ -1304,6 +1306,7 @@ Commander::run()
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
 	orb_advert_t commander_state_pub = nullptr;
+	orb_advert_t vehicle_cmd_pub = nullptr;
 	orb_advert_t vehicle_status_flags_pub = nullptr;
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
@@ -1348,6 +1351,7 @@ Commander::run()
 	uint64_t telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
 	bool telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES];
 	bool telemetry_lost[ORB_MULTI_MAX_INSTANCES];
+	bool telemetry_high_latency[ORB_MULTI_MAX_INSTANCES];
 
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		telemetry_subs[i] = -1;
@@ -1355,6 +1359,7 @@ Commander::run()
 		telemetry_last_dl_loss[i] = 0;
 		telemetry_lost[i] = true;
 		telemetry_preflight_checks_reported[i] = false;
+		telemetry_high_latency[i] = false;
 	}
 
 	/* Subscribe to global position */
@@ -1489,8 +1494,10 @@ Commander::run()
 	int32_t datalink_loss_act = 0;
 	int32_t rc_loss_act = 0;
 	int32_t datalink_loss_timeout = 10;
+	int32_t highlatencydatalink_loss_timeout = 120;
 	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
+	int32_t highlatencydatalink_regain_timeout = 0;
 	float offboard_loss_timeout = 0.0f;
 	int32_t offboard_loss_act = 0;
 	int32_t offboard_loss_rc_act = 0;
@@ -1591,6 +1598,7 @@ Commander::run()
 			param_get(_param_enable_datalink_loss, &datalink_loss_act);
 			param_get(_param_enable_rc_loss, &rc_loss_act);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
+			param_get(_param_highlatencydatalink_loss_timeout, &highlatencydatalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_rc_in_off, &rc_in_off);
 			status.rc_input_mode = rc_in_off;
@@ -1601,6 +1609,7 @@ Commander::run()
 			min_stick_change *= 0.02f;
 			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
+			param_get(_param_highlatencydatalink_regain_timeout, &highlatencydatalink_regain_timeout);
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
@@ -1755,6 +1764,14 @@ Commander::run()
 				if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB) {
 					_usb_telemetry_active = true;
 				}
+
+				/* set latency type of the telemetry connection */
+				if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM) {
+					telemetry_high_latency[i] = true;
+				} else {
+					telemetry_high_latency[i] = false;
+				}
+
 
 				if (telemetry.heartbeat_time > 0) {
 					telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
@@ -2505,15 +2522,34 @@ Commander::run()
 
 		/* data links check */
 		bool have_link = false;
+		bool high_latency_link_exists = false;
+		bool have_low_latency_link = false;
+		int32_t dl_loss_timeout_local = 0;
+		int32_t dl_regain_timeout_local = 0;
 
 		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if (telemetry_high_latency[i]) {
+				high_latency_link_exists = true;
+				if (status.high_latency_data_link_active) {
+					dl_loss_timeout_local = highlatencydatalink_loss_timeout;
+					dl_regain_timeout_local = highlatencydatalink_regain_timeout;
+				} else {
+					// if the high latency link is inactive we do not want to accidentally detect it as an active link
+					dl_loss_timeout_local = INT32_MIN;
+					dl_regain_timeout_local = INT32_MAX;
+				}
+			} else {
+				dl_loss_timeout_local = datalink_loss_timeout;
+				dl_regain_timeout_local = datalink_regain_timeout;
+			}
+
 			if (telemetry_last_heartbeat[i] != 0 &&
-			    hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout * 1e6) {
+			    hrt_elapsed_time(&telemetry_last_heartbeat[i]) < dl_loss_timeout_local * 1e6) {
 				/* handle the case where data link was gained first time or regained,
 				 * accept datalink as healthy only after datalink_regain_timeout seconds
 				 * */
 				if (telemetry_lost[i] &&
-				    hrt_elapsed_time(&telemetry_last_dl_loss[i]) > datalink_regain_timeout * 1e6) {
+				    hrt_elapsed_time(&telemetry_last_dl_loss[i]) > dl_regain_timeout_local * 1e6) {
 
 					/* report a regain */
 					if (telemetry_last_dl_loss[i] > 0) {
@@ -2528,11 +2564,15 @@ Commander::run()
 
 					telemetry_lost[i] = false;
 					have_link = true;
+					if (!telemetry_high_latency[i])
+						have_low_latency_link = true;
 
 				} else if (!telemetry_lost[i]) {
 					/* telemetry was healthy also in last iteration
 					 * we don't have to check a timeout */
 					have_link = true;
+					if (!telemetry_high_latency[i])
+						have_low_latency_link = true;
 				}
 
 			} else {
@@ -2554,8 +2594,43 @@ Commander::run()
 				status_changed = true;
 			}
 
+			if (status.high_latency_data_link_active && have_low_latency_link) {
+				// regained a low latency telemetry link, deactivate the high latency link
+				// to avoid transmitting unnecessary data over that link
+				status.high_latency_data_link_active = false;
+				status_changed = true;
+				mavlink_log_critical(&mavlink_log_pub, "LOW LATENCY DATA LINKS REGAINED, DEACTIVATING HIGH LATENCY LINK");
+
+				vehicle_command_s vehicle_cmd;
+				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING;
+				vehicle_cmd.param1 = 6;
+				vehicle_cmd.param2 = 0;
+				if (vehicle_cmd_pub != nullptr) {
+					orb_publish(ORB_ID(vehicle_command), vehicle_cmd_pub, &vehicle_cmd);
+
+				} else {
+					vehicle_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_cmd);
+				}
+			}
+
 		} else {
-			if (!status.data_link_lost) {
+			if (!status.data_link_lost && high_latency_link_exists && !status.high_latency_data_link_active && armed.armed) {
+				// low latency telemetry lost and high latency link existing
+				// only go to the high latency status if armed to avoid unnecessary transmitting
+				status.high_latency_data_link_active = true;
+				status_changed = true;
+				mavlink_log_critical(&mavlink_log_pub, "ALL LOW LATENCY DATA LINKS LOST, ACTIVATING HIGH LATENCY LINK");
+				vehicle_command_s vehicle_cmd;
+				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING;
+				vehicle_cmd.param1 = 6;
+				vehicle_cmd.param2 = 1;
+				if (vehicle_cmd_pub != nullptr) {
+					orb_publish(ORB_ID(vehicle_command), vehicle_cmd_pub, &vehicle_cmd);
+
+				} else {
+					vehicle_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_cmd);
+				}
+			} else if (!status.data_link_lost) {
 				if (armed.armed) {
 					mavlink_log_critical(&mavlink_log_pub, "ALL DATA LINKS LOST");
 				}
