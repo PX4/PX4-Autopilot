@@ -64,12 +64,12 @@ protected:
 	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */
 	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
 
-	virtual void update_setpoints(); /**< updates all setpoints */
-	virtual void scale_sticks(); /**< scales sticks to velocity */
+	virtual void updateSetpoints(); /**< updates all setpoints */
+	virtual void scaleSticks(); /**< scales sticks to velocity */
 
 private:
-	void update_heading_setpoints(); /**< sets yaw or yaw speed */
-	void update_z_setpoints(); /**< sets position or velocity setpoint */
+	void updateHeadingSetpoints(); /**< sets yaw or yaw speed */
+	void updateZsetpoints(); /**< sets position or velocity setpoint */
 
 	float _pos_sp_predicted{0.0f}; /**< position setpoint computed in set_z_setpoints */
 	float _yaw_sp_predicted{0.0f}; /**< yaw setpoint computed in set_heading_setpoints */
