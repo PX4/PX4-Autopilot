@@ -3225,7 +3225,7 @@ int commander_thread_main(int argc, char *argv[])
 			main_state_changed = false;
 		}
 
-		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
+		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags) at least with 5 Hz */
 		if (counter % (200000 / COMMANDER_MONITORING_INTERVAL) == 0 || status_changed) {
 			set_control_mode();
 			control_mode.timestamp = now;
@@ -3249,6 +3249,17 @@ int commander_thread_main(int argc, char *argv[])
 				armed.prearmed = (hrt_elapsed_time(&commander_boot_timestamp) > 5 * 1000 * 1000);
 			}
 			orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
+
+			/* publish internal state for logging purposes */
+			if (commander_state_pub != nullptr) {
+				orb_publish(ORB_ID(commander_state), commander_state_pub, &internal_state);
+
+			} else {
+				commander_state_pub = orb_advertise(ORB_ID(commander_state), &internal_state);
+			}
+
+			/* publish vehicle_status_flags */
+			publish_status_flags(vehicle_status_flags_pub, vehicle_status_flags);
 		}
 
 		/* play arming and battery warning tunes */
@@ -3322,17 +3333,6 @@ int commander_thread_main(int argc, char *argv[])
 		if (!armed.armed) {
 			/* Reset the flag if disarmed. */
 			have_taken_off_since_arming = false;
-		}
-
-		/* publish vehicle_status_flags */
-		publish_status_flags(vehicle_status_flags_pub, vehicle_status_flags);
-
-		/* publish internal state for logging purposes */
-		if (commander_state_pub != nullptr) {
-			orb_publish(ORB_ID(commander_state), commander_state_pub, &internal_state);
-
-		} else {
-			commander_state_pub = orb_advertise(ORB_ID(commander_state), &internal_state);
 		}
 
 		arm_auth_update(now);
