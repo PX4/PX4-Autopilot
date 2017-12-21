@@ -83,11 +83,10 @@ typedef enum {
 
 extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 
-#define SATCOM_TX_BUF_LEN				50		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
-#define SATCOM_RX_MSG_BUF_LEN			300		// RX buffer size for MT messages
+#define SATCOM_TX_BUF_LEN				340		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
+#define SATCOM_RX_MSG_BUF_LEN			270		// RX buffer size for MT messages
 #define SATCOM_RX_COMMAND_BUF_LEN		50		// RX buffer size for other commands
-#define SATCOM_TX_STACKING_TIME			3000000	// time to wait for additional mavlink messages, TODO make this a param
-#define SATCOM_SIGNAL_REFRESH_DELAY		5000000 // update signal quality every 5s
+#define SATCOM_SIGNAL_REFRESH_DELAY		20000000 // update signal quality every 5s
 
 class IridiumSBD : public device::CDev
 {
@@ -97,7 +96,9 @@ public:
 	bool task_should_exit = false;
 	int uart_fd = -1;
 
-	int32_t param_read_interval_s;
+	int32_t param_read_interval_s = -1;
+	int32_t param_session_timeout_s = -1;
+	int32_t param_stacking_time_ms = -1;
 
 	hrt_abstime last_signal_check = 0;
 	uint8_t signal_quality = 0;
@@ -125,11 +126,14 @@ public:
 
 	hrt_abstime last_write_time = 0;
 	hrt_abstime last_read_time = 0;
+	hrt_abstime last_heartbeat = 0;
+	hrt_abstime session_start_time = 0;
 
 	satcom_state state = SATCOM_STATE_STANDBY;
 	satcom_state new_state = SATCOM_STATE_STANDBY;
 
 	pthread_mutex_t tx_buf_mutex = pthread_mutex_t();
+	bool verbose = false;
 
 	/*
 	 * Constructor
@@ -221,17 +225,17 @@ public:
 	/*
 	 *
 	 */
-	satcom_result_code read_at_command();
+	satcom_result_code read_at_command(int16_t timeout = 100);
 
 	/*
 	 *
 	 */
-	satcom_result_code read_at_msg();
+	satcom_result_code read_at_msg(int16_t timeout = 100);
 
 	/*
 	 *
 	 */
-	satcom_result_code read_at(uint8_t *rx_buf, int *rx_len);
+	satcom_result_code read_at(uint8_t *rx_buf, int *rx_len, int16_t timeout = 100);
 
 	/*
 	 *
@@ -277,4 +281,9 @@ public:
 	 * Send a AT command to the modem
 	 */
 	void write_at(const char *command);
+
+	/*
+	 * Publish the up to date telemetry status
+	 */
+	void publish_telemetry_status();
 };
