@@ -726,15 +726,12 @@ int ADIS16448::reset()
 
 	/* Set gyroscope scale to default value */
 	_set_gyro_dyn_range(GYROINITIALSENSITIVITY);
-	usleep(1000);
 
 	/* Set digital FIR filter tap */
 	_set_dlpf_filter(BITS_FIR_16_TAP_CFG);
-	usleep(1000);
 
 	/* Set IMU sample rate */
 	_set_sample_rate(_sample_rate);
-	usleep(1000);
 
 	_accel_range_scale = ADIS16448_ONE_G * ACCELINITIALSENSITIVITY;
 	_accel_range_m_s2  = ADIS16448_ONE_G * ACCELDYNAMICRANGE;
@@ -825,7 +822,6 @@ void
 ADIS16448::_set_factory_default()
 {
 	write_reg16(ADIS16448_GLOB_CMD, 0x02);
-	warnx("Set IMU to factory default!");
 }
 
 /* set the gyroscope dynamic range */
