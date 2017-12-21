@@ -150,7 +150,8 @@ public:
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
-	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_hpos && _home_pos.valid_alt); }
+	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
+	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }

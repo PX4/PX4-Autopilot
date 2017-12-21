@@ -64,6 +64,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	fw_pos_ctrl_status_s *fw_pos_ctrl_status = _navigator->get_fw_pos_ctrl_status();
 	const float home_alt = _navigator->get_home_position()->alt;
 	const bool home_valid = _navigator->home_position_valid();
+	const bool home_alt_valid = _navigator->home_alt_valid();
 
 	bool &warning_issued = _navigator->get_mission_result()->warning;
 	const float default_acceptance_rad  = _navigator->get_default_acceptance_radius();
@@ -74,7 +75,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	bool warned = false;
 
 	// first check if we have a valid position
-	if (!home_valid) {
+	if (!home_alt_valid) {
 		failed = true;
 		warned = true;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Not yet ready for mission, no position lock.");
@@ -89,15 +90,15 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	failed = failed
 		 || !checkDistancesBetweenWaypoints(dm_current, nMissionItems, max_distance_between_waypoints, warning_issued);
 	failed = failed || !checkGeofence(dm_current, nMissionItems, geofence, home_alt, home_valid);
-	failed = failed || !checkHomePositionAltitude(dm_current, nMissionItems, home_alt, home_valid, warned);
+	failed = failed || !checkHomePositionAltitude(dm_current, nMissionItems, home_alt, home_alt_valid, warned);
 
 	if (isRotarywing) {
 		failed = failed
-			 || !checkRotarywing(dm_current, nMissionItems, home_alt, home_valid, default_altitude_acceptance_rad);
+			 || !checkRotarywing(dm_current, nMissionItems, home_alt, home_alt_valid, default_altitude_acceptance_rad);
 
 	} else {
 		failed = failed
-			 || !checkFixedwing(dm_current, nMissionItems, fw_pos_ctrl_status, home_alt, home_valid,
+			 || !checkFixedwing(dm_current, nMissionItems, fw_pos_ctrl_status, home_alt, home_alt_valid,
 					    default_acceptance_rad, land_start_req);
 	}
 
@@ -106,7 +107,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 
 bool
 MissionFeasibilityChecker::checkRotarywing(dm_item_t dm_current, size_t nMissionItems,
-		float home_alt, bool home_valid, float default_altitude_acceptance_rad)
+		float home_alt, bool home_alt_valid, float default_altitude_acceptance_rad)
 {
 	for (size_t i = 0; i < nMissionItems; i++) {
 		struct mission_item_s missionitem = {};
@@ -144,11 +145,11 @@ MissionFeasibilityChecker::checkRotarywing(dm_item_t dm_current, size_t nMission
 
 bool
 MissionFeasibilityChecker::checkFixedwing(dm_item_t dm_current, size_t nMissionItems,
-		fw_pos_ctrl_status_s *fw_pos_ctrl_status, float home_alt, bool home_valid,
+		fw_pos_ctrl_status_s *fw_pos_ctrl_status, float home_alt, bool home_alt_valid,
 		float default_acceptance_rad, bool land_start_req)
 {
 	/* Perform checks and issue feedback to the user for all checks */
-	bool resTakeoff = checkFixedWingTakeoff(dm_current, nMissionItems, home_alt, home_valid, land_start_req);
+	bool resTakeoff = checkFixedWingTakeoff(dm_current, nMissionItems, home_alt, home_alt_valid, land_start_req);
 	bool resLanding = checkFixedWingLanding(dm_current, nMissionItems, fw_pos_ctrl_status, land_start_req);
 
 	/* Mission is only marked as feasible if all checks return true */
@@ -198,7 +199,7 @@ MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionIt
 
 bool
 MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems,
-		float home_alt, bool home_valid, bool &warning_issued, bool throw_error)
+		float home_alt, bool home_alt_valid, bool &warning_issued, bool throw_error)
 {
 	/* Check if all waypoints are above the home altitude */
 	for (size_t i = 0; i < nMissionItems; i++) {
@@ -212,7 +213,7 @@ MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_
 		}
 
 		/* reject relative alt without home set */
-		if (missionitem.altitude_is_relative && !home_valid && MissionBlock::item_contains_position(missionitem)) {
+		if (missionitem.altitude_is_relative && !home_alt_valid && MissionBlock::item_contains_position(missionitem)) {
 
 			warning_issued = true;
 
@@ -328,7 +329,7 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 
 bool
 MissionFeasibilityChecker::checkFixedWingTakeoff(dm_item_t dm_current, size_t nMissionItems,
-		float home_alt, bool home_valid, float default_acceptance_rad)
+		float home_alt, bool home_alt_valid, float default_acceptance_rad)
 {
 	for (size_t i = 0; i < nMissionItems; i++) {
 		struct mission_item_s missionitem = {};
