@@ -531,7 +531,7 @@ void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_alt
 		_vert_pos_state = baro_altitude;
 		_tas_rate_state = 0.0f;
 		_tas_state = _EAS * EAS2TAS;
-		_throttle_integ_state = 0.0f;
+		_throttle_integ_state = (_in_air ? throttle_cruise : 0.0f);
 		_pitch_integ_state = 0.0f;
 		_last_throttle_setpoint = throttle_cruise;
 		_last_pitch_setpoint = constrain(pitch, _pitch_setpoint_min, _pitch_setpoint_max);
