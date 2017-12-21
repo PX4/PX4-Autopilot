@@ -60,16 +60,15 @@ protected:
 	void _initialize_topics() override;
 	void _update_params() override;
 	void _update_topics() override;
+
 	bool _get_landed_state() override;
-	bool _get_maybe_landed_state() override;
-	bool _get_ground_contact_state() override;
-	bool _get_freefall_state() override;
 	float _get_max_altitude() override;
 
 private:
 
 	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
+	static constexpr uint64_t LANDED_TRIGGER_TIME_US = 2000000;
+	static constexpr uint64_t FLYING_TRIGGER_TIME_US = 0;
 
 	struct {
 		param_t maxVelocity;

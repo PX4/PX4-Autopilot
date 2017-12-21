@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,25 +32,57 @@
  ****************************************************************************/
 
 /**
- * Total flight time in microseconds
+ * Fixedwing max horizontal velocity
  *
- * Total flight time of this autopilot. Higher 32 bits of the value.
- * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+ * Maximum horizontal velocity allowed in the landed state (m/s)
  *
- * @min 0
+ * @unit m/s
+ * @min 0.5
+ * @max 10
+ * @decimal 1
+ *
  * @group Land Detector
- *
  */
-PARAM_DEFINE_INT32(LND_FLIGHT_T_HI, 0);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
 
 /**
- * Total flight time in microseconds
+ * Fixedwing max climb rate
  *
- * Total flight time of this autopilot. Lower 32 bits of the value.
- * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+ * Maximum vertical velocity allowed in the landed state (m/s up and down)
  *
- * @min 0
+ * @unit m/s
+ * @min 5
+ * @max 20
+ * @decimal 1
+ *
  * @group Land Detector
- *
  */
-PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
+
+/**
+ * Fixedwing max short-term velocity
+ *
+ * Maximum velocity integral in flight direction allowed in the landed state (m/s)
+ *
+ * @unit m/s
+ * @min 2
+ * @max 10
+ * @decimal 1
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 8.0f);
+
+/**
+ * Airspeed max
+ *
+ * Maximum airspeed allowed in the landed state (m/s)
+ *
+ * @unit m/s
+ * @min 4
+ * @max 20
+ * @decimal 1
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 8.00f);
