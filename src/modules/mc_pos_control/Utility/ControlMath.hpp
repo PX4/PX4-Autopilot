@@ -46,5 +46,5 @@
 namespace PosControl
 {
 matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_max);
-void constrainPIDu(matrix::Vector3f &u, bool saturate[2], const float Ulimits[2], const float d[2]);
+void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], const float d[2]);
 }
