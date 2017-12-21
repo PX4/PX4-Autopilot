@@ -92,7 +92,7 @@ matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_ma
  * Constrain output from PID (u-vector) with priority on altitude.
  *
  * @reference param u: PID output in N-E-D frame.
- * @reference param sat: boolean for xy and z, indicating when integration for PID
+ * @reference param stop_I: boolean for xy and z, indicating when integration for PID
  * 					should stop: true = stop integration, false = continue integration
  * @Ulimits: Ulimits[0] = Umax, Ulimits[1] = Umin
  * @d: direction given by (r - y ); r = reference, y = measurement
@@ -106,9 +106,9 @@ matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_ma
  *
  */
 
-void constrainPIDu(matrix::Vector3f &u, bool sat[2], const float Ulimits[2], const float d[2])
+void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], const float d[2])
 {
-	sat[0] = sat[1] = false;
+	stop_I[0] = stop_I[1] = false;
 	float xy_max = sqrtf(Ulimits[0] * Ulimits[0] - u(2) * u(2));
 	float xy_mag = matrix::Vector2f(u(0), u(0)).length();
 
@@ -117,10 +117,10 @@ void constrainPIDu(matrix::Vector3f &u, bool sat[2], const float Ulimits[2], con
 
 		/* Check if altitude saturated */
 		if (d[1] >= 0.0f) {
-			sat[1] = true;
+			stop_I[1] = true;
 		}
 
-		sat[0] = true;
+		stop_I[0] = true;
 		u(0) = 0.0f;
 		u(1) = 0.0f;
 		u(2) = Ulimits[0];
@@ -130,7 +130,7 @@ void constrainPIDu(matrix::Vector3f &u, bool sat[2], const float Ulimits[2], con
 		/* The desired u_xy exceeds maximum */
 
 		if (d[0] >= 0.0f) {
-			sat[0] = true;
+			stop_I[0] = true;
 		}
 
 		u(0) = u(0) / xy_mag * xy_max;
@@ -142,7 +142,7 @@ void constrainPIDu(matrix::Vector3f &u, bool sat[2], const float Ulimits[2], con
 		/* Check if z or xy are saturated */
 
 		if (d[1] <= 0.0f) {
-			sat[1] = true;
+			stop_I[1] = true;
 		}
 
 		/* If we have zero vector,
