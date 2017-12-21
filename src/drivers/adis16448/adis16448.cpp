@@ -1332,6 +1332,7 @@ ADIS16448::read_reg16(unsigned reg)
 	transferhword(cmd, nullptr, 1);
 	up_udelay(T_STALL);
 	transferhword(nullptr, cmd, 1);
+	up_udelay(T_STALL);
 
 	return cmd[0];
 }
@@ -1347,6 +1348,7 @@ ADIS16448::write_reg16(unsigned reg, uint16_t value)
 	transferhword(cmd, nullptr, 1);
 	up_udelay(T_STALL);
 	transferhword(cmd + 1, nullptr, 1);
+	up_udelay(T_STALL);
 }
 
 void
