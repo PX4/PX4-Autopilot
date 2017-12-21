@@ -61,7 +61,7 @@ bool FlightTaskManualAltitude::activate()
 	return FlightTaskManual::activate();
 }
 
-void FlightTaskManualAltitude::scale_sticks()
+void FlightTaskManualAltitude::scaleSticks()
 {
 
 	/* map stick to velocity */
@@ -71,7 +71,7 @@ void FlightTaskManualAltitude::scale_sticks()
 
 }
 
-void FlightTaskManualAltitude::update_heading_setpoints()
+void FlightTaskManualAltitude::updateHeadingSetpoints()
 {
 	if (fabsf(_sticks(3)) < FLT_EPSILON) {
 		/* want to hold yaw */
@@ -85,7 +85,7 @@ void FlightTaskManualAltitude::update_heading_setpoints()
 	}
 }
 
-void FlightTaskManualAltitude::update_z_setpoints()
+void FlightTaskManualAltitude::updateZsetpoints()
 {
 	if (fabsf(_sticks(2)) < FLT_EPSILON) {
 		/* want to hold altitude */
@@ -99,16 +99,16 @@ void FlightTaskManualAltitude::update_z_setpoints()
 	}
 }
 
-void FlightTaskManualAltitude::update_setpoints()
+void FlightTaskManualAltitude::updateSetpoints()
 {
-	update_heading_setpoints();
-	update_z_setpoints();
+	updateHeadingSetpoints();
+	updateZsetpoints();
 }
 
 bool FlightTaskManualAltitude::update()
 {
-	scale_sticks();
-	update_setpoints();
+	scaleSticks();
+	updateSetpoints();
 
 
 	_setPositionSetpoint(Vector3f(NAN, NAN, _pos_sp_z));
