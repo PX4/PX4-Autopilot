@@ -59,11 +59,11 @@ protected:
 
 	control::BlockParamFloat _vel_xy_manual_max; /**< maximum speed allowed horizontally */
 
-	void update_setpoints() override;
-	void scale_sticks() override;
+	void updateSetpoints() override;
+	void scaleSticks() override;
 
 private:
-	void update_xy_setpoints();
+	void updateXYsetpoints();
 
 	matrix::Vector2f _pos_sp_predicted{}; /**< position setpoint computed in set_xy_setpoints */
 
