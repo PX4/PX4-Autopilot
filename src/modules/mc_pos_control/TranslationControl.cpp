@@ -213,19 +213,19 @@ void TranslationControl::_velocityController(const float &dt)
 	 */
 	float dot_xy = matrix::Vector2f(&vel_err(0)) * matrix::Vector2f(&_vel_sp(0));
 	float direction[2] = {dot_xy, -vel_err(2)}; // negative sign because of N-E-D
-	bool saturate[2] = {false, false};
-	PosControl::constrainPIDu(_thr_sp, saturate, _ThrLimit, direction);
+	bool stop_I[2] = {false, false}; // stop integration for xy and z
+	PosControl::constrainPIDu(_thr_sp, stop_I, _ThrLimit, direction);
 
 	/* throttle is just thrust length */
 	_throttle = _thr_sp.length();
 
 	/* update integrals */
-	if (!saturate[0]) {
+	if (!stop_I[0]) {
 		_thr_int(0) += vel_err(0) * Iv(0) * dt;
 		_thr_int(1) += vel_err(1) * Iv(1) * dt;
 	}
 
-	if (!saturate[1]) {
+	if (!stop_I[1]) {
 		_thr_int(2) += vel_err(3) * Iv(2) * dt;
 	}
 
