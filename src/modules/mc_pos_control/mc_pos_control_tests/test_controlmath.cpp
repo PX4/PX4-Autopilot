@@ -30,7 +30,7 @@ bool ControlMathTest::testConstrainTilt()
 	// reason: tilt exceeds maximum tilt
 	matrix::Vector3f v(0.5f, 0.5f, 0.1f);
 	float tilt_max = math::radians(91.0f);
-	matrix::Vector3f vr = PosControl::constrainTilt(v, tilt_max);
+	matrix::Vector3f vr = ControlMath::constrainTilt(v, tilt_max);
 	ut_assert_true((v - vr).length() < EPS);
 
 	// expected: return zero vector
@@ -38,14 +38,14 @@ bool ControlMathTest::testConstrainTilt()
 	// defined in negative z (upward).
 	v = matrix::Vector3f(1.0f, 1.0f, 0.1f);
 	tilt_max = math::radians(45.0f);
-	vr = PosControl::constrainTilt(v, tilt_max);
+	vr = ControlMath::constrainTilt(v, tilt_max);
 	ut_assert_true((vr).length() < EPS);
 
 	// expected: length vr_xy same as vr_z
 	// reason: it is a 45 cone and v_xy exceeds v_z
 	v = matrix::Vector3f(1.0f, 1.0f, -0.5f);
 	tilt_max = math::radians(45.0f);
-	vr = PosControl::constrainTilt(v, tilt_max);
+	vr = ControlMath::constrainTilt(v, tilt_max);
 	float vr_xy = matrix::Vector2f(vr(0), vr(1)).length();
 	ut_assert_true(fabsf(vr(2)) - vr_xy < EPS);
 
@@ -53,7 +53,7 @@ bool ControlMathTest::testConstrainTilt()
 	// reason: it is a 30 cone and v_xy exceeds v_z
 	v = matrix::Vector3f(1.0f, 1.0f, -0.5f);
 	tilt_max = math::radians(20.0f);
-	vr = PosControl::constrainTilt(v, tilt_max);
+	vr = ControlMath::constrainTilt(v, tilt_max);
 	vr_xy = matrix::Vector2f(vr(0), vr(1)).length();
 	ut_assert_true(fabsf(vr(2)) - vr_xy > EPS);
 
@@ -61,7 +61,7 @@ bool ControlMathTest::testConstrainTilt()
 	// reason: it is a 80 cone and v_xy exceeds v_z
 	v = matrix::Vector3f(10.0f, 10.0f, -0.5f);
 	tilt_max = math::radians(80.f);
-	vr = PosControl::constrainTilt(v, tilt_max);
+	vr = ControlMath::constrainTilt(v, tilt_max);
 	vr_xy = matrix::Vector2f(vr(0), vr(1)).length();
 	ut_assert_true(fabsf(vr(2)) - vr_xy < EPS);
 
@@ -69,7 +69,7 @@ bool ControlMathTest::testConstrainTilt()
 	// reson: vector is within cond
 	v = matrix::Vector3f(1.0f, 1.0f, -0.5f);
 	tilt_max = math::radians(89.f);
-	vr = PosControl::constrainTilt(v, tilt_max);
+	vr = ControlMath::constrainTilt(v, tilt_max);
 	ut_assert_true((v - vr).length() < EPS);
 
 	return true;
@@ -95,7 +95,7 @@ bool ControlMathTest::testConstrainPIDu()
 	matrix::Vector3f u{0.1f, 0.1f, -0.4f};
 	matrix::Vector3f u_o = u;
 	float d[2] = {1.0f, 1.0f};
-	PosControl::constrainPIDu(u, sat, Ulim, d);
+	ControlMath::constrainPIDu(u, sat, Ulim, d);
 	ut_assert_true((u - u_o).length() < EPS);
 	ut_assert_false(sat[1]);
 	ut_assert_false(sat[0]);
@@ -110,7 +110,7 @@ bool ControlMathTest::testConstrainPIDu()
 	u_o = u;
 	d[0] = 1.0f;
 	d[1] = 1.0f;
-	PosControl::constrainPIDu(u, sat, Ulim, d);
+	ControlMath::constrainPIDu(u, sat, Ulim, d);
 	float u_xy = matrix::Vector2f(u(0), u(1)).length();
 	float u_o_xy = matrix::Vector2f(u_o(0), u_o(1)).length();
 	ut_assert_true(u_xy < u_o_xy);
@@ -139,7 +139,7 @@ bool ControlMathTest::testConstrainPIDu()
 	u_o = u;
 	d[0] = 1.0f;
 	d[1] = 1.0f;
-	PosControl::constrainPIDu(u, sat, Ulim, d);
+	ControlMath::constrainPIDu(u, sat, Ulim, d);
 	u_xy = matrix::Vector2f(u(0), u(1)).length();
 	u_o_xy = matrix::Vector2f(u_o(0), u_o(1)).length();
 	ut_assert_true(u_xy < u_o_xy);
@@ -155,7 +155,7 @@ bool ControlMathTest::testConstrainPIDu()
 	// has higher priority, u_xy will be set to 0. Direction
 	// change desired for xy
 	d[0] = -1.0f;
-	PosControl::constrainPIDu(u, sat, Ulim, d);
+	ControlMath::constrainPIDu(u, sat, Ulim, d);
 	u_xy = matrix::Vector2f(u(0), u(1)).length();
 	u_o_xy = matrix::Vector2f(u_o(0), u_o(1)).length();
 	ut_assert_true(u_xy < u_o_xy);
@@ -174,7 +174,7 @@ bool ControlMathTest::testConstrainPIDu()
 	u_o = u;
 	d[0] = 1.0f;
 	d[1] = 1.0f;
-	PosControl::constrainPIDu(u, sat, Ulim, d);
+	ControlMath::constrainPIDu(u, sat, Ulim, d);
 	ut_assert_true((u - u_o).length() < EPS);
 	ut_assert_false(sat[1]);
 	ut_assert_false(sat[0]);
@@ -191,7 +191,7 @@ bool ControlMathTest::testConstrainPIDu()
 	u_o = u;
 	d[0] = 1.0f;
 	d[1] = 1.0f;
-	PosControl::constrainPIDu(u, sat, Ulim, d);
+	ControlMath::constrainPIDu(u, sat, Ulim, d);
 	u_xy = matrix::Vector2f(u(0), u(1)).length();
 	ut_assert_true(u_xy - Ulim[1] < EPS);
 	ut_assert_true(fabsf(u(2)) < EPS);
@@ -203,7 +203,7 @@ bool ControlMathTest::testConstrainPIDu()
 	// 		   means that Ulim[1] is in xy direction.
 	//         Direction change in z.
 	d[1] = -1.0f;
-	PosControl::constrainPIDu(u, sat, Ulim, d);
+	ControlMath::constrainPIDu(u, sat, Ulim, d);
 	ut_assert_true(u_xy - Ulim[1] < EPS);
 	ut_assert_true(fabsf(u(2)) < EPS);
 	ut_assert_true(sat[1]);

@@ -43,7 +43,7 @@
 
 #include <matrix/matrix/math.hpp>
 
-namespace PosControl
+namespace ControlMath
 {
 matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_max);
 void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], const float d[2]);
