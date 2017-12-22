@@ -68,6 +68,7 @@ protected:
 	bool _sticks_data_required = true; /**< let sibling task define if it depends on stick data */
 	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
 	matrix::Vector3f _sticks_expo; /**< modified manual sticks using expo function*/
+	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 
 private:
 
@@ -75,7 +76,6 @@ private:
 
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
-	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 
 
 	bool _evaluateSticks(); /**< checks and sets stick inputs */
