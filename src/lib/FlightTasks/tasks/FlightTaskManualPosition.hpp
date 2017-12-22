@@ -56,6 +56,7 @@ public:
 protected:
 	matrix::Vector2f _vel_sp_xy{}; /* Scaled velocity setpoint from stick. NAN during position lock. */
 	matrix::Vector2f _pos_sp_xy{}; /* Position setpoint during lock. Otherwise NAN.*/
+	matrix::Vector2f _pos_sp_xy_lock{}; /* Position setpoint during lock */
 
 	control::BlockParamFloat _vel_xy_manual_max; /**< maximum speed allowed horizontally */
 	control::BlockParamFloat _acc_xy_max;
