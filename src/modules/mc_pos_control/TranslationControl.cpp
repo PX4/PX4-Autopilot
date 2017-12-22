@@ -141,6 +141,7 @@ void TranslationControl::_interfaceMapping()
 	} else if (!PX4_ISFINITE(_yaw_sp)) {
 		_yaw_sp = _yaw_sp_int;
 	}
+
 }
 
 /* generate desired velocity */
@@ -226,8 +227,9 @@ void TranslationControl::_velocityController(const float &dt)
 	}
 
 	if (!stop_I[1]) {
-		_thr_int(2) += vel_err(3) * Iv(2) * dt;
+		_thr_int(2) += vel_err(2) * Iv(2) * dt;
 	}
+
 
 }
 
