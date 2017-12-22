@@ -1405,22 +1405,22 @@ FXOS8701CQ::measure()
 	// whether it has had failures
 	accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	accel_report.x_raw = swap16RightJustify14(raw_accel_mag_report.x);
-	accel_report.y_raw = swap16RightJustify14(raw_accel_mag_report.y);
-	accel_report.z_raw = swap16RightJustify14(raw_accel_mag_report.z);
-
 	/* Save off the Mag readings todo: revist integrating theses */
 
 	_last_raw_mag_x = swap16(raw_accel_mag_report.mx);
 	_last_raw_mag_y = swap16(raw_accel_mag_report.my);
 	_last_raw_mag_z = swap16(raw_accel_mag_report.mz);
 
-	float xraw_f = accel_report.x_raw;
-	float yraw_f = accel_report.y_raw;
-	float zraw_f = accel_report.z_raw;
+	float xraw_f = swap16RightJustify14(raw_accel_mag_report.x);
+	float yraw_f = swap16RightJustify14(raw_accel_mag_report.y);
+	float zraw_f = swap16RightJustify14(raw_accel_mag_report.z);
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	accel_report.x_raw = (int16_t)(xraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+	accel_report.y_raw = (int16_t)(yraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+	accel_report.z_raw = (int16_t)(zraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
 
 	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
@@ -1522,16 +1522,16 @@ FXOS8701CQ::mag_measure()
 	mag_report.timestamp = hrt_absolute_time();
 	mag_report.is_external = external();
 
-	mag_report.x_raw = _last_raw_mag_x;
-	mag_report.y_raw = _last_raw_mag_y;
-	mag_report.z_raw = _last_raw_mag_z;
-
-	float xraw_f = mag_report.x_raw;
-	float yraw_f = mag_report.y_raw;
-	float zraw_f = mag_report.z_raw;
+	float xraw_f = _last_raw_mag_x;
+	float yraw_f = _last_raw_mag_y;
+	float zraw_f = _last_raw_mag_z;
 
 	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	mag_report.x_raw = (int16_t)(xraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
+	mag_report.y_raw = (int16_t)(yraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
+	mag_report.z_raw = (int16_t)(zraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
 
 	mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
 	mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;

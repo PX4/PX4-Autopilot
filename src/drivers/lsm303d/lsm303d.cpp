@@ -1518,16 +1518,16 @@ LSM303D::measure()
 	// whether it has had failures
 	accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	accel_report.x_raw = raw_accel_report.x;
-	accel_report.y_raw = raw_accel_report.y;
-	accel_report.z_raw = raw_accel_report.z;
-
 	float xraw_f = raw_accel_report.x;
 	float yraw_f = raw_accel_report.y;
 	float zraw_f = raw_accel_report.z;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	accel_report.x_raw = (int16_t)(xraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+	accel_report.y_raw = (int16_t)(yraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+	accel_report.z_raw = (int16_t)(zraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
 
 	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
@@ -1644,16 +1644,16 @@ LSM303D::mag_measure()
 	mag_report.timestamp = hrt_absolute_time();
 	mag_report.is_external = external();
 
-	mag_report.x_raw = raw_mag_report.x;
-	mag_report.y_raw = raw_mag_report.y;
-	mag_report.z_raw = raw_mag_report.z;
-
-	float xraw_f = mag_report.x_raw;
-	float yraw_f = mag_report.y_raw;
-	float zraw_f = mag_report.z_raw;
+	float xraw_f = raw_mag_report.x;
+	float yraw_f = raw_mag_report.y;
+	float zraw_f = raw_mag_report.z;
 
 	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	mag_report.x_raw = (int16_t)(xraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
+	mag_report.y_raw = (int16_t)(yraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
+	mag_report.z_raw = (int16_t)(zraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
 
 	mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
 	mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;

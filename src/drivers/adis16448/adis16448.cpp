@@ -1437,16 +1437,16 @@ ADIS16448::measure()
 	grb.error_count = arb.error_count = mrb.error_count = perf_event_count(_bad_transfers);
 
 	/* Gyro report: */
-	grb.x_raw = report.gyro_x;
-	grb.y_raw = report.gyro_y;
-	grb.z_raw = report.gyro_z;
-
 	float xraw_f = report.gyro_x;
 	float yraw_f = report.gyro_y;
 	float zraw_f = report.gyro_z;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	grb.x_raw = (int16_t)(xraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+	grb.y_raw = (int16_t)(yraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+	grb.z_raw = (int16_t)(zraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
 
 	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) * M_PI_F / 180.0f - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) * M_PI_F / 180.0f - _gyro_scale.y_offset) * _gyro_scale.y_scale;
@@ -1467,16 +1467,16 @@ ADIS16448::measure()
 	grb.range_rad_s = _gyro_range_rad_s;
 
 	/* Accel report: */
-	arb.x_raw = report.accel_x;
-	arb.y_raw = report.accel_y;
-	arb.z_raw = report.accel_z;
-
 	xraw_f = report.accel_x;
 	yraw_f = report.accel_y;
 	zraw_f = report.accel_z;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	arb.x_raw = (int16_t)(xraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+	arb.y_raw = (int16_t)(yraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+	arb.z_raw = (int16_t)(zraw_f * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
 
 	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
@@ -1497,16 +1497,16 @@ ADIS16448::measure()
 	arb.range_m_s2 = _accel_range_m_s2;
 
 	/* Mag report: */
-	mrb.x_raw = report.mag_x;
-	mrb.y_raw = report.mag_y;
-	mrb.z_raw = report.mag_z;
-
 	xraw_f = report.mag_x;
 	yraw_f = report.mag_y;
 	zraw_f = report.mag_z;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	mrb.x_raw = (int16_t)(xraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
+	mrb.y_raw = (int16_t)(yraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
+	mrb.z_raw = (int16_t)(zraw_f * _mag_range_scale * 1000); // (int16) [Gs * 1000]
 
 	float x_mag_new = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
 	float y_mag_new = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
