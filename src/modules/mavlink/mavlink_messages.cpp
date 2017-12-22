@@ -69,6 +69,9 @@
 #include <uORB/topics/debug_vect.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
@@ -717,6 +720,99 @@ protected:
 			msg.fields_updated = fields_updated;
 
 			mavlink_msg_highres_imu_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+
+class MavlinkStreamScaledIMU : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamScaledIMU::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "SCALED_IMU";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_SCALED_IMU;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamScaledIMU(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _raw_accel_sub->is_published() ? (MAVLINK_MSG_ID_SCALED_IMU_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_raw_accel_sub;
+	MavlinkOrbSubscription *_raw_gyro_sub;
+	MavlinkOrbSubscription *_sensor_mag_sub;
+	uint64_t _raw_accel_time;
+	uint64_t _raw_gyro_time;
+	uint64_t _sensor_mag_time;
+	struct sensor_gyro_s _sensor_gyro;
+	struct sensor_mag_s _sensor_mag;
+
+	/* do not allow top copying this class */
+	MavlinkStreamScaledIMU(MavlinkStreamScaledIMU &);
+	MavlinkStreamScaledIMU &operator = (const MavlinkStreamScaledIMU &);
+
+protected:
+	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel))),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro))),
+		_sensor_mag_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_mag))),
+		_raw_accel_time(0),
+		_raw_gyro_time(0),
+		_sensor_gyro{},
+		_sensor_mag{}
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		struct sensor_accel_s sensor_accel = {};
+
+		bool raw_accel_updated = _raw_accel_sub->update(&_raw_accel_time, &sensor_accel);
+		_raw_gyro_sub->update(&_raw_gyro_time, &_sensor_gyro);
+		_sensor_mag_sub->update(&_sensor_mag_time, &_sensor_mag);
+
+		// send if raw_accel has been updated and use the newest gyro/mag values we have
+		if (raw_accel_updated) {
+
+			const float milliGs_to_milliT = 1e-4; // 1 Gs = 1e-4 T
+			mavlink_scaled_imu_t msg = {};
+
+			msg.time_boot_ms = sensor_accel.timestamp / 1000;
+			msg.xacc = (int16_t)(sensor_accel.x_raw / CONSTANTS_ONE_G); // [milli g]
+			msg.yacc = (int16_t)(sensor_accel.y_raw / CONSTANTS_ONE_G); // [milli g]
+			msg.zacc = (int16_t)(sensor_accel.z_raw / CONSTANTS_ONE_G); // [milli g]
+			msg.xgyro = _sensor_gyro.x_raw; // [milli rad/s]
+			msg.ygyro = _sensor_gyro.y_raw; // [milli rad/s]
+			msg.zgyro = _sensor_gyro.z_raw; // [milli rad/s]
+			msg.xmag = (int16_t)(_sensor_mag.x_raw * milliGs_to_milliT); // [milli T]
+			msg.ymag = (int16_t)(_sensor_mag.y_raw * milliGs_to_milliT); // [milli T]
+			msg.zmag = (int16_t)(_sensor_mag.z_raw * milliGs_to_milliT); // [milli T]
+
+			mavlink_msg_scaled_imu_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
@@ -4286,6 +4382,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamCommandLong::new_instance, &MavlinkStreamCommandLong::get_name_static, &MavlinkStreamCommandLong::get_id_static),
 	new StreamListItem(&MavlinkStreamSysStatus::new_instance, &MavlinkStreamSysStatus::get_name_static, &MavlinkStreamSysStatus::get_id_static),
 	new StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static, &MavlinkStreamHighresIMU::get_id_static),
+	new StreamListItem(&MavlinkStreamScaledIMU::new_instance, &MavlinkStreamScaledIMU::get_name_static, &MavlinkStreamScaledIMU::get_id_static),
 	new StreamListItem(&MavlinkStreamAttitude::new_instance, &MavlinkStreamAttitude::get_name_static, &MavlinkStreamAttitude::get_id_static),
 	new StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static, &MavlinkStreamAttitudeQuaternion::get_id_static),
 	new StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static, &MavlinkStreamVFRHUD::get_id_static),
