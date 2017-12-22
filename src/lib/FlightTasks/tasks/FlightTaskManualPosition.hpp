@@ -54,17 +54,17 @@ public:
 	bool update() override;
 
 protected:
-	matrix::Vector2f _vel_sp_xy{}; /* scaled velocity setpoint from stick */
-	matrix::Vector2f _pos_sp_xy{};
+	matrix::Vector2f _vel_sp_xy{}; /* Scaled velocity setpoint from stick. NAN during position lock. */
+	matrix::Vector2f _pos_sp_xy{}; /* Position setpoint during lock. Otherwise NAN.*/
 
 	control::BlockParamFloat _vel_xy_manual_max; /**< maximum speed allowed horizontally */
+	control::BlockParamFloat _acc_xy_max;
 
 	void updateSetpoints() override;
 	void scaleSticks() override;
 
 private:
 	void updateXYsetpoints();
-
-	matrix::Vector2f _pos_sp_predicted{}; /**< position setpoint computed in set_xy_setpoints */
-
+	float _lock_time_max{0.0f}; /**< defines time when position lock occurs */
+	float _lock_time{0.0f}; /**< time after stick are at zero position */
 };
