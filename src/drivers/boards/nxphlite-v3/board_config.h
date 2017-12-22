@@ -131,7 +131,7 @@ __BEGIN_DECLS
 /* RC input */
 
 #define RC_UXART_BASE           KINETIS_UART1_BASE
-#define RC_SERIAL_PORT          "/dev/ttyS2"      /* UART1 */
+//#define RC_SERIAL_PORT          "/dev/ttyS2"      /* UART1 */
 #define INVERT_RC_INPUT(_s)     board_rc_input(_s);
 
 #define GPIO_RSSI_IN            PIN_ADC1_SE13
