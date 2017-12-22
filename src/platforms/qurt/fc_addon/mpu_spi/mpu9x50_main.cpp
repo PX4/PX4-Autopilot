@@ -407,9 +407,9 @@ void update_reports()
 	_gyro.temperature = _data.temperature;
 	_gyro.range_rad_s = _data.gyro_range_rad_s;
 	_gyro.scaling = _data.gyro_scaling;
-	_gyro.x_raw = _data.gyro_raw[0];
-	_gyro.y_raw = _data.gyro_raw[1];
-	_gyro.z_raw = _data.gyro_raw[2];
+	_gyro.x_raw = (int16_t)(_data.gyro_raw[0] * _data.gyro_scaling * 1000); // (int16) [rad / s * 1000]
+	_gyro.y_raw = (int16_t)(_data.gyro_raw[1] * _data.gyro_scaling * 1000); // (int16) [rad / s * 1000]
+	_gyro.z_raw = (int16_t)(_data.gyro_raw[2] * _data.gyro_scaling * 1000); // (int16) [rad / s * 1000]
 	_gyro.temperature_raw = _data.temperature_raw;
 
 	_accel.timestamp = _data.timestamp;
@@ -419,9 +419,9 @@ void update_reports()
 	_accel.temperature = _data.temperature;
 	_accel.range_m_s2 = _data.accel_range_m_s2;
 	_accel.scaling = _data.accel_scaling;
-	_accel.x_raw = _data.accel_raw[0];
-	_accel.y_raw = _data.accel_raw[1];
-	_accel.z_raw = _data.accel_raw[2];
+	_accel.x_raw = (int16_t)(_data.accel_raw[0] * _data.accel_scaling * 1000); // (int16) [m / s^2 * 1000]
+	_accel.y_raw = (int16_t)(_data.accel_raw[1] * _data.accel_scaling * 1000); // (int16) [m / s^2 * 1000]
+	_accel.z_raw = (int16_t)(_data.accel_raw[2] * _data.accel_scaling * 1000); // (int16) [m / s^2 * 1000]
 	_accel.temperature_raw = _data.temperature_raw;
 
 	if (_data.mag_data_ready) {
@@ -432,9 +432,9 @@ void update_reports()
 		_mag.range_ga = _data.mag_range_ga;
 		_mag.scaling = _data.mag_scaling;
 		_mag.temperature = _data.temperature;
-		_mag.x_raw = _data.mag_raw[0];
-		_mag.y_raw = _data.mag_raw[1];
-		_mag.z_raw = _data.mag_raw[2];
+		_mag.x_raw = (int16_t)(_data.mag_raw[0] * _data.mag_scaling * 1000); // (int16) [Gs * 1000]
+		_mag.y_raw = (int16_t)(_data.mag_raw[1] * _data.mag_scaling * 1000); // (int16) [Gs * 1000]
+		_mag.z_raw = (int16_t)(_data.mag_raw[2] * _data.mag_scaling * 1000); // (int16) [Gs * 1000]
 	}
 }
 
