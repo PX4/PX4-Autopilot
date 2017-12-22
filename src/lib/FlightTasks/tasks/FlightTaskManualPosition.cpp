@@ -46,14 +46,17 @@
 using namespace matrix;
 
 FlightTaskManualPosition::FlightTaskManualPosition(control::SuperBlock *parent, const char *name) :
-	FlightTaskManual(parent, name),
-	_vel_xy_manual_max(parent, "MPC_VEL_MANUAL", false)
+	FlightTaskManualAltitude(parent, name),
+	_vel_xy_manual_max(parent, "MPC_VEL_MANUAL", false),
+	_acc_xy_max(parent, "MPC_ACC_HOR_MAX", false)
 {}
 
 bool FlightTaskManualPosition::activate()
 {
-	_pos_sp_xy = _pos_sp_predicted = matrix::Vector2f(_position(0), _position(1));
-	_vel_sp_xy = matrix::Vector3f(NAN, NAN);
+	_pos_sp_xy = matrix::Vector2f(_position(0), _position(1));
+	_vel_sp_xy = matrix::Vector2f(NAN, NAN);
+	_lock_time = 0.0f;
+	_lock_time_max = 1.0f; // 1s time to brake as default
 	return FlightTaskManualAltitude::activate();
 }
 
@@ -72,7 +75,9 @@ void FlightTaskManualPosition::scaleSticks()
 	_vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
 
 	/* rotate setpoint into local frame */
-	_vel_sp_xy = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw_sp)) * _vel_sp_xy;
+	matrix::Vector3f vel_sp{_vel_sp_xy(0), _vel_sp_xy(1), 0.0f};
+	vel_sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw_sp_predicted)) * vel_sp);
+	_vel_sp_xy = matrix::Vector2f(vel_sp(0), vel_sp(1));
 
 }
 
@@ -81,14 +86,36 @@ void FlightTaskManualPosition::updateXYsetpoints()
 	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
 	if (stick_xy.length() < FLT_EPSILON) {
-		/* want to hold position */
-		_vel_sp_xy = matrix::Vector2f(NAN, NAN);
-		_pos_sp_xy = _pos_sp_predicted;
+
+		/* Want to hold position */
+
+		if (_lock_time <= _lock_time_max) {
+			/* Don't lock: time has not been reached */
+			_vel_sp_xy.zero();
+			_pos_sp_xy = matrix::Vector2f(NAN, NAN);
+			_lock_time += _deltatime;
+
+		} else {
+			/* want to hold position */
+			_vel_sp_xy = matrix::Vector2f(NAN, NAN);
+			_pos_sp_xy = matrix::Vector2f(&(_position(0)));
+		}
 
 	} else {
-		/* want to change position */
+		/* Want to change position */
 		_pos_sp_xy = matrix::Vector2f(NAN, NAN);
-		_pos_sp_predicted = matrix::Vector2f(_position(0), _position(1)) + _vel_sp_xy * _deltatime;
+
+		/* Time to brake depends on
+		 * maximum acceleration.
+		 */
+		if (PX4_ISFINITE(_acc_xy_max.get())) {
+			_lock_time_max = matrix::Vector2f(&(_velocity(0))).length() / _acc_xy_max.get();
+
+		} else {
+			_lock_time_max = 1.0f; // 1 second time to brake if no acceleration is set
+		}
+
+		_lock_time = 0.0f;
 	}
 }
 
