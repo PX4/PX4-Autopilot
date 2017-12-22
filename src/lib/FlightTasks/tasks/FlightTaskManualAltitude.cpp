@@ -60,6 +60,7 @@ bool FlightTaskManualAltitude::activate()
 {
 	_yaw_sp_predicted = _yaw_sp = _yaw;
 	_yaw_rate_sp = _vel_sp_z = NAN;
+	_pos_sp_z = _pos_sp_z_lock = _position(2);
 	_lock_time = 0.0f;
 	_lock_time_max = 1.0f; // 1s time to brake as default
 
@@ -100,11 +101,12 @@ void FlightTaskManualAltitude::updateZsetpoints()
 			/* Don't lock: time has not been reached */
 			_vel_sp_z = 0.0f;
 			_pos_sp_z = NAN;
+			_pos_sp_z_lock = _position(2);
 			_lock_time += _deltatime;
 
 		} else {
 			_vel_sp_z = NAN;
-			_pos_sp_z = _position(2);
+			_pos_sp_z = _pos_sp_z_lock;
 		}
 
 	} else {
@@ -112,9 +114,11 @@ void FlightTaskManualAltitude::updateZsetpoints()
 		_pos_sp_z = NAN;
 
 		/* Maximum brake acceleration depends
-		 * on direction.
+		 * on direction. We take half of max acceleration
+		 * because it is better to lock late than early to prevent
+		 * up and down movement.
 		 */
-		float brake_acc = (_velocity(2) > 0.0f) ? _acc_max_up.get() : _acc_max_down.get();
+		float brake_acc = (_velocity(2) > 0.0f) ? (0.5f * _acc_max_up.get()) : (0.5f * _acc_max_down.get());;
 
 		if (PX4_ISFINITE(brake_acc)) {
 			_lock_time_max = fabsf(_velocity(2)) / brake_acc;
