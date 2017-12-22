@@ -434,10 +434,17 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 	math::Vector<3> vec_integrated_unused;
 	uint64_t integral_dt_unused;
 
+	accel_report accel_report = {};
+	gyro_report gyro_report = {};
+
 	math::Vector<3> accel_val(data.accel_m_s2_x, data.accel_m_s2_y, data.accel_m_s2_z);
 
 	// apply sensor rotation on the accel measurement
 	accel_val = _rotation_matrix * accel_val;
+
+	accel_report.x_raw = (int16_t)(accel_val(0) * 1000); // (int16) [rad / s * 1000]
+	accel_report.y_raw = (int16_t)(accel_val(1) * 1000); // (int16) [rad / s * 1000]
+	accel_report.z_raw = (int16_t)(accel_val(2) * 1000); // (int16) [rad / s * 1000]
 
 	accel_val(0) = (accel_val(0) - _accel_calibration.x_offset) * _accel_calibration.x_scale;
 	accel_val(1) = (accel_val(1) - _accel_calibration.y_offset) * _accel_calibration.y_scale;
@@ -452,6 +459,10 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 
 	// apply sensor rotation on the gyro measurement
 	gyro_val = _rotation_matrix * gyro_val;
+
+	gyro_report.x_raw = (int16_t)(gyro_val(0) * 1000); // (int16) [rad / s * 1000]
+	gyro_report.y_raw = (int16_t)(gyro_val(1) * 1000); // (int16) [rad / s * 1000]
+	gyro_report.z_raw = (int16_t)(gyro_val(2) * 1000); // (int16) [rad / s * 1000]
 
 	gyro_val(0) = (gyro_val(0) - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
 	gyro_val(1) = (gyro_val(1) - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
@@ -488,9 +499,6 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 
 	perf_begin(_publish_perf);
 
-	accel_report accel_report = {};
-	gyro_report gyro_report = {};
-
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 
 	// TODO: get these right
@@ -501,15 +509,6 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.scaling = -1.0f;
 	accel_report.range_m_s2 = -1.0f;
 	accel_report.device_id = m_id.dev_id;
-
-	// TODO: remove these (or get the values)
-	gyro_report.x_raw = 0;
-	gyro_report.y_raw = 0;
-	gyro_report.z_raw = 0;
-
-	accel_report.x_raw = 0;
-	accel_report.y_raw = 0;
-	accel_report.z_raw = 0;
 
 	math::Vector<3> gyro_val_filt;
 	math::Vector<3> accel_val_filt;

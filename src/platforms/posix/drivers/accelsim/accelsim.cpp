@@ -853,9 +853,9 @@ ACCELSIM::_measure()
 	// whether it has had failures
 	accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	accel_report.x_raw = (int16_t)(raw_accel_report.x / _accel_range_scale);
-	accel_report.y_raw = (int16_t)(raw_accel_report.y / _accel_range_scale);
-	accel_report.z_raw = (int16_t)(raw_accel_report.z / _accel_range_scale);
+	accel_report.x_raw = (int16_t)(raw_accel_report.x * 1000);
+	accel_report.y_raw = (int16_t)(raw_accel_report.y * 1000);
+	accel_report.z_raw = (int16_t)(raw_accel_report.z * 1000);
 
 	accel_report.x = raw_accel_report.x;
 	accel_report.y = raw_accel_report.y;
@@ -929,17 +929,17 @@ ACCELSIM::mag_measure()
 	mag_report.timestamp = hrt_absolute_time();
 	mag_report.is_external = false;
 
-	mag_report.x_raw = (int16_t)(raw_mag_report.x / _mag_range_scale);
-	mag_report.y_raw = (int16_t)(raw_mag_report.y / _mag_range_scale);
-	mag_report.z_raw = (int16_t)(raw_mag_report.z / _mag_range_scale);
-
-	float xraw_f = (int16_t)(raw_mag_report.x / _mag_range_scale);
-	float yraw_f = (int16_t)(raw_mag_report.y / _mag_range_scale);
-	float zraw_f = (int16_t)(raw_mag_report.z / _mag_range_scale);
+	float xraw_f = raw_mag_report.x / _mag_range_scale;
+	float yraw_f = raw_mag_report.y / _mag_range_scale;
+	float zraw_f = raw_mag_report.z / _mag_range_scale;
 
 
 	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	mag_report.x_raw = (int16_t)(xraw_f * 1000); // (int16) [Gs * 1000]
+	mag_report.y_raw = (int16_t)(xraw_f * 1000); // (int16) [Gs * 1000]
+	mag_report.z_raw = (int16_t)(xraw_f * 1000); // (int16) [Gs * 1000]
 
 	/* remember the temperature. The datasheet isn't clear, but it
 	 * seems to be a signed offset from 25 degrees C in units of 0.125C
