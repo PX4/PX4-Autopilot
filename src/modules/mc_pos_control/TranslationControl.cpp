@@ -34,6 +34,12 @@
 /**
  * @file TranslationControl.cpp
  *
+ * This file implements a P-position-control cascaded with a
+ * PID-velocity-controller.
+ *
+ * Inputs: vehicle states (pos, vel, q)
+ *         desired setpoints (pos, vel, thrust, yaw)
+ * Outputs: thrust and yaw setpoint
  */
 
 #include "TranslationControl.hpp"
@@ -71,7 +77,7 @@ TranslationControl::TranslationControl()
 	_setParams();
 };
 
-void TranslationControl::updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot,
+void TranslationControl::updateState(const struct vehicle_local_position_s state, const Data &vel_dot,
 				     const matrix::Matrix<float, 3, 3> &R)
 {
 	_pos = Data(&state.x);
@@ -141,7 +147,6 @@ void TranslationControl::_interfaceMapping()
 	} else if (!PX4_ISFINITE(_yaw_sp)) {
 		_yaw_sp = _yaw_sp_int;
 	}
-
 }
 
 /* generate desired velocity */
@@ -180,7 +185,7 @@ void TranslationControl::_velocityController(const float &dt)
 	Data vel_err = _vel_sp - _vel;
 
 	/* TODO: add offboard acceleration mode */
-	matrix::Vector3f offset(0.0f, 0.0f, _ThrHover);
+	Data offset(0.0f, 0.0f, _ThrHover);
 	_thr_sp = Pv.emult(vel_err) + Dv.emult(_vel_dot) + _thr_int - offset;
 
 	/* Limit tilt with priority on z
