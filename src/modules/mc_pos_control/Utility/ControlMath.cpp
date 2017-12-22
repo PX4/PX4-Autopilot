@@ -42,6 +42,7 @@
 
 #include "ControlMath.hpp"
 #include <platforms/px4_defines.h>
+#include <float.h>
 
 namespace ControlMath
 {
@@ -156,5 +157,73 @@ void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], 
 			u = u.normalized() * Ulimits[1];
 		}
 	}
+}
+
+vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float &yaw_sp)
+{
+
+	vehicle_attitude_setpoint_s att_sp;
+	att_sp.yaw_body = yaw_sp;
+
+	/* desired body_z axis = -normalize(thrust_vector) */
+	matrix::Vector3f body_x, body_y, body_z;
+
+	if (thr_sp.length() > 0.00001f) {
+		body_z = -thr_sp.normalized();
+
+	} else {
+		/* no thrust, set Z axis to safe value */
+		body_z.zero();
+		body_z(2) = 1.0f;
+	}
+
+	/* vector of desired yaw direction in XY plane, rotated by PI/2 */
+	matrix::Vector3f y_C(-sinf(att_sp.yaw_body), cosf(att_sp.yaw_body), 0.0f);
+
+	if (fabsf(body_z(2)) > 0.000001f) {
+		/* desired body_x axis, orthogonal to body_z */
+		body_x = y_C % body_z;
+
+		/* keep nose to front while inverted upside down */
+		if (body_z(2) < 0.0f) {
+			body_x = -body_x;
+		}
+
+		body_x.normalize();
+
+	} else {
+		/* desired thrust is in XY plane, set X downside to construct correct matrix,
+		 * but yaw component will not be used actually */
+		body_x.zero();
+		body_x(2) = 1.0f;
+	}
+
+	/* desired body_y axis */
+	body_y = body_z % body_x;
+
+	matrix::Dcmf R_sp;
+
+	/* fill rotation matrix */
+	for (int i = 0; i < 3; i++) {
+		R_sp(i, 0) = body_x(i);
+		R_sp(i, 1) = body_y(i);
+		R_sp(i, 2) = body_z(i);
+	}
+
+	/* copy quaternion setpoint to attitude setpoint topic */
+	matrix::Quatf q_sp = R_sp;
+	q_sp.copyTo(att_sp.q_d);
+	att_sp.q_d_valid = true;
+
+	/* calculate euler angles, for logging only, must not be used for control */
+	matrix::Eulerf euler = R_sp;
+	att_sp.roll_body = euler(0);
+	att_sp.pitch_body = euler(1);
+
+	/* fill and publish att_sp message */
+	att_sp.thrust = thr_sp.length();
+
+	return att_sp;
+
 }
 }
