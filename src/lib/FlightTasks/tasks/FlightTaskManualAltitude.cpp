@@ -34,7 +34,7 @@
 /**
  * @file FlightTaskManual.hpp
  *
- * Flight task for manual controlled altitude.
+ * Flight-task for manual controlled altitude.
  *
  */
 
@@ -51,7 +51,9 @@ FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, 
 	_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
 	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false),
 	_acc_max_up(parent, "MPC_ACC_UP_MAX", false),
-	_acc_max_down(parent, "MPC_ACC_DOWN_MAX", false)
+	_acc_max_down(parent, "MPC_ACC_DOWN_MAX", false),
+	_stick_deadzone(parent, "MPC_HOLD_DZ", false)
+
 {}
 
 bool FlightTaskManualAltitude::activate()
@@ -76,7 +78,7 @@ void FlightTaskManualAltitude::scaleSticks()
 
 void FlightTaskManualAltitude::updateHeadingSetpoints()
 {
-	if (fabsf(_sticks(3)) < FLT_EPSILON) {
+	if (fabsf(_sticks(3)) < _stick_deadzone.get()) {
 		/* Want to hold yaw */
 		_yaw_rate_sp = NAN;
 		_yaw_sp = _yaw_sp_predicted;
