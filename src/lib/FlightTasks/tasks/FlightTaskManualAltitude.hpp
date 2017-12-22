@@ -54,15 +54,17 @@ public:
 	bool update() override;
 
 protected:
-
-	float _vel_sp_z{0.0f}; /**< scaled velocity directly from stick */
-	float _yaw_rate_sp{0.0f}; /** scaled yaw rate directly from stick */
-	float _pos_sp_z{0.0f};
-	float _yaw_sp{0.0f};
+	float _yaw_rate_sp{0.0f}; /** scaled yaw rate directly from stick. NAN if yaw is locked */
+	float _yaw_sp{0.0f}; /** yaw setpoint once locked. otherwise NAN */
+	float _yaw_sp_predicted{0.0f}; /** _yaw_sp during lock; predicted yaw through _yaw_rate_sp demand */
+	float _vel_sp_z{0.0f}; /**< scaled velocity directly from stick. During altitude lock is equal to NAN */
+	float _pos_sp_z{0.0f}; /**< position setpoint in z during lock. Otherwise NAN. */
 
 	control::BlockParamFloat _vel_max_down; /**< maximum speed allowed to go up */
 	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */
 	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
+	control::BlockParamFloat _acc_max_up; /**< maximum acceleration upward */
+	control::BlockParamFloat _acc_max_down; /**< maximum acceleration downward */
 
 	virtual void updateSetpoints(); /**< updates all setpoints */
 	virtual void scaleSticks(); /**< scales sticks to velocity */
@@ -71,7 +73,6 @@ private:
 	void updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	void updateZsetpoints(); /**< sets position or velocity setpoint */
 
-	float _pos_sp_predicted{0.0f}; /**< position setpoint computed in set_z_setpoints */
-	float _yaw_sp_predicted{0.0f}; /**< yaw setpoint computed in set_heading_setpoints */
-
+	float _lock_time_max{0.0f}; /**< defines time when altitude lock occurs */
+	float _lock_time{0.0f}; /**< time after stick are at zero position */
 };
