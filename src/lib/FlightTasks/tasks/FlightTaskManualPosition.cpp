@@ -53,7 +53,7 @@ FlightTaskManualPosition::FlightTaskManualPosition(control::SuperBlock *parent, 
 
 bool FlightTaskManualPosition::activate()
 {
-	_pos_sp_xy = matrix::Vector2f(_position(0), _position(1));
+	_pos_sp_xy = _pos_sp_xy_lock = matrix::Vector2f(_position(0), _position(1));
 	_vel_sp_xy = matrix::Vector2f(NAN, NAN);
 	_lock_time = 0.0f;
 	_lock_time_max = 1.0f; // 1s time to brake as default
@@ -88,17 +88,17 @@ void FlightTaskManualPosition::updateXYsetpoints()
 	if (stick_xy.length() < _stick_deadzone.get()) {
 
 		/* Want to hold position */
-
 		if (_lock_time <= _lock_time_max) {
 			/* Don't lock: time has not been reached */
 			_vel_sp_xy.zero();
 			_pos_sp_xy = matrix::Vector2f(NAN, NAN);
+			_pos_sp_xy_lock = matrix::Vector2f(&(_position(0)));
 			_lock_time += _deltatime;
 
 		} else {
 			/* want to hold position */
 			_vel_sp_xy = matrix::Vector2f(NAN, NAN);
-			_pos_sp_xy = matrix::Vector2f(&(_position(0)));
+			_pos_sp_xy = matrix::Vector2f(&(_pos_sp_xy_lock(0)));
 		}
 
 	} else {
@@ -109,10 +109,13 @@ void FlightTaskManualPosition::updateXYsetpoints()
 		 * maximum acceleration.
 		 */
 		if (PX4_ISFINITE(_acc_xy_max.get())) {
-			_lock_time_max = matrix::Vector2f(&(_velocity(0))).length() / _acc_xy_max.get();
+			/* We take half max acceleration because it is better to lock
+			 * position setpoint late than early to prevent backward and forward movement.
+			 */
+			_lock_time_max = matrix::Vector2f(&(_velocity(0))).length() / (0.5f * _acc_xy_max.get());
 
 		} else {
-			_lock_time_max = 1.0f; // 1 second time to brake if no acceleration is set
+			_lock_time_max = 2.0f; // 2 second time to brake if no acceleration is set
 		}
 
 		_lock_time = 0.0f;
