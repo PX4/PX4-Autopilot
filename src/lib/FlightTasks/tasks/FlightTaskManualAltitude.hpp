@@ -65,6 +65,7 @@ protected:
 	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
 	control::BlockParamFloat _acc_max_up; /**< maximum acceleration upward */
 	control::BlockParamFloat _acc_max_down; /**< maximum acceleration downward */
+	control::BlockParamFloat _stick_deadzone; /**< stick is considered zero if below deadzone */
 
 	virtual void updateSetpoints(); /**< updates all setpoints */
 	virtual void scaleSticks(); /**< scales sticks to velocity */
