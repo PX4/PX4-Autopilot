@@ -738,6 +738,9 @@ int ADIS16448::reset()
 	_mag_range_scale   = MAGINITIALSENSITIVITY;
 	_mag_range_mgauss  = MAGDYNAMICRANGE;
 
+	/* settling time */
+	up_udelay(50000);
+
 	return OK;
 
 }
