@@ -54,11 +54,12 @@ public:
 	bool update() override;
 
 protected:
-	float _yaw_rate_sp{0.0f}; /** scaled yaw rate directly from stick. NAN if yaw is locked */
-	float _yaw_sp{0.0f}; /** yaw setpoint once locked. otherwise NAN */
-	float _yaw_sp_predicted{0.0f}; /** _yaw_sp during lock; predicted yaw through _yaw_rate_sp demand */
-	float _vel_sp_z{0.0f}; /**< scaled velocity directly from stick. During altitude lock is equal to NAN */
-	float _pos_sp_z{0.0f}; /**< position setpoint in z during lock. Otherwise NAN. */
+	float _yaw_rate_sp{}; /** scaled yaw rate directly from stick. NAN if yaw is locked */
+	float _yaw_sp{}; /** yaw setpoint once locked. otherwise NAN */
+	float _yaw_sp_predicted{}; /** _yaw_sp during lock; predicted yaw through _yaw_rate_sp demand */
+	float _vel_sp_z{}; /**< scaled velocity directly from stick. During altitude lock is equal to NAN */
+	float _pos_sp_z{}; /**< altitude setpoint in z during lock. Otherwise NAN. */
+	float _pos_sp_z_lock{}; /**< altitude which used when lock is engaged */
 
 	control::BlockParamFloat _vel_max_down; /**< maximum speed allowed to go up */
 	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */
