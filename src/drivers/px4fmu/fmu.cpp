@@ -1684,12 +1684,10 @@ PX4FMU::cycle()
 				px4_arch_configgpio(GPIO_PPM_IN);
 				rc_io_invert(false);
 
-			} else if (_rc_scan_locked
-				   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+			} else if (_rc_scan_locked || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 				// see if we have new PPM input data
-				if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
-				    && ppm_decoded_channels > 3) {
+				if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) && ppm_decoded_channels > 3) {
 					// we have a new PPM frame. Publish it.
 					rc_updated = true;
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
@@ -1718,12 +1716,12 @@ PX4FMU::cycle()
 #ifdef HRT_PPM_CHANNEL
 
 		// see if we have new PPM input data
-		if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
-		    && ppm_decoded_channels > 3) {
+		if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) && ppm_decoded_channels > 3) {
 			// we have a new PPM frame. Publish it.
 			rc_updated = true;
-			fill_rc_in(ppm_decoded_channels, ppm_buffer, hrt_absolute_time(),
-				   false, false, 0);
+			fill_rc_in(ppm_decoded_channels, ppm_buffer, _cycle_timestamp, false, false, 0);
+			_rc_in.rc_ppm_frame_length = ppm_frame_length;
+			_rc_in.timestamp_last_signal = ppm_last_valid_decode;
 		}
 
 #endif  // HRT_PPM_CHANNEL
