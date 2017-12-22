@@ -38,6 +38,13 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
+		calibration/calibration.cpp
+		calibration/gyro_calibration.cpp
+		calibration/mag_calibration.cpp
+		calibration/accelerometer_calibration.cpp
+		calibration/esc_calibration.cpp
+		calibration/airspeed_calibration.cpp
+		calibration/rc_calibration.cpp
 		send_event.cpp
 		temperature_calibration/accel.cpp
 		temperature_calibration/baro.cpp
