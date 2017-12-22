@@ -79,21 +79,21 @@ public:
 private:
 
 	/* states */
-	matrix::Vector3f _pos{0.0f, 0.0f, 0.0f};
-	matrix::Vector3f _vel{0.0f, 0.0f, 0.0f};
-	matrix::Vector3f _vel_dot{0.0f, 0.0f, 0.0f};
-	matrix::Vector3f _acc{0.0f, 0.0f, 0.0f};
-	matrix::Vector3f _thr{0.0f, 0.0f, 0.0f};
+	matrix::Vector3f _pos{};
+	matrix::Vector3f _vel{};
+	matrix::Vector3f _vel_dot{};
+	matrix::Vector3f _acc{};
+	matrix::Vector3f _thr{};
 	float _yaw{0.0f};
-	matrix::Matrix<float, 3, 3> _R;
+	matrix::Matrix<float, 3, 3> _R{};
 
 	/* setpoints */
-	matrix::Vector3f _pos_sp{0.0f, 0.0f, 0.0f};
-	matrix::Vector3f _vel_sp{0.0f, 0.0f, 0.0f};
-	matrix::Vector3f _acc_sp{0.0f, 0.0f, 0.0f};
-	matrix::Vector3f _thr_sp{0.0f, 0.0f, 0.0f};
-	float _yaw_sp{0.0f};
-	float _yawspeed_sp{0.0f};
+	matrix::Vector3f _pos_sp{};
+	matrix::Vector3f _vel_sp{};
+	matrix::Vector3f _acc_sp{};
+	matrix::Vector3f _thr_sp{};
+	float _yaw_sp{};
+	float _yawspeed_sp{};
 	float _throttle{};
 
 	/* other variables */
@@ -122,10 +122,10 @@ private:
 
 	/* params */
 	matrix::Vector3f Pp, Pv, Iv, Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
-	float _VelMaxXY{0.0f};
-	float _VelMaxZ[2] = {0.0f, 0.0f}; //index 0: index up; 1: down
+	float _VelMaxXY{};
+	float _VelMaxZ[2]; //index 0: index up; 1: down
 	float _ThrHover{0.5f};
-	float _ThrLimit[2] = {0.0f, 0.0f}; //index 0: max, index 1: min
+	float _ThrLimit[2]; //index 0: max, index 1: min
 	float _Pyaw{};
 	float _YawRateMax{};
 
