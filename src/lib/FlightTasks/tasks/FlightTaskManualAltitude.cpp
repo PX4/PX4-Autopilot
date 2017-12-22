@@ -92,7 +92,7 @@ void FlightTaskManualAltitude::updateHeadingSetpoints()
 
 void FlightTaskManualAltitude::updateZsetpoints()
 {
-	if (fabsf(_sticks(2)) < FLT_EPSILON) {
+	if (fabsf(_sticks(2)) < _stick_deadzone.get()) {
 
 		/* Want to hold altitude */
 
