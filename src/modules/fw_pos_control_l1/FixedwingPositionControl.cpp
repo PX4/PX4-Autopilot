@@ -216,17 +216,6 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
-	/* sanity check parameters */
-	if (_parameters.airspeed_max < _parameters.airspeed_min ||
-	    _parameters.airspeed_max < 5.0f ||
-	    _parameters.airspeed_min > 100.0f ||
-	    _parameters.airspeed_trim < _parameters.airspeed_min ||
-	    _parameters.airspeed_trim > _parameters.airspeed_max) {
-
-		PX4_WARN("error: airspeed parameters invalid");
-		return PX4_ERROR;
-	}
-
 	/* Update the landing slope */
 	_landingslope.update(radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative,
 			     _parameters.land_thrust_lim_alt_relative, _parameters.land_H1_virt);
@@ -240,6 +229,18 @@ FixedwingPositionControl::parameters_update()
 	/* Update Launch Detector Parameters */
 	_launchDetector.updateParams();
 	_runway_takeoff.updateParams();
+
+	/* sanity check parameters */
+	if (_parameters.airspeed_max < _parameters.airspeed_min ||
+	    _parameters.airspeed_max < 5.0f ||
+	    _parameters.airspeed_min > 100.0f ||
+	    _parameters.airspeed_trim < _parameters.airspeed_min ||
+	    _parameters.airspeed_trim > _parameters.airspeed_max) {
+
+		mavlink_log_critical(&_mavlink_log_pub, "Airspeed parameters invalid");
+
+		return PX4_ERROR;
+	}
 
 	return PX4_OK;
 }
