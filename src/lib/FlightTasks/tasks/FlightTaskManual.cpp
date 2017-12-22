@@ -48,11 +48,9 @@ using namespace matrix;
 
 FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name) :
 	FlightTask(parent, name),
-	_z_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
-	_z_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
+	_hold_dz(parent, "MPC_HOLD_DZ", false),
 	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
-	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
-	_hold_dz(parent, "MPC_HOLD_DZ", false)
+	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false)
 {
 }
 
@@ -124,15 +122,6 @@ void FlightTaskManual::_updateYaw()
 	}
 
 	_setYawSetpoint(_hold_yaw);
-}
-
-void FlightTaskManual::_scaleVelocity(Vector3f &velocity)
-{
-	const Vector3f velocity_scale(_velocity_hor_manual.get(),
-				      _velocity_hor_manual.get(),
-				      (velocity(2) > 0.0f) ? _z_vel_max_down.get() : _z_vel_max_up.get());
-
-	velocity = velocity.emult(velocity_scale);
 }
 
 bool FlightTaskManual::_evaluateSticks()
