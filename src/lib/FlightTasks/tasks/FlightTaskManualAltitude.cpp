@@ -49,14 +49,17 @@ FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, 
 	FlightTaskManual(parent, name),
 	_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 	_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
-	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false)
+	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false),
+	_acc_max_up(parent, "MPC_ACC_UP_MAX", false),
+	_acc_max_down(parent, "MPC_ACC_DOWN_MAX", false)
 {}
 
 bool FlightTaskManualAltitude::activate()
 {
-	_pos_sp_predicted = _pos_sp_z = _position(2);
 	_yaw_sp_predicted = _yaw_sp = _yaw;
 	_yaw_rate_sp = _vel_sp_z = NAN;
+	_lock_time = 0.0f;
+	_lock_time_max = 1.0f; // 1s time to brake as default
 
 	return FlightTaskManual::activate();
 }
@@ -64,7 +67,7 @@ bool FlightTaskManualAltitude::activate()
 void FlightTaskManualAltitude::scaleSticks()
 {
 
-	/* map stick to velocity */
+	/* Map stick to velocity */
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
 	_vel_sp_z = vel_max_z * _sticks_expo(2);
 	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
@@ -74,12 +77,12 @@ void FlightTaskManualAltitude::scaleSticks()
 void FlightTaskManualAltitude::updateHeadingSetpoints()
 {
 	if (fabsf(_sticks(3)) < FLT_EPSILON) {
-		/* want to hold yaw */
+		/* Want to hold yaw */
 		_yaw_rate_sp = NAN;
 		_yaw_sp = _yaw_sp_predicted;
 
 	} else {
-		/* want to change yaw based on yaw-rate */
+		/* Want to change yaw based on yaw-rate */
 		_yaw_sp = NAN;
 		_yaw_sp_predicted = _wrap_pi(_yaw_sp_predicted + _yaw_rate_sp * _deltatime);
 	}
@@ -88,14 +91,37 @@ void FlightTaskManualAltitude::updateHeadingSetpoints()
 void FlightTaskManualAltitude::updateZsetpoints()
 {
 	if (fabsf(_sticks(2)) < FLT_EPSILON) {
-		/* want to hold altitude */
-		_vel_sp_z = NAN;
-		_pos_sp_z = _pos_sp_predicted;
+
+		/* Want to hold altitude */
+
+		if (_lock_time <= _lock_time_max) {
+			/* Don't lock: time has not been reached */
+			_vel_sp_z = 0.0f;
+			_pos_sp_z = NAN;
+			_lock_time += _deltatime;
+
+		} else {
+			_vel_sp_z = NAN;
+			_pos_sp_z = _position(2);
+		}
 
 	} else {
-		/* want to change altitude through velocity */
+		/* Want to change altitude through velocity */
 		_pos_sp_z = NAN;
-		_pos_sp_predicted = _position(2) + _vel_sp_z * _deltatime;
+
+		/* Maximum brake acceleration depends
+		 * on direction.
+		 */
+		float brake_acc = (_velocity(2) > 0.0f) ? _acc_max_up.get() : _acc_max_down.get();
+
+		if (PX4_ISFINITE(brake_acc)) {
+			_lock_time_max = fabsf(_velocity(2)) / brake_acc;
+
+		} else {
+			_lock_time_max = 1.0f; // 1 second time to brake if no acceleration is set
+		}
+
+		_lock_time = 0.0f;
 	}
 }
 
