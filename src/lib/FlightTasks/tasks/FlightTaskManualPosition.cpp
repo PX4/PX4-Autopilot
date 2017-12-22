@@ -85,7 +85,7 @@ void FlightTaskManualPosition::updateXYsetpoints()
 {
 	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
-	if (stick_xy.length() < _stick_deadzone.get()) {
+	if (stick_xy.length() < FLT_EPSILON) {
 
 		/* Want to hold position */
 		if (_lock_time <= _lock_time_max) {
