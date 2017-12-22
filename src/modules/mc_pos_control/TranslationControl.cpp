@@ -187,7 +187,7 @@ void TranslationControl::_velocityController(const float &dt)
 	 * It is to note that pure manual and rate control will never enter _velocityController method*/
 	float tilt_max = PX4_ISFINITE(_constraints.tilt_max) ? _constraints.tilt_max : M_PI_2_F;
 	tilt_max = math::min(tilt_max, M_PI_2_F);
-	_thr_sp = PosControl::constrainTilt(_thr_sp, tilt_max);
+	_thr_sp = ControlMath::constrainTilt(_thr_sp, tilt_max);
 
 	/*TODO: Check if it is beneficial to project thrust onto body z axis  */
 
@@ -214,7 +214,7 @@ void TranslationControl::_velocityController(const float &dt)
 	float dot_xy = matrix::Vector2f(&vel_err(0)) * matrix::Vector2f(&_vel_sp(0));
 	float direction[2] = {dot_xy, -vel_err(2)}; // negative sign because of N-E-D
 	bool stop_I[2] = {false, false}; // stop integration for xy and z
-	PosControl::constrainPIDu(_thr_sp, stop_I, _ThrLimit, direction);
+	ControlMath::constrainPIDu(_thr_sp, stop_I, _ThrLimit, direction);
 
 	/* throttle is just thrust length */
 	_throttle = _thr_sp.length();
