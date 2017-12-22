@@ -123,7 +123,7 @@ void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], 
 		stop_I[0] = true;
 		u(0) = 0.0f;
 		u(1) = 0.0f;
-		u(2) = Ulimits[0];
+		u(2) = -Ulimits[0]; //N-E-D frame
 
 	} else if (u.length() >= Ulimits[0]) {
 
