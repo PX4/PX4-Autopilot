@@ -34,10 +34,8 @@
 /**
  * @file FlightTaskManual.hpp
  *
- * Flight task for the normal, manual position controlled flight
- * where stick inputs map basically to the velocity setpoint
+ * Linear and exponential map from stick inputs to range -1 and 1.
  *
- * @author Matthias Grob <maetugr@gmail.com>
  */
 
 #pragma once
@@ -65,17 +63,17 @@ public:
 
 protected:
 
-	bool _sticks_data_required = true; /**< let sibling task define if it depends on stick data */
+	bool _sticks_data_required = true; /**< let inherited task-class define if it depends on stick data */
 	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
 	matrix::Vector3f _sticks_expo; /**< modified manual sticks using expo function*/
-	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
+	control::BlockParamFloat _hold_dz; /**< 0-deadzone around the center for the sticks */
 
 private:
 
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
-	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
-	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
+	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction */
+	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in z direction */
 
 
 	bool _evaluateSticks(); /**< checks and sets stick inputs */

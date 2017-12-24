@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskManual.hpp
+ * @file FlightTaskManualPosition.cpp
  *
- * Flight task for manual controlled position.
+ * Flight task for manual position controlled mode.
  *
  */
 
@@ -62,50 +62,54 @@ bool FlightTaskManualPosition::activate()
 
 void FlightTaskManualPosition::scaleSticks()
 {
-	/* scale all sticks including altitude and yaw */
+	/* Get velocity in z and yawspeed. */
 	FlightTaskManualAltitude::scaleSticks();
 
+	/* Constrain length of stick inputs to 1. */
 	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
-
-	/* constrain length of stick inputs to 1 */
 	float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
 	stick_xy = stick_xy.normalized() * mag;
 
-	/* scale to velocity */
+	/* Scale to velocity.*/
 	_vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
 
-	/* rotate setpoint into local frame */
+	/* Rotate setpoint into local frame. */
 	matrix::Vector3f vel_sp{_vel_sp_xy(0), _vel_sp_xy(1), 0.0f};
 	vel_sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw_sp_predicted)) * vel_sp);
 	_vel_sp_xy = matrix::Vector2f(vel_sp(0), vel_sp(1));
-
 }
 
 void FlightTaskManualPosition::updateXYsetpoints()
 {
+	/* If position lock is active, velocity setpoint is set to NAN. Otherwise
+	 * position setpoint is set to NAN.
+	 */
+
 	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
 	if (stick_xy.length() < FLT_EPSILON) {
 
-		/* Want to hold position */
+		/* Hold position */
+
 		if (_lock_time <= _lock_time_max) {
-			/* Don't lock: time has not been reached */
+			/* Don't lock: time has not been reached. */
 			_vel_sp_xy.zero();
 			_pos_sp_xy = matrix::Vector2f(NAN, NAN);
 			_pos_sp_xy_lock = matrix::Vector2f(&(_position(0)));
 			_lock_time += _deltatime;
 
 		} else {
-			/* want to hold position */
+			/*Lock position. */
 			_vel_sp_xy = matrix::Vector2f(NAN, NAN);
 			_pos_sp_xy = matrix::Vector2f(&(_pos_sp_xy_lock(0)));
 		}
 
 	} else {
-		/* Want to change position */
+		/* Move based on velocity. Position setpoint
+		 * not used and therefore set to NAN.  */
 		_pos_sp_xy = matrix::Vector2f(NAN, NAN);
 
-		/* Time to brake depends on
+		/* Always update time to brake. It depends on
 		 * maximum acceleration.
 		 */
 		if (PX4_ISFINITE(_acc_xy_max.get())) {
@@ -124,20 +128,15 @@ void FlightTaskManualPosition::updateXYsetpoints()
 
 void FlightTaskManualPosition::updateSetpoints()
 {
-	/* scale all sticks */
-	scaleSticks();
-
-	/* update all setpoints */
+	/* Apply position lock if required. */
 	FlightTaskManualAltitude::updateSetpoints();
 	updateXYsetpoints();
-
 }
 
 bool FlightTaskManualPosition::update()
 {
 	scaleSticks();
 	updateSetpoints();
-
 	_setPositionSetpoint(Vector3f(_pos_sp_xy(0), _pos_sp_xy(1), _pos_sp_z));
 	_setVelocitySetpoint(Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), _vel_sp_z));
 	_setYawSetpoint(_yaw_sp);
