@@ -32,10 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskOrbit.hpp
+ * @file FlightManualAltitude.hpp
  *
  * Flight task for manual controlled altitude.
- *
  */
 
 #pragma once
@@ -54,26 +53,26 @@ public:
 	bool update() override;
 
 protected:
-	float _yaw_rate_sp{}; /** scaled yaw rate directly from stick. NAN if yaw is locked */
-	float _yaw_sp{}; /** yaw setpoint once locked. otherwise NAN */
-	float _yaw_sp_predicted{}; /** _yaw_sp during lock; predicted yaw through _yaw_rate_sp demand */
-	float _vel_sp_z{}; /**< scaled velocity directly from stick. During altitude lock is equal to NAN */
-	float _pos_sp_z{}; /**< altitude setpoint in z during lock. Otherwise NAN. */
-	float _pos_sp_z_lock{}; /**< altitude which used when lock is engaged */
+	float _yaw_rate_sp{}; /**< Scaled yaw rate from stick. NAN if yaw is locked. */
+	float _yaw_sp{}; /**< Yaw setpoint once locked. Otherwise NAN. */
+	float _yaw_sp_predicted{}; /** Equal to_yaw_sp during lock. Predicted yaw_sp during non-lock.*/
+	float _vel_sp_z{}; /**< Scaled velocity from stick. During altitude lock it is equal to NAN. */
+	float _pos_sp_z{}; /**< Setpoint in z during lock. Otherwise NAN. */
+	float _pos_sp_z_lock{}; /**< Setpoint in z when lock is engaged. */
 
-	control::BlockParamFloat _vel_max_down; /**< maximum speed allowed to go up */
-	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */
-	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
-	control::BlockParamFloat _acc_max_up; /**< maximum acceleration upward */
-	control::BlockParamFloat _acc_max_down; /**< maximum acceleration downward */
+	control::BlockParamFloat _vel_max_down; /**< Maximum speed allowed to go up. */
+	control::BlockParamFloat _vel_max_up; /**< Maximum speed allowed to go down. */
+	control::BlockParamFloat _yaw_rate_scaling; /**< Scaling factor from stick to yaw rate. */
+	control::BlockParamFloat _acc_max_up; /**< Maximum acceleration upward. */
+	control::BlockParamFloat _acc_max_down; /**< Maximum acceleration downward. */
 
-	virtual void updateSetpoints(); /**< updates all setpoints */
-	virtual void scaleSticks(); /**< scales sticks to velocity */
+	virtual void updateSetpoints(); /**< Updates all setpoints. */
+	virtual void scaleSticks(); /**< Scales sticks to velocity. */
 
 private:
-	void updateHeadingSetpoints(); /**< sets yaw or yaw speed */
-	void updateZsetpoints(); /**< sets position or velocity setpoint */
+	void updateHeadingSetpoints(); /**< Sets yaw or yaw speed. */
+	void updateZsetpoints(); /**< Sets position or velocity setpoints. */
 
-	float _lock_time_max{0.0f}; /**< defines time when altitude lock occurs */
-	float _lock_time{0.0f}; /**< time after stick are at zero position */
+	float _lock_time_max{0.0f}; /**< Defines time when altitude lock occurs. */
+	float _lock_time{0.0f}; /**< Time passed when stick is at center position and before lock occurs.*/
 };
