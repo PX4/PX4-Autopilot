@@ -34,7 +34,7 @@
 /**
  * @file TranslationControl.hpp
  *
- * @inputs: position-, velocity-, acceleration-, thrust- setpoints
+ * @inputs: position-, velocity-, acceleration-, thrust-setpoints
  * @outputs: thrust vector
  *
  */
@@ -47,7 +47,7 @@
 
 #pragma once
 
-/* Variable constraints based on mode:
+/* Constraints based on mode:
  * Eventually this structure should be part of local position message
  */
 namespace Controller
@@ -79,7 +79,7 @@ public:
 
 private:
 
-	/* states */
+	/* States */
 	matrix::Vector3f _pos{};
 	matrix::Vector3f _vel{};
 	matrix::Vector3f _vel_dot{};
@@ -88,7 +88,7 @@ private:
 	float _yaw{0.0f};
 	matrix::Matrix<float, 3, 3> _R{};
 
-	/* setpoints */
+	/* Setpoints */
 	matrix::Vector3f _pos_sp{};
 	matrix::Vector3f _vel_sp{};
 	matrix::Vector3f _acc_sp{};
@@ -97,12 +97,12 @@ private:
 	float _yawspeed_sp{};
 	float _throttle{};
 
-	/* other variables */
+	/* Other variables */
 	matrix::Vector3f _thr_int{};
 	float _yaw_sp_int{};
 	Controller::Constraints _constraints{};
 
-	/* params handles */
+	/* Parameter handles */
 	int _parameter_sub{-1};
 	param_t _Pz_h{PARAM_INVALID};
 	param_t _Pvz_h{PARAM_INVALID};
@@ -121,7 +121,7 @@ private:
 	param_t _YawRateMax_h{PARAM_INVALID};
 	param_t _Pyaw_h{PARAM_INVALID}; //only temporary: this will be moved into attitude controller
 
-	/* params */
+	/* Parameters */
 	matrix::Vector3f Pp, Pv, Iv, Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
 	float _VelMaxXY{};
 	float _VelMaxZ[2]; //index 0: index up; 1: down
@@ -130,7 +130,7 @@ private:
 	float _Pyaw{};
 	float _YawRateMax{};
 
-	/* helper methods */
+	/* Helper methods */
 	void _interfaceMapping();
 	void _positionController();
 	void _velocityController(const float &dt);
