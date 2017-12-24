@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskOrbit.hpp
+ * @file FlightTaskManualPosition.hpp
  *
- * Flight task for manual controlled position.
+ * Flight task for manual position controlled mode.
  *
  */
 
@@ -54,18 +54,18 @@ public:
 	bool update() override;
 
 protected:
-	matrix::Vector2f _vel_sp_xy{}; /* Scaled velocity setpoint from stick. NAN during position lock. */
-	matrix::Vector2f _pos_sp_xy{}; /* Position setpoint during lock. Otherwise NAN.*/
-	matrix::Vector2f _pos_sp_xy_lock{}; /* Position setpoint during lock */
+	matrix::Vector2f _vel_sp_xy{}; /**< Scaled velocity setpoint from stick. NAN during position lock. */
+	matrix::Vector2f _pos_sp_xy{}; /**< Position setpoint during lock. Otherwise NAN.*/
+	matrix::Vector2f _pos_sp_xy_lock{}; /**< Position setpoint during lock */
 
-	control::BlockParamFloat _vel_xy_manual_max; /**< maximum speed allowed horizontally */
-	control::BlockParamFloat _acc_xy_max;
+	control::BlockParamFloat _vel_xy_manual_max; /**< Maximum speed allowed horizontally, */
+	control::BlockParamFloat _acc_xy_max;/**< Maximum acceleration horizontally. Only used to compute lock time. */
 
 	void updateSetpoints() override;
 	void scaleSticks() override;
 
 private:
 	void updateXYsetpoints();
-	float _lock_time_max{0.0f}; /**< defines time when position lock occurs */
-	float _lock_time{0.0f}; /**< time after stick are at zero position */
+	float _lock_time_max{0.0f}; /**< Defines time when position lock occurs. */
+	float _lock_time{0.0f}; /**< Time passed when stick are at zero position. */
 };
