@@ -32,10 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskManual.hpp
+ * @file FlightManualAltitude.cpp
  *
- * Flight-task for manual controlled altitude.
- *
+ * Flight task for manual controlled altitude.
  */
 
 #include "FlightTaskManualAltitude.hpp"
@@ -67,23 +66,25 @@ bool FlightTaskManualAltitude::activate()
 
 void FlightTaskManualAltitude::scaleSticks()
 {
-
-	/* Map stick to velocity */
+	/* Map stick to velocity. */
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
 	_vel_sp_z = vel_max_z * _sticks_expo(2);
 	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
-
 }
 
 void FlightTaskManualAltitude::updateHeadingSetpoints()
 {
+	/* Yaw-lock depends on stick input. If locked,
+	 * yawspeed_sp is set to NAN. Otherwise yaw_sp is set
+	 * to NAN.*/
+
 	if (fabsf(_sticks(3)) < _hold_dz.get()) {
-		/* Want to hold yaw */
+		/* Hold yaw */
 		_yaw_rate_sp = NAN;
 		_yaw_sp = _yaw_sp_predicted;
 
 	} else {
-		/* Want to change yaw based on yaw-rate */
+		/* Change yaw through yaw-rate inputs.*/
 		_yaw_sp = NAN;
 		_yaw_sp_predicted = _wrap_pi(_yaw_sp_predicted + _yaw_rate_sp * _deltatime);
 	}
@@ -91,28 +92,33 @@ void FlightTaskManualAltitude::updateHeadingSetpoints()
 
 void FlightTaskManualAltitude::updateZsetpoints()
 {
+	/* Depending on stick inputs, position is locked or
+	 * velocity setpoint is used. If locked, velocity setpoint
+	 * is set to NAN. Otherwise position setpoints is set to NAN.
+	 */
 	if (fabsf(_sticks_expo(2)) < FLT_EPSILON) {
-
-		/* Want to hold altitude */
+		/* Hold position */
 
 		if (_lock_time <= _lock_time_max) {
-			/* Don't lock: time has not been reached */
+			/* Don't lock: time has not been reached yet. */
 			_vel_sp_z = 0.0f;
 			_pos_sp_z = NAN;
 			_pos_sp_z_lock = _position(2);
 			_lock_time += _deltatime;
 
 		} else {
+			/* Lock position in z. */
 			_vel_sp_z = NAN;
 			_pos_sp_z = _pos_sp_z_lock;
 		}
 
 	} else {
-		/* Want to change altitude through velocity */
+		/* Change z-direction based on velocity input. Hence, set
+		 * position setpoin in z to NAN since not used. */
 		_pos_sp_z = NAN;
 
 		/* Maximum brake acceleration depends
-		 * on direction. We take half of max acceleration
+		 * on direction (up or down). We take half of max acceleration
 		 * because it is better to lock late than early to prevent
 		 * up and down movement.
 		 */
@@ -137,10 +143,8 @@ void FlightTaskManualAltitude::updateSetpoints()
 
 bool FlightTaskManualAltitude::update()
 {
-	scaleSticks();
-	updateSetpoints();
-
-
+	scaleSticks(); // scales sticks to yawspeed and velocity
+	updateSetpoints(); // applies yaw and position lock if required
 	_setPositionSetpoint(Vector3f(NAN, NAN, _pos_sp_z));
 	_setVelocitySetpoint(Vector3f(NAN, NAN, _vel_sp_z));
 	_setYawSetpoint(_yaw_sp);
