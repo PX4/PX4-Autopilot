@@ -73,7 +73,7 @@ TranslationControl::TranslationControl()
 	_YawRateMax_h = param_find("MPC_MAN_Y_MAX");
 	_Pyaw_h = param_find("MC_YAW_P");
 
-	/* Set parameter the very first time */
+	/* Set parameter the very first time. */
 	_setParams();
 };
 
@@ -100,37 +100,42 @@ void TranslationControl::updateSetpoint(struct vehicle_local_position_setpoint_s
 void TranslationControl::generateThrustYawSetpoint(const float &dt)
 {
 	_updateParams();
-
 	_positionController();
-
 	_velocityController(dt);
-
 	_yawController(dt);
-
 }
 
 void TranslationControl::_interfaceMapping()
 {
-	/* loop through x,y and z component */
+	/* Respects FlightTask interface, where
+	 * NAN-setpoints are of no interest and
+	 * do not require control.
+	 */
+
+	/* Loop through x,y and z components of all setpoints. */
 	for (int i = 0; i <= 2; i++) {
 
 		if (PX4_ISFINITE(_pos_sp(i))) {
 
-			/* Check if velocity should be used as feedforward */
+			/* Position control is required */
+
 			if (!PX4_ISFINITE(_vel_sp(i))) {
+				/* Velocity is not used as feedforward term. */
 				_vel_sp(i) = 0.0f;
 			}
 
 		} else {
 
-			/* Position controller is not active
-			 * -> Set setpoint just to current position since */
+			/* Velocity controller is active without
+			 * position control.
+			 */
 			_pos_sp(i) = _pos(i);
 
-			/* check if velocity setpoint should be used */
 			if (!PX4_ISFINITE(_vel_sp(i)))  {
 				/* No position/velocity controller active.
 				 * Attitude will be generated from sticks directly
+				 * TODO: Adjust to the new FlightTask interface
+				 * that also sends thrust setpoints.
 				 */
 				_vel_sp(i) = _vel(i);
 			}
@@ -138,25 +143,34 @@ void TranslationControl::_interfaceMapping()
 	}
 
 	if (!PX4_ISFINITE(_yawspeed_sp)) {
+
+		/* Targe yaw is yaw setpoint. No need for yawspped */
 		_yawspeed_sp = 0.0f;
 
 		if (!PX4_ISFINITE(_yaw_sp)) {
+
+			/* There is no finite setpoint. The best
+			 * we can do is to just re-use old setpoint */
 			_yaw_sp = _yaw_sp_int;
 		}
 
 	} else if (!PX4_ISFINITE(_yaw_sp)) {
+		/* Nothing is finite: Best we can do is to just
+		 * reuse old setpoint.
+		 */
 		_yaw_sp = _yaw_sp_int;
 	}
 }
 
-/* generate desired velocity */
 void TranslationControl::_positionController()
 {
+	/* Generate desired velocity setpoint */
+
+	/* P-controller */
 	_vel_sp = (_pos_sp - _pos).emult(Pp) + _vel_sp;
 
-	/* make sure velocity setpoint is constrained in all directions (xyz) */
-	float vel_norm_xy = sqrtf(
-				    _vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
+	/* Make sure velocity setpoint is constrained in all directions (xyz). */
+	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 
 	if (vel_norm_xy > _VelMaxXY) {
 		_vel_sp(0) = _vel_sp(0) * _VelMaxXY / vel_norm_xy;
@@ -166,9 +180,9 @@ void TranslationControl::_positionController()
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ[0], _VelMaxZ[1]);
 }
 
-/* generates desired thrust vector */
 void TranslationControl::_velocityController(const float &dt)
 {
+	/* Generate desired thrust setpoint */
 	/* PID
 	 * u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral)
 	 * Umin <= u_des <= Umax
@@ -184,13 +198,15 @@ void TranslationControl::_velocityController(const float &dt)
 
 	Data vel_err = _vel_sp - _vel;
 
-	/* TODO: add offboard acceleration mode */
+	/* TODO: add offboard acceleration mode
+	 * PID-controller */
 	Data offset(0.0f, 0.0f, _ThrHover);
 	_thr_sp = Pv.emult(vel_err) + Dv.emult(_vel_dot) + _thr_int - offset;
 
 	/* Limit tilt with priority on z
 	 * For manual controlled mode excluding pure manual and rate control, maximum tilt is 90;
-	 * It is to note that pure manual and rate control will never enter _velocityController method*/
+	 * It is to note that pure manual and rate control will never enter _velocityController method.
+	 * TODO: This needs to be revisited. */
 	float tilt_max = PX4_ISFINITE(_constraints.tilt_max) ? _constraints.tilt_max : M_PI_2_F;
 	tilt_max = math::min(tilt_max, M_PI_2_F);
 	_thr_sp = ControlMath::constrainTilt(_thr_sp, tilt_max);
@@ -222,10 +238,10 @@ void TranslationControl::_velocityController(const float &dt)
 	bool stop_I[2] = {false, false}; // stop integration for xy and z
 	ControlMath::constrainPIDu(_thr_sp, stop_I, _ThrLimit, direction);
 
-	/* throttle is just thrust length */
+	/* Throttle is just thrust length. */
 	_throttle = _thr_sp.length();
 
-	/* update integrals */
+	/* Update integrals */
 	if (!stop_I[0]) {
 		_thr_int(0) += vel_err(0) * Iv(0) * dt;
 		_thr_int(1) += vel_err(1) * Iv(1) * dt;
@@ -251,7 +267,7 @@ void TranslationControl::_yawController(const float &dt)
 		_yaw_sp = yaw_target;
 	}
 
-	/* update yaw setpoint integral */
+	/* Update yaw setpoint integral */
 	_yaw_sp_int = _yaw_sp;
 
 }
