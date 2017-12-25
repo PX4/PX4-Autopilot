@@ -84,6 +84,7 @@
 #include <geo/geo.h>
 
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_receiver.h"
@@ -136,9 +137,11 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_debug_key_value_pub(nullptr),
 	_debug_value_pub(nullptr),
 	_debug_vect_pub(nullptr),
+	_attitude_setpoint_id(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
+	_vehicle_status_sub(orb_subscribe(ORB_ID(vehicle_status))),
 	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
 	_global_ref_timestamp(0),
 	_hil_frames(0),
@@ -149,6 +152,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_offboard_control_mode{},
 	_att_sp{},
 	_rates_sp{},
+	_vehicle_status{},
 	_time_offset_avg_alpha(0.8),
 	_time_offset(0),
 	_orb_class_instance(-1),
@@ -1238,10 +1242,27 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &_offboard_control_mode);
 		}
 
+		/* If we are in VTOL mode, publish uORB ID to virtual_setpoint */
+		bool updated;
+		orb_check(_vehicle_status_sub, &updated);
+        
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+
+			/* set correct uORB ID, depending on if vehicle is VTOL or not */
+			if (!_attitude_setpoint_id) {
+				if (_vehicle_status.is_vtol) {
+					_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
+				} else {
+					_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				}
+			}
+		}
+
 		/* If we are in offboard control mode and offboard control loop through is enabled
 		 * also publish the setpoint topic which is read by the controller */
 		if (_mavlink->get_forward_externalsp()) {
-			bool updated;
+			
 			orb_check(_control_mode_sub, &updated);
 
 			if (updated) {
@@ -1267,10 +1288,10 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (_att_sp_pub == nullptr) {
-						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+						_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 
 					} else {
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
+						orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 					}
 				}
 

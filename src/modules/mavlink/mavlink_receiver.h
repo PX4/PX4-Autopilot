@@ -244,10 +244,12 @@ private:
 	orb_advert_t _debug_key_value_pub;
 	orb_advert_t _debug_value_pub;
 	orb_advert_t _debug_vect_pub;
+	orb_id_t _attitude_setpoint_id;
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
 	int _control_mode_sub;
+	int	_vehicle_status_sub;		/**< vehicle status subscription */
 	int _actuator_armed_sub;
 	uint64_t _global_ref_timestamp;
 	int _hil_frames;
@@ -258,6 +260,7 @@ private:
 	struct offboard_control_mode_s _offboard_control_mode;
 	struct vehicle_attitude_setpoint_s _att_sp;
 	struct vehicle_rates_setpoint_s _rates_sp;
+	struct vehicle_status_s _vehicle_status; 	/**< vehicle status */
 	double _time_offset_avg_alpha;
 	int64_t _time_offset;
 	int	_orb_class_instance;
