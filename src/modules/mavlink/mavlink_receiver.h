@@ -221,7 +221,7 @@ private:
 	orb_advert_t _airspeed_pub;
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
-	orb_advert_t _flow_pub;
+	orb_advert_t _flow_raw_pub;
 	orb_advert_t _hil_distance_sensor_pub;
 	orb_advert_t _flow_distance_sensor_pub;
 	orb_advert_t _distance_sensor_pub;

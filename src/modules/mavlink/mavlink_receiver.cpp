@@ -113,7 +113,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_airspeed_pub(nullptr),
 	_battery_pub(nullptr),
 	_cmd_pub(nullptr),
-	_flow_pub(nullptr),
+	_flow_raw_pub(nullptr),
 	_hil_distance_sensor_pub(nullptr),
 	_flow_distance_sensor_pub(nullptr),
 	_distance_sensor_pub(nullptr),
@@ -615,10 +615,6 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	mavlink_optical_flow_rad_t flow;
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
 
-	int32_t flow_rot_int;
-	param_get(param_find("SENS_FLOW_ROT"), &flow_rot_int);
-	const enum Rotation flow_rot = (Rotation)flow_rot_int;
-
 	struct optical_flow_s f = {};
 
 	f.timestamp = flow.time_usec;
@@ -634,16 +630,11 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	f.sensor_id = flow.sensor_id;
 	f.gyro_temperature = flow.temperature;
 
-	/* rotate measurements according to parameter */
-	float zeroval = 0.0f;
-	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zeroval);
-	rotate_3f(flow_rot, f.gyro_x_rate_integral, f.gyro_y_rate_integral, f.gyro_z_rate_integral);
-
-	if (_flow_pub == nullptr) {
-		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+	if (_flow_raw_pub == nullptr) {
+		_flow_raw_pub = orb_advertise(ORB_ID(optical_flow_raw), &f);
 
 	} else {
-		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
+		orb_publish(ORB_ID(optical_flow_raw), _flow_raw_pub, &f);
 	}
 
 	/* Use distance value for distance sensor topic */
@@ -692,11 +683,11 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	f.sensor_id = flow.sensor_id;
 	f.gyro_temperature = flow.temperature;
 
-	if (_flow_pub == nullptr) {
-		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+	if (_flow_raw_pub == nullptr) {
+		_flow_raw_pub = orb_advertise(ORB_ID(optical_flow_raw), &f);
 
 	} else {
-		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
+		orb_publish(ORB_ID(optical_flow_raw), _flow_raw_pub, &f);
 	}
 
 	/* Use distance value for distance sensor topic */
