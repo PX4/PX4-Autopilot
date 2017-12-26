@@ -229,8 +229,6 @@ static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
 static struct commander_state_s internal_state = {};
 
-static struct mission_result_s _mission_result = {};
-
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
 
 static manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
@@ -1119,7 +1117,7 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 		if (status_flags.condition_auto_mission_available) {
 
 			// requested first mission item valid
-			if (PX4_ISFINITE(cmd->param1) && (cmd->param1 >= -1) && (cmd->param1 < _mission_result.seq_total)) {
+			if (PX4_ISFINITE(cmd->param1) && (cmd->param1 >= -1) && (cmd->param1 < _mission_result_sub.get().seq_total)) {
 
 				// switch to AUTO_MISSION and ARM
 				if ((TRANSITION_DENIED != main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state))
@@ -1458,9 +1456,6 @@ Commander::run()
 	memset(&safety, 0, sizeof(safety));
 	safety.safety_switch_available = false;
 	safety.safety_off = false;
-
-	/* Subscribe to mission result topic */
-	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
 
 	/* Subscribe to geofence result topic */
 	int geofence_result_sub = orb_subscribe(ORB_ID(geofence_result));
@@ -1909,8 +1904,9 @@ Commander::run()
 					}
 
 					// Provide feedback on mission state
-					if ((_mission_result.timestamp > commander_boot_timestamp) && hotplug_timeout &&
-						(_mission_result.instance_count > 0) && !_mission_result.valid) {
+					const mission_result_s& mission_result = _mission_result_sub.get();
+					if ((mission_result.timestamp > commander_boot_timestamp) && hotplug_timeout &&
+						(mission_result.instance_count > 0) && !mission_result.valid) {
 
 						mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
 					}
@@ -2440,47 +2436,41 @@ Commander::run()
 		}
 
 		/* start mission result check */
-		orb_check(mission_result_sub, &updated);
+		const auto prev_mission_instance_count = _mission_result_sub.get().instance_count;
+		if (_mission_result_sub.update()) {
+			const mission_result_s& mission_result = _mission_result_sub.get();
 
-		if (updated) {
-			mission_result_s new_mission_result = {};
+			// if mission_result is valid for the current mission
+			const bool mission_result_ok = (mission_result.timestamp > commander_boot_timestamp) && (mission_result.instance_count > 0);
 
-			if (orb_copy(ORB_ID(mission_result), mission_result_sub, &new_mission_result) == PX4_OK) {
+			status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
 
-				// if mission_result is valid for the current mission
-				const bool mission_result_ok = (new_mission_result.timestamp > commander_boot_timestamp) && (new_mission_result.instance_count > 0);
+			if (mission_result_ok) {
 
-				status_flags.condition_auto_mission_available = mission_result_ok && new_mission_result.valid;
+				if (status.mission_failure != mission_result.failure) {
+					status.mission_failure = mission_result.failure;
+					status_changed = true;
 
-				if (mission_result_ok) {
-
-					if (status.mission_failure != new_mission_result.failure) {
-						status.mission_failure = new_mission_result.failure;
-						status_changed = true;
-
-						if (status.mission_failure) {
-							mavlink_log_critical(&mavlink_log_pub, "Mission cannot be completed");
-						}
-					}
-
-					/* Only evaluate mission state if home is set */
-					if (status_flags.condition_home_position_valid &&
-						(_mission_result.instance_count != new_mission_result.instance_count)) {
-
-						if (!status_flags.condition_auto_mission_available) {
-							/* the mission is invalid */
-							tune_mission_fail(true);
-						} else if (new_mission_result.warning) {
-							/* the mission has a warning */
-							tune_mission_fail(true);
-						} else {
-							/* the mission is valid */
-							tune_mission_ok(true);
-						}
+					if (status.mission_failure) {
+						mavlink_log_critical(&mavlink_log_pub, "Mission cannot be completed");
 					}
 				}
 
-				_mission_result = new_mission_result;
+				/* Only evaluate mission state if home is set */
+				if (status_flags.condition_home_position_valid &&
+					(prev_mission_instance_count != mission_result.instance_count)) {
+
+					if (!status_flags.condition_auto_mission_available) {
+						/* the mission is invalid */
+						tune_mission_fail(true);
+					} else if (mission_result.warning) {
+						/* the mission has a warning */
+						tune_mission_fail(true);
+					} else {
+						/* the mission is valid */
+						tune_mission_ok(true);
+					}
+				}
 			}
 		}
 
@@ -2597,7 +2587,7 @@ Commander::run()
 
 
 		/* Check for mission flight termination */
-		if (armed.armed && _mission_result.flight_termination &&
+		if (armed.armed && _mission_result_sub.get().flight_termination &&
 		    !status_flags.circuit_breaker_flight_termination_disabled) {
 
 			armed.force_failsafe = true;
@@ -2891,11 +2881,11 @@ Commander::run()
 		 * as finished even though we only just started with the takeoff. Therefore, we also
 		 * check the timestamp of the mission_result topic. */
 		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-			&& (_mission_result.timestamp > internal_state.timestamp)
-			&& _mission_result.finished) {
+			&& (_mission_result_sub.get().timestamp > internal_state.timestamp)
+			&& _mission_result_sub.get().finished) {
 
-			const bool mission_available = (_mission_result.timestamp > commander_boot_timestamp)
-				&& (_mission_result.instance_count > 0) && _mission_result.valid;
+			const bool mission_available = (_mission_result_sub.get().timestamp > commander_boot_timestamp)
+				&& (_mission_result_sub.get().instance_count > 0) && _mission_result_sub.get().valid;
 
 			if ((takeoff_complete_act == 1) && mission_available) {
 				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
@@ -3049,8 +3039,8 @@ Commander::run()
 											   &internal_state,
 											   &mavlink_log_pub,
 											   (link_loss_actions_t)datalink_loss_act,
-											   _mission_result.finished,
-											   _mission_result.stay_in_failsafe,
+											   _mission_result_sub.get().finished,
+											   _mission_result_sub.get().stay_in_failsafe,
 											   &status_flags,
 											   land_detector.landed,
 											   (link_loss_actions_t)rc_loss_act,
