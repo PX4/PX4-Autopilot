@@ -1,15 +1,12 @@
-include(nuttx/px4_impl_nuttx)
 
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
+px4_nuttx_configure(HWCLASS m4)
 
 set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
 	drivers/led
-	drivers/boards
 
 	#
 	# System commands
@@ -27,28 +24,6 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
-
-	#
-	# Libraries
-	#
-	#lib/mathlib/CMSIS
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/version
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 
 	#
 	# Demo apps

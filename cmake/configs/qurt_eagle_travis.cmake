@@ -1,4 +1,3 @@
-include(qurt/px4_impl_qurt)
 
 set(CONFIG_SHMEM "1")
 
@@ -26,8 +25,6 @@ include(qurt_flags)
 include_directories(${HEXAGON_SDK_INCLUDES})
 
 set(config_module_list
-	drivers/device
-	drivers/boards
 	drivers/pwm_out_sim
 	drivers/led
 	drivers/rgbled
@@ -57,39 +54,10 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/commander
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/led
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/terrain_estimation
-	lib/version
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp
 	)
-

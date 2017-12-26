@@ -69,7 +69,7 @@
 #
 # * Avoid use of global variables in functions. Functions in a nested
 #	scope may use global variables, but this makes it difficult to
-#	resuse functions.
+#	reuse functions.
 #
 # Included CMake Files
 # ---------------------------------------------------------------------------
@@ -99,16 +99,10 @@
 #
 #=============================================================================
 
-# Warning: Changing this modifies CMake's internal workings
-# and leads to wrong toolchain detection
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 
 list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
 
@@ -124,12 +118,14 @@ execute_process(
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 
-px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
-px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
-
-define_property(GLOBAL PROPERTY PX4_LIBRARIES
-                 BRIEF_DOCS "PX4 libs"
+define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
+                 BRIEF_DOCS "PX4 module libs"
                  FULL_DOCS "List of all PX4 module libraries"
+                 )
+
+define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
+                 BRIEF_DOCS "PX4 module paths"
+                 FULL_DOCS "List of paths to all PX4 modules"
                  )
 
 #=============================================================================
@@ -142,32 +138,22 @@ string(REPLACE "_" ";" config_args ${CONFIG})
 list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
-set(target_name "${OS}_${BOARD}_${LABEL}")
 
-file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
-set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
-
-set(THREADS "4" CACHE STRING "number of threads to use for external build processes")
-set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
 if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
-set(config_module "configs/${CONFIG}")
-include(${config_module})
+include(${OS}/px4_impl_${OS})
+include(configs/${CONFIG})
 
-include(common/coverage)
-include(common/sanitizers)
-
-# CMake build type
-# Debug Release RelWithDebInfo MinSizeRel Coverage
+# CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if (NOT CMAKE_BUILD_TYPE)
 	if (${OS} STREQUAL "nuttx")
+		# nuttx optimize for size, but keep debug symbols
 		set(PX4_BUILD_TYPE "MinSizeRel")
-	elseif (${OS} STREQUAL "bebop")
-		set(PX4_BUILD_TYPE "MinSizeRel")
+		add_compile_options(-g2)
 	else()
 		set(PX4_BUILD_TYPE "RelWithDebInfo")
 	endif()
@@ -177,12 +163,10 @@ endif()
 
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage")
 
-message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
-
 #=============================================================================
 
 message(STATUS "PX4 VERSION: ${git_tag}")
-message(STATUS "CONFIG: ${target_name}")
+message(STATUS "CONFIG: ${CONFIG}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
 #=============================================================================
@@ -192,19 +176,22 @@ project(px4 CXX C ASM)
 
 set(package-contact "px4users@googlegroups.com")
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
+
 #=============================================================================
-
-# The URL for the elf file for crash logging
-if (DEFINED ENV{BUILD_URI})
-	set(BUILD_URI $ENV{BUILD_URI})
-else()
-	set(BUILD_URI "localhost")
-endif()
-
-add_definitions(-DBUILD_URI=${BUILD_URI})
 
 # Setup install paths
 if (${OS} STREQUAL "posix")
+
+	include(common/coverage)
+	include(common/sanitizers)
 
 	# Define GNU standard installation directories
 	include(GNUInstallDirs)
@@ -226,19 +213,16 @@ set(px4_required_interface
 	)
 foreach(cmd ${px4_required_interface})
 	if (NOT COMMAND ${cmd})
-		message(FATAL_ERROR "${config_module} must implement ${cmd}")
+		message(FATAL_ERROR "${CONFIG} must implement ${cmd}")
 	endif()
 endforeach()
 
 set(px4_required_config config_module_list)
 foreach(conf ${px4_required_config})
 	if (NOT DEFINED ${conf})
-		message(FATAL_ERROR "cmake/${config_module} must define ${conf}")
+		message(FATAL_ERROR "cmake/${CONFIG} must define ${conf}")
 	endif()
 endforeach()
-
-# force static lib build
-set(BUILD_SHARED_LIBS OFF)
 
 #=============================================================================
 # ccache
@@ -269,87 +253,25 @@ find_package(PythonInterp REQUIRED)
 px4_find_python_module(jinja2 REQUIRED)
 
 #=============================================================================
-# generate compile command database
-#
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-#=============================================================================
-# check required toolchain variables
+# build setup
 #
 
-# PX4 requires c++11
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# PX4 requires c99
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-set(required_variables CMAKE_C_COMPILER_ID CMAKE_CXX_COMPILER_ID)
-foreach(var ${required_variables})
-	if (NOT ${var})
-		message(FATAL_ERROR "Toolchain/config must define ${var}")
-	endif()
-endforeach()
-
-# print full c compiler version
-execute_process(COMMAND ${CMAKE_C_COMPILER} --version
-		OUTPUT_VARIABLE c_compiler_version
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		)
-STRING(REGEX MATCH "[^\n]*" c_compiler_version_short ${c_compiler_version})
-message(STATUS "C compiler: ${c_compiler_version_short}")
-
-# print full c++ compiler version
-execute_process(COMMAND ${CMAKE_CXX_COMPILER} --version
-		OUTPUT_VARIABLE cxx_compiler_version
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		)
-STRING(REGEX MATCH "[^\n]*" cxx_compiler_version_short ${cxx_compiler_version})
-message(STATUS "C++ compiler: ${cxx_compiler_version_short}")
-
-#=============================================================================
-# external libraries
-#
-px4_os_prebuild_targets(OUT prebuild_targets
-	BOARD ${BOARD}
-	THREADS ${THREADS})
-
-#=============================================================================
-# build flags
-#
-px4_os_add_flags(
-	BOARD ${BOARD}
-	C_FLAGS c_flags
-	CXX_FLAGS cxx_flags
-	OPTIMIZATION_FLAGS optimization_flags
-	EXE_LINKER_FLAGS exe_linker_flags
-	INCLUDE_DIRS include_dirs
-	LINK_DIRS link_dirs
-	DEFINITIONS definitions)
-
-px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${CMAKE_EXE_LINKER_FLAGS};${exe_linker_flags}" GLUE " ")
-px4_join(OUT CMAKE_C_FLAGS LIST "${CMAKE_C_FLAGS};${c_flags};${optimization_flags}" GLUE " ")
-px4_join(OUT CMAKE_CXX_FLAGS LIST "${CMAKE_CXX_FLAGS};${cxx_flags};${optimization_flags}" GLUE " ")
-
-include_directories(${include_dirs})
-link_directories(${link_dirs})
-add_definitions(${definitions})
+px4_os_prebuild_targets(OUT prebuild_targets)
+px4_add_common_flags()
+px4_os_add_flags()
 
 #=============================================================================
 # message, and airframe generation
 #
 include(common/px4_metadata)
 
-add_subdirectory(msg)
+add_subdirectory(msg EXCLUDE_FROM_ALL)
 
 px4_generate_airframes_xml(BOARD ${BOARD})
 
 #=============================================================================
 # DriverFramework
 #
-
-px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
 
 # List the DriverFramework drivers
 if (DEFINED config_df_driver_list)
@@ -394,10 +316,22 @@ endif()
 #=============================================================================
 # subdirectories
 #
+
+add_subdirectory(src/platforms EXCLUDE_FROM_ALL)
+add_subdirectory(src/modules/systemlib EXCLUDE_FROM_ALL) # TODO: split into libraries in platform layer
+add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
+add_subdirectory(src/lib EXCLUDE_FROM_ALL)
+add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
+add_subdirectory(src/drivers/device EXCLUDE_FROM_ALL)
+
 foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()
 
+# must be the last module before firmware
+add_subdirectory(src/modules/systemlib/param EXCLUDE_FROM_ALL)
+
+# firmware added last to generate the builtin for included modules
 add_subdirectory(src/firmware/${OS})
 
 #=============================================================================
@@ -439,26 +373,24 @@ add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 #
 # Important to having packaging at end of cmake file.
 #
+include(CPack)
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${CONFIG})
 set(CPACK_PACKAGE_VERSION ${git_version})
 set(CPACK_PACKAGE_CONTACT ${package-contact})
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(short-description "The px4 autopilot.")
-set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${short-description})
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "The PX4 Pro autopilot.")
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${git_tag}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${git_version}")
 set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
 set(CPACK_PACKAGING_INSTALL_PREFIX "")
 set(CPACK_SET_DESTDIR "OFF")
+
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
 	find_program(DPKG_PROGRAM dpkg)
 	if (EXISTS ${DPKG_PROGRAM})
 		list (APPEND CPACK_GENERATOR "DEB")
 	endif()
 endif()
-include(CPack)
-
-# vim: set noet fenc=utf-8 ff=unix ft=cmake :

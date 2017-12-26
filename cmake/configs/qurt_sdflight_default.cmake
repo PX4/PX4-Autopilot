@@ -1,8 +1,6 @@
 include(common/px4_git)
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
 
-include(qurt/px4_impl_qurt)
-
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
 	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
 else()
@@ -35,7 +33,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_bmp280_wrapper
@@ -65,9 +62,6 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/commander
 	modules/land_detector
 
@@ -79,31 +73,6 @@ set(config_module_list
 	drivers/spektrum_rc
 	drivers/qshell/qurt
 	drivers/snapdragon_pwm_out
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/rc
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/terrain_estimation
-	lib/version
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# sources for muorb over fastrpc

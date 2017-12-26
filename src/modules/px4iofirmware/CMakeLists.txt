@@ -34,9 +34,6 @@
 px4_add_module(
 	MODULE modules__px4iofirmware
 	SRCS
-		../systemlib/hx_stream.c
-		../systemlib/perf_counter.c
-		../systemlib/pwm_limit/pwm_limit.c
 		adc.c
 		controls.c
 		mixer.cpp
@@ -45,5 +42,6 @@ px4_add_module(
 		safety.c
 		serial.c
 	DEPENDS
-		platforms__common
+		mixer
+		rc
 	)

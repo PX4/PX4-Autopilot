@@ -36,10 +36,8 @@ px4_add_module(
 	MAIN mixer
 	STACK_MAIN 4096
 	STACK_MAX 2100
-	COMPILE_FLAGS
 	SRCS
 		mixer.cpp
 	DEPENDS
-		platforms__common
+		mixer
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

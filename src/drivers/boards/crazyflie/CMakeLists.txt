@@ -30,13 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__crazyflie
-	SRCS
-		crazyflie_init.c
-		crazyflie_usb.c
-		crazyflie_led.c
-		crazyflie_timer_config.c
-	DEPENDS
-		platforms__common
+
+px4_add_library(drivers_board
+	crazyflie_init.c
+	crazyflie_usb.c
+	crazyflie_led.c
+	crazyflie_timer_config.c
+	)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		drivers_led # drv_led_start
+		parameters # param_init
 	)

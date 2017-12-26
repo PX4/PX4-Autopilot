@@ -64,7 +64,7 @@ read_x(bson_decoder_t decoder, void *p, size_t s)
 	CODER_CHECK(decoder);
 
 	if (decoder->fd > -1) {
-		return (BSON_READ(decoder->fd, p, s) == (int)s) ? 0 : -1;
+		return (BSON_READ(decoder->fd, p, s) == s) ? 0 : -1;
 	}
 
 	if (decoder->buf != NULL) {

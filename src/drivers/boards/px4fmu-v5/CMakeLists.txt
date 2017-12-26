@@ -30,16 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__px4fmu-v5
-	SRCS
-#		WIP px4fmu_can.c
-		px4fmu_init.c
-		px4fmu_sdio.c
-		px4fmu_timer_config.c
-		px4fmu_spi.c
-		px4fmu_usb.c
-		px4fmu_led.c
-	DEPENDS
-		platforms__common
+
+px4_add_library(drivers_board
+#WIP px4fmu_can.c
+	px4fmu_init.c
+	px4fmu_sdio.c
+	px4fmu_timer_config.c
+	px4fmu_spi.c
+	px4fmu_usb.c
+	px4fmu_led.c
+	)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		drivers_led # drv_led_start
+		parameters # param_init
 	)

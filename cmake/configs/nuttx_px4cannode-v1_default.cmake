@@ -1,11 +1,10 @@
-include(nuttx/px4_impl_nuttx)
 
 add_definitions(
 	-DPARAM_NO_ORB
 	-DPARAM_NO_AUTOSAVE
 	)
 
-px4_nuttx_configure(HWCLASS m3 CONFIG nsh)
+px4_nuttx_configure(HWCLASS m3 ROMFS n)
 
 # UAVCAN boot loadable Module ID
 set(uavcanblid_sw_version_major 0)
@@ -38,9 +37,7 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/boards
 	drivers/bootloaders
-	drivers/device
 	drivers/led
 	drivers/stm32
 
@@ -53,18 +50,11 @@ set(config_module_list
 	systemcmds/ver
 
 	#
+	# Library modules
+	#
+
+	#
 	# General system control
 	#
 	modules/uavcannode
-
-	#
-	# Library modules
-	#
-	lib/version
-	modules/systemlib
-	modules/systemlib/param
-	modules/uORB
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 )

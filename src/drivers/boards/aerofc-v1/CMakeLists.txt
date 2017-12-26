@@ -31,13 +31,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__aerofc-v1
-	SRCS
-		aerofc_init.c
-		aerofc_spi.c
-		aerofc_led.c
-		aerofc_timer_config.c
-	DEPENDS
-		platforms__common
+
+px4_add_library(drivers_board
+	aerofc_init.c
+	aerofc_spi.c
+	aerofc_led.c
+	aerofc_timer_config.c
+	)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		drivers_led # drv_led_start
+		parameters # param_init
+		modules__dataman # dm_flash_sector_description_set
 	)

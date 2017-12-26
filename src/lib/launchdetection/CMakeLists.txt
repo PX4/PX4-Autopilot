@@ -30,13 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__launchdetection
-	COMPILE_FLAGS
-	SRCS
-		LaunchDetector.cpp
-		CatapultLaunchMethod.cpp
-	DEPENDS
-		platforms__common
+
+px4_add_library(launchdetection
+	LaunchDetector.cpp
+	CatapultLaunchMethod.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+target_link_libraries(launchdetection PRIVATE controllib)

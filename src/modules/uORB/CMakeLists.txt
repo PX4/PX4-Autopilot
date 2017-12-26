@@ -31,9 +31,6 @@
 #
 ############################################################################
 
-# this includes the generated topics directory
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
 px4_add_module(
 	MODULE modules__uORB
 	MAIN uorb
@@ -47,5 +44,5 @@ px4_add_module(
 		uORBManager.cpp
 		uORBUtils.cpp
 	DEPENDS
-		platforms__common
+		uorb_msgs
 	)

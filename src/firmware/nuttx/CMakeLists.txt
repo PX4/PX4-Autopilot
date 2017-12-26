@@ -7,7 +7,7 @@ endif()
 add_executable(${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 add_dependencies(${FW_NAME} git_nuttx nuttx_build)
 
-get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 # build NuttX
 add_subdirectory(${PX4_SOURCE_DIR}/platforms/nuttx/NuttX ${PX4_BINARY_DIR}/NuttX)
@@ -35,22 +35,44 @@ if (NOT LD_SCRIPT)
 	set(LD_SCRIPT ld.script)
 endif()
 
-target_link_libraries(${FW_NAME}
+target_link_libraries(nuttx_arch INTERFACE drivers_board)
+
+target_link_libraries(${FW_NAME} PRIVATE
+
+	-nodefaultlibs
+	-nostdlib
+
+	-fno-exceptions
+	-fno-rtti
+
 	-T${PX4_BINARY_DIR}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
+
 	-Wl,-Map=${PX4_BINARY_DIR}/${CONFIG}.map
+
 	-Wl,--warn-common
 	-Wl,--gc-sections
+
 	-Wl,--start-group
-	${module_libraries}
 	${nuttx_libs}
 	-Wl,--end-group
-	m
-	gcc
+
+	# temporary hack to resolve circular dependency
+	# px4_layer depends on the uORB module (push into platform layer)
+	-Wl,--start-group
+	px4_layer
+	modules__uORB
+	uorb_msgs
+	-Wl,--end-group
+
 	)
+
+target_link_libraries(${FW_NAME} PRIVATE ${module_libraries})
+target_link_libraries(${FW_NAME} PRIVATE lib__ecl) # temporary until we can update ecl cmake
+target_link_libraries(${FW_NAME} PRIVATE nuttx_cxx nuttx_c)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
-	target_link_libraries(${FW_NAME} romfs)
+	target_link_libraries(${FW_NAME} PRIVATE romfs)
 	if (config_io_board)
 		add_dependencies(romfs copy_px4io_bin)
 	endif()
@@ -62,7 +84,7 @@ string(REPLACE ".elf" ".px4" fw_file ${fw_file})
 string(REPLACE "nuttx_" "" fw_file ${fw_file})
 
 add_custom_command(OUTPUT ${BOARD}.bin
-	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR}/${FW_NAME} ${BOARD}.bin
+	COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR}/${FW_NAME} ${BOARD}.bin
 	DEPENDS ${FW_NAME}
 	)
 
@@ -90,19 +112,21 @@ endif()
 
 # print size
 add_custom_target(size
-	COMMAND size ${FW_NAME}
+	COMMAND size $<TARGET_FILE:${FW_NAME}>
 	DEPENDS ${FW_NAME}
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
 	)
 
 # print weak symbols
 add_custom_target(check_weak
-	COMMAND ${NM} ${FW_NAME} | ${GREP} " w " | cat
+	COMMAND ${NM} $<TARGET_FILE:${FW_NAME}> | ${GREP} " w " | cat
 	DEPENDS ${FW_NAME}
 	VERBATIM
+	USES_TERMINAL
 	)
 
 # debugger helpers
+set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 configure_file(gdbinit.in .gdbinit)
 
 add_custom_target(debug
@@ -118,19 +142,4 @@ add_custom_target(debug_tui
 add_custom_target(debug_ddd
 	COMMAND ${DDD} --debugger ${GDB} $<TARGET_FILE:${FW_NAME}>
 	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io
-	COMMAND ${GDB} ${fw_io_path}
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io_tui
-	COMMAND ${GDBTUI} ${fw_io_path}
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io_ddd
-	COMMAND ${DDD} --debugger ${GDB} ${fw_io_path}}
-	DEPENDS ${fw_io} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 	)

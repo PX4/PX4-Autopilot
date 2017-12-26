@@ -1,6 +1,5 @@
-include(nuttx/px4_impl_nuttx)
 
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
+px4_nuttx_configure(HWCLASS m4)
 
 set(config_uavcan_num_ifaces 2)
 
@@ -8,11 +7,9 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
 	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/tap_esc
 	drivers/mpu9250
 	drivers/ms5611
@@ -68,27 +65,5 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/mixer
-	lib/rc
-	lib/tailsitter_recovery
-	lib/version
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 )

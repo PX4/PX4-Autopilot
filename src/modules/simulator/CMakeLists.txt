@@ -58,12 +58,11 @@ endif()
 px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
-	COMPILE_FLAGS
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		${SIMULATOR_SRCS}
 	DEPENDS
+		drivers_led # TODO: this needs to be refactored into the platform layer
 		git_mavlink_v1
-		platforms__common
 	)

@@ -31,16 +31,14 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
 px4_add_module(
 	MODULE platforms__posix__drivers__airspeedsim
 	MAIN measairspeedsim
-	COMPILE_FLAGS
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		airspeedsim.cpp
 		meas_airspeed_sim.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

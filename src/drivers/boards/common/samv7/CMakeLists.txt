@@ -31,9 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(board_samv7
+px4_add_library(drivers_boards_common_arch
 	board_identity.c
 	board_mcu_version.c
 	board_reset.c
 	)
-add_dependencies(board_samv7 nuttx_build)

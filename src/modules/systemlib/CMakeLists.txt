@@ -31,11 +31,12 @@
 #
 ############################################################################
 
+add_subdirectory(bson)
+
 set(SRCS
 	airspeed.c
 	battery.cpp
 	board_serial.c
-	bson/tinybson.c
 	circuit_breaker.cpp
 	conversions.c
 	cpuload.c
@@ -50,34 +51,28 @@ set(SRCS
 	)
 
 if(${OS} STREQUAL "nuttx")
-	list(APPEND SRCS
-		err.c
-		printload.c
-		flashparams/flashparams.c
-		flashparams/flashfs.c
+	if (${BOARD} MATCHES "io")
+		# minimal systemlib for the IO board
+		set(SRCS)
+		list(APPEND SRCS
+			hx_stream.c
+			perf_counter.c
+			pwm_limit/pwm_limit.c
 		)
-elseif ("${CONFIG_SHMEM}" STREQUAL "1")
-	list(APPEND SRCS
-		print_load_posix.c
-		)
+	else()
+		list(APPEND SRCS
+			hx_stream.c
+			printload.c
+			flashparams/flashparams.c
+			flashparams/flashfs.c
+			)
+	endif()
+
 else()
 	list(APPEND SRCS
 		print_load_posix.c
 		)
 endif()
 
-if(NOT ${OS} STREQUAL "qurt")
-	list(APPEND SRCS
-		hx_stream.c
-		)
-endif()
-
-px4_add_module(
-	MODULE modules__systemlib
-	COMPILE_FLAGS
-		-Wno-sign-compare
-	SRCS ${SRCS}
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+px4_add_library(systemlib ${SRCS})
+target_compile_options(systemlib PRIVATE -Wno-sign-compare) # TODO: fix sign compare

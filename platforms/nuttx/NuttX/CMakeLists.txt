@@ -13,7 +13,6 @@ if(NOT nuttx_config_type)
 endif()
 
 project(NuttX_${BOARD} LANGUAGES ASM C CXX)
-message(STATUS "NuttX: " ${BOARD} " " ${nuttx_config_type} " " ${CMAKE_SYSTEM_PROCESSOR})
 
 if (CMAKE_HOST_APPLE OR CMAKE_HOST_WIN32)
 	# copy with rsync and create file dependencies
@@ -214,6 +213,21 @@ add_nuttx_dir(mm mm n "")
 if (CONFIG_NET)
 	add_nuttx_dir(net net y -D__KERNEL__)
 endif()
+
+# WIP, only include relevant directories
+target_include_directories(nuttx_build
+	INTERFACE
+		${NUTTX_DIR}/arch/arm/src/common
+		${NUTTX_DIR}/arch/arm/src/chip
+	)
+
+#target_link_libraries(nuttx_arch INTERFACE nuttx_drivers nuttx_sched)
+#target_link_libraries(nuttx_c INTERFACE nuttx_drivers gcc m)
+#target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
+#target_link_libraries(nuttx_drivers INTERFACE nuttx_sched)
+#target_link_libraries(nuttx_fs INTERFACE nuttx_sched)
+#target_link_libraries(nuttx_mm INTERFACE nuttx_sched)
+#target_link_libraries(nuttx_sched INTERFACE nuttx_arch nuttx_c nuttx_fs nuttx_mm)
 
 # oldconfig helper
 add_custom_target(oldconfig

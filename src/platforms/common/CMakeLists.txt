@@ -31,14 +31,8 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE platforms__common
-	SRCS
-		module.cpp
-		px4_getopt.c
-		shutdown.cpp
-	DEPENDS
-		prebuild_targets
-		uorb_headers
+px4_add_library(platforms__common
+	module.cpp
+	px4_getopt.c
+	shutdown.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

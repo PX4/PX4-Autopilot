@@ -31,16 +31,12 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
-
 px4_add_module(
 	MODULE platforms__posix__drivers__df_bmp280_wrapper
 	MAIN df_bmp280_wrapper
 	SRCS
 		df_bmp280_wrapper.cpp
 	DEPENDS
-		platforms__common
 		df_driver_framework
 		df_bmp280
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

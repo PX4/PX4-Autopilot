@@ -1,4 +1,3 @@
-include(nuttx/px4_impl_nuttx)
 
 add_definitions(
 	-DFLASH_BASED_PARAMS
@@ -7,7 +6,7 @@ add_definitions(
 	-DPARAMETER_BUFFER_SIZE=1024
 )
 
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh)
+px4_nuttx_configure(HWCLASS m4 ROMFS n)
 
 # UAVCAN boot loadable Module ID
 set(uavcanblid_sw_version_major 0)
@@ -40,9 +39,7 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/boards
 	drivers/bootloaders
-	drivers/device
 	drivers/led
 	drivers/stm32
 
@@ -56,6 +53,10 @@ set(config_module_list
 	systemcmds/ver
 
 	#
+	# Library modules
+	#
+
+	#
 	# General system control
 	#
 	modules/uavcanesc
@@ -65,15 +66,4 @@ set(config_module_list
 	modules/uavcanesc/commands/dc
 	modules/uavcanesc/commands/rpm
 	modules/uavcanesc/commands/stat
-
-	#
-	# Library modules
-	#
-	lib/version
-	modules/systemlib
-	modules/systemlib/param
-	modules/uORB
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 )

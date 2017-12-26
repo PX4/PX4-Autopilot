@@ -30,12 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__runway_takeoff
-	COMPILE_FLAGS
-	SRCS
-		RunwayTakeoff.cpp
-	DEPENDS
-		platforms__common
+
+px4_add_library(runway_takeoff
+	RunwayTakeoff.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+target_link_libraries(runway_takeoff PRIVATE controllib)

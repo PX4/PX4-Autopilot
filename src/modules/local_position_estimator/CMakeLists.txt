@@ -49,6 +49,5 @@ px4_add_module(
 		sensors/mocap.cpp
 		sensors/land.cpp
 	DEPENDS
-		platforms__common
+		controllib
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

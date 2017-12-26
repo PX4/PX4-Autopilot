@@ -55,8 +55,6 @@ endif()
 
 if (GENERATE_RTPS_BRIDGE)
 
-	add_subdirectory(micrortps_client)
-
 	###############################################################################
 	# micro-cdr serialization
 	###############################################################################
@@ -132,4 +130,6 @@ if (GENERATE_RTPS_BRIDGE)
 			${CMAKE_CURRENT_SOURCE_DIR}/micro-CDR/include
 			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include/microcdr
 	)
+
+	add_subdirectory(micrortps_client)
 endif()
