@@ -122,7 +122,7 @@ if (GENERATE_RTPS_BRIDGE)
 		VERBATIM
 		)
 	px4_add_library(uorb_msgs_microcdr ${uorb_sources_microcdr})
-	add_dependencies(uorb_msgs_microcdr uorb_headers_microcdr uorb_headers git_micro_cdr lib__micro-CDR)
+	add_dependencies(uorb_msgs_microcdr uorb_headers_microcdr uorb_headers uorb_msgs git_micro_cdr lib__micro-CDR)
 
 	target_link_libraries(uorb_msgs_microcdr PRIVATE lib__micro-CDR)
 
