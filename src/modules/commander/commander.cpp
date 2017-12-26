@@ -1417,25 +1417,7 @@ Commander::run()
 	vehicle_status_flags_s vehicle_status_flags = {};
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	mission_s mission = {};
-	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
-		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
-			if (mission.count > 0) {
-				PX4_INFO("Mission #%d loaded, %u WPs, curr: %d", mission.dataman_id, mission.count, mission.current_seq);
-			}
-
-		} else {
-			PX4_ERR("reading mission state failed");
-
-			/* initialize mission state in dataman */
-			mission.timestamp = hrt_absolute_time();
-			mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
-		}
-
-		orb_advert_t mission_pub = orb_advertise(ORB_ID(mission), &mission);
-		orb_unadvertise(mission_pub);
-	}
+	mission_init();
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
@@ -4571,5 +4553,29 @@ Commander *Commander::instantiate(int argc, char *argv[])
 
 void Commander::enable_hil()
 {
-	status.hil_state = vehicle_status_s::HIL_STATE_ON;
-};
+	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+}
+
+void Commander::mission_init()
+{
+	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
+	mission_s mission = {};
+	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
+			if (mission.count > 0) {
+				PX4_INFO("Mission #%d loaded, %u WPs, curr: %d", mission.dataman_id, mission.count, mission.current_seq);
+			}
+
+		} else {
+			PX4_ERR("reading mission state failed");
+
+			/* initialize mission state in dataman */
+			mission.timestamp = hrt_absolute_time();
+			mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
+		}
+
+		orb_advert_t mission_pub = orb_advertise(ORB_ID(mission), &mission);
+		orb_unadvertise(mission_pub);
+	}
+}
