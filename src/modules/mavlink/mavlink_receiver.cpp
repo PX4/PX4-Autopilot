@@ -1245,7 +1245,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		/* If we are in VTOL mode, publish uORB ID to virtual_setpoint */
 		bool updated;
 		orb_check(_vehicle_status_sub, &updated);
-        
+
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
@@ -1253,6 +1253,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			if (!_attitude_setpoint_id) {
 				if (_vehicle_status.is_vtol) {
 					_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
+
 				} else {
 					_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 				}
@@ -1262,7 +1263,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		/* If we are in offboard control mode and offboard control loop through is enabled
 		 * also publish the setpoint topic which is read by the controller */
 		if (_mavlink->get_forward_externalsp()) {
-			
+
 			orb_check(_control_mode_sub, &updated);
 
 			if (updated) {
