@@ -102,6 +102,8 @@ private:
 				const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
 				const vehicle_attitude_s &attitude, bool set_alt_only_to_lpos_ref);
 
+	void mission_init();
+
 };
 
 #endif /* COMMANDER_HPP_ */
