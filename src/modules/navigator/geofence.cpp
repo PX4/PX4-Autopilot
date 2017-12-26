@@ -296,7 +296,6 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
 
 	if (ret == sizeof(mission_stats_entry_s) && _update_counter != stats.update_counter) {
-		PX4_INFO("reloading geofence");
 		_updateFence();
 	}
 
