@@ -1100,7 +1100,7 @@ bool Ekf::reset_imu_bias()
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 // A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 // Where a measurement type is a vector quantity, eg magnetoemter, GPS position, etc, the maximum value is returned.
-void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl)
+void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl, float *beta)
 {
 	// return the integer bitmask containing the consistency check pass/fail satus
 	*status = _innov_check_fail_status.value;
@@ -1116,6 +1116,8 @@ void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, f
 	*tas = sqrtf(_tas_test_ratio);
 	// return the terrain height innovation test ratio
 	*hagl = sqrtf(_terr_test_ratio);
+	// return the synthetic sideslip innovation test ratio
+	*beta = sqrtf(_beta_test_ratio);
 }
 
 // return a bitmask integer that describes which state estimates are valid
