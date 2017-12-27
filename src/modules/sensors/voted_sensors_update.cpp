@@ -946,9 +946,9 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 						      failover_index,
 						      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
 						      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TOUT" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ECNT" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " EDNST" : ""));
+						      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
+						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
+						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
 
 				// reduce priority of failed sensor to the minimum
 				sensor.priority[failover_index] = 1;
