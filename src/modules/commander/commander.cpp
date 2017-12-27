@@ -1258,11 +1258,6 @@ Commander::run()
 	// XXX for now just set sensors as initialized
 	status_flags.condition_system_sensors_initialized = true;
 
-	/* vehicle status topic */
-	status = {};
-
-	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
-
 	/* set parameters */
 	param_t _param_sys_type = param_find("MAV_TYPE");
 	param_t _param_system_id = param_find("MAV_SYS_ID");
@@ -4541,6 +4536,9 @@ Commander *Commander::instantiate(int argc, char *argv[])
 {
 	Commander *instance = new Commander();
 
+	// XXX remove this once this is a class member
+	status = {};
+
 	if (instance) {
 		if (argc >= 2 && !strcmp(argv[1], "--hil")) {
 			instance->enable_hil();
@@ -4552,5 +4550,5 @@ Commander *Commander::instantiate(int argc, char *argv[])
 
 void Commander::enable_hil()
 {
-	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+	status.hil_state = vehicle_status_s::HIL_STATE_ON;
 };
