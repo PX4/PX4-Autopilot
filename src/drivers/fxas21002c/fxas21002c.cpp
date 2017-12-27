@@ -1045,16 +1045,16 @@ FXAS21002C::measure()
 	// whether it has had failures
 	gyro_report.error_count = perf_event_count(_bad_registers);
 
-	gyro_report.x_raw = swap16(raw_gyro_report.x);
-	gyro_report.y_raw = swap16(raw_gyro_report.y);
-	gyro_report.z_raw = swap16(raw_gyro_report.z);
-
-	float xraw_f = gyro_report.x_raw;
-	float yraw_f = gyro_report.y_raw;
-	float zraw_f = gyro_report.z_raw;
+	float xraw_f = swap16(raw_gyro_report.x);
+	float yraw_f = swap16(raw_gyro_report.y);
+	float zraw_f = swap16(raw_gyro_report.z);
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	gyro_report.x_raw = (int16_t)(xraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+	gyro_report.y_raw = (int16_t)(yraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+	gyro_report.z_raw = (int16_t)(zraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
 
 	float x_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	float y_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;

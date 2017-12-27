@@ -971,17 +971,6 @@ HMC5883::collect()
 		}
 	}
 
-	/*
-	 * RAW outputs
-	 *
-	 * to align the sensor axes with the board, x and y need to be flipped
-	 * and y needs to be negated
-	 */
-	new_report.x_raw = -report.y;
-	new_report.y_raw = report.x;
-	/* z remains z */
-	new_report.z_raw = report.z;
-
 	/* scale values for output */
 
 	// XXX revisit for SPI part, might require a bus type IOCTL
@@ -1005,6 +994,10 @@ HMC5883::collect()
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	new_report.x_raw = (int16_t)(xraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
+	new_report.y_raw = (int16_t)(yraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
+	new_report.z_raw = (int16_t)(zraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
 
 	new_report.x = ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_scale;
 	/* flip axes and negate value for y */

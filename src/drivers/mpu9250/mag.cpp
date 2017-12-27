@@ -211,9 +211,6 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	 * Align axes - note the accel & gryo are also re-aligned so this
 	 *              doesn't look obvious with the datasheet
 	 */
-	mrb.x_raw =  data.x;
-	mrb.y_raw = -data.y;
-	mrb.z_raw = -data.z;
 
 	float xraw_f =  data.x;
 	float yraw_f = -data.y;
@@ -221,6 +218,10 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 
 	/* apply user specified rotation */
 	rotate_3f(_parent->_rotation, xraw_f, yraw_f, zraw_f);
+
+	mrb.x_raw = (int16_t)(xraw_f * _mag_range_scale * _mag_asa_x * 1000); // (int16) [Gs * 1000]
+	mrb.y_raw = (int16_t)(yraw_f * _mag_range_scale * _mag_asa_x * 1000); // (int16) [Gs * 1000]
+	mrb.z_raw = (int16_t)(zraw_f * _mag_range_scale * _mag_asa_x * 1000); // (int16) [Gs * 1000]
 
 	mrb.x = ((xraw_f * _mag_range_scale * _mag_asa_x) - _mag_scale.x_offset) * _mag_scale.x_scale;
 	mrb.y = ((yraw_f * _mag_range_scale * _mag_asa_y) - _mag_scale.y_offset) * _mag_scale.y_scale;
