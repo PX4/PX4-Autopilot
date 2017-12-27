@@ -536,7 +536,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 			break;
 
 		default:
-			PX4_WARN("Unknown HIL state");
+			PX4_WARN("Unknown HITL state");
 			break;
 		}
 	}
