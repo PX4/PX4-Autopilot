@@ -41,24 +41,24 @@
 
 #pragma once
 
-#include "FlightTaskManual.hpp"
+#include "FlightTaskManualPosition.hpp"
 
-class FlightTaskSport : public FlightTaskManual
+class FlightTaskSport : public FlightTaskManualPosition
 {
 public:
 	FlightTaskSport(control::SuperBlock *parent, const char *name) :
-		FlightTaskManual(parent, name),
+		FlightTaskManualPosition(parent, name),
 		_velocity_hor_max(parent, "MPC_XY_VEL_MAX", false)
 	{ }
 
 	virtual ~FlightTaskSport() = default;
 
 protected:
-	void _scaleVelocity(matrix::Vector3f &velocity) override
+	void _scaleVelocity(matrix::Vector3f &velocity)
 	{
 		const matrix::Vector3f velocity_scale(_velocity_hor_max.get(),
 						      _velocity_hor_max.get(),
-						      (velocity(2) > 0.0f) ? _z_vel_max_down.get() : _z_vel_max_up.get());
+						      (velocity(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get());
 		velocity = velocity.emult(velocity_scale);
 	}
 
