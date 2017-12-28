@@ -144,7 +144,7 @@ void TranslationControl::_interfaceMapping()
 
 	if (!PX4_ISFINITE(_yawspeed_sp)) {
 
-		/* Targe yaw is yaw setpoint. No need for yawspped */
+		/* Target yaw is yaw setpoint. No need for yawspeed */
 		_yawspeed_sp = 0.0f;
 
 		if (!PX4_ISFINITE(_yaw_sp)) {
