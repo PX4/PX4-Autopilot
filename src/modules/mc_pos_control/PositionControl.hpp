@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file TranslationControl.hpp
+ * @file PositionControl.hpp
  *
  * @inputs: position-, velocity-, acceleration-, thrust-setpoints
  * @outputs: thrust vector
@@ -57,12 +57,12 @@ struct Constraints {
 };
 }
 
-class TranslationControl
+class PositionControl
 {
 public:
-	TranslationControl();
+	PositionControl();
 
-	~TranslationControl() {};
+	~PositionControl() {};
 
 	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot,
 			 const matrix::Matrix<float, 3, 3> &R);
