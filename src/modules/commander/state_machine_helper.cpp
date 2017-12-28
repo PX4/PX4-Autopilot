@@ -520,11 +520,28 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 				int32_t hitl_on = 0;
 				param_get(param_find("SYS_HITL"), &hitl_on);
 
+				int32_t airframe = 0;
+				param_get(param_find("SYS_AUTOSTART"), &airframe);
+
+				if (!(airframe == 1000
+					|| airframe == 1001
+					|| airframe == 4001
+					|| airframe == 4002
+					|| airframe == 4010
+					|| airframe == 4011)) {
+					mavlink_log_critical(mavlink_log_pub, "Not a supported airframe config for HITL.");
+					ret = TRANSITION_DENIED;
+					break;
+				}
+
+				// Check for compatible airframes
+
+
 				if (hitl_on) {
-					mavlink_log_info(mavlink_log_pub, "Enabled Hardware-in-the-loop simulation.");
+					mavlink_log_info(mavlink_log_pub, "Enabled Hardware-in-the-loop simulation (HITL).");
 
 				} else {
-					mavlink_log_critical(mavlink_log_pub, "Set parameter SYS_HITL to 1 before starting HITL.");
+					mavlink_log_critical(mavlink_log_pub, "Set SYS_HITL to 1 and reboot to enable HITL.");
 					ret = TRANSITION_DENIED;
 				}
 
