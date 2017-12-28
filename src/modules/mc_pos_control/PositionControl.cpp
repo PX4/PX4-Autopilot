@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file TranslationControl.cpp
+ * @file PositionControl.cpp
  *
  * This file implements a P-position-control cascaded with a
  * PID-velocity-controller.
@@ -42,7 +42,7 @@
  * Outputs: thrust and yaw setpoint
  */
 
-#include "TranslationControl.hpp"
+#include "PositionControl.hpp"
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include "uORB/topics/parameter_update.h"
@@ -54,7 +54,7 @@ using namespace matrix;
 
 using Data = matrix::Vector3f;
 
-TranslationControl::TranslationControl()
+PositionControl::PositionControl()
 {
 	_Pz_h   = param_find("MPC_Z_P");
 	_Pvz_h  = param_find("MPC_Z_VEL_P");
@@ -77,8 +77,8 @@ TranslationControl::TranslationControl()
 	_setParams();
 };
 
-void TranslationControl::updateState(const struct vehicle_local_position_s state, const Data &vel_dot,
-				     const matrix::Matrix<float, 3, 3> &R)
+void PositionControl::updateState(const struct vehicle_local_position_s state, const Data &vel_dot,
+				  const matrix::Matrix<float, 3, 3> &R)
 {
 	_pos = Data(&state.x);
 	_vel = Data(&state.vx);
@@ -87,7 +87,7 @@ void TranslationControl::updateState(const struct vehicle_local_position_s state
 	_R = R;
 }
 
-void TranslationControl::updateSetpoint(struct vehicle_local_position_setpoint_s setpoint)
+void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s setpoint)
 {
 	_pos_sp = Data(&setpoint.x);
 	_vel_sp = Data(&setpoint.vx);
@@ -97,7 +97,7 @@ void TranslationControl::updateSetpoint(struct vehicle_local_position_setpoint_s
 	_interfaceMapping();
 }
 
-void TranslationControl::generateThrustYawSetpoint(const float &dt)
+void PositionControl::generateThrustYawSetpoint(const float &dt)
 {
 	_updateParams();
 	_positionController();
@@ -105,7 +105,7 @@ void TranslationControl::generateThrustYawSetpoint(const float &dt)
 	_yawController(dt);
 }
 
-void TranslationControl::_interfaceMapping()
+void PositionControl::_interfaceMapping()
 {
 	/* Respects FlightTask interface, where
 	 * NAN-setpoints are of no interest and
@@ -162,7 +162,7 @@ void TranslationControl::_interfaceMapping()
 	}
 }
 
-void TranslationControl::_positionController()
+void PositionControl::_positionController()
 {
 	/* Generate desired velocity setpoint */
 
@@ -180,7 +180,7 @@ void TranslationControl::_positionController()
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ[0], _VelMaxZ[1]);
 }
 
-void TranslationControl::_velocityController(const float &dt)
+void PositionControl::_velocityController(const float &dt)
 {
 	/* Generate desired thrust setpoint */
 	/* PID
@@ -251,7 +251,7 @@ void TranslationControl::_velocityController(const float &dt)
 
 }
 
-void TranslationControl::_yawController(const float &dt)
+void PositionControl::_yawController(const float &dt)
 {
 	const float yaw_offset_max = math::radians(_YawRateMax) / _Pyaw;
 	const float  yaw_target = _wrap_pi(_yaw_sp + _yawspeed_sp * dt);
@@ -269,12 +269,12 @@ void TranslationControl::_yawController(const float &dt)
 
 }
 
-void TranslationControl::updateConstraints(const Controller::Constraints &constraints)
+void PositionControl::updateConstraints(const Controller::Constraints &constraints)
 {
 	_constraints = constraints;
 }
 
-void TranslationControl::_updateParams()
+void PositionControl::_updateParams()
 {
 	bool updated;
 	parameter_update_s param_update;
@@ -286,7 +286,7 @@ void TranslationControl::_updateParams()
 	}
 }
 
-void TranslationControl::_setParams()
+void PositionControl::_setParams()
 {
 	param_get(_Pxy_h, &Pp(0));
 	param_get(_Pxy_h, &Pp(1));
