@@ -67,8 +67,6 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 bool FlightTaskManual::activate()
 {
 	bool ret = FlightTask::activate();
-	_hold_position = Vector3f(NAN, NAN, NAN);
-	_hold_yaw = NAN;
 	return ret;
 }
 
@@ -91,34 +89,6 @@ bool FlightTaskManual::update()
 	 * thrust setpoint. With thrust setpoint FlightTaskManual can be used as manual flight mode.
 	 */
 	return true;
-}
-
-float FlightTaskManual::_get_input_frame_yaw()
-{
-	/* using constant yaw angle from setpoint here to prevent sideways oscillation in fast forward flight */
-	if (PX4_ISFINITE(_hold_yaw)) {
-		return _hold_yaw;
-
-	} else {
-		return _yaw;
-	}
-}
-
-void FlightTaskManual::_updateYaw()
-{
-	const float yaw_speed = _sticks(3) * math::radians(_man_yaw_max.get());
-	_setYawspeedSetpoint(yaw_speed);
-
-	const bool stick_yaw_zero = fabsf(yaw_speed) <= FLT_EPSILON;
-
-	if (stick_yaw_zero && !PX4_ISFINITE(_hold_yaw)) {
-		_hold_yaw = _yaw;
-
-	} else if (!stick_yaw_zero) {
-		_hold_yaw = NAN;
-	}
-
-	_setYawSetpoint(_hold_yaw);
 }
 
 bool FlightTaskManual::_evaluateSticks()
