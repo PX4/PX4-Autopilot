@@ -43,6 +43,7 @@
 #include "ControlMath.hpp"
 #include <platforms/px4_defines.h>
 #include <float.h>
+#include <mathlib/mathlib.h>
 
 namespace ControlMath
 {
@@ -124,7 +125,7 @@ void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], 
 		stop_I[0] = true;
 		u(0) = 0.0f;
 		u(1) = 0.0f;
-		u(2) = -Ulimits[0]; //N-E-D frame
+		u(2) = math::sign(u(2)) * Ulimits[0];
 
 	} else if (u.length() >= Ulimits[0]) {
 
@@ -151,7 +152,7 @@ void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], 
 		 * since we do not know better. (no direction given)
 		 */
 		if (u.length() < 0.0001f) {
-			u = matrix::Vector3f(0.0f, 0.0f, -Ulimits[1]);
+			u = matrix::Vector3f(0.0f, 0.0f, math::sign(u(2)) * Ulimits[1]);
 
 		} else {
 			u = u.normalized() * Ulimits[1];
