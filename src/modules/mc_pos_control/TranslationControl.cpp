@@ -238,9 +238,6 @@ void TranslationControl::_velocityController(const float &dt)
 	bool stop_I[2] = {false, false}; // stop integration for xy and z
 	ControlMath::constrainPIDu(_thr_sp, stop_I, _ThrLimit, direction);
 
-	/* Throttle is just thrust length. */
-	_throttle = _thr_sp.length();
-
 	/* Update integrals */
 	if (!stop_I[0]) {
 		_thr_int(0) += vel_err(0) * Iv(0) * dt;
