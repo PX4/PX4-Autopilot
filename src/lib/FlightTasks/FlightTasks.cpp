@@ -52,6 +52,14 @@ int FlightTasks::switchTask(int task_number)
 		_current_task = new (&_task_union.sport) FlightTaskSport(this, "SPO");
 		break;
 
+	case 3:
+		_current_task = new (&_task_union.altitude) FlightTaskSport(this, "MANALT");
+		break;
+
+	case 4:
+		_current_task = new (&_task_union.position) FlightTaskSport(this, "MANPOS");
+		break;
+
 	case -1:
 		/* disable tasks is a success */
 		return 0;
