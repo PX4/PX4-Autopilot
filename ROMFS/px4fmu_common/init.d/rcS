@@ -194,7 +194,7 @@ then
 	set MAV_TYPE none
 	set FAILSAFE none
 	set USE_IO no
-	set LOGGER_BUF 16
+	set LOGGER_BUF 14
 
 	if ver hwcmp PX4FMU_V4
 	then
