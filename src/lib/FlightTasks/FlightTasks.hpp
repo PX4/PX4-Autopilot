@@ -45,6 +45,7 @@
 #include "tasks/FlightTaskManual.hpp"
 #include "tasks/FlightTaskManualAltitude.hpp"
 #include "tasks/FlightTaskManualPosition.hpp"
+#include "tasks/FlightTaskManualStabilized.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 #include "tasks/FlightTaskSport.hpp"
 
@@ -122,6 +123,7 @@ private:
 		~TaskUnion() {}
 
 		FlightTaskManual manual;
+		FlightTaskManualStabilized stabilized;
 		FlightTaskManualAltitude altitude;
 		FlightTaskManualPosition position;
 		FlightTaskOrbit orbit;

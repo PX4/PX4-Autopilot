@@ -53,11 +53,15 @@ int FlightTasks::switchTask(int task_number)
 		break;
 
 	case 3:
-		_current_task = new (&_task_union.altitude) FlightTaskSport(this, "MANALT");
+		_current_task = new (&_task_union.altitude) FlightTaskManualAltitude(this, "MANALT");
 		break;
 
 	case 4:
-		_current_task = new (&_task_union.position) FlightTaskSport(this, "MANPOS");
+		_current_task = new (&_task_union.position) FlightTaskManualPosition(this, "MANPOS");
+		break;
+
+	case 5:
+		_current_task = new (&_task_union.stabilized) FlightTaskManualStabilized(this, "MANSTAB");
 		break;
 
 	case -1:
