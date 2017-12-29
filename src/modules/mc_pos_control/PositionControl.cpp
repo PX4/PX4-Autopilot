@@ -92,6 +92,7 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 	_pos_sp = Data(&setpoint.x);
 	_vel_sp = Data(&setpoint.vx);
 	_acc_sp = Data(&setpoint.acc_x);
+	_thr_sp = Data(&setpoint.thr_x);
 	_yaw_sp = setpoint.yaw; //integrate
 	_yawspeed_sp = setpoint.yawspeed;
 	_interfaceMapping();
@@ -100,8 +101,15 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 void PositionControl::generateThrustYawSetpoint(const float &dt)
 {
 	_updateParams();
-	_positionController();
-	_velocityController(dt);
+
+	/* Only run position/velocity controller
+	 * if no altitude thrust is given.
+	 */
+	if (!PX4_ISFINITE(_thr_sp(2))) {
+		_positionController();
+		_velocityController(dt);
+	}
+
 	_yawController(dt);
 }
 
@@ -114,6 +122,14 @@ void PositionControl::_interfaceMapping()
 
 	/* Loop through x,y and z components of all setpoints. */
 	for (int i = 0; i <= 2; i++) {
+
+		if (PX4_ISFINITE(_thr_sp(i))) {
+
+			_pos_sp(i) = _pos(i);
+			_vel_sp(i) = _vel(i);
+			_acc_sp(i) = _acc(i);
+			continue;
+		}
 
 		if (PX4_ISFINITE(_pos_sp(i))) {
 
@@ -211,22 +227,6 @@ void PositionControl::_velocityController(const float &dt)
 	tilt_max = math::min(tilt_max, M_PI_2_F);
 	_thr_sp = ControlMath::constrainTilt(_thr_sp, tilt_max);
 
-	/*TODO: Check if it is beneficial to project thrust onto body z axis  */
-
-	/* Calculate desired total thrust amount in body z direction. */
-	/* To compensate for excess thrust during attitude tracking errors we
-	 * project the desired thrust force vector F onto the real vehicle's thrust axis in NED:
-	 * body thrust axis [0,0,-1]' rotated by R is: R*[0,0,-1]' = -R_z */
-//	matrix::Vector3f R_z(_R(0, 2), _R(1, 2), _R(2, 2));
-//	_throttle = thr_sp_tilt.dot(-R_z);
-//
-//	/* Re-scale thrust set-point based on throttle*/
-//	if (thr_sp_tilt.length() < 0.0001f) {
-//		_thr_sp = matrix::Vector3f(0.0f, 0.0f,  0.0f);
-//
-//	} else {
-//		_thr_sp = thr_sp_tilt.normalized() * _throttle;
-//	}
 
 	/* Constrain thrust set-point and update saturation flag */
 	/* To get (r-y) for horizontal direction, we look at the dot-product
