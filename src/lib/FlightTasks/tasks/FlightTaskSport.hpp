@@ -42,27 +42,45 @@
 #pragma once
 
 #include "FlightTaskManualPosition.hpp"
+#include "mathlib/mathlib.h"
+#include <float.h>
 
 class FlightTaskSport : public FlightTaskManualPosition
 {
 public:
 	FlightTaskSport(control::SuperBlock *parent, const char *name) :
 		FlightTaskManualPosition(parent, name),
-		_velocity_hor_max(parent, "MPC_XY_VEL_MAX", false)
+		_vel_xy_max(parent, "MPC_XY_VEL_MAX", false)
 	{ }
 
 	virtual ~FlightTaskSport() = default;
 
 protected:
-	void _scaleVelocity(matrix::Vector3f &velocity)
+	void _scaleSticks() override
 	{
-		const matrix::Vector3f velocity_scale(_velocity_hor_max.get(),
-						      _velocity_hor_max.get(),
-						      (velocity(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get());
-		velocity = velocity.emult(velocity_scale);
+
+		/* Get all stick scaling from FlightTaskManualAltitude */
+		FlightTaskManualAltitude::_scaleSticks();
+
+		/* Constrain length of stick inputs to 1 for xy*/
+		matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
+
+		float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
+
+		if (mag > FLT_EPSILON) {
+			stick_xy = stick_xy.normalized() * mag;
+		}
+
+		/* Scale to velocity using max velocity */
+		_vel_sp_xy = stick_xy * _vel_xy_max.get();
+
+		/* Rotate setpoint into local frame. */
+		matrix::Vector3f vel_sp { _vel_sp_xy(0), _vel_sp_xy(1), 0.0f };
+		vel_sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw)) * vel_sp);
+		_vel_sp_xy = matrix::Vector2f(vel_sp(0), vel_sp(1));
 	}
 
 private:
-	control::BlockParamFloat _velocity_hor_max; /**< maximal allowed horizontal speed, in sport mode full stick input*/
+	control::BlockParamFloat _vel_xy_max; /**< maximal allowed horizontal speed, in sport mode full stick input*/
 
 };
