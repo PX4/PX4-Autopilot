@@ -3241,10 +3241,8 @@ MulticopterPositionControl::task_main()
 		}
 
 		/* if there is an active flight task but the commander has switched to a mode different from POSCTL, disable the current task */
-		if (_flight_tasks.isAnyTaskActive()) {
-			if (!(_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL)) {
-				_flight_tasks.switchTask(-1);
-			}
+		if (_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_POSCTL && _flight_tasks.isAnyTaskActive()) {
+			_flight_tasks.switchTask(-1);
 		}
 
 		if (_control_mode.flag_control_altitude_enabled ||

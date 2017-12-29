@@ -32,72 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskManual.hpp
+ * @file FlightTaskOrbit.hpp
  *
- * Flight task for the normal, legacy, manual position controlled flight
- * where stick inputs map basically to the velocity setpoint
+ * Flight task for orbiting in a circle around a target position
  *
  * @author Matthias Grob <maetugr@gmail.com>
  */
 
-#include "FlightTaskOrbit.hpp"
-#include <mathlib/mathlib.h>
+#pragma once
 
-using namespace matrix;
+#include "FlightTaskManual.hpp"
 
-FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) :
-	FlightTaskManual(parent, name)
+class FlightTaskSport : public FlightTaskManual
 {
-	_sticks_data_required = false;
-}
+public:
+	FlightTaskSport(control::SuperBlock *parent, const char *name) :
+		FlightTaskManual(parent, name)
+	{ }
 
-bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
-{
-	const float &r = command.param3; /**< commanded radius */
-	const float &v = command.param4; /**< commanded velocity */
+	virtual ~FlightTaskSport() = default;
 
-	if (math::isInRange(r, 5.f, 50.f) && fabs(v) < 10.f) {
-		_r = r;
-		_v = v;
-		return FlightTaskManual::applyCommandParameters(command);
+protected:
+	void _scaleVelocity(matrix::Vector3f &velocity) override
+	{
+		const matrix::Vector3f velocity_scale(20.f, 20.f, 5.f);
+		velocity = velocity.emult(velocity_scale);
 	}
 
-	return false;
-}
-
-bool FlightTaskOrbit::activate()
-{
-	bool ret = FlightTaskManual::activate();
-	_r = 1.f;
-	_v =  0.5f;
-	_z = _position(2);
-	_center = Vector2f(_position.data());
-	_center(0) -= _r;
-	return ret;
-}
-
-bool FlightTaskOrbit::update()
-{
-	_r += _sticks(0) * _deltatime;
-	_r = math::constrain(_r, 1.f, 20.f);
-	_v -= _sticks(1) * _deltatime;
-	_v = math::constrain(_v, -7.f, 7.f);
-	_z += _sticks(2) * _deltatime;
-
-	Vector2f center_to_position = Vector2f(_position.data()) - _center;
-
-	/* xy velocity to go around in a circle */
-	Vector2f velocity_xy = Vector2f(center_to_position(1), -center_to_position(0));
-	velocity_xy = velocity_xy.unit_or_zero();
-	velocity_xy *= _v;
-
-	/* xy velocity adjustment to stay on the radius distance */
-	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
-
-	float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
-
-	_setPositionSetpoint(Vector3f(NAN, NAN, _z));
-	_setVelocitySetpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
-	_setYawSetpoint(yaw);
-	return true;
-}
+};
