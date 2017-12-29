@@ -243,11 +243,11 @@ set(BUILD_SHARED_LIBS OFF)
 #=============================================================================
 # ccache
 #
-option(CCACHE "Use ccache if available" OFF)
+option(CCACHE "Use ccache if available" ON)
 find_program(CCACHE_PROGRAM ccache)
-if (CCACHE AND CCACHE_PROGRAM)
-	message(STATUS "Enabled ccache: ${CCACHE_PROGRAM}")
+if (CCACHE AND CCACHE_PROGRAM AND NOT DEFINED ENV{CCACHE_DISABLE})
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+else()
 endif()
 
 #=============================================================================
