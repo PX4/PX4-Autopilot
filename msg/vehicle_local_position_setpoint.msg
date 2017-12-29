@@ -12,3 +12,6 @@ float32 vz		# in meters/sec
 float32 acc_x	# in meters/(sec*sec)
 float32 acc_y	# in meters/(sec*sec)
 float32 acc_z	# in meters/(sec*sec)
+float32 thr_x   # normalized
+float32 thr_y	# normalized
+float32 thr_z   # normalized
