@@ -83,7 +83,6 @@ private:
 	matrix::Vector3f _vel{};
 	matrix::Vector3f _vel_dot{};
 	matrix::Vector3f _acc{};
-	matrix::Vector3f _thr{};
 	float _yaw{0.0f};
 	matrix::Matrix<float, 3, 3> _R{};
 
