@@ -241,7 +241,7 @@ pipeline {
         stage('clang analyzer') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2017-10-23'
+              image 'px4io/px4-dev-clang:2017-12-29'
               args '-e CI=true -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
             }
           }
@@ -264,7 +264,7 @@ pipeline {
         stage('clang tidy') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2017-10-23'
+              image 'px4io/px4-dev-clang:2017-12-29'
               args '-e CI=true -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
             }
           }
