@@ -66,7 +66,7 @@ protected:
 	bool _sticks_data_required = true; /**< let inherited task-class define if it depends on stick data */
 	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
 	matrix::Vector3f _sticks_expo; /**< modified manual sticks using expo function*/
-	control::BlockParamFloat _hold_dz; /**< 0-deadzone around the center for the sticks */
+	control::BlockParamFloat _stick_dz; /**< 0-deadzone around the center for the sticks */
 
 private:
 
