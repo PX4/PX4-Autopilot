@@ -48,95 +48,67 @@ using namespace matrix;
 FlightTaskManualPosition::FlightTaskManualPosition(control::SuperBlock *parent, const char *name) :
 	FlightTaskManualAltitude(parent, name),
 	_vel_xy_manual_max(parent, "MPC_VEL_MANUAL", false),
-	_acc_xy_max(parent, "MPC_ACC_HOR_MAX", false)
+	_acc_xy_max(parent, "MPC_ACC_HOR_MAX", false), \
+	_vel_xy_dz(parent,  "MPC_HOLD_MAX_XY", false)
 {}
 
 bool FlightTaskManualPosition::activate()
 {
-	_pos_sp_xy = _pos_sp_xy_lock = matrix::Vector2f(_position(0), _position(1));
-	_vel_sp_xy = matrix::Vector2f(NAN, NAN);
-	_lock_time = 0.0f;
-	_lock_time_max = 1.0f; // 1s time to brake as default
+	_pos_sp_xy = matrix::Vector2f(&_position(0));
+	_vel_sp_xy = matrix::Vector2f(0.0f, 0.0f);
 	return FlightTaskManualAltitude::activate();
 }
 
-void FlightTaskManualPosition::scaleSticks()
+void FlightTaskManualPosition::_scaleSticks()
 {
-	/* Get velocity in z and yawspeed. */
-	FlightTaskManualAltitude::scaleSticks();
+	/* Use same scaling as for FlightTaskManualAltitude to
+	 * get yaw and z */
+	FlightTaskManualAltitude::_scaleSticks();
 
-	/* Constrain length of stick inputs to 1. */
+	/* Constrain length of stick inputs to 1 for xy*/
 	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
+
 	float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
-	stick_xy = stick_xy.normalized() * mag;
+
+	if (mag > FLT_EPSILON) {
+		stick_xy = stick_xy.normalized() * mag;
+	}
 
 	/* Scale to velocity.*/
 	_vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
 
 	/* Rotate setpoint into local frame. */
 	matrix::Vector3f vel_sp{_vel_sp_xy(0), _vel_sp_xy(1), 0.0f};
-	vel_sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw_sp_predicted)) * vel_sp);
+	vel_sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw)) * vel_sp);
 	_vel_sp_xy = matrix::Vector2f(vel_sp(0), vel_sp(1));
 }
 
-void FlightTaskManualPosition::updateXYsetpoints()
+void FlightTaskManualPosition::_updateXYsetpoints()
 {
-	/* If position lock is active, velocity setpoint is set to NAN. Otherwise
-	 * position setpoint is set to NAN.
-	 */
+	/* If position lock is not active, position setpoint is set to NAN.*/
+	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
+	const bool stick_zero = matrix::Vector2f(_sticks_expo(0), _sticks_expo(1)).length() < FLT_EPSILON;
+	const bool stopped = (_vel_xy_dz.get() < FLT_EPSILON || vel_xy_norm < _vel_xy_dz.get());
 
-	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
+	if (stick_zero && stopped && !PX4_ISFINITE(_pos_sp_xy(0))) {
+		_pos_sp_xy = matrix::Vector2f(&_position(0));
 
-	if (stick_xy.length() < FLT_EPSILON) {
-
-		/* Hold position */
-
-		if (_lock_time <= _lock_time_max) {
-			/* Don't lock: time has not been reached. */
-			_vel_sp_xy.zero();
-			_pos_sp_xy = matrix::Vector2f(NAN, NAN);
-			_pos_sp_xy_lock = matrix::Vector2f(&(_position(0)));
-			_lock_time += _deltatime;
-
-		} else {
-			/*Lock position. */
-			_vel_sp_xy = matrix::Vector2f(NAN, NAN);
-			_pos_sp_xy = matrix::Vector2f(&(_pos_sp_xy_lock(0)));
-		}
-
-	} else {
-		/* Move based on velocity. Position setpoint
-		 * not used and therefore set to NAN.  */
-		_pos_sp_xy = matrix::Vector2f(NAN, NAN);
-
-		/* Always update time to brake. It depends on
-		 * maximum acceleration.
-		 */
-		if (PX4_ISFINITE(_acc_xy_max.get())) {
-			/* We take half max acceleration because it is better to lock
-			 * position setpoint late than early to prevent backward and forward movement.
-			 */
-			_lock_time_max = matrix::Vector2f(&(_velocity(0))).length() / (0.5f * _acc_xy_max.get());
-
-		} else {
-			_lock_time_max = 2.0f; // 2 second time to brake if no acceleration is set
-		}
-
-		_lock_time = 0.0f;
+	} else if (!stick_zero) {
+		_pos_sp_xy = _pos_sp_xy * NAN;
 	}
 }
 
-void FlightTaskManualPosition::updateSetpoints()
+void FlightTaskManualPosition::_updateSetpoints()
 {
-	/* Apply position lock if required. */
-	FlightTaskManualAltitude::updateSetpoints();
-	updateXYsetpoints();
+	FlightTaskManualAltitude::_updateSetpoints(); // get yaw and z setpoints
+	_updateXYsetpoints(); // get xy setpoints
 }
 
 bool FlightTaskManualPosition::update()
 {
-	scaleSticks();
-	updateSetpoints();
+	_scaleSticks();
+	_updateSetpoints();
+
 	_setPositionSetpoint(Vector3f(_pos_sp_xy(0), _pos_sp_xy(1), _pos_sp_z));
 	_setVelocitySetpoint(Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), _vel_sp_z));
 	_setYawSetpoint(_yaw_sp);
