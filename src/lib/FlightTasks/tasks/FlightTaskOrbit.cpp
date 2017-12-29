@@ -56,8 +56,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	const float &r = command.param3; /**< commanded radius */
 	const float &v = command.param4; /**< commanded velocity */
 
-	if (math::isInRange(r, 5.f, 50.f) &&
-	    fabs(v) < 10.f) {
+	if (math::isInRange(r, 5.f, 50.f) && fabs(v) < 10.f) {
 		_r = r;
 		_v = v;
 		return FlightTaskManual::applyCommandParameters(command);
