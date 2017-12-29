@@ -57,14 +57,22 @@ public:
 protected:
 	float _yaw_rate_sp{}; /**< Scaled yaw rate from stick. NAN if yaw is locked. */
 	float _yaw_sp{}; /**< Yaw setpoint once locked. Otherwise NAN. */
+	matrix::Vector3f _thr_sp{}; /**< Thrust setpoint from sticks */
 
 	virtual void _updateSetpoints(); /**< Updates all setpoints. */
 	virtual void _scaleSticks(); /**< Scales sticks to yaw and thrust. */
 
 private:
+
+	float _throttle{};
+
 	void _updateHeadingSetpoints(); /**< Sets yaw or yaw speed. */
 	void _updateThrustSetpoints(); /**< Sets thrust setpoint */
+	float _throttleCurve(); /**< piecewise linear mapping for throttle */
 
 	control::BlockParamFloat _yaw_rate_scaling; /**< Scaling factor from stick to yaw rate. */
-
+	control::BlockParamFloat _tilt_max_man; /**< Maximum tilt allowed for manual flight */
+	control::BlockParamFloat _throttle_min; /**< Minimum throttle that always has to be satisfied in flight*/
+	control::BlockParamFloat _throttle_max; /**< Maximum throttle that always has to be satisfied in flight*/
+	control::BlockParamFloat _throttle_hover; /**< Throttel value at which vehicle is at hover equilibrium */
 };
