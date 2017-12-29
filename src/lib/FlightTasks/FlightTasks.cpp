@@ -79,7 +79,7 @@ int FlightTasks::switchTask(int task_number)
 	return 1;
 }
 
-bool FlightTasks::_updateCommand()
+void FlightTasks::_updateCommand()
 {
 	/* lazy subscription to command topic */
 	if (_sub_vehicle_command < 0) {
@@ -91,19 +91,19 @@ bool FlightTasks::_updateCommand()
 	orb_check(_sub_vehicle_command, &updated);
 
 	if (!updated) {
-		return false;
+		return;
 	}
 
 	/* check if command is for flight task library */
 	struct vehicle_command_s command;
 	orb_copy(ORB_ID(vehicle_command), _sub_vehicle_command, &command);
 
-	if (!(command.command == vehicle_command_s::VEHICLE_CMD_FLIGHT_TASK)) {
-		return false;
+	if (command.command != vehicle_command_s::VEHICLE_CMD_FLIGHT_TASK) {
+		return;
 	}
 
 	/* evaluate command */
-	int switch_result = switchTask(int(command.param1));
+	int switch_result = switchTask(int(command.param1 + 0.5f));
 	uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 
 	/* if we are in the desired task */
@@ -138,6 +138,4 @@ bool FlightTasks::_updateCommand()
 		orb_publish(ORB_ID(vehicle_command_ack), _pub_vehicle_command_ack, &command_ack);
 
 	}
-
-	return true;
 }

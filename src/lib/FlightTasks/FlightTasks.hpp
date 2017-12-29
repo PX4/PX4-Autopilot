@@ -71,13 +71,12 @@ public:
 
 	/**
 	 * Get the output data from the current task
-	 * Only call when task is active!
+	 * @return output setpoint, to be executed by position control
 	 */
 	const vehicle_local_position_setpoint_s &getPositionSetpoint();
 
 	/**
 	 * Convenient operator to get the output data from the current task
-	 * Only call when task is active!
 	 */
 	inline const vehicle_local_position_setpoint_s &operator()() { return getPositionSetpoint(); }
 
@@ -121,7 +120,7 @@ private:
 
 		FlightTaskManual manual;
 		FlightTaskOrbit orbit;
-	} _task_union; /*< storage for the currently active task */
+	} _task_union; /**< storage for the currently active task */
 
 	FlightTask *_current_task = nullptr;
 	int _current_task_index = -1;
@@ -130,9 +129,8 @@ private:
 
 	/**
 	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
-	 * @return true if there was a new command, false if not
 	 */
-	bool _updateCommand();
-	int	_sub_vehicle_command = -1; /*< topic handle on which commands are received */
-	orb_advert_t _pub_vehicle_command_ack = nullptr; /*< topic handle to which commands get acknowledged */
+	void _updateCommand();
+	int _sub_vehicle_command = -1; /**< topic handle on which commands are received */
+	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
 };
