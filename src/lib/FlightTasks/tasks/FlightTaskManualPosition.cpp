@@ -110,6 +110,8 @@ bool FlightTaskManualPosition::update()
 	_setVelocitySetpoint(Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), _vel_sp_z));
 	_setYawSetpoint(_yaw_sp);
 	_setYawspeedSetpoint(_yaw_rate_sp);
+	_setThrustSetpoint(Vector3f(NAN, NAN, NAN));
+
 
 	return true;
 }
