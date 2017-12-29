@@ -3,13 +3,9 @@
 
 sudo: required
 
-services:
-  - docker
-
 language: cpp
 
 git:
-  depth: 2000
   submodules: false
 
 env:
@@ -27,8 +23,6 @@ matrix:
     - env: BUILD_TARGET=coverity_scan
       dist: trusty
       if: branch = coverity_scan
-  allow_failures:
-    - env: BUILD_TARGET=tests_coverage
 
 cache:
   ccache: true
@@ -43,7 +37,7 @@ before_install:
   - git config --global url."git://".insteadOf https://
 
 script:
-  - ./Tools/docker_run.sh make ${BUILD_TARGET}
+  - make ${BUILD_TARGET}
 
 after_success:
   # upload code coverage
