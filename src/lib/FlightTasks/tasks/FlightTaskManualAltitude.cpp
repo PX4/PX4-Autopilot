@@ -45,110 +45,64 @@
 using namespace matrix;
 
 FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, const char *name) :
-	FlightTaskManual(parent, name),
+	FlightTaskManualStabilized(parent, name),
 	_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 	_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
-	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false),
-	_acc_max_up(parent, "MPC_ACC_UP_MAX", false),
-	_acc_max_down(parent, "MPC_ACC_DOWN_MAX", false)
+	_vel_z_dz(parent, "MPC_HOLD_MAX_Z", false)
+
 {}
 
 bool FlightTaskManualAltitude::activate()
 {
-	_yaw_sp_predicted = _yaw_sp = _yaw;
-	_yaw_rate_sp = _vel_sp_z = NAN;
-	_pos_sp_z = _pos_sp_z_lock = _position(2);
-	_lock_time = 0.0f;
-	_lock_time_max = 1.0f; // 1s time to brake as default
-
-	return FlightTaskManual::activate();
+	_pos_sp_z = _position(2);
+	return FlightTaskManualStabilized::activate();
 }
 
-void FlightTaskManualAltitude::scaleSticks()
+void FlightTaskManualAltitude::_scaleSticks()
 {
-	/* Map stick to velocity. */
+	/* Reuse same scaling as for stabilized */
+	FlightTaskManualStabilized::_scaleSticks();
+
+	/* Scale stick exponentially */
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
 	_vel_sp_z = vel_max_z * _sticks_expo(2);
-	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
 }
 
-void FlightTaskManualAltitude::updateHeadingSetpoints()
-{
-	/* Yaw-lock depends on stick input. If locked,
-	 * yawspeed_sp is set to NAN. Otherwise yaw_sp is set
-	 * to NAN.*/
-
-	if (fabsf(_sticks(3)) < _hold_dz.get()) {
-		/* Hold yaw */
-		_yaw_rate_sp = NAN;
-		_yaw_sp = _yaw_sp_predicted;
-
-	} else {
-		/* Change yaw through yaw-rate inputs.*/
-		_yaw_sp = NAN;
-		_yaw_sp_predicted = _wrap_pi(_yaw_sp_predicted + _yaw_rate_sp * _deltatime);
-	}
-}
-
-void FlightTaskManualAltitude::updateZsetpoints()
+void FlightTaskManualAltitude::_updateZsetpoints()
 {
 	/* Depending on stick inputs, position is locked or
 	 * velocity setpoint is used. If locked, velocity setpoint
 	 * is set to NAN. Otherwise position setpoints is set to NAN.
 	 */
-	if (fabsf(_sticks_expo(2)) < FLT_EPSILON) {
-		/* Hold position */
 
-		if (_lock_time <= _lock_time_max) {
-			/* Don't lock: time has not been reached yet. */
-			_vel_sp_z = 0.0f;
-			_pos_sp_z = NAN;
-			_pos_sp_z_lock = _position(2);
-			_lock_time += _deltatime;
+	/* handle position and altitude hold */
+	const bool stick_z_zero = fabsf(_sticks_expo(2)) <= FLT_EPSILON;
+	const bool stopped_z = (_vel_z_dz.get() < FLT_EPSILON || fabsf(_velocity(2)) < _vel_z_dz.get());
 
-		} else {
-			/* Lock position in z. */
-			_vel_sp_z = NAN;
-			_pos_sp_z = _pos_sp_z_lock;
-		}
+	if (stick_z_zero && stopped_z && !PX4_ISFINITE(_pos_sp_z)) {
+		_pos_sp_z = _position(2);
 
-	} else {
-		/* Change z-direction based on velocity input. Hence, set
-		 * position setpoin in z to NAN since not used. */
+	} else if (!stick_z_zero) {
 		_pos_sp_z = NAN;
-
-		/* Maximum brake acceleration depends
-		 * on direction (up or down). We take half of max acceleration
-		 * because it is better to lock late than early to prevent
-		 * up and down movement.
-		 */
-		float brake_acc = (_velocity(2) > 0.0f) ? (0.5f * _acc_max_up.get()) : (0.5f * _acc_max_down.get());;
-
-		if (PX4_ISFINITE(brake_acc)) {
-			_lock_time_max = fabsf(_velocity(2)) / brake_acc;
-
-		} else {
-			_lock_time_max = 1.0f; // 1 second time to brake if no acceleration is set
-		}
-
-		_lock_time = 0.0f;
 	}
 }
 
-void FlightTaskManualAltitude::updateSetpoints()
+void FlightTaskManualAltitude::_updateSetpoints()
 {
-	updateHeadingSetpoints();
-	updateZsetpoints();
+	FlightTaskManualStabilized::_updateSetpoints(); // get yaw and thrust setpoints
+	_updateZsetpoints(); // get z setpoints
 }
 
 bool FlightTaskManualAltitude::update()
 {
-	scaleSticks(); // scales sticks to yawspeed and velocity
-	updateSetpoints(); // applies yaw and position lock if required
+	_scaleSticks();
+	_updateSetpoints();
+
 	_setPositionSetpoint(Vector3f(NAN, NAN, _pos_sp_z));
 	_setVelocitySetpoint(Vector3f(NAN, NAN, _vel_sp_z));
 	_setYawSetpoint(_yaw_sp);
 	_setYawspeedSetpoint(_yaw_rate_sp);
+	//_setThrustSetpoint(...) TODO
 
 	return true;
 }
