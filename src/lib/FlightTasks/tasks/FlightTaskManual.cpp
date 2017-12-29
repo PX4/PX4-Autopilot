@@ -45,7 +45,7 @@ using namespace matrix;
 
 FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name) :
 	FlightTask(parent, name),
-	_hold_dz(parent, "MPC_HOLD_DZ", false),
+	_stick_dz(parent, "MPC_HOLD_DZ", false),
 	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
 	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false)
 {
@@ -67,6 +67,7 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 bool FlightTaskManual::activate()
 {
 	bool ret = FlightTask::activate();
+
 	return ret;
 }
 
@@ -84,9 +85,9 @@ bool FlightTaskManual::updateInitialize()
 
 bool FlightTaskManual::update()
 {
-	/* TODO
-	 * FlightTask setpoint interface and Position Controller need to be updated to include
-	 * thrust setpoint. With thrust setpoint FlightTaskManual can be used as manual flight mode.
+	/* Nothing to do.
+	 * The only purpose of this class
+	 * is to provide sticks to child classes.
 	 */
 	return true;
 }
@@ -103,9 +104,9 @@ bool FlightTaskManual::_evaluateSticks()
 		_sticks(3) = _sub_manual_control_setpoint->get().r; /* "yaw" [-1,1] */
 
 		/* Exponential scale */
-		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
-		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
-		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
+		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _stick_dz.get());
+		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _stick_dz.get());
+		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _stick_dz.get());
 
 		return true;
 
