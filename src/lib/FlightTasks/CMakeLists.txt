@@ -35,6 +35,7 @@ px4_add_module(
 	SRCS
 		tasks/FlightTask.cpp
 		tasks/FlightTaskManual.cpp
+		tasks/FlightTaskManualStabilized.cpp
 		tasks/FlightTaskOrbit.cpp
 		tasks/FlightTaskManualAltitude.cpp
 		tasks/FlightTaskManualPosition.cpp
