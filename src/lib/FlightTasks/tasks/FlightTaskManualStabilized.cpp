@@ -44,7 +44,11 @@ using namespace matrix;
 
 FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *parent, const char *name) :
 	FlightTaskManual(parent, name),
-	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false)
+	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false),
+	_tilt_max_man(parent, "MPC_MAN_TILT_MAX", false),
+	_throttle_min(parent, "MPC_THR_MIN", false),
+	_throttle_max(parent, "MPC_THR_MAX", false),
+	_throttle_hover(parent, "MPC_THR_HOVER", false)
 {}
 
 bool FlightTaskManualStabilized::activate()
@@ -57,9 +61,10 @@ bool FlightTaskManualStabilized::activate()
 void FlightTaskManualStabilized::_scaleSticks()
 {
 	/* Scale sticks to yaw and thrust using
-	 * linear scale.
+	 * linear scale for yaw and quadratic for thrust.
 	 * TODO: add thrust */
 	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
+	_throttle = _throttleCurve();;
 }
 
 void FlightTaskManualStabilized::_updateHeadingSetpoints()
@@ -79,13 +84,43 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 
 void FlightTaskManualStabilized::_updateThrustSetpoints()
 {
-	// TODO
+	/* Body frame */
+	/* Rotate setpoint into local frame. */
+	matrix::Vector3f sp{_sticks(0), _sticks(1), 0.0f};
+	sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw)) * sp);
+	const float x = sp(0) * math::radians(_tilt_max_man.get());
+	const float y = sp(1) * math::radians(_tilt_max_man.get());
+
+	matrix::Vector2f v = matrix::Vector2f(y, -x);
+	float v_norm = v.norm(); // the norm of v defines the tilt angle
+
+	if (v_norm > _tilt_max_man.get()) { // limit to the configured maximum tilt angle
+		v *= _tilt_max_man.get() / v_norm;
+	}
+
+	matrix::Quatf q_sp = matrix::AxisAnglef(v(0), v(1), 0.0f);
+	_thr_sp = q_sp.conjugate(matrix::Vector3f(0.0f, 0.0f, -1.0f)) * _throttle;
 }
 
 void FlightTaskManualStabilized::_updateSetpoints()
 {
 	_updateHeadingSetpoints();
-	//_updateThrustSetpoints();
+	_updateThrustSetpoints();
+}
+
+/* TODO: add quadratic funciton */
+float FlightTaskManualStabilized::_throttleCurve()
+{
+	/* Scale stick z from [-1,1] to [min thr, max thr]
+	 * with hover throttle at 0.5 stick */
+	float throttle = -((_sticks_expo(2) - 1.0f) * 0.5f);
+
+	if (throttle < 0.5f) {
+		return (_throttle_hover.get() - _throttle_min.get()) / 0.5f * throttle + _throttle_min.get();
+
+	} else {
+		return (_throttle_max.get() - _throttle_hover.get()) / 0.5f * (throttle - 1.0f) + _throttle_max.get();
+	}
 }
 
 bool FlightTaskManualStabilized::update()
@@ -94,7 +129,7 @@ bool FlightTaskManualStabilized::update()
 	_updateSetpoints(); // applies yaw and position lock if required
 	_setYawSetpoint(_yaw_sp);
 	_setYawspeedSetpoint(_yaw_rate_sp);
-	//_setThrustSetpoint(...) TODO
+	_setThrustSetpoint(_thr_sp);
 
 	return true;
 }
