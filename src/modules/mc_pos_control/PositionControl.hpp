@@ -64,8 +64,7 @@ public:
 
 	~PositionControl() {};
 
-	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot,
-			 const matrix::Matrix<float, 3, 3> &R);
+	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot);
 	void updateSetpoint(struct vehicle_local_position_setpoint_s setpoint);
 	void updateConstraints(const Controller::Constraints &constraints);
 	void generateThrustYawSetpoint(const float &dt);
@@ -84,7 +83,6 @@ private:
 	matrix::Vector3f _vel_dot{};
 	matrix::Vector3f _acc{};
 	float _yaw{0.0f};
-	matrix::Matrix<float, 3, 3> _R{};
 
 	/* Setpoints */
 	matrix::Vector3f _pos_sp{};
@@ -126,6 +124,7 @@ private:
 	float _ThrLimit[2]; //index 0: max, index 1: min
 	float _Pyaw{};
 	float _YawRateMax{};
+	bool _skipController{false};
 
 	/* Helper methods */
 	void _interfaceMapping();
