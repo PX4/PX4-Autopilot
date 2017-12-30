@@ -231,6 +231,8 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
         self.pos.pose.position.x = x
         self.pos.pose.position.y = y
         self.pos.pose.position.z = z
+        rospy.loginfo("attempting to reach position | x: {0}, y: {1}, z: {2}".
+                      format(x, y, z))
 
         # For demo purposes we will lock yaw/heading to north.
         yaw_degrees = 0  # North
@@ -246,17 +248,15 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             if self.is_at_position(self.pos.pose.position.x,
                                    self.pos.pose.position.y,
                                    self.pos.pose.position.z, 1):
-                rospy.loginfo(
-                    "position reached | x: {0}, y: {1}, z: {2} | seconds: {3} of {4}".
-                    format(self.pos.pose.position.x, self.pos.pose.position.y,
-                           self.pos.pose.position.z, i / loop_freq, timeout))
+                rospy.loginfo("position reached | seconds: {0} of {1}".format(
+                    i / loop_freq, timeout))
                 reached = True
                 break
 
             rate.sleep()
 
         self.assertTrue(reached, (
-            "took too long to get to position | x: {0}, y: {1}, z: {2} | timeout(seconds): {3}".
+            "took too long to get to position | current position x: {0}, y: {1}, z: {2} | timeout(seconds): {3}".
             format(self.local_position.pose.position.x,
                    self.local_position.pose.position.y,
                    self.local_position.pose.position.z, timeout)))
