@@ -221,6 +221,10 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
     #
     def test_attctl(self):
         """Test offboard attitude control"""
+        # boundary to cross
+        boundary_x = 5
+        boundary_y = 5
+        boundary_z = -5
 
         # delay starting the mission
         self.wait_for_topics(30)
@@ -231,15 +235,17 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         self.set_arm(True, 5)
 
         rospy.loginfo("run mission")
+        rospy.loginfo("attempting to cross boundary | x: {0}, y: {1}, z: {2}".
+                      format(boundary_x, boundary_y, boundary_z))
         # does it cross expected boundaries in 'timeout' seconds?
         timeout = 12  # (int) seconds
         loop_freq = 10  # Hz
         rate = rospy.Rate(loop_freq)
         crossed = False
         for i in xrange(timeout * loop_freq):
-            if (self.local_position.pose.position.x > 5 and
-                    self.local_position.pose.position.z > 5 and
-                    self.local_position.pose.position.y < -5):
+            if (self.local_position.pose.position.x > boundary_x and
+                    self.local_position.pose.position.z > boundary_y and
+                    self.local_position.pose.position.y < boundary_z):
                 rospy.loginfo("boundary crossed | seconds: {0} of {1}".format(
                     i / loop_freq, timeout))
                 crossed = True
@@ -248,7 +254,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             rate.sleep()
 
         self.assertTrue(crossed, (
-            "took too long to cross boundaries | x: {0}, y: {1}, z: {2} | timeout(seconds): {3}".
+            "took too long to cross boundaries | current position x: {0}, y: {1}, z: {2} | timeout(seconds): {3}".
             format(self.local_position.pose.position.x,
                    self.local_position.pose.position.y,
                    self.local_position.pose.position.z, timeout)))
