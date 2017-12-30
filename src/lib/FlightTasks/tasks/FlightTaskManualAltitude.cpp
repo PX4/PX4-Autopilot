@@ -100,7 +100,7 @@ bool FlightTaskManualAltitude::update()
 	_setVelocitySetpoint(Vector3f(NAN, NAN, _vel_sp_z));
 	_setYawSetpoint(_yaw_sp);
 	_setYawspeedSetpoint(_yaw_rate_sp);
-	_setThrustSetpoint(Vector3f(NAN, NAN, NAN));
+	_setThrustSetpoint(Vector3f(_thr_sp(0), _thr_sp(1), NAN));
 
 	return true;
 }
