@@ -77,14 +77,12 @@ PositionControl::PositionControl()
 	_setParams();
 };
 
-void PositionControl::updateState(const struct vehicle_local_position_s state, const Data &vel_dot,
-				  const matrix::Matrix<float, 3, 3> &R)
+void PositionControl::updateState(const struct vehicle_local_position_s state, const Data &vel_dot)
 {
 	_pos = Data(&state.x);
 	_vel = Data(&state.vx);
 	_yaw = state.yaw;
 	_vel_dot = vel_dot;
-	_R = R;
 }
 
 void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s setpoint)
@@ -96,6 +94,15 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 	_yaw_sp = setpoint.yaw; //integrate
 	_yawspeed_sp = setpoint.yawspeed;
 	_interfaceMapping();
+
+	/* If full manual is required (thrust already generated), don't run position/velocity
+	 * controller and just return thrust.
+	 */
+	_skipController = false;
+
+	if (PX4_ISFINITE(setpoint.thr_x) && PX4_ISFINITE(setpoint.thr_y) && PX4_ISFINITE(setpoint.thr_z)) {
+		_skipController = true;
+	}
 }
 
 void PositionControl::generateThrustYawSetpoint(const float &dt)
@@ -103,9 +110,9 @@ void PositionControl::generateThrustYawSetpoint(const float &dt)
 	_updateParams();
 
 	/* Only run position/velocity controller
-	 * if no altitude thrust is given.
+	 * if thrust needs to be generated
 	 */
-	if (!PX4_ISFINITE(_thr_sp(2))) {
+	if (!_skipController) {
 		_positionController();
 		_velocityController(dt);
 	}
@@ -123,14 +130,6 @@ void PositionControl::_interfaceMapping()
 	/* Loop through x,y and z components of all setpoints. */
 	for (int i = 0; i <= 2; i++) {
 
-		if (PX4_ISFINITE(_thr_sp(i))) {
-
-			_pos_sp(i) = _pos(i);
-			_vel_sp(i) = _vel(i);
-			_acc_sp(i) = _acc(i);
-			continue;
-		}
-
 		if (PX4_ISFINITE(_pos_sp(i))) {
 
 			/* Position control is required */
@@ -140,21 +139,30 @@ void PositionControl::_interfaceMapping()
 				_vel_sp(i) = 0.0f;
 			}
 
-		} else {
+			/* thrust setpoint is not supported
+			 * in position control
+			 */
+			_thr_sp(i) = 0.0f;
+
+		} else if (PX4_ISFINITE(_vel_sp(i))) {
 
 			/* Velocity controller is active without
 			 * position control.
 			 */
 			_pos_sp(i) = _pos(i);
+			_thr_sp(i) = 0.0f;
 
-			if (!PX4_ISFINITE(_vel_sp(i)))  {
-				/* No position/velocity controller active.
-				 * Attitude will be generated from sticks directly
-				 * TODO: Adjust to the new FlightTask interface
-				 * that also sends thrust setpoints.
-				 */
-				_vel_sp(i) = _vel(i);
-			}
+		} else if (PX4_ISFINITE(_thr_sp(i))) {
+
+			/* Thrust setpoint was generated from
+			 * stick directly.
+			 */
+			_pos_sp(i) = _pos(i);
+			_vel_sp(i) = _vel(i);
+			_thr_int(i) = 0.0f;
+
+		} else {
+			PX4_WARN("TODO: add safety");
 		}
 	}
 
@@ -217,7 +225,7 @@ void PositionControl::_velocityController(const float &dt)
 	/* TODO: add offboard acceleration mode
 	 * PID-controller */
 	Data offset(0.0f, 0.0f, _ThrHover);
-	_thr_sp = Pv.emult(vel_err) + Dv.emult(_vel_dot) + _thr_int - offset;
+	_thr_sp = Pv.emult(vel_err) + Dv.emult(_vel_dot) + _thr_int - offset + _thr_sp;
 
 	/* Limit tilt with priority on z
 	 * For manual controlled mode excluding pure manual and rate control, maximum tilt is 90;
@@ -266,7 +274,6 @@ void PositionControl::_yawController(const float &dt)
 
 	/* Update yaw setpoint integral */
 	_yaw_sp_int = _yaw_sp;
-
 }
 
 void PositionControl::updateConstraints(const Controller::Constraints &constraints)
