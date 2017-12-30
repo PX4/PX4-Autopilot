@@ -346,7 +346,7 @@ class MavrosMissionTest(unittest.TestCase):
             if self.is_at_position(lat, lon, alt, xy_radius, z_radius):
                 reached = True
                 rospy.loginfo(
-                    "position reached | pos_d: {0}, alt_d: {1}, index: {2} | seconds: {3} of {4}".
+                    "position reached | pos_d: {0:.2f}, alt_d: {1:.2f}, index: {2} | seconds: {3} of {4}".
                     format(self.last_pos_d, self.last_alt_d, index, i /
                            loop_freq, timeout))
                 break
@@ -354,7 +354,7 @@ class MavrosMissionTest(unittest.TestCase):
             rate.sleep()
 
         self.assertTrue(reached, (
-            "({0}) took too long to get to position | lat: {1:13.9f}, lon: {2:13.9f}, alt: {3:6.2f}, xy off: {4}, z off: {5}, pos_d: {6}, alt_d: {7}, VTOL state: {8}, index: {9} | timeout(seconds): {10}".
+            "({0}) took too long to get to position | lat: {1:13.9f}, lon: {2:13.9f}, alt: {3:6.2f}, xy off: {4}, z off: {5}, pos_d: {6:.2f}, alt_d: {7:.2f}, VTOL state: {8}, index: {9} | timeout(seconds): {10}".
             format(self.mission_name, lat, lon, alt, xy_radius, z_radius,
                    self.last_pos_d, self.last_alt_d,
                    self.VTOL_STATES.get(self.extended_state.vtol_state), index,
@@ -392,7 +392,7 @@ class MavrosMissionTest(unittest.TestCase):
             if self.extended_state.landed_state == desired_landed_state:
                 landed_state_confirmed = True
                 rospy.loginfo(
-                    "landed state confirmed | state: {0}, index{1}".format(
+                    "landed state confirmed | state: {0}, index: {1}".format(
                         self.LAND_STATES.get(desired_landed_state), index))
                 break
 
@@ -414,20 +414,7 @@ class MavrosMissionTest(unittest.TestCase):
         rate = rospy.Rate(loop_freq)
         transitioned = False
         for i in xrange(timeout * loop_freq):
-            # transition to MC
-            if (transition == ExtendedState.VTOL_STATE_MC and
-                    self.extended_state.vtol_state ==
-                    ExtendedState.VTOL_STATE_MC):
-                rospy.loginfo(
-                    "transitioned | index: {0} | seconds: {1} of {2}".format(
-                        index, i / loop_freq, timeout))
-                transitioned = True
-                break
-
-            # transition to FW
-            if (transition == ExtendedState.VTOL_STATE_FW and
-                    self.extended_state.vtol_state ==
-                    ExtendedState.VTOL_STATE_FW):
+            if transition == self.extended_state.vtol_state:
                 rospy.loginfo(
                     "transitioned | index: {0} | seconds: {1} of {2}".format(
                         index, i / loop_freq, timeout))
