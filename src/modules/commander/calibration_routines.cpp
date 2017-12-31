@@ -547,7 +547,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 	const hrt_abstime t_start = hrt_absolute_time();
 
 	/* set timeout to 30s */
-	static constexpr hrt_abstime timeout = 30000000;
+	static constexpr hrt_abstime timeout = 90000000;
 
 	hrt_abstime t_timeout = t_start + timeout;
 	hrt_abstime t = t_start;
