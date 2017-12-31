@@ -700,3 +700,14 @@ PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
  * @min 0
  */
 PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
+
+/**
+ * Action after TAKEOFF has been accepted.
+ *
+ * The mode transition after TAKEOFF has completed successfully.
+ *
+ * @value 0 Hold
+ * @value 1 Mission (if valid)
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
