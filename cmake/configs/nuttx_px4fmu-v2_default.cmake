@@ -59,6 +59,7 @@ set(config_module_list
 	#drivers/ulanding
 	drivers/vmount
 	modules/sensors
+	drivers/tfmini
 
 	#
 	# System commands
