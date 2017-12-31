@@ -213,7 +213,8 @@ class MavrosMissionTest(unittest.TestCase):
 
         self.state = data
 
-        if not self.sub_topics_ready['state']:
+        # mavros publishes a disconnected state message on init
+        if not self.sub_topics_ready['state'] and data.connected:
             self.sub_topics_ready['state'] = True
 
     def altitude_callback(self, data):
