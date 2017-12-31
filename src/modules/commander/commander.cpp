@@ -644,10 +644,8 @@ void print_status()
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
 	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
 
-#ifdef __PX4_POSIX
 	warnx("main state: %d", internal_state.main_state);
 	warnx("nav state: %d", status.nav_state);
-#endif
 
 	/* read all relevant states */
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -1286,6 +1284,7 @@ Commander::run()
 	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
+	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1659,6 +1658,7 @@ Commander::run()
 	/* RC override auto modes */
 	int32_t rc_override = 0;
 
+	int32_t takeoff_complete_act = 0;
 
 	/* Thresholds for engine failure detection */
 	float ef_throttle_thres = 1.0f;
@@ -1807,6 +1807,8 @@ Commander::run()
 
 			/* failsafe response to loss of navigation accuracy */
 			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
+
+			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
 			param_init_forced = false;
 		}
@@ -2879,14 +2881,22 @@ Commander::run()
 			}
 		}
 
-		/* reset main state after takeoff has completed */
-		/* only switch back to posctl */
-		if (main_state_prev == commander_state_s::MAIN_STATE_POSCTL) {
+		/* Reset main state to loiter or auto-mission after takeoff is completed.
+		 * Sometimes, the mission result topic is outdated and the mission is still signaled
+		 * as finished even though we only just started with the takeoff. Therefore, we also
+		 * check the timestamp of the mission_result topic. */
+		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+			&& (_mission_result.timestamp > internal_state.timestamp)
+			&& _mission_result.finished) {
 
-			if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-					&& _mission_result.finished) {
+			const bool mission_available = (_mission_result.timestamp > commander_boot_timestamp)
+				&& (_mission_result.instance_count > 0) && _mission_result.valid;
 
-				main_state_transition(&status, main_state_prev, main_state_prev, &status_flags, &internal_state);
+			if ((takeoff_complete_act == 1) && mission_available) {
+				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+
+			} else {
+				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 			}
 		}
 
