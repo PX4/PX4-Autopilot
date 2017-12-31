@@ -644,10 +644,8 @@ void print_status()
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
 	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
 
-#ifdef __PX4_POSIX
 	warnx("main state: %d", internal_state.main_state);
 	warnx("nav state: %d", status.nav_state);
-#endif
 
 	/* read all relevant states */
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -2891,8 +2889,12 @@ Commander::run()
 			&& (_mission_result.timestamp > internal_state.timestamp)
 			&& _mission_result.finished) {
 
-			if ((takeoff_complete_act == 1) && _mission_result.valid) {
+			const bool mission_available = (_mission_result.timestamp > commander_boot_timestamp)
+				&& (_mission_result.instance_count > 0) && _mission_result.valid;
+
+			if ((takeoff_complete_act == 1) && mission_available) {
 				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+
 			} else {
 				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 			}
