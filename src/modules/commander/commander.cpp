@@ -2018,15 +2018,33 @@ Commander::run()
 
 			/* Make sure that this is only adjusted if vehicle really is of type vtol */
 			if (is_vtol(&status)) {
-				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
-				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
-				status.in_transition_to_fw = vtol_status.in_transition_to_fw;
-				status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
 
-				armed.soft_stop = !status.is_rotary_wing;
+				// Check if there has been any change while updating the flags
+				if (status.is_rotary_wing != vtol_status.vtol_in_rw_mode) {
+					status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
+					status_changed = true;
+				}
+
+				if (status.in_transition_mode != vtol_status.vtol_in_trans_mode) {
+					status.in_transition_mode = vtol_status.vtol_in_trans_mode;
+					status_changed = true;
+				}
+
+				if (status.in_transition_to_fw != vtol_status.in_transition_to_fw) {
+					status.in_transition_to_fw = vtol_status.in_transition_to_fw;
+					status_changed = true;
+				}
+
+				if (status_flags.vtol_transition_failure != vtol_status.vtol_transition_failsafe) {
+					status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
+					status_changed = true;
+				}
+
+				if (armed.soft_stop != !status.is_rotary_wing) {
+					armed.soft_stop = !status.is_rotary_wing;
+					status_changed = true;
+				}
 			}
-
-			status_changed = true;
 		}
 
 		// Check if quality checking of position accuracy and consistency is to be performed
