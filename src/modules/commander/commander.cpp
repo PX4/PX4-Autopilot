@@ -447,10 +447,10 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "check")) {
 		int checkres = 0;
-		checkres = preflight_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery, ARM_REQ_GPS_BIT, hrt_elapsed_time(&commander_boot_timestamp));
+		checkres = prearm_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery, ARM_REQ_GPS_BIT, hrt_elapsed_time(&commander_boot_timestamp));
 		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
 
-		checkres = preflight_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+		checkres = prearm_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 
 		return 0;
