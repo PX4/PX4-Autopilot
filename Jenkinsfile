@@ -259,6 +259,13 @@ pipeline {
               reportName: 'Clang Static Analyzer'
             ]
           }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'beta'
+              branch 'stable'
+            }
+          }
         }
 
         stage('clang tidy') {
@@ -294,6 +301,13 @@ pipeline {
               reportFiles: '*',
               reportName: 'Cppcheck'
             ]
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'beta'
+              branch 'stable'
+            }
           }
         }
 
