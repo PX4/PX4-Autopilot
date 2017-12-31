@@ -162,7 +162,7 @@ void set_rc_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, st
 void set_data_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, status_flags_s *status_flags,
 						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
 
-int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
+int prearm_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
 		    bool force_report, status_flags_s *status_flags, battery_status_s *battery,
 		    uint8_t arm_requirements, hrt_abstime time_since_boot);
 
