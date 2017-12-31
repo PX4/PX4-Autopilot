@@ -349,7 +349,7 @@ pipeline {
         stage('ROS mission 1') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-30'
+              image 'px4io/px4-dev-ros:2017-12-31'
               args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -364,7 +364,7 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/log/*.log'
               archiveArtifacts '.ros/test_results/px4/**.xml'
-              //sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -372,7 +372,7 @@ pipeline {
         stage('ROS mission 2') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-30'
+              image 'px4io/px4-dev-ros:2017-12-31'
               args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -387,7 +387,7 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/log/*.log'
               archiveArtifacts '.ros/test_results/px4/**.xml'
-              //sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -395,7 +395,7 @@ pipeline {
         stage('ROS mission 3') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-30'
+              image 'px4io/px4-dev-ros:2017-12-31'
               args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -410,7 +410,7 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/log/*.log'
               archiveArtifacts '.ros/test_results/px4/**.xml'
-              //sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -418,7 +418,7 @@ pipeline {
         stage('ROS mission 4') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-30'
+              image 'px4io/px4-dev-ros:2017-12-31'
               args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -433,7 +433,7 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/log/*.log'
               archiveArtifacts '.ros/test_results/px4/**.xml'
-              //sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -441,7 +441,7 @@ pipeline {
         stage('ROS mission 5') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-30'
+              image 'px4io/px4-dev-ros:2017-12-31'
               args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -456,7 +456,7 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/log/*.log'
               archiveArtifacts '.ros/test_results/px4/**.xml'
-              //sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -464,7 +464,7 @@ pipeline {
         stage('ROS mission 6') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-30'
+              image 'px4io/px4-dev-ros:2017-12-31'
               args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -479,7 +479,7 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/log/*.log'
               archiveArtifacts '.ros/test_results/px4/**.xml'
-              //sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -487,7 +487,7 @@ pipeline {
         stage('ROS offboard att') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-30'
+              image 'px4io/px4-dev-ros:2017-12-31'
               args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -502,7 +502,7 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/log/*.log'
               archiveArtifacts '.ros/test_results/px4/**.xml'
-              //sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -510,7 +510,7 @@ pipeline {
         stage('ROS offboard pos') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-30'
+              image 'px4io/px4-dev-ros:2017-12-31'
               args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -525,7 +525,7 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/log/*.log'
               archiveArtifacts '.ros/test_results/px4/**.xml'
-              //sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
