@@ -460,9 +460,6 @@ class MavrosMissionTest(unittest.TestCase):
             else:
                 raise IOError('unknown mission file extension', mission_ext)
 
-        # delay starting the mission
-        self.wait_for_topics(30)
-
         rospy.loginfo("send mission")
         result = False
         try:
@@ -473,6 +470,9 @@ class MavrosMissionTest(unittest.TestCase):
         self.assertTrue(
             result,
             "({0}) mission could not be transfered".format(self.mission_name))
+
+        # delay starting the mission
+        self.wait_for_topics(30)
 
         # make sure the simulation is ready to start the mission
         self.wait_on_landed_state(ExtendedState.LANDED_STATE_ON_GROUND, 10, -1)
