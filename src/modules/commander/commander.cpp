@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +37,10 @@
  *
  * Main state machine / business logic
  *
+ * @TODO This application is currently in a rewrite process. Main changes:
+ *			- Calibration routines are moved into the event system
+ *			- Commander is rewritten as class
+ *			- State machines will be model driven
  */
 
 #include "Commander.hpp"
