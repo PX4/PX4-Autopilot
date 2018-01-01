@@ -1567,7 +1567,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- VTOL VEHICLE STATUS --- */
 			if(copy_if_updated(ORB_ID(vtol_vehicle_status), &subs.vtol_status_sub, &buf.vtol_status)) {
 				log_msg.msg_type = LOG_VTOL_MSG;
-				log_msg.body.log_VTOL.airspeed_tot = buf.vtol_status.airspeed_tot;
 				log_msg.body.log_VTOL.rw_mode = buf.vtol_status.vtol_in_rw_mode;
 				log_msg.body.log_VTOL.trans_mode = buf.vtol_status.vtol_in_trans_mode;
 				log_msg.body.log_VTOL.failsafe_mode = buf.vtol_status.vtol_transition_failsafe;

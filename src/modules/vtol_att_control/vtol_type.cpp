@@ -54,10 +54,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_v_att_sp = _attc->get_att_sp();
 	_mc_virtual_att_sp = _attc->get_mc_virtual_att_sp();
 	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
-	_v_rates_sp = _attc->get_rates_sp();
-	_mc_virtual_v_rates_sp = _attc->get_mc_virtual_rates_sp();
-	_fw_virtual_v_rates_sp = _attc->get_fw_virtual_rates_sp();
-	_manual_control_sp = _attc->get_manual_control_sp();
 	_v_control_mode = _attc->get_control_mode();
 	_vtol_vehicle_status = _attc->get_vtol_vehicle_status();
 	_actuators_out_0 = _attc->get_actuators_out0();
@@ -67,7 +63,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_local_pos = _attc->get_local_pos();
 	_local_pos_sp = _attc->get_local_pos_sp();
 	_airspeed = _attc->get_airspeed();
-	_batt_status = _attc->get_batt_status();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
 	_params = _attc->get_params();
