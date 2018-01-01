@@ -346,7 +346,7 @@ pipeline {
           }
         }
 
-        stage('ROS mission 1') {
+        stage('ROS vtol mission new 1') {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
@@ -367,7 +367,7 @@ pipeline {
           }
         }
 
-        stage('ROS mission 2') {
+        stage('ROS vtol mission new 2') {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
@@ -388,7 +388,7 @@ pipeline {
           }
         }
 
-        stage('ROS mission 3') {
+        stage('ROS vtol mission old 1') {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
@@ -409,7 +409,7 @@ pipeline {
           }
         }
 
-        stage('ROS mission 4') {
+        stage('ROS vtol mission old 2') {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
@@ -430,7 +430,7 @@ pipeline {
           }
         }
 
-        stage('ROS mission 5') {
+        stage('ROS vtol mission old 3') {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
@@ -451,7 +451,7 @@ pipeline {
           }
         }
 
-        stage('ROS mission 6') {
+        stage('ROS MC mission box') {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
