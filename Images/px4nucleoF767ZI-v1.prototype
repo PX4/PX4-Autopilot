@@ -7,6 +7,7 @@
     "summary": "PX4NUCLEOF767ZIv1",
     "version": "0.1",
     "image_size": 0,
+    "image_maxsize": 2097152,
     "git_identity": "",
     "board_revision": 0
 }
