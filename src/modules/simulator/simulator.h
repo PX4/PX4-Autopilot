@@ -292,6 +292,8 @@ private:
 		_gps.writeData(&gps_data);
 
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
+
+		_battery_status.timestamp = hrt_absolute_time();
 	}
 	~Simulator()
 	{
@@ -343,6 +345,7 @@ private:
 
 	// Lib used to do the battery calculations.
 	Battery _battery;
+	battery_status_s _battery_status{};
 
 	// For param MAV_TYPE
 	int32_t _system_type;
