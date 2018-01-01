@@ -362,9 +362,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              archiveArtifacts '.ros/log/*.log'
-              archiveArtifacts '.ros/test_results/px4/**.xml'
-              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -385,9 +383,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              archiveArtifacts '.ros/log/*.log'
-              archiveArtifacts '.ros/test_results/px4/**.xml'
-              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -408,9 +404,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              archiveArtifacts '.ros/log/*.log'
-              archiveArtifacts '.ros/test_results/px4/**.xml'
-              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -431,9 +425,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              archiveArtifacts '.ros/log/*.log'
-              archiveArtifacts '.ros/test_results/px4/**.xml'
-              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -454,9 +446,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              archiveArtifacts '.ros/log/*.log'
-              archiveArtifacts '.ros/test_results/px4/**.xml'
-              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -477,9 +467,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              archiveArtifacts '.ros/log/*.log'
-              archiveArtifacts '.ros/test_results/px4/**.xml'
-              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -500,9 +488,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              archiveArtifacts '.ros/log/*.log'
-              archiveArtifacts '.ros/test_results/px4/**.xml'
-              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
@@ -523,9 +509,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              archiveArtifacts '.ros/log/*.log'
-              archiveArtifacts '.ros/test_results/px4/**.xml'
-              sh './Tools/upload_log.py -q --description "${ghprbPullDescription}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
           }
         }
