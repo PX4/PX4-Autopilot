@@ -4,7 +4,7 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	echo "guessing PX4_DOCKER_REPO based on input";
 	if [[ $@ =~ .*px4fmu.* ]]; then
 		# nuttx-px4fmu-v{1,2,3,4,5}
-		PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-10-23"
+		PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-12-30"
 	elif [[ $@ =~ .*rpi.* ]] || [[ $@ =~ .*bebop.* ]]; then
 		# posix_rpi_cross, posix_bebop_default
 		PX4_DOCKER_REPO="px4io/px4-dev-raspi:2017-12-30"
@@ -30,7 +30,7 @@ fi
 
 # otherwise default to nuttx
 if [ -z ${PX4_DOCKER_REPO+x} ]; then
-	PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-10-23"
+	PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-12-30"
 fi
 
 # docker hygiene

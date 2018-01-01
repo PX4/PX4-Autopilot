@@ -15,7 +15,7 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "make clean"
@@ -38,7 +38,7 @@ pipeline {
           builds["px4fmu-v2"] = {
             node {
               stage("Build Test ${node_name}") {
-                docker.image('px4io/px4-dev-nuttx:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                   stage("${node_name}") {
                     checkout scm
                     sh "make clean"
@@ -66,7 +66,7 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "make clean"
@@ -91,7 +91,7 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "make clean"
@@ -210,27 +210,6 @@ pipeline {
                       sh "make clean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
-                      sh "ccache -s"
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          // GCC7 nuttx
-          for (def option in ["px4fmu-v5_default"]) {
-            def node_name = "${option}"
-
-            builds["${node_name} (GCC7)"] = {
-              node {
-                stage("Build Test ${node_name} (GCC7)") {
-                  docker.image('px4io/px4-dev-base-archlinux:2017-12-08').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
-                    stage("${node_name}") {
-                      checkout scm
-                      sh "make clean"
-                      sh "ccache -z"
-                      sh "make nuttx_${node_name}"
                       sh "ccache -s"
                     }
                   }
