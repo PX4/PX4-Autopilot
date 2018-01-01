@@ -1,6 +1,5 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -2170,29 +2169,31 @@ Commander::run()
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
 
-			if (was_landed != land_detector.landed) {
-				if (land_detector.landed) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
-				} else {
-					mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
-					have_taken_off_since_arming = true;
+			// Only take actions if armed
+			if (armed.armed) {
+				if (was_landed != land_detector.landed) {
+					if (land_detector.landed) {
+						mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
+					} else {
+						mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
+						have_taken_off_since_arming = true;
 
-					// Set all position and velocity test probation durations to takeoff value
-					// This is a larger value to give the vehicle time to complete a failsafe landing
-					// if faulty sensors cause loss of navigation shortly after takeoff.
-					gpos_probation_time_us = posctl_nav_loss_prob;
-					gvel_probation_time_us = posctl_nav_loss_prob;
-					lpos_probation_time_us = posctl_nav_loss_prob;
-					lvel_probation_time_us = posctl_nav_loss_prob;
+						// Set all position and velocity test probation durations to takeoff value
+						// This is a larger value to give the vehicle time to complete a failsafe landing
+						// if faulty sensors cause loss of navigation shortly after takeoff.
+						gpos_probation_time_us = posctl_nav_loss_prob;
+						gvel_probation_time_us = posctl_nav_loss_prob;
+						lpos_probation_time_us = posctl_nav_loss_prob;
+						lvel_probation_time_us = posctl_nav_loss_prob;
+					}
+				}
+
+				if (was_falling != land_detector.freefall) {
+					if (land_detector.freefall) {
+						mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
+					}
 				}
 			}
-
-			if (was_falling != land_detector.freefall) {
-				if (land_detector.freefall) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
-				}
-			}
-
 
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
