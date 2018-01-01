@@ -118,7 +118,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_count = 0;
-	_params.vtol_fw_permanent_stab = 0;
 
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
 	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
@@ -565,7 +564,7 @@ int
 VtolAttitudeControl::parameters_update()
 {
 	float v;
-	int l;
+	int32_t l;
 	/* idle pwm for mc mode */
 	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
@@ -573,7 +572,8 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.vtol_motor_count, &_params.vtol_motor_count);
 
 	/* vtol fw permanent stabilization */
-	param_get(_params_handles.vtol_fw_permanent_stab, &_params.vtol_fw_permanent_stab);
+	param_get(_params_handles.vtol_fw_permanent_stab, &l);
+	_vtol_vehicle_status.fw_permanent_stab = (l == 1);
 
 	/* vtol mc mode min airspeed */
 	param_get(_params_handles.mc_airspeed_min, &v);
@@ -726,9 +726,6 @@ void VtolAttitudeControl::task_main()
 
 	parameters_update();  // initialize parameter cache
 
-	/* update vtol vehicle status*/
-	_vtol_vehicle_status.fw_permanent_stab = (_params.vtol_fw_permanent_stab == 1);
-
 	// make sure we start with idle in mc mode
 	_vtol_type->set_idle_mc();
 
@@ -787,8 +784,6 @@ void VtolAttitudeControl::task_main()
 			/* update parameters from storage */
 			parameters_update();
 		}
-
-		_vtol_vehicle_status.fw_permanent_stab = (_params.vtol_fw_permanent_stab == 1);
 
 		mc_virtual_att_sp_poll();
 		fw_virtual_att_sp_poll();
