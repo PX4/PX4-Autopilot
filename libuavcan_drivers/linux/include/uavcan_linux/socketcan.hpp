@@ -61,7 +61,9 @@ class SocketCanIface : public uavcan::ICanIface
 {
     static inline ::can_frame makeSocketCanFrame(const uavcan::CanFrame& uavcan_frame)
     {
-        ::can_frame sockcan_frame { uavcan_frame.id& uavcan::CanFrame::MaskExtID, uavcan_frame.dlc, { } };
+        ::can_frame sockcan_frame = ::can_frame();
+        sockcan_frame.can_id = uavcan_frame.id & uavcan::CanFrame::MaskExtID;
+        sockcan_frame.can_dlc = uavcan_frame.dlc;
         (void)std::copy(uavcan_frame.data, uavcan_frame.data + uavcan_frame.dlc, sockcan_frame.data);
         if (uavcan_frame.isExtended())
         {
