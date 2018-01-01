@@ -466,7 +466,6 @@ struct log_ENCD_s {
 /* --- VTOL - VTOL VEHICLE STATUS */
 #define LOG_VTOL_MSG 43
 struct log_VTOL_s {
-	float airspeed_tot;
 	uint8_t rw_mode;
 	uint8_t trans_mode;
 	uint8_t failsafe_mode;
