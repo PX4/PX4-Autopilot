@@ -342,10 +342,6 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
-
-	/* configure SPI interfaces */
-	stm32_spiinitialize();
-
 }
 
 /****************************************************************************
@@ -416,6 +412,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif // BOARD_HAS_SIMPLE_HW_VERSIONING
+
+	/* Ensure the power is on 1 ms before we drive the GPIO pins */
+	usleep(1000);
+
+	/* configure SPI interfaces */
+	stm32_spiinitialize();
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
