@@ -56,6 +56,7 @@ set(config_module_list
 	drivers/teraranger
 	drivers/vmount
 	modules/sensors
+	drivers/tfmini
 
 	#
 	# System commands

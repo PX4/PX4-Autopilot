@@ -50,6 +50,7 @@ set(config_module_list
 	drivers/tap_esc
 	drivers/teraranger
 	modules/sensors
+	drivers/tfmini
 
 	#
 	# System commands

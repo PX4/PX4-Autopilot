@@ -315,3 +315,13 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_ACCEL_CUTOFF, 30.0f);
+
+/**
+ * Benewake TFmini laser rangefinder
+ *
+ * @reboot_required true
+ *
+ * @boolean
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_EN_TFMINI, 0);
