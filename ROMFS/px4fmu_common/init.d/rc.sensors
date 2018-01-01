@@ -69,6 +69,9 @@ fi
 
 if ver hwcmp PX4FMU_V2
 then
+	# V2 build hwtypecmp is always false
+	set BOARD_FMUV3 0
+
 	# External I2C bus
 	hmc5883 -C -T -X start
 	lis3mdl -X start
@@ -79,8 +82,6 @@ then
 	# Internal SPI bus ICM-20608-G
 	mpu6000 -T 20608 start
 
-	# V2 build hwtypecmp is always false
-	set BOARD_FMUV3 0
 	# V3 build hwtypecmp supports V2|V2M|V30
 	if ver hwtypecmp V30
 	then
@@ -91,6 +92,26 @@ then
 			set BOARD_FMUV3 20
 		else
 			# Check for Pixhawk 2.1 cube
+			# external MPU9250 is rotated 180 degrees yaw
+			if mpu9250 -S -R 4 start
+			then
+				set BOARD_FMUV3 21
+			fi
+		fi
+	fi
+
+	# Check if a Pixhack (which reports as V2M) is present
+	if ver hwtypecmp V2M
+	then
+		# Pixhawk Mini doesn't have these sensors,
+		# so if they are found we know its a Pixhack
+
+		# external MPU6K is rotated 180 degrees yaw
+		if mpu6000 -S -R 4 start
+		then
+			set BOARD_FMUV3 20
+		else
+			# Check for Pixhack 3.1
 			# external MPU9250 is rotated 180 degrees yaw
 			if mpu9250 -S -R 4 start
 			then
