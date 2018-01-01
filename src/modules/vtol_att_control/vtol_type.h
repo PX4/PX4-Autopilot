@@ -49,7 +49,6 @@
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
 	int32_t vtol_motor_count;		// number of motors
-	int32_t vtol_fw_permanent_stab;	// in fw mode stabilize attitude also in manual mode
 	float mc_airspeed_min;		// min airspeed in multicoper mode (including prop-wash)
 	float mc_airspeed_trim;		// trim airspeed in multicopter mode
 	float mc_airspeed_max;		// max airpseed in multicopter mode
