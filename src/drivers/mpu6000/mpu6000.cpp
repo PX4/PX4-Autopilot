@@ -2305,13 +2305,13 @@ start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int
 	device::Device *interface = bus.interface_constructor(bus.busnum, device_type, bus.external);
 
 	if (interface == nullptr) {
-		warnx("no device on bus %u", (unsigned)bus.busid);
+		warnx("failed creating interface for bus #%u (SPI%u)", (unsigned)bus.busid, (unsigned)bus.busnum);
 		return false;
 	}
 
 	if (interface->init() != OK) {
 		delete interface;
-		warnx("no device on bus %u", (unsigned)bus.busid);
+		warnx("no device on bus #%u (SPI%u)", (unsigned)bus.busid, (unsigned)bus.busnum);
 		return false;
 	}
 
