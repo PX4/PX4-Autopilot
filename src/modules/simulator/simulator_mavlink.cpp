@@ -356,39 +356,40 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			update_sensors(&imu);
 
-			// battery simulation
-			const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
+			// battery simulation (limit update to 100Hz)
+			if (hrt_elapsed_time(&_battery_status.timestamp) >= 10000) {
 
-			bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+				const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
 
-			if (!armed || batt_sim_start == 0 || batt_sim_start > now) {
-				batt_sim_start = now;
+				bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+				if (!armed || batt_sim_start == 0 || batt_sim_start > now) {
+					batt_sim_start = now;
+				}
+
+				unsigned cellcount = _battery.cell_count();
+
+				float vbatt = _battery.full_cell_voltage() ;
+				float ibatt = -1.0f;
+
+				float discharge_v = _battery.full_cell_voltage() - _battery.empty_cell_voltage();
+
+				vbatt = (_battery.full_cell_voltage() - (discharge_v * ((now - batt_sim_start) / discharge_interval_us)))  * cellcount;
+
+				float batt_voltage_loaded = _battery.empty_cell_voltage() - 0.05f;
+
+				if (!PX4_ISFINITE(vbatt) || (vbatt < (cellcount * batt_voltage_loaded))) {
+					vbatt = cellcount * batt_voltage_loaded;
+				}
+
+				// TODO: don't hard-code throttle.
+				const float throttle = 0.5f;
+				_battery.updateBatteryStatus(now, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
+
+				// publish the battery voltage
+				int batt_multi;
+				orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &batt_multi, ORB_PRIO_HIGH);
 			}
-
-			unsigned cellcount = _battery.cell_count();
-
-			float vbatt = _battery.full_cell_voltage() ;
-			float ibatt = -1.0f;
-
-			float discharge_v = _battery.full_cell_voltage() - _battery.empty_cell_voltage();
-
-			vbatt = (_battery.full_cell_voltage() - (discharge_v * ((now - batt_sim_start) / discharge_interval_us)))  * cellcount;
-
-			float batt_voltage_loaded = _battery.empty_cell_voltage() - 0.05f;
-
-			if (!PX4_ISFINITE(vbatt) || (vbatt < (cellcount * batt_voltage_loaded))) {
-				vbatt = cellcount * batt_voltage_loaded;
-			}
-
-			battery_status_s battery_status = {};
-
-			// TODO: don't hard-code throttle.
-			const float throttle = 0.5f;
-			_battery.updateBatteryStatus(now, vbatt, ibatt, true, true, 0, throttle, armed, &battery_status);
-
-			// publish the battery voltage
-			int batt_multi;
-			orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &battery_status, &batt_multi, ORB_PRIO_HIGH);
 		}
 		break;
 
