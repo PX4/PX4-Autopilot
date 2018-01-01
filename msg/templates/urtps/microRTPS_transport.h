@@ -32,7 +32,6 @@
 
 #pragma once
 
-#include <string>
 #include <cstring>
 #include <arpa/inet.h>
 #include <poll.h>
