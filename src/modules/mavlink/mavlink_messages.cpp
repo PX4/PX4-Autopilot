@@ -1610,6 +1610,10 @@ protected:
 		if (updated) {
 			mavlink_global_position_int_t msg = {};
 
+			if (!home.valid_alt) {
+				home.alt = 0.0f;
+			}
+
 			msg.time_boot_ms = pos.timestamp / 1000;
 			msg.lat = pos.lat * 1e7;
 			msg.lon = pos.lon * 1e7;
@@ -3792,10 +3796,10 @@ protected:
 			struct home_position_s home = {};
 			updated |= _home_sub->update(&_home_time, &home);
 
-			if (_global_pos_time > 0 && _home_time > 0) {
+			if (_global_pos_time > 0 && _home_time > 0 && home.valid_alt) {
 				msg.altitude_relative = global_alt - home.alt;
 
-			} else if (_local_pos_time > 0 && _home_time > 0) {
+			} else if (_local_pos_time > 0 && _home_time > 0 && home.valid_alt) {
 				msg.altitude_relative = msg.altitude_local;
 
 			} else {
@@ -4155,7 +4159,7 @@ protected:
 			//msg.altitude_home = (_home_time > 0) ? (global_pos.alt - home.alt) : NAN;
 			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : NAN;
 
-			msg.altitude_sp = (_tecs_time > 0) ? (tecs_status.altitudeSp - home.alt) : NAN;
+			msg.altitude_sp = ((_tecs_time > 0) && home.valid_alt) ? (tecs_status.altitudeSp - home.alt) : NAN;
 
 			msg.airspeed = airspeed.indicated_airspeed_m_s * 100.0f;
 			msg.groundspeed = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e) * 100.0f;
