@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,9 +58,8 @@ PARAM_DEFINE_INT32(SYS_USE_IO, 1);
 /**
  * Invert direction of main output channel 1
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Enable to invert the channel.
  *
- * @reboot_required true
  * @boolean
  * @group PWM Outputs
  */
@@ -69,9 +68,8 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV1, 0);
 /**
  * Invert direction of main output channel 2
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Enable to invert the channel.
  *
- * @reboot_required true
  * @boolean
  * @group PWM Outputs
  */
@@ -80,9 +78,8 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV2, 0);
 /**
  * Invert direction of main output channel 3
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Enable to invert the channel.
  *
- * @reboot_required true
  * @boolean
  * @group PWM Outputs
  */
@@ -91,9 +88,8 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV3, 0);
 /**
  * Invert direction of main output channel 4
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Enable to invert the channel.
  *
- * @reboot_required true
  * @boolean
  * @group PWM Outputs
  */
@@ -102,9 +98,8 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV4, 0);
 /**
  * Invert direction of main output channel 5
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Enable to invert the channel.
  *
- * @reboot_required true
  * @boolean
  * @group PWM Outputs
  */
@@ -113,9 +108,8 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV5, 0);
 /**
  * Invert direction of main output channel 6
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Enable to invert the channel.
  *
- * @reboot_required true
  * @boolean
  * @group PWM Outputs
  */
@@ -124,9 +118,8 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV6, 0);
 /**
  * Invert direction of main output channel 7
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Enable to invert the channel.
  *
- * @reboot_required true
  * @boolean
  * @group PWM Outputs
  */
@@ -135,9 +128,8 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
 /**
  * Invert direction of main output channel 8
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Enable to invert the channel.
  *
- * @reboot_required true
  * @boolean
  * @group PWM Outputs
  */
