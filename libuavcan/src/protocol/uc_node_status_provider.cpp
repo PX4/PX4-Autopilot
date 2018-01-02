@@ -34,6 +34,11 @@ void NodeStatusProvider::handleTimerEvent(const TimerEvent&)
     }
     else
     {
+        if (ad_hoc_status_updater_ != UAVCAN_NULLPTR)
+        {
+            ad_hoc_status_updater_->updateNodeStatus();
+        }
+
         const int res = publish();
         if (res < 0)
         {
@@ -107,6 +112,11 @@ void NodeStatusProvider::setStatusPublicationPeriod(uavcan::MonotonicDuration pe
 uavcan::MonotonicDuration NodeStatusProvider::getStatusPublicationPeriod() const
 {
     return TimerBase::getPeriod();
+}
+
+void NodeStatusProvider::setAdHocNodeStatusUpdater(IAdHocNodeStatusUpdater* updater)
+{
+    ad_hoc_status_updater_ = updater;   // Can be nullptr, that's okay
 }
 
 void NodeStatusProvider::setHealth(uint8_t code)
