@@ -362,7 +362,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
               archiveArtifacts '.ros/*/px4/**.xml'
@@ -387,7 +387,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
               archiveArtifacts '.ros/*/px4/**.xml'
@@ -412,7 +412,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
               archiveArtifacts '.ros/*/px4/**.xml'
@@ -437,7 +437,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
               archiveArtifacts '.ros/*/px4/**.xml'
@@ -462,7 +462,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
               archiveArtifacts '.ros/*/px4/**.xml'
@@ -487,7 +487,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box.mission: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
               archiveArtifacts '.ros/*/px4/**.xml'
@@ -512,7 +512,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS offboard attitude test: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
               archiveArtifacts '.ros/*/px4/**.xml'
@@ -537,7 +537,7 @@ pipeline {
           post {
             always {
               archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS offboard position test: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
               archiveArtifacts '.ros/*/px4/**.xml'
