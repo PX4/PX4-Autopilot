@@ -40,7 +40,7 @@
  */
 #include "LidarLite.h"
 #include <errno.h>
-#include <nuttx/clock.h>
+
 
 LidarLite::LidarLite() :
 	_min_distance(LL40LS_MIN_DISTANCE),
