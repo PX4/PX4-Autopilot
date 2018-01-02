@@ -361,11 +361,12 @@ pipeline {
             sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1.txt vehicle:=vtol_standard'
           }
           post {
-            always {
-              archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            success {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
             }
@@ -387,11 +388,12 @@ pipeline {
             sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2.txt vehicle:=vtol_standard'
           }
           post {
-            always {
-              archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            success {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
             }
@@ -413,11 +415,12 @@ pipeline {
             sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1.txt vehicle:=vtol_standard'
           }
           post {
-            always {
-              archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            success {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
             }
@@ -439,11 +442,12 @@ pipeline {
             sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2.txt vehicle:=vtol_standard'
           }
           post {
-            always {
-              archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            success {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
             }
@@ -465,11 +469,12 @@ pipeline {
             sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_3.txt vehicle:=vtol_standard'
           }
           post {
-            always {
-              archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3.txt: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            success {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
             }
@@ -491,11 +496,12 @@ pipeline {
             sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box.mission vehicle:=iris'
           }
           post {
-            always {
-              archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box.mission: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            success {
+              sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box.mission: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
+              sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box.mission: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
             }
@@ -517,11 +523,12 @@ pipeline {
             sh './test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test'
           }
           post {
-            always {
-              archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "ROS offboard attitude test: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            success {
+              sh './Tools/upload_log.py -q --description "ROS offboard attitude test: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
+              sh './Tools/upload_log.py -q --description "ROS offboard attitude test: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
             }
@@ -543,11 +550,12 @@ pipeline {
             sh './test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test'
           }
           post {
-            always {
-              archiveArtifacts '**/*.ulg'
-              sh './Tools/upload_log.py -q --description "ROS offboard position test: ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            success {
+              sh './Tools/upload_log.py -q --description "ROS offboard position test: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
+              sh './Tools/upload_log.py -q --description "ROS offboard position test: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
             }
