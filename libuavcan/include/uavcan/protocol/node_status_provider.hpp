@@ -17,6 +17,29 @@
 namespace uavcan
 {
 /**
+ * This optional interface can be implemented by the user in order to update the node status as necessary,
+ * immediately before the next NodeStatus message is emitted by @ref NodeStatusProvider.
+ */
+class IAdHocNodeStatusUpdater
+{
+public:
+    /**
+     * This method is invoked by the library from @ref NodeStatusProvider from the library's thread immediately
+     * before the next NodeStatus message is transmitted. The application can implement this method to perform
+     * node status updates only as necessary.
+     * The application is expected to invoke the methods of @ref NodeStatusProvider to update the status
+     * from this method.
+     * Note that this method is only invoked when publication is happening by the timer event.
+     * It will NOT be invoked if the following methods are used to trigger node status publication:
+     *  - @ref NodeStatusProvider::startAndPublish()
+     *  - @ref NodeStatusProvider::forcePublish()
+     */
+    virtual void updateNodeStatus() = 0;
+
+    virtual ~IAdHocNodeStatusUpdater() { }
+};
+
+/**
  * Provides the status and basic information about this node to other network participants.
  *
  * Usually the application does not need to deal with this class directly - it's instantiated by the node class.
@@ -38,6 +61,8 @@ class UAVCAN_EXPORT NodeStatusProvider : private TimerBase
 
     protocol::GetNodeInfo::Response node_info_;
 
+    IAdHocNodeStatusUpdater* ad_hoc_status_updater_;
+
     INode& getNode() { return node_status_pub_.getNode(); }
 
     bool isNodeInfoInitialized() const;
@@ -58,6 +83,7 @@ public:
         , creation_timestamp_(node.getMonotonicTime())
         , node_status_pub_(node)
         , gni_srv_(node)
+        , ad_hoc_status_updater_(UAVCAN_NULLPTR)
     {
         UAVCAN_ASSERT(!creation_timestamp_.isZero());
 
@@ -85,6 +111,15 @@ public:
      */
     void setStatusPublicationPeriod(uavcan::MonotonicDuration period);
     uavcan::MonotonicDuration getStatusPublicationPeriod() const;
+
+    /**
+     * Configure the optional handler that is invoked before every node status message is emitted.
+     * By default no handler is installed.
+     * It is allowed to pass a null pointer, that will disable the ad-hoc update feature.
+     * @ref IAdHocNodeStatusUpdater
+     */
+    void setAdHocNodeStatusUpdater(IAdHocNodeStatusUpdater* updater);
+    IAdHocNodeStatusUpdater* getAdHocNodeStatusUpdater() const { return ad_hoc_status_updater_; }
 
     /**
      * Local node health code control.

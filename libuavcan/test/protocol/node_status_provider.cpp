@@ -7,6 +7,19 @@
 #include "helpers.hpp"
 
 
+struct AdHocNodeStatusUpdater : public uavcan::IAdHocNodeStatusUpdater
+{
+    uavcan::uint64_t invokations;
+
+    AdHocNodeStatusUpdater() : invokations(0) { }
+
+    virtual void updateNodeStatus()
+    {
+        invokations++;
+    }
+};
+
+
 TEST(NodeStatusProvider, Basic)
 {
     InterlinkedTestNodesWithSysClock nodes;
@@ -60,6 +73,11 @@ TEST(NodeStatusProvider, Basic)
     ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::MAX_BROADCASTING_PERIOD_MS),
               nsp.getStatusPublicationPeriod());
 
+    AdHocNodeStatusUpdater ad_hoc;
+    ASSERT_EQ(UAVCAN_NULLPTR, nsp.getAdHocNodeStatusUpdater());
+    nsp.setAdHocNodeStatusUpdater(&ad_hoc);
+    ASSERT_EQ(&ad_hoc, nsp.getAdHocNodeStatusUpdater());
+
     /*
      * Initial status publication
      */
@@ -75,6 +93,8 @@ TEST(NodeStatusProvider, Basic)
     ASSERT_EQ(0, status_sub.collector.msg->vendor_specific_status_code);
     ASSERT_GE(1, status_sub.collector.msg->uptime_sec);
 
+    ASSERT_EQ(0, ad_hoc.invokations);   // Not invoked from startAndPublish()
+
     /*
      * Altering the vendor-specific status code, forcePublish()-ing it and checking the result
      */
@@ -89,6 +109,8 @@ TEST(NodeStatusProvider, Basic)
     ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_ERROR, status_sub.collector.msg->health);
     ASSERT_EQ(1234, status_sub.collector.msg->vendor_specific_status_code);
     ASSERT_GE(1, status_sub.collector.msg->uptime_sec);
+
+    ASSERT_EQ(0, ad_hoc.invokations);   // Not invoked from forcePublish()
 
     /*
      * Explicit node info request
@@ -113,4 +135,16 @@ TEST(NodeStatusProvider, Basic)
     ASSERT_TRUE(swver == gni_cln.collector.result->getResponse().software_version);
 
     ASSERT_EQ("superluminal_communication_unit", gni_cln.collector.result->getResponse().name);
+
+    ASSERT_EQ(0, ad_hoc.invokations);   // No timer-triggered publications happened yet
+
+    /*
+     * Timer triggered publication
+     */
+    EXPECT_EQ(3, nodes.a.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+
+    nodes.spinBoth(nsp.getStatusPublicationPeriod());
+
+    EXPECT_EQ(1, ad_hoc.invokations);   // No timer-triggered publications happened yet
+    EXPECT_EQ(4, nodes.a.getDispatcher().getTransferPerfCounter().getTxTransferCount());
 }
