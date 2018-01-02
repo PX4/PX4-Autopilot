@@ -350,7 +350,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
@@ -375,7 +375,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
@@ -400,7 +400,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
@@ -425,7 +425,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
@@ -450,7 +450,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
@@ -475,7 +475,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
@@ -500,7 +500,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
@@ -525,7 +525,7 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
