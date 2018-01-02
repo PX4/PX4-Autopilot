@@ -39,6 +39,6 @@ px4_add_module(
 		px4muorb.cpp
 		uORBFastRpcChannel.cpp
 	DEPENDS
+		generate_px4muorb_stubs
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
