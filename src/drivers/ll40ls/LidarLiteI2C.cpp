@@ -209,14 +209,14 @@ int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -225,10 +225,10 @@ int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _reports->size();
 
 	default: {
-			int result = LidarLite::ioctl(filp, cmd, arg);
+			int result = LidarLiteI2C::ioctl(filp, cmd, arg);
 
 			if (result == -EINVAL) {
-				result = I2C::ioctl(filp, cmd, arg);
+				result = LidarLiteI2C::ioctl(filp, cmd, arg);
 			}
 
 			return result;
