@@ -364,6 +364,10 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
+            failure {
+              archiveArtifacts '.ros/*/px4/**.xml'
+              archiveArtifacts '.ros/log/**.log'
+            }
           }
         }
 
@@ -384,6 +388,10 @@ pipeline {
             always {
               archiveArtifacts '**/*.ulg'
               sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            }
+            failure {
+              archiveArtifacts '.ros/*/px4/**.xml'
+              archiveArtifacts '.ros/log/**.log'
             }
           }
         }
@@ -406,6 +414,10 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
+            failure {
+              archiveArtifacts '.ros/*/px4/**.xml'
+              archiveArtifacts '.ros/log/**.log'
+            }
           }
         }
 
@@ -426,6 +438,10 @@ pipeline {
             always {
               archiveArtifacts '**/*.ulg'
               sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            }
+            failure {
+              archiveArtifacts '.ros/*/px4/**.xml'
+              archiveArtifacts '.ros/log/**.log'
             }
           }
         }
@@ -448,6 +464,10 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
+            failure {
+              archiveArtifacts '.ros/*/px4/**.xml'
+              archiveArtifacts '.ros/log/**.log'
+            }
           }
         }
 
@@ -468,6 +488,10 @@ pipeline {
             always {
               archiveArtifacts '**/*.ulg'
               sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            }
+            failure {
+              archiveArtifacts '.ros/*/px4/**.xml'
+              archiveArtifacts '.ros/log/**.log'
             }
           }
         }
@@ -490,6 +514,10 @@ pipeline {
               archiveArtifacts '**/*.ulg'
               sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
+            failure {
+              archiveArtifacts '.ros/*/px4/**.xml'
+              archiveArtifacts '.ros/log/**.log'
+            }
           }
         }
 
@@ -510,6 +538,10 @@ pipeline {
             always {
               archiveArtifacts '**/*.ulg'
               sh './Tools/upload_log.py -q --description "${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            }
+            failure {
+              archiveArtifacts '.ros/*/px4/**.xml'
+              archiveArtifacts '.ros/log/**.log'
             }
           }
         }
