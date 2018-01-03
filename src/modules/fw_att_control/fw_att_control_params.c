@@ -528,12 +528,13 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
 PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
 
 /**
- * Disable airspeed sensor
+ * Airspeed mode
  *
  * For small wings or VTOL without airspeed sensor this parameter can be used to
  * enable flying without an airspeed reading
  *
- * @boolean
+ * @value 0 Normal (use airspeed if available)
+ * @value 1 Airspeed disabled
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
