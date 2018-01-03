@@ -266,7 +266,7 @@ void frsky_send_frame2(int uart)
 		lon    = frsky_format_gps(fabsf(global_pos->lon));
 		lon_ew = (global_pos->lon < 0) ? 'W' : 'E';
 		speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e)
-			 * 25.0f / 46.0f;
+			 * 1.94384; // knots per m/s (was 25.0f / 46.0f = 0.543)
 		alt    = global_pos->alt;
 	}
 
