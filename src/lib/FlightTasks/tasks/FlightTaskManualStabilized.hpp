@@ -62,7 +62,6 @@ protected:
 	virtual void _scaleSticks(); /**< Scales sticks to yaw and thrust. */
 
 private:
-	float _sign_speed{};
 	void _updateHeadingSetpoints(); /**< Sets yaw or yaw speed. */
 	void _updateThrustSetpoints(); /**< Sets thrust setpoint */
 
