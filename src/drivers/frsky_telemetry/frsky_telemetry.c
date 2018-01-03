@@ -189,6 +189,7 @@ static void usage()
 	PRINT_MODULE_USAGE_NAME("frsky_telemetry", "communication");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('f', "scan", "<SPORT | DTYPE>", "Force SPORT or DTYPE", true);
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
 	exit(1);
@@ -208,10 +209,17 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	int ch;
 
-	while ((ch = getopt(argc, argv, "d:")) != EOF) {
+	frsky_state = SCANNING;
+	frsky_state_t baudRate = DTYPE;
+
+	while ((ch = getopt(argc, argv, "d:f:")) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_name = optarg;
+			break;
+		
+		case 'f':
+			frsky_state = baudRate = optarg[0]=='S' ? SPORT : DTYPE;
 			break;
 
 		default:
@@ -239,8 +247,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	/* Main thread loop */
 	char sbuf[20];
-	frsky_state = SCANNING;
-	frsky_state_t baudRate = DTYPE;
+
+	if (frsky_state != SCANNING) {
+		set_uart_speed(uart, &uart_config, baudRate == SPORT ? B57600 : B9600);
+	}
+
+	warnx("Frsky: entering scanning loop");
 
 	while (!thread_should_exit && frsky_state == SCANNING) {
 		/* 2 byte polling frames indicate SmartPort telemetry
