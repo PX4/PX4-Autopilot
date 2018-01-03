@@ -1393,9 +1393,7 @@ FXOS8701CQ::measure()
 	 * one device to the next
 	 */
 
-	write_checked_reg(FXOS8701CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_A | M_CTRL_REG1_OS(7));
 	_last_temperature = (read_reg(FXOS8701CQ_TEMP)) * 0.96f;
-	write_checked_reg(FXOS8701CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_AM | M_CTRL_REG1_OS(7));
 
 	accel_report.temperature = _last_temperature;
 
