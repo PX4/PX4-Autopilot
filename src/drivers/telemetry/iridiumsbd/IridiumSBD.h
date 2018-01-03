@@ -91,6 +91,165 @@ extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 class IridiumSBD : public device::CDev
 {
 public:
+	/*
+	 * Constructor
+	 */
+	IridiumSBD();
+
+	/*
+	 * Start the driver
+	 */
+	static int start(int argc, char *argv[]);
+
+	/*
+	 * Stop the driver
+	 */
+	static int stop();
+
+	/*
+	 * Display driver status
+	 */
+	static void status();
+
+	/*
+	 * Run a driver test based on the input
+	 *  - `s`: Send a test string
+	 *  - `read`: Start a sbd read session
+	 *  - else: Is assumed to be a valid AT command and written to the modem
+	 */
+	static void test(int argc, char *argv[]);
+
+	/*
+	 * Passes everything to CDev
+	 */
+	int ioctl(struct file *filp, int cmd, unsigned long arg);
+
+private:
+	/*
+	 * Entry point of the task, has to be a static function
+	 */
+	static void main_loop_helper(int argc, char *argv[]);
+
+	/*
+	 * Main driver loop
+	 */
+	void main_loop(int argc, char *argv[]);
+
+	/*
+	 * Loop executed while in SATCOM_STATE_STANDBY
+	 *
+	 * Changes to SATCOM_STATE_TEST, SATCOM_STATE_SBDSESSION if required.
+	 * Periodically changes to SATCOM_STATE_CSQ for a signal quality check.
+	 */
+	void standby_loop(void);
+
+	/*
+	 * Loop executed while in SATCOM_STATE_CSQ
+	 *
+	 * Changes to SATCOM_STATE_STANDBY after finished signal quality check.
+	 */
+	void csq_loop(void);
+
+	/*
+	 * Loop executed while in SATCOM_STATE_SBDSESSION
+	 *
+	 * Changes to SATCOM_STATE_STANDBY after finished sbd session.
+	 */
+	void sbdsession_loop(void);
+
+	/*
+	 * Loop executed while in SATCOM_STATE_TEST
+	 *
+	 * Changes to SATCOM_STATE_STANDBY after finished test.
+	 */
+	void test_loop(void);
+
+	/*
+	 * Get the network signal strength
+	 */
+	void start_csq(void);
+
+	/*
+	 * Start a sbd session
+	 */
+	void start_sbd_session(void);
+
+	/*
+	 * Check if the test command is valid. If that is the case
+	 * change to SATCOM_STATE_TEST
+	 */
+	void start_test(void);
+
+	/*
+	 * Use to send mavlink messages directly
+	 */
+	ssize_t write(struct file *filp, const char *buffer, size_t buflen);
+
+	/*
+	 * Use to read received mavlink messages directly
+	 */
+	ssize_t read(struct file *filp, char *buffer, size_t buflen);
+
+	/*
+	 * Write the tx buffer to the modem
+	 */
+	void write_tx_buf();
+
+	/*
+	 * Read binary data from the modem
+	 */
+	void read_rx_buf();
+
+	/*
+	 * Send a AT command to the modem
+	 */
+	void write_at(const char *command);
+
+	/*
+	 * Read return from modem and store it in rx_command_buf
+	 */
+	satcom_result_code read_at_command(int16_t timeout = 100);
+
+	/*
+	 * Read return from modem and store it in rx_msg_buf
+	 */
+	satcom_result_code read_at_msg(int16_t timeout = 100);
+
+	/*
+	 * Read the return from the modem
+	 */
+	satcom_result_code read_at(uint8_t *rx_buf, int *rx_len, int16_t timeout = 100);
+
+	/*
+	 * Schedule a test (set test_pending to true)
+	 */
+	void schedule_test(void);
+
+	/*
+	 * Clear the MO message buffer
+	 */
+	bool clear_mo_buffer();
+
+	/*
+	 * Open and configure the given UART port
+	 */
+	satcom_uart_status open_uart(char *uart_name);
+
+	/*
+	 * Checks if the modem responds to the "AT" command
+	 */
+	bool is_modem_ready(void);
+
+	/*
+	 * Get the poll state
+	 */
+	pollevent_t poll_state(struct file *filp);
+
+	/*
+	 * Publish the up to date telemetry status
+	 */
+	void publish_telemetry_status(void);
+
 	static IridiumSBD *instance;
 	static int task_handle;
 	bool task_should_exit = false;
@@ -134,156 +293,4 @@ public:
 
 	pthread_mutex_t tx_buf_mutex = pthread_mutex_t();
 	bool verbose = false;
-
-	/*
-	 * Constructor
-	 */
-	IridiumSBD();
-
-	/*
-	 * Start the driver
-	 */
-	static int start(int argc, char *argv[]);
-
-	/*
-	 * Stop the driver
-	 */
-	static int stop();
-
-	/*
-	 * Display driver status
-	 */
-	static void status();
-
-	/*
-	 * Run a basic driver test
-	 */
-	static void test(int argc, char *argv[]);
-
-	/*
-	 * Entry point of the task, has to be a static function
-	 */
-	static void main_loop_helper(int argc, char *argv[]);
-
-	/*
-	 * Main driver loop
-	 */
-	void main_loop(int argc, char *argv[]);
-
-	/*
-	 * Use to send mavlink messages directly
-	 */
-	ssize_t write(struct file *filp, const char *buffer, size_t buflen);
-
-	/*
-	 * Use to read received mavlink messages directly
-	 */
-	ssize_t read(struct file *filp, char *buffer, size_t buflen);
-
-	/*
-	 * Passes everything to CDev
-	 */
-	int ioctl(struct file *filp, int cmd, unsigned long arg);
-
-	/*
-	 * Get the poll state
-	 */
-	pollevent_t poll_state(struct file *filp);
-
-	/*
-	 * Open and configure the given UART port
-	 */
-	satcom_uart_status open_uart(char *uart_name);
-
-	/*
-	 *
-	 */
-	void write_tx_buf();
-
-	/*
-	 *
-	 */
-	void read_rx_buf();
-
-	/*
-	 *
-	 */
-	bool clear_mo_buffer();
-
-	/*
-	 * Perform a SBD session, sending the message from the MO buffer (if previously written)
-	 * and retrieving a MT message from the Iridium system (if there is one waiting)
-	 * This will also update the registration needed for SBD RING
-	 */
-	int sbd_session(void);
-
-	/*
-	 * Get the network signal strength
-	 */
-	void start_csq(void);
-
-	/*
-	 *
-	 */
-	satcom_result_code read_at_command(int16_t timeout = 100);
-
-	/*
-	 *
-	 */
-	satcom_result_code read_at_msg(int16_t timeout = 100);
-
-	/*
-	 *
-	 */
-	satcom_result_code read_at(uint8_t *rx_buf, int *rx_len, int16_t timeout = 100);
-
-	/*
-	 *
-	 */
-	void schedule_test(void);
-
-	/*
-	 *
-	 */
-	void standby_loop(void);
-
-	/*
-	 *
-	 */
-	void csq_loop(void);
-
-	/*
-	 *
-	 */
-	void sbdsession_loop(void);
-
-	/*
-	 *
-	 */
-	void test_loop(void);
-
-	/*
-	 * TEST
-	 */
-	void start_test(void);
-
-	/*
-	 *
-	 */
-	void start_sbd_session(void);
-
-	/*
-	 * Checks if the modem responds to the "AT" command
-	 */
-	bool is_modem_ready(void);
-
-	/*
-	 * Send a AT command to the modem
-	 */
-	void write_at(const char *command);
-
-	/*
-	 * Publish the up to date telemetry status
-	 */
-	void publish_telemetry_status();
 };
