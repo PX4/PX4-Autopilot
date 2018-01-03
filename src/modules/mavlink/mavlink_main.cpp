@@ -2190,9 +2190,23 @@ Mavlink::task_main(int argc, char *argv[])
 
 		update_rate_mult();
 
-		if (param_sub->update(&param_time, nullptr)) {
+		/* param update backoff: update only after 50 ms after the last change */
+		param_sub->update(&param_time, nullptr);
+
+		if (param_time + 100 * 1000 > hrt_absolute_time()) {
 			/* parameters updated */
 			mavlink_update_system();
+			/* send out param cache value */
+			uint32_t hash = param_hash_check();
+
+			/* build the one-off response message */
+			mavlink_param_value_t param_value;
+			param_value.param_count = param_count_used();
+			param_value.param_index = -1;
+			strncpy(param_value.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+			param_value.param_type = MAV_PARAM_TYPE_UINT32;
+			memcpy(&param_value.param_value, &hash, sizeof(hash));
+			mavlink_msg_param_value_send_struct(get_channel(), &param_value);
 		}
 
 		check_radio_config();

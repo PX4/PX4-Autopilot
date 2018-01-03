@@ -47,8 +47,6 @@
 #include "mavlink_parameters.h"
 #include "mavlink_main.h"
 
-#define HASH_PARAM "_HASH_CHECK"
-
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
 	_send_all_index(-1),
 	_uavcan_open_request_list(nullptr),
