@@ -55,7 +55,6 @@ bool FlightTaskManualStabilized::activate()
 {
 	_yaw_sp = _yaw;
 	_yaw_rate_sp = 0.0f;
-	_sign_speed = 1.0f;
 	return FlightTaskManual::activate();
 }
 
@@ -69,17 +68,16 @@ void FlightTaskManualStabilized::_scaleSticks()
 
 void FlightTaskManualStabilized::_updateHeadingSetpoints()
 {
-	/* Yaw-lock depends on stick input. If locked,
-	 * yawspeed_sp is set to NAN. Otherwise yaw_sp is set
-	 * to NAN.*/
+	/* Yaw-lock depends on stick input. If not locked,
+	 * yaw_sp is set to NAN.
+	 * TODO: add yawspeed to get threshold.*/
 	const bool stick_yaw_zero = fabsf(_sticks(3)) <= _stick_dz.get();
 
 	if (stick_yaw_zero && !PX4_ISFINITE(_yaw_sp)) {
-		_yaw_sp = _wrap_pi(_yaw + _sign_speed * _yaw_rate_scaling.get() * _deltatime);
+		_yaw_sp = _yaw;
 
 	} else if (!stick_yaw_zero) {
 		_yaw_sp = NAN;
-		_sign_speed = math::sign(_yaw_rate_sp);
 	}
 }
 
