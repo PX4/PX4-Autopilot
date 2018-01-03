@@ -25,7 +25,7 @@ See the [forum and chat](https://docs.px4.io/en/#support) if you need help!
 
 ## PX4 Developers
 
-This [Developer Guide](https://dev.px4.io/) is for software developers who want to modify the flight stack and middleware (e.g. to add new flight modes), hardware integrators who want to support new flight controller boards and peripherals, any anyone who wants to get PX4 working on a new (unsupported) airframe/vehicle.
+This [Developer Guide](https://dev.px4.io/) is for software developers who want to modify the flight stack and middleware (e.g. to add new flight modes), hardware integrators who want to support new flight controller boards and peripherals, and anyone who wants to get PX4 working on a new (unsupported) airframe/vehicle.
 
 Developers should read the [Guide for Contributions](https://dev.px4.io/en/contribute/).
 See the [forum and chat](https://dev.px4.io/en/#support) if you need help!
