@@ -88,7 +88,7 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
  * 6 : Set to true to enable topics for sensor comparison (low rate raw IMU, Baro and Magnetomer data)
  *
  * @min 0
- * @max 127
+ * @max 255
  * @bit 0 default set (log analysis)
  * @bit 1 estimator replay (EKF2)
  * @bit 2 thermal calibration
@@ -96,6 +96,7 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
  * @bit 4 high rate
  * @bit 5 debug
  * @bit 6 sensor comparison
+ * @bit 7 vibration analysis
  * @reboot_required true
  * @group SD Logging
  */

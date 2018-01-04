@@ -76,7 +76,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_correction.h>
-#include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gyro_control.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -161,7 +161,7 @@ private:
 	struct vehicle_status_s			_vehicle_status;	/**< vehicle status */
 	struct mc_att_ctrl_status_s 		_controller_status;	/**< controller status */
 	struct battery_status_s			_battery_status;	/**< battery status */
-	struct sensor_gyro_s			_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
+	struct sensor_gyro_control_s		_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
 	struct sensor_correction_s		_sensor_correction;	/**< sensor thermal corrections */
 	struct sensor_bias_s			_sensor_bias;		/**< sensor in-run bias corrections */
 
@@ -1077,14 +1077,14 @@ MulticopterAttitudeControl::task_main()
 	_motor_limits_sub = orb_subscribe(ORB_ID(multirotor_motor_limits));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
-	_gyro_count = math::min(orb_group_count(ORB_ID(sensor_gyro)), MAX_GYRO_COUNT);
+	_gyro_count = math::min(orb_group_count(ORB_ID(sensor_gyro_control)), MAX_GYRO_COUNT);
 
 	if (_gyro_count == 0) {
 		_gyro_count = 1;
 	}
 
 	for (unsigned s = 0; s < _gyro_count; s++) {
-		_sensor_gyro_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
+		_sensor_gyro_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro_control), s);
 	}
 
 	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
@@ -1134,7 +1134,7 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* copy gyro data */
-			orb_copy(ORB_ID(sensor_gyro), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
+			orb_copy(ORB_ID(sensor_gyro_control), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
 
 			/* check for updates in other topics */
 			parameter_update_poll();

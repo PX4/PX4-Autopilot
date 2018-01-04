@@ -131,16 +131,23 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(nullptr),
+	_accel_raw_topic(nullptr),
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
+	_accel_publish_raw(true),
 	_gyro_reports(nullptr),
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_rate(MPU9250_GYRO_DEFAULT_RATE),
-	_sample_interval_accel(perf_alloc(PC_INTERVAL, "mpu6k_sample_interval_accel")),
-	_sample_interval_gyro(perf_alloc(PC_INTERVAL, "mpu6k_sample_interval_gyro")),
+	_gyro_control_interval(MPU9250_GYRO_DEFAULT_RATE / MPU9250_GYRO_DEFAULT_CONTROL_RATE),
+	_gyro_count(0),
+	_gyro_publish_raw(true),
+	_sample_interval_accel(perf_alloc(PC_INTERVAL, "mpu9250_sample_interval_accel")),
+	_sample_interval_gyro(perf_alloc(PC_INTERVAL, "mpu9250_sample_interval_gyro")),
+	_publish_interval_gyro(perf_alloc_once(PC_INTERVAL, "mpu9250_publish_interval_gyro")),
+	_publish_interval_gyro_control(perf_alloc_once(PC_ELAPSED, "mpu9250_publish_interval_gyro_control")),
 	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
@@ -149,7 +156,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_good_transfers(perf_alloc(PC_COUNT, "mpu9250_good_trans")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu9250_dupe")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
+	_controller_latency_perf(perf_alloc_once(PC_INTERVAL, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
 	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -399,6 +406,10 @@ MPU9250::init()
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
 					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
+	struct accel_raw_report accel_raw_report = {};
+	_accel_raw_topic = orb_advertise_multi(ORB_ID(sensor_accel_raw), &accel_raw_report,
+				     &_accel_orb_class_instance, ORB_PRIO_HIGH);
+
 	if (_accel_topic == nullptr) {
 		PX4_ERR("ADVERT FAIL");
 		return ret;
@@ -410,6 +421,14 @@ MPU9250::init()
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
 			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+
+	struct gyro_control_report control_report = {};
+	_gyro->_gyro_control_topic = orb_advertise_multi(ORB_ID(sensor_gyro_control), &control_report,
+				     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
+
+	struct gyro_raw_report raw_report = {};
+	_gyro->_gyro_raw_topic = orb_advertise_multi(ORB_ID(sensor_gyro_raw), &raw_report,
+				     &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		PX4_ERR("ADVERT FAIL");
@@ -1350,11 +1369,13 @@ MPU9250::measure()
 		 * Report buffers.
 		 */
 		accel_report	arb;
+		accel_raw_report raw_report;
 
 		/*
 		 * Adjust and scale results to m/s^2.
 		 */
 		arb.timestamp = stamp;
+		raw_report.timestamp = stamp;
 
 		// report the error count as the sum of the number of bad
 		// transfers and bad register reads. This allows the higher
@@ -1380,22 +1401,23 @@ MPU9250::measure()
 
 		/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-		arb.x_raw = report.accel_x;
-		arb.y_raw = report.accel_y;
-		arb.z_raw = report.accel_z;
-
-		float xraw_f = report.accel_x;
-		float yraw_f = report.accel_y;
-		float zraw_f = report.accel_z;
+		raw_report.x_raw = report.accel_x;
+		raw_report.y_raw = report.accel_y;
+		raw_report.z_raw = report.accel_z;
 
 		// apply user specified rotation
-		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+		rotate_3f(_rotation, raw_report.x_raw, raw_report.y_raw, raw_report.z_raw);
 
 		// apply calibration data
 		math::Vector<3> aval;
-		aval(0) = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-		aval(1) = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-		aval(2) = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+		aval(0) = ((raw_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+		aval(1) = ((raw_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+		aval(2) = ((raw_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+
+		// what we actually want are rotated and calibrated "raw" values
+		raw_report.x_raw = aval(0);
+		raw_report.y_raw = aval(1);
+		raw_report.z_raw = aval(2);
 
 		// apply lowpass filter
 		arb.x = _accel_filter_x.apply(aval(0));
@@ -1432,6 +1454,11 @@ MPU9250::measure()
 			perf_begin(_controller_latency_perf);
 			/* publish it */
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+		}
+
+		/* publish raw report */
+		if (_accel_publish_raw) {
+			orb_publish(ORB_ID(sensor_accel_raw), _accel_raw_topic, &raw_report);
 		}
 
 	} else {
@@ -1478,11 +1505,15 @@ MPU9250::measure()
 		 * Report buffers.
 		 */
 		gyro_report		grb;
+		gyro_control_report 	control_report;
+		gyro_raw_report		raw_report;
 
 		/*
 		 * Adjust and scale results to m/s^2.
 		 */
 		grb.timestamp = stamp;
+		control_report.timestamp = stamp;
+		raw_report.timestamp = stamp;
 
 		// report the error count as the sum of the number of bad
 		// transfers and bad register reads. This allows the higher
@@ -1508,22 +1539,23 @@ MPU9250::measure()
 
 		/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-		grb.x_raw = report.gyro_x;
-		grb.y_raw = report.gyro_y;
-		grb.z_raw = report.gyro_z;
-
-		float xraw_f = report.gyro_x;
-		float yraw_f = report.gyro_y;
-		float zraw_f = report.gyro_z;
+		raw_report.x_raw = report.gyro_x;
+		raw_report.y_raw = report.gyro_y;
+		raw_report.z_raw = report.gyro_z;
 
 		// apply user specified rotation
-		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+		rotate_3f(_rotation, raw_report.x_raw, raw_report.y_raw, raw_report.z_raw);
 
 		// apply calibration
 		math::Vector<3> gval;
-		gval(0) = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-		gval(1) = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-		gval(2) = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+		gval(0) = ((raw_report.x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+		gval(1) = ((raw_report.y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+		gval(2) = ((raw_report.z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+
+		// what we actually want are rotated and calibrated "raw" values
+		raw_report.x_raw = gval(0);
+		raw_report.y_raw = gval(1);
+		raw_report.z_raw = gval(2);
 
 		// apply lowpass filter
 		grb.x = _gyro_filter_x.apply(gval(0));
@@ -1540,7 +1572,7 @@ MPU9250::measure()
 		grb.scaling = _gyro_range_scale;
 		grb.range_rad_s = _gyro_range_rad_s;
 
-		grb.temperature_raw = report.temp;
+		//grb.temperature_raw = report.temp;
 		grb.temperature = _last_temperature;
 
 		/* return device ID */
@@ -1557,6 +1589,20 @@ MPU9250::measure()
 			/* publish it */
 			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
 		}
+
+		/* publish control report */
+		if (_gyro_count % _gyro_control_interval == 0) {
+			_gyro_count = 0;
+			perf_count(_publish_interval_gyro_control);
+			orb_publish(ORB_ID(sensor_gyro_control), _gyro->_gyro_control_topic, &control_report);
+		}
+
+		/* publish raw report */
+		if (_gyro_publish_raw) {
+			orb_publish(ORB_ID(sensor_gyro_raw), _gyro->_gyro_raw_topic, &raw_report);
+		}
+
+		_gyro_count++;
 	}
 
 	/* stop measuring */
@@ -1568,6 +1614,8 @@ MPU9250::print_info()
 {
 	perf_print_counter(_sample_interval_accel);
 	perf_print_counter(_sample_interval_gyro);
+	perf_print_counter(_publish_interval_gyro);
+	perf_print_counter(_publish_interval_gyro_control);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
@@ -1607,6 +1655,7 @@ MPU9250::print_info()
 	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
 	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
 	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
+	::printf("_gyro_control_interval set to %d\n", _gyro_control_interval);
 }
 
 void

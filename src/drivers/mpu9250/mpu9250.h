@@ -186,6 +186,8 @@
 #define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
 #define MPU9250_GYRO_MAX_RATE	8000
 #define MPU9250_GYRO_DEFAULT_RATE	2000
+/* Should be a factor of MPU9250_GYRO_DEFAULT_RATE */
+#define MPU9250_GYRO_DEFAULT_CONTROL_RATE 500
 /* rates need to be the same between accel and gyro */
 #define MPU9250_GYRO_MAX_OUTPUT_RATE			MPU9250_ACCEL_MAX_OUTPUT_RATE
 #define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
@@ -304,8 +306,10 @@ private:
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
+	orb_advert_t		_accel_raw_topic;
 	int			_accel_orb_class_instance;
 	int			_accel_class_instance;
+	bool			_accel_publish_raw;
 
 	ringbuffer::RingBuffer	*_gyro_reports;
 
@@ -316,9 +320,14 @@ private:
 	unsigned		_dlpf_freq;
 
 	unsigned		_sample_rate;
+	unsigned		_gyro_control_interval;
+	unsigned		_gyro_count;
+	bool			_gyro_publish_raw;
 
 	perf_counter_t		_sample_interval_accel;
 	perf_counter_t		_sample_interval_gyro;
+	perf_counter_t		_publish_interval_gyro;
+	perf_counter_t		_publish_interval_gyro_control;
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;

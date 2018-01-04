@@ -18,10 +18,10 @@ set(config_module_list
 	drivers/distance_sensor
 	drivers/magnetometer
 
-	drivers/adis16448
+	#drivers/adis16448
 	drivers/airspeed
 	drivers/blinkm
-	drivers/bmi160
+	#drivers/bmi160
 	drivers/boards
 	drivers/bst
 	drivers/camera_trigger

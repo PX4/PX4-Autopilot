@@ -10,9 +10,4 @@ float32 temperature	# temperature in degrees celsius
 float32 range_m_s2	# range in m/s^2 (+- this value)
 float32 scaling
 
-int16 x_raw
-int16 y_raw
-int16 z_raw
-int16 temperature_raw
-
 uint32 device_id	# unique device ID for the sensor that does not change between power cycles

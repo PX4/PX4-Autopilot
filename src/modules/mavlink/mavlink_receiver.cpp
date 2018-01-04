@@ -1857,9 +1857,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		struct gyro_report gyro = {};
 
 		gyro.timestamp = timestamp;
-		gyro.x_raw = imu.xgyro * 1000.0f;
+		// FIXME: publish raw
+		/*gyro.x_raw = imu.xgyro * 1000.0f;
 		gyro.y_raw = imu.ygyro * 1000.0f;
-		gyro.z_raw = imu.zgyro * 1000.0f;
+		gyro.z_raw = imu.zgyro * 1000.0f;*/
 		gyro.x = imu.xgyro;
 		gyro.y = imu.ygyro;
 		gyro.z = imu.zgyro;
@@ -1878,9 +1879,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
-		accel.x_raw = imu.xacc / mg2ms2;
+		// FIXME: publish raw
+		/*accel.x_raw = imu.xacc / mg2ms2;
 		accel.y_raw = imu.yacc / mg2ms2;
-		accel.z_raw = imu.zacc / mg2ms2;
+		accel.z_raw = imu.zacc / mg2ms2;*/
 		accel.x = imu.xacc;
 		accel.y = imu.yacc;
 		accel.z = imu.zacc;
@@ -2237,9 +2239,10 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
-		accel.x_raw = hil_state.xacc / CONSTANTS_ONE_G * 1e3f;
+		// FIXME: publish raw
+		/*accel.x_raw = hil_state.xacc / CONSTANTS_ONE_G * 1e3f;
 		accel.y_raw = hil_state.yacc / CONSTANTS_ONE_G * 1e3f;
-		accel.z_raw = hil_state.zacc / CONSTANTS_ONE_G * 1e3f;
+		accel.z_raw = hil_state.zacc / CONSTANTS_ONE_G * 1e3f;*/
 		accel.x = hil_state.xacc;
 		accel.y = hil_state.yacc;
 		accel.z = hil_state.zacc;

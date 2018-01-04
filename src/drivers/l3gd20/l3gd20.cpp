@@ -986,40 +986,37 @@ L3GD20::measure()
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_bad_registers);
 
+	float xraw_f = raw_report.x;
+	float yraw_f = raw_report.y;
+	float zraw_f = raw_report.z;
+
 	switch (_orientation) {
 
 	case SENSOR_BOARD_ROTATION_000_DEG:
 		/* keep axes in place */
-		report.x_raw = raw_report.x;
-		report.y_raw = raw_report.y;
 		break;
 
 	case SENSOR_BOARD_ROTATION_090_DEG:
 		/* swap x and y */
-		report.x_raw = raw_report.y;
-		report.y_raw = raw_report.x;
+		xraw_f = raw_report.y;
+		yraw_f = raw_report.x;
 		break;
 
 	case SENSOR_BOARD_ROTATION_180_DEG:
 		/* swap x and y and negate both */
-		report.x_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
-		report.y_raw = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
+		xraw_f = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+		yraw_f = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
 		break;
 
 	case SENSOR_BOARD_ROTATION_270_DEG:
 		/* swap x and y and negate y */
-		report.x_raw = raw_report.y;
-		report.y_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+		xraw_f = raw_report.y;
+		yraw_f = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
 		break;
 	}
 
-	report.z_raw = raw_report.z;
-
-	report.temperature_raw = raw_report.temp;
-
-	float xraw_f = report.x_raw;
-	float yraw_f = report.y_raw;
-	float zraw_f = report.z_raw;
+	// FIXME: add raw logging
+	//report.temperature_raw = raw_report.temp;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
@@ -1255,10 +1252,10 @@ test()
 	warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
 	warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
 	warnx("temp: \t%d\tC", (int)g_report.temperature);
-	warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
+	/*warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
 	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
 	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
-	warnx("temp: \t%d\traw", (int)g_report.temperature_raw);
+	warnx("temp: \t%d\traw", (int)g_report.temperature_raw);*/
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
