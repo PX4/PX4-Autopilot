@@ -37,9 +37,9 @@ git submodule update --init
 
 If this repository is used as a git submodule in your project, make sure to use `--recursive` when updating it.
 
-### Building and installing
+### Using in a Linux application
 
-This is only needed if the library is used in a Linux application.
+Libuavcan can be built as a static library and installed on the system globally as shown below.
 
 ```bash
 mkdir build
@@ -49,11 +49,34 @@ make -j8
 sudo make install
 ```
 
-For cross-compiling with CMake the procedure is similar (assuming that you have the toolchain file,
-`Toolchain-stm32-cortex-m4.cmake` in this example).
-**If you're using Make, please refer to the [documentation](http://uavcan.org/Implementations/Libuavcan).**
-For embedded ARM targets, it is recommended to use [GCC ARM Embedded](https://launchpad.net/gcc-arm-embedded);
+The following components will be installed:
+
+* Libuavcan headers and the static library
+* Generated DSDL headers
+* Libuavcan DSDL compiler (a Python script named `libuavcan_dsdlc`)
+* Libuavcan DSDL compiler's support library (a Python package named `libuavcan_dsdl_compiler`)
+
+Note that Pyuavcan (an implementation of UAVCAN in Python) will not be installed.
+You will need to install it separately if you intend to use the Libuavcan's DSDL compiler in your applications.
+
+It is also possible to use the library as a submodule rather than installing it system-wide.
+Please refer to the example applications supplied with the Linux platform driver for more information.
+
+### Using with an embedded system
+
+For ARM targets, it is recommended to use [GCC ARM Embedded](https://launchpad.net/gcc-arm-embedded);
 however, any other standard-compliant C++ compiler should also work.
+
+#### With Make
+
+Please refer to the [documentation at the UAVCAN website](http://uavcan.org/Implementations/Libuavcan).
+
+#### With CMake
+
+In order to cross-compile the library with CMake, please follow the below instructions.
+You will need to provide a CMake toolchain file, `Toolchain-stm32-cortex-m4.cmake` in this example.
+If you're not sure what a toolchain file is or how to prepare one, these instructions are probably not for your
+use case; please refer to the section about Make instead.
 
 ```bash
 mkdir build
@@ -61,16 +84,6 @@ cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-stm32-cortex-m4.cmake
 make -j8
 ```
-
-The following components will be installed into the system:
-
-* Libuavcan headers and the static library
-* Generated DSDL headers
-* Libuavcan DSDL compiler (Python script `libuavcan_dsdlc`)
-* Libuavcan DSDL compiler's support library (Python package `libuavcan_dsdl_compiler`)
-
-Pyuavcan will not be installed into the system together with the library; you'll need to install it separately.
-The installed DSDL compiler will not function unless pyuavcan is installed.
 
 ## Library development
 
