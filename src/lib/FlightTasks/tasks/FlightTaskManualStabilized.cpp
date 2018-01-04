@@ -33,10 +33,6 @@
 
 /**
  * @file FlightManualStabilized.cpp
- *
- * Flight task for manual controlled attitude.
- * It generates thrust and yaw setpoints.
- * TODO: add thrust
  */
 
 #include "FlightTaskManualStabilized.hpp"

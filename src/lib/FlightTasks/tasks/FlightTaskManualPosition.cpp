@@ -33,9 +33,6 @@
 
 /**
  * @file FlightTaskManualPosition.cpp
- *
- * Flight task for manual position controlled mode.
- *
  */
 
 #include "FlightTaskManualPosition.hpp"
