@@ -2614,9 +2614,15 @@ Commander::run()
 			}
 
 		} else {
-			if (!status.data_link_lost && high_latency_link_exists && !status.high_latency_data_link_active && armed.armed) {
+			if (!status.data_link_lost && high_latency_link_exists && !status.high_latency_data_link_active && armed.armed &&
+					internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL &&
+					internal_state.main_state != commander_state_s::MAIN_STATE_ACRO &&
+					internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE &&
+					internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
+					internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL &&
+					internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL ) {
 				// low latency telemetry lost and high latency link existing
-				// only go to the high latency status if armed to avoid unnecessary transmitting
+				// only go to the high latency status if armed and not in a manual mode to avoid unnecessary transmitting data
 				status.high_latency_data_link_active = true;
 				status_changed = true;
 				mavlink_log_critical(&mavlink_log_pub, "ALL LOW LATENCY DATA LINKS LOST, ACTIVATING HIGH LATENCY LINK");
