@@ -837,14 +837,12 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
-					_set_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
@@ -1600,6 +1598,9 @@ MPU9250::print_info()
 				 (unsigned)_checked_bad[i]);
 		}
 	}
+
+	uint8_t v = read_reg(MPUREG_CONFIG, MPU9250_HIGH_BUS_SPEED);
+	::printf("MPUREG_CONFIG: %02x\n", (unsigned)v);
 
 	::printf("temperature: %.1f\n", (double)_last_temperature);
 	float accel_cut = _accel_filter_x.get_cutoff_freq();
