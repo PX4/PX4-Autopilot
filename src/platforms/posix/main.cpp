@@ -521,7 +521,7 @@ int main(int argc, char **argv)
 			char c = getchar();
 
 			switch (c) {
-			case 127:	// backslash
+			case 127:	// DEL
 				if (mystr.length() > 0) {
 					mystr.pop_back();
 					printf("%c[2K", 27);	// clear line
@@ -589,8 +589,11 @@ int main(int argc, char **argv)
 					break;
 				}
 
-			default:	// any other input
-				if (c > 3) {
+			case EOF:
+				break;
+
+			default:	// any other ASCII input
+				if (c > 3 && c < 127) {
 					cout << c;
 					mystr += c;
 				}
