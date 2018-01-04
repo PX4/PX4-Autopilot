@@ -130,7 +130,6 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
  * @value 1 Heading towards waypoint
  * @value 2 Heading towards home
  * @value 3 Heading away from home
- * @value 4 Heading towards ROI
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
