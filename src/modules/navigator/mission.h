@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,8 +85,7 @@ public:
 		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
 		MISSION_YAWMODE_FRONT_TO_HOME = 2,
 		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_TO_ROI = 4,
-		MISSION_YAWMODE_MAX = 5
+		MISSION_YAWMODE_MAX = 4
 	};
 
 	bool set_current_offboard_mission_index(uint16_t index);
@@ -232,6 +231,7 @@ private:
 	control::BlockParamFloat _param_dist_between_wps;
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
+	control::BlockParamInt _param_mnt_yaw_ctl;
 
 	struct mission_s _offboard_mission {};
 
