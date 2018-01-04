@@ -32,12 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskManual.hpp
- *
- * Flight task for the normal, legacy, manual position controlled flight
- * where stick inputs map basically to the velocity setpoint
- *
- * @author Matthias Grob <maetugr@gmail.com>
+ * @file FlightTaskOrbit.cpp
  */
 
 #include "FlightTaskOrbit.hpp"
