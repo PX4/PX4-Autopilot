@@ -525,7 +525,7 @@ int main(int argc, char **argv)
 			add_string = ""; // reset string to add
 
 			switch (c) {
-			case 127:	// backslash
+			case 127:	// DEL
 				if (mystr.length() - cursor_position > 0) {
 					mystr.erase(mystr.length() - cursor_position - 1, 1);
 
@@ -618,9 +618,11 @@ int main(int argc, char **argv)
 
 					break;
 				}
+			case EOF:
+				break;
 
-			default:	// any other input
-				if (c > 3) {
+			default:	// any other ASCII input
+				if (c > 3 && c < 127) {
 					add_string += c;
 				}
 
