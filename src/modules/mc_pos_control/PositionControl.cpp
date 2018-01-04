@@ -90,7 +90,7 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 	_pos_sp = Data(&setpoint.x);
 	_vel_sp = Data(&setpoint.vx);
 	_acc_sp = Data(&setpoint.acc_x);
-	_thr_sp = Data(&setpoint.thr_x);
+	_thr_sp = Data(setpoint.thr);
 	_yaw_sp = setpoint.yaw; //integrate
 	_yawspeed_sp = setpoint.yawspeed;
 	_interfaceMapping();
@@ -100,7 +100,7 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 	 */
 	_skipController = false;
 
-	if (PX4_ISFINITE(setpoint.thr_x) && PX4_ISFINITE(setpoint.thr_y) && PX4_ISFINITE(setpoint.thr_z)) {
+	if (PX4_ISFINITE(setpoint.thr[0]) && PX4_ISFINITE(setpoint.thr[1]) && PX4_ISFINITE(setpoint.thr[2])) {
 		_skipController = true;
 	}
 }
