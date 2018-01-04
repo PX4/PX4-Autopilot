@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,7 @@
  * @author Simon Wilks <simon@uaventure.com>
  * @author Andreas Antener <andreas@uaventure.com>
  * @author Sander Smeets <sander@droneslab.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "mission.h"
@@ -217,9 +218,10 @@ Mission::on_active()
 	}
 
 	/* see if we need to update the current yaw heading */
-	if ((_param_yawmode.get() != MISSION_YAWMODE_NONE
-	     && _param_yawmode.get() < MISSION_YAWMODE_MAX
-	     && _mission_type != MISSION_TYPE_NONE)
+	if (_navigator->get_vroi().mode == vehicle_roi_s::ROI_LOCATION
+	    || (_param_yawmode.get() != MISSION_YAWMODE_NONE
+		&& _param_yawmode.get() < MISSION_YAWMODE_MAX
+		&& _mission_type != MISSION_TYPE_NONE)
 	    || _navigator->get_vstatus()->is_vtol) {
 
 		heading_sp_update();
@@ -989,62 +991,80 @@ Mission::heading_sp_update()
 		return;
 	}
 
-	/* set yaw angle for the waypoint if a loiter time has been specified */
-	if (_waypoint_position_reached && get_time_inside(_mission_item) > FLT_EPSILON) {
-		// XXX: should actually be param4 from mission item
-		// at the moment it will just keep the heading it has
-		//_mission_item.yaw = _on_arrival_yaw;
-		//pos_sp_triplet->current.yaw = _mission_item.yaw;
+	/* Calculate direction the vehicle should point to. */
 
-	} else {
-		/* Calculate direction the vehicle should point to. */
-		double point_from_latlon[2];
-		double point_to_latlon[2];
+	double point_from_latlon[2];
+	double point_to_latlon[2];
 
-		point_from_latlon[0] = _navigator->get_global_position()->lat;
-		point_from_latlon[1] = _navigator->get_global_position()->lon;
+	point_from_latlon[0] = _navigator->get_global_position()->lat;
+	point_from_latlon[1] = _navigator->get_global_position()->lon;
 
-		/* target location is home */
-		if ((_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME || _param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME)
-		    // need to be rotary wing for this but not in a transition
-		    // in VTOL mode this will prevent updating yaw during FW flight
-		    // (which would result in a wrong yaw setpoint spike during back transition)
-		    && _navigator->get_vstatus()->is_rotary_wing
-		    && !(_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION || _navigator->get_vstatus()->in_transition_mode)) {
+	if (_navigator->get_vroi().mode == vehicle_roi_s::ROI_LOCATION && !_param_mnt_yaw_ctl.get()) {
+		point_to_latlon[0] = _navigator->get_vroi().lat;
+		point_to_latlon[1] = _navigator->get_vroi().lon;
 
-			point_to_latlon[0] = _navigator->get_home_position()->lat;
-			point_to_latlon[1] = _navigator->get_home_position()->lon;
-
-		} else if (_param_yawmode.get() == MISSION_YAWMODE_TO_ROI
-			   && _navigator->get_vroi().mode == vehicle_roi_s::ROI_LOCATION) {
-			/* target location is ROI */
-			point_to_latlon[0] = _navigator->get_vroi().lat;
-			point_to_latlon[1] = _navigator->get_vroi().lon;
-
-		} else {
-			/* target location is next (current) waypoint */
-			point_to_latlon[0] = pos_sp_triplet->current.lat;
-			point_to_latlon[1] = pos_sp_triplet->current.lon;
-		}
-
+		/* stop if positions are close together to prevent excessive yawing */
 		float d_current = get_distance_to_next_waypoint(
 					  point_from_latlon[0], point_from_latlon[1],
 					  point_to_latlon[0], point_to_latlon[1]);
 
-		/* stop if positions are close together to prevent excessive yawing */
 		if (d_current > _navigator->get_acceptance_radius()) {
 			float yaw = get_bearing_to_next_waypoint(
 					    point_from_latlon[0], point_from_latlon[1],
 					    point_to_latlon[0], point_to_latlon[1]);
 
-			/* always keep the back of the rotary wing pointing towards home */
-			if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
-				_mission_item.yaw = _wrap_pi(yaw + M_PI_F);
-				pos_sp_triplet->current.yaw = _mission_item.yaw;
+			_mission_item.yaw = yaw;
+			pos_sp_triplet->current.yaw = _mission_item.yaw;
+		}
+
+	} else {
+		/* set yaw angle for the waypoint if a loiter time has been specified */
+		if (_waypoint_position_reached && get_time_inside(_mission_item) > FLT_EPSILON) {
+			// XXX: should actually be param4 from mission item
+			// at the moment it will just keep the heading it has
+			//_mission_item.yaw = _on_arrival_yaw;
+			//pos_sp_triplet->current.yaw = _mission_item.yaw;
+
+		} else {
+			/* target location is home */
+			if ((_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME
+			     || _param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME)
+			    // need to be rotary wing for this but not in a transition
+			    // in VTOL mode this will prevent updating yaw during FW flight
+			    // (which would result in a wrong yaw setpoint spike during back transition)
+			    && _navigator->get_vstatus()->is_rotary_wing
+			    && !(_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION || _navigator->get_vstatus()->in_transition_mode)) {
+
+				point_to_latlon[0] = _navigator->get_home_position()->lat;
+				point_to_latlon[1] = _navigator->get_home_position()->lon;
 
 			} else {
-				_mission_item.yaw = yaw;
-				pos_sp_triplet->current.yaw = _mission_item.yaw;
+				/* target location is next (current) waypoint */
+				point_to_latlon[0] = pos_sp_triplet->current.lat;
+				point_to_latlon[1] = pos_sp_triplet->current.lon;
+			}
+
+			float d_current = get_distance_to_next_waypoint(
+						  point_from_latlon[0], point_from_latlon[1],
+						  point_to_latlon[0], point_to_latlon[1]);
+
+			/* stop if positions are close together to prevent excessive yawing */
+			if (d_current > _navigator->get_acceptance_radius()) {
+				float yaw = get_bearing_to_next_waypoint(
+						    point_from_latlon[0],
+						    point_from_latlon[1],
+						    point_to_latlon[0],
+						    point_to_latlon[1]);
+
+				/* always keep the back of the rotary wing pointing towards home */
+				if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
+					_mission_item.yaw = _wrap_pi(yaw + M_PI_F);
+					pos_sp_triplet->current.yaw = _mission_item.yaw;
+
+				} else {
+					_mission_item.yaw = yaw;
+					pos_sp_triplet->current.yaw = _mission_item.yaw;
+				}
 			}
 		}
 	}
