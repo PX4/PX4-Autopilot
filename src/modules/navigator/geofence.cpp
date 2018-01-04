@@ -127,8 +127,8 @@ void Geofence::_updateFence()
 		case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
 		case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
 			is_circle_area = true;
+			[[fallthrough]];
 
-		/* FALLTHROUGH */
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
 			if (!is_circle_area && mission_fence_point.vertex_count == 0) {

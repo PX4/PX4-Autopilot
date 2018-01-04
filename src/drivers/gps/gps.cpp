@@ -677,8 +677,8 @@ GPS::run()
 			switch (_mode) {
 			case GPS_DRIVER_MODE_NONE:
 				_mode = GPS_DRIVER_MODE_UBX;
+				[[fallthrough]];
 
-			/* FALLTHROUGH */
 			case GPS_DRIVER_MODE_UBX: {
 					int32_t param_gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
 					param_get(param_find("GPS_UBX_DYNMODEL"), &param_gps_ubx_dynmodel);

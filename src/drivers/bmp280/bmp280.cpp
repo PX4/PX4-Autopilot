@@ -355,12 +355,12 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 
 			case SENSOR_POLLRATE_MAX:
+				[[fallthrough]];
 
-			/* FALLTHROUGH */
 			case SENSOR_POLLRATE_DEFAULT:
 				ticks = _max_mesure_ticks;
+				[[fallthrough]];
 
-			/* FALLTHROUGH */
 			default: {
 					if (ticks == 0) {
 						ticks = USEC2TICK(USEC_PER_SEC / arg);

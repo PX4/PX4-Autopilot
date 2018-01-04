@@ -113,8 +113,7 @@ LIS3MDL_I2C::ioctl(unsigned operation, unsigned &arg)
 
 	case MAGIOCGEXTERNAL:
 		external();
-
-	/* FALLTHROUGH */
+		[[fallthrough]];
 
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);

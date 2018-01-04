@@ -503,10 +503,9 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 						elementCount = 0;
 						break;
 					}
-
 				}
 
-			/* FALLTHROUGH */
+				__attribute__((fallthrough));  // we cannot use	[[fallthrough]] in a C file
 
 			case SMARTPORT_POLL_8:
 

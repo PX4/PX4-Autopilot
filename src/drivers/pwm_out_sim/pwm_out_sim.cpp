@@ -701,7 +701,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
 
 	case PWM_SERVO_SET(0):
 	case PWM_SERVO_SET(1):
@@ -724,7 +724,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
 
 	case PWM_SERVO_GET(3):
 	case PWM_SERVO_GET(2):
@@ -733,7 +733,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
 
 	case PWM_SERVO_GET(1):
 	case PWM_SERVO_GET(0): {

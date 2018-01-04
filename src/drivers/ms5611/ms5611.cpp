@@ -1347,7 +1347,7 @@ ms5611_main(int argc, char *argv[])
 				}
 			}
 
-		/* FALLTHROUGH */
+			[[fallthrough]];
 
 		default:
 			ms5611::usage();

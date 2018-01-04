@@ -238,7 +238,8 @@ void LedController::get_control_data(LedControlData &control_data)
 					flash_output_active = false;
 				}
 
-			/* FALLTHROUGH */
+				[[fallthrough]];
+
 			case led_control_s::MODE_BLINK_FAST:
 			case led_control_s::MODE_BLINK_NORMAL:
 			case led_control_s::MODE_BLINK_SLOW:
