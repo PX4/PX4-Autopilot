@@ -83,15 +83,6 @@ bool FlightTaskManual::updateInitialize()
 	return ret;
 }
 
-bool FlightTaskManual::update()
-{
-	/* Nothing to do.
-	 * The only purpose of this class
-	 * is to provide sticks to child classes.
-	 */
-	return true;
-}
-
 bool FlightTaskManual::_evaluateSticks()
 {
 	/* Sticks are rescaled linearly and exponentially from [0,1] to [-1,1] */

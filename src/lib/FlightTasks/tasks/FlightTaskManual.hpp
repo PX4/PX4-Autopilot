@@ -59,8 +59,6 @@ public:
 
 	bool updateInitialize() override;
 
-	bool update() override;
-
 protected:
 
 	bool _sticks_data_required = true; /**< let inherited task-class define if it depends on stick data */
