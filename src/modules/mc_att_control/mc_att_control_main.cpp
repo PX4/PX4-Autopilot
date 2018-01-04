@@ -1257,9 +1257,12 @@ MulticopterAttitudeControl::task_main()
 				/* publish controller status */
 				rate_ctrl_status_s rate_ctrl_status;
 				rate_ctrl_status.timestamp = hrt_absolute_time();
-				rate_ctrl_status.roll_integ = _rates_int(0);
-				rate_ctrl_status.pitch_integ = _rates_int(1);
-				rate_ctrl_status.yaw_integ = _rates_int(2);
+				rate_ctrl_status.rollspeed = _rates_prev(0);
+				rate_ctrl_status.pitchspeed = _rates_prev(1);
+				rate_ctrl_status.yawspeed = _rates_prev(2);
+				rate_ctrl_status.rollspeed_integ = _rates_int(0);
+				rate_ctrl_status.pitchspeed_integ = _rates_int(1);
+				rate_ctrl_status.yawspeed_integ = _rates_int(2);
 
 				int instance;
 				orb_publish_auto(ORB_ID(rate_ctrl_status), &_controller_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);

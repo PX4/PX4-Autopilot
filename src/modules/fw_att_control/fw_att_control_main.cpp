@@ -1179,9 +1179,12 @@ FixedwingAttitudeControl::task_main()
 
 				rate_ctrl_status_s rate_ctrl_status;
 				rate_ctrl_status.timestamp = hrt_absolute_time();
-				rate_ctrl_status.roll_integ = _roll_ctrl.get_integrator();
-				rate_ctrl_status.pitch_integ = _pitch_ctrl.get_integrator();
-				rate_ctrl_status.yaw_integ = _yaw_ctrl.get_integrator();
+				rate_ctrl_status.rollspeed = _att.rollspeed;
+				rate_ctrl_status.pitchspeed = _att.pitchspeed;
+				rate_ctrl_status.yawspeed = _att.yawspeed;
+				rate_ctrl_status.rollspeed_integ = _roll_ctrl.get_integrator();
+				rate_ctrl_status.pitchspeed_integ = _pitch_ctrl.get_integrator();
+				rate_ctrl_status.yawspeed_integ = _yaw_ctrl.get_integrator();
 				rate_ctrl_status.additional_integ1 = _wheel_ctrl.get_integrator();
 
 				int instance;
