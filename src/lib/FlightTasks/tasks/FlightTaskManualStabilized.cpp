@@ -61,8 +61,7 @@ bool FlightTaskManualStabilized::activate()
 void FlightTaskManualStabilized::_scaleSticks()
 {
 	/* Scale sticks to yaw and thrust using
-	 * linear scale for yaw and quadratic for thrust.
-	 * TODO: add thrust */
+	 * linear scale for yaw and piecewise linear map for thrust. */
 	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
 	_throttle = _throttleCurve();;
 }
@@ -84,13 +83,18 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 
 void FlightTaskManualStabilized::_updateThrustSetpoints()
 {
-	/* Body frame */
 	/* Rotate setpoint into local frame. */
 	matrix::Vector3f sp{_sticks(0), _sticks(1), 0.0f};
 	sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw)) * sp);
 	const float x = sp(0) * math::radians(_tilt_max_man.get());
 	const float y = sp(1) * math::radians(_tilt_max_man.get());
 
+	/* The norm of the xy stick input provides the pointing
+	 * direction of the horizontal desired thrust setpoint. The magnitude of the
+	 * xy stick inputs represents the desired tilt. Both tilt and magnitude can
+	 * be captured through Axis-Angle.
+	 */
+	/* The Axis-Angle is the perpendicular vector to xy-stick input */
 	matrix::Vector2f v = matrix::Vector2f(y, -x);
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
 
@@ -98,6 +102,9 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 		v *= _tilt_max_man.get() / v_norm;
 	}
 
+	/* The final thrust setpoint is found by rotating the scaled unit vector pointing
+	 * upward by the Axis-Angle.
+	 */
 	matrix::Quatf q_sp = matrix::AxisAnglef(v(0), v(1), 0.0f);
 	_thr_sp = q_sp.conjugate(matrix::Vector3f(0.0f, 0.0f, -1.0f)) * _throttle;
 }
@@ -108,10 +115,9 @@ void FlightTaskManualStabilized::_updateSetpoints()
 	_updateThrustSetpoints();
 }
 
-/* TODO: add quadratic funciton */
 float FlightTaskManualStabilized::_throttleCurve()
 {
-	/* Scale stick z from [-1,1] to [min thr, max thr]
+	/* Scale stick z from [-1,1] to [min thrust, max thrust]
 	 * with hover throttle at 0.5 stick */
 	float throttle = -((_sticks_expo(2) - 1.0f) * 0.5f);
 
