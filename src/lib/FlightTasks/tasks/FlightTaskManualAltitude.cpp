@@ -61,7 +61,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 	/* Reuse same scaling as for stabilized */
 	FlightTaskManualStabilized::_scaleSticks();
 
-	/* Scale stick exponentially */
+	/* Scale horizontal velocity with expo curve stick input*/
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
 	_vel_sp_z = vel_max_z * _sticks_expo(2);
 }
@@ -69,8 +69,8 @@ void FlightTaskManualAltitude::_scaleSticks()
 void FlightTaskManualAltitude::_updateZsetpoints()
 {
 	/* Depending on stick inputs, position is locked or
-	 * velocity setpoint is used. If locked, velocity setpoint
-	 * is set to NAN. Otherwise position setpoints is set to NAN.
+	 * velocity setpoint is used. If not locked, position
+	 * setpoints is set to NAN.
 	 */
 
 	/* handle position and altitude hold */
