@@ -42,7 +42,6 @@
 #pragma once
 
 #include "tasks/FlightTask.hpp"
-#include "tasks/FlightTaskManual.hpp"
 #include "tasks/FlightTaskManualAltitude.hpp"
 #include "tasks/FlightTaskManualPosition.hpp"
 #include "tasks/FlightTaskManualStabilized.hpp"
@@ -122,7 +121,6 @@ private:
 		TaskUnion() {}
 		~TaskUnion() {}
 
-		FlightTaskManual manual;
 		FlightTaskManualStabilized stabilized;
 		FlightTaskManualAltitude altitude;
 		FlightTaskManualPosition position;
