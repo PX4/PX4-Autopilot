@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 
-/**
+/*
  * @file LidarLitePWM.h
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Ban Siesta <bansiesta@gmail.com>
@@ -45,8 +45,8 @@
 
 #include "LidarLite.h"
 
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
+#include <px4_workqueue.h>
+
 
 #include <drivers/device/ringbuffer.h>
 #include <systemlib/perf_counter.h>
