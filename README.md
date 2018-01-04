@@ -8,7 +8,11 @@ This library solves the estimation & control problems of a number of robots and 
 
 The library is BSD 3-clause licensed.
 
-## Building EKF Library
+## EKF Documentation
+
+  * [EKF Documentation and Tuning Guide](https://dev.px4.io/en/tutorials/tuning_the_ecl_ekf.html)
+
+## Building EKF
 
 ### Prerequisites:
 
