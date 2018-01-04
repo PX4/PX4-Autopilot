@@ -52,7 +52,8 @@ FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, 
 
 bool FlightTaskManualAltitude::activate()
 {
-	_pos_sp_z = _position(2);
+	_pos_sp_z = NAN;
+	_vel_sp_z = 0.0f;
 	return FlightTaskManualStabilized::activate();
 }
 

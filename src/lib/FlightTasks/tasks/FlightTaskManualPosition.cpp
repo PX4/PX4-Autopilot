@@ -51,7 +51,7 @@ FlightTaskManualPosition::FlightTaskManualPosition(control::SuperBlock *parent, 
 
 bool FlightTaskManualPosition::activate()
 {
-	_pos_sp_xy = matrix::Vector2f(&_position(0));
+	_pos_sp_xy = matrix::Vector2f(NAN, NAN);
 	_vel_sp_xy = matrix::Vector2f(0.0f, 0.0f);
 	return FlightTaskManualAltitude::activate();
 }
