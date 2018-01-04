@@ -1,4 +1,5 @@
 include(common/px4_upload)
+include(cygwin_cygpath)
 
 if (NOT FW_NAME)
 	set(FW_NAME ${CONFIG}.elf)
@@ -37,9 +38,13 @@ endif()
 
 file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
 
+# only in the cygwin environment: convert absolute linker script path to mixed windows (C:/...)
+# because even relative linker script paths are different for linux, mac and windows
+CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
+
 target_link_libraries(${FW_NAME}
 
-	-Wl,--script=${PX4_BINARY_DIR_REL}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
 	-Wl,-Map=${CONFIG}.map
 	-Wl,--warn-common,--gc-sections
 
