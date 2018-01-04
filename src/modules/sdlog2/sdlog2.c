@@ -2082,9 +2082,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
 			if (copy_if_updated(ORB_ID(rate_ctrl_status), &subs.rate_ctrl_status_sub, &buf.rate_ctrl_status)) {
 				log_msg.msg_type = LOG_MACS_MSG;
-				log_msg.body.log_MACS.roll_rate_integ = buf.rate_ctrl_status.roll_integ;
-				log_msg.body.log_MACS.pitch_rate_integ = buf.rate_ctrl_status.pitch_integ;
-				log_msg.body.log_MACS.yaw_rate_integ = buf.rate_ctrl_status.yaw_integ;
+				log_msg.body.log_MACS.roll_rate_integ = buf.rate_ctrl_status.rollspeed_integ;
+				log_msg.body.log_MACS.pitch_rate_integ = buf.rate_ctrl_status.pitchspeed_integ;
+				log_msg.body.log_MACS.yaw_rate_integ = buf.rate_ctrl_status.yawspeed_integ;
 				LOGBUFFER_WRITE_AND_COUNT(MACS);
 			}
 		}
