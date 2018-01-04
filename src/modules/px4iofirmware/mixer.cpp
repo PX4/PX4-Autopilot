@@ -569,7 +569,8 @@ mixer_handle_text(const void *buffer, size_t length)
 		mixer_group.reset();
 		mixer_text_length = 0;
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
+
 	case F2I_MIXER_ACTION_APPEND:
 		isr_debug(2, "append %d", length);
 

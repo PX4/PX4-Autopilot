@@ -379,7 +379,7 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 			return 0;
 		}
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
 
 	case ParserState::GotLength: {
 			_packet_len -= buflen;
@@ -509,8 +509,7 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 		_packet_len = payload_len + HEADER_SIZE;
 		_parser_state = ParserState::GotLength;
 		lock(Write);
-
-	/* FALLTHROUGH */
+		[[fallthrough]];
 
 	case ParserState::GotLength: {
 			_packet_len -= buflen;

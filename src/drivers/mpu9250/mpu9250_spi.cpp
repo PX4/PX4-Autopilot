@@ -169,8 +169,7 @@ MPU9250_SPI::ioctl(unsigned operation, unsigned &arg)
 
 	case ACCELIOCGEXTERNAL:
 		external();
-
-	/* FALLTHROUGH */
+		[[fallthrough]];
 
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);

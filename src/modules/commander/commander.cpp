@@ -3926,7 +3926,8 @@ set_control_mode()
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 		/* override is not ok for the RTL and recovery mode */
 		control_mode.flag_external_manual_override_ok = false;
-		/* fallthrough */
+		[[fallthrough]];
+
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:

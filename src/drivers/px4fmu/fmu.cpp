@@ -648,9 +648,9 @@ PX4FMU::set_mode(Mode mode)
 		up_input_capture_set(2, Rising, 0, NULL, NULL);
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
 		DEVICE_DEBUG("MODE_2PWM2CAP");
-#endif
+		[[fallthrough]];
 
-	/* FALLTHROUGH */
+#endif
 
 	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_2PWM");
@@ -670,9 +670,9 @@ PX4FMU::set_mode(Mode mode)
 	case MODE_3PWM1CAP:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_3PWM1CAP");
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
-#endif
+		[[fallthrough]];
 
-	/* FALLTHROUGH */
+#endif
 
 	case MODE_3PWM:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_3PWM");
@@ -2183,45 +2183,45 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case PWM_SERVO_SET(7):
-
-	/* FALLTHROUGH */
 	case PWM_SERVO_SET(6):
 		if (_mode < MODE_8PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
+		[[fallthrough]];
+
 #endif
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
-	/* FALLTHROUGH */
 	case PWM_SERVO_SET(5):
-
-	/* FALLTHROUGH */
 	case PWM_SERVO_SET(4):
 		if (_mode < MODE_6PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
+		[[fallthrough]];
+
 #endif
 
-	/* FALLTHROUGH */
 	case PWM_SERVO_SET(3):
 		if (_mode < MODE_4PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
+
 	case PWM_SERVO_SET(2):
 		if (_mode < MODE_3PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
+
 	case PWM_SERVO_SET(1):
 	case PWM_SERVO_SET(0):
 		if (arg <= 2100) {
@@ -2246,10 +2246,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+		[[fallthrough]];
+
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
-	/* FALLTHROUGH */
 	case PWM_SERVO_GET(7):
 	case PWM_SERVO_GET(6):
 		if (_mode < MODE_8PWM) {
@@ -2257,11 +2258,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+		[[fallthrough]];
+
 #endif
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
-	/* FALLTHROUGH */
 	case PWM_SERVO_GET(5):
 	case PWM_SERVO_GET(4):
 		if (_mode < MODE_6PWM) {
@@ -2269,23 +2271,26 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+		[[fallthrough]];
+
 #endif
 
-	/* FALLTHROUGH */
 	case PWM_SERVO_GET(3):
 		if (_mode < MODE_4PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
+
 	case PWM_SERVO_GET(2):
 		if (_mode < MODE_3PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
-	/* FALLTHROUGH */
+		[[fallthrough]];
+
 	case PWM_SERVO_GET(1):
 	case PWM_SERVO_GET(0):
 		*(servo_position_t *)arg = up_pwm_servo_get(cmd - PWM_SERVO_GET(0));

@@ -543,7 +543,8 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			sp->alt = _navigator->get_global_position()->alt;
 		}
 
-	// fall through
+		[[fallthrough]];
+
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
