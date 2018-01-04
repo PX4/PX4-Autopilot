@@ -36,7 +36,6 @@
  *
  * Flight task for manual controlled attitude.
  * It generates thrust and yaw setpoints.
- * TODO: add thrust
  */
 
 #pragma once
@@ -64,15 +63,15 @@ protected:
 
 private:
 
-	float _throttle{};
+	float _throttle{}; /** Mapped from stick z. */
 
 	void _updateHeadingSetpoints(); /**< Sets yaw or yaw speed. */
 	void _updateThrustSetpoints(); /**< Sets thrust setpoint */
-	float _throttleCurve(); /**< piecewise linear mapping for throttle */
+	float _throttleCurve(); /**< Piecewise linear mapping from stick to throttle. */
 
 	control::BlockParamFloat _yaw_rate_scaling; /**< Scaling factor from stick to yaw rate. */
 	control::BlockParamFloat _tilt_max_man; /**< Maximum tilt allowed for manual flight */
 	control::BlockParamFloat _throttle_min; /**< Minimum throttle that always has to be satisfied in flight*/
 	control::BlockParamFloat _throttle_max; /**< Maximum throttle that always has to be satisfied in flight*/
-	control::BlockParamFloat _throttle_hover; /**< Throttel value at which vehicle is at hover equilibrium */
+	control::BlockParamFloat _throttle_hover; /**< Throttle value at which vehicle is at hover equilibrium */
 };
