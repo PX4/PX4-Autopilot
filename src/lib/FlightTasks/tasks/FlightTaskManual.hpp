@@ -42,7 +42,6 @@
 
 #include "FlightTask.hpp"
 #include <uORB/topics/manual_control_setpoint.h>
-#include <platforms/px4_defines.h>
 
 class FlightTaskManual : public FlightTask
 {
