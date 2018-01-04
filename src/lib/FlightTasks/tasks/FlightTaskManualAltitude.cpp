@@ -33,8 +33,6 @@
 
 /**
  * @file FlightManualAltitude.cpp
- *
- * Flight task for manual controlled altitude.
  */
 
 #include "FlightTaskManualAltitude.hpp"

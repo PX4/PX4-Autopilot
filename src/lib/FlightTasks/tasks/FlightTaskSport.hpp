@@ -32,11 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskOrbit.hpp
+ * @file FlightTaskSport.hpp
  *
- * Flight task for orbiting in a circle around a target position
- *
- * @author Matthias Grob <maetugr@gmail.com>
+ * Manual controlled position with maximum speed and no smoothing.
  */
 
 #pragma once

@@ -32,9 +32,6 @@
  ****************************************************************************/
 /**
  * @file FlightTaskManual.cpp
- *
- * Linear and exponential map from stick inputs to range -1 and 1.
- *
  */
 
 #include "FlightTaskManual.hpp"
