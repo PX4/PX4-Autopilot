@@ -53,8 +53,9 @@ FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *pare
 
 bool FlightTaskManualStabilized::activate()
 {
-	_yaw_sp = _yaw;
+	_yaw_sp = NAN;
 	_yaw_rate_sp = 0.0f;
+	_thr_sp = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
 	return FlightTaskManual::activate();
 }
 
