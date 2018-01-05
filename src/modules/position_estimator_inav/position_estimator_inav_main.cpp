@@ -69,6 +69,7 @@
 #include <geo/geo.h>
 #include <drivers/drv_hrt.h>
 #include <platforms/px4_defines.h>
+#include <conversion/rotation.h>
 
 #include <terrain_estimation/terrain_estimator.h>
 #include "position_estimator_inav_params.h"
@@ -611,6 +612,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated && lidar_valid) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
+
+				// rotate measurements according to parameter
+				const enum Rotation flow_rot = (Rotation)flow.rotation;
+				float zeroval = 0.0f;
+				rotate_3f(flow_rot, flow.pixel_flow_x_integral, flow.pixel_flow_y_integral, zeroval);
+				rotate_3f(flow_rot, flow.gyro_x_rate_integral, flow.gyro_y_rate_integral, flow.gyro_z_rate_integral);
 
 				flow_time = t;
 				float flow_q = flow.quality / 255.0f;
