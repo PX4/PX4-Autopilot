@@ -95,20 +95,6 @@ if(PythonTests)
   find_package(PythonLibs 3 REQUIRED)
   find_package(PythonInterp 3 REQUIRED)
 
-  # Check for required python packages
-  file(READ "${CMAKE_SOURCE_DIR}/tests/pytest/requirements.txt" ECL_TEST_PYTHON_PACKAGES)
-  # Strip version information and split into cmake list
-  string(REGEX REPLACE "\n" ";" ECL_TEST_PYTHON_PACKAGES "${ECL_TEST_PYTHON_PACKAGES}")
-  string(REGEX REPLACE "-" "_" ECL_TEST_PYTHON_PACKAGES "${ECL_TEST_PYTHON_PACKAGES}")
-  string(REGEX REPLACE "[>=]+[^;]*" "" ECL_TEST_PYTHON_PACKAGES "${ECL_TEST_PYTHON_PACKAGES}")
-
-  foreach(package ${ECL_TEST_PYTHON_PACKAGES})
-    execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import ${package}" RESULT_VARIABLE PytestAvailable OUTPUT_QUIET ERROR_QUIET)
-    if(${PytestAvailable})
-      message(FATAL_ERROR "Python package missing:\n Please install ${package}, e.g., \"pip3 install --user ${package}\"")
-    endif()
-  endforeach(package)
-
   # Need SWIG to wrap ecl
   find_package(SWIG REQUIRED)
   include(${SWIG_USE_FILE})

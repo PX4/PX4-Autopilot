@@ -1,3 +1,5 @@
 *.DS_Store
-Build/
 *~
+.cache/
+Build/
+EKF/tests/pytest/__pycache__/
