@@ -1091,6 +1091,10 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
 
+	/* get rotation parameter */
+	int32_t flow_rot_int;
+	param_get(param_find("SENS_FLOW_ROT"), &flow_rot_int);
+
 	flow.sensor_id = flow_mavlink->sensor_id;
 	flow.timestamp = timestamp;
 	flow.time_since_last_sonar_update = 0;
@@ -1105,15 +1109,7 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	flow.pixel_flow_x_integral = flow_mavlink->integrated_x;
 	flow.pixel_flow_y_integral = flow_mavlink->integrated_y;
 	flow.quality = flow_mavlink->quality;
-
-	/* rotate measurements according to parameter */
-	int32_t flow_rot_int;
-	param_get(param_find("SENS_FLOW_ROT"), &flow_rot_int);
-	const enum Rotation flow_rot = (Rotation)flow_rot_int;
-
-	float zeroval = 0.0f;
-	rotate_3f(flow_rot, flow.pixel_flow_x_integral, flow.pixel_flow_y_integral, zeroval);
-	rotate_3f(flow_rot, flow.gyro_x_rate_integral, flow.gyro_y_rate_integral, flow.gyro_z_rate_integral);
+	flow.rotation = (uint8_t)flow_rot_int; // rotation will be applied by the user (estimator)
 
 	int flow_multi;
 	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
