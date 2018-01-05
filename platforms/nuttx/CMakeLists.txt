@@ -10,7 +10,7 @@ add_dependencies(${FW_NAME} git_nuttx nuttx_build)
 get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
 
 # build NuttX
-add_subdirectory(${PX4_SOURCE_DIR}/platforms/nuttx/NuttX ${PX4_BINARY_DIR}/NuttX)
+add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
 
 set(nuttx_libs)
 list(APPEND nuttx_libs

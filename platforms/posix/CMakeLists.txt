@@ -106,9 +106,9 @@ elseif ("${BOARD}" STREQUAL "bebop")
 
 elseif ("${BOARD}" STREQUAL "sitl")
 
-	include(./sitl_target.cmake)
+	include(sitl_target)
 	if(BUILD_TESTING)
-		include(./sitl_tests.cmake)
+		include(sitl_tests)
 	endif()
 
 else()
