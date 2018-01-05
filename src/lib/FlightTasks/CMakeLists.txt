@@ -41,6 +41,7 @@ px4_add_module(
 		tasks/FlightTaskManualAltitudeSmooth.cpp
 		tasks/FlightTaskManualPosition.cpp
 		tasks/Utility/ManualSmoothingZ.cpp
+		tasks/Utility/ManualSmoothingXY.cpp
 		SubscriptionArray.cpp
 		FlightTasks.cpp
 	DEPENDS
