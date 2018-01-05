@@ -87,6 +87,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_log.h>
 #include <debug.h>
 
 #include <drivers/device/device.h>
@@ -109,6 +110,12 @@
 
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>
+
+#include <px4_workqueue.h>
+
+#include <lib/tunes/tunes.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/tune_control.h>
 
 /* Check that tone alarm and HRT timers are different */
 #if defined(TONE_ALARM_TIMER)  && defined(HRT_TIMER)
@@ -296,16 +303,10 @@ class ToneAlarm : public device::CDev
 {
 public:
 	ToneAlarm();
-	~ToneAlarm() = default;
+	~ToneAlarm();
 
-	virtual int		init();
-
-	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
-	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
-	inline const char	*name(int tune)
-	{
-		return _tune_names[tune];
-	}
+	virtual int init();
+	void status();
 
 	enum {
 		CBRK_OFF = 0,
@@ -314,81 +315,44 @@ public:
 	};
 
 private:
-	static const unsigned	_tune_max = 1024 * 8; // be reasonable about user tunes
-	const char		 *_default_tunes[TONE_NUMBER_OF_TUNES];
-	const char		 *_tune_names[TONE_NUMBER_OF_TUNES];
-	static const uint8_t	_note_tab[];
+	volatile bool _running;
+	volatile bool _should_run;
+	bool _play_tone;
 
-	unsigned		_default_tune_number; // number of currently playing default tune (0 for none)
+	Tunes _tunes;
 
-	const char		*_user_tune;
+	unsigned _silence_length; // if nonzero, silence before next note
 
-	const char		*_tune;		// current tune string
-	const char		*_next;		// next note in the string
+	int _cbrk; ///< if true, no audio output
+	int _tune_control_sub;
 
-	unsigned		_tempo;
-	unsigned		_note_length;
-	enum { MODE_NORMAL, MODE_LEGATO, MODE_STACCATO} _note_mode;
-	unsigned		_octave;
-	unsigned		_silence_length; // if nonzero, silence before next note
-	bool			_repeat;	// if true, tune restarts at end
-	int				_cbrk;	//if true, no audio output
+	tune_control_s _tune;
 
-	hrt_call		_note_call;	// HRT callout for note completion
+	static work_s _work;
 
-	// Convert a note value in the range C1 to B7 into a divisor for
-	// the configured timer's clock.
+	// Convert a frequency value into a divisor for the configured timer's clock.
 	//
-	unsigned		note_to_divisor(unsigned note);
-
-	// Calculate the duration in microseconds of play and silence for a
-	// note given the current tempo, length and mode and the number of
-	// dots following in the play string.
-	//
-	unsigned		note_duration(unsigned &silence, unsigned note_length, unsigned dots);
-
-	// Calculate the duration in microseconds of a rest corresponding to
-	// a given note length.
-	//
-	unsigned		rest_duration(unsigned rest_length, unsigned dots);
+	unsigned frequency_to_divisor(unsigned frequency);
 
 	// Start playing the note
 	//
-	void			start_note(unsigned note);
+	void start_note(unsigned frequency);
 
 	// Stop playing the current note and make the player 'safe'
 	//
-	void			stop_note();
-
-	// Start playing the tune
-	//
-	void			start_tune(const char *tune);
+	void stop_note();
 
 	// Parse the next note out of the string and play it
 	//
-	void			next_note();
+	void next_note();
 
-	// Find the next character in the string, discard any whitespace and
-	// return the canonical (uppercase) version.
+	// work queue trampoline for next_note
 	//
-	int			next_char();
-
-	// Extract a number from the string, consuming all the digit characters.
-	//
-	unsigned		next_number();
-
-	// Consume dot characters from the string, returning the number consumed.
-	//
-	unsigned		next_dots();
-
-	// hrt_call trampoline for next_note
-	//
-	static void		next_trampoline(void *arg);
+	static void next_trampoline(void *arg);
 
 };
 
-// semitone offsets from C for the characters 'A'-'G'
-const uint8_t ToneAlarm::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
+struct work_s ToneAlarm::_work = {};
 
 /*
  * Driver 'main' command.
@@ -398,47 +362,29 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 ToneAlarm::ToneAlarm() :
 	CDev("tone_alarm", TONEALARM0_DEVICE_PATH),
-	_default_tune_number(0),
-	_user_tune(nullptr),
-	_tune(nullptr),
-	_next(nullptr),
-	_cbrk(CBRK_OFF)
+	_running(false),
+	_should_run(true),
+	_play_tone(false),
+	_tunes(),
+	_silence_length(0),
+	_cbrk(CBRK_OFF),
+	_tune_control_sub(-1)
 {
-	_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
-	_default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
-	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE] = "MFT200e8a8a";					// Notify Positive tone
-	_default_tunes[TONE_NOTIFY_NEUTRAL_TUNE] = "MFT200e8e";						// Notify Neutral tone
-	_default_tunes[TONE_NOTIFY_NEGATIVE_TUNE] = "MFT200e8c8e8c8e8c8";				// Notify Negative tone
-	_default_tunes[TONE_ARMING_WARNING_TUNE] = "MNT75L1O2G";					//arming warning
-	_default_tunes[TONE_BATTERY_WARNING_SLOW_TUNE] = "MBNT100a8";					//battery warning slow
-	_default_tunes[TONE_BATTERY_WARNING_FAST_TUNE] = "MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8";	//battery warning fast
-	_default_tunes[TONE_GPS_WARNING_TUNE] = "MFT255L4AAAL1F#";					//gps warning slow
-	_default_tunes[TONE_ARMING_FAILURE_TUNE] = "MFT255L4<<<BAP";
-	_default_tunes[TONE_PARACHUTE_RELEASE_TUNE] = "MFT255L16agagagag";			// parachute release
-	_default_tunes[TONE_EKF_WARNING_TUNE] = "MFT255L8ddd#d#eeff";				// ekf warning
-	_default_tunes[TONE_BARO_WARNING_TUNE] = "MFT255L4gf#fed#d";				// baro warning
-	_default_tunes[TONE_SINGLE_BEEP_TUNE] = "MFT100a8";                             // single beep
-	_default_tunes[TONE_HOME_SET] = "MFT100L4>G#6A#6B#4";
-
-	_tune_names[TONE_STARTUP_TUNE] = "startup";			// startup tune
-	_tune_names[TONE_ERROR_TUNE] = "error";				// ERROR tone
-	_tune_names[TONE_NOTIFY_POSITIVE_TUNE] = "positive";		// Notify Positive tone
-	_tune_names[TONE_NOTIFY_NEUTRAL_TUNE] = "neutral";		// Notify Neutral tone
-	_tune_names[TONE_NOTIFY_NEGATIVE_TUNE] = "negative";		// Notify Negative tone
-	_tune_names[TONE_ARMING_WARNING_TUNE] = "arming";		// arming warning
-	_tune_names[TONE_BATTERY_WARNING_SLOW_TUNE] = "slow_bat";	// battery warning slow
-	_tune_names[TONE_BATTERY_WARNING_FAST_TUNE] = "fast_bat";	// battery warning fast
-	_tune_names[TONE_GPS_WARNING_TUNE] = "gps_warning";	            // gps warning
-	_tune_names[TONE_ARMING_FAILURE_TUNE] = "arming_failure";            //fail to arm
-	_tune_names[TONE_PARACHUTE_RELEASE_TUNE] = "parachute_release";	// parachute release
-	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";				// ekf warning
-	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
-	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
-	_tune_names[TONE_HOME_SET] = "home_set";
+	// enable debug() calls
+	//_debug_enabled = true;
 }
 
-int
-ToneAlarm::init()
+ToneAlarm::~ToneAlarm()
+{
+	_should_run = false;
+	int counter = 0;
+
+	while (_running && ++counter < 10) {
+		usleep(100000);
+	}
+}
+
+int ToneAlarm::init()
 {
 	int ret;
 
@@ -484,16 +430,25 @@ ToneAlarm::init()
 	rCR1 = GTIM_CR1_CEN;
 
 	DEVICE_DEBUG("ready");
+
+	_running = true;
+	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, 0);
 	return OK;
 }
 
-unsigned
-ToneAlarm::note_to_divisor(unsigned note)
+void ToneAlarm::status()
 {
-	// compute the frequency first (Hz)
-	float freq = 880.0f * expf(logf(2.0f) * ((int)note - 46) / 12.0f);
+	if (_running) {
+		PX4_INFO("running");
 
-	float period = 0.5f / freq;
+	} else {
+		PX4_INFO("stopped");
+	}
+}
+
+unsigned ToneAlarm::frequency_to_divisor(unsigned frequency)
+{
+	float period = 0.5f / frequency;
 
 	// and the divisor, rounded to the nearest integer
 	unsigned divisor = (period * TONE_ALARM_CLOCK) + 0.5f;
@@ -501,67 +456,7 @@ ToneAlarm::note_to_divisor(unsigned note)
 	return divisor;
 }
 
-unsigned
-ToneAlarm::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
-{
-	unsigned whole_note_period = (60 * 1000000 * 4) / _tempo;
-
-	if (note_length == 0) {
-		note_length = 1;
-	}
-
-	unsigned note_period = whole_note_period / note_length;
-
-	switch (_note_mode) {
-	case MODE_NORMAL:
-		silence = note_period / 8;
-		break;
-
-	case MODE_STACCATO:
-		silence = note_period / 4;
-		break;
-
-	default:
-	case MODE_LEGATO:
-		silence = 0;
-		break;
-	}
-
-	note_period -= silence;
-
-	unsigned dot_extension = note_period / 2;
-
-	while (dots--) {
-		note_period += dot_extension;
-		dot_extension /= 2;
-	}
-
-	return note_period;
-}
-
-unsigned
-ToneAlarm::rest_duration(unsigned rest_length, unsigned dots)
-{
-	unsigned whole_note_period = (60 * 1000000 * 4) / _tempo;
-
-	if (rest_length == 0) {
-		rest_length = 1;
-	}
-
-	unsigned rest_period = whole_note_period / rest_length;
-
-	unsigned dot_extension = rest_period / 2;
-
-	while (dots--) {
-		rest_period += dot_extension;
-		dot_extension /= 2;
-	}
-
-	return rest_period;
-}
-
-void
-ToneAlarm::start_note(unsigned note)
+void ToneAlarm::start_note(unsigned frequency)
 {
 	// check if circuit breaker is enabled
 	if (_cbrk == CBRK_UNINIT) {
@@ -571,7 +466,7 @@ ToneAlarm::start_note(unsigned note)
 	if (_cbrk != CBRK_OFF) { return; }
 
 	// compute the divisor
-	unsigned divisor = note_to_divisor(note);
+	unsigned divisor = frequency_to_divisor(frequency);
 
 	// pick the lowest prescaler value that we can use
 	// (note that the effective prescale value is 1 greater)
@@ -589,8 +484,7 @@ ToneAlarm::start_note(unsigned note)
 	px4_arch_configgpio(GPIO_TONE_ALARM);
 }
 
-void
-ToneAlarm::stop_note()
+void ToneAlarm::stop_note()
 {
 	/* stop the current note */
 	rCCER &= ~TONE_CCER;
@@ -601,379 +495,83 @@ ToneAlarm::stop_note()
 	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 }
 
-void
-ToneAlarm::start_tune(const char *tune)
+void ToneAlarm::next_note()
 {
-	// kill any current playback
-	hrt_cancel(&_note_call);
+	if (!_should_run) {
+		if (_tune_control_sub >= 0) {
+			orb_unsubscribe(_tune_control_sub);
+		}
 
-	// record the tune
-	_tune = tune;
-	_next = tune;
+		_running = false;
+		return;
+	}
 
-	// initialise player state
-	_tempo = 120;
-	_note_length = 4;
-	_note_mode = MODE_NORMAL;
-	_octave = 4;
-	_silence_length = 0;
-	_repeat = false;		// otherwise command-line tunes repeat forever...
+	// subscribe to tune_control
+	if (_tune_control_sub < 0) {
+		_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
+	}
 
-	// schedule a callback to start playing
-	hrt_call_after(&_note_call, 0, (hrt_callout)next_trampoline, this);
-}
-
-void
-ToneAlarm::next_note()
-{
 	// do we have an inter-note gap to wait for?
 	if (_silence_length > 0) {
 		stop_note();
-		hrt_call_after(&_note_call, (hrt_abstime)_silence_length, (hrt_callout)next_trampoline, this);
+		work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, USEC2TICK(_silence_length));
 		_silence_length = 0;
 		return;
 	}
 
-	// make sure we still have a tune - may be removed by the write / ioctl handler
-	if ((_next == nullptr) || (_tune == nullptr)) {
-		stop_note();
-		return;
-	}
-
-	// parse characters out of the string until we have resolved a note
-	unsigned note = 0;
-	unsigned note_length = _note_length;
-	unsigned duration;
-
-	while (note == 0) {
-		// we always need at least one character from the string
-		int c = next_char();
-
-		if (c == 0) {
-			goto tune_end;
-		}
-
-		_next++;
-
-		switch (c) {
-		case 'L':	// select note length
-			_note_length = next_number();
-
-			if (_note_length < 1) {
-				goto tune_error;
-			}
-
-			break;
-
-		case 'O':	// select octave
-			_octave = next_number();
-
-			if (_octave > 6) {
-				_octave = 6;
-			}
-
-			break;
-
-		case '<':	// decrease octave
-			if (_octave > 0) {
-				_octave--;
-			}
-
-			break;
-
-		case '>':	// increase octave
-			if (_octave < 6) {
-				_octave++;
-			}
-
-			break;
-
-		case 'M':	// select inter-note gap
-			c = next_char();
-
-			if (c == 0) {
-				goto tune_error;
-			}
-
-			_next++;
-
-			switch (c) {
-			case 'N':
-				_note_mode = MODE_NORMAL;
-				break;
-
-			case 'L':
-				_note_mode = MODE_LEGATO;
-				break;
-
-			case 'S':
-				_note_mode = MODE_STACCATO;
-				break;
-
-			case 'F':
-				_repeat = false;
-				break;
-
-			case 'B':
-				_repeat = true;
-				break;
-
-			default:
-				goto tune_error;
-			}
-
-			break;
-
-		case 'P':	// pause for a note length
-			stop_note();
-			hrt_call_after(&_note_call,
-				       (hrt_abstime)rest_duration(next_number(), next_dots()),
-				       (hrt_callout)next_trampoline,
-				       this);
-			return;
-
-		case 'T': {	// change tempo
-				unsigned nt = next_number();
-
-				if ((nt >= 32) && (nt <= 255)) {
-					_tempo = nt;
-
-				} else {
-					goto tune_error;
-				}
-
-				break;
-			}
-
-		case 'N':	// play an arbitrary note
-			note = next_number();
-
-			if (note > 84) {
-				goto tune_error;
-			}
-
-			if (note == 0) {
-				// this is a rest - pause for the current note length
-				hrt_call_after(&_note_call,
-					       (hrt_abstime)rest_duration(_note_length, next_dots()),
-					       (hrt_callout)next_trampoline,
-					       this);
-				return;
-			}
-
-			break;
-
-		case 'A'...'G':	// play a note in the current octave
-			note = _note_tab[c - 'A'] + (_octave * 12) + 1;
-			c = next_char();
-
-			switch (c) {
-			case '#':	// up a semitone
-			case '+':
-				if (note < 84) {
-					note++;
-				}
-
-				_next++;
-				break;
-
-			case '-':	// down a semitone
-				if (note > 1) {
-					note--;
-				}
-
-				_next++;
-				break;
-
-			default:
-				// 0 / no next char here is OK
-				break;
-			}
-
-			// shorthand length notation
-			note_length = next_number();
-
-			if (note_length == 0) {
-				note_length = _note_length;
-			}
-
-			break;
-
-		default:
-			goto tune_error;
-		}
-	}
-
-	// compute the duration of the note and the following silence (if any)
-	duration = note_duration(_silence_length, note_length, next_dots());
-
-	// start playing the note
-	start_note(note);
-
-	// and arrange a callback when the note should stop
-	hrt_call_after(&_note_call, (hrt_abstime)duration, (hrt_callout)next_trampoline, this);
-	return;
-
-	// tune looks bad (unexpected EOF, bad character, etc.)
-tune_error:
-	syslog(LOG_ERR, "tune error\n");
-	_repeat = false;		// don't loop on error
-
-	// stop (and potentially restart) the tune
-tune_end:
-	stop_note();
-
-	if (_repeat) {
-		start_tune(_tune);
-
-	} else {
-		_tune = nullptr;
-		_default_tune_number = 0;
-	}
-
-	return;
-}
-
-int
-ToneAlarm::next_char()
-{
-	while (isspace(*_next)) {
-		_next++;
-	}
-
-	return toupper(*_next);
-}
-
-unsigned
-ToneAlarm::next_number()
-{
-	unsigned number = 0;
-	int c;
-
-	for (;;) {
-		c = next_char();
-
-		if (!isdigit(c)) {
-			return number;
-		}
-
-		_next++;
-		number = (number * 10) + (c - '0');
-	}
-}
-
-unsigned
-ToneAlarm::next_dots()
-{
-	unsigned dots = 0;
-
-	while (next_char() == '.') {
-		_next++;
-		dots++;
-	}
-
-	return dots;
-}
-
-void
-ToneAlarm::next_trampoline(void *arg)
-{
-	ToneAlarm *ta = (ToneAlarm *)arg;
-
-	ta->next_note();
-}
-
-
-int
-ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
-{
-	int result = OK;
-
-	DEVICE_DEBUG("ioctl %i %lu", cmd, arg);
-
-//	irqstate_t flags = px4_enter_critical_section();
-
-	/* decide whether to increase the alarm level to cmd or leave it alone */
-	switch (cmd) {
-	case TONE_SET_ALARM:
-		DEVICE_DEBUG("TONE_SET_ALARM %lu", arg);
-
-		if (arg < TONE_NUMBER_OF_TUNES) {
-			if (arg == TONE_STOP_TUNE) {
-				// stop the tune
-				_tune = nullptr;
-				_next = nullptr;
-				_repeat = false;
-				_default_tune_number = 0;
-
-			} else {
-				/* always interrupt alarms, unless they are repeating and already playing */
-				if (!(_repeat && _default_tune_number == arg)) {
-					/* play the selected tune */
-					_default_tune_number = arg;
-					start_tune(_default_tunes[arg]);
-				}
-			}
+	// check for updates
+	bool updated = false;
+	orb_check(_tune_control_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
+
+		if (_tunes.set_control(_tune) == 0) {
+			_play_tone = true;
 
 		} else {
-			result = -EINVAL;
+			_play_tone = false;
+		}
+	}
+
+	unsigned frequency = 0, duration = 0;
+
+	if (_play_tone) {
+		_play_tone = false;
+		int parse_ret_val = _tunes.get_next_tune(frequency, duration, _silence_length);
+
+		if (parse_ret_val >= 0) {
+			// a frequency of 0 correspond to stop_note
+			if (frequency > 0) {
+				// start playing the note
+				start_note(frequency);
+
+			} else {
+				stop_note();
+			}
+
+
+			if (parse_ret_val > 0) {
+				// continue playing
+				_play_tone = true;
+			}
 		}
 
-		break;
-
-	default:
-		result = -ENOTTY;
-		break;
+	} else {
+		// schedule a call with the tunes max interval
+		duration = _tunes.get_maximum_update_interval();
+		// stop playing the last note after the duration elapsed
+		stop_note();
 	}
 
-//	px4_leave_critical_section(flags);
-
-	/* give it to the superclass if we didn't like it */
-	if (result == -ENOTTY) {
-		result = CDev::ioctl(filp, cmd, arg);
-	}
-
-	return result;
+	// and arrange a callback when the note should stop
+	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, USEC2TICK(duration));
 }
 
-int
-ToneAlarm::write(file *filp, const char *buffer, size_t len)
+void ToneAlarm::next_trampoline(void *arg)
 {
-	// sanity-check the buffer for length and nul-termination
-	if (len > _tune_max) {
-		return -EFBIG;
-	}
-
-	// if we have an existing user tune, free it
-	if (_user_tune != nullptr) {
-
-		// if we are playing the user tune, stop
-		if (_tune == _user_tune) {
-			_tune = nullptr;
-			_next = nullptr;
-		}
-
-		// free the old user tune
-		free((void *)_user_tune);
-		_user_tune = nullptr;
-	}
-
-	// if the new tune is empty, we're done
-	if (buffer[0] == '\0') {
-		return OK;
-	}
-
-	// allocate a copy of the new tune
-	_user_tune = strndup(buffer, len);
-
-	if (_user_tune == nullptr) {
-		return -ENOMEM;
-	}
-
-	// and play it
-	start_tune(_user_tune);
-
-	return len;
+	ToneAlarm *ta = (ToneAlarm *)arg;
+	ta->next_note();
 }
 
 /**
@@ -984,127 +582,59 @@ namespace
 
 ToneAlarm	*g_dev;
 
-int
-play_tune(unsigned tune)
-{
-	int	fd, ret;
-
-	fd = open(TONEALARM0_DEVICE_PATH, 0);
-
-	if (fd < 0) {
-		err(1, TONEALARM0_DEVICE_PATH);
-	}
-
-	ret = ioctl(fd, TONE_SET_ALARM, tune);
-	close(fd);
-
-	if (ret != 0) {
-		err(1, "TONE_SET_ALARM");
-	}
-
-	exit(0);
-}
-
-int
-play_string(const char *str, bool free_buffer)
-{
-	int	fd, ret;
-
-	fd = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
-
-	if (fd < 0) {
-		err(1, TONEALARM0_DEVICE_PATH);
-	}
-
-	ret = write(fd, str, strlen(str) + 1);
-	close(fd);
-
-	if (free_buffer) {
-		free((void *)str);
-	}
-
-	if (ret < 0) {
-		err(1, "play tune");
-	}
-
-	exit(0);
-}
-
 } // namespace
 
-int
-tone_alarm_main(int argc, char *argv[])
+void tone_alarm_usage();
+
+void tone_alarm_usage()
 {
-	unsigned tune;
+	PX4_INFO("missing command, try 'start', status, 'stop'");
+}
 
-	/* start the driver lazily */
-	if (g_dev == nullptr) {
-		g_dev = new ToneAlarm;
-
-		if (g_dev == nullptr) {
-			errx(1, "couldn't allocate the ToneAlarm driver");
-		}
-
-		if (g_dev->init() != OK) {
-			delete g_dev;
-			errx(1, "ToneAlarm init failed");
-		}
-	}
+int tone_alarm_main(int argc, char *argv[])
+{
 
 	if (argc > 1) {
 		const char *argv1 = argv[1];
 
 		if (!strcmp(argv1, "start")) {
-			play_tune(TONE_STOP_TUNE);
+			if (g_dev != nullptr) {
+				PX4_ERR("already started");
+				exit(1);
+			}
+
+			if (g_dev == nullptr) {
+				g_dev = new ToneAlarm();
+
+				if (g_dev == nullptr) {
+					PX4_ERR("couldn't allocate the ToneAlarm driver");
+					exit(1);
+				}
+
+				if (OK != g_dev->init()) {
+					delete g_dev;
+					g_dev = nullptr;
+					PX4_ERR("ToneAlarm init failed");
+					exit(1);
+				}
+			}
+
+			exit(0);
 		}
 
 		if (!strcmp(argv1, "stop")) {
-			play_tune(TONE_STOP_TUNE);
+			delete g_dev;
+			g_dev = nullptr;
+			exit(0);
 		}
 
-		if ((tune = strtol(argv1, nullptr, 10)) != 0) {
-			play_tune(tune);
-		}
-
-		/* It might be a tune name */
-		for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++)
-			if (!strcmp(g_dev->name(tune), argv1)) {
-				play_tune(tune);
-			}
-
-		/* If it is a file name then load and play it as a string */
-		if (*argv1 == '/') {
-			FILE *fd = fopen(argv1, "r");
-			int sz;
-			char *buffer;
-
-			if (fd == nullptr) {
-				errx(1, "couldn't open '%s'", argv1);
-			}
-
-			fseek(fd, 0, SEEK_END);
-			sz = ftell(fd);
-			fseek(fd, 0, SEEK_SET);
-			buffer = (char *)malloc(sz + 1);
-
-			if (buffer == nullptr) {
-				errx(1, "not enough memory memory");
-			}
-
-			fread(buffer, sz, 1, fd);
-			/* terminate the string */
-			buffer[sz] = 0;
-			play_string(buffer, true);
-		}
-
-		/* if it looks like a PLAY string... */
-		if (strlen(argv1) > 2) {
-			if (*argv1 == 'M') {
-				play_string(argv1, false);
-			}
+		if (!strcmp(argv1, "status")) {
+			g_dev->status();
+			exit(0);
 		}
 
 	}
 
-	errx(1, "unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
+	tone_alarm_usage();
+	exit(0);
 }
