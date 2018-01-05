@@ -3443,7 +3443,7 @@ public:
 	unsigned get_size()
 	{
 		return (_fw_pos_ctrl_status_sub->is_published()) ?
-		       MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		       MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
