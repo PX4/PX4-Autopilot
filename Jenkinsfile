@@ -46,7 +46,8 @@ pipeline {
             sh 'git clean -ff -x -d .'
             sh 'git submodule deinit -f .'
             sh 'git submodule update --init --recursive'
-            sh 'RUN_PYTEST=1 ./build.sh'
+            //sh 'RUN_PYTEST=1 ./build.sh'
+            sh './build.sh'
           }
         }
 
