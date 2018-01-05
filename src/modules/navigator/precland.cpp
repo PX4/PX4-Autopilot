@@ -484,7 +484,8 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 				return _target_pose_valid && _target_pose.abs_pos_valid;
 
 			} else {
-				// We've seen the target sometime during horizontal approach. Even if we don't see it as we're moving towards it, continue approaching last known location
+				// We've seen the target sometime during horizontal approach.
+				// Even if we don't see it as we're moving towards it, continue approaching last known location
 				return true;
 			}
 		}
@@ -511,8 +512,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		}
 
 	case PrecLandState::FinalApproach:
-		return vehicle_local_position->dist_bottom_valid
-		       && vehicle_local_position->dist_bottom < _param_final_approach_alt.get();
+		return _target_pose_valid && _target_pose.rel_pos_valid && _target_pose.z_rel < _param_final_approach_alt.get();
 
 	case PrecLandState::Search:
 		return true;

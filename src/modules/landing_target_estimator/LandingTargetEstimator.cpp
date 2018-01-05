@@ -184,6 +184,7 @@ void LandingTargetEstimator::update()
 					_target_pose.rel_vel_valid = true;
 					_target_pose.x_rel = x;
 					_target_pose.y_rel = y;
+					_target_pose.z_rel = _vehicleLocalPosition.dist_bottom;
 					_target_pose.vx_rel = xvel;
 					_target_pose.vy_rel = yvel;
 
@@ -196,6 +197,7 @@ void LandingTargetEstimator::update()
 					if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid) {
 						_target_pose.x_abs = x + _vehicleLocalPosition.x;
 						_target_pose.y_abs = y + _vehicleLocalPosition.y;
+						_target_pose.z_abs = _vehicleLocalPosition.dist_bottom + _vehicleLocalPosition.z;
 						_target_pose.abs_pos_valid = true;
 
 					} else {
