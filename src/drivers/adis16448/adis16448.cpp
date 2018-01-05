@@ -524,7 +524,7 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_mag_filter_x(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_y(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_z(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, true),
+	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, false),
 	_gyro_int(1000000 / ADIS16448_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
