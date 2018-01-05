@@ -43,6 +43,7 @@
 
 #include "tasks/FlightTask.hpp"
 #include "tasks/FlightTaskManualAltitude.hpp"
+#include "tasks/FlightTaskManualAltitudeSmooth.hpp"
 #include "tasks/FlightTaskManualPosition.hpp"
 #include "tasks/FlightTaskManualStabilized.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
@@ -123,6 +124,7 @@ private:
 
 		FlightTaskManualStabilized stabilized;
 		FlightTaskManualAltitude altitude;
+		FlightTaskManualAltitudeSmooth altitude_smooth;
 		FlightTaskManualPosition position;
 		FlightTaskOrbit orbit;
 		FlightTaskSport sport;

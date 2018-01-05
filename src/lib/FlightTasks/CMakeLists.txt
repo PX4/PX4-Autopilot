@@ -38,6 +38,7 @@ px4_add_module(
 		tasks/FlightTaskManualStabilized.cpp
 		tasks/FlightTaskOrbit.cpp
 		tasks/FlightTaskManualAltitude.cpp
+		tasks/FlightTaskManualAltitudeSmooth.cpp
 		tasks/FlightTaskManualPosition.cpp
 		tasks/Utility/ManualSmoothingZ.cpp
 		SubscriptionArray.cpp

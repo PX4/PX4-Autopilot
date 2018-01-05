@@ -32,36 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualAltitude.hpp
- *
- * Flight task for manual controlled altitude.
+ * @file FlightManualAltitude.cpp
  */
 
-#pragma once
+#include "FlightTaskManualAltitudeSmooth.hpp"
+#include <mathlib/mathlib.h>
+#include <float.h>
 
-#include "FlightTaskManualStabilized.hpp"
+using namespace matrix;
 
-class FlightTaskManualAltitude : public FlightTaskManualStabilized
+FlightTaskManualAltitudeSmooth::FlightTaskManualAltitudeSmooth(control::SuperBlock *parent, const char *name) :
+	FlightTaskManualAltitude(parent, name),
+	_smoothing(_velocity(2), _sticks(2))
+{}
+
+
+bool FlightTaskManualAltitudeSmooth::activate()
 {
-public:
-	FlightTaskManualAltitude(control::SuperBlock *parent, const char *name);
+	_vel_sp_prev_z = _velocity(2);
+	return FlightTaskManualStabilized::activate();
+}
 
-	virtual ~FlightTaskManualAltitude() = default;
+void FlightTaskManualAltitudeSmooth::_updateSetpoints()
+{
+	/* Get yaw, thrust */
+	FlightTaskManualStabilized::_updateSetpoints();
 
-	bool activate() override;
+	/* Smooth velocity setpoint */
+	float vel_sp[2] = {_vel_sp_z, _vel_sp_prev_z};
+	_smoothing.smoothVelFromSticks(vel_sp, _deltatime);
 
-	bool update() override;
+	/* Update position setpoint in z direction based on lock criteria*/
+	_updateZsetpoints();
 
-protected:
-	float _vel_sp_z{}; /**< Scaled velocity from stick. During altitude lock it is equal to NAN. */
-	float _pos_sp_z{}; /**< Setpoint in z during lock. Otherwise NAN. */
-
-	control::BlockParamFloat _vel_max_down; /**< Maximum speed allowed to go up. */
-	control::BlockParamFloat _vel_max_up; /**< Maximum speed allowed to go down. */
-	control::BlockParamFloat _vel_z_dz; /**< velocity threshold/deadzone to switch into vertical position hold */
-
-	void _updateZsetpoints(); /**< Sets position or velocity setpoints. */
-	void _updateSetpoints() override; /**< Updates all setpoints. */
-	void _scaleSticks() override; /**< Scales sticks to velocity in z. */
-
-};
+	/* Update previous velocity setpoint for next smoothing iteration */
+	_vel_sp_prev_z = _vel_sp_z;
+}
