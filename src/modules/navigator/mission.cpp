@@ -123,6 +123,9 @@ Mission::on_inactive()
 			_offboard_mission.dataman_id = mission_state.dataman_id;
 			_offboard_mission.count = mission_state.count;
 			_current_offboard_mission_index = mission_state.current_seq;
+
+			// find and store landing start marker (if available)
+			find_offboard_land_start();
 		}
 
 		/* On init let's check the mission, maybe there is already one available. */
@@ -251,18 +254,19 @@ Mission::on_active()
 }
 
 bool
-Mission::set_current_offboard_mission_index(unsigned index)
+Mission::set_current_offboard_mission_index(uint16_t index)
 {
-	if (index < _offboard_mission.count) {
+	if (_navigator->get_mission_result()->valid &&
+	    (index != _current_offboard_mission_index) && (index < _offboard_mission.count)) {
 
 		_current_offboard_mission_index = index;
-		set_current_offboard_mission_item();
 
 		// update mission items if already in active mission
 		if (_navigator->is_planned_mission()) {
 			// prevent following "previous - current" line
 			_navigator->get_position_setpoint_triplet()->previous.valid = false;
 			_navigator->get_position_setpoint_triplet()->current.valid = false;
+			_navigator->get_position_setpoint_triplet()->next.valid = false;
 			set_mission_items();
 		}
 
@@ -272,11 +276,11 @@ Mission::set_current_offboard_mission_index(unsigned index)
 	return false;
 }
 
-int
+bool
 Mission::find_offboard_land_start()
 {
-	/* find the first MAV_CMD_DO_LAND_START and return the index
-	 *  return -1 if not found
+	/* return true if a MAV_CMD_DO_LAND_START is found and internally save the index
+	 *  return false if not found
 	 *
 	 * TODO: implement full spec and find closest landing point geographically
 	 */
@@ -289,15 +293,48 @@ Mission::find_offboard_land_start()
 
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			return -1;
+			PX4_ERR("dataman read failure");
+			break;
 		}
 
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
-			return i;
+			_land_start_available = true;
+			_land_start_index = i;
+			return true;
 		}
 	}
 
-	return -1;
+	_land_start_available = false;
+	return false;
+}
+
+bool
+Mission::land_start()
+{
+	// if not currently landing, jump to do_land_start
+	if (_land_start_available) {
+		if (landing()) {
+			return true;
+
+		} else {
+			set_current_offboard_mission_index(get_land_start_index());
+			return landing();
+		}
+	}
+
+	return false;
+}
+
+bool
+Mission::landing()
+{
+	// vehicle is currently landing if
+	//  mission valid, still flying, and in the landing portion of mission
+
+	const bool mission_valid = _navigator->get_mission_result()->valid;
+	const bool on_landing_stage = _land_start_available && (_current_offboard_mission_index >= get_land_start_index());
+
+	return mission_valid && on_landing_stage;
 }
 
 void
@@ -404,6 +441,9 @@ Mission::update_offboard_mission()
 
 		PX4_ERR("mission check failed");
 	}
+
+	// find and store landing start marker (if available)
+	find_offboard_land_start();
 
 	set_current_offboard_mission_item();
 }
@@ -1128,10 +1168,8 @@ Mission::altitude_sp_foh_update()
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
 	}
 
-
 	// we set altitude directly so we can run this in parallel to the heading update
 	_navigator->set_position_setpoint_triplet_updated();
-
 }
 
 void
@@ -1192,10 +1230,8 @@ Mission::do_abort_landing()
 				     (int)(alt_sp - alt_landing));
 
 	// reset mission index to start of landing
-	int land_start_index = find_offboard_land_start();
-
-	if (land_start_index != -1) {
-		_current_offboard_mission_index = land_start_index;
+	if (_land_start_available) {
+		_current_offboard_mission_index = get_land_start_index();
 
 	} else {
 		// move mission index back (landing approach point)
@@ -1437,12 +1473,15 @@ Mission::check_mission_valid(bool force)
 			_missionFeasibilityChecker.checkMissionFeasible(_offboard_mission,
 					_param_dist_1wp.get(),
 					_param_dist_between_wps.get(),
-					false);
+					_navigator->mission_landing_required());
 
 		_navigator->get_mission_result()->seq_total = _offboard_mission.count;
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();
 		_home_inited = _navigator->home_position_valid();
+
+		// find and store landing start marker (if available)
+		find_offboard_land_start();
 	}
 }
 
