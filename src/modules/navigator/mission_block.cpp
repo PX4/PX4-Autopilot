@@ -665,22 +665,6 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 }
 
 void
-MissionBlock::set_current_position_item(struct mission_item_s *item)
-{
-	item->nav_cmd = NAV_CMD_WAYPOINT;
-	item->lat = _navigator->get_global_position()->lat;
-	item->lon = _navigator->get_global_position()->lon;
-	item->altitude_is_relative = false;
-	item->altitude = _navigator->get_global_position()->alt;
-	item->yaw = NAN;
-	item->loiter_radius = _navigator->get_loiter_radius();
-	item->acceptance_radius = _navigator->get_acceptance_radius();
-	item->time_inside = 0.0f;
-	item->autocontinue = true;
-	item->origin = ORIGIN_ONBOARD;
-}
-
-void
 MissionBlock::set_idle_item(struct mission_item_s *item)
 {
 	item->nav_cmd = NAV_CMD_IDLE;

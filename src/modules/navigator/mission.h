@@ -91,9 +91,12 @@ public:
 		MISSION_YAWMODE_MAX = 5
 	};
 
-	bool set_current_offboard_mission_index(unsigned index);
+	bool set_current_offboard_mission_index(uint16_t index);
 
-	int find_offboard_land_start();
+	bool land_start();
+	bool landing();
+
+	uint16_t get_land_start_index() const { return _land_start_index; }
 
 private:
 	/**
@@ -236,6 +239,11 @@ private:
 	 */
 	void generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw);
 
+	/**
+	 * Find and store the index of the landing sequence (DO_LAND_START)
+	 */
+	bool find_offboard_land_start();
+
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
@@ -247,8 +255,13 @@ private:
 	struct mission_s _onboard_mission {};
 	struct mission_s _offboard_mission {};
 
-	int _current_onboard_mission_index{-1};
-	int _current_offboard_mission_index{-1};
+	int32_t _current_onboard_mission_index{-1};
+	int32_t _current_offboard_mission_index{-1};
+
+	// track location of planned mission landing
+	bool	_land_start_available{false};
+	uint16_t _land_start_index{UINT16_MAX};		/**< index of DO_LAND_START, INVALID_DO_LAND_START if no planned landing */
+
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	enum {

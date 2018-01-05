@@ -476,25 +476,23 @@ Navigator::task_main()
 				/* find NAV_CMD_DO_LAND_START in the mission and
 				 * use MAV_CMD_MISSION_START to start the mission there
 				 */
-				int land_start = _mission.find_offboard_land_start();
-
-				if (land_start != -1) {
+				if (_mission.land_start()) {
 					vehicle_command_s vcmd = {};
 					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
-					vcmd.param1 = land_start;
+					vcmd.param1 = _mission.get_land_start_index();
 					publish_vehicle_cmd(&vcmd);
 
 				} else {
-					PX4_WARN("planned landing not available");
+					PX4_WARN("planned mission landing not available");
 				}
 
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
-				if (_mission_result.valid &&
-				    PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0) && (cmd.param1 < _mission_result.seq_total)) {
-
-					_mission.set_current_offboard_mission_index(cmd.param1);
+				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
+					if (!_mission.set_current_offboard_mission_index(cmd.param1)) {
+						PX4_WARN("CMD_MISSION_START failed");
+					}
 				}
 
 				// CMD_MISSION_START is acknowledged by commander
@@ -625,7 +623,15 @@ Navigator::task_main()
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_rtl;
+
+			// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION
+			if (mission_landing_required() && on_mission_landing()) {
+				navigation_mode_new = &_mission;
+
+			} else {
+				navigation_mode_new = &_rtl;
+			}
+
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
