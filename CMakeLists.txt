@@ -155,6 +155,7 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
+include(platforms/${OS}/cmake/px4_impl_os.cmake)
 set(config_module "configs/${CONFIG}")
 include(${config_module})
 

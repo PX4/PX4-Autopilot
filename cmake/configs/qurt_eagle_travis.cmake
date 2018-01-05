@@ -1,4 +1,3 @@
-include(qurt/px4_impl_qurt)
 
 set(CONFIG_SHMEM "1")
 
