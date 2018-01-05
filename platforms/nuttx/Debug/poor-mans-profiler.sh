@@ -108,7 +108,7 @@ then
                 >> $stacksfile
         else
             arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" \
-                                           -ex "source $root/Debug/Nuttx.py" \
+                                           -ex "source $root/platforms/nuttx/Debug/Nuttx.py" \
                                            -ex "show mybt $taskname" \
                 2> $gdberrfile \
                 | sed -n 's/0\.0:\(#.*\)/\1/p' \
