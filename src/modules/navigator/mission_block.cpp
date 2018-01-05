@@ -448,7 +448,13 @@ MissionBlock::issue_command(const mission_item_s &item)
 		vcmd.param4 = item.params[3];
 		vcmd.param5 = item.params[4];
 		vcmd.param6 = item.params[5];
-		vcmd.param7 = item.params[6];
+
+		if (item.nav_cmd == NAV_CMD_DO_SET_ROI && item.altitude_is_relative) {
+			vcmd.param7 = item.params[6] + _navigator->get_home_position()->alt;
+
+		} else {
+			vcmd.param7 = item.params[6];
+		}
 
 		_navigator->publish_vehicle_cmd(&vcmd);
 	}
