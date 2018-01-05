@@ -50,7 +50,7 @@ FlightTaskManualAltitudeSmooth::FlightTaskManualAltitudeSmooth(control::SuperBlo
 bool FlightTaskManualAltitudeSmooth::activate()
 {
 	_vel_sp_prev_z = _velocity(2);
-	return FlightTaskManualStabilized::activate();
+	return FlightTaskManualAltitude::activate();
 }
 
 void FlightTaskManualAltitudeSmooth::_updateSetpoints()
