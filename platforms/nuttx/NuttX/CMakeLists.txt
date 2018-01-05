@@ -50,7 +50,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 	)
 
 set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
-set(NUTTX_CONFIG_DIR ${PX4_SOURCE_DIR}/nuttx-configs)
+set(NUTTX_CONFIG_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs)
 
 # copy apps to build directory
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/apps)
