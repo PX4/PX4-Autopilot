@@ -73,7 +73,7 @@ endif()
 if (TARGET parameters_xml AND TARGET airframes_xml)
 	add_custom_command(OUTPUT ${fw_file}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
-			--prototype ${PX4_SOURCE_DIR}/Images/${FW_PROTOTYPE}.prototype
+			--prototype ${PX4_SOURCE_DIR}/platforms/nuttx/Images/${FW_PROTOTYPE}.prototype
 			--git_identity ${PX4_SOURCE_DIR}
 			--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
