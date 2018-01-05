@@ -211,9 +211,9 @@ PrecLand::run_state_start()
 			_start_point_reached_time = hrt_absolute_time();
 		}
 
-		// if we don't see the target after 2 seconds, search for it
+		// if we don't see the target after 1 second, search for it
 		if (_param_search_timeout.get() > 0) {
-			if (hrt_absolute_time() - _state_start_time > 2000000) {
+			if (hrt_absolute_time() - _state_start_time > 1000000) {
 				if (!switch_to_state_search()) {
 					if (!switch_to_state_fallback()) {
 						PX4_ERR("Can't switch to search or fallback landing");
