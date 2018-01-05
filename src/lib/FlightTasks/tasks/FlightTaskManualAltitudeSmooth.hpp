@@ -37,31 +37,27 @@
  * Flight task for manual controlled altitude.
  */
 
-#pragma once
 
-#include "FlightTaskManualStabilized.hpp"
+#include "FlightTaskManualAltitude.hpp"
+#include "Utility/ManualSmoothingZ.hpp"
 
-class FlightTaskManualAltitude : public FlightTaskManualStabilized
+class FlightTaskManualAltitudeSmooth : public FlightTaskManualAltitude
 {
 public:
-	FlightTaskManualAltitude(control::SuperBlock *parent, const char *name);
+	FlightTaskManualAltitudeSmooth(control::SuperBlock *parent, const char *name);
 
-	virtual ~FlightTaskManualAltitude() = default;
+	virtual ~FlightTaskManualAltitudeSmooth() = default;
 
 	bool activate() override;
 
-	bool update() override;
 
 protected:
-	float _vel_sp_z{}; /**< Scaled velocity from stick. During altitude lock it is equal to NAN. */
-	float _pos_sp_z{}; /**< Setpoint in z during lock. Otherwise NAN. */
 
-	control::BlockParamFloat _vel_max_down; /**< Maximum speed allowed to go up. */
-	control::BlockParamFloat _vel_max_up; /**< Maximum speed allowed to go down. */
-	control::BlockParamFloat _vel_z_dz; /**< velocity threshold/deadzone to switch into vertical position hold */
+	virtual void _updateSetpoints() override;
 
-	void _updateZsetpoints(); /**< Sets position or velocity setpoints. */
-	void _updateSetpoints() override; /**< Updates all setpoints. */
-	void _scaleSticks() override; /**< Scales sticks to velocity in z. */
+private:
+
+	ManualSmoothingZ _smoothing; // Smoothing for velocity setpoints.
+	float _vel_sp_prev_z{}; // Velocity setpoint from previous iteration.
 
 };
