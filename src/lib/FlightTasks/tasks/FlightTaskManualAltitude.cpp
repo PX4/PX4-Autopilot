@@ -74,13 +74,13 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	 */
 
 	/* handle position and altitude hold */
-	const bool stick_z_zero = fabsf(_sticks_expo(2)) <= FLT_EPSILON;
+	const bool apply_brake_z = fabsf(_vel_sp_z) <= FLT_EPSILON;
 	const bool stopped_z = (_vel_z_dz.get() < FLT_EPSILON || fabsf(_velocity(2)) < _vel_z_dz.get());
 
-	if (stick_z_zero && stopped_z && !PX4_ISFINITE(_pos_sp_z)) {
+	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_pos_sp_z)) {
 		_pos_sp_z = _position(2);
 
-	} else if (!stick_z_zero) {
+	} else if (!apply_brake_z) {
 		_pos_sp_z = NAN;
 	}
 }
