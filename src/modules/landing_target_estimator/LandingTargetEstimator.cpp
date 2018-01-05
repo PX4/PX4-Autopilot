@@ -55,7 +55,7 @@ LandingTargetEstimator::LandingTargetEstimator() :
 	_paramHandle(),
 	_vehicleLocalPosition_valid(false),
 	_vehicleAttitude_valid(false),
-	_sensorCombined_valid(false),
+	_sensorBias_valid(false),
 	_new_irlockReport(false),
 	_estimator_initialized(false),
 	_faulty(false),
@@ -99,10 +99,12 @@ void LandingTargetEstimator::update()
 			// predict target position with the help of accel data
 			matrix::Vector3f a;
 
-			if (_sensorCombined_valid) {
+			if (_sensorBias_valid) {
 				matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
 				_R_att = matrix::Dcm<float>(q_att);
-				a = _sensorCombined.accelerometer_m_s2;
+				a(0) = _sensorBias.accel_x;
+				a(1) = _sensorBias.accel_y;
+				a(2) = _sensorBias.accel_z;
 				a = _R_att * a;
 
 			} else {
@@ -262,7 +264,7 @@ void LandingTargetEstimator::_initialize_topics()
 	// subscribe to position, attitude, arming and velocity changes
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_sensorCombinedSub = orb_subscribe(ORB_ID(sensor_combined));
+	_sensorBiasSub = orb_subscribe(ORB_ID(sensor_bias));
 	_irlockReportSub = orb_subscribe(ORB_ID(irlock_report));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 }
@@ -272,7 +274,7 @@ void LandingTargetEstimator::_update_topics()
 	_vehicleLocalPosition_valid = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub,
 				      &_vehicleLocalPosition);
 	_vehicleAttitude_valid = _orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
-	_sensorCombined_valid = _orb_update(ORB_ID(sensor_combined), _sensorCombinedSub, &_sensorCombined);
+	_sensorBias_valid = _orb_update(ORB_ID(sensor_bias), _sensorBiasSub, &_sensorBias);
 
 	_new_irlockReport = _orb_update(ORB_ID(irlock_report), _irlockReportSub, &_irlockReport);
 }
