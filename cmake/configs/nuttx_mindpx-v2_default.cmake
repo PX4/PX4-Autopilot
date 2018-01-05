@@ -53,6 +53,7 @@ set(config_module_list
 	drivers/bst
 	drivers/snapdragon_rc_pwm
 	drivers/tfmini
+	drivers/ist8310
 
 	#
 	# System commands

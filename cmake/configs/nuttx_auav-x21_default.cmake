@@ -8,48 +8,49 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/airspeed
+	drivers/blinkm
+	drivers/boards
+	drivers/bst
+	drivers/camera_trigger
 	drivers/device
+	drivers/ets_airspeed
+	drivers/frsky_telemetry
+	drivers/gps
+	drivers/hmc5883
+	drivers/hott
+	drivers/hott/hott_sensors
+	drivers/hott/hott_telemetry
+	drivers/ist8310
+	drivers/led
+	drivers/lis3mdl
+	drivers/ll40ls
+	drivers/mb12xx
+	drivers/mkblctrl
+	drivers/mpu6000
+	drivers/mpu9250
+	drivers/ms4525_airspeed
+	drivers/ms5525_airspeed
+	drivers/ms5611
+	drivers/oreoled
+	drivers/pwm_input
+	drivers/pwm_out_sim
+	drivers/px4flow
+	drivers/px4fmu
+	drivers/px4io
+	drivers/rgbled
+	drivers/sdp3x_airspeed
+	drivers/sf0x
+	drivers/sf1xx
+	drivers/snapdragon_rc_pwm
+	drivers/srf02
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
-	drivers/px4fmu
-	drivers/px4io
-	drivers/boards
-	drivers/rgbled
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/hmc5883
-	drivers/ms5611
-	drivers/mb12xx
-	drivers/srf02
-	drivers/sf0x
-	drivers/sf1xx
-	drivers/ll40ls
 	drivers/teraranger
-	drivers/gps
-	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
-	drivers/blinkm
-	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/sdp3x_airspeed
-	drivers/frsky_telemetry
-	modules/sensors
-	drivers/mkblctrl
-	drivers/px4flow
-	drivers/oreoled
-	drivers/vmount
-	drivers/pwm_input
-	drivers/camera_trigger
-	drivers/bst
-	drivers/snapdragon_rc_pwm
-	drivers/lis3mdl
 	drivers/tfmini
+	drivers/vmount
+	modules/sensors
 
 	#
 	# System commands
