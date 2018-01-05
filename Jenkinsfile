@@ -621,6 +621,16 @@ pipeline {
             archiveArtifacts(artifacts: 'modules/*.md', fingerprint: true)
           }
         }
+
+        stage('uorb graphs') {
+          agent {
+            docker { image 'px4io/px4-dev-nuttx:2017-12-30' }
+          }
+          steps {
+            sh 'make uorb_graphs'
+            archiveArtifacts(artifacts: 'Tools/uorb_graph/graph_sitl.json')
+          }
+        }
       }
     }
 
