@@ -10,4 +10,4 @@ attach 1
 monitor vector_catch disable hard
 set mem inaccessible-by-default off
 set print pretty
-source Debug/PX4
+source platforms/nuttx/Debug/PX4
