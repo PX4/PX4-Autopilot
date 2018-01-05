@@ -1,4 +1,3 @@
-include(posix/px4_impl_posix)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 
