@@ -67,11 +67,10 @@ void FlightTaskManualAltitude::_scaleSticks()
 	_vel_sp_z = vel_max_z * _sticks_expo(2);
 }
 
-void FlightTaskManualAltitude::_updateZsetpoints()
+void FlightTaskManualAltitude::_updateAltitudeLock()
 {
-	/* Depending on stick inputs, position is locked or
-	 * velocity setpoint is used. If not locked, position
-	 * setpoints is set to NAN.
+	/* Depending on stick inputs and velocity, position is locked.
+	 * If not locked, altitude setpoint is set to NAN.
 	 */
 
 	/* handle position and altitude hold */
@@ -104,7 +103,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	_thr_sp(0) = sp(0);
 	_thr_sp(1) = sp(1);
 
-	_updateZsetpoints(); // get z setpoints
+	_updateAltitudeLock(); // get z setpoints
 }
 
 bool FlightTaskManualAltitude::update()
