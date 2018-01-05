@@ -61,9 +61,7 @@ protected:
 	control::BlockParamFloat _acc_xy_max;/**< Maximum acceleration horizontally. Only used to compute lock time. */
 	control::BlockParamFloat _vel_xy_dz; /**< velocity threshold/deadzone to switch into horizontal position hold */
 
+	void _updateXYlock(); /**< Applies positon lock based on stick and velocity */
 	void _updateSetpoints() override;
 	void _scaleSticks() override;
-
-private:
-	void _updateXYsetpoints();
 };
