@@ -32,9 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ManualSmoothingZ.hpp
- *
- * This Class is used for smoothing the velocity set-points in z-direction NED frame.
+ * @file ManualSmoothingZ.cpp
  */
 
 #include "ManualSmoothingZ.hpp"
