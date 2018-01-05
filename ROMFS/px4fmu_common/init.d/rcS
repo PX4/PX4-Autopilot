@@ -460,7 +460,6 @@ then
 		then
 			if param compare UAVCAN_ENABLE 0
 			then
-				echo "OVERRIDING UAVCAN_ENABLE = 3" >> $LOG_FILE
 				param set UAVCAN_ENABLE 3
 			fi
 		fi
@@ -501,7 +500,6 @@ then
 			if mkblctrl $MKBLCTRL_ARG
 			then
 			else
-				echo "MK start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 			unset MKBLCTRL_ARG
@@ -819,7 +817,6 @@ then
 		# Still no MAV_TYPE found
 		if [ $MAV_TYPE == none ]
 		then
-			echo "Unknown MAV_TYPE"
 			param set MAV_TYPE 2
 		else
 			param set MAV_TYPE ${MAV_TYPE}
