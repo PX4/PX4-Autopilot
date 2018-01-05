@@ -60,8 +60,8 @@ fi
 if [ ! -f $BASEDIR/cmake/configs/nuttx_"$oldname"_default.cmake -a ! -f $BASEDIR/cmake/configs/nuttx_"$oldname"_bootloader.cmake ]; then
 	fatal "\"$oldname\" doesn't look like an existing board name (there is neither a $BASEDIR/cmake/configs/nuttx_"$oldname"_default.cmake nor a $BASEDIR/cmake/configs/nuttx_"$oldname"_bootloader.cmake)"
 fi
-if [ ! -d $BASEDIR/nuttx-configs/$oldname ]; then
-	fatal "\"$oldname\" doesn't look like an existing board name (no such directory $BASEDIR/nuttx-configs/$oldname)"
+if [ ! -d $BASEDIR/platforms/nuttx/nuttx-configs/$oldname ]; then
+	fatal "\"$oldname\" doesn't look like an existing board name (no such directory $BASEDIR/platforms/nuttx/nuttx-configs/$oldname)"
 fi
 
 # Does the new name look like a new name?
