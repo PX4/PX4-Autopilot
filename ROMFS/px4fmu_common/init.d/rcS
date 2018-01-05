@@ -60,7 +60,6 @@ set LOG_FILE /fs/microsd/bootlog.txt
 # REBOOTWORK this needs to start after the flight control loop
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	echo "[i] microSD mounted: /fs/microsd"
 	if hardfault_log check
 	then
 		tone_alarm error
@@ -79,9 +78,9 @@ else
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
-			echo "INFO  [init] MicroSD card formatted"
+			echo "INFO  [init] card formatted"
 		else
-			echo "ERROR [init] Format failed"
+			echo "ERROR [init] format failed"
 			tone_alarm MNBG
 			set LOG_FILE /dev/null
 		fi
@@ -97,7 +96,6 @@ fi
 set FRC /fs/microsd/etc/rc.txt
 if [ -f $FRC ]
 then
-	echo "INFO  [init] Executing script: ${FRC}"
 	sh $FRC
 	set MODE custom
 fi
@@ -316,8 +314,6 @@ then
 
 			if px4io checkcrc ${IO_FILE}
 			then
-				echo "[init] PX4IO CRC OK" >> $LOG_FILE
-
 				set IO_PRESENT yes
 			else
 				tone_alarm MLL32CP8MB
