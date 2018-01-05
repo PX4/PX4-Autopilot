@@ -85,7 +85,7 @@ bool SubscriptionArray::get(const struct orb_metadata *meta, uORB::Subscription<
 {
 	// does it already exist?
 	for (int i = 0; i < _subscriptions_count; ++i) {
-		if (_subscriptions[i]->meta() == meta && _subscriptions[i]->instance() == instance) {
+		if (_subscriptions[i]->get_meta() == meta && _subscriptions[i]->get_instance() == instance) {
 			// we know the type must be correct, so we can use reinterpret_cast (dynamic_cast is not available)
 			subscription = reinterpret_cast<uORB::Subscription<T>*>(_subscriptions[i]);
 			return true;

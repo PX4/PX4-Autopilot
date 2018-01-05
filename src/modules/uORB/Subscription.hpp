@@ -84,9 +84,9 @@ public:
 
 	int getHandle() const { return _handle; }
 
-	const orb_metadata *meta() const { return _meta; }
+	const orb_metadata *get_meta() const { return _meta; }
 
-	unsigned instance() const { return _instance; }
+	unsigned get_instance() const { return _instance; }
 
 protected:
 	const struct orb_metadata *_meta;
