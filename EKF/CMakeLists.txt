@@ -38,13 +38,6 @@ project(ECL CXX)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Find Eigen
-message("looking for FindEigen3.cmake in ${CMAKE_MODULE_PATH}")
-find_package(Eigen3 REQUIRED)
-if(NOT EIGEN3_INCLUDE_DIR)
-	message(FATAL_ERROR "Eigen3 not found.")
-endif()
-
 set(MATRIX_DIR ${CMAKE_SOURCE_DIR}/../matrix)
 if(NOT EXISTS "${MATRIX_DIR}/.git")
 	message(SEND_ERROR "The git submodules are not available. Please run git submodule update --init --recursive")
@@ -53,13 +46,13 @@ endif()
 include_directories(
 	..
 	${MATRIX_DIR}
-	${EIGEN3_INCLUDE_DIR}
 	)
 
 set(SRCS
 	airspeed_fusion.cpp
 	control.cpp
 	covariance.cpp
+	drag_fusion.cpp
 	ekf.cpp
 	ekf_helper.cpp
 	estimator_interface.cpp
@@ -71,15 +64,16 @@ set(SRCS
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
 	vel_pos_fusion.cpp
-	drag_fusion.cpp
 	)
 
 add_definitions(-DPOSIX_SHARED)
 add_compile_options(
 	-pedantic
 	-std=c++11
+
 	-Wall
 	-Werror
+
 	-Wno-deprecated-declarations
 	-Wno-enum-compare
 	-Wno-unused-local-typedefs
