@@ -10,9 +10,9 @@ float32 temperature	# temperature in degrees celcius
 float32 range_rad_s
 float32 scaling
 
-int16 x_raw
-int16 y_raw
-int16 z_raw
+int16 x_raw # angular velocity in the NED X board axis in rad/s * 1000
+int16 y_raw # angular velocity in the NED Y board axis in rad/s * 1000
+int16 z_raw # angular velocity in the NED Z board axis in rad/s * 1000
 int16 temperature_raw
 
 uint32 device_id	# unique device ID for the sensor that does not change between power cycles

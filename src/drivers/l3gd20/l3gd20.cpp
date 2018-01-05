@@ -1024,6 +1024,10 @@ L3GD20::measure()
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
+	report.x_raw = (int16_t)(xraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+	report.y_raw = (int16_t)(yraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+	report.z_raw = (int16_t)(zraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+
 	float xin = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	float yin = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
 	float zin = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;

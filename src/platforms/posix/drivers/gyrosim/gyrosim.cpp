@@ -1034,9 +1034,9 @@ GYROSIM::_measure()
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-	arb.x_raw = (int16_t)(mpu_report.accel_x / _accel_range_scale);
-	arb.y_raw = (int16_t)(mpu_report.accel_y / _accel_range_scale);
-	arb.z_raw = (int16_t)(mpu_report.accel_z / _accel_range_scale);
+	arb.x_raw = (int16_t)(mpu_report.accel_x * 1000);
+	arb.y_raw = (int16_t)(mpu_report.accel_y * 1000);
+	arb.z_raw = (int16_t)(mpu_report.accel_z * 1000);
 
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
@@ -1061,9 +1061,9 @@ GYROSIM::_measure()
 	/* fake device ID */
 	arb.device_id = 6789478;
 
-	grb.x_raw = (int16_t)(mpu_report.gyro_x / _gyro_range_scale);
-	grb.y_raw = (int16_t)(mpu_report.gyro_y / _gyro_range_scale);
-	grb.z_raw = (int16_t)(mpu_report.gyro_z / _gyro_range_scale);
+	grb.x_raw = (int16_t)(mpu_report.gyro_x * 1000); // (int16) [rad / s * 1000]
+	grb.y_raw = (int16_t)(mpu_report.gyro_y * 1000); // (int16) [rad / s * 1000]
+	grb.z_raw = (int16_t)(mpu_report.gyro_z * 1000); // (int16) [rad / s * 1000]
 
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;

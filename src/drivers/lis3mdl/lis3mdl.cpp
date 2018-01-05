@@ -938,14 +938,6 @@ LIS3MDL::collect()
 	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
 	new_report.is_external = !sensor_is_onboard;
 
-	/*
-	 * RAW outputs
-	 *
-	 */
-	new_report.x_raw = report.x;
-	new_report.y_raw = report.y;
-	new_report.z_raw = report.z;
-
 	/* the LIS3MDL mag on Pixhawk Pro by Drotek has x pointing towards,
 	 * y pointing to the right, and z down, therefore no switch needed,
 	 * it is better to have no artificial rotation inside the
@@ -957,6 +949,10 @@ LIS3MDL::collect()
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	new_report.x_raw = (int16_t)(xraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
+	new_report.y_raw = (int16_t)(yraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
+	new_report.z_raw = (int16_t)(zraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
 
 	new_report.x = ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_scale;
 	/* flip axes and negate value for y */

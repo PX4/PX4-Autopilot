@@ -278,17 +278,16 @@ int DfHmc5883Wrapper::_publish(struct mag_sensor_data &data)
 	data.field_x_ga = -data.field_y_ga;
 	data.field_y_ga = tmp;
 
-	// TODO: remove these (or get the values)
-	mag_report.x_raw = 0;
-	mag_report.y_raw = 0;
-	mag_report.z_raw = 0;
-
 	math::Vector<3> mag_val(data.field_x_ga,
 				data.field_y_ga,
 				data.field_z_ga);
 
 	// apply sensor rotation on the accel measurement
 	mag_val = _rotation_matrix * mag_val;
+
+	mag_report.x_raw = (int16_t)(mag_val(0) * 1000); // (int16) [Gs * 1000]
+	mag_report.y_raw = (int16_t)(mag_val(1) * 1000); // (int16) [Gs * 1000]
+	mag_report.z_raw = (int16_t)(mag_val(2) * 1000); // (int16) [Gs * 1000]
 
 	// Apply calibration after rotation.
 	mag_report.x = (mag_val(0) - _mag_calibration.x_offset) * _mag_calibration.x_scale;

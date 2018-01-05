@@ -711,16 +711,16 @@ BMI055_gyro::measure()
 	 *        74 from all measurements centers them around zero.
 	 */
 
-	grb.x_raw = report.gyro_x;
-	grb.y_raw = report.gyro_y;
-	grb.z_raw = report.gyro_z;
-
 	float xraw_f = report.gyro_x;
 	float yraw_f = report.gyro_y;
 	float zraw_f = report.gyro_z;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	grb.x_raw = (int16_t)(xraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+	grb.y_raw = (int16_t)(yraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
+	grb.z_raw = (int16_t)(zraw_f * _gyro_range_scale * 1000); // (int16) [rad / s * 1000]
 
 	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
@@ -842,7 +842,3 @@ BMI055_gyro::print_registers()
 
 	printf("\n");
 }
-
-
-
-

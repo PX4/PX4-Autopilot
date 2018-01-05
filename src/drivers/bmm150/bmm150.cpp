@@ -687,6 +687,10 @@ BMM150::collect()
 	// apply user specified rotation
 	rotate_3f(_rotation, mrb.x, mrb.y, mrb.z);
 
+	mrb.x_raw = (int16_t)(mrb.x * _range_scale * 1000); // (int16) [Gs * 1000]
+	mrb.y_raw = (int16_t)(mrb.y * _range_scale * 1000); // (int16) [Gs * 1000]
+	mrb.z_raw = (int16_t)(mrb.z * _range_scale * 1000); // (int16) [Gs * 1000]
+
 
 	/* Scaling the data */
 	mrb.x = ((mrb.x * _range_scale) - _scale.x_offset) * _scale.x_scale;

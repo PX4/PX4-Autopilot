@@ -950,16 +950,6 @@ IST8310::collect()
 	/* temperature measurement is not available on IST8310 */
 	new_report.temperature = 0;
 
-	/*
-	 * raw outputs
-	 *
-	 * Sensor doesn't follow right hand rule, swap x and y to make it obey
-	 * it.
-	 */
-	new_report.x_raw = report.y;
-	new_report.y_raw = report.x;
-	new_report.z_raw = report.z;
-
 	/* scale values for output */
 	xraw_f = report.y;
 	yraw_f = report.x;
@@ -967,6 +957,11 @@ IST8310::collect()
 
 	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	new_report.x_raw = (int16_t)(xraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
+	new_report.y_raw = (int16_t)(yraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
+	new_report.z_raw = (int16_t)(zraw_f * _range_scale * 1000); // (int16) [Gs * 1000]
+
 	new_report.x = ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_scale;
 	new_report.y = ((yraw_f * _range_scale) - _scale.y_offset) * _scale.y_scale;
 	new_report.z = ((zraw_f * _range_scale) - _scale.z_offset) * _scale.z_scale;

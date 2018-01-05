@@ -725,6 +725,11 @@ BMA180::measure()
 	report.x = ((report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	report.y = ((report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	report.z = ((report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+
+	report.x_raw = (int16_t)(report.x_raw * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+	report.y_raw = (int16_t)(report.y_raw * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+	report.z_raw = (int16_t)(report.z_raw * _accel_range_scale * 1000); // (int16) [m / s^2 * 1000]
+
 	report.scaling = _accel_range_scale;
 	report.range_m_s2 = _accel_range_m_s2;
 

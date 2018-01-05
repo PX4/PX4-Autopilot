@@ -569,6 +569,10 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 		_update_gyro_calibration();
 	}
 
+	accel_report accel_report = {};
+	gyro_report gyro_report = {};
+	mag_report mag_report = {};
+
 	math::Vector<3> vec_integrated_unused;
 	uint64_t integral_dt_unused;
 	math::Vector<3> accel_val(data.accel_m_s2_x,
@@ -576,6 +580,11 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 				  data.accel_m_s2_z);
 	// apply sensor rotation on the accel measurement
 	accel_val = _rotation_matrix * accel_val;
+
+	accel_report.x_raw = (int16_t)(accel_val(0) * 1000); // (int16) [rad / s * 1000]
+	accel_report.y_raw = (int16_t)(accel_val(1) * 1000); // (int16) [rad / s * 1000]
+	accel_report.z_raw = (int16_t)(accel_val(2) * 1000); // (int16) [rad / s * 1000]
+
 	// Apply calibration after rotation
 	accel_val(0) = (accel_val(0) - _accel_calibration.x_offset) * _accel_calibration.x_scale;
 	accel_val(1) = (accel_val(1) - _accel_calibration.y_offset) * _accel_calibration.y_scale;
@@ -589,6 +598,11 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 				 data.gyro_rad_s_z);
 	// apply sensor rotation on the gyro measurement
 	gyro_val = _rotation_matrix * gyro_val;
+
+	gyro_report.x_raw = (int16_t)(gyro_val(0) * 1000); // (int16) [rad / s * 1000]
+	gyro_report.y_raw = (int16_t)(gyro_val(1) * 1000); // (int16) [rad / s * 1000]
+	gyro_report.z_raw = (int16_t)(gyro_val(2) * 1000); // (int16) [rad / s * 1000]
+
 	// Apply calibration after rotation
 	gyro_val(0) = (gyro_val(0) - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
 	gyro_val(1) = (gyro_val(1) - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
@@ -618,13 +632,7 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 
 	perf_begin(_publish_perf);
 
-	accel_report accel_report = {};
-	gyro_report gyro_report = {};
-	mag_report mag_report = {};
-
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
-	mag_report.timestamp = accel_report.timestamp;
-	mag_report.is_external = false;
 
 	// TODO: get these right
 	gyro_report.scaling = -1.0f;
@@ -634,27 +642,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.scaling = -1.0f;
 	accel_report.range_m_s2 = -1.0f;
 	accel_report.device_id = m_id.dev_id;
-
-	if (_mag_enabled) {
-		mag_report.scaling = -1.0f;
-		mag_report.range_ga = -1.0f;
-		mag_report.device_id = m_id.dev_id;
-	}
-
-	// TODO: remove these (or get the values)
-	gyro_report.x_raw = 0;
-	gyro_report.y_raw = 0;
-	gyro_report.z_raw = 0;
-
-	accel_report.x_raw = 0;
-	accel_report.y_raw = 0;
-	accel_report.z_raw = 0;
-
-	if (_mag_enabled) {
-		mag_report.x_raw = 0;
-		mag_report.y_raw = 0;
-		mag_report.z_raw = 0;
-	}
 
 	math::Vector<3> gyro_val_filt;
 	math::Vector<3> accel_val_filt;
@@ -673,10 +660,21 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.z = accel_val_filt(2);
 
 	if (_mag_enabled) {
+		mag_report.timestamp = accel_report.timestamp;
+		mag_report.is_external = false;
+		mag_report.scaling = -1.0f;
+		mag_report.range_ga = -1.0f;
+		mag_report.device_id = m_id.dev_id;
+
 		math::Vector<3> mag_val(data.mag_ga_x,
 					data.mag_ga_y,
 					data.mag_ga_z);
 		mag_val = _rotation_matrix * mag_val;
+
+		mag_report.x_raw = (int16_t)(mag_val(0) * 1000); // (int16) [Gs * 1000]
+		mag_report.y_raw = (int16_t)(mag_val(1) * 1000); // (int16) [Gs * 1000]
+		mag_report.z_raw = (int16_t)(mag_val(2) * 1000); // (int16) [Gs * 1000]
+
 		mag_val(0) = (mag_val(0) - _mag_calibration.x_offset) * _mag_calibration.x_scale;
 		mag_val(1) = (mag_val(1) - _mag_calibration.y_offset) * _mag_calibration.y_scale;
 		mag_val(2) = (mag_val(2) - _mag_calibration.z_offset) * _mag_calibration.z_scale;
