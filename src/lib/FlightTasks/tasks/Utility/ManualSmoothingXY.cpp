@@ -159,7 +159,7 @@ ManualSmoothingXY::_getStateAcceleration(const matrix::Vector2f &vel_sp, const m
 	case Intention::brake: {
 
 			/* First iteration where user demands brake */
-			if (intention != intention) {
+			if (intention != _intention) {
 				/* we start braking with lowest acceleration
 				 * This make stopping smoother. */
 				_acc_state_dependent = _dec_xy_min;
