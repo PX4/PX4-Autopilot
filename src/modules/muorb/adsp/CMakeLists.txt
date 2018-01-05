@@ -30,11 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-include_directories("../../uORB")
 
 px4_add_module(
 	MODULE modules__muorb__adsp
-	COMPILE_FLAGS
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/modules/uORB
 	SRCS
 		px4muorb.cpp
 		uORBFastRpcChannel.cpp

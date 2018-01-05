@@ -110,7 +110,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
 
 #=============================================================================
 # git
@@ -154,6 +154,8 @@ set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location"
 if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
+
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${OS}/cmake)
 
 include(platforms/${OS}/cmake/px4_impl_os.cmake)
 set(config_module "configs/${CONFIG}")
@@ -399,7 +401,7 @@ foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()
 
-add_subdirectory(src/firmware/${OS})
+add_subdirectory(platforms/${OS})
 
 #=============================================================================
 # generate custom target to print for all executable and module cmake targets
