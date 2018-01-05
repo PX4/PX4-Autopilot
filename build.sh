@@ -49,6 +49,7 @@ else
     cd Build
     cmake -DPythonTests=1 ../EKF
     make pytest
-    make pytest-benchmark
+    make pytest-quick
+    make pytest-plots
     cd ..
 fi
