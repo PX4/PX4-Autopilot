@@ -377,7 +377,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			}
 
 			hrt_abstime now = hrt_absolute_time();
-			if (now - last_output_update > 10000) { // rate-limit the update of outputs
+			if (now - last_output_update > 10000 || control_data != nullptr) { // rate-limit the update of outputs
 				last_output_update = now;
 
 				//update output
