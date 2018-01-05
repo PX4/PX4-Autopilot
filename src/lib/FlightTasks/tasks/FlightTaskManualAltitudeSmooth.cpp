@@ -62,8 +62,8 @@ void FlightTaskManualAltitudeSmooth::_updateSetpoints()
 	float vel_sp[2] = {_vel_sp_z, _vel_sp_prev_z};
 	_smoothing.smoothVelFromSticks(vel_sp, _deltatime);
 
-	/* Update position setpoint in z direction based on lock criteria*/
-	_updateZsetpoints();
+	/* Check for altitude lock*/
+	_updateAltitudeLock();
 
 	/* Update previous velocity setpoint for next smoothing iteration */
 	_vel_sp_prev_z = _vel_sp_z;
