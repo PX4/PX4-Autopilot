@@ -41,6 +41,7 @@
 #include <uORB/uORB.h>
 #include <containers/List.hpp>
 #include <systemlib/err.h>
+#include <px4_defines.h>
 
 namespace uORB
 {
