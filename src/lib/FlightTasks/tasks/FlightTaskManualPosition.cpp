@@ -84,13 +84,13 @@ void FlightTaskManualPosition::_updateXYlock()
 {
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
-	const bool stick_zero = matrix::Vector2f(_sticks_expo(0), _sticks_expo(1)).length() < FLT_EPSILON;
+	const bool apply_brake = _vel_sp_xy.length() < FLT_EPSILON;
 	const bool stopped = (_vel_xy_dz.get() < FLT_EPSILON || vel_xy_norm < _vel_xy_dz.get());
 
-	if (stick_zero && stopped && !PX4_ISFINITE(_pos_sp_xy(0))) {
+	if (apply_brake && stopped && !PX4_ISFINITE(_pos_sp_xy(0))) {
 		_pos_sp_xy = matrix::Vector2f(&_position(0));
 
-	} else if (!stick_zero) {
+	} else if (!apply_brake) {
 		_pos_sp_xy = _pos_sp_xy * NAN;
 	}
 }
