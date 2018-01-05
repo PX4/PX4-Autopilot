@@ -80,7 +80,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	_vel_sp_xy = matrix::Vector2f(vel_sp(0), vel_sp(1));
 }
 
-void FlightTaskManualPosition::_updateXYsetpoints()
+void FlightTaskManualPosition::_updateXYlock()
 {
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
@@ -98,7 +98,7 @@ void FlightTaskManualPosition::_updateXYsetpoints()
 void FlightTaskManualPosition::_updateSetpoints()
 {
 	FlightTaskManualAltitude::_updateSetpoints(); // get yaw and z setpoints
-	_updateXYsetpoints(); // get xy setpoints
+	_updateXYlock(); // check for position lock
 }
 
 bool FlightTaskManualPosition::update()
