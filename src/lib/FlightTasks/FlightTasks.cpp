@@ -68,6 +68,10 @@ int FlightTasks::switchTask(int task_number)
 		_current_task = new (&_task_union.altitude_smooth) FlightTaskManualAltitudeSmooth(this, "MANALTSM");
 		break;
 
+	case 7:
+		_current_task = new (&_task_union.position_smooth) FlightTaskManualPositionSmooth(this, "MANPOSSM");
+		break;
+
 	case -1:
 		/* disable tasks is a success */
 		return 0;
