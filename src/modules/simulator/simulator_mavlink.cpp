@@ -55,8 +55,8 @@ extern "C" __EXPORT hrt_abstime hrt_reset(void);
 #define PRESS_GROUND 101325.0f
 #define DENSITY 1.2041f
 
-static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
-static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+//static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
+//static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 #ifdef ENABLE_UART_RC_INPUT
@@ -182,7 +182,11 @@ void Simulator::send_controls()
 
 		mavlink_hil_actuator_controls_t msg;
 		pack_actuator_message(msg, i);
-		send_mavlink_message(MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS, &msg, 200);
+        //send_mavlink_message(MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS, &msg, 200);
+        mavlink_message_t message;
+        mavlink_msg_hil_actuator_controls_encode(0, 200, &message, &msg);
+        send_mavlink_message(message);
+
 	}
 }
 
@@ -530,41 +534,57 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 }
 
-void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID)
+void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 {
-	component_ID = 0;
-	uint8_t payload_len = mavlink_message_lengths[msgid];
-	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    uint8_t  buf[MAVLINK_MAX_PACKET_LEN];
+    uint16_t bufLen = 0;
 
-	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+    // convery mavlink message to raw data
+    bufLen = mavlink_msg_to_send_buffer(buf, &aMsg);
 
-	/* header */
-	buf[0] = MAVLINK_STX;
-	buf[1] = payload_len;
-	/* no idea which numbers should be here*/
-	buf[2] = 100;
-	buf[3] = 0;
-	buf[4] = component_ID;
-	buf[5] = msgid;
+    // send data
+    ssize_t len = sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, _addrlen);
 
-	/* payload */
-	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES], msg, payload_len);
-
-	/* checksum */
-	uint16_t checksum;
-	crc_init(&checksum);
-	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
-	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
-
-	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
-	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
-
-	ssize_t len = sendto(_fd, buf, packet_len, 0, (struct sockaddr *)&_srcaddr, _addrlen);
-
-	if (len <= 0) {
-		PX4_WARN("Failed sending mavlink message");
-	}
+    if (len <= 0) {
+        PX4_WARN("Failed sending mavlink message");
+    }
 }
+
+//void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID)
+//{
+//	component_ID = 0;
+//	uint8_t payload_len = mavlink_message_lengths[msgid];
+//	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+//	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+//	/* header */
+//	buf[0] = MAVLINK_STX;
+//	buf[1] = payload_len;
+//	/* no idea which numbers should be here*/
+//	buf[2] = 100;
+//	buf[3] = 0;
+//	buf[4] = component_ID;
+//	buf[5] = msgid;
+
+//	/* payload */
+//	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES], msg, payload_len);
+
+//	/* checksum */
+//	uint16_t checksum;
+//	crc_init(&checksum);
+//	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
+//	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
+
+//	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
+//	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
+
+//	ssize_t len = sendto(_fd, buf, packet_len, 0, (struct sockaddr *)&_srcaddr, _addrlen);
+
+//	if (len <= 0) {
+//		PX4_WARN("Failed sending mavlink message");
+//	}
+//}
 
 void Simulator::poll_topics()
 {
@@ -765,7 +785,11 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 			mavlink_heartbeat_t hb = {};
 			hb.autopilot = 12;
 			hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
-			send_mavlink_message(MAVLINK_MSG_ID_HEARTBEAT, &hb, 200);
+            //send_mavlink_message(MAVLINK_MSG_ID_HEARTBEAT, &hb, 200);
+            mavlink_message_t message;
+            mavlink_msg_heartbeat_encode(0, 50, &message, &hb);
+            send_mavlink_message(message);
+
 
 			if (len > 0) {
 				mavlink_message_t msg;
@@ -815,7 +839,11 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
 	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
 	cmd_long.param2 = 5e3;
-	send_mavlink_message(MAVLINK_MSG_ID_COMMAND_LONG, &cmd_long, 200);
+    //send_mavlink_message(MAVLINK_MSG_ID_COMMAND_LONG, &cmd_long, 200);
+    mavlink_message_t message;
+    mavlink_msg_command_long_encode(0, 50, &message, &cmd_long);
+    send_mavlink_message(message);
+
 
 	_initialized = true;
 
