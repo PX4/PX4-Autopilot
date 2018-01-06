@@ -241,7 +241,7 @@ coverity_scan: posix_sitl_default
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata uorb_graphs
+.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata uorb_graphs doxygen doxygen_setup
 
 parameters_metadata:
 	@python $(SRC_DIR)/src/modules/systemlib/param/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 3 -type d` --inject-xml $(SRC_DIR)/src/modules/systemlib/param/parameters_injected.xml --markdown
@@ -262,6 +262,13 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4fmu-v2_default uorb_graph
 	@$(MAKE) --no-print-directory px4fmu-v4_default uorb_graph
 	@$(MAKE) --no-print-directory posix_sitl_default uorb_graph
+
+doxygen: posix_sitl_default
+	@doxygen Documentation/Doxyfile
+
+
+doxygen_setup:
+	@doxywizard Documentation/Doxyfile
 
 # Astyle
 # --------------------------------------------------------------------
