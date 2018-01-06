@@ -1,7 +1,3 @@
-[submodule "mavlink/include/mavlink/v1.0"]
-	path = mavlink/include/mavlink/v1.0
-	url = https://github.com/mavlink/c_library_v1.git
-	branch = master
 [submodule "mavlink/include/mavlink/v2.0"]
 	path = mavlink/include/mavlink/v2.0
 	url = https://github.com/mavlink/c_library_v2.git

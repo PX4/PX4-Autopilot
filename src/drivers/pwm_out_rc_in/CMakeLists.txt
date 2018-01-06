@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_mavlink_v1 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v1.0")
-
 px4_add_module(
 	MODULE drivers__pwm_out_rc_in
 	MAIN pwm_out_rc_in
@@ -43,7 +41,5 @@ px4_add_module(
 	SRCS
 		pwm_out_rc_in.cpp
 	DEPENDS
-		git_mavlink_v1
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

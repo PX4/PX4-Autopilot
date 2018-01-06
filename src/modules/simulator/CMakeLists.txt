@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_mavlink_v1 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v1.0")
-
 option(ENABLE_UART_RC_INPUT "Enable RC Input from UART mavlink connection" OFF)
 
 if(ENABLE_UART_RC_INPUT)
@@ -64,6 +62,6 @@ px4_add_module(
 	SRCS
 		${SIMULATOR_SRCS}
 	DEPENDS
-		git_mavlink_v1
+		git_mavlink_v2
 		platforms__common
 	)

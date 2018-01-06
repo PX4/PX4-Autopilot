@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_mavlink_v1 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v1.0")
-
 px4_add_module(
 	MODULE drivers__snapdragon_rc_pwm
 	MAIN snapdragon_rc_pwm
@@ -43,7 +41,5 @@ px4_add_module(
 	SRCS
 		snapdragon_rc_pwm.cpp
 	DEPENDS
-		git_mavlink_v1
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
