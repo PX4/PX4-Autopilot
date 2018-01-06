@@ -14,6 +14,8 @@
 # @output MAIN7 pass-through of control group 0, channel 6
 # @output MAIN8 pass-through of control group 0, channel 7
 #
+# @board px4fmu-v2 exclude
+#
 
 sh /etc/init.d/rc.axialracing_ax10_defaults
 
