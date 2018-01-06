@@ -624,7 +624,10 @@ pipeline {
 
         stage('uorb graphs') {
           agent {
-            docker { image 'px4io/px4-dev-nuttx:2017-12-30' }
+            docker {
+              image 'px4io/px4-dev-nuttx:2017-12-30'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+            }
           }
           steps {
             sh 'make uorb_graphs'
