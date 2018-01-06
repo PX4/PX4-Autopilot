@@ -126,9 +126,6 @@ set(msg_files
 	wind_estimate.msg
 	)
 
-px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
-px4_add_git_submodule(TARGET git_genmsg PATH tools/genmsg)
-
 # headers
 set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)
 set(msg_source_out_path	${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
