@@ -916,9 +916,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
@@ -928,13 +925,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
-
-	case ACCELIOCSLOWPASS: {
-			return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)arg);
-		}
-
-	case ACCELIOCGLOWPASS:
-		return static_cast<int>(_accel_filter_x.get_cutoff_freq());
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
@@ -1051,9 +1041,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _mag_reports->size();
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
@@ -1063,11 +1050,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
-
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
 
 	case MAGIOCSSCALE:
 		/* copy scale in */
@@ -1992,13 +1974,6 @@ test()
 	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
 
 	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
-
-	if (PX4_ERROR == (ret = ioctl(fd_accel, ACCELIOCGLOWPASS, 0))) {
-		warnx("accel antialias filter bandwidth: fail");
-
-	} else {
-		warnx("accel antialias filter bandwidth: %d Hz", ret);
-	}
 
 	int fd_mag = -1;
 	struct mag_report m_report;

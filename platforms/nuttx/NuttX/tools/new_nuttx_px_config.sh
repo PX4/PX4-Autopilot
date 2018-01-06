@@ -51,8 +51,8 @@ done
 echo "PROTOTYPE = \"$oldname\""
 
 # Does that look like an existing old name?
-if [ ! -f $BASEDIR/Images/$oldname.prototype ]; then
-	fatal "\"$oldname\" doesn't look like an existing board name (there is no $BASEDIR/Images/$oldname.prototype)"
+if [ ! -f $BASEDIR/platforms/nuttx/Images/$oldname.prototype ]; then
+	fatal "\"$oldname\" doesn't look like an existing board name (there is no $BASEDIR/platforms/nuttx/Images/$oldname.prototype)"
 fi
 if [ ! -d $BASEDIR/src/drivers/boards/$oldname ]; then
 	fatal "\"$oldname\" doesn't look like an existing board name (no such directory $BASEDIR/src/drivers/boards/$oldname)"
@@ -60,8 +60,8 @@ fi
 if [ ! -f $BASEDIR/cmake/configs/nuttx_"$oldname"_default.cmake -a ! -f $BASEDIR/cmake/configs/nuttx_"$oldname"_bootloader.cmake ]; then
 	fatal "\"$oldname\" doesn't look like an existing board name (there is neither a $BASEDIR/cmake/configs/nuttx_"$oldname"_default.cmake nor a $BASEDIR/cmake/configs/nuttx_"$oldname"_bootloader.cmake)"
 fi
-if [ ! -d $BASEDIR/nuttx-configs/$oldname ]; then
-	fatal "\"$oldname\" doesn't look like an existing board name (no such directory $BASEDIR/nuttx-configs/$oldname)"
+if [ ! -d $BASEDIR/platforms/nuttx/nuttx-configs/$oldname ]; then
+	fatal "\"$oldname\" doesn't look like an existing board name (no such directory $BASEDIR/platforms/nuttx/nuttx-configs/$oldname)"
 fi
 
 # Does the new name look like a new name?
@@ -75,13 +75,13 @@ fi
 cd "$BASEDIR" || fatal "Could not change directory to $BASEDIR"
 
 # Make sure we don't accidently overwrite stuff.
-if [ -f Images/$newname.prototype -o \
+if [ -f platforms/nuttx/Images/$newname.prototype -o \
      -f cmake/configs/nuttx_"$newname"_default.cmake -o \
      -f cmake/configs/nuttx_"$newname"_bootloader.cmake -o \
      -d src/drivers/boards/$newname -o \
      -d nuttx-configs/$newname ]; then
   echo "\"$newname\" already exists! Please first delete it with the following command (in $BASEDIR):"
-  echo "rm -rf Images/$newname.prototype cmake/configs/nuttx_"$newname"_default.cmake cmake/configs/nuttx_"$newname"_bootloader.cmake src/drivers/boards/$newname nuttx-configs/$newname"
+  echo "rm -rf platforms/nuttx/Images/$newname.prototype cmake/configs/nuttx_"$newname"_default.cmake cmake/configs/nuttx_"$newname"_bootloader.cmake src/drivers/boards/$newname nuttx-configs/$newname"
   exit 1
 fi
 
@@ -115,8 +115,8 @@ for k in default bootloader; do
 done
 
 # Copy remaining files.
-cp Images/${oldname}.prototype Images/${newname}.prototype
-git add Images/${newname}.prototype
+cp platforms/nuttx/Images/${oldname}.prototype platforms/nuttx/Images/${newname}.prototype
+git add platforms/nuttx/Images/${newname}.prototype
 cp -r nuttx-configs/${oldname} nuttx-configs/${newname}
 git add nuttx-configs/${newname}
 cp -r src/drivers/boards/${oldname} src/drivers/boards/${newname}
@@ -164,8 +164,8 @@ if ! grep 'defined('"${newconfig}"')' 'src/modules/gpio_led/gpio_led.c' >/dev/nu
 	sed -i -e 's/\(defined('"${oldconfig}"')$\)/\1 || \\'$'\\n\\t'"defined(${newconfig})/" 'src/modules/gpio_led/gpio_led.c'
 fi
 
-# Make some changes to Images/$(newname).prototype
-sed -i -r -e 's%("(magic|description|summary)": ")([^"]*)(",).*%\1FIXME (was: \3)\4%' "Images/${newname}.prototype"
+# Make some changes to platforms/nuttx/Images/$(newname).prototype
+sed -i -r -e 's%("(magic|description|summary)": ")([^"]*)(",).*%\1FIXME (was: \3)\4%' "platforms/nuttx/Images/${newname}.prototype"
 
 echo "*** The following files contain a reference to $oldconfig (this might take a while):"
 find . -path './build/*' -o -path './.git' -o -name 'defconfig' -prune -o -type f -exec grep -l -- "$oldconfig" {} \;

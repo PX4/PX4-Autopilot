@@ -68,38 +68,10 @@
 /** configure the board GPIOs in (arg) as outputs */
 #define GPIO_SET_OUTPUT	GPIOC(1)
 
-/** configure the board GPIOs in (arg) as inputs */
-#define GPIO_SET_INPUT	GPIOC(2)
-
-/** configure the board GPIOs in (arg) for the first alternate function (if supported) */
-#define GPIO_SET_ALT_1	GPIOC(3)
-
-/** configure the board GPIO (arg) for the second alternate function (if supported) */
-#define GPIO_SET_ALT_2	GPIOC(4)
-
-/** configure the board GPIO (arg) for the third alternate function (if supported) */
-#define GPIO_SET_ALT_3	GPIOC(5)
-
-/** configure the board GPIO (arg) for the fourth alternate function (if supported) */
-#define GPIO_SET_ALT_4	GPIOC(6)
-
 /** set the GPIOs in (arg) */
 #define GPIO_SET	GPIOC(10)
 
 /** clear the GPIOs in (arg) */
 #define GPIO_CLEAR	GPIOC(11)
-
-/** read all the GPIOs and return their values in *(uint32_t *)arg */
-#define GPIO_GET	GPIOC(12)
-
-#define GPIO_SENSOR_RAIL_RESET	GPIOC(13)
-
-#define GPIO_PERIPHERAL_RAIL_RESET	GPIOC(14)
-
-/** configure the board GPIOs in (arg) as outputs, initially low */
-#define GPIO_SET_OUTPUT_LOW	GPIOC(15)
-
-/** configure the board GPIOs in (arg) as outputs, initially high */
-#define GPIO_SET_OUTPUT_HIGH	GPIOC(16)
 
 #endif /* _DRV_GPIO_H */

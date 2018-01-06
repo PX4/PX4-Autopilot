@@ -564,9 +564,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case SENSORIOCRESET:
 		// Nothing to do for simulator
 		return OK;
@@ -577,10 +574,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
-
-	case ACCELIOCSLOWPASS: {
-			return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)ul_arg);
-		}
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
@@ -691,9 +684,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _mag_reports->size();
-
 	case SENSORIOCRESET:
 		// Nothing to do for simulator
 		return OK;
@@ -704,11 +694,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
-
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
 
 	case MAGIOCSSCALE:
 		/* copy scale in */

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <px4_log.h>
-#ifdef __PX4_POSIX
+#if defined(__PX4_POSIX) && !defined(__PX4_CYGWIN)
 #include <execinfo.h>
 #endif
 #include <uORB/uORB.h>
@@ -34,7 +34,7 @@ void px4_log_initialize(void)
 
 void px4_backtrace()
 {
-#ifdef __PX4_POSIX
+#if defined(__PX4_POSIX) && !defined(__PX4_CYGWIN)
 	void *buffer[10];
 	char **callstack;
 	int bt_size;

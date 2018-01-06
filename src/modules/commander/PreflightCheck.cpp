@@ -80,12 +80,7 @@ namespace Preflight
 
 static int check_calibration(DevHandle &h, const char *param_template, int &devid)
 {
-	bool calibration_found;
-
-	/* new style: ask device for calibration state */
-	int ret = h.ioctl(SENSORIOCCALTEST, 0);
-
-	calibration_found = (ret == OK);
+	bool calibration_found = false;
 
 	devid = h.ioctl(DEVIOCGDEVICEID, 0);
 
@@ -762,7 +757,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 	/* ---- IMU CONSISTENCY ---- */
 	if (checkSensors) {
-		if (!imuConsistencyCheck(mavlink_log_pub, reportFailures)) {
+		if (!imuConsistencyCheck(mavlink_log_pub, (reportFailures && !failed))) {
 			failed = true;
 		}
 	}
@@ -800,7 +795,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		// don't report ekf failures for the first 10 seconds to allow time for the filter to start
 		bool report_ekf_fail = (time_since_boot > 10 * 1000000);
 
-		if (!ekf2Check(mavlink_log_pub, true, report_ekf_fail, checkGNSS)) {
+		if (!ekf2Check(mavlink_log_pub, true, (report_ekf_fail && !failed), checkGNSS)) {
 			failed = true;
 		}
 	}

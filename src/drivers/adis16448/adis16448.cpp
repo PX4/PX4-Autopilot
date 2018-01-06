@@ -524,7 +524,7 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_mag_filter_x(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_y(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_z(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, true),
+	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, false),
 	_gyro_int(1000000 / ADIS16448_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
@@ -1111,23 +1111,11 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case ACCELIOCGSAMPLERATE:
 		return _sample_rate;
 
 	case ACCELIOCSSAMPLERATE:
 		_set_sample_rate(arg);
-		return OK;
-
-	case ACCELIOCGLOWPASS:
-		return _accel_filter_x.get_cutoff_freq();
-
-	case ACCELIOCSLOWPASS:
-		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case ACCELIOCSSCALE: {
@@ -1196,24 +1184,11 @@ ADIS16448::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _gyro_reports->size();
-
 	case GYROIOCGSAMPLERATE:
 		return _sample_rate;
 
 	case GYROIOCSSAMPLERATE:
 		_set_sample_rate(arg);
-		return OK;
-
-	case GYROIOCGLOWPASS:
-		return _gyro_filter_x.get_cutoff_freq();
-
-	case GYROIOCSLOWPASS:
-		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-
 		return OK;
 
 	case GYROIOCSSCALE:
@@ -1274,23 +1249,11 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _mag_reports->size();
-
 	case MAGIOCGSAMPLERATE:
 		return _sample_rate;
 
 	case MAGIOCSSAMPLERATE:
 		_set_sample_rate(arg);
-		return OK;
-
-	case MAGIOCGLOWPASS:
-		return _mag_filter_x.get_cutoff_freq();
-
-	case MAGIOCSLOWPASS:
-		_mag_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_mag_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_mag_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case MAGIOCSSCALE:

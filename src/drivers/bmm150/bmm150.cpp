@@ -794,9 +794,6 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
-
 	case SENSORIOCRESET:
 		return reset();
 
@@ -826,11 +823,6 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCGRANGE:
 		return OK;
-
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */

@@ -847,9 +847,6 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
@@ -859,13 +856,6 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
-
-	case ACCELIOCSLOWPASS: {
-			return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)arg);
-		}
-
-	case ACCELIOCGLOWPASS:
-		return static_cast<int>(_accel_filter_x.get_cutoff_freq());
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
@@ -982,9 +972,6 @@ FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _mag_reports->size();
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
@@ -994,11 +981,6 @@ FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
-
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
 
 	case MAGIOCSSCALE:
 		/* copy scale in */
@@ -1838,13 +1820,6 @@ test()
 	PX4_INFO("accel z: \t%d\traw", (int)accel_report.z_raw);
 
 	PX4_INFO("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
-
-	if (PX4_ERROR == (ret = ioctl(fd_accel, ACCELIOCGLOWPASS, 0))) {
-		PX4_ERR("accel antialias filter bandwidth: fail");
-
-	} else {
-		PX4_INFO("accel antialias filter bandwidth: %d Hz", ret);
-	}
 
 	/* get the driver */
 	fd_mag = open(FXOS8701C_DEVICE_PATH_MAG, O_RDONLY);

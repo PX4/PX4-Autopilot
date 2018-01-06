@@ -471,9 +471,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
-
 	case SENSORIOCRESET:
 		/* XXX implement */
 		return -EINVAL;
@@ -483,12 +480,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSAMPLERATE:
 		return 1200;		/* always operating in low-noise mode */
-
-	case ACCELIOCSLOWPASS:
-		return set_lowpass(arg);
-
-	case ACCELIOCGLOWPASS:
-		return _current_lowpass;
 
 	case ACCELIOCSSCALE:
 		/* copy scale in */

@@ -2671,37 +2671,9 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 	for (unsigned i = 0; i < _ngpio; i++) {
 		if (gpios & (1 << i)) {
 			switch (function) {
-			case GPIO_SET_INPUT:
-				if (_gpio_tab[i].input) {
-					px4_arch_configgpio(_gpio_tab[i].input);
-				}
-
-				break;
-
 			case GPIO_SET_OUTPUT:
 				if (_gpio_tab[i].output) {
 					px4_arch_configgpio(_gpio_tab[i].output);
-				}
-
-				break;
-
-			case GPIO_SET_OUTPUT_LOW:
-				if (_gpio_tab[i].output) {
-					px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_SET)) | GPIO_OUTPUT_CLEAR);
-				}
-
-				break;
-
-			case GPIO_SET_OUTPUT_HIGH:
-				if (_gpio_tab[i].output) {
-					px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_CLEAR)) | GPIO_OUTPUT_SET);
-				}
-
-				break;
-
-			case GPIO_SET_ALT_1:
-				if (_gpio_tab[i].alt != 0) {
-					px4_arch_configgpio(_gpio_tab[i].alt);
 				}
 
 				break;
@@ -2901,35 +2873,13 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		ret = gpio_reset();
 		break;
 
-	case GPIO_SENSOR_RAIL_RESET:
-		sensor_reset(arg);
-		break;
-
-	case GPIO_PERIPHERAL_RAIL_RESET:
-		peripheral_reset(arg);
-		break;
-
 	case GPIO_SET_OUTPUT:
-	case GPIO_SET_OUTPUT_LOW:
-	case GPIO_SET_OUTPUT_HIGH:
-	case GPIO_SET_INPUT:
-	case GPIO_SET_ALT_1:
 		ret = gpio_set_function(arg, cmd);
-		break;
-
-	case GPIO_SET_ALT_2:
-	case GPIO_SET_ALT_3:
-	case GPIO_SET_ALT_4:
-		ret = -EINVAL;
 		break;
 
 	case GPIO_SET:
 	case GPIO_CLEAR:
 		ret = gpio_write(arg, cmd);
-		break;
-
-	case GPIO_GET:
-		ret = gpio_read((uint32_t *)arg);
 		break;
 
 	default:

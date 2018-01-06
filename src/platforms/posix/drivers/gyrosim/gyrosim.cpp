@@ -786,17 +786,11 @@ GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case ACCELIOCGSAMPLERATE:
 		return 1e6 / m_sample_interval_usecs;
 
 	case ACCELIOCSSAMPLERATE:
 		_set_sample_rate(arg);
-		return OK;
-
-	case ACCELIOCSLOWPASS:
 		return OK;
 
 	case ACCELIOCSSCALE: {
@@ -857,17 +851,11 @@ GYROSIM::gyro_ioctl(unsigned long cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _gyro_reports->size();
-
 	case GYROIOCGSAMPLERATE:
 		return 1e6 / m_sample_interval_usecs;
 
 	case GYROIOCSSAMPLERATE:
 		_set_sample_rate(arg);
-		return OK;
-
-	case GYROIOCSLOWPASS:
 		return OK;
 
 	case GYROIOCSSCALE:

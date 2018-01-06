@@ -110,7 +110,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
 
 #=============================================================================
 # git
@@ -155,6 +155,9 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${OS}/cmake)
+
+include(platforms/${OS}/cmake/px4_impl_os.cmake)
 set(config_module "configs/${CONFIG}")
 include(${config_module})
 
@@ -243,11 +246,11 @@ set(BUILD_SHARED_LIBS OFF)
 #=============================================================================
 # ccache
 #
-option(CCACHE "Use ccache if available" OFF)
+option(CCACHE "Use ccache if available" ON)
 find_program(CCACHE_PROGRAM ccache)
-if (CCACHE AND CCACHE_PROGRAM)
-	message(STATUS "Enabled ccache: ${CCACHE_PROGRAM}")
+if (CCACHE AND CCACHE_PROGRAM AND NOT DEFINED ENV{CCACHE_DISABLE})
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+else()
 endif()
 
 #=============================================================================
@@ -398,7 +401,7 @@ foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()
 
-add_subdirectory(src/firmware/${OS})
+add_subdirectory(platforms/${OS})
 
 #=============================================================================
 # generate custom target to print for all executable and module cmake targets

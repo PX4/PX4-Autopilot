@@ -5,7 +5,6 @@ set(CMAKE_PROGRAM_PATH
 	${CMAKE_PROGRAM_PATH}
 )
 
-include(posix/px4_impl_posix)
 
 add_definitions(
   -D__PX4_POSIX_OCPOC

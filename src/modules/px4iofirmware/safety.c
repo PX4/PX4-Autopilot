@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,8 @@
 /**
  * @file safety.c
  * Safety button logic.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_config.h>
@@ -56,11 +58,11 @@ static unsigned counter = 0;
 /*
  * Define the various LED flash sequences for each system state.
  */
-#define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
-#define LED_PATTERN_FMU_REFUSE_TO_ARM 		0x5555		/**< fast blinking			*/
-#define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
-#define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
-#define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
+#define LED_PATTERN_FMU_OK_TO_ARM		0x0003			/**< slow blinking			*/
+#define LED_PATTERN_FMU_REFUSE_TO_ARM		0x5555		/**< fast blinking			*/
+#define LED_PATTERN_IO_ARMED			0x5050			/**< long off, then double blink 	*/
+#define LED_PATTERN_FMU_ARMED			0x5500			/**< long off, then quad blink 		*/
+#define LED_PATTERN_IO_FMU_ARMED		0xffff			/**< constantly on			*/
 
 static unsigned blink_counter = 0;
 

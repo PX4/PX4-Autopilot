@@ -61,8 +61,6 @@ Loiter::Loiter(Navigator *navigator, const char *name) :
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_loiter_pos_set(false)
 {
-	// load initial params
-	updateParams();
 }
 
 Loiter::~Loiter()

@@ -52,11 +52,11 @@
 #include "common_rc.h"
 #include <drivers/drv_hrt.h>
 
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN) || defined(__PX4_QURT)
-#define dsm_udelay(arg) usleep(arg)
-#else
+#if defined(__PX4_NUTTX)
 #include <nuttx/arch.h>
 #define dsm_udelay(arg)    up_udelay(arg)
+#else
+#define dsm_udelay(arg) usleep(arg)
 #endif
 
 // #define DSM_DEBUG

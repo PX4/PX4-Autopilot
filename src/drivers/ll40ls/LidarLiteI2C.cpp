@@ -221,9 +221,6 @@ int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
-
 	default: {
 			int result = LidarLite::ioctl(filp, cmd, arg);
 

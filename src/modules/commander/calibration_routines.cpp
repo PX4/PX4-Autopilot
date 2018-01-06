@@ -530,24 +530,25 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, int cancel_sub, int accel_sub,
 		bool lenient_still_position)
 {
-	const unsigned ndim = 3;
+	static constexpr unsigned ndim = 3;
 
-	struct sensor_combined_s sensor;
 	float		accel_ema[ndim] = { 0.0f };		// exponential moving average of accel
 	float		accel_disp[3] = { 0.0f, 0.0f, 0.0f };	// max-hold dispersion of accel
-	float		ema_len = 0.5f;				// EMA time constant in seconds
-	const float	normal_still_thr = 0.25;		// normal still threshold
+	static constexpr float		ema_len = 0.5f;				// EMA time constant in seconds
+	static constexpr float	normal_still_thr = 0.25;		// normal still threshold
 	float		still_thr2 = powf(lenient_still_position ? (normal_still_thr * 3) : normal_still_thr, 2);
-	float		accel_err_thr = 5.0f;			// set accel error threshold to 5m/s^2
-	hrt_abstime	still_time = lenient_still_position ? 500000 : 1300000;	// still time required in us
+	static constexpr float		accel_err_thr = 5.0f;			// set accel error threshold to 5m/s^2
+	const hrt_abstime	still_time = lenient_still_position ? 500000 : 1300000;	// still time required in us
 
 	px4_pollfd_struct_t fds[1];
 	fds[0].fd = accel_sub;
 	fds[0].events = POLLIN;
 
-	hrt_abstime t_start = hrt_absolute_time();
+	const hrt_abstime t_start = hrt_absolute_time();
+
 	/* set timeout to 30s */
-	hrt_abstime timeout = 30000000;
+	static constexpr hrt_abstime timeout = 90000000;
+
 	hrt_abstime t_timeout = t_start + timeout;
 	hrt_abstime t = t_start;
 	hrt_abstime t_prev = t_start;
@@ -560,6 +561,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 		int poll_ret = px4_poll(fds, 1, 1000);
 
 		if (poll_ret) {
+			struct sensor_combined_s sensor;
 			orb_copy(ORB_ID(sensor_combined), accel_sub, &sensor);
 			t = hrt_absolute_time();
 			float dt = (t - t_prev) / 1000000.0f;

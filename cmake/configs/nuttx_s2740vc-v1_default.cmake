@@ -1,4 +1,3 @@
-include(nuttx/px4_impl_nuttx)
 
 add_definitions(
 	-DPARAM_NO_ORB
@@ -26,7 +25,7 @@ include(configs/uavcan_board_ident/s2740vc-v1)
 
 # N.B. this would be uncommented when there is an APP
 #px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
-# BIN ${CMAKE_CURRENT_BINARY_DIR}/src/firmware/nuttx/s2740vc-v1.bin
+# BIN ${PX4_BINARY_DIR}/platforms/nuttx/s2740vc-v1.bin
 # HWNAME ${uavcanblid_name}
 # HW_MAJOR ${uavcanblid_hw_version_major}
 # HW_MINOR ${uavcanblid_hw_version_minor}

@@ -91,15 +91,10 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		clear_line = CL;
 	}
 
-#if defined (__PX4_LINUX)
-	dprintf(fd, "%sTOP NOT IMPLEMENTED ON LINUX\n",
-		clear_line);
+#if defined(__PX4_LINUX) || defined(__PX4_CYGWIN) || defined(__PX4_QURT)
+	dprintf(fd, "%sTOP NOT IMPLEMENTED ON LINUX, QURT, WINDOWS (ONLY ON NUTTX, APPLE)\n", clear_line);
 
-#elif defined (__PX4_QURT)
-	dprintf(fd, "%sTOP NOT IMPLEMENTED ON QURT\n",
-		clear_line);
-
-#elif defined (__PX4_DARWIN)
+#elif defined(__PX4_DARWIN)
 	pid_t pid = getpid();   //-- this is the process id you need info for
 	task_t task_handle;
 	task_for_pid(mach_task_self(), pid, &task_handle);

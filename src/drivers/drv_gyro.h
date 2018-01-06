@@ -79,12 +79,6 @@ struct gyro_calibration_s {
 /** return the gyro internal sample rate in Hz */
 #define GYROIOCGSAMPLERATE	_GYROIOC(1)
 
-/** set the gyro internal lowpass filter to no lower than (arg) Hz */
-#define GYROIOCSLOWPASS		_GYROIOC(2)
-
-/** set the gyro internal lowpass filter to no lower than (arg) Hz */
-#define GYROIOCGLOWPASS		_GYROIOC(3)
-
 /** set the gyro scaling constants to (arg) */
 #define GYROIOCSSCALE		_GYROIOC(4)
 
@@ -99,15 +93,6 @@ struct gyro_calibration_s {
 
 /** check the status of the sensor */
 #define GYROIOCSELFTEST		_GYROIOC(8)
-
-/** set the hardware low-pass filter cut-off no lower than (arg) Hz */
-#define GYROIOCSHWLOWPASS	_GYROIOC(9)
-
-/** get the hardware low-pass filter cut-off in Hz*/
-#define GYROIOCGHWLOWPASS	_GYROIOC(10)
-
-/** determine if hardware is external or onboard */
-#define GYROIOCGEXTERNAL	_GYROIOC(12)
 
 /** get the current gyro type */
 #define GYROIOCTYPE			_GYROIOC(13)

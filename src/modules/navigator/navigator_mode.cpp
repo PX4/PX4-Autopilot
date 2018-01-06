@@ -47,8 +47,6 @@ NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
 	_navigator(navigator),
 	_active(false)
 {
-	/* load initial params */
-	updateParams();
 	/* set initial mission items */
 	on_inactivation();
 	on_inactive();

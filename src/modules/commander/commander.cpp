@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,10 @@
  *
  * Main state machine / business logic
  *
+ * @TODO This application is currently in a rewrite process. Main changes:
+ *			- Calibration routines are moved into the event system
+ *			- Commander is rewritten as class
+ *			- State machines will be model driven
  */
 
 #include "Commander.hpp"
@@ -447,10 +451,10 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "check")) {
 		int checkres = 0;
-		checkres = preflight_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery, ARM_REQ_GPS_BIT, hrt_elapsed_time(&commander_boot_timestamp));
+		checkres = prearm_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery, ARM_REQ_GPS_BIT, hrt_elapsed_time(&commander_boot_timestamp));
 		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
 
-		checkres = preflight_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+		checkres = prearm_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 
 		return 0;
@@ -644,10 +648,8 @@ void print_status()
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
 	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
 
-#ifdef __PX4_POSIX
 	warnx("main state: %d", internal_state.main_state);
 	warnx("nav state: %d", status.nav_state);
-#endif
 
 	/* read all relevant states */
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -1286,6 +1288,7 @@ Commander::run()
 	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
+	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1659,6 +1662,7 @@ Commander::run()
 	/* RC override auto modes */
 	int32_t rc_override = 0;
 
+	int32_t takeoff_complete_act = 0;
 
 	/* Thresholds for engine failure detection */
 	float ef_throttle_thres = 1.0f;
@@ -1700,9 +1704,10 @@ Commander::run()
 		arming_ret = TRANSITION_NOT_CHANGED;
 
 		/* update parameters */
-		orb_check(param_changed_sub, &updated);
+		bool params_updated = false;
+		orb_check(param_changed_sub, &params_updated);
 
-		if (updated || param_init_forced) {
+		if (params_updated || param_init_forced) {
 
 			/* parameters changed */
 			struct parameter_update_s param_changed;
@@ -1807,6 +1812,8 @@ Commander::run()
 
 			/* failsafe response to loss of navigation accuracy */
 			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
+
+			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
 			param_init_forced = false;
 		}
@@ -2018,15 +2025,33 @@ Commander::run()
 
 			/* Make sure that this is only adjusted if vehicle really is of type vtol */
 			if (is_vtol(&status)) {
-				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
-				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
-				status.in_transition_to_fw = vtol_status.in_transition_to_fw;
-				status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
 
-				armed.soft_stop = !status.is_rotary_wing;
+				// Check if there has been any change while updating the flags
+				if (status.is_rotary_wing != vtol_status.vtol_in_rw_mode) {
+					status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
+					status_changed = true;
+				}
+
+				if (status.in_transition_mode != vtol_status.vtol_in_trans_mode) {
+					status.in_transition_mode = vtol_status.vtol_in_trans_mode;
+					status_changed = true;
+				}
+
+				if (status.in_transition_to_fw != vtol_status.in_transition_to_fw) {
+					status.in_transition_to_fw = vtol_status.in_transition_to_fw;
+					status_changed = true;
+				}
+
+				if (status_flags.vtol_transition_failure != vtol_status.vtol_transition_failsafe) {
+					status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
+					status_changed = true;
+				}
+
+				if (armed.soft_stop != !status.is_rotary_wing) {
+					armed.soft_stop = !status.is_rotary_wing;
+					status_changed = true;
+				}
 			}
-
-			status_changed = true;
 		}
 
 		// Check if quality checking of position accuracy and consistency is to be performed
@@ -2145,29 +2170,31 @@ Commander::run()
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
 
-			if (was_landed != land_detector.landed) {
-				if (land_detector.landed) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
-				} else {
-					mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
-					have_taken_off_since_arming = true;
+			// Only take actions if armed
+			if (armed.armed) {
+				if (was_landed != land_detector.landed) {
+					if (land_detector.landed) {
+						mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
+					} else {
+						mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
+						have_taken_off_since_arming = true;
 
-					// Set all position and velocity test probation durations to takeoff value
-					// This is a larger value to give the vehicle time to complete a failsafe landing
-					// if faulty sensors cause loss of navigation shortly after takeoff.
-					gpos_probation_time_us = posctl_nav_loss_prob;
-					gvel_probation_time_us = posctl_nav_loss_prob;
-					lpos_probation_time_us = posctl_nav_loss_prob;
-					lvel_probation_time_us = posctl_nav_loss_prob;
+						// Set all position and velocity test probation durations to takeoff value
+						// This is a larger value to give the vehicle time to complete a failsafe landing
+						// if faulty sensors cause loss of navigation shortly after takeoff.
+						gpos_probation_time_us = posctl_nav_loss_prob;
+						gvel_probation_time_us = posctl_nav_loss_prob;
+						lpos_probation_time_us = posctl_nav_loss_prob;
+						lvel_probation_time_us = posctl_nav_loss_prob;
+					}
+				}
+
+				if (was_falling != land_detector.freefall) {
+					if (land_detector.freefall) {
+						mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
+					}
 				}
 			}
-
-			if (was_falling != land_detector.freefall) {
-				if (land_detector.freefall) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
-				}
-			}
-
 
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
@@ -2861,14 +2888,22 @@ Commander::run()
 			}
 		}
 
-		/* reset main state after takeoff has completed */
-		/* only switch back to posctl */
-		if (main_state_prev == commander_state_s::MAIN_STATE_POSCTL) {
+		/* Reset main state to loiter or auto-mission after takeoff is completed.
+		 * Sometimes, the mission result topic is outdated and the mission is still signaled
+		 * as finished even though we only just started with the takeoff. Therefore, we also
+		 * check the timestamp of the mission_result topic. */
+		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+			&& (_mission_result.timestamp > internal_state.timestamp)
+			&& _mission_result.finished) {
 
-			if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-					&& _mission_result.finished) {
+			const bool mission_available = (_mission_result.timestamp > commander_boot_timestamp)
+				&& (_mission_result.instance_count > 0) && _mission_result.valid;
 
-				main_state_transition(&status, main_state_prev, main_state_prev, &status_flags, &internal_state);
+			if ((takeoff_complete_act == 1) && mission_available) {
+				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+
+			} else {
+				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 			}
 		}
 
@@ -3155,7 +3190,7 @@ Commander::run()
 			have_taken_off_since_arming = false;
 		}
 
-		arm_auth_update(now);
+		arm_auth_update(now, params_updated || param_init_forced);
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}
@@ -3844,8 +3879,6 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
-		/* override is not ok in stabilized mode */
-		control_mode.flag_external_manual_override_ok = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:

@@ -72,8 +72,7 @@ using namespace DriverFramework;
 #define GPS_DRIVER_MODE_UBX_SIM
 #define GPSSIM_DEVICE_PATH "/dev/gpssim"
 
-#define TIMEOUT_5HZ 500
-#define TIMEOUT_10MS 10
+#define TIMEOUT_100MS 100000
 #define RATE_MEASUREMENT_PERIOD 5000000
 
 /* class for dynamic allocation of satellite info data */
@@ -122,7 +121,6 @@ private:
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
-	bool				_fake_gps;					///< fake gps output
 	SyncObj				_sync;
 	int _fix_type;
 	int _num_sat;
@@ -186,7 +184,6 @@ GPSSIM::GPSSIM(const char *uart_path, bool fake_gps, bool enable_sat_info,
 	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(nullptr),
 	_rate(0.0f),
-	_fake_gps(fake_gps),
 	_fix_type(fix_type),
 	_num_sat(num_sat),
 	_noise_multiplier(noise_multiplier)
@@ -328,81 +325,32 @@ GPSSIM::receive(int timeout)
 void
 GPSSIM::task_main()
 {
-
 	/* loop handling received serial bytes and also configuring in between */
 	while (!_task_should_exit) {
 
-		if (_fake_gps) {
-			_report_gps_pos.timestamp = hrt_absolute_time();
-			_report_gps_pos.lat = (int32_t)47.378301e7f;
-			_report_gps_pos.lon = (int32_t)8.538777e7f;
-			_report_gps_pos.alt = (int32_t)1200e3f;
-			_report_gps_pos.s_variance_m_s = 10.0f;
-			_report_gps_pos.c_variance_rad = 0.1f;
-			_report_gps_pos.fix_type = 3;
-			_report_gps_pos.eph = 0.9f;
-			_report_gps_pos.epv = 1.8f;
-			_report_gps_pos.vel_n_m_s = 0.0f;
-			_report_gps_pos.vel_e_m_s = 0.0f;
-			_report_gps_pos.vel_d_m_s = 0.0f;
-			_report_gps_pos.vel_m_s = sqrtf(_report_gps_pos.vel_n_m_s * _report_gps_pos.vel_n_m_s + _report_gps_pos.vel_e_m_s *
-							_report_gps_pos.vel_e_m_s + _report_gps_pos.vel_d_m_s * _report_gps_pos.vel_d_m_s);
-			_report_gps_pos.cog_rad = 0.0f;
-			_report_gps_pos.vel_ned_valid = true;
+		// GPS is obviously detected successfully, reset statistics
+		//_Helper->reset_update_rates();
 
-			//no time and satellite information simulated
+		int recv_ret = receive(TIMEOUT_100MS);
 
-			if (!(m_pub_blocked)) {
-				if (_report_gps_pos_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+		if (recv_ret > 0) {
+
+			/* opportunistic publishing - else invalid data would end up on the bus */
+			if (_report_gps_pos_pub != nullptr) {
+				orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
+			} else {
+				_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+			}
+
+			if (_p_report_sat_info) {
+				if (_report_sat_info_pub != nullptr) {
+					orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
 
 				} else {
-					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+					_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info);
 				}
 			}
-
-			usleep(2e5);
-
-		} else {
-			//Publish initial report that we have access to a GPS
-			//Make sure to clear any stale data in case driver is reset
-			memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
-			_report_gps_pos.timestamp = hrt_absolute_time();
-			_report_gps_pos.timestamp_time_relative = 0;
-
-			if (!(m_pub_blocked)) {
-				if (_report_gps_pos_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-				} else {
-					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-				}
-			}
-
-			// GPS is obviously detected successfully, reset statistics
-			//_Helper->reset_update_rates();
-
-			int recv_ret = 0;
-
-			while ((recv_ret = receive(TIMEOUT_10MS)) >= 0 && !_task_should_exit) {
-				/* opportunistic publishing - else invalid data would end up on the bus */
-
-				if (recv_ret && !(m_pub_blocked)) {
-					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-					if (_p_report_sat_info) {
-						if (_report_sat_info_pub != nullptr) {
-							orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
-
-						} else {
-							_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info);
-						}
-					}
-				}
-			}
-
-			// FIXME - if ioctl is called then it will deadlock
-			_sync.lock();
 		}
 	}
 
@@ -423,13 +371,7 @@ void
 GPSSIM::print_info()
 {
 	//GPS Mode
-	if (_fake_gps) {
-		PX4_INFO("protocol: faked");
-	}
-
-	else {
-		PX4_INFO("protocol: SIM");
-	}
+	PX4_INFO("protocol: SIM");
 
 	PX4_INFO("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
 	PX4_INFO("sat info: %s, noise: %d, jamming detected: %s",

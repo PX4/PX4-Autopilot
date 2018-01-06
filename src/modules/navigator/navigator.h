@@ -238,12 +238,18 @@ public:
 
 	void 		set_mission_failure(const char *reason);
 
-	bool		is_planned_mission() { return _navigation_mode == &_mission; }
+	// MISSION
+	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
+	bool		on_mission_landing() { return _mission.landing(); }
+	bool		start_mission_landing() { return _mission.land_start(); }
+
+	// RTL
+	bool		mission_landing_required() { return _rtl.mission_landing_required(); }
 
 	bool		abort_landing();
 
+	// Param access
 	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
-
 	bool		force_vtol() const { return _vstatus.is_vtol && !_vstatus.is_rotary_wing && _param_force_vtol.get(); }
 
 private:
@@ -261,9 +267,9 @@ private:
 	int		_onboard_mission_sub{-1};	/**< onboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
+	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
-	int		_vstatus_sub{-1};			/**< vehicle status subscription */
-	int		_traffic_sub{-1};			/**< traffic subscription */
+	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */

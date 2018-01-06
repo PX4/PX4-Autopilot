@@ -414,36 +414,6 @@ PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
 PARAM_DEFINE_FLOAT(FW_WR_FF, 0.2f);
 
 /**
- * Minimal speed for yaw coordination
- *
- * For airspeeds above this value, the yaw rate is calculated for a coordinated
- * turn. Set to a very high value to disable.
- *
- * @unit m/s
- * @min 0.0
- * @max 1000.0
- * @decimal 1
- * @increment 0.5
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
-
-/**
- * Method used for yaw coordination
- *
- * The param value sets the method used to calculate the yaw rate
- * 0: open-loop zero lateral acceleration based on kinematic constraints
- * 1: closed-loop: try to reduce lateral acceleration to 0 by measuring the acceleration
- *
- * @min 0
- * @max 1
- * @value 0 open-loop
- * @value 1 closed-loop
- * @group FW Attitude Control
- */
-PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
-
-/**
  * Roll setpoint offset
  *
  * An airframe specific offset of the roll setpoint in degrees, the value is
@@ -528,12 +498,13 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
 PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
 
 /**
- * Disable airspeed sensor
+ * Airspeed mode
  *
  * For small wings or VTOL without airspeed sensor this parameter can be used to
  * enable flying without an airspeed reading
  *
- * @boolean
+ * @value 0 Normal (use airspeed if available)
+ * @value 1 Airspeed disabled
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);

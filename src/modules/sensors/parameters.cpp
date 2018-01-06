@@ -439,7 +439,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	} else if (parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		parameters.battery_voltage_scaling = (3.3f / 4096);
-		param_set(parameter_handles.battery_voltage_scaling, &parameters.battery_voltage_scaling);
+		param_set_no_notification(parameter_handles.battery_voltage_scaling, &parameters.battery_voltage_scaling);
 	}
 
 	/* scaling of ADC ticks to battery current */
@@ -449,7 +449,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	} else if (parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		parameters.battery_current_scaling = (3.3f / 4096);
-		param_set(parameter_handles.battery_current_scaling, &parameters.battery_current_scaling);
+		param_set_no_notification(parameter_handles.battery_current_scaling, &parameters.battery_current_scaling);
 	}
 
 	if (param_get(parameter_handles.battery_current_offset, &(parameters.battery_current_offset)) != OK) {
@@ -465,7 +465,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 		/* apply scaling according to defaults if set to default */
 
 		parameters.battery_v_div = BOARD_BATTERY1_V_DIV;
-		param_set(parameter_handles.battery_v_div, &parameters.battery_v_div);
+		param_set_no_notification(parameter_handles.battery_v_div, &parameters.battery_v_div);
 	}
 
 	if (param_get(parameter_handles.battery_a_per_v, &(parameters.battery_a_per_v)) != OK) {
@@ -476,7 +476,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 		/* apply scaling according to defaults if set to default */
 
 		parameters.battery_a_per_v = BOARD_BATTERY1_A_PER_V;
-		param_set(parameter_handles.battery_a_per_v, &parameters.battery_a_per_v);
+		param_set_no_notification(parameter_handles.battery_a_per_v, &parameters.battery_a_per_v);
 	}
 
 	param_get(parameter_handles.battery_source, &(parameters.battery_source));

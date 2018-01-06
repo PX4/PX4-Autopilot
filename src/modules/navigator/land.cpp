@@ -56,8 +56,6 @@
 Land::Land(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name)
 {
-	/* load initial params */
-	updateParams();
 }
 
 Land::~Land()

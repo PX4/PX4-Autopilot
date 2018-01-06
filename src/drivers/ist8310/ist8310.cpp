@@ -703,9 +703,6 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
-
 	case SENSORIOCRESET:
 		return reset();
 
@@ -725,12 +722,6 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCEXSTRAP:
 		return set_selftest(arg);
-
-
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */

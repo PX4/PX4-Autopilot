@@ -1,4 +1,3 @@
-include(nuttx/px4_impl_nuttx)
 
 add_definitions(
 	-DFLASH_BASED_PARAMS
@@ -28,7 +27,7 @@ add_definitions(
 )
 
 px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
-	BIN ${CMAKE_CURRENT_BINARY_DIR}/src/firmware/nuttx/esc35-v1.bin
+	BIN ${PX4_BINARY_DIR}/platforms/nuttx/esc35-v1.bin
 	HWNAME ${uavcanblid_name}
 	HW_MAJOR ${uavcanblid_hw_version_major}
 	HW_MINOR ${uavcanblid_hw_version_minor}

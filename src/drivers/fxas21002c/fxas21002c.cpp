@@ -710,9 +710,6 @@ FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
@@ -722,17 +719,6 @@ FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCGSAMPLERATE:
 		return _current_rate;
-
-	case GYROIOCSLOWPASS: {
-			float cutoff_freq_hz = arg;
-			float sample_rate = 1.0e6f / _call_interval;
-			set_driver_lowpass_filter(sample_rate, cutoff_freq_hz);
-
-			return OK;
-		}
-
-	case GYROIOCGLOWPASS:
-		return static_cast<int>(_gyro_filter_x.get_cutoff_freq());
 
 	case GYROIOCSSCALE:
 		/* copy scale in */

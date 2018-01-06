@@ -45,8 +45,6 @@
 
 using namespace DriverFramework;
 
-#define DEVICE_DEBUG PX4_INFO
-
 /*
  * Ideally we'd be able to get these from up_internal.h,
  * but since we want to be able to disable the NuttX use
@@ -88,7 +86,6 @@ LED::~LED()
 int
 LED::init()
 {
-	DEVICE_DEBUG("LED::init");
 	int ret = VirtDevObj::init();
 
 	if (ret == 0) {
