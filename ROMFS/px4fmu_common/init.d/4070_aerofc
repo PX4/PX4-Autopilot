@@ -11,7 +11,7 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @maintainer Lucas de Marchi
+# @maintainer Beat Kueng <beat@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
