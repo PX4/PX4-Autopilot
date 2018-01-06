@@ -38,6 +38,10 @@ file(GLOB_RECURSE copy_apps_files
 	LIST_DIRECTORIES false
 	${CMAKE_CURRENT_SOURCE_DIR}/apps/*)
 
+set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
+set(NUTTX_CONFIG_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs)
+configure_file(${NUTTX_CONFIG_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
+
 # copy nuttx to build directory
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/nuttx)
 file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
@@ -48,9 +52,6 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 	COMMENT "Copying NuttX/nuttx to ${CMAKE_CURRENT_BINARY_DIR}"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	)
-
-set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
-set(NUTTX_CONFIG_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs)
 
 # copy apps to build directory
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/apps)
@@ -68,22 +69,14 @@ set(APPS_DIR ${CMAKE_CURRENT_BINARY_DIR}/apps)
 file(GLOB_RECURSE board_config_files ${NUTTX_CONFIG_DIR}/${BOARD})
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${NUTTX_CONFIG_DIR}/${BOARD})
 file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${NUTTX_DIR}/configs)
-add_custom_command(OUTPUT
-					${NUTTX_DIR}/PX4_Config.mk
-					${NUTTX_DIR}/PX4_Warnings.mk
-					${NUTTX_DIR}/.config
-					${NUTTX_DIR}/Make.defs
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/PX4_Config.mk ${NUTTX_DIR}/PX4_Config.mk
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/PX4_Warnings.mk ${NUTTX_DIR}/PX4_Warnings.mk
+add_custom_command(
+	OUTPUT ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig ${NUTTX_DIR}/.config
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/Make.defs ${NUTTX_DIR}/Make.defs
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${NUTTX_DIR}/configs/${BOARD}/src
 	COMMAND cd ${CMAKE_SOURCE_DIR} && ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST}
 	DEPENDS
-		${NUTTX_CONFIG_DIR}/PX4_Config.mk
-		${NUTTX_CONFIG_DIR}/PX4_Warnings.mk
 		${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
-		${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/Make.defs
 		${board_config_files}
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 		${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
