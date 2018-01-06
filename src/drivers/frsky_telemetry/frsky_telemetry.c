@@ -252,7 +252,6 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		set_uart_speed(uart, &uart_config, baudRate == SPORT ? B57600 : B9600);
 	}
 
-	warnx("Frsky: entering scanning loop");
 
 	while (!thread_should_exit && frsky_state == SCANNING) {
 		/* 2 byte polling frames indicate SmartPort telemetry
