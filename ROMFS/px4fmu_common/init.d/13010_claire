@@ -7,6 +7,8 @@
 #
 # @maintainer Samay Siga <samay_s@icloud.com>
 #
+# @board px4fmu-v2 exclude
+#
 
 sh /etc/init.d/rc.vtol_defaults
 
