@@ -1,7 +1,8 @@
 ############################################################################
+# nuttx-configs/Make.defs
 #
-#   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,56 +33,39 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
+include $(TOPDIR)/.config
+include $(TOPDIR)/tools/Config.mk
 
-CFLAGS		+= -I$(TOPDIR)/sched
+CC = ${C_COMPILER}
+CXX = ${CXX_COMPILER}
+CPP = ${C_COMPILER} -E
+LD = ${LD}
+AR = ${CMAKE_AR} rcs
+NM = ${CMAKE_NM}
+OBJCOPY = ${CMAKE_OBJCOPY}
+OBJDUMP = ${CMAKE_OBJDUMP}
 
-ASRCS		= 
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
+CFLAGS = -Os -g2 -I${PX4_SOURCE_DIR}/src/include ${CMAKE_C_FLAGS} -I. -isystem $(TOPDIR)/include \
+	-Wno-bad-function-cast \
+	-Wno-cpp \
+	-Wno-float-equal \
+	-Wno-implicit-fallthrough \
+	-Wno-implicit-function-declaration \
+	-Wno-maybe-uninitialized \
+	-Wno-missing-declarations \
+	-Wno-missing-field-initializers \
+	-Wno-missing-prototypes \
+	-Wno-nested-externs \
+	-Wno-nonnull-compare \
+	-Wno-old-style-declaration \
+	-Wno-sign-compare \
+	-Wno-type-limits
 
-CSRCS		= empty.c
+CXXFLAGS = -Os -g2 -I${PX4_SOURCE_DIR}/src/include ${CMAKE_CXX_FLAGS} -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx \
+	-fcheck-new \
+	-fno-builtin \
+	-Wno-double-promotion \
+	-Wno-maybe-uninitialized \
+	-Wno-missing-declarations
 
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
-
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
-ifeq ($(WINTOOL),y)
-  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
-else
-  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
-endif
-
-all: libboard$(LIBEXT)
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-libboard$(LIBEXT): $(OBJS)
-	$(call ARCHIVE, $@, $(OBJS))
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	$(call DELFILE, libboard$(LIBEXT))
-	$(call CLEAN)
-
-distclean: clean
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
-
-ifneq ($(BOARD_CONTEXT),y)
-context:
-endif
-
--include Make.dep
+AFLAGS = $(CFLAGS) -D__ASSEMBLY__
