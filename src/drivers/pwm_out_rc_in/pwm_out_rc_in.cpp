@@ -51,9 +51,9 @@
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_serial.h>
-#include <v1.0/checksum.h>
-#include <v1.0/mavlink_types.h>
-#include <v1.0/common/mavlink.h>
+#include <v2.0/checksum.h>
+#include <v2.0/mavlink_types.h>
+#include <v2.0/common/mavlink.h>
 
 /*
  * This driver is supposed to run on Snapdragon. It sends actuator_controls (PWM)

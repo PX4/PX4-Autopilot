@@ -53,8 +53,8 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/actuator_controls.h>
 
-#include <v1.0/mavlink_types.h>
-#include <v1.0/common/mavlink.h>
+#include <v2.0/mavlink_types.h>
+#include <v2.0/common/mavlink.h>
 
 #include "drivers/drv_pwm_output.h"
 #include <drivers/drv_hrt.h>
