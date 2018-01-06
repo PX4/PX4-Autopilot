@@ -70,7 +70,6 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
-	drivers/pwm_out_rc_in
 	drivers/spektrum_rc
 	drivers/qshell/qurt
 
