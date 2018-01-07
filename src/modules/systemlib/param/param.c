@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -490,6 +490,12 @@ param_name(param_t param)
 }
 
 bool
+param_is_volatile(param_t param)
+{
+	return handle_in_range(param) ? param_info_base[param].volatile_param : false;
+}
+
+bool
 param_value_is_default(param_t param)
 {
 	struct param_wbuf_s *s;
@@ -510,8 +516,9 @@ param_value_unsaved(param_t param)
 	return ret;
 }
 
-enum param_type_e
-param_type(param_t param) {
+param_type_t
+param_type(param_t param)
+{
 	return handle_in_range(param) ? param_info_base[param].type : PARAM_TYPE_UNKNOWN;
 }
 
@@ -679,7 +686,6 @@ param_control_autosave(bool enable)
 	param_unlock_writer();
 #endif /* PARAM_NO_AUTOSAVE */
 }
-
 
 static int
 param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
@@ -1357,7 +1363,7 @@ uint32_t param_hash_check(void)
 
 	/* compute the CRC32 over all string param names and 4 byte values */
 	for (param_t param = 0; handle_in_range(param); param++) {
-		if (!param_used(param)) {
+		if (!param_used(param) && param_is_volatile(param)) {
 			continue;
 		}
 
