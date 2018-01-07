@@ -41,7 +41,10 @@ class XMLOutput():
                     xml_param.attrib["name"] = param.GetName()
                     xml_param.attrib["default"] = param.GetDefault()
                     xml_param.attrib["type"] = param.GetType()
-                    xml_param.attrib["volatile"] = param.GetVolatile()
+                    if (param.GetVolatile() == "true"):
+                        xml_param.attrib["volatile"] = param.GetVolatile()
+                    if (param.GetCategory()):
+                        xml_param.attrib["category"] = param.GetCategory()
                     last_param_name = param.GetName()
                     for code in param.GetFieldCodes():
                         value = param.GetFieldValue(code)
