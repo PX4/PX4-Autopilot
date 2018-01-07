@@ -34,6 +34,7 @@
 /**
  * ID of the Accelerometer that the calibration is for.
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_ACC1_ID, 0);
@@ -42,6 +43,7 @@ PARAM_DEFINE_INT32(CAL_ACC1_ID, 0);
  * Accelerometer 1 enabled
  *
  * @boolean
+ * @category developer
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_ACC1_EN, 1);
@@ -49,6 +51,7 @@ PARAM_DEFINE_INT32(CAL_ACC1_EN, 1);
 /**
  * Accelerometer X-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC1_XOFF, 0.0f);
@@ -56,6 +59,7 @@ PARAM_DEFINE_FLOAT(CAL_ACC1_XOFF, 0.0f);
 /**
  * Accelerometer Y-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC1_YOFF, 0.0f);
@@ -63,6 +67,7 @@ PARAM_DEFINE_FLOAT(CAL_ACC1_YOFF, 0.0f);
 /**
  * Accelerometer Z-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC1_ZOFF, 0.0f);
@@ -70,6 +75,7 @@ PARAM_DEFINE_FLOAT(CAL_ACC1_ZOFF, 0.0f);
 /**
  * Accelerometer X-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC1_XSCALE, 1.0f);
@@ -77,6 +83,7 @@ PARAM_DEFINE_FLOAT(CAL_ACC1_XSCALE, 1.0f);
 /**
  * Accelerometer Y-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC1_YSCALE, 1.0f);
@@ -84,6 +91,7 @@ PARAM_DEFINE_FLOAT(CAL_ACC1_YSCALE, 1.0f);
 /**
  * Accelerometer Z-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC1_ZSCALE, 1.0f);
