@@ -150,16 +150,6 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					/* set and send parameter */
 					param_set(param, &(set.param_value));
 					send_param(param);
-
-					/* check for deprecated value, coming from an older GCS */
-					if (strcmp(name, "SYS_MC_EST_GROUP") == 0) {
-						uint32_t val = *(uint32_t *)&set.param_value;
-
-						if (val == 0) { //INAV
-							mavlink_log_critical(_mavlink->get_mavlink_log_pub(),
-									     "INAV is deprecated. Using LPE after reboot");
-						}
-					}
 				}
 			}
 
