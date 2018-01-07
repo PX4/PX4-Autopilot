@@ -979,7 +979,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  * @max 0.5
  * @reboot_required true
  * @volatile
- * @level system
+ * @category system
  * @unit mGauss
  * @decimal 3
  */
@@ -994,7 +994,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
  * @max 0.5
  * @reboot_required true
  * @volatile
- * @level system
+ * @category system
  * @unit mGauss
  * @decimal 3
  */
@@ -1009,7 +1009,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
  * @max 0.5
  * @reboot_required true
  * @volatile
- * @level system
+ * @category system
  * @unit mGauss
  * @decimal 3
  */
@@ -1020,7 +1020,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
  *
  * @group EKF2
  * @reboot_required true
- * @level system
+ * @category system
  */
 PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
 
