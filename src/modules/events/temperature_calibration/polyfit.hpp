@@ -62,7 +62,7 @@ We can accumulate VTV and VTY recursively as they are of fixed size, where:
 
 VTV = transpose(V)*V =
  __                                                                                                                        __
-|    m+1                      x0+x1+...+xm                   x0^2+x1^2+...+xm^3   ..........  x0^n+x1^n+...+xn^n             |
+|    m+1                      x0+x1+...+xm                   x0^2+x1^2+...+xm^3   ..........  x0^n+x1^n+...+xm^n             |
 |x0+x1+...+xm              x0^2+x1^2+...+xm^3                x0^3+x1^3+...+xm^3   ..........  x0^(n+1)+x1^(n+1)+...+xm^(n+1) |
 |      .                            .                                  .                             .                       |
 |      .                            .                                  .                             .                       |
