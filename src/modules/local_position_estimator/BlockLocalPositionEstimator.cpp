@@ -181,7 +181,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// print fusion settings to console
 	printf("[lpe] fuse gps: %d, flow: %d, vis_pos: %d, "
 	       "vis_yaw: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
-		   "baro: %d, landing_target: %d, mocap: %d, lidar: %d, sonar: %d\n",
+	       "baro: %d, landing_target: %d, mocap: %d, lidar: %d, sonar: %d\n",
 	       (_fusion.get() & FUSE_GPS) != 0,
 	       (_fusion.get() & FUSE_FLOW) != 0,
 	       (_fusion.get() & FUSE_VIS_POS) != 0,
@@ -189,11 +189,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	       (_fusion.get() & FUSE_LAND) != 0,
 	       (_fusion.get() & FUSE_PUB_AGL_Z) != 0,
 	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
-		   (_fusion.get() & FUSE_BARO) != 0,
-		   (_fusion.get() & FUSE_LAND_TARGET) != 0,
-		   (_fusion.get() & FUSE_MOCAP) != 0,
-		   (_fusion.get() & FUSE_LIDAR) != 0,
-		   (_fusion.get() & FUSE_SONAR) != 0);
+	       (_fusion.get() & FUSE_BARO) != 0,
+	       (_fusion.get() & FUSE_LAND_TARGET) != 0,
+	       (_fusion.get() & FUSE_MOCAP) != 0,
+	       (_fusion.get() & FUSE_LIDAR) != 0,
+	       (_fusion.get() & FUSE_SONAR) != 0);
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
