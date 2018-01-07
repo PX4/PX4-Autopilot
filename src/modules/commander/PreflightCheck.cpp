@@ -208,6 +208,29 @@ out:
 	return success;
 }
 
+static bool landConsistencyCheck(orb_advert_t *mavlink_log_pub, bool report_status)
+{
+	bool success = true; // start with a pass and change to a fail if any test fails
+
+	// Check the relationship between land detection threshold and land speed
+	float land_speed, land_detect_speed;
+	param_get(param_find("LNDMC_Z_VEL_MAX"), &land_detect_speed);
+	param_get(param_find("MPC_LAND_SPEED"), &land_speed);
+
+	if ((land_speed - 0.1f) < land_detect_speed) {
+		if (report_status) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: LNDMC_Z_VEL_MAX > MPC_LAND_SPEED");
+		}
+
+		success = false;
+		goto out;
+
+	}
+
+out:
+	return success;
+}
+
 // return false if the magnetomer measurements are inconsistent
 static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, bool report_status)
 {
@@ -785,6 +808,11 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		if (!gnssCheck(mavlink_log_pub, reportFailures, lock_detected)) {
 			failed = true;
 		}
+	}
+
+	/* ---- Check land detection configuration ---- */
+	if (!landConsistencyCheck(mavlink_log_pub, reportFailures)) {
+		failed = true;
 	}
 
 	/* ---- Navigation EKF ---- */
