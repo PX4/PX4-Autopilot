@@ -225,17 +225,3 @@ PARAM_DEFINE_FLOAT(MNT_OFF_ROLL, 0.0f);
 * @group Mount
 */
 PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);
-
-/**
-* Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
-*
-* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading mode as specified by MIS_YAWMODE.
-* If disabled, the vehicle will yaw towards the ROI.
-*
-* @value 0 Disable
-* @value 1 Enable
-* @min 0
-* @max 1
-* @group Mount
-*/
-PARAM_DEFINE_INT32(MNT_YAW_CTL, 0);
