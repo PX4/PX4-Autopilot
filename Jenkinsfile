@@ -366,6 +366,12 @@ pipeline {
             }
             failure {
               sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh'''#!/bin/bash -xe
+                    find . -type f -name "ros*.xml" | \
+                        while read f
+                            do mv "$f" "${f/.xml/-vtol_new_1.xml}"
+                        done
+                '''
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
@@ -393,6 +399,12 @@ pipeline {
             }
             failure {
               sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh'''#!/bin/bash -xe
+                    find . -type f -name "ros*.xml" | \
+                        while read f
+                            do mv "$f" "${f/.xml/-vtol_new_2.xml}"
+                        done
+                '''
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
@@ -420,6 +432,12 @@ pipeline {
             }
             failure {
               sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh'''#!/bin/bash -xe
+                    find . -type f -name "ros*.xml" | \
+                        while read f
+                            do mv "$f" "${f/.xml/-vtol_old_1.xml}"
+                        done
+                '''
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
@@ -447,6 +465,12 @@ pipeline {
             }
             failure {
               sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh'''#!/bin/bash -xe
+                    find . -type f -name "ros*.xml" | \
+                        while read f
+                            do mv "$f" "${f/.xml/-vtol_old_2.xml}"
+                        done
+                '''
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
@@ -474,6 +498,12 @@ pipeline {
             }
             failure {
               sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh'''#!/bin/bash -xe
+                    find . -type f -name "ros*.xml" | \
+                        while read f
+                            do mv "$f" "${f/.xml/-vtol_old_3.xml}"
+                        done
+                '''
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
@@ -501,6 +531,12 @@ pipeline {
             }
             failure {
               sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box.mission: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh'''#!/bin/bash -xe
+                    find . -type f -name "ros*.xml" | \
+                        while read f
+                            do mv "$f" "${f/.xml/-multirotor_box.xml}"
+                        done
+                '''
               archiveArtifacts '**/*.ulg'
               archiveArtifacts '.ros/*/px4/**.xml'
               archiveArtifacts '.ros/log/**.log'
