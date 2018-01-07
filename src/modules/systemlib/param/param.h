@@ -50,24 +50,20 @@
 #include <sys/types.h>
 
 /** Maximum size of the parameter backing file */
-#define PARAM_FILE_MAXSIZE	4096
+#define PARAM_FILE_MAXSIZE		4096
 
 __BEGIN_DECLS
 
 /**
  * Parameter types.
  */
-typedef enum param_type_e {
-	/* globally-known parameter types */
-	PARAM_TYPE_INT32 = 0,
-	PARAM_TYPE_FLOAT,
+#define PARAM_TYPE_INT32		0
+#define PARAM_TYPE_FLOAT		1
+#define PARAM_TYPE_STRUCT		100
+#define PARAM_TYPE_STRUCT_MAX	(16384 + PARAM_TYPE_STRUCT)
+#define PARAM_TYPE_UNKNOWN		(0xffff)
 
-	/* structure parameters; size is encoded in the type value */
-	PARAM_TYPE_STRUCT = 100,
-	PARAM_TYPE_STRUCT_MAX = 16384 + PARAM_TYPE_STRUCT,
-
-	PARAM_TYPE_UNKNOWN = 0xffff
-} param_type_t;
+typedef uint16_t param_type_t;
 
 
 #ifdef __PX4_NUTTX // on NuttX use 16 bits to save RAM
@@ -199,6 +195,14 @@ __EXPORT int		param_get_used_index(param_t param);
 __EXPORT const char	*param_name(param_t param);
 
 /**
+ * Obtain the volatile state of a parameter.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @return			true if the parameter is volatile
+ */
+__EXPORT bool		param_is_volatile(param_t param);
+
+/**
  * Test whether a parameter's value has changed from the default.
  *
  * @return		If true, the parameter's value has not been changed from the default.
@@ -262,7 +266,7 @@ __EXPORT int		param_set_no_notification(param_t param, const void *val);
  * Notify the system about parameter changes. Can be used for example after several calls to
  * param_set_no_notification() to avoid unnecessary system notifications.
  */
-__EXPORT void param_notify_changes(void);
+__EXPORT void		param_notify_changes(void);
 
 /**
  * Reset a parameter to its default value.
@@ -281,7 +285,6 @@ __EXPORT int		param_reset(param_t param);
  * This function also releases the storage used by struct parameters.
  */
 __EXPORT void		param_reset_all(void);
-
 
 /**
  * Reset all parameters to their default values except for excluded parameters.
@@ -446,6 +449,7 @@ struct param_info_s {
 	;
 #endif
 	param_type_t	type;
+	uint16_t		volatile_param: 1;
 	union param_value_u val;
 };
 

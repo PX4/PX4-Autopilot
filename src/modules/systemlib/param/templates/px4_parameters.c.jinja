@@ -16,6 +16,11 @@ struct px4_parameters_t px4_parameters = {
 	{
 		"{{ param.attrib["name"] }}",
 		PARAM_TYPE_{{ param.attrib["type"] }},
+	{%- if param.attrib["volatile"] == "true" %}
+		.volatile_param = 1,
+	{%- else %}
+		.volatile_param = 0,
+	{%- endif %}
 	{%- if param.attrib["type"] == "FLOAT" %}
 		.val.f = {{ param.attrib["default"] }}
 	{%- elif param.attrib["type"] == "INT32" %}
