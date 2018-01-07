@@ -122,7 +122,10 @@ public:
 		FUSE_PUB_AGL_Z = 1 << 5,
 		FUSE_FLOW_GYRO_COMP = 1 << 6,
 		FUSE_BARO = 1 << 7,
-		FUSE_LAND_TARGET = 1 << 8
+		FUSE_LAND_TARGET = 1 << 8,
+		FUSE_MOCAP = 1 << 9,
+		FUSE_LIDAR = 1 << 10,
+		FUSE_SONAR = 1 << 11,
 	};
 
 	enum sensor_t {
