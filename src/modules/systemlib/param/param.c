@@ -149,6 +149,7 @@ FLASH_PARAMS_EXPOSE const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NU
 #if !defined(PARAM_NO_ORB)
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
+static unsigned int param_instance = 0;
 #endif
 
 static void param_set_used_internal(param_t param);
@@ -302,7 +303,7 @@ _param_notify_changes(void)
 #if !defined(PARAM_NO_ORB)
 	struct parameter_update_s pup = {
 		.timestamp = hrt_absolute_time(),
-		.dummy = 0
+		.instance = param_instance++,
 	};
 
 	/*
