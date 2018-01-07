@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Lorenz Meier <lorenz@px4.io>
+ * @author Beat Kueng <beat@px4.io>
  */
 
 #include <stdio.h>
@@ -56,6 +57,9 @@ MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
 	_rc_param_map(),
 	_uavcan_parameter_request_pub(nullptr),
 	_uavcan_parameter_value_sub(-1),
+	_mavlink_parameter_sub(-1),
+	_param_update_time(0),
+	_param_update_index(0),
 	_mavlink(mavlink)
 {
 }
@@ -145,9 +149,15 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					_mavlink->send_statustext_info(buf);
 
 				} else {
-					/* set and send parameter */
+					// Load current value before setting it
+					float curr_val;
+					param_get(param, &curr_val);
 					param_set(param, &(set.param_value));
-					send_param(param);
+
+					// Check if the parameter changed. If it didn't change, send current value back
+					if ((curr_val - set.param_value) == 0.0f) {
+						send_param(param);
+					}
 				}
 			}
 
@@ -309,21 +319,96 @@ MavlinkParametersManager::send(const hrt_abstime t)
 		max_num_to_send = 3;
 
 	} else {
-		// speed up parameter loading via UDP, TCP or USB: try to send 15 at once
-		max_num_to_send = 5 * 3;
+		// speed up parameter loading via UDP, TCP or USB: try to send 20 at once
+		max_num_to_send = 20;
 	}
 
 	int i = 0;
 
-	while (i++ < max_num_to_send && send_one());
+	// Send while burst is not exceeded, we still have buffer space and still something to send
+	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && send_params());
 }
 
+bool
+MavlinkParametersManager::send_params()
+{
+	if (send_uavcan()) {
+		return true;
+
+	} else if (send_one()) {
+		return true;
+
+	} else if (send_untransmitted()) {
+		return true;
+
+	} else {
+		return false;
+	}
+}
 
 bool
-MavlinkParametersManager::send_one()
+MavlinkParametersManager::send_untransmitted()
 {
-	bool space_available = _mavlink->get_free_tx_buf() >= get_size();
+	bool sent_one = false;
 
+	// Check for untransmitted system parameters
+	if (_mavlink_parameter_sub < 0) {
+		_mavlink_parameter_sub = orb_subscribe(ORB_ID(parameter_update));
+	}
+
+	bool param_ready;
+	orb_check(_mavlink_parameter_sub, &param_ready);
+
+	if (param_ready) {
+		// Clear the ready flag
+		struct parameter_update_s value;
+		orb_copy(ORB_ID(parameter_update), _mavlink_parameter_sub, &value);
+
+		// Schedule an update if not already the case
+		if (_param_update_time == 0) {
+			_param_update_time = value.timestamp;
+			_param_update_index = 0;
+		}
+	}
+
+	if ((_param_update_time != 0) && ((_param_update_time + 5 * 1000) < hrt_absolute_time())) {
+
+		param_t param = 0;
+
+		// send out all changed values
+		do {
+			// skip over all parameters which are not invalid and not used
+			do {
+				param = param_for_index(_param_update_index);
+				++_param_update_index;
+			} while (param != PARAM_INVALID && !param_used(param));
+
+			// send parameters which are untransmitted while there is
+			// space in the TX buffer
+			if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
+				int ret = send_param(param);
+				char buf[100];
+				strncpy(&buf[0], param_name(param), MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+				sent_one = true;
+
+				if (ret != PX4_OK) {
+					break;
+				}
+			}
+		} while ((_mavlink->get_free_tx_buf() >= get_size()) && (_param_update_index < (int) param_count()));
+
+		// Flag work as done once all params have been sent
+		if (_param_update_index >= (int) param_count()) {
+			_param_update_time = 0;
+		}
+	}
+
+	return sent_one;
+}
+
+bool
+MavlinkParametersManager::send_uavcan()
+{
 	/* Send parameter values received from the UAVCAN topic */
 	if (_uavcan_parameter_value_sub < 0) {
 		_uavcan_parameter_value_sub = orb_subscribe(ORB_ID(uavcan_parameter_value));
@@ -332,7 +417,7 @@ MavlinkParametersManager::send_one()
 	bool param_value_ready;
 	orb_check(_uavcan_parameter_value_sub, &param_value_ready);
 
-	if (space_available && param_value_ready) {
+	if (param_value_ready) {
 		struct uavcan_parameter_value_s value;
 		orb_copy(ORB_ID(uavcan_parameter_value), _uavcan_parameter_value_sub, &value);
 
@@ -372,13 +457,17 @@ MavlinkParametersManager::send_one()
 						    &msg);
 		_mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
 
-	} else if (_send_all_index >= 0 && _mavlink->boot_complete()) {
-		/* send all parameters if requested, but only after the system has booted */
+		return true;
+	}
 
-		/* skip if no space is available */
-		if (!space_available) {
-			return false;
-		}
+	return false;
+}
+
+bool
+MavlinkParametersManager::send_one()
+{
+	if (_send_all_index >= 0 && _mavlink->boot_complete()) {
+		/* send all parameters if requested, but only after the system has booted */
 
 		/* The first thing we send is a hash of all values for the ground
 		 * station to try and quickly load a cached copy of our params
@@ -440,6 +529,11 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		return 1;
 	}
 
+	/* no free TX buf to send this param */
+	if (_mavlink->get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
+		return 1;
+	}
+
 	mavlink_param_value_t msg;
 
 	/*
@@ -484,7 +578,6 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
 
 	} else {
-
 		// Re-pack the message with a different component ID
 		mavlink_message_t mavlink_packet;
 		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, component_id, _mavlink->get_channel(), &mavlink_packet, &msg);
