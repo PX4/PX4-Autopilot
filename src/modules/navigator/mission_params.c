@@ -135,6 +135,20 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
 
 /**
+* Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+*
+* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading mode as specified by MIS_YAWMODE.
+* If disabled, the vehicle will yaw towards the ROI.
+*
+* @value 0 Disable
+* @value 1 Enable
+* @min 0
+* @max 1
+* @group Mission
+*/
+PARAM_DEFINE_INT32(MIS_MNT_YAW_CTL, 0);
+
+/**
  * Time in seconds we wait on reaching target heading at a waypoint if it is forced.
  *
  * If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
