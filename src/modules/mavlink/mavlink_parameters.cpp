@@ -155,7 +155,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					param_set(param, &(set.param_value));
 
 					// Check if the parameter changed. If it didn't change, send current value back
-					if ((curr_val - set.param_value) == 0.0f) {
+					if (!(fabsf(curr_val - set.param_value) > 0.0f)) {
 						send_param(param);
 					}
 				}
