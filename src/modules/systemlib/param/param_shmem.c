@@ -128,6 +128,7 @@ extern void copy_params_to_shmem(struct param_info_s *param_info_base);
 
 extern struct shmem_info *shmem_info_p;
 uint64_t sync_other_prev_time = 0, sync_other_current_time = 0;
+int param_instance = 0;
 
 extern void update_to_shmem(param_t param, union param_value_u value);
 extern int update_from_shmem(param_t param, union param_value_u *value);
@@ -269,7 +270,7 @@ param_find_changed(param_t param)
 static void
 _param_notify_changes(void)
 {
-	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .dummy = 0 };
+	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .instance = param_instance++ };
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
@@ -469,8 +470,9 @@ param_value_unsaved(param_t param)
 	return ret;
 }
 
-enum param_type_e
-param_type(param_t param) {
+param_type_t
+param_type(param_t param)
+{
 	return handle_in_range(param) ? param_info_base[param].type : PARAM_TYPE_UNKNOWN;
 }
 
