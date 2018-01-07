@@ -52,6 +52,7 @@
  * @reboot_required true
  * @min 0
  * @max 894281
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
@@ -66,6 +67,7 @@ PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
  * @reboot_required true
  * @min 0
  * @max 140253
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
@@ -79,6 +81,7 @@ PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
  * @reboot_required true
  * @min 0
  * @max 22027
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
@@ -92,6 +95,7 @@ PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
  * @reboot_required true
  * @min 0
  * @max 162128
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
@@ -106,6 +110,7 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
  * @reboot_required true
  * @min 0
  * @max 121212
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
@@ -121,6 +126,7 @@ PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
  * @reboot_required true
  * @min 0
  * @max 284953
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
@@ -138,6 +144,7 @@ PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
  * @reboot_required true
  * @min 0
  * @max 240024
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_GPSFAIL, 0);
@@ -152,6 +159,7 @@ PARAM_DEFINE_INT32(CBRK_GPSFAIL, 0);
  * @reboot_required true
  * @min 0
  * @max 782097
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_BUZZER, 0);
@@ -166,6 +174,7 @@ PARAM_DEFINE_INT32(CBRK_BUZZER, 0);
  * @reboot_required true
  * @min 0
  * @max 197848
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_USB_CHK, 0);
@@ -180,6 +189,7 @@ PARAM_DEFINE_INT32(CBRK_USB_CHK, 0);
  * @reboot_required true
  * @min 0
  * @max 201607
+ * @category Developer
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_VELPOSERR, 0);
