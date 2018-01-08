@@ -70,7 +70,7 @@ set(fw_io_bin ${fw_io_bin} PARENT_SCOPE)
 
 add_custom_command(OUTPUT ${fw_io_bin}
 	COMMAND mkdir -p ${PX4_BINARY_DIR}/genromfs/${config_romfs_root}/extras/
-	COMMAND ${OBJCOPY} -O binary ${fw_io_exe_relative} ${fw_io_bin_relative}
+	COMMAND ${CMAKE_OBJCOPY} -O binary ${fw_io_exe_relative} ${fw_io_bin_relative}
 	DEPENDS ${fw_io_exe}
 	COMMENT "Copying ${config_io_board} to ROMFS extras"
 	)

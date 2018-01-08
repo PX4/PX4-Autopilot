@@ -38,8 +38,11 @@ if (NOT ${BOARD} MATCHES "px4io")
 		px4_nuttx_tasks.c
 		px4_nuttx_impl.cpp
 	)
-	target_link_libraries(px4_layer PRIVATE nuttx_sched drivers_boards_common_arch)
+	target_link_libraries(px4_layer
+		PRIVATE
+			drivers_boards_common_arch # stm32_pwr_enablebkp
+			prebuild_targets
+	)
 else()
 	add_library(px4_layer ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 endif()
-add_dependencies(px4_layer prebuild_targets)

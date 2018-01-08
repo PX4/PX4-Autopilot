@@ -219,24 +219,19 @@ endfunction()
 #	Usage:
 #		px4_os_prebuild_targets(
 #			OUT <out-list_of_targets>
-#			BOARD <in-string>
 #			)
-#
-#	Input:
-#		BOARD 		: board
-#		THREADS 	: number of threads for building
 #
 #	Output:
 #		OUT	: the target list
 #
 #	Example:
-#		px4_os_prebuild_targets(OUT target_list BOARD px4fmu-v2)
+#		px4_os_prebuild_targets(OUT target_list)
 #
 function(px4_os_prebuild_targets)
 	px4_parse_function_args(
 			NAME px4_os_prebuild_targets
-			ONE_VALUE OUT BOARD THREADS
-			REQUIRED OUT BOARD
+			ONE_VALUE OUT
+			REQUIRED OUT
 			ARGN ${ARGN})
 
 	add_library(${OUT} INTERFACE)

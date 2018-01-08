@@ -1,6 +1,8 @@
 # This file is shared between posix_rpi_native.cmake
 # and posix_rpi_cross.cmake.
 
+set(CMAKE_SYSTEM_PROCESSOR "cortex-a53")
+set(CMAKE_SYSTEM_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR} CACHE INTERNAL "system processor" FORCE)
 
 # This definition allows to differentiate if this just the usual POSIX build
 # or if it is for the RPi.
@@ -9,7 +11,6 @@ add_definitions(
 	-D__DF_LINUX # For DriverFramework
 	-D__DF_RPI # For DriverFramework
 )
-
 
 set(config_module_list
 	#

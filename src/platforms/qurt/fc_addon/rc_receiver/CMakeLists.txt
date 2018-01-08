@@ -50,10 +50,8 @@ px4_add_module(
 	STACK_MAIN 1200
 	INCLUDES
 		${FC_ADDON}/flight_controller/hexagon/inc
-        SRCS
-                rc_receiver_main.cpp
+	SRCS
+		rc_receiver_main.cpp
 		rc_receiver_params.c
-        DEPENDS
-                platforms__common
-        )
+	)
 target_link_libraries(platforms__qurt__fc_addon__rc_receiver PRIVATE rc_receiver)

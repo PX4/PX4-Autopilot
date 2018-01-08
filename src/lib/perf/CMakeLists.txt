@@ -32,4 +32,4 @@
 ############################################################################
 
 add_library(perf perf_counter.c)
-add_dependencies(perf prebuild_targets)
+target_link_libraries(perf PRIVATE prebuild_targets)

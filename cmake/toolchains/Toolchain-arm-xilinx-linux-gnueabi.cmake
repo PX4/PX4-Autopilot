@@ -1,88 +1,46 @@
-# defines:
-#
-# NM
-# OBJCOPY
-# LD
-# CXX_COMPILER
-# C_COMPILER
-# CMAKE_SYSTEM_NAME
-# CMAKE_SYSTEM_VERSION
-# LINKER_FLAGS
-# CMAKE_EXE_LINKER_FLAGS
-# CMAKE_FIND_ROOT_PATH
-# CMAKE_FIND_ROOT_PATH_MODE_PROGRAM
-# CMAKE_FIND_ROOT_PATH_MODE_LIBRARY
-# CMAKE_FIND_ROOT_PATH_MODE_INCLUDE
+# arm-xilinx-linux-gnueabi-gcc toolchain
 
-include(CMakeForceCompiler)
-
-if ("$ENV{OCPOC_TOOLCHAIN_DIR}" STREQUAL "")
-        message(FATAL_ERROR "OCPOC_TOOLCHAIN_DIR not set")
-else()
-        set(OCPOC_TOOLCHAIN_DIR $ENV{OCPOC_TOOLCHAIN_DIR})
-endif()
-
-# this one is important
-set(CMAKE_SYSTEM_NAME Generic)
-
-#this one not so much
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
 set(CMAKE_SYSTEM_VERSION 1)
 
-# specify the cross compiler
-find_program(C_COMPILER arm-xilinx-linux-gnueabi-gcc
-	PATHS ${OCPOC_TOOLCHAIN_DIR}
-	NO_DEFAULT_PATH
-	)
+set(triple arm-xilinx-linux-gnueabi-gcc)
+set(CMAKE_LIBRARY_ARCHITECTURE ${triple})
+set(TOOLCHAIN_PREFIX ${triple})
 
-if(NOT C_COMPILER)
-	message(FATAL_ERROR "could not find arm-xilinx-linux-gnueabi-gcc compiler")
-endif()
-cmake_force_c_compiler(${C_COMPILER} GNU)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}-gcc)
+set(CMAKE_C_COMPILER_TARGET ${triple})
 
-find_program(CXX_COMPILER arm-xilinx-linux-gnueabi-g++
-	PATHS ${OCPOC_TOOLCHAIN_DIR}
-	NO_DEFAULT_PATH
-	)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++)
+set(CMAKE_CXX_COMPILER_TARGET ${triple})
 
-if(NOT CXX_COMPILER)
-	message(FATAL_ERROR "could not find arm-xilinx-linux-gnueabi-g++ compiler")
-endif()
-cmake_force_cxx_compiler(${CXX_COMPILER} GNU)
+set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
 
 # compiler tools
-foreach(tool objcopy nm ld)
+foreach(tool nm ld objcopy ranlib strip)
 	string(TOUPPER ${tool} TOOL)
-	find_program(${TOOL} arm-xilinx-linux-gnueabi-${tool}
-		PATHS ${OCPOC_TOOLCHAIN_DIR}
-		NO_DEFAULT_PATH
-		)
-	if(NOT ${TOOL})
-		message(FATAL_ERROR "could not find arm-xilinx-linux-gnueabi-${tool}")
+	find_program(CMAKE_${TOOL} ${TOOLCHAIN_PREFIX}-${tool})
+	if(CMAKE-${TOOL} MATCHES "NOTFOUND")
+		message(FATAL_ERROR "could not find ${TOOLCHAIN_PREFIX}-${tool}")
 	endif()
 endforeach()
 
-# os tools
-foreach(tool echo grep rm mkdir nm cp touch make unzip)
-	string(TOUPPER ${tool} TOOL)
-	find_program(${TOOL} ${tool})
-	if(NOT ${TOOL})
-		message(FATAL_ERROR "could not find ${TOOL}")
-	endif()
-endforeach()
-
-set(LINKER_FLAGS "-Wl,-gc-sections")
-set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})
-set(CMAKE_C_FLAGS ${C_FLAGS})
-set(CMAKE_CXX_LINKER_FLAGS ${C_FLAGS})
-
-# where is the target environment
-set(CMAKE_FIND_ROOT_PATH  get_file_component(${C_COMPILER} PATH))
-
-# search for programs in the build host directories
+set(CMAKE_FIND_ROOT_PATH get_file_component(${CMAKE_C_COMPILER} PATH))
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-# for libraries and headers in the target directories
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
-# enable static linking
-#set(LDFLAGS "--disable-shared")
+# os tools
+foreach(tool grep make)
+	string(TOUPPER ${tool} TOOL)
+	find_program(${TOOL} ${tool})
+	if(NOT ${TOOL})
+		message(FATAL_ERROR "could not find ${tool}")
+	endif()
+endforeach()
+
+# optional compiler tools
+foreach(tool gdb gdbtui)
+	string(TOUPPER ${tool} TOOL)
+	find_program(${TOOL} arm-none-eabi-${tool})
+endforeach()

@@ -124,13 +124,9 @@ if (NOT "${CONFIG}" MATCHES "px4io")
 		)
 	add_dependencies(parameters prebuild_targets)
 
-	if ("${CONFIG_SHMEM}" STREQUAL "1")
-		target_link_libraries(parameters PRIVATE px4_layer)
-	endif()
-
-	target_link_libraries(parameters PRIVATE perf tinybson)
+	target_link_libraries(parameters PRIVATE perf tinybson prebuild_targets uorb_interface)
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
-	target_compile_options(parameters PRIVATE -Wno-sign-compare) # TODO: fix this
+	target_compile_options(parameters PRIVATE -Wno-sign-compare -Wno-double-promotion) # TODO: fix this
 else()
 	add_library(parameters ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 endif()

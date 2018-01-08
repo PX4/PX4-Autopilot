@@ -39,11 +39,11 @@ if (NOT "${OS}" MATCHES "qurt")
 		)
 endif()
 
-px4_add_library(platforms__common
+px4_add_library(platforms_common
 	module.cpp
 	px4_getopt.c
 	shutdown.cpp
 	${SRCS}
 	)
-	
+target_link_libraries(platforms_common PRIVATE prebuild_targets)
 add_subdirectory(work_queue)

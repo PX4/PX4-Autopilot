@@ -104,7 +104,7 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
 
 #=============================================================================
 # git
@@ -146,6 +146,9 @@ set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location"
 if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
+
+string(TOUPPER "${OS}" OS_UPPER)
+add_definitions(-D__PX4_${OS_UPPER})
 
 include(platforms/${OS}/cmake/px4_impl_os.cmake)
 include(configs/${CONFIG})
@@ -264,55 +267,11 @@ find_package(PythonInterp REQUIRED)
 px4_find_python_module(jinja2 REQUIRED)
 
 #=============================================================================
-# check required toolchain variables
-#
-
-set(required_variables CMAKE_C_COMPILER_ID CMAKE_CXX_COMPILER_ID)
-foreach(var ${required_variables})
-	if (NOT ${var})
-		message(FATAL_ERROR "Toolchain/config must define ${var}")
-	endif()
-endforeach()
-
-# print full c compiler version
-execute_process(COMMAND ${CMAKE_C_COMPILER} --version
-		OUTPUT_VARIABLE c_compiler_version
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		)
-STRING(REGEX MATCH "[^\n]*" c_compiler_version_short ${c_compiler_version})
-message(STATUS "C compiler: ${c_compiler_version_short}")
-
-# print full c++ compiler version
-execute_process(COMMAND ${CMAKE_CXX_COMPILER} --version
-		OUTPUT_VARIABLE cxx_compiler_version
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		)
-STRING(REGEX MATCH "[^\n]*" cxx_compiler_version_short ${cxx_compiler_version})
-message(STATUS "C++ compiler: ${cxx_compiler_version_short}")
-
-#=============================================================================
-# external libraries
-#
-px4_os_prebuild_targets(OUT prebuild_targets
-	BOARD ${BOARD}
-	THREADS ${THREADS})
-
-#=============================================================================
 # build flags
 #
-px4_os_add_flags(
-	BOARD ${BOARD}
-	C_FLAGS c_flags
-	CXX_FLAGS cxx_flags
-	OPTIMIZATION_FLAGS optimization_flags
-	EXE_LINKER_FLAGS exe_linker_flags
-	INCLUDE_DIRS include_dirs
-	LINK_DIRS link_dirs
-	DEFINITIONS definitions)
-
-px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${CMAKE_EXE_LINKER_FLAGS};${exe_linker_flags}" GLUE " ")
-px4_join(OUT CMAKE_C_FLAGS LIST "${CMAKE_C_FLAGS};${c_flags};${optimization_flags}" GLUE " ")
-px4_join(OUT CMAKE_CXX_FLAGS LIST "${CMAKE_CXX_FLAGS};${cxx_flags};${optimization_flags}" GLUE " ")
+px4_add_common_flags()
+px4_os_prebuild_targets(OUT prebuild_targets)
+px4_os_add_flags()
 
 #=============================================================================
 # message, and airframe generation
@@ -372,6 +331,8 @@ endif()
 # subdirectories
 #
 add_library(parameters_interface INTERFACE)
+add_library(uorb_interface INTERFACE)
+
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
 add_subdirectory(src/platforms/common EXCLUDE_FROM_ALL)
 add_subdirectory(src/modules/systemlib EXCLUDE_FROM_ALL) # TODO: split into libraries in platform layer
@@ -385,6 +346,7 @@ endforeach()
 # must be the last module before firmware
 add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)
 target_link_libraries(parameters_interface INTERFACE parameters)
+target_link_libraries(uorb_interface INTERFACE modules__uORB)
 
 # firmware added last to generate the builtin for included modules
 add_subdirectory(platforms/${OS})

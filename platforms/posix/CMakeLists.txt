@@ -41,7 +41,7 @@ if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 		)
 
 else()
-	px4_add_executable(px4
+	add_executable(px4
 		src/main.cpp
 		apps.cpp
 		)

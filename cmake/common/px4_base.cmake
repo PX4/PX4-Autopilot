@@ -41,8 +41,6 @@
 #		* px4_join
 #		* px4_add_module
 #		* px4_add_common_flags
-#		* px4_add_optimization_flags_for_target
-#		* px4_add_executable
 #		* px4_add_library
 #
 
@@ -170,7 +168,6 @@ endfunction()
 #		STACK_MAIN		: size of stack for main function
 #		STACK_MAX		: maximum stack size of any frame
 #		COMPILE_FLAGS		: compile flags
-#		LINK_FLAGS		: link flags
 #		SRCS			: source files
 #		INCLUDES		: include directories
 #		DEPENDS			: targets which this module depends on
@@ -193,7 +190,7 @@ function(px4_add_module)
 	px4_parse_function_args(
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
-		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
+		MULTI_VALUE COMPILE_FLAGS SRCS INCLUDES DEPENDS
 		OPTIONS EXTERNAL
 		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
@@ -202,46 +199,17 @@ function(px4_add_module)
 
 	# all modules can potentially use parameters and uORB
 	add_dependencies(${MODULE} uorb_headers)
-	target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface platforms__common px4_layer systemlib)
+	target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface platforms_common px4_layer systemlib)
 
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 
-	px4_add_optimization_flags_for_target(${MODULE})
-
-	# Pass variable to the parent px4_add_module.
-	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
-
-	# set defaults if not set
-	set(MAIN_DEFAULT MAIN-NOTFOUND)
-	set(STACK_MAIN_DEFAULT 1024)
-	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
-
-	foreach(property MAIN STACK_MAIN PRIORITY)
-		if(NOT ${property})
-			set(${property} ${${property}_DEFAULT})
-		endif()
-		set_target_properties(${MODULE} PROPERTIES ${property} ${${property}})
-	endforeach()
-
-	# default stack max to stack main
-	if(NOT STACK_MAX)
-		set(STACK_MAX ${STACK_MAIN})
-	endif()
-	set_target_properties(${MODULE} PROPERTIES STACK_MAX ${STACK_MAX})
-
-	if(${OS} STREQUAL "qurt" )
-		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-	elseif(${OS} STREQUAL "nuttx" )
+	if(STACK_MAX AND (${OS} MATCHES "nuttx"))
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 
-	if(MAIN)
-		target_compile_definitions(${MODULE} PRIVATE PX4_MAIN=${MAIN}_app_main)
-		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MAIN}")
-	else()
-		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MODULE}")
-	endif()
+	target_compile_definitions(${MODULE} PRIVATE PX4_MAIN=${MAIN}_app_main)
+	target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MAIN}")
 
 	if(COMPILE_FLAGS)
 		target_compile_options(${MODULE} PRIVATE ${COMPILE_FLAGS})
@@ -264,24 +232,17 @@ function(px4_add_module)
 		endforeach()
 	endif()
 
-	# join list variables to get ready to send to compiler
-	foreach(prop LINK_FLAGS)
-		if(${prop})
-			px4_join(OUT ${prop} LIST ${${prop}} GLUE " ")
+	# set defaults if not set
+	set(STACK_MAIN_DEFAULT 1024)
+	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
+
+	foreach(property MAIN STACK_MAIN PRIORITY)
+		if(NOT ${property})
+			set(${property} ${${property}_DEFAULT})
 		endif()
+		set_target_properties(${MODULE} PROPERTIES ${property} ${${property}})
 	endforeach()
 
-	# store module properties in target
-	# COMPILE_FLAGS and LINK_FLAGS are passed to compiler/linker by cmake
-	# STACK_MAIN, MAIN, PRIORITY are PX4 specific
-	if(COMPILE_FLAGS AND ${_no_optimization_for_target})
-		px4_strip_optimization(COMPILE_FLAGS ${COMPILE_FLAGS})
-	endif()
-	foreach (prop LINK_FLAGS STACK_MAIN MAIN PRIORITY)
-		if (${prop})
-			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
-		endif()
-	endforeach()
 endfunction()
 
 #=============================================================================
@@ -291,53 +252,19 @@ endfunction()
 #	Set the default build flags.
 #
 #	Usage:
-#		px4_add_common_flags(
-#			BOARD <in-string>
-#			C_FLAGS <inout-variable>
-#			CXX_FLAGS <inout-variable>
-#			OPTIMIZATION_FLAGS <inout-variable>
-#			EXE_LINKER_FLAGS <inout-variable>
-#			INCLUDE_DIRS <inout-variable>
-#			LINK_DIRS <inout-variable>
-#			DEFINITIONS <inout-variable>)
-#
-#	Input:
-#		BOARD					: board
-#
-#	Input/Output: (appends to existing variable)
-#		C_FLAGS					: c compile flags variable
-#		CXX_FLAGS				: c++ compile flags variable
-#		OPTIMIZATION_FLAGS			: optimization compile flags variable
-#		EXE_LINKER_FLAGS			: executable linker flags variable
-#		INCLUDE_DIRS				: include directories
-#		LINK_DIRS				: link directories
-#		DEFINITIONS				: definitions
+#		px4_add_common_flags()
 #
 #	Example:
-#		px4_add_common_flags(
-#			BOARD px4fmu-v2
-#			C_FLAGS CMAKE_C_FLAGS
-#			CXX_FLAGS CMAKE_CXX_FLAGS
-#			OPTIMIZATION_FLAGS optimization_flags
-#			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
-#			INCLUDES <list>)
+#		px4_add_common_flags()
 #
 function(px4_add_common_flags)
 
-	set(inout_vars
-		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
-
-	px4_parse_function_args(
-		NAME px4_add_common_flags
-		ONE_VALUE ${inout_vars} BOARD
-		REQUIRED ${inout_vars} BOARD
-		ARGN ${ARGN})
-
-	set(warnings
+	add_compile_options(
 		-Wall
 		-Wextra
 		-Werror
 
+		# C/C++ additional warnings
 		-Warray-bounds
 		-Wdisabled-optimization
 		-Wdouble-promotion
@@ -347,148 +274,92 @@ function(px4_add_common_flags)
 		-Winit-self
 		-Wlogical-op
 		-Wmissing-declarations
-		-Wmissing-field-initializers
-
 		-Wpointer-arith
 		-Wshadow
 		-Wuninitialized
 		-Wunknown-pragmas
+		-Wunused-but-set-variable
 		-Wunused-variable
+		-Wunused-but-set-variable
+		-Wformat=1
 
-		-Wno-implicit-fallthrough # set appropriate level and update
+		# C/C++ disabled warnings
+		-Wno-missing-field-initializers  # TODO: fix
 		-Wno-missing-include-dirs # TODO: fix and enable
+		-Wno-implicit-fallthrough # set appropriate level and update
 		-Wno-unused-parameter
+
+		# C/C++ optimizatoin options
+		-fno-common
+		-fno-math-errno
+		-fno-strict-aliasing
+		-fomit-frame-pointer
+		-funsafe-math-optimizations
+
+		-fvisibility=hidden
+		-include visibility.h
 		)
 
 	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT ${OS} STREQUAL "qurt")
-			list(APPEND warnings
-				-Qunused-arguments
+			add_compile_options(
+				#-Qunused-arguments
+
 				-Wno-unused-const-variable
 				-Wno-varargs
 				-Wno-address-of-packed-member
 				-Wno-unknown-warning-option
+
 				-Wunused-but-set-variable
 			)
 		endif()
-	else()
-		list(APPEND warnings
-			-Wunused-but-set-variable
-			-Wformat=1
-		)
 	endif()
 
-	set(_optimization_flags
-		-fno-strict-aliasing
-		-fomit-frame-pointer
-
-		-fno-math-errno
-		-funsafe-math-optimizations
-
-		-ffunction-sections
-		-fdata-sections
-		)
-
-	set(c_warnings
-		-Wbad-function-cast
-		-Wstrict-prototypes
-		-Wmissing-prototypes
-		-Wnested-externs
-		)
-
-	set(c_compile_flags
-		-g
-		-std=gnu99
-		-fno-common
-		)
-
-	set(cxx_warnings
-		-Wno-missing-field-initializers
-		-Wno-overloaded-virtual # TODO: fix and remove
-		-Wreorder
-		)
-
 	set(cxx_compile_flags
-		-g
+		-fcheck-new
+
+		-fno-builtin-printf
 		-fno-exceptions
 		-fno-rtti
-		-std=gnu++11
 		-fno-threadsafe-statics
-		-DCONFIG_WCHAR_BUILTIN
-		-D__CUSTOM_FILE_IO__
+
+		#-Wno-missing-field-initializers
+		-Wno-overloaded-virtual # TODO: fix and remove
+		-Wno-format-truncation # TODO: fix
+
+		-Wreorder
 		)
+	foreach(CXX_FLAG ${cxx_compile_flags})
+		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${CXX_FLAG}>)
+	endforeach()
 
 	# regular Clang or AppleClang
 	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		# force color for clang (needed for clang + ccache)
-		list(APPEND _optimization_flags
-			-fcolor-diagnostics
-		)
-	else()
-		list(APPEND _optimization_flags
-			-fno-strength-reduce
-			-fno-builtin-printf
-		)
-
-		# -fcheck-new is a no-op for Clang in general
-		# and has no effect, but can generate a compile
-		# error for some OS
-		list(APPEND cxx_compile_flags
-			-fcheck-new
-		)
+		add_compile_options(-fcolor-diagnostics)
 	endif()
 
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
 			# force color for gcc > 4.9
-			list(APPEND _optimization_flags
-				-fdiagnostics-color=always
-			)
+			add_compile_options(-fdiagnostics-color=always)
 		endif()
-
-		list(APPEND cxx_warnings
-			-Wno-format-truncation # TODO: fix
-		)
 	endif()
-
-	set(visibility_flags
-		-fvisibility=hidden
-		-include visibility.h
-		)
-
-	set(added_c_flags
-		${c_compile_flags}
-		${warnings}
-		${c_warnings}
-		${visibility_flags}
-		)
-
-	set(added_cxx_flags
-		${cxx_compile_flags}
-		${warnings}
-		${cxx_warnings}
-		${visibility_flags}
-		)
-
-	set(added_optimization_flags
-		${_optimization_flags}
-		)
 
 	include_directories(
 		${PX4_BINARY_DIR}
-		${PX4_BINARY_DIR}/src
-		${PX4_BINARY_DIR}/src/lib
-		${PX4_BINARY_DIR}/src/modules
-
+		${PX4_BINARY_DIR}/src # TODO: limit access
+		${PX4_BINARY_DIR}/src/lib # TODO: limit access
+		${PX4_BINARY_DIR}/src/modules # TODO: limit access
 
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
 		${PX4_SOURCE_DIR}/src/include
-		${PX4_SOURCE_DIR}/src/lib
+		${PX4_SOURCE_DIR}/src/lib # TODO: limit access
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
-		${PX4_SOURCE_DIR}/src/lib/matrix
-		${PX4_SOURCE_DIR}/src/modules
+		${PX4_SOURCE_DIR}/src/lib/matrix # TODO: limit access
+		${PX4_SOURCE_DIR}/src/modules # TODO: limit access
 		${PX4_SOURCE_DIR}/src/platforms
 		)
 
@@ -497,72 +368,9 @@ function(px4_add_common_flags)
 
 	add_definitions(
 		-DCONFIG_ARCH_BOARD_${board_config}
-		-D__STDC_FORMAT_MACROS
+		-D__STDC_FORMAT_MACROS # inttypes.h PRIu64
 		)
 
-	# output
-	foreach(var ${inout_vars})
-		string(TOLOWER ${var} lower_var)
-		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-		#message(STATUS "set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
-	endforeach()
-
-endfunction()
-
-#=============================================================================
-#
-#	px4_strip_optimization
-#
-function(px4_strip_optimization name)
-	set(_compile_flags)
-	separate_arguments(_args UNIX_COMMAND ${ARGN})
-	foreach(_flag ${_args})
-		if(NOT "${_flag}" MATCHES "^-O")
-			set(_compile_flags "${_compile_flags} ${_flag}")
-		endif()
-	endforeach()
-	string(STRIP "${_compile_flags}" _compile_flags)
-	set(${name} "${_compile_flags}" PARENT_SCOPE)
-endfunction()
-
-#=============================================================================
-#
-#	px4_add_optimization_flags_for_target
-#
-set(all_posix_cmake_targets "" CACHE INTERNAL "All cmake targets for which optimization can be suppressed")
-function(px4_add_optimization_flags_for_target target)
-	set(_no_optimization_for_target FALSE)
-	# If the current CONFIG is posix_sitl_* then suppress optimization for certain targets.
-	if(CONFIG MATCHES "^posix_sitl_")
-		foreach(_regexp $ENV{PX4_NO_OPTIMIZATION})
-			if("${target}" MATCHES "${_regexp}")
-				set(_no_optimization_for_target TRUE)
-				set(_matched_regexp "${_regexp}")
-			endif()
-		endforeach()
-		# Create a full list of targets that optimization can be suppressed for.
-		list(APPEND all_posix_cmake_targets ${target})
-		set(all_posix_cmake_targets ${all_posix_cmake_targets} CACHE INTERNAL "All cmake targets for which optimization can be suppressed")
-	endif()
-	if(NOT ${_no_optimization_for_target})
-		target_compile_options(${target} PRIVATE ${optimization_flags})
-	else()
-		message(STATUS "Disabling optimization for target '${target}' because it matches the regexp '${_matched_regexp}' in env var PX4_NO_OPTIMIZATION")
-		target_compile_options(${target} PRIVATE -O0)
-	endif()
-	# Pass variable to the parent px4_add_library.
-	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
-endfunction()
-
-#=============================================================================
-#
-#	px4_add_executable
-#
-#	Like add_executable but with optimization flag fixup.
-#
-function(px4_add_executable target)
-	add_executable(${target} ${ARGN})
-	px4_add_optimization_flags_for_target(${target})
 endfunction()
 
 #=============================================================================
@@ -578,17 +386,7 @@ function(px4_add_library target)
 
 	# all PX4 libraries have access to parameters and uORB
 	add_dependencies(${target} uorb_headers)
-	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface uorb_msgs)
-
-	# TODO: move to platform layer
-	if ("${OS}" MATCHES "nuttx")
-		target_link_libraries(${target} PRIVATE m nuttx_c)
-	endif()
-
-	px4_add_optimization_flags_for_target(${target})
-
-	# Pass variable to the parent px4_add_module.
-	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
+	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface uorb_interface)
 
 	set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES ${target})
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})

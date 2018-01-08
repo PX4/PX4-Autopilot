@@ -53,7 +53,7 @@ add_library(px4_layer
 	drv_hrt.c
 	${SHMEM_SRCS}
 )
-target_link_libraries(px4_layer PRIVATE work_queue)
+target_link_libraries(px4_layer PRIVATE parameters_interface work_queue)
 
 if (EXTRA_DEPENDS)
 	add_dependencies(px4_layer ${EXTRA_DEPENDS})
