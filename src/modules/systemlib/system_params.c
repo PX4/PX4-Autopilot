@@ -87,6 +87,8 @@ PARAM_DEFINE_INT32(SYS_HITL, 0);
  * @value 0 Data survives resets
  * @value 1 Data survives in-flight resets only
  * @value 2 Data does not survive reset
+ * @category system
+ * @volatile
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
