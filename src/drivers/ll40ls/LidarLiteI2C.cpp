@@ -74,7 +74,7 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, uint8_t rotation, int addr
 	_retries = 3;
 
 	// enable debug() calls
-	_debug_enabled = false;
+	_debug_enabled = true;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -200,7 +200,7 @@ ok:
 	return reset_sensor();
 }
 
-int LidarLiteI2C::ioctl(file_t *filp, int cmd, unsigned long arg)
+int LidarLiteI2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case SENSORIOCSQUEUEDEPTH: {
@@ -236,7 +236,7 @@ int LidarLiteI2C::ioctl(file_t *filp, int cmd, unsigned long arg)
 	}
 }
 
-ssize_t LidarLiteI2C::read(file_t *filp, char *buffer, size_t buflen)
+ssize_t LidarLiteI2C::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
