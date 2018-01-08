@@ -46,7 +46,6 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 	drivers/tfmini
 
