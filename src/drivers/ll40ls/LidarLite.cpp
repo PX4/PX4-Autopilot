@@ -78,7 +78,7 @@ uint32_t LidarLite::getMeasureTicks() const
 	return _measure_ticks;
 }
 
-int LidarLite::ioctl(file_t *filp, int cmd, unsigned long arg)
+int LidarLite::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -152,17 +152,17 @@ int LidarLite::ioctl(file_t *filp, int cmd, unsigned long arg)
 		reset_sensor();
 		return OK;
 
-	case RANGEFINDERIOCSETMINIUMDISTANCE: {
+	/*case RANGEFINDERIOCSETMINIUMDISTANCE: {
 			set_minimum_distance(*(float *)arg);
 			return OK;
 		}
-		break;
+		break;*/
 
-	case RANGEFINDERIOCSETMAXIUMDISTANCE: {
+	/*case RANGEFINDERIOCSETMAXIUMDISTANCE: {
 			set_maximum_distance(*(float *)arg);
 			return OK;
 		}
-		break;
+	break;*/	
 
 	default:
 		return -EINVAL;
