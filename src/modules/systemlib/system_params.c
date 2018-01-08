@@ -131,7 +131,7 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
+PARAM_DEFINE_INT32(SYS_COMPANION, 0);
 
 /**
  * Parameter version
