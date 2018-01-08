@@ -1089,7 +1089,7 @@ param_export(int fd, bool only_unsaved)
 			break;
 
 		case PARAM_TYPE_FLOAT: {
-				const float f = s->val.f;
+				const double f = (double)s->val.f;
 
 				debug("exporting: %s (%d) size: %d val: %.3f", name, s->param, size, (double)f);
 

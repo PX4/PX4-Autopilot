@@ -461,8 +461,8 @@ GroundRoverPositionControl::task_main()
 					_gnd_pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
 
 					matrix::Vector2f curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
-					_gnd_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
-								       curr_wp(1));
+					_gnd_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint((double)current_position(0), (double)current_position(1),
+								       (double)curr_wp(0), (double)curr_wp(1));
 
 					gnd_pos_ctrl_status_publish();
 				}

@@ -95,9 +95,9 @@ int BlockLocalPositionEstimator::gpsMeasure(Vector<double, n_y_gps> &y)
 	y(0) = _sub_gps.get().lat * 1e-7;
 	y(1) = _sub_gps.get().lon * 1e-7;
 	y(2) = _sub_gps.get().alt * 1e-3;
-	y(3) = _sub_gps.get().vel_n_m_s;
-	y(4) = _sub_gps.get().vel_e_m_s;
-	y(5) = _sub_gps.get().vel_d_m_s;
+	y(3) = (double)_sub_gps.get().vel_n_m_s;
+	y(4) = (double)_sub_gps.get().vel_e_m_s;
+	y(5) = (double)_sub_gps.get().vel_d_m_s;
 
 	// increament sums for mean
 	_gpsStats.update(y);

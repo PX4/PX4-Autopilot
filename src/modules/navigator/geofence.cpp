@@ -229,7 +229,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 		const double home_lat = _navigator->get_home_position()->lat;
 		const double home_lon = _navigator->get_home_position()->lon;
-		const double home_alt = _navigator->get_home_position()->alt;
+		const float home_alt = _navigator->get_home_position()->alt;
 
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
