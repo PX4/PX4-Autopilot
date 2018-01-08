@@ -54,24 +54,12 @@
 #include <stdio.h>
 
 #include <arch/board/board.h>
-
-/* XXX might be able to prune these */
-#include <nuttx/arch.h>
-#include <chip.h>
-#include <up_internal.h>
-#include <up_arch.h>
-
-#include <debug.h>
+#include <systemlib/perf_counter.h>
 
 #include <board_config.h>
-
-#include <modules/px4iofirmware/protocol.h>
 
 #include <drivers/device/device.h>
-#include <drivers/drv_hrt.h>
-#include <board_config.h>
-
-#include <systemlib/perf_counter.h>
+#include <modules/px4iofirmware/protocol.h>
 
 class PX4IO_serial : public device::Device
 {
@@ -190,7 +178,65 @@ private:
 #define PX4IO_INTERFACE_CLASS PX4IO_serial_f7
 #define PX4IO_INTERFACE_F7
 
+#include <stm32_dma.h>
 
+
+class PX4IO_serial_f7 : public PX4IO_serial
+{
+public:
+	PX4IO_serial_f7();
+	~PX4IO_serial_f7();
+
+	virtual int	init();
+	virtual int	ioctl(unsigned operation, unsigned &arg);
+
+protected:
+	/**
+	 * Start the transaction with IO and wait for it to complete.
+	 */
+	int		_bus_exchange(IOPacket *_packet);
+
+private:
+	DMA_HANDLE		_tx_dma;
+	DMA_HANDLE		_rx_dma;
+
+	IOPacket *_current_packet;
+
+	/** saved DMA status */
+	static const unsigned	_dma_status_inactive = 0x80000000;	// low bits overlap DMA_STATUS_* values
+	static const unsigned	_dma_status_waiting  = 0x00000000;
+	volatile unsigned	_rx_dma_status;
+
+	/** client-waiting lock/signal */
+	px4_sem_t			_completion_semaphore;
+
+	/**
+	 * DMA completion handler.
+	 */
+	static void		_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
+	void			_do_rx_dma_callback(unsigned status);
+
+	/**
+	 * Serial interrupt handler.
+	 */
+	static int		_interrupt(int vector, void *context, void *arg);
+	void			_do_interrupt();
+
+	/**
+	 * Cancel any DMA in progress with an error.
+	 */
+	void			_abort_dma();
+
+	/**
+	 * Performance counters.
+	 */
+	perf_counter_t		_pc_dmasetup;
+	perf_counter_t		_pc_dmaerrs;
+
+	/* do not allow top copying this class */
+	PX4IO_serial_f7(PX4IO_serial_f7 &);
+	PX4IO_serial_f7 &operator = (const PX4IO_serial_f7 &);
+};
 
 #else
 #error "Interface not implemented for this chip"
