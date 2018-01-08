@@ -42,6 +42,7 @@
 
 #include "pwm_limit.h"
 
+#include <px4_defines.h>
 #include <math.h>
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>
@@ -148,7 +149,7 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 				float control_value = output[i];
 
 				/* check for invalid / disabled channels */
-				if (!isfinite(control_value)) {
+				if (!PX4_ISFINITE(control_value)) {
 					effective_pwm[i] = disarmed_pwm[i];
 					continue;
 				}
@@ -198,7 +199,7 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 			float control_value = output[i];
 
 			/* check for invalid / disabled channels */
-			if (!isfinite(control_value)) {
+			if (!PX4_ISFINITE(control_value)) {
 				effective_pwm[i] = disarmed_pwm[i];
 				continue;
 			}

@@ -487,8 +487,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	struct vehicle_command_s vcmd = {
 		.timestamp = hrt_absolute_time(),
-		.param5 = cmd_mavlink.param5,
-		.param6 = cmd_mavlink.param6,
+		.param5 = (double)cmd_mavlink.param5,
+		.param6 = (double)cmd_mavlink.param6,
 		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 		.param1 = cmd_mavlink.param1,
 		.param2 = cmd_mavlink.param2,

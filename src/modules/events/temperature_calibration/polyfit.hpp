@@ -172,7 +172,7 @@ private:
 
 	void update_VTV(double x)
 	{
-		double temp = 1.0f;
+		double temp = 1.0;
 		int8_t z;
 
 		for (unsigned i = 0; i < _forder; i++) {

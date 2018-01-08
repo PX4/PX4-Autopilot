@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__barosim
 	MAIN barosim
 	COMPILE_FLAGS
+		-Wno-double-promotion
 	SRCS
 		baro.cpp
 	DEPENDS
