@@ -1363,7 +1363,7 @@ uint32_t param_hash_check(void)
 
 	/* compute the CRC32 over all string param names and 4 byte values */
 	for (param_t param = 0; handle_in_range(param); param++) {
-		if (!param_used(param) && param_is_volatile(param)) {
+		if (!param_used(param) || param_is_volatile(param)) {
 			continue;
 		}
 
