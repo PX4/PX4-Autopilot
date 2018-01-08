@@ -50,6 +50,7 @@
 
 #include "pid.h"
 #include <math.h>
+#include <px4_defines.h>
 
 #define SIGMA 0.000001f
 
@@ -71,35 +72,35 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 {
 	int ret = 0;
 
-	if (isfinite(kp)) {
+	if (PX4_ISFINITE(kp)) {
 		pid->kp = kp;
 
 	} else {
 		ret = 1;
 	}
 
-	if (isfinite(ki)) {
+	if (PX4_ISFINITE(ki)) {
 		pid->ki = ki;
 
 	} else {
 		ret = 1;
 	}
 
-	if (isfinite(kd)) {
+	if (PX4_ISFINITE(kd)) {
 		pid->kd = kd;
 
 	} else {
 		ret = 1;
 	}
 
-	if (isfinite(integral_limit)) {
+	if (PX4_ISFINITE(integral_limit)) {
 		pid->integral_limit = integral_limit;
 
 	}  else {
 		ret = 1;
 	}
 
-	if (isfinite(output_limit)) {
+	if (PX4_ISFINITE(output_limit)) {
 		pid->output_limit = output_limit;
 
 	}  else {
@@ -111,7 +112,7 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 
 __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt)
 {
-	if (!isfinite(sp) || !isfinite(val) || !isfinite(val_dot) || !isfinite(dt)) {
+	if (!PX4_ISFINITE(sp) || !PX4_ISFINITE(val) || !PX4_ISFINITE(val_dot) || !PX4_ISFINITE(dt)) {
 		return pid->last_output;
 	}
 
@@ -136,7 +137,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		d = 0.0f;
 	}
 
-	if (!isfinite(d)) {
+	if (!PX4_ISFINITE(d)) {
 		d = 0.0f;
 	}
 
@@ -148,7 +149,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		i = pid->integral + (error * dt);
 
 		/* check for saturation */
-		if (isfinite(i)) {
+		if (PX4_ISFINITE(i)) {
 			if ((pid->output_limit < SIGMA || (fabsf(output + (i * pid->ki)) <= pid->output_limit)) &&
 			    fabsf(i) <= pid->integral_limit) {
 				/* not saturated, use new integral value */
@@ -161,7 +162,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	}
 
 	/* limit output */
-	if (isfinite(output)) {
+	if (PX4_ISFINITE(output)) {
 		if (pid->output_limit > SIGMA) {
 			if (output > pid->output_limit) {
 				output = pid->output_limit;

@@ -1561,8 +1561,8 @@ protected:
 
 				struct vehicle_command_s cmd = {
 					.timestamp = 0,
-					.param5 = NAN,
-					.param6 = NAN,
+					.param5 = (double)NAN,
+					.param6 = (double)NAN,
 					.param1 = 0.0f, // all cameras
 					.param2 = 0.0f, // duration 0 because only taking one picture
 					.param3 = 1.0f, // only take one

@@ -63,8 +63,8 @@ int OutputMavlink::update(const ControlData *control_data)
 {
 	vehicle_command_s vehicle_command = {
 		.timestamp = 0,
-		.param5 = 0.0f,
-		.param6 = 0.0f,
+		.param5 = 0.0,
+		.param6 = 0.0,
 		.param1 = 0.0f,
 		.param2 = 0.0f,
 		.param3 = 0.0f,

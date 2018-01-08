@@ -145,7 +145,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 	}
 
 	//update linear fit matrices
-	double relative_temperature = data.sensor_sample_filt[1] - data.ref_temp;
+	double relative_temperature = (double)data.sensor_sample_filt[1] - (double)data.ref_temp;
 	data.P[0].update(relative_temperature, (double)data.sensor_sample_filt[0]);
 
 	return 1;

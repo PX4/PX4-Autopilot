@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-px4_add_library(pwm_limit pwm_limit.c)
+px4_add_library(pwm_limit pwm_limit.cpp)

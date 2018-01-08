@@ -138,7 +138,7 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		clear_line,
 		th_cnt);
 
-	for (int j = 0; j < th_cnt; j++) {
+	for (unsigned j = 0; j < th_cnt; j++) {
 		thread_info_count = THREAD_INFO_MAX;
 		kr = thread_info(thread_list[j], THREAD_BASIC_INFO,
 				 (thread_info_t)th_info_data, &thread_info_count);

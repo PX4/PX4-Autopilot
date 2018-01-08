@@ -75,7 +75,7 @@ protected:
 
 	work_s			_work;
 	bool			_sensor_ok;
-	uint32_t		_measure_ticks;
+	int				_measure_ticks;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 

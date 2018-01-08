@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__airspeedsim
 	MAIN measairspeedsim
 	COMPILE_FLAGS
+		-Wno-double-promotion
 	SRCS
 		airspeedsim.cpp
 		meas_airspeed_sim.cpp

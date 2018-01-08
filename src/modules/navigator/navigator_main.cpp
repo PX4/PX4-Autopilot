@@ -407,8 +407,8 @@ Navigator::run()
 
 				} else {
 					// If one of them is non-finite, reset both
-					rep->current.lat = NAN;
-					rep->current.lon = NAN;
+					rep->current.lat = (double)NAN;
+					rep->current.lon = (double)NAN;
 				}
 
 				rep->current.alt = cmd.param7;

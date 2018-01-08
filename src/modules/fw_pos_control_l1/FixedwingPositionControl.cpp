@@ -510,7 +510,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const Vector2f &curr_pos
 			delta_altitude = pos_sp_curr.alt - pos_sp_prev.alt;
 
 		} else {
-			distance = get_distance_to_next_waypoint(curr_pos(0), curr_pos(1), pos_sp_curr.lat, pos_sp_curr.lon);
+			distance = get_distance_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1), pos_sp_curr.lat, pos_sp_curr.lon);
 			delta_altitude = pos_sp_curr.alt - _global_pos.alt;
 		}
 
@@ -1314,17 +1314,20 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		_fw_pos_ctrl_status.abort_landing = false;
 	}
 
-	const float bearing_airplane_currwp = get_bearing_to_next_waypoint(curr_pos(0), curr_pos(1), curr_wp(0), curr_wp(1));
+	const float bearing_airplane_currwp = get_bearing_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1),
+					      (double)curr_wp(0), (double)curr_wp(1));
 
 	float bearing_lastwp_currwp = bearing_airplane_currwp;
 
 	if (pos_sp_prev.valid) {
-		bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
+		bearing_lastwp_currwp = get_bearing_to_next_waypoint((double)prev_wp(0), (double)prev_wp(1), (double)curr_wp(0),
+					(double)curr_wp(1));
 	}
 
 	/* Horizontal landing control */
 	/* switch to heading hold for the last meters, continue heading hold after */
-	float wp_distance = get_distance_to_next_waypoint(curr_pos(0), curr_pos(1), curr_wp(0), curr_wp(1));
+	float wp_distance = get_distance_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1), (double)curr_wp(0),
+			    (double)curr_wp(1));
 
 	/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
 	float wp_distance_save = wp_distance;
@@ -1755,7 +1758,8 @@ FixedwingPositionControl::run()
 
 					Vector2f curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
 
-					_fw_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(curr_pos(0), curr_pos(1), curr_wp(0), curr_wp(1));
+					_fw_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1),
+								      (double)curr_wp(0), (double)curr_wp(1));
 
 					fw_pos_ctrl_status_publish();
 				}
