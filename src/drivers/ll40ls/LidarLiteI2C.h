@@ -78,8 +78,8 @@ public:
 
 	int         init() override;
 
-	ssize_t     read(file_t *filp, char *buffer, size_t buflen);
-	int         ioctl(file_t *filp, int cmd, unsigned long arg) override;
+	ssize_t     read(device::file_t *filp, char *buffer, size_t buflen);
+	int         ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	* Diagnostics - print some basic information about the driver.
