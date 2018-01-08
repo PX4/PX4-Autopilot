@@ -187,7 +187,8 @@ void OutputBase::_handle_position_update(bool force_update)
 	}
 
 	float roll = _cur_control_data->type_data.lonlat.roll_angle;
-	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon);
+	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
+		    - vehicle_global_position.yaw;
 
 	_angle_setpoints[0] = roll;
 	_angle_setpoints[1] = pitch;
