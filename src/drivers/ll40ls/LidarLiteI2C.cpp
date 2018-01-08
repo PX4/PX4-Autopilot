@@ -200,7 +200,7 @@ ok:
 	return reset_sensor();
 }
 
-int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
+int LidarLiteI2C::ioctl(file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case SENSORIOCSQUEUEDEPTH: {
@@ -209,23 +209,23 @@ int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
 
 	default: {
-			int result = LidarLite::ioctl(filp, cmd, arg);
+			int result = LidarLiteI2C::ioctl(filp, cmd, arg);
 
 			if (result == -EINVAL) {
-				result = I2C::ioctl(filp, cmd, arg);
+				result = LidarLiteI2C::ioctl(filp, cmd, arg);
 			}
 
 			return result;
@@ -233,7 +233,7 @@ int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-ssize_t LidarLiteI2C::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t LidarLiteI2C::read(file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);

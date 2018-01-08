@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 
-/**
+/*
  * @file LidarLitePWM.h
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Ban Siesta <bansiesta@gmail.com>
@@ -45,8 +45,8 @@
 
 #include "LidarLite.h"
 
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
+#include <px4_workqueue.h>
+
 
 #include <drivers/device/ringbuffer.h>
 #include <systemlib/perf_counter.h>
@@ -65,8 +65,8 @@ public:
 
 	int init() override;
 
-	ssize_t read(struct file *filp, char *buffer, size_t buflen) override;
-	int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	ssize_t read(file_t *filp, char *buffer, size_t buflen) override;
+	int	ioctl(file_t *filp, int cmd, unsigned long arg);
 
 	void start() override;
 

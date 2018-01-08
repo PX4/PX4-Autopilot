@@ -21,7 +21,8 @@ set(config_module_list
 	drivers/ms4525_airspeed
 	drivers/ms5525_airspeed
 	drivers/sdp3x_airspeed
-
+	drivers/ll40ls
+	
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_lsm9ds1_wrapper
