@@ -264,7 +264,7 @@ void LoadMon::_stack_usage()
 	for (int i = _stack_task_index; i < _stack_task_index + num_tasks_per_cycle; i++) {
 		task_index = i % CONFIG_MAX_TASKS;
 		unsigned stack_free = 0;
-		unsigned fds_free = 0;
+		unsigned fds_free = FDS_LOW_WARNING_THRESHOLD + 1;
 		bool checked_task = false;
 
 		perf_begin(_stack_perf);
@@ -278,7 +278,7 @@ void LoadMon::_stack_usage()
 				task_stack_info_s::MAX_REPORT_TASK_NAME_LEN);
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-			FAR struct task_group_s *group = system_load.tasks[i].tcb->group;
+			FAR struct task_group_s *group = system_load.tasks[task_index].tcb->group;
 
 			unsigned tcb_num_used_fds = 0;
 
