@@ -1,20 +1,20 @@
-include(posix/px4_impl_posix)
 
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
+	drivers/airspeed
 	drivers/boards
 	drivers/camera_trigger
 	drivers/device
-	drivers/gps
-	drivers/pwm_out_sim
-	drivers/vmount
-	drivers/linux_gpio
-	drivers/airspeed
 	drivers/ets_airspeed
+	drivers/gps
+	drivers/linux_gpio
+	drivers/ll40ls
 	drivers/ms4525_airspeed
 	drivers/ms5525_airspeed
+	drivers/pwm_out_sim
 	drivers/sdp3x_airspeed
+	drivers/vmount
 
 	modules/sensors
 	platforms/posix/drivers/accelsim
