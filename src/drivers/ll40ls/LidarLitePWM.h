@@ -65,8 +65,8 @@ public:
 
 	int init() override;
 
-	ssize_t read(device::file_t *filp , char *buffer, size_t buflen) override;
-	int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	ssize_t read(device::file_t *filp, char *buffer, size_t buflen) override;
+	int	ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	void start() override;
 
