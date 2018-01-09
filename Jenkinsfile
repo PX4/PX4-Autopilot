@@ -18,7 +18,7 @@ pipeline {
                   docker.image('px4io/px4-dev-nuttx:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean"
+                      sh "make distclean"
                       sh "ccache -z"
                       sh "git fetch --tags"
                       sh "make nuttx_${node_name}_default"
@@ -41,7 +41,7 @@ pipeline {
                 docker.image('px4io/px4-dev-nuttx:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                   stage("${node_name}") {
                     checkout scm
-                    sh "make clean"
+                    sh "make distclean"
                     sh "ccache -z"
                     sh "git fetch --tags"
                     sh "make px4io-v2_default"
@@ -69,7 +69,7 @@ pipeline {
                   docker.image('px4io/px4-dev-nuttx:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean"
+                      sh "make distclean"
                       sh "ccache -z"
                       sh "git fetch --tags"
                       sh "make nuttx_${node_name}_default"
@@ -94,7 +94,7 @@ pipeline {
                   docker.image('px4io/px4-dev-nuttx:2017-10-23').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean"
+                      sh "make distclean"
                       sh "ccache -z"
                       sh "make nuttx_${node_name}_default"
                       sh "make sizes"
@@ -117,7 +117,7 @@ pipeline {
                   docker.image('px4io/px4-dev-base:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean"
+                      sh "make distclean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
                       sh "ccache -s"
@@ -139,7 +139,7 @@ pipeline {
                   docker.image('px4io/px4-dev-raspi:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean"
+                      sh "make distclean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
                       sh "ccache -s"
@@ -161,7 +161,7 @@ pipeline {
                   docker.image('px4io/px4-dev-armhf:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean"
+                      sh "make distclean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
                       sh "ccache -s"
@@ -184,7 +184,7 @@ pipeline {
                     docker.image("lorenzmeier/px4-dev-snapdragon:2017-12-29").inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                       stage("${node_name}") {
                         checkout scm
-                        sh "make clean"
+                        sh "make distclean"
                         sh "ccache -z"
                         sh "make ${node_name}"
                         sh "ccache -s"
@@ -207,7 +207,7 @@ pipeline {
                   docker.image('px4io/px4-dev-base-archlinux:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean"
+                      sh "make distclean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
                       sh "ccache -s"
@@ -228,7 +228,7 @@ pipeline {
                   docker.image('px4io/px4-dev-base-archlinux:2017-12-08').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
                     stage("${node_name}") {
                       checkout scm
-                      sh "make clean"
+                      sh "make distclean"
                       sh "ccache -z"
                       sh "make nuttx_${node_name}"
                       sh "ccache -s"
@@ -267,7 +267,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean'
+            sh 'make distclean'
             sh 'make scan-build'
             // publish html
             publishHTML target: [
@@ -297,7 +297,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean'
+            sh 'make distclean'
             sh 'make clang-tidy-quiet'
           }
         }
@@ -310,7 +310,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean'
+            sh 'make distclean'
             sh 'make cppcheck'
             // publish html
             publishHTML target: [
@@ -340,7 +340,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean'
+            sh 'make distclean'
             sh 'make posix_sitl_default test_results_junit'
             junit 'build/posix_sitl_default/JUnitTestResults.xml'
           }
@@ -354,7 +354,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; rm -rf .ros; rm -rf .gazebo'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
@@ -387,7 +387,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; rm -rf .ros; rm -rf .gazebo'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
@@ -420,7 +420,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; rm -rf .ros; rm -rf .gazebo'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
@@ -453,7 +453,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; rm -rf .ros; rm -rf .gazebo'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
@@ -486,7 +486,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; rm -rf .ros; rm -rf .gazebo'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
@@ -519,7 +519,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; rm -rf .ros; rm -rf .gazebo'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
@@ -552,7 +552,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; rm -rf .ros; rm -rf .gazebo'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
@@ -579,7 +579,7 @@ pipeline {
             }
           }
           steps {
-            sh 'make clean; rm -rf .ros; rm -rf .gazebo'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
@@ -607,7 +607,7 @@ pipeline {
         //    }
         //  }
         //  steps {
-        //    sh 'make clean'
+        //    sh 'make distclean'
         //    sh 'make tests_coverage'
         //    // publish html
         //    publishHTML target: [
