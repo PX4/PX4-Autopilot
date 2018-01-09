@@ -42,13 +42,13 @@ fi
 
 if ver hwcmp NXPHLITE_V3
 then
-	# Internal I2C
+	# Internal I2C (baro)
 	mpl3115a2 -I start
 
-	# Internal SPI
+	# Internal SPI (accel + mag)
 	fxos8700cq start -a 8 -R 0
 
-	# Internal SPI
+	# Internal SPI (gyro)
 	fxas21002c start -R 0
 fi
 
