@@ -56,7 +56,7 @@ bool FlightTaskManualAltitudeSmooth::activate()
 void FlightTaskManualAltitudeSmooth::_updateSetpoints()
 {
 	/* Get yaw, thrust */
-	FlightTaskManualStabilized::_updateSetpoints();
+	FlightTaskManualAltitude::_updateSetpoints();
 
 	/* Smooth velocity setpoint */
 	float vel_sp[2] = {_vel_sp_z, _vel_sp_prev_z};
