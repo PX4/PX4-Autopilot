@@ -626,6 +626,7 @@ void Logger::add_high_rate_topics()
 	add_topic("actuator_controls_0");
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
+	add_topic("sensor_combined");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
