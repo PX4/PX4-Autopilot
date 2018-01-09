@@ -1135,6 +1135,25 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
 	vision_position.epv = sqrtf(pos.covariance[17]);
 
+	// set position/velocity invalid if standard deviation is bigger than ev_max_std_dev
+	const float ev_max_std_dev = 100.0f;
+
+	if (vision_position.eph > ev_max_std_dev) {
+		vision_position.xy_valid = false;
+	}
+
+	if (sqrtf(fmaxf(pos.covariance[24], pos.covariance[30])) > ev_max_std_dev) {
+		vision_position.v_xy_valid = false;
+	}
+
+	if (vision_position.epv > ev_max_std_dev) {
+		vision_position.z_valid = false;
+	}
+
+	if (sqrtf(pos.covariance[35]) > ev_max_std_dev) {
+		vision_position.v_z_valid = false;
+	}
+
 	vision_position.xy_global = globallocalconverter_initialized();
 	vision_position.z_global = globallocalconverter_initialized();
 	vision_position.ref_timestamp = _global_ref_timestamp;
