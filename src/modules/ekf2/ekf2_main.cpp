@@ -50,6 +50,7 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
+#include <conversion/rotation.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_innovations.h>
@@ -829,6 +830,14 @@ void Ekf2::run()
 
 		if (optical_flow_updated) {
 			flow_message flow;
+
+			// rotate measurements according to parameter
+			const enum Rotation flow_rot = (Rotation)optical_flow.rotation;
+			float zeroval = 0.0f;
+			rotate_3f(flow_rot, optical_flow.pixel_flow_x_integral, optical_flow.pixel_flow_y_integral, zeroval);
+			rotate_3f(flow_rot, optical_flow.gyro_x_rate_integral, optical_flow.gyro_y_rate_integral,
+				  optical_flow.gyro_z_rate_integral);
+
 			flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
 			flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
 			flow.quality = optical_flow.quality;

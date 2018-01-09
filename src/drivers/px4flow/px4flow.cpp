@@ -66,8 +66,6 @@
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 
-#include <conversion/rotation.h>
-
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_px4flow.h>
 #include <drivers/drv_range_finder.h>
@@ -97,6 +95,8 @@
 #define PX4FLOW_MAX_DISTANCE 5.0f
 #define PX4FLOW_MIN_DISTANCE 0.3f
 
+#define FLOW_ROTATION_DEFAULT 6
+
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -109,7 +109,7 @@ struct i2c_integral_frame f_integral;
 class PX4FLOW: public device::I2C
 {
 public:
-	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS_DEFAULT, enum Rotation rotation = (enum Rotation)0,
+	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS_DEFAULT, int rotation = FLOW_ROTATION_DEFAULT,
 		int conversion_interval = PX4FLOW_CONVERSION_INTERVAL_DEFAULT,
 		uint8_t sonar_rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~PX4FLOW();
@@ -129,22 +129,22 @@ protected:
 
 private:
 
+	work_s _work;
+	ringbuffer::RingBuffer *_reports;
 	uint8_t _sonar_rotation;
-	work_s				_work;
-	ringbuffer::RingBuffer		*_reports;
-	bool				_sensor_ok;
-	int				_measure_ticks;
-	bool				_collect_phase;
-	int			_class_instance;
-	int			_orb_class_instance;
-	orb_advert_t		_px4flow_topic;
-	orb_advert_t		_distance_sensor_topic;
+	bool _sensor_ok;
+	bool _collect_phase;
+	int _measure_ticks;
+	int _class_instance;
+	int _orb_class_instance;
+	int _sensor_rotation;
+	orb_advert_t _px4flow_topic;
+	orb_advert_t _distance_sensor_topic;
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
 
-	unsigned                 _conversion_interval;
-	enum Rotation       _sensor_rotation;
+	unsigned _conversion_interval;
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -190,21 +190,21 @@ private:
  */
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
-PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation, int conversion_interval, uint8_t sonar_rotation) :
+PX4FLOW::PX4FLOW(int bus, int address, int rotation, int conversion_interval, uint8_t sonar_rotation) :
 	I2C("PX4FLOW", PX4FLOW0_DEVICE_PATH, bus, address, PX4FLOW_I2C_MAX_BUS_SPEED), /* 100-400 KHz */
-	_sonar_rotation(sonar_rotation),
 	_reports(nullptr),
+	_sonar_rotation(sonar_rotation),
 	_sensor_ok(false),
-	_measure_ticks(0),
 	_collect_phase(false),
+	_measure_ticks(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
+	_sensor_rotation(rotation),
 	_px4flow_topic(nullptr),
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4f_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "px4f_com_err")),
-	_conversion_interval(conversion_interval),
-	_sensor_rotation(rotation)
+	_conversion_interval(conversion_interval)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -270,10 +270,11 @@ PX4FLOW::init()
 
 	/* only set it if the parameter exists */
 	if (rot != PARAM_INVALID) {
-		int32_t val = 6; // the recommended installation for the flow sensor is with the Y sensor axis forward
+		int32_t val =
+			FLOW_ROTATION_DEFAULT; // the recommended installation for the flow sensor is with the Y sensor axis forward
 		param_get(rot, &val);
 
-		_sensor_rotation = (enum Rotation)val;
+		_sensor_rotation = val;
 	}
 
 	return ret;
@@ -537,12 +538,7 @@ PX4FLOW::collect()
 
 	report.sensor_id = 0;
 
-	/* rotate measurements in yaw from sensor frame to body frame according to parameter SENS_FLOW_ROT */
-	float zeroval = 0.0f;
-
-	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
-
-	rotate_3f(_sensor_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
+	report.rotation = _sensor_rotation; // rotation will be applied by the user (estimator)
 
 	if (_px4flow_topic == nullptr) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
@@ -762,7 +758,7 @@ start(int argc, char *argv[])
 		while (*cur_bus != -1) {
 			/* create the driver */
 			/* warnx("trying bus %d", *cur_bus); */
-			g_dev = new PX4FLOW(*cur_bus, address, (enum Rotation)0, conversion_interval, sonar_rotation);
+			g_dev = new PX4FLOW(*cur_bus, address, FLOW_ROTATION_DEFAULT, conversion_interval, sonar_rotation);
 
 			if (g_dev == nullptr) {
 				/* this is a fatal error */

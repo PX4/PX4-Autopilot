@@ -1,5 +1,6 @@
 #include "../BlockLocalPositionEstimator.hpp"
 #include <systemlib/mavlink_log.h>
+#include <conversion/rotation.h>
 #include <matrix/math.hpp>
 
 // mavlink pub
@@ -63,9 +64,22 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	float d = agl() * cosf(euler.phi()) * cosf(euler.theta());
 
 	// optical flow in x, y axis
+
+	// rotate measurements according to parameter
+	const enum Rotation flow_rot = (Rotation)_sub_flow.get().rotation;
+	float zeroval = 0.0f;
+	float pixel_flow_x_integral = _sub_flow.get().pixel_flow_x_integral;
+	float pixel_flow_y_integral = _sub_flow.get().pixel_flow_y_integral;
+	float gyro_x_rate_integral = _sub_flow.get().gyro_x_rate_integral;
+	float gyro_y_rate_integral = _sub_flow.get().gyro_y_rate_integral;
+	float gyro_z_rate_integral = _sub_flow.get().gyro_z_rate_integral;
+
+	rotate_3f(flow_rot, pixel_flow_x_integral, pixel_flow_y_integral, zeroval);
+	rotate_3f(flow_rot, gyro_x_rate_integral, gyro_y_rate_integral, gyro_z_rate_integral);
+
 	// TODO consider making flow scale a states of the kalman filter
-	float flow_x_rad = _sub_flow.get().pixel_flow_x_integral * _flow_scale.get();
-	float flow_y_rad = _sub_flow.get().pixel_flow_y_integral * _flow_scale.get();
+	float flow_x_rad = pixel_flow_x_integral * _flow_scale.get();
+	float flow_y_rad = pixel_flow_y_integral * _flow_scale.get();
 	float dt_flow = _sub_flow.get().integration_timespan / 1.0e6f;
 
 	if (dt_flow > 0.5f || dt_flow < 1.0e-6f) {
@@ -77,10 +91,8 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	float gyro_y_rad = 0;
 
 	if (_fusion.get() & FUSE_FLOW_GYRO_COMP) {
-		gyro_x_rad = _flow_gyro_x_high_pass.update(
-				     _sub_flow.get().gyro_x_rate_integral);
-		gyro_y_rad = _flow_gyro_y_high_pass.update(
-				     _sub_flow.get().gyro_y_rate_integral);
+		gyro_x_rad = _flow_gyro_x_high_pass.update(gyro_x_rate_integral);
+		gyro_y_rad = _flow_gyro_y_high_pass.update(gyro_y_rate_integral);
 	}
 
 	//warnx("flow x: %10.4f y: %10.4f gyro_x: %10.4f gyro_y: %10.4f d: %10.4f",
