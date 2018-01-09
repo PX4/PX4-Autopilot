@@ -159,7 +159,6 @@ void LidarLitePWM::cycle()
 		   (worker_t)&LidarLitePWM::cycle_trampoline,
 		   this,
 		   getMeasureTicks());
-	return;
 }
 
 int LidarLitePWM::measure()
