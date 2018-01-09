@@ -73,9 +73,6 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, uint8_t rotation, int addr
 	// up the retries since the device misses the first measure attempts
 	_retries = 3;
 
-	// enable debug() calls
-	_debug_enabled = false;
-
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
@@ -145,7 +142,7 @@ int LidarLiteI2C::read_reg(uint8_t reg, uint8_t &val)
 int LidarLiteI2C::write_reg(uint8_t reg, uint8_t val)
 {
 	const uint8_t cmd[2] = { reg, val };
-	return transfer(&cmd[0], 2, NULL, 0);
+	return transfer(&cmd[0], 2, nullptr, 0);
 }
 
 /*
@@ -154,16 +151,16 @@ int LidarLiteI2C::write_reg(uint8_t reg, uint8_t val)
  */
 int LidarLiteI2C::lidar_transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
-	if (send != NULL && send_len > 0) {
-		int ret = transfer(send, send_len, NULL, 0);
+	if (send != nullptr && send_len > 0) {
+		int ret = transfer(send, send_len, nullptr, 0);
 
 		if (ret != OK) {
 			return ret;
 		}
 	}
 
-	if (recv != NULL && recv_len > 0) {
-		return transfer(NULL, 0, recv, recv_len);
+	if (recv != nullptr && recv_len > 0) {
+		return transfer(nullptr, 0, recv, recv_len);
 	}
 
 	return OK;
@@ -200,7 +197,7 @@ ok:
 	return reset_sensor();
 }
 
-int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
+int LidarLiteI2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case SENSORIOCSQUEUEDEPTH: {
@@ -209,14 +206,14 @@ int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -233,7 +230,7 @@ int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-ssize_t LidarLiteI2C::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t LidarLiteI2C::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);

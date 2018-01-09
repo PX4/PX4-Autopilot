@@ -38,9 +38,8 @@
  *
  * Generic interface driver for the PulsedLight Lidar-Lite range finders.
  */
+
 #include "LidarLite.h"
-#include <errno.h>
-#include <nuttx/clock.h>
 
 LidarLite::LidarLite() :
 	_min_distance(LL40LS_MIN_DISTANCE),
@@ -78,7 +77,7 @@ uint32_t LidarLite::getMeasureTicks() const
 	return _measure_ticks;
 }
 
-int LidarLite::ioctl(struct file *filp, int cmd, unsigned long arg)
+int LidarLite::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
