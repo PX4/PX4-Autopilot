@@ -142,6 +142,7 @@ PX4IO_serial_f7::init()
 	if (rISR & USART_ISR_RXNE) {
 		(void)rRDR;
 	}
+
 	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
 
 	/* configure line speed */
@@ -245,6 +246,7 @@ PX4IO_serial_f7::_bus_exchange(IOPacket *_packet)
 	if (rISR & USART_ISR_RXNE) {
 		(void)rRDR;
 	}
+
 	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
 
 	/* start RX DMA */
@@ -280,7 +282,7 @@ PX4IO_serial_f7::_bus_exchange(IOPacket *_packet)
 
 	/* Clean _current_packet, so DMA can see the data */
 	arch_clean_dcache((uintptr_t)_current_packet,
-	                  (uintptr_t)_current_packet + sizeof(*_current_packet));
+			  (uintptr_t)_current_packet + sizeof(*_current_packet));
 
 	/* start TX DMA - no callback if we also expect a reply */
 	/* DMA setup time ~3µs */
@@ -413,9 +415,11 @@ void
 PX4IO_serial_f7::_do_interrupt()
 {
 	uint32_t sr = rISR;	/* get UART status register */
+
 	if (sr & USART_ISR_RXNE) {
 		(void)rRDR;	/* read DR to clear RXNE */
 	}
+
 	rICR = sr & rISR_ERR_FLAGS_MASK;	/* clear flags */
 
 	if (sr & (USART_ISR_ORE |		/* overrun error - packet was too big for DMA or DMA was too slow */
@@ -448,7 +452,7 @@ PX4IO_serial_f7::_do_interrupt()
 		if (_rx_dma_status == _dma_status_waiting) {
 			/* Invalidate _current_packet, so we get fresh data from RAM */
 			arch_invalidate_dcache((uintptr_t)_current_packet,
-			                       (uintptr_t)_current_packet + sizeof(*_current_packet));
+					       (uintptr_t)_current_packet + sizeof(*_current_packet));
 
 			/* verify that the received packet is complete */
 			size_t length = sizeof(*_current_packet) - stm32_dmaresidual(_rx_dma);
@@ -489,6 +493,7 @@ PX4IO_serial_f7::_abort_dma()
 	if (rISR & USART_ISR_RXNE) {
 		(void)rRDR;
 	}
+
 	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
 }
 
