@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualAltitude.cpp
+ * @file FlightManualPositionSmooth.cpp
  */
 
 #include "FlightTaskManualPositionSmooth.hpp"
@@ -43,19 +43,41 @@ using namespace matrix;
 
 FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth(control::SuperBlock *parent, const char *name) :
 	FlightTaskManualPosition(parent, name),
-	_smoothing(&_velocity(0))
-{}
+	_smoothingXY(matrix::Vector2f(&_velocity(0))),
+	_smoothingZ(_velocity(2), _sticks(2))
+
+{
+
+}
+
+
+bool FlightTaskManualPositionSmooth::activate()
+{
+	_vel_sp_prev_z = _velocity(2);
+	return FlightTaskManualPosition::activate();
+}
 
 void FlightTaskManualPositionSmooth::_updateSetpoints()
 {
-	/* Get yaw, thrust */
-	FlightTaskManualStabilized::_updateSetpoints();
+	/* Get yaw, unsmoothe position setpoints */
+	FlightTaskManualPosition::_updateSetpoints();
 
-	/* Smooth velocity setpoint */
+	/* Smooth velocity setpoint in xy */
 	matrix::Vector2f vel(&_velocity(0));
-	_smoothing.smoothVelFromSticks(_vel_sp_xy, vel, _deltatime);
+	_smoothingXY.smoothVelFromSticks(_vel_sp_xy, vel, _deltatime);
 
 	/* Check for altitude lock*/
 	_updateXYlock();
+
+	/* Smooth velocity in z*/
+	float vel_sp[2] = { _vel_sp_z, _vel_sp_prev_z };
+	_smoothingZ.smoothVelFromSticks(vel_sp, _deltatime);
+	_vel_sp_z = vel_sp[0];
+
+	/* Check for altitude lock*/
+	_updateAltitudeLock();
+
+	/* Update previous velocity setpoint for next smoothing iteration */
+	_vel_sp_prev_z = _vel_sp_z;
 
 }

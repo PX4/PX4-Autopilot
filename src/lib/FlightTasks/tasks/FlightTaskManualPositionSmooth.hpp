@@ -32,14 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualAltitude.hpp
+ * @file FlightManualPositionSmooth.hpp
  *
- * Flight task for manual controlled altitude.
+ * Flight task for smooth manual controlled position.
  */
 
 
 #include "FlightTaskManualPosition.hpp"
 #include "Utility/ManualSmoothingXY.hpp"
+#include "Utility/ManualSmoothingZ.hpp"
 
 class FlightTaskManualPositionSmooth : public FlightTaskManualPosition
 {
@@ -48,13 +49,14 @@ public:
 
 	virtual ~FlightTaskManualPositionSmooth() = default;
 
+	bool activate() override;
 
 protected:
 
 	virtual void _updateSetpoints() override;
+	ManualSmoothingXY _smoothingXY; // Smoothing for velocity setpoints.
+	ManualSmoothingZ _smoothingZ; //Smoothing for velocity in z.
+	float _vel_sp_prev_z{}; // Velocity setpoint from previous iteration.
 
-private:
-
-	ManualSmoothingXY _smoothing; // Smoothing for velocity setpoints.
 
 };
