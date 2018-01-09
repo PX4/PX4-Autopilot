@@ -546,10 +546,10 @@ public:
 	 * Precalculated rotor mix.
 	 */
 	struct Rotor {
-		float	roll_scale;	/**< scales roll for this rotor */
+		float	roll_scale;		/**< scales roll for this rotor */
 		float	pitch_scale;	/**< scales pitch for this rotor */
-		float	yaw_scale;	/**< scales yaw for this rotor */
-		float	out_scale;	/**< scales total out for this rotor */
+		float	yaw_scale;		/**< scales yaw for this rotor */
+		float	thrust_scale;	/**< scales thrust for this rotor */
 	};
 
 	/**
