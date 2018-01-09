@@ -78,7 +78,7 @@ public:
 
 	int         init() override;
 
-	ssize_t     read(device::file_t *filp, char *buffer, size_t buflen);
+	ssize_t     read(device::file_t *filp, char *buffer, size_t buflen) override;
 	int         ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
@@ -94,12 +94,12 @@ public:
 	const char *get_dev_name() override;
 
 protected:
-	int         probe();
+	int         probe() override;
 	int         read_reg(uint8_t reg, uint8_t &val);
 	int         write_reg(uint8_t reg, uint8_t val);
 
 	int                 measure() override;
-	int                 reset_sensor();
+	int                 reset_sensor() override;
 
 private:
 	uint8_t _rotation;
@@ -151,19 +151,19 @@ private:
 	* @note This function is called at open and error time.  It might make sense
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
-	void                start();
+	void                start() override;
 
 	/**
 	* Stop the automatic measurement state machine.
 	*/
-	void                stop();
+	void                stop() override;
 
 	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
 	void                cycle();
-	int                 collect();
+	int                 collect() override;
 
 	/**
 	* Static trampoline from the workq context; because we don't have a
