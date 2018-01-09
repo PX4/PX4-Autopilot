@@ -858,7 +858,7 @@ void Ekf2::run()
 			ev_data.quat = q;
 
 			// position measurement error from parameters. TODO : use covariances from topic
-			ev_data.posErr = _ev_pos_noise.get();
+			ev_data.posErr = fmaxf(_ev_pos_noise.get(), fmaxf(ev_pos.eph, ev_pos.epv));
 			ev_data.angErr = _ev_ang_noise.get();
 
 			// use timestamp from external computer, clocks are synchronized when using MAVROS
