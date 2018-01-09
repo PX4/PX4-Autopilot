@@ -1665,7 +1665,6 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 {
 	matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
 	matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
-	matrix::Vector2f vel_xy(_vel(0), _vel(1));
 	matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / dt;
 
 	/* limit total horizontal acceleration */
