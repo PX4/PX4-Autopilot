@@ -861,8 +861,11 @@ void Ekf2::run()
 			ev_data.posErr = fmaxf(_ev_pos_noise.get(), fmaxf(ev_pos.eph, ev_pos.epv));
 			ev_data.angErr = _ev_ang_noise.get();
 
-			// use timestamp from external computer, clocks are synchronized when using MAVROS
-			_ekf.setExtVisionData(vision_position_updated ? ev_pos.timestamp : ev_att.timestamp, &ev_data);
+			// only set data if all positions and velocities are valid
+			if (ev_pos.xy_valid && ev_pos.z_valid && ev_pos.v_xy_valid && ev_pos.v_z_valid) {
+				// use timestamp from external computer, clocks are synchronized when using MAVROS
+				_ekf.setExtVisionData(vision_position_updated ? ev_pos.timestamp : ev_att.timestamp, &ev_data);
+			}
 		}
 
 		orb_check(vehicle_land_detected_sub, &vehicle_land_detected_updated);
