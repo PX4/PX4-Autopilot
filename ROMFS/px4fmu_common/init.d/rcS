@@ -28,7 +28,7 @@ set +e
 # UART1			/dev/ttyS0		GPS
 # USART2		/dev/ttyS1		TELEM1 (flow control)
 # USART3		/dev/ttyS2		TELEM2 (flow control)
-# UART4			/dev/ttyS3		?
+# UART4			/dev/ttyS3		TELEM4
 # USART6		/dev/ttyS4		TELEM3 (flow control)
 # UART7			/dev/ttyS5		?
 # UART8			/dev/ttyS6		CONSOLE
@@ -194,23 +194,9 @@ then
 	set USE_IO no
 	set LOGGER_BUF 14
 
-	if ver hwcmp PX4FMU_V4
-	then
-		param set SYS_FMU_TASK 1
-	fi
-
-	if ver hwcmp PX4FMU_V4PRO
-	then
-		param set SYS_FMU_TASK 1
-	fi
-
 	if ver hwcmp PX4FMU_V5
 	then
-		param set SYS_FMU_TASK 1
-		set MAVLINK_COMPANION_DEVICE /dev/ttyS3
-
 		set LOGGER_BUF 64
-		param set SDLOG_MODE 2
 	fi
 
 	if ver hwcmp CRAZYFLIE
@@ -297,6 +283,13 @@ then
 		then
 			param set CBRK_IO_SAFETY 22027
 		fi
+
+		# Run FMU as task on Pixracer and on boards with enough RAM
+		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
+		then
+			param set SYS_FMU_TASK 1
+		fi
+
 		param set SYS_AUTOCONFIG 0
 	fi
 	unset AUTOCNF
@@ -666,12 +659,7 @@ then
 		fi
 	fi
 
-	if ver hwcmp PX4FMU_V4
-	then
-		frsky_telemetry start -d /dev/ttyS6
-	fi
-
-	if ver hwcmp MINDPX_V2
+	if ver hwcmp PX4FMU_V4 MINDPX_V2
 	then
 		frsky_telemetry start -d /dev/ttyS6
 	fi
