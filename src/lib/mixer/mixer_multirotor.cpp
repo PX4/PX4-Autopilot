@@ -187,9 +187,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		float out = roll * _rotors[i].roll_scale +
 			    pitch * _rotors[i].pitch_scale +
-			    thrust;
-
-		out *= _rotors[i].out_scale;
+			    thrust * _rotors[i].thrust_scale;
 
 		/* calculate min and max output values */
 		if (out < min_out) {
@@ -205,6 +203,11 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 
 	float boost = 0.0f;		// value added to demanded thrust (can also be negative)
 	float roll_pitch_scale = 1.0f;	// scale for demanded roll and pitch
+
+	// Note: thrust boost is computed assuming thrust_gain==1 for all motors.
+	// On asymmetric platforms, some motors have thrust_gain<1,
+	// which may result in motor saturation after thrust boost is applied
+	// TODO: revise the saturation/boosting strategy
 
 	if (min_out < 0.0f && max_out < 1.0f && -min_out <= 1.0f - max_out) {
 		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
@@ -262,9 +265,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		float out = (roll * _rotors[i].roll_scale +
 			     pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
 			    yaw * _rotors[i].yaw_scale +
-			    thrust + boost;
-
-		out *= _rotors[i].out_scale;
+			    (thrust + boost) * _rotors[i].thrust_scale;
 
 		// scale yaw if it violates limits. inform about yaw limit reached
 		if (out < 0.0f) {
@@ -300,7 +301,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		outputs[i] = (roll * _rotors[i].roll_scale +
 			      pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
 			     yaw * _rotors[i].yaw_scale +
-			     thrust + boost;
+			     (thrust + boost) * _rotors[i].thrust_scale;
 
 		/*
 			implement simple model for static relationship between applied motor pwm and motor thrust
