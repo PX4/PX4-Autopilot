@@ -374,7 +374,8 @@ submodulesupdate:
 gazeboclean:
 	@rm -rf ~/.gazebo/*
 
-distclean: submodulesclean gazeboclean
+distclean: gazeboclean
+	@git submodule deinit -f .
 	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
 
 # --------------------------------------------------------------------
