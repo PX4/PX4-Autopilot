@@ -43,8 +43,7 @@ namespace uORB
 {
 
 SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta, unsigned interval, unsigned instance) :
-	_meta(meta),
-	_instance(instance)
+	_meta(meta)
 {
 	if (instance > 0) {
 		_handle = orb_subscribe_multi(_meta, instance);
