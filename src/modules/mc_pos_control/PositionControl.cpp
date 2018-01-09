@@ -160,6 +160,7 @@ void PositionControl::_interfaceMapping()
 			_pos_sp(i) = _pos(i);
 			_vel_sp(i) = _vel(i);
 			_thr_int(i) = 0.0f;
+			_vel_dot(i) = 0.0f;
 
 		} else {
 			PX4_WARN("TODO: add safety");
@@ -235,6 +236,7 @@ void PositionControl::_velocityController(const float &dt)
 	 * scale _thrust_sp by that value. This only has an effect for altitude mode where
 	 * _thr_sp(0:1).length() > 0.0f.
 	 */
+
 	if (matrix::Vector2f(&_thr_sp(0)).length() > FLT_EPSILON) {
 
 		float thr_xy_max = fabsf(thr_sp(2)) * tanf(tilt_max);
@@ -248,7 +250,6 @@ void PositionControl::_velocityController(const float &dt)
 	 * For manual controlled mode excluding pure manual and rate control, maximum tilt is 90;
 	 * It is to note that pure manual and rate control will never enter _velocityController method. */
 	_thr_sp = ControlMath::constrainTilt(_thr_sp, tilt_max);
-
 
 	/* Constrain thrust set-point and update saturation flag */
 	/* To get (r-y) for horizontal direction, we look at the dot-product
