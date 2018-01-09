@@ -88,7 +88,22 @@ void FlightTaskManualAltitude::_updateZsetpoints()
 
 void FlightTaskManualAltitude::_updateSetpoints()
 {
-	FlightTaskManualStabilized::_updateSetpoints(); // get yaw and thrust setpoints
+	FlightTaskManualStabilized::_updateSetpoints(); // get yaw setpoint
+	/* Thrust in xy are extracted directly from stick inputs. A magnitude of
+	 * 1 means that maximum thrust along xy is required. A magnitude of 0 means no
+	 * thrust along xy is required. The maximum thrust along xy depends on the thrust
+	 * setpoint along z-direction, which is computed in PositionControl.cpp.
+	 */
+	matrix::Vector3f sp{_sticks(0), _sticks(1), 0.0f};
+	sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw)) * sp);
+
+	if (sp.length() > 1.0f) {
+		sp.normalize();
+	}
+
+	_thr_sp(0) = sp(0);
+	_thr_sp(1) = sp(1);
+
 	_updateZsetpoints(); // get z setpoints
 }
 
