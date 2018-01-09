@@ -676,26 +676,9 @@ then
 		frsky_telemetry start -d /dev/ttyS6
 	fi
 
-	if ver hwcmp PX4FMU_V2
+	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5
 	then
 		# Check for flow sensor - as it is a background task, launch it last
-		px4flow start &
-	fi
-
-	if ver hwcmp PX4FMU_V4
-	then
-		# Check for flow sensor - as it is a background task, launch it last
-		px4flow start &
-	fi
-
-	if ver hwcmp PX4FMU_V4PRO
-	then
-		# Check for flow sensor - as it is a background task, launch it last
-		px4flow start &
-	fi
-
-	if ver hwcmp MINDPX_V2
-	then
 		px4flow start &
 	fi
 
