@@ -225,14 +225,28 @@ void PositionControl::_velocityController(const float &dt)
 	/* TODO: add offboard acceleration mode
 	 * PID-controller */
 	Data offset(0.0f, 0.0f, _ThrHover);
-	_thr_sp = Pv.emult(vel_err) + Dv.emult(_vel_dot) + _thr_int - offset + _thr_sp;
+	Data thr_sp = Pv.emult(vel_err) + Dv.emult(_vel_dot) + _thr_int - offset;
 
-	/* Limit tilt with priority on z
-	 * For manual controlled mode excluding pure manual and rate control, maximum tilt is 90;
-	 * It is to note that pure manual and rate control will never enter _velocityController method.
-	 * TODO: This needs to be revisited. */
+	/* Get maximum tilt */
 	float tilt_max = PX4_ISFINITE(_constraints.tilt_max) ? _constraints.tilt_max : M_PI_2_F;
 	tilt_max = math::min(tilt_max, M_PI_2_F);
+
+	/* Compute maximum allowed thrust along xy based on thrust in z-direction and
+	 * scale _thrust_sp by that value. This only has an effect for altitude mode where
+	 * _thr_sp(0:1).length() > 0.0f.
+	 */
+	if (matrix::Vector2f(&_thr_sp(0)).length() > FLT_EPSILON) {
+
+		float thr_xy_max = fabsf(thr_sp(2)) * tanf(tilt_max);
+		_thr_sp(0) *= thr_xy_max;
+		_thr_sp(1) *= thr_xy_max;
+
+	}
+
+	_thr_sp += thr_sp;
+	/* Limit tilt with priority on z
+	 * For manual controlled mode excluding pure manual and rate control, maximum tilt is 90;
+	 * It is to note that pure manual and rate control will never enter _velocityController method. */
 	_thr_sp = ControlMath::constrainTilt(_thr_sp, tilt_max);
 
 
