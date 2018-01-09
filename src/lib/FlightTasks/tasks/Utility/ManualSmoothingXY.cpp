@@ -116,8 +116,9 @@ ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp)
 		/* Distinguish between acceleration, deceleration and direction change */
 
 		/* Check if stick direction and current velocity are within 120.
-		 * If previous and current setpoint are more than 120 apart, we assume
-		 * that the user demanded a direction change. */
+		 * If current setpoint and velocity are more than 120 apart, we assume
+		 * that the user demanded a direction change.
+		 * The detecton has to happen in body frame.*/
 		matrix::Vector2f vel_sp_unit = vel_sp;;
 		matrix::Vector2f vel_sp_prev_unit = _vel_sp_prev;
 
@@ -238,4 +239,6 @@ ManualSmoothingXY::_velocitySlewRate(matrix::Vector2f &vel_sp, const float dt)
 	if (acc.length() > _acc_state_dependent) {
 		vel_sp = acc.normalized() * _acc_state_dependent  * dt + _vel_sp_prev;
 	}
+
+	_vel_sp_prev = vel_sp;
 }
