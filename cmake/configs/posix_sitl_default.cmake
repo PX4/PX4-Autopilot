@@ -165,7 +165,7 @@ set(config_module_list
 	#
 
 	# Tutorial code from
-	# https://px4.io/dev/px4_simple_app
+	# https://dev.px4.io/en/tutorials/tutorial_hello_sky.html
 	examples/px4_simple_app
 
 	# Tutorial code from
