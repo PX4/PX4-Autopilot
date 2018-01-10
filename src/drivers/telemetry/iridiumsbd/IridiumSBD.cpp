@@ -78,7 +78,7 @@ int IridiumSBD::start(int argc, char *argv[])
 	IridiumSBD::instance = new IridiumSBD();
 
 	IridiumSBD::task_handle = px4_task_spawn_cmd("iridiumsbd", SCHED_DEFAULT,
-				  SCHED_PRIORITY_SLOW_DRIVER, 1150, (main_t)&IridiumSBD::main_loop_helper, argv);
+				  SCHED_PRIORITY_SLOW_DRIVER, 1200, (main_t)&IridiumSBD::main_loop_helper, argv);
 
 	return OK;
 }
@@ -253,9 +253,9 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	param_pointer = param_find("ISBD_READ_INT");
 	param_get(param_pointer, &param_read_interval_s);
 
-	if (param_read_interval_s < 0) {
-		param_read_interval_s = 10;
-	}
+//	if (param_read_interval_s < 0) {
+//		param_read_interval_s = 10;
+//	}
 
 	param_pointer = param_find("ISBD_SBD_TIMEOUT");
 	param_get(param_pointer, &param_session_timeout_s);
@@ -325,7 +325,7 @@ void IridiumSBD::standby_loop(void)
 	// check for incoming SBDRING, handled inside read_at_command()
 	read_at_command();
 
-	if (param_read_interval_s != 0 && ((int64_t)(hrt_absolute_time() - last_read_time) > param_read_interval_s * 1000000)) {
+	if (param_read_interval_s > 0 && ((int64_t)(hrt_absolute_time() - last_read_time) > param_read_interval_s * 1000000)) {
 		rx_session_pending = true;
 	}
 
@@ -387,7 +387,6 @@ void IridiumSBD::csq_loop(void)
 	}
 
 	signal_quality = rx_command_buf[5] - 48;
-	last_signal_check = hrt_absolute_time();
 
 	VERBOSE_INFO("SIGNAL QUALITY: %d", signal_quality);
 
@@ -401,7 +400,10 @@ void IridiumSBD::sbdsession_loop(void)
 	int res = read_at_command();
 
 	if (res == SATCOM_RESULT_NA) {
-		if ((int64_t)((hrt_absolute_time() - session_start_time)) > param_session_timeout_s * 1000000) {
+		if ((param_session_timeout_s > 0)
+		    && ((int64_t)((hrt_absolute_time() - session_start_time))
+			> param_session_timeout_s * 1000000)) {
+
 			PX4_WARN("SBD SESSION: TIMEOUT!");
 			new_state = SATCOM_STATE_STANDBY;
 		}
@@ -506,6 +508,8 @@ void IridiumSBD::start_csq(void)
 {
 	VERBOSE_INFO("UPDATING SIGNAL QUALITY");
 
+	last_signal_check = hrt_absolute_time();
+
 	if (!is_modem_ready()) {
 		VERBOSE_INFO("UPDATE SIGNAL QUALITY: MODEM NOT READY!");
 		return;
@@ -526,6 +530,7 @@ void IridiumSBD::start_sbd_session(void)
 
 	if (ring_pending) {
 		write_at("AT+SBDIXA");
+
 	} else {
 		write_at("AT+SBDIX");
 	}
@@ -559,6 +564,7 @@ void IridiumSBD::start_test(void)
 			PX4_INFO("TEST %s", test_command);
 			write_at(test_command);
 			new_state = SATCOM_STATE_TEST;
+
 		} else {
 			PX4_WARN("The test command does not include AT or at: %s, ignoring it.", test_command);
 			new_state = SATCOM_STATE_STANDBY;
@@ -861,7 +867,8 @@ pollevent_t IridiumSBD::poll_state(struct file *filp)
 	return pollstate;
 }
 
-void IridiumSBD::publish_telemetry_status() {
+void IridiumSBD::publish_telemetry_status()
+{
 	// publish telemetry status for logger
 	struct telemetry_status_s tstatus = {};
 
