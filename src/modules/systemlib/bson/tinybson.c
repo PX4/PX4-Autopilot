@@ -46,7 +46,7 @@
 #include "tinybson.h"
 
 #if 0
-# define debug(fmt, args...)		do { warnx("BSON: " fmt, ##args); } while(0)
+# define debug(fmt, args...)		do { PX4_INFO("BSON: " fmt, ##args); } while(0)
 #else
 # define debug(fmt, args...)		do { } while(0)
 #endif
@@ -56,7 +56,7 @@
 
 #define BSON_READ  read
 #define BSON_WRITE write
-#define BSON_FSYNC px4_fsync
+#define BSON_FSYNC fsync
 
 static int
 read_x(bson_decoder_t decoder, void *p, size_t s)
