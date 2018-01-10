@@ -140,10 +140,11 @@ ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::V
 		const bool is_aligned = (vel_sp_heading * vel_heading) > -0.707f;
 
 		/* In almost all cases we want to use acceleration.
-		 * Only use direction change if not aligned, no yawspeed demand and demand larger than 0.7 of max speed.
+		 * Only use direction change if not aligned, no yawspeed demand, demand larger than 0.7 of max speed and velocity larger than 2m/s.
 		 * Only use deceleration if stick input is lower than previous setpoint, aligned and no yawspeed demand. */
 		bool yawspeed_demand =  fabsf(yawrate_sp) > 0.05f && PX4_ISFINITE(yawrate_sp);
-		bool direction_change = !is_aligned && (vel_sp.length() > 0.7f * _vel_manual) && !yawspeed_demand;
+		bool direction_change = !is_aligned && (vel_sp.length() > 0.7f * _vel_manual) && !yawspeed_demand
+					&& (vel.length() > 2.0f);
 		bool deceleration = is_aligned && (vel_sp.length() < _vel_sp_prev.length()) && !yawspeed_demand;
 
 		if (direction_change) {
