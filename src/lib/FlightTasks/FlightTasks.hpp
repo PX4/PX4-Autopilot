@@ -127,7 +127,7 @@ private:
 		FlightTaskManualAltitude altitude;
 		FlightTaskManualAltitudeSmooth altitude_smooth;
 		FlightTaskManualPosition position;
-		FlightTaskManualPosition position_smooth;
+		FlightTaskManualPositionSmooth position_smooth;
 		FlightTaskOrbit orbit;
 		FlightTaskSport sport;
 	} _task_union; /**< storage for the currently active task */
