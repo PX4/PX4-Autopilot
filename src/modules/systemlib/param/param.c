@@ -1140,14 +1140,14 @@ param_export(int fd, bool only_unsaved)
 out:
 
 	if (result == 0) {
-		result = bson_encoder_fini(&encoder); // this will call fsync
+		result = bson_encoder_fini(&encoder);
 
 		// write and finish
 		if ((result != 0) || write(fd, encoder.buf, encoder.bufpos) != encoder.bufpos) {
 			PX4_ERR("param write error");
 
 		} else {
-			px4_fsync(fd);
+			fsync(fd);
 		}
 	}
 
