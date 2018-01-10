@@ -145,6 +145,17 @@ bool FlightTaskManual::update()
 	return true;
 }
 
+float FlightTaskManual::_get_input_frame_yaw()
+{
+	/* using constant yaw angle from setpoint here to prevent sideways oscillation in fast forward flight */
+	if (PX4_ISFINITE(_hold_yaw)) {
+		return _hold_yaw;
+
+	} else {
+		return _yaw;
+	}
+}
+
 void FlightTaskManual::_updateYaw()
 {
 	const float yaw_speed = _sticks(3) * math::radians(_man_yaw_max.get());
