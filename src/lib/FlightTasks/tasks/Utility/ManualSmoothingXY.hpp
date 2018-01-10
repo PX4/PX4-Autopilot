@@ -53,7 +53,8 @@ public:
 	 * @param vel_sp: velocity setpoint in xy
 	 * @param dt: time delta in seconds
 	 */
-	void smoothVelFromSticks(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float dt);
+	void smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel,  const float &yaw,
+			    const float &yawrate_sp, const float dt);
 
 	/* User intention: brake or acceleration */
 	enum class Intention {
@@ -87,8 +88,10 @@ private:
 	float _acc_state_dependent{0.0f};
 	float _jerk_state_dependent{0.0f};
 
-	matrix::Vector2f _vel; // current velocity xy
-	matrix::Vector2f _vel_sp_prev; // previous velocity setpoint
+	/* Previous setpoints */
+	float _yaw_prev{};
+	matrix::Vector2f _vel_sp_prev{}; // previous velocity setpoint
+
 
 	/* Params */
 	param_t _acc_hover_h{PARAM_INVALID};
@@ -108,10 +111,14 @@ private:
 	/* Helper methods */
 	void _setParams();
 	void _updateParams();
-	void _updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float dt);
-	Intention _getIntention(const matrix::Vector2f &vel_sp);
+	void _updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+				 const float &yawrate_sp, const float dt);
+	Intention _getIntention(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+				const float &yawrate_sp);
 	void _getStateAcceleration(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const Intention &intention,
 				   const float dt);
 	void _velocitySlewRate(matrix::Vector2f &vel_sp, const float dt);
+	matrix::Vector2f _getInHeadingFrame(const matrix::Vector2f &vec, const float &yaw) ;
+	matrix::Vector2f _getInWorldFrame(const matrix::Vector2f &vec, const float &yaw);
 
 };
