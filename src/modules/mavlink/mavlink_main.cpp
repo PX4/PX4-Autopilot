@@ -2201,7 +2201,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		if (cmd_sub->update(&cmd_time, &vehicle_cmd)) {
 			if (vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING) {
-				if (_mode == (int)round(vehicle_cmd.param1)) {
+				if (_mode == (int)roundf(vehicle_cmd.param1)) {
 					if (_transmitting_enabled != (int)vehicle_cmd.param2) {
 						if ((int)vehicle_cmd.param2) {
 							PX4_INFO("Enable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
