@@ -84,6 +84,8 @@
 #include <cfloat>
 #include <cstring>
 
+#include <mavlink/mavlink_main.h>
+
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -141,6 +143,9 @@ typedef enum VEHICLE_MODE_FLAG
 #define PRINT_MODE_REJECT_INTERVAL	500000
 
 #define INAIR_RESTART_HOLDOFF_INTERVAL	500000
+
+#define MAVLINK_ENABLE_TRANSMITTING	1	/**< parameter value to enable transmitting for a mavlink instance */
+#define MAVLINK_DISABLE_TRANSMITTING	0	/**< parameter value to disable transmitting for a mavlink instance */
 
 /* Controls the probation period which is the amount of time required for position and velocity checks to pass before the validity can be changed from false to true*/
 #define POSVEL_PROBATION_TAKEOFF 30		/**< probation duration set at takeoff (sec) */
@@ -2564,15 +2569,17 @@ Commander::run()
 
 					telemetry_lost[i] = false;
 					have_link = true;
-					if (!telemetry_high_latency[i])
+					if (!telemetry_high_latency[i]) {
 						have_low_latency_link = true;
+					}
 
 				} else if (!telemetry_lost[i]) {
 					/* telemetry was healthy also in last iteration
 					 * we don't have to check a timeout */
 					have_link = true;
-					if (!telemetry_high_latency[i])
+					if (!telemetry_high_latency[i]) {
 						have_low_latency_link = true;
+					}
 				}
 
 			} else {
@@ -2603,8 +2610,8 @@ Commander::run()
 
 				vehicle_command_s vehicle_cmd;
 				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING;
-				vehicle_cmd.param1 = 6;
-				vehicle_cmd.param2 = 0;
+				vehicle_cmd.param1 = Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM;
+				vehicle_cmd.param2 = MAVLINK_DISABLE_TRANSMITTING;
 				if (vehicle_cmd_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_command), vehicle_cmd_pub, &vehicle_cmd);
 
@@ -2628,8 +2635,8 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "ALL LOW LATENCY DATA LINKS LOST, ACTIVATING HIGH LATENCY LINK");
 				vehicle_command_s vehicle_cmd;
 				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING;
-				vehicle_cmd.param1 = 6;
-				vehicle_cmd.param2 = 1;
+				vehicle_cmd.param1 = Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM;
+				vehicle_cmd.param2 = MAVLINK_ENABLE_TRANSMITTING;
 				if (vehicle_cmd_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_command), vehicle_cmd_pub, &vehicle_cmd);
 

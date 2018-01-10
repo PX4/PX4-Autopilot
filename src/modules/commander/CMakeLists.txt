@@ -37,6 +37,9 @@ px4_add_module(
 	STACK_MAX 2450
 	COMPILE_FLAGS
 		-Wno-sign-compare # TODO: fix all sign-compare
+	INCLUDES
+		# required because of nested includes in mavlink_main.h
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		commander.cpp
 		state_machine_helper.cpp
