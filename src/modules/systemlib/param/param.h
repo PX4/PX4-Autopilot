@@ -299,6 +299,7 @@ __EXPORT void		param_reset_excludes(const char *excludes[], int num_excludes);
 
 /**
  * Export changed parameters to a file.
+ * Note: this method requires a large amount of stack size!
  *
  * @param fd		File descriptor to export to.
  * @param only_unsaved	Only export changed parameters that have not yet been exported.
@@ -365,6 +366,7 @@ __EXPORT const char	*param_get_default_file(void);
 
 /**
  * Save parameters to the default file.
+ * Note: this method requires a large amount of stack size!
  *
  * This function saves all parameters with non-default values.
  *
