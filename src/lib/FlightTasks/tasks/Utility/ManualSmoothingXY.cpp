@@ -41,7 +41,7 @@
 #include <float.h>
 
 ManualSmoothingXY::ManualSmoothingXY(const matrix::Vector2f &vel) :
-	_vel(vel), _vel_sp_prev(vel)
+	_vel_sp_prev(vel)
 {
 	_acc_hover_h = param_find("MPC_ACC_HOR_MAX");
 	_acc_xy_max_h = param_find("MPC_ACC_HOR");
@@ -55,11 +55,12 @@ ManualSmoothingXY::ManualSmoothingXY(const matrix::Vector2f &vel) :
 }
 
 void
-ManualSmoothingXY::smoothVelFromSticks(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float dt)
+ManualSmoothingXY::smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+				  const float &yawrate_sp, const float dt)
 {
 	_updateParams();
 
-	_updateAcceleration(vel_sp, vel, dt);
+	_updateAcceleration(vel_sp, vel, yaw, yawrate_sp, dt);
 
 	_velocitySlewRate(vel_sp, dt);
 }
@@ -89,7 +90,8 @@ ManualSmoothingXY::_setParams()
 }
 
 void
-ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float dt)
+ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel,  const float &yaw,
+				       const float &yawrate_sp, const float dt)
 {
 	/*
 	 * In manual mode we consider four states with different acceleration handling:
@@ -98,7 +100,7 @@ ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::V
 	 * 3. user wants to accelerate
 	 * 4. user wants to decelerate
 	 */
-	Intention intention = _getIntention(vel_sp);
+	Intention intention = _getIntention(vel_sp, vel, yaw, yawrate_sp);
 
 	/* Adapt acceleration and jerk based on current state and
 	 * intention. Jerk is only used for braking.
@@ -107,44 +109,51 @@ ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::V
 
 	/* Smooth velocity setpoint based on acceleration */
 	_velocitySlewRate(vel_sp, dt);
+
+	_vel_sp_prev = vel_sp;
 }
 
 ManualSmoothingXY::Intention
-ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp)
+ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+				 const float &yawrate_sp)
 {
+
 	if (vel_sp.length() > FLT_EPSILON) {
 		/* Distinguish between acceleration, deceleration and direction change */
 
-		/* Check if stick direction and current velocity are within 120.
-		 * If current setpoint and velocity are more than 120 apart, we assume
+		/* Check if stick direction and current velocity are within 135.
+		 * If current setpoint and velocity are more than 135 apart, we assume
 		 * that the user demanded a direction change.
-		 * The detecton has to happen in body frame.*/
-		matrix::Vector2f vel_sp_unit = vel_sp;;
-		matrix::Vector2f vel_sp_prev_unit = _vel_sp_prev;
+		 * The detection is done in body frame. */
+		/* Rotate velocity setpoint into body frame */
+		matrix::Vector2f vel_sp_heading = _getInHeadingFrame(vel_sp, yaw);
+		matrix::Vector2f vel_heading = _getInHeadingFrame(vel, yaw);
 
-		if (vel_sp.length() > FLT_EPSILON) {
-			vel_sp_unit.normalize();
+		if (vel_sp_heading.length() > FLT_EPSILON) {
+			vel_sp_heading.normalize();
 		}
 
-		if (_vel_sp_prev.length() > FLT_EPSILON) {
-			vel_sp_prev_unit.normalize();
+		if (vel_heading.length() > FLT_EPSILON) {
+			vel_heading.normalize();
 		}
 
-		const bool is_aligned = (vel_sp_unit * vel_sp_prev_unit) > -0.5f;
+		const bool is_aligned = (vel_sp_heading * vel_heading) > -0.707f;
 
-		/* Check if user wants to accelerate */
-		bool do_acceleration = _vel_sp_prev.length() < FLT_EPSILON; // Because current is not zero but previous sp was zero
-		do_acceleration = do_acceleration || (is_aligned
-						      && (vel_sp.length() >= _vel_sp_prev.length() - 0.01f)); //User demands larger or same speed
+		/* In almost all cases we want to use acceleration.
+		 * Only use direction change if not aligned, no yawspeed demand and demand larger than 0.7 of max speed.
+		 * Only use deceleration if stick input is lower than previous setpoint, aligned and no yawspeed demand. */
+		bool yawspeed_demand =  fabsf(yawrate_sp) > 0.05f && PX4_ISFINITE(yawrate_sp);
+		bool direction_change = !is_aligned && (vel_sp.length() > 0.7f * _vel_manual) && !yawspeed_demand;
+		bool deceleration = is_aligned && (vel_sp.length() < _vel_sp_prev.length()) && !yawspeed_demand;
 
-		if (do_acceleration) {
-			return Intention::acceleration;
-
-		} else if (!is_aligned) {
+		if (direction_change) {
 			return Intention::direction_change;
 
-		} else {
+		} else if (deceleration) {
 			return Intention::deceleration;
+
+		} else {
+			return Intention::acceleration;
 		}
 	}
 
@@ -237,8 +246,25 @@ ManualSmoothingXY::_velocitySlewRate(matrix::Vector2f &vel_sp, const float dt)
 	matrix::Vector2f acc = (vel_sp - _vel_sp_prev) / dt;
 
 	if (acc.length() > _acc_state_dependent) {
+
 		vel_sp = acc.normalized() * _acc_state_dependent  * dt + _vel_sp_prev;
 	}
+}
 
-	_vel_sp_prev = vel_sp;
+matrix::Vector2f
+ManualSmoothingXY::_getInHeadingFrame(const matrix::Vector2f &vec, const float &yaw)
+{
+
+	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
+	matrix::Vector3f vec_heading = q_yaw.conjugate_inversed(matrix::Vector3f(vec(0), vec(1), 0.0f));
+	return matrix::Vector2f(&vec_heading(0));
+}
+
+matrix::Vector2f
+ManualSmoothingXY::_getInWorldFrame(const matrix::Vector2f &vec, const float &yaw)
+{
+
+	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
+	matrix::Vector3f vec_heading = q_yaw.conjugate(matrix::Vector3f(vec(0), vec(1), 0.0f));
+	return matrix::Vector2f(&vec_heading(0));
 }
