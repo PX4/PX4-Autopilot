@@ -1130,6 +1130,11 @@ int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
 	vision_position.y = ev_mavlink->y;
 	vision_position.z = ev_mavlink->z;
 
+	vision_position.xy_valid = true;
+	vision_position.z_valid = true;
+	vision_position.v_xy_valid = true;
+	vision_position.v_z_valid = true;
+
 	struct vehicle_attitude_s vision_attitude = {};
 
 	vision_attitude.timestamp = timestamp;
