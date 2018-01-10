@@ -14,7 +14,7 @@
  *    distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *    without spec{fic prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -41,7 +41,7 @@
 #include <float.h>
 
 ManualSmoothingZ::ManualSmoothingZ(const float &vel, const float &stick) :
-	_vel(vel), _stick(stick)
+	_vel(vel), _stick(stick), _vel_sp_prev(vel)
 {
 	_acc_max_up_h = param_find("MPC_ACC_UP_MAX");
 	_acc_max_down_h = param_find("MPC_ACC_DOWN_MAX");
@@ -57,13 +57,15 @@ ManualSmoothingZ::ManualSmoothingZ(const float &vel, const float &stick) :
  * 2.) accelerate */
 
 void
-ManualSmoothingZ::smoothVelFromSticks(float vel_sp[2], const float dt)
+ManualSmoothingZ::smoothVelFromSticks(float &vel_sp, const float dt)
 {
 	updateParams();
 
 	updateAcceleration(vel_sp, dt);
 
 	velocitySlewRate(vel_sp, dt);
+
+	_vel_sp_prev = vel_sp;
 
 }
 
@@ -90,8 +92,11 @@ ManualSmoothingZ::setParams()
 }
 
 void
-ManualSmoothingZ::updateAcceleration(float vel_sp[2], const float dt)
+ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 {
+	/* Check for max acceleration */
+	setMaxAcceleration();
+
 	/* check if zero input stick */
 	const bool is_current_zero = (fabsf(_stick) <= FLT_EPSILON);
 
@@ -115,7 +120,7 @@ ManualSmoothingZ::updateAcceleration(float vel_sp[2], const float dt)
 		 * is no delay present when user demands to brake
 		 */
 
-		vel_sp[1] = _vel;
+		_vel_sp_prev = _vel;
 
 	}
 
@@ -137,7 +142,7 @@ ManualSmoothingZ::updateAcceleration(float vel_sp[2], const float dt)
 
 	case ManualIntentionZ::acceleration: {
 
-			_acc_state_dependent = (getMaxAcceleration(vel_sp) - _acc_max_down)
+			_acc_state_dependent = (getMaxAcceleration() - _acc_max_down)
 					       * fabsf(_stick) + _acc_max_down;
 			break;
 		}
@@ -146,46 +151,46 @@ ManualSmoothingZ::updateAcceleration(float vel_sp[2], const float dt)
 	_intention = intention;
 }
 
-float
-ManualSmoothingZ::getMaxAcceleration(float vel_sp[2])
+void
+ManualSmoothingZ::setMaxAcceleration()
 {
 	/* Note: NED frame */
 
-	if (_stick < 0.0f) {
+	if (_stick < -FLT_EPSILON) {
 		/* accelerating upward */
-		return _acc_max_up;
+		_max_acceleration =  _acc_max_up;
 
-	} else if (_stick > 0.0f) {
+	} else if (_stick > FLT_EPSILON) {
 		/* accelerating downward */
-		return _acc_max_down;
+		_max_acceleration = _acc_max_down;
 
 	} else {
 
 		/* want to brake */
 
-		if (fabsf(vel_sp[0] - vel_sp[1]) < FLT_EPSILON) {
+		if (fabsf(_vel_sp_prev) < FLT_EPSILON) {
 			/* at rest */
-			return _acc_max_up;
+			_max_acceleration = _acc_max_up;
 
-		} else if (vel_sp[0] < 0.0f) {
+		} else if (_vel_sp_prev < 0.0f) {
 			/* braking downward */
-			return _acc_max_down;
+			_max_acceleration = _acc_max_down;
 
 		} else {
 			/* braking upward */
-			return _acc_max_up;
+			_max_acceleration = _acc_max_up;
 		}
 	}
 }
 
 void
-ManualSmoothingZ::velocitySlewRate(float vel_sp[2], const float dt)
+ManualSmoothingZ::velocitySlewRate(float &vel_sp, const float dt)
 {
 	/* limit vertical acceleration */
-	float acc = (vel_sp[0] - vel_sp[1]) / dt;
+	float acc = (vel_sp - _vel_sp_prev) / dt;
 	float max_acc = (acc < 0.0f) ? -_acc_state_dependent : _acc_state_dependent;
 
 	if (fabsf(acc) > fabsf(max_acc)) {
-		vel_sp[0] = max_acc * dt + vel_sp[1];
+		vel_sp = max_acc * dt + _vel_sp_prev;
 	}
 }
