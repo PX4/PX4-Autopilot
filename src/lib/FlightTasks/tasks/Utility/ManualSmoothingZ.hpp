@@ -60,11 +60,11 @@ public:
 	 * 		  vel_sp will contain smoothed current previous set-point.
 	 * @param dt: time delta in seconds
 	 */
-	void smoothVelFromSticks(float vel_sp[2], const float dt);
+	void smoothVelFromSticks(float &vel_sp, const float dt);
 
 
 	/* Getter methods */
-	float getMaxAcceleration(float vel_sp[2]);
+	float getMaxAcceleration() {return _max_acceleration;};
 	ManualIntentionZ getIntention() {return _intention;};
 
 	/* Overwrite methods:
@@ -89,6 +89,8 @@ private:
 	 * _acc_max_down <= _acc_state_dependent <= _acc_max_up
 	 */
 	float _acc_state_dependent{0.0f};
+	float _vel_sp_prev;
+	float _max_acceleration;
 
 	/* Params */
 	param_t _acc_max_up_h{PARAM_INVALID};
@@ -100,9 +102,10 @@ private:
 	int _parameter_sub{-1};
 
 	/* Helper methods */
-	void velocitySlewRate(float vel_sp[2], const float dt);
+	void velocitySlewRate(float &vel_sp, const float dt);
 	void setParams();
 	void updateParams();
-	void updateAcceleration(float vel_sp[2], const float dt);
+	void updateAcceleration(float &vel_sp, const float dt);
+	void setMaxAcceleration();
 
 };

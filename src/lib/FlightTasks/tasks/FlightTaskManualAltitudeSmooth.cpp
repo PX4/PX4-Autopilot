@@ -58,14 +58,10 @@ void FlightTaskManualAltitudeSmooth::_updateSetpoints()
 	/* Get yaw, thrust */
 	FlightTaskManualAltitude::_updateSetpoints();
 
-	/* Smooth velocity setpoint */
-	float vel_sp[2] = {_vel_sp_z, _vel_sp_prev_z};
-	_smoothing.smoothVelFromSticks(vel_sp, _deltatime);
-	_vel_sp_z = vel_sp[0];
+	/* Smooth velocity in z*/
+	_smoothing.smoothVelFromSticks(_vel_sp_z, _deltatime);
 
 	/* Check for altitude lock*/
 	_updateAltitudeLock();
 
-	/* Update previous velocity setpoint for next smoothing iteration */
-	_vel_sp_prev_z = _vel_sp_z;
 }
