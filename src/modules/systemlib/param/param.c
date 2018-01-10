@@ -1048,7 +1048,7 @@ param_export(int fd, bool only_unsaved)
 
 	param_lock_reader();
 
-	uint8_t bson_buffer[512];
+	uint8_t bson_buffer[256];
 	bson_encoder_init_buf(&encoder, &bson_buffer, sizeof(bson_buffer));
 
 	/* no modified parameters -> we are done */
