@@ -67,7 +67,7 @@ protected:
 	bool _evaluateSticks();
 	bool _sticks_data_required = true; /**< let sibling task define if it depends on stick data */
 
-	float _get_input_frame_yaw() { return _yaw; }
+	float _get_input_frame_yaw();
 	virtual void _scaleVelocity(matrix::Vector3f &velocity);
 
 	control::BlockParamFloat _z_vel_max_up; /**< maximal vertical velocity when flying upwards with the stick */
