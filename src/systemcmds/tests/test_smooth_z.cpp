@@ -34,7 +34,6 @@ bool SmoothZTest::brakeUpward()
 	float acc_max_up = 5.0f;
 	float acc_max_down = 2.0f;
 
-	float vel_sp[] = {vel_sp_current, vel_sp_previous};
 	ManualSmoothingZ smooth(vel, stick_current);
 
 	/* overwrite parameters since they might change depending on configuration */
@@ -49,17 +48,17 @@ bool SmoothZTest::brakeUpward()
 
 	for (int i = 0; i < 100; i++) {
 
-		smooth.smoothVelFromSticks(vel_sp, dt);
+		smooth.smoothVelFromSticks(vel_sp_current, dt);
 
 		/* Test if intention is brake */
 		ut_assert_true(smooth.getIntention() == ManualIntentionZ::brake);
 
 		/* we should always use upward acceleration */
-		ut_assert_true((smooth.getMaxAcceleration(vel_sp) - acc_max_up < FLT_EPSILON));
+		ut_assert_true((smooth.getMaxAcceleration() - acc_max_up < FLT_EPSILON));
 
 		/* New setpoint has to be lower than previous setpoint (NED frame) or equal 0. 0 velocity
 		 * occurs once the vehicle is at perfect rest. */
-		ut_assert_true((vel_sp[0] < vel_sp[1]) || (fabsf(vel_sp[0]) < FLT_EPSILON));
+		ut_assert_true((vel_sp_current < vel_sp_previous) || (fabsf(vel_sp_current) < FLT_EPSILON));
 
 
 		/* We reset the previou setpoint to newest setpoint
@@ -67,9 +66,10 @@ bool SmoothZTest::brakeUpward()
 		 * We also set vel to previous setpoint where we make the assumption that
 		 * the vehicle can perfectly track the setpoints.
 		 */
-		vel_sp[1] = vel_sp[0];
-		vel_sp[0] = 0.0f;
-		vel = vel_sp[1];
+		vel_sp_previous = vel_sp_current;
+		vel_sp_current = 0.0f;
+		vel = vel_sp_previous;
+
 
 	}
 
@@ -86,7 +86,6 @@ bool SmoothZTest::brakeDownward()
 	float acc_max_up = 5.0f;
 	float acc_max_down = 2.0f;
 
-	float vel_sp[] = { vel_sp_current, vel_sp_previous };
 	ManualSmoothingZ smooth(vel, stick_current);
 
 	/* overwrite parameters since they might change depending on configuration */
@@ -101,21 +100,21 @@ bool SmoothZTest::brakeDownward()
 
 	for (int i = 0; i < 100; i++) {
 
-		smooth.smoothVelFromSticks(vel_sp, dt);
+		smooth.smoothVelFromSticks(vel_sp_current, dt);
 
 		/* Test if intention is brake */
 		ut_assert_true(smooth.getIntention() == ManualIntentionZ::brake);
 
 		/* New setpoint has to be larger than previous setpoint (NED frame) or equal 0. 0 velocity
 		 * occurs once the vehicle is at perfect rest. */
-		ut_assert_true((vel_sp[0] > vel_sp[1]) || (fabsf(vel_sp[0]) < FLT_EPSILON));
+		ut_assert_true((vel_sp_current > vel_sp_previous) || (fabsf(vel_sp_current) < FLT_EPSILON));
 
 		/* we should always use downward acceleration except when vehicle is at rest*/
-		if (fabsf(vel_sp[0]) < FLT_EPSILON) {
-			ut_assert_true((smooth.getMaxAcceleration(vel_sp) - acc_max_up < FLT_EPSILON));
+		if (fabsf(vel_sp_current) < FLT_EPSILON) {
+			ut_assert_true(fabsf((smooth.getMaxAcceleration() - acc_max_up) < FLT_EPSILON));
 
 		} else {
-			ut_assert_true((smooth.getMaxAcceleration(vel_sp) - acc_max_down < FLT_EPSILON));
+			ut_assert_true(fabsf((smooth.getMaxAcceleration() - acc_max_down) < FLT_EPSILON));
 		}
 
 
@@ -124,9 +123,9 @@ bool SmoothZTest::brakeDownward()
 		 * We also set vel to previous setpoint where we make the assumption that
 		 * the vehicle can perfectly track the setpoints.
 		 */
-		vel_sp[1] = vel_sp[0];
-		vel_sp[0] = 0.0f;
-		vel = vel_sp[1];
+		vel_sp_previous = vel_sp_current;
+		vel_sp_current = 0.0f;
+		vel = vel_sp_previous;
 
 	}
 
@@ -137,13 +136,13 @@ bool SmoothZTest::accelerateUpwardFromBrake()
 {
 	/* Downward flight and want to stop */
 	float stick_current = -1.0f; // sticks are at full upward position
-	float vel_sp_current = -5.0f; // desired velocity is at -5m/s
+	float vel_sp_target = -5.0f; // desired velocity is at -5m/s
+	float vel_sp_current = vel_sp_target;
 	float vel_sp_previous = 0.0f; // the demanded previous setpoint was 0m/s downwards
 	float vel = vel_sp_previous; // assume that current velocity is equal to previous vel setpoint
 	float acc_max_up = 5.0f;
 	float acc_max_down = 2.0f;
 
-	float vel_sp[] = {vel_sp_current, vel_sp_previous};
 	ManualSmoothingZ smooth(vel, stick_current);
 
 	/* overwrite parameters since they might change depending on configuration */
@@ -155,27 +154,27 @@ bool SmoothZTest::accelerateUpwardFromBrake()
 
 	for (int i = 0; i < 100; i++) {
 
-		smooth.smoothVelFromSticks(vel_sp, dt);
+		smooth.smoothVelFromSticks(vel_sp_current, dt);
 
 		/* Test if intention is acceleration */
 		ut_assert_true(smooth.getIntention() == ManualIntentionZ::acceleration);
 
 		/* we should always use upward acceleration */
-		ut_assert_true((smooth.getMaxAcceleration(vel_sp) - acc_max_up < FLT_EPSILON));
+		ut_assert_true((smooth.getMaxAcceleration() - acc_max_up < FLT_EPSILON));
 
 		/* New setpoint has to be larger than previous setpoint or equal to target velocity
 		 * vel_sp_current. The negative sign is because of NED frame.
 		 */
-		ut_assert_true((-vel_sp[0] > -vel_sp[1]) || (fabsf(vel_sp[0] - vel_sp_current) < FLT_EPSILON));
+		ut_assert_true((-vel_sp_current > -vel_sp_previous) || (fabsf(vel_sp_current - vel_sp_previous) < FLT_EPSILON));
 
 
 		/* We reset the previous setpoint to newest setpoint and reset the current setpoint.
 		 * We also set the current velocity to the previous setpoint with the assumption that
 		 * the vehicle does perfect tracking.
 		 */
-		vel_sp[1] = vel_sp[0];
-		vel_sp[0] = vel_sp_current;
-		vel = vel_sp[1];
+		vel_sp_previous = vel_sp_current;
+		vel_sp_current = vel_sp_target;
+		vel = vel_sp_previous;
 
 	}
 
@@ -186,13 +185,13 @@ bool SmoothZTest::accelerateDownwardFromBrake()
 {
 	/* Downward flight and want to stop */
 	float stick_current = 1.0f; // sticks are at full downward position
-	float vel_sp_current = 5.0f; // desired velocity is at 5m/s
+	float vel_sp_target =  5.0f; // desired velocity is at 5m/s
+	float vel_sp_current = vel_sp_target;
 	float vel_sp_previous = 0.0f; // the demanded previous setpoint was 0m/s downwards
 	float vel = vel_sp_previous; // assume that current velocity is equal to previous vel setpoint
 	float acc_max_up = 5.0f;
 	float acc_max_down = 2.0f;
 
-	float vel_sp[] = {vel_sp_current, vel_sp_previous};
 	ManualSmoothingZ smooth(vel, stick_current);
 
 	/* overwrite parameters since they might change depending on configuration */
@@ -204,32 +203,32 @@ bool SmoothZTest::accelerateDownwardFromBrake()
 
 	for (int i = 0; i < 100; i++) {
 
-		smooth.smoothVelFromSticks(vel_sp, dt);
+		smooth.smoothVelFromSticks(vel_sp_current, dt);
 
 		/* Test if intention is acceleration */
 		ut_assert_true(smooth.getIntention() == ManualIntentionZ::acceleration);
 
 		/* we should always use downward acceleration except when target velocity is reached */
-		if (fabsf(vel_sp[0] - vel_sp_current) < FLT_EPSILON) {
-			ut_assert_true(smooth.getMaxAcceleration(vel_sp) - acc_max_up < FLT_EPSILON);
+		if (fabsf(vel_sp_current - vel_sp_target) < FLT_EPSILON) {
+			ut_assert_true(smooth.getMaxAcceleration() - acc_max_up < FLT_EPSILON);
 
 		} else {
-			ut_assert_true(smooth.getMaxAcceleration(vel_sp) - acc_max_down < FLT_EPSILON);
+			ut_assert_true(smooth.getMaxAcceleration() - acc_max_down < FLT_EPSILON);
 		}
 
 		/* New setpoint has to be larger than previous setpoint or equal to target velocity
 		 * vel_sp_current (NED frame).
 		 */
-		ut_assert_true((vel_sp[0] > vel_sp[1]) || (fabsf(vel_sp[0] - vel_sp_current) < FLT_EPSILON));
+		ut_assert_true((vel_sp_current > vel_sp_previous) || (fabsf(vel_sp_current - vel_sp_target) < FLT_EPSILON));
 
 
 		/* We reset the previous setpoint to newest setpoint and reset the current setpoint.
 		 * We also set the current velocity to the previous setpoint with the assumption that
 		 * the vehicle does perfect tracking.
 		 */
-		vel_sp[1] = vel_sp[0];
-		vel_sp[0] = vel_sp_current;
-		vel = vel_sp[1];
+		vel_sp_previous = vel_sp_current;
+		vel_sp_current = vel_sp_target;
+		vel = vel_sp_previous;
 
 	}
 
