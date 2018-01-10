@@ -64,7 +64,7 @@ void FlightTaskManualStabilized::_scaleSticks()
 	/* Scale sticks to yaw and thrust using
 	 * linear scale for yaw and piecewise linear map for thrust. */
 	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
-	_throttle = _throttleCurve();;
+	_throttle = _throttleCurve();
 }
 
 void FlightTaskManualStabilized::_updateHeadingSetpoints()
