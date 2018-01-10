@@ -345,31 +345,31 @@ private:
 	/**
 	 * Set position setpoint using manual control
 	 */
-	void		control_manual(float dt);
+	void		control_manual();
 
-	void		control_non_manual(float dt);
+	void		control_non_manual();
 
 	/**
 	 * Set position setpoint using offboard control
 	 */
-	void		control_offboard(float dt);
+	void		control_offboard();
 
 	/**
 	 * Set position setpoint for AUTO
 	 */
-	void		control_auto(float dt);
+	void		control_auto();
 
-	void control_position(float dt);
-	void calculate_velocity_setpoint(float dt);
-	void calculate_thrust_setpoint(float dt);
+	void control_position();
+	void calculate_velocity_setpoint();
+	void calculate_thrust_setpoint();
 
-	void vel_sp_slewrate(float dt);
+	void vel_sp_slewrate();
 
 	void update_velocity_derivative();
 
-	void do_control(float dt);
+	void do_control();
 
-	void generate_attitude_setpoint(float dt);
+	void generate_attitude_setpoint();
 
 	float get_cruising_speed_xy();
 
@@ -377,9 +377,9 @@ private:
 
 	float get_vel_close(const matrix::Vector2f &unit_prev_to_current, const matrix::Vector2f &unit_current_to_next);
 
-	void set_manual_acceleration_xy(matrix::Vector2f &stick_input_xy_NED, const float dt);
+	void set_manual_acceleration_xy(matrix::Vector2f &stick_input_xy_NED);
 
-	void set_manual_acceleration_z(float &max_acc_z, const float stick_input_z_NED, const float dt);
+	void set_manual_acceleration_z(float &max_acc_z, const float stick_input_z_NED);
 
 	/**
 	 * limit altitude based on several conditions
@@ -1043,7 +1043,7 @@ MulticopterPositionControl::get_cruising_speed_xy()
 }
 
 void
-MulticopterPositionControl::set_manual_acceleration_z(float &max_acceleration, const float stick_z, const float dt)
+MulticopterPositionControl::set_manual_acceleration_z(float &max_acceleration, const float stick_z)
 {
 
 
@@ -1104,7 +1104,7 @@ MulticopterPositionControl::set_manual_acceleration_z(float &max_acceleration, c
 }
 
 void
-MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_xy, const float dt)
+MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_xy)
 {
 
 	/*
@@ -1314,7 +1314,7 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 }
 
 void
-MulticopterPositionControl::control_manual(float dt)
+MulticopterPositionControl::control_manual()
 {
 	/* Entering manual control from non-manual control mode, reset alt/pos setpoints */
 	if (_mode_auto) {
@@ -1467,7 +1467,7 @@ MulticopterPositionControl::control_manual(float dt)
 }
 
 void
-MulticopterPositionControl::control_non_manual(float dt)
+MulticopterPositionControl::control_non_manual()
 {
 	/* select control source */
 	if (_control_mode.flag_control_offboard_enabled) {
@@ -1550,7 +1550,7 @@ MulticopterPositionControl::control_non_manual(float dt)
 }
 
 void
-MulticopterPositionControl::control_offboard(float dt)
+MulticopterPositionControl::control_offboard()
 {
 	if (_pos_sp_triplet.current.valid) {
 
@@ -1661,7 +1661,7 @@ MulticopterPositionControl::control_offboard(float dt)
 }
 
 void
-MulticopterPositionControl::vel_sp_slewrate(float dt)
+MulticopterPositionControl::vel_sp_slewrate()
 {
 	matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
 	matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
@@ -1740,7 +1740,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, c
 	}
 }
 
-void MulticopterPositionControl::control_auto(float dt)
+void MulticopterPositionControl::control_auto()
 {
 	/* reset position setpoint on AUTO mode activation or if we are not in MC mode */
 	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
@@ -2372,7 +2372,7 @@ MulticopterPositionControl::update_velocity_derivative()
 }
 
 void
-MulticopterPositionControl::do_control(float dt)
+MulticopterPositionControl::do_control()
 {
 	/* by default, run position/altitude controller. the control_* functions
 	 * can disable this and run velocity controllers directly in this cycle */
@@ -2404,7 +2404,7 @@ MulticopterPositionControl::do_control(float dt)
 }
 
 void
-MulticopterPositionControl::control_position(float dt)
+MulticopterPositionControl::control_position()
 {
 	calculate_velocity_setpoint(dt);
 
@@ -2418,7 +2418,7 @@ MulticopterPositionControl::control_position(float dt)
 }
 
 void
-MulticopterPositionControl::calculate_velocity_setpoint(float dt)
+MulticopterPositionControl::calculate_velocity_setpoint()
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
@@ -2518,7 +2518,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 }
 
 void
-MulticopterPositionControl::calculate_thrust_setpoint(float dt)
+MulticopterPositionControl::calculate_thrust_setpoint()
 {
 	/* reset integrals if needed */
 	if (_control_mode.flag_control_climb_rate_enabled) {
@@ -2819,7 +2819,7 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 }
 
 void
-MulticopterPositionControl::generate_attitude_setpoint(float dt)
+MulticopterPositionControl::generate_attitude_setpoint()
 {
 	// yaw setpoint is integrated over time, but we don't want to integrate the offset's
 	_att_sp.yaw_body -= _man_yaw_offset;
