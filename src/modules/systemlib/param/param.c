@@ -1035,7 +1035,6 @@ param_export(int fd, bool only_unsaved)
 	int	result = -1;
 
 	struct bson_encoder_s encoder;
-	encoder.realloc_ok = 0;
 
 	int shutdown_lock_ret = px4_shutdown_lock();
 
@@ -1072,9 +1071,9 @@ param_export(int fd, bool only_unsaved)
 		const size_t size = param_size(s->param);
 
 		// check remaining buffer size and commit to disk
-		//  total size = name + param size + bson header + bson end
+		//  total size = strlen(name) + 1 (null char) + param size + 1 (bson header) + 1 (bson end)
 		// size is doubled (floats saved as doubles)
-		const size_t total_size = strlen(name) + 2 * size + 2;
+		const size_t total_size = strlen(name) + 2 * size + 3;
 
 		if (encoder.bufpos > encoder.bufsize - total_size) {
 			// write buffer to disk and continue
