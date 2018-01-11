@@ -3049,7 +3049,8 @@ MulticopterPositionControl::task_main()
 
 		/* set dt for control blocks */
 		setDt(dt);
-
+		/*get the delta time from control blocks*/
+		_dt = getDt();
 		/* set default max velocity in xy to vel_max */
 		_vel_max_xy = _params.vel_max_xy;
 
