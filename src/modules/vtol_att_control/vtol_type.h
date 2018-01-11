@@ -51,7 +51,7 @@ struct Params {
 	int32_t vtol_motor_count;		// number of motors
 	float fw_pitch_trim;		// trim for neutral elevon position in fw mode
 	int32_t vtol_type;
-	int32_t elevons_mc_lock;		// lock elevons in multicopter mode
+	bool elevons_mc_lock;		// lock elevons in multicopter mode
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
 	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
 	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)

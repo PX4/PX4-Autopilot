@@ -66,7 +66,6 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_params_handles_tiltrotor.tilt_fw = param_find("VT_TILT_FW");
 	_params_handles_tiltrotor.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_params_handles_tiltrotor.airspeed_blend_start = param_find("VT_ARSP_BLEND");
-	_params_handles_tiltrotor.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles_tiltrotor.airspeed_disabled = param_find("FW_ARSP_MODE");
@@ -116,10 +115,6 @@ Tiltrotor::parameters_update()
 	/* vtol airspeed at which we start blending mc/fw controls */
 	param_get(_params_handles_tiltrotor.airspeed_blend_start, &v);
 	_params_tiltrotor.airspeed_blend_start = v;
-
-	/* vtol lock elevons in multicopter */
-	param_get(_params_handles_tiltrotor.elevons_mc_lock, &l);
-	_params_tiltrotor.elevons_mc_lock = l;
 
 	/* vtol front transition phase 2 duration */
 	param_get(_params_handles_tiltrotor.front_trans_dur_p2, &v);

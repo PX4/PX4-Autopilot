@@ -517,13 +517,12 @@ void Standard::fill_actuator_outputs()
 	// fixed wing controls
 	_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
 
-
 	if (_vtol_schedule.flight_mode != MC_MODE) {
-
-		//roll
+		// roll
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
 			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
-		//pitch
+
+		// pitch
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim;
 		// yaw
@@ -534,11 +533,25 @@ void Standard::fill_actuator_outputs()
 
 	} else {
 
-		// zero outputs when inactive
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _params->fw_pitch_trim;
-		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
-		_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f;
+		if (_params->elevons_mc_lock) {
+			// zero outputs when inactive
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _params->fw_pitch_trim;
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
+			_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f;
+
+		} else {
+			// roll
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
+				-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
+
+			// pitch
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
+				_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim;
+
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
+			_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f;
+		}
 	}
 
 	// set the fixed wing throttle control

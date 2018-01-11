@@ -69,8 +69,6 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	_params_handles_tailsitter.back_trans_dur = param_find("VT_B_TRANS_DUR");
 	_params_handles_tailsitter.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_params_handles_tailsitter.airspeed_blend_start = param_find("VT_ARSP_BLEND");
-	_params_handles_tailsitter.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
-
 }
 
 Tailsitter::~Tailsitter()
@@ -82,7 +80,6 @@ void
 Tailsitter::parameters_update()
 {
 	float v;
-	int l;
 
 	/* vtol duration of a front transition */
 	param_get(_params_handles_tailsitter.front_trans_dur, &v);
@@ -103,10 +100,6 @@ Tailsitter::parameters_update()
 	/* vtol airspeed at which we start blending mc/fw controls */
 	param_get(_params_handles_tailsitter.airspeed_blend_start, &v);
 	_params_tailsitter.airspeed_blend_start = v;
-
-	/* vtol lock elevons in multicopter */
-	param_get(_params_handles_tailsitter.elevons_mc_lock, &l);
-	_params_tailsitter.elevons_mc_lock = l;
 
 	/* avoid parameters which will lead to zero division in the transition code */
 	_params_tailsitter.front_trans_dur = math::max(_params_tailsitter.front_trans_dur, _min_front_trans_dur);
@@ -389,7 +382,7 @@ void Tailsitter::fill_actuator_outputs()
 
 		_actuators_out_1->timestamp = _actuators_mc_in->timestamp;
 
-		if (_params->elevons_mc_lock == 1) {
+		if (_params->elevons_mc_lock) {
 			_actuators_out_1->control[0] = 0;
 			_actuators_out_1->control[1] = 0;
 
