@@ -31,30 +31,28 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
 set(geometry_files
-	quad_x.toml
-	quad_h.toml
-	quad_plus.toml
-	quad_wide.toml
-	quad_deadcat.toml
-	quad_vtail.toml
-	quad_s250aq.toml
-	quad_y.toml
-	quad_x_pusher.toml
-	hex_x.toml
-	hex_plus.toml
+	dodeca_bottom_cox.toml
+	dodeca_top_cox.toml
 	hex_cox.toml
+	hex_plus.toml
 	hex_t.toml
-	octa_x.toml
-	octa_plus.toml
+	hex_x.toml
 	octa_cox.toml
 	octa_cox_wide.toml
-	twin_engine.toml
+	octa_plus.toml
+	octa_x.toml
+	quad_deadcat.toml
+	quad_h.toml
+	quad_plus.toml
+	quad_s250aq.toml
+	quad_vtail.toml
+	quad_wide.toml
+	quad_x.toml
+	quad_x_pusher.toml
+	quad_y.toml
 	tri_y.toml
-	dodeca_top_cox.toml
-	dodeca_bottom_cox.toml
+	twin_engine.toml
 )
 
 set(geometries_list)
@@ -62,39 +60,34 @@ foreach(geom_file ${geometry_files})
 	list(APPEND geometries_list ${CMAKE_CURRENT_SOURCE_DIR}/geometries/${geom_file})
 endforeach()
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py -f ${geometries_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py ${geometries_list}
-	)
-add_custom_target(mixer_gen
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	DEPENDS ${geometries_list})
+set(MIXER_TOOLS ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools)
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py --normalize -f ${geometries_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py ${geometries_list}
+# generate mixers and normalize
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
+	COMMAND ${PYTHON_EXECUTABLE} ${MIXER_TOOLS}/px_generate_mixers.py -f ${geometries_list} -o mixer_multirotor.generated.h
+	DEPENDS ${MIXER_TOOLS}/px_generate_mixers.py ${geometries_list}
 	)
-add_custom_target(mixer_gen_norm
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
-	DEPENDS ${geometries_list})
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
+	COMMAND ${PYTHON_EXECUTABLE} ${MIXER_TOOLS}/px_generate_mixers.py --normalize -f ${geometries_list} -o mixer_multirotor_normalized.generated.h
+	DEPENDS ${MIXER_TOOLS}/px_generate_mixers.py ${geometries_list}
+	)
+add_custom_target(mixer_gen DEPENDS mixer_multirotor.generated.h ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h)
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py --sixdof -f ${geometries_list} -o ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools/px_generate_mixers.py ${geometries_list}
+# 6DOF mixers
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
+	COMMAND ${PYTHON_EXECUTABLE} ${MIXER_TOOLS}/px_generate_mixers.py --sixdof -f ${geometries_list} -o mixer_multirotor_6dof.generated.h
+	DEPENDS ${MIXER_TOOLS}/px_generate_mixers.py ${geometries_list}
 	)
-add_custom_target(mixer_gen_6dof
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
-	DEPENDS ${geometries_list})
+add_custom_target(mixer_gen_6dof DEPENDS mixer_multirotor_6dof.generated.h)
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py > ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py
-	)
-add_custom_target(mixer_gen_legacy
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_legacy.generated.h)
 
 px4_add_module(
 	MODULE lib__mixer
+	INCLUDES
+		${CMAKE_CURRENT_BINARY_DIR}
 	SRCS
 		mixer.cpp
 		mixer_group.cpp
@@ -103,10 +96,7 @@ px4_add_module(
 		mixer_multirotor.cpp
 		mixer_simple.cpp
 	DEPENDS
-		platforms__common
 		mixer_gen
-		mixer_gen_norm
 		mixer_gen_6dof
-		mixer_gen_legacy
+		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
