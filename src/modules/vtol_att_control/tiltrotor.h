@@ -69,7 +69,6 @@ private:
 		float tilt_fw;					/**< actuator value corresponding to fw tilt */
 		float airspeed_trans;			/**< airspeed at which we switch to fw mode after transition */
 		float airspeed_blend_start;		/**< airspeed at which we start blending mc/fw controls */
-		int32_t elevons_mc_lock;			/**< lock elevons in multicopter mode */
 		float front_trans_dur_p2;
 		int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 		int32_t airspeed_disabled;
@@ -85,7 +84,6 @@ private:
 		param_t tilt_fw;
 		param_t airspeed_trans;
 		param_t airspeed_blend_start;
-		param_t elevons_mc_lock;
 		param_t front_trans_dur_p2;
 		param_t fw_motors_off;
 		param_t airspeed_disabled;

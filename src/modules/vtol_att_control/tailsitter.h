@@ -69,8 +69,6 @@ private:
 		float back_trans_dur;			/**< duration of back transition */
 		float airspeed_trans;			/**< airspeed at which we switch to fw mode after transition */
 		float airspeed_blend_start;		/**< airspeed at which we start blending mc/fw controls */
-		int elevons_mc_lock;			/**< lock elevons in multicopter mode */
-
 	} _params_tailsitter;
 
 	struct {
@@ -79,7 +77,6 @@ private:
 		param_t back_trans_dur;
 		param_t airspeed_trans;
 		param_t airspeed_blend_start;
-		param_t elevons_mc_lock;
 
 	} _params_handles_tailsitter;
 

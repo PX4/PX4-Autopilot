@@ -448,7 +448,7 @@ VtolAttitudeControl::parameters_update()
 
 	/* vtol lock elevons in multicopter */
 	param_get(_params_handles.elevons_mc_lock, &l);
-	_params.elevons_mc_lock = l;
+	_params.elevons_mc_lock = (l == 1);
 
 	/* minimum relative altitude for FW mode (QuadChute) */
 	param_get(_params_handles.fw_min_alt, &v);
