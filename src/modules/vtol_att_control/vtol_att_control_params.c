@@ -107,7 +107,7 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
  * @boolean
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 0);
+PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
 
 /**
  * Duration of a front transition
