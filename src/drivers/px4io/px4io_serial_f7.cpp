@@ -57,6 +57,13 @@
 #define rCR3		REG(STM32_USART_CR3_OFFSET)
 #define rGTPR		REG(STM32_USART_GTPR_OFFSET)
 
+#define CACHE_LINE_SIZE 32
+
+#define ROUND_UP_TO_POW2_CT(size, alignment) (((uintptr_t)((size) + ((alignment) - 1u))) & (~((uintptr_t)((alignment) - 1u))))
+#define ALIGNED_IO_BUFFER_SIZE ROUND_UP_TO_POW2_CT(sizeof(IOPacket), CACHE_LINE_SIZE)
+
+uint8_t PX4IO_serial_f7::_io_buffer_storage[ALIGNED_IO_BUFFER_SIZE + CACHE_LINE_SIZE];
+
 PX4IO_serial_f7::PX4IO_serial_f7() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
@@ -114,7 +121,7 @@ PX4IO_serial_f7::init()
 	/* initialize base implementation */
 	int r;
 
-	if ((r = PX4IO_serial::init()) != 0) {
+	if ((r = PX4IO_serial::init((IOPacket *)ROUND_UP_TO_POW2_CT((uintptr_t)_io_buffer_storage, CACHE_LINE_SIZE))) != 0) {
 		return r;
 	}
 
@@ -282,7 +289,7 @@ PX4IO_serial_f7::_bus_exchange(IOPacket *_packet)
 
 	/* Clean _current_packet, so DMA can see the data */
 	arch_clean_dcache((uintptr_t)_current_packet,
-			  (uintptr_t)_current_packet + sizeof(*_current_packet));
+			  (uintptr_t)_current_packet + ALIGNED_IO_BUFFER_SIZE);
 
 	/* start TX DMA - no callback if we also expect a reply */
 	/* DMA setup time ~3µs */
@@ -452,7 +459,7 @@ PX4IO_serial_f7::_do_interrupt()
 		if (_rx_dma_status == _dma_status_waiting) {
 			/* Invalidate _current_packet, so we get fresh data from RAM */
 			arch_invalidate_dcache((uintptr_t)_current_packet,
-					       (uintptr_t)_current_packet + sizeof(*_current_packet));
+					       (uintptr_t)_current_packet + ALIGNED_IO_BUFFER_SIZE);
 
 			/* verify that the received packet is complete */
 			size_t length = sizeof(*_current_packet) - stm32_dmaresidual(_rx_dma);

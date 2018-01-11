@@ -41,7 +41,6 @@
 
 #include "px4io_serial.h"
 
-IOPacket PX4IO_serial::_io_buffer;
 static PX4IO_serial *g_interface;
 
 device::Device
@@ -95,8 +94,9 @@ PX4IO_serial::~PX4IO_serial()
 }
 
 int
-PX4IO_serial::init()
+PX4IO_serial::init(IOPacket *io_buffer)
 {
+	_io_buffer_ptr = io_buffer;
 	/* create semaphores */
 	// in case the sub-class impl fails, the semaphore is cleaned up by destructor.
 	px4_sem_init(&_bus_semaphore, 0, 1);
@@ -120,26 +120,26 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 	int result;
 
 	for (unsigned retries = 0; retries < 3; retries++) {
-		_io_buffer.count_code = count | PKT_CODE_WRITE;
-		_io_buffer.page = page;
-		_io_buffer.offset = offset;
-		memcpy((void *)&_io_buffer.regs[0], (void *)values, (2 * count));
+		_io_buffer_ptr->count_code = count | PKT_CODE_WRITE;
+		_io_buffer_ptr->page = page;
+		_io_buffer_ptr->offset = offset;
+		memcpy((void *)&_io_buffer_ptr->regs[0], (void *)values, (2 * count));
 
 		for (unsigned i = count; i < PKT_MAX_REGS; i++) {
-			_io_buffer.regs[i] = 0x55aa;
+			_io_buffer_ptr->regs[i] = 0x55aa;
 		}
 
-		_io_buffer.crc = 0;
-		_io_buffer.crc = crc_packet(&_io_buffer);
+		_io_buffer_ptr->crc = 0;
+		_io_buffer_ptr->crc = crc_packet(_io_buffer_ptr);
 
 		/* start the transaction and wait for it to complete */
-		result = _bus_exchange(&_io_buffer);
+		result = _bus_exchange(_io_buffer_ptr);
 
 		/* successful transaction? */
 		if (result == OK) {
 
 			/* check result in packet */
-			if (PKT_CODE(_io_buffer) == PKT_CODE_ERROR) {
+			if (PKT_CODE(*_io_buffer_ptr) == PKT_CODE_ERROR) {
 
 				/* IO didn't like it - no point retrying */
 				result = -EINVAL;
@@ -178,21 +178,21 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 
 	for (unsigned retries = 0; retries < 3; retries++) {
 
-		_io_buffer.count_code = count | PKT_CODE_READ;
-		_io_buffer.page = page;
-		_io_buffer.offset = offset;
+		_io_buffer_ptr->count_code = count | PKT_CODE_READ;
+		_io_buffer_ptr->page = page;
+		_io_buffer_ptr->offset = offset;
 
-		_io_buffer.crc = 0;
-		_io_buffer.crc = crc_packet(&_io_buffer);
+		_io_buffer_ptr->crc = 0;
+		_io_buffer_ptr->crc = crc_packet(_io_buffer_ptr);
 
 		/* start the transaction and wait for it to complete */
-		result = _bus_exchange(&_io_buffer);
+		result = _bus_exchange(_io_buffer_ptr);
 
 		/* successful transaction? */
 		if (result == OK) {
 
 			/* check result in packet */
-			if (PKT_CODE(_io_buffer) == PKT_CODE_ERROR) {
+			if (PKT_CODE(*_io_buffer_ptr) == PKT_CODE_ERROR) {
 
 				/* IO didn't like it - no point retrying */
 				result = -EINVAL;
@@ -200,7 +200,7 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 
 				/* compare the received count with the expected count */
 
-			} else if (PKT_COUNT(_io_buffer) != count) {
+			} else if (PKT_COUNT(*_io_buffer_ptr) != count) {
 
 				/* IO returned the wrong number of registers - no point retrying */
 				result = -EIO;
@@ -211,7 +211,7 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 			} else {
 
 				/* copy back the result */
-				memcpy(values, &_io_buffer.regs[0], (2 * count));
+				memcpy(values, &_io_buffer_ptr->regs[0], (2 * count));
 			}
 
 			break;
