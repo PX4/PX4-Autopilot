@@ -110,11 +110,11 @@ bool SmoothZTest::brakeDownward()
 		ut_assert_true((vel_sp_current > vel_sp_previous) || (fabsf(vel_sp_current) < FLT_EPSILON));
 
 		/* we should always use downward acceleration except when vehicle is at rest*/
-		if (fabsf(vel_sp_current) < FLT_EPSILON) {
-			ut_assert_true(fabsf((smooth.getMaxAcceleration() - acc_max_up) < FLT_EPSILON));
+		if (fabsf(vel_sp_previous) < FLT_EPSILON) {
+			ut_assert_true(fabsf(smooth.getMaxAcceleration() - acc_max_up) < FLT_EPSILON);
 
 		} else {
-			ut_assert_true(fabsf((smooth.getMaxAcceleration() - acc_max_down) < FLT_EPSILON));
+			ut_assert_true(fabsf(smooth.getMaxAcceleration() - acc_max_down) < FLT_EPSILON);
 		}
 
 
@@ -160,7 +160,7 @@ bool SmoothZTest::accelerateUpwardFromBrake()
 		ut_assert_true(smooth.getIntention() == ManualIntentionZ::acceleration);
 
 		/* we should always use upward acceleration */
-		ut_assert_true((smooth.getMaxAcceleration() - acc_max_up < FLT_EPSILON));
+		ut_assert_true(fabsf(smooth.getMaxAcceleration() - acc_max_up) < FLT_EPSILON);
 
 		/* New setpoint has to be larger than previous setpoint or equal to target velocity
 		 * vel_sp_current. The negative sign is because of NED frame.
@@ -213,7 +213,7 @@ bool SmoothZTest::accelerateDownwardFromBrake()
 			ut_assert_true(smooth.getMaxAcceleration() - acc_max_up < FLT_EPSILON);
 
 		} else {
-			ut_assert_true(smooth.getMaxAcceleration() - acc_max_down < FLT_EPSILON);
+			ut_assert_true(fabsf(smooth.getMaxAcceleration() - acc_max_down) < FLT_EPSILON);
 		}
 
 		/* New setpoint has to be larger than previous setpoint or equal to target velocity
