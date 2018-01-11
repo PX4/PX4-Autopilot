@@ -51,6 +51,8 @@
 #define rCR3		REG(STM32_USART_CR3_OFFSET)
 #define rGTPR		REG(STM32_USART_GTPR_OFFSET)
 
+IOPacket PX4IO_serial_f4::_io_buffer_storage;
+
 PX4IO_serial_f4::PX4IO_serial_f4() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
@@ -108,7 +110,7 @@ PX4IO_serial_f4::init()
 	/* initialize base implementation */
 	int r;
 
-	if ((r = PX4IO_serial::init()) != 0) {
+	if ((r = PX4IO_serial::init(&_io_buffer_storage)) != 0) {
 		return r;
 	}
 

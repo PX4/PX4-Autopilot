@@ -67,11 +67,18 @@ public:
 	PX4IO_serial();
 	virtual ~PX4IO_serial();
 
-	virtual int	init();
+	virtual int	init() = 0;
 	virtual int	read(unsigned offset, void *data, unsigned count = 1);
 	virtual int	write(unsigned address, void *data, unsigned count = 1);
 
 protected:
+	/**
+	 * Does the PX4IO_serial instance initialization.
+	 * @param io_buffer The IO buffer that should be used for transfers.
+	 * @return 0 on success.
+	 */
+	int		init(IOPacket *io_buffer);
+
 	/**
 	 * Start the transaction with IO and wait for it to complete.
 	 */
@@ -100,7 +107,7 @@ private:
 	 * Maybe we can just send smaller packets (e.g. 8 regs) and loop for larger (less common)
 	 * transfers? Could cause issues with any regs expecting to be written atomically...
 	 */
-	static IOPacket		_io_buffer;		// XXX static to ensure DMA-able memory
+	IOPacket		*_io_buffer_ptr;
 
 	/** bus-ownership lock */
 	px4_sem_t			_bus_semaphore;
@@ -171,6 +178,11 @@ private:
 	/* do not allow top copying this class */
 	PX4IO_serial_f4(PX4IO_serial_f4 &);
 	PX4IO_serial_f4 &operator = (const PX4IO_serial_f4 &);
+
+	/**
+	 * IO Buffer storage
+	 */
+	static IOPacket		_io_buffer_storage;		// XXX static to ensure DMA-able memory
 };
 
 #elif defined(CONFIG_ARCH_CHIP_STM32F7)
@@ -236,6 +248,11 @@ private:
 	/* do not allow top copying this class */
 	PX4IO_serial_f7(PX4IO_serial_f7 &);
 	PX4IO_serial_f7 &operator = (const PX4IO_serial_f7 &);
+
+	/**
+	 * IO Buffer storage
+	 */
+	static uint8_t _io_buffer_storage[];
 };
 
 #else
