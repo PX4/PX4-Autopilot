@@ -63,6 +63,8 @@ ManualSmoothingXY::smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector
 	_updateAcceleration(vel_sp, vel, yaw, yawrate_sp, dt);
 
 	_velocitySlewRate(vel_sp, dt);
+
+	_vel_sp_prev = vel_sp;
 }
 
 void
@@ -106,11 +108,6 @@ ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::V
 	 * intention. Jerk is only used for braking.
 	 */
 	_getStateAcceleration(vel_sp, vel, intention, dt);
-
-	/* Smooth velocity setpoint based on acceleration */
-	_velocitySlewRate(vel_sp, dt);
-
-	_vel_sp_prev = vel_sp;
 }
 
 ManualSmoothingXY::Intention
