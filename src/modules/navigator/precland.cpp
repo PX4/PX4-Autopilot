@@ -207,13 +207,14 @@ PrecLand::run_state_start()
 
 	// check if we've reached the start point
 	if (dist < _navigator->get_acceptance_radius()) {
-		if (!_start_point_reached_time) {
-			_start_point_reached_time = hrt_absolute_time();
+		if (!_point_reached_time) {
+			_point_reached_time = hrt_absolute_time();
 		}
 
 		// if we don't see the target after 1 second, search for it
 		if (_param_search_timeout.get() > 0) {
-			if (hrt_absolute_time() - _state_start_time > 1000000) {
+
+			if (hrt_absolute_time() - _point_reached_time > 2000000) {
 				if (!switch_to_state_search()) {
 					if (!switch_to_state_fallback()) {
 						PX4_ERR("Can't switch to search or fallback landing");
@@ -252,17 +253,28 @@ PrecLand::run_state_horizontal_approach()
 		return;
 	}
 
-	// if close enough for descent above target go to descend above target
-	if (switch_to_state_descend_above_target()) {
-		return;
+	if (check_state_conditions(PrecLandState::DescendAboveTarget)) {
+		if (!_point_reached_time) {
+			_point_reached_time = hrt_absolute_time();
+		}
+
+		if (hrt_absolute_time() - _point_reached_time > 2000000) {
+			// if close enough for descent above target go to descend above target
+			if (switch_to_state_descend_above_target()) {
+				return;
+			}
+		}
+
 	}
 
 	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT) {
 		PX4_ERR("Precision landing took too long during horizontal approach phase.");
 
-		if (!switch_to_state_fallback()) {
-			PX4_ERR("Can't switch to fallback landing");
+		if (switch_to_state_fallback()) {
+			return;
 		}
+
+		PX4_ERR("Can't switch to fallback landing");
 	}
 
 	float x = _target_pose.x_abs;
@@ -376,7 +388,7 @@ PrecLand::switch_to_state_start()
 		_navigator->set_position_setpoint_triplet_updated();
 		_search_cnt++;
 
-		_start_point_reached_time = 0;
+		_point_reached_time = 0;
 
 		_state = PrecLandState::Start;
 		_state_start_time = hrt_absolute_time();
@@ -391,6 +403,8 @@ PrecLand::switch_to_state_horizontal_approach()
 {
 	if (check_state_conditions(PrecLandState::HorizontalApproach)) {
 		_approach_alt = _navigator->get_global_position()->alt;
+
+		_point_reached_time = 0;
 
 		_state = PrecLandState::HorizontalApproach;
 		_state_start_time = hrt_absolute_time();

@@ -110,7 +110,7 @@ private:
 	uint64_t _state_start_time; /**< time when we entered current state */
 	uint64_t _last_slewrate_time; /**< time when we last limited setpoint changes */
 	uint64_t _target_acquired_time; /**< time when we first saw the landing target during search */
-	uint64_t _start_point_reached_time; /**< time when we reached the start waypoint */
+	uint64_t _point_reached_time; /**< time when we reached a setpoint */
 	int _search_cnt; /**< counter of how many times we had to search for the landing target */
 	float _approach_alt; /**< altitude at which to stay during horizontal approach */
 
