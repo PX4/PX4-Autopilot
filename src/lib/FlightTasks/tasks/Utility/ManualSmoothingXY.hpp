@@ -89,9 +89,7 @@ private:
 	float _jerk_state_dependent{0.0f};
 
 	/* Previous setpoints */
-	float _yaw_prev{};
 	matrix::Vector2f _vel_sp_prev{}; // previous velocity setpoint
-
 
 	/* Params */
 	param_t _acc_hover_h{PARAM_INVALID};
