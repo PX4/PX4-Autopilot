@@ -2130,7 +2130,7 @@ void MulticopterPositionControl::control_auto()
 					}
 
 				} else {
-					/* we are more than cruise_speed away from track */
+					/* We are more than cruise speed away from track */
 
 					/* if previous is in front just go directly to previous point */
 					if (previous_in_front) {
@@ -3020,19 +3020,6 @@ MulticopterPositionControl::task_main()
 			_vel_sp_prev = _vel;
 		}
 
-		if (!_in_smooth_takeoff && _vehicle_land_detected.landed && _control_mode.flag_armed &&
-		    (in_auto_takeoff() || manual_wants_takeoff())) {
-			_in_smooth_takeoff = true;
-			// This ramp starts negative and goes to positive later because we want to
-			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
-			_takeoff_vel_limit = -0.5f;
-		}
-
-		else if (!_control_mode.flag_armed) {
-			// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
-			_in_smooth_takeoff = false;
-		}
-
 		/* set triplets to invalid if we just landed */
 		if (_vehicle_land_detected.landed && !was_landed) {
 			_pos_sp_triplet.current.valid = false;
@@ -3068,6 +3055,14 @@ MulticopterPositionControl::task_main()
 				_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
 				break;
 
+			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_TAKEOFF:
+			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_LOITER:
+			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_MISSION:
+			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL:
+			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_LAND:
+				_flight_tasks.switchTask(8);
+				break;
+
 			default:
 				/* not supported yet */
 				_flight_tasks.switchTask(FlightTaskIndex::None);
@@ -3081,20 +3076,12 @@ MulticopterPositionControl::task_main()
 		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
 
 			_flight_tasks.update();
-
-			/* Get Flighttask setpoints */
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
 
 			/* Get _contstraints depending on flight mode
 			 * This logic will be set by FlightTasks */
 			Controller::Constraints constraints;
 			updateConstraints(constraints);
-
-			/* For takeoff we adjust the velocity setpoint in the z-direction */
-			if (_in_smooth_takeoff) {
-				/* Adjust velocity setpoint in z if we are in smooth takeoff */
-				set_takeoff_velocity(setpoint.vz);
-			}
 
 			/* this logic is only temporary.
 			 * Mode switch related things will be handled within
@@ -3114,19 +3101,48 @@ MulticopterPositionControl::task_main()
 
 			}
 
+			/* Check for smooth takeoff
+			 * TODO: This logic is split between mc_pos_controller and PositionController.
+			 * It would be much better if everything is contained in one class. */
+			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && _control_mode.flag_armed) {
+				/* Vehicle is still landed and no takeoff was initiated yet.
+				 * Adjust for different takeoff casese. */
+
+				if (PX4_ISFINITE(setpoint.z) && setpoint.z < _pos(2) - 0.2f) {
+					/* There is a position setpoint above current position. Enable smooth takeoff */
+					_in_smooth_takeoff = true;
+
+				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -0.5f) {
+					/* There is a velocity setpoint point up and larger than 0.5. The 0.5
+					 * ensures that a minimum velocity is first required to initiate a takeoff.
+					 */
+					_in_smooth_takeoff = true;
+
+				} else if (PX4_ISFINITE(setpoint.thr[2]) && setpoint.thr[2] < -0.6f) {
+					/* There is a thrust setpoint pointing upwards and larger than 0.6f.
+					 * The threshold ensures that there is no takeoff by just switching into manual
+					 */
+					_in_smooth_takeoff = true;
+
+				} else {
+					/* Default */
+					_in_smooth_takeoff = false;
+				}
+
+			} else {
+				_in_smooth_takeoff = false;
+			}
+
 			// We can only run the control if we're already in-air, have a takeoff setpoint,
 			// or if we're in offboard control.
 			// Otherwise, we should just bail out
-			if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
+			if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
 				// Keep throttle low while still on ground.
 				set_idle_state();
 
-			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL ||
-				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL ||
-				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
+			} else {
 
-
-				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
+				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), _in_smooth_takeoff);
 				_control.updateSetpoint(setpoint);
 				_control.updateConstraints(constraints);
 				_control.generateThrustYawSetpoint(_dt);
@@ -3142,6 +3158,9 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vy = _control.getVelSp()(1);
 				_local_pos_sp.vz = _control.getVelSp()(2);
 				_control.getThrustSetpoint().copyTo(_local_pos_sp.thrust);
+
+				/* Update smooth takeoff */
+				_in_smooth_takeoff = _control.getSmoothTakeoff();
 
 				/* We adjust thrust setpoint based on landdetector */
 				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
@@ -3161,6 +3180,8 @@ MulticopterPositionControl::task_main()
 			    _control_mode.flag_control_climb_rate_enabled ||
 			    _control_mode.flag_control_velocity_enabled ||
 			    _control_mode.flag_control_acceleration_enabled) {
+
+				update_smooth_takeoff();
 
 				do_control();
 

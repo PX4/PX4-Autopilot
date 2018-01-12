@@ -47,6 +47,7 @@
 #include "tasks/FlightTaskManualPosition.hpp"
 #include "tasks/FlightTaskManualPositionSmooth.hpp"
 #include "tasks/FlightTaskManualStabilized.hpp"
+#include "tasks/FlightTaskAutoLine.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 #include "tasks/FlightTaskSport.hpp"
 
@@ -139,6 +140,7 @@ private:
 		FlightTaskManualPositionSmooth position_smooth;
 		FlightTaskOrbit orbit;
 		FlightTaskSport sport;
+		FlightTaskAutoLine autoLine;
 	} _task_union; /**< storage for the currently active task */
 
 	FlightTask *_current_task = nullptr;
