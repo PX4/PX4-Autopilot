@@ -135,7 +135,7 @@ typedef enum VEHICLE_MODE_FLAG
 	VEHICLE_MODE_FLAG_ENUM_END=129, /*  | */
 } VEHICLE_MODE_FLAG;
 
-// the array with an commander_state_t in order to get its textual representation
+// the array with an commander state in order to get its textual representation
 static const char *const main_state_names[commander_state_s::MAIN_STATE_MAX] = {
 	"manual",                      // MAIN_STATE_MANUAL = 0
 	"altctl",                      // MAIN_STATE_ALTCTL = 1
@@ -149,9 +149,10 @@ static const char *const main_state_names[commander_state_s::MAIN_STATE_MAX] = {
 	"rattitude",                   // MAIN_STATE_RATTITUDE = 9
 	"auto:takeoff",                // MAIN_STATE_AUTO_TAKEOFF = 10
 	"auto:land",                   // MAIN_STATE_AUTO_LAND = 11
-	"auto:follow_target"           // MAIN_STATE_AUTO_FOLLOW_TARGET = 12
+	"auto:follow_target",          // MAIN_STATE_AUTO_FOLLOW_TARGET = 12
 };
 
+// the array with an navigation state in order to get its textual representation
 static const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"manual",						// NAVIGATION_STATE_MANUAL = 0
 	"altctl",						// NAVIGATION_STATE_ALTCTL = 1
@@ -173,6 +174,17 @@ static const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX]
 	"auto:takeoff",					// NAVIGATION_STATE_AUTO_TAKEOFF = 17
 	"auto:land",					// NAVIGATION_STATE_AUTO_LAND = 18
 	"auto:follow target",			// NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19
+};
+
+// the array with an arming state in order to get its textual representation
+static const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
+	"init",							// ARMING_STATE_INIT = 0
+	"standby",						// ARMING_STATE_STANDBY = 1
+	"armed",						// ARMING_STATE_ARMED = 2
+	"armed error",					// ARMING_STATE_ARMED_ERROR = 3
+	"standby error",				// ARMING_STATE_STANDBY_ERROR = 4
+	"reboot",						// ARMING_STATE_REBOOT = 5
+	"in air restore",				// ARMING_STATE_IN_AIR_RESTORE = 6
 };
 
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
@@ -696,47 +708,8 @@ void print_status()
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	struct vehicle_status_s state;
 	orb_copy(ORB_ID(vehicle_status), state_sub, &state);
-
-	const char *armed_str;
-
-	switch (status.arming_state) {
-	case vehicle_status_s::ARMING_STATE_INIT:
-		armed_str = "INIT";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_STANDBY:
-		armed_str = "STANDBY";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_ARMED:
-		armed_str = "ARMED";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_ARMED_ERROR:
-		armed_str = "ARMED_ERROR";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR:
-		armed_str = "STANDBY_ERROR";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_REBOOT:
-		armed_str = "REBOOT";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE:
-		armed_str = "IN_AIR_RESTORE";
-		break;
-
-	default:
-		armed_str = "ERR: UNKNOWN STATE";
-		break;
-	}
-
+	warnx("arming: [%s]", arming_state_names[state.arming_state]);
 	px4_close(state_sub);
-
-
-	warnx("arming: %s", armed_str);
 }
 
 static orb_advert_t status_pub;
