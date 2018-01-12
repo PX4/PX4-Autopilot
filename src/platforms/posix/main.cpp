@@ -593,10 +593,19 @@ int main(int argc, char **argv)
 						cursor_position = mystr.length();
 						break;
 
+					} else if (c == '1') { // Home (go to the beginning of the command, Editing key)
+						(void)getchar(); // swallow '~'
+						cursor_position = mystr.length();
+						break;
+
 					} else if (c == 'F') { // End (go to the end of the command)
 						cursor_position = 0;
 						break;
 
+					} else if (c == '4') { // End (go to the end of the command, Editing key)
+						(void)getchar(); // swallow '~'
+						cursor_position = 0;
+						break;
 					}
 
 					if (buf_ptr_read < 0) {
