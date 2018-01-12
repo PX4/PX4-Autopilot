@@ -186,7 +186,7 @@ void LandingTargetEstimator::update()
 		if (!_faulty) {
 			// only publish if both measurements were good
 
-			_target_pose.timestamp = hrt_absolute_time();
+			_target_pose.timestamp = _irlockReport.timestamp;
 
 			float x, xvel, y, yvel, covx, covx_v, covy, covy_v;
 			_kalman_filter_x.getState(x, xvel);
@@ -234,7 +234,7 @@ void LandingTargetEstimator::update()
 		_kalman_filter_x.getInnovations(innov_x, innov_cov_x);
 		_kalman_filter_y.getInnovations(innov_y, innov_cov_y);
 
-		_target_innovations.timestamp = hrt_absolute_time();
+		_target_innovations.timestamp = _irlockReport.timestamp;
 		_target_innovations.innov_x = innov_x;
 		_target_innovations.innov_cov_x = innov_cov_x;
 		_target_innovations.innov_y = innov_y;
