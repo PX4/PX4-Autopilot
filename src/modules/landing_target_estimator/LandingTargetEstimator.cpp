@@ -131,6 +131,10 @@ void LandingTargetEstimator::update()
 		return;
 	}
 
+	if (!PX4_ISFINITE(_irlockReport.pos_y) || !PX4_ISFINITE(_irlockReport.pos_x)) {
+		return;
+	}
+
 	// TODO account for sensor orientation as set by parameter
 	// default orientation has camera x pointing in body y, camera y in body -x
 
