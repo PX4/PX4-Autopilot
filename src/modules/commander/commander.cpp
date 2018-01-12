@@ -135,6 +135,46 @@ typedef enum VEHICLE_MODE_FLAG
 	VEHICLE_MODE_FLAG_ENUM_END=129, /*  | */
 } VEHICLE_MODE_FLAG;
 
+// the array with an commander_state_t in order to get its textual representation
+static const char *const main_state_names[commander_state_s::MAIN_STATE_MAX] = {
+	"manual",                      // MAIN_STATE_MANUAL = 0
+	"altctl",                      // MAIN_STATE_ALTCTL = 1
+	"posctl",                      // MAIN_STATE_POSCTL = 2
+	"auto:mission",                // MAIN_STATE_AUTO_MISSION = 3
+	"auto:loiter",                 // MAIN_STATE_AUTO_LOITER = 4
+	"auto:rtl",                    // MAIN_STATE_AUTO_RTL = 5
+	"acro",                        // MAIN_STATE_ACRO = 6
+	"offboard",                    // MAIN_STATE_OFFBOARD = 7
+	"stab",                        // MAIN_STATE_STAB = 8
+	"rattitude",                   // MAIN_STATE_RATTITUDE = 9
+	"auto:takeoff",                // MAIN_STATE_AUTO_TAKEOFF = 10
+	"auto:land",                   // MAIN_STATE_AUTO_LAND = 11
+	"auto:follow_target"           // MAIN_STATE_AUTO_FOLLOW_TARGET = 12
+};
+
+static const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
+	"manual",						// NAVIGATION_STATE_MANUAL = 0
+	"altctl",						// NAVIGATION_STATE_ALTCTL = 1
+	"posctl",						// NAVIGATION_STATE_POSCTL = 2
+	"auto:mission",					// NAVIGATION_STATE_AUTO_MISSION = 3
+	"auto:loiter",					// NAVIGATION_STATE_AUTO_LOITER = 4
+	"auto:rtl",						// NAVIGATION_STATE_AUTO_RTL = 5
+	"auto:rcrecover",				// NAVIGATION_STATE_AUTO_RCRECOVER = 6
+	"auto:rtgs",					// NAVIGATION_STATE_AUTO_RTGS = 7
+	"auto:land eng fail",			// NAVIGATION_STATE_AUTO_LANDENGFAIL = 8
+	"auto:land gps fail",			// NAVIGATION_STATE_AUTO_LANDGPSFAIL = 9
+	"acro",							// NAVIGATION_STATE_ACRO = 10
+	"unused",						// NAVIGATION_STATE_UNUSED = 11
+	"descend",						// NAVIGATION_STATE_DESCEND = 12
+	"termination",					// NAVIGATION_STATE_TERMINATION = 13
+	"offboard",						// NAVIGATION_STATE_OFFBOARD = 14
+	"stab",							// NAVIGATION_STATE_STAB = 15
+	"rattitude",					// NAVIGATION_STATE_RATTITUDE = 16
+	"auto:takeoff",					// NAVIGATION_STATE_AUTO_TAKEOFF = 17
+	"auto:land",					// NAVIGATION_STATE_AUTO_LAND = 18
+	"auto:follow target",			// NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19
+};
+
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
 /* Decouple update interval and hysteresis counters, all depends on intervals */
@@ -648,8 +688,9 @@ void print_status()
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
 	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
 
-	warnx("main state: %d", internal_state.main_state);
-	warnx("nav state: %d", status.nav_state);
+	warnx("main state: [%s]", main_state_names[internal_state.main_state]);
+	warnx("nav state: [%s]", nav_state_names[status.nav_state]);
+
 
 	/* read all relevant states */
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
