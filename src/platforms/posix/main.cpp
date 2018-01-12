@@ -588,6 +588,15 @@ int main(int argc, char **argv)
 						}
 
 						break;
+
+					} else if (c == 'H') { // Home (go to the beginning of the command)
+						cursor_position = mystr.length();
+						break;
+
+					} else if (c == 'F') { // End (go to the end of the command)
+						cursor_position = 0;
+						break;
+
 					}
 
 					if (buf_ptr_read < 0) {
