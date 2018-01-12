@@ -2,6 +2,7 @@
 #include <mathlib/mathlib.h>
 
 constexpr uint64_t FlightTask::_timeout;
+
 /* First index of empty_setpoint corresponds to time-stamp and requires a finite number. */
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
 
@@ -59,6 +60,15 @@ bool FlightTask::_evaluateVehiclePosition()
 		_position = matrix::Vector3f(&_sub_vehicle_local_position->get().x);
 		_velocity = matrix::Vector3f(&_sub_vehicle_local_position->get().vx);
 		_yaw = _sub_vehicle_local_position->get().yaw;
+
+		/* Check if reference has changed and update. */
+		if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference) {
+			map_projection_init(&_reference_position, _sub_vehicle_local_position->get().ref_lat,
+					    _sub_vehicle_local_position->get().ref_lon);
+			_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
+			_time_stamp_reference = _sub_vehicle_local_position->get().ref_timestamp;
+		}
+
 		return true;
 
 	} else {

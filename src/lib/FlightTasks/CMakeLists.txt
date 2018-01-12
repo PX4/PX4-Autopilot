@@ -32,16 +32,18 @@
 ############################################################################
 
 px4_add_library(flight_tasks
-	tasks/FlightTask.cpp
-	tasks/FlightTaskManual.cpp
-	tasks/FlightTaskManualStabilized.cpp
-	tasks/FlightTaskOrbit.cpp
-	tasks/FlightTaskManualAltitude.cpp
-	tasks/FlightTaskManualAltitudeSmooth.cpp
-	tasks/FlightTaskManualPosition.cpp
-	tasks/FlightTaskManualPositionSmooth.cpp
-	tasks/Utility/ManualSmoothingZ.cpp
-	tasks/Utility/ManualSmoothingXY.cpp
-	SubscriptionArray.cpp
-	FlightTasks.cpp
+tasks/FlightTask.cpp
+		tasks/FlightTaskManual.cpp
+		tasks/FlightTaskManualStabilized.cpp
+		tasks/FlightTaskOrbit.cpp
+		tasks/FlightTaskManualAltitude.cpp
+		tasks/FlightTaskManualAltitudeSmooth.cpp
+		tasks/FlightTaskManualPosition.cpp
+		tasks/FlightTaskManualPositionSmooth.cpp
+		tasks/FlightTaskAuto.cpp
+		tasks/FlightTaskAutoLine.cpp
+		tasks/Utility/ManualSmoothingZ.cpp
+		tasks/Utility/ManualSmoothingXY.cpp
+		SubscriptionArray.cpp
+		FlightTasks.cpp
 )
