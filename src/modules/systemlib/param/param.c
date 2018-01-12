@@ -42,19 +42,21 @@
  */
 
 #include "param.h"
+#include "px4_parameters.h"
 
+#include <crc32.h>
 #include <float.h>
 #include <math.h>
 
+#include <drivers/drv_hrt.h>
+#include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_sem.h>
 #include <px4_shutdown.h>
-#include <drivers/drv_hrt.h>
-#include <systemlib/perf_counter.h>
-
-#include <systemlib/uthash/utarray.h>
 #include <systemlib/bson/tinybson.h>
+#include <systemlib/perf_counter.h>
+#include <systemlib/uthash/utarray.h>
 
 //#define PARAM_NO_ORB ///< if defined, avoid uorb dependency. This disables publication of parameter_update on param change
 //#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
@@ -69,9 +71,6 @@
 #else
 #  include "systemlib/flashparams/flashparams.h"
 #endif
-
-#include "px4_parameters.h"
-#include <crc32.h>
 
 static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 static char *param_user_file = NULL;
