@@ -110,19 +110,19 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 	int fd, ret;
 
 	if (instance) {
-		warnx("driver already started");
+		PX4_INFO("driver already started");
 	}
 
 	if (busid == LL40LS_BUS_PWM) {
 		instance = new LidarLitePWM(LL40LS_DEVICE_PATH_PWM, rotation);
 
 		if (!instance) {
-			warnx("Failed to instantiate LidarLitePWM");
+			PX4_ERR("Failed to instantiate LidarLitePWM");
 			return;
 		}
 
 		if (instance->init() != PX4_OK) {
-			warnx("failed to initialize LidarLitePWM");
+			PX4_ERR("failed to initialize LidarLitePWM");
 			goto fail;
 		}
 
@@ -135,7 +135,7 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 			instance = new LidarLiteI2C(bus_options[i].busnum, bus_options[i].devname, rotation);
 
 			if (!instance) {
-				warnx("Failed to instantiate LidarLiteI2C");
+				PX4_ERR("Failed to instantiate LidarLiteI2C");
 				return;
 			}
 
@@ -143,29 +143,29 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 				break;
 			}
 
-			warnx("failed to initialize LidarLiteI2C on busnum=%u", bus_options[i].busnum);
+			PX4_ERR("failed to initialize LidarLiteI2C on busnum=%u", bus_options[i].busnum);
 			delete instance;
 			instance = nullptr;
 		}
 	}
 
 	if (!instance) {
-		warnx("No LidarLite found");
+		PX4_WARN("No LidarLite found");
 		return;
 	}
 
-	fd = open(instance->get_dev_name(), O_RDONLY);
+	fd = px4_open(instance->get_dev_name(), O_RDONLY);
 
 	if (fd == -1) {
-		warnx("Error opening fd");
+		PX4_ERR("Error opening fd");
 		goto fail;
 	}
 
-	ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-	close(fd);
+	ret = px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
+	px4_close(fd);
 
 	if (ret < 0) {
-		warnx("pollrate fail");
+		PX4_ERR("pollrate fail");
 		goto fail;
 	}
 
@@ -198,76 +198,70 @@ test()
 	int ret;
 
 	if (!instance) {
-		warnx("No ll40ls driver running");
-		errx(1, "FAIL");
+		PX4_ERR("No ll40ls driver running");
+		return;
 	}
 
-	int fd = open(instance->get_dev_name(), O_RDONLY);
+	int fd = px4_open(instance->get_dev_name(), O_RDONLY);
 
 	if (fd < 0) {
-		warnx("Error opening fd");
-		errx(1, "FAIL");
+		PX4_ERR("Error opening fd");
+		return;
 	}
 
 	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
+	sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		warnx("immediate read failed");
-		goto error;
+		PX4_ERR("immediate read failed");
+		return;
 	}
 
-	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.current_distance);
-	warnx("time:        %lld", report.timestamp);
+	PX4_INFO("single read");
+	PX4_INFO("measurement: %0.2f m", (double)report.current_distance);
+	PX4_INFO("time:        %lld", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
-	if (PX4_OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		warnx("failed to set 2Hz poll rate");
-		goto error;
+	if (PX4_OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+		PX4_ERR("failed to set 2Hz poll rate");
+		return;
 	}
 
 	/* read the sensor 5 times and report each value */
 	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
+		px4_pollfd_struct_t fds;
 
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
+		ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out waiting for sensor data");
-			goto error;
+			PX4_WARN("timed out waiting for sensor data");
+			return;
 		}
 
 		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
+		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warnx("periodic read failed");
-			goto error;
+			PX4_WARN("periodic read failed");
+			return;
 		}
 
-		warnx("periodic read %u", i);
-		warnx("valid %u", (float)report.current_distance > report.min_distance
-		      && (float)report.current_distance < report.max_distance ? 1 : 0);
-		warnx("measurement: %0.3f m", (double)report.current_distance);
-		warnx("time:        %lld", report.timestamp);
+		PX4_INFO("periodic read %u", i);
+		PX4_INFO("valid %u", (float)report.current_distance > report.min_distance
+			 && (float)report.current_distance < report.max_distance ? 1 : 0);
+		PX4_INFO("measurement: %0.3f m", (double)report.current_distance);
+		PX4_INFO("time:        %lld", report.timestamp);
 	}
 
 	/* reset the sensor polling to default rate */
-	if (PX4_OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		warnx("failed to set default poll rate");
-		goto error;
+	if (PX4_OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+		PX4_WARN("failed to set default poll rate");
 	}
 
-	close(fd);
-	errx(0, "PASS");
-
-error:
-	close(fd);
-	errx(1, "FAIL");
+	px4_close(fd);
 }
 
 /**
@@ -277,29 +271,29 @@ void
 reset()
 {
 	if (!instance) {
-		warnx("No ll40ls driver running");
+		PX4_WARN("No ll40ls driver running");
 		return;
 	}
 
-	int fd = open(instance->get_dev_name(), O_RDONLY);
+	int fd = px4_open(instance->get_dev_name(), O_RDONLY);
 
 	if (fd < 0) {
-		warnx("Error opening fd");
+		PX4_ERR("Error opening fd");
 		return;
 	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		warnx("driver reset failed");
+	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
+		PX4_ERR("driver reset failed");
 		goto error;
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		warnx("driver poll restart failed");
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		PX4_ERR("driver poll restart failed");
 		goto error;
 	}
 
 error:
-	close(fd);
+	px4_close(fd);
 }
 
 /**
@@ -335,13 +329,13 @@ regdump()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'stop', 'info', 'test', 'reset', 'info' or 'regdump' [i2c|pwm]");
-	warnx("options for I2C:");
-	warnx("    -X only external bus");
+	PX4_INFO("missing command: try 'start', 'stop', 'info', 'test', 'reset', 'info' or 'regdump' [i2c|pwm]");
+	PX4_INFO("options for I2C:");
+	PX4_INFO("    -X only external bus");
 #ifdef PX4_I2C_BUS_ONBOARD
-	warnx("    -I only internal bus");
+	PX4_INFO("    -I only internal bus");
 #endif
-	warnx("E.g. ll40ls start i2c -R 0");
+	PX4_INFO("E.g. ll40ls start i2c -R 0");
 }
 
 } // namespace
@@ -351,7 +345,7 @@ ll40ls_main(int argc, char *argv[])
 {
 	int ch;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	enum LL40LS_BUS busid = LL40LS_BUS_I2C_ALL;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 

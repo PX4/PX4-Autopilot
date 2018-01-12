@@ -159,7 +159,6 @@ void LidarLitePWM::cycle()
 		   (worker_t)&LidarLitePWM::cycle_trampoline,
 		   this,
 		   getMeasureTicks());
-	return;
 }
 
 int LidarLitePWM::measure()
@@ -201,7 +200,7 @@ int LidarLitePWM::measure()
 	return PX4_OK;
 }
 
-ssize_t LidarLitePWM::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t LidarLitePWM::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
@@ -243,7 +242,7 @@ ssize_t LidarLitePWM::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-LidarLitePWM::ioctl(struct file *filp, int cmd, unsigned long arg)
+LidarLitePWM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	/* no custom ioctls implemented for now */

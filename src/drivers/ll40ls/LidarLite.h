@@ -62,7 +62,7 @@ public:
 
 	virtual int init() = 0;
 
-	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	virtual void start() = 0;
 
