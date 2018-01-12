@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,23 +41,9 @@
  * @author David Sidrane
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
 #include <px4_module.h>
 #include <px4_posix.h>
-#include <px4_tasks.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <systemlib/err.h>
-#include <queue.h>
-#include <string.h>
-#include <semaphore.h>
-#include <unistd.h>
 #include <platforms/px4_getopt.h>
-#include <drivers/drv_hrt.h>
 
 #include "dataman.h"
 #include <systemlib/param/param.h>
