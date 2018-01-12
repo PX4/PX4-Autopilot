@@ -502,9 +502,12 @@ int main(int argc, char **argv)
 
 	if (!daemon_mode) {
 		string mystr;
+		string add_string;
 		string string_buffer[CMD_BUFF_SIZE];
 		int buf_ptr_write = 0;
 		int buf_ptr_read = 0;
+		uint8_t cursor_position =
+			0; // position of the cursor from right to left (0: all the way to the right, mystr.length: all the way to the left)
 
 		print_prompt();
 
@@ -519,15 +522,13 @@ int main(int argc, char **argv)
 		while (!_ExitFlag) {
 
 			char c = getchar();
+			add_string = ""; // reset string to add
 
 			switch (c) {
 			case 127:	// backslash
-				if (mystr.length() > 0) {
-					mystr.pop_back();
-					printf("%c[2K", 27);	// clear line
-					cout << (char)13;
-					print_prompt();
-					cout << mystr;
+				if (mystr.length() - cursor_position > 0) {
+					mystr.erase(mystr.length() - cursor_position - 1, 1);
+
 				}
 
 				break;
@@ -552,7 +553,9 @@ int main(int argc, char **argv)
 
 				cout << endl;
 				process_line(mystr, false);
+				// reset string and cursor position
 				mystr = "";
+				cursor_position = 0;
 				buf_ptr_read = buf_ptr_write;
 
 				print_prompt();
@@ -562,18 +565,29 @@ int main(int argc, char **argv)
 					c = getchar();	// skip first one, does not have the info
 					c = getchar();
 
-					// arrow up
-					if (c == 'A') {
+					if (c == 'A') { // arrow up
 						buf_ptr_read--;
-						// arrow down
 
-					} else if (c == 'B') {
+					} else if (c == 'B') { // arrow down
 						if (buf_ptr_read < buf_ptr_write) {
 							buf_ptr_read++;
 						}
 
-					} else {
-						// TODO: Support editing current line
+					} else if (c == 'C') { // arrow right
+						if (cursor_position > 0) {
+							printf("\033[1C");
+							cursor_position--;
+						}
+
+						break;
+
+					} else if (c == 'D') { // arrow left
+						if (cursor_position < mystr.length()) {
+							printf("\033[1D");
+							cursor_position++;
+						}
+
+						break;
 					}
 
 					if (buf_ptr_read < 0) {
@@ -581,22 +595,32 @@ int main(int argc, char **argv)
 					}
 
 					string saved_cmd = string_buffer[buf_ptr_read];
-					printf("%c[2K", 27);
-					cout << (char)13;
 					mystr = saved_cmd;
-					print_prompt();
-					cout << mystr;
+					cursor_position = 0; // move cursor to end of line
+
 					break;
 				}
 
 			default:	// any other input
 				if (c > 3) {
-					cout << c;
-					mystr += c;
+					add_string += c;
 				}
 
 				break;
 			}
+
+			// reprint prompt with mystr
+			mystr.insert(mystr.length() - cursor_position, add_string);
+			printf("%c[2K", 27);
+			cout << (char)13;
+			print_prompt();
+			cout << mystr;
+
+			// Move the cursor to its position
+			if (cursor_position > 0) {
+				printf("\033[%dD", cursor_position);
+			}
+
 		}
 
 	} else {
