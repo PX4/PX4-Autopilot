@@ -131,7 +131,7 @@ protected:
 	void _setYawspeedSetpoint(const float &yawspeed) { _vehicle_local_position_setpoint.yawspeed = yawspeed; }
 
 	/* Put the thrust setpoint produced by the task into the setpoint message */
-	void _setThrustSetpoint(const matrix::Vector3f &thrust_setpoint) { thrust_setpoint.copyTo(_vehicle_local_position_setpoint.thr);}
+	void _setThrustSetpoint(const matrix::Vector3f &thrust_setpoint) { thrust_setpoint.copyTo(_vehicle_local_position_setpoint.thrust); }
 
 private:
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
