@@ -820,20 +820,6 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 
-	if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
-		_flight_tasks.switchTask(6); //smooth altitude
-
-	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
-		_flight_tasks.switchTask(7); //sooth position
-
-	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
-		_flight_tasks.switchTask(5);
-
-	} else {
-		// not supported yet.
-		_flight_tasks.switchTask(-1);
-	}
-
 	orb_check(_manual_sub, &updated);
 
 	if (updated) {
@@ -3239,6 +3225,22 @@ MulticopterPositionControl::task_main()
 
 		if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
 			_alt_hold_engaged = false;
+		}
+
+		if (TEST_FLIGHTTASK) {
+			if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
+				_flight_tasks.switchTask(6); //smooth altitude
+
+			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
+				_flight_tasks.switchTask(7); //sooth position
+
+			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
+				_flight_tasks.switchTask(5);
+
+			} else {
+				// not supported yet.
+				_flight_tasks.switchTask(-1);
+			}
 		}
 
 		if (_flight_tasks.isAnyTaskActive() && TEST_FLIGHTTASK) {
