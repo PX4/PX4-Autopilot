@@ -71,6 +71,7 @@ PositionControl::PositionControl()
 	_setParams();
 };
 
+
 void PositionControl::updateState(const struct vehicle_local_position_s state, const Vector3f &vel_dot)
 {
 	_pos = Vector3f(&state.x);
@@ -108,7 +109,23 @@ void PositionControl::generateThrustYawSetpoint(const float &dt)
 	 */
 	if (!_skipController) {
 		_positionController();
+
+		if (_smooth_takeoff) {
+			_setTakeoffVelocity(dt);
+
+		}  else {
+			_takeoff_vel_sp = 0.5f; // Reset to pointing downwards.
+		}
+
 		_velocityController(dt);
+
+	} else {
+		if (_smooth_takeoff) {
+			_setTakeoffThrust(dt);
+
+		} else {
+			_takeoff_vel_sp = 0.5f; // Reset to pointing downwards.
+		}
 	}
 }
 
@@ -118,6 +135,13 @@ void PositionControl::_interfaceMapping()
 	 * NAN-setpoints are of no interest and
 	 * do not require control.
 	 */
+
+	if (PX4_ISFINITE(_pos_sp(2)) && _smooth_takeoff) {
+		_takeoff_max_speed = 0.6f;
+
+	} else {
+		_takeoff_max_speed = _VelMaxZ[0];
+	}
 
 	/* Loop through x,y and z components of all setpoints. */
 	for (int i = 0; i <= 2; i++) {
@@ -176,11 +200,11 @@ void PositionControl::_positionController()
 	_vel_sp = (_pos_sp - _pos).emult(Pp) + _vel_sp;
 
 	/* Make sure velocity setpoint is constrained in all directions (xyz). */
-	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
+	Vector2f vel_sp_xy(&_vel_sp(0));
 
-	if (vel_norm_xy > _VelMaxXY) {
-		_vel_sp(0) = _vel_sp(0) * _VelMaxXY / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _VelMaxXY / vel_norm_xy;
+	if (vel_sp_xy.length() >= _VelMaxXY) {
+		_vel_sp(0) = _vel_sp(0) * _VelMaxXY / vel_sp_xy.length();
+		_vel_sp(1) = _vel_sp(1) * _VelMaxXY / vel_sp_xy.length();
 	}
 
 	/* Saturate velocity in D-direction */
@@ -309,6 +333,33 @@ void PositionControl::_updateParams()
 		orb_copy(ORB_ID(parameter_update), _parameter_sub, &param_update);
 		_setParams();
 	}
+}
+
+void PositionControl::_setTakeoffVelocity(const float dt)
+{
+
+	/* Limit velocity setpoint to maximum takeoff velocity */
+	_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_max_speed);
+	/* Smooth takeoff is achieved once target velocity is reached. (NED frame). */
+	_smooth_takeoff = _takeoff_vel_sp >= _vel_sp(2);
+	/* ramp vertical velocity limit up to takeoff speed */
+	_takeoff_vel_sp += _vel_sp(2) * dt / _TakeoffRampTime;
+	/* limit vertical velocity to the current ramp value */
+	_vel_sp(2) = math::max(_vel_sp(2), _takeoff_vel_sp);
+
+}
+
+void PositionControl::_setTakeoffThrust(const float dt)
+{
+
+	/* Smooth takeoff is achieved once target velocity is reached. (NED frame). */
+	_smooth_takeoff = _takeoff_vel_sp >= _thr_sp(2);
+	/* ramp vertical velocity limit up to takeoff speed */
+	_takeoff_vel_sp += _thr_sp(2) * dt / _TakeoffRampTime;
+	/* limit vertical velocity to the current ramp value */
+	_thr_sp(2) = math::max(_thr_sp(2), _takeoff_vel_sp);
+
+
 }
 
 void PositionControl::_setParams()

@@ -64,7 +64,8 @@ public:
 
 	~PositionControl() {};
 
-	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot);
+	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot,
+			 const bool smooth_takeoff);
 	void updateSetpoint(struct vehicle_local_position_setpoint_s setpoint);
 	void updateConstraints(const Controller::Constraints &constraints);
 	void generateThrustYawSetpoint(const float &dt);
@@ -74,6 +75,7 @@ public:
 	float getYawspeedSetpoint() {return _yawspeed_sp;}
 	matrix::Vector3f getVelSp() {return _vel_sp;}
 	matrix::Vector3f getPosSp() {return _pos_sp;}
+	bool getSmoothTakeoff() {return _smooth_takeoff;};
 
 private:
 
@@ -91,6 +93,9 @@ private:
 	matrix::Vector3f _thr_sp{};
 	float _yaw_sp{};
 	float _yawspeed_sp{};
+	float _takeoff_vel_sp = 0.5f; // starts positive (NED frame)
+	float _takeoff_max_speed = 1.0f;
+	bool _smooth_takeoff{false};
 
 	/* Other variables */
 	matrix::Vector3f _thr_int{};
@@ -127,6 +132,8 @@ private:
 	};
 	Limits _ThrustLimit;
 	float _ThrHover{0.5f};
+
+	float _ThrLimit[2]; //index 0: max, index 1: min
 	bool _skipController{false};
 
 	/* Helper methods */
@@ -135,4 +142,6 @@ private:
 	void _velocityController(const float &dt);
 	void _updateParams();
 	void _setParams();
+	void _setTakeoffVelocity(const float dt);
+	void _setTakeoffThrust(const float dt);
 };
