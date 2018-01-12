@@ -47,7 +47,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
-
+#include <lib/geo/geo.h>
 #include "../SubscriptionArray.hpp"
 
 
@@ -109,11 +109,16 @@ protected:
 	hrt_abstime _time_stamp_activate = 0; /**< time stamp when task was activated */
 	hrt_abstime _time_stamp_current = 0; /**< time stamp at the beginning of the current task update */
 	hrt_abstime _time_stamp_last = 0; /**< time stamp when task was last updated */
+	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update */
 
 	/* Current vehicle position */
 	matrix::Vector3f _position; /**< current vehicle position */
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f;
+
+	/* Current reference position */
+	map_projection_reference_s _reference_position{}; /**< structure used to project lat/lon setpoint into local frame */
+	float _reference_altitude = 0.0f;  /**< altitude relative to ground */
 
 	/* Put the position vector produced by the task into the setpoint message */
 	void _setPositionSetpoint(const matrix::Vector3f &position_setpoint) { position_setpoint.copyToRaw(&_vehicle_local_position_setpoint.x); }

@@ -64,7 +64,7 @@ PositionControl::PositionControl()
 	_Pvxy_h = param_find("MPC_XY_VEL_P");
 	_Ivxy_h = param_find("MPC_XY_VEL_I");
 	_Dvxy_h = param_find("MPC_XY_VEL_D");
-	_VelMaxXY = param_find("MPC_XY_VEL_MAX");
+	_VelMaxXY_h = param_find("MPC_XY_VEL_MAX");
 	_VelMaxZdown_h = param_find("MPC_Z_VEL_MAX_DN");
 	_VelMaxZup_h = param_find("MPC_Z_VEL_MAX_UP");
 	_ThrHover_h = param_find("MPC_THR_HOVER");
@@ -102,6 +102,9 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 
 	if (PX4_ISFINITE(setpoint.thr[0]) && PX4_ISFINITE(setpoint.thr[1]) && PX4_ISFINITE(setpoint.thr[2])) {
 		_skipController = true;
+		_pos_sp.zero();
+		_vel_sp.zero();
+		_acc_sp.zero();
 	}
 }
 
@@ -192,16 +195,13 @@ void PositionControl::_positionController()
 	/* Generate desired velocity setpoint */
 
 	/* P-controller */
-	_vel_sp = (_pos_sp - _pos).emult(Pp) + _vel_sp;
+	Vector3f vel_sp_position = (_pos_sp - _pos).emult(Pp);
+	_vel_sp = vel_sp_position + _vel_sp;
 
-	/* Make sure velocity setpoint is constrained in all directions (xyz). */
-	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
-
-	if (vel_norm_xy > _VelMaxXY) {
-		_vel_sp(0) = _vel_sp(0) * _VelMaxXY / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _VelMaxXY / vel_norm_xy;
-	}
-
+	Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(&vel_sp_position(0)), Vector2f(&(_vel_sp - vel_sp_position)(0)),
+			     _VelMaxXY);
+	_vel_sp(0) = vel_sp_xy(0);
+	_vel_sp(1) = vel_sp_xy(1);
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ[0], _VelMaxZ[1]);
 }
 
@@ -238,11 +238,9 @@ void PositionControl::_velocityController(const float &dt)
 	 */
 
 	if (matrix::Vector2f(&_thr_sp(0)).length() > FLT_EPSILON) {
-
 		float thr_xy_max = fabsf(thr_sp(2)) * tanf(tilt_max);
 		_thr_sp(0) *= thr_xy_max;
 		_thr_sp(1) *= thr_xy_max;
-
 	}
 
 	_thr_sp += thr_sp;
@@ -270,8 +268,6 @@ void PositionControl::_velocityController(const float &dt)
 	if (!stop_I[1]) {
 		_thr_int(2) += vel_err(2) * Iv(2) * dt;
 	}
-
-
 }
 
 void PositionControl::_yawController(const float &dt)

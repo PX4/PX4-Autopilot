@@ -49,4 +49,5 @@ namespace ControlMath
 matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_max);
 void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], const float d[2]);
 vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float &yaw_sp);
+matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float max);
 }
