@@ -894,7 +894,7 @@ void Ekf2::run()
 				float variance[2];
 				variance[0] = landing_target_pose.cov_vx_rel;
 				variance[1] = landing_target_pose.cov_vy_rel;
-				_ekf.setAuxVelData(now, velocity, variance);
+				_ekf.setAuxVelData(landing_target_pose.timestamp, velocity, variance);
 			}
 		}
 
