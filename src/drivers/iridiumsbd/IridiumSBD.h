@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -132,7 +132,6 @@ public:
 	satcom_state new_state = SATCOM_STATE_STANDBY;
 
 	pthread_mutex_t tx_buf_mutex = pthread_mutex_t();
-	bool verbose = false;
 
 	/*
 	 * Constructor
