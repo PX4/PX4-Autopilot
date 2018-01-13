@@ -36,8 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	STACK_MAIN 1200
 	SRCS
-		mc_pos_control_main.cpp
+		MulticopterPositionControl.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

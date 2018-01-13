@@ -35,8 +35,7 @@ px4_add_module(
 	MAIN mc_pos_control_tests
 	SRCS
 		mc_pos_control_tests.cpp
-		../mc_pos_control_main.cpp
+		../MulticopterPositionControl.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
