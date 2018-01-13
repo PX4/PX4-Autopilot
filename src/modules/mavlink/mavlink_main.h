@@ -134,14 +134,6 @@ public:
 
 	static int		get_status_all_instances();
 
-	/**
-	 * Set all instances to verbose mode
-	 *
-	 * This is primarily intended for analysis and
-	 * not intended for normal operation
-	 */
-	static int		set_verbose_all_instances(bool enabled);
-
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
@@ -272,13 +264,6 @@ public:
 	 * Set communication protocol for this mavlink instance
 	 */
 	void 			set_protocol(Protocol p) { _protocol = p; }
-
-	/**
-	 * Set verbose mode
-	 */
-	void			set_verbose(bool v);
-
-	bool			get_verbose() const { return _verbose; }
 
 	/**
 	 * Get the manual input generation mode
@@ -449,8 +434,6 @@ public:
 
 	bool			accepting_commands() { return true; /* non-trivial side effects ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG));*/ }
 
-	bool			verbose() { return _verbose; }
-
 	int			get_data_rate()		{ return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
 
@@ -524,7 +507,6 @@ private:
 
 	pthread_t		_receive_thread;
 
-	bool			_verbose;
 	bool			_forwarding_on;
 	bool			_ftp_on;
 #ifndef __PX4_QURT

@@ -219,7 +219,6 @@ Mavlink::Mavlink() :
 	_logbuffer(5, sizeof(mavlink_log_s)),
 	_total_counter(0),
 	_receive_thread{},
-	_verbose(false),
 	_forwarding_on(false),
 	_ftp_on(false),
 	_uart_fd(-1),
@@ -489,32 +488,6 @@ Mavlink::get_status_all_instances()
 
 		printf("\ninstance #%u:\n", iterations);
 		inst->display_status();
-
-		/* move on */
-		inst = inst->next;
-		iterations++;
-	}
-
-	/* return an error if there are no instances */
-	return (iterations == 0);
-}
-
-void
-Mavlink::set_verbose(bool v)
-{
-	_verbose = v;
-}
-
-int
-Mavlink::set_verbose_all_instances(bool enabled)
-{
-	Mavlink *inst = ::_mavlink_instances;
-
-	unsigned iterations = 0;
-
-	while (inst != nullptr) {
-
-		inst->set_verbose(enabled);
 
 		/* move on */
 		inst = inst->next;
@@ -1287,6 +1260,7 @@ void
 Mavlink::send_statustext_critical(const char *string)
 {
 	mavlink_log_critical(&_mavlink_log_pub, string);
+	PX4_ERR(string);
 }
 
 void
@@ -1787,7 +1761,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, nullptr, 10);
@@ -1899,10 +1873,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'f':
 			_forwarding_on = true;
-			break;
-
-		case 'v':
-			_verbose = true;
 			break;
 
 		case 'w':
@@ -2802,11 +2772,9 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verbose output", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("verbose", "Set verbose mode for all running instances");
 	PRINT_MODULE_USAGE_ARG("on|off", "Enable/disable", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
@@ -2846,15 +2814,6 @@ int mavlink_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "status")) {
 		return Mavlink::get_status_all_instances();
-
-	} else if (!strcmp(argv[1], "verbose")) {
-		bool on = true;
-
-		if (argc > 2 && !strcmp(argv[2], "off")) {
-			on = false;
-		}
-
-		return Mavlink::set_verbose_all_instances(on);
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);

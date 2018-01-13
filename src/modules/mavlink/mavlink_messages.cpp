@@ -469,17 +469,13 @@ protected:
 		if (_cmd_sub->update_if_changed(&cmd)) {
 
 			if (!cmd.from_external) {
-				if (_mavlink->verbose()) {
-					PX4_INFO("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
-				}
+				PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 
 				MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
 				sent = true;
 
 			} else {
-				if (_mavlink->verbose()) {
-					PX4_INFO("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
-				}
+				PX4_DEBUG("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 			}
 		}
 
