@@ -130,17 +130,14 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 			id = math::min(id, 0.0f);
 		}
 
-		_integrator += id * _k_i;
+		/* add and constrain */
+		_integrator = math::constrain(_integrator + id * _k_i, -_integrator_max, _integrator_max);
 	}
-
-	/* integrator limit */
-	//xxx: until start detection is available: integral part in control signal is limited here
-	float integrator_constrained = math::constrain(_integrator, -_integrator_max, _integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
 	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler +
 		       _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler
-		       + integrator_constrained;  //scaler is proportional to 1/airspeed
+		       + _integrator;  //scaler is proportional to 1/airspeed
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
