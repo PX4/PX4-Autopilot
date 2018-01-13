@@ -331,6 +331,7 @@ GroundRoverPositionControl::task_main()
 {
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
@@ -340,6 +341,7 @@ GroundRoverPositionControl::task_main()
 
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
+	orb_set_interval(_local_pos_sub, 20);
 
 	/* abort on a nonzero return value from the parameter init */
 	if (parameters_update()) {
@@ -349,13 +351,11 @@ GroundRoverPositionControl::task_main()
 	}
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[2];
+	px4_pollfd_struct_t fds[1];
 
 	/* Setup of loop */
-	fds[0].fd = _params_sub;
+	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _global_pos_sub;
-	fds[1].events = POLLIN;
 
 	_task_running = true;
 
@@ -389,30 +389,31 @@ GroundRoverPositionControl::task_main()
 		}
 
 		/* only run controller if position changed */
-		if (fds[1].revents & POLLIN) {
+		if (fds[0].revents & POLLIN) {
 			perf_begin(_loop_perf);
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 
 			// handle estimator reset events. we only adjust setpoins for manual modes
 			if (_control_mode.flag_control_manual_enabled) {
 
 				// adjust navigation waypoints in position control mode
 				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
-				    && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
+				    && _local_pos.xy_reset_counter != _pos_reset_counter) {
 				}
 			}
 
 			// update the reset counters in any case
-			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
+			_pos_reset_counter = _local_pos.xy_reset_counter;
 
 			manual_control_setpoint_poll();
 			position_setpoint_triplet_poll();
 			_sub_attitude.update();
 			_sub_sensors.update();
 
-			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
+			math::Vector<3> ground_speed(_local_pos.vx, _local_pos.vy, _local_pos.vz);
 			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
 
 			/*

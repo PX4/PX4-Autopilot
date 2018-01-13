@@ -1007,24 +1007,15 @@ void Ekf2::run()
 					map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &global_pos.lat, &global_pos.lon);
 				}
 
-				global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
-
 				global_pos.alt = -lpos.z + lpos.ref_alt; // Altitude AMSL in meters
-
-				// global altitude has opposite sign of local down position
-				global_pos.delta_alt = -lpos.delta_z;
 
 				global_pos.vel_n = lpos.vx; // Ground north velocity, m/s
 				global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
 				global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
 
-				global_pos.pos_d_deriv = lpos.z_deriv; // vertical position time derivative, m/s
-
 				global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
 
 				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
-				global_pos.evh = lpos.evh;
-				global_pos.evv = lpos.evv;
 
 				global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
 
