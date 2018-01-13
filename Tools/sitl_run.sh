@@ -43,8 +43,8 @@ fi
 
 if [ "$model" == "" ] || [ "$model" == "none" ]
 then
-	echo "empty model, setting iris as default"
-	model="iris"
+	echo "empty model, setting sd5 as default"
+	model="sd5"
 fi
 
 # check replay mode
