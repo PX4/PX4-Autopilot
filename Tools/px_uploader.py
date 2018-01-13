@@ -496,7 +496,7 @@ class uploader(object):
         # Prevent uploads where the maximum image size of the board config is smaller than the flash
         # of the board. This is a hint the user chose the wrong config and will lack features
         # for this particular board.
-        if self.fw_maxsize > fw.property('image_maxsize'):
+        if self.fw_maxsize < fw.property('image_maxsize'):
             raise RuntimeError("Board can accept larger flash images (%u bytes) than board config (%u bytes). Please use the correct board configuration to avoid lacking critical functionality."
                 % (self.fw_maxsize, fw.property('image_maxsize')))
 
