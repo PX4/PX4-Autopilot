@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -2368,9 +2368,6 @@ MavlinkReceiver::receive_thread(void *arg)
 	ssize_t nread = 0;
 	hrt_abstime last_send_update = 0;
 
-	bool verbose = _mavlink->get_verbose();
-	_mission_manager.set_verbose(verbose);
-
 	while (!_mavlink->_task_should_exit) {
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == SERIAL) {
@@ -2475,11 +2472,6 @@ MavlinkReceiver::receive_thread(void *arg)
 
 			_mavlink_log_handler.send(t);
 			last_send_update = t;
-
-			if (verbose != _mavlink->get_verbose()) {
-				verbose = !verbose;
-				_mission_manager.set_verbose(verbose);
-			}
 		}
 
 	}

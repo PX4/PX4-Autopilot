@@ -87,8 +87,6 @@ public:
 
 	void handle_message(const mavlink_message_t *msg);
 
-	void set_verbose(bool v) { _verbose = v; }
-
 	void check_active_mission(void);
 
 private:
@@ -134,8 +132,6 @@ private:
 	bool			_geofence_locked{false};		///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
 
 	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
-
-	bool _verbose;
 
 	Mavlink *_mavlink;
 
