@@ -257,56 +257,54 @@ void IridiumSBD::standby_loop(void)
 	if (test_pending) {
 		test_pending = false;
 
-		if (!strcmp(test_command, "s")) {
-			write(0, "kreczmer", 8);
-
-		} else if (!strcmp(test_command, "ss")) {
-			write(0, "kreczmerkreczmerkreczmerkreczmerkreczmerkreczmerkreczmerkreczmerkreczmerkreczmerkreczmerkreczmer!!!!!!", 100);
-
-		} else if (!strcmp(test_command, "read")) {
-			rx_session_pending = true;
-
-		} else {
-			test_timer = hrt_absolute_time();
-			start_test();
-			return;
-		}
-	}
-
-	// check for incoming SBDRING, handled inside read_at_command()
-	read_at_command();
-
-	if (param_read_interval_s != 0 && ((int64_t)(hrt_absolute_time() - last_read_time) > param_read_interval_s * 1000000)) {
+	} else if (!strcmp(test_command, "read")) {
 		rx_session_pending = true;
+
+	} else {
+		test_timer = hrt_absolute_time();
+		start_test();
+		return;
 	}
+}
 
-	// write the MO buffer when the message stacking time expires
-	if ((tx_buf_write_idx > 0) && (hrt_absolute_time() - last_write_time > SATCOM_TX_STACKING_TIME)) {
-		write_tx_buf();
-	}
+// check for incoming SBDRING, handled inside read_at_command()
+read_at_command();
 
-	// do not start an SBD session if there is still data in the MT buffer, or it will be lost
-	if ((tx_session_pending || rx_session_pending) && !rx_read_pending) {
-		if (hrt_absolute_time() - last_signal_check < SATCOM_SIGNAL_REFRESH_DELAY && signal_quality > 0) {
-			// clear the MO buffer if we only want to read a message
-			if (rx_session_pending && !tx_session_pending) {
-				if (clear_mo_buffer()) {
-					start_sbd_session();
-				}
+if (param_read_interval_s != 0 && ((int64_t)(hrt_absolute_time() - last_read_time) > param_read_interval_s * 1000000))
+{
+	rx_session_pending = true;
+}
 
-			} else {
+// write the MO buffer when the message stacking time expires
+if ((tx_buf_write_idx > 0) && (hrt_absolute_time() - last_write_time > SATCOM_TX_STACKING_TIME))
+{
+	write_tx_buf();
+}
+
+// do not start an SBD session if there is still data in the MT buffer, or it will be lost
+if ((tx_session_pending || rx_session_pending) && !rx_read_pending)
+{
+	if (hrt_absolute_time() - last_signal_check < SATCOM_SIGNAL_REFRESH_DELAY && signal_quality > 0) {
+		// clear the MO buffer if we only want to read a message
+		if (rx_session_pending && !tx_session_pending) {
+			if (clear_mo_buffer()) {
 				start_sbd_session();
 			}
 
 		} else {
-			start_csq();
+			start_sbd_session();
 		}
-	}
 
-	// only read the MT buffer if the higher layer (mavlink app) read the previous message
-	if (rx_read_pending && (rx_msg_read_idx == rx_msg_end_idx)) {
-		read_rx_buf();
+	} else {
+		start_csq();
 	}
+}
+
+// only read the MT buffer if the higher layer (mavlink app) read the previous message
+if (rx_read_pending && (rx_msg_read_idx == rx_msg_end_idx))
+{
+	read_rx_buf();
+}
 }
 
 void IridiumSBD::csq_loop(void)
