@@ -411,7 +411,7 @@ private:
 
 	void update_smooth_takeoff();
 
-	void set_takeoff_velocity(float &vel_sp_z, const float dt);
+	void set_takeoff_velocity(float &vel_sp_z);
 
 	void set_idle_state();
 
@@ -2610,13 +2610,13 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
-	if (!_control_mode.flag_control_auto_enabled && !_in_smooth_takeoff) {
+	if (!_control_mode.flag_control_auto_enabled && !_in_smooth_takeoff && !_flight_tasks.isAnyTaskActive()) {
 		vel_sp_slewrate();
 	}
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_smooth_takeoff) {
-		set_takeoff_velocity(_vel_sp(2), dt);
+		set_takeoff_velocity(_vel_sp(2));
 	}
 
 	/* make sure velocity setpoint is constrained in all directions (xyz) */
@@ -2937,6 +2937,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
+
 		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
 		float yaw_offs = _wrap_pi(yaw_target - _yaw);
 
@@ -3258,7 +3259,7 @@ MulticopterPositionControl::task_main()
 			/* For takeoff we adjust the velocity setpoint in the z-direction */
 			if (_in_smooth_takeoff) {
 				/* Adjust velocity setpoint in z if we are in smooth takeoff */
-				set_takeoff_velocity(setpoint.vz, dt);
+				set_takeoff_velocity(setpoint.vz);
 			}
 
 			/* this logic is only temporary.
@@ -3294,7 +3295,7 @@ MulticopterPositionControl::task_main()
 				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
 				_control.updateSetpoint(setpoint);
 				_control.updateConstraints(constraints);
-				_control.generateThrustYawSetpoint(dt);
+				_control.generateThrustYawSetpoint(_dt);
 
 				/* fill local position, velocity and thrust setpoint */
 				_local_pos_sp.timestamp = hrt_absolute_time();
@@ -3343,7 +3344,7 @@ MulticopterPositionControl::task_main()
 			    || _control_mode.flag_control_velocity_enabled
 			    || _control_mode.flag_control_acceleration_enabled) {
 
-				do_control(dt);
+				do_control();
 
 				/* fill local position, velocity and thrust setpoint */
 				_local_pos_sp.timestamp = hrt_absolute_time();
@@ -3415,11 +3416,11 @@ MulticopterPositionControl::task_main()
 }
 
 void
-MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z, const float dt)
+MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
 {
 	_in_smooth_takeoff = _takeoff_vel_limit < -vel_sp_z;
 	/* ramp vertical velocity limit up to takeoff speed */
-	_takeoff_vel_limit += -vel_sp_z * dt / _takeoff_ramp_time.get();
+	_takeoff_vel_limit += -vel_sp_z * _dt / _takeoff_ramp_time.get();
 	/* limit vertical velocity to the current ramp value */
 	vel_sp_z = math::max(vel_sp_z, -_takeoff_vel_limit);
 }
