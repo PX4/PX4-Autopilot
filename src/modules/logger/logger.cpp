@@ -594,6 +594,7 @@ void Logger::add_default_topics()
 	add_topic("home_position");
 	add_topic("input_rc", 200);
 	add_topic("manual_control_setpoint", 200);
+	add_topic("mc_att_ctrl_status", 20);
 	add_topic("mission_result");
 	add_topic("offboard_mission");
 	add_topic("optical_flow", 50);
