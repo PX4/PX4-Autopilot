@@ -45,6 +45,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_dist_subs(),
 	_sub_lidar(nullptr),
 	_sub_sonar(nullptr),
+	_sub_landing_target_pose(ORB_ID(landing_target_pose), 1000 / 40, 0, &getSubscriptions()),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -92,6 +93,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pn_t_noise_density(this, "PN_T"),
 	_t_max_grade(this, "T_MAX_GRADE"),
 
+	// landing target
+	_target_min_cov(this, "LT_COV"),
+	_target_mode(this, "LTEST_MODE", false),
+
 	// init origin
 	_fake_origin(this, "FAKE_ORIGIN"),
 	_init_origin_lat(this, "LAT"),
@@ -134,6 +139,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
 	_time_last_land(0),
+	_time_last_target(0),
 
 	// reference altitudes
 	_altOrigin(0),
@@ -313,6 +319,7 @@ void BlockLocalPositionEstimator::update()
 	_lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
 	_sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
 	_landUpdated = landed() && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);// throttle rate
+	bool targetPositionUpdated = _sub_landing_target_pose.updated();
 
 	// get new data
 	updateSubscriptions();
@@ -528,10 +535,20 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
+	if (targetPositionUpdated) {
+		if (_sensorTimeout & SENSOR_LAND_TARGET) {
+			landingTargetInit();
+
+		} else {
+			landingTargetCorrect();
+		}
+	}
+
 	if (_altOriginInitialized) {
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
+		_pub_innov.get().timestamp = _timeStamp;
 		_pub_innov.update();
 
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _fake_origin.get())) {
@@ -562,6 +579,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	visionCheckTimeout();
 	mocapCheckTimeout();
 	landCheckTimeout();
+	landingTargetCheckTimeout();
 }
 
 bool BlockLocalPositionEstimator::landed()
