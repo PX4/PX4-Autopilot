@@ -431,17 +431,13 @@ PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
  * 0 : Set to true to fuse GPS data if available, also requires GPS for altitude init
  * 1 : Set to true to fuse optical flow data if available
  * 2 : Set to true to fuse vision position
- * 3 : Set to true to fuse vision yaw
+ * 3 : Set to true to enable landing target
  * 4 : Set to true to fuse land detector
  * 5 : Set to true to publish AGL as local position down component
  * 6 : Set to true to enable flow gyro compensation
  * 7 : Set to true to enable baro fusion
- * 8 : Set to true to enable land target
- * 9 : Set to true to enable motion capture fusion
- * 10 : Set to true to enable lidar fusion
- * 11 : Set to true to enable sonar fusion
  *
- * default (145 - GPS only)
+ * default (145 - GPS, baro, land detector)
  *
  * @group Local Position Estimator
  * @min 0
@@ -449,14 +445,10 @@ PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
  * @bit 0  fuse GPS, requires GPS for alt. init
  * @bit 1  fuse optical flow
  * @bit 2  fuse vision position
- * @bit 3  fuse vision yaw
+ * @bit 3  fuse landing target
  * @bit 4  fuse land detector
  * @bit 5  pub agl as lpos down
  * @bit 6  flow gyro compensation
  * @bit 7  fuse baro
- * @bit 8  land_target
- * @bit 9  motion capture
- * @bit 10 lidar
- * @bit 11 sonar
  */
 PARAM_DEFINE_INT32(LPE_FUSION, 145);
