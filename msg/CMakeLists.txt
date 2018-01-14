@@ -62,6 +62,9 @@ set(msg_files
 	gps_inject_data.msg
 	home_position.msg
 	input_rc.msg
+	irlock_report.msg
+	landing_target_innovations.msg
+	landing_target_pose.msg
 	led_control.msg
 	log_message.msg
 	manual_control_setpoint.msg
