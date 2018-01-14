@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/irlock_report.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
@@ -335,6 +336,7 @@ private:
 	orb_advert_t _vision_attitude_pub;
 	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
+	orb_advert_t _irlock_report_pub;
 
 	int				_param_sub;
 
