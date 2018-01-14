@@ -87,7 +87,7 @@ ExternalProject_Add_Step(sitl_gazebo forceconfigure
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo replay)
 set(debuggers none ide gdb lldb ddd valgrind callgrind)
-set(models none iris iris_opt_flow iris_rplidar standard_vtol plane solo tailsitter typhoon_h480 rover hippocampus)
+set(models none iris iris_opt_flow iris_rplidar iris_irlock standard_vtol plane solo tailsitter typhoon_h480 rover hippocampus)
 set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})
