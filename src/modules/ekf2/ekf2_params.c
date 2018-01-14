@@ -137,6 +137,18 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
 PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 175);
 
 /**
+ * Auxillary Velocity Estimate (e.g from a landing target) delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @reboot_required true
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_AVEL_DELAY, 5);
+
+/**
  * Integer bitmask controlling GPS checks.
  *
  * Set bits to 1 to enable checks. Checks enabled by the following bit positions
