@@ -377,6 +377,16 @@ private:
 	uint16_t _sensorFault;
 	uint8_t _estimatorInitialized;
 
+	// sensor update flags
+	bool _flowUpdated;
+	bool _gpsUpdated;
+	bool _visionUpdated;
+	bool _mocapUpdated;
+	bool _lidarUpdated;
+	bool _sonarUpdated;
+	bool _landUpdated;
+	bool _baroUpdated;
+
 	// state space
 	Vector<float, n_x>  _x;	// state vector
 	Vector<float, n_u>  _u;	// input vector
