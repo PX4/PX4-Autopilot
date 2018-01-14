@@ -25,6 +25,7 @@ set(config_module_list
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
 	drivers/iridiumsbd
+	drivers/irlock
 	drivers/ist8310
 	drivers/led
 	drivers/lis3mdl
@@ -109,6 +110,7 @@ set(config_module_list
 	#
 	modules/attitude_estimator_q
 	modules/ekf2
+	modules/landing_target_estimator
 	modules/local_position_estimator
 	modules/position_estimator_inav
 
