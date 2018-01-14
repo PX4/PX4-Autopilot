@@ -207,7 +207,6 @@ Mission::on_active()
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
-
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
 		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
@@ -250,6 +249,17 @@ Mission::on_active()
 	    && (_navigator->abort_landing())) {
 
 		do_abort_landing();
+	}
+
+	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND) {
+		// switch out of precision land once landed
+		if (_navigator->get_land_detected()->landed) {
+			_navigator->get_precland()->on_inactivation();
+			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+
+		} else {
+			_navigator->get_precland()->on_active();
+		}
 	}
 }
 
@@ -590,7 +600,9 @@ Mission::set_mission_items()
 		}
 
 		/* we have a new position item so set previous position setpoint to current */
-		set_previous_pos_setpoint();
+		if (_work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) {
+			set_previous_pos_setpoint();
+		}
 
 		/* do takeoff before going to setpoint if needed and not already in takeoff */
 		/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
@@ -769,14 +781,41 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
+
+		} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _work_item_type == WORK_ITEM_TYPE_DEFAULT) {
+			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
+				new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
+
+				if (_mission_item.land_precision == 1) {
+					_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+
+				} else { //_mission_item.land_precision == 2
+					_navigator->get_precland()->set_mode(PrecLandMode::Required);
+				}
+
+				_navigator->get_precland()->on_activation();
+
+			}
 		}
 
 		/* we just moved to the landing waypoint, now descend */
 		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND &&
 		    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
-			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-			/* XXX: noop */
+			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
+				new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
+
+				if (_mission_item.land_precision == 1) {
+					_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+
+				} else { //_mission_item.land_precision == 2
+					_navigator->get_precland()->set_mode(PrecLandMode::Required);
+				}
+
+				_navigator->get_precland()->on_activation();
+
+			}
+
 		}
 
 		/* ignore yaw for landing items */
@@ -845,8 +884,10 @@ Mission::set_mission_items()
 	/*********************************** set setpoints and check next *********************************************/
 
 	/* set current position setpoint from mission item (is protected against non-position items) */
-	mission_apply_limitation(_mission_item);
-	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	if (new_work_item_type != WORK_ITEM_TYPE_PRECISION_LAND) {
+		mission_apply_limitation(_mission_item);
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	}
 
 	/* issue command if ready (will do nothing for position mission items) */
 	issue_command(_mission_item);

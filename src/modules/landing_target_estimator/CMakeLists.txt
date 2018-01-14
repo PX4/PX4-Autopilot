@@ -30,31 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
 px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	STACK_MAIN 1300
+	MODULE modules__landing_target_estimator
+	MAIN landing_target_estimator
+	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		navigator_main.cpp
-		navigator_mode.cpp
-		mission_block.cpp
-		mission.cpp
-		loiter.cpp
-		rtl.cpp
-		takeoff.cpp
-		land.cpp
-		precland.cpp
-		mission_feasibility_checker.cpp
-		geofence.cpp
-		datalinkloss.cpp
-		rcloss.cpp
-		enginefailure.cpp
-		gpsfailure.cpp
-		follow_target.cpp
+		landing_target_estimator_main.cpp
+		LandingTargetEstimator.cpp
+		KalmanFilter.cpp
 	DEPENDS
 		platforms__common
 	)

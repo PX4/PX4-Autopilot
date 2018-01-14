@@ -63,6 +63,7 @@ set(msg_files
 	home_position.msg
 	input_rc.msg
 	led_control.msg
+	irlock_report.msg
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
@@ -121,6 +122,8 @@ set(msg_files
 	vehicle_status_flags.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
+	landing_target_pose.msg
+	landing_target_innovations.msg
 	)
 
 px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
