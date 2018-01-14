@@ -68,6 +68,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/landing_target_pose.h>
 
 using control::BlockParamFloat;
 using control::BlockParamExtFloat;
@@ -190,6 +191,7 @@ private:
 	BlockParamExtFloat _rng_delay_ms;	///< range finder measurement delay relative to the IMU (mSec)
 	BlockParamExtFloat _airspeed_delay_ms;	///< airspeed measurement delay relative to the IMU (mSec)
 	BlockParamExtFloat _ev_delay_ms;	///< off-board vision measurement delay relative to the IMU (mSec)
+	BlockParamExtFloat _auxvel_delay_ms;	///< auxillary velocity measurement delay relative to the IMU (mSec)
 
 	BlockParamExtFloat _gyro_noise;	///< IMU angular rate noise used for covariance prediction (rad/sec)
 	BlockParamExtFloat _accel_noise;	///< IMU acceleration noise use for covariance prediction (m/sec**2)
@@ -342,6 +344,7 @@ Ekf2::Ekf2():
 	_rng_delay_ms(this, "RNG_DELAY", true, _params->range_delay_ms),
 	_airspeed_delay_ms(this, "ASP_DELAY", true, _params->airspeed_delay_ms),
 	_ev_delay_ms(this, "EV_DELAY", true, _params->ev_delay_ms),
+	_auxvel_delay_ms(this, "AVEL_DELAY", true, _params->auxvel_delay_ms),
 	_gyro_noise(this, "GYR_NOISE", true, _params->gyro_noise),
 	_accel_noise(this, "ACC_NOISE", true, _params->accel_noise),
 	_gyro_bias_p_noise(this, "GYR_B_NOISE", true, _params->gyro_bias_p_noise),
@@ -465,6 +468,7 @@ void Ekf2::run()
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
 	int sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	int landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
 
 	bool imu_bias_reset_request = false;
 
@@ -498,6 +502,7 @@ void Ekf2::run()
 	sensor_selection_s sensor_selection = {};
 	sensor_baro_s sensor_baro = {};
 	sensor_baro.pressure = 1013.5f; // initialise pressure to sea level
+	landing_target_pose_s landing_target_pose = {};
 
 	while (!should_exit()) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -537,6 +542,7 @@ void Ekf2::run()
 		bool vision_position_updated = false;
 		bool vision_attitude_updated = false;
 		bool vehicle_status_updated = false;
+		bool landing_target_pose_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), sensors_sub, &sensors);
 		// update all other topics if they have new data
@@ -870,6 +876,25 @@ void Ekf2::run()
 		if (vehicle_land_detected_updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), vehicle_land_detected_sub, &vehicle_land_detected);
 			_ekf.set_in_air_status(!vehicle_land_detected.landed);
+		}
+
+		// use the landing target pose estimate as another source of velocity data
+		orb_check(landing_target_pose_sub, &landing_target_pose_updated);
+
+		if (landing_target_pose_updated) {
+			orb_copy(ORB_ID(landing_target_pose), landing_target_pose_sub, &landing_target_pose);
+
+			// we can only use the landing target if it has a fixed position and  a valid velocity estimate
+			if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
+				// velocity of vehicle relative to target has opposite sign to target relative to vehicle
+				float velocity[2];
+				velocity[0] = -landing_target_pose.vx_rel;
+				velocity[1] = -landing_target_pose.vy_rel;
+				float variance[2];
+				variance[0] = landing_target_pose.cov_vx_rel;
+				variance[1] = landing_target_pose.cov_vy_rel;
+				_ekf.setAuxVelData(landing_target_pose.timestamp, velocity, variance);
+			}
 		}
 
 		// run the EKF update and output
@@ -1238,6 +1263,7 @@ void Ekf2::run()
 				ekf2_innovations_s innovations;
 				innovations.timestamp = now;
 				_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+				_ekf.get_aux_vel_innov(&innovations.aux_vel_innov[0]);
 				_ekf.get_mag_innov(&innovations.mag_innov[0]);
 				_ekf.get_heading_innov(&innovations.heading_innov);
 				_ekf.get_airspeed_innov(&innovations.airspeed_innov);
@@ -1414,6 +1440,7 @@ void Ekf2::run()
 	orb_unsubscribe(status_sub);
 	orb_unsubscribe(sensor_selection_sub);
 	orb_unsubscribe(sensor_baro_sub);
+	orb_unsubscribe(landing_target_pose_sub);
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		orb_unsubscribe(range_finder_subs[i]);
