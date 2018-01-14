@@ -79,8 +79,10 @@ void BlockLocalPositionEstimator::sonarCorrect()
 
 	if (sonarMeasure(y) != OK) { return; }
 
-	// do not use sonar if lidar is active
-	//if (_lidarInitialized && (_lidarFault < fault_lvl_disable)) { return; }
+	// do not use sonar if lidar is active and not faulty or timed out
+	if (_lidarUpdated
+	    && !(_sensorFault & SENSOR_LIDAR)
+	    && !(_sensorTimeout & SENSOR_LIDAR)) { return; }
 
 	// calculate covariance
 	float cov = _sub_sonar->get().covariance;
