@@ -32,9 +32,7 @@ set(config_module_list
 	drivers/l3gd20
 	drivers/led
 	drivers/lis3mdl
-	drivers/ll40ls
-	drivers/lsm303d
-	drivers/mb12xx
+	drivers/distance_sensor
 	drivers/mkblctrl
 	drivers/mpl3115a2
 	drivers/mpu6000
@@ -47,14 +45,9 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/rgbled
 	drivers/rgbled_pwm
-	drivers/sf0x
-	drivers/sf1xx
-	drivers/srf02
 	drivers/tap_esc
-	drivers/teraranger
 	drivers/vmount
 	modules/sensors
-	drivers/tfmini
 
 	#
 	# System commands
@@ -82,7 +75,7 @@ set(config_module_list
 	#
 	# Testing
 	#
-	drivers/sf0x/sf0x_tests
+	drivers/distance_sensor/sf0x/sf0x_tests
 ### NOT Portable YET 	drivers/test_ppm
 	#lib/rc/rc_tests
 	modules/commander/commander_tests

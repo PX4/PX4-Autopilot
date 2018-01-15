@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__hc_sr04
-	MAIN hc_sr04
+	MODULE drivers__teraranger
+	MAIN teraranger
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Wno-sign-compare
 	SRCS
-		hc_sr04.cpp
+		teraranger.cpp
 	DEPENDS
 		platforms__common
 	)

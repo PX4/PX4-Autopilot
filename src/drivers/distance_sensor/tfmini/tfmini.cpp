@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,20 +32,17 @@
  ****************************************************************************/
 
 /**
- * @file sf1xx.cpp
+ * @file tfmini.cpp
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Greg Hulands
+ * @author Ayush Gaud <ayush.gaud@gmail.com>
  *
- * @author ecmnet <ecm@gmx.de>
- * @author Vasily Evseenko <svpcom@gmail.com>
- *
- * Driver for the Lightware SF1xx lidar range finder series.
- * Default I2C address 0x66 is used.
+ * Driver for the Benewake TFmini laser rangefinder series
  */
 
 #include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_workqueue.h>
 #include <px4_getopt.h>
-
-#include <drivers/device/i2c.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -59,81 +56,75 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
+#include <termios.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
+#include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
-/* Configuration Constants */
-#define SF1XX_BUS 		PX4_I2C_BUS_EXPANSION
-#define SF1XX_BASEADDR 	0x66
-#define SF1XX_DEVICE_PATH	"/dev/sf1xx"
+#include "tfmini_parser.h"
 
+/* Configuration Constants */
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class SF1XX : public device::I2C
+// designated SERIAL4/5 on Pixhawk
+#define TFMINI_DEFAULT_PORT		"/dev/ttyS6"
+
+class TFMINI : public device::CDev
 {
 public:
-	SF1XX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SF1XX_BUS,
-	      int address = SF1XX_BASEADDR);
-	virtual ~SF1XX();
+	TFMINI(const char *port = TFMINI_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	virtual ~TFMINI();
 
-	virtual int 		init();
+	virtual int 			init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
 	void				print_info();
 
-protected:
-	virtual int			probe();
-
 private:
-	uint8_t _rotation;
+	char 				_port[20];
+	uint8_t 			_rotation;
 	float				_min_distance;
 	float				_max_distance;
-	int                             _conversion_interval;
+	int				_conversion_interval;
 	work_s				_work;
-	ringbuffer::RingBuffer  *_reports;
-	bool				_sensor_ok;
+	ringbuffer::RingBuffer		*_reports;
 	int				_measure_ticks;
+	bool				_collect_phase;
+	int				_fd;
+	char				_linebuf[10];
+	unsigned			_linebuf_index;
+	enum TFMINI_PARSE_STATE		_parse_state;
+
+	hrt_abstime			_last_read;
+
 	int				_class_instance;
 	int				_orb_class_instance;
 
-	orb_advert_t		_distance_sensor_topic;
+	orb_advert_t			_distance_sensor_topic;
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	unsigned			_consecutive_fail_count;
 
-
-
-	/**
-	* Test whether the device supported by the driver is present at a
-	* specific address.
-	*
-	* @param address	The I2C bus address to probe.
-	* @return			True if the device is present.
-	*/
-	int					probe_address(uint8_t address);
+	perf_counter_t			_sample_perf;
+	perf_counter_t			_comms_errors;
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -150,8 +141,8 @@ private:
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults SF1XX_MIN_DISTANCE
-	* and SF1XX_MAX_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults TFMINI_MIN_DISTANCE
+	* and TFMINI_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
 	void				set_maximum_distance(float max);
@@ -163,8 +154,8 @@ private:
 	* and start a new one.
 	*/
 	void				cycle();
-	int					measure();
-	int					collect();
+	int				collect();
+
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.
@@ -179,32 +170,89 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int sf1xx_main(int argc, char *argv[]);
+extern "C" __EXPORT int tfmini_main(int argc, char *argv[]);
 
-SF1XX::SF1XX(uint8_t rotation, int bus, int address) :
-	I2C("SF1XX", SF1XX_DEVICE_PATH, bus, address, 400000),
+TFMINI::TFMINI(const char *port, uint8_t rotation) :
+	CDev("TFMINI", RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
-	_min_distance(-1.0f),
-	_max_distance(-1.0f),
-	_conversion_interval(-1),
+	_min_distance(0.30f),
+	_max_distance(12.0f),
+	_conversion_interval(10000),
 	_reports(nullptr),
-	_sensor_ok(false),
 	_measure_ticks(0),
+	_collect_phase(false),
+	_fd(-1),
+	_linebuf_index(0),
+	_parse_state(TFMINI_PARSE_STATE0_UNSYNC),
+	_last_read(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "sf1xx_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "sf1xx_com_err"))
-
+	_consecutive_fail_count(0),
+	_sample_perf(perf_alloc(PC_ELAPSED, "tfmini_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "tfmini_com_err"))
 {
-	/* enable debug() calls */
+	/* store port name */
+	strncpy(_port, port, sizeof(_port));
+	/* enforce null termination */
+	_port[sizeof(_port) - 1] = '\0';
+
+	/* open fd */
+	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_SYNC);
+
+	/*baudrate 115200, 8 bits, no parity, 1 stop bit */
+	unsigned speed = B115200;
+
+	struct termios uart_config;
+
+	int termios_state;
+
+	tcgetattr(_fd, &uart_config);
+
+	/* clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		warnx("ERR CFG: %d ISPD", termios_state);
+	}
+
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		warnx("ERR CFG: %d OSPD\n", termios_state);
+	}
+
+	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
+		warnx("ERR baud %d ATTR", termios_state);
+	}
+
+	uart_config.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
+	uart_config.c_cflag &= ~CSIZE;
+	uart_config.c_cflag |= CS8;         /* 8-bit characters */
+	uart_config.c_cflag &= ~PARENB;     /* no parity bit */
+	uart_config.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
+	uart_config.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
+
+	/* setup for non-canonical mode */
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+	uart_config.c_oflag &= ~OPOST;
+
+	/* fetch bytes as they become available */
+	uart_config.c_cc[VMIN] = 1;
+	uart_config.c_cc[VTIME] = 1;
+
+	if (_fd < 0) {
+		warnx("FAIL: laser fd");
+	}
+
+	// disable debug() calls
 	_debug_enabled = false;
 
-	/* work_cancel in the dtor will explode if we don't do this... */
+	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
 
-SF1XX::~SF1XX()
+TFMINI::~TFMINI()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -214,139 +262,102 @@ SF1XX::~SF1XX()
 		delete _reports;
 	}
 
-	if (_distance_sensor_topic != nullptr) {
-		orb_unadvertise(_distance_sensor_topic);
-	}
-
 	if (_class_instance != -1) {
 		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
 
-	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
 int
-SF1XX::init()
+TFMINI::init()
 {
-	int ret = PX4_ERROR;
 	int hw_model;
-	param_get(param_find("SENS_EN_SF1XX"), &hw_model);
+	param_get(param_find("SENS_EN_TFMINI"), &hw_model);
 
 	switch (hw_model) {
 	case 0:
 		DEVICE_LOG("disabled.");
-		return ret;
+		return 0;
 
-	case 1:  /* SF10/a (25m 32Hz) */
-		_min_distance = 0.01f;
-		_max_distance = 25.0f;
-		_conversion_interval = 31250;
-		break;
-
-	case 2:  /* SF10/b (50m 32Hz) */
-		_min_distance = 0.01f;
-		_max_distance = 50.0f;
-		_conversion_interval = 31250;
-		break;
-
-	case 3:  /* SF10/c (100m 16Hz) */
-		_min_distance = 0.01f;
-		_max_distance = 100.0f;
-		_conversion_interval = 62500;
-		break;
-
-	case 4:
-		/* SF11/c (120m 20Hz) */
-		_min_distance = 0.01f;
-		_max_distance = 120.0f;
-		_conversion_interval = 50000;
-		break;
-
-	case 5:
-		/* SF20/LW20 (100m 48-388Hz) */
-		_min_distance = 0.001f;
-		_max_distance = 100.0f;
-		_conversion_interval = 20834;
+	case 1: /* TFMINI (12m, 100 Hz)*/
+		_min_distance = 0.3f;
+		_max_distance = 12.0f;
+		_conversion_interval =	10000;
 		break;
 
 	default:
 		DEVICE_LOG("invalid HW model %d.", hw_model);
-		return ret;
+		return -1;
 	}
 
-	/* do I2C init (and probe) first */
-	if (I2C::init() != OK) {
-		return ret;
-	}
+	/* status */
+	int ret = 0;
 
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
+	do { /* create a scope to handle exit conditions using break */
 
-	set_device_address(SF1XX_BASEADDR);
+		/* do regular cdev init */
+		ret = CDev::init();
 
-	if (_reports == nullptr) {
-		return ret;
-	}
+		if (ret != OK) { break; }
 
-	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+		/* allocate basic report buffers */
+		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
-	/* get a publish handle on the range finder topic */
-	struct distance_sensor_s ds_report = {};
+		if (_reports == nullptr) {
+			warnx("mem err");
+			ret = -1;
+			break;
+		}
 
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_HIGH);
+		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
-	}
+		/* get a publish handle on the range finder topic */
+		struct distance_sensor_s ds_report = {};
 
-	// Select altitude register
-	int ret2 = measure();
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+					 &_orb_class_instance, ORB_PRIO_HIGH);
 
-	if (ret2 == 0) {
-		ret = OK;
-		_sensor_ok = true;
-		DEVICE_LOG("(%dm %dHz) with address %d found", (int)_max_distance,
-			   (int)(1e6f / _conversion_interval), SF1XX_BASEADDR);
-	}
+		if (_distance_sensor_topic == nullptr) {
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		}
 
-	return ret;
-}
+	} while (0);
 
-int
-SF1XX::probe()
-{
-	return measure();
+	/* close the fd */
+	::close(_fd);
+	_fd = -1;
+
+	return OK;
 }
 
 void
-SF1XX::set_minimum_distance(float min)
+TFMINI::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-SF1XX::set_maximum_distance(float max)
+TFMINI::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-SF1XX::get_minimum_distance()
+TFMINI::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-SF1XX::get_maximum_distance()
+TFMINI::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-SF1XX::ioctl(struct file *filp, int cmd, unsigned long arg)
+TFMINI::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -378,7 +389,6 @@ SF1XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
 						start();
-
 					}
 
 					return OK;
@@ -386,11 +396,12 @@ SF1XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
+
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
+					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
 					if (ticks < USEC2TICK(_conversion_interval)) {
@@ -423,14 +434,14 @@ SF1XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -441,12 +452,12 @@ SF1XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return I2C::ioctl(filp, cmd, arg);
+		return CDev::ioctl(filp, cmd, arg);
 	}
 }
 
 ssize_t
-SF1XX::read(struct file *filp, char *buffer, size_t buflen)
+TFMINI::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
@@ -480,12 +491,6 @@ SF1XX::read(struct file *filp, char *buffer, size_t buflen)
 	do {
 		_reports->flush();
 
-		/* trigger a measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
 		/* wait for it to complete */
 		usleep(_conversion_interval);
 
@@ -506,50 +511,58 @@ SF1XX::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-SF1XX::measure()
+TFMINI::collect()
 {
-	int ret;
+	int	ret;
 
-	/*
-	 * Send the command '0' -- read altitude
-	 */
-
-	uint8_t cmd = 0;
-	ret = transfer(&cmd, 1, nullptr, 0);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-		DEVICE_DEBUG("i2c::transfer returned %d", ret);
-		return ret;
-	}
-
-	ret = OK;
-
-	return ret;
-}
-
-int
-SF1XX::collect()
-{
-	int	ret = -EIO;
-
-	/* read from the sensor */
-	uint8_t val[2] = {0, 0};
 	perf_begin(_sample_perf);
 
-	ret = transfer(nullptr, 0, &val[0], 2);
+	/* clear buffer if last read was too long ago */
+	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
+
+	/* the buffer for read chars is buflen minus null termination */
+	char readbuf[sizeof(_linebuf)];
+	unsigned readlen = sizeof(readbuf) - 1;
+
+	/* read from the sensor (uart buffer) */
+	ret = ::read(_fd, &readbuf[0], readlen);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
+		DEVICE_DEBUG("read err: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
-		return ret;
+
+		/* only throw an error if we time out */
+		if (read_elapsed > (_conversion_interval * 2)) {
+			return ret;
+
+		} else {
+			return -EAGAIN;
+		}
+
+	} else if (ret == 0) {
+		return -EAGAIN;
 	}
 
-	uint16_t distance_cm = val[0] << 8 | val[1];
-	float distance_m = float(distance_cm) * 1e-2f;
+	_last_read = hrt_absolute_time();
+
+	float distance_m = -1.0f;
+	bool valid = false;
+
+	for (int i = 0; i < ret; i++) {
+		if (OK == tfmini_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
+			valid = true;
+		}
+	}
+
+	if (!valid) {
+		return -EAGAIN;
+	}
+
+	DEVICE_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
+
 	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = _rotation;
@@ -560,10 +573,8 @@ SF1XX::collect()
 	/* TODO: set proper ID */
 	report.id = 0;
 
-	/* publish it, if we are the primary */
-	if (_distance_sensor_topic != nullptr) {
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
-	}
+	/* publish it */
+	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 
 	_reports->force(&report);
 
@@ -577,70 +588,139 @@ SF1XX::collect()
 }
 
 void
-SF1XX::start()
+TFMINI::start()
 {
 	/* reset the report ring and state machine */
+	_collect_phase = false;
 	_reports->flush();
 
-	/* set register to '0' */
-	measure();
-
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&SF1XX::cycle_trampoline, this, USEC2TICK(_conversion_interval));
+	work_queue(HPWORK, &_work, (worker_t)&TFMINI::cycle_trampoline, this, 1);
+
+	/* notify about state change */
+	struct subsystem_info_s info = {};
+	info.present = true;
+	info.enabled = true;
+	info.ok = true;
+	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER;
+
+	static orb_advert_t pub = nullptr;
+
+	if (pub != nullptr) {
+		orb_publish(ORB_ID(subsystem_info), pub, &info);
+
+
+	} else {
+		pub = orb_advertise(ORB_ID(subsystem_info), &info);
+
+	}
 }
 
 void
-SF1XX::stop()
+TFMINI::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-SF1XX::cycle_trampoline(void *arg)
+TFMINI::cycle_trampoline(void *arg)
 {
-	SF1XX *dev = (SF1XX *)arg;
+	TFMINI *dev = static_cast<TFMINI *>(arg);
 
 	dev->cycle();
 }
 
 void
-SF1XX::cycle()
+TFMINI::cycle()
 {
-	/* Collect results */
-	if (OK != collect()) {
-		DEVICE_DEBUG("collection error");
-		/* if error restart the measurement state machine */
-		start();
-		return;
+	/* fds initialized? */
+	if (_fd < 0) {
+		/* open fd */
+		_fd = ::open(TFMINI_DEFAULT_PORT, O_RDWR | O_NOCTTY | O_SYNC);
 	}
+
+	/* collection phase? */
+	if (_collect_phase) {
+
+		/* perform collection */
+		int collect_ret = collect();
+
+		if (collect_ret == -EAGAIN) {
+			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&TFMINI::cycle_trampoline,
+				   this,
+				   USEC2TICK(1042 * 8));
+			return;
+		}
+
+		if (OK != collect_ret) {
+
+			/* we know the sensor needs about four seconds to initialize */
+			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
+				DEVICE_LOG("collection error #%u", _consecutive_fail_count);
+			}
+
+			_consecutive_fail_count++;
+
+			/* restart the measurement state machine */
+			start();
+			return;
+
+		} else {
+			/* apparently success */
+			_consecutive_fail_count = 0;
+		}
+
+		/* next phase is measurement */
+		_collect_phase = false;
+
+		/*
+		 * Is there a collect->measure gap?
+		 */
+		if (_measure_ticks > USEC2TICK(_conversion_interval)) {
+
+			/* schedule a fresh cycle call when we are ready to measure again */
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&TFMINI::cycle_trampoline,
+				   this,
+				   _measure_ticks - USEC2TICK(_conversion_interval));
+
+			return;
+		}
+	}
+
+	/* next phase is collection */
+	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&SF1XX::cycle_trampoline,
+		   (worker_t)&TFMINI::cycle_trampoline,
 		   this,
 		   USEC2TICK(_conversion_interval));
-
 }
 
 void
-SF1XX::print_info()
+TFMINI::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %d ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 }
 
 /**
  * Local functions in support of the shell command.
  */
-namespace sf1xx
+namespace tfmini
 {
 
-SF1XX	*g_dev;
+TFMINI	*g_dev;
 
-void	start(uint8_t rotation);
+void	start(const char *port, uint8_t rotation);
 void	stop();
 void	test();
 void	reset();
@@ -650,16 +730,16 @@ void	info();
  * Start the driver.
  */
 void
-start(uint8_t rotation)
+start(const char *port, uint8_t rotation)
 {
-	int fd = -1;
+	int fd;
 
 	if (g_dev != nullptr) {
 		errx(1, "already started");
 	}
 
 	/* create the driver */
-	g_dev = new SF1XX(rotation, SF1XX_BUS);
+	g_dev = new TFMINI(port, rotation);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -670,18 +750,17 @@ start(uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(SF1XX_DEVICE_PATH, O_RDONLY);
+	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
+		warnx("device open fail");
 		goto fail;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		::close(fd);
 		goto fail;
 	}
 
-	::close(fd);
 	exit(0);
 
 fail:
@@ -720,12 +799,11 @@ test()
 {
 	struct distance_sensor_s report;
 	ssize_t sz;
-	int ret;
 
-	int fd = open(SF1XX_DEVICE_PATH, O_RDONLY);
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'sf1xx start' if the driver is not running", SF1XX_DEVICE_PATH);
+		err(1, "%s open failed (try 'tfmini start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -736,10 +814,10 @@ test()
 	}
 
 	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.current_distance);
-	warnx("time:        %llu", report.timestamp);
+	warnx("measurement:  %0.2f m", (double)report.current_distance);
+	warnx("time: %llu", report.timestamp);
 
-	/* start the sensor polling at 2Hz */
+	/* start the sensor polling at 2 Hz rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
 	}
@@ -751,32 +829,33 @@ test()
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
+		int ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			warnx("timed out");
+			break;
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
+			break;
 		}
 
-		warnx("periodic read %u", i);
+		warnx("read #%u", i);
 		warnx("valid %u", (float)report.current_distance > report.min_distance
 		      && (float)report.current_distance < report.max_distance ? 1 : 0);
-		warnx("measurement: %0.3f", (double)report.current_distance);
-		warnx("time:        %llu", report.timestamp);
+		warnx("measurement:  %0.3f m", (double)report.current_distance);
+		warnx("time: %llu", report.timestamp);
 	}
 
-	/* reset the sensor polling to default rate */
+	/* reset the sensor polling to the default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
+		errx(1, "ERR: DEF RATE");
 	}
 
-	::close(fd);
 	errx(0, "PASS");
 }
 
@@ -786,7 +865,7 @@ test()
 void
 reset()
 {
-	int fd = open(SF1XX_DEVICE_PATH, O_RDONLY);
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -800,7 +879,6 @@ reset()
 		err(1, "driver poll restart failed");
 	}
 
-	::close(fd);
 	exit(0);
 }
 
@@ -820,16 +898,16 @@ info()
 	exit(0);
 }
 
-} /* namespace */
+} // namespace
 
 int
-sf1xx_main(int argc, char *argv[])
+tfmini_main(int argc, char *argv[])
 {
 	// check for optional arguments
 	int ch;
-	int myoptind = 1;
-	const char *myoptarg = NULL;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
 
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
@@ -848,36 +926,42 @@ sf1xx_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		sf1xx::start(rotation);
+		if (argc > myoptind + 1) {
+			tfmini::start(argv[myoptind + 1], rotation);
+
+		} else {
+			tfmini::start(TFMINI_DEFAULT_PORT, rotation);
+		}
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		sf1xx::stop();
+		tfmini::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		sf1xx::test();
+		tfmini::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		sf1xx::reset();
+		tfmini::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		sf1xx::info();
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
+		tfmini::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	return PX4_ERROR;
 }

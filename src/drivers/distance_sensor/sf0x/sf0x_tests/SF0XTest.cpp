@@ -1,6 +1,6 @@
 #include <unit_test.h>
 
-#include <drivers/sf0x/sf0x_parser.h>
+#include "../sf0x_parser.h"
 
 #include <systemlib/err.h>
 
@@ -89,4 +89,3 @@ bool SF0XTest::sf0xTest()
 }
 
 ut_declare_test_c(sf0x_tests_main, SF0XTest)
-

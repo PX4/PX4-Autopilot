@@ -30,13 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__srf02
-	MAIN srf02
+	MODULE drivers__hc_sr04
+	MAIN hc_sr04
+	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		srf02.cpp
+		hc_sr04.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
