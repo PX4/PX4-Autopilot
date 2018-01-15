@@ -527,22 +527,24 @@ Navigator::task_main()
 				   || cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET
 				   || cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE) {
 				_vroi = {};
-				
+
 				switch (cmd.command) {
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI:
 				case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 					_vroi.mode = cmd.param1;
 					break;
-						
+
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
 					_vroi.mode = vehicle_command_s::VEHICLE_ROI_LOCATION;
 					break;
+
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 					_vroi.mode = vehicle_command_s::VEHICLE_ROI_WPNEXT;
 					_vroi.pitchOffset = cmd.param5;
 					_vroi.rollOffset = cmd.param6;
 					_vroi.yawOffset = cmd.param7;
 					break;
+
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
 					_vroi.mode = vehicle_command_s::VEHICLE_ROI_NONE;
 					break;
