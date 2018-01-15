@@ -165,9 +165,7 @@ function(px4_os_add_flags)
 		DEFINITIONS ${DEFINITIONS})
 
         set(added_include_dirs
-		src/modules/systemlib
-		src/platforms/posix/include
-		mavlink/include/mavlink
+		platforms/posix/include
 		)
 
 	# This block sets added_definitions and added_cxx_flags.

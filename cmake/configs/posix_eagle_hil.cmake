@@ -48,9 +48,6 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 	modules/muorb/krait
 	)
 

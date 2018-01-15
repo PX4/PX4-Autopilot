@@ -31,15 +31,25 @@
 #
 ############################################################################
 
+set(SRCS)
+
+if (NOT "${OS}" MATCHES "qurt")
+	list(APPEND SRCS
+		px4_log.c
+		)
+endif()
+
 px4_add_module(
 	MODULE platforms__common
 	SRCS
 		module.cpp
 		px4_getopt.c
 		shutdown.cpp
+		${SRCS}
 	DEPENDS
 		prebuild_targets
 		uorb_headers
 		uorb_msgs
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+	
+add_subdirectory(work_queue)

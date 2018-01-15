@@ -30,59 +30,34 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
+include(hexagon_sdk)
 
-px4_add_git_submodule(TARGET git_uavcan PATH "../uavcan/libuavcan")
+include_directories(${HEXAGON_8074_INCLUDES})
 
-set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
-set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
-
-string(TOUPPER "${OS}" OS_UPPER)
-add_definitions(
-		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
-		-DUAVCAN_MAX_NETWORK_SIZE_HINT=16
-		-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
-		-DUAVCAN_NO_ASSERTIONS
-		-DUAVCAN_PLATFORM=stm32
-		-DUAVCAN_STM32_${OS_UPPER}=1
-		-DUAVCAN_STM32_NUM_IFACES=1
-		-DUAVCAN_STM32_TIMER_NUMBER=2
-		-DUAVCAN_USE_CPP03=ON
-		-DUAVCAN_USE_EXTERNAL_SNPRINT
-		)
-
-set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
-
-add_subdirectory(${LIBUAVCAN_DIR} uavcannode_libuavcan)
-add_dependencies(uavcan prebuild_targets)
-
-include_directories(${LIBUAVCAN_DIR}/libuavcan/include)
-include_directories(${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated)
-include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include)
-include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include)
-
-include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders)
-
-px4_add_module(
-	MODULE modules__uavcannode
-	MAIN uavcannode
-	STACK_MAIN 1048
-	COMPILE_FLAGS
-		-Wframe-larger-than=1500
-		-Wno-deprecated-declarations
-		-O3
-	SRCS
-		uavcannode_main.cpp
-		indication_controller.cpp
-		sim_controller.cpp
-		led.cpp
-		resources.cpp
-		uavcannode_params.c
-
-	DEPENDS
-		prebuild_targets
-		uavcan
+set(QURT_LAYER_SRCS
+	px4_qurt_impl.cpp
+	px4_qurt_tasks.cpp
+	lib_crc32.c
+	../../../posix/src/px4_layer/drv_hrt.c
+	qurt_stubs.c
+	main.cpp
+	shmem_qurt.c
 	)
 
-target_link_libraries(modules__uavcannode PUBLIC uavcan uavcan_stm32_driver)
+if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
+	list(APPEND QURT_LAYER_SRCS
+		../stubs/stubs_posix.c
+		../stubs/stubs_qurt.c
+		)
+endif()
 
-set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES uavcan_stm32_driver)
+px4_add_module(
+	MODULE platforms_px4_layer
+	COMPILE_FLAGS
+	SRCS
+		${QURT_LAYER_SRCS}
+		${CONFIG_SRC}
+	DEPENDS
+		platforms__common
+	)

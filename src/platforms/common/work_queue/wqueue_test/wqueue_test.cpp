@@ -1,3 +1,4 @@
+
 /****************************************************************************
  *
  *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
@@ -32,66 +33,81 @@
  ****************************************************************************/
 
 /**
- * @file wqueue_start_posix.cpp
+ * @file wqueue_example.cpp
+ * Example for Linux
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- * @author Mark Charlebois <mcharleb@gmail.com>
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
+
 #include "wqueue_test.h"
-#include <px4_app.h>
-#include <px4_log.h>
-#include <px4_tasks.h>
+
+#include <px4_time.h>
+#include <px4_workqueue.h>
+#include <unistd.h>
 #include <stdio.h>
-#include <string.h>
-#include <sched.h>
 
-static int daemon_task;             /* Handle of deamon task / thread */
+px4::AppState WQueueTest::appState;
 
-//using namespace px4;
-
-extern "C" __EXPORT int wqueue_test_main(int argc, char *argv[]);
-int wqueue_test_main(int argc, char *argv[])
+void WQueueTest::hp_worker_cb(void *p)
 {
+	WQueueTest *wqep = (WQueueTest *)p;
 
-	if (argc < 2) {
-		PX4_INFO("usage: wqueue_test {start|stop|status}\n");
-		return 1;
+	wqep->do_hp_work();
+}
+
+void WQueueTest::lp_worker_cb(void *p)
+{
+	WQueueTest *wqep = (WQueueTest *)p;
+
+	wqep->do_lp_work();
+}
+
+void WQueueTest::do_lp_work()
+{
+	static int iter = 0;
+	printf("done lp work\n");
+
+	if (iter > 5) {
+		_lpwork_done = true;
 	}
 
-	if (!strcmp(argv[1], "start")) {
+	++iter;
 
-		if (WQueueTest::appState.isRunning()) {
-			PX4_INFO("already running\n");
-			/* this is not an error */
-			return 0;
-		}
+	work_queue(LPWORK, &_lpwork, (worker_t)&lp_worker_cb, this, 1000);
+}
 
-		daemon_task = px4_task_spawn_cmd("wqueue",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
-						 2000,
-						 PX4_MAIN,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
+void WQueueTest::do_hp_work()
+{
+	static int iter = 0;
+	printf("done hp work\n");
 
-		return 0;
+	if (iter > 5) {
+		_hpwork_done = true;
 	}
 
-	if (!strcmp(argv[1], "stop")) {
-		WQueueTest::appState.requestExit();
-		return 0;
+	++iter;
+
+	// requeue
+	work_queue(HPWORK, &_hpwork, (worker_t)&hp_worker_cb, this, 1000);
+}
+
+int WQueueTest::main()
+{
+	appState.setRunning(true);
+
+	//Put work on HP work queue
+	work_queue(HPWORK, &_hpwork, (worker_t)&hp_worker_cb, this, 1000);
+
+
+	//Put work on LP work queue
+	work_queue(LPWORK, &_lpwork, (worker_t)&lp_worker_cb, this, 1000);
+
+
+	// Wait for work to finsh
+	while (!appState.exitRequested() && !(_hpwork_done && _lpwork_done)) {
+		printf("  Sleeping for 2 sec...\n");
+		sleep(2);
 	}
 
-	if (!strcmp(argv[1], "status")) {
-		if (WQueueTest::appState.isRunning()) {
-			PX4_INFO("is running\n");
-
-		} else {
-			PX4_INFO("not started\n");
-		}
-
-		return 0;
-	}
-
-	PX4_INFO("usage: wqueue_test {start|stop|status}\n");
-	return 1;
+	return 0;
 }

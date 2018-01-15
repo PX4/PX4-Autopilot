@@ -46,14 +46,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 
 	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
-	platforms/qurt/tests/muorb
-
-	#
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp

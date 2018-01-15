@@ -175,13 +175,17 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
-	set(added_include_dirs
+	include_directories(BEFORE SYSTEM
+		${PX4_BINARY_DIR}/NuttX/nuttx/include
+		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
+	)
+
+	include_directories(
 		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/armv7-m
 		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/chip
 		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/common
-		${PX4_BINARY_DIR}/NuttX/nuttx/include
-		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
-		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps/include
+
+		${PX4_BINARY_DIR}/NuttX/apps/include
 		)
 
 	#set(added_exe_linker_flags)

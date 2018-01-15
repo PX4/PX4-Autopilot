@@ -64,19 +64,25 @@ typedef int px4_task_t;
 #define px4_task_exit(x) _exit(x)
 
 #elif defined(__PX4_POSIX) || defined(__PX4_QURT)
+
 #include <pthread.h>
 #include <sched.h>
 
 /** Default scheduler type */
 #define SCHED_DEFAULT	SCHED_FIFO
+
 #if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
+
 #define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
 #define SCHED_PRIORITY_DEFAULT (((sched_get_priority_max(SCHED_FIFO) - sched_get_priority_min(SCHED_FIFO)) / 2) + sched_get_priority_min(SCHED_FIFO))
+
 #elif defined(__PX4_QURT)
+
 #define SCHED_PRIORITY_MAX 255
 #define SCHED_PRIORITY_MIN 0
 #define SCHED_PRIORITY_DEFAULT 20
+
 #else
 #error "No target OS defined"
 #endif
@@ -93,6 +99,7 @@ typedef struct {
 	int argc;
 	char **argv;
 } px4_task_args_t;
+
 #else
 #error "No target OS defined"
 #endif
