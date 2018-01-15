@@ -27,4 +27,7 @@ dependencies:
 
 test:
   override:
-    - NO_NINJA_BUILD=1 make -j2 quick_check
+    #- NO_NINJA_BUILD=1 make -j2 quick_check
+    - make posix_sitl_default
+    - make px4fmu-v4pro_default
+    - make tests
