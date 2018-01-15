@@ -203,12 +203,10 @@ def normalize_mix_px4(B):
     # Scale yaw separately
     B_norm[2] = B_max[2]
 
-    # Same scale on x, y
-    B_norm[3] = max(B_max[3], B_max[4])
+    # Same scale on XY thrust as on Z thrust
+    B_norm[3] = B_max[5]
     B_norm[4] = B_norm[3]
-
-    # Scale z thrust separately
-    B_norm[5] = B_max[5]
+    B_norm[5] = B_norm[3]
 
     # Normalize
     B_norm[np.abs(B_norm) < 1e-3] = 1
@@ -223,6 +221,13 @@ def generate_mixer_multirotor_header(geometries_list, use_normalized_mix=False, 
     '''
     from io import StringIO
     buf = StringIO()
+
+    # Adapt fields based on options
+    if use_6dof:
+        mixer_class_name = "MultirotorMixer6dof"
+    else:
+        mixer_class_name = "MultirotorMixer"
+    
 
     # Print Header
     buf.write(u"/*\n")
@@ -251,7 +256,7 @@ def generate_mixer_multirotor_header(geometries_list, use_normalized_mix=False, 
         else:
             mix = geometry['mix']['B']
 
-        buf.write(u"const MultirotorMixer::Rotor _config_{}[] = {{\n".format(geometry['info']['name']))
+        buf.write(u"const {}::Rotor _config_{}[] = {{\n".format(mixer_class_name, geometry['info']['name']))
 
         for row in mix:
             if use_6dof:
@@ -268,7 +273,7 @@ def generate_mixer_multirotor_header(geometries_list, use_normalized_mix=False, 
         buf.write(u"};\n\n")
 
     # Print geometry indeces
-    buf.write(u"const MultirotorMixer::Rotor *_config_index[] = {\n")
+    buf.write(u"const {}::Rotor *_config_index[] = {{\n".format(mixer_class_name))
     for geometry in geometries_list:
         buf.write(u"\t&_config_{}[0],\n".format(geometry['info']['name']))
     buf.write(u"};\n\n")

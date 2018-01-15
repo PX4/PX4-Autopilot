@@ -34,6 +34,7 @@
 set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
+	actuator_controls_status.msg
 	actuator_direct.msg
 	actuator_outputs.msg
 	adc_report.msg
@@ -73,7 +74,6 @@ set(msg_files
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
-	multirotor_motor_limits.msg
 	offboard_control_mode.msg
 	optical_flow.msg
 	parameter_update.msg

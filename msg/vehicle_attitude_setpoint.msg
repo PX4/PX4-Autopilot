@@ -13,6 +13,10 @@ bool q_d_valid					# Set to true if quaternion vector is valid
 
 float32 thrust					# Thrust in Newton the power system should generate
 
+# For 3D thrust control
+float32[3] thrust_3d            # 3D thrust in body frame, the norm of thrust_3d should be equal to thrust
+bool thrust_3d_valid            # Set to true if 3D thrust is valid
+
 bool roll_reset_integral			# Reset roll integral part (navigation logic change)
 bool pitch_reset_integral			# Reset pitch integral part (navigation logic change)
 bool yaw_reset_integral				# Reset yaw integral part (navigation logic change)

@@ -45,7 +45,7 @@ msg_id_map = {
     'mission': 40,
     'mission_result': 41,
     'mount_orientation': 42,
-    'multirotor_motor_limits': 43,
+    'actuator_controls_status': 43,
     'offboard_control_mode': 44,
     'optical_flow': 45,
 

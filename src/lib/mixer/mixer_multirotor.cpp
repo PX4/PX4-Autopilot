@@ -169,10 +169,10 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	4) scale all outputs to range [idle_speed,1]
 	*/
 
-	float		roll    = math::constrain(get_control(0, 0) * _roll_scale, -1.0f, 1.0f);
-	float		pitch   = math::constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
-	float		yaw     = math::constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
-	float		thrust  = math::constrain(get_control(0, 3), 0.0f, 1.0f);
+	float		roll    = math::constrain(get_control(0, actuator_controls_s::INDEX_ROLL) 	* _roll_scale, -1.0f, 1.0f);
+	float		pitch   = math::constrain(get_control(0, actuator_controls_s::INDEX_PITCH) 	* _pitch_scale, -1.0f, 1.0f);
+	float		yaw     = math::constrain(get_control(0, actuator_controls_s::INDEX_YAW) 	* _yaw_scale, -1.0f, 1.0f);
+	float		thrust  = math::constrain(get_control(0, actuator_controls_s::INDEX_THROTTLE), 0.0f, 1.0f);
 	float		min_out = 1.0f;
 	float		max_out = 0.0f;
 
@@ -244,15 +244,6 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
 	}
 
-	// capture saturation
-	if (min_out < 0.0f) {
-		_saturation_status.flags.motor_neg = true;
-	}
-
-	if (max_out > 1.0f) {
-		_saturation_status.flags.motor_pos = true;
-	}
-
 	// Thrust reduction is used to reduce the collective thrust if we hit
 	// the upper throttle limit
 	float thrust_reduction = 0.0f;
@@ -317,6 +308,11 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		outputs[i] = math::constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
 
 	}
+
+	// Update saturation based on controlled axes
+	_saturation_status.flags.x_thrust_valid = false;
+	_saturation_status.flags.y_thrust_valid = false;
+	_saturation_status.flags.z_thrust_valid = true;
 
 	/* slew rate limiting and saturation checking */
 	for (unsigned i = 0; i < _rotor_count; i++) {
@@ -401,8 +397,8 @@ MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bo
 			_saturation_status.flags.yaw_neg = true;
 		}
 
-		// A positive change in thrust will increase saturation
-		_saturation_status.flags.thrust_pos = true;
+		// A negative change in Z thrust will increase saturation
+		_saturation_status.flags.z_thrust_neg = true;
 
 	}
 
@@ -439,9 +435,15 @@ MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bo
 			_saturation_status.flags.yaw_pos = true;
 		}
 
-		// A negative change in thrust will increase saturation
-		_saturation_status.flags.thrust_neg = true;
+		// A positive change in Z thrust will increase saturation
+		_saturation_status.flags.z_thrust_pos = true;
 	}
+
+	// X and Y thrust are not controlled
+	_saturation_status.flags.x_thrust_pos = true;
+	_saturation_status.flags.x_thrust_neg = true;
+	_saturation_status.flags.y_thrust_pos = true;
+	_saturation_status.flags.y_thrust_neg = true;
 
 	_saturation_status.flags.valid = true;
 }

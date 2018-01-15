@@ -72,7 +72,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
-#include <uORB/topics/multirotor_motor_limits.h>
+#include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_correction.h>
@@ -134,7 +134,7 @@ private:
 	int		_params_sub;			/**< parameter updates subscription */
 	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
 	int		_vehicle_status_sub;	/**< vehicle status subscription */
-	int		_motor_limits_sub;		/**< motor limits subscription */
+	int		_actuator_controls_status_sub;		/**< motor limits subscription */
 	int		_battery_status_sub;	/**< battery status subscription */
 	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
 	int		_sensor_correction_sub;	/**< sensor thermal correction subscription */
@@ -175,6 +175,7 @@ private:
 	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
 	float				_thrust_sp;		/**< thrust setpoint */
+	math::Vector<3>		_thrust_3d_sp;	/**< thrust 3D setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
@@ -294,6 +295,7 @@ private:
 	void		vehicle_motor_limits_poll();
 	void		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
+	void		actuator_controls_status_poll();
 
 	/**
 	 * Attitude controller.
@@ -339,7 +341,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_sub(-1),
 	_manual_control_sp_sub(-1),
 	_vehicle_status_sub(-1),
-	_motor_limits_sub(-1),
+	_actuator_controls_status_sub(-1),
 	_battery_status_sub(-1),
 	_sensor_correction_sub(-1),
 	_sensor_bias_sub(-1),
@@ -408,6 +410,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_rates_sp_prev.zero();
 	_rates_int.zero();
 	_thrust_sp = 0.0f;
+	_thrust_3d_sp.zero();
 	_att_control.zero();
 
 	_I.identity();
@@ -734,17 +737,17 @@ MulticopterAttitudeControl::vehicle_status_poll()
 }
 
 void
-MulticopterAttitudeControl::vehicle_motor_limits_poll()
+MulticopterAttitudeControl::actuator_controls_status_poll()
 {
 	/* check if there is a new message */
 	bool updated;
-	orb_check(_motor_limits_sub, &updated);
+	orb_check(_actuator_controls_status_sub, &updated);
 
 	if (updated) {
-		multirotor_motor_limits_s motor_limits = {};
-		orb_copy(ORB_ID(multirotor_motor_limits), _motor_limits_sub, &motor_limits);
+		actuator_controls_status_s actuator_controls_status = {};
+		orb_copy(ORB_ID(actuator_controls_status), _actuator_controls_status_sub, &actuator_controls_status);
 
-		_saturation_status.value = motor_limits.saturation_status;
+		_saturation_status.value = actuator_controls_status.saturation_status;
 	}
 }
 
@@ -805,14 +808,30 @@ MulticopterAttitudeControl::sensor_bias_poll()
 /**
  * Attitude controller.
  * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
- * Output: '_rates_sp' vector, '_thrust_sp'
+ * Output: '_rates_sp' vector, '_thrust_sp', '_thrust_3d_sp' vector
  */
 void
 MulticopterAttitudeControl::control_attitude(float dt)
 {
 	vehicle_attitude_setpoint_poll();
 
-	_thrust_sp = _v_att_sp.thrust;
+	/* thrust setpoints are passthrough from vehicle attitude setpoint */
+	if (_v_att_sp.thrust_3d_valid) {
+		// Use 3d thrust
+		_thrust_3d_sp(0) = _v_att_sp.thrust_3d[0];
+		_thrust_3d_sp(1) = _v_att_sp.thrust_3d[1];
+		_thrust_3d_sp(2) = _v_att_sp.thrust_3d[2];
+
+		// Make sure thrust and thrust_3d are consistent
+		_thrust_sp = _thrust_3d_sp.length();
+
+	} else {
+		// Use upward z thrust by default
+		_thrust_sp       = _v_att_sp.thrust;
+		_thrust_3d_sp(0) = 0.0f;
+		_thrust_3d_sp(1) = 0.0f;
+		_thrust_3d_sp(2) = - _thrust_sp;
+	}
 
 	/* construct attitude setpoint rotation matrix */
 	math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
@@ -939,7 +958,7 @@ math::Vector<3>
 MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rate)
 {
 	/* throttle pid attenuation factor */
-	float tpa = 1.0f - tpa_rate * (fabsf(_v_rates_sp.thrust) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
+	float tpa = 1.0f - tpa_rate * (fabsf(_thrust_sp) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
 	tpa = fmaxf(TPA_RATE_LOWER_LIMIT, fminf(1.0f, tpa));
 
 	math::Vector<3> pidAttenuationPerAxis;
@@ -1074,7 +1093,7 @@ MulticopterAttitudeControl::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_motor_limits_sub = orb_subscribe(ORB_ID(multirotor_motor_limits));
+	_actuator_controls_status_sub = orb_subscribe(ORB_ID(actuator_controls_status));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
 	_gyro_count = math::min(orb_group_count(ORB_ID(sensor_gyro)), MAX_GYRO_COUNT);
@@ -1141,7 +1160,7 @@ MulticopterAttitudeControl::task_main()
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
 			vehicle_status_poll();
-			vehicle_motor_limits_poll();
+			actuator_controls_status_poll();
 			battery_status_poll();
 			vehicle_attitude_poll();
 			sensor_correction_poll();
@@ -1166,7 +1185,25 @@ MulticopterAttitudeControl::task_main()
 
 				} else {
 					vehicle_attitude_setpoint_poll();
-					_thrust_sp = _v_att_sp.thrust;
+
+					/* thrust setpoints are passthrough from vehicle attitude setpoint */
+					if (_v_att_sp.thrust_3d_valid) {
+						// Use 3d thrust
+						_thrust_3d_sp(0) = _v_att_sp.thrust_3d[0];
+						_thrust_3d_sp(1) = _v_att_sp.thrust_3d[1];
+						_thrust_3d_sp(2) = _v_att_sp.thrust_3d[2];
+
+						// Make sure thrust and thrust_3d are consistent
+						_thrust_sp = _thrust_3d_sp.length();
+
+					} else {
+						// Use upward z thrust by default
+						_thrust_sp       = _v_att_sp.thrust;
+						_thrust_3d_sp(0) = 0.0f;
+						_thrust_3d_sp(1) = 0.0f;
+						_thrust_3d_sp(2) = - _thrust_sp;
+					}
+
 					math::Quaternion q(_v_att.q[0], _v_att.q[1], _v_att.q[2], _v_att.q[3]);
 					math::Quaternion q_sp(&_v_att_sp.q_d[0]);
 					_ts_opt_recovery->setAttGains(_params.att_p, _params.yaw_ff);
@@ -1183,6 +1220,11 @@ MulticopterAttitudeControl::task_main()
 				_v_rates_sp.pitch = _rates_sp(1);
 				_v_rates_sp.yaw = _rates_sp(2);
 				_v_rates_sp.thrust = _thrust_sp;
+				_v_rates_sp.thrust_3d_valid = true;
+				_v_rates_sp.thrust_3d[0] = _thrust_3d_sp(0);
+				_v_rates_sp.thrust_3d[1] = _thrust_3d_sp(1);
+				_v_rates_sp.thrust_3d[2] = _thrust_3d_sp(2);
+
 				_v_rates_sp.timestamp = hrt_absolute_time();
 
 				if (_v_rates_sp_pub != nullptr) {
@@ -1202,13 +1244,22 @@ MulticopterAttitudeControl::task_main()
 					man_rate_sp(2) = math::superexpo(_manual_control_sp.r, _params.acro_expo, _params.acro_superexpo);
 					man_rate_sp = man_rate_sp.emult(_params.acro_rate_max);
 					_rates_sp = math::Vector<3>(man_rate_sp.data());
+
+					// Interpret manual thrust control as upward thrust
 					_thrust_sp = _manual_control_sp.z;
+					_thrust_3d_sp(0) = 0.0f;
+					_thrust_3d_sp(1) = 0.0f;
+					_thrust_3d_sp(2) = - _thrust_sp;
 
 					/* publish attitude rates setpoint */
 					_v_rates_sp.roll = _rates_sp(0);
 					_v_rates_sp.pitch = _rates_sp(1);
 					_v_rates_sp.yaw = _rates_sp(2);
 					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.thrust_3d_valid = true;
+					_v_rates_sp.thrust_3d[0] = _thrust_3d_sp(0);
+					_v_rates_sp.thrust_3d[1] = _thrust_3d_sp(1);
+					_v_rates_sp.thrust_3d[2] = _thrust_3d_sp(2);
 					_v_rates_sp.timestamp = hrt_absolute_time();
 
 					if (_v_rates_sp_pub != nullptr) {
@@ -1224,7 +1275,24 @@ MulticopterAttitudeControl::task_main()
 					_rates_sp(0) = _v_rates_sp.roll;
 					_rates_sp(1) = _v_rates_sp.pitch;
 					_rates_sp(2) = _v_rates_sp.yaw;
-					_thrust_sp = _v_rates_sp.thrust;
+
+					/* thrust setpoints are passthrough from vehicle rate setpoint */
+					if (_v_rates_sp.thrust_3d_valid) {
+						// Use 3d thrust
+						_thrust_3d_sp(0) = _v_rates_sp.thrust_3d[0];
+						_thrust_3d_sp(1) = _v_rates_sp.thrust_3d[1];
+						_thrust_3d_sp(2) = _v_rates_sp.thrust_3d[2];
+
+						// Make sure thrust and thrust_3d are consistent
+						_thrust_sp = _thrust_3d_sp.length();
+
+					} else {
+						// Use upward z thrust by default
+						_thrust_sp       = _v_rates_sp.thrust;
+						_thrust_3d_sp(0) = 0.0f;
+						_thrust_3d_sp(1) = 0.0f;
+						_thrust_3d_sp(2) = - _thrust_sp;
+					}
 				}
 			}
 
@@ -1232,11 +1300,14 @@ MulticopterAttitudeControl::task_main()
 				control_attitude_rates(dt);
 
 				/* publish actuator controls */
-				_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
-				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
-				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
-				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
-				_actuators.control[7] = _v_att_sp.landing_gear;
+				_actuators.control[actuator_controls_s::INDEX_ROLL]     = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
+				_actuators.control[actuator_controls_s::INDEX_PITCH]    = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
+				_actuators.control[actuator_controls_s::INDEX_YAW]      = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
+				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
+				_actuators.control[actuator_controls_s::INDEX_X_THRUST] = (PX4_ISFINITE(_thrust_3d_sp(0))) ? _thrust_3d_sp(0) : 0.0f;
+				_actuators.control[actuator_controls_s::INDEX_Y_THRUST] = (PX4_ISFINITE(_thrust_3d_sp(1))) ? _thrust_3d_sp(1) : 0.0f;
+				_actuators.control[actuator_controls_s::INDEX_Z_THRUST] = (PX4_ISFINITE(_thrust_3d_sp(2))) ? _thrust_3d_sp(2) : 0.0f;
+				_actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _v_att_sp.landing_gear;
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
@@ -1279,13 +1350,17 @@ MulticopterAttitudeControl::task_main()
 					_rates_sp.zero();
 					_rates_int.zero();
 					_thrust_sp = 0.0f;
+					_thrust_3d_sp.zero();
 					_att_control.zero();
 
 					/* publish actuator controls */
-					_actuators.control[0] = 0.0f;
-					_actuators.control[1] = 0.0f;
-					_actuators.control[2] = 0.0f;
-					_actuators.control[3] = 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_ROLL]     = 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_PITCH]    = 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_YAW]      = 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_X_THRUST] = 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_Y_THRUST] = 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_Z_THRUST] = 0.0f;
 					_actuators.timestamp = hrt_absolute_time();
 					_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
@@ -1318,6 +1393,11 @@ MulticopterAttitudeControl::task_main()
 					_v_rates_sp.pitch = _rates_sp(1);
 					_v_rates_sp.yaw = _rates_sp(2);
 					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.thrust_3d_valid = true;
+					_v_rates_sp.thrust_3d[0] = _thrust_3d_sp(0);
+					_v_rates_sp.thrust_3d[1] = _thrust_3d_sp(1);
+					_v_rates_sp.thrust_3d[2] = _thrust_3d_sp(2);
+
 					_v_rates_sp.timestamp = hrt_absolute_time();
 
 					if (_v_rates_sp_pub != nullptr) {

@@ -132,6 +132,7 @@
 #include "drivers/drv_mixer.h"
 
 #include "mixer_load.h"
+#include <uORB/topics/actuator_controls.h>
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
@@ -177,7 +178,7 @@ public:
 	/**
 	 * Get the saturation status.
 	 *
-	 * @return			Integer bitmask containing saturation_status from multirotor_motor_limits.msg.
+	 * @return			Integer bitmask containing saturation_status from actuator_controls_status.msg.
 	 */
 	virtual uint16_t		get_saturation_status(void) = 0;
 
@@ -223,7 +224,7 @@ protected:
 	 * @param index			Control index to fetch.
 	 * @return			The control value.
 	 */
-	float				get_control(uint8_t group, uint8_t index);
+	float				get_control(uint8_t group, uint8_t index) const;
 
 	/**
 	 * Perform simpler linear scaling.
@@ -626,17 +627,22 @@ public:
 
 	union saturation_status {
 		struct {
-			uint16_t valid		: 1; // 0 - true when the saturation status is used
-			uint16_t motor_pos	: 1; // 1 - true when any motor has saturated in the positive direction
-			uint16_t motor_neg	: 1; // 2 - true when any motor has saturated in the negative direction
-			uint16_t roll_pos	: 1; // 3 - true when a positive roll demand change will increase saturation
-			uint16_t roll_neg	: 1; // 4 - true when a negative roll demand change will increase saturation
-			uint16_t pitch_pos	: 1; // 5 - true when a positive pitch demand change will increase saturation
-			uint16_t pitch_neg	: 1; // 6 - true when a negative pitch demand change will increase saturation
-			uint16_t yaw_pos	: 1; // 7 - true when a positive yaw demand change will increase saturation
-			uint16_t yaw_neg	: 1; // 8 - true when a negative yaw demand change will increase saturation
-			uint16_t thrust_pos	: 1; // 9 - true when a positive thrust demand change will increase saturation
-			uint16_t thrust_neg	: 1; //10 - true when a negative thrust demand change will increase saturation
+			uint16_t valid			: 1; // 0 - true when the saturation status is used
+			uint16_t roll_pos		: 1; // 1 - true when a positive roll demand change will increase saturation
+			uint16_t roll_neg		: 1; // 2 - true when a negative roll demand change will increase saturation
+			uint16_t pitch_pos		: 1; // 3 - true when a positive pitch demand change will increase saturation
+			uint16_t pitch_neg		: 1; // 4 - true when a negative pitch demand change will increase saturation
+			uint16_t yaw_pos		: 1; // 5 - true when a positive yaw demand change will increase saturation
+			uint16_t yaw_neg		: 1; // 6 - true when a negative yaw demand change will increase saturation
+			uint16_t x_thrust_pos	: 1; // 7 - true when a positive X thrust demand change will increase saturation
+			uint16_t x_thrust_neg	: 1; // 8 - true when a negative X thrust demand change will increase saturation
+			uint16_t y_thrust_pos	: 1; // 9 - true when a positive Y thrust demand change will increase saturation
+			uint16_t y_thrust_neg	: 1; //10 - true when a negative Y thrust demand change will increase saturation
+			uint16_t z_thrust_pos	: 1; //11 - true when a positive Z thrust demand change will increase saturation
+			uint16_t z_thrust_neg	: 1; //12 - true when a negative Z thrust demand change will increase saturation
+			uint16_t x_thrust_valid : 1; //13 - true if X thrust is controllable. If false, X thrust commands are considered 0
+			uint16_t y_thrust_valid : 1; //14 - true if Y thrust is controllable. If false, Y thrust commands are considered 0
+			uint16_t z_thrust_valid : 1; //15 - true if Z thrust is controllable. If false, Z thrust commands are considered 0
 		} flags;
 		uint16_t value;
 	};
@@ -661,6 +667,8 @@ private:
 	MultirotorMixer(const MultirotorMixer &);
 	MultirotorMixer operator=(const MultirotorMixer &);
 };
+
+#include "mixer_multirotor_6dof.hpp"
 
 /** helicopter swash servo mixer */
 struct mixer_heli_servo_s {

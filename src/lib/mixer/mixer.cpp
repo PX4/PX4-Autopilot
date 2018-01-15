@@ -66,7 +66,7 @@ Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
 }
 
 float
-Mixer::get_control(uint8_t group, uint8_t index)
+Mixer::get_control(uint8_t group, uint8_t index) const
 {
 	float	value;
 

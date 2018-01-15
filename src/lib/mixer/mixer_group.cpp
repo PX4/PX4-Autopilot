@@ -227,6 +227,10 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 			m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;
 
+		case 'S':
+			m = MultirotorMixer6dof::from_text(_control_cb, _cb_handle, p, resid);
+			break;
+
 		case 'H':
 			m = HelicopterMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;

@@ -66,7 +66,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/adc_report.h>
-#include <uORB/topics/multirotor_motor_limits.h>
+#include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
@@ -272,7 +272,7 @@ private:
 	bool		_safety_off;
 	bool		_safety_disabled;
 	orb_advert_t		_to_safety;
-	orb_advert_t      _to_mixer_status; 	///< mixer status flags
+	orb_advert_t      _actuator_controls_status_pub; 	///< mixer status flags
 
 	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
 	float _thr_mdl_fac;	// thrust to pwm modelling factor
@@ -383,7 +383,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_safety_off(false),
 	_safety_disabled(false),
 	_to_safety(nullptr),
-	_to_mixer_status(nullptr),
+	_actuator_controls_status_pub(nullptr),
 	_mot_t_max(0.0f),
 	_thr_mdl_fac(0.0f),
 	_ctl_latency(perf_alloc(PC_ELAPSED, "ctl_lat"))
@@ -451,7 +451,7 @@ PX4FMU::~PX4FMU()
 	orb_unadvertise(_to_input_rc);
 	orb_unadvertise(_outputs_pub);
 	orb_unadvertise(_to_safety);
-	orb_unadvertise(_to_mixer_status);
+	orb_unadvertise(_actuator_controls_status_pub);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
@@ -1354,11 +1354,12 @@ PX4FMU::cycle()
 				saturation_status.value = _mixers->get_saturation_status();
 
 				if (saturation_status.flags.valid) {
-					multirotor_motor_limits_s motor_limits;
-					motor_limits.timestamp = hrt_absolute_time();
-					motor_limits.saturation_status = saturation_status.value;
+					actuator_controls_status_s actuator_controls_status;
+					actuator_controls_status.timestamp = hrt_absolute_time();
+					actuator_controls_status.saturation_status = saturation_status.value;
 
-					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance,
+					orb_publish_auto(ORB_ID(actuator_controls_status), &_actuator_controls_status_pub, &actuator_controls_status,
+							 &_class_instance,
 							 ORB_PRIO_DEFAULT);
 				}
 

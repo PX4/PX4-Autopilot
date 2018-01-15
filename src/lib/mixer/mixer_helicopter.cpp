@@ -237,7 +237,7 @@ unsigned
 HelicopterMixer::mix(float *outputs, unsigned space)
 {
 	/* Find index to use for curves */
-	float thrust_cmd = get_control(0, 3);
+	float thrust_cmd = get_control(0, actuator_controls_s::INDEX_THROTTLE);
 	int idx = (thrust_cmd / 0.25f);
 
 	/* Make sure idx is in range */
@@ -259,8 +259,8 @@ HelicopterMixer::mix(float *outputs, unsigned space)
 	float po = (_mixer_info.pitch_curve[idx]) - (pg * idx * 0.25f);
 	float collective_pitch = constrain((pg * thrust_cmd + po), -0.5f, 0.5f);
 
-	float roll_cmd = get_control(0, 0);
-	float pitch_cmd = get_control(0, 1);
+	float roll_cmd = get_control(0, actuator_controls_s::INDEX_ROLL);
+	float pitch_cmd = get_control(0, actuator_controls_s::INDEX_PITCH);
 
 	outputs[0] = throttle;
 

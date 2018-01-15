@@ -84,7 +84,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/multirotor_motor_limits.h>
+#include <uORB/topics/actuator_controls_status.h>
 
 #include <debug.h>
 
@@ -267,7 +267,7 @@ private:
 	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
-	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
+	orb_advert_t 		_actuator_controls_status_pub; 	///< mixer status flags
 
 	actuator_outputs_s	_outputs;		///< mixed outputs
 	servorail_status_s	_servorail_status;	///< servorail status
@@ -489,7 +489,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_outputs(nullptr),
 	_to_servorail(nullptr),
 	_to_safety(nullptr),
-	_to_mixer_status(nullptr),
+	_actuator_controls_status_pub(nullptr),
 	_outputs{},
 	_servorail_status{},
 	_primary_pwm_device(false),
@@ -1909,11 +1909,12 @@ PX4IO::io_publish_pwm_outputs()
 
 	/* publish mixer status */
 	if (saturation_status.flags.valid) {
-		multirotor_motor_limits_s motor_limits;
-		motor_limits.timestamp = hrt_absolute_time();
-		motor_limits.saturation_status = saturation_status.value;
+		actuator_controls_status_s actuator_controls_status;
+		actuator_controls_status.timestamp = hrt_absolute_time();
+		actuator_controls_status.saturation_status = saturation_status.value;
 
-		orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
+		orb_publish_auto(ORB_ID(actuator_controls_status), &_actuator_controls_status_pub, &actuator_controls_status, &instance,
+				 ORB_PRIO_DEFAULT);
 	}
 
 	return OK;
