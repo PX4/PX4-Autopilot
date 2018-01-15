@@ -17,11 +17,8 @@ set(config_module_list
 	#
 	drivers/airspeed
 	drivers/device
-	drivers/ets_airspeed
 	drivers/ll40ls
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/sdp3x_airspeed
+	drivers/differential_pressure
 
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper

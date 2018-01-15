@@ -21,10 +21,7 @@ set(config_module_list
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/sdp3x_airspeed
+	drivers/differential_pressure
 	#drivers/frsky_telemetry
 	modules/sensors
 	#drivers/pwm_input

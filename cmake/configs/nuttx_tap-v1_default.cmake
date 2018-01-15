@@ -21,8 +21,7 @@ set(config_module_list
 	drivers/hmc5883
 	drivers/gps
 	drivers/airspeed
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
+	drivers/differential_pressure
 	modules/sensors
 	drivers/vmount
 
