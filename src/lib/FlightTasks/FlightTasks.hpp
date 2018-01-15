@@ -54,6 +54,19 @@
 
 #include <new>
 
+enum class FlightTaskIndex : int {
+	None = -1,
+	Stabilized,
+	Altitude,
+	AltitudeSmooth,
+	Position,
+	PositionSmooth,
+	Orbit,
+	Sport,
+
+	Count // number of tasks
+};
+
 class FlightTasks : control::SuperBlock
 {
 public:
@@ -89,23 +102,21 @@ public:
 	 * Switch to the next task in the available list (for testing)
 	 * @return true on success, false on error
 	 */
-	int switchTask()
-	{
-		return switchTask(_current_task_index + 1);
-	}
+	int switchTask() { return switchTask(static_cast<int>(_current_task_index) + 1); }
 
 	/**
 	 * Switch to a specific task (for normal usage)
-	 * @param task number to switch to
+	 * @param task index to switch to
 	 * @return 1 on success, 0 on no change, <0 on error
 	 */
-	int switchTask(int task_number);
+	int switchTask(FlightTaskIndex new_task_index);
+	int switchTask(int new_task_index);
 
 	/**
 	 * Get the number of the active task
 	 * @return number of active task, -1 if there is none
 	 */
-	int getActiveTask() const { return _current_task_index; }
+	int getActiveTask() const { return static_cast<int>(_current_task_index); }
 
 	/**
 	 * Check if any task is active
@@ -133,7 +144,7 @@ private:
 	} _task_union; /**< storage for the currently active task */
 
 	FlightTask *_current_task = nullptr;
-	int _current_task_index = -1;
+	FlightTaskIndex _current_task_index = FlightTaskIndex::None;
 
 	SubscriptionArray _subscription_array;
 

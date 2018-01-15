@@ -25,10 +25,10 @@ const vehicle_local_position_setpoint_s &FlightTasks::getPositionSetpoint()
 	}
 }
 
-int FlightTasks::switchTask(int task_number)
+int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 {
 	/* switch to the running task, nothing to do */
-	if (task_number == _current_task_index) {
+	if (new_task_index == _current_task_index) {
 		return 0;
 	}
 
@@ -36,45 +36,41 @@ int FlightTasks::switchTask(int task_number)
 	if (_current_task) {
 		_current_task->~FlightTask();
 		_current_task = nullptr;
-		_current_task_index = -1;
+		_current_task_index = FlightTaskIndex::None;
 	}
 
-	switch (task_number) {
-	case 0:
-		/* This part will change with the next PR that uses enum */
-		return -1;
+	switch (new_task_index) {
+	case FlightTaskIndex::None:
+		/* disable tasks is a success */
+		return 0;
 
-	case 1:
-		_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
-		break;
-
-	case 2:
-		_current_task = new (&_task_union.sport) FlightTaskSport(this, "SPO");
-		break;
-
-	case 3:
-		_current_task = new (&_task_union.altitude) FlightTaskManualAltitude(this, "MANALT");
-		break;
-
-	case 4:
-		_current_task = new (&_task_union.position) FlightTaskManualPosition(this, "MANPOS");
-		break;
-
-	case 5:
+	case FlightTaskIndex::Stabilized:
 		_current_task = new (&_task_union.stabilized) FlightTaskManualStabilized(this, "MANSTAB");
 		break;
 
-	case 6:
+	case FlightTaskIndex::Altitude:
+		_current_task = new (&_task_union.altitude) FlightTaskManualAltitude(this, "MANALT");
+		break;
+
+	case FlightTaskIndex::AltitudeSmooth:
 		_current_task = new (&_task_union.altitude_smooth) FlightTaskManualAltitudeSmooth(this, "MANALTSM");
 		break;
 
-	case 7:
+	case FlightTaskIndex::Position:
+		_current_task = new (&_task_union.position) FlightTaskManualPosition(this, "MANPOS");
+		break;
+
+	case FlightTaskIndex::PositionSmooth:
 		_current_task = new (&_task_union.position_smooth) FlightTaskManualPositionSmooth(this, "MANPOSSM");
 		break;
 
-	case -1:
-		/* disable tasks is a success */
-		return 0;
+	case FlightTaskIndex::Orbit:
+		_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
+		break;
+
+	case FlightTaskIndex::Sport:
+		_current_task = new (&_task_union.sport) FlightTaskSport(this, "SPO");
+		break;
 
 	default:
 		/* invalid task */
@@ -85,7 +81,7 @@ int FlightTasks::switchTask(int task_number)
 	if (!_current_task->initializeSubscriptions(_subscription_array)) {
 		_current_task->~FlightTask();
 		_current_task = nullptr;
-		_current_task_index = -1;
+		_current_task_index = FlightTaskIndex::None;
 		return -2;
 	}
 
@@ -95,12 +91,24 @@ int FlightTasks::switchTask(int task_number)
 	if (!_current_task->updateInitialize() || !_current_task->activate()) {
 		_current_task->~FlightTask();
 		_current_task = nullptr;
-		_current_task_index = -1;
+		_current_task_index = FlightTaskIndex::None;
 		return -3;
 	}
 
-	_current_task_index = task_number;
-	return 1;
+	_current_task_index = new_task_index;
+	return 0;
+}
+
+int FlightTasks::switchTask(int new_task_index)
+{
+	/* make sure we are in range of the enumeration before casting */
+	if (static_cast<int>(FlightTaskIndex::None) <= new_task_index &&
+	    static_cast<int>(FlightTaskIndex::Count) > new_task_index) {
+		return switchTask(FlightTaskIndex(new_task_index));
+	}
+
+	switchTask(FlightTaskIndex::None);
+	return -1;
 }
 
 void FlightTasks::_updateCommand()
@@ -127,6 +135,7 @@ void FlightTasks::_updateCommand()
 	}
 
 	/* evaluate command */
+	// TODO: remapping of the Mavlink definition to the internal tasks necessary
 	int switch_result = switchTask(int(command.param1 + 0.5f));
 	uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 
