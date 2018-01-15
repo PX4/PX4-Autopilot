@@ -42,7 +42,7 @@
 
 #define BMM150_DEVICE_PATH_MAG_EXT          "/dev/bmm150_i2c_ext"
 
-#define BMM150_SLAVE_ADDRESS                 PX4_I2C_OBDEV_BMM150
+#define BMM150_SLAVE_ADDRESS                 0x10
 
 #define BMM150_BUS_SPEED                     1000*100
 

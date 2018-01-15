@@ -7,19 +7,19 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
-	drivers/stm32
-	drivers/led
-	drivers/px4fmu
+	drivers/aerofc_adc
 	drivers/boards
-	drivers/tap_esc
+	drivers/device
+	drivers/distance_sensor
+	drivers/gps
+	drivers/led
+	drivers/magnetometer/hmc5883
+	drivers/magnetometer/ist8310
 	drivers/mpu9250
 	drivers/ms5611
-	drivers/hmc5883
-	drivers/gps
-	drivers/ist8310
-	drivers/distance_sensor
-	drivers/aerofc_adc
+	drivers/px4fmu
+	drivers/stm32
+	drivers/tap_esc
 	modules/sensors
 
 	#

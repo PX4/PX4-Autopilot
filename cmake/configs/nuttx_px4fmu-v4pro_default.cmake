@@ -7,6 +7,10 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/distance_sensor
+	drivers/differential_pressure
+	drivers/magnetometer
+
 	drivers/airspeed
 	drivers/blinkm
 	drivers/bma180
@@ -18,7 +22,6 @@ set(config_module_list
 	drivers/device
 	drivers/frsky_telemetry
 	drivers/gps
-	drivers/hmc5883
 	drivers/hott
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
@@ -26,13 +29,9 @@ set(config_module_list
 	drivers/irlock
 	drivers/l3gd20
 	drivers/led
-	drivers/lis3mdl
-	drivers/distance_sensor
-	drivers/lsm303d
 	drivers/mkblctrl
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/differential_pressure
 	drivers/ms5611
 	drivers/oreoled
 	drivers/pwm_input

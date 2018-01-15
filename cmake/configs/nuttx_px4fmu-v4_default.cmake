@@ -7,29 +7,28 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/differential_pressure
+	drivers/distance_sensor
+	drivers/magnetometer
+
 	drivers/airspeed
 	drivers/blinkm
 	drivers/bma180
 	drivers/bmi055
 	drivers/bmi160
-	drivers/bmm150
 	drivers/bmp280
 	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/differential_pressure
 	drivers/frsky_telemetry
 	drivers/gps
-	drivers/hmc5883
 	drivers/hott
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
 	drivers/iridiumsbd
 	drivers/irlock
 	drivers/led
-	drivers/lis3mdl
-	drivers/distance_sensor
 	drivers/mkblctrl
 	drivers/mpu6000
 	drivers/mpu9250

@@ -7,6 +7,10 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/differential_pressure
+	drivers/distance_sensor
+	drivers/magnetometer
+
 	drivers/device
 	drivers/samv7
 #WIP 	drivers/samv7/adc
@@ -17,12 +21,9 @@ set(config_module_list
 	drivers/rgbled
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/differential_pressure
 	drivers/lsm303d
 	drivers/l3gd20
-	drivers/hmc5883
 	drivers/ms5611
-	drivers/distance_sensor
 	drivers/gps
 #WIP 	drivers/pwm_out_sim
 	drivers/hott
@@ -39,8 +40,6 @@ set(config_module_list
 #WIP  	drivers/pwm_input
 #WIP  	drivers/camera_trigger
 	drivers/bst
-	drivers/lis3mdl
-
 
 	#
 	# System commands
