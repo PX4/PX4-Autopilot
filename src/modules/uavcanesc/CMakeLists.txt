@@ -53,7 +53,7 @@ add_definitions(
 set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
 
 add_subdirectory(${LIBUAVCAN_DIR} uavcanesc_libuavcan)
-add_dependencies(uavcan platforms__nuttx)
+add_dependencies(uavcan prebuild_targets)
 
 include_directories(${PX4_SOURCE_DIR}/src/modules/systemlib/flashparams)
 include_directories(${LIBUAVCAN_DIR}/libuavcan/include)

@@ -43,11 +43,6 @@ set(config_module_list
 	lib/mathlib/math/filter
 	lib/mixer
 	lib/version
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 
 	#
 	# Demo apps

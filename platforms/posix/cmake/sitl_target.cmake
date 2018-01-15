@@ -32,7 +32,7 @@ endfunction()
 # sitl run targets
 #
 
-set(SITL_RUNNER_MAIN_CPP ${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp)
+set(SITL_RUNNER_MAIN_CPP src/main.cpp)
 px4_add_sitl_app(APP_NAME px4
 		UPLOAD_NAME upload
 		MAIN_SRC ${SITL_RUNNER_MAIN_CPP}
@@ -111,7 +111,7 @@ foreach(viewer ${viewers})
 				set(SITL_RUNNER_MODEL_FILE ${PX4_SOURCE_DIR}/${config_sitl_rcS_dir}/${model})
 				set(SITL_RUNNER_WORKING_DIRECTORY ${SITL_WORKING_DIR})
 
-				configure_file(${PX4_SOURCE_DIR}/src/platforms/posix/sitl_runner_main.cpp.in sitl_runner_main_${model}.cpp @ONLY)
+				configure_file(src/sitl_runner_main.cpp.in sitl_runner_main_${model}.cpp @ONLY)
 
 				px4_add_sitl_app(APP_NAME px4_${model}
 						UPLOAD_NAME upload_${model}

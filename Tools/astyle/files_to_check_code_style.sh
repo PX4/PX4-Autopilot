@@ -8,9 +8,9 @@ then
     PATTERN="$1"
 fi
 
-exec find src \
-    -path src/examples/attitude_estimator_ekf -prune -o \
-    -path src/examples/ekf_att_pos_estimator -prune -o \
+exec find src platforms \
+    -path platforms/nuttx/NuttX -prune -o \
+    -path platforms/nuttx/nuttx-configs -prune -o \
     -path src/lib/DriverFramework -prune -o \
     -path src/lib/ecl -prune -o \
     -path src/lib/matrix -prune -o \

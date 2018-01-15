@@ -168,8 +168,9 @@ function(px4_os_add_flags)
 		${DSPAL_ROOT}/sys
 		${DSPAL_ROOT}/sys/sys
 		${DSPAL_ROOT}/uart_esc/inc
-		src/platforms/posix/include
-		src/platforms/qurt/include
+
+		platforms/posix/include
+		platforms/qurt/include
 		)
 
 	set(added_definitions

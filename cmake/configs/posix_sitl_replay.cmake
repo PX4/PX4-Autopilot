@@ -4,9 +4,6 @@ set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cma
 set(config_module_list
 	drivers/device
 	drivers/boards/sitl
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 	systemcmds/param
 	systemcmds/ver
 	systemcmds/perf

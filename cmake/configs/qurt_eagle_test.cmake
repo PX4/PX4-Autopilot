@@ -42,16 +42,5 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/mixer
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
-	platforms/qurt/tests/hello
-	platforms/posix/tests/vcdev_test
-	platforms/posix/tests/hrt_test
-	platforms/posix/tests/wqueue
 	)
 

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,32 +31,4 @@
 #
 ############################################################################
 
-set(EXTRA_DEPENDS)
-if("${CONFIG_SHMEM}" STREQUAL "1")
-	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
-	include(hexagon_sdk)
-	include_directories(${HEXAGON_SDK_INCLUDES})
-	include_directories(${PX4_BINARY_DIR}/platforms/posix)
-	list(APPEND SHMEM_SRCS
-		shmem_posix.c
-	)
-	# TODO: This didn't seem to be tracked correctly from posix_eagle_release.cmake
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCONFIG_SHMEM")
-	set(EXTRA_DEPENDS generate_px4muorb_stubs)
-endif()
-
-px4_add_module(
-	MODULE platforms__posix__px4_layer
-	COMPILE_FLAGS
-	SRCS
-		px4_posix_impl.cpp
-		px4_posix_tasks.cpp
-		px4_sem.cpp
-		lib_crc32.c
-		drv_hrt.c
-		px4_log.c
-		${SHMEM_SRCS}
-	DEPENDS
-		platforms__common
-		${EXTRA_DEPENDS}
-	)
+add_subdirectory(px4_layer)

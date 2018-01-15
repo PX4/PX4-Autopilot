@@ -63,7 +63,5 @@ set(config_module_list
 	modules/systemlib
 	modules/systemlib/param
 	modules/uORB
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
+
 )
