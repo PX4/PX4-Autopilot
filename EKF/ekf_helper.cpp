@@ -240,6 +240,8 @@ void Ekf::resetHeight()
 		int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
 		int32_t dt_delayed = _ev_sample_delayed.time_us - _imu_sample_delayed.time_us;
 
+		vert_pos_reset = true;
+
 		if (std::abs(dt_newest) < std::abs(dt_delayed)) {
 			_state.pos(2) = ev_newest.posNED(2);
 
@@ -1592,4 +1594,3 @@ void Ekf::get_ekf2ev_quaternion(float *quat)
 		quat[i] = quat_ekf2ev(i);
 	}
 }
-
