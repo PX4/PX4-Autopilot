@@ -27,8 +27,6 @@ set(config_module_list
 	drivers/gps
 #WIP 	drivers/pwm_out_sim
 	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
 	drivers/frsky_telemetry

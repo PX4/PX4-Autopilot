@@ -24,8 +24,6 @@ set(config_module_list
 	drivers/frsky_telemetry
 	drivers/gps
 	drivers/hott
-	drivers/hott/hott_sensors
-	drivers/hott/hott_telemetry
 	drivers/iridiumsbd
 	drivers/irlock
 	drivers/led
