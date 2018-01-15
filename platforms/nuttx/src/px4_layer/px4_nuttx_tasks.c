@@ -37,24 +37,22 @@
  * Implementation of existing task API for NuttX
  */
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <unistd.h>
+#include <nuttx/config.h>
+
+#include <sys/wait.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <fcntl.h>
-#include <sched.h>
-#include <signal.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <float.h>
+#include <signal.h>
 #include <string.h>
+#include <sched.h>
+#include <errno.h>
+#include <stdbool.h>
 
-#include <sys/stat.h>
-#include <sys/types.h>
-
-
+#include <px4_config.h>
 #include <px4_log.h>
-#include <systemlib/systemlib.h>
-
+#include <px4_tasks.h>
 
 void
 px4_systemreset(bool to_bootloader)
@@ -115,4 +113,3 @@ const char *px4_get_taskname(void)
 	return "app";
 #endif
 }
-

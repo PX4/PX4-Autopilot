@@ -107,13 +107,6 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/tunes
 	lib/version
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 )
 
 #

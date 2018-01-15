@@ -87,7 +87,4 @@ set(config_module_list
 	lib/rc
 	lib/tailsitter_recovery
 	lib/version
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 )

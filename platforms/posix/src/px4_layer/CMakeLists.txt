@@ -30,13 +30,32 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+set(EXTRA_DEPENDS)
+if("${CONFIG_SHMEM}" STREQUAL "1")
+	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
+	include(hexagon_sdk)
+	include_directories(${HEXAGON_SDK_INCLUDES})
+	include_directories(${PX4_BINARY_DIR}/platforms/posix)
+	list(APPEND SHMEM_SRCS
+		shmem_posix.c
+	)
+	# TODO: This didn't seem to be tracked correctly from posix_eagle_release.cmake
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCONFIG_SHMEM")
+	set(EXTRA_DEPENDS generate_px4muorb_stubs)
+endif()
+
 px4_add_module(
-	MODULE platforms__nuttx__px4_layer
+	MODULE platforms__posix__px4_layer
 	COMPILE_FLAGS
 	SRCS
-		px4_nuttx_tasks.c
-		../../posix/px4_layer/px4_log.c
+		px4_posix_impl.cpp
+		px4_posix_tasks.cpp
+		px4_sem.cpp
+		lib_crc32.c
+		drv_hrt.c
+		${SHMEM_SRCS}
 	DEPENDS
 		platforms__common
+		${EXTRA_DEPENDS}
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

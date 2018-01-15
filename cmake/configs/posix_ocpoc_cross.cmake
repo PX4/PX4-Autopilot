@@ -95,13 +95,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 	
 	examples/px4_simple_app
 )

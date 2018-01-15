@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,27 +32,67 @@
  ****************************************************************************/
 
 /**
- * @file px4_nuttx_impl.cpp
+ * @file wqueue_start_posix.cpp
  *
- * PX4 Middleware Wrapper NuttX Implementation
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Mark Charlebois <mcharleb@gmail.com>
  */
+#include "wqueue_test.h"
 
-#include <px4_defines.h>
-#include <px4_middleware.h>
-#include <drivers/drv_hrt.h>
+#include <px4_app.h>
+#include <px4_log.h>
+#include <px4_tasks.h>
+#include <stdio.h>
+#include <string.h>
+#include <sched.h>
 
+static int daemon_task;             /* Handle of deamon task / thread */
 
-namespace px4
+//using namespace px4;
+
+extern "C" __EXPORT int wqueue_test_main(int argc, char *argv[]);
+int wqueue_test_main(int argc, char *argv[])
 {
 
-void init(int argc, char *argv[], const char *process_name)
-{
-	PX4_WARN("process: %s", process_name);
-}
+	if (argc < 2) {
+		PX4_INFO("usage: wqueue_test {start|stop|status}\n");
+		return 1;
+	}
 
-uint64_t get_time_micros()
-{
-	return hrt_absolute_time();
-}
+	if (!strcmp(argv[1], "start")) {
 
+		if (WQueueTest::appState.isRunning()) {
+			PX4_INFO("already running\n");
+			/* this is not an error */
+			return 0;
+		}
+
+		daemon_task = px4_task_spawn_cmd("wqueue",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 PX4_MAIN,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
+
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		WQueueTest::appState.requestExit();
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (WQueueTest::appState.isRunning()) {
+			PX4_INFO("is running\n");
+
+		} else {
+			PX4_INFO("not started\n");
+		}
+
+		return 0;
+	}
+
+	PX4_INFO("usage: wqueue_test {start|stop|status}\n");
+	return 1;
 }

@@ -33,13 +33,5 @@ set(config_module_list
 	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
-	platforms/qurt/tests/hello
 	)
 

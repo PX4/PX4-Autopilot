@@ -74,13 +74,6 @@ set(config_module_list
 	lib/version
 
 	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
-
-	#
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp

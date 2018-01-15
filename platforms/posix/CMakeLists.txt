@@ -1,5 +1,7 @@
 include (common/px4_upload)
 
+add_subdirectory(src)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
@@ -10,7 +12,7 @@ px4_posix_generate_builtin_commands(
 
 # Define build target
 set(APP_NAME px4)
-set(MAIN_SRC ${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp)
+set(MAIN_SRC src/main.cpp)
 set(UPLOAD_NAME upload)
 
 if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))

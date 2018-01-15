@@ -397,6 +397,8 @@ endif()
 #=============================================================================
 # subdirectories
 #
+add_subdirectory(src/platforms/common)
+
 foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()

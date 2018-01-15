@@ -119,11 +119,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge

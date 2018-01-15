@@ -5,6 +5,8 @@ include(fastrpc)
 include(qurt_lib)
 include(qurt_flags)
 
+add_subdirectory(src)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes")

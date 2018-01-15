@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,25 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file wqueue_main.cpp
- * Example for Linux
+ * @file px4_nuttx_impl.cpp
  *
- * @author Mark Charlebois <charlebm@gmail.com>
+ * PX4 Middleware Wrapper NuttX Implementation
  */
-#include <px4_log.h>
+
+#include <px4_defines.h>
 #include <px4_middleware.h>
-#include <px4_app.h>
-#include "wqueue_test.h"
-#include <stdio.h>
+#include <drivers/drv_hrt.h>
 
-int PX4_MAIN(int argc, char **argv)
+namespace px4
 {
-	px4::init(argc, argv, "wqueue_test");
 
-	PX4_INFO("wqueue hello\n");
-	WQueueTest wq;
-	wq.main();
+void init(int argc, char *argv[], const char *process_name)
+{
+	PX4_WARN("process: %s", process_name);
+}
 
-	PX4_INFO("goodbye\n");
-	return 0;
+uint64_t get_time_micros()
+{
+	return hrt_absolute_time();
+}
+
 }

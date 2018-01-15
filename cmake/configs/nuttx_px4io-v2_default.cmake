@@ -7,5 +7,4 @@ set(config_module_list
 	lib/mixer
 	lib/rc
 	modules/px4iofirmware
-	platforms/common
 )
