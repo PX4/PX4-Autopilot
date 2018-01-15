@@ -7,39 +7,40 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/differential_pressure
+	drivers/distance_sensor
+
+	drivers/airspeed
+	drivers/blinkm
+	drivers/boards
+	drivers/bst
+	drivers/camera_trigger
 	drivers/device
+	drivers/frsky_telemetry
+	drivers/gps
+	#drivers/hott
+	#drivers/hott/hott_sensors
+	#drivers/hott/hott_telemetry
+	drivers/l3gd20
+	drivers/led
+	drivers/lsm303d
+	drivers/magnetometer/hmc5883
+	#drivers/mkblctrl
+	drivers/mpu6000
+	drivers/mpu9250
+	drivers/ms5611
+	#drivers/oreoled
+	drivers/pwm_input
+	drivers/pwm_out_sim
+	drivers/px4flow
+	drivers/px4fmu
+	drivers/rgbled
+	#drivers/rgbled_pwm
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
-	drivers/px4fmu
-	drivers/boards
-	drivers/rgbled
-	#drivers/rgbled_pwm
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/lsm303d
-	drivers/l3gd20
-	drivers/hmc5883
-	drivers/ms5611
-	drivers/distance_sensor
-	drivers/gps
-	drivers/pwm_out_sim
-	#drivers/hott
-	#drivers/hott/hott_telemetry
-	#drivers/hott/hott_sensors
-	drivers/blinkm
-	drivers/airspeed
-	drivers/differential_pressure
-	drivers/frsky_telemetry
-	modules/sensors
-	#drivers/mkblctrl
-	drivers/px4flow
-	#drivers/oreoled
 	drivers/vmount
-	drivers/pwm_input
-	drivers/camera_trigger
-	drivers/bst
+	modules/sensors
 
 	#
 	# System commands

@@ -7,23 +7,23 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/airspeed
+	drivers/boards
 	drivers/device
+	drivers/differential_pressure
+	drivers/gps
+	drivers/led
+	drivers/magnetometer/hmc5883
+	drivers/mpu6000
+	drivers/ms5611
+	drivers/px4fmu
+	drivers/rgbled_pwm
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
-	drivers/px4fmu
-	drivers/boards
-	drivers/rgbled_pwm
 	drivers/tap_esc
-	drivers/mpu6000
-	drivers/ms5611
-	drivers/hmc5883
-	drivers/gps
-	drivers/airspeed
-	drivers/differential_pressure
-	modules/sensors
 	drivers/vmount
+	modules/sensors
 
 	#
 	# System commands
