@@ -25,8 +25,6 @@ set(config_module_list
 	drivers/fxas21002c
 	drivers/gps
 	drivers/hott
-	drivers/hott/hott_sensors
-	drivers/hott/hott_telemetry
 	drivers/iridiumsbd
 	drivers/kinetis
 	drivers/kinetis/adc
