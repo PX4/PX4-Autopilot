@@ -7,6 +7,7 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/barometer
 	drivers/differential_pressure
 	drivers/distance_sensor
 	drivers/magnetometer
@@ -23,7 +24,6 @@ set(config_module_list
 	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
-	drivers/ms5611
 	drivers/gps
 #WIP 	drivers/pwm_out_sim
 	drivers/hott

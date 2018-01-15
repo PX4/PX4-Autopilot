@@ -13,6 +13,7 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/barometer
 	drivers/differential_pressure
 	drivers/distance_sensor
 	drivers/magnetometer
@@ -21,7 +22,6 @@ set(config_module_list
 	drivers/airspeed
 	drivers/blinkm
 	drivers/bmi160
-	drivers/bmp280
 	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
@@ -38,7 +38,6 @@ set(config_module_list
 	drivers/mkblctrl
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/ms5611
 	drivers/oreoled
 	drivers/protocol_splitter
 	drivers/pwm_input

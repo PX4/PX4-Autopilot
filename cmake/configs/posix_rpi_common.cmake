@@ -18,6 +18,7 @@ set(config_module_list
 	drivers/airspeed
 	drivers/device
 	drivers/distance_sensor
+	#drivers/barometer
 	drivers/differential_pressure
 
 	modules/sensors
