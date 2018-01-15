@@ -59,7 +59,7 @@
 
 #include <arch/board/board.h>
 #include <board_config.h>
-#include <drivers/bmp280/bmp280.h>
+#include "bmp280.h"
 
 #include <drivers/device/device.h>
 #include <drivers/drv_baro.h>

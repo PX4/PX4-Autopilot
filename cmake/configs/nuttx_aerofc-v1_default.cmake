@@ -16,7 +16,6 @@ set(config_module_list
 	drivers/magnetometer/hmc5883
 	drivers/magnetometer/ist8310
 	drivers/mpu9250
-	drivers/ms5611
 	drivers/px4fmu
 	drivers/stm32
 	drivers/tap_esc

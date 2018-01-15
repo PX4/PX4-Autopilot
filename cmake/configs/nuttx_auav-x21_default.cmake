@@ -7,6 +7,7 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/barometer
 	drivers/differential_pressure
 	drivers/distance_sensor
 	drivers/magnetometer
@@ -22,7 +23,6 @@ set(config_module_list
 	drivers/rgbled
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/ms5611
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/hott
