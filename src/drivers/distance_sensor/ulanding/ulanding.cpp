@@ -491,7 +491,7 @@ int ulanding_radar_main(int argc, char *argv[])
 	// check for optional arguments
 	int ch;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 

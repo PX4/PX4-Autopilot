@@ -2,14 +2,15 @@
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
+	drivers/differential_pressure
+	drivers/distance_sensor
+
 	drivers/airspeed
 	drivers/boards
 	drivers/camera_trigger
 	drivers/device
 	drivers/gps
 	drivers/linux_gpio
-	drivers/ll40ls
-	drivers/differential_pressure
 	drivers/pwm_out_sim
 	drivers/vmount
 
@@ -47,7 +48,7 @@ set(config_module_list
 	#
 	# Testing
 	#
-	drivers/sf0x/sf0x_tests
+	drivers/distance_sensor/sf0x/sf0x_tests
 	#drivers/test_ppm
 	lib/rc/rc_tests
 	modules/commander/commander_tests

@@ -22,11 +22,7 @@ set(config_module_list
 	drivers/l3gd20
 	drivers/hmc5883
 	drivers/ms5611
-	drivers/mb12xx
-	drivers/srf02
-	drivers/sf0x
-	drivers/ll40ls
-	drivers/teraranger
+	drivers/distance_sensor
 	drivers/gps
 #WIP 	drivers/pwm_out_sim
 	drivers/hott
@@ -44,7 +40,6 @@ set(config_module_list
 #WIP  	drivers/camera_trigger
 	drivers/bst
 	drivers/lis3mdl
-	drivers/tfmini
 
 
 	#

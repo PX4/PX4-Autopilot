@@ -31,11 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__srf02_i2c
-	MAIN srf02_i2c
+
+	MODULE drivers__sf1xx
+	MAIN sf1xx
 	COMPILE_FLAGS
+		-Wno-sign-compare
 	SRCS
-		srf02_i2c.cpp
+		sf1xx.cpp
 	DEPENDS
 		platforms__common
 	)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file tfmini.cpp
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Greg Hulands
- * @author Ayush Gaud <ayush.gaud@gmail.com>
+ * @file teraranger.cpp
+ * @author Luis Rodrigues
  *
- * Driver for the Benewake TFmini laser rangefinder series
+ * Driver for the TeraRanger One range finders connected via I2C.
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <px4_getopt.h>
+#include <px4_workqueue.h>
+
+#include <drivers/device/i2c.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -55,18 +57,12 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <termios.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
-#include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
@@ -75,60 +71,77 @@
 
 #include <board_config.h>
 
-#include "tfmini_parser.h"
-
 /* Configuration Constants */
+#define TERARANGER_BUS           PX4_I2C_BUS_EXPANSION
+#define TRONE_BASEADDR      0x30 /* 7-bit address */
+#define TREVO_BASEADDR      0x31 /* 7-bit address */
+#define TERARANGER_DEVICE_PATH   	"/dev/teraranger"
+
+/* TERARANGER Registers addresses */
+
+#define TERARANGER_MEASURE_REG	0x00		/* Measure range register */
+#define TERARANGER_WHO_AM_I_REG  0x01        /* Who am I test register */
+#define TERARANGER_WHO_AM_I_REG_VAL 0xA1
+
+
+/* Device limits */
+#define TRONE_MIN_DISTANCE (0.20f)
+#define TRONE_MAX_DISTANCE (14.00f)
+#define TREVO_MIN_DISTANCE (0.50f)
+#define TREVO_MAX_DISTANCE (60.0f)
+
+#define TERARANGER_CONVERSION_INTERVAL 50000 /* 50ms */
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-// designated SERIAL4/5 on Pixhawk
-#define TFMINI_DEFAULT_PORT		"/dev/ttyS6"
-
-class TFMINI : public device::CDev
+class TERARANGER : public device::I2C
 {
 public:
-	TFMINI(const char *port = TFMINI_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	virtual ~TFMINI();
+	TERARANGER(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
+		   int bus = TERARANGER_BUS, int address = TRONE_BASEADDR);
+	virtual ~TERARANGER();
 
-	virtual int 			init();
+	virtual int 		init();
 
-	virtual ssize_t			read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
 	void				print_info();
 
+protected:
+	virtual int			probe();
+
 private:
-	char 				_port[20];
-	uint8_t 			_rotation;
+	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
-	int				_conversion_interval;
 	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
-	int				_measure_ticks;
+	uint8_t				_valid;
+	int					_measure_ticks;
 	bool				_collect_phase;
-	int				_fd;
-	char				_linebuf[10];
-	unsigned			_linebuf_index;
-	enum TFMINI_PARSE_STATE		_parse_state;
-
-	hrt_abstime			_last_read;
-
 	int				_class_instance;
 	int				_orb_class_instance;
 
-	orb_advert_t			_distance_sensor_topic;
+	orb_advert_t		_distance_sensor_topic;
 
-	unsigned			_consecutive_fail_count;
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
 
-	perf_counter_t			_sample_perf;
-	perf_counter_t			_comms_errors;
+	/**
+	* Test whether the device supported by the driver is present at a
+	* specific address.
+	*
+	* @param address	The I2C bus address to probe.
+	* @return		True if the device is present.
+	*/
+	int					probe_address(uint8_t address);
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -145,8 +158,8 @@ private:
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults TFMINI_MIN_DISTANCE
-	* and TFMINI_MAX_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults TRONE_MIN_DISTANCE
+	* and TRONE_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
 	void				set_maximum_distance(float max);
@@ -158,106 +171,89 @@ private:
 	* and start a new one.
 	*/
 	void				cycle();
-	int				collect();
-
+	int					measure();
+	int					collect();
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.
 	*
 	* @param arg		Instance pointer for the driver that is polling.
 	*/
-	static void			cycle_trampoline(void *arg);
+	static void		cycle_trampoline(void *arg);
 
 
 };
 
+static const uint8_t crc_table[] = {
+	0x00, 0x07, 0x0e, 0x09, 0x1c, 0x1b, 0x12, 0x15, 0x38, 0x3f, 0x36, 0x31,
+	0x24, 0x23, 0x2a, 0x2d, 0x70, 0x77, 0x7e, 0x79, 0x6c, 0x6b, 0x62, 0x65,
+	0x48, 0x4f, 0x46, 0x41, 0x54, 0x53, 0x5a, 0x5d, 0xe0, 0xe7, 0xee, 0xe9,
+	0xfc, 0xfb, 0xf2, 0xf5, 0xd8, 0xdf, 0xd6, 0xd1, 0xc4, 0xc3, 0xca, 0xcd,
+	0x90, 0x97, 0x9e, 0x99, 0x8c, 0x8b, 0x82, 0x85, 0xa8, 0xaf, 0xa6, 0xa1,
+	0xb4, 0xb3, 0xba, 0xbd, 0xc7, 0xc0, 0xc9, 0xce, 0xdb, 0xdc, 0xd5, 0xd2,
+	0xff, 0xf8, 0xf1, 0xf6, 0xe3, 0xe4, 0xed, 0xea, 0xb7, 0xb0, 0xb9, 0xbe,
+	0xab, 0xac, 0xa5, 0xa2, 0x8f, 0x88, 0x81, 0x86, 0x93, 0x94, 0x9d, 0x9a,
+	0x27, 0x20, 0x29, 0x2e, 0x3b, 0x3c, 0x35, 0x32, 0x1f, 0x18, 0x11, 0x16,
+	0x03, 0x04, 0x0d, 0x0a, 0x57, 0x50, 0x59, 0x5e, 0x4b, 0x4c, 0x45, 0x42,
+	0x6f, 0x68, 0x61, 0x66, 0x73, 0x74, 0x7d, 0x7a, 0x89, 0x8e, 0x87, 0x80,
+	0x95, 0x92, 0x9b, 0x9c, 0xb1, 0xb6, 0xbf, 0xb8, 0xad, 0xaa, 0xa3, 0xa4,
+	0xf9, 0xfe, 0xf7, 0xf0, 0xe5, 0xe2, 0xeb, 0xec, 0xc1, 0xc6, 0xcf, 0xc8,
+	0xdd, 0xda, 0xd3, 0xd4, 0x69, 0x6e, 0x67, 0x60, 0x75, 0x72, 0x7b, 0x7c,
+	0x51, 0x56, 0x5f, 0x58, 0x4d, 0x4a, 0x43, 0x44, 0x19, 0x1e, 0x17, 0x10,
+	0x05, 0x02, 0x0b, 0x0c, 0x21, 0x26, 0x2f, 0x28, 0x3d, 0x3a, 0x33, 0x34,
+	0x4e, 0x49, 0x40, 0x47, 0x52, 0x55, 0x5c, 0x5b, 0x76, 0x71, 0x78, 0x7f,
+	0x6a, 0x6d, 0x64, 0x63, 0x3e, 0x39, 0x30, 0x37, 0x22, 0x25, 0x2c, 0x2b,
+	0x06, 0x01, 0x08, 0x0f, 0x1a, 0x1d, 0x14, 0x13, 0xae, 0xa9, 0xa0, 0xa7,
+	0xb2, 0xb5, 0xbc, 0xbb, 0x96, 0x91, 0x98, 0x9f, 0x8a, 0x8d, 0x84, 0x83,
+	0xde, 0xd9, 0xd0, 0xd7, 0xc2, 0xc5, 0xcc, 0xcb, 0xe6, 0xe1, 0xe8, 0xef,
+	0xfa, 0xfd, 0xf4, 0xf3
+};
+
+static uint8_t crc8(uint8_t *p, uint8_t len)
+{
+	uint16_t i;
+	uint16_t crc = 0x0;
+
+	while (len--) {
+		i = (crc ^ *p++) & 0xFF;
+		crc = (crc_table[i] ^ (crc << 8)) & 0xFF;
+	}
+
+	return crc & 0xFF;
+}
+
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int tfmini_main(int argc, char *argv[]);
+extern "C" __EXPORT int teraranger_main(int argc, char *argv[]);
 
-TFMINI::TFMINI(const char *port, uint8_t rotation) :
-	CDev("TFMINI", RANGE_FINDER0_DEVICE_PATH),
+TERARANGER::TERARANGER(uint8_t rotation, int bus, int address) :
+	I2C("TERARANGER", TERARANGER_DEVICE_PATH, bus, address, 100000),
 	_rotation(rotation),
-	_min_distance(0.30f),
-	_max_distance(12.0f),
-	_conversion_interval(10000),
+	_min_distance(-1.0f),
+	_max_distance(-1.0f),
 	_reports(nullptr),
 	_sensor_ok(false),
+	_valid(0),
 	_measure_ticks(0),
 	_collect_phase(false),
-	_fd(-1),
-	_linebuf_index(0),
-	_parse_state(TFMINI_PARSE_STATE0_UNSYNC),
-	_last_read(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_consecutive_fail_count(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "tfmini_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "tfmini_com_err"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "tr1_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err"))
 {
-	/* store port name */
-	strncpy(_port, port, sizeof(_port));
-	/* enforce null termination */
-	_port[sizeof(_port) - 1] = '\0';
+	// up the retries since the device misses the first measure attempts
+	I2C::_retries = 3;
 
-	/* open fd */
-	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_SYNC);
-
-	/*baudrate 115200, 8 bits, no parity, 1 stop bit */
-	unsigned speed = B115200;
-
-	struct termios uart_config;
-
-	int termios_state;
-
-	tcgetattr(_fd, &uart_config);
-
-	/* clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
-
-	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d ISPD", termios_state);
-	}
-
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d OSPD\n", termios_state);
-	}
-
-	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR baud %d ATTR", termios_state);
-	}
-
-	uart_config.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
-	uart_config.c_cflag &= ~CSIZE;
-	uart_config.c_cflag |= CS8;         /* 8-bit characters */
-	uart_config.c_cflag &= ~PARENB;     /* no parity bit */
-	uart_config.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
-	uart_config.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
-
-	/* setup for non-canonical mode */
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-	uart_config.c_oflag &= ~OPOST;
-
-	/* fetch bytes as they become available */
-	uart_config.c_cc[VMIN] = 1;
-	uart_config.c_cc[VTIME] = 1;
-
-	if (_fd < 0) {
-		warnx("FAIL: laser fd");
-	}
-
-	// disable debug() calls
+	// enable debug() calls
 	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
 
-TFMINI::~TFMINI()
+TERARANGER::~TERARANGER()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -271,98 +267,151 @@ TFMINI::~TFMINI()
 		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
 
+	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
 int
-TFMINI::init()
+TERARANGER::init()
 {
+	int ret = PX4_ERROR;
 	int hw_model;
-	param_get(param_find("SENS_EN_TFMINI"), &hw_model);
+	param_get(param_find("SENS_EN_TRANGER"), &hw_model);
 
 	switch (hw_model) {
-	case 0:
-		DEVICE_LOG("disabled.");
-		return 0;
+	case 0: /* Disabled */
+		DEVICE_LOG("Disabled");
+		return ret;
 
-	case 1: /* TFMINI (12m, 100 Hz)*/
-		_min_distance = 0.3f;
-		_max_distance = 12.0f;
-		_conversion_interval =	10000;
+	case 1: /* Autodetect */
+		/* Assume TROne */
+		set_device_address(TRONE_BASEADDR);
+
+		if (I2C::init() != OK) {
+			set_device_address(TREVO_BASEADDR);
+
+			if (I2C::init() != OK) {
+				goto out;
+
+			} else {
+				_min_distance = TREVO_MIN_DISTANCE;
+				_max_distance = TREVO_MAX_DISTANCE;
+			}
+
+		} else {
+			_min_distance = TRONE_MIN_DISTANCE;
+			_max_distance = TRONE_MAX_DISTANCE;
+		}
+
+		break;
+
+	case 2: /* TROne */
+		set_device_address(TRONE_BASEADDR);
+
+		if (I2C::init() != OK) {
+			goto out;
+		}
+
+		_min_distance = TRONE_MIN_DISTANCE;
+		_max_distance = TRONE_MAX_DISTANCE;
+		break;
+
+	case 3: /* TREvo */
+		set_device_address(TREVO_BASEADDR);
+
+		/* do I2C init (and probe) first */
+		if (I2C::init() != OK) {
+			goto out;
+		}
+
+		_min_distance = TREVO_MIN_DISTANCE;
+		_max_distance = TREVO_MAX_DISTANCE;
 		break;
 
 	default:
 		DEVICE_LOG("invalid HW model %d.", hw_model);
-		return -1;
+		return ret;
 	}
 
-	/* status */
-	int ret = 0;
+	/* allocate basic report buffers */
+	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
-	do { /* create a scope to handle exit conditions using break */
+	if (_reports == nullptr) {
+		goto out;
+	}
 
-		/* do regular cdev init */
-		ret = CDev::init();
+	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-		if (ret != OK) { break; }
-
-		/* allocate basic report buffers */
-		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
-
-		if (_reports == nullptr) {
-			warnx("mem err");
-			ret = -1;
-			break;
-		}
-
-		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
-
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
-		struct distance_sensor_s ds_report = {};
+		struct distance_sensor_s ds_report;
+		measure();
+		_reports->get(&ds_report);
 
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-					 &_orb_class_instance, ORB_PRIO_HIGH);
+					 &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic == nullptr) {
 			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 		}
+	}
 
-	} while (0);
+	ret = OK;
+	/* sensor is ok, but we don't really know if it is within range */
+	_sensor_ok = true;
+out:
+	return ret;
+}
 
-	/* close the fd */
-	::close(_fd);
-	_fd = -1;
+int
+TERARANGER::probe()
+{
+	uint8_t who_am_i = 0;
 
-	return OK;
+	const uint8_t cmd = TERARANGER_WHO_AM_I_REG;
+
+	// can't use a single transfer as Teraranger needs a bit of time for internal processing
+	if (transfer(&cmd, 1, nullptr, 0) == OK) {
+		if (transfer(nullptr, 0, &who_am_i, 1) == OK && who_am_i == TERARANGER_WHO_AM_I_REG_VAL) {
+			return measure();
+		}
+	}
+
+	DEVICE_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
+		     (unsigned)who_am_i,
+		     TERARANGER_WHO_AM_I_REG_VAL);
+
+	// not found on any address
+	return -EIO;
 }
 
 void
-TFMINI::set_minimum_distance(float min)
+TERARANGER::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-TFMINI::set_maximum_distance(float max)
+TERARANGER::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-TFMINI::get_minimum_distance()
+TERARANGER::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-TFMINI::get_maximum_distance()
+TERARANGER::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-TFMINI::ioctl(struct file *filp, int cmd, unsigned long arg)
+TERARANGER::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -389,7 +438,7 @@ TFMINI::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_conversion_interval);
+					_measure_ticks = USEC2TICK(TERARANGER_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -401,7 +450,6 @@ TFMINI::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
-
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
 
@@ -409,7 +457,7 @@ TFMINI::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_conversion_interval)) {
+					if (ticks < USEC2TICK(TERARANGER_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
@@ -439,14 +487,14 @@ TFMINI::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -457,12 +505,12 @@ TFMINI::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
+		return I2C::ioctl(filp, cmd, arg);
 	}
 }
 
 ssize_t
-TFMINI::read(struct file *filp, char *buffer, size_t buflen)
+TERARANGER::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
@@ -496,8 +544,14 @@ TFMINI::read(struct file *filp, char *buffer, size_t buflen)
 	do {
 		_reports->flush();
 
+		/* trigger a measurement */
+		if (OK != measure()) {
+			ret = -EIO;
+			break;
+		}
+
 		/* wait for it to complete */
-		usleep(_conversion_interval);
+		usleep(TERARANGER_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -516,59 +570,52 @@ TFMINI::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-TFMINI::collect()
+TERARANGER::measure()
 {
-	int	ret;
+	int ret;
+
+	/*
+	 * Send the command to begin a measurement.
+	 */
+	const uint8_t cmd = TERARANGER_MEASURE_REG;
+	ret = transfer(&cmd, sizeof(cmd), nullptr, 0);
+
+	if (OK != ret) {
+		perf_count(_comms_errors);
+		DEVICE_LOG("i2c::transfer returned %d", ret);
+		return ret;
+	}
+
+	ret = OK;
+
+	return ret;
+}
+
+int
+TERARANGER::collect()
+{
+	int ret = -EIO;
+
+	/* read from the sensor */
+	uint8_t val[3] = {0, 0, 0};
 
 	perf_begin(_sample_perf);
 
-	/* clear buffer if last read was too long ago */
-	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
-
-	/* the buffer for read chars is buflen minus null termination */
-	char readbuf[sizeof(_linebuf)];
-	unsigned readlen = sizeof(readbuf) - 1;
-
-	/* read from the sensor (uart buffer) */
-	ret = ::read(_fd, &readbuf[0], readlen);
+	ret = transfer(nullptr, 0, &val[0], 3);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("read err: %d", ret);
+		DEVICE_LOG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
-
-		/* only throw an error if we time out */
-		if (read_elapsed > (_conversion_interval * 2)) {
-			return ret;
-
-		} else {
-			return -EAGAIN;
-		}
-
-	} else if (ret == 0) {
-		return -EAGAIN;
+		return ret;
 	}
 
-	_last_read = hrt_absolute_time();
-
-	float distance_m = -1.0f;
-	bool valid = false;
-
-	for (int i = 0; i < ret; i++) {
-		if (OK == tfmini_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
-			valid = true;
-		}
-	}
-
-	if (!valid) {
-		return -EAGAIN;
-	}
-
-	DEVICE_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
-
+	uint16_t distance_mm = (val[0] << 8) | val[1];
+	float distance_m = float(distance_mm) *  1e-3f;
 	struct distance_sensor_s report;
 
 	report.timestamp = hrt_absolute_time();
+	/* there is no enum item for a combined LASER and ULTRASOUND which it should be */
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = _rotation;
 	report.current_distance = distance_m;
@@ -578,8 +625,14 @@ TFMINI::collect()
 	/* TODO: set proper ID */
 	report.id = 0;
 
-	/* publish it */
-	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+	// This validation check can be used later
+	_valid = crc8(val, 2) == val[2] && (float)report.current_distance > report.min_distance
+		 && (float)report.current_distance < report.max_distance ? 1 : 0;
+
+	/* publish it, if we are the primary */
+	if (_distance_sensor_topic != nullptr) {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+	}
 
 	_reports->force(&report);
 
@@ -593,14 +646,14 @@ TFMINI::collect()
 }
 
 void
-TFMINI::start()
+TERARANGER::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&TFMINI::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&TERARANGER::cycle_trampoline, this, 1);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -614,68 +667,37 @@ TFMINI::start()
 	if (pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
-
 	} else {
 		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-
 	}
 }
 
 void
-TFMINI::stop()
+TERARANGER::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-TFMINI::cycle_trampoline(void *arg)
+TERARANGER::cycle_trampoline(void *arg)
 {
-	TFMINI *dev = static_cast<TFMINI *>(arg);
+	TERARANGER *dev = (TERARANGER *)arg;
 
 	dev->cycle();
 }
 
 void
-TFMINI::cycle()
+TERARANGER::cycle()
 {
-	/* fds initialized? */
-	if (_fd < 0) {
-		/* open fd */
-		_fd = ::open(TFMINI_DEFAULT_PORT, O_RDWR | O_NOCTTY | O_SYNC);
-	}
-
 	/* collection phase? */
 	if (_collect_phase) {
 
 		/* perform collection */
-		int collect_ret = collect();
-
-		if (collect_ret == -EAGAIN) {
-			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&TFMINI::cycle_trampoline,
-				   this,
-				   USEC2TICK(1042 * 8));
-			return;
-		}
-
-		if (OK != collect_ret) {
-
-			/* we know the sensor needs about four seconds to initialize */
-			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
-				DEVICE_LOG("collection error #%u", _consecutive_fail_count);
-			}
-
-			_consecutive_fail_count++;
-
+		if (OK != collect()) {
+			DEVICE_LOG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
-
-		} else {
-			/* apparently success */
-			_consecutive_fail_count = 0;
 		}
 
 		/* next phase is measurement */
@@ -684,17 +706,21 @@ TFMINI::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(_conversion_interval)) {
-
+		if (_measure_ticks > USEC2TICK(TERARANGER_CONVERSION_INTERVAL)) {
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&TFMINI::cycle_trampoline,
+				   (worker_t)&TERARANGER::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(_conversion_interval));
+				   _measure_ticks - USEC2TICK(TERARANGER_CONVERSION_INTERVAL));
 
 			return;
 		}
+	}
+
+	/* measurement phase */
+	if (OK != measure()) {
+		DEVICE_LOG("measure error");
 	}
 
 	/* next phase is collection */
@@ -703,29 +729,29 @@ TFMINI::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&TFMINI::cycle_trampoline,
+		   (worker_t)&TERARANGER::cycle_trampoline,
 		   this,
-		   USEC2TICK(_conversion_interval));
+		   USEC2TICK(TERARANGER_CONVERSION_INTERVAL));
 }
 
 void
-TFMINI::print_info()
+TERARANGER::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %d ticks\n", _measure_ticks);
+	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 }
 
 /**
  * Local functions in support of the shell command.
  */
-namespace tfmini
+namespace teraranger
 {
 
-TFMINI	*g_dev;
+TERARANGER	*g_dev;
 
-void	start(const char *port, uint8_t rotation);
+void	start(uint8_t rotation);
 void	stop();
 void	test();
 void	reset();
@@ -735,7 +761,7 @@ void	info();
  * Start the driver.
  */
 void
-start(const char *port, uint8_t rotation)
+start(uint8_t rotation)
 {
 	int fd;
 
@@ -744,7 +770,8 @@ start(const char *port, uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new TFMINI(port, rotation);
+	g_dev = new TERARANGER(rotation, TERARANGER_BUS);
+
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -755,10 +782,9 @@ start(const char *port, uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
+	fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("device open fail");
 		goto fail;
 	}
 
@@ -804,11 +830,12 @@ test()
 {
 	struct distance_sensor_s report;
 	ssize_t sz;
+	int ret;
 
-	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
+	int fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'tfmini start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		err(1, "%s open failed (try 'teraranger start' if the driver is not running", TERARANGER_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -819,46 +846,42 @@ test()
 	}
 
 	warnx("single read");
-	warnx("measurement:  %0.2f m", (double)report.current_distance);
-	warnx("time: %llu", report.timestamp);
+	warnx("measurement: %0.2f m", (double)report.current_distance);
+	warnx("time:        %llu", report.timestamp);
 
-	/* start the sensor polling at 2 Hz rate */
+	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
 	}
 
-	/* read the sensor 5x and report each value */
-	for (unsigned i = 0; i < 5; i++) {
+	/* read the sensor 50x and report each value */
+	for (unsigned i = 0; i < 50; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		int ret = poll(&fds, 1, 2000);
+		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out");
-			break;
+			errx(1, "timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
-			break;
+			err(1, "periodic read failed");
 		}
 
-		warnx("read #%u", i);
-		warnx("valid %u", (float)report.current_distance > report.min_distance
-		      && (float)report.current_distance < report.max_distance ? 1 : 0);
-		warnx("measurement:  %0.3f m", (double)report.current_distance);
-		warnx("time: %llu", report.timestamp);
+		warnx("periodic read %u", i);
+		warnx("measurement: %0.3f", (double)report.current_distance);
+		warnx("time:        %llu", report.timestamp);
 	}
 
-	/* reset the sensor polling to the default rate */
+	/* reset the sensor polling to default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "ERR: DEF RATE");
+		errx(1, "failed to set default poll rate");
 	}
 
 	errx(0, "PASS");
@@ -870,7 +893,7 @@ test()
 void
 reset()
 {
-	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
+	int fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -906,20 +929,18 @@ info()
 } // namespace
 
 int
-tfmini_main(int argc, char *argv[])
+teraranger_main(int argc, char *argv[])
 {
-	// check for optional arguments
 	int ch;
-	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
-
+	const char *myoptarg = nullptr;
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
+			PX4_INFO("Setting sensor orientation to %d", (int)rotation);
 			break;
 
 		default:
@@ -931,41 +952,37 @@ tfmini_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		if (argc > myoptind + 1) {
-			tfmini::start(argv[myoptind + 1], rotation);
-
-		} else {
-			tfmini::start(TFMINI_DEFAULT_PORT, rotation);
-		}
+		teraranger::start(rotation);
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		tfmini::stop();
+		teraranger::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		tfmini::test();
+		teraranger::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		tfmini::reset();
+		teraranger::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
-		tfmini::info();
+		teraranger::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	return PX4_ERROR;
 }

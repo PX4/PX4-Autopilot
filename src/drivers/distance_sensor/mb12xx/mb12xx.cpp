@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015, 2016 Airmind Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name Airmind nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file srf02_i2c.cpp
+ * @file mb12xx.cpp
  * @author Greg Hulands
  * @author Jon Verbeke <jon.verbeke@kuleuven.be>
  *
@@ -40,8 +40,8 @@
  */
 
 #include <px4_config.h>
-#include <px4_defines.h>
 #include <px4_getopt.h>
+#include <px4_workqueue.h>
 
 #include <drivers/device/i2c.h>
 
@@ -59,10 +59,6 @@
 #include <unistd.h>
 #include <vector>
 
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
@@ -77,39 +73,38 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define SRF02_I2C_BUS 		PX4_I2C_BUS_EXPANSION
-#define SRF02_I2C_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
-#define SRF02_DEVICE_PATH	"/dev/srf02"
+#define MB12XX_BUS 		PX4_I2C_BUS_EXPANSION
+#define MB12XX_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
+#define MB12XX_DEVICE_PATH	"/dev/mb12xx"
 
 /* MB12xx Registers addresses */
 
-#define SRF02_TAKE_RANGE_REG	0x51		/* Measure range Register */
-#define SRF02_SET_ADDRESS_0	0xA0		/* Change address 0 Register */
-#define SRF02_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
-#define SRF02_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
+#define MB12XX_TAKE_RANGE_REG	0x51		/* Measure range Register */
+#define MB12XX_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
+#define MB12XX_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
 
 /* Device limits */
-#define SRF02_MIN_DISTANCE 	(0.20f)
-#define SRF02_MAX_DISTANCE 	(6.00f)
+#define MB12XX_MIN_DISTANCE 	(0.20f)
+#define MB12XX_MAX_DISTANCE 	(7.65f)
 
-#define SRF02_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
+#define MB12XX_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
 #define TICKS_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class SRF02_I2C : public device::I2C
+class MB12XX : public device::I2C
 {
 public:
-	SRF02_I2C(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SRF02_I2C_BUS,
-		  int address = SRF02_I2C_BASEADDR);
-	virtual ~SRF02_I2C();
+	MB12XX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
+	       int bus = MB12XX_BUS, int address = MB12XX_BASEADDR);
+	virtual ~MB12XX();
 
 	virtual int 		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -124,12 +119,12 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	ringbuffer::RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
-	int					_class_instance;
-	int					_orb_class_instance;
+	int				_class_instance;
+	int				_orb_class_instance;
 
 	orb_advert_t		_distance_sensor_topic;
 
@@ -168,8 +163,8 @@ private:
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults SRF02_MIN_DISTANCE
-	* and SRF02_MAX_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
+	* and MB12XX_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
 	void				set_maximum_distance(float max);
@@ -197,13 +192,13 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" { __EXPORT int srf02_i2c_main(int argc, char *argv[]);}
+extern "C" __EXPORT int mb12xx_main(int argc, char *argv[]);
 
-SRF02_I2C::SRF02_I2C(uint8_t rotation, int bus, int address) :
-	I2C("MB12xx", SRF02_DEVICE_PATH, bus, address, 100000),
+MB12XX::MB12XX(uint8_t rotation, int bus, int address) :
+	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, address, 100000),
 	_rotation(rotation),
-	_min_distance(SRF02_MIN_DISTANCE),
-	_max_distance(SRF02_MAX_DISTANCE),
+	_min_distance(MB12XX_MIN_DISTANCE),
+	_max_distance(MB12XX_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -211,8 +206,8 @@ SRF02_I2C::SRF02_I2C(uint8_t rotation, int bus, int address) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "srf02_i2c_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "srf02_i2c_comms_errors")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_com_err")),
 	_cycle_counter(0),	/* initialising counter for cycling function to zero */
 	_cycling_rate(0),	/* initialising cycling rate (which can differ depending on one sonar or multiple) */
 	_index_counter(0) 	/* initialising temp sonar i2c address to zero */
@@ -225,7 +220,7 @@ SRF02_I2C::SRF02_I2C(uint8_t rotation, int bus, int address) :
 	memset(&_work, 0, sizeof(_work));
 }
 
-SRF02_I2C::~SRF02_I2C()
+MB12XX::~MB12XX()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -245,7 +240,7 @@ SRF02_I2C::~SRF02_I2C()
 }
 
 int
-SRF02_I2C::init()
+MB12XX::init()
 {
 	int ret = PX4_ERROR;
 
@@ -257,7 +252,7 @@ SRF02_I2C::init()
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
-	_index_counter = SRF02_I2C_BASEADDR;	/* set temp sonar i2c address to base adress */
+	_index_counter = MB12XX_BASEADDR;	/* set temp sonar i2c address to base adress */
 	set_device_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
 
 	if (_reports == nullptr) {
@@ -283,7 +278,7 @@ SRF02_I2C::init()
 	   We start from i2c base address (0x70 = 112) and count downwards
 	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
 	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
-		_index_counter = SRF02_I2C_BASEADDR + counter * 2;	/* set temp sonar i2c address to base adress - counter */
+		_index_counter = MB12XX_BASEADDR - counter;	/* set temp sonar i2c address to base adress - counter */
 		set_device_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
 		int ret2 = measure();
 
@@ -294,12 +289,12 @@ SRF02_I2C::init()
 		}
 	}
 
-	_index_counter = SRF02_I2C_BASEADDR;
+	_index_counter = MB12XX_BASEADDR;
 	set_device_address(_index_counter); /* set i2c port back to base adress for rest of driver */
 
 	/* if only one sonar detected, no special timing is required between firing, so use default */
 	if (addr_ind.size() == 1) {
-		_cycling_rate = SRF02_CONVERSION_INTERVAL;
+		_cycling_rate = MB12XX_CONVERSION_INTERVAL;
 
 	} else {
 		_cycling_rate = TICKS_BETWEEN_SUCCESIVE_FIRES;
@@ -310,7 +305,7 @@ SRF02_I2C::init()
 		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
-	DEVICE_DEBUG("Number of sonars connected: %d", addr_ind.size());
+	DEVICE_DEBUG("Number of sonars connected: %lu", addr_ind.size());
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -320,37 +315,37 @@ SRF02_I2C::init()
 }
 
 int
-SRF02_I2C::probe()
+MB12XX::probe()
 {
 	return measure();
 }
 
 void
-SRF02_I2C::set_minimum_distance(float min)
+MB12XX::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-SRF02_I2C::set_maximum_distance(float max)
+MB12XX::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-SRF02_I2C::get_minimum_distance()
+MB12XX::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-SRF02_I2C::get_maximum_distance()
+MB12XX::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-SRF02_I2C::ioctl(struct file *filp, int cmd, unsigned long arg)
+MB12XX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -427,14 +422,14 @@ SRF02_I2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -450,7 +445,7 @@ SRF02_I2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-SRF02_I2C::read(struct file *filp, char *buffer, size_t buflen)
+MB12XX::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
@@ -511,7 +506,7 @@ SRF02_I2C::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-SRF02_I2C::measure()
+MB12XX::measure()
 {
 
 	int ret;
@@ -520,10 +515,8 @@ SRF02_I2C::measure()
 	 * Send the command to begin a measurement.
 	 */
 
-	uint8_t cmd[2];
-	cmd[0] = 0x00;
-	cmd[1] = SRF02_TAKE_RANGE_REG;
-	ret = transfer(cmd, 2, nullptr, 0);
+	uint8_t cmd = MB12XX_TAKE_RANGE_REG;
+	ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -537,16 +530,15 @@ SRF02_I2C::measure()
 }
 
 int
-SRF02_I2C::collect()
+MB12XX::collect()
 {
 	int	ret = -EIO;
 
 	/* read from the sensor */
 	uint8_t val[2] = {0, 0};
-	uint8_t cmd = 0x02;
+
 	perf_begin(_sample_perf);
 
-	ret = transfer(&cmd, 1, nullptr, 0);
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
@@ -587,7 +579,7 @@ SRF02_I2C::collect()
 }
 
 void
-SRF02_I2C::start()
+MB12XX::start()
 {
 
 	/* reset the report ring and state machine */
@@ -595,7 +587,7 @@ SRF02_I2C::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&SRF02_I2C::cycle_trampoline, this, 5);
+	work_queue(HPWORK, &_work, (worker_t)&MB12XX::cycle_trampoline, this, 5);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -609,6 +601,7 @@ SRF02_I2C::start()
 	if (pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
+
 	} else {
 		pub = orb_advertise(ORB_ID(subsystem_info), &info);
 
@@ -616,23 +609,23 @@ SRF02_I2C::start()
 }
 
 void
-SRF02_I2C::stop()
+MB12XX::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-SRF02_I2C::cycle_trampoline(void *arg)
+MB12XX::cycle_trampoline(void *arg)
 {
 
-	SRF02_I2C *dev = (SRF02_I2C *)arg;
+	MB12XX *dev = (MB12XX *)arg;
 
 	dev->cycle();
 
 }
 
 void
-SRF02_I2C::cycle()
+MB12XX::cycle()
 {
 	if (_collect_phase) {
 		_index_counter = addr_ind[_cycle_counter]; /*sonar from previous iteration collect is now read out */
@@ -664,7 +657,7 @@ SRF02_I2C::cycle()
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&SRF02_I2C::cycle_trampoline,
+				   (worker_t)&MB12XX::cycle_trampoline,
 				   this,
 				   _measure_ticks - USEC2TICK(_cycling_rate));
 			return;
@@ -688,14 +681,14 @@ SRF02_I2C::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&SRF02_I2C::cycle_trampoline,
+		   (worker_t)&MB12XX::cycle_trampoline,
 		   this,
 		   USEC2TICK(_cycling_rate));
 
 }
 
 void
-SRF02_I2C::print_info()
+MB12XX::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -706,10 +699,10 @@ SRF02_I2C::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace  srf02_i2c
+namespace mb12xx
 {
 
-SRF02_I2C	*g_dev;
+MB12XX	*g_dev;
 
 void	start(uint8_t rotation);
 void	stop();
@@ -730,7 +723,7 @@ start(uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new SRF02_I2C(rotation, SRF02_I2C_BUS);
+	g_dev = new MB12XX(rotation, MB12XX_BUS);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -741,7 +734,7 @@ start(uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -791,10 +784,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	int fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'srf02_i2c start' if the driver is not running", SRF02_DEVICE_PATH);
+		err(1, "%s open failed (try 'mb12xx start' if the driver is not running", MB12XX_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -854,7 +847,7 @@ test()
 void
 reset()
 {
-	int fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	int fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -890,12 +883,12 @@ info()
 } /* namespace */
 
 int
-srf02_i2c_main(int argc, char *argv[])
+mb12xx_main(int argc, char *argv[])
 {
 	// check for optional arguments
 	int ch;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 
@@ -915,36 +908,37 @@ srf02_i2c_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		srf02_i2c::start(rotation);
+		mb12xx::start(rotation);
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		srf02_i2c::stop();
+		mb12xx::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		srf02_i2c::test();
+		mb12xx::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		srf02_i2c::reset();
+		mb12xx::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		srf02_i2c::info();
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
+		mb12xx::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	return PX4_ERROR;
 }

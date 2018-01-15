@@ -17,7 +17,7 @@ set(config_module_list
 	#
 	drivers/airspeed
 	drivers/device
-	drivers/ll40ls
+	drivers/distance_sensor
 	drivers/differential_pressure
 
 	modules/sensors

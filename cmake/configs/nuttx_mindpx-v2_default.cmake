@@ -22,14 +22,7 @@ set(config_module_list
 	drivers/l3gd20
 	drivers/hmc5883
 	drivers/ms5611
-	drivers/mb12xx
-	drivers/srf02
-	drivers/srf02_i2c
-	#drivers/hc_sr04
-	drivers/sf0x
-	drivers/sf1xx
-	drivers/ll40ls
-	drivers/teraranger
+	drivers/distance_sensor
 	drivers/gps
 	drivers/pwm_out_sim
 	#drivers/hott
@@ -47,7 +40,6 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	drivers/tfmini
 
 	#
 	# System commands
@@ -74,7 +66,7 @@ set(config_module_list
 	#
 	# Tests
 	#
-	drivers/sf0x/sf0x_tests
+	drivers/distance_sensor/sf0x/sf0x_tests
 	drivers/test_ppm
 	modules/commander/commander_tests
 	modules/mc_pos_control/mc_pos_control_tests
