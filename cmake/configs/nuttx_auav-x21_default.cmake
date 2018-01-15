@@ -7,6 +7,10 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/differential_pressure
+	drivers/distance_sensor
+	drivers/magnetometer
+
 	drivers/device
 	drivers/stm32
 	drivers/stm32/adc
@@ -18,9 +22,7 @@ set(config_module_list
 	drivers/rgbled
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/hmc5883
 	drivers/ms5611
-	drivers/distance_sensor
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/hott
@@ -28,7 +30,6 @@ set(config_module_list
 	drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
-	drivers/differential_pressure
 	drivers/frsky_telemetry
 	modules/sensors
 	drivers/mkblctrl
@@ -38,7 +39,6 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	drivers/lis3mdl
 
 	#
 	# System commands

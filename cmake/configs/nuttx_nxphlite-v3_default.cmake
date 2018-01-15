@@ -7,6 +7,10 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/differential_pressure
+	drivers/distance_sensor
+	drivers/magnetometer
+
 	drivers/airspeed
 	drivers/blinkm
 #NOT Supported	drivers/bma180
@@ -16,12 +20,10 @@ set(config_module_list
 	drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/differential_pressure
 	drivers/frsky_telemetry
 	drivers/fxos8701cq
 	drivers/fxas21002c
 	drivers/gps
-	drivers/hmc5883
 	drivers/hott
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
@@ -31,8 +33,6 @@ set(config_module_list
 	drivers/kinetis/tone_alarm
 	drivers/l3gd20
 	drivers/led
-	drivers/lis3mdl
-	drivers/distance_sensor
 	drivers/mkblctrl
 	drivers/mpl3115a2
 	drivers/mpu6000
