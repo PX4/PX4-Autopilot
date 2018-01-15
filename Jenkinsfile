@@ -358,7 +358,7 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1.txt vehicle:=vtol_standard'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1.txt vehicle:=standard_vtol'
           }
           post {
             success {
@@ -391,7 +391,7 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2.txt vehicle:=vtol_standard'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2.txt vehicle:=standard_vtol'
           }
           post {
             success {
@@ -424,7 +424,7 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1.txt vehicle:=vtol_standard'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1.txt vehicle:=standard_vtol'
           }
           post {
             success {
@@ -457,7 +457,7 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2.txt vehicle:=vtol_standard'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2.txt vehicle:=standard_vtol'
           }
           post {
             success {
@@ -490,7 +490,7 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_3.txt vehicle:=vtol_standard'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_3.txt vehicle:=standard_vtol'
           }
           post {
             success {
