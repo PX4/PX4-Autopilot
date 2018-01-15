@@ -1359,6 +1359,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			} else {
 				return MAV_MISSION_INVALID_PARAM1;
 			}
+
 			break;
 
 		case MAV_CMD_DO_SET_ROI_LOCATION:
@@ -1367,7 +1368,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->params[5] = mavlink_mission_item->y;
 			mission_item->params[6] = mavlink_mission_item->z;
 			break;
-				
+
 		case MAV_CMD_NAV_VTOL_TAKEOFF:
 		case MAV_CMD_NAV_VTOL_LAND:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
