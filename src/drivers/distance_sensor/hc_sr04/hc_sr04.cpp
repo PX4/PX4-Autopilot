@@ -37,8 +37,8 @@
  * Driver for the hc_sr04 sonar range finders .
  */
 
-#include <nuttx/config.h>
-
+#include <px4_config.h>
+#include <px4_workqueue.h>
 #include <drivers/device/device.h>
 #include <px4_defines.h>
 
@@ -56,10 +56,6 @@
 #include <unistd.h>
 #include <vector>
 
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
@@ -70,10 +66,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
-
-
-#include <board_config.h>
-
 
 #define SR04_MAX_RANGEFINDERS 6
 #define SR04_ID_BASE	 0x10
@@ -101,8 +93,8 @@ public:
 
 	virtual int 		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -356,7 +348,7 @@ HC_SR04::interrupt(unsigned time)
 }
 
 int
-HC_SR04::ioctl(struct file *filp, int cmd, unsigned long arg)
+HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -433,14 +425,14 @@ HC_SR04::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -456,7 +448,7 @@ HC_SR04::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-HC_SR04::read(struct file *filp, char *buffer, size_t buflen)
+HC_SR04::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 
 	unsigned count = buflen / sizeof(struct distance_sensor_s);

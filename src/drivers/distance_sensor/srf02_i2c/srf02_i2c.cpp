@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015, 2016 Airmind Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name Airmind nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,12 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file teraranger.cpp
- * @author Luis Rodrigues
+ * @file srf02_i2c.cpp
+ * @author Greg Hulands
+ * @author Jon Verbeke <jon.verbeke@kuleuven.be>
  *
- * Driver for the TeraRanger One range finders connected via I2C.
+ * Driver for the Maxbotix sonar range finders connected via I2C.
  */
 
+#include <px4_workqueue.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
@@ -56,10 +58,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
+#include <vector>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -75,41 +74,39 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define TERARANGER_BUS           PX4_I2C_BUS_EXPANSION
-#define TRONE_BASEADDR      0x30 /* 7-bit address */
-#define TREVO_BASEADDR      0x31 /* 7-bit address */
-#define TERARANGER_DEVICE_PATH   	"/dev/teraranger"
+#define SRF02_I2C_BUS 		PX4_I2C_BUS_EXPANSION
+#define SRF02_I2C_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
+#define SRF02_DEVICE_PATH	"/dev/srf02"
 
-/* TERARANGER Registers addresses */
+/* MB12xx Registers addresses */
 
-#define TERARANGER_MEASURE_REG	0x00		/* Measure range register */
-#define TERARANGER_WHO_AM_I_REG  0x01        /* Who am I test register */
-#define TERARANGER_WHO_AM_I_REG_VAL 0xA1
-
+#define SRF02_TAKE_RANGE_REG	0x51		/* Measure range Register */
+#define SRF02_SET_ADDRESS_0	0xA0		/* Change address 0 Register */
+#define SRF02_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
+#define SRF02_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
 
 /* Device limits */
-#define TRONE_MIN_DISTANCE (0.20f)
-#define TRONE_MAX_DISTANCE (14.00f)
-#define TREVO_MIN_DISTANCE (0.50f)
-#define TREVO_MAX_DISTANCE (60.0f)
+#define SRF02_MIN_DISTANCE 	(0.20f)
+#define SRF02_MAX_DISTANCE 	(6.00f)
 
-#define TERARANGER_CONVERSION_INTERVAL 50000 /* 50ms */
+#define SRF02_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
+#define TICKS_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class TERARANGER : public device::I2C
+class SRF02_I2C : public device::I2C
 {
 public:
-	TERARANGER(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
-		   int bus = TERARANGER_BUS, int address = TRONE_BASEADDR);
-	virtual ~TERARANGER();
+	SRF02_I2C(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SRF02_I2C_BUS,
+		  int address = SRF02_I2C_BASEADDR);
+	virtual ~SRF02_I2C();
 
 	virtual int 		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -126,23 +123,30 @@ private:
 	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
-	uint8_t				_valid;
 	int					_measure_ticks;
 	bool				_collect_phase;
-	int				_class_instance;
-	int				_orb_class_instance;
+	int					_class_instance;
+	int					_orb_class_instance;
 
 	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 
+	uint8_t				_cycle_counter;	/* counter in cycle to change i2c adresses */
+	int					_cycling_rate;	/* */
+	uint8_t				_index_counter;	/* temporary sonar i2c address */
+	std::vector<uint8_t>	addr_ind; 	/* temp sonar i2c address vector */
+	std::vector<float>
+	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
+
+
 	/**
 	* Test whether the device supported by the driver is present at a
 	* specific address.
 	*
 	* @param address	The I2C bus address to probe.
-	* @return		True if the device is present.
+	* @return			True if the device is present.
 	*/
 	int					probe_address(uint8_t address);
 
@@ -161,8 +165,8 @@ private:
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults TRONE_MIN_DISTANCE
-	* and TRONE_MAX_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults SRF02_MIN_DISTANCE
+	* and SRF02_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
 	void				set_maximum_distance(float max);
@@ -182,81 +186,43 @@ private:
 	*
 	* @param arg		Instance pointer for the driver that is polling.
 	*/
-	static void		cycle_trampoline(void *arg);
+	static void			cycle_trampoline(void *arg);
 
 
 };
-
-static const uint8_t crc_table[] = {
-	0x00, 0x07, 0x0e, 0x09, 0x1c, 0x1b, 0x12, 0x15, 0x38, 0x3f, 0x36, 0x31,
-	0x24, 0x23, 0x2a, 0x2d, 0x70, 0x77, 0x7e, 0x79, 0x6c, 0x6b, 0x62, 0x65,
-	0x48, 0x4f, 0x46, 0x41, 0x54, 0x53, 0x5a, 0x5d, 0xe0, 0xe7, 0xee, 0xe9,
-	0xfc, 0xfb, 0xf2, 0xf5, 0xd8, 0xdf, 0xd6, 0xd1, 0xc4, 0xc3, 0xca, 0xcd,
-	0x90, 0x97, 0x9e, 0x99, 0x8c, 0x8b, 0x82, 0x85, 0xa8, 0xaf, 0xa6, 0xa1,
-	0xb4, 0xb3, 0xba, 0xbd, 0xc7, 0xc0, 0xc9, 0xce, 0xdb, 0xdc, 0xd5, 0xd2,
-	0xff, 0xf8, 0xf1, 0xf6, 0xe3, 0xe4, 0xed, 0xea, 0xb7, 0xb0, 0xb9, 0xbe,
-	0xab, 0xac, 0xa5, 0xa2, 0x8f, 0x88, 0x81, 0x86, 0x93, 0x94, 0x9d, 0x9a,
-	0x27, 0x20, 0x29, 0x2e, 0x3b, 0x3c, 0x35, 0x32, 0x1f, 0x18, 0x11, 0x16,
-	0x03, 0x04, 0x0d, 0x0a, 0x57, 0x50, 0x59, 0x5e, 0x4b, 0x4c, 0x45, 0x42,
-	0x6f, 0x68, 0x61, 0x66, 0x73, 0x74, 0x7d, 0x7a, 0x89, 0x8e, 0x87, 0x80,
-	0x95, 0x92, 0x9b, 0x9c, 0xb1, 0xb6, 0xbf, 0xb8, 0xad, 0xaa, 0xa3, 0xa4,
-	0xf9, 0xfe, 0xf7, 0xf0, 0xe5, 0xe2, 0xeb, 0xec, 0xc1, 0xc6, 0xcf, 0xc8,
-	0xdd, 0xda, 0xd3, 0xd4, 0x69, 0x6e, 0x67, 0x60, 0x75, 0x72, 0x7b, 0x7c,
-	0x51, 0x56, 0x5f, 0x58, 0x4d, 0x4a, 0x43, 0x44, 0x19, 0x1e, 0x17, 0x10,
-	0x05, 0x02, 0x0b, 0x0c, 0x21, 0x26, 0x2f, 0x28, 0x3d, 0x3a, 0x33, 0x34,
-	0x4e, 0x49, 0x40, 0x47, 0x52, 0x55, 0x5c, 0x5b, 0x76, 0x71, 0x78, 0x7f,
-	0x6a, 0x6d, 0x64, 0x63, 0x3e, 0x39, 0x30, 0x37, 0x22, 0x25, 0x2c, 0x2b,
-	0x06, 0x01, 0x08, 0x0f, 0x1a, 0x1d, 0x14, 0x13, 0xae, 0xa9, 0xa0, 0xa7,
-	0xb2, 0xb5, 0xbc, 0xbb, 0x96, 0x91, 0x98, 0x9f, 0x8a, 0x8d, 0x84, 0x83,
-	0xde, 0xd9, 0xd0, 0xd7, 0xc2, 0xc5, 0xcc, 0xcb, 0xe6, 0xe1, 0xe8, 0xef,
-	0xfa, 0xfd, 0xf4, 0xf3
-};
-
-static uint8_t crc8(uint8_t *p, uint8_t len)
-{
-	uint16_t i;
-	uint16_t crc = 0x0;
-
-	while (len--) {
-		i = (crc ^ *p++) & 0xFF;
-		crc = (crc_table[i] ^ (crc << 8)) & 0xFF;
-	}
-
-	return crc & 0xFF;
-}
 
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int teraranger_main(int argc, char *argv[]);
+extern "C" { __EXPORT int srf02_i2c_main(int argc, char *argv[]);}
 
-TERARANGER::TERARANGER(uint8_t rotation, int bus, int address) :
-	I2C("TERARANGER", TERARANGER_DEVICE_PATH, bus, address, 100000),
+SRF02_I2C::SRF02_I2C(uint8_t rotation, int bus, int address) :
+	I2C("MB12xx", SRF02_DEVICE_PATH, bus, address, 100000),
 	_rotation(rotation),
-	_min_distance(-1.0f),
-	_max_distance(-1.0f),
+	_min_distance(SRF02_MIN_DISTANCE),
+	_max_distance(SRF02_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
-	_valid(0),
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "tr1_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err"))
-{
-	// up the retries since the device misses the first measure attempts
-	I2C::_retries = 3;
+	_sample_perf(perf_alloc(PC_ELAPSED, "srf02_i2c_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "srf02_i2c_comms_errors")),
+	_cycle_counter(0),	/* initialising counter for cycling function to zero */
+	_cycling_rate(0),	/* initialising cycling rate (which can differ depending on one sonar or multiple) */
+	_index_counter(0) 	/* initialising temp sonar i2c address to zero */
 
-	// enable debug() calls
+{
+	/* enable debug() calls */
 	_debug_enabled = false;
 
-	// work_cancel in the dtor will explode if we don't do this...
+	/* work_cancel in the dtor will explode if we don't do this... */
 	memset(&_work, 0, sizeof(_work));
 }
 
-TERARANGER::~TERARANGER()
+SRF02_I2C::~SRF02_I2C()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -270,151 +236,118 @@ TERARANGER::~TERARANGER()
 		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
 
-	// free perf counters
+	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
 int
-TERARANGER::init()
+SRF02_I2C::init()
 {
 	int ret = PX4_ERROR;
-	int hw_model;
-	param_get(param_find("SENS_EN_TRANGER"), &hw_model);
 
-	switch (hw_model) {
-	case 0: /* Disabled */
-		DEVICE_LOG("Disabled");
-		return ret;
-
-	case 1: /* Autodetect */
-		/* Assume TROne */
-		set_device_address(TRONE_BASEADDR);
-
-		if (I2C::init() != OK) {
-			set_device_address(TREVO_BASEADDR);
-
-			if (I2C::init() != OK) {
-				goto out;
-
-			} else {
-				_min_distance = TREVO_MIN_DISTANCE;
-				_max_distance = TREVO_MAX_DISTANCE;
-			}
-
-		} else {
-			_min_distance = TRONE_MIN_DISTANCE;
-			_max_distance = TRONE_MAX_DISTANCE;
-		}
-
-		break;
-
-	case 2: /* TROne */
-		set_device_address(TRONE_BASEADDR);
-
-		if (I2C::init() != OK) {
-			goto out;
-		}
-
-		_min_distance = TRONE_MIN_DISTANCE;
-		_max_distance = TRONE_MAX_DISTANCE;
-		break;
-
-	case 3: /* TREvo */
-		set_device_address(TREVO_BASEADDR);
-
-		/* do I2C init (and probe) first */
-		if (I2C::init() != OK) {
-			goto out;
-		}
-
-		_min_distance = TREVO_MIN_DISTANCE;
-		_max_distance = TREVO_MAX_DISTANCE;
-		break;
-
-	default:
-		DEVICE_LOG("invalid HW model %d.", hw_model);
+	/* do I2C init (and probe) first */
+	if (I2C::init() != OK) {
 		return ret;
 	}
 
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
+	_index_counter = SRF02_I2C_BASEADDR;	/* set temp sonar i2c address to base adress */
+	set_device_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
+
 	if (_reports == nullptr) {
-		goto out;
+		return ret;
 	}
 
 	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* get a publish handle on the range finder topic */
-		struct distance_sensor_s ds_report;
-		measure();
-		_reports->get(&ds_report);
+	/* get a publish handle on the range finder topic */
+	struct distance_sensor_s ds_report = {};
 
-		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-					 &_orb_class_instance, ORB_PRIO_LOW);
+	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+				 &_orb_class_instance, ORB_PRIO_LOW);
 
-		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+	if (_distance_sensor_topic == nullptr) {
+		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+	}
+
+	// XXX we should find out why we need to wait 200 ms here
+	usleep(200000);
+
+	/* check for connected rangefinders on each i2c port:
+	   We start from i2c base address (0x70 = 112) and count downwards
+	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
+	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
+		_index_counter = SRF02_I2C_BASEADDR + counter * 2;	/* set temp sonar i2c address to base adress - counter */
+		set_device_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
+		int ret2 = measure();
+
+		if (ret2 == 0) { /* sonar is present -> store address_index in array */
+			addr_ind.push_back(_index_counter);
+			DEVICE_DEBUG("sonar added");
+			_latest_sonar_measurements.push_back(200);
 		}
 	}
+
+	_index_counter = SRF02_I2C_BASEADDR;
+	set_device_address(_index_counter); /* set i2c port back to base adress for rest of driver */
+
+	/* if only one sonar detected, no special timing is required between firing, so use default */
+	if (addr_ind.size() == 1) {
+		_cycling_rate = SRF02_CONVERSION_INTERVAL;
+
+	} else {
+		_cycling_rate = TICKS_BETWEEN_SUCCESIVE_FIRES;
+	}
+
+	/* show the connected sonars in terminal */
+	for (unsigned i = 0; i < addr_ind.size(); i++) {
+		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
+	}
+
+	DEVICE_DEBUG("Number of sonars connected: %zu", addr_ind.size());
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
-out:
+
 	return ret;
 }
 
 int
-TERARANGER::probe()
+SRF02_I2C::probe()
 {
-	uint8_t who_am_i = 0;
-
-	const uint8_t cmd = TERARANGER_WHO_AM_I_REG;
-
-	// can't use a single transfer as Teraranger needs a bit of time for internal processing
-	if (transfer(&cmd, 1, nullptr, 0) == OK) {
-		if (transfer(nullptr, 0, &who_am_i, 1) == OK && who_am_i == TERARANGER_WHO_AM_I_REG_VAL) {
-			return measure();
-		}
-	}
-
-	DEVICE_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
-		     (unsigned)who_am_i,
-		     TERARANGER_WHO_AM_I_REG_VAL);
-
-	// not found on any address
-	return -EIO;
+	return measure();
 }
 
 void
-TERARANGER::set_minimum_distance(float min)
+SRF02_I2C::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-TERARANGER::set_maximum_distance(float max)
+SRF02_I2C::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-TERARANGER::get_minimum_distance()
+SRF02_I2C::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-TERARANGER::get_maximum_distance()
+SRF02_I2C::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-TERARANGER::ioctl(struct file *filp, int cmd, unsigned long arg)
+SRF02_I2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -441,11 +374,12 @@ TERARANGER::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(TERARANGER_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(_cycling_rate);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
 						start();
+
 					}
 
 					return OK;
@@ -457,10 +391,10 @@ TERARANGER::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					int ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(TERARANGER_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(_cycling_rate)) {
 						return -EINVAL;
 					}
 
@@ -490,14 +424,14 @@ TERARANGER::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -513,8 +447,9 @@ TERARANGER::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-TERARANGER::read(struct file *filp, char *buffer, size_t buflen)
+SRF02_I2C::read(device::file_t *filp, char *buffer, size_t buflen)
 {
+
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
@@ -554,7 +489,7 @@ TERARANGER::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(TERARANGER_CONVERSION_INTERVAL);
+		usleep(_cycling_rate * 2);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -573,19 +508,23 @@ TERARANGER::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-TERARANGER::measure()
+SRF02_I2C::measure()
 {
+
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	const uint8_t cmd = TERARANGER_MEASURE_REG;
-	ret = transfer(&cmd, sizeof(cmd), nullptr, 0);
+
+	uint8_t cmd[2];
+	cmd[0] = 0x00;
+	cmd[1] = SRF02_TAKE_RANGE_REG;
+	ret = transfer(cmd, 2, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_LOG("i2c::transfer returned %d", ret);
+		DEVICE_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -595,31 +534,31 @@ TERARANGER::measure()
 }
 
 int
-TERARANGER::collect()
+SRF02_I2C::collect()
 {
-	int ret = -EIO;
+	int	ret = -EIO;
 
 	/* read from the sensor */
-	uint8_t val[3] = {0, 0, 0};
-
+	uint8_t val[2] = {0, 0};
+	uint8_t cmd = 0x02;
 	perf_begin(_sample_perf);
 
-	ret = transfer(nullptr, 0, &val[0], 3);
+	ret = transfer(&cmd, 1, nullptr, 0);
+	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		DEVICE_LOG("error reading from sensor: %d", ret);
+		DEVICE_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
 	}
 
-	uint16_t distance_mm = (val[0] << 8) | val[1];
-	float distance_m = float(distance_mm) *  1e-3f;
-	struct distance_sensor_s report;
+	uint16_t distance_cm = val[0] << 8 | val[1];
+	float distance_m = float(distance_cm) * 1e-2f;
 
+	struct distance_sensor_s report;
 	report.timestamp = hrt_absolute_time();
-	/* there is no enum item for a combined LASER and ULTRASOUND which it should be */
-	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 	report.orientation = _rotation;
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
@@ -627,10 +566,6 @@ TERARANGER::collect()
 	report.covariance = 0.0f;
 	/* TODO: set proper ID */
 	report.id = 0;
-
-	// This validation check can be used later
-	_valid = crc8(val, 2) == val[2] && (float)report.current_distance > report.min_distance
-		 && (float)report.current_distance < report.max_distance ? 1 : 0;
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic != nullptr) {
@@ -649,14 +584,15 @@ TERARANGER::collect()
 }
 
 void
-TERARANGER::start()
+SRF02_I2C::start()
 {
+
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&TERARANGER::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&SRF02_I2C::cycle_trampoline, this, 5);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -672,33 +608,37 @@ TERARANGER::start()
 
 	} else {
 		pub = orb_advertise(ORB_ID(subsystem_info), &info);
+
 	}
 }
 
 void
-TERARANGER::stop()
+SRF02_I2C::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-TERARANGER::cycle_trampoline(void *arg)
+SRF02_I2C::cycle_trampoline(void *arg)
 {
-	TERARANGER *dev = (TERARANGER *)arg;
+
+	SRF02_I2C *dev = (SRF02_I2C *)arg;
 
 	dev->cycle();
+
 }
 
 void
-TERARANGER::cycle()
+SRF02_I2C::cycle()
 {
-	/* collection phase? */
 	if (_collect_phase) {
+		_index_counter = addr_ind[_cycle_counter]; /*sonar from previous iteration collect is now read out */
+		set_device_address(_index_counter);
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_LOG("collection error");
-			/* restart the measurement state machine */
+			DEVICE_DEBUG("collection error");
+			/* if error restart the measurement state machine */
 			start();
 			return;
 		}
@@ -706,24 +646,37 @@ TERARANGER::cycle()
 		/* next phase is measurement */
 		_collect_phase = false;
 
-		/*
-		 * Is there a collect->measure gap?
-		 */
-		if (_measure_ticks > USEC2TICK(TERARANGER_CONVERSION_INTERVAL)) {
+		/* change i2c adress to next sonar */
+		_cycle_counter = _cycle_counter + 1;
+
+		if (_cycle_counter >= addr_ind.size()) {
+			_cycle_counter = 0;
+		}
+
+		/* Is there a collect->measure gap? Yes, and the timing is set equal to the cycling_rate
+		   Otherwise the next sonar would fire without the first one having received its reflected sonar pulse */
+
+		if (_measure_ticks > USEC2TICK(_cycling_rate)) {
+
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&TERARANGER::cycle_trampoline,
+				   (worker_t)&SRF02_I2C::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(TERARANGER_CONVERSION_INTERVAL));
-
+				   _measure_ticks - USEC2TICK(_cycling_rate));
 			return;
 		}
 	}
 
-	/* measurement phase */
+	/* Measurement (firing) phase */
+
+	/* ensure sonar i2c adress is still correct */
+	_index_counter = addr_ind[_cycle_counter];
+	set_device_address(_index_counter);
+
+	/* Perform measurement */
 	if (OK != measure()) {
-		DEVICE_LOG("measure error");
+		DEVICE_DEBUG("measure error sonar adress %d", _index_counter);
 	}
 
 	/* next phase is collection */
@@ -732,13 +685,14 @@ TERARANGER::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&TERARANGER::cycle_trampoline,
+		   (worker_t)&SRF02_I2C::cycle_trampoline,
 		   this,
-		   USEC2TICK(TERARANGER_CONVERSION_INTERVAL));
+		   USEC2TICK(_cycling_rate));
+
 }
 
 void
-TERARANGER::print_info()
+SRF02_I2C::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -749,10 +703,10 @@ TERARANGER::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace teraranger
+namespace  srf02_i2c
 {
 
-TERARANGER	*g_dev;
+SRF02_I2C	*g_dev;
 
 void	start(uint8_t rotation);
 void	stop();
@@ -773,8 +727,7 @@ start(uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new TERARANGER(rotation, TERARANGER_BUS);
-
+	g_dev = new SRF02_I2C(rotation, SRF02_I2C_BUS);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -785,7 +738,7 @@ start(uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
+	fd = open(SRF02_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -835,10 +788,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
+	int fd = open(SRF02_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'teraranger start' if the driver is not running", TERARANGER_DEVICE_PATH);
+		err(1, "%s open failed (try 'srf02_i2c start' if the driver is not running", SRF02_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -857,8 +810,8 @@ test()
 		errx(1, "failed to set 2Hz poll rate");
 	}
 
-	/* read the sensor 50x and report each value */
-	for (unsigned i = 0; i < 50; i++) {
+	/* read the sensor 5x and report each value */
+	for (unsigned i = 0; i < 5; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -878,6 +831,8 @@ test()
 		}
 
 		warnx("periodic read %u", i);
+		warnx("valid %u", (float)report.current_distance > report.min_distance
+		      && (float)report.current_distance < report.max_distance ? 1 : 0);
 		warnx("measurement: %0.3f", (double)report.current_distance);
 		warnx("time:        %llu", report.timestamp);
 	}
@@ -896,7 +851,7 @@ test()
 void
 reset()
 {
-	int fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
+	int fd = open(SRF02_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -929,21 +884,23 @@ info()
 	exit(0);
 }
 
-} // namespace
+} /* namespace */
 
 int
-teraranger_main(int argc, char *argv[])
+srf02_i2c_main(int argc, char *argv[])
 {
+	// check for optional arguments
 	int ch;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
 
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting sensor orientation to %d", (int)rotation);
+			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
 			break;
 
 		default:
@@ -955,36 +912,37 @@ teraranger_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		teraranger::start(rotation);
+		srf02_i2c::start(rotation);
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		teraranger::stop();
+		srf02_i2c::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		teraranger::test();
+		srf02_i2c::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		teraranger::reset();
+		srf02_i2c::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
-		teraranger::info();
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
+		srf02_i2c::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	return PX4_ERROR;
 }

@@ -6,6 +6,9 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/differential_pressure
+	drivers/distance_sensor
+
 	#drivers/adis16448
 	drivers/airspeed
 	#drivers/blinkm
@@ -15,8 +18,7 @@ set(config_module_list
 	#drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/differential_pressure
-	drivers/frsky_telemetry
+	#drivers/frsky_telemetry
 	drivers/gps
 	drivers/hmc5883
 	#drivers/hott
@@ -28,7 +30,6 @@ set(config_module_list
 	drivers/l3gd20
 	drivers/led
 	drivers/lis3mdl
-	drivers/ll40ls
 	drivers/lsm303d
 	#drivers/mb12xx
 	#drivers/mkblctrl
@@ -43,23 +44,17 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/px4io
 	drivers/rgbled
-	drivers/sf0x
-	drivers/sf1xx
-	#drivers/srf02
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
 	#drivers/tap_esc
-	drivers/teraranger
-	#drivers/ulanding
 	drivers/vmount
 	modules/sensors
-	#drivers/tfmini
 
 	#
 	# System commands
 	#
-	systemcmds/bl_update
+	#systemcmds/bl_update
 	#systemcmds/config
 	#systemcmds/dumpfile
 	#systemcmds/esc_calib
@@ -82,7 +77,7 @@ set(config_module_list
 	#
 	# Testing
 	#
-	#drivers/sf0x/sf0x_tests
+	#drivers/distance_sensor/sf0x/sf0x_tests
 	#drivers/test_ppm
 	#lib/controllib/controllib_test
 	#lib/rc/rc_tests
@@ -119,8 +114,8 @@ set(config_module_list
 	#
 	modules/fw_att_control
 	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
+	#modules/gnd_att_control
+	#modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control

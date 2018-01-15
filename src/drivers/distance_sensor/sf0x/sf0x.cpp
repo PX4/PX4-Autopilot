@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file srf02.cpp
+ * @file sf0x.cpp
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Greg Hulands
  *
- * Driver for the SRF02 sonar range finder adapted from the Maxbotix sonar range finder driver (mb12xx).
+ * Driver for the Lightware SF0x laser rangefinder series
  */
 
 #include <px4_config.h>
-#include <px4_defines.h>
 #include <px4_getopt.h>
-
-#include <drivers/device/i2c.h>
+#include <px4_workqueue.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -55,60 +55,43 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
+#include <termios.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
+#include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
-#include <board_config.h>
+#include "sf0x_parser.h"
 
 /* Configuration Constants */
-#define SRF02_BUS 		PX4_I2C_BUS_EXPANSION
-#define SRF02_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
-#define SRF02_DEVICE_PATH	"/dev/srf02"
-
-/* MB12xx Registers addresses */
-
-#define SRF02_TAKE_RANGE_REG	0x51		/* Measure range Register */
-#define SRF02_SET_ADDRESS_0	0xA0		/* Change address 0 Register */
-#define SRF02_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
-#define SRF02_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
-
-/* Device limits */
-#define SRF02_MIN_DISTANCE 	(0.20f)
-#define SRF02_MAX_DISTANCE 	(7.65f)
-
-#define SRF02_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
-#define TICKS_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
-
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class SRF02 : public device::I2C
+#define SF0X_TAKE_RANGE_REG		'd'
+
+// designated SERIAL4/5 on Pixhawk
+#define SF0X_DEFAULT_PORT		"/dev/ttyS6"
+
+class SF0X : public device::CDev
 {
 public:
-	SRF02(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SRF02_BUS,
-	      int address = SRF02_BASEADDR);
-	virtual ~SRF02();
+	SF0X(const char *port = SF0X_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	virtual ~SF0X();
 
-	virtual int 		init();
+	virtual int 			init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -119,38 +102,30 @@ protected:
 	virtual int			probe();
 
 private:
+	char 				_port[20];
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
+	int                 _conversion_interval;
 	work_s				_work;
-	ringbuffer::RingBuffer	*_reports;
-	bool				_sensor_ok;
-	int					_measure_ticks;
+	ringbuffer::RingBuffer		*_reports;
+	int				_measure_ticks;
 	bool				_collect_phase;
+	int				_fd;
+	char				_linebuf[10];
+	unsigned			_linebuf_index;
+	enum SF0X_PARSE_STATE		_parse_state;
+	hrt_abstime			_last_read;
+
 	int				_class_instance;
 	int				_orb_class_instance;
 
-	orb_advert_t		_distance_sensor_topic;
+	orb_advert_t			_distance_sensor_topic;
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	unsigned			_consecutive_fail_count;
 
-	uint8_t				_cycle_counter;	/* counter in cycle to change i2c adresses */
-	int					_cycling_rate;	/* */
-	uint8_t				_index_counter;	/* temporary sonar i2c address */
-	std::vector<uint8_t>	addr_ind; 	/* temp sonar i2c address vector */
-	std::vector<float>
-	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-
-
-	/**
-	* Test whether the device supported by the driver is present at a
-	* specific address.
-	*
-	* @param address	The I2C bus address to probe.
-	* @return			True if the device is present.
-	*/
-	int					probe_address(uint8_t address);
+	perf_counter_t			_sample_perf;
+	perf_counter_t			_comms_errors;
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -167,8 +142,8 @@ private:
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults SRF02_MIN_DISTANCE
-	* and SRF02_MAX_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults SF0X_MIN_DISTANCE
+	* and SF0X_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
 	void				set_maximum_distance(float max);
@@ -180,8 +155,8 @@ private:
 	* and start a new one.
 	*/
 	void				cycle();
-	int					measure();
-	int					collect();
+	int				measure();
+	int				collect();
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.
@@ -196,35 +171,76 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int srf02_main(int argc, char *argv[]);
+extern "C" __EXPORT int sf0x_main(int argc, char *argv[]);
 
-SRF02::SRF02(uint8_t rotation, int bus, int address) :
-	I2C("MB12xx", SRF02_DEVICE_PATH, bus, address, 100000),
+SF0X::SF0X(const char *port, uint8_t rotation) :
+	CDev("SF0X", RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
-	_min_distance(SRF02_MIN_DISTANCE),
-	_max_distance(SRF02_MAX_DISTANCE),
+	_min_distance(0.30f),
+	_max_distance(40.0f),
+	_conversion_interval(83334),
 	_reports(nullptr),
-	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
+	_fd(-1),
+	_linebuf_index(0),
+	_parse_state(SF0X_PARSE_STATE0_UNSYNC),
+	_last_read(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "srf02_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "srf02_com_err")),
-	_cycle_counter(0),	/* initialising counter for cycling function to zero */
-	_cycling_rate(0),	/* initialising cycling rate (which can differ depending on one sonar or multiple) */
-	_index_counter(0) 	/* initialising temp sonar i2c address to zero */
-
+	_consecutive_fail_count(0),
+	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "sf0x_com_err"))
 {
-	/* enable debug() calls */
+	/* store port name */
+	strncpy(_port, port, sizeof(_port));
+	/* enforce null termination */
+	_port[sizeof(_port) - 1] = '\0';
+
+	/* open fd */
+	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+	if (_fd < 0) {
+		warnx("FAIL: laser fd");
+	}
+
+	struct termios uart_config;
+
+	int termios_state;
+
+	/* fill the struct for the new configuration */
+	tcgetattr(_fd, &uart_config);
+
+	/* clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	unsigned speed = B9600;
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		warnx("ERR CFG: %d ISPD", termios_state);
+	}
+
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		warnx("ERR CFG: %d OSPD\n", termios_state);
+	}
+
+	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
+		warnx("ERR baud %d ATTR", termios_state);
+	}
+
+	// disable debug() calls
 	_debug_enabled = false;
 
-	/* work_cancel in the dtor will explode if we don't do this... */
+	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
 
-SRF02::~SRF02()
+SF0X::~SF0X()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -238,118 +254,129 @@ SRF02::~SRF02()
 		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
 
-	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
 int
-SRF02::init()
+SF0X::init()
 {
-	int ret = PX4_ERROR;
+	int hw_model;
+	param_get(param_find("SENS_EN_SF0X"), &hw_model);
 
-	/* do I2C init (and probe) first */
-	if (I2C::init() != OK) {
-		return ret;
+	switch (hw_model) {
+	case 0:
+		DEVICE_LOG("disabled.");
+		return 0;
+
+	case 1: /* SF02 (40m, 12 Hz)*/
+		_min_distance = 0.3f;
+		_max_distance = 40.0f;
+		_conversion_interval =	83334;
+		break;
+
+	case 2:  /* SF10/a (25m 32Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 25.0f;
+		_conversion_interval = 31250;
+		break;
+
+	case 3:  /* SF10/b (50m 32Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 50.0f;
+		_conversion_interval = 31250;
+		break;
+
+	case 4:  /* SF10/c (100m 16Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 100.0f;
+		_conversion_interval = 62500;
+		break;
+
+	case 5:
+		/* SF11/c (120m 20Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 120.0f;
+		_conversion_interval = 50000;
+		break;
+
+	default:
+		DEVICE_LOG("invalid HW model %d.", hw_model);
+		return -1;
 	}
 
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
+	/* status */
+	int ret = 0;
 
-	_index_counter = SRF02_BASEADDR;	/* set temp sonar i2c address to base adress */
-	set_device_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
+	do { /* create a scope to handle exit conditions using break */
 
-	if (_reports == nullptr) {
-		return ret;
-	}
+		/* do regular cdev init */
+		ret = CDev::init();
 
-	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+		if (ret != OK) { break; }
 
-	/* get a publish handle on the range finder topic */
-	struct distance_sensor_s ds_report = {};
+		/* allocate basic report buffers */
+		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_LOW);
-
-	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
-	}
-
-	// XXX we should find out why we need to wait 200 ms here
-	usleep(200000);
-
-	/* check for connected rangefinders on each i2c port:
-	   We start from i2c base address (0x70 = 112) and count downwards
-	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
-	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
-		_index_counter = SRF02_BASEADDR - counter;	/* set temp sonar i2c address to base adress - counter */
-		set_device_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
-		int ret2 = measure();
-
-		if (ret2 == 0) { /* sonar is present -> store address_index in array */
-			addr_ind.push_back(_index_counter);
-			DEVICE_DEBUG("sonar added");
-			_latest_sonar_measurements.push_back(200);
+		if (_reports == nullptr) {
+			warnx("mem err");
+			ret = -1;
+			break;
 		}
-	}
 
-	_index_counter = SRF02_BASEADDR;
-	set_device_address(_index_counter); /* set i2c port back to base adress for rest of driver */
+		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-	/* if only one sonar detected, no special timing is required between firing, so use default */
-	if (addr_ind.size() == 1) {
-		_cycling_rate = SRF02_CONVERSION_INTERVAL;
+		/* get a publish handle on the range finder topic */
+		struct distance_sensor_s ds_report = {};
 
-	} else {
-		_cycling_rate = TICKS_BETWEEN_SUCCESIVE_FIRES;
-	}
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+					 &_orb_class_instance, ORB_PRIO_HIGH);
 
-	/* show the connected sonars in terminal */
-	for (unsigned i = 0; i < addr_ind.size(); i++) {
-		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
-	}
+		if (_distance_sensor_topic == nullptr) {
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		}
 
-	DEVICE_DEBUG("Number of sonars connected: %d", addr_ind.size());
+	} while (0);
 
-	ret = OK;
-	/* sensor is ok, but we don't really know if it is within range */
-	_sensor_ok = true;
+	/* close the fd */
+	::close(_fd);
+	_fd = -1;
 
-	return ret;
+	return OK;
 }
 
 int
-SRF02::probe()
+SF0X::probe()
 {
 	return measure();
 }
 
 void
-SRF02::set_minimum_distance(float min)
+SF0X::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-SRF02::set_maximum_distance(float max)
+SF0X::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-SRF02::get_minimum_distance()
+SF0X::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-SRF02::get_maximum_distance()
+SF0X::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-SRF02::ioctl(struct file *filp, int cmd, unsigned long arg)
+SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -376,12 +403,11 @@ SRF02::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_cycling_rate);
+					_measure_ticks = USEC2TICK(_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
 						start();
-
 					}
 
 					return OK;
@@ -389,14 +415,15 @@ SRF02::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
+
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
+					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_cycling_rate)) {
+					if (ticks < USEC2TICK(_conversion_interval)) {
 						return -EINVAL;
 					}
 
@@ -426,14 +453,14 @@ SRF02::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = px4_enter_critical_section();
+			ATOMIC_ENTER;
 
 			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
+				ATOMIC_LEAVE;
 				return -ENOMEM;
 			}
 
-			px4_leave_critical_section(flags);
+			ATOMIC_LEAVE;
 
 			return OK;
 		}
@@ -444,14 +471,13 @@ SRF02::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return I2C::ioctl(filp, cmd, arg);
+		return CDev::ioctl(filp, cmd, arg);
 	}
 }
 
 ssize_t
-SRF02::read(struct file *filp, char *buffer, size_t buflen)
+SF0X::read(device::file_t *filp, char *buffer, size_t buflen)
 {
-
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
@@ -491,7 +517,7 @@ SRF02::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(_cycling_rate * 2);
+		usleep(_conversion_interval);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -510,23 +536,19 @@ SRF02::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-SRF02::measure()
+SF0X::measure()
 {
-
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
+	char cmd = SF0X_TAKE_RANGE_REG;
+	ret = ::write(_fd, &cmd, 1);
 
-	uint8_t cmd[2];
-	cmd[0] = 0x00;
-	cmd[1] = SRF02_TAKE_RANGE_REG;
-	ret = transfer(cmd, 2, nullptr, 0);
-
-	if (OK != ret) {
+	if (ret != sizeof(cmd)) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("i2c::transfer returned %d", ret);
+		DEVICE_LOG("write fail %d", ret);
 		return ret;
 	}
 
@@ -536,31 +558,60 @@ SRF02::measure()
 }
 
 int
-SRF02::collect()
+SF0X::collect()
 {
-	int	ret = -EIO;
+	int	ret;
 
-	/* read from the sensor */
-	uint8_t val[2] = {0, 0};
-	uint8_t cmd = 0x02;
 	perf_begin(_sample_perf);
 
-	ret = transfer(&cmd, 1, nullptr, 0);
-	ret = transfer(nullptr, 0, &val[0], 2);
+	/* clear buffer if last read was too long ago */
+	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
+
+	/* the buffer for read chars is buflen minus null termination */
+	char readbuf[sizeof(_linebuf)];
+	unsigned readlen = sizeof(readbuf) - 1;
+
+	/* read from the sensor (uart buffer) */
+	ret = ::read(_fd, &readbuf[0], readlen);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
+		DEVICE_DEBUG("read err: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
-		return ret;
+
+		/* only throw an error if we time out */
+		if (read_elapsed > (_conversion_interval * 2)) {
+			return ret;
+
+		} else {
+			return -EAGAIN;
+		}
+
+	} else if (ret == 0) {
+		return -EAGAIN;
 	}
 
-	uint16_t distance_cm = val[0] << 8 | val[1];
-	float distance_m = float(distance_cm) * 1e-2f;
+	_last_read = hrt_absolute_time();
+
+	float distance_m = -1.0f;
+	bool valid = false;
+
+	for (int i = 0; i < ret; i++) {
+		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
+			valid = true;
+		}
+	}
+
+	if (!valid) {
+		return -EAGAIN;
+	}
+
+	DEVICE_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
+
 	report.timestamp = hrt_absolute_time();
-	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = _rotation;
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
@@ -569,10 +620,8 @@ SRF02::collect()
 	/* TODO: set proper ID */
 	report.id = 0;
 
-	/* publish it, if we are the primary */
-	if (_distance_sensor_topic != nullptr) {
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
-	}
+	/* publish it */
+	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 
 	_reports->force(&report);
 
@@ -586,100 +635,111 @@ SRF02::collect()
 }
 
 void
-SRF02::start()
+SF0X::start()
 {
-
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&SRF02::cycle_trampoline, this, 5);
+	work_queue(HPWORK, &_work, (worker_t)&SF0X::cycle_trampoline, this, 1);
 
-	/* notify about state change */
-	struct subsystem_info_s info = {};
-	info.present = true;
-	info.enabled = true;
-	info.ok = true;
-	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER;
+	// /* notify about state change */
+	// struct subsystem_info_s info = {
+	// 	true,
+	// 	true,
+	// 	true,
+	// 	SUBSYSTEM_TYPE_RANGEFINDER
+	// };
+	// static orb_advert_t pub = -1;
 
-	static orb_advert_t pub = nullptr;
+	// if (pub > 0) {
+	// 	orb_publish(ORB_ID(subsystem_info), pub, &info);
 
-	if (pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
-
-
-	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-
-	}
+	// } else {
+	// 	pub = orb_advertise(ORB_ID(subsystem_info), &info);
+	// }
 }
 
 void
-SRF02::stop()
+SF0X::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-SRF02::cycle_trampoline(void *arg)
+SF0X::cycle_trampoline(void *arg)
 {
-
-	SRF02 *dev = (SRF02 *)arg;
+	SF0X *dev = static_cast<SF0X *>(arg);
 
 	dev->cycle();
-
 }
 
 void
-SRF02::cycle()
+SF0X::cycle()
 {
+	/* fds initialized? */
+	if (_fd < 0) {
+		/* open fd */
+		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	}
+
+	/* collection phase? */
 	if (_collect_phase) {
-		_index_counter = addr_ind[_cycle_counter]; /*sonar from previous iteration collect is now read out */
-		set_device_address(_index_counter);
 
 		/* perform collection */
-		if (OK != collect()) {
-			DEVICE_DEBUG("collection error");
-			/* if error restart the measurement state machine */
+		int collect_ret = collect();
+
+		if (collect_ret == -EAGAIN) {
+			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&SF0X::cycle_trampoline,
+				   this,
+				   USEC2TICK(1042 * 8));
+			return;
+		}
+
+		if (OK != collect_ret) {
+
+			/* we know the sensor needs about four seconds to initialize */
+			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
+				DEVICE_LOG("collection error #%u", _consecutive_fail_count);
+			}
+
+			_consecutive_fail_count++;
+
+			/* restart the measurement state machine */
 			start();
 			return;
+
+		} else {
+			/* apparently success */
+			_consecutive_fail_count = 0;
 		}
 
 		/* next phase is measurement */
 		_collect_phase = false;
 
-		/* change i2c adress to next sonar */
-		_cycle_counter = _cycle_counter + 1;
-
-		if (_cycle_counter >= addr_ind.size()) {
-			_cycle_counter = 0;
-		}
-
-		/* Is there a collect->measure gap? Yes, and the timing is set equal to the cycling_rate
-		   Otherwise the next sonar would fire without the first one having received its reflected sonar pulse */
-
-		if (_measure_ticks > USEC2TICK(_cycling_rate)) {
+		/*
+		 * Is there a collect->measure gap?
+		 */
+		if (_measure_ticks > USEC2TICK(_conversion_interval)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&SRF02::cycle_trampoline,
+				   (worker_t)&SF0X::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(_cycling_rate));
+				   _measure_ticks - USEC2TICK(_conversion_interval));
+
 			return;
 		}
 	}
 
-	/* Measurement (firing) phase */
-
-	/* ensure sonar i2c adress is still correct */
-	_index_counter = addr_ind[_cycle_counter];
-	set_device_address(_index_counter);
-
-	/* Perform measurement */
+	/* measurement phase */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _index_counter);
+		DEVICE_LOG("measure error");
 	}
 
 	/* next phase is collection */
@@ -688,30 +748,29 @@ SRF02::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&SRF02::cycle_trampoline,
+		   (worker_t)&SF0X::cycle_trampoline,
 		   this,
-		   USEC2TICK(_cycling_rate));
-
+		   USEC2TICK(_conversion_interval));
 }
 
 void
-SRF02::print_info()
+SF0X::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %d ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 }
 
 /**
  * Local functions in support of the shell command.
  */
-namespace srf02
+namespace sf0x
 {
 
-SRF02	*g_dev;
+SF0X	*g_dev;
 
-void	start(uint8_t rotation);
+void	start(const char *port, uint8_t rotation);
 void	stop();
 void	test();
 void	reset();
@@ -721,7 +780,7 @@ void	info();
  * Start the driver.
  */
 void
-start(uint8_t rotation)
+start(const char *port, uint8_t rotation)
 {
 	int fd;
 
@@ -730,7 +789,7 @@ start(uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new SRF02(rotation, SRF02_BUS);
+	g_dev = new SF0X(port, rotation);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -741,9 +800,10 @@ start(uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
+		warnx("device open fail");
 		goto fail;
 	}
 
@@ -789,12 +849,11 @@ test()
 {
 	struct distance_sensor_s report;
 	ssize_t sz;
-	int ret;
 
-	int fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'srf02 start' if the driver is not running", SRF02_DEVICE_PATH);
+		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -805,10 +864,10 @@ test()
 	}
 
 	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.current_distance);
-	warnx("time:        %llu", report.timestamp);
+	warnx("measurement:  %0.2f m", (double)report.current_distance);
+	warnx("time: %llu", report.timestamp);
 
-	/* start the sensor polling at 2Hz */
+	/* start the sensor polling at 2 Hz rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
 	}
@@ -820,29 +879,31 @@ test()
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
+		int ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			warnx("timed out");
+			break;
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
+			break;
 		}
 
-		warnx("periodic read %u", i);
+		warnx("read #%u", i);
 		warnx("valid %u", (float)report.current_distance > report.min_distance
 		      && (float)report.current_distance < report.max_distance ? 1 : 0);
-		warnx("measurement: %0.3f", (double)report.current_distance);
-		warnx("time:        %llu", report.timestamp);
+		warnx("measurement:  %0.3f m", (double)report.current_distance);
+		warnx("time: %llu", report.timestamp);
 	}
 
-	/* reset the sensor polling to default rate */
+	/* reset the sensor polling to the default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
+		errx(1, "ERR: DEF RATE");
 	}
 
 	errx(0, "PASS");
@@ -854,7 +915,7 @@ test()
 void
 reset()
 {
-	int fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -887,16 +948,16 @@ info()
 	exit(0);
 }
 
-} /* namespace */
+} // namespace
 
 int
-srf02_main(int argc, char *argv[])
+sf0x_main(int argc, char *argv[])
 {
 	// check for optional arguments
 	int ch;
-	int myoptind = 1;
-	const char *myoptarg = NULL;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
 
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
@@ -915,36 +976,42 @@ srf02_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		srf02::start(rotation);
+		if (argc > myoptind + 1) {
+			sf0x::start(argv[myoptind + 1], rotation);
+
+		} else {
+			sf0x::start(SF0X_DEFAULT_PORT, rotation);
+		}
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		srf02::stop();
+		sf0x::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		srf02::test();
+		sf0x::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		srf02::reset();
+		sf0x::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		srf02::info();
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
+		sf0x::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	return PX4_ERROR;
 }

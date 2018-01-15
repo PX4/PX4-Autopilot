@@ -17,11 +17,11 @@ set(config_module_list
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/ms5611
-	drivers/teraranger
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/airspeed
 	drivers/differential_pressure
+	drivers/distance_sensor
 	#drivers/frsky_telemetry
 	modules/sensors
 	#drivers/pwm_input
@@ -51,7 +51,7 @@ set(config_module_list
 	#
 	# Testing
 	#
-	#drivers/sf0x/sf0x_tests
+	#drivers/distance_sensor/sf0x/sf0x_tests
 	#drivers/test_ppm
 	#lib/rc/rc_tests
 	#modules/commander/commander_tests

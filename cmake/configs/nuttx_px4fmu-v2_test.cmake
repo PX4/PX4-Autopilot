@@ -69,7 +69,7 @@ set(config_module_list
 	#
 	# Testing
 	#
-	drivers/sf0x/sf0x_tests
+	drivers/distance_sensor/sf0x/sf0x_tests
 	drivers/test_ppm
 	#lib/rc/rc_tests
 	modules/commander/commander_tests
