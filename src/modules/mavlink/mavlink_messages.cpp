@@ -1160,9 +1160,9 @@ protected:
 			msg.v_acc = gps.epv * 1e3f;
 			msg.vel_acc = gps.s_variance_m_s * 1e3f;
 			msg.hdg_acc = gps.c_variance_rad * 1e5f / M_DEG_TO_RAD_F;
-			msg.vel = cm_uint16_from_m_float(gps.vel_m_s),
-			    msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-				msg.satellites_visible = gps.satellites_used;
+			msg.vel = cm_uint16_from_m_float(gps.vel_m_s);
+			msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f;
+			msg.satellites_visible = gps.satellites_used;
 
 			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
 
