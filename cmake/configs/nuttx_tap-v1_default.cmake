@@ -10,12 +10,12 @@ set(config_module_list
 	drivers/airspeed
 	drivers/boards
 	drivers/device
+	drivers/barometer
 	drivers/differential_pressure
 	drivers/gps
 	drivers/led
 	drivers/magnetometer/hmc5883
 	drivers/mpu6000
-	drivers/ms5611
 	drivers/px4fmu
 	drivers/rgbled_pwm
 	drivers/stm32

@@ -19,7 +19,6 @@ set(config_module_list
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/hmc5883
-	drivers/ms5611
 	#drivers/mb12xx
 	#drivers/srf02
 	#drivers/sf0x
@@ -32,6 +31,7 @@ set(config_module_list
 	#drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
+	drivers/barometer
 	drivers/differential_pressure
 	drivers/frsky_telemetry
 	modules/sensors

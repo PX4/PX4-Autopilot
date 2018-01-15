@@ -39,7 +39,7 @@
 
 #include <px4_config.h>
 
-#include <drivers/bmp280/bmp280.h>
+#include "bmp280.h"
 #include <drivers/device/spi.h>
 
 #include "board_config.h"
