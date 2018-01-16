@@ -36,6 +36,7 @@ param set NAV_DLL_ACT 2
 param set RTL_DESCEND_ALT 10.0
 param set RTL_LAND_DELAY 0
 param set RTL_RETURN_ALT 30.0
+param set SDLOG_DIRS_MAX 7
 param set SENS_BOARD_ROT 0
 param set SENS_BOARD_X_OFF 0.000001
 param set SYS_AUTOSTART 4010

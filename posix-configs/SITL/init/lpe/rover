@@ -43,6 +43,7 @@ param set SENS_DPRES_OFF 0.001
 param set SYS_AUTOSTART 50002
 param set SYS_MC_EST_GROUP 1
 param set SYS_RESTART_TYPE 2
+param set SDLOG_DIRS_MAX 7
 replay tryapplyparams
 simulator start -s
 tone_alarm start
