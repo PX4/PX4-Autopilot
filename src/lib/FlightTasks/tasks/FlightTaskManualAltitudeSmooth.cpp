@@ -36,8 +36,6 @@
  */
 
 #include "FlightTaskManualAltitudeSmooth.hpp"
-#include <mathlib/mathlib.h>
-#include <float.h>
 
 using namespace matrix;
 
@@ -63,5 +61,4 @@ void FlightTaskManualAltitudeSmooth::_updateSetpoints()
 
 	/* Check for altitude lock*/
 	_updateAltitudeLock();
-
 }
