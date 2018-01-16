@@ -41,6 +41,7 @@ param set MPC_XY_VEL_I 0.2
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
+param set SDLOG_DIRS_MAX 7
 replay tryapplyparams
 simulator start -s
 tone_alarm start

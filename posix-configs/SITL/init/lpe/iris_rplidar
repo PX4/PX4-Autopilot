@@ -41,6 +41,7 @@ param set MPC_HOLD_XY_DZ 0.1
 param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
 param set LPE_FUSION 242
+param set SDLOG_DIRS_MAX 7
 
 replay tryapplyparams
 simulator start -s

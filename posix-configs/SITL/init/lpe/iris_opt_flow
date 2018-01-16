@@ -40,6 +40,7 @@ param set MPC_Z_VEL_P 0.8
 param set MPC_Z_VEL_I 0.15
 param set MPC_XY_VEL_P 0.15
 param set MPC_XY_VEL_I 0.2
+param set SDLOG_DIRS_MAX 7
 
 # changes for optical flow navigation
 param set MC_PITCH_P 5.0

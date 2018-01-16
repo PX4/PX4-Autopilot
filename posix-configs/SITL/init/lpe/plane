@@ -28,6 +28,7 @@ param set NAV_ACC_RAD 15.0
 param set NAV_LOITER_RAD 50
 param set MIS_LTRMIN_ALT 30
 param set MIS_TAKEOFF_ALT 30
+param set SDLOG_DIRS_MAX 7
 
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01

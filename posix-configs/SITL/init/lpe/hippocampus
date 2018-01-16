@@ -1,14 +1,15 @@
 uorb start
 param load
-param set MAV_TYPE 3
-param set SYS_AUTOSTART 4010
-param set SYS_RESTART_TYPE 2
-param set COM_DISARM_LAND 0
-dataman start
 param set CAL_GYRO0_ID 2293768
 param set CAL_ACC0_ID 1376264
 param set CAL_ACC1_ID 1310728
 param set CAL_MAG0_ID 196616
+param set COM_DISARM_LAND 0
+param set MAV_TYPE 3
+param set SDLOG_DIRS_MAX 7
+param set SYS_AUTOSTART 4010
+param set SYS_RESTART_TYPE 2
+dataman start
 
 simulator start -s
 

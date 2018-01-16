@@ -44,6 +44,7 @@ param set NAV_LOITER_RAD 2
 param set SENS_BOARD_ROT 0
 param set SENS_BOARD_X_OFF 0.000001
 param set SENS_DPRES_OFF 0.001
+param set SDLOG_DIRS_MAX 7
 param set SYS_AUTOSTART 50002
 param set SYS_MC_EST_GROUP 2
 param set SYS_RESTART_TYPE 2
