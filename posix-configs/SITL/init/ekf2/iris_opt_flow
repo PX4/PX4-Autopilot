@@ -31,6 +31,7 @@ param set COM_OBL_RC_ACT 0
 param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 5.0
 param set RTL_LAND_DELAY 5
+param set SDLOG_DIRS_MAX 7
 param set MIS_TAKEOFF_ALT 2.5
 param set MC_ROLLRATE_P 0.2
 param set MC_PITCHRATE_P 0.2

@@ -53,6 +53,7 @@ param set RTL_DESCEND_ALT 10.0
 param set RTL_LAND_DELAY 0
 param set COM_DISARM_LAND 5
 param set MPC_ACC_HOR_MAX 2
+param set SDLOG_DIRS_MAX 7
 replay tryapplyparams
 simulator start -s
 tone_alarm start

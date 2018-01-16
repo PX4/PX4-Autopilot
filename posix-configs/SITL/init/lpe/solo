@@ -41,6 +41,7 @@ param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
+param set SDLOG_DIRS_MAX 7
 param set LPE_FUSION 247
 # 11110111 no vis yaw (1 << 3)
 
