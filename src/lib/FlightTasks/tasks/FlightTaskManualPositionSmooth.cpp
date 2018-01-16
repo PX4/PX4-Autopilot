@@ -36,8 +36,6 @@
  */
 
 #include "FlightTaskManualPositionSmooth.hpp"
-#include <mathlib/mathlib.h>
-#include <float.h>
 
 using namespace matrix;
 
