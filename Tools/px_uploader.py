@@ -569,7 +569,10 @@ class uploader(object):
             return False
 
         print("Attempting reboot on %s with baudrate=%d..." % (self.port.port, self.port.baudrate), file=sys.stderr)
-        print("If the board does not respond, unplug and re-plug the USB connector.", file=sys.stderr)
+        if "ttyS" in self.port.port:
+            print("If the board does not respond, check the connection to Flight Controller")
+        else:
+            print("If the board does not respond, unplug and re-plug the USB connector.", file=sys.stderr)
 
         try:
             # try MAVLINK command first
@@ -614,7 +617,6 @@ def main():
     # Load the firmware file
     fw = firmware(args.firmware)
     print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
-    print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
 
     # tell any GCS that might be connected to the autopilot to give up
     # control of the serial port
