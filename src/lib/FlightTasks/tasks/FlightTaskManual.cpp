@@ -75,7 +75,7 @@ bool FlightTaskManual::updateInitialize()
 
 bool FlightTaskManual::_evaluateSticks()
 {
-	/* Sticks are rescaled linearly and exponentially from [0,1] to [-1,1] */
+	/* Sticks are rescaled linearly and exponentially to [-1,1] */
 	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < _timeout) {
 
 		/* Linear scale  */
