@@ -502,7 +502,6 @@ int main(int argc, char **argv)
 
 	if (!daemon_mode) {
 		string mystr;
-		string add_string;
 		string string_buffer[CMD_BUFF_SIZE];
 		int buf_ptr_write = 0;
 		int buf_ptr_read = 0;
@@ -522,7 +521,8 @@ int main(int argc, char **argv)
 		while (!_ExitFlag) {
 
 			char c = getchar();
-			add_string = ""; // reset string to add
+			string add_string; // string to add at current cursor position
+			bool update_prompt = true;
 
 			switch (c) {
 			case 127:	// backslash
@@ -533,7 +533,7 @@ int main(int argc, char **argv)
 
 				break;
 
-			case'\n':	// user hit enter
+			case '\n':	// user hit enter
 				if (buf_ptr_write == CMD_BUFF_SIZE) {
 					buf_ptr_write = 0;
 				}
@@ -622,21 +622,26 @@ int main(int argc, char **argv)
 			default:	// any other input
 				if (c > 3) {
 					add_string += c;
+
+				} else {
+					update_prompt = false;
 				}
 
 				break;
 			}
 
-			// reprint prompt with mystr
-			mystr.insert(mystr.length() - cursor_position, add_string);
-			printf("%c[2K", 27);
-			cout << (char)13;
-			print_prompt();
-			cout << mystr;
+			if (update_prompt) {
+				// reprint prompt with mystr
+				mystr.insert(mystr.length() - cursor_position, add_string);
+				printf("%c[2K", 27);
+				cout << (char)13;
+				print_prompt();
+				cout << mystr;
 
-			// Move the cursor to its position
-			if (cursor_position > 0) {
-				printf("\033[%dD", cursor_position);
+				// Move the cursor to its position
+				if (cursor_position > 0) {
+					printf("\033[%dD", cursor_position);
+				}
 			}
 
 		}
