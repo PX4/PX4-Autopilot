@@ -158,7 +158,7 @@ private:
 
 			if (priority[next_priority].blink_times_left == 0) {
 				// handle infinite case
-				priority[next_priority].blink_times_left = 254;
+				priority[next_priority].blink_times_left = 246;
 			}
 
 
