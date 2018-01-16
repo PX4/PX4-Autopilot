@@ -40,6 +40,6 @@ then
 	param set BAT_A_PER_V 15.39103
 fi
 
-set MIXER quad_dc
+set MIXER quad_w
 
 set PWM_OUT 1234
