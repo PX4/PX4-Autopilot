@@ -61,13 +61,6 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 	return true;
 }
 
-bool FlightTaskManual::activate()
-{
-	bool ret = FlightTask::activate();
-
-	return ret;
-}
-
 bool FlightTaskManual::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
