@@ -162,8 +162,8 @@ static const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX]
 	"auto:rtl",						// NAVIGATION_STATE_AUTO_RTL = 5
 	"auto:rcrecover",				// NAVIGATION_STATE_AUTO_RCRECOVER = 6
 	"auto:rtgs",					// NAVIGATION_STATE_AUTO_RTGS = 7
-	"auto:land eng fail",			// NAVIGATION_STATE_AUTO_LANDENGFAIL = 8
-	"auto:land gps fail",			// NAVIGATION_STATE_AUTO_LANDGPSFAIL = 9
+	"auto:land engfail",			// NAVIGATION_STATE_AUTO_LANDENGFAIL = 8
+	"auto:land gpsfail",			// NAVIGATION_STATE_AUTO_LANDGPSFAIL = 9
 	"acro",							// NAVIGATION_STATE_ACRO = 10
 	"unused",						// NAVIGATION_STATE_UNUSED = 11
 	"descend",						// NAVIGATION_STATE_DESCEND = 12
@@ -184,7 +184,7 @@ static const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] 
 	"armed error",					// ARMING_STATE_ARMED_ERROR = 3
 	"standby error",				// ARMING_STATE_STANDBY_ERROR = 4
 	"reboot",						// ARMING_STATE_REBOOT = 5
-	"in air restore",				// ARMING_STATE_IN_AIR_RESTORE = 6
+	"in_air_restore",				// ARMING_STATE_IN_AIR_RESTORE = 6
 };
 
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
