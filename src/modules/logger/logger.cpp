@@ -2072,7 +2072,7 @@ int Logger::check_free_space()
 			break;
 		}
 
-		PX4_WARN("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
+		PX4_INFO("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
 			 (unsigned int)(statfs_buf.f_bavail / 1024U * statfs_buf.f_bsize / 1024U));
 
 		if (remove_directory(directory_to_delete)) {
