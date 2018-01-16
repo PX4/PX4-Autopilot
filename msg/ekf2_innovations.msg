@@ -15,3 +15,4 @@ float32 hagl_innov_var          # innovation variance from the terrain estimator
 float32[3] output_tracking_error # return a vector containing the output predictor angular, velocity and position tracking error magnitudes (rad), (m/s), (m)
 float32[2] drag_innov		# drag specific force innovation (m/s/s)
 float32[2] drag_innov_var	# drag specific force innovation variance (m/s/s)**2
+float32[2] aux_vel_innov	# auxiliary NE velocity innovations from landing target measurement (m/s)

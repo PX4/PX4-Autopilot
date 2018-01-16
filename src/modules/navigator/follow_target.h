@@ -40,24 +40,19 @@
 
 #pragma once
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-#include <lib/mathlib/math/Vector.hpp>
-#include <lib/mathlib/math/Matrix.hpp>
+#include <mathlib/mathlib.h>
+
 #include "navigator_mode.h"
 #include "mission_block.h"
+
 #include <uORB/topics/follow_target.h>
 
-class FollowTarget : public MissionBlock
+class FollowTarget final : public MissionBlock
 {
 
 public:
 	FollowTarget(Navigator *navigator, const char *name);
-
-	FollowTarget(const FollowTarget &) = delete;
-	FollowTarget &operator=(const FollowTarget &) = delete;
-
-	~FollowTarget();
+	~FollowTarget() = default;
 
 	void on_inactive() override;
 	void on_activation() override;
@@ -112,23 +107,20 @@ private:
 	}; // follow left side
 
 
-	Navigator *_navigator;
 	control::BlockParamFloat	_param_min_alt;
 	control::BlockParamFloat 	_param_tracking_dist;
 	control::BlockParamInt 		_param_tracking_side;
 	control::BlockParamFloat 	_param_tracking_resp;
-	control::BlockParamFloat 	_param_yaw_auto_max;
 
+	FollowTargetState _follow_target_state{SET_WAIT_FOR_TARGET_POSITION};
+	int _follow_target_position{FOLLOW_FROM_BEHIND};
 
-	FollowTargetState _follow_target_state;
-	int _follow_target_position;
+	int _follow_target_sub{-1};
+	float _step_time_in_ms{0.0f};
+	float _follow_offset{OFFSET_M};
 
-	int _follow_target_sub;
-	float _step_time_in_ms;
-	float _follow_offset;
-
-	uint64_t _target_updates;
-	uint64_t _last_update_time;
+	uint64_t _target_updates{0};
+	uint64_t _last_update_time{0};
 
 	math::Vector<3> _current_vel;
 	math::Vector<3> _step_vel;
@@ -138,15 +130,14 @@ private:
 	math::Vector<3> _target_position_delta;
 	math::Vector<3> _filtered_target_position_delta;
 
-	follow_target_s _current_target_motion;
-	follow_target_s _previous_target_motion;
-	float _yaw_rate;
-	float _responsiveness;
-	float _yaw_auto_max;
-	float _yaw_angle;
+	follow_target_s _current_target_motion{};
+	follow_target_s _previous_target_motion{};
+
+	float _yaw_rate{0.0f};
+	float _responsiveness{0.0f};
+	float _yaw_angle{0.0f};
 
 	// Mavlink defined motion reporting capabilities
-
 	enum {
 		POS = 0,
 		VEL = 1,
@@ -155,6 +146,7 @@ private:
 	};
 
 	math::Matrix<3, 3> _rot_matrix;
+
 	void track_target_position();
 	void track_target_velocity();
 	bool target_velocity_valid();

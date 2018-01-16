@@ -332,6 +332,8 @@ function(px4_add_common_flags)
 		-Wunknown-pragmas
 		-Wunused-variable
 
+		-Wno-implicit-fallthrough # set appropriate level and update
+
 		-Wno-unused-parameter
 		)
 

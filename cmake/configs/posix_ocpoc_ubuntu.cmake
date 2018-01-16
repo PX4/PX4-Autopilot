@@ -18,6 +18,7 @@ set(config_module_list
 	# Board support modules
 	#
 	drivers/device
+	drivers/distance_sensor
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_ms5611_wrapper
@@ -73,7 +74,6 @@ set(config_module_list
 	drivers/linux_sbus
 	drivers/linux_pwm_out
 	drivers/rgbled
-	drivers/ulanding
 
 	#
 	# Libraries

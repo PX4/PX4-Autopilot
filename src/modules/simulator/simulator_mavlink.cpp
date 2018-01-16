@@ -429,6 +429,25 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 		break;
 
+	case MAVLINK_MSG_ID_LANDING_TARGET:
+		mavlink_landing_target_t landing_target_mavlink;
+		mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
+
+		struct irlock_report_s report;
+		memset(&report, 0, sizeof(report));
+
+		report.timestamp = hrt_absolute_time();
+		report.signature = landing_target_mavlink.target_num;
+		report.pos_x = landing_target_mavlink.angle_x;
+		report.pos_y = landing_target_mavlink.angle_y;
+		report.size_x = landing_target_mavlink.size_x;
+		report.size_y = landing_target_mavlink.size_y;
+
+		int irlock_multi;
+		orb_publish_auto(ORB_ID(irlock_report), &_irlock_report_pub, &report, &irlock_multi, ORB_PRIO_HIGH);
+
+		break;
+
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		mavlink_hil_state_quaternion_t hil_state;
 		mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
@@ -1110,6 +1129,11 @@ int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
 	vision_position.x = ev_mavlink->x;
 	vision_position.y = ev_mavlink->y;
 	vision_position.z = ev_mavlink->z;
+
+	vision_position.xy_valid = true;
+	vision_position.z_valid = true;
+	vision_position.v_xy_valid = true;
+	vision_position.v_z_valid = true;
 
 	struct vehicle_attitude_s vision_attitude = {};
 

@@ -16,7 +16,6 @@ set(config_module_list
 	drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/ets_airspeed
 	drivers/frsky_telemetry
 	drivers/gps
 	drivers/hmc5883
@@ -24,17 +23,16 @@ set(config_module_list
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
 	drivers/iridiumsbd
+	drivers/irlock
 	drivers/l3gd20
 	drivers/led
 	drivers/lis3mdl
-	drivers/ll40ls
+	drivers/distance_sensor
 	drivers/lsm303d
-	drivers/mb12xx
 	drivers/mkblctrl
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
+	drivers/differential_pressure
 	drivers/ms5611
 	drivers/oreoled
 	drivers/pwm_input
@@ -43,18 +41,12 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/px4io
 	drivers/rgbled
-	drivers/sdp3x_airspeed
-	drivers/sf0x
-	drivers/sf1xx
-	drivers/srf02
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
 	drivers/tap_esc
-	drivers/teraranger
 	drivers/vmount
 	modules/sensors
-	drivers/tfmini
 
 	#
 	# System commands
@@ -81,7 +73,7 @@ set(config_module_list
 	#
 	# Testing
 	#
-	drivers/sf0x/sf0x_tests
+	drivers/distance_sensor/sf0x/sf0x_tests
 	drivers/test_ppm
 	#lib/rc/rc_tests
 	modules/commander/commander_tests
@@ -109,6 +101,7 @@ set(config_module_list
 	#
 	modules/attitude_estimator_q
 	modules/ekf2
+	modules/landing_target_estimator
 	modules/local_position_estimator
 	modules/position_estimator_inav
 

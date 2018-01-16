@@ -21,6 +21,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/landing_target_pose.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -112,17 +113,17 @@ public:
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
 	enum {Y_land_vx = 0, Y_land_vy, Y_land_agl, n_y_land};
+	enum {Y_target_x = 0, Y_target_y, n_y_target};
 	enum {POLL_FLOW = 0, POLL_SENSORS, POLL_PARAM, n_poll};
 	enum {
 		FUSE_GPS = 1 << 0,
 		FUSE_FLOW = 1 << 1,
 		FUSE_VIS_POS = 1 << 2,
-		FUSE_VIS_YAW = 1 << 3,
+		FUSE_LAND_TARGET = 1 << 3,
 		FUSE_LAND = 1 << 4,
 		FUSE_PUB_AGL_Z = 1 << 5,
 		FUSE_FLOW_GYRO_COMP = 1 << 6,
-		FUSE_BARO = 1 << 7,
-		FUSE_LAND_TARGET = 1 << 8
+		FUSE_BARO = 1 << 7
 	};
 
 	enum sensor_t {
@@ -216,6 +217,12 @@ private:
 	void landInit();
 	void landCheckTimeout();
 
+	// landing target
+	int  landingTargetMeasure(Vector<float, n_y_target> &y);
+	void landingTargetCorrect();
+	void landingTargetInit();
+	void landingTargetCheckTimeout();
+
 	// timeouts
 	void checkTimeouts();
 
@@ -252,6 +259,7 @@ private:
 	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
 	uORB::Subscription<distance_sensor_s> *_sub_lidar;
 	uORB::Subscription<distance_sensor_s> *_sub_sonar;
+	uORB::Subscription<landing_target_pose_s> _sub_landing_target_pose;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
@@ -319,6 +327,14 @@ private:
 	BlockParamFloat  _pn_t_noise_density;
 	BlockParamFloat  _t_max_grade;
 
+	// target mode paramters from landing_target_estimator module
+	enum TargetMode {
+		Target_Moving = 0,
+		Target_Stationary = 1
+	};
+	BlockParamFloat _target_min_cov;
+	BlockParamInt 	_target_mode;
+
 	// init origin
 	BlockParamInt    _fake_origin;
 	BlockParamFloat  _init_origin_lat;
@@ -361,6 +377,7 @@ private:
 	uint64_t _time_last_vision_p;
 	uint64_t _time_last_mocap;
 	uint64_t _time_last_land;
+	uint64_t _time_last_target;
 
 	// reference altitudes
 	float _altOrigin;
@@ -377,6 +394,16 @@ private:
 	uint16_t _sensorTimeout;
 	uint16_t _sensorFault;
 	uint8_t _estimatorInitialized;
+
+	// sensor update flags
+	bool _flowUpdated;
+	bool _gpsUpdated;
+	bool _visionUpdated;
+	bool _mocapUpdated;
+	bool _lidarUpdated;
+	bool _sonarUpdated;
+	bool _landUpdated;
+	bool _baroUpdated;
 
 	// state space
 	Vector<float, n_x>  _x;	// state vector

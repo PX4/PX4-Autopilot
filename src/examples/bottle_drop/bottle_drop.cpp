@@ -188,6 +188,7 @@ BottleDrop::BottleDrop() :
 	_onboard_mission {},
 	_onboard_mission_pub(nullptr)
 {
+	_onboard_mission.dataman_id = DM_KEY_WAYPOINTS_ONBOARD;
 }
 
 BottleDrop::~BottleDrop()
@@ -621,14 +622,15 @@ BottleDrop::task_main()
 						warnx("ERROR: could not save onboard WP");
 					}
 
+					_onboard_mission.timestamp = hrt_absolute_time();
 					_onboard_mission.count = 2;
 					_onboard_mission.current_seq = 0;
 
 					if (_onboard_mission_pub != nullptr) {
-						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+						orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 
 					} else {
-						_onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &_onboard_mission);
+						_onboard_mission_pub = orb_advertise(ORB_ID(mission), &_onboard_mission);
 					}
 
 					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
@@ -645,8 +647,9 @@ BottleDrop::task_main()
 							     flight_vector_e.lon);
 
 					if (distance_wp2 < distance_real) {
+						_onboard_mission.timestamp = hrt_absolute_time();
 						_onboard_mission.current_seq = 0;
-						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+						orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 
 					} else {
 
@@ -683,8 +686,9 @@ BottleDrop::task_main()
 									     flight_vector_e.lon);
 
 							if (distance_wp2 < distance_real) {
+								_onboard_mission.timestamp = hrt_absolute_time();
 								_onboard_mission.current_seq = 0;
-								orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+								orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 							}
 						}
 					}
@@ -702,9 +706,11 @@ BottleDrop::task_main()
 					mavlink_log_info(&_mavlink_log_pub, "#audio: closing bay");
 
 					// remove onboard mission
+					_onboard_mission.timestamp = hrt_absolute_time();
+					_onboard_mission.dataman_id = DM_KEY_WAYPOINTS_ONBOARD;
 					_onboard_mission.current_seq = -1;
 					_onboard_mission.count = 0;
-					orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+					orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 				}
 
 				break;
@@ -804,7 +810,8 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			_onboard_mission.current_seq = -1;
 
 			if (_onboard_mission_pub != nullptr) {
-				orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+				_onboard_mission.timestamp = hrt_absolute_time();
+				orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 			}
 
 		} else {

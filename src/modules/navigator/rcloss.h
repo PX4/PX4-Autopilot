@@ -40,28 +40,20 @@
 #ifndef NAVIGATOR_RCLOSS_H
 #define NAVIGATOR_RCLOSS_H
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-
-#include <uORB/Subscription.hpp>
-
 #include "navigator_mode.h"
 #include "mission_block.h"
 
 class Navigator;
 
-class RCLoss : public MissionBlock
+class RCLoss final : public MissionBlock
 {
 public:
 	RCLoss(Navigator *navigator, const char *name);
+	~RCLoss() = default;
 
-	~RCLoss();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
 
 private:
 	/* Params */
@@ -72,7 +64,7 @@ private:
 		RCL_STATE_LOITER = 1,
 		RCL_STATE_TERMINATE = 2,
 		RCL_STATE_END = 3
-	} _rcl_state;
+	} _rcl_state{RCL_STATE_NONE};
 
 	/**
 	 * Set the RCL item

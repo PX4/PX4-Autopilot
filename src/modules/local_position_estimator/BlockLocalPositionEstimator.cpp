@@ -45,6 +45,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_dist_subs(),
 	_sub_lidar(nullptr),
 	_sub_sonar(nullptr),
+	_sub_landing_target_pose(ORB_ID(landing_target_pose), 1000 / 40, 0, &getSubscriptions()),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -92,6 +93,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pn_t_noise_density(this, "PN_T"),
 	_t_max_grade(this, "T_MAX_GRADE"),
 
+	// landing target
+	_target_min_cov(this, "LT_COV"),
+	_target_mode(this, "LTEST_MODE", false),
+
 	// init origin
 	_fake_origin(this, "FAKE_ORIGIN"),
 	_init_origin_lat(this, "LAT"),
@@ -134,6 +139,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_vision_p(0),
 	_time_last_mocap(0),
 	_time_last_land(0),
+	_time_last_target(0),
 
 	// reference altitudes
 	_altOrigin(0),
@@ -149,7 +155,17 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// masks
 	_sensorTimeout(UINT16_MAX),
 	_sensorFault(0),
-	_estimatorInitialized(0)
+	_estimatorInitialized(0),
+
+	// sensor update flags
+	_flowUpdated(false),
+	_gpsUpdated(false),
+	_visionUpdated(false),
+	_mocapUpdated(false),
+	_lidarUpdated(false),
+	_sonarUpdated(false),
+	_landUpdated(false),
+	_baroUpdated(false)
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -180,16 +196,16 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// print fusion settings to console
 	printf("[lpe] fuse gps: %d, flow: %d, vis_pos: %d, "
-	       "vis_yaw: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
-	       "landing_target %d\n",
+	       "landing_target: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
+	       "baro: %d\n",
 	       (_fusion.get() & FUSE_GPS) != 0,
 	       (_fusion.get() & FUSE_FLOW) != 0,
 	       (_fusion.get() & FUSE_VIS_POS) != 0,
-	       (_fusion.get() & FUSE_VIS_YAW) != 0,
+	       (_fusion.get() & FUSE_LAND_TARGET) != 0,
 	       (_fusion.get() & FUSE_LAND) != 0,
 	       (_fusion.get() & FUSE_PUB_AGL_Z) != 0,
 	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
-	       (_fusion.get() & FUSE_LAND_TARGET) != 0);
+	       (_fusion.get() & FUSE_BARO) != 0);
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
@@ -280,7 +296,7 @@ void BlockLocalPositionEstimator::update()
 
 	// see which updates are available
 	bool paramsUpdated = _sub_param_update.updated();
-	bool baroUpdated = false;
+	_baroUpdated = false;
 
 	if ((_fusion.get() & FUSE_BARO) && _sub_sensor.updated()) {
 		int32_t baro_timestamp_relative = _sub_sensor.get().baro_timestamp_relative;
@@ -290,20 +306,20 @@ void BlockLocalPositionEstimator::update()
 						  _sub_sensor.get().baro_timestamp_relative;
 
 			if (baro_timestamp != _timeStampLastBaro) {
-				baroUpdated = true;
+				_baroUpdated = true;
 				_timeStampLastBaro = baro_timestamp;
 			}
 		}
 	}
 
-	bool flowUpdated = (_fusion.get() & FUSE_FLOW) && _sub_flow.updated();
-	bool gpsUpdated = (_fusion.get() & FUSE_GPS) && _sub_gps.updated();
-	bool visionUpdated = (_fusion.get() & FUSE_VIS_POS) && _sub_vision_pos.updated();
-	bool mocapUpdated = _sub_mocap.updated();
-	bool lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
-	bool sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
-	bool landUpdated = landed()
-			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);		// throttle rate
+	_flowUpdated = (_fusion.get() & FUSE_FLOW) && _sub_flow.updated();
+	_gpsUpdated = (_fusion.get() & FUSE_GPS) && _sub_gps.updated();
+	_visionUpdated = (_fusion.get() & FUSE_VIS_POS) && _sub_vision_pos.updated();
+	_mocapUpdated = _sub_mocap.updated();
+	_lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
+	_sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
+	_landUpdated = landed() && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);// throttle rate
+	bool targetPositionUpdated = _sub_landing_target_pose.updated();
 
 	// get new data
 	updateSubscriptions();
@@ -447,7 +463,7 @@ void BlockLocalPositionEstimator::update()
 	predict();
 
 	// sensor corrections/ initializations
-	if (gpsUpdated) {
+	if (_gpsUpdated) {
 		if (_sensorTimeout & SENSOR_GPS) {
 			gpsInit();
 
@@ -456,7 +472,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (baroUpdated) {
+	if (_baroUpdated) {
 		if (_sensorTimeout & SENSOR_BARO) {
 			baroInit();
 
@@ -465,7 +481,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (lidarUpdated) {
+	if (_lidarUpdated) {
 		if (_sensorTimeout & SENSOR_LIDAR) {
 			lidarInit();
 
@@ -474,7 +490,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (sonarUpdated) {
+	if (_sonarUpdated) {
 		if (_sensorTimeout & SENSOR_SONAR) {
 			sonarInit();
 
@@ -483,7 +499,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (flowUpdated) {
+	if (_flowUpdated) {
 		if (_sensorTimeout & SENSOR_FLOW) {
 			flowInit();
 
@@ -492,7 +508,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (visionUpdated) {
+	if (_visionUpdated) {
 		if (_sensorTimeout & SENSOR_VISION) {
 			visionInit();
 
@@ -501,7 +517,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (mocapUpdated) {
+	if (_mocapUpdated) {
 		if (_sensorTimeout & SENSOR_MOCAP) {
 			mocapInit();
 
@@ -510,7 +526,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (landUpdated) {
+	if (_landUpdated) {
 		if (_sensorTimeout & SENSOR_LAND) {
 			landInit();
 
@@ -519,10 +535,20 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
+	if (targetPositionUpdated) {
+		if (_sensorTimeout & SENSOR_LAND_TARGET) {
+			landingTargetInit();
+
+		} else {
+			landingTargetCorrect();
+		}
+	}
+
 	if (_altOriginInitialized) {
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
+		_pub_innov.get().timestamp = _timeStamp;
 		_pub_innov.update();
 
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _fake_origin.get())) {
@@ -553,6 +579,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	visionCheckTimeout();
 	mocapCheckTimeout();
 	landCheckTimeout();
+	landingTargetCheckTimeout();
 }
 
 bool BlockLocalPositionEstimator::landed()

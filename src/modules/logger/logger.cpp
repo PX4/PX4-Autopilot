@@ -593,9 +593,10 @@ void Logger::add_default_topics()
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
+	add_topic("landing_target_pose");
 	add_topic("manual_control_setpoint", 200);
+	add_topic("mission");
 	add_topic("mission_result");
-	add_topic("offboard_mission");
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("sensor_combined", 100);

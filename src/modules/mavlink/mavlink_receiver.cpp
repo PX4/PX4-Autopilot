@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1134,6 +1134,25 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 	// Low risk change for now. TODO : full covariance matrix
 	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
 	vision_position.epv = sqrtf(pos.covariance[17]);
+
+	// set position/velocity invalid if standard deviation is bigger than ev_max_std_dev
+	const float ev_max_std_dev = 100.0f;
+
+	if (vision_position.eph > ev_max_std_dev) {
+		vision_position.xy_valid = false;
+	}
+
+	if (sqrtf(fmaxf(pos.covariance[24], pos.covariance[30])) > ev_max_std_dev) {
+		vision_position.v_xy_valid = false;
+	}
+
+	if (vision_position.epv > ev_max_std_dev) {
+		vision_position.z_valid = false;
+	}
+
+	if (sqrtf(pos.covariance[35]) > ev_max_std_dev) {
+		vision_position.v_z_valid = false;
+	}
 
 	vision_position.xy_global = globallocalconverter_initialized();
 	vision_position.z_global = globallocalconverter_initialized();
@@ -2368,9 +2387,6 @@ MavlinkReceiver::receive_thread(void *arg)
 	ssize_t nread = 0;
 	hrt_abstime last_send_update = 0;
 
-	bool verbose = _mavlink->get_verbose();
-	_mission_manager.set_verbose(verbose);
-
 	while (!_mavlink->_task_should_exit) {
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == SERIAL) {
@@ -2475,11 +2491,6 @@ MavlinkReceiver::receive_thread(void *arg)
 
 			_mavlink_log_handler.send(t);
 			last_send_update = t;
-
-			if (verbose != _mavlink->get_verbose()) {
-				verbose = !verbose;
-				_mission_manager.set_verbose(verbose);
-			}
 		}
 
 	}

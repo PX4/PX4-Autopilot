@@ -38,22 +38,23 @@
 #include <px4_module.h>
 
 // publications
+#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
-#include <uORB/Publication.hpp>
 
 // subscriptions
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/mission_result.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/Subscription.hpp>
 
 using control::BlockParamFloat;
 using control::BlockParamInt;
@@ -64,7 +65,8 @@ class Commander : public control::SuperBlock, public ModuleBase<Commander>
 {
 public:
 	Commander() :
-		SuperBlock(nullptr, "COM")
+		SuperBlock(nullptr, "COM"),
+		_mission_result_sub(ORB_ID(mission_result), 0, 0, &getSubscriptions())
 	{
 		updateParams();
 	}
@@ -88,6 +90,9 @@ public:
 
 private:
 
+	// Subscriptions
+	Subscription<mission_result_s> _mission_result_sub;
+
 	bool handle_command(vehicle_status_s *status, const safety_s *safety, vehicle_command_s *cmd,
 			    actuator_armed_s *armed, home_position_s *home, vehicle_global_position_s *global_pos,
 			    vehicle_local_position_s *local_pos, vehicle_attitude_s *attitude, orb_advert_t *home_pub,
@@ -96,6 +101,8 @@ private:
 	bool set_home_position(orb_advert_t &homePub, home_position_s &home,
 				const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
 				const vehicle_attitude_s &attitude, bool set_alt_only_to_lpos_ref);
+
+	void mission_init();
 
 };
 

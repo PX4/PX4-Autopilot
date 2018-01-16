@@ -454,9 +454,8 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
 		/* need global position, home position, and a valid mission */
-		// TODO: require mission? condition_auto_mission_available
 		if (status_flags->condition_global_position_valid &&
-		    status_flags->condition_home_position_valid) {
+		    status_flags->condition_auto_mission_available) {
 
 			ret = TRANSITION_CHANGED;
 		}
@@ -477,6 +476,15 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 		/* need local position */
 		if (status_flags->condition_local_position_valid) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+
+	case commander_state_s::MAIN_STATE_AUTO_PRECLAND:
+
+		/* need local and global position, and precision land only implemented for multicopters */
+		if (status_flags->condition_local_position_valid && status_flags->condition_global_position_valid && status->is_rotary_wing) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -850,6 +858,22 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		break;
 
+	case commander_state_s::MAIN_STATE_AUTO_PRECLAND:
+
+		/* must be rotary wing plus same requirements as normal landing */
+
+		if (status->engine_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
+		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
+
+		} else {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+		}
+
+		break;
+
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		/* require offboard control, otherwise stay where you are */
@@ -1128,7 +1152,6 @@ int prearm_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub,
 	// mission required
 	if ((arm_requirements & ARM_REQ_MISSION_BIT) &&
 		(!status_flags->condition_auto_mission_available ||
-		!status_flags->condition_home_position_valid ||
 		!status_flags->condition_global_position_valid)) {
 
 		prearm_ok = false;

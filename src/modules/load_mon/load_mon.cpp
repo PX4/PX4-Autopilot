@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,6 +62,7 @@
 extern struct system_load_s system_load;
 
 #define STACK_LOW_WARNING_THRESHOLD 300 ///< if free stack space falls below this, print a warning
+#define FDS_LOW_WARNING_THRESHOLD 3 ///< if free file descriptors fall below this, print a warning
 
 namespace load_mon
 {
@@ -263,6 +264,7 @@ void LoadMon::_stack_usage()
 	for (int i = _stack_task_index; i < _stack_task_index + num_tasks_per_cycle; i++) {
 		task_index = i % CONFIG_MAX_TASKS;
 		unsigned stack_free = 0;
+		unsigned fds_free = FDS_LOW_WARNING_THRESHOLD + 1;
 		bool checked_task = false;
 
 		perf_begin(_stack_perf);
@@ -274,6 +276,23 @@ void LoadMon::_stack_usage()
 
 			strncpy((char *)_task_stack_info.task_name, system_load.tasks[task_index].tcb->name,
 				task_stack_info_s::MAX_REPORT_TASK_NAME_LEN);
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
+			FAR struct task_group_s *group = system_load.tasks[task_index].tcb->group;
+
+			unsigned tcb_num_used_fds = 0;
+
+			if (group) {
+				for (int fd_index = 0; fd_index < CONFIG_NFILE_DESCRIPTORS; ++fd_index) {
+					if (group->tg_filelist.fl_files[fd_index].f_inode) {
+						++tcb_num_used_fds;
+					}
+				}
+
+				fds_free = CONFIG_NFILE_DESCRIPTORS - tcb_num_used_fds;
+			}
+
+#endif
 
 			checked_task = true;
 		}
@@ -298,6 +317,14 @@ void LoadMon::_stack_usage()
 			 */
 			if (stack_free < STACK_LOW_WARNING_THRESHOLD) {
 				PX4_WARN("%s low on stack! (%i bytes left)", _task_stack_info.task_name, stack_free);
+				break;
+			}
+
+			/*
+			 * Found task low on file descriptors, report and exit. Continue here in next cycle.
+			 */
+			if (fds_free < FDS_LOW_WARNING_THRESHOLD) {
+				PX4_WARN("%s low on FDs! (%i FDs left)", _task_stack_info.task_name, fds_free);
 				break;
 			}
 
