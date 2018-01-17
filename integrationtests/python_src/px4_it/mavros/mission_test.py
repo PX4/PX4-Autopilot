@@ -51,7 +51,7 @@ import px4tools
 import sys
 from mavros import mavlink
 from mavros.mission import QGroundControlWP
-from mavros_msgs.msg import ExtendedState, Mavlink, Waypoint
+from mavros_msgs.msg import Mavlink, Waypoint
 from mavros_test_common import MavrosTestCommon
 from pymavlink import mavutil
 from threading import Thread
@@ -151,11 +151,9 @@ class MavrosMissionTest(MavrosTestCommon):
     def setUp(self):
         super(self.__class__, self).setUp()
 
-        self.mc_rad = 5
+        self.mc_rad = 5  # meters
         self.fw_rad = 60
         self.fw_alt_rad = 10
-        self.last_alt_d = None
-        self.last_pos_d = None
         self.mission_name = ""
 
         self.mavlink_pub = rospy.Publisher('mavlink/to', Mavlink, queue_size=1)
@@ -170,7 +168,7 @@ class MavrosMissionTest(MavrosTestCommon):
         self.hb_thread.start()
 
     def tearDown(self):
-        pass
+        super(MavrosMissionTest, self).tearDown()
 
     #
     # Helper methods
@@ -200,65 +198,73 @@ class MavrosMissionTest(MavrosTestCommon):
         d = R * c
         alt_d = abs(alt - self.altitude.amsl)
 
-        # remember best distances
-        if not self.last_pos_d or self.last_pos_d > d:
-            self.last_pos_d = d
-        if not self.last_alt_d or self.last_alt_d > alt_d:
-            self.last_alt_d = alt_d
-
         rospy.logdebug("d: {0}, alt_d: {1}".format(d, alt_d))
-        return d < xy_offset and alt_d < z_offset
+        return (d < xy_offset and alt_d < z_offset), d, alt_d
 
     def reach_position(self, lat, lon, alt, timeout, index):
         """alt(amsl): meters, timeout(int): seconds"""
-        # reset best distances
-        self.last_alt_d = None
-        self.last_pos_d = None
-
         rospy.loginfo(
             "trying to reach waypoint | lat: {0:.9f}, lon: {1:.9f}, alt: {2:.2f}, index: {3}".
             format(lat, lon, alt, index))
+        best_pos_xy_d = None
+        best_pos_z_d = None
+        fcu_advanced = False
 
         # does it reach the position in 'timeout' seconds?
         loop_freq = 2  # Hz
         rate = rospy.Rate(loop_freq)
-        reached = False
         for i in xrange(timeout * loop_freq):
             # use FW radius if VTOL in FW or transition or FW
             if (self.mav_type == mavutil.mavlink.MAV_TYPE_FIXED_WING or
                     self.extended_state.vtol_state ==
-                    ExtendedState.VTOL_STATE_FW or
+                    mavutil.mavlink.MAV_VTOL_STATE_FW or
                     self.extended_state.vtol_state ==
-                    ExtendedState.VTOL_STATE_TRANSITION_TO_MC or
+                    mavutil.mavlink.MAV_VTOL_STATE_TRANSITION_TO_MC or
                     self.extended_state.vtol_state ==
-                    ExtendedState.VTOL_STATE_TRANSITION_TO_FW):
+                    mavutil.mavlink.MAV_VTOL_STATE_TRANSITION_TO_FW):
                 xy_radius = self.fw_rad
                 z_radius = self.fw_alt_rad
             else:  # assume MC
                 xy_radius = self.mc_rad
                 z_radius = self.mc_rad
 
-            if self.is_at_position(lat, lon, alt, xy_radius, z_radius):
-                reached = True
+            reached, pos_xy_d, pos_z_d = self.is_at_position(
+                lat, lon, alt, xy_radius, z_radius)
+
+            # remember best distances
+            if not best_pos_xy_d or best_pos_xy_d > pos_xy_d:
+                best_pos_xy_d = pos_xy_d
+            if not best_pos_z_d or best_pos_z_d > pos_z_d:
+                best_pos_z_d = pos_z_d
+
+            if reached:
                 rospy.loginfo(
-                    "position reached | pos_d: {0:.2f}, alt_d: {1:.2f}, index: {2} | seconds: {3} of {4}".
-                    format(self.last_pos_d, self.last_alt_d, index, i /
-                           loop_freq, timeout))
+                    "position reached | pos_xy_d: {0:.2f}, pos_z_d: {1:.2f}, index: {2} | seconds: {3} of {4}".
+                    format(pos_xy_d, pos_z_d, index, i / loop_freq, timeout))
                 break
+            elif not fcu_advanced and (index < self.mission_wp.current_seq or (
+                    index == len(self.mission_wp.waypoints) and
+                    self.mission_wp.current_seq == 0)):
+                # FCU advanced to the next mission item, or finished mission
+                fcu_advanced = True
+                rospy.loginfo(
+                    "FCU advanced to mission item index {0} when checking position | xy off: {1}, z off: {2}, pos_xy_d: {3:.2f}, pos_z_d: {4:.2f},".
+                    format(self.mission_wp.current_seq, xy_radius, z_radius,
+                           pos_xy_d, pos_z_d))
 
             rate.sleep()
 
-        self.assertTrue(reached, (
-            "took too long to get to position | lat: {0:.9f}, lon: {1:.9f}, alt: {2:.2f}, xy off: {3}, z off: {4}, pos_d: {5:.2f}, alt_d: {6:.2f}, index: {7} | timeout(seconds): {8}".
-            format(lat, lon, alt, xy_radius, z_radius, self.last_pos_d,
-                   self.last_alt_d, index, timeout)))
+        self.assertTrue(
+            reached,
+            "took too long to get to position | lat: {0:.9f}, lon: {1:.9f}, alt: {2:.2f}, xy off: {3}, z off: {4}, current pos_xy_d: {5:.2f}, current pos_z_d: {6:.2f}, best pos_xy_d: {7:.2f}, best pos_z_d: {8:.2f}, index: {9} | timeout(seconds): {10}".
+            format(lat, lon, alt, xy_radius, z_radius, pos_xy_d, pos_z_d,
+                   best_pos_xy_d, best_pos_z_d, index, timeout))
 
     #
     # Test method
     #
     def test_mission(self):
         """Test mission"""
-
         if len(sys.argv) < 2:
             self.fail("usage: mission_test.py mission_file")
             return
@@ -275,18 +281,21 @@ class MavrosMissionTest(MavrosTestCommon):
 
         # make sure the simulation is ready to start the mission
         self.wait_for_topics(60)
-        self.wait_on_landed_state(ExtendedState.LANDED_STATE_ON_GROUND, 10, -1)
+        self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+                                   10, -1)
         self.wait_for_mav_type(10)
 
         # push waypoints to FCU and start mission
         self.send_wps(wps, 30)
+        self.log_topic_vars()
         self.set_mode("AUTO.MISSION", 5)
         self.set_arm(True, 5)
 
         rospy.loginfo("run mission {0}".format(self.mission_name))
         for index, waypoint in enumerate(wps):
             # only check position for waypoints where this makes sense
-            if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT or waypoint.frame == Waypoint.FRAME_GLOBAL:
+            if (waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT or
+                    waypoint.frame == Waypoint.FRAME_GLOBAL):
                 alt = waypoint.z_alt
                 if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
                     alt += self.altitude.amsl - self.altitude.relative
@@ -295,21 +304,23 @@ class MavrosMissionTest(MavrosTestCommon):
                                     index)
 
             # check if VTOL transition happens if applicable
-            if waypoint.command == 84 or waypoint.command == 85 or waypoint.command == 3000:
-                transition = waypoint.param1
+            if (waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_TAKEOFF or
+                    waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND
+                    or waypoint.command ==
+                    mavutil.mavlink.MAV_CMD_DO_VTOL_TRANSITION):
+                transition = waypoint.param1  # used by MAV_CMD_DO_VTOL_TRANSITION
+                if waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_TAKEOFF:  # VTOL takeoff implies transition to FW
+                    transition = mavutil.mavlink.MAV_VTOL_STATE_FW
+                if waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND:  # VTOL land implies transition to MC
+                    transition = mavutil.mavlink.MAV_VTOL_STATE_MC
 
-                if waypoint.command == 84:  # VTOL takeoff implies transition to FW
-                    transition = ExtendedState.VTOL_STATE_FW
-
-                if waypoint.command == 85:  # VTOL land implies transition to MC
-                    transition = ExtendedState.VTOL_STATE_MC
-
-                self.wait_on_transition(transition, 60, index)
+                self.wait_for_vtol_state(transition, 60, index)
 
             # after reaching position, wait for landing detection if applicable
-            if waypoint.command == 85 or waypoint.command == 21:
-                self.wait_on_landed_state(ExtendedState.LANDED_STATE_ON_GROUND,
-                                          60, index)
+            if (waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND or
+                    waypoint.command == mavutil.mavlink.MAV_CMD_NAV_LAND):
+                self.wait_for_landed_state(
+                    mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND, 60, index)
 
         self.set_arm(False, 5)
         self.clear_wps(5)

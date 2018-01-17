@@ -45,8 +45,8 @@ import rospy
 import math
 import numpy as np
 from geometry_msgs.msg import PoseStamped, Quaternion
-from mavros_msgs.msg import ExtendedState
 from mavros_test_common import MavrosTestCommon
+from pymavlink import mavutil
 from std_msgs.msg import Header
 from threading import Thread
 from tf.transformations import quaternion_from_euler
@@ -77,7 +77,7 @@ class MavrosOffboardPosctlTest(MavrosTestCommon):
         self.pos_thread.start()
 
     def tearDown(self):
-        pass
+        super(MavrosOffboardPosctlTest, self).tearDown()
 
     #
     # Helper methods
@@ -155,8 +155,10 @@ class MavrosOffboardPosctlTest(MavrosTestCommon):
 
         # make sure the simulation is ready to start the mission
         self.wait_for_topics(60)
-        self.wait_on_landed_state(ExtendedState.LANDED_STATE_ON_GROUND, 10, -1)
+        self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+                                   10, -1)
 
+        self.log_topic_vars()
         self.set_mode("OFFBOARD", 5)
         self.set_arm(True, 5)
 
