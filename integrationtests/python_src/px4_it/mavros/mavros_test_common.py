@@ -9,26 +9,11 @@ from mavros_msgs.msg import Altitude, ExtendedState, HomePosition, State, \
                             WaypointList
 from mavros_msgs.srv import CommandBool, ParamGet, SetMode, WaypointClear, \
                             WaypointPush
+from pymavlink import mavutil
 from sensor_msgs.msg import NavSatFix
 
 
 class MavrosTestCommon(unittest.TestCase):
-    # dictionaries correspond to mavros ExtendedState msg
-    LAND_STATES = {
-        0: 'UNDEFINED',
-        1: 'ON_GROUND',
-        2: 'IN_AIR',
-        3: 'TAKEOFF',
-        4: 'LANDING'
-    }
-    VTOL_STATES = {
-        0: 'VTOL UNDEFINED',
-        1: 'VTOL MC-to-FW',
-        2: 'VTOL FW-to-MC',
-        3: 'VTOL MC',
-        4: 'VTOL FW'
-    }
-
     def __init__(self, *args):
         super(MavrosTestCommon, self).__init__(*args)
 
@@ -91,6 +76,9 @@ class MavrosTestCommon(unittest.TestCase):
         self.state_sub = rospy.Subscriber('mavros/state', State,
                                           self.state_callback)
 
+    def tearDown(self):
+        self.log_topic_vars()
+
     #
     # Callback functions
     #
@@ -104,13 +92,15 @@ class MavrosTestCommon(unittest.TestCase):
     def extended_state_callback(self, data):
         if self.extended_state.vtol_state != data.vtol_state:
             rospy.loginfo("VTOL state changed from {0} to {1}".format(
-                self.VTOL_STATES.get(self.extended_state.vtol_state),
-                self.VTOL_STATES.get(data.vtol_state)))
+                mavutil.mavlink.enums['MAV_VTOL_STATE']
+                [self.extended_state.vtol_state].name, mavutil.mavlink.enums[
+                    'MAV_VTOL_STATE'][data.vtol_state].name))
 
         if self.extended_state.landed_state != data.landed_state:
             rospy.loginfo("landed state changed from {0} to {1}".format(
-                self.LAND_STATES.get(self.extended_state.landed_state),
-                self.LAND_STATES.get(data.landed_state)))
+                mavutil.mavlink.enums['MAV_LANDED_STATE']
+                [self.extended_state.landed_state].name, mavutil.mavlink.enums[
+                    'MAV_LANDED_STATE'][data.landed_state].name))
 
         self.extended_state = data
 
@@ -150,9 +140,19 @@ class MavrosTestCommon(unittest.TestCase):
             rospy.loginfo("armed state changed from {0} to {1}".format(
                 self.state.armed, data.armed))
 
+        if self.state.connected != data.connected:
+            rospy.loginfo("connected changed from {0} to {1}".format(
+                self.state.connected, data.connected))
+
         if self.state.mode != data.mode:
             rospy.loginfo("mode changed from {0} to {1}".format(
                 self.state.mode, data.mode))
+
+        if self.state.system_status != data.system_status:
+            rospy.loginfo("system_status changed from {0} to {1}".format(
+                mavutil.mavlink.enums['MAV_STATE'][
+                    self.state.system_status].name, mavutil.mavlink.enums[
+                        'MAV_STATE'][data.system_status].name))
 
         self.state = data
 
@@ -173,9 +173,8 @@ class MavrosTestCommon(unittest.TestCase):
         for i in xrange(timeout * loop_freq):
             if self.state.armed == arm:
                 arm_set = True
-                rospy.loginfo(
-                    "set arm success | new arm: {0}, old arm: {1} | seconds: {2} of {3}".
-                    format(arm, old_arm, i / loop_freq, timeout))
+                rospy.loginfo("set arm success | seconds: {0} of {1}".format(
+                    i / loop_freq, timeout))
                 break
             else:
                 try:
@@ -201,9 +200,8 @@ class MavrosTestCommon(unittest.TestCase):
         for i in xrange(timeout * loop_freq):
             if self.state.mode == mode:
                 mode_set = True
-                rospy.loginfo(
-                    "set mode success | new mode: {0}, old mode: {1} | seconds: {2} of {3}".
-                    format(mode, old_mode, i / loop_freq, timeout))
+                rospy.loginfo("set mode success | seconds: {0} of {1}".format(
+                    i / loop_freq, timeout))
                 break
             else:
                 try:
@@ -240,53 +238,52 @@ class MavrosTestCommon(unittest.TestCase):
             "failed to hear from all subscribed simulation topics | topic ready flags: {0} | timeout(seconds): {1}".
             format(self.sub_topics_ready, timeout)))
 
-    def wait_on_landed_state(self, desired_landed_state, timeout, index):
-        rospy.loginfo(
-            "waiting for landed state | state: {0}, index: {1}".format(
-                self.LAND_STATES.get(desired_landed_state), index))
+    def wait_for_landed_state(self, desired_landed_state, timeout, index):
+        rospy.loginfo("waiting for landed state | state: {0}, index: {1}".
+                      format(mavutil.mavlink.enums['MAV_LANDED_STATE'][
+                          desired_landed_state].name, index))
         loop_freq = 10  # Hz
         rate = rospy.Rate(loop_freq)
         landed_state_confirmed = False
         for i in xrange(timeout * loop_freq):
             if self.extended_state.landed_state == desired_landed_state:
                 landed_state_confirmed = True
-                rospy.loginfo(
-                    "landed state confirmed | state: {0}, index: {1} | seconds: {2} of {3}".
-                    format(
-                        self.LAND_STATES.get(desired_landed_state), index, i /
-                        loop_freq, timeout))
+                rospy.loginfo("landed state confirmed | seconds: {0} of {1}".
+                              format(i / loop_freq, timeout))
                 break
 
             rate.sleep()
 
         self.assertTrue(landed_state_confirmed, (
             "landed state not detected | desired: {0}, current: {1} | index: {2}, timeout(seconds): {3}".
-            format(
-                self.LAND_STATES.get(desired_landed_state),
-                self.LAND_STATES.get(self.extended_state.landed_state), index,
-                timeout)))
+            format(mavutil.mavlink.enums['MAV_LANDED_STATE'][
+                desired_landed_state].name, mavutil.mavlink.enums[
+                    'MAV_VTOL_STATE'][self.extended_state.landed_state].name,
+                   index, timeout)))
 
-    def wait_on_transition(self, transition, timeout, index):
+    def wait_for_vtol_state(self, transition, timeout, index):
         """Wait for VTOL transition, timeout(int): seconds"""
         rospy.loginfo(
             "waiting for VTOL transition | transition: {0}, index: {1}".format(
-                self.VTOL_STATES.get(transition), index))
+                mavutil.mavlink.enums['MAV_VTOL_STATE'][
+                    transition].name, index))
         loop_freq = 10  # Hz
         rate = rospy.Rate(loop_freq)
         transitioned = False
         for i in xrange(timeout * loop_freq):
             if transition == self.extended_state.vtol_state:
-                rospy.loginfo(
-                    "transitioned | index: {0} | seconds: {1} of {2}".format(
-                        index, i / loop_freq, timeout))
+                rospy.loginfo("transitioned | seconds: {0} of {1}".format(
+                    i / loop_freq, timeout))
                 transitioned = True
                 break
 
             rate.sleep()
 
         self.assertTrue(transitioned, (
-            "transition not detected | index: {0} | timeout(seconds): {1}".
-            format(index, timeout)))
+            "transition not detected | desired: {0}, current: {1} | index: {2} timeout(seconds): {3}".
+            format(mavutil.mavlink.enums['MAV_VTOL_STATE'][transition].name,
+                   mavutil.mavlink.enums['MAV_VTOL_STATE'][
+                       self.extended_state.vtol_state].name, index, timeout)))
 
     def clear_wps(self, timeout):
         """timeout(int): seconds"""
@@ -362,8 +359,9 @@ class MavrosTestCommon(unittest.TestCase):
                 if res.success:
                     self.mav_type = res.value.integer
                     rospy.loginfo(
-                        "MAV_TYPE received | value: {0} | seconds: {1} of {2}".
-                        format(self.mav_type, i / loop_freq, timeout))
+                        "MAV_TYPE received | type: {0} | seconds: {1} of {2}".
+                        format(mavutil.mavlink.enums['MAV_TYPE'][self.mav_type]
+                               .name, i / loop_freq, timeout))
                     break
             except rospy.ServiceException as e:
                 rospy.logerr(e)
@@ -373,3 +371,23 @@ class MavrosTestCommon(unittest.TestCase):
         self.assertTrue(res.success, (
             "MAV_TYPE param get failed | timeout(seconds): {0}".format(timeout)
         ))
+
+    def log_topic_vars(self):
+        """log the state of topic variables"""
+        rospy.loginfo("========================")
+        rospy.loginfo("===== topic values =====")
+        rospy.loginfo("========================")
+        rospy.loginfo("altitude:\n{}".format(self.altitude))
+        rospy.loginfo("========================")
+        rospy.loginfo("extended_state:\n{}".format(self.extended_state))
+        rospy.loginfo("========================")
+        rospy.loginfo("global_position:\n{}".format(self.global_position))
+        rospy.loginfo("========================")
+        rospy.loginfo("home_position:\n{}".format(self.home_position))
+        rospy.loginfo("========================")
+        rospy.loginfo("local_position:\n{}".format(self.local_position))
+        rospy.loginfo("========================")
+        rospy.loginfo("mission_wp:\n{}".format(self.mission_wp))
+        rospy.loginfo("========================")
+        rospy.loginfo("state:\n{}".format(self.state))
+        rospy.loginfo("========================")
