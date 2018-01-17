@@ -2,7 +2,7 @@
 daysUntilStale: 60
 
 # Number of days of inactivity before a stale issue is closed
-daysUntilClose: 90
+daysUntilClose: 30
 
 # Issues with these labels will never be considered stale
 exemptLabels:
