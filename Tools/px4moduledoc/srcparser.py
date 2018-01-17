@@ -247,11 +247,18 @@ class SourceParser(object):
         self._modules = {} # all found modules: key is the module name
         self._consistency_checks_failure = False # one or more checks failed
 
+        self._comment_remove_pattern = re.compile(
+            r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
+            re.DOTALL | re.MULTILINE)
+
     def Parse(self, scope, contents):
         """
         Incrementally parse program contents and append all found documentations
         to the list.
         """
+
+        # remove comments from source
+        contents = self._comment_remover(contents)
 
         extracted_function_calls = [] # list of tuples: (FUNC_NAME, list(ARGS))
 
@@ -302,6 +309,16 @@ class SourceParser(object):
 
         return True
 
+    def _comment_remover(self, text):
+        """ remove C++ & C style comments.
+            Source: https://stackoverflow.com/a/241506 """
+        def replacer(match):
+            s = match.group(0)
+            if s.startswith('/'):
+                return " " # note: a space and not an empty string
+            else:
+                return s
+        return re.sub(self._comment_remove_pattern, replacer, text)
 
     def _do_consistency_check(self, contents, scope, module_doc):
         """
