@@ -570,7 +570,7 @@ class uploader(object):
 
         print("Attempting reboot on %s with baudrate=%d..." % (self.port.port, self.port.baudrate), file=sys.stderr)
         if "ttyS" in self.port.port:
-            print("If the board does not respond, check the connection to Flight Controller")
+            print("If the board does not respond, check the connection to the Flight Controller")
         else:
             print("If the board does not respond, unplug and re-plug the USB connector.", file=sys.stderr)
 
