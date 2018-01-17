@@ -4568,7 +4568,7 @@ Commander *Commander::instantiate(int argc, char *argv[])
 
 void Commander::enable_hil()
 {
-	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+	status.hil_state = vehicle_status_s::HIL_STATE_ON;
 }
 
 void Commander::mission_init()
