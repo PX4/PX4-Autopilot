@@ -52,12 +52,12 @@ param set RTL_RETURN_ALT 30.0
 param set SENS_BOARD_ROT 0
 param set SENS_BOARD_X_OFF 0.000001
 param set SENS_DPRES_OFF 0.001
-param set SYS_AUTOSTART 13006
+param set SYS_AUTOSTART 13014
 param set SYS_MC_EST_GROUP 2
 param set SYS_RESTART_TYPE 2
 param set VT_MOT_COUNT 4
 param set VT_TRANS_THR 0.75
-param set VT_TYPE 2
+param set VT_TYPE 3
 replay tryapplyparams
 simulator start -s
 tone_alarm start
@@ -78,7 +78,7 @@ mc_pos_control start
 mc_att_control start
 fw_pos_control_l1 start
 fw_att_control start
-mixer load /dev/pwm_output0 ROMFS/sitl/mixers/standard_vtol_sitl.main.mix
+mixer load /dev/pwm_output0 ROMFS/sitl/mixers/kitepower_aeolus250_sitl.main.mix
 mavlink start -u 14556 -r 2000000
 mavlink start -u 14557 -r 2000000 -m onboard -o 14540
 mavlink stream -r 20 -s EXTENDED_SYS_STATE -u 14557
