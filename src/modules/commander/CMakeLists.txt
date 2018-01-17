@@ -42,13 +42,7 @@ px4_add_module(
 		state_machine_helper.cpp
 		commander_helper.cpp
 		calibration_routines.cpp
-		accelerometer_calibration.cpp
-		gyro_calibration.cpp
-		mag_calibration.cpp
 		baro_calibration.cpp
-		rc_calibration.cpp
-		airspeed_calibration.cpp
-		esc_calibration.cpp
 		PreflightCheck.cpp
 		arm_auth.cpp
 	DEPENDS
