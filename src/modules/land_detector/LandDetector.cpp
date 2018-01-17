@@ -82,7 +82,7 @@ void LandDetector::_cycle()
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.freefall = false;
-		_landDetected.landed = false;
+		_landDetected.landed = true;
 		_landDetected.ground_contact = false;
 		_landDetected.maybe_landed = false;
 
@@ -111,8 +111,9 @@ void LandDetector::_cycle()
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	// Only publish very first time or when the result has changed.
-	if ((_landDetectedPub == nullptr) ||
+	// publish at 1 Hz, very first time, or when the result has changed
+	if ((hrt_elapsed_time(&_landDetected.timestamp) >= 1000000) ||
+	    (_landDetectedPub == nullptr) ||
 	    (_landDetected.landed != landDetected) ||
 	    (_landDetected.freefall != freefallDetected) ||
 	    (_landDetected.maybe_landed != maybe_landedDetected) ||
