@@ -1967,38 +1967,41 @@ Commander::run()
 
 		if (updated) {
 			bool previous_safety_off = safety.safety_off;
-			orb_copy(ORB_ID(safety), safety_sub, &safety);
+			if (orb_copy(ORB_ID(safety), safety_sub, &safety) == PX4_OK) {
 
-			/* disarm if safety is now on and still armed */
-			if (status.hil_state == vehicle_status_s::HIL_STATE_OFF && safety.safety_switch_available && !safety.safety_off && armed.armed) {
-				arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
-								   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
+				/* disarm if safety is now on and still armed */
+				if (armed.armed && (status.hil_state == vehicle_status_s::HIL_STATE_OFF)
+					&& safety.safety_switch_available && !safety.safety_off) {
 
-				if (TRANSITION_CHANGED == arming_state_transition(&status,
-										  &battery,
-										  &safety,
-										  new_arming_state,
-										  &armed,
-										  true /* fRunPreArmChecks */,
-										  &mavlink_log_pub,
-										  &status_flags,
-										  avionics_power_rail_voltage,
-										  arm_requirements,
-										  hrt_elapsed_time(&commander_boot_timestamp))) {
-				}
-			}
+					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
+									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
 
-			//Notify the user if the status of the safety switch changes
-			if (safety.safety_switch_available && previous_safety_off != safety.safety_off) {
-
-				if (safety.safety_off) {
-					set_tune(TONE_NOTIFY_POSITIVE_TUNE);
-
-				} else {
-					tune_neutral(true);
+					if (TRANSITION_CHANGED == arming_state_transition(&status,
+											  &battery,
+											  &safety,
+											  new_arming_state,
+											  &armed,
+											  true /* fRunPreArmChecks */,
+											  &mavlink_log_pub,
+											  &status_flags,
+											  avionics_power_rail_voltage,
+											  arm_requirements,
+											  hrt_elapsed_time(&commander_boot_timestamp))) {
+					}
 				}
 
-				status_changed = true;
+				// Notify the user if the status of the safety switch changes
+				if (safety.safety_switch_available && previous_safety_off != safety.safety_off) {
+
+					if (safety.safety_off) {
+						set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+
+					} else {
+						tune_neutral(true);
+					}
+
+					status_changed = true;
+				}
 			}
 		}
 
