@@ -149,10 +149,6 @@ set(config_module_list
 	examples/px4_simple_app
 
 	# Tutorial code from
-	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
-
-	# Tutorial code from
 	# https://px4.io/dev/debug_values
 	#examples/px4_mavlink_debug
 
