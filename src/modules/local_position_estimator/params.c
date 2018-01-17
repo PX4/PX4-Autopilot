@@ -452,7 +452,7 @@ PARAM_DEFINE_FLOAT(LPE_LT_COV, 0.0001f);
  *
  * @group Local Position Estimator
  * @min 0
- * @max 4294967295
+ * @max 255
  * @bit 0  fuse GPS, requires GPS for alt. init
  * @bit 1  fuse optical flow
  * @bit 2  fuse vision position
