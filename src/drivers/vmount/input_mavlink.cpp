@@ -230,8 +230,12 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 			vehicle_command_s vehicle_command;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &vehicle_command);
 
-			// process only if the command is for us
-			if (vehicle_command.target_system != _mav_sys_id || vehicle_command.target_component != _mav_comp_id) {
+			// Process only if the command is for us or for anyone.
+			const bool sysid_correct = (vehicle_command.target_system == _mav_sys_id);
+			const bool compid_correct = ((vehicle_command.target_component == _mav_comp_id) ||
+						     (vehicle_command.target_component == MAV_COMP_ID_ALL));
+
+			if (!sysid_correct || !compid_correct) {
 				return 0;
 			}
 
