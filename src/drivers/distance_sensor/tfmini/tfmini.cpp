@@ -81,9 +81,6 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-#define NAME "tfmini"
-#define DEVICE_PATH "/dev/" NAME
-
 class TFMINI : public device::CDev
 {
 public:
@@ -174,7 +171,7 @@ private:
 extern "C" __EXPORT int tfmini_main(int argc, char *argv[]);
 
 TFMINI::TFMINI(const char *port, uint8_t rotation) :
-	CDev(NAME, DEVICE_PATH),
+	CDev("tfmini", RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
 	_min_distance(0.30f),
 	_max_distance(12.0f),
@@ -226,7 +223,7 @@ TFMINI::~TFMINI()
 int
 TFMINI::init()
 {
-	int hw_model;
+	int32_t hw_model;
 	param_get(param_find("SENS_EN_TFMINI"), &hw_model);
 
 	switch (hw_model) {
@@ -766,14 +763,14 @@ start(const char *port, uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(DEVICE_PATH, O_RDONLY);
+	fd = px4_open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		warnx("Opening device '%s' failed");
 		goto fail;
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
 	}
 
@@ -818,14 +815,14 @@ test()
 	struct distance_sensor_s report;
 	ssize_t sz;
 
-	int fd = open(DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "%s open failed (try 'tfmini start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
+	sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
 		err(1, "immediate read failed");
@@ -836,18 +833,18 @@ test()
 	warnx("time: %llu", report.timestamp);
 
 	/* start the sensor polling at 2 Hz rate */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
+		px4_pollfd_struct_t fds{};
 
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		int ret = poll(&fds, 1, 2000);
+		int ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
 			warnx("timed out");
@@ -855,7 +852,7 @@ test()
 		}
 
 		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
+		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
 			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
@@ -870,7 +867,7 @@ test()
 	}
 
 	/* reset the sensor polling to the default rate */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
 		errx(1, "ERR: DEF RATE");
 	}
 
@@ -883,17 +880,17 @@ test()
 void
 reset()
 {
-	int fd = open(DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
 	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
+	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "driver reset failed");
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		err(1, "driver poll restart failed");
 	}
 
