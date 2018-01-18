@@ -36,6 +36,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Greg Hulands
  * @author Ayush Gaud <ayush.gaud@gmail.com>
+ * @author Christoph Tobler <christoph@px4.io>
  *
  * Driver for the Benewake TFmini laser rangefinder series
  */
@@ -80,51 +81,51 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-// designated SERIAL4/5 on Pixhawk
-#define TFMINI_DEFAULT_PORT		"/dev/ttyS6"
+#define NAME "tfmini"
+#define DEVICE_PATH "/dev/" NAME
 
 class TFMINI : public device::CDev
 {
 public:
-	TFMINI(const char *port = TFMINI_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	TFMINI(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~TFMINI();
 
-	virtual int 			init();
+	virtual int init();
 
-	virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
-	void				print_info();
+	void print_info();
 
 private:
-	char 				_port[20];
-	uint8_t 			_rotation;
-	float				_min_distance;
-	float				_max_distance;
-	int				_conversion_interval;
-	work_s				_work;
-	ringbuffer::RingBuffer		*_reports;
-	int				_measure_ticks;
-	bool				_collect_phase;
-	int				_fd;
-	char				_linebuf[10];
-	unsigned			_linebuf_index;
-	enum TFMINI_PARSE_STATE		_parse_state;
+	char                     _port[20];
+	uint8_t                  _rotation;
+	float                    _min_distance;
+	float                    _max_distance;
+	int                      _conversion_interval;
+	work_s                   _work;
+	ringbuffer::RingBuffer  *_reports;
+	int                      _measure_ticks;
+	bool                     _collect_phase;
+	int                      _fd;
+	char                     _linebuf[10];
+	unsigned                 _linebuf_index;
+	enum TFMINI_PARSE_STATE  _parse_state;
 
-	hrt_abstime			_last_read;
+	hrt_abstime              _last_read;
 
-	int				_class_instance;
-	int				_orb_class_instance;
+	int                      _class_instance;
+	int                      _orb_class_instance;
 
-	orb_advert_t			_distance_sensor_topic;
+	orb_advert_t             _distance_sensor_topic;
 
-	unsigned			_consecutive_fail_count;
+	unsigned                 _consecutive_fail_count;
 
-	perf_counter_t			_sample_perf;
-	perf_counter_t			_comms_errors;
+	perf_counter_t           _sample_perf;
+	perf_counter_t           _comms_errors;
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -173,7 +174,7 @@ private:
 extern "C" __EXPORT int tfmini_main(int argc, char *argv[]);
 
 TFMINI::TFMINI(const char *port, uint8_t rotation) :
-	CDev("TFMINI", RANGE_FINDER0_DEVICE_PATH),
+	CDev(NAME, DEVICE_PATH),
 	_rotation(rotation),
 	_min_distance(0.30f),
 	_max_distance(12.0f),
@@ -625,7 +626,7 @@ TFMINI::stop()
 void
 TFMINI::cycle_trampoline(void *arg)
 {
-	TFMINI *dev = static_cast<TFMINI *>(arg);
+	TFMINI *dev = (TFMINI *)arg;
 
 	dev->cycle();
 }
@@ -636,7 +637,7 @@ TFMINI::cycle()
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
-		_fd = ::open(TFMINI_DEFAULT_PORT, O_RDWR | O_NOCTTY | O_SYNC);
+		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_SYNC);
 	}
 
 	/* collection phase? */
@@ -706,6 +707,7 @@ TFMINI::cycle()
 void
 TFMINI::print_info()
 {
+	printf("Using port '%s'\n", _port);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %d ticks\n", _measure_ticks);
@@ -720,11 +722,12 @@ namespace tfmini
 
 TFMINI	*g_dev;
 
-void	start(const char *port, uint8_t rotation);
-void	stop();
-void	test();
-void	reset();
-void	info();
+void start(const char *port, uint8_t rotation);
+void stop();
+void test();
+void reset();
+void info();
+void usage();
 
 /**
  * Start the driver.
@@ -750,10 +753,10 @@ start(const char *port, uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
+	fd = open(DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("device open fail");
+		warnx("Opening device '%s' failed");
 		goto fail;
 	}
 
@@ -779,6 +782,7 @@ fail:
 void stop()
 {
 	if (g_dev != nullptr) {
+		warnx("stopping driver");
 		delete g_dev;
 		g_dev = nullptr;
 
@@ -800,7 +804,7 @@ test()
 	struct distance_sensor_s report;
 	ssize_t sz;
 
-	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
+	int fd = open(DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "%s open failed (try 'tfmini start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
@@ -865,7 +869,7 @@ test()
 void
 reset()
 {
-	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
+	int fd = open(DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -898,6 +902,16 @@ info()
 	exit(0);
 }
 
+/**
+ * Print a little info on how to use the driver.
+ */
+void
+usage()
+{
+	printf("usage:\n");
+	printf("tfmini start -d <device path> -R (optional) <rotation>:\n");
+}
+
 } // namespace
 
 int
@@ -906,15 +920,21 @@ tfmini_main(int argc, char *argv[])
 	// check for optional arguments
 	int ch;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	const char *device_path = "";
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
 
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
 			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
+			break;
+
+		case 'd':
+			device_path = myoptarg;
+			PX4_INFO("Using device path '%s'", device_path);
 			break;
 
 		default:
@@ -926,11 +946,13 @@ tfmini_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		if (argc > myoptind + 1) {
-			tfmini::start(argv[myoptind + 1], rotation);
+		if (strcmp(device_path, "") != 0) {
+			tfmini::start(device_path, rotation);
 
 		} else {
-			tfmini::start(TFMINI_DEFAULT_PORT, rotation);
+			PX4_WARN("Please specify device path!");
+			tfmini::usage();
+			return PX4_ERROR;
 		}
 	}
 
