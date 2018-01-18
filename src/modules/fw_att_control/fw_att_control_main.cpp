@@ -210,7 +210,7 @@ private:
 
 		float rattitude_thres;
 
-		int32_t vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
+                int32_t vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor, 2 = standard, 3 = kitepower */
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 
@@ -814,7 +814,7 @@ FixedwingAttitudeControl::task_main()
 			_pitch   = euler_angles(1);
 			_yaw     = euler_angles(2);
 
-			if (_vehicle_status.is_vtol && _parameters.vtol_type == vtol_type::TAILSITTER) {
+                        if (_vehicle_status.is_vtol && (_parameters.vtol_type == vtol_type::TAILSITTER || _parameters.vtol_type == vtol_type::KITEPOWER)) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 				 *
 				 * Since the VTOL airframe is initialized as a multicopter we need to

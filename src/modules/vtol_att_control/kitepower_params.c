@@ -32,26 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file tailsitter_params.c
+ * @file kitepower_params.c
  * Parameters for vtol attitude controller.
  *
- * @author Roman Bapst <bapstroman@gmail.com>
- * @author David Vorsin     <davidvorsin@gmail.com>
+ * @author Gabriel König  <g.koenig@kitepower.nl>
  */
 
 #include <systemlib/param/param.h>
 
-/**
- * Duration of front transition phase 2
- *
- * Time in seconds it should take for the rotors to rotate forward completely from the point
- * when the plane has picked up enough airspeed and is ready to go into fixed wind mode.
- *
- * @unit s
- * @min 0.1
- * @max 5.0
- * @increment 0.01
- * @decimal 3
- * @group VTOL Attitude Control
-
-PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);*/
+//empty at the moment

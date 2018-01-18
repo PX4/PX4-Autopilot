@@ -64,29 +64,20 @@ public:
 private:
 
 	struct {
-		float front_trans_dur;			/**< duration of first part of front transition */
-		float front_trans_dur_p2;
-		float back_trans_dur;			/**< duration of back transition */
 		float airspeed_trans;			/**< airspeed at which we switch to fw mode after transition */
 		float airspeed_blend_start;		/**< airspeed at which we start blending mc/fw controls */
-		int elevons_mc_lock;			/**< lock elevons in multicopter mode */
 
 	} _params_kitepower;
 
 	struct {
-		param_t front_trans_dur;
-		param_t front_trans_dur_p2;
-		param_t back_trans_dur;
 		param_t airspeed_trans;
 		param_t airspeed_blend_start;
-		param_t elevons_mc_lock;
 
 	} _params_handles_kitepower;
 
 	enum vtol_mode {
-		MC_MODE = 0,			/**< vtol is in multicopter mode */
-		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
-		TRANSITION_FRONT_P2,	/**< vtol is in front transition part 2 mode */
+                MC_MODE = 0,			/**< vtol is in multicopter mode */
+                TRANSITION_FRONT,	/**< vtol is in front transition part 1 mode */
 		TRANSITION_BACK,		/**< vtol is in back transition mode */
 		FW_MODE					/**< vtol is in fixed wing mode */
 	};
@@ -98,8 +89,8 @@ private:
 
 	float _airspeed_tot; 		/** speed estimation for propwash controlled surfaces */
 
-	/** not sure about it yet ?! **/
-	float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
+        bool _flag_enable_mc_motors;
+
 
 	float _thrust_transition_start; // throttle value when we start the front transition
 	float _yaw_transition;	// yaw angle in which transition will take place
@@ -122,7 +113,14 @@ private:
 	/**
 	 * Update parameters.
 	 */
-	virtual void parameters_update();
+        virtual void parameters_update();
+
+        void set_max_mc(unsigned pwm_value);
+
+        /**
+         * Update external VTOL state
+        */
+        void update_external_VTOL_state();
 
 };
 #endif

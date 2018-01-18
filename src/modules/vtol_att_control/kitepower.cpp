@@ -35,23 +35,18 @@
 * @file kitepower.cpp
 *
 * @author Roman Babst		<bapstroman@gmail.com>
-* @author Gabriel König		<g.koenig@kitepower.nl>
+* @author Gabriel Koenig		<g.koenig@kitepower.nl>
 *
 */
 
 #include "kitepower.h"
 #include "vtol_att_control_main.h"
 
-#define ARSP_YAW_CTRL_DISABLE 7.0f	// airspeed at which we stop controlling yaw during a front transition
-#define THROTTLE_TRANSITION_MAX 0.25f	// maximum added thrust above last value in transition
-#define PITCH_TRANSITION_FRONT_P1 -1.1f	// pitch angle to switch to TRANSITION_P2
-#define PITCH_TRANSITION_FRONT_P2 -1.2f	// pitch angle to switch to FW
-#define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
 Kitepower::Kitepower(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_airspeed_tot(0.0f),
-	_min_front_trans_dur(0.5f),
+        _flag_enable_mc_motors(true),
 	_thrust_transition_start(0.0f),
 	_yaw_transition(0.0f),
 	_pitch_transition_start(0.0f),
@@ -64,15 +59,10 @@ Kitepower::Kitepower(VtolAttitudeControl *attc) :
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
+        _mc_throttle_weight = 1.0f;
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_kitepower.front_trans_dur = param_find("VT_F_TRANS_DUR");
-	_params_handles_kitepower.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
-	_params_handles_kitepower.back_trans_dur = param_find("VT_B_TRANS_DUR");
-	_params_handles_kitepower.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_params_handles_kitepower.airspeed_blend_start = param_find("VT_ARSP_BLEND");
-	_params_handles_kitepower.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 
 }
 
@@ -84,40 +74,7 @@ Kitepower::~Kitepower()
 void
 Kitepower::parameters_update()
 {
-	float v;
-	int l;
 
-	/* vtol duration of a front transition */
-	param_get(_params_handles_kitepower.front_trans_dur, &v);
-	_params_kitepower
-			.front_trans_dur = math::constrain(v, 1.0f, 5.0f);
-
-	/* vtol front transition phase 2 duration */
-	param_get(_params_handles_kitepower.front_trans_dur_p2, &v);
-	_params_kitepower.front_trans_dur_p2 = v;
-
-	/* vtol duration of a back transition */
-	param_get(_params_handles_kitepower.back_trans_dur, &v);
-	_params_kitepower.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
-
-	/* vtol airspeed at which it is ok to switch to fw mode */
-	param_get(_params_handles_kitepower.airspeed_trans, &v);
-	_params_kitepower.airspeed_trans = v;
-
-	/* vtol airspeed at which we start blending mc/fw controls */
-	param_get(_params_handles_kitepower.airspeed_blend_start, &v);
-	_params_kitepower.airspeed_blend_start = v;
-
-	/* vtol lock elevons in multicopter */
-	param_get(_params_handles_kitepower.elevons_mc_lock, &l);
-	_params_kitepower.elevons_mc_lock = l;
-
-	/* avoid parameters which will lead to zero division in the transition code */
-	_params_kitepower.front_trans_dur = math::max(_params_kitepower.front_trans_dur, _min_front_trans_dur);
-
-	if (_params_kitepower.airspeed_trans < _params_kitepower.airspeed_blend_start + 1.0f) {
-		_params_kitepower.airspeed_trans = _params_kitepower.airspeed_blend_start + 1.0f;
-	}
 }
 
 void Kitepower::update_vtol_state()
@@ -143,68 +100,56 @@ void Kitepower::update_vtol_state()
 		case FW_MODE:
 			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
 			_vtol_schedule.transition_start = hrt_absolute_time();
-			break;
+                        _flag_enable_mc_motors = true;
+                        break;
 
-		case TRANSITION_FRONT_P1:
+                case TRANSITION_FRONT:
 			// failsafe into multicopter mode
 			_vtol_schedule.flight_mode = MC_MODE;
+                        _flag_enable_mc_motors = true;
 			break;
 
-		case TRANSITION_FRONT_P2:
-			// NOT USED
-			// failsafe into multicopter mode
-			//_vtol_schedule.flight_mode = MC_MODE;
-			break;
 
 		case TRANSITION_BACK:
 
-            //Kitepower: direct switch for the moment for transition
-			// check if we have reached pitch angle to switch to MC mode
-            /*if (pitch >= PITCH_TRANSITION_BACK) {
-				_vtol_schedule.flight_mode = MC_MODE;
-            }*/
-            _vtol_schedule.flight_mode = MC_MODE;
-
-			break;
+                //Kitepower: direct switch for the moment for transition
+                        _vtol_schedule.flight_mode = MC_MODE;
+                        _flag_enable_mc_motors = true;
+                        break;
 		}
 
 	} else {  // user switchig to FW mode
 
 		switch (_vtol_schedule.flight_mode) {
 		case MC_MODE:
-			// initialise a front transition
-			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
+                        // initialise a front transition
+                        _vtol_schedule.flight_mode 	= TRANSITION_FRONT;
 			_vtol_schedule.transition_start = hrt_absolute_time();
+                        _flag_enable_mc_motors = false;
 			break;
 
 		case FW_MODE:
+                        _flag_enable_mc_motors = false;
+                        break;
+
+                case TRANSITION_FRONT:
+                        //Kitpower: direct switch for the moment for front transition
+                        _vtol_schedule.flight_mode = FW_MODE;
+                        _flag_enable_mc_motors = false;
 			break;
-
-		case TRANSITION_FRONT_P1:
-            //Kitpower: direct switch for the moment for front transition
-			// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-            /*if ((_airspeed->indicated_airspeed_m_s >= _params_kitepower.airspeed_trans
-			     && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
-				_vtol_schedule.flight_mode = FW_MODE;
-				//_vtol_schedule.transition_start = hrt_absolute_time();
-            }*/
-            _vtol_schedule.flight_mode = FW_MODE;
-
-			break;
-
-		case TRANSITION_FRONT_P2:
 
 		case TRANSITION_BACK:
 			// failsafe into fixed wing mode
 			_vtol_schedule.flight_mode = FW_MODE;
+                        _flag_enable_mc_motors = false;
 
-			/*  **LATER***  if pitch is closer to mc (-45>)
-			*   go to transition P1
-			*/
-			break;
+            break;
 		}
 	}
-
+        update_external_VTOL_state();
+}
+void Kitepower::update_external_VTOL_state()
+{
 	// map kitepower specific control phases to simple control modes
 	switch (_vtol_schedule.flight_mode) {
 	case MC_MODE:
@@ -219,12 +164,7 @@ void Kitepower::update_vtol_state()
 		_flag_was_in_trans_mode = false;
 		break;
 
-	case TRANSITION_FRONT_P1:
-		_vtol_mode = TRANSITION_TO_FW;
-		_vtol_vehicle_status->vtol_in_trans_mode = true;
-		break;
-
-	case TRANSITION_FRONT_P2:
+        case TRANSITION_FRONT:
 		_vtol_mode = TRANSITION_TO_FW;
 		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
@@ -246,109 +186,34 @@ void Kitepower::update_transition_state()
 		_flag_was_in_trans_mode = true;
 	}
 
-	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
+    if (_vtol_schedule.flight_mode == TRANSITION_FRONT) {
+        // Kitepower: at the moment empty as we have direct switch to fixed wing
+        // create time dependant pitch angle set point + 0.2 rad overlap over the switch value*/
 
-		/** create time dependant pitch angle set point + 0.2 rad overlap over the switch value*/
-		_v_att_sp->pitch_body = _pitch_transition_start	- (fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
-					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_kitepower.front_trans_dur * 1000000.0f));
-		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1 - 0.2f,
-							_pitch_transition_start);
+        // create time dependant throttle signal higher than  in MC and growing untillspeed reached */
 
-		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
-		if (_airspeed->indicated_airspeed_m_s <= _params_kitepower.airspeed_trans) {
-			_thrust_transition = _thrust_transition_start + (fabsf(THROTTLE_TRANSITION_MAX * _thrust_transition_start) *
-					     (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_kitepower.front_trans_dur * 1000000.0f));
-			_thrust_transition = math::constrain(_thrust_transition, _thrust_transition_start,
-							     (1.0f + THROTTLE_TRANSITION_MAX) * _thrust_transition_start);
-			_v_att_sp->thrust = _thrust_transition;
-		}
-
-		// disable mc yaw control once the plane has picked up speed
-		if (_airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
-			_mc_yaw_weight = 0.0f;
-
-		} else {
-			_mc_yaw_weight = 1.0f;
-		}
-
-		_mc_roll_weight = 1.0f;
-		_mc_pitch_weight = 1.0f;
-
-	} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P2) {
-		// the plane is ready to go into fixed wing mode, smoothly switch the actuator controls, keep pitching down
-
-		/** no motor  switching */
-
-		if (flag_idle_mc) {
-			set_idle_fw();
-			flag_idle_mc = false;
-		}
-
-		/** create time dependant pitch angle set point  + 0.2 rad overlap over the switch value*/
-		if (_v_att_sp->pitch_body >= (PITCH_TRANSITION_FRONT_P2 - 0.2f)) {
-			_v_att_sp->pitch_body = PITCH_TRANSITION_FRONT_P1 -
-						(fabsf(PITCH_TRANSITION_FRONT_P2 - PITCH_TRANSITION_FRONT_P1) * (float)hrt_elapsed_time(
-							 &_vtol_schedule.transition_start) / (_params_kitepower.front_trans_dur_p2 * 1000000.0f));
-
-			if (_v_att_sp->pitch_body <= (PITCH_TRANSITION_FRONT_P2 - 0.2f)) {
-				_v_att_sp->pitch_body = PITCH_TRANSITION_FRONT_P2 - 0.2f;
-			}
-
-		}
-
-		_v_att_sp->thrust = _thrust_transition;
-
-		/** start blending MC and FW controls from pitch -45 to pitch -70 for smooth control takeover*/
-
-		//_mc_roll_weight = 1.0f - 1.0f * ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_kitepower.front_trans_dur_p2 * 1000000.0f));
-		//_mc_pitch_weight = 1.0f - 1.0f * ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_kitepower.front_trans_dur_p2 * 1000000.0f));
-
-
-		_mc_roll_weight = 0.0f;
-		_mc_pitch_weight = 0.0f;
-
-		/** keep yaw disabled */
-		_mc_yaw_weight = 0.0f;
-
+        // eventually disable mc yaw control once the plane has picked up speed
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
 
-		if (!flag_idle_mc) {
-			set_idle_mc();
-			flag_idle_mc = true;
-		}
-
-		/** create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value*/
-		_v_att_sp->pitch_body = M_PI_2_F + _pitch_transition_start + fabsf(PITCH_TRANSITION_BACK + 1.57f) *
-					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_kitepower.back_trans_dur * 1000000.0f);
-		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, -2.0f, PITCH_TRANSITION_BACK + 0.2f);
+        // create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value*/
 
 		//  throttle value is decreesed
-		_v_att_sp->thrust = _thrust_transition_start * 0.9f;
 
-		/** keep yaw disabled */
-		_mc_yaw_weight = 0.0f;
-
-		/** smoothly move control weight to MC */
-		_mc_roll_weight = 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
-				  (_params_kitepower.back_trans_dur * 1000000.0f);
-		_mc_pitch_weight = 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
-				   (_params_kitepower.back_trans_dur * 1000000.0f);
+        // smoothly move control weight to MC */
 
 	}
 
 
 
-
-	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
-	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
-	_mc_pitch_weight = math::constrain(_mc_pitch_weight, 0.0f, 1.0f);
-
 	// compute desired attitude and thrust setpoint for the transition
+        // Kitepower: at the moment we just use the same values at the beginning of the transition
 
 	_v_att_sp->timestamp = hrt_absolute_time();
 	_v_att_sp->roll_body = 0.0f;
-	_v_att_sp->yaw_body = _yaw_transition;
+        _v_att_sp->yaw_body = _yaw_transition;
+        _v_att_sp->pitch_body = _pitch_transition_start;
+        _v_att_sp->thrust = _thrust_transition_start;
 
 	math::Quaternion q_sp;
 	q_sp.from_euler(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body);
@@ -415,101 +280,94 @@ void Kitepower::scale_mc_output()
 
 void Kitepower::update_mc_state()
 {
-	VtolType::update_mc_state();
+        VtolType::update_mc_state();
+        _mc_roll_weight = 1.0f;
+        _mc_pitch_weight = 1.0f;
+        _mc_yaw_weight = 1.0f;
+        _mc_throttle_weight = 1.0f;
 
-	// set idle speed for rotary wing mode
-	if (!flag_idle_mc) {
-		set_idle_mc();
-		flag_idle_mc = true;
-	}
+        if (_flag_enable_mc_motors) {
+                set_max_mc(1940);
+                _flag_enable_mc_motors = false;
+        }
+
 }
 
 void Kitepower::update_fw_state()
 {
-	VtolType::update_fw_state();
+        VtolType::update_fw_state();
+        _mc_roll_weight = 0.0f;
+        _mc_pitch_weight = 0.0f;
+        _mc_yaw_weight = 0.0f;
+        _mc_throttle_weight = 0.0f;
 
-	if (flag_idle_mc) {
-		set_idle_fw();
-		flag_idle_mc = false;
-	}
+        if (!_flag_enable_mc_motors) {
+                set_max_mc(940);
+                _flag_enable_mc_motors = true;
+        }
+
+
 }
 
 /**
 * Write data to actuator output topic.
 */
+
 void Kitepower::fill_actuator_outputs()
 {
-	switch (_vtol_mode) {
-	case ROTARY_WING:
-		_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
-		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
-		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+    //Kitepower: fail saife mode needs to be added -> probably later on dronecore side
+    //fill multicopter controls, index 0
+    _actuators_out_0->timestamp = _actuators_mc_in->timestamp;
+    _actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
+            _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]*_mc_roll_weight;
+    _actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
+            _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH]*_mc_pitch_weight;
+    _actuators_out_0->control[actuator_controls_s::INDEX_YAW] =
+            _actuators_mc_in->control[actuator_controls_s::INDEX_YAW]*_mc_yaw_weight; //needs to be tested
+    _actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
+            _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE]*_mc_throttle_weight;
 
-		_actuators_out_1->timestamp = _actuators_mc_in->timestamp;
+    //fill in fixed wing controls, important actuator for
+    //in the fw_att_controller there is a coordinate frame transformation while switching to fw mode (neutral position is switched 90° around pitch axis)
+    //Thus we have a coordinate frame for mc and one
+    //for fw. Thus mc_yaw!=fw_yaw.
+    _actuators_out_1->timestamp = _actuators_fw_in->timestamp;
+    _actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =0.0f;
+    _actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
+            _actuators_fw_in->control[actuator_controls_s::INDEX_PITCH]*(1-_mc_pitch_weight);
+    _actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW]*(1-_mc_yaw_weight); //yaw axis in multicopter mode means roll axis in fixedwing, thus no roll control
 
-		if (_params->elevons_mc_lock == 1) {
-			_actuators_out_1->control[0] = 0;
-			_actuators_out_1->control[1] = 0;
+}
 
-		} else {
-			// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
-			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-				_actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	//roll elevon
-			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-				_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
-		}
+/**
+* Disable all multirotor motors when in fw mode.
+*/
+void
+Kitepower::set_max_mc(unsigned pwm_value)
+{
+        int ret;
+        unsigned servo_count;
+        const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+        int fd = px4_open(dev, 0);
 
-		break;
+        if (fd < 0) {
+                PX4_WARN("can't open %s", dev);
+        }
 
-	case FIXED_WING:
-		// in fixed wing mode we use engines only for providing thrust, no moments are generated
-		_actuators_out_0->timestamp = _actuators_fw_in->timestamp;
-		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = 0;
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = 0;
-		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = 0;
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
+        ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+        struct pwm_output_values pwm_values;
+        memset(&pwm_values, 0, sizeof(pwm_values));
 
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];	// roll elevon
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim;	// pitch elevon
-		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
-		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];	// throttle
-		break;
+        for (int i = 0; i < _params->vtol_motor_count; i++) {
+                pwm_values.values[i] = pwm_value;
+                pwm_values.channel_count = _params->vtol_motor_count;
+        }
 
-	case TRANSITION_TO_FW:
-	case TRANSITION_TO_MC:
-		// in transition engines are mixed by weight (BACK TRANSITION ONLY)
-		_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
-		_actuators_out_1->timestamp = _actuators_mc_in->timestamp;
-		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
-				* _mc_roll_weight;
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
-				_mc_yaw_weight;
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+        ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
 
-		// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]
-				* (1 - _mc_roll_weight);
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-		// **LATER** + (_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) *(1 - _mc_pitch_weight);
-		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
-		break;
+        if (ret != OK) {
+                PX4_WARN("failed setting max values");
+        }
 
-	case EXTERNAL:
-		// not yet implemented, we are switching brute force at the moment
-		break;
-	}
+        px4_close(fd);
 }
