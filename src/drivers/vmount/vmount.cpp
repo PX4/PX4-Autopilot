@@ -352,6 +352,8 @@ static int vmount_thread_main(int argc, char *argv[])
 			}
 		}
 
+		bool input_changed = false;
+
 		if (thread_data.input_objs_len > 0) {
 
 			//get input: we cannot make the timeout too large, because the output needs to update
@@ -373,11 +375,17 @@ static int vmount_thread_main(int argc, char *argv[])
 				if (control_data_to_check != nullptr || already_active) {
 					control_data = control_data_to_check;
 					last_active = i;
+
+					if (!already_active) {
+						input_changed = true;
+					}
 				}
 			}
 
 			hrt_abstime now = hrt_absolute_time();
-			if (now - last_output_update > 10000) { // rate-limit the update of outputs
+			// Rate-limit the update of outputs, unless we just changed inputs because we wouldn't
+			// want to miss the new control data.
+			if (now - last_output_update > 10000 || input_changed) {
 				last_output_update = now;
 
 				//update output
