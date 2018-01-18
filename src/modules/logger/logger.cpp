@@ -249,7 +249,7 @@ void Logger::print_statistics()
 
 Logger *Logger::instantiate(int argc, char *argv[])
 {
-	uint32_t log_interval = 500;
+	uint32_t log_interval = 3500;
 	int log_buffer_size = 12 * 1024;
 	bool log_on_start = false;
 	bool log_until_shutdown = false;
@@ -689,8 +689,8 @@ void Logger::add_raw_sensor_topics()
 	add_topic("sensor_gyro");
 	add_topic("sensor_mag");
 
-	add_topic("sensor_accel_raw");
-	add_topic("sensor_gyro_raw");
+	add_topic("sensor_accel_unfiltered");
+	add_topic("sensor_gyro_unfiltered");
 }
 
 int Logger::add_topics_from_file(const char *fname)

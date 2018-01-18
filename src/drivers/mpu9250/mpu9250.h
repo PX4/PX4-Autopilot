@@ -306,10 +306,10 @@ private:
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
-	orb_advert_t		_accel_raw_topic;
+	orb_advert_t		_accel_unfiltered_topic;
 	int			_accel_orb_class_instance;
 	int			_accel_class_instance;
-	bool			_accel_publish_raw;
+	bool			_accel_publish_unfiltered;
 
 	ringbuffer::RingBuffer	*_gyro_reports;
 
@@ -322,7 +322,7 @@ private:
 	unsigned		_sample_rate;
 	unsigned		_gyro_control_interval;
 	unsigned		_gyro_count;
-	bool			_gyro_publish_raw;
+	bool			_gyro_publish_unfiltered;
 
 	perf_counter_t		_sample_interval_accel;
 	perf_counter_t		_sample_interval_gyro;

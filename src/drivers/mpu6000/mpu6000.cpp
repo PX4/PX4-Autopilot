@@ -189,10 +189,10 @@ private:
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
-	orb_advert_t		_accel_raw_topic;
+	orb_advert_t		_accel_unfiltered_topic;
 	int			_accel_orb_class_instance;
 	int			_accel_class_instance;
-	bool			_accel_publish_raw;
+	bool			_accel_publish_unfiltered;
 
 	ringbuffer::RingBuffer	*_gyro_reports;
 
@@ -203,7 +203,7 @@ private:
 	unsigned		_sample_rate;
 	unsigned		_gyro_control_interval;
 	unsigned		_gyro_count;
-	bool			_gyro_publish_raw;
+	bool			_gyro_publish_unfiltered;
 	perf_counter_t		_sample_interval_accel;
 	perf_counter_t		_sample_interval_gyro;
 	perf_counter_t		_publish_interval_gyro;
@@ -474,7 +474,7 @@ private:
 	MPU6000			*_parent;
 	orb_advert_t		_gyro_topic;
 	orb_advert_t		_gyro_control_topic;
-	orb_advert_t		_gyro_raw_topic;
+	orb_advert_t		_gyro_unfiltered_topic;
 	int			_gyro_orb_class_instance;
 	int			_gyro_class_instance;
 
@@ -506,10 +506,10 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(nullptr),
-	_accel_raw_topic(nullptr),
+	_accel_unfiltered_topic(nullptr),
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
-	_accel_publish_raw(true),
+	_accel_publish_unfiltered(false),
 	_gyro_reports(nullptr),
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
@@ -517,7 +517,7 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_sample_rate(MPU6000_GYRO_DEFAULT_RATE),
 	_gyro_control_interval(MPU6000_GYRO_DEFAULT_RATE / MPU6000_GYRO_DEFAULT_CONTROL_RATE),
 	_gyro_count(0),
-	_gyro_publish_raw(true),
+	_gyro_publish_unfiltered(true),
 	_sample_interval_accel(perf_alloc(PC_INTERVAL, "mpu6k_sample_interval_accel")),
 	_sample_interval_gyro(perf_alloc(PC_INTERVAL, "mpu6k_sample_interval_gyro")),
 	_publish_interval_gyro(perf_alloc(PC_INTERVAL, "mpu6k_publish_interval_gyro")),
@@ -762,8 +762,8 @@ MPU6000::init()
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
 					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
-	struct accel_raw_report accel_raw_report = {};
-	_accel_raw_topic = orb_advertise_multi(ORB_ID(sensor_accel_raw), &accel_raw_report,
+	struct accel_unfiltered_report accel_unfiltered_report = {};
+	_accel_unfiltered_topic = orb_advertise_multi(ORB_ID(sensor_accel_unfiltered), &accel_unfiltered_report,
 				     &_accel_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_accel_topic == nullptr) {
@@ -781,8 +781,8 @@ MPU6000::init()
 	_gyro->_gyro_control_topic = orb_advertise_multi(ORB_ID(sensor_gyro_control), &control_report,
 				     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
-	struct gyro_raw_report raw_report = {};
-	_gyro->_gyro_raw_topic = orb_advertise_multi(ORB_ID(sensor_gyro_raw), &raw_report,
+	struct gyro_unfiltered_report unfiltered_report = {};
+	_gyro->_gyro_unfiltered_topic = orb_advertise_multi(ORB_ID(sensor_gyro_unfiltered), &unfiltered_report,
 				     &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_gyro->_gyro_topic == nullptr) {
@@ -1969,13 +1969,13 @@ MPU6000::measure()
 		 * Report buffers.
 		 */
 		accel_report	arb;
-		accel_raw_report raw_report;
+		accel_unfiltered_report unfiltered_report;
 
 		/*
 		 * Adjust and scale results to m/s^2.
 		 */
 		arb.timestamp = stamp;
-		raw_report.timestamp = stamp;
+		unfiltered_report.timestamp = stamp;
 
 		// report the error count as the sum of the number of bad
 		// transfers and bad register reads. This allows the higher
@@ -2001,23 +2001,23 @@ MPU6000::measure()
 
 		/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-		raw_report.x_raw = report.accel_x;
-		raw_report.y_raw = report.accel_y;
-		raw_report.z_raw = report.accel_z;
+		unfiltered_report.x = arb.x_raw = report.accel_x;
+		unfiltered_report.y = arb.y_raw = report.accel_y;
+		unfiltered_report.z = arb.z_raw = report.accel_z;
 
 		// apply user specified rotation
-		rotate_3f(_rotation, raw_report.x_raw, raw_report.y_raw, raw_report.z_raw);
+		rotate_3f(_rotation, unfiltered_report.x, unfiltered_report.y, unfiltered_report.z);
 
 		// apply calibration data
 		math::Vector<3> aval;
-		aval(0) = ((raw_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-		aval(1) = ((raw_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-		aval(2) = ((raw_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+		aval(0) = ((unfiltered_report.x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+		aval(1) = ((unfiltered_report.y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+		aval(2) = ((unfiltered_report.z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
-		// what we actually want are rotated and calibrated "raw" values
-		raw_report.x_raw = aval(0);
-		raw_report.y_raw = aval(1);
-		raw_report.z_raw = aval(2);
+		// what we actually want are rotated and calibrated values
+		unfiltered_report.x = aval(0);
+		unfiltered_report.y = aval(1);
+		unfiltered_report.z = aval(2);
 
 		// apply lowpass filter
 		arb.x = _accel_filter_x.apply(aval(0));
@@ -2061,9 +2061,9 @@ MPU6000::measure()
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 		}
 
-		/* publish raw report */
-		if (_accel_publish_raw) {
-			orb_publish(ORB_ID(sensor_accel_raw), _accel_raw_topic, &raw_report);
+		/* publish unfiltered report */
+		if (_accel_publish_unfiltered) {
+			orb_publish(ORB_ID(sensor_accel_unfiltered), _accel_unfiltered_topic, &unfiltered_report);
 		}
 
 	} else {
@@ -2111,14 +2111,14 @@ MPU6000::measure()
 		 */
 		gyro_report		grb;
 		gyro_control_report 	control_report;
-		gyro_raw_report		raw_report;
+		gyro_unfiltered_report	unfiltered_report;
 
 		/*
 		 * Adjust and scale results to m/s^2.
 		 */
 		grb.timestamp = stamp;
 		control_report.timestamp = stamp;
-		raw_report.timestamp = stamp;
+		unfiltered_report.timestamp = stamp;
 
 		// report the error count as the sum of the number of bad
 		// transfers and bad register reads. This allows the higher
@@ -2144,23 +2144,23 @@ MPU6000::measure()
 
 		/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-		raw_report.x_raw = report.gyro_x;
-		raw_report.y_raw = report.gyro_y;
-		raw_report.z_raw = report.gyro_z;
+		unfiltered_report.x = grb.x_raw = report.gyro_x;
+		unfiltered_report.y = grb.y_raw = report.gyro_y;
+		unfiltered_report.z = grb.z_raw = report.gyro_z;
 
 		// apply user specified rotation
-		rotate_3f(_rotation, raw_report.x_raw, raw_report.y_raw, raw_report.z_raw);
+		rotate_3f(_rotation, unfiltered_report.x, unfiltered_report.y, unfiltered_report.z);
 
 		// apply calibration
 		math::Vector<3> gval;
-		gval(0) = ((raw_report.x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-		gval(1) = ((raw_report.y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-		gval(2) = ((raw_report.z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+		gval(0) = ((unfiltered_report.x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+		gval(1) = ((unfiltered_report.y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+		gval(2) = ((unfiltered_report.z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
 		// what we actually want are rotated and calibrated "raw" values
-		raw_report.x_raw = gval(0);
-		raw_report.y_raw = gval(1);
-		raw_report.z_raw = gval(2);
+		unfiltered_report.x = gval(0);
+		unfiltered_report.y = gval(1);
+		unfiltered_report.z = gval(2);
 
 		// apply lowpass filter
 		grb.x = _gyro_filter_x.apply(gval(0));
@@ -2181,6 +2181,7 @@ MPU6000::measure()
 		grb.scaling = _gyro_range_scale;
 		grb.range_rad_s = _gyro_range_rad_s;
 
+		grb.temperature_raw = report.temp;
 		grb.temperature = _last_temperature;
 
 		/* return device ID */
@@ -2207,9 +2208,9 @@ MPU6000::measure()
 			orb_publish(ORB_ID(sensor_gyro_control), _gyro->_gyro_control_topic, &control_report);
 		}
 
-		/* publish raw report */
-		if (_gyro_publish_raw) {
-			orb_publish(ORB_ID(sensor_gyro_raw), _gyro->_gyro_raw_topic, &raw_report);
+		/* publish unfiltered report */
+		if (_gyro_publish_unfiltered) {
+			orb_publish(ORB_ID(sensor_gyro_unfiltered), _gyro->_gyro_unfiltered_topic, &unfiltered_report);
 		}
 
 		_gyro_count++;
@@ -2588,10 +2589,9 @@ test(enum MPU6000_BUS busid)
 	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
 	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
 	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-	// FIXME: print raw
-	/*warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
+	warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
 	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
-	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);*/
+	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
 	      (double)(a_report.range_m_s2 / MPU6000_ONE_G));
 
@@ -2606,16 +2606,14 @@ test(enum MPU6000_BUS busid)
 	warnx("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
 	warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
 	warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
-	// FIXME: print raw
-	/*warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
+	warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
 	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
-	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);*/
+	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
 	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
-	// FIXME: print raw
-	//warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
+	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
 	/* reset to default polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {

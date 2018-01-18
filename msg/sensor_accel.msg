@@ -1,5 +1,9 @@
 uint64 integral_dt	# integration time
 uint64 error_count
+int16 x_raw
+int16 y_raw
+int16 z_raw
+int16 temperature_raw
 float32 x		# acceleration in the NED X board axis in m/s^2
 float32 y		# acceleration in the NED Y board axis in m/s^2
 float32 z		# acceleration in the NED Z board axis in m/s^2

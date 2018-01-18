@@ -1015,8 +1015,7 @@ L3GD20::measure()
 		break;
 	}
 
-	// FIXME: add raw logging
-	//report.temperature_raw = raw_report.temp;
+	report.temperature_raw = raw_report.temp;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);

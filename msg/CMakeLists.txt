@@ -87,14 +87,14 @@ set(msg_files
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
-	sensor_accel_raw.msg
+	sensor_accel_unfiltered.msg
 	sensor_baro.msg
 	sensor_bias.msg
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
 	sensor_gyro_control.msg
-	sensor_gyro_raw.msg
+	sensor_gyro_unfiltered.msg
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg

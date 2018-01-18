@@ -1518,10 +1518,9 @@ LSM303D::measure()
 	// whether it has had failures
 	accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	// FIXME: publish raw values
-	/*accel_report.x_raw = raw_accel_report.x;
+	accel_report.x_raw = raw_accel_report.x;
 	accel_report.y_raw = raw_accel_report.y;
-	accel_report.z_raw = raw_accel_report.z;*/
+	accel_report.z_raw = raw_accel_report.z;
 
 	float xraw_f = raw_accel_report.x;
 	float yraw_f = raw_accel_report.y;
@@ -1970,10 +1969,9 @@ test()
 	warnx("accel x: \t% 9.5f\tm/s^2", (double)accel_report.x);
 	warnx("accel y: \t% 9.5f\tm/s^2", (double)accel_report.y);
 	warnx("accel z: \t% 9.5f\tm/s^2", (double)accel_report.z);
-	// FIXME: print raw
-	/*warnx("accel x: \t%d\traw", (int)accel_report.x_raw);
+	warnx("accel x: \t%d\traw", (int)accel_report.x_raw);
 	warnx("accel y: \t%d\traw", (int)accel_report.y_raw);
-	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);*/
+	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
 
 	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
 
