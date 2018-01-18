@@ -541,7 +541,7 @@ then
 		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
 		set MAVLINK_F "-r 1200 -f"
 
-		# Avoid using ttyS1 for MAVLink on FMUv4
+		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
 		if ver hwcmp PX4FMU_V4
 		then
 			set MAVLINK_F "-r 1200 -d /dev/ttyS1"
