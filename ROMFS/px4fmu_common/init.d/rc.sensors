@@ -194,7 +194,7 @@ then
 			# lis3mdl internal SPI bus is rotated 90 deg yaw
 		else
 			# BMI055 gyro internal SPI bus
-			bmi055 -G start	
+			bmi055 -G start
 		fi
 	fi
 
@@ -396,7 +396,11 @@ fi
 # Benewake TFMini
 if param greater SENS_EN_TFMINI 0
 then
-	tfmini start
+	if ver hwcmp PX4FMU_V3
+	then
+		# start the driver on serial 4/5
+		tfmini start -d /dev/ttyS6
+	fi
 fi
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
