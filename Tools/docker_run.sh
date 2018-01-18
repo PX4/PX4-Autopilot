@@ -20,7 +20,7 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	elif [[ $@ =~ .*cppcheck.* ]]; then
 		# TODO: remove this once px4io/px4-dev-base updates
 		PX4_DOCKER_REPO="px4io/px4-dev-base:ubuntu17.10"
-	elif [[ $@ =~ .*tests* ]]; then
+	elif [[ $@ =~ .*tests* ]] || [[ $@ =~ .*sitl.* ]]; then
 		# run all tests with simulation
 		PX4_DOCKER_REPO="px4io/px4-dev-simulation:2017-12-30"
 	fi
