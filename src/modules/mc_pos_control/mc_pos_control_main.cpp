@@ -2950,8 +2950,8 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		_att_sp.pitch_body = euler_sp(1);
 		_att_sp.yaw_body += euler_sp(2);
 
-		/* only if optimal recovery is not used, modify roll/pitch */
-		if (!(_vehicle_status.is_vtol && _params.opt_recover)) {
+		/* only if we're a VTOL and optimal recovery is not used, modify roll/pitch */
+		if (_vehicle_status.is_vtol && !_params.opt_recover) {
 			// construct attitude setpoint rotation matrix. modify the setpoints for roll
 			// and pitch such that they reflect the user's intention even if a yaw error
 			// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
