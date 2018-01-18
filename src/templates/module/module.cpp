@@ -83,6 +83,11 @@ int Module::print_status()
 int Module::custom_command(int argc, char *argv[])
 {
 	/*
+	if (!is_running()) {
+		print_usage("not running");
+		return 1;
+	}
+
 	// additional custom commands can be handled like this:
 	if (!strcmp(argv[0], "do-something")) {
 		get_instance()->do_something();
