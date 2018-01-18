@@ -198,54 +198,6 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
-	/* open fd */
-	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_SYNC);
-
-	/*baudrate 115200, 8 bits, no parity, 1 stop bit */
-	unsigned speed = B115200;
-
-	struct termios uart_config;
-
-	int termios_state;
-
-	tcgetattr(_fd, &uart_config);
-
-	/* clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
-
-	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d ISPD", termios_state);
-	}
-
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d OSPD\n", termios_state);
-	}
-
-	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR baud %d ATTR", termios_state);
-	}
-
-	uart_config.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
-	uart_config.c_cflag &= ~CSIZE;
-	uart_config.c_cflag |= CS8;         /* 8-bit characters */
-	uart_config.c_cflag &= ~PARENB;     /* no parity bit */
-	uart_config.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
-	uart_config.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
-
-	/* setup for non-canonical mode */
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-	uart_config.c_oflag &= ~OPOST;
-
-	/* fetch bytes as they become available */
-	uart_config.c_cc[VMIN] = 1;
-	uart_config.c_cc[VTIME] = 1;
-
-	if (_fd < 0) {
-		warnx("FAIL: laser fd");
-	}
-
 	// disable debug() calls
 	_debug_enabled = false;
 
@@ -298,6 +250,67 @@ TFMINI::init()
 
 	do { /* create a scope to handle exit conditions using break */
 
+		/* open fd */
+		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_SYNC);
+
+		if (_fd < 0) {
+			warnx("Error opening fd");
+			return -1;
+		}
+
+		/*baudrate 115200, 8 bits, no parity, 1 stop bit */
+		unsigned speed = B115200;
+
+		struct termios uart_config;
+
+		int termios_state;
+
+		tcgetattr(_fd, &uart_config);
+
+		/* clear ONLCR flag (which appends a CR for every LF) */
+		uart_config.c_oflag &= ~ONLCR;
+
+		/* set baud rate */
+		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+			warnx("ERR CFG: %d ISPD", termios_state);
+			ret = -1;
+			break;
+		}
+
+		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+			warnx("ERR CFG: %d OSPD\n", termios_state);
+			ret = -1;
+			break;
+		}
+
+		if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
+			warnx("ERR baud %d ATTR", termios_state);
+			ret = -1;
+			break;
+		}
+
+		uart_config.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
+		uart_config.c_cflag &= ~CSIZE;
+		uart_config.c_cflag |= CS8;         /* 8-bit characters */
+		uart_config.c_cflag &= ~PARENB;     /* no parity bit */
+		uart_config.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
+		uart_config.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
+
+		/* setup for non-canonical mode */
+		uart_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+		uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+		uart_config.c_oflag &= ~OPOST;
+
+		/* fetch bytes as they become available */
+		uart_config.c_cc[VMIN] = 1;
+		uart_config.c_cc[VTIME] = 1;
+
+		if (_fd < 0) {
+			warnx("FAIL: laser fd");
+			ret = -1;
+			break;
+		}
+
 		/* do regular cdev init */
 		ret = CDev::init();
 
@@ -330,7 +343,7 @@ TFMINI::init()
 	::close(_fd);
 	_fd = -1;
 
-	return OK;
+	return ret;
 }
 
 void
@@ -785,6 +798,7 @@ void stop()
 		warnx("stopping driver");
 		delete g_dev;
 		g_dev = nullptr;
+		warnx("driver stopped");
 
 	} else {
 		errx(1, "driver not running");
