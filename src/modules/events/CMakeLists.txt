@@ -46,6 +46,7 @@ px4_add_module(
 		calibration/airspeed_calibration.cpp
 		calibration/rc_calibration.cpp
 		calibration/calibration_routines.cpp
+		calibration/calibration_helper.cpp
 		send_event.cpp
 		temperature_calibration/accel.cpp
 		temperature_calibration/baro.cpp

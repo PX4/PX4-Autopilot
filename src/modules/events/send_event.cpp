@@ -39,6 +39,7 @@
 #include "calibration/esc_calibration.h"
 #include "calibration/airspeed_calibration.h"
 #include "calibration/rc_calibration.h"
+#include "calibration/calibration_helper.h"
 #include "temperature_calibration/temperature_calibration.h"
 
 #include <px4_getopt.h>
@@ -119,6 +120,11 @@ void SendEvent::cycle()
 		_subscriber_handler.unsubscribe();
 		exit_and_cleanup();
 		return;
+	}
+
+	if (blink_msg_state() == 2) {
+		/* blinking LED message completed, restore normal state */
+		rgbled_set_color_and_mode(led_control_s::COLOR_BLUE, led_control_s::MODE_BREATHE);
 	}
 
 	_subscriber_handler.check_for_updates();

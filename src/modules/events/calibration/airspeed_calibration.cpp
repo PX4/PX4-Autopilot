@@ -55,7 +55,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/airspeed.h>
-#include <commander/commander_helper.h>
+#include "calibration_helper.h"
 
 static const char *sensor_name = "airspeed";
 
