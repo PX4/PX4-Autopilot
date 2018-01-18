@@ -135,17 +135,6 @@ typedef enum VEHICLE_MODE_FLAG
 	VEHICLE_MODE_FLAG_ENUM_END=129, /*  | */
 } VEHICLE_MODE_FLAG;
 
-// the array with an arming state in order to get its textual representation
-static const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
-	"init",							// ARMING_STATE_INIT = 0
-	"standby",						// ARMING_STATE_STANDBY = 1
-	"armed",						// ARMING_STATE_ARMED = 2
-	"armed error",					// ARMING_STATE_ARMED_ERROR = 3
-	"standby error",				// ARMING_STATE_STANDBY_ERROR = 4
-	"reboot",						// ARMING_STATE_REBOOT = 5
-	"in_air_restore",				// ARMING_STATE_IN_AIR_RESTORE = 6
-};
-
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
 /* Decouple update interval and hysteresis counters, all depends on intervals */

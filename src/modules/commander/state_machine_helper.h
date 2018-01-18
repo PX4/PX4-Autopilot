@@ -108,6 +108,8 @@ struct status_flags_s {
     bool gps_failure;                                // Set to true if a gps failure is detected
 };
 
+extern const char *const arming_state_names[];
+
 bool is_safe(const struct safety_s *safety, const struct actuator_armed_s *armed);
 
 transition_result_t arming_state_transition(struct vehicle_status_s *status,
