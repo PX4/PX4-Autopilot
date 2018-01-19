@@ -2506,7 +2506,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		if (_local_pos.dist_bottom < _min_hagl_limit) {
 			float climb_rate_bias = fminf(1.5f * _params.pos_p(2) * (_min_hagl_limit - _local_pos.dist_bottom), _params.land_speed);
 			_vel_sp(2) -= climb_rate_bias;
-			_pos_sp(2) -= climb_rate_bias * dt;
+			_pos_sp(2) -= climb_rate_bias * _dt;
 
 		}
 	}
