@@ -408,7 +408,7 @@ MPU9250::init()
 
 	struct accel_unfiltered_report accel_unfiltered_report = {};
 	_accel_unfiltered_topic = orb_advertise_multi(ORB_ID(sensor_accel_unfiltered), &accel_unfiltered_report,
-				     &_accel_orb_class_instance, ORB_PRIO_HIGH);
+				  &_accel_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_accel_topic == nullptr) {
 		PX4_ERR("ADVERT FAIL");
@@ -428,7 +428,7 @@ MPU9250::init()
 
 	struct gyro_unfiltered_report unfiltered_report = {};
 	_gyro->_gyro_unfiltered_topic = orb_advertise_multi(ORB_ID(sensor_gyro_unfiltered), &unfiltered_report,
-				     &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
+					&_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		PX4_ERR("ADVERT FAIL");

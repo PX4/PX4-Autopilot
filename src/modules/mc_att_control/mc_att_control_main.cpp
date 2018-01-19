@@ -161,7 +161,8 @@ private:
 	struct vehicle_status_s			_vehicle_status;	/**< vehicle status */
 	struct mc_att_ctrl_status_s 		_controller_status;	/**< controller status */
 	struct battery_status_s			_battery_status;	/**< battery status */
-	struct sensor_gyro_control_s		_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
+	struct sensor_gyro_control_s
+		_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
 	struct sensor_correction_s		_sensor_correction;	/**< sensor thermal corrections */
 	struct sensor_bias_s			_sensor_bias;		/**< sensor in-run bias corrections */
 
