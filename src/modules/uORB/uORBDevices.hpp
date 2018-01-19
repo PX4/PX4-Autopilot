@@ -185,6 +185,8 @@ public:
 	unsigned int published_message_count() const { return _generation; }
 	const struct orb_metadata *get_meta() const { return _meta; }
 
+	void set_priority(uint8_t priority) { _priority = priority; }
+
 protected:
 	virtual pollevent_t poll_state(device::file_t *filp);
 	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
@@ -215,7 +217,7 @@ private:
 	uint8_t     *_data;   /**< allocated object buffer */
 	hrt_abstime   _last_update; /**< time the object was last updated */
 	volatile unsigned   _generation;  /**< object generation count */
-	const uint8_t   _priority;  /**< priority of the topic */
+	uint8_t   _priority;  /**< priority of the topic */
 	bool _published;  /**< has ever data been published */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int16_t _subscriber_count;
