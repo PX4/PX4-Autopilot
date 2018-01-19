@@ -435,6 +435,17 @@ int uORB::Manager::node_open
 		}
 	}
 
+	/*
+	 else if (advertiser) {
+		 * We have a valid fd and are an advertiser.
+		 * This can happen if the topic is already subscribed/published, and orb_advertise() is called,
+		 * where instance==nullptr.
+		 * We would need to set the priority here (via px4_ioctl(fd, ...) and a new IOCTL), but orb_advertise()
+		 * uses ORB_PRIO_DEFAULT, and a subscriber also creates the node with ORB_PRIO_DEFAULT. So we don't need
+		 * to do anything here.
+	 }
+	 */
+
 	if (fd < 0) {
 		errno = EIO;
 		return ERROR;
