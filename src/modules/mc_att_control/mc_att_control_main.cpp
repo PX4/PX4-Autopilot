@@ -288,7 +288,7 @@ private:
 	void		parameter_update_poll();
 	void		sensor_bias_poll();
 	void		sensor_correction_poll();
-	void		vehicle_attitude_poll();
+	bool		vehicle_attitude_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_control_mode_poll();
 	void		vehicle_manual_poll();
@@ -761,16 +761,20 @@ MulticopterAttitudeControl::battery_status_poll()
 	}
 }
 
-void
+bool
 MulticopterAttitudeControl::vehicle_attitude_poll()
 {
 	/* check if there is a new message */
-	bool updated;
+	bool updated = false;
 	orb_check(_v_att_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
+		int ret = orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
+
+		return (ret == PX4_OK);
 	}
+
+	return false;
 }
 
 void
@@ -1100,6 +1104,9 @@ MulticopterAttitudeControl::task_main()
 
 	while (!_task_should_exit) {
 
+		/* check for updates in other topics */
+		parameter_update_poll();
+
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
@@ -1134,76 +1141,45 @@ MulticopterAttitudeControl::task_main()
 				dt = 0.02f;
 			}
 
-			/* copy gyro data */
-			orb_copy(ORB_ID(sensor_gyro_control), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
+			if (vehicle_attitude_poll()) {
+				vehicle_control_mode_poll();
+				vehicle_manual_poll();
+				vehicle_status_poll();
+				vehicle_motor_limits_poll();
+				battery_status_poll();
+				sensor_correction_poll();
+				sensor_bias_poll();
 
-			/* check for updates in other topics */
-			parameter_update_poll();
-			vehicle_control_mode_poll();
-			vehicle_manual_poll();
-			vehicle_status_poll();
-			vehicle_motor_limits_poll();
-			battery_status_poll();
-			vehicle_attitude_poll();
-			sensor_correction_poll();
-			sensor_bias_poll();
-
-			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
-			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
-			 * even bother running the attitude controllers */
-			if (_v_control_mode.flag_control_rattitude_enabled) {
-				if (fabsf(_manual_control_sp.y) > _params.rattitude_thres ||
-				    fabsf(_manual_control_sp.x) > _params.rattitude_thres) {
-					_v_control_mode.flag_control_attitude_enabled = false;
-				}
-			}
-
-			if (_v_control_mode.flag_control_attitude_enabled) {
-
-				if (_ts_opt_recovery == nullptr) {
-					// the  tailsitter recovery instance has not been created, thus, the vehicle
-					// is not a tailsitter, do normal attitude control
-					control_attitude(dt);
-
-				} else {
-					vehicle_attitude_setpoint_poll();
-					_thrust_sp = _v_att_sp.thrust;
-					math::Quaternion q(_v_att.q[0], _v_att.q[1], _v_att.q[2], _v_att.q[3]);
-					math::Quaternion q_sp(&_v_att_sp.q_d[0]);
-					_ts_opt_recovery->setAttGains(_params.att_p, _params.yaw_ff);
-					_ts_opt_recovery->calcOptimalRates(q, q_sp, _v_att_sp.yaw_sp_move_rate, _rates_sp);
-
-					/* limit rates */
-					for (int i = 0; i < 3; i++) {
-						_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
+				/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
+				 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
+				 * even bother running the attitude controllers */
+				if (_v_control_mode.flag_control_rattitude_enabled) {
+					if (fabsf(_manual_control_sp.y) > _params.rattitude_thres ||
+					    fabsf(_manual_control_sp.x) > _params.rattitude_thres) {
+						_v_control_mode.flag_control_attitude_enabled = false;
 					}
 				}
 
-				/* publish attitude rates setpoint */
-				_v_rates_sp.roll = _rates_sp(0);
-				_v_rates_sp.pitch = _rates_sp(1);
-				_v_rates_sp.yaw = _rates_sp(2);
-				_v_rates_sp.thrust = _thrust_sp;
-				_v_rates_sp.timestamp = hrt_absolute_time();
+				if (_v_control_mode.flag_control_attitude_enabled) {
 
-				if (_v_rates_sp_pub != nullptr) {
-					orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+					if (_ts_opt_recovery == nullptr) {
+						// the  tailsitter recovery instance has not been created, thus, the vehicle
+						// is not a tailsitter, do normal attitude control
+						control_attitude(dt);
 
-				} else if (_rates_sp_id) {
-					_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
-				}
+					} else {
+						vehicle_attitude_setpoint_poll();
+						_thrust_sp = _v_att_sp.thrust;
+						math::Quaternion q(_v_att.q[0], _v_att.q[1], _v_att.q[2], _v_att.q[3]);
+						math::Quaternion q_sp(&_v_att_sp.q_d[0]);
+						_ts_opt_recovery->setAttGains(_params.att_p, _params.yaw_ff);
+						_ts_opt_recovery->calcOptimalRates(q, q_sp, _v_att_sp.yaw_sp_move_rate, _rates_sp);
 
-			} else {
-				/* attitude controller disabled, poll rates setpoint topic */
-				if (_v_control_mode.flag_control_manual_enabled) {
-					/* manual rates control - ACRO mode */
-					matrix::Vector3f man_rate_sp;
-					man_rate_sp(0) = math::superexpo(_manual_control_sp.y, _params.acro_expo, _params.acro_superexpo);
-					man_rate_sp(1) = math::superexpo(-_manual_control_sp.x, _params.acro_expo, _params.acro_superexpo);
-					man_rate_sp(2) = math::superexpo(_manual_control_sp.r, _params.acro_expo, _params.acro_superexpo);
-					man_rate_sp = man_rate_sp.emult(_params.acro_rate_max);
-					_rates_sp = math::Vector<3>(man_rate_sp.data());
-					_thrust_sp = _manual_control_sp.z;
+						/* limit rates */
+						for (int i = 0; i < 3; i++) {
+							_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
+						}
+					}
 
 					/* publish attitude rates setpoint */
 					_v_rates_sp.roll = _rates_sp(0);
@@ -1221,13 +1197,43 @@ MulticopterAttitudeControl::task_main()
 
 				} else {
 					/* attitude controller disabled, poll rates setpoint topic */
-					vehicle_rates_setpoint_poll();
-					_rates_sp(0) = _v_rates_sp.roll;
-					_rates_sp(1) = _v_rates_sp.pitch;
-					_rates_sp(2) = _v_rates_sp.yaw;
-					_thrust_sp = _v_rates_sp.thrust;
+					if (_v_control_mode.flag_control_manual_enabled) {
+						/* manual rates control - ACRO mode */
+						matrix::Vector3f man_rate_sp;
+						man_rate_sp(0) = math::superexpo(_manual_control_sp.y, _params.acro_expo, _params.acro_superexpo);
+						man_rate_sp(1) = math::superexpo(-_manual_control_sp.x, _params.acro_expo, _params.acro_superexpo);
+						man_rate_sp(2) = math::superexpo(_manual_control_sp.r, _params.acro_expo, _params.acro_superexpo);
+						man_rate_sp = man_rate_sp.emult(_params.acro_rate_max);
+						_rates_sp = math::Vector<3>(man_rate_sp.data());
+						_thrust_sp = _manual_control_sp.z;
+
+						/* publish attitude rates setpoint */
+						_v_rates_sp.roll = _rates_sp(0);
+						_v_rates_sp.pitch = _rates_sp(1);
+						_v_rates_sp.yaw = _rates_sp(2);
+						_v_rates_sp.thrust = _thrust_sp;
+						_v_rates_sp.timestamp = hrt_absolute_time();
+
+						if (_v_rates_sp_pub != nullptr) {
+							orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+
+						} else if (_rates_sp_id) {
+							_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+						}
+
+					} else {
+						/* attitude controller disabled, poll rates setpoint topic */
+						vehicle_rates_setpoint_poll();
+						_rates_sp(0) = _v_rates_sp.roll;
+						_rates_sp(1) = _v_rates_sp.pitch;
+						_rates_sp(2) = _v_rates_sp.yaw;
+						_thrust_sp = _v_rates_sp.thrust;
+					}
 				}
 			}
+
+			/* copy gyro data */
+			orb_copy(ORB_ID(sensor_gyro_control), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
 
 			if (_v_control_mode.flag_control_rates_enabled) {
 				control_attitude_rates(dt);
