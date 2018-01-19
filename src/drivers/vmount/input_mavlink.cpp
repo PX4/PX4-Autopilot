@@ -202,6 +202,11 @@ int InputMavlinkCmdMount::initialize()
 		return -errno;
 	}
 
+	// rate-limit inputs to 100Hz. If we don't do this and the output is configured to mavlink mode,
+	// it will publish vehicle_command's as well, causing the input poll() in here to return
+	// immediately, which in turn will cause an output update and thus a busy loop.
+	orb_set_interval(_vehicle_command_sub, 10);
+
 	return 0;
 }
 
