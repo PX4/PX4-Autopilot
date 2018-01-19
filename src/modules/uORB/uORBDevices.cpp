@@ -927,6 +927,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 						if ((existing_node != nullptr) && !(existing_node->is_published())) {
 							/* nothing has been published yet, lets claim it */
+							existing_node->set_priority(adv->priority);
 							ret = PX4_OK;
 
 						} else {
