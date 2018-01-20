@@ -10,10 +10,11 @@ at the default rate of 50Hz. Note that channels 3 and 4 are assigned but not use
 
 Motor mixer
 ------------
-Channel 1 connects to the right (starboard) motor.
-Channel 2 connects to the left (port) motor.
-
 R: 4aeol 10000 10000 10000 0
+
+4. null channel
+--------------
+Z.
 
 5. main output: Using Control Group 1 (VTOL) pitch
 ------------------------------------------
@@ -27,6 +28,8 @@ M: 1
 O:      10000  10000      0 -10000  10000
 S: 1 2  10000  10000      0 -10000  10000
 
+7. null channel
+--------------
 Z:
 
 8. main output: Parachute Release
