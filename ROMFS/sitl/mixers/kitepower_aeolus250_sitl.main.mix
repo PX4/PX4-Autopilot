@@ -10,24 +10,27 @@ at the default rate of 50Hz. Note that channels 3 and 4 are assigned but not use
 
 Motor mixer
 ------------
-Channel 1 connects to the right (starboard) motor.
-Channel 2 connects to the left (port) motor.
+Channels 0-3 connects to the 4 motors
 
 R: 4aeol 10000 10000 10000 0
 
-5. main output: Using Control Group 1 (VTOL) pitch
+Channel 4 is null
+Z:
+
+5. main output: using Control Group 1 (VTOL) yaw -> rudder
+------------------------------------------
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 1 2  -10000  -10000      0 -10000  10000
+
+Channel 6 is null
+Z:
+
+7. main output: Using Control Group 1 (VTOL) pitch -> elevator
 ------------------------------------------
 M: 1
 O:      10000  10000      0 -10000  10000
 S: 1 1  10000  10000      0 -10000  10000
-
-6. main output: using Control Group 1 (VTOL) yaw
-------------------------------------------
-M: 1
-O:      10000  10000      0 -10000  10000
-S: 1 2  10000  10000      0 -10000  10000
-
-Z:
 
 8. main output: Parachute Release
 ------------------
