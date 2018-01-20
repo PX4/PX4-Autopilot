@@ -9,6 +9,8 @@ param set MAV_TYPE 3
 param set SDLOG_DIRS_MAX 7
 param set SYS_AUTOSTART 4010
 param set SYS_RESTART_TYPE 2
+param set NAV_DLL_ACT 0
+param set NAV_RCL_ACT 0
 dataman start
 
 simulator start -s
