@@ -10,6 +10,8 @@ at the default rate of 50Hz. Note that channels 3 and 4 are assigned but not use
 
 Motor mixer
 ------------
+Channels 0-3 connects to the 4 motors
+
 R: 4aeol 10000 10000 10000 0
 
 4. null channel
@@ -26,7 +28,7 @@ S: 1 1  10000  10000      0 -10000  10000
 ------------------------------------------
 M: 1
 O:      10000  10000      0 -10000  10000
-S: 1 2  10000  10000      0 -10000  10000
+S: 1 2  -10000  -10000      0 -10000  10000
 
 7. null channel
 --------------
