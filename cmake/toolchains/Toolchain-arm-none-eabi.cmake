@@ -16,11 +16,12 @@
 # CMAKE_FIND_ROOT_PATH_MODE_INCLUDE
 
 include(CMakeForceCompiler)
+include(cygwin_cygpath)
 
 # this one is important
 set(CMAKE_SYSTEM_NAME Generic)
 
-#this one not so much
+# this one not so much
 set(CMAKE_SYSTEM_VERSION 1)
 
 # specify the cross compiler
@@ -82,6 +83,9 @@ elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
 else ()
 	message(FATAL_ERROR "Processor not recognised in toolchain file")
 endif()
+
+# only in the cygwin environment: convert absolute PX4 include path used in Make.defs.in to mixed windows (C:/...)
+CYGPATH(PX4_SOURCE_DIR PX4_SOURCE_DIR_CYG)
 
 set(c_flags "-fno-common -ffunction-sections -fdata-sections")
 set(cxx_flags "-fno-common -ffunction-sections -fdata-sections")
