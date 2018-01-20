@@ -17,20 +17,20 @@ R: 4aeol 10000 10000 10000 0
 Channel 4 is null
 Z:
 
-5. main output: using Control Group 1 (VTOL) yaw -> rudder
+5. main output: Using Control Group 1 (VTOL) pitch -> elevator
+------------------------------------------
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 1 1  10000  10000      0 -10000  10000
+
+6. main output: using Control Group 1 (VTOL) yaw -> rudder
 ------------------------------------------
 M: 1
 O:      10000  10000      0 -10000  10000
 S: 1 2  -10000  -10000      0 -10000  10000
 
-Channel 6 is null
+Channel 7 is null
 Z:
-
-7. main output: Using Control Group 1 (VTOL) pitch -> elevator
-------------------------------------------
-M: 1
-O:      10000  10000      0 -10000  10000
-S: 1 1  10000  10000      0 -10000  10000
 
 8. main output: Parachute Release
 ------------------
