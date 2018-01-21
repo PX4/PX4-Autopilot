@@ -45,7 +45,26 @@ NM = ${CMAKE_NM}
 OBJCOPY = ${CMAKE_OBJCOPY}
 OBJDUMP = ${CMAKE_OBJDUMP}
 
-CFLAGS = -Os -g2 -I${PX4_SOURCE_DIR}/src/include ${CMAKE_C_FLAGS} -I. -isystem $(TOPDIR)/include \
+# Include paths with Cygwin path conversion
+ifneq (, $(findstring CYGWIN, $(shell uname)))
+  WINTOOL = y
+  PX4INCLUDES = -I"$(shell cygpath -w ${PX4_SOURCE_DIR}/src/include)"
+  ARCHINCLUDES = $(PX4INCLUDES) -I. -isystem "$(shell cygpath -w $(TOPDIR)/include)"
+  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem "$(shell cygpath -w $(TOPDIR)/include/cxx)"
+else
+  PX4INCLUDES = -I${PX4_SOURCE_DIR}/src/include
+  ARCHINCLUDES = $(PX4INCLUDES) -I. -isystem $(TOPDIR)/include
+  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem $(TOPDIR)/include/cxx
+endif
+
+# Windows toolchain (MSYS & Cygwin) symbolic link handling
+ifeq ($(WINTOOL),y)
+  DIRLINK = $(TOPDIR)/tools/copydir.sh
+  DIRUNLINK = $(TOPDIR)/tools/unlink.sh
+  MKDEP = $(TOPDIR)/tools/mknulldeps.sh
+endif
+
+CFLAGS = -Os -g2 ${CMAKE_C_FLAGS} $(ARCHINCLUDES) \
 	-Wno-bad-function-cast \
 	-Wno-cpp \
 	-Wno-float-equal \
@@ -62,7 +81,7 @@ CFLAGS = -Os -g2 -I${PX4_SOURCE_DIR}/src/include ${CMAKE_C_FLAGS} -I. -isystem $
 	-Wno-sign-compare \
 	-Wno-type-limits
 
-CXXFLAGS = -Os -g2 -I${PX4_SOURCE_DIR}/src/include ${CMAKE_CXX_FLAGS} -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx \
+CXXFLAGS = -Os -g2 ${CMAKE_CXX_FLAGS} $(ARCHXXINCLUDES) \
 	-fcheck-new \
 	-fno-builtin \
 	-Wno-double-promotion \
