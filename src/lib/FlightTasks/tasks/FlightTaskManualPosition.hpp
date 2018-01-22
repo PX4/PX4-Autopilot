@@ -54,12 +54,12 @@ public:
 	bool update() override;
 
 protected:
-	matrix::Vector2f _vel_sp_xy{}; /**< Scaled velocity setpoint from stick. NAN during position lock. */
-	matrix::Vector2f _pos_sp_xy{}; /**< Position setpoint during lock. Otherwise NAN.*/
+	matrix::Vector2f _vel_sp_xy{}; /**< Scaled velocity setpoint from stick. NAN during position lock */
+	matrix::Vector2f _pos_sp_xy{}; /**< Position setpoint during lock. Otherwise NAN */
 
-	control::BlockParamFloat _vel_xy_manual_max; /**< Maximum speed allowed horizontally, */
-	control::BlockParamFloat _acc_xy_max;/**< Maximum acceleration horizontally. Only used to compute lock time. */
-	control::BlockParamFloat _vel_xy_dz; /**< velocity threshold/deadzone to switch into horizontal position hold */
+	control::BlockParamFloat _vel_xy_manual_max; /**< Maximum speed allowed horizontally */
+	control::BlockParamFloat _acc_xy_max;/**< Maximum acceleration horizontally. Only used to compute lock time */
+	control::BlockParamFloat _vel_hold_thr_xy; /**< velocity threshold to switch back into horizontal position hold */
 
 	void _updateXYlock(); /**< Applies positon lock based on stick and velocity */
 	void _updateSetpoints() override;
