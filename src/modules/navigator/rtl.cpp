@@ -63,11 +63,10 @@ RTL::on_inactive()
 	_rtl_state = RTL_STATE_NONE;
 }
 
-bool
-RTL::mission_landing_required()
+int
+RTL::rtl_type() const
 {
-	// returns true if navigator should use planned mission landing
-	return (_param_rtl_land_type.get() == 1);
+	return _param_rtl_type.get();
 }
 
 void
@@ -77,9 +76,8 @@ RTL::on_activation()
 		// for safety reasons don't go into RTL if landed
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if (mission_landing_required() && _navigator->on_mission_landing()) {
+	} else if ((rtl_type() == 1) && _navigator->on_mission_landing()) {
 		// RTL straight to RETURN state, but mission will takeover for landing
-		_rtl_state = RTL_STATE_RETURN;
 
 	} else if ((_navigator->get_global_position()->alt < _navigator->get_home_position()->alt + _param_return_alt.get())
 		   || _rtl_alt_min) {
@@ -117,7 +115,7 @@ RTL::set_rtl_item()
 	// RTL_TYPE: mission landing
 	// landing using planned mission landing, fly to DO_LAND_START instead of returning HOME
 	// do nothing, let navigator takeover with mission landing
-	if (mission_landing_required()) {
+	if (rtl_type() == 1) {
 		if (_rtl_state > RTL_STATE_CLIMB) {
 			if (_navigator->start_mission_landing()) {
 				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");

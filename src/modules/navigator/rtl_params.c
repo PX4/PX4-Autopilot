@@ -105,12 +105,14 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
 
 /**
- * RTL land location
+ * RTL type
  *
- * Land at the home location or planned mission landing
+ * Fly straight to the home location or planned mission landing and land there or
+ * use the planned mission to get to those points.
  *
- * @value 0 Home Position
- * @value 1 Planned Landing (Mission)
+ * @value 0 Straight to home position
+ * @value 1 Straight to planned landing (mission)
+ * @value 2 Use mission to fly to a planned landing (if available) or the mission back
  * @group Return To Land
  */
-PARAM_DEFINE_INT32(RTL_LAND_TYPE, 0);
+PARAM_DEFINE_INT32(RTL_TYPE, 0);

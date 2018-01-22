@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,66 +31,75 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_rtl.h
- * Helper class for RTL
+ * @file mission_reverse.h
  *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Helper class to fly a offboard mission in reverse.
+ * Only the positions of the waypoints are used, the type is converted to
+ * MAV_CMD_NAV_WAYPOINT.
+ *
+ * @author Florian Achermann <florian.achermann@mavt.ethz.ch>
  */
 
-#pragma once
+#ifndef NAVIGATOR_MISSIONREVERSE_H
+#define NAVIGATOR_MISSIONREVERSE_H
 
-#include <px4_module_params.h>
-
-#include "navigator_mode.h"
 #include "mission_block.h"
+#include "mission.h"
+
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+#include <cfloat>
+
 
 class Navigator;
+class Mission;
 
-class RTL : public MissionBlock, public ModuleParams
+class MissionReverse final : public MissionBlock
 {
 public:
-RTL(Navigator *navigator);
+	MissionReverse(Navigator *navigator, Mission *mission);
 
-	~RTL() = default;
+	~MissionReverse();
 
-	void on_inactive() override;
-	void on_activation() override;
-	void on_active() override;
+	virtual void on_inactive() override;
+	virtual void on_inactivation() override;
+	virtual void on_activation() override;
+	virtual void on_active() override;
 
-	void set_return_alt_min(bool min);
-
-	int rtl_type() const;
+	bool get_mission_reverse_finished() const { return _mission_reverse_finished; }
 
 private:
 	/**
-	 * Set the RTL item
+	 * Advance the mission to the prior waypoint containing a position. Waypoints without
+	 * a position are skipped.
 	 */
-	void		set_rtl_item();
+	void advance_mission();
 
 	/**
-	 * Move to next RTL item
+	 * Set the position setpoint triplet according to the current mission item.
 	 */
-	void		advance_rtl();
+	void set_mission_items();
 
-	enum RTLState {
-		RTL_STATE_NONE = 0,
-		RTL_STATE_CLIMB,
-		RTL_STATE_RETURN,
-		RTL_STATE_TRANSITION_TO_MC,
-		RTL_STATE_DESCEND,
-		RTL_STATE_LOITER,
-		RTL_STATE_LAND,
-		RTL_STATE_LANDED,
-	} _rtl_state{RTL_STATE_NONE};
+	/**
+	 * Return the index of the closest offboard mission item to the current global position.
+	 */
+	uint16_t index_closest_mission_item() const;
 
-	bool _rtl_alt_min{false};
+	/**
+	 * Return if the mission has changed since the last iteration.
+	 */
+	bool mission_changed();
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_return_alt,
-		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_descend_alt,
-		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_land_delay,
-		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
-		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type
-	)
+	/**
+	 * Issue a vtol transition to the FW mode.
+	 */
+	void command_vtol_transition();
+
+	Mission *_mission{nullptr};
+
+	bool _mission_reverse_finished{false}; /**< Indicates if flying back the mission is completed */
+
+	struct mission_s _previous_mission {}; /**< Copy of the offboard mission used to detect changes in the mission. */
 };
+
+#endif

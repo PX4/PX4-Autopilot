@@ -41,6 +41,7 @@ px4_add_module(
 		navigator_mode.cpp
 		mission_block.cpp
 		mission.cpp
+		mission_reverse.cpp
 		loiter.cpp
 		rtl.cpp
 		takeoff.cpp

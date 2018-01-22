@@ -54,6 +54,7 @@
 #include "rcloss.h"
 #include "rtl.h"
 #include "takeoff.h"
+#include "mission_reverse.h"
 
 #include <navigator/navigation.h>
 #include <px4_module_params.h>
@@ -76,7 +77,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 11
+#define NAVIGATOR_MODE_ARRAY_SIZE 12
 
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
@@ -250,9 +251,13 @@ public:
 	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
 	bool		on_mission_landing() { return _mission.landing(); }
 	bool		start_mission_landing() { return _mission.land_start(); }
+	bool		mission_start_land_available() { return _mission.get_land_start_available(); }
 
 	// RTL
-	bool		mission_landing_required() { return _rtl.mission_landing_required(); }
+	bool		is_mission_reverse() const { return _navigation_mode == &_mission_reverse; }
+	bool		mission_landing_required() { return _rtl.rtl_type() == 1; }
+	int			rtl_type() { return _rtl.rtl_type(); }
+	bool		in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool		abort_landing();
 
@@ -268,7 +273,6 @@ public:
 	bool		force_vtol();
 
 private:
-
 	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
 	int		_global_pos_sub{-1};		/**< global position subscription */
 	int		_gps_pos_sub{-1};		/**< gps position subscription */
@@ -318,6 +322,7 @@ private:
 
 	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
+	MissionReverse	_mission_reverse;		/**< class that handles flying the missions back */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
 	Land		_land;			/**< class for handling land commands */

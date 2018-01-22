@@ -47,6 +47,7 @@
 #include "mission_block.h"
 #include "mission_feasibility_checker.h"
 #include "navigator_mode.h"
+#include "mission_reverse.h"
 
 #include <cfloat>
 
@@ -63,9 +64,12 @@
 #include <uORB/uORB.h>
 
 class Navigator;
+class MissionReverse;
 
 class Mission : public MissionBlock, public ModuleParams
 {
+private:
+	friend MissionReverse;
 public:
 	Mission(Navigator *navigator);
 	~Mission() override = default;
@@ -94,7 +98,9 @@ public:
 	bool landing();
 
 	uint16_t get_land_start_index() const { return _land_start_index; }
+	bool get_land_start_available() const { return _land_start_available; }
 
+	void switch_from_reverse();
 private:
 
 	/**
@@ -130,7 +136,7 @@ private:
 	/**
 	 * Copies position from setpoint if valid, otherwise copies current position
 	 */
-	void copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
+	void copy_position_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
 
 	/**
 	 * Create mission item to align towards next waypoint
@@ -162,16 +168,14 @@ private:
 	 */
 	void do_abort_landing();
 
-	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
-
 	/**
 	 * Read the current and the next mission item. The next mission item read is the
 	 * next mission item that contains a position.
 	 *
 	 * @return true if current mission item available
 	 */
-	bool prepare_mission_items(mission_item_s *mission_item, mission_item_s *next_position_mission_item,
-				   bool *has_next_position_item);
+	bool prepare_mission_items(bool reverse, mission_item_s *mission_item,
+				   mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item
@@ -179,7 +183,7 @@ private:
 	 *
 	 * @return true if successful
 	 */
-	bool read_mission_item(int offset, mission_item_s *mission_item);
+	bool read_mission_item(bool reverse, int offset, struct mission_item_s *mission_item);
 
 	/**
 	 * Save current offboard mission state to dataman
@@ -205,7 +209,6 @@ private:
 	 * Check whether a mission is ready to go
 	 */
 	void check_mission_valid(bool force);
-
 
 	/**
 	 * Reset offboard mission
@@ -253,6 +256,7 @@ private:
 	bool _inited{false};
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
+	bool _switch_from_reverse{false};
 
 	float _min_current_sp_distance_xy{FLT_MAX}; /**< minimum distance which was achieved to the current waypoint  */
 

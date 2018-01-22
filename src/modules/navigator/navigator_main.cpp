@@ -88,6 +88,7 @@ Navigator::Navigator() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
 	_mission(this),
+	_mission_reverse(this, &_mission),
 	_loiter(this),
 	_takeoff(this),
 	_land(this),
@@ -111,7 +112,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[8] = &_land;
 	_navigation_mode_array[9] = &_precland;
 	_navigation_mode_array[10] = &_follow_target;
-
+	_navigation_mode_array[11] = &_mission_reverse;
 }
 
 void
@@ -560,6 +561,11 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_mission;
+
+			if (_navigation_mode == &_mission_reverse) {
+				_mission.switch_from_reverse();
+			}
+
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
@@ -575,12 +581,46 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			_pos_sp_triplet_published_invalid_once = false;
 
-			// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION
-			if (mission_landing_required() && on_mission_landing()) {
-				navigation_mode_new = &_mission;
+			switch (rtl_type()) {
+			case 1:
 
-			} else {
+				// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION
+				if (on_mission_landing() && !get_land_detected()->landed) {
+					navigation_mode_new = &_mission;
+
+				} else {
+					navigation_mode_new = &_rtl;
+				}
+
+				break;
+
+			case 2:
+				if (_mission.get_land_start_available() && !get_land_detected()->landed) {
+					// the mission contains a landing spot, still continue the mission
+					if (_navigation_mode != &_mission) {
+						navigation_mode_new = &_rtl;
+
+					} else {
+						navigation_mode_new = &_mission;
+					}
+
+				} else {
+					// currently only the switch from a mission mode is supported for mission reverse
+					if (((_navigation_mode == &_mission) || (_navigation_mode == &_mission_reverse)) &&
+					    (! _mission_reverse.get_mission_reverse_finished()) &&
+					    (!get_land_detected()->landed)) {
+						navigation_mode_new = &_mission_reverse;
+
+					} else {
+						navigation_mode_new = &_rtl;
+					}
+				}
+
+				break;
+
+			default:
 				navigation_mode_new = &_rtl;
+				break;
 			}
 
 			break;

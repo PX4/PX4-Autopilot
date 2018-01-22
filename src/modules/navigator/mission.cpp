@@ -68,10 +68,12 @@ Mission::Mission(Navigator *navigator) :
 void
 Mission::on_inactive()
 {
-	/* We need to reset the mission cruising speed, otherwise the
-	 * mission velocity which might have been set using mission items
-	 * is used for missions such as RTL. */
-	_navigator->set_cruising_speed();
+	if (!_navigator->is_mission_reverse()) {
+		/* We need to reset the mission cruising speed, otherwise the
+		 * mission velocity which might have been set using mission items
+		 * is used for missions such as RTL. */
+		_navigator->set_cruising_speed();
+	}
 
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_position_valid()) {
@@ -125,11 +127,13 @@ Mission::on_inactive()
 		_need_takeoff = true;
 	}
 
-	/* reset so current mission item gets restarted if mission was paused */
-	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+	if (!_navigator->is_mission_reverse()) {
+		/* reset so current mission item gets restarted if mission was paused */
+		_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
-	/* reset so MISSION_ITEM_REACHED isn't published */
-	_navigator->get_mission_result()->seq_reached = -1;
+		/* reset so MISSION_ITEM_REACHED isn't published */
+		_navigator->get_mission_result()->seq_reached = -1;
+	}
 }
 
 void
@@ -147,6 +151,14 @@ Mission::on_inactivation()
 void
 Mission::on_activation()
 {
+	if (_switch_from_reverse) {
+		if (_current_offboard_mission_index < _offboard_mission.count - 1) {
+			_current_offboard_mission_index++;
+		}
+
+		_switch_from_reverse = false;
+	}
+
 	set_mission_items();
 
 	// unpause triggering if it was paused
@@ -266,6 +278,13 @@ Mission::set_current_offboard_mission_index(uint16_t index)
 	return false;
 }
 
+void
+Mission::switch_from_reverse()
+{
+	_switch_from_reverse = true;
+}
+
+
 bool
 Mission::find_offboard_land_start()
 {
@@ -287,7 +306,9 @@ Mission::find_offboard_land_start()
 			break;
 		}
 
-		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
+		if ((missionitem.nav_cmd == NAV_CMD_DO_LAND_START) ||
+		    ((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
+		    (missionitem.nav_cmd == NAV_CMD_LAND)) {
 			_land_start_available = true;
 			_land_start_index = i;
 			return true;
@@ -407,17 +428,6 @@ Mission::advance_mission()
 	}
 }
 
-float
-Mission::get_absolute_altitude_for_item(struct mission_item_s &mission_item)
-{
-	if (mission_item.altitude_is_relative) {
-		return mission_item.altitude + _navigator->get_home_position()->alt;
-
-	} else {
-		return mission_item.altitude;
-	}
-}
-
 void
 Mission::set_mission_items()
 {
@@ -433,7 +443,7 @@ Mission::set_mission_items()
 
 	work_item_type new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
-	if (prepare_mission_items(&_mission_item, &mission_item_next_position, &has_next_position_item)) {
+	if (prepare_mission_items(false, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Executing mission.");
@@ -788,7 +798,7 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			copy_positon_if_valid(&_mission_item, &pos_sp_triplet->current);
+			copy_position_if_valid(&_mission_item, &pos_sp_triplet->current);
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
 		}
@@ -828,7 +838,7 @@ Mission::set_mission_items()
 		/* try to process next mission item */
 		if (has_next_position_item) {
 			/* got next mission item, update setpoint triplet */
-			mission_apply_limitation(_mission_item);
+			mission_apply_limitation(mission_item_next_position);
 			mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->next);
 
 		} else {
@@ -920,7 +930,7 @@ Mission::do_need_move_to_takeoff()
 }
 
 void
-Mission::copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint)
+Mission::copy_position_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint)
 {
 	if (setpoint->valid && setpoint->type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 		mission_item->lat = setpoint->lat;
@@ -940,7 +950,7 @@ void
 Mission::set_align_mission_item(struct mission_item_s *mission_item, struct mission_item_s *mission_item_next)
 {
 	mission_item->nav_cmd = NAV_CMD_WAYPOINT;
-	copy_positon_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
+	copy_position_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
 	mission_item->altitude_is_relative = false;
 	mission_item->autocontinue = true;
 	mission_item->time_inside = 0.0f;
@@ -1220,25 +1230,36 @@ Mission::do_abort_landing()
 }
 
 bool
-Mission::prepare_mission_items(mission_item_s *mission_item, mission_item_s *next_position_mission_item,
-			       bool *has_next_position_item)
+Mission::prepare_mission_items(bool reverse, mission_item_s *mission_item,
+			       mission_item_s *next_position_mission_item, bool *has_next_position_item)
 {
+	*has_next_position_item = false;
 	bool first_res = false;
 	int offset = 1;
 
-	if (read_mission_item(0, mission_item)) {
+	if (reverse) {
+		offset = -1;
+	}
+
+	if (read_mission_item(reverse, 0, mission_item)) {
 
 		first_res = true;
 
 		/* trying to find next position mission item */
-		while (read_mission_item(offset, next_position_mission_item)) {
+		while (read_mission_item(reverse, offset, next_position_mission_item)) {
 
 			if (item_contains_position(*next_position_mission_item)) {
 				*has_next_position_item = true;
 				break;
 			}
 
-			offset++;
+			if (reverse) {
+				offset--;
+
+			} else {
+				offset++;
+
+			}
 		}
 	}
 
@@ -1246,7 +1267,7 @@ Mission::prepare_mission_items(mission_item_s *mission_item, mission_item_s *nex
 }
 
 bool
-Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
+Mission::read_mission_item(bool reverse, int offset, struct mission_item_s *mission_item)
 {
 	/* select offboard mission */
 	struct mission_s *mission = &_offboard_mission;
@@ -1267,7 +1288,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
-			if (*mission_index_ptr != (int)mission->count) {
+			if ((*mission_index_ptr != (int)mission->count) && (*mission_index_ptr != -1)) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item index out of bound, index: %d, max: %d.",
 						     *mission_index_ptr, mission->count);
 			}
@@ -1290,8 +1311,8 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
 		if (mission_item_tmp.nav_cmd == NAV_CMD_DO_JUMP) {
 
-			/* do DO_JUMP as many times as requested */
-			if (mission_item_tmp.do_jump_current_count < mission_item_tmp.do_jump_repeat_count) {
+			/* do DO_JUMP as many times as requested if not in reverse mode */
+			if ((mission_item_tmp.do_jump_current_count < mission_item_tmp.do_jump_repeat_count) && !reverse) {
 
 				/* only raise the repeat count if this is for the current mission item
 				 * but not for the read ahead mission item */
@@ -1313,12 +1334,17 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 				*mission_index_ptr = mission_item_tmp.do_jump_mission_index;
 
 			} else {
-				if (offset == 0) {
+				if (offset == 0 && !reverse) {
 					mavlink_log_info(_navigator->get_mavlink_log_pub(), "DO JUMP repetitions completed.");
 				}
 
 				/* no more DO_JUMPS, therefore just try to continue with next mission item */
-				(*mission_index_ptr)++;
+				if (reverse) {
+					(*mission_index_ptr)--;
+
+				} else {
+					(*mission_index_ptr)++;
+				}
 			}
 
 		} else {
