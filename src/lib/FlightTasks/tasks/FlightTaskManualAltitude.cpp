@@ -44,7 +44,7 @@ FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, 
 	FlightTaskManualStabilized(parent, name),
 	_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
 	_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
-	_vel_z_dz(parent, "MPC_HOLD_MAX_Z", false)
+	_vel_hold_thr_z(parent, "MPC_HOLD_MAX_Z", false)
 
 {}
 
@@ -73,7 +73,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	/* handle position and altitude hold */
 	const bool apply_brake_z = fabsf(_vel_sp_z) <= FLT_EPSILON;
-	const bool stopped_z = (_vel_z_dz.get() < FLT_EPSILON || fabsf(_velocity(2)) < _vel_z_dz.get());
+	const bool stopped_z = (_vel_hold_thr_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _vel_hold_thr_z.get());
 
 	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_pos_sp_z)) {
 		_pos_sp_z = _position(2);
