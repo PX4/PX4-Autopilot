@@ -58,7 +58,7 @@ protected:
 
 	control::BlockParamFloat _vel_max_down; /**< Maximum speed allowed to go up. */
 	control::BlockParamFloat _vel_max_up; /**< Maximum speed allowed to go down. */
-	control::BlockParamFloat _vel_z_dz; /**< velocity threshold/deadzone to switch into vertical position hold */
+	control::BlockParamFloat _vel_hold_thr_z; /**< velocity threshold to switch back into vertical position hold */
 
 	void _updateAltitudeLock(); /**< Checks for position lock. */
 	void _updateSetpoints() override; /**< Updates all setpoints. */
