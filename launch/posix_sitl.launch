@@ -22,7 +22,7 @@
     <arg name="paused" default="false"/>
 
     <node name="sitl" pkg="px4" type="px4" output="screen"
-        args="$(find px4) $(arg rcS)">
+        args="$(find px4) -d $(arg rcS)">
     </node>
 
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -34,7 +34,7 @@
         <arg name="paused" value="$(arg paused)" />
     </include>
 
-    <node name="$(anon vehicle_spawn)" output="screen" pkg="gazebo_ros" type="spawn_model"
+    <node name="$(anon vehicle_spawn)" output="log" pkg="gazebo_ros" type="spawn_model"
         args="-sdf -file $(arg sdf) -model $(arg vehicle) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>
 
 

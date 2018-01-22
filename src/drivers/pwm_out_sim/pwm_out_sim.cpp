@@ -190,6 +190,8 @@ PWMSim::PWMSim() :
 	_task_should_exit(false),
 	_mixers(nullptr)
 {
+	_debug_enabled = true;
+
 	memset(_controls, 0, sizeof(_controls));
 
 	_control_topics[0] = ORB_ID(actuator_controls_0);
@@ -347,7 +349,7 @@ PWMSim::subscribe()
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			PX4_DEBUG("subscribe to actuator_controls_%d", i);
+			PX4_ERR("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 
@@ -410,7 +412,7 @@ PWMSim::task_main()
 		if (_poll_fds_num == 0) {
 			usleep(1000 * 1000);
 
-			PX4_DEBUG("no valid fds");
+			PX4_ERR("no valid fds");
 			continue;
 		}
 
@@ -420,11 +422,13 @@ PWMSim::task_main()
 		/* this would be bad... */
 		if (ret < 0) {
 			DEVICE_LOG("poll error %d", errno);
+			PX4_ERR("poll error");
 			continue;
 		}
 
 		if (ret == 0) {
 			// timeout
+			PX4_ERR("timeout");
 			continue;
 		}
 
@@ -661,6 +665,11 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case PWM_SERVO_SET_MIN_PWM: {
+			// accept message, but do nothing
+			break;
+		}
+
 	case PWM_SERVO_GET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
@@ -680,6 +689,11 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			}
 
 			pwm->channel_count = _num_outputs;
+			break;
+		}
+
+	case PWM_SERVO_SET_MAX_PWM: {
+			// accept message, but do nothing
 			break;
 		}
 

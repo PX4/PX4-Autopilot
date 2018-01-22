@@ -112,7 +112,7 @@ void LandDetector::_cycle()
 	const hrt_abstime now = hrt_absolute_time();
 
 	// Only publish very first time or when the result has changed.
-	if ((_landDetectedPub == nullptr) ||
+	if (true || (_landDetectedPub == nullptr) ||
 	    (_landDetected.landed != landDetected) ||
 	    (_landDetected.freefall != freefallDetected) ||
 	    (_landDetected.maybe_landed != maybe_landedDetected) ||
