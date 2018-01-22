@@ -45,7 +45,7 @@ FlightTaskManualPosition::FlightTaskManualPosition(control::SuperBlock *parent, 
 	FlightTaskManualAltitude(parent, name),
 	_vel_xy_manual_max(parent, "MPC_VEL_MANUAL", false),
 	_acc_xy_max(parent, "MPC_ACC_HOR_MAX", false),
-	_vel_xy_dz(parent,  "MPC_HOLD_MAX_XY", false)
+	_vel_hold_thr_xy(parent,  "MPC_HOLD_MAX_XY", false)
 {}
 
 bool FlightTaskManualPosition::activate()
@@ -84,7 +84,7 @@ void FlightTaskManualPosition::_updateXYlock()
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
 	const bool apply_brake = _vel_sp_xy.length() < FLT_EPSILON;
-	const bool stopped = (_vel_xy_dz.get() < FLT_EPSILON || vel_xy_norm < _vel_xy_dz.get());
+	const bool stopped = (_vel_hold_thr_xy.get() < FLT_EPSILON || vel_xy_norm < _vel_hold_thr_xy.get());
 
 	if (apply_brake && stopped && !PX4_ISFINITE(_pos_sp_xy(0))) {
 		_pos_sp_xy = matrix::Vector2f(&_position(0));
