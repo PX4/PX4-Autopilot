@@ -67,8 +67,6 @@ enum MAVLINK_WPM_CODES {
 	MAVLINK_WPM_CODE_ENUM_END
 };
 
-static constexpr uint64_t MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT = 5000000; ///< Protocol action timeout in us
-static constexpr uint64_t MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT = 500000; ///< Protocol retry timeout in us
 
 class Mavlink;
 
@@ -94,11 +92,12 @@ private:
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
 
 	uint64_t		_time_last_recv{0};
-	uint64_t		_time_last_sent{0};
 
 	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
 
 	bool			_int_mode{false};			///< Use accurate int32 instead of float
+
+	static constexpr uint32_t _operation_timeout_us = 5000000;
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
