@@ -1001,7 +1001,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			if (wp.seq != _transfer_seq) {
 				PX4_DEBUG("WPM: MISSION_ITEM ERROR: seq %u was not the expected %u", wp.seq, _transfer_seq);
 
-				/* don't send request here, it will be performed in eventloop after timeout */
+				/* request next item again */
+				send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 				return;
 			}
 
