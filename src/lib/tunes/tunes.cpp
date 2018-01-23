@@ -88,7 +88,15 @@ void Tunes::config_tone(bool repeat_flag)
 int Tunes::set_control(const tune_control_s &tune_control)
 {
 	bool reset_playing_tune = false;
-	_repeat = false;
+
+	// Only reset these flags if the new tune will actually be played.
+	// Note that repeated tunes can always be interrupted, even without the
+	// override flag.
+	if (_repeat || _tune == nullptr || tune_control.tune_override) {
+		_repeat = false;
+		_using_custom_msg = false;
+		_tune = nullptr;
+	}
 
 	if (tune_control.tune_id < _default_tunes_size) {
 		switch (tune_control.tune_id) {
