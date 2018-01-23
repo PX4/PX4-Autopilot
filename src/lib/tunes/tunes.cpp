@@ -92,10 +92,13 @@ int Tunes::set_control(const tune_control_s &tune_control)
 	if (tune_control.tune_id < _default_tunes_size) {
 		switch (tune_control.tune_id) {
 		case static_cast<int>(TuneID::CUSTOM):
-			_frequency = (unsigned)tune_control.frequency;
-			_duration = (unsigned)tune_control.duration;
-			_silence = (unsigned)tune_control.silence;
-			_using_custom_msg = true;
+			if (_tune == nullptr || tune_control.tune_override) {
+				_frequency = (unsigned)tune_control.frequency;
+				_duration = (unsigned)tune_control.duration;
+				_silence = (unsigned)tune_control.silence;
+				_using_custom_msg = true;
+			}
+
 			break;
 
 		// tunes that have a high priority
