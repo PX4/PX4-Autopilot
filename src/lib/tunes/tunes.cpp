@@ -94,6 +94,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		switch (tune_control.tune_id) {
 		case static_cast<int>(TuneID::CUSTOM):
 			if (_tune == nullptr || tune_control.tune_override) {
+				_tune = nullptr;  // remove tune in case of override
 				_frequency = (unsigned)tune_control.frequency;
 				_duration = (unsigned)tune_control.duration;
 				_silence = (unsigned)tune_control.silence;

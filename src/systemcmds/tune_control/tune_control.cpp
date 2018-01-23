@@ -71,6 +71,8 @@ usage()
 		"\t-d <duration>\t\tDuration of the tone in us\n"
 		"\t-s <strength>\t\tStrength of the tone between 0-100\n"
 		"\t-m <melody>\t\tMelody in a string form ex: \"MFT200e8a8a\"\n"
+		"\n"
+		"tune_control stop \t\t Stops playback, useful for repeated tunes\n"
 	);
 }
 
@@ -185,7 +187,7 @@ tune_control_main(int argc, char *argv[])
 				usleep(duration + silence);
 				exit_counter++;
 
-				// exit if the loop is doing more thatn 50 iteration
+				// exit if the loop is doing too many iterations
 				if (exit_counter > MAX_NOTE_ITERATION) {
 					break;
 				}
@@ -193,7 +195,7 @@ tune_control_main(int argc, char *argv[])
 
 			PX4_INFO("Playback finished.");
 
-		} else {
+		} else {  // tune id instead of string has been provided
 			if (tune_control.tune_id == 0) {
 				tune_control.tune_id = 1;
 			}
@@ -210,13 +212,22 @@ tune_control_main(int argc, char *argv[])
 			usleep(500000);
 			exit_counter++;
 
-			// exit if the loop is doing more thatn 50 iteration
+			// exit if the loop is doing too many iterations
 			if (exit_counter > MAX_NOTE_ITERATION) {
 				break;
 			}
 		}
 
-	} else {
+	} else if (!strcmp(argv[myoptind], "stop")) {
+		PX4_INFO("Stopping playback...");
+		tune_control.tune_id = 0;
+		tune_control.frequency = 0;
+		tune_control.duration = 0;
+		tune_control.silence = 0;
+		tune_control.tune_override = true;
+		publish_tune_control(tune_control);
+
+	}	else {
 		usage();
 		return 1;
 	}
