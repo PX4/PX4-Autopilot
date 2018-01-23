@@ -62,7 +62,7 @@ Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_n
 	config_tone(false);
 }
 
-Tunes::Tunes(): Tunes(120, 4, 4, NoteMode::NORMAL)
+Tunes::Tunes(): Tunes(TUNE_DEFAULT_TEMPO, TUNE_DEFAULT_OCTAVE, TUNE_DEFAULT_NOTE_LENGTH, NoteMode::NORMAL)
 {
 }
 
@@ -141,7 +141,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 	return OK;
 }
 
-void Tunes::set_string(const char *string)
+void Tunes::set_string(const char *const string)
 {
 	// set tune string the first time
 	if (_tune == nullptr) {
@@ -353,13 +353,13 @@ tune_end:
 	}
 }
 
-unsigned Tunes::note_to_frequency(unsigned note)
+uint32_t Tunes::note_to_frequency(unsigned note) const
 {
 	// compute the frequency (Hz)
 	return (unsigned)(880.0f * powf(2.0f, ((int)note - 46) / 12.0f));
 }
 
-unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
+unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned dots) const
 {
 	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
 
@@ -396,7 +396,7 @@ unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned 
 	return note_period;
 }
 
-unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots)
+unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots) const
 {
 	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
 
