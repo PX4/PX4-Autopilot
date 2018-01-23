@@ -2,7 +2,8 @@
 #include <mathlib/mathlib.h>
 
 constexpr uint64_t FlightTask::_timeout;
-const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
+
+const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
 
 bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
