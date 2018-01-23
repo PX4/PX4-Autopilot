@@ -922,6 +922,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 				PX4_DEBUG("WPM: MISSION_COUNT ERROR: busy, already receiving seq %u", _transfer_seq);
 
 				_mavlink->send_statustext_critical("WPM: REJ. CMD: Busy");
+
+				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 				return;
 			}
 
@@ -929,6 +931,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			PX4_DEBUG("WPM: MISSION_COUNT ERROR: busy, state %i", _state);
 
 			_mavlink->send_statustext_critical("WPM: IGN MISSION_COUNT: Busy");
+			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			return;
 		}
 
@@ -987,7 +990,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 	if (CHECK_SYSID_COMPID_MISSION(wp)) {
 
 		if (wp.mission_type != _mission_type) {
-			PX4_WARN("WPM: Unexpected mission type (%u %u)", wp.mission_type, _mission_type);
+			PX4_WARN("WPM: Unexpected mission type (%u %u)", (int)wp.mission_type, (int)_mission_type);
+			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			return;
 		}
 
@@ -1005,12 +1009,14 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			PX4_DEBUG("WPM: MISSION_ITEM ERROR: no transfer");
 
 			_mavlink->send_statustext_critical("IGN MISSION_ITEM: No transfer");
+			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			return;
 
 		} else {
 			PX4_DEBUG("WPM: MISSION_ITEM ERROR: busy, state %i", _state);
 
 			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Busy");
+			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			return;
 		}
 
