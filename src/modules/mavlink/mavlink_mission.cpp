@@ -606,12 +606,20 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 
 			} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
 
-				// INT mode is not supported
-				if (_int_mode && wpa.type != MAV_MISSION_ACCEPTED) {
-					_int_mode = false;
+				// INT or float mode is not supported
+				if (wpa.type == MAV_MISSION_UNSUPPORTED) {
+
+					if (_int_mode) {
+						_int_mode = false;
+						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+
+					} else {
+						_int_mode = true;
+						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+					}
 
 				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
-					_int_mode = true;
+					PX4_WARN("Mission ack result was %d", wpa.type);
 				}
 			}
 
