@@ -301,6 +301,7 @@ private:
 
 	float _min_hagl_limit; /**< minimum continuous height above ground (m) */
 
+	float _takeoff_sp; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
 	uint8_t _z_reset_counter;
@@ -3060,6 +3061,7 @@ MulticopterPositionControl::task_main()
 			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_MISSION:
 			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL:
 			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_LAND:
+
 				_flight_tasks.switchTask(8);
 				break;
 
@@ -3111,26 +3113,72 @@ MulticopterPositionControl::task_main()
 				if (PX4_ISFINITE(setpoint.z) && setpoint.z < _pos(2) - 0.2f) {
 					/* There is a position setpoint above current position. Enable smooth takeoff */
 					_in_smooth_takeoff = true;
+					_takeoff_sp = 0.5f;
 
-				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -0.5f) {
-					/* There is a velocity setpoint point up and larger than 0.5. The 0.5
+
+				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -0.6f) {
+					/* There is a velocity setpoint point up and larger than 0.6. The 0.6
 					 * ensures that a minimum velocity is first required to initiate a takeoff.
 					 */
 					_in_smooth_takeoff = true;
+					_takeoff_sp = 0.5f;
 
 				} else if (PX4_ISFINITE(setpoint.thr[2]) && setpoint.thr[2] < -0.6f) {
 					/* There is a thrust setpoint pointing upwards and larger than 0.6f.
 					 * The threshold ensures that there is no takeoff by just switching into manual
 					 */
 					_in_smooth_takeoff = true;
+					_takeoff_sp = 0.0f;
 
 				} else {
 					/* Default */
 					_in_smooth_takeoff = false;
 				}
+			}
 
-			} else {
-				_in_smooth_takeoff = false;
+			if (_in_smooth_takeoff) {
+
+				if (PX4_ISFINITE(setpoint.z)) {
+
+					/* Limit velocity setpoint to maximum takeoff velocity which is hard coded at 0.8 m/s.*/
+					setpoint.vz = -0.8f;
+					/* Smooth takeoff is achieved once takeoff altitude is reached */
+					_in_smooth_takeoff = setpoint.z < (_pos(2) + 0.2f);
+					/* For takeoff we only need velocity or thrust. Therefore, set setpoint to NAN */
+					setpoint.z = NAN;
+					/* ramp vertical velocity limit up to takeoff speed */
+					_takeoff_sp += setpoint.vz * dt / _takeoff_ramp_time.get();
+					/* limit vertical velocity to the current ramp value */
+					setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
+
+					PX4_INFO("setpoint.vz: %.5f", (double)setpoint.vz);
+
+				} else if (PX4_ISFINITE(setpoint.vz)) {
+
+					/* Smooth takeoff is achieved once takeoff altitude is reached */
+					_in_smooth_takeoff = _takeoff_sp > setpoint.vz;
+					/* ramp vertical velocity limit up to takeoff speed */
+					_takeoff_sp += setpoint.vz * dt / _takeoff_ramp_time.get();
+					/* limit vertical velocity to the current ramp value */
+					setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
+
+				} else {
+
+					/* Smooth takeoff is achieved once target thrust is reached. (NED frame).
+					 * TODO: test this */
+					_in_smooth_takeoff = _takeoff_sp > setpoint.thr[2];
+
+					/* ramp vertical velocity limit up to hover takeoff */
+					if (-_takeoff_sp < 0.5f) {
+						_takeoff_sp += setpoint.thr[2] * dt / (_takeoff_ramp_time.get() * 0.5f);
+
+					} else {
+						_takeoff_sp = setpoint.thr[2];
+					}
+
+					/* limit vertical velocity to the current ramp value */
+					setpoint.thr[2] = math::max(setpoint.thr[2], _takeoff_sp);
+				}
 			}
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint,
@@ -3142,7 +3190,7 @@ MulticopterPositionControl::task_main()
 
 			} else {
 
-				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), _in_smooth_takeoff);
+				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
 				_control.updateSetpoint(setpoint);
 				_control.updateConstraints(constraints);
 				_control.generateThrustYawSetpoint(_dt);
@@ -3158,9 +3206,6 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vy = _control.getVelSp()(1);
 				_local_pos_sp.vz = _control.getVelSp()(2);
 				_control.getThrustSetpoint().copyTo(_local_pos_sp.thrust);
-
-				/* Update smooth takeoff */
-				_in_smooth_takeoff = _control.getSmoothTakeoff();
 
 				/* We adjust thrust setpoint based on landdetector */
 				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
