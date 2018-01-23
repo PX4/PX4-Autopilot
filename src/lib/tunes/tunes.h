@@ -96,7 +96,7 @@ private:
 	static const char *_default_tunes[];
 	static const uint8_t _note_tab[];
 	static const unsigned int _default_tunes_size;
-	bool _repeat;	///< if true, tune restarts at end
+	bool _repeat = false;	     ///< if true, tune restarts at end
 
 	const char *_tune = nullptr; ///< current tune string
 	const char *_next = nullptr; ///< next note in the string

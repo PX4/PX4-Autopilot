@@ -88,6 +88,7 @@ void Tunes::config_tone(bool repeat_flag)
 int Tunes::set_control(const tune_control_s &tune_control)
 {
 	bool reset_playing_tune = false;
+	_repeat = false;
 
 	if (tune_control.tune_id < _default_tunes_size) {
 		switch (tune_control.tune_id) {
