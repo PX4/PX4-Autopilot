@@ -43,6 +43,15 @@
 
 #define TUNE_MAX_UPDATE_INTERVAL_US 100000
 
+#define TUNE_DEFAULT_TEMPO 120
+#define TUNE_DEFAULT_OCTAVE 4
+#define TUNE_DEFAULT_NOTE_LENGTH 4
+
+/**
+ *  Library for parsing tunes from melody-strings or dedicated tune messages.
+ *  Needs to be instantiated as it keeps track of which tune is to be played
+ *  next. Also handles repeated tunes.
+ */
 class Tunes
 {
 public:
@@ -50,9 +59,9 @@ public:
 
 	/**
 	 * Constructor with the default parameter set to:
-	 * default_tempo: 120
-	 * default_octave: 4
-	 * default_note_length: 4
+	 * default_tempo: TUNE_DEFAULT_TEMPO
+	 * default_octave: TUNE_DEFAULT_OCTAVE
+	 * default_note_length: TUNE_DEFAULT_NOTE_LENGTH
 	 * default_mode: NORMAL
 	 */
 	Tunes();
@@ -62,25 +71,33 @@ public:
 	 */
 	Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_note_length, NoteMode default_mode);
 
+	/**
+	 * Default destructor
+	 */
 	~Tunes() = default;
 
 	/**
-	 * Set tune to be played.
+	 * Set tune to be played using the message. If a tune is already being played
+	 * the call to this function will be ignored, unless the override flag is set
+	 * or the tune being already played is a repeated tune.
 	 * @param  tune_control struct containig the uORB message
 	 * @return              return -EINVAL if the default tune does not exist.
 	 */
 	int set_control(const tune_control_s &tune_control);
 
 	/**
-	 * Parse a tune string, formatted with the syntax of the Microsoft GWBasic/QBasic.
-	 * This has to be kept in memory for the whole duration of the melody.
+	 * Set tune to be played using a string.
+	 * Parses a tune string, formatted with the syntax of the Microsoft GWBasic/QBasic.
+	 * Ownership of the string is NOT transferred. The string has to be kept in
+	 * memory for the whole duration of the melody.
 	 *
 	 * @param  string    tune input string
 	 */
-	void set_string(const char *string);
+	void set_string(const char *const string);
 
 	/**
-	 * Get next note in the setted string in set_control or play_string
+	 * Get next note in the current tune, which has been provided by either
+	 * set_control or play_string
 	 * @param  frequency return frequency value (Hz)
 	 * @param  duration  return duration of the tone (us)
 	 * @param  silence   return silence duration (us)
@@ -88,7 +105,12 @@ public:
 	 */
 	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence);
 
-	unsigned int get_default_tunes_size() {return _default_tunes_size;}
+	/**
+	 *  Get the number of default tunes. This is useful for when a tune is
+	 *  requested via its tune ID.
+	 *  @return		Number of default tunes accessible via tune ID
+	 */
+	unsigned int get_default_tunes_size() const {return _default_tunes_size;}
 
 	unsigned int get_maximum_update_interval() {return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US;}
 
@@ -97,7 +119,6 @@ private:
 	static const uint8_t _note_tab[];
 	static const unsigned int _default_tunes_size;
 	bool _repeat = false;	     ///< if true, tune restarts at end
-
 	const char *_tune = nullptr; ///< current tune string
 	const char *_next = nullptr; ///< next note in the string
 	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
@@ -107,10 +128,10 @@ private:
 	NoteMode _note_mode;
 	unsigned _octave;
 
-	unsigned _default_tempo = 120;
-	unsigned _default_note_length = 4;
-	NoteMode _default_mode = NoteMode::NORMAL;
-	unsigned _default_octave = 4;
+	unsigned _default_tempo;
+	unsigned _default_note_length;
+	NoteMode _default_mode;
+	unsigned _default_octave;
 
 	unsigned _frequency;
 	unsigned _duration;
@@ -123,7 +144,7 @@ private:
 	 * @param  note unsigned value of the semitone from C
 	 * @return      frequency (Hz)
 	 */
-	uint32_t note_to_frequency(unsigned note);
+	uint32_t note_to_frequency(unsigned note) const;
 
 	/**
 	 * Calculate the duration in microseconds of play and silence for a
@@ -135,7 +156,7 @@ private:
 	 * @param  dots        extention of the note length
 	 * @return             duration of the note (us)
 	 */
-	unsigned note_duration(unsigned &silence, unsigned note_length, unsigned dots);
+	unsigned note_duration(unsigned &silence, unsigned note_length, unsigned dots) const;
 
 	/**
 	 * Calculate the duration in microseconds of a rest corresponding to
@@ -145,7 +166,7 @@ private:
 	 * @param  dots        number of extension dots
 	 * @return             rest duration (us)
 	 */
-	unsigned rest_duration(unsigned rest_length, unsigned dots);
+	unsigned rest_duration(unsigned rest_length, unsigned dots) const;
 
 	/**
 	 * Find the next character in the string, discard any whitespace.
