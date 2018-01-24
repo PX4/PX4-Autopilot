@@ -48,7 +48,7 @@ class __EXPORT DataValidator {
 public:
 	static const unsigned dimensions = 3;
 
-	DataValidator();
+	DataValidator(DataValidator *prev_sibling = nullptr);
 	virtual ~DataValidator() = default;
 
 	/**
@@ -71,12 +71,6 @@ public:
 	 * @return		the next sibling
 	 */
 	DataValidator*		sibling() { return _sibling; }
-
-	/**
-	 * Set the sibling to the next node in the group
-	 *
-	 */
-	void			setSibling(DataValidator* sibling) { _sibling = sibling; }
 
 	/**
 	 * Get the confidence of this validator

@@ -45,30 +45,19 @@
 
 DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 	_first(nullptr),
-	_last(nullptr),
 	_curr_best(-1),
 	_prev_best(-1),
 	_first_failover_time(0),
 	_toggle_count(0)
 {
-	DataValidator *next = nullptr;
-	DataValidator *prev = nullptr;
+	DataValidator *next = _first;
 
 	for (unsigned i = 0; i < siblings; i++) {
-		next = new DataValidator();
-		if(i == 0) {
-			_first = next;
-		} else {
-			prev->setSibling(next);
-		}
-		prev = next;
+		next = new DataValidator(next);
 	}
 
-	_last = next;
-
-	if(_first) {
-		_timeout_interval_us = _first->get_timeout();
-	}
+	_first = next;
+	_timeout_interval_us = _first->get_timeout();
 }
 
 DataValidatorGroup::~DataValidatorGroup()
@@ -82,14 +71,13 @@ DataValidatorGroup::~DataValidatorGroup()
 
 DataValidator *DataValidatorGroup::add_new_validator()
 {
-	DataValidator *validator = new DataValidator();
+	DataValidator *validator = new DataValidator(_first);
 	if (!validator) {
 		return nullptr;
 	}
-	_last->setSibling(validator);
-	_last = validator;
-	_last->set_timeout(_timeout_interval_us);
-	return _last;
+	_first = validator;
+	_first->set_timeout(_timeout_interval_us);
+	return _first;
 }
 
 void
