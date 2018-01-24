@@ -194,6 +194,17 @@ typedef struct bson_encoder_s {
 __EXPORT int bson_encoder_init_file(bson_encoder_t encoder, int fd);
 
 /**
+ * Initialze the encoder for writing to a file.
+ *
+ * @param encoder		Encoder state structure to be initialised.
+ * @param fd			File to write to.
+ * @param buf			Buffer pointer to use, can't be NULL
+ * @param bufsize		Supplied buffer size
+ * @return			Zero on success.
+ */
+__EXPORT int bson_encoder_init_buf_file(bson_encoder_t encoder, int fd, void *buf, unsigned bufsize);
+
+/**
  * Initialze the encoder for writing to a buffer.
  *
  * @param encoder		Encoder state structure to be initialised.

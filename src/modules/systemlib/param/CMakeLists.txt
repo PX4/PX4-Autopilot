@@ -78,7 +78,13 @@ add_custom_command(OUTPUT ${parameters_xml}
 		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		#--verbose
-	DEPENDS ${param_src_files} px_process_params.py px4params/srcparser.py px4params/srcscanner.py px4params/xmlout.py parameters_injected.xml
+	DEPENDS
+		${param_src_files}
+		parameters_injected.xml
+		px4params/srcparser.py
+		px4params/srcscanner.py
+		px4params/xmlout.py
+		px_process_params.py
 	COMMENT "Generating parameters.xml"
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
