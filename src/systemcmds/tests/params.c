@@ -44,6 +44,11 @@ PARAM_DEFINE_INT32(TEST_2, 4);
 /**
  * @group Testing
  */
+PARAM_DEFINE_FLOAT(TEST_3, 5.0f);
+
+/**
+ * @group Testing
+ */
 PARAM_DEFINE_INT32(TEST_RC_X, 8);
 
 /**
