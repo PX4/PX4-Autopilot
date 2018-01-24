@@ -162,8 +162,10 @@ void LandingTargetEstimator::update()
 
 	if (!_estimator_initialized) {
 		PX4_INFO("Init");
-		_kalman_filter_x.init(_rel_pos(0), 0, _params.pos_unc_init, _params.vel_unc_init);
-		_kalman_filter_y.init(_rel_pos(1), 0, _params.pos_unc_init, _params.vel_unc_init);
+		float vx_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vx : 0.f;
+		float vy_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vy : 0.f;
+		_kalman_filter_x.init(_rel_pos(0), vx_init, _params.pos_unc_init, _params.vel_unc_init);
+		_kalman_filter_y.init(_rel_pos(1), vy_init, _params.pos_unc_init, _params.vel_unc_init);
 
 		_estimator_initialized = true;
 		_last_update = hrt_absolute_time();
