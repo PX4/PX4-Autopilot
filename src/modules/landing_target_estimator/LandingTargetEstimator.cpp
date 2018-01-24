@@ -94,14 +94,13 @@ void LandingTargetEstimator::update()
 			PX4_WARN("Timeout");
 			_estimator_initialized = false;
 
-		} else if (_vehicleLocalPosition_valid
-			   && _vehicleLocalPosition.v_xy_valid) {
+		} else {
 			float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
 			// predict target position with the help of accel data
 			matrix::Vector3f a;
 
-			if (_sensorBias_valid) {
+			if (_vehicleAttitude_valid && _sensorBias_valid) {
 				matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
 				_R_att = matrix::Dcm<float>(q_att);
 				a(0) = _sensorBias.accel_x;
@@ -272,7 +271,6 @@ void LandingTargetEstimator::_check_params(const bool force)
 
 void LandingTargetEstimator::_initialize_topics()
 {
-	// subscribe to position, attitude, arming and velocity changes
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_sensorBiasSub = orb_subscribe(ORB_ID(sensor_bias));
