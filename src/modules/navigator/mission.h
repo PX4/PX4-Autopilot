@@ -101,6 +101,8 @@ public:
 	bool get_land_start_available() const { return _land_start_available; }
 
 	void switch_from_reverse();
+
+	void set_closest_item_as_current();
 private:
 
 	/**
@@ -229,6 +231,11 @@ private:
 	 * Find and store the index of the landing sequence (DO_LAND_START)
 	 */
 	bool find_offboard_land_start();
+
+	/**
+	 * Return the index of the closest offboard mission item to the current global position.
+	 */
+	uint16_t index_closest_mission_item() const;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_dist_1wp,

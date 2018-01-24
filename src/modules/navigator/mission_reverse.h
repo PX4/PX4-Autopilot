@@ -68,6 +68,8 @@ public:
 
 	bool get_mission_reverse_finished() const { return _mission_reverse_finished; }
 
+	void switch_from_nonmission();
+
 private:
 	/**
 	 * Advance the mission to the prior waypoint containing a position. Waypoints without
@@ -98,6 +100,8 @@ private:
 	Mission *_mission{nullptr};
 
 	bool _mission_reverse_finished{false}; /**< Indicates if flying back the mission is completed */
+
+	bool _switch_from_nonmission{false}; /**< Indicates if this mode is entered from a non-mission mode */
 
 	struct mission_s _previous_mission {}; /**< Copy of the offboard mission used to detect changes in the mission. */
 };

@@ -152,6 +152,10 @@ Mission::on_inactivation()
 void
 Mission::on_activation()
 {
+	if (_current_offboard_mission_index < 0) {
+		_current_offboard_mission_index = 0;
+	}
+
 	if (_switch_from_reverse) {
 		if (_current_offboard_mission_index < _offboard_mission.count - 1) {
 			_current_offboard_mission_index++;
@@ -284,6 +288,13 @@ Mission::switch_from_reverse()
 {
 	_switch_from_reverse = true;
 }
+
+void
+Mission::set_closest_item_as_current()
+{
+	_current_offboard_mission_index = index_closest_mission_item();
+}
+
 
 
 bool
@@ -1561,4 +1572,45 @@ Mission::generate_waypoint_from_heading(struct position_setpoint_s *setpoint, fl
 		&(setpoint->lat), &(setpoint->lon));
 	setpoint->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	setpoint->yaw = yaw;
+}
+
+uint16_t
+Mission::index_closest_mission_item() const
+{
+	uint16_t min_dist_index(0);
+	float min_dist(FLT_MAX), dist_xy(FLT_MAX), dist_z(FLT_MAX);
+
+	dm_item_t dm_current = (dm_item_t)(_offboard_mission.dataman_id);
+
+	for (size_t i = 0; i < _offboard_mission.count; i++) {
+		struct mission_item_s missionitem = {};
+		const ssize_t len = sizeof(missionitem);
+
+		if (dm_read(dm_current, i, &missionitem, len) != len) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			PX4_ERR("dataman read failure");
+			break;
+		}
+
+		if (item_contains_position(missionitem)) {
+			// do not consider land waypoints for a fw
+			if (!((missionitem.nav_cmd == NAV_CMD_LAND) &&
+			      (!_navigator->get_vstatus()->is_rotary_wing) &&
+			      (!_navigator->get_vstatus()->is_vtol))) {
+				float dist = get_distance_to_point_global_wgs84(missionitem.lat, missionitem.lon,
+						get_absolute_altitude_for_item(missionitem),
+						_navigator->get_global_position()->lat,
+						_navigator->get_global_position()->lon,
+						_navigator->get_global_position()->alt,
+						&dist_xy, &dist_z);
+
+				if (dist < min_dist) {
+					min_dist = dist;
+					min_dist_index = i;
+				}
+			}
+		}
+	}
+
+	return min_dist_index;
 }

@@ -596,19 +596,34 @@ Navigator::run()
 
 			case RTL::RTL_MISSION:
 				if (_mission.get_land_start_available() && !get_land_detected()->landed) {
-					// the mission contains a landing spot, still continue the mission
+					// the mission contains a landing spot
 					if (_navigation_mode != &_mission) {
-						navigation_mode_new = &_rtl;
+						if (_navigation_mode == nullptr) {
+							// switching from an manual mode, go to landing if not already landing
+							if (!on_mission_landing()) {
+								start_mission_landing();
+							}
 
-					} else {
-						navigation_mode_new = &_mission;
+						} else {
+							// switching from an auto mode, continue the mission from the closest item
+							_mission.set_closest_item_as_current();
+						}
 					}
 
+					navigation_mode_new = &_mission;
+
 				} else {
-					// currently only the switch from a mission mode is supported for mission reverse
-					if (((_navigation_mode == &_mission) || (_navigation_mode == &_mission_reverse)) &&
+					// fly the mission in reverse if switching from a non-manual mode
+					if (((_navigation_mode != nullptr) && (_navigation_mode != &_rtl)) &&
 					    (! _mission_reverse.get_mission_reverse_finished()) &&
 					    (!get_land_detected()->landed)) {
+						// reset the current offboard index if we switch a non mission mode and a non-commanded mission mode
+						if ((!((_navigation_mode == &_mission) &&
+						       (_previous_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) &&
+						    (_navigation_mode != &_mission_reverse)) {
+							_mission_reverse.switch_from_nonmission();
+						}
+
 						navigation_mode_new = &_mission_reverse;
 
 					} else {
@@ -679,6 +694,9 @@ Navigator::run()
 			_can_loiter_at_sp = false;
 			break;
 		}
+
+		// update the vehicle status
+		_previous_vstatus = _vstatus;
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {

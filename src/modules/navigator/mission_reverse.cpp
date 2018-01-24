@@ -72,16 +72,16 @@ MissionReverse::on_inactive()
 void
 MissionReverse::on_inactivation()
 {
-	if (_mission->_current_offboard_mission_index < 0) {
-		_mission->_current_offboard_mission_index = 0;
-	}
 }
 
 void
 MissionReverse::on_activation()
 {
 	_mission_reverse_finished = false;
-	_previous_mission = _mission->_offboard_mission;
+
+	if (_mission->_current_offboard_mission_index < 0) {
+		_mission->_current_offboard_mission_index = 0;
+	}
 
 	if (!(_mission->_offboard_mission.count == 0)) {
 		if (_navigator->get_vstatus()->is_rotary_wing &&
@@ -89,9 +89,29 @@ MissionReverse::on_activation()
 		    !_navigator->get_land_detected()->landed) {
 			command_vtol_transition();
 
+			if (_switch_from_nonmission) {
+				// vtol transition required and switching from a non-mission mode
+				_mission->_current_offboard_mission_index = index_closest_mission_item();
+				_switch_from_nonmission = false;
+
+			} else {
+				//vtol transition required and switching from the mission mode
+				_previous_mission = _mission->_offboard_mission;
+			}
+
 		} else {
-			advance_mission();
-			set_mission_items();
+			if (_switch_from_nonmission) {
+				// no vtol transition required and switching from a non-mission mode
+				_mission->_current_offboard_mission_index = index_closest_mission_item();
+				set_mission_items();
+				_switch_from_nonmission = false;
+
+			} else {
+				// no vtol transition required and switching from the mission mode
+				_previous_mission = _mission->_offboard_mission;
+				advance_mission();
+				set_mission_items();
+			}
 		}
 	}
 
@@ -156,6 +176,12 @@ MissionReverse::on_active()
 }
 
 void
+MissionReverse::switch_from_nonmission()
+{
+	_switch_from_nonmission = true;
+}
+
+void
 MissionReverse::advance_mission()
 {
 	dm_item_t dm_current = (dm_item_t)(_mission->_offboard_mission.dataman_id);
@@ -166,6 +192,7 @@ MissionReverse::advance_mission()
 
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			PX4_ERR("dataman read failure");
 			break;
 		}
 
@@ -190,36 +217,24 @@ MissionReverse::set_mission_items()
 uint16_t
 MissionReverse::index_closest_mission_item() const
 {
-	uint16_t min_dist_index(0);
-	float min_dist(FLT_MAX), dist_xy(FLT_MAX), dist_z(FLT_MAX);
+	uint16_t min_dist_index = _mission->index_closest_mission_item();
+	float dist_xy(FLT_MAX), dist_z(FLT_MAX);
 
 	dm_item_t dm_current = (dm_item_t)(_mission->_offboard_mission.dataman_id);
+	struct mission_item_s missionitem = {};
+	const ssize_t len = sizeof(missionitem);
 
-	for (size_t i = 0; i < _mission->_offboard_mission.count; i++) {
-		struct mission_item_s missionitem = {};
-		const ssize_t len = sizeof(missionitem);
-
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
-			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			break;
-		}
-
-
-		if (item_contains_position(missionitem)) {
-			float altitude_amsl = get_absolute_altitude_for_item(missionitem);
-
-			float dist = get_distance_to_point_global_wgs84(missionitem.lat, missionitem.lon, altitude_amsl,
-					_navigator->get_global_position()->lat,
-					_navigator->get_global_position()->lon,
-					_navigator->get_global_position()->alt,
-					&dist_xy, &dist_z);
-
-			if (dist < min_dist) {
-				min_dist = dist;
-				min_dist_index = i;
-			}
-		}
+	if (dm_read(dm_current, min_dist_index, &missionitem, len) != len) {
+		/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+		PX4_ERR("dataman read failure");
 	}
+
+	float min_dist = get_distance_to_point_global_wgs84(missionitem.lat, missionitem.lon,
+			 get_absolute_altitude_for_item(missionitem),
+			 _navigator->get_global_position()->lat,
+			 _navigator->get_global_position()->lon,
+			 _navigator->get_global_position()->alt,
+			 &dist_xy, &dist_z);
 
 	// also consider the home position
 	float dist = get_distance_to_point_global_wgs84(
