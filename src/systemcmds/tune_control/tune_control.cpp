@@ -170,7 +170,7 @@ tune_control_main(int argc, char *argv[])
 		return 1;
 	}
 
-	unsigned frequency, duration, silence;
+	unsigned frequency, duration, silence, strength;
 	int exit_counter = 0;
 
 	if (!strcmp(argv[myoptind], "play")) {
@@ -178,11 +178,12 @@ tune_control_main(int argc, char *argv[])
 			PX4_INFO("Start playback...");
 			tunes.set_string(tune_string);
 
-			while (tunes.get_next_tune(frequency, duration, silence) > 0) {
+			while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
 				tune_control.tune_id = 0;
 				tune_control.frequency = (uint16_t)frequency;
 				tune_control.duration = (uint32_t)duration;
 				tune_control.silence = (uint32_t)silence;
+				tune_control.strength = (uint32_t)strength;
 				publish_tune_control(tune_control);
 				usleep(duration + silence);
 				exit_counter++;
@@ -207,8 +208,9 @@ tune_control_main(int argc, char *argv[])
 	} else if (!strcmp(argv[myoptind], "libtest")) {
 		tunes.set_control(tune_control);
 
-		while (tunes.get_next_tune(frequency, duration, silence) > 0) {
-			PX4_INFO("frequency: %d, duration %d, silence %d", frequency, duration, silence);
+		while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
+			PX4_INFO("frequency: %d, duration %d, silence %d, strength%d",
+				 frequency, duration, silence, strength);
 			usleep(500000);
 			exit_counter++;
 

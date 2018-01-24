@@ -96,6 +96,10 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		_repeat = false;
 		_using_custom_msg = false;
 		_tune = nullptr;
+
+		// New tune will be played. This is the place to store the strength
+		// which will remain valid for the entire tune, unless interrupted.
+		_strength = (unsigned)tune_control.strength;
 	}
 
 	if (tune_control.tune_id < _default_tunes_size) {
@@ -151,7 +155,24 @@ void Tunes::set_string(const char *const string)
 	}
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence)
+int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
+			 unsigned &silence, unsigned &strength)
+{
+	int ret = get_next_tune(frequency, duration, silence);
+
+	// Check if note should not be heard -> adjust strength to 0 to be safe
+	if (frequency == 0 || duration == 0) {
+		strength = 0;
+
+	} else {
+		strength = _strength;
+	}
+
+	return ret;
+}
+
+int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
+			 unsigned &silence)
 {
 	// Return the vaules for frequency and duration if the custom msg was received
 	if (_using_custom_msg) {
@@ -331,7 +352,6 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &sile
 
 	// compute the note frequency
 	frequency = note_to_frequency(note);
-
 	return TUNE_CONTINUE;
 
 	// tune looks bad (unexpected EOF, bad character, etc.)
