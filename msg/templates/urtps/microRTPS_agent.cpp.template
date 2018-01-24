@@ -193,12 +193,14 @@ void t_send(void *data)
         // Send subscribed topics over UART
         while (topics.hasMsg(&topic_ID))
         {
-            eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, sizeof(data_buffer));
+            uint16_t header_length = get_header_length();
+            /* make room for the header to fill in later */
+            eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[header_length], sizeof(data_buffer)-header_length);
             eprosima::fastcdr::Cdr scdr(cdrbuffer);
             if (topics.getMsg(topic_ID, scdr))
             {
                 length = scdr.getSerializedDataLength();
-                if (0 < (length = transport_node->write(topic_ID, scdr.getBufferPointer(), length)))
+                if (0 < (length = transport_node->write(topic_ID, data_buffer, length)))
                 {
                     total_sent += length;
                     ++sent;
