@@ -107,7 +107,7 @@ PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 1.0f);
+PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.1f);
 
 /**
  * Scale factor for sensor measurements in sensor x axis
