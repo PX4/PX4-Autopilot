@@ -116,7 +116,7 @@ private:
 	/**
 	 * Set new mission items
 	 */
-	void set_mission_items();
+	void set_mission_items(bool reverse);
 
 	/**
 	 * Returns true if we need to do a takeoff at the current state

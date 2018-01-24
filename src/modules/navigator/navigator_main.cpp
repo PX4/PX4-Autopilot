@@ -582,7 +582,7 @@ Navigator::run()
 			_pos_sp_triplet_published_invalid_once = false;
 
 			switch (rtl_type()) {
-			case 1:
+			case RTL::RTL_LAND:
 
 				// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION
 				if (on_mission_landing() && !get_land_detected()->landed) {
@@ -594,7 +594,7 @@ Navigator::run()
 
 				break;
 
-			case 2:
+			case RTL::RTL_MISSION:
 				if (_mission.get_land_start_available() && !get_land_detected()->landed) {
 					// the mission contains a landing spot, still continue the mission
 					if (_navigation_mode != &_mission) {

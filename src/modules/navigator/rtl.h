@@ -50,7 +50,13 @@ class Navigator;
 class RTL : public MissionBlock, public ModuleParams
 {
 public:
-RTL(Navigator *navigator);
+	enum RTLType {
+		RTL_HOME = 0,
+		RTL_LAND,
+		RTL_MISSION,
+	};
+
+	RTL(Navigator *navigator);
 
 	~RTL() = default;
 

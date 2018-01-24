@@ -48,6 +48,7 @@
 #include "mission.h"
 #include "navigator.h"
 
+#include <string.h>
 #include <drivers/drv_hrt.h>
 #include <dataman/dataman.h>
 #include <systemlib/mavlink_log.h>
@@ -159,7 +160,7 @@ Mission::on_activation()
 		_switch_from_reverse = false;
 	}
 
-	set_mission_items();
+	set_mission_items(false);
 
 	// unpause triggering if it was paused
 	vehicle_command_s cmd = {};
@@ -193,7 +194,7 @@ Mission::on_active()
 
 	/* reset mission items if needed */
 	if (offboard_updated) {
-		set_mission_items();
+		set_mission_items(false);
 	}
 
 	/* lets check if we reached the current mission item */
@@ -207,7 +208,7 @@ Mission::on_active()
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
 			advance_mission();
-			set_mission_items();
+			set_mission_items(false);
 		}
 
 	} else if (_mission_type != MISSION_TYPE_NONE && _param_altmode.get() == MISSION_ALTMODE_FOH) {
@@ -269,7 +270,7 @@ Mission::set_current_offboard_mission_index(uint16_t index)
 			_navigator->get_position_setpoint_triplet()->previous.valid = false;
 			_navigator->get_position_setpoint_triplet()->current.valid = false;
 			_navigator->get_position_setpoint_triplet()->next.valid = false;
-			set_mission_items();
+			set_mission_items(false);
 		}
 
 		return true;
@@ -429,7 +430,7 @@ Mission::advance_mission()
 }
 
 void
-Mission::set_mission_items()
+Mission::set_mission_items(bool reverse)
 {
 	/* reset the altitude foh (first order hold) logic, if altitude foh is enabled (param) a new foh element starts now */
 	_min_current_sp_distance_xy = FLT_MAX;
@@ -443,10 +444,10 @@ Mission::set_mission_items()
 
 	work_item_type new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
-	if (prepare_mission_items(false, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
+	if (prepare_mission_items(reverse, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Executing mission.");
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), reverse ? "Executing Reverse Mission" : "Executing Mission");
 			user_feedback_done = true;
 		}
 
@@ -457,11 +458,13 @@ Mission::set_mission_items()
 		if (_mission_type != MISSION_TYPE_NONE) {
 
 			if (_navigator->get_land_detected()->landed) {
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "Mission finished, landed.");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(),
+						 reverse ? "Reverse Mission finished, landed" : "Mission finished, landed.");
 
 			} else {
 				/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "Mission finished, loitering.");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(),
+						 reverse ? "Reverse Mission finished, loitering" : "Mission finished, loitering.");
 
 				/* use last setpoint for loiter */
 				_navigator->set_can_loiter_at_sp(true);
@@ -513,7 +516,24 @@ Mission::set_mission_items()
 	/*********************************** handle mission item *********************************************/
 
 	/* handle position mission items */
-	if (item_contains_position(_mission_item)) {
+
+	if (reverse) {
+		if (item_contains_position(_mission_item)) {
+			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+			// convert mission item to a simple waypoint
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0.0f;
+
+			/* we have a new position item so set previous position setpoint to current */
+			pos_sp_triplet->previous = pos_sp_triplet->current;
+
+		} else {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "MissionReverse: Got a non-position mission item, ignoring it");
+		}
+
+	} else if (item_contains_position(_mission_item)) {
 
 		/* force vtol land */
 		if (_navigator->force_vtol() && _mission_item.nav_cmd == NAV_CMD_LAND) {

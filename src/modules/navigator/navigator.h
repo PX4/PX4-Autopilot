@@ -255,7 +255,7 @@ public:
 
 	// RTL
 	bool		is_mission_reverse() const { return _navigation_mode == &_mission_reverse; }
-	bool		mission_landing_required() { return _rtl.rtl_type() == 1; }
+	bool		mission_landing_required() { return _rtl.rtl_type() == RTL::RTL_LAND; }
 	int			rtl_type() { return _rtl.rtl_type(); }
 	bool		in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
