@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <sys/socket.h>
+#include <cstdlib>
 
 #include "microRTPS_transport.h"
 
@@ -193,6 +194,11 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	return len;
 }
 
+ssize_t Transport_node::get_header_length()
+{
+    return sizeof(struct Header);
+}
+
 ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
 {
 	if (!fds_OK()) {
@@ -214,7 +220,7 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 
 	// [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
-	uint16_t crc = crc16((uint8_t *)buffer, length);
+	uint16_t crc = crc16((uint8_t *)&buffer[sizeof(header)], length);
 
 	header.topic_ID = topic_ID;
 	header.seq = seq++;
@@ -223,18 +229,13 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	header.crc_h = (crc >> 8) & 0xff;
 	header.crc_l = crc & 0xff;
 
-	ssize_t len = node_write(&header, sizeof(header));
-
-	if (len != sizeof(header)) {
+	/* Headroom for header is created in client */
+	/*Fill in the header in the same payload buffer to call a single node_write */
+	memcpy(buffer, &header, sizeof(header));
+	ssize_t len = node_write(buffer, length + sizeof(header));
+	if (len != ssize_t(length + sizeof(header))) {
 		goto err;
 	}
-
-	len = node_write(buffer, length);
-
-	if (len != ssize_t(length)) {
-		goto err;
-	}
-
 	return len + sizeof(header);
 
 err:
