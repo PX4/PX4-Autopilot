@@ -76,7 +76,7 @@ static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 static char *param_user_file = NULL;
 
 #if 0
-# define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
+# define debug(fmt, args...)		do { PX4_INFO(fmt, ##args); } while(0)
 #else
 # define debug(fmt, args...)		do { } while(0)
 #endif
@@ -950,28 +950,27 @@ param_get_default_file(void)
 int
 param_save_default(void)
 {
-	int res;
+	int res = PX4_ERROR;
 #if !defined(FLASH_BASED_PARAMS)
-	int fd;
 
 	const char *filename = param_get_default_file();
 
 	/* write parameters to temp file */
-	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+	int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		PX4_ERR("failed to open param file: %s", filename);
 		return ERROR;
 	}
 
-	res = 1;
 	int attempts = 5;
 
 	while (res != OK && attempts > 0) {
 		res = param_export(fd, false);
 		attempts--;
 
-		if (res != OK) {
+		if (res != PX4_OK) {
+			PX4_ERR("param_export failed, retrying %d", attempts);
 			lseek(fd, 0, SEEK_SET); // jump back to the beginning of the file
 		}
 	}
@@ -1047,7 +1046,7 @@ param_export(int fd, bool only_unsaved)
 	param_lock_reader();
 
 	uint8_t bson_buffer[256];
-	bson_encoder_init_buf(&encoder, &bson_buffer, sizeof(bson_buffer));
+	bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer));
 
 	/* no modified parameters -> we are done */
 	if (param_values == NULL) {
@@ -1069,30 +1068,13 @@ param_export(int fd, bool only_unsaved)
 		const char *name = param_name(s->param);
 		const size_t size = param_size(s->param);
 
-		// check remaining buffer size and commit to disk
-		//  total size = strlen(name) + 1 (null char) + param size + 1 (bson header) + 1 (bson end)
-		// size is doubled (floats saved as doubles)
-		const size_t total_size = strlen(name) + 2 * size + 3;
-
-		if (encoder.bufpos > encoder.bufsize - total_size) {
-			// write buffer to disk and continue
-			int ret = write(fd, encoder.buf, encoder.bufpos);
-
-			if (ret == encoder.bufpos) {
-				// reset buffer to beginning and continue
-				encoder.bufpos = 0;
-
-			} else {
-				PX4_ERR("param write error %d %d", ret, encoder.bufpos);
-				goto out;
-			}
-		}
-
 		/* append the appropriate BSON type object */
 		switch (param_type(s->param)) {
 
 		case PARAM_TYPE_INT32: {
 				const int32_t i = s->val.i;
+
+				debug("exporting: %s (%d) size: %d val: %d", name, s->param, size, i);
 
 				if (bson_encoder_append_int(&encoder, name, i)) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1103,6 +1085,8 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_FLOAT: {
 				const float f = s->val.f;
+
+				debug("exporting: %s (%d) size: %d val: %.3f", name, s->param, size, (double)f);
 
 				if (bson_encoder_append_double(&encoder, name, f)) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1138,14 +1122,8 @@ param_export(int fd, bool only_unsaved)
 out:
 
 	if (result == 0) {
-		result = bson_encoder_fini(&encoder);
-
-		// write and finish
-		if ((result != 0) || write(fd, encoder.buf, encoder.bufpos) != encoder.bufpos) {
-			PX4_ERR("param write error");
-
-		} else {
-			fsync(fd);
+		if (bson_encoder_fini(&encoder) != PX4_OK) {
+			PX4_ERR("bson encoder finish failed");
 		}
 	}
 
@@ -1209,6 +1187,8 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 		i = node->i;
 		v = &i;
+
+		debug("importing: %s (%d) = %d", node->name, param, i);
 		break;
 
 	case BSON_DOUBLE:
@@ -1220,6 +1200,8 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 		f = node->d;
 		v = &f;
+
+		debug("importing: %s (%d) = %.3f", node->name, param, (double)f);
 		break;
 
 	case BSON_BINDATA:
