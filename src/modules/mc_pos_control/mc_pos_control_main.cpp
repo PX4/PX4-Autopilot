@@ -292,6 +292,7 @@ private:
 	float _man_yaw_offset; /**< current yaw offset in manual mode */
 
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
+	bool _vel_sp_significant; /** true when the velocity setpoint is over 50% of the _vel_max_xy limit */
 	float _acceleration_state_dependent_xy; /**< acceleration limit applied in manual mode */
 	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
@@ -472,6 +473,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_yaw_takeoff(0.0f),
 	_man_yaw_offset(0.0f),
 	_vel_max_xy(0.0f),
+	_vel_sp_significant(false),
 	_acceleration_state_dependent_xy(0.0f),
 	_acceleration_state_dependent_z(0.0f),
 	_manual_jerk_limit_xy(1.0f),
@@ -2536,6 +2538,9 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	/* make sure velocity setpoint is constrained in all directions (xyz) */
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 
+	/* check if the velocity demand is significant */
+	_vel_sp_significant =  vel_norm_xy > 0.5f * _vel_max_xy;
+
 	if (vel_norm_xy > _vel_max_xy) {
 		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
 		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
@@ -3079,13 +3084,13 @@ MulticopterPositionControl::task_main()
 
 		/* set default max velocity in xy to vel_max
 		 * Apply estimator limits if applicable */
-		if (_local_pos.vxy_max > 0.0f) {
+		if (_local_pos.vxy_max > 0.001f) {
 			// use the minimum of the estimator and user specified limit
 			_vel_max_xy = fminf(_params.vel_max_xy, _local_pos.vxy_max);
 			// Allow for a minimum of 0.3 m/s for repositioning
 			_vel_max_xy = fmaxf(_vel_max_xy, 0.3f);
 
-		} else {
+		} else if (_vel_sp_significant) {
 			// raise the limit at a constant rate up to the user specified value
 			if (_vel_max_xy >= _params.vel_max_xy) {
 				_vel_max_xy = _params.vel_max_xy;
@@ -3122,6 +3127,9 @@ MulticopterPositionControl::task_main()
 			 * TODO: we need a defined setpoint to do this properly especially when adjusting the mixer */
 			_att_sp.thrust = 0.0f;
 			_att_sp.timestamp = hrt_absolute_time();
+
+			/* reset velocity limit */
+			_vel_max_xy = _params.vel_max_xy;
 		}
 
 		/* reset setpoints and integrators VTOL in FW mode */
