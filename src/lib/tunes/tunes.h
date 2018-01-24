@@ -106,6 +106,18 @@ public:
 	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence);
 
 	/**
+	 * Get next note in the current tune, which has been provided by either
+	 * set_control or play_string
+	 * @param  frequency return frequency value (Hz)
+	 * @param  duration  return duration of the tone (us)
+	 * @param  silence   return silence duration (us)
+	 * @param  strength  return the strength of the note (between 0-100)
+	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
+	 */
+	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence,
+			  unsigned &strength);
+
+	/**
 	 *  Get the number of default tunes. This is useful for when a tune is
 	 *  requested via its tune ID.
 	 *  @return		Number of default tunes accessible via tune ID
@@ -136,6 +148,7 @@ private:
 	unsigned _frequency;
 	unsigned _duration;
 	unsigned _silence;
+	unsigned _strength;
 	bool _using_custom_msg = false;
 
 	/**
