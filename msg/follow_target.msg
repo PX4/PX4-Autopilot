@@ -1,7 +1,9 @@
-float64 lat			# target position (deg * 1e7)
-float64 lon			# target position (deg * 1e7) 
-float32 alt			# target position
+float64 lat			# target position 
+float64 lon			# target position 
+float64 alt			# target position
 float32 vy			# target vel in y
 float32 vx			# target vel in x
 float32 vz			# target vel in z 
-uint8 est_cap # target reporting capabilities
+float64 leader_hdg
+uint32   plane_id # target reporting capabilities
+# TOPICS follow_target sd_follow_target

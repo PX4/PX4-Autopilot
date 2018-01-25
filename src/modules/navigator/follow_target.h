@@ -38,15 +38,29 @@
  * @author Jimmy Johnson <catch22@fastmail.net>
  */
 
+
 #pragma once
+
+#define MIN_REL_ALT 2
+#define MIN_DISTANCE 1
+#define MAX_DISTANCE 30
+#define CLOSE_DISTANCE 0.5
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 #include <lib/mathlib/math/Vector.hpp>
 #include <lib/mathlib/math/Matrix.hpp>
+
+#include <uORB/topics/formation_followers.h>
+#include <uORB/topics/chen_sd_formation.h>
 #include "navigator_mode.h"
 #include "mission_block.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <pthread.h>
 
+bool open_log(pthread_t &log_pthread);
 class FollowTarget : public MissionBlock
 {
 
@@ -64,8 +78,8 @@ public:
 
 private:
 
-	static constexpr int TARGET_TIMEOUT_MS = 2500;
-	static constexpr int TARGET_ACCEPTANCE_RADIUS_M = 5;
+	static constexpr int TARGET_TIMEOUT_MS = 5000;
+	static constexpr int TARGET_ACCEPTANCE_RADIUS_M = CLOSE_DISTANCE;
 	static constexpr int INTERPOLATION_PNTS = 20;
 	static constexpr float FF_K = .25F;
 	static constexpr float OFFSET_M = 8;
@@ -78,8 +92,8 @@ private:
 	};
 
 	enum {
-		FOLLOW_FROM_RIGHT,
-		FOLLOW_FROM_BEHIND,
+		FOLLOW_FIXED,
+		FOLLOW_CIRCLE,
 		FOLLOW_FROM_FRONT,
 		FOLLOW_FROM_LEFT
 	};
@@ -128,11 +142,13 @@ private:
 
 	uint64_t _target_updates;
 	uint64_t _last_update_time;
+	uint64_t _chen_last_time;
 
 	math::Vector<3> _current_vel;
 	math::Vector<3> _step_vel;
 	math::Vector<3> _est_target_vel;
 	math::Vector<3> _target_distance;
+
 	math::Vector<3> _target_position_offset;
 	math::Vector<3> _target_position_delta;
 	math::Vector<3> _filtered_target_position_delta;
@@ -144,6 +160,18 @@ private:
 	float _yaw_auto_max;
 	float _yaw_angle;
 
+	//chen si qing
+	formation_followers_s follower;
+	int	_manual_sub;
+	orb_advert_t _chen_sd_formation_pub;
+	control::BlockParamFloat _param_x_offset;
+	control::BlockParamFloat _param_y_offset;
+	control::BlockParamFloat _param_z_offset;
+	double collision_x;
+	double collision_y;
+	double hdg_offset;
+	pthread_t log_pthread;
+	bool log_opened;
 	// Mavlink defined motion reporting capabilities
 
 	enum {
@@ -162,4 +190,30 @@ private:
 	void update_position_sp(bool velocity_valid, bool position_valid, float yaw_rate);
 	void update_target_motion();
 	void update_target_velocity();
+	void calcu_relative_angle_distance(void)
+	{
+		follower.offset_to_leader = sqrt(
+					follower.x_offset * follower.x_offset
+							+ follower.y_offset * follower.y_offset);
+		if (follower.x_offset > 0 || follower.x_offset < 0)
+			follower.relative_angle = M_PI / 2
+					- atan(follower.y_offset / follower.x_offset);
+		else if(follower.y_offset>=0)
+			follower.relative_angle = 0;
+		else
+			follower.relative_angle = M_PI;
+	}
+	void calcu_xy_offset(void)
+	{
+		follower.x_offset = follower.offset_to_leader * sin(follower.relative_angle);
+		follower.y_offset = follower.offset_to_leader * cos(follower.relative_angle);
+	}
+	void limit_z_offset(void)
+	{
+		if(follower.z_offset>5)
+			follower.z_offset =5;
+		else if(follower.z_offset<-8)
+			follower.z_offset=-8;
+	}
+
 };

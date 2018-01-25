@@ -59,6 +59,9 @@ set(msg_file_names
 	estimator_status.msg
 	filtered_bottom_flow.msg
 	follow_target.msg
+	formation_followers.msg
+	chen_sd_formation.msg	
+	circle.msg
 	fw_pos_ctrl_status.msg
 	geofence_result.msg
 	gps_dump.msg

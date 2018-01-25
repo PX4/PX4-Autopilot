@@ -38,6 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
+bool exit_sd = false;
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -80,6 +81,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/mavlink_log.h>
+
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_main.h"
@@ -280,6 +282,7 @@ Mavlink::Mavlink() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
 	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
+	log_pthread = 0;
 	_instance_id = Mavlink::instance_count();
 
 	/* set channel according to instance id */
@@ -331,7 +334,7 @@ Mavlink::~Mavlink()
 {
 	perf_free(_loop_perf);
 	perf_free(_txerr_perf);
-
+	exit_sd = true;
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
@@ -489,32 +492,6 @@ Mavlink::get_status_all_instances()
 
 		printf("\ninstance #%u:\n", iterations);
 		inst->display_status();
-
-		/* move on */
-		inst = inst->next;
-		iterations++;
-	}
-
-	/* return an error if there are no instances */
-	return (iterations == 0);
-}
-
-void
-Mavlink::set_verbose(bool v)
-{
-	_verbose = v;
-}
-
-int
-Mavlink::set_verbose_all_instances(bool enabled)
-{
-	Mavlink *inst = ::_mavlink_instances;
-
-	unsigned iterations = 0;
-
-	while (inst != nullptr) {
-
-		inst->set_verbose(enabled);
 
 		/* move on */
 		inst = inst->next;
@@ -1313,8 +1290,6 @@ void Mavlink::send_autopilot_capabilites()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
-		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_FENCE;
-		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_RALLY;
 		msg.flight_sw_version = px4_firmware_version();
 		msg.middleware_sw_version = px4_firmware_version();
 		msg.os_sw_version = px4_os_version();
@@ -1932,7 +1907,6 @@ Mavlink::task_main(int argc, char *argv[])
 	if (_datarate > MAX_DATA_RATE) {
 		_datarate = MAX_DATA_RATE;
 	}
-
 	if (get_protocol() == SERIAL) {
 		if (Mavlink::instance_exists(_device_name, this)) {
 			PX4_ERR("%s already running", _device_name);
@@ -1971,8 +1945,8 @@ Mavlink::task_main(int argc, char *argv[])
 	pthread_mutex_init(&_send_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
-	if (_forwarding_on) {
-		/* initialize message buffer if multiplexing is on.
+	if (_forwarding_on || _ftp_on) {
+		/* initialize message buffer if multiplexing is on or its needed for FTP.
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
 		 */
@@ -1996,33 +1970,38 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
 	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
-	uint64_t ack_time = 0;
 	/* We don't want to miss the first advertise of an ACK, so we subscribe from the
 	 * beginning and not just when the topic exists. */
 	ack_sub->subscribe_from_beginning(true);
 
+	uint64_t ack_time = 0;
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
 
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
+	struct vehicle_command_ack_s command_ack;
+	ack_sub->update(&ack_time, &command_ack);
+        //if (mavlink_system.compid == 1)
+                //open_log_main(log_pthread);
 
-	/* add default streams depending on mode */
-
+        /* add default streams depending on mode */
 	if (_mode != MAVLINK_MODE_IRIDIUM) {
 
 		/* HEARTBEAT is constant rate stream, rate never adjusted */
-		configure_stream("HEARTBEAT", 1.0f);
+                //configure_stream("HEARTBEAT", 1.0f);
 
 		/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
-		configure_stream("STATUSTEXT", 20.0f);
+		//configure_stream("STATUSTEXT",5.0f);
 
 		/* COMMAND_LONG stream: use unlimited rate to send all commands */
-		configure_stream("COMMAND_LONG");
+		//configure_stream("COMMAND_LONG");
 
 	}
 
 	switch (_mode) {
-	case MAVLINK_MODE_NORMAL:
+        case MAVLINK_MODE_NORMAL:
+	/*	configure_stream("HEARTBEAT", 1.0f);
+		configure_stream("MANUAL_CONTROL", 5.0f);
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("HIGHRES_IMU", 1.5f);
@@ -2040,19 +2019,26 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream("GLOBAL_POSITION_INT", 5.0f);
 		configure_stream("LOCAL_POSITION_NED", 1.0f);
-		configure_stream("POSITION_TARGET_LOCAL_NED", 1.5f);
-		configure_stream("POSITION_TARGET_GLOBAL_INT", 1.5f);
+		configure_stream("POSITION_TARGET_LOCAL_NED", 11.5f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 11.5f);
 		configure_stream("ATTITUDE_TARGET", 2.0f);
 		configure_stream("HOME_POSITION", 0.5f);
-		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream("DEBUG", 1.0f);
-		configure_stream("DEBUG_VECT", 1.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream("VFR_HUD", 4.0f);
-		configure_stream("WIND_COV", 1.0f);
-		configure_stream("CAMERA_IMAGE_CAPTURED");
+                configure_stream("CAMERA_IMAGE_CAPTURED");*/
+                if (mavlink_system.compid == 1) {
+                    configure_stream("POSITION_TARGET_LOCAL_NED", 11.5f);
+                    configure_stream("POSITION_TARGET_GLOBAL_INT", 11.5f);
+			configure_stream("CHEN_FORMATION", 10.0f);
+                        configure_stream("HEARTBEAT", 1.0f);
+		} else {
+			//configure_stream("CHEN_FORMATION", 0.3f);
+                }
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
+
+                configure_stream("MANUAL_CONTROL", 5.0f);
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 5.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
@@ -2075,8 +2061,6 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ATTITUDE_TARGET", 10.0f);
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
-		configure_stream("DEBUG", 10.0f);
-		configure_stream("DEBUG_VECT", 10.0f);
 		configure_stream("VFR_HUD", 10.0f);
 		configure_stream("WIND_COV", 10.0f);
 		configure_stream("POSITION_TARGET_LOCAL_NED", 10.0f);
@@ -2085,11 +2069,11 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("CAMERA_CAPTURE", 2.0f);
 		configure_stream("CAMERA_TRIGGER");
 		configure_stream("CAMERA_IMAGE_CAPTURED");
-		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
+                configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
 		break;
 
-	case MAVLINK_MODE_OSD:
-		configure_stream("SYS_STATUS", 5.0f);
+        case MAVLINK_MODE_OSD:
+		/*configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ATTITUDE", 25.0f);
 		configure_stream("RC_CHANNELS", 5.0f);
@@ -2102,15 +2086,28 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("VFR_HUD", 25.0f);
 		configure_stream("WIND_COV", 2.0f);
-		configure_stream("SYSTEM_TIME", 1.0f);
+		configure_stream("SYSTEM_TIME", 1.0f);*/
+
+                if (mavlink_system.compid == 1) {
+                    configure_stream("POSITION_TARGET_LOCAL_NED", 11.5f);
+                    configure_stream("POSITION_TARGET_GLOBAL_INT", 11.5f);
+                    configure_stream("HEARTBEAT", 1.0f);
+                    configure_stream("CHEN_FORMATION",10.0f);
+		} else {
+			//configure_stream("CHEN_FORMATION", 0.3f);
+                }
+
 		break;
 
 	case MAVLINK_MODE_MAGIC:
 		//stream nothing
+		//configure_stream("GLOBAL_POSITION_INT", 5.0f);
 		break;
 
 	case MAVLINK_MODE_CONFIG:
 		// Enable a number of interesting streams we want via USB
+                configure_stream("HEARTBEAT", 1.0f);
+		configure_stream("STATUSTEXT",5.0f);
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
@@ -2136,18 +2133,16 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
-		configure_stream("DEBUG", 50.0f);
-		configure_stream("DEBUG_VECT", 50.0f);
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("WIND_COV", 10.0f);
 		configure_stream("CAMERA_TRIGGER");
 		configure_stream("CAMERA_IMAGE_CAPTURED");
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
-		configure_stream("MANUAL_CONTROL", 5.0f);
+                configure_stream("MANUAL_CONTROL", 5.0f);
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
-		configure_stream("HIGH_LATENCY", 0.1f);
+                configure_stream("HIGH_LATENCY", 0.1f);
 		break;
 
 	default:
@@ -2206,21 +2201,14 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* send command ACK */
 		uint16_t current_command_ack = 0;
-		struct vehicle_command_ack_s command_ack;
 
 		if (ack_sub->update(&ack_time, &command_ack)) {
-			if (!command_ack.from_external) {
-				mavlink_command_ack_t msg;
-				msg.result = command_ack.result;
-				msg.command = command_ack.command;
-				msg.progress = command_ack.result_param1;
-				msg.result_param2 = command_ack.result_param2;
-				msg.target_system = command_ack.target_system;
-				msg.target_component = command_ack.target_component;
-				current_command_ack = command_ack.command;
+			mavlink_command_ack_t msg;
+			msg.result = command_ack.result;
+			msg.command = command_ack.command;
+			current_command_ack = command_ack.command;
 
-				mavlink_msg_command_ack_send_struct(get_channel(), &msg);
-			}
+			mavlink_msg_command_ack_send_struct(get_channel(), &msg);
 		}
 
 		struct mavlink_log_s mavlink_log;
@@ -2307,8 +2295,8 @@ Mavlink::task_main(int argc, char *argv[])
 			stream->update(t);
 		}
 
-		/* pass messages from other UARTs */
-		if (_forwarding_on) {
+		/* pass messages from other UARTs or FTP worker */
+		if (_forwarding_on || _ftp_on) {
 
 			bool is_part;
 			uint8_t *read_ptr;
@@ -2416,7 +2404,7 @@ Mavlink::task_main(int argc, char *argv[])
 		_socket_fd = -1;
 	}
 
-	if (_forwarding_on) {
+	if (_forwarding_on || _ftp_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
@@ -2610,7 +2598,7 @@ Mavlink::display_status()
 		       (double)_mavlink_ulog->maximum_data_rate() * 100.);
 	}
 
-	printf("\taccepting commands: %s, FTP enabled: %s\n", accepting_commands() ? "YES" : "NO", _ftp_on ? "YES" : "NO");
+	printf("\taccepting commands: %s\n", (accepting_commands()) ? "YES" : "NO");
 	printf("\tMAVLink version: %i\n", _protocol_version);
 
 	printf("\ttransport protocol: ");
@@ -2716,7 +2704,6 @@ Mavlink::stream_command(int argc, char *argv[])
 			inst->configure_stream_threadsafe(stream_name, rate);
 
 		} else {
-
 			// If the link is not running we should complain, but not fall over
 			// because this is so easy to get wrong and not fatal. Warning is sufficient.
 			if (provided_device) {
@@ -2806,9 +2793,6 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("verbose", "Set verbose mode for all running instances");
-	PRINT_MODULE_USAGE_ARG("on|off", "Enable/disable", true);
-
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status for all instances");
@@ -2847,15 +2831,6 @@ int mavlink_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "status")) {
 		return Mavlink::get_status_all_instances();
 
-	} else if (!strcmp(argv[1], "verbose")) {
-		bool on = true;
-
-		if (argc > 2 && !strcmp(argv[2], "off")) {
-			on = false;
-		}
-
-		return Mavlink::set_verbose_all_instances(on);
-
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);
 
@@ -2870,3 +2845,4 @@ int mavlink_main(int argc, char *argv[])
 
 	return 0;
 }
+

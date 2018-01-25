@@ -1,0 +1,8 @@
+float64 x_offset
+float64 y_offset
+float64 z_offset
+float64 offset_to_leader
+float64 distance_to_target
+float64 relative_angle
+float64 distance_to_leader
+

@@ -70,7 +70,7 @@
 #include "mavlink_messages.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
-
+bool open_log_main(pthread_t &log_pthread);
 enum Protocol {
 	SERIAL = 0,
 	UDP,
@@ -131,14 +131,6 @@ public:
 	static int		destroy_all_instances();
 
 	static int		get_status_all_instances();
-
-	/**
-	 * Set all instances to verbose mode
-	 *
-	 * This is primarily intended for analysis and
-	 * not intended for normal operation
-	 */
-	static int		set_verbose_all_instances(bool enabled);
 
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
@@ -269,14 +261,7 @@ public:
 	/**
 	 * Set communication protocol for this mavlink instance
 	 */
-	void 			set_protocol(Protocol p) { _protocol = p; }
-
-	/**
-	 * Set verbose mode
-	 */
-	void			set_verbose(bool v);
-
-	bool			get_verbose() const { return _verbose; }
+	void 		set_protocol(Protocol p) {_protocol = p;};
 
 	/**
 	 * Get the manual input generation mode
@@ -303,7 +288,7 @@ public:
 	 *
 	 * @return the number of bytes sent or -1 in case of error
 	 */
-	int             	send_packet();
+	int             send_packet();
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
@@ -452,7 +437,7 @@ public:
 	int			get_data_rate()		{ return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
 
-	unsigned		get_main_loop_delay() const { return _main_loop_delay; }
+	uint64_t		get_main_loop_delay() { return _main_loop_delay; }
 
 	/** get the Mavlink shell. Create a new one if there isn't one. It is *always* created via MavlinkReceiver thread.
 	 *  Returns nullptr if shell cannot be created */
@@ -475,13 +460,12 @@ public:
 
 
 	void set_uorb_main_fd(int fd, unsigned int interval);
-
-	bool ftp_enabled() const { return _ftp_on; }
-
+	pthread_t log_pthread;
 protected:
 	Mavlink			*next;
 
 private:
+
 	int			_instance_id;
 
 	orb_advert_t		_mavlink_log_pub;
@@ -671,3 +655,4 @@ private:
 	Mavlink(const Mavlink &);
 	Mavlink operator=(const Mavlink &);
 };
+

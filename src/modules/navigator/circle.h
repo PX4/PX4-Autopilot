@@ -1,4 +1,4 @@
-/****************************************************************************
+/***************************************************************************
  *
  *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -30,66 +30,56 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file follow_target_params.c
+ * @file followme.cpp
  *
- * Parameters for follow target mode
+ * Helper class to track and follow a given position
  *
  * @author Jimmy Johnson <catch22@fastmail.net>
  */
 
-/*
- * Follow target parameters
- */
+#pragma once
 
-/**
- * Minimum follow target altitude
- *
- * The minimum height in meters relative to home for following a target
- *
- * @unit meters
- * @min 8.0
- * @group Follow target
- */
-PARAM_DEFINE_FLOAT(NAV_MIN_FT_HT, 8.0f);
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-/**
- * Distance to follow target from
- *
- * The distance in meters to follow the target at
- *
- * @unit meters
- * @min 1.0
- * @group Follow target
- */
-PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
+#include "navigator_mode.h"
+#include "mission_block.h"
+#include <drivers/drv_hrt.h>
+class Circle : public MissionBlock
+{
 
-/**
- * Side to follow target from
- *
- * The side to follow the target from (front right = 0, behind = 1, front = 2, front left = 3)
- *
- * @unit n/a
- * @min 0
- * @max 3
- * @group Follow target
- */
-PARAM_DEFINE_INT32(NAV_FT_FS, 1);
+public:
+	Circle(Navigator *navigator, const char *name);
 
-/**
- * Dynamic filtering algorithm responsiveness to target movement
- * lower numbers increase the responsiveness to changing long lat
- * but also ignore less noise
- *
- * @unit n/a
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Follow target
- */
-PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.5f);
+	Circle(const Circle &) = delete;
+	Circle &operator=(const Circle &) = delete;
 
-PARAM_DEFINE_FLOAT(INI_X_OFFSET, 4.0f);
-PARAM_DEFINE_FLOAT(INI_Y_OFFSET, 4.0f);
-PARAM_DEFINE_FLOAT(INI_Z_OFFSET, 0.0f);
+	~Circle();
+
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
+
+private:
+
+	Navigator *_navigator;
+
+	/**
+	 * Set the position to hold based on the current local position
+	 */
+	void reposition();
+	void set_circle_position();
+
+	control::BlockParamFloat _param_min_alt;
+	control::BlockParamInt _param_yawmode;
+	bool _circle_pos_set;
+	double center_x;
+	double center_y;
+	float alt;
+	float deg_per_sec;
+	float _angle;
+	circle_s target_circle;
+	float _yaw_angle;
+
+};
