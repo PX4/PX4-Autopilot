@@ -87,59 +87,45 @@ void Tunes::reset(bool repeat_flag)
 
 int Tunes::set_control(const tune_control_s &tune_control)
 {
-	bool reset_playing_tune = false;
-
-	// Only reset these flags if the new tune will actually be played.
-	// Note that repeated tunes can always be interrupted, even without the
-	// override flag.
-	if (_repeat || _tune == nullptr || tune_control.tune_override) {
-		_repeat = false;
-		_using_custom_msg = false;
-		_tune = nullptr;
-
-		// New tune will be played. This is the place to store the strength
-		// which will remain valid for the entire tune, unless interrupted.
-		_strength = (unsigned)tune_control.strength;
-	}
-
-	if (tune_control.tune_id < _default_tunes_size) {
-		switch (tune_control.tune_id) {
-		case static_cast<int>(TuneID::CUSTOM):
-			if (_tune == nullptr || tune_control.tune_override) {
-				_tune = nullptr;  // remove tune in case of override
-				_frequency = (unsigned)tune_control.frequency;
-				_duration = (unsigned)tune_control.duration;
-				_silence = (unsigned)tune_control.silence;
-				_using_custom_msg = true;
-			}
-
-			break;
-
-		// tunes that have a high priority
-		case static_cast<int>(TuneID::STARTUP):
-		case static_cast<int>(TuneID::ERROR_TUNE):
-		case static_cast<int>(TuneID::NOTIFY_POSITIVE):
-		case static_cast<int>(TuneID::NOTIFY_NEUTRAL):
-		case static_cast<int>(TuneID::NOTIFY_NEGATIVE):
-			reset_playing_tune = true;
-			reset(false);
-
-		/* FALLTHROUGH */
-		default:
-
-			// TODO: come up with a better strategy
-			if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
-				_tune = _default_tunes[tune_control.tune_id];
-				_tune_start_ptr = _default_tunes[tune_control.tune_id];
-				_next = _tune;
-			}
-
-			break;
-		}
-
-	} else {
+	// Sanity check
+	if (tune_control.tune_id >= _default_tunes_size) {
 		PX4_WARN("Tune ID not recognized.");
 		return -EINVAL;
+	}
+
+	// Accept new tune ?
+	if (_repeat || 			   // Repeated tunes can always be interrupted
+	    _tune == nullptr ||  	   // No tune is currently being played
+	    tune_control.tune_override ||  // Override interrupts everything
+	    tune_control.tune_id == static_cast<int>(TuneID::STARTUP) ||
+	    tune_control.tune_id == static_cast<int>(TuneID::ERROR_TUNE) ||
+	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_POSITIVE) ||
+	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_NEUTRAL) ||
+	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_NEGATIVE)) {
+
+		// Reset repeat flag. Can jump to true again while tune is being parsed later
+		_repeat = false;
+
+		// Reset octave, tempo etc.
+		reset(_repeat);
+
+		// Strength will remain valid for the entire tune, unless interrupted.
+		_strength = (unsigned)tune_control.strength;
+
+		// Special treatment for custom tunes
+		if (tune_control.tune_id == static_cast<int>(TuneID::CUSTOM)) {
+			_using_custom_msg = true;
+			_tune = nullptr;  // remove tune in case of override
+			_frequency = (unsigned)tune_control.frequency;
+			_duration = (unsigned)tune_control.duration;
+			_silence = (unsigned)tune_control.silence;
+
+		} else {
+			_using_custom_msg = false;
+			_tune = _default_tunes[tune_control.tune_id];
+			_tune_start_ptr = _default_tunes[tune_control.tune_id];
+			_next = _tune;
+		}
 	}
 
 	return OK;
@@ -147,8 +133,9 @@ int Tunes::set_control(const tune_control_s &tune_control)
 
 void Tunes::set_string(const char *const string)
 {
-	// set tune string the first time
-	if (_tune == nullptr) {
+	// Only play new tune if current tune is a repeated one nothing is being played
+	if (_repeat || _tune == nullptr) {
+		// set tune string the first time
 		_tune = string;
 		_tune_start_ptr = string;
 		_next = _tune;
