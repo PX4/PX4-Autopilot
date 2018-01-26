@@ -41,6 +41,8 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <math.h>
+#include <float.h>
 
 #include "mavlink_main.h"
 #include "mavlink_messages.h"
@@ -4281,7 +4283,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamCollision::new_instance, &MavlinkStreamCollision::get_name_static, &MavlinkStreamCollision::get_id_static),
 	StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
 	StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
-	StreamListItem(&MavlinkStreamHighLatency::new_instance, &MavlinkStreamHighLatency::get_name_static, &MavlinkStreamWind::get_id_static),
+	StreamListItem(&MavlinkStreamHighLatency::new_instance, &MavlinkStreamHighLatency::get_name_static, &MavlinkStreamHighLatency::get_id_static),
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static)
 };
 
@@ -4309,4 +4311,110 @@ MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink)
 	}
 
 	return nullptr;
+}
+
+SimpleAnalyzer::SimpleAnalyzer(Mode mode, unsigned int n_max) :
+	_n_max(n_max),
+	_mode(mode)
+{
+	reset();
+}
+
+SimpleAnalyzer::~SimpleAnalyzer()
+{
+}
+
+void SimpleAnalyzer::reset()
+{
+	_n = 0;
+
+	switch (_mode) {
+	case AVERAGE:
+		_result = 0.0f;
+
+		break;
+
+	case MIN:
+		_result = FLT_MAX;
+
+		break;
+
+	case MAX:
+		_result = FLT_MIN;
+
+		break;
+	default:
+		PX4_ERR("SimpleAnalyzer: Unknown mode.");
+	}
+}
+
+void SimpleAnalyzer::add_value(float val)
+{
+	switch (_mode) {
+	case AVERAGE:
+		_result = (_result * _n + val) / (_n + 1u);
+
+		break;
+
+	case MIN:
+		if (val < _result) {
+			_result = val;
+		}
+
+		break;
+
+	case MAX:
+		if (val > _result) {
+			_result = val;
+		}
+
+		break;
+	}
+
+	// if we get more measurements than n_max so the exponential moving average
+	// is computed
+	if (_n < _n_max) {
+		_n++;
+	}
+
+	// value sanity checks
+	if (!PX4_ISFINITE(_result)) {
+		PX4_ERR("SimpleAnalyzer: Result is not finite, reset the analyzer.");
+		reset();
+	}
+}
+
+bool SimpleAnalyzer::valid()
+{
+	return _n > 0u;
+}
+
+float SimpleAnalyzer::get()
+{
+	return _result;
+}
+
+float SimpleAnalyzer::get_scaled(float scalingfactor)
+{
+	return get() * scalingfactor;
+}
+
+void SimpleAnalyzer::check_limits(float &x, float min, float max)
+{
+	if (x > max) {
+		x = max;
+
+	} else if (x < min) {
+		x = min;
+	}
+}
+
+void SimpleAnalyzer::int_round(float &x)
+{
+	if (x < 0) {
+		x -= 0.5f;
+
+	} else {
+		x += 0.5f;
+	}
 }
