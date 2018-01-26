@@ -203,8 +203,10 @@ private:
 	unsigned next_dots();
 
 	/**
-	 * if repeat false set the tune parameters to default else point to the beginning of the tune
+	 * Reset the tune parameters. This is necessary when for example a tune moved
+	 * one or more octaves up or down. reset() should always be called before
+	 * (re)-starting a tune.
 	 */
-	void config_tone(bool repeat);
+	void reset(bool repeat_flag);
 
 };
