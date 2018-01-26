@@ -59,14 +59,14 @@ Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_n
 	_default_mode(default_mode),
 	_default_octave(default_octave)
 {
-	config_tone(false);
+	reset(false);
 }
 
 Tunes::Tunes(): Tunes(TUNE_DEFAULT_TEMPO, TUNE_DEFAULT_OCTAVE, TUNE_DEFAULT_NOTE_LENGTH, NoteMode::NORMAL)
 {
 }
 
-void Tunes::config_tone(bool repeat_flag)
+void Tunes::reset(bool repeat_flag)
 {
 	// reset pointer
 	if (!repeat_flag)	{
@@ -122,7 +122,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		case static_cast<int>(TuneID::NOTIFY_NEUTRAL):
 		case static_cast<int>(TuneID::NOTIFY_NEGATIVE):
 			reset_playing_tune = true;
-			config_tone(false);
+			reset(false);
 
 		/* FALLTHROUGH */
 		default:
@@ -358,12 +358,12 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
 tune_error:
 	// syslog(LOG_ERR, "tune error\n");
 	_repeat = false;		// don't loop on error
-	config_tone(_repeat);
+	reset(_repeat);
 	return TUNE_ERROR;
 	// stop (and potentially restart) the tune
 tune_end:
 	// restore intial parameter
-	config_tone(_repeat);
+	reset(_repeat);
 
 	if (_repeat) {
 		return TUNE_CONTINUE;
