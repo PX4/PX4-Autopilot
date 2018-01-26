@@ -43,6 +43,8 @@
 
 #include "mavlink_stream.h"
 
+#include <limits>
+
 class StreamListItem
 {
 
@@ -60,5 +62,43 @@ public:
 
 const char *get_stream_name(const uint16_t msg_id);
 MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink);
+
+class SimpleAnalyzer
+{
+public:
+	enum Mode {
+		AVERAGE = 0,
+		MIN,
+		MAX,
+	};
+
+	SimpleAnalyzer(Mode mode, unsigned int n_max = 1000);
+	virtual ~SimpleAnalyzer();
+
+	void reset();
+	void add_value(float val);
+	bool valid();
+	float get();
+	float get_scaled(float scalingfactor);
+
+	template <typename T>
+	void get_scaled(T &ret, float scalingfactor)
+	{
+		float avg = get_scaled(scalingfactor);
+		int_round(avg);
+		check_limits(avg, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+
+		ret = static_cast<T>(avg);
+	}
+
+private:
+	unsigned int _n = 0;
+	unsigned int _n_max = 1000;
+	Mode _mode = AVERAGE;
+	float _result = 0.0f;
+
+	void check_limits(float &x, float min, float max);
+	void int_round(float &x);
+};
 
 #endif /* MAVLINK_MESSAGES_H_ */
