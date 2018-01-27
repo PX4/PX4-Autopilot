@@ -647,55 +647,9 @@ void print_status()
 	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
 	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
-
 	warnx("main state: %d", internal_state.main_state);
 	warnx("nav state: %d", status.nav_state);
-
-	/* read all relevant states */
-	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
-	struct vehicle_status_s state;
-	orb_copy(ORB_ID(vehicle_status), state_sub, &state);
-
-	const char *armed_str;
-
-	switch (status.arming_state) {
-	case vehicle_status_s::ARMING_STATE_INIT:
-		armed_str = "INIT";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_STANDBY:
-		armed_str = "STANDBY";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_ARMED:
-		armed_str = "ARMED";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_ARMED_ERROR:
-		armed_str = "ARMED_ERROR";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR:
-		armed_str = "STANDBY_ERROR";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_REBOOT:
-		armed_str = "REBOOT";
-		break;
-
-	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE:
-		armed_str = "IN_AIR_RESTORE";
-		break;
-
-	default:
-		armed_str = "ERR: UNKNOWN STATE";
-		break;
-	}
-
-	px4_close(state_sub);
-
-
-	warnx("arming: %s", armed_str);
+	warnx("arming: %s", arming_state_names[status.arming_state]);
 }
 
 static orb_advert_t status_pub;
