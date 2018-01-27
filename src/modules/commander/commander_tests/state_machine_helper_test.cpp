@@ -269,7 +269,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
     };
 
 	struct vehicle_status_s status = {};
-	struct status_flags_s status_flags = {};
+	struct vehicle_status_flags_s status_flags = {};
 	struct safety_s         safety = {};
 	struct actuator_armed_s armed = {};
 	struct battery_status_s battery = {};
@@ -446,7 +446,7 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		// Setup initial machine state
 		struct vehicle_status_s current_vehicle_status = {};
 		struct commander_state_s current_commander_state = {};
-		struct status_flags_s current_status_flags = {};
+		struct vehicle_status_flags_s current_status_flags = {};
 
 		uint8_t main_state_prev = 0;
 
