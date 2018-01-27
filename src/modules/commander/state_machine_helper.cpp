@@ -108,7 +108,7 @@ static int last_prearm_ret = 1;			///< initialize to fail
 
 void set_link_loss_nav_state(vehicle_status_s *status,
 			     actuator_armed_s *armed,
-			     status_flags_s *status_flags,
+			     vehicle_status_flags_s *status_flags,
 			     commander_state_s *internal_state,
 			     const link_loss_actions_t link_loss_act,
 			     uint8_t auto_recovery_nav_state);
@@ -124,7 +124,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
                                             actuator_armed_s *armed,
                                             bool fRunPreArmChecks,
                                             orb_advert_t *mavlink_log_pub,	///< uORB handle for mavlink log
-                                            status_flags_s *status_flags,
+                                            vehicle_status_flags_s *status_flags,
                                             float avionics_power_rail_voltage,
                                             uint8_t arm_requirements,
                                             hrt_abstime time_since_boot)
@@ -395,7 +395,7 @@ bool is_safe(const struct safety_s *safety, const struct actuator_armed_s *armed
 
 transition_result_t
 main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,
-		      status_flags_s *status_flags, struct commander_state_s *internal_state)
+		      vehicle_status_flags_s *status_flags, struct commander_state_s *internal_state)
 {
 	// IMPORTANT: The assumption of callers of this function is that the execution of
 	// this check if essentially "free". Therefore any runtime checking in here has to be
@@ -601,7 +601,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		   const link_loss_actions_t data_link_loss_act,
 		   const bool mission_finished,
 		   const bool stay_in_failsafe,
-		   status_flags_s *status_flags,
+		   vehicle_status_flags_s *status_flags,
 		   bool landed,
 		   const link_loss_actions_t rc_loss_act,
 		   const int offb_loss_act,
@@ -983,7 +983,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 void set_rc_loss_nav_state(vehicle_status_s *status,
 			   actuator_armed_s *armed,
-			   status_flags_s *status_flags,
+			   vehicle_status_flags_s *status_flags,
 			   commander_state_s *internal_state,
 			   const link_loss_actions_t link_loss_act)
 {
@@ -993,7 +993,7 @@ void set_rc_loss_nav_state(vehicle_status_s *status,
 bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 			       bool old_failsafe,
 			       orb_advert_t *mavlink_log_pub,
-			       status_flags_s *status_flags,
+			       vehicle_status_flags_s *status_flags,
 			       const bool use_rc, // true if we can fallback to a mode that uses RC inputs
 			       const bool using_global_pos) // true if the current flight mode requires a global position
 {
@@ -1051,7 +1051,7 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 
 void set_data_link_loss_nav_state(vehicle_status_s *status,
 				  actuator_armed_s *armed,
-				  status_flags_s *status_flags,
+				  vehicle_status_flags_s *status_flags,
 				  commander_state_s *internal_state,
 				  const link_loss_actions_t link_loss_act)
 {
@@ -1060,7 +1060,7 @@ void set_data_link_loss_nav_state(vehicle_status_s *status,
 
 void set_link_loss_nav_state(vehicle_status_s *status,
 			     actuator_armed_s *armed,
-			     status_flags_s *status_flags,
+			     vehicle_status_flags_s *status_flags,
 			     commander_state_s *internal_state,
 			     const link_loss_actions_t link_loss_act,
 			     uint8_t auto_recovery_nav_state)
@@ -1126,7 +1126,7 @@ void reset_link_loss_globals(struct actuator_armed_s *armed, const bool old_fail
 }
 
 int prearm_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report,
-		    status_flags_s *status_flags, battery_status_s *battery, uint8_t arm_requirements,
+		    vehicle_status_flags_s *status_flags, battery_status_s *battery, uint8_t arm_requirements,
 		    hrt_abstime time_since_boot)
 {
 	bool reportFailures = force_report || (!status_flags->condition_system_prearm_error_reported &&
