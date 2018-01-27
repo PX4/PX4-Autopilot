@@ -93,7 +93,7 @@ static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle
 };
 
 // You can index into the array with an arming_state_t in order to get its textual representation
-static const char *const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
+const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_INIT",
 	"ARMING_STATE_STANDBY",
 	"ARMING_STATE_ARMED",
@@ -374,8 +374,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s", state_names[status->arming_state],
-					     state_names[new_arming_state]);
+			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s", arming_state_names[status->arming_state],
+						 arming_state_names[new_arming_state]);
 		}
 	}
 
