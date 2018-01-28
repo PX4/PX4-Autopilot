@@ -42,6 +42,7 @@
 
 /* XXX trim includes */
 extern bool isFollowerUpdated;
+extern int formation_id;
 #include <px4_config.h>
 #include <px4_time.h>
 #include <px4_tasks.h>
@@ -158,7 +159,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mom_switch_state(0),
 	_p_bat_emergen_thr(param_find("BAT_EMERGEN_THR")),
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
-	_p_bat_low_thr(param_find("BAT_LOW_THR"))
+        _p_bat_low_thr(param_find("BAT_LOW_THR"))
 {
 }
 
@@ -183,7 +184,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 		break;
 	case MAVLINK_MSG_ID_Chen_Formation_msg:
-		if((msg->compid == 1)&&(mavlink_system.compid!=1))
+                if((msg->compid == 1)&&(formation_id!=1))
 		{
 		handle_message_Chen_Formation_msg(msg);
 		}
@@ -383,8 +384,8 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 		break;
 
 	default:
-		target_ok = (target_system == mavlink_system.sysid) && ((target_component == mavlink_system.compid)
-				|| (target_component == MAV_COMP_ID_ALL));
+                target_ok = (target_system == mavlink_system.sysid) &&
+                                 (target_component == MAV_COMP_ID_ALL);
 		break;
 	}
 
@@ -526,7 +527,7 @@ MavlinkReceiver::handle_message_Chen_Formation_msg(mavlink_message_t *msg)
 	follow_target_topic.vy = chen_formation.vy* 1e-2;
 	follow_target_topic.vz = -chen_formation.vz/100;
 	follow_target_topic.leader_hdg = chen_formation.hdg * 1e-2;
-	follow_target_topic.plane_id = mavlink_system.compid;
+        follow_target_topic.plane_id =1;
 	if (_follow_target_pub == nullptr) {
 		_follow_target_pub = orb_advertise(ORB_ID(follow_target),
 				&follow_target_topic);

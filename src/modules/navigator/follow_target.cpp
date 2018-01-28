@@ -181,7 +181,7 @@ void FollowTarget::on_active()
 			follower.y_offset -= 0.05;
 			calcu_relative_angle_distance();
 		} else if (_manual.y < -0.9 && _manual.x < -0.9) {
-			if (_current_target_motion.plane_id % 4 == 1) {
+                        /*if (_current_target_motion.plane_id % 4 == 1) {
 				follower.x_offset = 3;
 				follower.y_offset = 3;
 				ischanging = 1;
@@ -206,7 +206,7 @@ void FollowTarget::on_active()
 			follower.x_offset = (_current_target_motion.plane_id - 1) * 2;
 			follower.y_offset = (_current_target_motion.plane_id - 1) * 2;
 			calcu_relative_angle_distance();
-			ischanging = 1;
+                        ischanging = 1;*/
 		}
 		if (_manual.r > 0.9) {
 			follower.relative_angle += 0.06;

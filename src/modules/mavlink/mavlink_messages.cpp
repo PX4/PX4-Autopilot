@@ -40,6 +40,8 @@
  */
 bool started_sd = false;
 extern bool exit_sd;
+extern int formation_id;
+
 #include <stdio.h>
 #include <errno.h>
 
@@ -342,7 +344,7 @@ protected:
                 _pos_sub->update(&_pos_time,&pos_alt);
                 if (updated) {
                         mavlink_chen_formation_msg_t msg = {};
-                        msg.plane_id = mavlink_system.compid;
+                        msg.plane_id = formation_id;
                         msg.time_boot_ms = pos.timestamp / 1000;
                         msg.lat = pos.lat * 1e7;
                         msg.lon = pos.lon * 1e7;
@@ -352,7 +354,7 @@ protected:
                         msg.vz = pos.vel_d*100 ;
                         msg.hdg = _wrap_2pi(pos.yaw)*100;
                         last_fol_upda_time = msg.time_boot_ms;
-                        if((isFollowerUpdated||((msg.time_boot_ms-last_fol_upda_time)>1000))||(mavlink_system.compid==1)){
+                        if(formation_id==1){
                                 mavlink_msg_chen_formation_msg_send_struct(_mavlink->get_channel(), &msg);
                                 isFollowerUpdated = false;
                         }

@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 bool exit_sd = false;
-
+int formation_id = 1;
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
@@ -275,7 +275,8 @@ Mavlink::Mavlink() :
 	_param_system_type(PARAM_INVALID),
 	_param_use_hil_gps(PARAM_INVALID),
 	_param_forward_externalsp(PARAM_INVALID),
-	_param_broadcast(PARAM_INVALID),
+        _param_broadcast(PARAM_INVALID),
+        _param_formation_id(PARAM_INVALID),
 	_system_type(0),
 
 	/* performance counters */
@@ -585,7 +586,7 @@ void Mavlink::mavlink_update_system()
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 		_param_broadcast = param_find("MAV_BROADCAST");
-
+                _param_formation_id = param_find("MAV_FORMATION_ID");
 		/* test param - needs to be referenced, but is unused */
 		(void)param_find("MAV_TEST_PAR");
 	}
@@ -596,6 +597,8 @@ void Mavlink::mavlink_update_system()
 
 	int32_t component_id;
 	param_get(_param_component_id, &component_id);
+
+        param_get(_param_formation_id, &formation_id);
 
 	int32_t proto = 0;
 	param_get(_param_proto_ver, &proto);
