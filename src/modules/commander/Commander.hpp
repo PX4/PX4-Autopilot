@@ -87,6 +87,16 @@ public:
 	static bool preflight_check(bool report);
 
 private:
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::COM_HOME_H_T>) _home_eph_threshold,
+		(ParamFloat<px4::params::COM_HOME_V_T>) _home_epv_threshold,
+
+		(ParamFloat<px4::params::COM_POS_FS_EPH>) _eph_threshold,
+		(ParamFloat<px4::params::COM_POS_FS_EPV>) _epv_threshold,
+		(ParamFloat<px4::params::COM_VEL_FS_EVH>) _evh_threshold,
+	)
+
 	bool handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed_local, home_position_s *home, const vehicle_global_position_s &global_pos,
 			    const vehicle_local_position_s &local_pos, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
