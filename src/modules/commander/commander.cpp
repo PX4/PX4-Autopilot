@@ -66,6 +66,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <geo/geo.h>
+#include <mathlib/mathlib.h>
 #include <navigator/navigation.h>
 #include <px4_defines.h>
 #include <px4_config.h>
@@ -141,8 +142,6 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define COMMANDER_MONITORING_INTERVAL 10000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
 
-#define MAVLINK_OPEN_INTERVAL 50000
-
 #define STICK_ON_OFF_LIMIT 0.9f
 
 #define POSITION_TIMEOUT		1			/**< default number of seconds of position health check failure required to declare the position invalid */
@@ -159,27 +158,25 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 
 /* Controls the probation period which is the amount of time required for position and velocity checks to pass before the validity can be changed from false to true*/
 #define POSVEL_PROBATION_TAKEOFF 30		/**< probation duration set at takeoff (sec) */
-#define POSVEL_PROBATION_MIN 1E6		/**< minimum probation duration (usec) */
-#define POSVEL_PROBATION_MAX 100E6		/**< maximum probation duration (usec) */
-#define POSVEL_VALID_PROBATION_FACTOR 10	/**< the rate at which the probation duration is increased while checks are failing */
+
+static constexpr int64_t sec_to_usec = (1000 * 1000);
+
+static constexpr int64_t POSVEL_PROBATION_MIN = 1 * sec_to_usec;		/**< minimum probation duration (usec) */
+static constexpr int64_t POSVEL_PROBATION_MAX = 100 * sec_to_usec;		/**< maximum probation duration (usec) */
 
 /* Parameters controlling the sensitivity of the position failsafe */
-static int32_t posctl_nav_loss_delay = POSITION_TIMEOUT * (1000 * 1000);
-static int32_t posctl_nav_loss_prob = POSVEL_PROBATION_TAKEOFF * (1000 * 1000);
-static int32_t posctl_nav_loss_gain = POSVEL_VALID_PROBATION_FACTOR;
+static uint64_t posctl_nav_loss_delay = POSITION_TIMEOUT * sec_to_usec;
+static uint64_t posctl_nav_loss_prob = POSVEL_PROBATION_TAKEOFF * sec_to_usec;
+static int32_t posctl_nav_loss_gain = 10; /**< the rate at which the probation duration is increased while checks are failing */
 
-/*
- * Probation times for position and velocity validity checks to pass if failed
- * Signed integers are used because these can become negative values before constraints are applied
- */
-static int64_t gpos_probation_time_us = POSVEL_PROBATION_MIN;
-static int64_t gvel_probation_time_us = POSVEL_PROBATION_MIN;
-static int64_t lpos_probation_time_us = POSVEL_PROBATION_MIN;
-static int64_t lvel_probation_time_us = POSVEL_PROBATION_MIN;
+// Probation times for position and velocity validity checks to pass if failed
+static uint64_t gpos_probation_time_us = POSVEL_PROBATION_MIN;
+static uint64_t gvel_probation_time_us = POSVEL_PROBATION_MIN;
+static uint64_t lpos_probation_time_us = POSVEL_PROBATION_MIN;
+static uint64_t lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
-
 static orb_advert_t power_button_state_pub = nullptr;
 
 /* flags */
@@ -296,7 +293,7 @@ transition_result_t set_main_state_rc(struct vehicle_status_s *status, vehicle_g
 
 void reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
 
-void check_posvel_validity(bool data_valid, float data_accuracy, float required_accuracy, uint64_t data_timestamp_us, hrt_abstime *last_fail_time_us, int64_t *probation_time_us, bool *valid_state, bool *validity_changed);
+bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy, const hrt_abstime& data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state, bool *validity_changed);
 
 void set_control_mode();
 
@@ -1522,14 +1519,16 @@ Commander::run()
 
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
-	/* Get parameter values controlloing activation of position failure failsafe and convert to required units*/
-	const int32_t sec_to_usec = (1000 * 1000);
-	int32_t init_param_val = POSITION_TIMEOUT;
-	param_get(param_find("COM_POS_FS_DELAY"), &posctl_nav_loss_delay);
-	posctl_nav_loss_delay = init_param_val * sec_to_usec; // convert to uSec
-	init_param_val = POSVEL_PROBATION_TAKEOFF;
-	param_get(param_find("COM_POS_FS_PROB"), &posctl_nav_loss_prob);
-	posctl_nav_loss_prob = init_param_val * sec_to_usec; // convert to uSec
+	/* Get parameter values controlling activation of position failure failsafe and convert to required units*/
+
+	int32_t val = POSITION_TIMEOUT;
+	param_get(param_find("COM_POS_FS_DELAY"), &val);
+	posctl_nav_loss_delay = math::constrain(val * sec_to_usec, POSVEL_PROBATION_MIN, POSVEL_PROBATION_MAX);
+
+	val = POSVEL_PROBATION_TAKEOFF;
+	param_get(param_find("COM_POS_FS_PROB"), &val);
+	posctl_nav_loss_prob = math::constrain(val * sec_to_usec, POSVEL_PROBATION_MIN, POSVEL_PROBATION_MAX);
+
 	param_get(param_find("COM_POS_FS_GAIN"), &posctl_nav_loss_gain);
 
 	thread_running = true;
@@ -1550,6 +1549,12 @@ Commander::run()
 	}
 
 	commander_boot_timestamp = hrt_absolute_time();
+
+	// initially set to failed
+	last_lpos_fail_time_us = commander_boot_timestamp;
+	last_gpos_fail_time_us = commander_boot_timestamp;
+	last_lvel_fail_time_us = commander_boot_timestamp;
+	last_gvel_fail_time_us = commander_boot_timestamp;
 
 	// Run preflight check
 	int32_t rc_in_off = 0;
@@ -2109,8 +2114,7 @@ Commander::run()
 		}
 
 		/* update condition_local_altitude_valid */
-		check_valid(local_position.timestamp, posctl_nav_loss_delay, local_position.z_valid,
-			    &(status_flags.condition_local_altitude_valid), &status_changed);
+		check_valid(local_position.timestamp, posctl_nav_loss_delay, local_position.z_valid, &(status_flags.condition_local_altitude_valid), &status_changed);
 
 		/* Update land detector */
 		orb_check(land_detector_sub, &updated);
@@ -3732,59 +3736,54 @@ reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_local_
 	check_posvel_validity(local_position->v_xy_valid, local_position->evh, evh_threshold, local_position->timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, changed);
 }
 
-void
-check_posvel_validity(bool data_valid, float data_accuracy, float required_accuracy, uint64_t data_timestamp_us, hrt_abstime *last_fail_time_us, int64_t *probation_time_us, bool *valid_state, bool *validity_changed)
+bool
+check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy, const hrt_abstime& data_timestamp_us, hrt_abstime* last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state, bool *validity_changed)
 {
-	bool pos_inaccurate = false;
-	hrt_abstime now = hrt_absolute_time();
-
-	// Check accuracy with hysteresis in both test level and time
-	bool pos_status_changed = false;
-	if (*valid_state && ((data_accuracy > required_accuracy * 2.5f) || !data_valid)) {
-		pos_inaccurate = true;
-		pos_status_changed = true;
-		*last_fail_time_us = now;
-	} else if (!*valid_state) {
-		bool level_check_pass = data_valid && data_accuracy < required_accuracy;
-		if (!level_check_pass) {
-			*probation_time_us += (now - *last_fail_time_us) * posctl_nav_loss_gain;
-			*last_fail_time_us = now;
-		} else if (now - *last_fail_time_us > *probation_time_us) {
-			pos_inaccurate = false;
-			pos_status_changed = true;
-			*last_fail_time_us = 0;
-		}
-	} else {
-		*probation_time_us -= (now - *last_fail_time_us);
-		*last_fail_time_us = now;
-	}
-
-	bool data_stale = (now - data_timestamp_us > posctl_nav_loss_delay);
-
-	// Set validity
-	if (pos_status_changed) {
-		if (*valid_state && (data_stale || !data_valid || pos_inaccurate)) {
-			*valid_state = false;
-			*validity_changed = true;
-		} else if (!*valid_state
-			   && !data_stale
-			   && !pos_inaccurate
-			   && data_valid) {
-			*valid_state = true;
-			*validity_changed = true;
-		}
-	}
+	const bool was_valid = *valid_state;
+	bool valid = was_valid;
 
 	// constrain probation times
 	if (land_detector.landed) {
 		*probation_time_us = POSVEL_PROBATION_MIN;
-	} else {
-		if (*probation_time_us < POSVEL_PROBATION_MIN) {
-			*probation_time_us = POSVEL_PROBATION_MIN;
-		} else if (*probation_time_us > POSVEL_PROBATION_MAX) {
-			*probation_time_us = POSVEL_PROBATION_MAX;
-		}
 	}
+
+	const bool data_stale = (hrt_elapsed_time(&data_timestamp_us) > posctl_nav_loss_delay);
+	const float req_accuracy = (was_valid ? required_accuracy * 2.5f : required_accuracy);
+
+	const bool level_check_pass = data_valid && !data_stale && (data_accuracy < req_accuracy);
+
+	// Check accuracy with hysteresis in both test level and time
+	if (level_check_pass) {
+		if (was_valid) {
+			// still valid, continue to decrease probation time
+			const int64_t probation_time_new = *probation_time_us - hrt_elapsed_time(last_fail_time_us);
+			*probation_time_us = math::constrain(probation_time_new, POSVEL_PROBATION_MIN, POSVEL_PROBATION_MAX);
+		} else {
+			// check if probation period has elapsed
+			if (hrt_elapsed_time(last_fail_time_us) > *probation_time_us) {
+				valid = true;
+			}
+		}
+	} else {
+		// level check failed
+		if (was_valid) {
+			// FAILURE! no longer valid
+			valid = false;
+		} else {
+			// failed again, increase probation time
+			const int64_t probation_time_new = *probation_time_us + hrt_elapsed_time(last_fail_time_us) * posctl_nav_loss_gain;
+			*probation_time_us = math::constrain(probation_time_new, POSVEL_PROBATION_MIN, POSVEL_PROBATION_MAX);
+		}
+
+		*last_fail_time_us = hrt_absolute_time();
+	}
+
+	if (was_valid != valid) {
+		*validity_changed = true;
+		*valid_state = valid;
+	}
+
+	return valid;
 }
 
 void
