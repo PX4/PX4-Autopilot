@@ -45,6 +45,9 @@ param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
 param set EKF2_AID_MASK 2
 param set EKF2_HGT_MODE 2
+param set EKF2_EV_DELAY 5
+param set EKF2_EVP_NOISE 0.05
+param set EKF2_EVA_NOISE 0.05
 replay tryapplyparams
 simulator start -s
 tone_alarm start
@@ -75,6 +78,7 @@ mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 mavlink stream -r 10 -s DISTANCE_SENSOR -u 14556
+mavlink stream -r 10 -s VISION_POSITION_ESTIMATE -u 14556
 logger start -e -t
 mavlink boot_complete
 replay trystart
