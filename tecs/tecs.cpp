@@ -206,24 +206,15 @@ void TECS::_update_speed_setpoint()
 	// Set the airspeed demand to the minimum value if an underspeed or
 	// or a uncontrolled descent condition exists to maximise climb rate
 	if ((_uncommanded_descent_recovery) || (_underspeed_detected)) {
-		_TAS_setpoint     = _TAS_min;
+		_TAS_setpoint = _TAS_min;
 	}
 
 	_TAS_setpoint = constrain(_TAS_setpoint, _TAS_min, _TAS_max);
 
-	// Apply limits on the demanded rate of change of speed based on physical performance limits
+	// Calculate limits for the demanded rate of change of speed based on physical performance limits
 	// with a 50% margin to allow the total energy controller to correct for errors.
-	float velRateMax;
-	float velRateMin;
-
-	if ((_uncommanded_descent_recovery) || (_underspeed_detected)) {
-		velRateMax = 0.5f * _STE_rate_max / _tas_state;
-		velRateMin = 0.5f * _STE_rate_min / _tas_state;
-
-	} else {
-		velRateMax = 0.5f * _STE_rate_max / _tas_state;
-		velRateMin = 0.5f * _STE_rate_min / _tas_state;
-	}
+	float velRateMax = 0.5f * _STE_rate_max / _tas_state;
+	float velRateMin = 0.5f * _STE_rate_min / _tas_state;
 
 	_TAS_setpoint_adj = constrain(_TAS_setpoint, _TAS_min, _TAS_max);
 
