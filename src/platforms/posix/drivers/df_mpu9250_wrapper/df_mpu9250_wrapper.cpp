@@ -69,14 +69,13 @@
 #include <mpu9250/MPU9250.hpp>
 #include <DevMgr.hpp>
 
-// We don't want to auto publish, therefore set this to 0.
-#define MPU9250_NEVER_AUTOPUBLISH_US 0
-
 #define MPU9250_ACCEL_DEFAULT_RATE 1000
 #define MPU9250_GYRO_DEFAULT_RATE 1000
 
 #define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
 #define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
+
+#define MPU9250_PUB_RATE 250
 
 
 extern "C" { __EXPORT int df_mpu9250_wrapper_main(int argc, char *argv[]); }
@@ -198,8 +197,8 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	_accel_orb_class_instance(-1),
 	_gyro_orb_class_instance(-1),
 	_mag_orb_class_instance(-1),
-	_accel_int(MPU9250_NEVER_AUTOPUBLISH_US, false),
-	_gyro_int(MPU9250_NEVER_AUTOPUBLISH_US, true),
+	_accel_int(1000000 / MPU9250_PUB_RATE, false),
+	_gyro_int(1000000 / MPU9250_PUB_RATE, true),
 	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
