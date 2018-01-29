@@ -328,7 +328,7 @@ pipeline {
         stage('ROS vtol mission new 1') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:latest'
               args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -361,7 +361,7 @@ pipeline {
         stage('ROS vtol mission new 2') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:latest'
               args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -394,7 +394,7 @@ pipeline {
         stage('ROS vtol mission old 1') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:latest'
               args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -427,7 +427,7 @@ pipeline {
         stage('ROS vtol mission old 2') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:latest'
               args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -460,7 +460,7 @@ pipeline {
         stage('ROS vtol mission old 3') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:latest'
               args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -493,7 +493,7 @@ pipeline {
         stage('ROS MC mission box') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:latest'
               args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -526,7 +526,7 @@ pipeline {
         stage('ROS offboard att') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:latest'
               args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
@@ -553,7 +553,7 @@ pipeline {
         stage('ROS offboard pos') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:latest'
               args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
             }
           }
