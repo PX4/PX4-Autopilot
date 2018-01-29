@@ -42,7 +42,7 @@
 #include "data_validator.h"
 #include <ecl/ecl.h>
 
-DataValidator::DataValidator(DataValidator *prev_sibling) :
+DataValidator::DataValidator() :
 	_error_mask(ERROR_FLAG_NO_ERROR),
 	_timeout_interval(20000),
 	_time_last(0),
@@ -58,7 +58,7 @@ DataValidator::DataValidator(DataValidator *prev_sibling) :
 	_vibe{0.0f},
 	_value_equal_count(0),
 	_value_equal_count_threshold(VALUE_EQUAL_COUNT_DEFAULT),
-	_sibling(prev_sibling)
+	_sibling(nullptr)
 {
 
 }

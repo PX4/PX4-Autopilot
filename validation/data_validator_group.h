@@ -133,7 +133,8 @@ public:
 
 
 private:
-	DataValidator *_first;		/**< sibling in the group */
+	DataValidator *_first;		/**< first node in the group */
+	DataValidator *_last;		/**< last node in the group */
 	uint32_t _timeout_interval_us; /**< currently set timeout */
 	int _curr_best;		/**< currently best index */
 	int _prev_best;		/**< the previous best index */
