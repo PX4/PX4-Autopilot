@@ -370,6 +370,7 @@ private:
 	int _vehicle_attitude_sub;
 	int _manual_sub;
 	int _vehicle_status_sub;
+	int _camera_trigger_sub;
 
 	// hil map_ref data
 	struct map_projection_reference_s _hil_local_proj_ref;
@@ -391,6 +392,7 @@ private:
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);
 	void send_controls();
+	void send_camera_trigger();
 	void pollForMAVLinkMessages(bool publish, int udp_port);
 
 	void pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index);
