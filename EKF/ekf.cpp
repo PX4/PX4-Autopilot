@@ -190,8 +190,8 @@ bool Ekf::initialiseFilter()
 
 	// accumulate enough height measurements to be confident in the qulaity of the data
 	if (_primary_hgt_source == VDIST_SENSOR_BARO || _primary_hgt_source == VDIST_SENSOR_GPS ||
-		  _primary_hgt_source == VDIST_SENSOR_RANGE) {
-		// if the user parameter specifies use of GPS/range finder for height we use baro height initially and switch to GPS/range finder
+		  _primary_hgt_source == VDIST_SENSOR_RANGE || _primary_hgt_source == VDIST_SENSOR_EV) {
+		// if the user parameter specifies use of GPS/range/EV finder for height we use baro height initially and switch to GPS/range/EV finder
 		// later when it passes checks.
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 			if ((_hgt_counter == 0) && (_baro_sample_delayed.time_us != 0)) {
