@@ -33,11 +33,7 @@
 
 message(FATAL_ERROR Configuraton is incomplete")
 
-px4_add_module(
-	MODULE drivers__boards__zubaxgnss-v1
-	SRCS
-		zubax_gnss_init.c
-		zubax_gnss_led.c
-	DEPENDS
-		platforms__common
-	)
+px4_add_library(drivers_board
+	init.c
+	led.c
+)

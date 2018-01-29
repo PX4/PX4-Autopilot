@@ -30,16 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__px4fmu-v2
-	SRCS
-		px4fmu_can.c
-		px4fmu_i2c.c
-		px4fmu_init.c
-		px4fmu_led.c
-		px4fmu_spi.c
-		px4fmu_timer_config.c
-		px4fmu_usb.c
-	DEPENDS
-		platforms__common
-	)
+
+px4_add_library(drivers_board
+	can.c
+	i2c.c
+	init.c
+	led.c
+	spi.c
+	timer_config.c
+	usb.c
+)
