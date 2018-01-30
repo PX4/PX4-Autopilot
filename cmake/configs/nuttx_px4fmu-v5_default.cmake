@@ -15,6 +15,7 @@ set(config_module_list
 	drivers/airspeed
 	drivers/blinkm
 	drivers/bma180
+	drivers/bmi055
 	drivers/bmi160
 	drivers/boards
 	drivers/bst
