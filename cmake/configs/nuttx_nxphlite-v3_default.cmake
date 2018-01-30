@@ -146,6 +146,7 @@ set(config_module_list
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
+	lib/tunes
 	lib/version
 	lib/DriverFramework/framework
 
