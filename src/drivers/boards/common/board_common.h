@@ -342,6 +342,7 @@ typedef enum PX4_SOC_ARCH_ID_t {
 	PX4_SOC_ARCH_ID_RPI            =  0x1004,
 	PX4_SOC_ARCH_ID_SIM            =  0x1005,
 	PX4_SOC_ARCH_ID_SITL           =  0x1006,
+	PX4_SOC_ARCH_ID_BEBOP          =  0x1007,
 
 } PX4_SOC_ARCH_ID_t;
 

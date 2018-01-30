@@ -40,7 +40,7 @@
 #pragma once
 
 #define BOARD_OVERRIDE_UUID "BEBOPID000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID 0x1006
+#define PX4_SOC_ARCH_ID PX4_SOC_ARCH_ID_BEBOP
 
 #define BOARD_NAME "BEBOP"
 
