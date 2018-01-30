@@ -71,6 +71,8 @@ MavlinkStream::set_interval(const int interval)
 int
 MavlinkStream::update(const hrt_abstime t)
 {
+	update_data();
+
 	// If the message has never been sent before we want
 	// to send it immediately and can return right away
 	if (_last_sent == 0) {

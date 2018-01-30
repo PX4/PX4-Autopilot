@@ -103,6 +103,11 @@ protected:
 	virtual bool send(const hrt_abstime t) = 0;
 #endif
 
+	/**
+	 * Function to collect/update data for the streams when update() is called.
+	 */
+	virtual void update_data() { }
+
 private:
 	hrt_abstime _last_sent;
 
