@@ -178,11 +178,11 @@ public:
 		BROADCAST_MODE_ON
 	};
 
-        enum FLOW_CONTROL_MODE {
-                OFF = 0,
-                AUTO,
-                ON
-        };
+	enum FLOW_CONTROL_MODE {
+		OFF = 0,
+		AUTO,
+		ON
+	};
 
 	static const char *mavlink_mode_str(enum MAVLINK_MODE mode)
 	{

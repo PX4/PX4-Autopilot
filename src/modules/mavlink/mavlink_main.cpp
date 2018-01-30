@@ -808,15 +808,15 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_
 		return -1;
 	}
 
-        /*
-         * Setup hardware flow control. If the port has no RTS pin this call will fail,
-         * which is not an issue, but requires a separate call so we can fail silently.
-         */
+	/*
+	 * Setup hardware flow control. If the port has no RTS pin this call will fail,
+	 * which is not an issue, but requires a separate call so we can fail silently.
+	*/
 
-        /* setup output flow control */
-        if (enable_flow_control(force_flow_control ? ON : AUTO)) {
-                PX4_WARN("hardware flow control not supported");
-        }
+	/* setup output flow control */
+	if (enable_flow_control(force_flow_control ? ON : AUTO)) {
+		PX4_WARN("hardware flow control not supported");
+	}
 
 	return _uart_fd;
 }
@@ -1732,7 +1732,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_baudrate = 57600;
 	_datarate = 0;
 	_mode = MAVLINK_MODE_NORMAL;
-        bool _force_flow_control = false;
+	bool _force_flow_control = false;
 
 #ifdef __PX4_NUTTX
 	/* the NuttX optarg handler does not
@@ -1880,9 +1880,9 @@ Mavlink::task_main(int argc, char *argv[])
 			_ftp_on = true;
 			break;
 
-                case 'z':
-                        _force_flow_control = true;
-                        break;
+		case 'z':
+			_force_flow_control = true;
+			break;
 
 		default:
 			err_flag = true;
@@ -2787,7 +2787,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
-        PRINT_MODULE_USAGE_PARAM_FLAG('z', "force flow control always on", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force flow control always on", true);
 
 	PRINT_MODULE_USAGE_ARG("on|off", "Enable/disable", true);
 
