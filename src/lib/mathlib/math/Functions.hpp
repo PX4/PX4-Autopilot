@@ -61,9 +61,9 @@ int sign(T val)
  * @return result of function output
  */
 template<typename T>
-inline const T expo(const T &value, const T &e)
+const T expo(const T &value, const T &e)
 {
-	T x = constrain(value, (T) -1, (T) 1);
+	T x = constrain(value, (T) - 1, (T) 1);
 	T ec = constrain(e, (T) 0, (T) 1);
 	return (1 - ec) * x + ec * x * x * x;
 }
@@ -80,9 +80,9 @@ inline const T expo(const T &value, const T &e)
  * @return result of function output
  */
 template<typename T>
-inline const T superexpo(const T &value, const T &e, const T &g)
+const T superexpo(const T &value, const T &e, const T &g)
 {
-	T x = constrain(value, (T) -1, (T) 1);
+	T x = constrain(value, (T) - 1, (T) 1);
 	T gc = constrain(g, (T) 0, (T) 0.99);
 	return expo(x, e) * (1 - gc) / (1 - fabsf(x) * gc);
 }
@@ -102,9 +102,9 @@ inline const T superexpo(const T &value, const T &e, const T &g)
  * 		0.99 - almost entire span is deadzone
  */
 template<typename T>
-inline const T deadzone(const T &value, const T &dz)
+const T deadzone(const T &value, const T &dz)
 {
-	T x = constrain(value, (T) -1, (T) 1);
+	T x = constrain(value, (T) - 1, (T) 1);
 	T dzc = constrain(dz, (T) 0, (T) 0.99);
 	// Rescale the input such that we get a piecewise linear function that will be continuous with applied deadzone
 	T out = (x - sign(x) * dzc) / (1 - dzc);
@@ -113,7 +113,7 @@ inline const T deadzone(const T &value, const T &dz)
 }
 
 template<typename T>
-inline const T expo_deadzone(const T &value, const T &e, const T &dz)
+const T expo_deadzone(const T &value, const T &e, const T &dz)
 {
 	return expo(deadzone(value, dz), e);
 }
@@ -129,7 +129,7 @@ inline const T expo_deadzone(const T &value, const T &e, const T &dz)
  *         x_low   x_high
  */
 template<typename T>
-inline const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
+const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
 {
 	if (value < x_low) {
 		return y_low;
@@ -145,4 +145,4 @@ inline const T gradual(const T &value, const T &x_low, const T &x_high, const T 
 	}
 }
 
-}
+} /* namespace math */
