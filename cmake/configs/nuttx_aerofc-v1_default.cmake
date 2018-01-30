@@ -13,6 +13,7 @@ set(config_module_list
 	drivers/distance_sensor
 	drivers/gps
 	drivers/led
+	drivers/barometer/ms5611
 	drivers/magnetometer/hmc5883
 	drivers/magnetometer/ist8310
 	drivers/mpu9250
