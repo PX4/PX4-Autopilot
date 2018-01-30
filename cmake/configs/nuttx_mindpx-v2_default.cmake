@@ -53,6 +53,7 @@ set(config_module_list
 	systemcmds/hardfault_log
 	systemcmds/reboot
 	systemcmds/topic_listener
+	systemcmds/tune_control
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
