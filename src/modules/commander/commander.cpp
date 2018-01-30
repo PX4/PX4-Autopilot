@@ -1043,32 +1043,32 @@ Commander::handle_command(vehicle_status_s *status_local,
 		/* ignore commands that are handled by other parts of the system */
 		break;
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
-		if (is_safe(&safety, &armed)) {
+		if (is_safe(safety, armed)) {
 
 			if (((int)(cmd.param1)) == 1) {
-				answer_command(*cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, *command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, *command_ack_pub);
 				usleep(100000);
 				/* reboot */
 				px4_shutdown_request(true, false);
 
 			} else if (((int)(cmd.param1)) == 2) {
-				answer_command(*cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, *command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, *command_ack_pub);
 				usleep(100000);
 				/* shutdown */
 				px4_shutdown_request(false, false);
 
 			} else if (((int)(cmd.param1)) == 3) {
-				answer_command(*cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, *command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, *command_ack_pub);
 				usleep(100000);
 				/* reboot to bootloader */
 				px4_shutdown_request(true, true);
 
 			} else {
-				answer_command(*cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, *command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, *command_ack_pub);
 			}
 
 		} else {
-			answer_command(*cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, *command_ack_pub);
+			answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, *command_ack_pub);
 		}
 
 		break;
@@ -1076,17 +1076,9 @@ Commander::handle_command(vehicle_status_s *status_local,
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
 			/* try to go to INIT/PREFLIGHT arming state */
-			if (TRANSITION_DENIED == arming_state_transition(&status,
-									 &battery,
-									 &safety,
-									 vehicle_status_s::ARMING_STATE_INIT,
-									 &armed,
-									 false /* fRunPreArmChecks */,
-									 &mavlink_log_pub,
-									 &status_flags,
-									 avionics_power_rail_voltage,
-									 arm_requirements,
-									 hrt_elapsed_time(&commander_boot_timestamp))) {
+			if (TRANSITION_DENIED == arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_INIT, &armed, false /* fRunPreArmChecks */, &mavlink_log_pub,
+									 &status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))
+			) {
 
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, *command_ack_pub);
 				break;
@@ -1111,7 +1103,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 
 			} else if ((int)(cmd.param4) == 1) {
 				/* RC calibration */
-				answer_command(*cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, *command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, *command_ack_pub);
 				/* disable RC control input completely */
 				status_flags.rc_input_blocked = true;
 				mavlink_log_info(&mavlink_log_pub, "CAL: Disabling RC IN");
@@ -2325,9 +2317,14 @@ Commander::run()
 				if (calib_status.result != calibration_status_s::CALIBRATION_OK) {
 					mavlink_log_critical(&mavlink_log_pub, "Sensor calibration failed: %d", calib_status.result);
 				} else {
-					status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
+
+					status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
 						!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), arm_requirements & ARM_REQ_GPS_BIT,
 						true, is_vtol(&status), hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
+
+					if (!status_flags.condition_system_sensors_initialized) {
+						rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST);
+					}
 				}
 				if (armed.in_esc_calibration_mode) {
 					armed.in_esc_calibration_mode = false;
