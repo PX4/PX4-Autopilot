@@ -44,6 +44,7 @@ set(config_module_list
 	systemcmds/dumpfile
 	systemcmds/ver
 	systemcmds/topic_listener
+	systemcmds/tune_control
 
 	#
 	# General system control
