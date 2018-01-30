@@ -15,6 +15,24 @@ endif()
 project(NuttX_${BOARD} LANGUAGES ASM C CXX)
 message(STATUS "NuttX: " ${BOARD} " " ${nuttx_config_type} " " ${CMAKE_SYSTEM_PROCESSOR})
 
+# verbose build settings (V=1 or VERBOSE=1)
+option(PX4_NUTTX_VERBOSE "PX4 NuttX verbose build" off)
+
+if (($ENV{V} MATCHES "1") OR ($ENV{VERBOSE} MATCHES "1"))
+	message(STATUS "NuttX verbose build enabled")
+	set(PX4_NUTTX_VERBOSE on)
+endif()
+
+if (PX4_NUTTX_VERBOSE)
+	set(nuttx_build_options)
+	set(nuttx_build_output)
+	set(nuttx_build_uses_terminal "USES_TERMINAL")
+else()
+	set(nuttx_build_options "--quiet")
+	set(nuttx_build_output ">nuttx_build.log")
+	set(nuttx_build_uses_terminal)
+endif()
+
 if (CMAKE_HOST_APPLE OR CMAKE_HOST_WIN32)
 	# copy with rsync and create file dependencies
 	set(cp_cmd "rsync")
@@ -40,7 +58,7 @@ file(GLOB_RECURSE copy_apps_files
 
 set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
 set(NUTTX_CONFIG_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs)
-configure_file(${NUTTX_CONFIG_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
+configure_file(${NUTTX_CONFIG_DIR}/Make.defs.in ${PX4_BINARY_DIR}/nuttx-configs/${BOARD}/nsh/Make.defs)
 
 # copy nuttx to build directory
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/nuttx)
@@ -68,40 +86,25 @@ set(APPS_DIR ${CMAKE_CURRENT_BINARY_DIR}/apps)
 # copy PX4 board config into nuttx
 file(GLOB_RECURSE board_config_files ${NUTTX_CONFIG_DIR}/${BOARD})
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${NUTTX_CONFIG_DIR}/${BOARD})
-file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${NUTTX_DIR}/configs)
+file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/nuttx-configs)
 add_custom_command(
-	OUTPUT ${NUTTX_DIR}/.config
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig ${NUTTX_DIR}/.config
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${NUTTX_DIR}/configs/${BOARD}/src
+	OUTPUT
+		${NUTTX_DIR}/.config
+		${NUTTX_DIR}/Make.defs
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/nuttx-configs/${BOARD}/src
+	COMMAND mkdir -p ${PX4_BINARY_DIR}/nuttx-configs/${BOARD}
 	COMMAND cd ${CMAKE_SOURCE_DIR} && ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST}
+	COMMAND rm -rf ${NUTTX_DIR}/.config ${NUTTX_DIR}/Make.defs
+	COMMAND cd ${NUTTX_DIR} && ./tools/configure.sh ../../nuttx-configs/${BOARD}/nsh ${nuttx_build_output}
 	DEPENDS
 		${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 		${board_config_files}
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 		${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
-	WORKING_DIRECTORY ${NUTTX_DIR}/tools
+	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Copying NuttX config ${BOARD} and configuring"
 	)
 add_custom_target(nuttx_configure DEPENDS ${NUTTX_DIR}/.config)
-
-# verbose build settings (V=1 or VERBOSE=1)
-option(PX4_NUTTX_VERBOSE "PX4 NuttX verbose build" off)
-
-if (($ENV{V} MATCHES "1") OR ($ENV{VERBOSE} MATCHES "1"))
-	message(STATUS "NuttX verbose build enabled")
-	set(PX4_NUTTX_VERBOSE on)
-endif()
-
-if (PX4_NUTTX_VERBOSE)
-	set(nuttx_build_options)
-	set(nuttx_build_output)
-	set(nuttx_build_uses_terminal "USES_TERMINAL")
-else()
-	set(nuttx_build_options "--quiet")
-	set(nuttx_build_output ">nuttx_build.log")
-	set(nuttx_build_uses_terminal)
-endif()
 
 # context
 add_custom_command(OUTPUT ${NUTTX_DIR}/include/nuttx/version.h ${NUTTX_DIR}/include/nuttx/config.h
@@ -210,20 +213,31 @@ endif()
 
 # oldconfig helper
 add_custom_target(oldconfig
-	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} oldconfig
-	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
-	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=px4 oldconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=px4 savedefconfig
+	COMMAND cp ${NUTTX_DIR}/defconfig ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 	DEPENDS nuttx_configure
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make oldconfig for ${BOARD} with ${nuttx_config_type}"
 	USES_TERMINAL
 	)
 
+# olddefconfig helper
+add_custom_target(olddefconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=px4 olddefconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=px4 savedefconfig
+	COMMAND cp ${NUTTX_DIR}/defconfig ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
+	DEPENDS nuttx_configure
+	WORKING_DIRECTORY ${NUTTX_DIR}
+	COMMENT "Running NuttX make olddefconfig for ${BOARD} with ${nuttx_config_type}"
+	USES_TERMINAL
+	)
+
 # menuconfig helper
 add_custom_target(menuconfig
-	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} menuconfig
-	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
-	COMMAND cd ${PX4_SOURCE_DIR} && platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=px4 menuconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=px4 savedefconfig
+	COMMAND cp ${NUTTX_DIR}/defconfig ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 	DEPENDS nuttx_configure
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make menuconfig for ${BOARD} with ${nuttx_config_type}"
@@ -232,8 +246,9 @@ add_custom_target(menuconfig
 
 # qconfig helper
 add_custom_target(qconfig
-	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${BOARD} qconfig
-	COMMAND cp .config ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=px4 qconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=px4 savedefconfig
+	COMMAND cp ${NUTTX_DIR}/defconfig ${NUTTX_CONFIG_DIR}/${BOARD}/${nuttx_config_type}/defconfig
 	DEPENDS nuttx_configure
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make qconfig for ${BOARD} with ${nuttx_config_type}"
