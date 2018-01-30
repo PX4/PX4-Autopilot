@@ -2501,7 +2501,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
 	}
 
-	// encourage pilot to respect respect flow sensor minimum height limitations
+	// encourage pilot to respect flow sensor minimum height limitations
 	if (_local_pos.limit_hagl && _local_pos.dist_bottom_valid && _control_mode.flag_control_manual_enabled
 	    && _control_mode.flag_control_altitude_enabled) {
 		// If distance to ground is less than limit, increment set point upwards at up to the landing descent rate
