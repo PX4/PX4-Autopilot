@@ -51,7 +51,7 @@
 
 #define MAX_NOTE_ITERATION 50
 
-static void	usage(void);
+static void	usage();
 
 static orb_advert_t tune_control_pub = nullptr;
 
@@ -91,10 +91,10 @@ tune_control_main(int argc, char *argv[])
 {
 	Tunes tunes;
 	bool string_input = false;
-	const char *tune_string  = NULL;
+	const char *tune_string  = nullptr;
 	int myoptind = 1;
 	int ch;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	unsigned int value;
 	tune_control_s tune_control = {};
 	tune_control.tune_id = 0;
@@ -103,7 +103,7 @@ tune_control_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "f:d:t:m:s:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'f':
-			value = (uint16_t)(strtol(myoptarg, NULL, 0));
+			value = (uint16_t)(strtol(myoptarg, nullptr, 0));
 
 			if (value > 0 && value < 22000) {
 				tune_control.frequency = value;
@@ -116,11 +116,11 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 'd':
-			tune_control.duration = (uint32_t)(strtol(myoptarg, NULL, 0));
+			tune_control.duration = (uint32_t)(strtol(myoptarg, nullptr, 0));
 			break;
 
 		case 't':
-			value = (uint8_t)(strtol(myoptarg, NULL, 0));
+			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
 
 			if (value > 0 && value < tunes.get_default_tunes_size()) {
 				tune_control.tune_id = value;
@@ -145,7 +145,7 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 's':
-			value = (uint16_t)(strtol(myoptarg, NULL, 0));
+			value = (uint16_t)(strtol(myoptarg, nullptr, 0));
 
 			if (value > 0 && value < 100) {
 				tune_control.strength = value;
