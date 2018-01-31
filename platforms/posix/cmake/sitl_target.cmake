@@ -1,43 +1,3 @@
-
-function(px4_add_sitl_app)
-	px4_parse_function_args(NAME px4_add_sitl_app
-			ONE_VALUE APP_NAME MAIN_SRC UPLOAD_NAME
-			REQUIRED APP_NAME MAIN_SRC
-			ARGN ${ARGN}
-			)
-
-	px4_add_executable(${APP_NAME}
-			${MAIN_SRC}
-			apps.cpp
-			)
-
-	if (NOT APPLE)
-		target_link_libraries(${APP_NAME}
-			-Wl,--start-group
-			${module_libraries}
-			${df_driver_libs}
-			pthread m rt
-			-Wl,--end-group
-			)
-	else()
-		target_link_libraries(${APP_NAME}
-			${module_libraries}
-			${df_driver_libs}
-			pthread m
-			)
-	endif()
-endfunction()
-
-#=============================================================================
-# sitl run targets
-#
-
-set(SITL_RUNNER_MAIN_CPP src/main.cpp)
-px4_add_sitl_app(APP_NAME px4
-		UPLOAD_NAME upload
-		MAIN_SRC ${SITL_RUNNER_MAIN_CPP}
-		)
-
 set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/tmp)
 file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
 
@@ -106,20 +66,6 @@ foreach(viewer ${viewers})
 				endif()
 			endif()
 
-			if (debugger STREQUAL "ide" AND viewer STREQUAL "gazebo")
-				set(SITL_RUNNER_SOURCE_DIR ${PX4_SOURCE_DIR})
-				set(SITL_RUNNER_MODEL_FILE ${PX4_SOURCE_DIR}/${config_sitl_rcS_dir}/${model})
-				set(SITL_RUNNER_WORKING_DIRECTORY ${SITL_WORKING_DIR})
-
-				configure_file(src/sitl_runner_main.cpp.in sitl_runner_main_${model}.cpp @ONLY)
-
-				px4_add_sitl_app(APP_NAME px4_${model}
-						UPLOAD_NAME upload_${model}
-						MAIN_SRC ${CMAKE_CURRENT_BINARY_DIR}/sitl_runner_main_${model}.cpp
-						)
-				set_target_properties(px4_${model} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-			endif()
-
 			add_custom_target(${_targ_name}
 					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 						$<TARGET_FILE:px4>
@@ -136,12 +82,9 @@ foreach(viewer ${viewers})
 					)
 			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")
-				add_dependencies(${_targ_name} sitl_gazebo)
-				if (viewer STREQUAL "gazebo")
-					add_dependencies(${_targ_name} px4_${model})
-				endif()
+				add_dependencies(${_targ_name} px4 sitl_gazebo)
 			elseif(viewer STREQUAL "jmavsim")
-				add_dependencies(${_targ_name} git_jmavsim)
+				add_dependencies(${_targ_name} px4 git_jmavsim)
 			endif()
 		endforeach()
 	endforeach()
