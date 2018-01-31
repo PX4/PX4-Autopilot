@@ -739,7 +739,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 	/* if this is a config link, stay here and wait for it to open */
 	if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
 
-		int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
+		int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		struct actuator_armed_s armed;
 
 		/* get the system arming state and abort on arming */
@@ -747,26 +747,27 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 
 			/* abort if an arming topic is published and system is armed */
 			bool updated = false;
-			orb_check(armed_fd, &updated);
+			orb_check(armed_sub, &updated);
 
 			if (updated) {
 				/* the system is now providing arming status feedback.
 				 * instead of timing out, we resort to abort bringing
 				 * up the terminal.
 				 */
-				orb_copy(ORB_ID(actuator_armed), armed_fd, &armed);
+				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 
 				if (armed.armed) {
 					/* this is not an error, but we are done */
+					orb_unsubscribe(armed_sub);
 					return -1;
 				}
 			}
 
 			usleep(100000);
 			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
-		};
+		}
 
-		::close(armed_fd);
+		orb_unsubscribe(armed_sub);
 	}
 
 	if (_uart_fd < 0) {
