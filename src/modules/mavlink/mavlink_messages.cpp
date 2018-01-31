@@ -4404,7 +4404,7 @@ protected:
 		struct vehicle_global_position_s global_pos = {};
 
 		if (_global_pos_sub->update(&global_pos)) {
-			_climb_rate.add_value(fabs(global_pos.vel_d), update_rate);
+			_climb_rate.add_value(fabsf(global_pos.vel_d), update_rate);
 			_groundspeed.add_value(sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e), update_rate);
 		}
 
