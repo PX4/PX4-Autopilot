@@ -47,7 +47,7 @@
 
 class Navigator;
 
-class NavigatorMode : public control::SuperBlock
+class NavigatorMode : public control::Block
 {
 public:
 	NavigatorMode(Navigator *navigator, const char *name);
