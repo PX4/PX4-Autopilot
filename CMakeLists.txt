@@ -335,7 +335,7 @@ px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${CMAKE_EXE_LINKER_FLAGS};${exe_linker
 px4_join(OUT CMAKE_C_FLAGS LIST "${CMAKE_C_FLAGS};${c_flags};${optimization_flags}" GLUE " ")
 px4_join(OUT CMAKE_CXX_FLAGS LIST "${CMAKE_CXX_FLAGS};${cxx_flags};${optimization_flags}" GLUE " ")
 
-include_directories(${include_dirs})
+include_directories(${include_dirs} ${CMAKE_CURRENT_BINARY_DIR}/src/modules/systemlib/param)
 link_directories(${link_dirs})
 add_definitions(${definitions})
 

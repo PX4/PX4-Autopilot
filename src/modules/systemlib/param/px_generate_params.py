@@ -40,6 +40,7 @@ def generate(xml_file, dest='.'):
 
     template_files = [
         'px4_parameters.h.jinja',
+        'px4_parameters_public.h.jinja',
         'px4_parameters.c.jinja',
     ]
     for template_file in template_files:
