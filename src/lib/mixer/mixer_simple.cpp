@@ -311,7 +311,7 @@ SimpleMixer::get_saturation_status()
 }
 
 void
-SimpleMixer::groups_required(uint32_t &groups)
+SimpleMixer::groups_required(uint8_t &groups)
 {
 	for (unsigned i = 0; i < _pinfo->control_count; i++) {
 		groups |= 1 << _pinfo->controls[i].control_group;
@@ -325,8 +325,8 @@ SimpleMixer::check()
 	float junk;
 
 	/* sanity that presumes that a mixer includes a control no more than once */
-	/* max of 32 groups due to groups_required API */
-	if (_pinfo->control_count > 32) {
+	/* max of 8 groups due to groups_required API */
+	if (_pinfo->control_count > 8) {
 		return -2;
 	}
 

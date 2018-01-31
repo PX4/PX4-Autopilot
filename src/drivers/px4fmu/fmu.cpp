@@ -248,8 +248,9 @@ private:
 
 	MixerGroup	*_mixers;
 
-	uint32_t	_groups_required;
-	uint32_t	_groups_subscribed;
+	uint8_t	_groups_required{0};
+	uint8_t	_groups_subscribed{0};
+
 	int		_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -885,8 +886,9 @@ void
 PX4FMU::subscribe()
 {
 	/* subscribe/unsubscribe to required actuator control groups */
-	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
-	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
+	const uint8_t sub_groups = _groups_required & ~_groups_subscribed;
+	const uint8_t unsub_groups = _groups_subscribed & ~_groups_required;
+
 	_poll_fds_num = 0;
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -1300,6 +1302,8 @@ PX4FMU::cycle()
 					_mixers->set_thrust_factor(_thr_mdl_fac);
 				}
 
+				_mixers->set_airmode(_airmode);
+
 				/* do mixing */
 				float outputs[_max_actuators];
 				const unsigned mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
@@ -1338,17 +1342,6 @@ PX4FMU::cycle()
 					up_pwm_update();
 				}
 
-				actuator_outputs_s actuator_outputs = {};
-				actuator_outputs.timestamp = hrt_absolute_time();
-				actuator_outputs.noutputs = mixed_num_outputs;
-
-				// zero unused outputs
-				for (size_t i = 0; i < mixed_num_outputs; ++i) {
-					actuator_outputs.output[i] = pwm_limited[i];
-				}
-
-				orb_publish_auto(ORB_ID(actuator_outputs), &_outputs_pub, &actuator_outputs, &_class_instance, ORB_PRIO_DEFAULT);
-
 				/* publish mixer status */
 				MultirotorMixer::saturation_status saturation_status;
 				saturation_status.value = _mixers->get_saturation_status();
@@ -1358,11 +1351,30 @@ PX4FMU::cycle()
 					motor_limits.timestamp = hrt_absolute_time();
 					motor_limits.saturation_status = saturation_status.value;
 
-					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance,
-							 ORB_PRIO_DEFAULT);
+					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance, ORB_PRIO_DEFAULT);
 				}
 
-				_mixers->set_airmode(_airmode);
+				actuator_outputs_s actuator_outputs = {};
+				actuator_outputs.noutputs = mixed_num_outputs;
+
+				// zero unused outputs
+				for (size_t i = 0; i < mixed_num_outputs; ++i) {
+					actuator_outputs.output[i] = pwm_limited[i];
+				}
+
+				// copy first valid timestamp_sample into actuator_outputs for measuring latency
+				for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+					const bool required = _groups_required & (1 << i);
+					const hrt_abstime &ts = _controls[i].timestamp_sample;
+
+					if (required && (ts > 0)) {
+						actuator_outputs.timestamp_sample = ts;
+						break;
+					}
+				}
+
+				actuator_outputs.timestamp = hrt_absolute_time();
+				orb_publish_auto(ORB_ID(actuator_outputs), &_outputs_pub, &actuator_outputs, &_class_instance, ORB_PRIO_DEFAULT);
 
 				perf_end(_ctl_latency);
 			}

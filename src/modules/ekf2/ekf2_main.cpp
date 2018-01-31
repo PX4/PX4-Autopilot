@@ -1028,6 +1028,7 @@ void Ekf2::run()
 				// generate vehicle attitude quaternion data
 				vehicle_attitude_s att;
 				att.timestamp = now;
+				att.timestamp_sample = sensors.timestamp;
 
 				q.copyTo(att.q);
 				_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);

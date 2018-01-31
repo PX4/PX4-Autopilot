@@ -227,9 +227,9 @@ MixerGroup::count()
 }
 
 void
-MixerGroup::groups_required(uint32_t &groups)
+MixerGroup::groups_required(uint8_t &groups)
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 
 	while (mixer != nullptr) {
 		mixer->groups_required(groups);

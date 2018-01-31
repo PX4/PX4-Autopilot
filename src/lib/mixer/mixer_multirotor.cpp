@@ -428,7 +428,7 @@ MultirotorMixer::set_airmode(bool airmode)
 }
 
 void
-MultirotorMixer::groups_required(uint32_t &groups)
+MultirotorMixer::groups_required(uint8_t &groups)
 {
 	/* XXX for now, hardcoded to indexes 0-3 in control group zero */
 	groups |= (1 << 0);

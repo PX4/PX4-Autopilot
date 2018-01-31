@@ -429,6 +429,7 @@ void AttitudeEstimatorQ::task_main()
 		if (update(dt)) {
 			vehicle_attitude_s att = {
 				.timestamp = sensors.timestamp,
+				.timestamp_sample = sensors.timestamp,
 				.rollspeed = _rates(0),
 				.pitchspeed = _rates(1),
 				.yawspeed = _rates(2),

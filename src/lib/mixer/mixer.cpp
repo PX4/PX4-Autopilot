@@ -187,7 +187,7 @@ NullMixer::get_saturation_status()
 }
 
 void
-NullMixer::groups_required(uint32_t &groups)
+NullMixer::groups_required(uint8_t &groups)
 {
 
 }
