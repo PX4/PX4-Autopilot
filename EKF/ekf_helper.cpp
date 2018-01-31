@@ -300,11 +300,23 @@ void Ekf::resetHeight()
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
 		if (vert_pos_reset) {
 			_output_buffer[i].pos(2) += _state_reset_status.posD_change;
+			_output_vert_buffer[i].vel_d_integ += _state_reset_status.posD_change;
 		}
 
 		if (vert_vel_reset) {
 			_output_buffer[i].vel(2) += _state_reset_status.velD_change;
+			_output_vert_buffer[i].vel_d += _state_reset_status.velD_change;
 		}
+	}
+
+	// add the reset amount to the output observer vertical position state
+	if (vert_pos_reset) {
+		_output_vert_delayed.vel_d_integ = _state.pos(2);
+		_output_vert_new.vel_d_integ = _state.pos(2);
+	}
+	if (vert_vel_reset) {
+		_output_vert_delayed.vel_d = _state.vel(2);
+		_output_vert_new.vel_d = _state.vel(2);
 	}
 }
 
