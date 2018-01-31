@@ -400,6 +400,18 @@ then
 	then
 		# start the driver on serial 4/5
 		tfmini start -d /dev/ttyS6
+	else
+		if ver hwcmp AEROFC_V1
+		then
+			# start the driver on telemetry
+			tfmini start -d /dev/ttyS3
+		else
+			if param compare SYS_COMPANION 0
+			then
+				# start on default mavlink companion device
+				tfmini start -d /dev/ttyS2
+			fi
+		fi
 	fi
 fi
 
