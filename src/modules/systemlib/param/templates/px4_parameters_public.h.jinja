@@ -13,7 +13,7 @@ namespace px4 { {# wrap the enum in a namespace, otherwise we get shadowing erro
 /// Enum with all parameters
 enum class params {
 	{# enums are guaranteed to start with 0 (if the value for the first is not
-	   specified), and then incremented by 1 #}
+	   specified), and then incremented by 1 (the implementation depends on that!)  #}
 {%- for param in params %}
 	{{ param.attrib["name"] }},
 {%- endfor %}
