@@ -157,7 +157,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 								       (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT, true,
 								       status->is_vtol, false, false, time_since_boot);
 
-				status_flags->condition_system_sensors_initialized = (prearm_ret == OK);
+				status_flags->condition_system_sensors_initialized = prearm_ret;
 				last_preflight_check = hrt_absolute_time();
 				last_prearm_ret = prearm_ret;
 
@@ -295,7 +295,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 				}
 
 				feedback_provided = true;
-				valid_transition = false;
+				valid_transition = true;
 			}
 		}
 
