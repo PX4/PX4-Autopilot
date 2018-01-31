@@ -805,6 +805,11 @@ param_used(param_t param)
 	       (1 << param_index % bits_per_allocation_unit);
 }
 
+void param_set_used(param_t param)
+{
+	param_set_used_internal(param);
+}
+
 void param_set_used_internal(param_t param)
 {
 	int param_index = param_get_index(param);
