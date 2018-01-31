@@ -578,67 +578,89 @@ Navigator::run()
 			navigation_mode_new = &_rcLoss;
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			_pos_sp_triplet_published_invalid_once = false;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: {
+				_pos_sp_triplet_published_invalid_once = false;
 
-			switch (rtl_type()) {
-			case RTL::RTL_LAND:
+				const bool rtl_activated = _previous_vstatus.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-				// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION
-				if (on_mission_landing() && !get_land_detected()->landed) {
-					navigation_mode_new = &_mission;
-
-				} else {
-					navigation_mode_new = &_rtl;
-				}
-
-				break;
-
-			case RTL::RTL_MISSION:
-				if (_mission.get_land_start_available() && !get_land_detected()->landed) {
-					// the mission contains a landing spot
-					if (_navigation_mode != &_mission) {
-						if (_navigation_mode == nullptr) {
-							// switching from an manual mode, go to landing if not already landing
-							if (!on_mission_landing()) {
-								start_mission_landing();
-							}
-
-						} else {
-							// switching from an auto mode, continue the mission from the closest item
-							_mission.set_closest_item_as_current();
-						}
+				switch (rtl_type()) {
+				case RTL::RTL_LAND:
+					if (rtl_activated) {
+						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
 					}
 
-					navigation_mode_new = &_mission;
-
-				} else {
-					// fly the mission in reverse if switching from a non-manual mode
-					if (((_navigation_mode != nullptr) && (_navigation_mode != &_rtl)) &&
-					    (! _mission_reverse.get_mission_reverse_finished()) &&
-					    (!get_land_detected()->landed)) {
-						// reset the current offboard index if we switch a non mission mode and a non-commanded mission mode
-						if ((!((_navigation_mode == &_mission) &&
-						       (_previous_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) &&
-						    (_navigation_mode != &_mission_reverse)) {
-							_mission_reverse.switch_from_nonmission();
-						}
-
-						navigation_mode_new = &_mission_reverse;
+					// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION
+					if (on_mission_landing() && !get_land_detected()->landed) {
+						navigation_mode_new = &_mission;
 
 					} else {
 						navigation_mode_new = &_rtl;
 					}
+
+					break;
+
+				case RTL::RTL_MISSION:
+					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
+						// the mission contains a landing spot
+						if (_navigation_mode != &_mission) {
+							if (_navigation_mode == nullptr) {
+								// switching from an manual mode, go to landing if not already landing
+								if (!on_mission_landing()) {
+									start_mission_landing();
+								}
+
+							} else {
+								// switching from an auto mode, continue the mission from the closest item
+								_mission.set_closest_item_as_current();
+							}
+						}
+
+						if (rtl_activated) {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
+						}
+
+						navigation_mode_new = &_mission;
+
+					} else {
+						// fly the mission in reverse if switching from a non-manual mode
+						if (((_navigation_mode != nullptr) && (_navigation_mode != &_rtl)) &&
+						    (! _mission_reverse.get_mission_reverse_finished()) &&
+						    (!get_land_detected()->landed)) {
+							// reset the current offboard index if we switch a non mission mode and a non-commanded mission mode
+							if ((!((_navigation_mode == &_mission) &&
+							       (_previous_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) &&
+							    (_navigation_mode != &_mission_reverse)) {
+								_mission_reverse.switch_from_nonmission();
+							}
+
+							if (rtl_activated) {
+								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission reverse mission");
+							}
+
+							navigation_mode_new = &_mission_reverse;
+
+						} else {
+							if (rtl_activated) {
+								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home");
+							}
+
+							navigation_mode_new = &_rtl;
+						}
+					}
+
+					break;
+
+				default:
+					if (rtl_activated) {
+						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL HOME activated");
+					}
+
+					navigation_mode_new = &_rtl;
+					break;
 				}
 
 				break;
-
-			default:
-				navigation_mode_new = &_rtl;
-				break;
 			}
-
-			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 			_pos_sp_triplet_published_invalid_once = false;
