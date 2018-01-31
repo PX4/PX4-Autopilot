@@ -98,8 +98,8 @@ add_custom_command(OUTPUT ${parameters_xml}
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
-# generate px4_parameters.c and px4_parameters.h
-add_custom_command(OUTPUT px4_parameters.c px4_parameters.h
+# generate px4_parameters.c and px4_parameters{,_public}.h
+add_custom_command(OUTPUT px4_parameters.c px4_parameters.h px4_parameters_public.h
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS
@@ -107,7 +107,11 @@ add_custom_command(OUTPUT px4_parameters.c px4_parameters.h
 		px_generate_params.py
 		templates/px4_parameters.c.jinja
 		templates/px4_parameters.h.jinja
+		templates/px4_parameters_public.h.jinja
 	)
+
+add_custom_target(parameter_headers DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/px4_parameters_public.h)
+add_dependencies(prebuild_targets parameter_headers)
 
 px4_add_module(
 	MODULE modules__systemlib__param
