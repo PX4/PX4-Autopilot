@@ -485,7 +485,7 @@ protected:
 
 private:
 	int			_instance_id;
-	bool		_transmitting_enabled;
+	bool			_transmitting_enabled;
 
 	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
