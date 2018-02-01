@@ -530,20 +530,6 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		// try to request item again after timeout
 		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 
-	} else if (_state == MAVLINK_WPM_STATE_SENDLIST && (_time_last_sent > 0)
-		   && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT) {
-
-		if (_transfer_seq == 0) {
-			/* try to send items count again after timeout */
-			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count, _mission_type);
-
-		} else {
-			/* try to send item again after timeout */
-			PX4_DEBUG("WPM: item re-send timeout");
-
-			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq - 1);
-		}
-
 	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
 		   && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
 
