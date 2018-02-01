@@ -296,6 +296,8 @@ MavlinkMissionManager::send_mission_current(uint16_t seq)
 void
 MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type)
 {
+	_time_last_sent = hrt_absolute_time();
+
 	mavlink_mission_count_t wpc;
 
 	wpc.target_system = sysid;
@@ -362,6 +364,8 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 	}
 
 	if (read_success) {
+		_time_last_sent = hrt_absolute_time();
+
 		if (_int_mode) {
 			mavlink_mission_item_int_t wp;
 			format_mavlink_mission_item(&mission_item, reinterpret_cast<mavlink_mission_item_t *>(&wp));
@@ -426,6 +430,8 @@ void
 MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint16_t seq)
 {
 	if (seq < current_max_item_count()) {
+		_time_last_sent = hrt_absolute_time();
+
 		if (_int_mode) {
 			mavlink_mission_request_int_t wpr;
 			wpr.target_system = sysid;
@@ -518,8 +524,15 @@ MavlinkMissionManager::send(const hrt_abstime now)
 	}
 
 	/* check for timed-out operations */
-	if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
-	    && hrt_elapsed_time(&_time_last_recv) > _operation_timeout_us) {
+	if (_state == MAVLINK_WPM_STATE_GETLIST && (_time_last_sent > 0)
+	    && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT) {
+
+		// try to request item again after timeout
+		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+
+	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
+		   && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
+
 		_mavlink->send_statustext_critical("Operation timeout");
 
 		PX4_DEBUG("WPM: Last operation (state=%u) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
@@ -531,6 +544,7 @@ MavlinkMissionManager::send(const hrt_abstime now)
 
 	} else if (_state == MAVLINK_WPM_STATE_IDLE) {
 		// reset flags
+		_time_last_sent = 0;
 		_time_last_recv = 0;
 	}
 }
