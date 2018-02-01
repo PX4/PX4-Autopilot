@@ -179,9 +179,9 @@ public:
 	};
 
 	enum FLOW_CONTROL_MODE {
-		OFF = 0,
-		AUTO,
-		ON
+		FLOW_CONTROL_OFF = 0,
+		FLOW_CONTROL_AUTO,
+		FLOW_CONTROL_ON
 	};
 
 	static const char *mavlink_mode_str(enum MAVLINK_MODE mode)

@@ -228,7 +228,7 @@ Mavlink::Mavlink() :
 	_subscribe_to_stream(nullptr),
 	_subscribe_to_stream_rate(0.0f),
 	_udp_initialised(false),
-	_flow_control_mode(OFF),
+	_flow_control_mode(Mavlink::FLOW_CONTROL_OFF),
 	_last_write_success_time(0),
 	_last_write_try_time(0),
 	_mavlink_start_time(0),
@@ -814,7 +814,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_
 	*/
 
 	/* setup output flow control */
-	if (enable_flow_control(force_flow_control ? ON : AUTO)) {
+	if (enable_flow_control(force_flow_control ? FLOW_CONTROL_ON : FLOW_CONTROL_AUTO)) {
 		PX4_WARN("hardware flow control not supported");
 	}
 
@@ -826,7 +826,7 @@ Mavlink::enable_flow_control(enum FLOW_CONTROL_MODE mode)
 {
 	// We can't do this on USB - skip
 	if (_is_usb_uart) {
-		_flow_control_mode = OFF;
+		_flow_control_mode = FLOW_CONTROL_OFF;
 		return OK;
 	}
 
@@ -896,15 +896,15 @@ Mavlink::get_free_tx_buf()
 		(void) ioctl(_uart_fd, FIONSPACE, (unsigned long)&buf_free);
 #endif
 
-		if (_flow_control_mode == AUTO && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
-			/* Disable hardware flow control in AUTO mode:
+		if (_flow_control_mode == FLOW_CONTROL_AUTO && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
+			/* Disable hardware flow control in FLOW_CONTROL_AUTO mode:
 			 * if no successful write since a defined time
 			 * and if the last try was not the last successful write
 			 */
 			if (_last_write_try_time != 0 &&
 			    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
 			    _last_write_success_time != _last_write_try_time) {
-				enable_flow_control(OFF);
+				enable_flow_control(FLOW_CONTROL_OFF);
 			}
 		}
 	}
