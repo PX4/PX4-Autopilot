@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(launchdetection)
+add_subdirectory(runway_takeoff)
 
 px4_add_module(
 	MODULE modules__fw_pos_control_l1
@@ -45,4 +46,5 @@ px4_add_module(
 		git_ecl
 		lib__ecl
 		launchdetection
+		runway_takeoff
 	)
