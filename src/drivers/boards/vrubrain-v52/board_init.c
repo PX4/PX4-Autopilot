@@ -66,9 +66,9 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
-#include <drivers/drv_buzzer.h>
 
 #include <systemlib/cpuload.h>
+#include <systemlib/perf_counter.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -103,85 +103,22 @@ __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
-extern void buzzer_init(void);
-extern void buzzer_on(int buzzer);
-extern void buzzer_off(int buzzer);
 __END_DECLS
 
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
 
-#if defined(CONFIG_FAT_DMAMEMORY)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#else
-
-# define dma_alloc_init()
-
-#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
@@ -192,68 +129,8 @@ stm32_boardinitialize(void)
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
-}
-
-/****************************************************************************
- * Name: board_initialize
- *
- * Description:
- *   If CONFIG_BOARD_INITIALIZE is selected, then an additional
- *   initialization call will be performed in the boot-up sequence to a
- *   function called board_initialize().  board_initialize() will be
- *   called immediately after up_intiialize() is called and just before the
- *   initial application is started.  This additional initialization phase
- *   may be used, for example, to initialize board-specific device drivers.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_BOARD_INITIALIZE
-__EXPORT void board_initialize(void)
-{
-  /* Perform NSH initialization here instead of from the NSH.  This
-   * alternative NSH initialization is necessary when NSH is ran in user-space
-   * but the initialization function must run in kernel space.
-   */
-
-
-
-
-
-
-}
-#endif
-
-static struct spi_dev_s *spi1;
-static struct spi_dev_s *spi2;
-static struct spi_dev_s *spi3;
-
-#include <math.h>
-
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-
-//__EXPORT int composite_archinitialize(void)
-//{
-//  return OK;
-//}
-//
-//__EXPORT int cdcacm_archinitialize(void)
-//{
-//  return OK;
-//}
-//
-__EXPORT int usbmsc_archinitialize(void)
-{
-  return OK;
+	/* configure LEDs */
+	up_ledinit();
 }
 
 /****************************************************************************
@@ -264,24 +141,57 @@ __EXPORT int usbmsc_archinitialize(void)
  *
  ****************************************************************************/
 
+static struct spi_dev_s *spi1;
+static struct spi_dev_s *spi2;
+static struct spi_dev_s *spi3;
+
+#include <math.h>
+
 __EXPORT int nsh_archinitialize(void)
 {
 	int result;
 
-	message("\n");
+	message("\r\n");
 
-	/* configure always-on ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN1);
-	stm32_configgpio(GPIO_ADC1_IN2);
-	stm32_configgpio(GPIO_ADC1_IN3);
-	stm32_configgpio(GPIO_ADC1_IN10);
+	/* configure ADC pins */
+	stm32_configgpio(GPIO_ADC1_IN10);	/* BATT_VOLTAGE_SENS */
 
+
+	/* configure power supply control/sense pins */
+
+
+
+
+
+
+
+
+
+
+#ifdef GPIO_RC_OUT
+	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
+	stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set it high to pull RC input up */
+#endif
+
+	/* configure the GPIO pins to outputs and keep them low */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+	stm32_configgpio(GPIO_GPIO6_OUTPUT);
+	stm32_configgpio(GPIO_GPIO7_OUTPUT);
+	stm32_configgpio(GPIO_GPIO8_OUTPUT);
+	stm32_configgpio(GPIO_GPIO9_OUTPUT);
+	stm32_configgpio(GPIO_GPI10_OUTPUT);
+
+    stm32_configgpio(GPIO_GPI12_OUTPUT);
+    stm32_configgpio(GPIO_GPI13_OUTPUT);
+    stm32_configgpio(GPIO_GPI14_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
-
-	/* configure the DMA allocator */
-	dma_alloc_init();
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -305,28 +215,20 @@ __EXPORT int nsh_archinitialize(void)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
-	/* initial BUZZER state */
-	drv_buzzer_start();
-	buzzer_off(BUZZER_EXT);
-
 	/* initial LED state */
 	drv_led_start();
-	led_off(LED_AMBER);
-	led_off(LED_BLUE);
+	led_off(LED_RED);
 	led_off(LED_GREEN);
-	led_off(LED_EXT1);
-	led_off(LED_EXT2);
-
-
+	led_off(LED_BLUE);
 
 	/* Configure SPI-based devices */
 
-	message("[boot] Initializing SPI port 1\n");
+	message("[boot] Initializing SPI port 1\r\n");
 	spi1 = up_spiinitialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\r\n");
-		led_on(LED_AMBER);
+		up_ledon(LED_RED);
 		return -ENODEV;
 	}
 
@@ -334,18 +236,20 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, SPIDEV_WIRELESS, false);
 	SPI_SELECT(spi1, SPIDEV_MS5611, false);
+
+
+
 	up_udelay(20);
 
 	message("[boot] Successfully initialized SPI port 1\r\n");
 
-	message("[boot] Initializing SPI port 2\n");
+	message("[boot] Initializing SPI port 2\r\n");
 	spi2 = up_spiinitialize(2);
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\r\n");
-		led_on(LED_AMBER);
+		up_ledon(LED_RED);
 		return -ENODEV;
 	}
 
@@ -355,16 +259,20 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_MPU6000, false);
 
-	message("[boot] Successfully initialized SPI port 2\n");
+
+
+
+	message("[boot] Successfully initialized SPI port 2\r\n");
 
 	/* Get the SPI port for the microSD slot */
 
-	message("[boot] Initializing SPI port 3\n");
+#ifdef CONFIG_MMCSD
+	message("[boot] Initializing SPI port 3\r\n");
 	spi3 = up_spiinitialize(3);
 
 	if (!spi3) {
-		message("[boot] FAILED to initialize SPI port 3\n");
-		led_on(LED_AMBER);
+		message("[boot] FAILED to initialize SPI port 3\r\n");
+		up_ledon(LED_RED);
 		return -ENODEV;
 	}
 
@@ -375,18 +283,19 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi3, SPIDEV_MMCSD, false);
 	SPI_SELECT(spi3, SPIDEV_FLASH, false);
 
-	message("[boot] Successfully initialized SPI port 3\n");
+	message("[boot] Successfully initialized SPI port 3\r\n");
 
 	/* Now bind the SPI interface to the MMCSD driver */
 	result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
 
 	if (result != OK) {
-		message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
+		message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\r\n");
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
-	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
+	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\r\n");
+#endif
 
 	return OK;
 }

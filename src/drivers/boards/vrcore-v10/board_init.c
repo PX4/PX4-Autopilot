@@ -109,71 +109,9 @@ __END_DECLS
  * Protected Functions
  ****************************************************************************/
 
-#if defined(CONFIG_FAT_DMAMEMORY)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#else
-
-# define dma_alloc_init()
-
-#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -218,7 +156,6 @@ __EXPORT int nsh_archinitialize(void)
 	/* configure ADC pins */
 	stm32_configgpio(GPIO_ADC1_IN10);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN11);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* SONAR */
 
 	/* configure power supply control/sense pins */
 
@@ -252,12 +189,10 @@ __EXPORT int nsh_archinitialize(void)
     stm32_configgpio(GPIO_GPI12_OUTPUT);
     stm32_configgpio(GPIO_GPI13_OUTPUT);
     stm32_configgpio(GPIO_GPI14_OUTPUT);
+    stm32_configgpio(GPIO_GPI15_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
-
-	/* configure the DMA allocator */
-	dma_alloc_init();
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION

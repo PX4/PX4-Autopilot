@@ -99,8 +99,6 @@ __EXPORT void stm32_spiinitialize(void)
 	stm32_gpiowrite(GPIO_SPI_CS_IMU_MS5611, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_IMU_MPU6000, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_IMU_HMC5983, 1);
-
-	stm32_configgpio(GPIO_DRDY_MPU6000);
 #endif
 
 #ifdef CONFIG_STM32_SPI3

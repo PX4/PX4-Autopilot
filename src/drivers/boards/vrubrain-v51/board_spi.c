@@ -99,8 +99,6 @@ __EXPORT void stm32_spiinitialize(void)
 
 
 
-
-	stm32_configgpio(GPIO_DRDY_MPU6000);
 #endif
 
 #ifdef CONFIG_STM32_SPI3

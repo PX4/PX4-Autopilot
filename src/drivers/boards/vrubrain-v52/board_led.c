@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,128 +60,47 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
+
+
+static uint32_t g_ledmap[] = {
+	GPIO_LED_BLUE,    // Indexed by LED_BLUE
+	GPIO_LED_RED,     // Indexed by LED_RED, LED_AMBER
+	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY
+	GPIO_LED_GREEN,   // Indexed by LED_GREEN
+};
+
 __EXPORT void led_init(void)
 {
-	/* Configure LED1-2 GPIOs for output */
+	/* Configure LED GPIOs for output */
+	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
+		stm32_configgpio(g_ledmap[l]);
+	}
+}
 
-	stm32_configgpio(GPIO_LED1);
-	stm32_configgpio(GPIO_LED2);
-	stm32_configgpio(GPIO_LED3);
-	stm32_configgpio(GPIO_EXT_LED1);
-	stm32_configgpio(GPIO_EXT_LED2);
+static void phy_set_led(int led, bool state)
+{
+	/* Pull Down to switch on */
+	stm32_gpiowrite(g_ledmap[led], !state);
+}
 
+static bool phy_get_led(int led)
+{
+
+	return !stm32_gpioread(g_ledmap[led]);
 }
 
 __EXPORT void led_on(int led)
 {
-	if (led == 0)
-	{
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED1, false);
-	}
-	if (led == 1)
-	{
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED2, false);
-	}
-	if (led == 2)
-	{
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED3, false);
-	}
-	if (led == 3)
-	{
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_EXT_LED1, true);
-	}
-	if (led == 4)
-	{
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_EXT_LED2, true);
-	}
-
-
-
-
-
+	phy_set_led(led, true);
 }
 
 __EXPORT void led_off(int led)
 {
-	if (led == 0)
-	{
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED1, true);
-	}
-	if (led == 1)
-	{
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED2, true);
-	}
-	if (led == 2)
-	{
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED3, true);
-	}
-	if (led == 3)
-	{
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_EXT_LED1, false);
-	}
-	if (led == 4)
-	{
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_EXT_LED2, false);
-	}
-
-
-
-
-
+	phy_set_led(led, false);
 }
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 0)
-	{
-		if (stm32_gpioread(GPIO_LED1))
-			stm32_gpiowrite(GPIO_LED1, false);
-		else
-			stm32_gpiowrite(GPIO_LED1, true);
-	}
-	if (led == 1)
-	{
-		if (stm32_gpioread(GPIO_LED2))
-			stm32_gpiowrite(GPIO_LED2, false);
-		else
-			stm32_gpiowrite(GPIO_LED2, true);
-	}
-	if (led == 2)
-	{
-		if (stm32_gpioread(GPIO_LED3))
-			stm32_gpiowrite(GPIO_LED3, false);
-		else
-			stm32_gpiowrite(GPIO_LED3, true);
-	}
-	if (led == 3)
-	{
-		if (stm32_gpioread(GPIO_EXT_LED1))
-			stm32_gpiowrite(GPIO_EXT_LED1, true);
-		else
-			stm32_gpiowrite(GPIO_EXT_LED1, false);
-	}
-	if (led == 4)
-	{
-		if (stm32_gpioread(GPIO_EXT_LED2))
-			stm32_gpiowrite(GPIO_EXT_LED2, true);
-		else
-			stm32_gpiowrite(GPIO_EXT_LED2, false);
-	}
 
-
-
-
-
-
-
+	phy_set_led(led, !phy_get_led(led));
 }

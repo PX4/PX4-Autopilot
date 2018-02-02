@@ -71,36 +71,34 @@ __EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
 	stm32_configgpio(GPIO_SPI_CS_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_EXP_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_EXP_MPU6000);
-	stm32_configgpio(GPIO_SPI_CS_EXP_HMC5983);
+
+
+
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
 	 * state machines
 	 */
 	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_EXP_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_EXP_MPU6000, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_EXP_HMC5983, 1);
+
+
+
 #endif
 
 #ifdef CONFIG_STM32_SPI2
 	stm32_configgpio(GPIO_SPI_CS_MPU6000);
-	stm32_configgpio(GPIO_SPI_CS_IMU_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_IMU_MPU6000);
-	stm32_configgpio(GPIO_SPI_CS_IMU_HMC5983);
+
+
+
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
 	 * state machines
 	 */
 	stm32_gpiowrite(GPIO_SPI_CS_MPU6000, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_IMU_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_IMU_MPU6000, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_IMU_HMC5983, 1);
 
-	stm32_configgpio(GPIO_DRDY_MPU6000);
+
+
 #endif
 
 #ifdef CONFIG_STM32_SPI3
@@ -124,34 +122,34 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	case SPIDEV_MS5611:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_HMC5983, 1);
+
+
+
 		break;
 
-	case SPIDEV_EXP_MS5611:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_MS5611, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_HMC5983, 1);
-		break;
 
-	case SPIDEV_EXP_MPU6000:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_MPU6000, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_HMC5983, 1);
-		break;
 
-	case SPIDEV_EXP_HMC5983:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_HMC5983, !selected);
-		break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	default:
 		break;
@@ -173,34 +171,34 @@ __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	case SPIDEV_MPU6000:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MPU6000, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_HMC5983, 1);
+
+
+
 		break;
 
-	case SPIDEV_IMU_MS5611:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_MS5611, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_HMC5983, 1);
-		break;
 
-	case SPIDEV_IMU_MPU6000:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_MPU6000, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_HMC5983, 1);
-		break;
 
-	case SPIDEV_IMU_HMC5983:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_MPU6000, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_IMU_HMC5983, !selected);
-		break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	default:
 		break;

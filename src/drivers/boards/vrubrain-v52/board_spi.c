@@ -50,9 +50,9 @@
 #include <nuttx/spi.h>
 #include <arch/board/board.h>
 
-#include "up_arch.h"
-#include "chip.h"
-#include "stm32.h"
+#include <up_arch.h>
+#include <chip.h>
+#include <stm32.h>
 #include "board_config.h"
 
 /************************************************************************************
@@ -67,14 +67,13 @@
  *
  ************************************************************************************/
 
-__EXPORT void weak_function stm32_spiinitialize(void)
+__EXPORT void stm32_spiinitialize(void)
 {
+#ifdef CONFIG_STM32_SPI1
 	stm32_configgpio(GPIO_SPI_CS_MS5611);
 
-	stm32_configgpio(GPIO_SPI_CS_MPU6000);
 
-	stm32_configgpio(GPIO_SPI_CS_DATAFLASH);
-	stm32_configgpio(GPIO_SPI_CS_SDCARD);
+
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
@@ -82,10 +81,37 @@ __EXPORT void weak_function stm32_spiinitialize(void)
 	 */
 	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 
+
+
+#endif
+
+#ifdef CONFIG_STM32_SPI2
+	stm32_configgpio(GPIO_SPI_CS_MPU6000);
+
+
+
+
+	/* De-activate all peripherals,
+	 * required for some peripheral
+	 * state machines
+	 */
 	stm32_gpiowrite(GPIO_SPI_CS_MPU6000, 1);
 
-	stm32_gpiowrite(GPIO_SPI_CS_DATAFLASH, 1);
+
+
+#endif
+
+#ifdef CONFIG_STM32_SPI3
+
+	stm32_configgpio(GPIO_SPI_CS_SDCARD);
+
+	/* De-activate all peripherals,
+	 * required for some peripheral
+	 * state machines
+	 */
+
 	stm32_gpiowrite(GPIO_SPI_CS_SDCARD, 1);
+#endif
 }
 
 __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
@@ -96,14 +122,34 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	case SPIDEV_MS5611:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_WIFI, 1);
+
+
+
 		break;
 
-	case SPIDEV_WIRELESS:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_EXP_WIFI, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	default:
 		break;
@@ -116,6 +162,7 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 	return SPI_STATUS_PRESENT;
 }
 
+#ifdef CONFIG_STM32_SPI2
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
@@ -124,7 +171,34 @@ __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	case SPIDEV_MPU6000:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MPU6000, !selected);
+
+
+
 		break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	default:
 		break;
@@ -136,8 +210,9 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 {
 	return SPI_STATUS_PRESENT;
 }
+#endif
 
-
+#ifdef CONFIG_STM32_SPI3
 __EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
@@ -146,13 +221,13 @@ __EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	case SPIDEV_MMCSD:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_SDCARD, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_DATAFLASH, 1);
+
 		break;
 
 	case SPIDEV_FLASH:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_DATAFLASH, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_SDCARD, 1);
+
 		break;
 
 	default:
@@ -165,3 +240,4 @@ __EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 {
 	return SPI_STATUS_PRESENT;
 }
+#endif

@@ -109,71 +109,9 @@ __END_DECLS
  * Protected Functions
  ****************************************************************************/
 
-#if defined(CONFIG_FAT_DMAMEMORY)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#else
-
-# define dma_alloc_init()
-
-#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -251,12 +189,10 @@ __EXPORT int nsh_archinitialize(void)
     stm32_configgpio(GPIO_GPI12_OUTPUT);
     stm32_configgpio(GPIO_GPI13_OUTPUT);
     stm32_configgpio(GPIO_GPI14_OUTPUT);
+    stm32_configgpio(GPIO_GPI15_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
-
-	/* configure the DMA allocator */
-	dma_alloc_init();
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -302,9 +238,9 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
 	SPI_SELECT(spi1, SPIDEV_MS5611, false);
-	SPI_SELECT(spi1, SPIDEV_EXP_MS5611, false);
-	SPI_SELECT(spi1, SPIDEV_EXP_MPU6000, false);
-	SPI_SELECT(spi1, SPIDEV_EXP_HMC5983, false);
+
+
+
 	up_udelay(20);
 
 	message("[boot] Successfully initialized SPI port 1\r\n");
@@ -323,9 +259,9 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_MPU6000, false);
-	SPI_SELECT(spi2, SPIDEV_IMU_MS5611, false);
-	SPI_SELECT(spi2, SPIDEV_IMU_MPU6000, false);
-	SPI_SELECT(spi2, SPIDEV_IMU_HMC5983, false);
+
+
+
 
 	message("[boot] Successfully initialized SPI port 2\r\n");
 

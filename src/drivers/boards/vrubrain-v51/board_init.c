@@ -109,71 +109,9 @@ __END_DECLS
  * Protected Functions
  ****************************************************************************/
 
-#if defined(CONFIG_FAT_DMAMEMORY)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#else
-
-# define dma_alloc_init()
-
-#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -223,7 +161,7 @@ __EXPORT int nsh_archinitialize(void)
 
 
 
-	stm32_configgpio(GPIO_SBUS_INV);
+
 
 
 
@@ -254,9 +192,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
-
-	/* configure the DMA allocator */
-	dma_alloc_init();
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
