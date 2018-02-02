@@ -1309,8 +1309,12 @@ test_results['filter_faults_max'][0] = np.amax(estimator_status['filter_fault_fl
 
 # calculate a master status - Fail, Warning, Pass
 # get the dictionary of fail and warning test thresholds from a csv file
+
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 filename = "check_level_dict.csv"
-file = open(filename)
+
+file = open(os.path.join(__location__, filename));
+
 check_levels = { }
 for line in file:
     x = line.split(",")
