@@ -91,6 +91,10 @@
 #define HW_ARCH "VRBRAIN_V52"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_VRBRAIN_V52E
+#define HW_ARCH "VRBRAIN_V52E"
+#endif
+
 #ifdef CONFIG_ARCH_BOARD_VRBRAIN_V54
 #define HW_ARCH "VRBRAIN_V54"
 #endif
