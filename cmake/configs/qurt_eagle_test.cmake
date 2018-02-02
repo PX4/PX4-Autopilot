@@ -40,7 +40,6 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	)
 

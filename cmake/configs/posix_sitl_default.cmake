@@ -125,7 +125,6 @@ set(config_module_list
 	lib/led
 	lib/mixer
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/rc
 	lib/tailsitter_recovery
 	lib/terrain_estimation
