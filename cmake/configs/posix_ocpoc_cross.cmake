@@ -89,7 +89,6 @@ set(config_module_list
 	lib/mathlib
 	lib/mixer
 	lib/rc
-	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
 	
