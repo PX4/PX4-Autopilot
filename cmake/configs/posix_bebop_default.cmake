@@ -78,7 +78,6 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	lib/tailsitter_recovery
 	lib/terrain_estimation

@@ -40,7 +40,6 @@ set(config_module_list
 	lib/ecl
 	lib/geo
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	lib/version
 
