@@ -46,6 +46,7 @@
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/camera_trigger.h>
 
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
 
@@ -185,6 +186,18 @@ void Simulator::send_controls()
 		send_mavlink_message(message);
 
 	}
+}
+
+void Simulator::send_camera_trigger()
+{
+        mavlink_command_long_t cmd_long = {};
+	mavlink_message_t message = {};
+	cmd_long.command = MAV_CMD_IMAGE_START_CAPTURE;
+	cmd_long.param1 = 0.0;
+	cmd_long.param2 = 0.0;
+	cmd_long.param3 = 1.0; // capture 1 image
+	mavlink_msg_command_long_encode(0, 50, &message, &cmd_long);
+	send_mavlink_message(message);
 }
 
 static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t *rc_channels)
@@ -564,21 +577,28 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 void Simulator::poll_topics()
 {
 	// copy new actuator data if available
-	bool updated;
+        bool vehicle_status_updated, camera_trigger_updated;
 
 	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
 
-		orb_check(_actuator_outputs_sub[i], &updated);
+		orb_check(_actuator_outputs_sub[i], &vehicle_status_updated);
 
-		if (updated) {
+		if (vehicle_status_updated) {
 			orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub[i], &_actuators[i]);
 		}
 	}
 
-	orb_check(_vehicle_status_sub, &updated);
+	orb_check(_vehicle_status_sub, &vehicle_status_updated);
 
-	if (updated) {
+	if (vehicle_status_updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	}
+
+	orb_check(_camera_trigger_sub, &camera_trigger_updated);
+	if(camera_trigger_updated) {
+	        struct camera_trigger_s camera_trigger_message;
+	        orb_copy(ORB_ID(camera_trigger), _camera_trigger_sub, &camera_trigger_message);
+		send_camera_trigger();
 	}
 }
 
@@ -796,6 +816,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	}
 
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_camera_trigger_sub = orb_subscribe(ORB_ID(camera_trigger));
 
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
