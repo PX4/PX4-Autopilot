@@ -234,6 +234,7 @@ pipeline {
             }
           }
           steps {
+            sh 'make distclean'
             sh 'make check_format'
           }
         }
@@ -589,6 +590,7 @@ pipeline {
             docker { image 'px4io/px4-dev-base:2017-12-30' }
           }
           steps {
+            sh 'make distclean'
             sh 'make airframe_metadata'
             archiveArtifacts(artifacts: 'airframes.md, airframes.xml', fingerprint: true)
           }
@@ -599,6 +601,7 @@ pipeline {
             docker { image 'px4io/px4-dev-base:2017-12-30' }
           }
           steps {
+            sh 'make distclean'
             sh 'make parameters_metadata'
             archiveArtifacts(artifacts: 'parameters.md, parameters.xml', fingerprint: true)
           }
@@ -609,6 +612,7 @@ pipeline {
             docker { image 'px4io/px4-dev-base:2017-12-30' }
           }
           steps {
+            sh 'make distclean'
             sh 'make module_documentation'
             archiveArtifacts(artifacts: 'modules/*.md', fingerprint: true)
           }
@@ -622,6 +626,7 @@ pipeline {
             }
           }
           steps {
+            sh 'make distclean'
             sh 'make uorb_graphs'
             archiveArtifacts(artifacts: 'Tools/uorb_graph/graph_sitl.json')
           }
