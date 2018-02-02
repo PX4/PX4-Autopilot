@@ -1,7 +1,7 @@
 ############################################################################
 # configs/board/src/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
 
 CFLAGS		+= -I$(TOPDIR)/sched
 
-ASRCS		=
+ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
 CSRCS		= empty.c
@@ -49,8 +49,8 @@ OBJS		= $(AOBJS) $(COBJS)
 ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
   CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-					   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-					   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
 else
   CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
 endif

@@ -91,7 +91,7 @@ else
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   else
-    # Linux/Cygwin-native toolchain
+    # Linux/Cygwin-native toolchain 
     MKDEP		 = $(TOPDIR)/tools/mkdeps.sh
     ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
@@ -108,10 +108,10 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
-			   -funsafe-math-optimizations \
-			   -fno-builtin-printf \
-			   -ffunction-sections \
-			   -fdata-sections
+   			   -funsafe-math-optimizations \
+   			   -fno-builtin-printf \
+   			   -ffunction-sections \
+   			   -fdata-sections
 
 ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
 ARCHOPTIMIZATION	+= -g
