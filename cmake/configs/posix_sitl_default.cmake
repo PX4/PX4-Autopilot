@@ -126,7 +126,6 @@ set(config_module_list
 	lib/mixer
 	lib/mathlib
 	lib/rc
-	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/tunes
 	lib/version
