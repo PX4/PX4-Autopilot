@@ -80,7 +80,6 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/mixer
-	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version

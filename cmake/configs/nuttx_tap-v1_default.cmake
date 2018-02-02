@@ -96,7 +96,6 @@ set(config_module_list
 	lib/mathlib/math/filter
 	lib/mixer
 	lib/rc
-	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/tunes
