@@ -371,7 +371,7 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 	{GPIO_GPIO12_INPUT,      GPIO_GPIO12_OUTPUT,       0},
 	{0,       0,       0},
 #endif
-#if defined(CONFIG_ARCH_BOARD_VRBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V52) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V54) || defined(CONFIG_ARCH_BOARD_VRCORE_V10) || defined(CONFIG_ARCH_BOARD_VRUBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRUBRAIN_V52)
+#if defined(CONFIG_ARCH_BOARD_VRBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V52) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V54) || defined(CONFIG_ARCH_BOARD_VRCORE_V10)
 	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
 	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
 	{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},
@@ -387,6 +387,43 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 	{GPIO_GPI12_INPUT,       GPIO_GPI12_OUTPUT,       0},
 	{GPIO_GPI13_INPUT,       GPIO_GPI13_OUTPUT,       0},
 	{GPIO_GPI14_INPUT,       GPIO_GPI14_OUTPUT,       0},
+    {GPIO_GPI15_INPUT,       GPIO_GPI15_OUTPUT,       0},
+#endif
+#if defined(CONFIG_ARCH_BOARD_VRUBRAIN_V51)
+    {GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
+    {GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
+    {GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},
+    {GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
+    {GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
+    {GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
+    {GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,       0},
+    {GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,       0},
+    {GPIO_GPIO8_INPUT,       GPIO_GPIO8_OUTPUT,       0},
+    {GPIO_GPIO9_INPUT,       GPIO_GPIO9_OUTPUT,       0},
+    {GPIO_GPI10_INPUT,       GPIO_GPI10_OUTPUT,       0},
+    {GPIO_GPI11_INPUT,       GPIO_GPI11_OUTPUT,       0},
+    {GPIO_GPI12_INPUT,       GPIO_GPI12_OUTPUT,       0},
+    {GPIO_GPI13_INPUT,       GPIO_GPI13_OUTPUT,       0},
+    {GPIO_GPI14_INPUT,       GPIO_GPI14_OUTPUT,       0},
+    {0,       0,       0},
+#endif
+#if defined(CONFIG_ARCH_BOARD_VRUBRAIN_V52)
+    {GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
+    {GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
+    {GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},
+    {GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
+    {GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
+    {GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
+    {GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,       0},
+    {GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,       0},
+    {GPIO_GPIO8_INPUT,       GPIO_GPIO8_OUTPUT,       0},
+    {GPIO_GPIO9_INPUT,       GPIO_GPIO9_OUTPUT,       0},
+    {GPIO_GPI10_INPUT,       GPIO_GPI10_OUTPUT,       0},
+    {0,       0,       0},
+    {GPIO_GPI12_INPUT,       GPIO_GPI12_OUTPUT,       0},
+    {GPIO_GPI13_INPUT,       GPIO_GPI13_OUTPUT,       0},
+    {GPIO_GPI14_INPUT,       GPIO_GPI14_OUTPUT,       0},
+    {0,       0,       0},
 #endif
 };
 
