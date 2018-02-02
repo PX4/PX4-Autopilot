@@ -93,7 +93,6 @@ set(config_module_list
 	lib/geo_lookup
 	lib/led
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	lib/rc
 	lib/tailsitter_recovery
