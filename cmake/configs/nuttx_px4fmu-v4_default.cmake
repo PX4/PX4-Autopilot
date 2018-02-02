@@ -136,7 +136,6 @@ set(config_module_list
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
-	lib/launchdetection
 	lib/led
 	lib/mathlib
 	lib/mathlib/math/filter
