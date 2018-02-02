@@ -62,12 +62,21 @@ if (DISABLE_PARAMS_MODULE_SCOPING)
 	list(REMOVE_DUPLICATES module_list)
 else()
 	foreach(module ${config_module_list})
+		# include all subdirectories as well
+		file(GLOB children RELATIVE ${PX4_SOURCE_DIR}/src/${module} ${PX4_SOURCE_DIR}/src/${module}/*)
+		foreach(child ${children})
+			if(IS_DIRECTORY ${PX4_SOURCE_DIR}/src/${module}/${child})
+				list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module}/${child})
+			endif()
+		endforeach()
+
 		list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
 	endforeach()
-	list(APPEND module_list
-		${external_module_paths}
-		)
+
+	list(APPEND module_list ${external_module_paths})
 endif()
+
+list(REMOVE_DUPLICATES module_list)
 
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
 file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c)
