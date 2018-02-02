@@ -57,13 +57,13 @@
 
 #include "Landingslope.hpp"
 #include "launchdetection/LaunchDetector.h"
+#include "runway_takeoff/RunwayTakeoff.h"
 
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <ecl/tecs/tecs.h>
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
-#include <runway_takeoff/RunwayTakeoff.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
