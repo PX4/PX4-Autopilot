@@ -4,6 +4,11 @@ from __future__ import print_function
 
 import argparse
 import os
+
+# matplotlib don't use Xwindows backend (must be before pyplot import)
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 
