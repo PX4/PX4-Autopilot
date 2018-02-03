@@ -125,7 +125,7 @@ class firmware(object):
 
         # pad image to 4-byte length
         while ((len(self.image) % 4) != 0):
-            self.image.append('\xff')
+            self.image.extend(b'\xff')
 
     def property(self, propname):
         return self.desc[propname]
