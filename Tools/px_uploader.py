@@ -493,13 +493,6 @@ class uploader(object):
         if self.fw_maxsize < fw.property('image_size'):
             raise RuntimeError("Firmware image is too large for this board")
 
-        # Prevent uploads where the maximum image size of the board config is smaller than the flash
-        # of the board. This is a hint the user chose the wrong config and will lack features
-        # for this particular board.
-        if self.fw_maxsize > fw.property('image_maxsize'):
-            raise RuntimeError("Board can accept larger flash images (%u bytes) than board config (%u bytes). Please use the correct board configuration to avoid lacking critical functionality."
-                % (self.fw_maxsize, fw.property('image_maxsize')))
-
         # OTP added in v4:
         if self.bl_rev > 3:
             for byte in range(0, 32*6, 4):
@@ -533,6 +526,19 @@ class uploader(object):
                         print("family: %s" % des[0])
                         print("revision: %s" % des[1])
                         print("flash %d" % self.fw_maxsize)
+
+                        # Prevent uploads where the maximum image size of the board config is smaller than the flash
+                        # of the board. This is a hint the user chose the wrong config and will lack features
+                        # for this particular board.
+
+                        # This check should also check if the revision is an unaffected revision
+                        # and thus can support the full flash, see
+                        # https://github.com/PX4/Firmware/blob/master/src/drivers/boards/common/stm32/board_mcu_version.c#L125-L144
+
+                        if self.fw_maxsize > fw.property('image_maxsize'):
+                            raise RuntimeError("Board can accept larger flash images (%u bytes) than board config (%u bytes). Please use the correct board configuration to avoid lacking critical functionality."
+                                % (self.fw_maxsize, fw.property('image_maxsize')))
+
             except Exception:
                 # ignore bad character encodings
                 pass
