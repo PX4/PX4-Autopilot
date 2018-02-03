@@ -520,28 +520,42 @@ class uploader(object):
                     print(binascii.hexlify(x).decode('Latin-1'), end='')  # show user
                 print('')
                 print("chip: %08x" % self.__getCHIP())
-                if (self.bl_rev >= 5):
-                    des = self.__getCHIPDes()
-                    if (len(des) == 2):
-                        print("family: %s" % des[0])
-                        print("revision: %s" % des[1])
-                        print("flash %d" % self.fw_maxsize)
-
-                        # Prevent uploads where the maximum image size of the board config is smaller than the flash
-                        # of the board. This is a hint the user chose the wrong config and will lack features
-                        # for this particular board.
-
-                        # This check should also check if the revision is an unaffected revision
-                        # and thus can support the full flash, see
-                        # https://github.com/PX4/Firmware/blob/master/src/drivers/boards/common/stm32/board_mcu_version.c#L125-L144
-
-                        if self.fw_maxsize > fw.property('image_maxsize'):
-                            raise RuntimeError("Board can accept larger flash images (%u bytes) than board config (%u bytes). Please use the correct board configuration to avoid lacking critical functionality."
-                                % (self.fw_maxsize, fw.property('image_maxsize')))
-
             except Exception:
                 # ignore bad character encodings
                 pass
+
+        # Silicon errata check was added in v5
+        if (self.bl_rev >= 5):
+            des = self.__getCHIPDes()
+            if (len(des) == 2):
+                print("family: %s" % des[0])
+                print("revision: %s" % des[1])
+                print("flash %d" % self.fw_maxsize)
+
+                # Prevent uploads where the maximum image size of the board config is smaller than the flash
+                # of the board. This is a hint the user chose the wrong config and will lack features
+                # for this particular board.
+
+                # This check should also check if the revision is an unaffected revision
+                # and thus can support the full flash, see
+                # https://github.com/PX4/Firmware/blob/master/src/drivers/boards/common/stm32/board_mcu_version.c#L125-L144
+
+                if self.fw_maxsize > fw.property('image_maxsize') and not force:
+                    raise RuntimeError("Board can accept larger flash images (%u bytes) than board config (%u bytes). Please use the correct board configuration to avoid lacking critical functionality."
+                        % (self.fw_maxsize, fw.property('image_maxsize')))
+        else:
+            # If we're still on bootloader v4 on a Pixhawk, we don't know if we
+            # have the silicon errata and therefore need to flash px4fmu-v2
+            # with 1MB flash or if it supports px4fmu-v3 with 2MB flash.
+            if fw.property('board_id') == 9 \
+                    and fw.property('image_size') > 1032192 \
+                    and not force:
+                raise RuntimeError("\nThe Board uses bootloader revision 4 and can therefore not determine\n"
+                                   "if flashing more than 1 MB (px4fmu-v3_default) is safe, chances are\n"
+                                   "high that it is not safe! If unsure, use px4fmu-v2_default.\n"
+                                   "\n"
+                                   "If you know you that the board does not have the silicon errata, use\n"
+                                   "this script with --force, or update the bootloader.\n")
 
         self.__erase("Erase  ")
         self.__program("Program", fw)
@@ -609,7 +623,7 @@ def main():
     parser.add_argument('--port', action="store", required=True, help="Comma-separated list of serial port(s) to which the FMU may be attached")
     parser.add_argument('--baud-bootloader', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200) when communicating with bootloader, only required for true serial ports.")
     parser.add_argument('--baud-flightstack', action="store", default="57600", help="Comma-separated list of baud rate of the serial port (default is 57600) when communicating with flight stack (Mavlink or NSH), only required for true serial ports.")
-    parser.add_argument('--force', action='store_true', default=False, help='Override board type check and continue loading')
+    parser.add_argument('--force', action='store_true', default=False, help='Override board type check, or silicon errata checks and continue loading')
     parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
     parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
     args = parser.parse_args()
