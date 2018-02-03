@@ -494,7 +494,7 @@ class uploader(object):
             raise RuntimeError("Firmware image is too large for this board")
 
         # OTP added in v4:
-        if self.bl_rev > 3:
+        if self.bl_rev >= 4:
             for byte in range(0, 32*6, 4):
                 x = self.__getOTP(byte)
                 self.otp = self.otp + x
