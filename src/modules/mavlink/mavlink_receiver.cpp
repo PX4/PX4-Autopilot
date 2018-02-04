@@ -1179,6 +1179,11 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
 
+	vision_position.xy_valid = true;
+	vision_position.z_valid = true;
+	vision_position.v_xy_valid = true;
+	vision_position.v_z_valid = true;
+
 	struct vehicle_attitude_s vision_attitude = {};
 
 	vision_attitude.timestamp = sync_stamp(pos.usec);
