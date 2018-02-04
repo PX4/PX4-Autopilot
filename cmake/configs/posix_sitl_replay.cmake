@@ -16,7 +16,6 @@ set(config_module_list
 	modules/logger
 	lib/controllib
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/conversion
 	lib/ecl
 	lib/geo

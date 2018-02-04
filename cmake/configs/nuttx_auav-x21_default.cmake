@@ -127,13 +127,9 @@ set(config_module_list
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
-	lib/launchdetection
 	lib/led
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
-	lib/runway_takeoff
-	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/tunes
 	lib/version

@@ -137,14 +137,10 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
-	lib/launchdetection
 	lib/led
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	lib/rc
-	lib/runway_takeoff
-	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/tunes
 	lib/version

@@ -53,12 +53,13 @@
  * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
 
+#include "tailsitter_recovery/tailsitter_recovery.h"
+
 #include <conversion/rotation.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer/mixer.h>
-#include <lib/tailsitter_recovery/tailsitter_recovery.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>

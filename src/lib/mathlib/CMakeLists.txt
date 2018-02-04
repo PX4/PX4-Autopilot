@@ -37,7 +37,5 @@ px4_add_module(
 		math/test/test.cpp
 		math/Limits.cpp
 		math/matrix_alg.cpp
-	DEPENDS
-		platforms__common
+		math/filter/LowPassFilter2p.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
