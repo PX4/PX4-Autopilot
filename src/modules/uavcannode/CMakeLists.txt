@@ -79,8 +79,12 @@ px4_add_module(
 		uavcannode_params.c
 
 	DEPENDS
-		prebuild_targets
+		git_uavcan
+
+		# within libuavcan
+		libuavcan_dsdlc
 		uavcan
+		uavcan_stm32_driver
 	)
 
 target_link_libraries(modules__uavcannode PUBLIC uavcan uavcan_stm32_driver)
