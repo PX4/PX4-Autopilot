@@ -15,9 +15,10 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
+                      sh "export"
                       sh "make distclean"
                       sh "ccache -z"
                       sh "git fetch --tags"
@@ -38,9 +39,10 @@ pipeline {
           builds["px4fmu-v2"] = {
             node {
               stage("Build Test ${node_name}") {
-                docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                   stage("${node_name}") {
                     checkout scm
+                    sh "export"
                     sh "make distclean"
                     sh "ccache -z"
                     sh "git fetch --tags"
@@ -66,9 +68,10 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
+                      sh "export"
                       sh "make distclean"
                       sh "ccache -z"
                       sh "git fetch --tags"
@@ -91,9 +94,10 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
+                      sh "export"
                       sh "make distclean"
                       sh "ccache -z"
                       sh "make nuttx_${node_name}_default"
@@ -114,9 +118,10 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-base:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-base:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
+                      sh "export"
                       sh "make distclean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
@@ -136,9 +141,10 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-raspi:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-raspi:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
+                      sh "export"
                       sh "make distclean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
@@ -158,9 +164,10 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-armhf:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-armhf:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
+                      sh "export"
                       sh "make distclean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
@@ -181,9 +188,10 @@ pipeline {
               node {
                 stage("Build Test ${node_name}") {
                   docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {
-                    docker.image("lorenzmeier/px4-dev-snapdragon:2017-12-29").inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                    docker.image("lorenzmeier/px4-dev-snapdragon:2017-12-29").inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                       stage("${node_name}") {
                         checkout scm
+                        sh "export"
                         sh "make distclean"
                         sh "ccache -z"
                         sh "make ${node_name}"
@@ -204,9 +212,10 @@ pipeline {
             builds["${node_name} (GCC7)"] = {
               node {
                 stage("Build Test ${node_name} (GCC7)") {
-                  docker.image('px4io/px4-dev-base-archlinux:2017-12-30').inside('-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw') {
+                  docker.image('px4io/px4-dev-base-archlinux:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
+                      sh "export"
                       sh "make distclean"
                       sh "ccache -z"
                       sh "make posix_${node_name}"
@@ -230,10 +239,10 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-base:2017-12-30'
-              args '-e CI=true'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean'
             sh 'make check_format'
           }
@@ -243,10 +252,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-clang:2017-12-30'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean'
             sh 'make scan-build'
             // publish html
@@ -273,10 +283,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-clang:2017-12-30'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean'
             sh 'make clang-tidy-quiet'
           }
@@ -286,10 +297,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-base:ubuntu17.10'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean'
             sh 'make cppcheck'
             // publish html
@@ -316,10 +328,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-base:2017-12-30'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean'
             sh 'make posix_sitl_default test_results_junit'
             junit 'build/posix_sitl_default/JUnitTestResults.xml'
@@ -330,10 +343,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
@@ -363,10 +377,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
@@ -396,10 +411,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
@@ -429,10 +445,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
@@ -462,10 +479,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
@@ -495,10 +513,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
@@ -528,10 +547,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
@@ -555,10 +575,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2017-12-31'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
@@ -622,10 +643,11 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2017-12-30'
-              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
+            sh 'export'
             sh 'make distclean'
             sh 'make uorb_graphs'
             archiveArtifacts(artifacts: 'Tools/uorb_graph/graph_sitl.json')
@@ -652,7 +674,10 @@ pipeline {
       }
     }
   }
-
+  environment {
+    CCACHE_DIR = '/tmp/ccache'
+    CI = true
+  }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
     timeout(time: 60, unit: 'MINUTES')
