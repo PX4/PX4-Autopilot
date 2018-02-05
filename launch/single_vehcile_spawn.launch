@@ -15,17 +15,17 @@
 
 
 
-    <arg name="cmd" default="$(find xacro)/xacro.py $(find px4)/Tools/sitl_gazebo/models/rotors_description/urdf/$(arg vehicle)_base.xacro rotors_description_dir:=$(find px4)/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(arg mavlink_udp_port) > $(arg vehicle)_$(arg ID).urdf ; 'gz sdf -p $(arg vehicle)_$(arg ID).urdf'" />
+    <arg name="cmd" default="$(find xacro)/xacro $(find px4)/Tools/sitl_gazebo/models/rotors_description/urdf/$(arg vehicle)_base.xacro rotors_description_dir:=$(find px4)/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(arg mavlink_udp_port) --inorder"/>
 
 
-    <param command="$(arg cmd)" name="$(arg vehicle)_$(arg ID)_sdf" />
+    <param command="$(arg cmd)" name="rotors_description" />
 
     <node name="sitl_$(arg ID)" pkg="px4" type="px4" output="screen"
         args="$(find px4) $(arg rcS)">
     </node>
 
     <node name="$(arg vehicle)_$(arg ID)_spawn" output="screen" pkg="gazebo_ros" type="spawn_model"
-        args="-sdf -param $(arg vehicle)_$(arg ID)_sdf -model $(arg vehicle)_$(arg ID) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)" respawn="false"/>
+        args="-urdf -param rotors_description -model $(arg vehicle)_$(arg ID) -package_to_model -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>
 
 
 </launch>
