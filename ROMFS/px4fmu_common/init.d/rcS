@@ -589,7 +589,13 @@ then
 	if param compare SYS_COMPANION 10
 	then
 		frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
+	else
+		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
+		then
+			frsky_telemetry start -d /dev/ttyS6
+		fi
 	fi
+
 	if param compare SYS_COMPANION 20
 	then
 		syslink start
@@ -670,11 +676,6 @@ then
 		else
 			tone_alarm ${TUNE_ERR}
 		fi
-	fi
-
-	if ver hwcmp PX4FMU_V4 MINDPX_V2
-	then
-		frsky_telemetry start -d /dev/ttyS6
 	fi
 
 	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5
