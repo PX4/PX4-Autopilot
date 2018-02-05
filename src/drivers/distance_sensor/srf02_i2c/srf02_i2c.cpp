@@ -35,8 +35,14 @@
  * @file srf02_i2c.cpp
  * @author Greg Hulands
  * @author Jon Verbeke <jon.verbeke@kuleuven.be>
+ * @author Christopher-Eyk Hrabia <hrabia@dai-labor.de>
  *
- * Driver for the Maxbotix sonar range finders connected via I2C.
+ * Driver for the SRF sonar range finder series connected via I2C,
+ * like SRF02 and SRF08.
+ *
+ * The driver supports reading data from several connected sensors on the bus.
+ * However, it is important, that one sensor is available on the base address
+ * configured in SRF02_I2C_BASEADDR (this is the common sensor default value)
  */
 
 #include <px4_workqueue.h>
@@ -74,16 +80,23 @@
 #include <board_config.h>
 
 /* Configuration Constants */
+#define SRF02_UNIT_INCH 0x50
+#define UNIT_CM 0x51
+
 #define SRF02_I2C_BUS 		PX4_I2C_BUS_EXPANSION
 #define SRF02_I2C_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
 #define SRF02_DEVICE_PATH	"/dev/srf02"
+#define SRF02_MAX_RANGEFINDERS	16	// Maximum number of SRF sensors on bus
 
-/* MB12xx Registers addresses */
+/* SRF02 Registers addresses */
 
-#define SRF02_TAKE_RANGE_REG	0x51		/* Measure range Register */
-#define SRF02_SET_ADDRESS_0	0xA0		/* Change address 0 Register */
-#define SRF02_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
-#define SRF02_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
+#define SRF02_VERSION_AND_COMMAND   0x00                /* Version and Command Register */
+#define SRF02_LIGHT_AND_GAIN        0x01                /* Light and Gain Register */
+#define SRF02_RANGE_REGISTER        0x02                /* Range Register */
+#define SRF02_TAKE_RANGE_CM_CMD     0x51		/* Measure range in cm Command*/
+#define SRF02_SET_ADDRESS_0_CMD     0xA0		/* Change address 0 Command*/
+#define SRF02_SET_ADDRESS_1_CMD     0xAA		/* Change address 1 Command*/
+#define SRF02_SET_ADDRESS_2_CMD     0xA5		/* Change address 2 Command*/
 
 /* Device limits */
 #define SRF02_MIN_DISTANCE 	(0.20f)
@@ -197,7 +210,7 @@ private:
 extern "C" { __EXPORT int srf02_i2c_main(int argc, char *argv[]);}
 
 SRF02_I2C::SRF02_I2C(uint8_t rotation, int bus, int address) :
-	I2C("MB12xx", SRF02_DEVICE_PATH, bus, address, 100000),
+	I2C("SRF02", SRF02_DEVICE_PATH, bus, address, 100000),
 	_rotation(rotation),
 	_min_distance(SRF02_MIN_DISTANCE),
 	_max_distance(SRF02_MAX_DISTANCE),
@@ -248,6 +261,7 @@ SRF02_I2C::init()
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
+		PX4_WARN("SRF02_I2C failed()");
 		return ret;
 	}
 
@@ -258,6 +272,7 @@ SRF02_I2C::init()
 	set_device_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
 
 	if (_reports == nullptr) {
+		PX4_WARN("creating ringbuffer failed");
 		return ret;
 	}
 
@@ -279,14 +294,14 @@ SRF02_I2C::init()
 	/* check for connected rangefinders on each i2c port:
 	   We start from i2c base address (0x70 = 112) and count downwards
 	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
-	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
+	for (unsigned counter = 0; counter <= SRF02_MAX_RANGEFINDERS; counter++) {
 		_index_counter = SRF02_I2C_BASEADDR + counter * 2;	/* set temp sonar i2c address to base adress - counter */
 		set_device_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
 		int ret2 = measure();
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
-			DEVICE_DEBUG("sonar added");
+			DEVICE_DEBUG("SRF02 sonar added");
 			_latest_sonar_measurements.push_back(200);
 		}
 	}
@@ -304,7 +319,7 @@ SRF02_I2C::init()
 
 	/* show the connected sonars in terminal */
 	for (unsigned i = 0; i < addr_ind.size(); i++) {
-		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
+                DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
 	DEVICE_DEBUG("Number of sonars connected: %zu", addr_ind.size());
@@ -319,7 +334,20 @@ SRF02_I2C::init()
 int
 SRF02_I2C::probe()
 {
-	return measure();
+        // Use version reading to test if the device is available
+        int ret;
+        uint8_t cmd = SRF02_VERSION_AND_COMMAND;
+        uint8_t version = 0;
+
+        ret = transfer(&cmd, 1, &version, 1);
+
+        if (OK != ret) {
+                DEVICE_DEBUG("probe returned %d", ret);
+                return ret;
+        }
+        DEVICE_DEBUG("Found SRF Sonar with version %d", version);
+
+        return OK;
 }
 
 void
@@ -518,8 +546,8 @@ SRF02_I2C::measure()
 	 */
 
 	uint8_t cmd[2];
-	cmd[0] = 0x00;
-	cmd[1] = SRF02_TAKE_RANGE_REG;
+	cmd[0] = SRF02_VERSION_AND_COMMAND;
+	cmd[1] = SRF02_TAKE_RANGE_CM_CMD;
 	ret = transfer(cmd, 2, nullptr, 0);
 
 	if (OK != ret) {
@@ -540,11 +568,10 @@ SRF02_I2C::collect()
 
 	/* read from the sensor */
 	uint8_t val[2] = {0, 0};
-	uint8_t cmd = 0x02;
+	uint8_t cmd = SRF02_RANGE_REGISTER;
 	perf_begin(_sample_perf);
 
-	ret = transfer(&cmd, 1, nullptr, 0);
-	ret = transfer(nullptr, 0, &val[0], 2);
+	ret = transfer(&cmd, 1, &val[0], 2);
 
 	if (ret < 0) {
 		DEVICE_DEBUG("error reading from sensor: %d", ret);
@@ -730,10 +757,12 @@ start(uint8_t rotation)
 	g_dev = new SRF02_I2C(rotation, SRF02_I2C_BUS);
 
 	if (g_dev == nullptr) {
+		err(1,"SRF02_I2C constructor failed");
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
+		err(1,"device init() failed");
 		goto fail;
 	}
 
@@ -741,10 +770,12 @@ start(uint8_t rotation)
 	fd = open(SRF02_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
+		err(1,"Open device failed");
 		goto fail;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		err(1,"ioctl() failed");
 		goto fail;
 	}
 
