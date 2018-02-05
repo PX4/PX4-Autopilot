@@ -11,7 +11,7 @@ Runs process_logdata_ekf.py on the .ulg files in the supplied directory. ulog fi
 parser = argparse.ArgumentParser(description='Analyse the estimator_status and ekf2_innovation message data for the'
                                              ' .ulg files in the specified directory')
 parser.add_argument("directory_path")
-parser.add_argument('-ow', '--overwrite', action='store_true',
+parser.add_argument('-o', '--overwrite', action='store_true',
                     help='Whether to overwrite an already analysed file. If a file with .pdf extension exists for a .ulg'
                          'file, the log file will be skipped from analysis unless this flag has been set.')
 
