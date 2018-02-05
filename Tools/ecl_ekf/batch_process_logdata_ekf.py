@@ -4,7 +4,7 @@ import argparse
 import os, glob
 
 """
-Runs process_logdata_ekf.py on the .ulg files in the supplied directory. ulg files are skipped from the analysis, if a 
+Runs process_logdata_ekf.py on the .ulg files in the supplied directory. ulog files are skipped from the analysis, if a 
  corresponding .pdf file already exists (unless the overwrite flag was set). 
 """
 
@@ -32,6 +32,7 @@ ulog_files = glob.glob(os.path.join(ulog_directory, '*.ulg'))
 # remove the files already analysed unless the overwrite flag was specified. A ulog file is consired to be analysed if
 # a corresponding .pdf file exists.'
 if not args.overwrite:
+    print("skipping already analysed ulg files.")
     ulog_files = [ulog_file for ulog_file in ulog_files if not os.path.exists('{}.pdf'.format(ulog_file))]
 
 # analyse all ulog files
