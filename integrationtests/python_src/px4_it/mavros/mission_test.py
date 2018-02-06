@@ -252,7 +252,10 @@ class MavrosMissionTest(MavrosTestCommon):
                     format(self.mission_wp.current_seq, xy_radius, z_radius,
                            pos_xy_d, pos_z_d))
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(
             reached,

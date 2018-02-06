@@ -48,7 +48,7 @@ class MavrosTestCommon(unittest.TestCase):
         except rospy.ROSException:
             self.fail("failed to connect to services")
         self.get_param_srv = rospy.ServiceProxy('mavros/param/get', ParamGet)
-        self.set_arming_srv = rospy.ServiceProxy('/mavros/cmd/arming',
+        self.set_arming_srv = rospy.ServiceProxy('mavros/cmd/arming',
                                                  CommandBool)
         self.set_mode_srv = rospy.ServiceProxy('mavros/set_mode', SetMode)
         self.wp_clear_srv = rospy.ServiceProxy('mavros/mission/clear',
@@ -184,7 +184,10 @@ class MavrosTestCommon(unittest.TestCase):
                 except rospy.ServiceException as e:
                     rospy.logerr(e)
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(arm_set, (
             "failed to set arm | new arm: {0}, old arm: {1} | timeout(seconds): {2}".
@@ -211,7 +214,10 @@ class MavrosTestCommon(unittest.TestCase):
                 except rospy.ServiceException as e:
                     rospy.logerr(e)
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(mode_set, (
             "failed to set mode | new mode: {0}, old mode: {1} | timeout(seconds): {2}".
@@ -232,7 +238,10 @@ class MavrosTestCommon(unittest.TestCase):
                               format(i / loop_freq, timeout))
                 break
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(simulation_ready, (
             "failed to hear from all subscribed simulation topics | topic ready flags: {0} | timeout(seconds): {1}".
@@ -252,13 +261,16 @@ class MavrosTestCommon(unittest.TestCase):
                               format(i / loop_freq, timeout))
                 break
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(landed_state_confirmed, (
             "landed state not detected | desired: {0}, current: {1} | index: {2}, timeout(seconds): {3}".
             format(mavutil.mavlink.enums['MAV_LANDED_STATE'][
                 desired_landed_state].name, mavutil.mavlink.enums[
-                    'MAV_VTOL_STATE'][self.extended_state.landed_state].name,
+                    'MAV_LANDED_STATE'][self.extended_state.landed_state].name,
                    index, timeout)))
 
     def wait_for_vtol_state(self, transition, timeout, index):
@@ -277,7 +289,10 @@ class MavrosTestCommon(unittest.TestCase):
                 transitioned = True
                 break
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(transitioned, (
             "transition not detected | desired: {0}, current: {1} | index: {2} timeout(seconds): {3}".
@@ -304,7 +319,10 @@ class MavrosTestCommon(unittest.TestCase):
                 except rospy.ServiceException as e:
                     rospy.logerr(e)
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(wps_cleared, (
             "failed to clear waypoints | timeout(seconds): {0}".format(timeout)
@@ -340,7 +358,10 @@ class MavrosTestCommon(unittest.TestCase):
                               format(i / loop_freq, timeout))
                 break
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue((
             wps_sent and wps_verified
@@ -366,7 +387,10 @@ class MavrosTestCommon(unittest.TestCase):
             except rospy.ServiceException as e:
                 rospy.logerr(e)
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(res.success, (
             "MAV_TYPE param get failed | timeout(seconds): {0}".format(timeout)
