@@ -403,12 +403,6 @@ void Tiltrotor::update_transition_state()
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 }
 
-void Tiltrotor::waiting_on_tecs()
-{
-	// keep multicopter thrust until we get data from TECS
-	_v_att_sp->thrust = _thrust_transition;
-}
-
 /**
 * Write data to actuator output topic.
 */

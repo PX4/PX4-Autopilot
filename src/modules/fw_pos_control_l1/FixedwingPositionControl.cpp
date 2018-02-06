@@ -195,6 +195,10 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 
+	if (_vehicle_status.is_vtol) {
+		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
+	}
+
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
 	_l1_control.set_l1_roll_limit(radians(_parameters.roll_limit));
@@ -288,7 +292,6 @@ FixedwingPositionControl::vehicle_status_poll()
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 
-				_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
 				_parameter_handles.vtol_type = param_find("VT_TYPE");
 
 				parameters_update();
@@ -661,12 +664,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	}
 
 	_control_position_last_called = hrt_absolute_time();
-
-	/* only run position controller in fixed-wing mode and during transitions for VTOL */
-	if (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
-		_control_mode_current = FW_POSCTRL_MODE_OTHER;
-		return false;
-	}
 
 	bool setpoint = true;
 
@@ -1507,6 +1504,7 @@ FixedwingPositionControl::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	_local_position_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
@@ -1730,64 +1728,13 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 		bool climbout_mode, float climbout_pitch_min_rad,
 		uint8_t mode)
 {
-	float dt = 0.01f; // prevent division with 0
-
-	if (_last_tecs_update > 0) {
-		dt = hrt_elapsed_time(&_last_tecs_update) * 1e-6;
-	}
-
-	_last_tecs_update = hrt_absolute_time();
-
 	// do not run TECS if we are not in air
-	bool run_tecs = !_vehicle_land_detected.landed;
+	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
+	_is_tecs_running = (!_vehicle_land_detected.landed && _control_mode.flag_control_altitude_enabled);
 
-	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
-	// (it should also not run during VTOL blending because airspeed is too low still)
-	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
-			run_tecs = false;
-		}
-
-		if (_vehicle_status.in_transition_mode) {
-			// we're in transition
-			_was_in_transition = true;
-
-			// set this to transition airspeed to init tecs correctly
-			if (_parameters.airspeed_disabled) {
-				// some vtols fly without airspeed sensor
-				_asp_after_transition = _parameters.airspeed_trans;
-
-			} else {
-				_asp_after_transition = _airspeed;
-			}
-
-			_asp_after_transition = constrain(_asp_after_transition, _parameters.airspeed_min, _parameters.airspeed_max);
-
-		} else if (_was_in_transition) {
-			// after transition we ramp up desired airspeed from the speed we had coming out of the transition
-			_asp_after_transition += dt * 2; // increase 2m/s
-
-			if (_asp_after_transition < airspeed_sp && _airspeed < airspeed_sp) {
-				airspeed_sp = max(_asp_after_transition, _airspeed);
-
-			} else {
-				_was_in_transition = false;
-				_asp_after_transition = 0;
-			}
-		}
-	}
-
-	_is_tecs_running = run_tecs;
-
-	if (!run_tecs) {
-		// next time we run TECS we should reinitialize states
-		_reinitialize_tecs = true;
-		return;
-	}
-
-	if (_reinitialize_tecs) {
+	if (!_is_tecs_running) {
 		_tecs.reset_state();
-		_reinitialize_tecs = false;
+		return;
 	}
 
 	if (_vehicle_status.engine_failure) {
@@ -1800,39 +1747,68 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND
 					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
 
-	/* Using tecs library */
-	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
+	bool tecs_altitude_lock = (_global_pos.timestamp > 0);
 
-	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
-	// between multirotor and fixed wing flight
-	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		math::Matrix<3, 3> R_offset;
-		R_offset.from_euler(0, M_PI_2_F, 0);
-		math::Matrix<3, 3> R_fixed_wing = _R_nb * R_offset;
-		math::Vector<3> euler = R_fixed_wing.to_euler();
-		pitch_for_tecs = euler(1);
-	}
+	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
 
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body(_sub_sensors.get().accel_x, _sub_sensors.get().accel_y, _sub_sensors.get().accel_z);
 
-	// tailsitters use the multicopter frame as reference, in fixed wing
-	// we need to use the fixed wing frame
-	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		float tmp = accel_body(0);
-		accel_body(0) = -accel_body(2);
-		accel_body(2) = tmp;
-	}
+	if (_vehicle_status.is_vtol) {
+		if (_vehicle_status.is_rotary_wing) {
+			airspeed_sp = _parameters.airspeed_trim;
 
-	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
-	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
-				   (_control_mode.flag_control_auto_enabled ||
-				    _control_mode.flag_control_velocity_enabled ||
-				    _control_mode.flag_control_altitude_enabled));
+			// pitch 100% priority to height control until we have sufficient airspeed
+			_tecs.set_speed_weight(0.0f);
+
+			_tecs.set_detect_underspeed_enabled(false);
+
+			if (_vehicle_status.in_transition_mode) {
+
+				// while in transition respect the local position setpoint altitude if available
+				bool local_pos_sp_updated = false;
+				orb_check(_local_position_sp_sub, &local_pos_sp_updated);
+
+				if (local_pos_sp_updated) {
+					vehicle_local_position_setpoint_s local_pos_sp = {};
+
+					if (orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_position_sp_sub, &local_pos_sp) == PX4_OK) {
+						// hold altitude
+						alt_sp = _local_pos.ref_alt - local_pos_sp.z;
+					}
+				}
+
+			} else {
+				alt_sp = _global_pos.alt;
+
+				// reset tecs
+				tecs_altitude_lock = false;
+			}
+
+		}
+
+		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
+		// between multirotor and fixed wing flight
+		if (_parameters.vtol_type == vtol_type::TAILSITTER) {
+			math::Matrix<3, 3> R_offset;
+			R_offset.from_euler(0, M_PI_2_F, 0);
+			math::Matrix<3, 3> R_fixed_wing = _R_nb * R_offset;
+			math::Vector<3> euler = R_fixed_wing.to_euler();
+			pitch_for_tecs = euler(1);
+
+			// tailsitters use the multicopter frame as reference, in fixed wing
+			// we need to use the fixed wing frame
+			float tmp = accel_body(0);
+			accel_body(0) = -accel_body(2);
+			accel_body(2) = tmp;
+
+			tecs_altitude_lock = false;
+		}
+	}
 
 	/* update TECS vehicle state estimates */
 	_tecs.update_vehicle_state_estimates(_airspeed, _R_nb,
-					     accel_body, (_global_pos.timestamp > 0), in_air_alt_control,
+					     accel_body, tecs_altitude_lock, _is_tecs_running,
 					     _global_pos.alt, _local_pos.v_z_valid, _local_pos.vz, _local_pos.az);
 
 	/* scale throttle cruise by baro pressure */

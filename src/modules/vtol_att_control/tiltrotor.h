@@ -57,7 +57,6 @@ public:
 	virtual void fill_actuator_outputs();
 	virtual void update_mc_state();
 	virtual void update_fw_state();
-	virtual void waiting_on_tecs();
 
 private:
 

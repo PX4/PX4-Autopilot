@@ -176,23 +176,6 @@ void VtolType::update_fw_state()
 	_mc_pitch_weight = 0.0f;
 	_mc_yaw_weight = 0.0f;
 
-	// tecs didn't publish an update yet after the transition
-	if (_tecs_status->timestamp < _trans_finished_ts) {
-		_tecs_running = false;
-
-	} else if (!_tecs_running) {
-		_tecs_running = true;
-		_tecs_running_ts = hrt_absolute_time();
-	}
-
-	// TECS didn't publish yet or the position controller didn't publish yet AFTER tecs
-	// only wait on TECS we're in a mode where it is actually running
-	if ((!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts))
-	    && _v_control_mode->flag_control_altitude_enabled) {
-
-		waiting_on_tecs();
-	}
-
 	check_quadchute_condition();
 }
 
@@ -224,7 +207,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_alt_err > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled) {
 
 			// We use tecs for tracking in FW and local_pos_sp during transitions
-			if (_tecs_running) {
+			if (hrt_elapsed_time(&_tecs_status->timestamp) < 1000000) {
 				// 1 second rolling average
 				_ra_hrate = (49 * _ra_hrate + _tecs_status->flightPathAngle) / 50;
 				_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->flightPathAngleSp) / 50;

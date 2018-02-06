@@ -45,6 +45,7 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
@@ -65,10 +66,10 @@ struct Params {
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
 enum mode {
-	TRANSITION_TO_FW = 1,
-	TRANSITION_TO_MC = 2,
-	ROTARY_WING = 3,
-	FIXED_WING = 4
+	TRANSITION_TO_FW = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW,
+	TRANSITION_TO_MC = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC,
+	ROTARY_WING = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC,
+	FIXED_WING = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW,
 };
 
 enum vtol_type {
@@ -113,12 +114,6 @@ public:
 	 * Write control values to actuator output topics.
 	 */
 	virtual void fill_actuator_outputs() = 0;
-
-	/**
-	 * Special handling opportunity for the time right after transition to FW
-	 * before TECS is running.
-	 */
-	virtual void waiting_on_tecs() {}
 
 	/**
 	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
@@ -174,9 +169,6 @@ protected:
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
-	hrt_abstime _trans_finished_ts = 0;
-	bool _tecs_running = false;
-	hrt_abstime _tecs_running_ts = 0;
 
 };
 

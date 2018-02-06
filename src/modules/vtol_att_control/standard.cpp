@@ -50,8 +50,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),
 	_pusher_throttle(0.0f),
-	_reverse_output(0.0f),
-	_airspeed_trans_blend_margin(0.0f)
+	_reverse_output(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
@@ -73,11 +72,14 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
 	_params_handles_standard.airspeed_disabled = param_find("FW_ARSP_MODE");
+	_params_handles_standard.airspeed_min = param_find("FW_AIRSPD_MIN");
+	_params_handles_standard.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
 	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
 	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
 	_params_handles_standard.back_trans_throttle = param_find("VT_B_TRANS_THR");
 	_params_handles_standard.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
+	_params_handles_standard.mpc_thr_hover = param_find("MPC_THR_HOVER");
 
 }
 
@@ -107,15 +109,9 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.pusher_trans, &v);
 	_params_standard.pusher_trans = math::constrain(v, 0.0f, 5.0f);
 
-	/* airspeed at which we should switch to fw mode */
-	param_get(_params_handles_standard.airspeed_trans, &v);
-	_params_standard.airspeed_trans = math::constrain(v, 1.0f, 20.0f);
-
 	/* airspeed at which we start blending mc/fw controls */
 	param_get(_params_handles_standard.airspeed_blend, &v);
 	_params_standard.airspeed_blend = math::constrain(v, 0.0f, 20.0f);
-
-	_airspeed_trans_blend_margin = _params_standard.airspeed_trans - _params_standard.airspeed_blend;
 
 	/* timeout for transition to fw mode */
 	param_get(_params_handles_standard.front_trans_timeout, &_params_standard.front_trans_timeout);
@@ -134,6 +130,13 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.airspeed_disabled, &i);
 	_params_standard.airspeed_disabled = math::constrain(i, 0, 1);
 
+	/* airspeed */
+	param_get(_params_handles_standard.airspeed_min, &_params_standard.airspeed_min);
+	param_get(_params_handles_standard.airspeed_trim, &_params_standard.airspeed_trim);
+
+	/* airspeed at which we should switch to fw mode */
+	param_get(_params_handles_standard.airspeed_trans, &_params_standard.airspeed_trans);
+
 	/* pitch setpoint offset */
 	param_get(_params_handles_standard.pitch_setpoint_offset, &v);
 	_params_standard.pitch_setpoint_offset = math::radians(v);
@@ -150,9 +153,9 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.back_trans_throttle, &v);
 	_params_standard.back_trans_throttle = math::constrain(v, -1.0f, 1.0f);
 
-	/* mpc cruise speed */
+	/* MPC parameters */
 	param_get(_params_handles_standard.mpc_xy_cruise, &_params_standard.mpc_xy_cruise);
-
+	param_get(_params_handles_standard.mpc_thr_hover, &_params_standard.mpc_thr_hover);
 }
 
 void Standard::update_vtol_state()
@@ -183,14 +186,12 @@ void Standard::update_vtol_state()
 				_pusher_throttle = 0.0f;
 				_reverse_output = 0.0f;
 
-
 			} else {
 				// Regular backtransition
 				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
 				_flag_enable_mc_motors = true;
 				_vtol_schedule.transition_start = hrt_absolute_time();
 				_reverse_output = _params_standard.reverse_output;
-
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
@@ -207,14 +208,14 @@ void Standard::update_vtol_state()
 			const matrix::Dcmf R_to_body(matrix::Quatf(_v_att->q).inversed());
 			const matrix::Vector3f vel = R_to_body * matrix::Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
 
-			float x_vel = vel(0);
+			const float x_vel = vel(0);
 
 			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
-			    (_params_standard.back_trans_dur * 1000000.0f) ||
+			    (_params_standard.back_trans_dur * 1e6f) ||
 			    (_local_pos->v_xy_valid && x_vel <= _params_standard.mpc_xy_cruise)) {
+
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
-
 		}
 
 	} else {
@@ -233,19 +234,24 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (((_params_standard.airspeed_disabled == 1 ||
-			      _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans) &&
-			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
-			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
-			    can_transition_on_ground()) {
+			const bool min_time = (hrt_elapsed_time(&_vtol_schedule.transition_start) / 1e6f >
+					       _params_standard.front_trans_time_min);
+			// MC throttle < 90% required to hover
+			const bool mc_throttle = (_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] <
+						  _params_standard.mpc_thr_hover * 0.9f);
 
-				_vtol_schedule.flight_mode = FW_MODE;
-				// we can turn off the multirotor motors now
-				_flag_enable_mc_motors = false;
-				// don't set pusher throttle here as it's being ramped up elsewhere
-				_trans_finished_ts = hrt_absolute_time();
+			// airspeed > 110% min AND > 90% trim
+			const bool airspeed_min = (_airspeed->indicated_airspeed_m_s > _params_standard.airspeed_min * 1.1f);
+			const bool airspeed_trim = (_airspeed->indicated_airspeed_m_s > _params_standard.airspeed_trim * 0.9f);
+			const bool airspeed_disabled = (_params_standard.airspeed_disabled == 1);
+
+			if (min_time && mc_throttle) {
+				if ((airspeed_min && airspeed_trim) || airspeed_disabled) {
+					_vtol_schedule.flight_mode = FW_MODE;
+					// we can turn off the multirotor motors now
+					_flag_enable_mc_motors = false;
+				}
 			}
-
 		}
 	}
 
@@ -283,46 +289,75 @@ void Standard::update_transition_state()
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
+	const float elapsed = hrt_elapsed_time(&_vtol_schedule.transition_start) / 1e6f;
+
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
-		if (_params_standard.front_trans_dur <= 0.0f) {
-			// just set the final target throttle value
-			_pusher_throttle = _params_standard.pusher_trans;
+		// start with full VTOL transition pusher throttle
+		float trans_throttle = _params_standard.pusher_trans;
 
-		} else if (_pusher_throttle <= _params_standard.pusher_trans) {
-			// ramp up throttle to the target throttle value
-			_pusher_throttle = _params_standard.pusher_trans *
-					   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_dur * 1000000.0f);
+		// smooth throttle ramp
+		const float ramp_pct = sqrtf(math::constrain(elapsed / _params_standard.front_trans_dur, 0.0f, 1.0f));
+
+		if (_v_control_mode->flag_control_altitude_enabled) {
+			// let TECS control throttle and pitch
+			trans_throttle = _fw_virtual_att_sp->thrust;
+
+			// TECS hack, give min time to settle after leveling out (temporary)
+			if (elapsed > _params_standard.front_trans_time_min) {
+				_v_att_sp->pitch_body = _fw_virtual_att_sp->pitch_body;
+			}
+
+			// after ramp up start respecting FW navigation
+			if (ramp_pct >= 1.0f) {
+				_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+				_v_att_sp->yaw_body = _fw_virtual_att_sp->yaw_body;
+			}
+
+			// no blending if altitude control is enabled;
+			mc_weight = 1.0f;
+
+		} else {
+
+			// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
+			const float airspeed_trans_blend_margin = _params_standard.airspeed_trans - _params_standard.airspeed_blend;
+
+			if ((airspeed_trans_blend_margin > 0.0f) &&
+			    (_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_blend) &&
+			    (elapsed > _params_standard.front_trans_time_min)
+			   ) {
+
+				mc_weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params_standard.airspeed_blend) /
+					    airspeed_trans_blend_margin;
+
+			} else if (_params_standard.airspeed_disabled &&
+				   (elapsed < _params_standard.front_trans_time_min) &&
+				   (elapsed > (_params_standard.front_trans_time_min / 2.0f))) {
+
+				// time based blending when no airspeed sensor is set
+				const float half_trans_time = _params_standard.front_trans_time_min / 2.0f;
+
+				mc_weight = 1.0f - (elapsed - half_trans_time) / half_trans_time;
+			}
+
+			// ramp up FW_PSP_OFF
+			_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - mc_weight);
 		}
 
-		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
-		if (_airspeed_trans_blend_margin > 0.0f &&
-		    _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_blend &&
-		    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_time_min * 1000000.0f)
-		   ) {
-			mc_weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params_standard.airspeed_blend) /
-				    _airspeed_trans_blend_margin;
-			// time based blending when no airspeed sensor is set
-
-		} else if (_params_standard.airspeed_disabled &&
-			   hrt_elapsed_time(&_vtol_schedule.transition_start) < (_params_standard.front_trans_time_min * 1e6f) &&
-			   hrt_elapsed_time(&_vtol_schedule.transition_start) > ((_params_standard.front_trans_time_min / 2.0f) * 1e6f)
-			  ) {
-			mc_weight = 1.0f - ((float)(hrt_elapsed_time(&_vtol_schedule.transition_start) - ((
-							    _params_standard.front_trans_time_min / 2.0f) * 1000000.0f)) /
-					    ((_params_standard.front_trans_time_min / 2.0f) * 1000000.0f));
-
+		// after ramp up disable MC YAW
+		if (ramp_pct >= 1.0f) {
+			_v_att_sp->disable_mc_yaw_control = true;
 		}
 
-		// ramp up FW_PSP_OFF
-		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - mc_weight);
+		_pusher_throttle = math::constrain(trans_throttle, 0.0f, ramp_pct);
+
 		matrix::Quatf q_sp(matrix::Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 
 		// check front transition timeout
 		if (_params_standard.front_trans_timeout > FLT_EPSILON) {
-			if (hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1e6f)) {
-				// transition timeout occured, abort transition
+			if (elapsed > _params_standard.front_trans_timeout) {
+				// transition timeout occurred, abort transition
 				_attc->abort_front_transition("Transition timeout");
 			}
 		}
@@ -335,23 +370,19 @@ void Standard::update_transition_state()
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 
-		hrt_abstime btrans_start;
-		btrans_start = _vtol_schedule.transition_start + uint64_t(_params_standard.reverse_delay) * 1000000.0f;
+		hrt_abstime btrans_start = _vtol_schedule.transition_start + _params_standard.reverse_delay * 1e6f;
 		_pusher_throttle = 0.0f;
 
 		if (hrt_absolute_time() >= btrans_start) {
 			// Handle throttle reversal for active breaking
-			float thrscale = (float)hrt_elapsed_time(&btrans_start) / (_params_standard.front_trans_dur *
-					 1000000.0f);
+			float thrscale = hrt_elapsed_time(&btrans_start) / (_params_standard.front_trans_dur * 1e6f);
 			thrscale = math::constrain(thrscale, 0.0f, 1.0f);
 			_pusher_throttle = thrscale * _params_standard.back_trans_throttle;
 		}
 
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_ramp > FLT_EPSILON) {
-			mc_weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
-				    ((_params_standard.back_trans_ramp) * 1000000.0f);
-
+			mc_weight = elapsed / (_params_standard.back_trans_ramp * 1e6f);
 		}
 
 		// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again
@@ -368,6 +399,8 @@ void Standard::update_transition_state()
 	_mc_pitch_weight = mc_weight;
 	_mc_yaw_weight = mc_weight;
 	_mc_throttle_weight = mc_weight;
+
+	_pusher_throttle = math::constrain(_pusher_throttle, 0.0f, 1.0f);
 }
 
 void Standard::update_mc_state()
@@ -542,13 +575,6 @@ void Standard::fill_actuator_outputs()
 
 
 }
-
-void
-Standard::waiting_on_tecs()
-{
-	// keep thrust from transition
-	_v_att_sp->thrust = _pusher_throttle;
-};
 
 /**
 * Disable all multirotor motors when in fw mode.

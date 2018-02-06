@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
@@ -159,6 +160,7 @@ private:
 	int		_params_sub{-1};			///< notification of parameter updates */
 	int		_manual_control_sub{-1};		///< notification of manual control updates */
 	int		_sensor_baro_sub{-1};
+	int		_local_position_sp_sub{-1};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
 	orb_advert_t	_tecs_status_pub{nullptr};		///< TECS status publication */
@@ -239,12 +241,7 @@ private:
 	float _pitch{0.0f};
 	float _yaw{0.0f};
 
-	bool _reinitialize_tecs{true};				///< indicates if the TECS states should be reinitialized (used for VTOL)
 	bool _is_tecs_running{false};
-	hrt_abstime _last_tecs_update{0};
-
-	float _asp_after_transition{0.0f};
-	bool _was_in_transition{false};
 
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position
@@ -285,7 +282,6 @@ private:
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
-		float airspeed_trans;
 		int32_t airspeed_disabled;
 
 		float pitch_limit_min;
@@ -344,7 +340,6 @@ private:
 		param_t airspeed_min;
 		param_t airspeed_trim;
 		param_t airspeed_max;
-		param_t airspeed_trans;
 		param_t airspeed_disabled;
 
 		param_t pitch_limit_min;

@@ -50,6 +50,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
@@ -66,7 +67,8 @@ class Commander : public control::SuperBlock, public ModuleBase<Commander>
 public:
 	Commander() :
 		SuperBlock(nullptr, "COM"),
-		_mission_result_sub(ORB_ID(mission_result), 0, 0, &getSubscriptions())
+		_mission_result_sub(ORB_ID(mission_result), 0, 0, &getSubscriptions()),
+		_offboard_control_mode_sub(ORB_ID(offboard_control_mode), 0, 0, &getSubscriptions())
 	{
 		updateParams();
 	}
@@ -92,6 +94,9 @@ private:
 
 	// Subscriptions
 	Subscription<mission_result_s> _mission_result_sub;
+	Subscription<offboard_control_mode_s> _offboard_control_mode_sub;
+
+	orb_advert_t _control_mode_pub{nullptr};
 
 	bool handle_command(vehicle_status_s *status, const safety_s *safety, vehicle_command_s *cmd,
 			    actuator_armed_s *armed, home_position_s *home, vehicle_global_position_s *global_pos,
@@ -99,8 +104,10 @@ private:
 			    orb_advert_t *command_ack_pub, bool *changed);
 
 	bool set_home_position(orb_advert_t &homePub, home_position_s &home,
-				const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
-				const vehicle_attitude_s &attitude, bool set_alt_only_to_lpos_ref);
+			       const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
+			       const vehicle_attitude_s &attitude, bool set_alt_only_to_lpos_ref);
+
+	bool publish_control_mode(const vehicle_status_s &vstatus, const offboard_control_mode_s &offboard_control_mode);
 
 	void mission_init();
 
