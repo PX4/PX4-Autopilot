@@ -132,7 +132,10 @@ class MavrosOffboardAttctlTest(MavrosTestCommon):
                 crossed = True
                 break
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(crossed, (
             "took too long to cross boundaries | current position x: {0:.2f}, y: {1:.2f}, z: {2:.2f} | timeout(seconds): {3}".
