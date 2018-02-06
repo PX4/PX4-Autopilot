@@ -7,6 +7,7 @@
     <arg name="est" default="ekf2"/>
     <arg name="mission"/>
     <arg name="vehicle"/>
+    <arg name="respawn_gazebo" default="true"/>
 
     <include file="$(find px4)/launch/mavros_posix_sitl.launch">
         <arg name="ns" value="$(arg ns)"/>
@@ -14,6 +15,7 @@
         <arg name="gui" value="$(arg gui)"/>
         <arg name="vehicle" value="$(arg vehicle)"/>
         <arg name="est" value="$(arg est)"/>
+        <arg name="respawn_gazebo" value="$(arg respawn_gazebo)"/>
     </include>
 
     <group ns="$(arg ns)">

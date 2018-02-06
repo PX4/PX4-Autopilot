@@ -139,7 +139,10 @@ class MavrosOffboardPosctlTest(MavrosTestCommon):
                 reached = True
                 break
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(reached, (
             "took too long to get to position | current position x: {0:.2f}, y: {1:.2f}, z: {2:.2f} | timeout(seconds): {3}".
