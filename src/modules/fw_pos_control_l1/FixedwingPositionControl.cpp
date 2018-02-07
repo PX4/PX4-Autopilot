@@ -94,6 +94,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
 	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
 
+	// initialize to invalid vtol type
+	_parameters.vtol_type = -1;
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
