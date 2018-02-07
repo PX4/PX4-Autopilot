@@ -554,12 +554,16 @@ then
 
 		if ver hwcmp AEROFC_V1
 		then
-			# Only start mavlink if the Benewake TFMini isn't being used
+			set MAVLINK_F "-r 1200 -d /dev/ttyS3"
+
+			# Only start mavlink if the Benewake TFMini or LeddarOne isn't being used
 			if param greater SENS_EN_TFMINI 0
 			then
 				set MAVLINK_F none
-			else
-				set MAVLINK_F "-r 1200 -d /dev/ttyS3"
+			fi
+			if param greater SENS_EN_LEDDAR1 0
+			then
+				set MAVLINK_F none				
 			fi
 		fi
 
