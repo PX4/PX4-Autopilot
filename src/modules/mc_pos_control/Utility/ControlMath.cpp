@@ -113,4 +113,57 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 
 	return att_sp;
 }
+
+/* The sum of two vectors are constraints such that v0 has priority over v1.
+ * This means that if the length of v0+v1 exceeds max, then it is constraint such
+ * that that v0 has priority.
+ * Inputs:
+ * @max => maximum magnitude of vector (v0 + v1)
+ * @v0 => vector that is prioritized
+ * @v1 => vector that is scaled such that max is not exceeded
+ *
+ * Output:
+ * vector that is the sum of v1 and v0 with v0 prioritized.
+ *
+ * vf = final vector with ||vf|| <= max
+ * s = scaling factor
+ * u1 = unit of v1
+ * vf = v0 + v1 = v0 + s * u1
+ * constraint: ||vf|| <= max
+ * solve for s: ||vf|| = ||v0 + s * u1|| <= max
+ */
+matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f v1, const float max)
+{
+
+	if (matrix::Vector2f(v0 + v1).norm() <= max) {
+		/* Vector does not exceed maximum magnitude */
+		return v0 + v1;
+
+	} else if (v0.length() >= max) {
+		/* The magnitude along v0, which has priority, already exceeds maximum.*/
+		return v0;
+
+	} else if (fabsf(matrix::Vector2f(v1 - v0).norm()) < 0.001f) {
+		/* The two vectors are equal. */
+		return v0.normalized() * max;
+
+	} else if (v1.length() < 0.001f) {
+		/* The second vector is 0. */
+		return v0.normalized() * max;
+
+	} else {
+		/* Constrain but prioritize v0. */
+		float s = 0.0f;
+		matrix::Vector2f u1 = v1.normalized();
+		float det = sqrtf(max * max * u1.length() * u1.length() - (v0(0) * u1(1) - v0(1) * u1(0)) * (v0(0) * u1(1) - v0(1) * u1(
+					  0)));
+		float b = v0(0) * u1(0) + v0(1) * u1(1);
+
+		if (det >= b) {
+			s = (det - b) / (u1.length() * u1.length());
+		}
+
+		return v0 + u1 * s;
+	}
+}
 }

@@ -47,4 +47,5 @@
 namespace ControlMath
 {
 vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp);
+matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f v1, const float max);
 }

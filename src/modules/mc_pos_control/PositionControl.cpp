@@ -174,18 +174,15 @@ void PositionControl::_positionController()
 	/* Generate desired velocity setpoint */
 
 	/* P-controller */
-	_vel_sp = (_pos_sp - _pos).emult(Pp) + _vel_sp;
+	Vector3f vel_sp_position = (_pos_sp - _pos).emult(Pp);
+	_vel_sp = vel_sp_position + _vel_sp;
 
-	/* Make sure velocity setpoint is constrained in all directions (xyz). */
-	Vector2f vel_sp_xy(&_vel_sp(0));
 
-	if (vel_sp_xy.length() >= _VelMaxXY) {
-		_vel_sp(0) = _vel_sp(0) * _VelMaxXY / vel_sp_xy.length();
-		_vel_sp(1) = _vel_sp(1) * _VelMaxXY / vel_sp_xy.length();
-	}
-
-	/* Saturate velocity in D-direction */
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ.up, _VelMaxZ.down);
+	Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(&vel_sp_position(0)), Vector2f(&(_vel_sp - vel_sp_position)(0)),
+			     _VelMaxXY);
+	_vel_sp(0) = vel_sp_xy(0);
+	_vel_sp(1) = vel_sp_xy(1);
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ[0], _VelMaxZ[1]);
 }
 
 void PositionControl::_velocityController(const float &dt)
