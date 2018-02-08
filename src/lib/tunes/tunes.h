@@ -46,6 +46,8 @@
 #define TUNE_DEFAULT_TEMPO 120
 #define TUNE_DEFAULT_OCTAVE 4
 #define TUNE_DEFAULT_NOTE_LENGTH 4
+#define TUNE_MAX_STRENGTH 100
+
 
 /**
  *  Library for parsing tunes from melody-strings or dedicated tune messages.
