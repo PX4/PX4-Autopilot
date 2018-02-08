@@ -21,19 +21,19 @@ set(config_module_list
 	drivers/camera_trigger
 	drivers/device
 	drivers/frsky_telemetry
-	drivers/fxas21002c
-	drivers/fxos8701cq
+	drivers/imu/fxas21002c
+	drivers/imu/fxos8701cq
 	drivers/gps
 	drivers/hott
 	drivers/iridiumsbd
 	drivers/kinetis
 	drivers/kinetis/adc
 	drivers/kinetis/tone_alarm
-	drivers/l3gd20
+	drivers/imu/l3gd20
 	drivers/led
 	drivers/mkblctrl
-	drivers/mpu6000
-	drivers/mpu9250
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
 	drivers/oreoled
 # NOT Portable YET drivers/pwm_input
 	drivers/pwm_out_sim

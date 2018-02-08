@@ -18,11 +18,11 @@ set(config_module_list
 	drivers/distance_sensor
 	drivers/magnetometer
 
-	drivers/adis16448
+	drivers/imu/adis16448
 	drivers/airspeed
 	drivers/batt_smbus
 	drivers/blinkm
-	drivers/bmi160
+	drivers/imu/bmi160
 	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
@@ -32,11 +32,11 @@ set(config_module_list
 	drivers/hott
 	drivers/iridiumsbd
 	drivers/irlock
-	drivers/l3gd20
+	drivers/imu/l3gd20
 	drivers/led
 	drivers/mkblctrl
-	drivers/mpu6000
-	drivers/mpu9250
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
 	drivers/oreoled
 	drivers/protocol_splitter
 	drivers/pwm_input
