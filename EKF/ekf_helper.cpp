@@ -1505,36 +1505,10 @@ void Ekf::calcExtVisRotMat()
 	q_error.normalize();
 
 	// convert to a delta angle and apply a spike and low pass filter
-	Vector3f rot_vec;
-	float delta;
-	float scaler;
-	if (q_error(0) >= 0.0f) {
-	    delta = 2 * acosf(q_error(0));
-	    if (delta > 1e-6f) {
-		    scaler = 1.0f /  sinf(delta/2);
-	    } else {
-		    // The rotation is too small to calculate a vector accurately
-		    // Make the rotation vector zero
-		    scaler = 0.0f;
-	    }
-	} else {
-	    delta = 2 * acosf(-q_error(0));
-	    if (delta > 1e-6f) {
-		   scaler = -1.0f /  sinf(delta/2);
-	    } else {
-		    // The rotation is too small to calculate a vector accurately
-		    // Make the rotation vector zero
-		    scaler = 0.0f;
-	    }
-	}
-	rot_vec(0) = q_error(2) * scaler;
-	rot_vec(1) = q_error(3) * scaler;
-	rot_vec(2) = q_error(4) * scaler;
+	Vector3f rot_vec = q_error.to_axis_angle();
 
 	float rot_vec_norm = rot_vec.norm();
 	if (rot_vec_norm > 1e-6f) {
-		// ensure magnitude of rotation matches the quaternion
-		rot_vec = rot_vec * (delta / rot_vec_norm);
 
 		// apply an input limiter to protect from spikes
 		Vector3f _input_delta_vec = rot_vec - _ev_rot_vec_filt;
@@ -1567,23 +1541,11 @@ void Ekf::resetExtVisRotMat()
 	q_error.normalize();
 
 	// convert to a delta angle and reset
-	Vector3f rot_vec;
-	float delta;
-	if (q_error(0) >= 0.0f) {
-	    delta = 2 * acosf(q_error(0));
-	    rot_vec(0) = q_error(1) / sinf(delta/2);
-	    rot_vec(1) = q_error(2) / sinf(delta/2);
-	    rot_vec(2) = q_error(3) / sinf(delta/2);
-	} else {
-	    delta = 2 * acosf(-q_error(1));
-	    rot_vec(0) = -q_error(2) / sinf(delta/2);
-	    rot_vec(1) = -q_error(3) / sinf(delta/2);
-	    rot_vec(2) = -q_error(4) / sinf(delta/2);
-	}
+	Vector3f rot_vec = q_error.to_axis_angle();
 
 	float rot_vec_norm = rot_vec.norm();
 	if (rot_vec_norm > 1e-9f) {
-		_ev_rot_vec_filt = rot_vec * delta / rot_vec_norm;
+		_ev_rot_vec_filt = rot_vec;
 	} else {
 		_ev_rot_vec_filt.zero();
 	}
