@@ -3147,18 +3147,16 @@ MulticopterPositionControl::task_main()
 					/* For takeoff we only need velocity or thrust. Therefore, set setpoint to NAN */
 					setpoint.z = NAN;
 					/* ramp vertical velocity limit up to takeoff speed */
-					_takeoff_sp += setpoint.vz * dt / _takeoff_ramp_time.get();
+					_takeoff_sp += setpoint.vz * _dt / _takeoff_ramp_time.get();
 					/* limit vertical velocity to the current ramp value */
 					setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
-
-					PX4_INFO("setpoint.vz: %.5f", (double)setpoint.vz);
 
 				} else if (PX4_ISFINITE(setpoint.vz)) {
 
 					/* Smooth takeoff is achieved once takeoff altitude is reached */
 					_in_smooth_takeoff = _takeoff_sp > setpoint.vz;
 					/* ramp vertical velocity limit up to takeoff speed */
-					_takeoff_sp += setpoint.vz * dt / _takeoff_ramp_time.get();
+					_takeoff_sp += setpoint.vz * _dt / _takeoff_ramp_time.get();
 					/* limit vertical velocity to the current ramp value */
 					setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
 
@@ -3170,7 +3168,7 @@ MulticopterPositionControl::task_main()
 
 					/* ramp vertical velocity limit up to hover takeoff */
 					if (-_takeoff_sp < 0.5f) {
-						_takeoff_sp += setpoint.thr[2] * dt / (_takeoff_ramp_time.get() * 0.5f);
+						_takeoff_sp += setpoint.thr[2] * _dt / (_takeoff_ramp_time.get() * 0.5f);
 
 					} else {
 						_takeoff_sp = setpoint.thr[2];
