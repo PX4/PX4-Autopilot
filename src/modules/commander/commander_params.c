@@ -713,3 +713,12 @@ PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
+
+/**
+ * Action after link has been regained
+ *
+ * @value 0 Go back to mode the UAV was in before the failsafe
+ * @value 1 Stay in failsafe mode
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_LINK_REG_ACT, 1);
