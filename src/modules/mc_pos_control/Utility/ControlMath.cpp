@@ -114,7 +114,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 	return att_sp;
 }
 
-/* The sum of two vectors are constraints such that v0 has priority over v1.
+/* The sum of two vectors are constraint such that v0 has priority over v1.
  * This means that if the length of v0+v1 exceeds max, then it is constraint such
  * that that v0 has priority.
  * Inputs:
