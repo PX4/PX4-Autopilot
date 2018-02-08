@@ -109,6 +109,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		   const bool stay_in_failsafe,
 		   vehicle_status_flags_s *status_flags,
 		   bool landed,
+		   const bool link_regained_action,
 		   const link_loss_actions_t rc_loss_act,
 		   const int offb_loss_act,
 		   const int offb_loss_rc_act,
@@ -126,10 +127,10 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 			       const bool using_global_pos); // true when the current mode requires a global position estimate
 
 void set_rc_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, vehicle_status_flags_s *status_flags,
-						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
+						commander_state_s *internal_state, const link_loss_actions_t link_loss_act, const bool link_regained_action);
 
 void set_data_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, vehicle_status_flags_s *status_flags,
-						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
+						commander_state_s *internal_state, const link_loss_actions_t link_loss_act, const bool link_regained_action);
 
 int prearm_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
 		    bool force_report, vehicle_status_flags_s *status_flags, battery_status_s *battery,
