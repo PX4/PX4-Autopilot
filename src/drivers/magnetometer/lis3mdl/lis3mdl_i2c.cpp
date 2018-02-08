@@ -58,9 +58,9 @@
 #include "lis3mdl.h"
 #include "board_config.h"
 
-#ifdef PX4_I2C_OBDEV_LIS3MDL
+#if defined(PX4_I2C_BUS_ONBOARD) || defined(PX4_I2C_BUS_EXPANSION)
 
-#define LIS3MDLL_ADDRESS		PX4_I2C_OBDEV_LIS3MDL
+#define LIS3MDLL_ADDRESS		0x1e
 
 device::Device *LIS3MDL_I2C_interface(int bus);
 
