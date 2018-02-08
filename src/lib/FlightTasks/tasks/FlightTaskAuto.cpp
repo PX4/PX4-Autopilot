@@ -128,7 +128,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 					       _sub_triplet_setpoint->get().previous.lon, &_prev_wp(0), &_prev_wp(1));
 			_prev_wp(2) = -(_sub_triplet_setpoint->get().previous.alt - _reference_altitude);
 
-
 		} else {
 			_prev_wp = _position;
 		}
