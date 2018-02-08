@@ -20,6 +20,7 @@ set(config_module_list
 
 	drivers/adis16448
 	drivers/airspeed
+	drivers/batt_smbus
 	drivers/blinkm
 	drivers/bmi160
 	drivers/boards

@@ -13,6 +13,7 @@ set(config_module_list
 	drivers/magnetometer
 
 	drivers/airspeed
+	drivers/batt_smbus
 	drivers/blinkm
 	drivers/bma180
 	drivers/bmi055

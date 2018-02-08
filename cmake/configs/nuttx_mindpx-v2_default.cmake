@@ -12,6 +12,7 @@ set(config_module_list
 	drivers/distance_sensor
 
 	drivers/airspeed
+	drivers/batt_smbus
 	drivers/blinkm
 	drivers/boards
 	drivers/bst

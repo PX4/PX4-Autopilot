@@ -10,7 +10,7 @@ bool connected			# Whether or not a battery is connected, based on a voltage thr
 bool system_source		# Whether or not a this battery is the active power source for VDD_5V_IN
 uint8 priority        	# Zerro based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
 
-#bool is_powering_off		# Power off event imminent indication, false if unknown
+bool is_powering_off		# Power off event imminent indication, false if unknown
 
 
 uint8 BATTERY_WARNING_NONE = 0       # no battery low voltage warning active

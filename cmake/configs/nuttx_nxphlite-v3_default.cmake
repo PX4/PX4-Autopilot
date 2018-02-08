@@ -13,16 +13,16 @@ set(config_module_list
 	drivers/magnetometer
 
 	drivers/airspeed
+	drivers/barometer/mpl3115a2
+	drivers/batt_smbus
 	drivers/blinkm
-#NOT Supported	drivers/bma180
-#NOT Supported	drivers/bmi160
 	drivers/boards
 	drivers/bst
 	drivers/camera_trigger
 	drivers/device
 	drivers/frsky_telemetry
-	drivers/fxos8701cq
 	drivers/fxas21002c
+	drivers/fxos8701cq
 	drivers/gps
 	drivers/hott
 	drivers/iridiumsbd
@@ -32,7 +32,6 @@ set(config_module_list
 	drivers/l3gd20
 	drivers/led
 	drivers/mkblctrl
-	drivers/barometer/mpl3115a2
 	drivers/mpu6000
 	drivers/mpu9250
 	drivers/oreoled
