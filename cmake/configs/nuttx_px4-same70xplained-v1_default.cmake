@@ -11,6 +11,7 @@ set(config_module_list
 	drivers/differential_pressure
 	drivers/distance_sensor
 	drivers/magnetometer
+	drivers/telemetry
 
 	drivers/device
 	drivers/samv7
@@ -26,10 +27,8 @@ set(config_module_list
 	drivers/imu/l3gd20
 	drivers/gps
 #WIP 	drivers/pwm_out_sim
-	drivers/hott
 	drivers/blinkm
 	drivers/airspeed
-	drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
@@ -37,7 +36,6 @@ set(config_module_list
 ##	drivers/gimbal
 #WIP  	drivers/pwm_input
 #WIP  	drivers/camera_trigger
-	drivers/bst
 
 	#
 	# System commands

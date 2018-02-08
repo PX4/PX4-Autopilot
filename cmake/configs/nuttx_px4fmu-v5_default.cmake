@@ -11,6 +11,7 @@ set(config_module_list
 	drivers/differential_pressure
 	drivers/distance_sensor
 	drivers/magnetometer
+	drivers/telemetry
 
 	drivers/airspeed
 	drivers/batt_smbus
@@ -19,13 +20,9 @@ set(config_module_list
 	drivers/imu/bmi055
 	drivers/imu/bmi160
 	drivers/boards
-	drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/frsky_telemetry
 	drivers/gps
-	drivers/hott
-	drivers/iridiumsbd
 	drivers/irlock
 	drivers/led
 	drivers/mkblctrl

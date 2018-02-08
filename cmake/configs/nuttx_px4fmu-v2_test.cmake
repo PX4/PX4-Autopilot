@@ -31,7 +31,6 @@ set(config_module_list
 	drivers/airspeed
 	drivers/barometer
 	drivers/differential_pressure
-	drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow

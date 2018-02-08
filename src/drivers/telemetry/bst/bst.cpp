@@ -411,5 +411,6 @@ int bst_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	errx(1, "unrecognized command\n%s", commandline_usage);
+	PX4_WARN("unrecognized command\n%s", commandline_usage);
+	return 1;
 }
