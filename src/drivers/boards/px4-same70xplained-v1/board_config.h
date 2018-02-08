@@ -219,7 +219,6 @@ __BEGIN_DECLS
  */
 #define PX4_I2C_OBDEV_LED	0x55
 #define PX4_I2C_OBDEV_HMC5883	0x1e
-#define PX4_I2C_OBDEV_LIS3MDL	0x1e
 
 /* Define the follwoing to output the clock on J500-1 */
 //#define GPIO_PCK1			(GPIO_PERIPHB | GPIO_CFG_DEFAULT | GPIO_PORT_PIOA | GPIO_PIN17)
