@@ -1540,7 +1540,7 @@ void Ekf::calcExtVisRotMat()
 		Vector3f _input_delta_vec = rot_vec - _ev_rot_vec_filt;
 		float input_delta_mag = _input_delta_vec.norm();
 		if (input_delta_mag > 0.1f) {
-			rot_vec = _ev_rot_vec_filt + rot_vec * (0.1f / input_delta_mag);
+			rot_vec = _ev_rot_vec_filt + _input_delta_vec * (0.1f / input_delta_mag);
 		}
 
 		// Apply a first order IIR low pass filter
