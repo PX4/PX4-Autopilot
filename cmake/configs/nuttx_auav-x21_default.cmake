@@ -12,31 +12,32 @@ set(config_module_list
 	drivers/distance_sensor
 	drivers/magnetometer
 
+	drivers/airspeed
+	drivers/batt_smbus
+	drivers/blinkm
+	drivers/boards
+	drivers/bst
+	drivers/camera_trigger
 	drivers/device
+	drivers/frsky_telemetry
+	drivers/gps
+	drivers/hott
+	drivers/led
+	drivers/mkblctrl
+	drivers/mpu6000
+	drivers/mpu9250
+	drivers/oreoled
+	drivers/pwm_input
+	drivers/pwm_out_sim
+	drivers/px4flow
+	drivers/px4fmu
+	drivers/px4io
+	drivers/rgbled
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
-	drivers/px4fmu
-	drivers/px4io
-	drivers/boards
-	drivers/rgbled
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/gps
-	drivers/pwm_out_sim
-	drivers/hott
-	drivers/blinkm
-	drivers/airspeed
-	drivers/frsky_telemetry
-	modules/sensors
-	drivers/mkblctrl
-	drivers/px4flow
-	drivers/oreoled
 	drivers/vmount
-	drivers/pwm_input
-	drivers/camera_trigger
-	drivers/bst
+	modules/sensors
 
 	#
 	# System commands

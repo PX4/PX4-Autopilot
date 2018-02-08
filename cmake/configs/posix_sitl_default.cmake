@@ -7,6 +7,7 @@ set(config_module_list
 	drivers/distance_sensor
 
 	drivers/airspeed
+	drivers/batt_smbus
 	drivers/boards
 	drivers/camera_trigger
 	drivers/device
