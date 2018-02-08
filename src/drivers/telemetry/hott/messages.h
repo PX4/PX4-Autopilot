@@ -43,6 +43,7 @@
 #define MESSAGES_H
 
 #include <stdlib.h>
+#include <stdint.h>
 
 #define POLL_TIMEOUT_IN_MSECS		3500
 

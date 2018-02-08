@@ -9,6 +9,7 @@ set(config_module_list
 	#drivers/barometer
 	drivers/differential_pressure
 	#drivers/magnetometer
+	#drivers/telemetry
 
 	#drivers/imu/adis16448
 	drivers/airspeed
