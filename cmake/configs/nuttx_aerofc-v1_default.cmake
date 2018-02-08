@@ -16,7 +16,7 @@ set(config_module_list
 	drivers/barometer/ms5611
 	drivers/magnetometer/hmc5883
 	drivers/magnetometer/ist8310
-	drivers/mpu9250
+	drivers/imu/mpu9250
 	drivers/px4fmu
 	drivers/stm32
 	drivers/tap_esc

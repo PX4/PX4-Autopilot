@@ -10,7 +10,7 @@ set(config_module_list
 	drivers/led
 	drivers/px4fmu
 	drivers/boards
-	drivers/mpu9250
+	drivers/imu/mpu9250
 	drivers/barometer/lps25h
 	drivers/gps
 	modules/sensors
