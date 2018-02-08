@@ -44,7 +44,6 @@
 #include <termios.h>
 #include <pthread.h>
 
-#include <nuttx/config.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>

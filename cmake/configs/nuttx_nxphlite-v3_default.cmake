@@ -11,21 +11,18 @@ set(config_module_list
 	drivers/differential_pressure
 	drivers/distance_sensor
 	drivers/magnetometer
+	drivers/telemetry
 
 	drivers/airspeed
 	drivers/barometer/mpl3115a2
 	drivers/batt_smbus
 	drivers/blinkm
 	drivers/boards
-	drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/frsky_telemetry
 	drivers/imu/fxas21002c
 	drivers/imu/fxos8701cq
 	drivers/gps
-	drivers/hott
-	drivers/iridiumsbd
 	drivers/kinetis
 	drivers/kinetis/adc
 	drivers/kinetis/tone_alarm
