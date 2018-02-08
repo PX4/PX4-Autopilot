@@ -16,18 +16,20 @@ set(config_module_list
 	# Board support modules
 	#
 	drivers/airspeed
-	drivers/device
-	drivers/distance_sensor
 	#drivers/barometer
+	drivers/batt_smbus
+	drivers/device
 	drivers/differential_pressure
+	drivers/distance_sensor
 
 	modules/sensors
-	platforms/posix/drivers/df_mpu9250_wrapper
-	platforms/posix/drivers/df_lsm9ds1_wrapper
-	platforms/posix/drivers/df_ms5611_wrapper
+
 	platforms/posix/drivers/df_hmc5883_wrapper
-	platforms/posix/drivers/df_trone_wrapper
 	platforms/posix/drivers/df_isl29501_wrapper
+	platforms/posix/drivers/df_lsm9ds1_wrapper
+	platforms/posix/drivers/df_mpu9250_wrapper
+	platforms/posix/drivers/df_ms5611_wrapper
+	platforms/posix/drivers/df_trone_wrapper
 
 	#
 	# System commands
