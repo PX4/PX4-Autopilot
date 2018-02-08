@@ -1322,13 +1322,15 @@ struct lis3mdl_bus_option {
 	uint8_t busnum;
 	LIS3MDL	*dev;
 } bus_options[] = {
+#ifdef PX4_I2C_BUS_EXPANSION
 	{ LIS3MDL_BUS_I2C_EXTERNAL, "/dev/lis3mdl_ext", &LIS3MDL_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+#endif /* PX4_I2C_BUS_EXPANSION */
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ LIS3MDL_BUS_I2C_INTERNAL, "/dev/lis3mdl_int", &LIS3MDL_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
-#endif
+#endif /* PX4_I2C_BUS_ONBOARD */
 #ifdef PX4_SPIDEV_LIS
 	{ LIS3MDL_BUS_SPI, "/dev/lis3mdl_spi", &LIS3MDL_SPI_interface, PX4_SPI_BUS_SENSORS, NULL },
-#endif
+#endif /* PX4_SPIDEV_LIS */
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
