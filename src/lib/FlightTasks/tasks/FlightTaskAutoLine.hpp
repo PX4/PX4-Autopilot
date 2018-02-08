@@ -89,9 +89,9 @@ protected:
 	void _generateLandSetpoints();
 	void _generateVelocitySetpoints();
 	void _generateTakeoffSetpoints();
-	void _updateInternalWaypoints();
-	void _generateSetpoints(); /**< Generate setpoints during auto tracking */
-	void _generateAltitudeSetpoints();
-	void _generateXYsetpoints();
-	float _getVelcoityFromAngle(const float angle); /** Computes the speed at target depending on angle */
+	void _updateInternalWaypoints(); /* Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
+	void _generateSetpoints(); /**< Generate velocity and position setpoint for following line. */
+	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
+	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
+	float _getVelcoityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
 };
