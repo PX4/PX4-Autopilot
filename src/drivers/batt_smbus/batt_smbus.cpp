@@ -45,7 +45,6 @@
 
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
-#include <drivers/drv_batt_smbus.h>
 #include <drivers/drv_hrt.h>
 #include <px4_config.h>
 #include <px4_workqueue.h>
@@ -110,11 +109,6 @@ public:
 	 * @return 0 on success, error code on failure
 	 */
 	virtual int		init();
-
-	/**
-	 * ioctl for retrieving battery capacity and time to empty
-	 */
-	virtual int     ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Test device
@@ -255,10 +249,12 @@ private:
 	// internal variables
 	bool			_enabled;	///< true if we have successfully connected to battery
 	work_s			_work{};		///< work queue for scheduling reads
-	ringbuffer::RingBuffer	*_reports;	///< buffer of recorded voltages, currents
-	struct battery_status_s _last_report;	///< last published report, used for test()
+
+	battery_status_s _last_report;	///< last published report, used for test()
+
 	orb_advert_t		_batt_topic;	///< uORB battery topic
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
+
 	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
 	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
 	char           *_manufacturer_name;  ///< The name of the battery manufacturer
@@ -285,9 +281,8 @@ int device_chemistry();
 int solo_battery_check();
 
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
-	I2C("batt_smbus", BATT_SMBUS0_DEVICE_PATH, bus, batt_smbus_addr, 100000),
+	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
 	_enabled(false),
-	_reports(nullptr),
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),
@@ -306,10 +301,6 @@ BATT_SMBUS::~BATT_SMBUS()
 {
 	// make sure we are truly inactive
 	stop();
-
-	if (_reports != nullptr) {
-		delete _reports;
-	}
 
 	if (_manufacturer_name != nullptr) {
 		delete[] _manufacturer_name;
@@ -337,45 +328,12 @@ BATT_SMBUS::init()
 		return ret;
 
 	} else {
-		// allocate basic report buffers
-		_reports = new ringbuffer::RingBuffer(2, sizeof(struct battery_status_s));
-
-		if (_reports == nullptr) {
-			ret = ENOTTY;
-
-		} else {
-			// start work queue
-			start();
-		}
+		// start work queue
+		start();
 	}
 
 	// init orb id
 	_batt_orb_id = ORB_ID(battery_status);
-
-	return ret;
-}
-
-int
-BATT_SMBUS::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	int ret = -ENODEV;
-
-	switch (cmd) {
-	case BATT_SMBUS_GET_CAPACITY:
-
-		/* return battery capacity as uint16 */
-		if (_enabled) {
-			*((uint16_t *)arg) = _batt_capacity;
-			ret = OK;
-		}
-
-		break;
-
-	default:
-		/* see if the parent class can make any use of it */
-		ret = CDev::ioctl(filp, cmd, arg);
-		break;
-	}
 
 	return ret;
 }
@@ -535,9 +493,6 @@ BATT_SMBUS::probe()
 void
 BATT_SMBUS::start()
 {
-	// reset the report ring and state machine
-	_reports->flush();
-
 	// schedule a cycle to start things
 	work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this, 1);
 }
@@ -690,12 +645,6 @@ BATT_SMBUS::cycle()
 
 		// copy report for test()
 		_last_report = new_report;
-
-		// post a report to the ring
-		_reports->force(&new_report);
-
-		// notify anyone waiting for data
-		poll_notify(POLLIN);
 
 		// record we are working
 		_enabled = true;
