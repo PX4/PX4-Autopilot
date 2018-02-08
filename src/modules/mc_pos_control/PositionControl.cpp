@@ -109,7 +109,6 @@ void PositionControl::generateThrustYawSetpoint(const float &dt)
 	if (!_skipController) {
 		_positionController();
 		_velocityController(dt);
-
 	}
 }
 
