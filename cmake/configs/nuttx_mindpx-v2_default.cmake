@@ -21,13 +21,13 @@ set(config_module_list
 	drivers/frsky_telemetry
 	drivers/gps
 	#drivers/hott
-	drivers/l3gd20
+	drivers/imu/l3gd20
 	drivers/led
-	drivers/lsm303d
+	drivers/imu/lsm303d
 	drivers/magnetometer/hmc5883
 	#drivers/mkblctrl
-	drivers/mpu6000
-	drivers/mpu9250
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
 	#drivers/oreoled
 	drivers/pwm_input
 	drivers/pwm_out_sim

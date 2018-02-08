@@ -20,10 +20,10 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards
 	drivers/rgbled
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/lsm303d
-	drivers/l3gd20
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
+	drivers/imu/lsm303d
+	drivers/imu/l3gd20
 	drivers/gps
 #WIP 	drivers/pwm_out_sim
 	drivers/hott
