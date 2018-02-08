@@ -110,7 +110,12 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		reset(_repeat);
 
 		// Strength will remain valid for the entire tune, unless interrupted.
-		_strength = (unsigned)tune_control.strength;
+		if ((unsigned)tune_control.strength <= TUNE_MAX_STRENGTH) {
+			_strength = (unsigned)tune_control.strength;
+
+		} else {
+			_strength = TUNE_MAX_STRENGTH;
+		}
 
 		// Special treatment for custom tunes
 		if (tune_control.tune_id == static_cast<int>(TuneID::CUSTOM)) {
@@ -138,7 +143,13 @@ void Tunes::set_string(const char *const string, uint8_t strength)
 		_tune = string;
 		_tune_start_ptr = string;
 		_next = _tune;
-		_strength = strength;
+
+		if (strength <= TUNE_MAX_STRENGTH) {
+			_strength = strength;
+
+		} else {
+			_strength = TUNE_MAX_STRENGTH;
+		}
 	}
 }
 
