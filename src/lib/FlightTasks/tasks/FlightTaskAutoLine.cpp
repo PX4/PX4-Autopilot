@@ -144,7 +144,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 		_next_wp = _target;
 	}
 
-	/* Adjust destination and origin based on current vehicle state */
+	/* Adjust destination and origin based on current vehicle state. */
 	Vector2f u_prev_to_target = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero();
 	Vector2f pos_to_target = Vector2f(&(_target - _position)(0));
 	Vector2f prev_to_pos = Vector2f(&(_position - _prev_wp)(0));
@@ -152,7 +152,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 
 	if (u_prev_to_target * pos_to_target < 0.0f) {
 
-		/* Target is behind */
+		/* Target is behind. */
 		if (_current_state != State::target_behind) {
 
 			_destination = _target;
@@ -177,7 +177,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 
 	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.length() > _mc_cruise_speed) {
 
-		/* current position more than cruise speed in front of previous setpoint. */
+		/* Current position is more than cruise speed in front of previous setpoint. */
 		if (_current_state != State::previous_infront) {
 			_destination = _prev_wp;
 			_origin = _position;
@@ -201,7 +201,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 
 	} else if (Vector2f(Vector2f(&_position(0)) - closest_pt).length() > _mc_cruise_speed) {
 
-		/* Vehicle is more than cruise speed off track */
+		/* Vehicle is more than cruise speed off track. */
 		if (_current_state != State::offtrack) {
 			_destination = matrix::Vector3f(closest_pt(0), closest_pt(1), _target(2));
 			_origin = _position;
@@ -226,13 +226,13 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 	} else {
 
 		if ((_target - _destination).length() > 0.01f) {
+			/* A new target is available. Update speed at target.*/
 			_destination = _target;
 			_origin = _prev_wp;
 			_current_state = State::none;
 
 			float angle = 2.0f;
 			_speed_at_target = 0.0f;
-
 
 			/* angle = cos(x) + 1.0
 			 * angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0 */
@@ -251,19 +251,18 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
-
 	Vector2f pos_sp_to_dest = Vector2f(&_target(0)) - _pos_sp_xy;
 	const bool has_reached_altitude = fabsf(_destination(2) - _position(2)) < _nav_rad.get();
 
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _nav_rad.get()) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < _nav_rad.get())) {
 
-		/* Vehicle reached target in xy. Lock position */
+		/* Vehicle reached target in xy and does not want to pass. Lock position */
 		_pos_sp_xy = Vector2f(&_destination(0));
 		_vel_sp_xy.zero();
 
 	} else {
-
+		/* Get various path specific vectors. */
 		Vector2f u_prev_to_dest = Vector2f(&(_destination - _origin)(0)).unit_or_zero();
 		Vector2f prev_to_pos(&(_position - _origin)(0));
 		Vector2f closest_pt = Vector2f(&_origin(0)) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
@@ -279,6 +278,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		const float threshold_max = target_threshold;
 
 		if (target_threshold < 0.5f * prev_to_dest.length()) {
+			/* Target threshold can not be more than distance from previous to target */
 			target_threshold = 0.5f * prev_to_dest.length();
 		}
 
@@ -351,7 +351,6 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 void FlightTaskAutoLine::_generateAltitudeSetpoints()
 {
-
 	/* Total distance between previous and target setpoint */
 	const float dist = fabsf(_destination(2) - _origin(2));
 
