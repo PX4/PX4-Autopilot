@@ -137,6 +137,4 @@ private:
 	void _velocityController(const float &dt);
 	void _updateParams();
 	void _setParams();
-	void _setTakeoffVelocity(const float dt);
-	void _setTakeoffThrust(const float dt);
 };

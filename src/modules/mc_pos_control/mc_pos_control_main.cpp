@@ -3180,39 +3180,42 @@ MulticopterPositionControl::task_main()
 			}
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint,
-			// or if we're in offboard control.
-			// Otherwise, we should just bail out
+			// Otherwise just stay idle.
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
-				// Keep throttle low while still on ground.
-				set_idle_state();
-
-			} else {
-
-				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
-				_control.updateSetpoint(setpoint);
-				_control.updateConstraints(constraints);
-				_control.generateThrustYawSetpoint(_dt);
-
-				/* fill local position, velocity and thrust setpoint */
-				_local_pos_sp.timestamp = hrt_absolute_time();
-				_local_pos_sp.x = _control.getPosSp()(0);
-				_local_pos_sp.y = _control.getPosSp()(1);
-				_local_pos_sp.z = _control.getPosSp()(2);
-				_local_pos_sp.yaw = _control.getYawSetpoint();
-				_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
-				_local_pos_sp.vx = _control.getVelSp()(0);
-				_local_pos_sp.vy = _control.getVelSp()(1);
-				_local_pos_sp.vz = _control.getVelSp()(2);
-				_control.getThrustSetpoint().copyTo(_local_pos_sp.thrust);
-
-				/* We adjust thrust setpoint based on landdetector */
-				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
-				landdetection_thrust_limit(thr_sp); //TODO: only do that if not in pure manual
-
-				_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
-				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
-
+				// Keep throttle low
+				setpoint.thr[0] = 0.0f;
+				setpoint.thr[1] = 0.0f;
+				setpoint.thr[0] = 0.0f;
+				setpoint.yawspeed = 0.0f;
+				setpoint.yaw = _yaw;
 			}
+
+
+			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
+			_control.updateSetpoint(setpoint);
+			_control.updateConstraints(constraints);
+			_control.generateThrustYawSetpoint(_dt);
+
+			/* fill local position, velocity and thrust setpoint */
+			_local_pos_sp.timestamp = hrt_absolute_time();
+			_local_pos_sp.x = _control.getPosSp()(0);
+			_local_pos_sp.y = _control.getPosSp()(1);
+			_local_pos_sp.z = _control.getPosSp()(2);
+			_local_pos_sp.yaw = _control.getYawSetpoint();
+			_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
+
+			_local_pos_sp.vx = _control.getVelSp()(0);
+			_local_pos_sp.vy = _control.getVelSp()(1);
+			_local_pos_sp.vz = _control.getVelSp()(2);
+
+			_control.getThrustSetpoint().copyTo(_local_pos_sp.thr);
+
+			/* We adjust thrust setpoint based on landdetector */
+			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
+			landdetection_thrust_limit(thr_sp); //TODO: only do that if not in pure manual
+
+			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
+			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 
 			publish_local_pos_sp();
 			publish_attitude();
@@ -3356,25 +3359,36 @@ MulticopterPositionControl::publish_local_pos_sp()
 }
 
 void
-MulticopterPositionControl::set_idle_state()
+MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_sp)
 {
-	_local_pos_sp.x = _pos(0);
-	_local_pos_sp.y = _pos(1);
-	_local_pos_sp.z = _pos(2) + 1.0f; //1m into ground when idle
-	_local_pos_sp.vx = 0.0f;
-	_local_pos_sp.vy = 0.0f;
-	_local_pos_sp.vz = 1.0f; //1m/s into ground
-	_local_pos_sp.yaw = _yaw;
-	_local_pos_sp.yawspeed = 0.0f;
+	if (!in_auto_takeoff() && !manual_wants_takeoff()) {
+		if (_vehicle_land_detected.ground_contact) {
+			/* if still or already on ground command zero xy thrust_sp in body
+			 * frame to consider uneven ground */
 
-	_att_sp.roll_body = 0.0f;
-	_att_sp.pitch_body = 0.0f;
-	_att_sp.yaw_body = _yaw;
-	_att_sp.yaw_sp_move_rate = 0.0f;
-	matrix::Quatf q_sp = matrix::Eulerf(0.0f, 0.0f, _yaw);
-	q_sp.copyTo(_att_sp.q_d);
-	_att_sp.q_d_valid = true; //TODO: check if this flag is used anywhere
-	_att_sp.thrust = 0.0f;
+			/* Temporary until replacement to matrix lib */
+			matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&_R(0, 0));
+			/* thrust setpoint in body frame*/
+			matrix::Vector3f thrust_sp_body = R.transpose() * thrust_sp;
+
+			/* we dont want to make any correction in body x and y*/
+			thrust_sp_body(0) = 0.0f;
+			thrust_sp_body(1) = 0.0f;
+
+			/* make sure z component of thrust_sp_body is larger than 0 (positive thrust is downward) */
+			thrust_sp_body(2) = thrust_sp(2) > 0.0f ? thrust_sp(2) : 0.0f;
+
+			/* convert back to local frame (NED) */
+			thrust_sp = R * thrust_sp_body;
+		}
+
+		if (_vehicle_land_detected.maybe_landed) {
+			/* we set thrust to zero
+			 * this will help to decide if we are actually landed or not
+			 */
+			thrust_sp.zero();
+		}
+	}
 }
 
 void
