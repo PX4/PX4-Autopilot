@@ -41,46 +41,26 @@
  * @author Alex Klimaj <alexklimaj@gmail.com>
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <sched.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <ctype.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
-#include <board_config.h>
-
-#include <systemlib/perf_counter.h>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/battery.h>
-#include <systemlib/param/param.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/subsystem_info.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/parameter_update.h>
-
 #include <float.h>
+#include <stdio.h>
+#include <string.h>
+
+#include <drivers/drv_hrt.h>
+
+#include <px4_config.h>
+#include <px4_workqueue.h>
+
+#include <systemlib/battery.h>
+#include <systemlib/perf_counter.h>
+
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/uORB.h>
 
 #include <drivers/device/i2c.h>
-#include <drivers/drv_hrt.h>
+//#include <drivers/drv_hrt.h>
 
 #define BATT_SMBUS_ADDR_MIN             0x00	///< lowest possible address
 #define BATT_SMBUS_ADDR_MAX             0xFF	///< highest possible address
