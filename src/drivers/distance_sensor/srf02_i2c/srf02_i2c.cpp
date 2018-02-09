@@ -750,19 +750,19 @@ start(uint8_t rotation)
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_ERR("already started");
 	}
 
 	/* create the driver */
 	g_dev = new SRF02_I2C(rotation, SRF02_I2C_BUS);
 
 	if (g_dev == nullptr) {
-		err(1,"SRF02_I2C constructor failed");
+		PX4_ERR("SRF02_I2C constructor failed");
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
-		err(1,"device init() failed");
+		PX4_ERR("device init() failed");
 		goto fail;
 	}
 
@@ -770,12 +770,12 @@ start(uint8_t rotation)
 	fd = open(SRF02_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1,"Open device failed");
+		PX4_ERR("Open device failed");
 		goto fail;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1,"ioctl() failed");
+		PX4_ERR("ioctl() failed");
 		goto fail;
 	}
 
@@ -858,7 +858,8 @@ test()
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			PX4_ERR("periodic read failed");
+            return;
 		}
 
 		warnx("periodic read %u", i);
@@ -870,10 +871,9 @@ test()
 
 	/* reset the sensor polling to default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
+		PX4_ERR("failed to set default poll rate");
+        return;
 	}
-
-	errx(0, "PASS");
 }
 
 /**
