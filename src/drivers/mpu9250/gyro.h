@@ -57,6 +57,8 @@ protected:
 private:
 	MPU9250			*_parent;
 	orb_advert_t		_gyro_topic;
+	orb_advert_t		_gyro_control_topic;
+	orb_advert_t		_gyro_unfiltered_topic;
 	int			_gyro_orb_class_instance;
 	int			_gyro_class_instance;
 

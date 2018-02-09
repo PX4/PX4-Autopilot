@@ -685,6 +685,17 @@ void Logger::add_system_identification_topics()
 	add_topic("sensor_combined");
 }
 
+void Logger::add_raw_sensor_topics()
+{
+	add_topic("sensor_accel");
+	add_topic("sensor_baro");
+	add_topic("sensor_gyro");
+	add_topic("sensor_mag");
+
+	add_topic("sensor_accel_unfiltered");
+	add_topic("sensor_gyro_unfiltered");
+}
+
 int Logger::add_topics_from_file(const char *fname)
 {
 	FILE		*fp;
@@ -833,6 +844,9 @@ void Logger::run()
 			add_sensor_comparison_topics();
 		}
 
+		if (sdlog_profile & SDLogProfileMask::VIBRATION_ANALYSIS) {
+			add_raw_sensor_topics();
+		}
 	}
 
 	int vehicle_command_sub = -1;

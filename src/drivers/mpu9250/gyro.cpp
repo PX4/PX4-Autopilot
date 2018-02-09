@@ -73,6 +73,8 @@ MPU9250_gyro::MPU9250_gyro(MPU9250 *parent, const char *path) :
 	CDev("MPU9250_gyro", path),
 	_parent(parent),
 	_gyro_topic(nullptr),
+	_gyro_control_topic(nullptr),
+	_gyro_unfiltered_topic(nullptr),
 	_gyro_orb_class_instance(-1),
 	_gyro_class_instance(-1)
 {

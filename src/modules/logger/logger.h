@@ -68,7 +68,8 @@ enum class SDLogProfileMask : int32_t {
 	SYSTEM_IDENTIFICATION = 1 << 3,
 	HIGH_RATE =             1 << 4,
 	DEBUG_TOPICS =          1 << 5,
-	SENSOR_COMPARISON =	1 << 6
+	SENSOR_COMPARISON =	1 << 6,
+	VIBRATION_ANALYSIS =	1 << 7
 };
 
 inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
@@ -291,6 +292,7 @@ private:
 	void add_high_rate_topics();
 	void add_debug_topics();
 	void add_sensor_comparison_topics();
+	void add_raw_sensor_topics();
 
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
 
