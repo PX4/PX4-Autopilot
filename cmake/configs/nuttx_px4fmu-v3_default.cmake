@@ -45,11 +45,6 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/px4io
 	drivers/rgbled
-	drivers/sdp3x_airspeed
-	drivers/sf0x
-	drivers/sf1xx
-	drivers/snapdragon_rc_pwm
-	drivers/srf02
 	drivers/srf02_i2c
 	drivers/stm32
 	drivers/stm32/adc
