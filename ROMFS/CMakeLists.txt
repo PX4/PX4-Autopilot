@@ -28,19 +28,29 @@ list(APPEND romfs_dependencies
 	${romfs_temp_dir}/init.d/rc.autostart
 	)
 	
-# create romfs.bin
+# copy px4io binary if configured
+if (config_io_board)
+	list(APPEND romfs_dependencies
+		copy_px4io_bin
+		${fw_io_bin}
+		)
+endif()
+
+# create romfs.img
 add_custom_command(OUTPUT romfs.img
+	COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
 	COMMAND ${GENROMFS} -f romfs.img -d ${romfs_temp_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
 	DEPENDS ${romfs_dependencies}
 	)
 
-# create romfs.o
+# create nsh_romfsimg.c
 add_custom_command(OUTPUT nsh_romfsimg.c
+	COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
 	COMMAND xxd -i romfs.img nsh_romfsimg.c
 	COMMAND sed 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && mv nsh_romfsimg.c.tmp nsh_romfsimg.c
 	DEPENDS romfs.img
 	)
 
 add_library(romfs STATIC nsh_romfsimg.c)
-add_dependencies(romfs platforms__common)
+add_dependencies(romfs prebuild_targets)
 set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)
