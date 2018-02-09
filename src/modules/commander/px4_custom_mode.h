@@ -73,6 +73,10 @@ union px4_custom_mode {
 	};
 	uint32_t data;
 	float data_float;
+	struct {
+		uint16_t reserved_hl;
+		uint16_t custom_mode_hl;
+	};
 };
 
 #endif /* PX4_CUSTOM_MODE_H_ */

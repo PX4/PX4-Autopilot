@@ -105,6 +105,8 @@
 #include <uORB/uORB.h>
 
 static uint16_t cm_uint16_from_m_float(float m);
+static void get_mavlink_custom_mode(struct vehicle_status_s *status, uint8_t *mavlink_base_mode,
+				    union px4_custom_mode *custom_mode);
 static void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
 				   uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
 
@@ -121,12 +123,11 @@ cm_uint16_from_m_float(float m)
 	return (uint16_t)(m * 100.0f);
 }
 
-void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
-			    uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
+void get_mavlink_custom_mode(struct vehicle_status_s *status, uint8_t *mavlink_base_mode,
+			     union px4_custom_mode *custom_mode)
 {
-	*mavlink_state = 0;
+	custom_mode->data = 0;
 	*mavlink_base_mode = 0;
-	*mavlink_custom_mode = 0;
 
 	/* HIL */
 	if (status->hil_state == vehicle_status_s::HIL_STATE_ON) {
@@ -141,9 +142,6 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 	/* main state */
 	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 
-	union px4_custom_mode custom_mode;
-	custom_mode.data = 0;
-
 	const uint8_t auto_mode_flags	= MAV_MODE_FLAG_AUTO_ENABLED
 					  | MAV_MODE_FLAG_STABILIZE_ENABLED
 					  | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -152,60 +150,60 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		*mavlink_base_mode	|= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 					   | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_RATTITUDE;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_RATTITUDE;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 		*mavlink_base_mode	|= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 					   | MAV_MODE_FLAG_STABILIZE_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_STABILIZED;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_STABILIZED;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		*mavlink_base_mode	|= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 					   | MAV_MODE_FLAG_STABILIZE_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		*mavlink_base_mode	|= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 					   | MAV_MODE_FLAG_STABILIZE_ENABLED
 					   | MAV_MODE_FLAG_GUIDED_ENABLED; // TODO: is POSCTL GUIDED?
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
@@ -213,8 +211,8 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 	/* fallthrough */
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
@@ -224,24 +222,24 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 	/* fallthrough */
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_MAX:
@@ -249,7 +247,17 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 		break;
 
 	}
+}
 
+void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
+			    uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
+{
+	*mavlink_state = 0;
+	*mavlink_base_mode = 0;
+	*mavlink_custom_mode = 0;
+
+	union px4_custom_mode custom_mode;
+	get_mavlink_custom_mode(status, mavlink_base_mode, &custom_mode);
 	*mavlink_custom_mode = custom_mode.data;
 
 	/* set system state */
@@ -4192,44 +4200,77 @@ protected:
 				_windspeed.get_scaled(msg.windspeed, 5.0f);
 			}
 
-			// failsafe flags, requires an initial value of 0
-			if (_battery_time > 0) {
-				if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
-					msg.failsafe |= MAV_FAILSAFE_FLAG_BATTERY;
+			// failure flags, requires an initial value of 0, set by the default values
+			if (_status_flags_time > 0) {
+				if (status_flags.gps_failure || !status_flags.condition_global_position_valid) {
+					msg.failure_flags |= HL_FAILURE_FLAG_GPS;
+				}
+
+				if (status_flags.offboard_control_signal_lost && status_flags.offboard_control_signal_found_once) {
+					msg.failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
+				}
+			}
+
+			if (_airspeed_time > 0) {
+				if (airspeed.confidence < 0.95f) { // the same threshold as for the commander
+					msg.failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
 				}
 			}
 
 			if (_status_time > 0) {
+				if ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)
+				    && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)) {
+					msg.failure_flags |= HL_FAILURE_FLAG_ABSOLUTE_PRESSURE;
+				}
+
+				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_ACCEL)
+				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_ACCEL)) ||
+				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_ACCEL2) &&
+				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_ACCEL2))) {
+					msg.failure_flags |= HL_FAILURE_FLAG_3D_ACCEL;
+				}
+
+				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_GYRO)
+				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_GYRO)) ||
+				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_GYRO2) &&
+				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_GYRO2))) {
+					msg.failure_flags |= HL_FAILURE_FLAG_3D_GYRO;
+				}
+
+				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_MAG)
+				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_MAG)) ||
+				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_MAG2) &&
+				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_MAG2))) {
+					msg.failure_flags |= HL_FAILURE_FLAG_3D_MAG;
+				}
+
+				if ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_TERRAIN)
+				    && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_TERRAIN)) {
+					msg.failure_flags |= HL_FAILURE_FLAG_TERRAIN;
+				}
+
 				if (status.rc_signal_lost) {
-					msg.failsafe |= MAV_FAILSAFE_FLAG_RC_LOSS;
+					msg.failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
 				}
 
 				if (status.engine_failure) {
-					msg.failsafe |= MAV_FAILSAFE_FLAG_ENGINE;
+					msg.failure_flags |= HL_FAILURE_FLAG_ENGINE;
 				}
 
-				if (status.data_link_lost) {
-					msg.failsafe |= MAV_FAILSAFE_FLAG_TELEM_LOSS;
+				if (status.mission_failure) {
+					msg.failure_flags |= HL_FAILURE_FLAG_MISSION;
+				}
+			}
+
+			if (_battery_time > 0) {
+				if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
+					msg.failure_flags |= HL_FAILURE_FLAG_BATTERY;
 				}
 			}
 
 			if (_geofence_time > 0) {
 				if (geofence.geofence_violated) {
-					msg.failsafe |= MAV_FAILSAFE_FLAG_GEOFENCE;
-				}
-			}
-
-			if (_status_flags_time > 0) {
-				if (status_flags.gps_failure || !status_flags.condition_global_position_valid) {
-					msg.failsafe |= MAV_FAILSAFE_FLAG_GPS;
-				}
-			}
-
-			// failure flags
-
-			if (_airspeed_time > 0) {
-				if (airspeed.confidence < 0.95f) { // the same threshold as for the commander
-					msg.failure_flags |= MAV_FAILURE_FLAG_AIRSPEED;
+					msg.failure_flags |= HL_FAILURE_FLAG_GEOFENCE;
 				}
 			}
 
@@ -4237,128 +4278,15 @@ protected:
 				if (estimator_status.gps_check_fail_flags > 0 ||
 				    estimator_status.filter_fault_flags > 0 ||
 				    estimator_status.innovation_check_flags > 0) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_ESTIMATOR;
-				}
-			}
-
-			if (_status_flags_time > 0) {
-				if (status_flags.gps_failure) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_GPS;
-				}
-
-				if (status_flags.offboard_control_signal_lost && status_flags.offboard_control_signal_found_once) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_OFFBOARD_LINK;
-				}
-			}
-
-			if (_status_time > 0) {
-				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_ACCEL)
-				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_ACCEL)) ||
-				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_ACCEL2) &&
-				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_ACCEL2))) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_ACCELEROMETER;
-				}
-
-				if ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)
-				    && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_BAROMETER;
-				}
-
-				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_GYRO)
-				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_GYRO)) ||
-				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_GYRO2) &&
-				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_GYRO2))) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_GYROSCOPE;
-				}
-
-				if ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_LASER_POSITION)
-				    && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_LASER_POSITION)) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_LIDAR;
-				}
-
-				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_MAG)
-				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_MAG)) ||
-				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_MAG2) &&
-				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_MAG2))) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_MAGNETOMETER;
-				}
-
-				if (status.mission_failure) {
-					msg.failure_flags |= MAV_FAILURE_FLAG_MISSION;
+					msg.failure_flags |= HL_FAILURE_FLAG_ESTIMATOR;
 				}
 			}
 
 			// flight mode
-			switch (status.nav_state) {
-			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-				msg.flight_mode = FLIGHT_MODE_MANUAL;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-				msg.flight_mode = FLIGHT_MODE_ALTCTL;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-				msg.flight_mode = FLIGHT_MODE_POSCTL;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-				msg.flight_mode = FLIGHT_MODE_AUTO_MISSION;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-				msg.flight_mode = FLIGHT_MODE_AUTO_LOITER;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-				msg.flight_mode = FLIGHT_MODE_AUTO_RTL;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_ACRO:
-				msg.flight_mode = FLIGHT_MODE_ACRO;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-				msg.flight_mode = FLIGHT_MODE_DESCEND;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-				msg.flight_mode = FLIGHT_MODE_TERMINATION;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-				msg.flight_mode = FLIGHT_MODE_OFFBOARD;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_STAB:
-				msg.flight_mode = FLIGHT_MODE_STABILIZED;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
-				msg.flight_mode = FLIGHT_MODE_RATTITIDE;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-				msg.flight_mode = FLIGHT_MODE_AUTO_TAKEOFF;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-				msg.flight_mode = FLIGHT_MODE_AUTO_LAND;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-				msg.flight_mode = FLIGHT_MODE_AUTO_FOLLOW_TARGET;
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-				msg.flight_mode = FLIGHT_MODE_AUTO_PRECLAND;
-				break;
-
-			default:
-				msg.flight_mode = FLIGHT_MODE_ENUM_END;
-			}
-
-
+			union px4_custom_mode custom_mode;
+			uint8_t mavlink_base_mode;
+			get_mavlink_custom_mode(&status, &mavlink_base_mode, &custom_mode);
+			msg.custom_mode = custom_mode.custom_mode_hl;
 
 			// reset the analyzers
 			_airspeed.reset();
@@ -4458,9 +4386,8 @@ protected:
 		msg.custom2 = INT8_MIN;
 		msg.eph = UINT8_MAX;
 		msg.epv = UINT8_MAX;
-		msg.failsafe = 0;
 		msg.failure_flags = 0;
-		msg.flight_mode = FLIGHT_MODE_ENUM_END;
+		msg.custom_mode = 0;
 		msg.groundspeed = 0;
 		msg.heading = 0;
 		msg.latitude = 0;
