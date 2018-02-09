@@ -187,7 +187,7 @@ private:
 	 * Write a word to specified register
 	 */
 	int			write_reg(uint8_t reg, uint16_t val);
-	
+
 	/**
 	 * Convert from 2's compliment to decimal
 	 * @return the absolute value of the input in decimal
@@ -218,7 +218,7 @@ private:
 
 	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
 	bool		_armed{false};				/**< arming status of the vehicle */
-	
+
 	int		_actuator_ctrl_0_sub{-1};		/**< attitude controls sub */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle control mode subscription */
 };
@@ -280,7 +280,7 @@ BATT_SMBUS::vehicle_control_mode_poll()
 
 int
 BATT_SMBUS::init()
-{	
+{
 	int ret = ENOTTY;
 
 	// attempt to initialise I2C bus
@@ -320,7 +320,7 @@ BATT_SMBUS::test()
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
 				PX4_INFO("V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d Shutdown:%d", (double)status.voltage_v, (double)status.current_a,
-				      (double)status.discharged_mah, (int)_batt_capacity);
+					 (double)status.discharged_mah, (int)_batt_capacity);
 			}
 		}
 
@@ -433,7 +433,7 @@ void
 BATT_SMBUS::stop()
 {
 	PX4_INFO("BATT_SMBUS stop called");
-	
+
 	orb_unsubscribe(_actuator_ctrl_0_sub);
 	orb_unsubscribe(_vcontrol_mode_sub);
 	work_cancel(HPWORK, &_work);
@@ -452,7 +452,7 @@ BATT_SMBUS::cycle()
 {
 	// get current time
 	uint64_t now = hrt_absolute_time();
-	
+
 	/* check vehicle status for changes to publication state */
 	vehicle_control_mode_poll();
 
@@ -483,10 +483,10 @@ BATT_SMBUS::cycle()
 	uint16_t tmp;
 
 	if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
-		
+
 		//Consider the battery connected if voltage returns true
 		bool connected = true;
-		
+
 		// initialise new_report
 		memset(&new_report, 0, sizeof(new_report));
 
@@ -495,7 +495,7 @@ BATT_SMBUS::cycle()
 
 		// read current
 		if (read_reg(BATT_SMBUS_CURRENT, tmp) == OK) {
-			new_report.current_a = ((float)convert_twos_comp(tmp))/1000.0f;
+			new_report.current_a = ((float)convert_twos_comp(tmp)) / 1000.0f;
 		}
 
 		// read battery design capacity
@@ -520,9 +520,9 @@ BATT_SMBUS::cycle()
 
 		battery_status_s battery_status;
 		_battery.updateBatteryStatus(now, new_report.voltage_v, new_report.current_a,
-						connected, 0, 0,
-						ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-						_armed, &battery_status);
+					     connected, 0, 0,
+					     ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+					     _armed, &battery_status);
 		int instance;
 		orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &battery_status, &instance, ORB_PRIO_DEFAULT);
 
@@ -545,11 +545,11 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 
 	// read from register
 	int ret = transfer(&reg, 1, buff, 2);
-	
+
 	if (ret == OK) {
 		val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
 	}
-	
+
 	// return success or failure
 	return ret;
 }
@@ -641,7 +641,7 @@ BATT_SMBUS::convert_twos_comp(uint16_t val)
 		tmp = tmp + 1;
 		return tmp;
 	}
-	
+
 	return val;
 }
 
