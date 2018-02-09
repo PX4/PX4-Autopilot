@@ -60,7 +60,6 @@
 #include <uORB/uORB.h>
 
 #include <drivers/device/i2c.h>
-//#include <drivers/drv_hrt.h>
 
 #define BATT_SMBUS_ADDR_MIN             0x00	///< lowest possible address
 #define BATT_SMBUS_ADDR_MAX             0xFF	///< highest possible address
@@ -73,8 +72,8 @@
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY 0x10    ///< capacity when fully charged
 #define BATT_SMBUS_DESIGN_CAPACITY		0x18	///< design capacity register
 #define BATT_SMBUS_DESIGN_VOLTAGE		0x19	///< design voltage register
-#define BATT_SMBUS_MANUFACTURE_DATE   	0x1B  ///< manufacture date register
-#define BATT_SMBUS_SERIAL_NUMBER      	0x1C  ///< serial number register
+#define BATT_SMBUS_MANUFACTURE_DATE   	0x1B  	///< manufacture date register
+#define BATT_SMBUS_SERIAL_NUMBER      	0x1C  	///< serial number register
 #define BATT_SMBUS_MANUFACTURER_NAME	0x20	///< manufacturer name
 #define BATT_SMBUS_CURRENT              0x0a	///< current register
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US	(1000000 / 10)	///< time in microseconds, measure at 10Hz
@@ -83,6 +82,8 @@
 #define BATT_SMBUS_MANUFACTURER_ACCESS	0x00
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS    0x44
 
+#define BATT_SMBUS_PEC_POLYNOMIAL	0x07		///< Polynomial for calculating PEC
+
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -90,7 +91,7 @@
 class BATT_SMBUS : public device::I2C
 {
 public:
-	BATT_SMBUS(int bus = PX4_I2C_BUS_EXPANSION, uint16_t batt_smbus_addr = BATT_SMBUS_ADDR);
+	BATT_SMBUS(int bus = PX4_I2C_BUS_EXPANSION, uint16_t batt_smbus_addr = BATT_SMBUS_ADDR, bool pec = false);
 	virtual ~BATT_SMBUS();
 
 	/**
@@ -206,6 +207,12 @@ private:
 	 */
 	uint8_t			write_block(uint8_t reg, uint8_t *data, uint8_t len);
 
+	/**
+	 * Calculate PEC for a read or write from the battery
+	 * @param buff is the data that was read or will be written
+	 */
+	uint8_t	get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len);
+
 	// internal variables
 	bool			_enabled;	///< true if we have successfully connected to battery
 	work_s			_work;		///< work queue for scheduling reads
@@ -221,6 +228,8 @@ private:
 
 	int		_actuator_ctrl_0_sub{-1};		/**< attitude controls sub */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle control mode subscription */
+
+	bool	_enable_pec;		///< PEC enabled or disabled on fuel gauge
 };
 
 namespace
@@ -236,7 +245,7 @@ int manufacturer_name();
 int manufacture_date();
 int serial_number();
 
-BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
+BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr, bool pec) :
 	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
 	_enabled(false),
 	_work{},
@@ -244,7 +253,8 @@ BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	_batt_orb_id(nullptr),
 	_start_time(0),
 	_batt_capacity(0),
-	_manufacturer_name(nullptr)
+	_manufacturer_name(nullptr),
+	_enable_pec(pec)
 {
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -293,6 +303,7 @@ BATT_SMBUS::init()
 	} else {
 		//Find the battery on the bus
 		search();
+
 		// start work queue
 		start();
 	}
@@ -539,13 +550,26 @@ BATT_SMBUS::cycle()
 int
 BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 {
-	uint8_t buff[2];	// 2 bytes of data
+	uint8_t buff[3];	// 2 bytes of data
 
 	// read from register
-	int ret = transfer(&reg, 1, buff, 2);
+	int ret = transfer(&reg, 1, buff, 3);
 
 	if (ret == OK) {
-		val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
+		if (_enable_pec) {
+			// check PEC
+			uint8_t pec = get_PEC(reg, true, buff, 2);
+
+			if (pec == buff[2]) {
+				val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
+
+			} else {
+				ret = ENOTTY;
+			}
+
+		} else {
+			val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
+		}
 	}
 
 	// return success or failure
@@ -630,6 +654,67 @@ BATT_SMBUS::write_block(uint8_t reg, uint8_t *data, uint8_t len)
 	return len;
 }
 
+uint8_t
+BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len)
+{
+	// exit immediately if no data
+	if (len <= 0) {
+		return 0;
+	}
+
+	/**
+	 *  Note: The PEC is calculated on all the message bytes. See http://cache.freescale.com/files/32bit/doc/app_note/AN4471.pdf
+	 *  and http://www.ti.com/lit/an/sloa132/sloa132.pdf for more details
+	 */
+
+	// prepare temp buffer for calculating crc
+	uint8_t tmp_buff_len;
+
+	if (reading) {
+		tmp_buff_len = len + 3;
+
+	} else {
+		tmp_buff_len = len + 2;
+	}
+
+	uint8_t tmp_buff[tmp_buff_len];
+	tmp_buff[0] = (uint8_t)get_device_address() << 1;
+	tmp_buff[1] = cmd;
+
+	if (reading) {
+		tmp_buff[2] = tmp_buff[0] | (uint8_t)reading;
+		memcpy(&tmp_buff[3], buff, len);
+
+	} else {
+		memcpy(&tmp_buff[2], buff, len);
+	}
+
+	// initialise crc to zero
+	uint8_t crc = 0;
+	uint8_t shift_reg = 0;
+	bool do_invert;
+
+	// for each byte in the stream
+	for (uint8_t i = 0; i < sizeof(tmp_buff); i++) {
+		// load next data byte into the shift register
+		shift_reg = tmp_buff[i];
+
+		// for each bit in the current byte
+		for (uint8_t j = 0; j < 8; j++) {
+			do_invert = (crc ^ shift_reg) & 0x80;
+			crc <<= 1;
+			shift_reg <<= 1;
+
+			if (do_invert) {
+				crc ^= BATT_SMBUS_PEC_POLYNOMIAL;
+			}
+		}
+	}
+
+	// return result
+	return crc;
+}
+
 uint16_t
 BATT_SMBUS::convert_twos_comp(uint16_t val)
 {
@@ -665,6 +750,7 @@ batt_smbus_usage()
 	PX4_INFO("options:");
 	PX4_INFO("    -b i2cbus (%d)", BATT_SMBUS_I2C_BUS);
 	PX4_INFO("    -a addr (0x%x)", BATT_SMBUS_ADDR);
+	PX4_INFO("    -p Enable PEC");
 }
 
 int
@@ -718,11 +804,12 @@ batt_smbus_main(int argc, char *argv[])
 {
 	int i2cdevice = BATT_SMBUS_I2C_BUS;
 	int batt_smbusadr = BATT_SMBUS_ADDR; // 7bit address
+	bool pec_enable = false; //PEC disabled by default
 
 	int ch;
 
 	// jump over start/off/etc and look at options first
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	while ((ch = getopt(argc, argv, "a:b:p")) != EOF) {
 		switch (ch) {
 		case 'a':
 			batt_smbusadr = strtol(optarg, nullptr, 0);
@@ -731,6 +818,9 @@ batt_smbus_main(int argc, char *argv[])
 		case 'b':
 			i2cdevice = strtol(optarg, nullptr, 0);
 			break;
+
+		case 'p':
+			pec_enable = true;
 
 		default:
 			batt_smbus_usage();
@@ -751,7 +841,7 @@ batt_smbus_main(int argc, char *argv[])
 
 		} else {
 			// create new global object
-			g_batt_smbus = new BATT_SMBUS(i2cdevice, batt_smbusadr);
+			g_batt_smbus = new BATT_SMBUS(i2cdevice, batt_smbusadr, pec_enable);
 
 			if (g_batt_smbus == nullptr) {
 				errx(1, "new failed");
