@@ -94,9 +94,6 @@ target_link_libraries(${FW_NAME}
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
 	target_link_libraries(${FW_NAME} romfs)
-	if (config_io_board)
-		add_dependencies(romfs copy_px4io_bin)
-	endif()
 endif()
 
 # create px4 file (combined firmware and metadata)

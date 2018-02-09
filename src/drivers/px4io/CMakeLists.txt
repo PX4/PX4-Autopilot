@@ -65,6 +65,7 @@ add_custom_command(OUTPUT ${fw_io_exe}
 
 file(RELATIVE_PATH fw_io_exe_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_exe})
 file(RELATIVE_PATH fw_io_bin_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_bin})
+set(fw_io_bin ${fw_io_bin} PARENT_SCOPE)
 
 add_custom_command(OUTPUT ${fw_io_bin}
 	COMMAND mkdir -p ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/
