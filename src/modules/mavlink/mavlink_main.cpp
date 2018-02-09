@@ -2124,7 +2124,7 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
-		configure_stream("HIGH_LATENCY", 0.1f);
+		configure_stream("HIGH_LATENCY2", 0.1f);
 		break;
 
 	case MAVLINK_MODE_MINIMAL:
