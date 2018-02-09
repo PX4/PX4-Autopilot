@@ -422,7 +422,7 @@ then
 	then
 		# start the driver on serial 4/5
 		leddar_one -d /dev/ttyS6 start
-	else
+	fi
 	if ver hwcmp AEROFC_V1
 	then
 		# start the driver on telemetry
