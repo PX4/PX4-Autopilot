@@ -79,16 +79,6 @@ void PositionControl::updateState(const struct vehicle_local_position_s state, c
 	_vel_dot = vel_dot;
 }
 
-void PositionControl::setIdle()
-{
-	_pos_sp = _pos;
-	_vel_sp.zero();
-	_acc_sp.zero();
-	_thr_sp.zero();
-	_yaw_sp = _yaw_sp_int = _yaw;
-	_yawspeed_sp = 0.0f;
-}
-
 void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s setpoint)
 {
 	_pos_sp = Vector3f(&setpoint.x);
