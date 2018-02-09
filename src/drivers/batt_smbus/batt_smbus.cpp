@@ -432,8 +432,6 @@ BATT_SMBUS::start()
 void
 BATT_SMBUS::stop()
 {
-	PX4_INFO("BATT_SMBUS stop called");
-
 	orb_unsubscribe(_actuator_ctrl_0_sub);
 	orb_unsubscribe(_vcontrol_mode_sub);
 	work_cancel(HPWORK, &_work);
@@ -736,13 +734,13 @@ batt_smbus_main(int argc, char *argv[])
 
 		default:
 			batt_smbus_usage();
-			exit(0);
+			return 0;
 		}
 	}
 
 	if (optind >= argc) {
 		batt_smbus_usage();
-		exit(1);
+		return 1;
 	}
 
 	const char *verb = argv[optind];
@@ -766,54 +764,54 @@ batt_smbus_main(int argc, char *argv[])
 			}
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	// need the driver past this point
 	if (g_batt_smbus == nullptr) {
 		PX4_INFO("not started");
 		batt_smbus_usage();
-		exit(1);
+		return 1;
 	}
 
 	if (!strcmp(verb, "test")) {
 		g_batt_smbus->test();
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(verb, "stop")) {
 		delete g_batt_smbus;
 		g_batt_smbus = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(verb, "search")) {
 		g_batt_smbus->search();
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(verb, "man_name")) {
 		manufacturer_name();
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(verb, "man_date")) {
 		manufacture_date();
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(verb, "serial_num")) {
 		serial_number();
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(verb, "sbs_info")) {
 		manufacturer_name();
 		manufacture_date();
 		serial_number();
-		exit(0);
+		return 0;
 	}
 
 	batt_smbus_usage();
-	exit(0);
+	return 0;
 }
