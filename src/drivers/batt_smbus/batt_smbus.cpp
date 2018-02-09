@@ -725,11 +725,11 @@ batt_smbus_main(int argc, char *argv[])
 	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
 		switch (ch) {
 		case 'a':
-			batt_smbusadr = strtol(optarg, NULL, 0);
+			batt_smbusadr = strtol(optarg, nullptr, 0);
 			break;
 
 		case 'b':
-			i2cdevice = strtol(optarg, NULL, 0);
+			i2cdevice = strtol(optarg, nullptr, 0);
 			break;
 
 		default:
