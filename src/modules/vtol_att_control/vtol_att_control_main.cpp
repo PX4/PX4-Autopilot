@@ -521,57 +521,10 @@ VtolAttitudeControl::parameters_update()
 	return OK;
 }
 
-/**
-* Prepare message for mc attitude rates setpoint topic
-*/
-void VtolAttitudeControl::fill_mc_att_rates_sp()
-{
-	bool updated;
-	orb_check(_mc_virtual_v_rates_sp_sub, &updated);
-
-	if (updated) {
-		vehicle_rates_setpoint_s v_rates_sp;
-
-		if (orb_copy(ORB_ID(mc_virtual_rates_setpoint), _mc_virtual_v_rates_sp_sub, &v_rates_sp) == PX4_OK) {
-			// publish the attitude rates setpoint
-			if (_v_rates_sp_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &v_rates_sp);
-
-			} else {
-				_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &v_rates_sp);
-			}
-		}
-	}
-}
-
-/**
-* Prepare message for fw attitude rates setpoint topic
-*/
-void VtolAttitudeControl::fill_fw_att_rates_sp()
-{
-	bool updated;
-	orb_check(_fw_virtual_v_rates_sp_sub, &updated);
-
-	if (updated) {
-		vehicle_rates_setpoint_s v_rates_sp;
-
-		if (orb_copy(ORB_ID(fw_virtual_rates_setpoint), _fw_virtual_v_rates_sp_sub, &v_rates_sp) == PX4_OK) {
-			// publish the attitude rates setpoint
-			if (_v_rates_sp_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &v_rates_sp);
-
-			} else {
-				_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &v_rates_sp);
-			}
-		}
-	}
-}
-
-int
+void
 VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	VTOL_att_control::g_control->task_main();
-	return 0;
 }
 
 void VtolAttitudeControl::task_main()
@@ -582,8 +535,6 @@ void VtolAttitudeControl::task_main()
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
 	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
-	_mc_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
-	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
 	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
@@ -695,7 +646,6 @@ void VtolAttitudeControl::task_main()
 
 			// got data from mc attitude controller
 			_vtol_type->update_mc_state();
-			fill_mc_att_rates_sp();
 
 		} else if (_vtol_type->get_mode() == FIXED_WING) {
 
@@ -707,7 +657,6 @@ void VtolAttitudeControl::task_main()
 			_vtol_vehicle_status.in_transition_to_fw = false;
 
 			_vtol_type->update_fw_state();
-			fill_fw_att_rates_sp();
 
 		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
 
@@ -720,7 +669,6 @@ void VtolAttitudeControl::task_main()
 			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == TRANSITION_TO_FW);
 
 			_vtol_type->update_transition_state();
-			fill_mc_att_rates_sp();
 		}
 
 		_vtol_type->fill_actuator_outputs();

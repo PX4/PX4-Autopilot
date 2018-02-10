@@ -268,7 +268,7 @@ void Tiltrotor::update_transition_state()
 			_mc_yaw_weight = _mc_roll_weight;
 		}
 
-		_thrust_transition = _mc_virtual_att_sp->thrust;
+		_thrust_transition = _mc_virtual_att_sp->thrust_z;
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
@@ -287,7 +287,7 @@ void Tiltrotor::update_transition_state()
 		_motor_state = set_motor_state(_motor_state, VALUE, rear_value);
 
 
-		_thrust_transition = _mc_virtual_att_sp->thrust;
+		_thrust_transition = _mc_virtual_att_sp->thrust_z;
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
 		if (_motor_state != ENABLED) {
@@ -323,7 +323,7 @@ void Tiltrotor::update_transition_state()
 void Tiltrotor::waiting_on_tecs()
 {
 	// keep multicopter thrust until we get data from TECS
-	_v_att_sp->thrust = _thrust_transition;
+	_v_att_sp->thrust_x = _thrust_transition;
 }
 
 /**

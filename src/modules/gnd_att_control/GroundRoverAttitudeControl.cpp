@@ -303,7 +303,7 @@ GroundRoverAttitudeControl::task_main()
 					}
 
 					/* throttle passed through if it is finite and if no engine failure was detected */
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _att_sp.thrust;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _att_sp.thrust_x;
 
 					/* scale effort by battery status */
 					if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
