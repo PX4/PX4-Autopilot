@@ -37,7 +37,6 @@
 #include "FlightTaskAuto.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
-#include <lib/geo/geo.h>
 
 using namespace matrix;
 
