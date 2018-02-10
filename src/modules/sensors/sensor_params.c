@@ -228,20 +228,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
 
 /**
- * TeraRanger Rangefinder (i2c)
- *
- * @reboot_required true
- * @min 0
- * @max 3
- * @group Sensors
- * @value 0 Disabled
- * @value 1 Autodetect
- * @value 2 TROne
- * @value 3 TREvo
- */
-PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);
-
-/**
  * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
  *
  * @reboot_required true
