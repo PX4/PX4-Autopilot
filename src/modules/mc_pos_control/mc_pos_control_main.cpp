@@ -633,6 +633,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
 		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
 
+
 		/* Get parameter values used to fly within optical flow sensor limits */
 		param_t handle = param_find("SENS_FLOW_MINRNG");
 
@@ -3196,6 +3197,42 @@ MulticopterPositionControl::task_main()
 			_control.updateConstraints(constraints);
 			_control.generateThrustYawSetpoint(_dt);
 
+			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
+
+			/* We adjust thrust setpoint based on landdetector and the
+			 * vehicle is NOT in pure Manual mode. */
+			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thr[2])) {
+				if (_vehicle_land_detected.ground_contact) {
+
+					/* if still or already on ground command zero xy thrust_sp in body
+					 * frame to consider uneven ground */
+
+					/* Temporary until replacement to matrix lib */
+					matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(
+										&_R(0, 0));
+					/* thrust setpoint in body frame*/
+					matrix::Vector3f thrust_sp_body = R.transpose() * thr_sp;
+
+					/* we dont want to make any correction in body x and y*/
+					thrust_sp_body(0) = 0.0f;
+					thrust_sp_body(1) = 0.0f;
+
+					/* make sure z component of thrust_sp_body is larger than 0 (positive thrust is downward) */
+					thrust_sp_body(2) =
+						thr_sp(2) > 0.0f ? thr_sp(2) : 0.0f;
+
+					/* convert back to local frame (NED) */
+					thr_sp = R * thrust_sp_body;
+				}
+
+				if (_vehicle_land_detected.maybe_landed) {
+					/* we set thrust to zero
+					 * this will help to decide if we are actually landed or not
+					 */
+					thr_sp.zero();
+				}
+			}
+
 			/* fill local position, velocity and thrust setpoint */
 			_local_pos_sp.timestamp = hrt_absolute_time();
 			_local_pos_sp.x = _control.getPosSp()(0);
@@ -3207,12 +3244,7 @@ MulticopterPositionControl::task_main()
 			_local_pos_sp.vx = _control.getVelSp()(0);
 			_local_pos_sp.vy = _control.getVelSp()(1);
 			_local_pos_sp.vz = _control.getVelSp()(2);
-
-			_control.getThrustSetpoint().copyTo(_local_pos_sp.thr);
-
-			/* We adjust thrust setpoint based on landdetector */
-			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
-			landdetection_thrust_limit(thr_sp); //TODO: only do that if not in pure manual
+			thr_sp.copyTo(_local_pos_sp.thr);
 
 			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
 			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
