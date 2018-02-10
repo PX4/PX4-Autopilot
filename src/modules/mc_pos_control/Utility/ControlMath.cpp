@@ -134,7 +134,6 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
  */
 matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float max)
 {
-
 	if (matrix::Vector2f(v0 + v1).norm() <= max) {
 		/* Vector does not exceed maximum magnitude */
 		return v0 + v1;
