@@ -173,7 +173,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 
 
 	// remaining battery capacity based on voltage
-	const float cell_voltage = voltage_v / _n_cells.get();
+	float cell_voltage = voltage_v / _n_cells.get();
 	
 	// correct battery voltage locally for load drop to avoid estimation fluctuations
 	if (_r_internal.get() >= 0.f) {
