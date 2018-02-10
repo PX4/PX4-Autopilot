@@ -1,4 +1,3 @@
-
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT tap_common)
 
 set(target_definitions MEMORY_CONSTRAINED_SYSTEM)
@@ -98,4 +97,5 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/tunes
 	lib/version
+	lib/wind_estimator
 )

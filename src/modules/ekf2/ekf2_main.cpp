@@ -1260,12 +1260,8 @@ void Ekf2::run()
 					wind_estimate.variance_north = status.covariances[22];
 					wind_estimate.variance_east = status.covariances[23];
 
-					if (_wind_pub == nullptr) {
-						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
-
-					} else {
-						orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-					}
+					int wind_instance;
+					orb_publish_auto(ORB_ID(wind_estimate), &_wind_pub, &wind_estimate, &wind_instance, ORB_PRIO_DEFAULT);
 				}
 			}
 
