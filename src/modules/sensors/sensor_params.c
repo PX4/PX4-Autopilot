@@ -218,19 +218,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Lidar-Lite (LL40LS)
- *
- * @reboot_required true
- * @min 0
- * @max 2
- * @group Sensors
- * @value 0 Disabled
- * @value 1 PWM
- * @value 2 I2C
- */
-PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
-
-/**
  * Lightware laser rangefinder (serial)
  *
  * @reboot_required true
