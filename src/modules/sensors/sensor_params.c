@@ -218,16 +218,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Maxbotix Soanr (mb12xx)
- *
- * @reboot_required true
- *
- * @boolean
- * @group Sensors
- */
-PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
-
-/**
  * Thermal control of sensor temperature
  *
  * @value -1 Thermal control unavailable
