@@ -218,22 +218,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Lightware laser rangefinder (serial)
- *
- * @reboot_required true
- * @min 0
- * @max 4
- * @group Sensors
- * @value 0 Disabled
- * @value 1 SF02
- * @value 2 SF10/a
- * @value 3 SF10/b
- * @value 4 SF10/c
- * @value 5 SF11/c
- */
-PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
-
-/**
  * Maxbotix Soanr (mb12xx)
  *
  * @reboot_required true
