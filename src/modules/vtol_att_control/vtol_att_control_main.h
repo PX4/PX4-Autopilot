@@ -76,7 +76,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 #include "tiltrotor.h"
@@ -128,13 +127,11 @@ private:
 	int	_actuator_inputs_mc{-1};	//topic on which the mc_att_controller publishes actuator inputs
 	int	_airspeed_sub{-1};			// airspeed subscription
 	int	_fw_virtual_att_sp_sub{-1};
-	int	_fw_virtual_v_rates_sp_sub{-1};		//vehicle rates setpoint subscription
 	int	_land_detected_sub{-1};
 	int	_local_pos_sp_sub{-1};			// setpoint subscription
 	int	_local_pos_sub{-1};			// sensor subscription
 	int	_manual_control_sp_sub{-1};	//manual control setpoint subscription
 	int	_mc_virtual_att_sp_sub{-1};
-	int	_mc_virtual_v_rates_sp_sub{-1};		//vehicle rates setpoint subscription
 	int	_params_sub{-1};			//parameter updates subscription
 	int	_pos_sp_triplet_sub{-1};			// local position setpoint subscription
 	int	_tecs_status_sub{-1};
@@ -148,7 +145,6 @@ private:
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
 	orb_advert_t	_v_att_sp_pub{nullptr};
 	orb_advert_t	_v_cmd_ack_pub{nullptr};
-	orb_advert_t	_v_rates_sp_pub{nullptr};
 	orb_advert_t	_vtol_vehicle_status_pub{nullptr};
 	orb_advert_t 	_actuators_1_pub{nullptr};
 
@@ -232,10 +228,7 @@ private:
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
 	void 		vehicle_local_pos_sp_poll();		// Check for changes in setpoint values
 
-	int 		parameters_update();			//Update local paraemter cache
-
-	void 		fill_mc_att_rates_sp();
-	void 		fill_fw_att_rates_sp();
+	int 		parameters_update();			//Update local parameter cache
 
 	void		handle_command();
 };

@@ -475,5 +475,5 @@ void
 Standard::waiting_on_tecs()
 {
 	// keep thrust from transition
-	_v_att_sp->thrust = _pusher_throttle;
+	_v_att_sp->thrust_x = _pusher_throttle;
 };

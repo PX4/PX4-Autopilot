@@ -182,7 +182,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	actuators->control[2] = yaw_err * pp.yaw_p;
 
 	/* copy throttle */
-	actuators->control[3] = att_sp->thrust;
+	actuators->control[3] = att_sp->thrust_x;
 
 	actuators->timestamp = hrt_absolute_time();
 }

@@ -181,7 +181,7 @@ void Tailsitter::update_transition_state()
 		//transition should start from current attitude instead of current setpoint
 		matrix::Eulerf euler = matrix::Quatf(_v_att->q);
 		_pitch_transition_start = euler.theta();
-		_thrust_transition_start = _v_att_sp->thrust;
+		_thrust_transition_start = _v_att_sp->thrust_z;
 		_flag_was_in_trans_mode = true;
 	}
 
@@ -192,6 +192,8 @@ void Tailsitter::update_transition_state()
 					time_since_trans_start / _params->front_trans_duration;
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1 - 0.2f,
 							_pitch_transition_start);
+
+		_v_att_sp->thrust_z = _mc_virtual_att_sp->thrust_z;
 
 		// disable mc yaw control once the plane has picked up speed
 		if (_airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
@@ -215,19 +217,14 @@ void Tailsitter::update_transition_state()
 					time_since_trans_start / _params->back_trans_duration;
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, -2.0f, PITCH_TRANSITION_BACK + 0.2f);
 
+		_v_att_sp->thrust_z = _mc_virtual_att_sp->thrust_z;
+
 		// keep yaw disabled
 		_mc_yaw_weight = 0.0f;
 
 		// smoothly move control weight to MC
 		_mc_roll_weight = _mc_pitch_weight = time_since_trans_start / _params->back_trans_duration;
 
-	}
-
-	if (_v_control_mode->flag_control_climb_rate_enabled) {
-		_v_att_sp->thrust = _params->front_trans_throttle;
-
-	} else {
-		_v_att_sp->thrust = _mc_virtual_att_sp->thrust;
 	}
 
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
@@ -248,7 +245,7 @@ void Tailsitter::update_transition_state()
 void Tailsitter::waiting_on_tecs()
 {
 	// copy the last trust value from the front transition
-	_v_att_sp->thrust = _thrust_transition;
+	_v_att_sp->thrust_x = _thrust_transition;
 }
 
 void Tailsitter::update_mc_state()
