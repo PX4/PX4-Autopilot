@@ -3102,7 +3102,6 @@ MulticopterPositionControl::task_main()
 				_pos_sp_triplet.previous.valid = false;
 				_hold_offboard_xy = false;
 				_hold_offboard_z = false;
-
 			}
 
 			/* Check for smooth takeoff
@@ -3116,7 +3115,6 @@ MulticopterPositionControl::task_main()
 					/* There is a position setpoint above current position. Enable smooth takeoff */
 					_in_smooth_takeoff = true;
 					_takeoff_sp = 0.5f;
-
 
 				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -0.6f) {
 					/* There is a velocity setpoint point up and larger than 0.6. The 0.6
