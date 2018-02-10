@@ -170,18 +170,20 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 void
 Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
 {
+
+
+	// remaining battery capacity based on voltage
+	const float cell_voltage = voltage_v / _n_cells.get();
+	
 	// correct battery voltage locally for load drop to avoid estimation fluctuations
 	if (_r_internal.get() >= 0.f) {
-		voltage_v += _r_internal.get() * current_a;
+		cell_voltage += _r_internal.get() * current_a;
 
 	} else {
 		// assume quadratic relation between throttle and current
 		// good assumption if throttle represents RPM
-		voltage_v += throttle_normalized * throttle_normalized * _v_load_drop.get();
+		cell_voltage += throttle_normalized * throttle_normalized * _v_load_drop.get();
 	}
-
-	// remaining battery capacity based on voltage
-	const float cell_voltage = voltage_v / _n_cells.get();
 	_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);
 
 	// choose which quantity we're using for final reporting
