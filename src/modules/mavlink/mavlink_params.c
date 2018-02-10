@@ -112,15 +112,3 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_BROADCAST, 0);
-
-/**
- * Test parameter
- *
- * This parameter is not actively used by the system. Its purpose is to allow
- * testing the parameter interface on the communication level.
- *
- * @group MAVLink
- * @min -1000
- * @max 1000
- */
-PARAM_DEFINE_INT32(MAV_TEST_PAR, 1);
