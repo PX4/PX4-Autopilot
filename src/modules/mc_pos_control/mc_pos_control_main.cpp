@@ -3186,11 +3186,10 @@ MulticopterPositionControl::task_main()
 				// Keep throttle low
 				setpoint.thr[0] = 0.0f;
 				setpoint.thr[1] = 0.0f;
-				setpoint.thr[0] = 0.0f;
+				setpoint.thr[2] = 0.0f;
 				setpoint.yawspeed = 0.0f;
 				setpoint.yaw = _yaw;
 			}
-
 
 			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
 			_control.updateSetpoint(setpoint);
