@@ -72,6 +72,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/input_rc_out.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/optical_flow.h>
@@ -2985,7 +2986,7 @@ private:
 
 protected:
 	explicit MavlinkStreamRCChannels(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_rc_sub(_mavlink->add_orb_subscription(ORB_ID(input_rc))),
+                _rc_sub(_mavlink->add_orb_subscription(ORB_ID(input_rc_out))),
 		_rc_time(0)
 	{}
 

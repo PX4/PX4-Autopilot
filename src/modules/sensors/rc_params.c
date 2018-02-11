@@ -2260,8 +2260,8 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_CHAN, 0);
  *
  * Only used if RC_RSSI_PWM_CHAN > 0
  *
- * @min 0
- * @max 2000
+ * @min 800
+ * @max 2200
  * @group Radio Calibration
  *
  */
@@ -2272,8 +2272,8 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 2000);
  *
  * Only used if RC_RSSI_PWM_CHAN > 0
  *
- * @min 0
- * @max 2000
+ * @min 800
+ * @max 2200
  * @group Radio Calibration
  *
  */
