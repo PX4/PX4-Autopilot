@@ -76,7 +76,7 @@ class MarkdownTablesOutput():
                 # Format codes and their descriptions for display. 
                 if enum_codes:
                     enum_output+='<strong>Values:</strong><ul>'
-                    enum_codes=sorted(enum_codes,key=int)
+                    enum_codes=sorted(enum_codes,key=float)
                     for item in enum_codes:
                         enum_output+='\n<li><strong>%s:</strong> %s</li> \n' % (item, param.GetEnumValue(item))
                     enum_output+='</ul>\n'
