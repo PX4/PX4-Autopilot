@@ -773,12 +773,10 @@ CameraTrigger::engage(void *arg)
 	px4_clock_gettime(CLOCK_REALTIME, &tv);
 	trigger.timestamp_utc = (uint64_t) tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
-	trigger.seq = trig->_trigger_seq;
+	// increment frame count
+	trigger.seq = ++trig->_trigger_seq;
 
 	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
-
-	// increment frame count
-	trig->_trigger_seq++;
 
 }
 
