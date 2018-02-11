@@ -16,18 +16,18 @@ set(config_module_list
 	drivers/airspeed
 	drivers/batt_smbus
 	drivers/blinkm
-	drivers/imu/bma180
-	drivers/imu/bmi055
-	drivers/imu/bmi160
 	drivers/boards
 	drivers/camera_trigger
 	drivers/device
 	drivers/gps
+	drivers/imu/bma180
+	drivers/imu/bmi055
+	drivers/imu/bmi160
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
 	drivers/irlock
 	drivers/led
 	drivers/mkblctrl
-	drivers/imu/mpu6000
-	drivers/imu/mpu9250
 	drivers/oreoled
 	drivers/pwm_input
 	drivers/pwm_out_sim
