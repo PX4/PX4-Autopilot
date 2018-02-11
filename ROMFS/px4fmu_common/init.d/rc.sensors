@@ -32,7 +32,7 @@ else
 	ms5611 -S start
 
 	# Internal SPI
-	ms5611 -s start
+	ms5611 -T -s start
 
 	# Blacksheep telemetry
 	bst start
