@@ -93,6 +93,11 @@ struct Parameters {
 	int32_t rc_map_man_sw;
 	int32_t rc_map_flaps;
 
+        int32_t rc_map_rssi_pwm_chan;
+        int32_t rc_rssi_pwm_max;
+        int32_t rc_rssi_pwm_min;
+
+
 	int32_t rc_map_aux1;
 	int32_t rc_map_aux2;
 	int32_t rc_map_aux3;
@@ -183,6 +188,10 @@ struct ParameterHandles {
 	param_t rc_map_flaps;
 	param_t rc_map_stab_sw;
 	param_t rc_map_man_sw;
+
+        param_t rc_map_rssi_pwm_chan;
+        param_t rc_rssi_pwm_max;
+        param_t rc_rssi_pwm_min;
 
 	param_t rc_map_aux1;
 	param_t rc_map_aux2;

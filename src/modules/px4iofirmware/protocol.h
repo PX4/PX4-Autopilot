@@ -131,7 +131,6 @@
 
 #define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
 #define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
-#define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
 
 #define PX4IO_P_STATUS_MIXER			9	 /* mixer actuator limit flags */
 
@@ -174,7 +173,6 @@
 #define PX4IO_P_SETUP_FEATURES			0
 #define PX4IO_P_SETUP_FEATURES_SBUS1_OUT	(1 << 0) /**< enable S.Bus v1 output */
 #define PX4IO_P_SETUP_FEATURES_SBUS2_OUT	(1 << 1) /**< enable S.Bus v2 output */
-#define PX4IO_P_SETUP_FEATURES_PWM_RSSI		(1 << 2) /**< enable PWM RSSI parsing */
 #define PX4IO_P_SETUP_FEATURES_ADC_RSSI		(1 << 3) /**< enable ADC RSSI parsing */
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */

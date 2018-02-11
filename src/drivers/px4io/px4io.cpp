@@ -280,9 +280,6 @@ private:
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
 
-	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
-	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
-	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
 	int32_t			_thermal_control; ///< thermal control state
 	bool			_analog_rc_rssi_stable; ///< true when analog RSSI input is stable
 	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
@@ -498,9 +495,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_override_available(false),
 	_cb_flighttermination(true),
 	_in_esc_calibration_mode(false),
-	_rssi_pwm_chan(0),
-	_rssi_pwm_max(0),
-	_rssi_pwm_min(0),
 	_thermal_control(-1),
 	_analog_rc_rssi_stable(false),
 	_analog_rc_rssi_volt(-1.0f),
@@ -663,10 +657,6 @@ PX4IO::init()
 	if (_max_rc_input > input_rc_s::RC_INPUT_MAX_CHANNELS) {
 		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
-
-	param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
-	param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
-	param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
 
 	/*
 	 * Check for IO flight state - if FMU was flagged to be in
@@ -1065,10 +1055,6 @@ PX4IO::task_main()
 
 				/* Check if the flight termination circuit breaker has been updated */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
-
-				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
-				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
-				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
 
 				param_t thermal_param = param_find("SENS_EN_THERMAL");
 
@@ -1712,7 +1698,7 @@ PX4IO::io_get_status()
 
 	/* get
 	 * STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT,
-	 * STATUS_VSERVO, STATUS_VRSSI, STATUS_PRSSI
+         * STATUS_VSERVO, STATUS_VRSSI
 	 * in that order */
 	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &regs[0], sizeof(regs) / sizeof(regs[0]));
 
@@ -1812,15 +1798,6 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	/* last thing set are the actual channel values as 16 bit values */
 	for (unsigned i = 0; i < channel_count; i++) {
 		input_rc.values[i] = regs[prolog + i];
-	}
-
-	/* get RSSI from input channel */
-	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
-		int rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
-			   (_rssi_pwm_max - _rssi_pwm_min);
-		rssi = rssi > 100 ? 100 : rssi;
-		rssi = rssi < 0 ? 0 : rssi;
-		input_rc.rssi = rssi;
 	}
 
 	return ret;
@@ -2295,7 +2272,6 @@ PX4IO::print_status(bool extended_status)
 	printf("features 0x%04hx%s%s%s%s\n", features,
 	       ((features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) ? " S.BUS1_OUT" : ""),
 	       ((features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) ? " S.BUS2_OUT" : ""),
-	       ((features & PX4IO_P_SETUP_FEATURES_PWM_RSSI) ? " RSSI_PWM" : ""),
 	       ((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 	      );
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
@@ -2816,16 +2792,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 		break;
 
-	case RC_INPUT_ENABLE_RSSI_PWM:
-
-		if (arg) {
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_PWM_RSSI);
-
-		} else {
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, PX4IO_P_SETUP_FEATURES_PWM_RSSI, 0);
-		}
-
-		break;
 
 	case SBUS_SET_PROTO_VERSION:
 
@@ -3626,19 +3592,6 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "rssi_pwm")) {
-		/* we can cheat and call the driver directly, as it
-		 * doesn't reference filp in ioctl()
-		 */
-		int ret = g_dev->ioctl(nullptr, RC_INPUT_ENABLE_RSSI_PWM, 1);
-
-		if (ret != 0) {
-			errx(ret, "RSSI PWM failed");
-		}
-
-		exit(0);
-	}
-
 	if (!strcmp(argv[1], "test_fmu_fail")) {
 		if (g_dev != nullptr) {
 			g_dev->test_fmu_fail(true);
@@ -3664,6 +3617,6 @@ px4io_main(int argc, char *argv[])
 out:
 	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
 	     "'recovery', 'limit <rate>', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
-	     "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm',\n"
+             "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', or 'rssi_analog'\n"
 	     "'test_fmu_fail', 'test_fmu_ok'");
 }

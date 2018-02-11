@@ -96,6 +96,11 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_map_stab_sw = param_find("RC_MAP_STAB_SW");
 	parameter_handles.rc_map_man_sw = param_find("RC_MAP_MAN_SW");
 
+        //optional mapping of an RC channel to indicate RC strength
+        parameter_handles.rc_map_rssi_pwm_chan = param_find("RC_RSSI_PWM_CHAN");
+        parameter_handles.rc_rssi_pwm_max = param_find("RC_RSSI_PWM_MAX");
+        parameter_handles.rc_rssi_pwm_min = param_find("RC_RSSI_PWM_MIN");
+
 	parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
 	parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
@@ -313,6 +318,12 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.rc_map_aux3, &(parameters.rc_map_aux3));
 	param_get(parameter_handles.rc_map_aux4, &(parameters.rc_map_aux4));
 	param_get(parameter_handles.rc_map_aux5, &(parameters.rc_map_aux5));
+
+        //RSSI over RC parameters
+        param_get(parameter_handles.rc_map_rssi_pwm_chan, &(parameters.rc_map_rssi_pwm_chan));
+        param_get(parameter_handles.rc_rssi_pwm_max, &(parameters.rc_rssi_pwm_max));
+        param_get(parameter_handles.rc_rssi_pwm_min, &(parameters.rc_rssi_pwm_min));
+
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		param_get(parameter_handles.rc_map_param[i], &(parameters.rc_map_param[i]));

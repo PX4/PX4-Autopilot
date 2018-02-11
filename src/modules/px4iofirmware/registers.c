@@ -88,7 +88,6 @@ volatile uint16_t	r_page_status[] = {
 	[PX4IO_P_STATUS_ALARMS]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
-	[PX4IO_P_STATUS_PRSSI]			= 0,
 	[PX4IO_P_STATUS_MIXER]			= 0,
 };
 
@@ -184,8 +183,7 @@ volatile uint16_t	r_page_setup[] = {
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | \
 		PX4IO_P_SETUP_FEATURES_SBUS2_OUT | \
-		PX4IO_P_SETUP_FEATURES_ADC_RSSI | \
-		PX4IO_P_SETUP_FEATURES_PWM_RSSI)
+                PX4IO_P_SETUP_FEATURES_ADC_RSSI)
 
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
 		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
@@ -534,15 +532,13 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			/* disable the conflicting options with SBUS 1 */
 			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
-					   PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+                                value &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI |
 					   PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
 			}
 
 			/* disable the conflicting options with SBUS 2 */
 			if (value & (PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
-					   PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+                                value &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI |
 					   PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
 			}
 
@@ -550,15 +546,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			/* disable the conflicting options with ADC RSSI */
 			if (value & (PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
-					   PX4IO_P_SETUP_FEATURES_SBUS1_OUT |
-					   PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
-			}
-
-			/* disable the conflicting options with PWM RSSI (without effect here, but for completeness) */
-			if (value & (PX4IO_P_SETUP_FEATURES_PWM_RSSI)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI |
-					   PX4IO_P_SETUP_FEATURES_SBUS1_OUT |
+                                value &= ~(PX4IO_P_SETUP_FEATURES_SBUS1_OUT |
 					   PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
 			}
 
@@ -923,7 +911,6 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			}
 		}
 #endif
-		/* XXX PX4IO_P_STATUS_PRSSI */
 
 		SELECT_PAGE(r_page_status);
 		break;

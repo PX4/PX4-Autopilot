@@ -123,6 +123,10 @@ private:
 	struct rc_parameter_map_s _rc_parameter_map;
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
+        int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
+        int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
+        int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
+
 	const Parameters &_parameters;
 
 	hrt_abstime _last_rc_to_param_map_time = 0;

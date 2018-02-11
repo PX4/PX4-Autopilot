@@ -50,11 +50,15 @@
 using namespace sensors;
 
 RCUpdate::RCUpdate(const Parameters &parameters)
-	: _parameters(parameters),
-	  _filter_roll(50.0f, 10.f), /* get replaced by parameter */
+        : _rssi_pwm_chan(0),
+          _rssi_pwm_max(0),
+          _rssi_pwm_min(0),
+          _parameters(parameters),
+          _filter_roll(50.0f, 10.f), /* get replaced by parameter */
 	  _filter_pitch(50.0f, 10.f),
 	  _filter_yaw(50.0f, 10.f),
-	  _filter_throttle(50.0f, 10.f)
+          _filter_throttle(50.0f, 10.f)
+
 {
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
@@ -105,6 +109,8 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_GEAR] = _parameters.rc_map_gear_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_STAB] = _parameters.rc_map_stab_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_MAN] = _parameters.rc_map_man_sw - 1;
+
+        _rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_RSSI] = _parameters.rc_map_rssi_pwm_chan - 1;
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
