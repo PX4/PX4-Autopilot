@@ -50,10 +50,7 @@
 using namespace sensors;
 
 RCUpdate::RCUpdate(const Parameters &parameters)
-        : _rssi_pwm_chan(0),
-          _rssi_pwm_max(0),
-          _rssi_pwm_min(0),
-          _parameters(parameters),
+        : _parameters(parameters),
           _filter_roll(50.0f, 10.f), /* get replaced by parameter */
 	  _filter_pitch(50.0f, 10.f),
 	  _filter_yaw(50.0f, 10.f),
@@ -353,14 +350,25 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		}
 
 		_rc.channel_count = rc_input.channel_count;
-		_rc.rssi = rc_input.rssi;
+
+                if ((rc_input.rssi == 255) && (_parameters.rc_map_rssi_pwm_chan > 0) && (_parameters.rc_map_rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS) && (_parameters.rc_rssi_pwm_max - _parameters.rc_rssi_pwm_min != 0) && (!signal_lost)) {
+                        int rssi = ((rc_input.values[_parameters.rc_map_rssi_pwm_chan - 1] - _parameters.rc_rssi_pwm_min) * 100) /
+                                   (_parameters.rc_rssi_pwm_max - _parameters.rc_rssi_pwm_min);
+                        rssi = rssi > 100 ? 100 : rssi;
+                        rssi = rssi < 0 ? 0 : rssi;
+                        _rc.rssi = rssi;
+                }
+                else{
+                   _rc.rssi = rc_input.rssi;
+                }
+
 		_rc.signal_lost = signal_lost;
 		_rc.timestamp = rc_input.timestamp_last_signal;
 		_rc.frame_drop_count = rc_input.rc_lost_frame_count;
 
 		/* publish rc_channels topic even if signal is invalid, for debug */
 		int instance;
-		orb_publish_auto(ORB_ID(rc_channels), &_rc_pub, &_rc, &instance, ORB_PRIO_DEFAULT);
+                orb_publish_auto(ORB_ID(rc_channels), &_rc_pub, &_rc, &instance, ORB_PRIO_DEFAULT);
 
 		/* only publish manual control if the signal is still present and was present once */
 		if (!signal_lost && rc_input.timestamp_last_signal > 0) {
