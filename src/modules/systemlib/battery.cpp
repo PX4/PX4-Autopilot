@@ -174,7 +174,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _n_cells.get();
-	
+
 	// correct battery voltage locally for load drop to avoid estimation fluctuations
 	if (_r_internal.get() >= 0.f) {
 		cell_voltage += _r_internal.get() * current_a;
@@ -184,6 +184,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 		// good assumption if throttle represents RPM
 		cell_voltage += throttle_normalized * throttle_normalized * _v_load_drop.get();
 	}
+
 	_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);
 
 	// choose which quantity we're using for final reporting
