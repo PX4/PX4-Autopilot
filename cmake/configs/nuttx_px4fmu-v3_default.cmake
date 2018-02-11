@@ -30,6 +30,7 @@ set(config_module_list
 	drivers/gps
 	drivers/irlock
 	drivers/imu/l3gd20
+	drivers/imu/lsm303d
 	drivers/led
 	drivers/mkblctrl
 	drivers/imu/mpu6000
