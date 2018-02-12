@@ -497,7 +497,7 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission
 
 		if (dist_to_1wp < max_distance) {
 
-			if (dist_to_1wp > ((max_distance * 3) / 2)) {
+			if (dist_to_1wp > ((max_distance * 2) / 3)) {
 				/* allow at 2/3 distance, but warn */
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 						     "First waypoint far away: %d meters.", (int)dist_to_1wp);
@@ -559,7 +559,7 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 
 			if (dist_between_waypoints < max_distance) {
 
-				if (dist_between_waypoints > ((max_distance * 3) / 2)) {
+				if (dist_between_waypoints > ((max_distance * 2) / 3)) {
 					/* allow at 2/3 distance, but warn */
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 							     "Distance between waypoints very far: %d meters.", (int)dist_between_waypoints);
