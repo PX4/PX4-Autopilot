@@ -401,6 +401,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		case 0x8:
 			break;
 
+		case 0xB:
+			hw_version = 0x8;
+			break;
+
 		case 0xE:
 			hw_type[1]++;
 			hw_type[2] = '0';
