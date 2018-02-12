@@ -90,7 +90,7 @@ set(config_module_list
 	lib/rc
 	lib/terrain_estimation
 	lib/version
-        lib/FlightTasks
+	lib/FlightTasks
 	
 	examples/px4_simple_app
 )
