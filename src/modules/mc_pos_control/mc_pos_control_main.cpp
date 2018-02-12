@@ -747,7 +747,6 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		if (handle != PARAM_INVALID) {
 			param_get(handle, &_min_hagl_limit);
-
 		}
 
 		if (_params_handles.acc_max_flow_xy != PARAM_INVALID) {
@@ -2471,50 +2470,19 @@ MulticopterPositionControl::control_position()
 void
 MulticopterPositionControl::calculate_velocity_setpoint()
 {
-	/* TODO: this block is for task switch testing only */
-	static int gear_switch_last;
-	const bool gear_transition_to_on = gear_switch_last == manual_control_setpoint_s::SWITCH_POS_OFF
-					   && _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
+	if (_run_pos_control) {
 
-	static bool stick_move_last = false;
-	const bool stick_move = _manual.r < -0.9f && _manual.y > 0.9f;
-	const bool stick_move_transition_to_on = !stick_move_last && stick_move;
-
-	if (gear_transition_to_on || stick_move_transition_to_on) {
-		//_flight_tasks.switchTask();
-		//printf("Switched to task: %d\n", _flight_tasks.getActiveTask());
-	}
-
-	gear_switch_last = _manual.gear_switch;
-	stick_move_last = stick_move;
-
-	/* get position controller setpoints from the active flight task, this will be through uORB from Trajectory module to position controller module in the future */
-	/* TODO: as soon as legacy stuff gets ported setting velocity and position setpoint at the same time (feed-forward) will be supported through addition of setpoints */
-	if (_flight_tasks.update()) {
-		/* apply position and velocity setpoint from task */
-		_pos_sp = math::Vector<3>(&_flight_tasks().x);
-		_vel_sp = math::Vector<3>(&_flight_tasks().vx);
-
-		_run_pos_control = true;
-		_run_alt_control = true;
-
-		if (PX4_ISFINITE(_flight_tasks().yaw)) {
-			_att_sp.yaw_body = _flight_tasks().yaw;
+		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
+		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
+			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
+			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 
 		} else {
-			_att_sp.yaw_body = _yaw; // TODO: Need general way to disable yaw control.
-		}
+			_vel_sp(0) = 0.0f;
+			_vel_sp(1) = 0.0f;
+			warn_rate_limited("Caught invalid pos_sp in x and y");
 
-		if (PX4_ISFINITE(_flight_tasks().yawspeed)) {
-			_att_sp.yaw_sp_move_rate = _flight_tasks().yawspeed;
-
-		} else {
-			_att_sp.yaw_sp_move_rate = 0; // TODO: Need general way to disable yaw control
-		}
-
-	} else {
-		if (_flight_tasks.isAnyTaskActive()) {
-			warn_rate_limited("FlightTasks update failed");
 		}
 	}
 
@@ -2523,40 +2491,15 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		limit_altitude();
 	}
 
-	/* if we don't set a position setpoint (NaN) make the position error zero */
-	if (!PX4_ISFINITE(_pos_sp(0)) || !PX4_ISFINITE(_pos_sp(1)) || !_run_pos_control) {
-		_pos_sp(0) = _pos(0);
-		_pos_sp(1) = _pos(1);
-	}
+	if (_run_alt_control) {
+		if (PX4_ISFINITE(_pos_sp(2))) {
+			_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 
-	if (!PX4_ISFINITE(_pos_sp(2)) || !_run_alt_control) {
-		_pos_sp(2) = _pos(2);
-	}
-
-	/* if we don't set velocity setpoint (NaN) make the velocity feed forward error zero */
-	if (!PX4_ISFINITE(_vel_sp(0)) || !PX4_ISFINITE(_vel_sp(1))) {
-		_vel_sp(0) = 0.f;
-		_vel_sp(1) = 0.f;
-	}
-
-	if (!PX4_ISFINITE(_vel_sp(2))) {
-		_vel_sp(2) = 0.f;
-	}
-
-	/* TODO: only flight tasks can handle feed forward setpoints so far */
-	if (!_flight_tasks.isAnyTaskActive()) {
-		if (_run_pos_control) {
-			_vel_sp(0) = 0.f;
-			_vel_sp(1) = 0.f;
-		}
-
-		if (_run_alt_control) {
-			_vel_sp(2) = 0.f;
+		} else {
+			_vel_sp(2) = 0.0f;
+			warn_rate_limited("Caught invalid pos_sp in z");
 		}
 	}
-
-	/* run position controller */
-	_vel_sp += (_pos_sp - _pos).emult(_params.pos_p);
 
 	if (!_control_mode.flag_control_position_enabled) {
 		_reset_pos_sp = true;
@@ -2610,7 +2553,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
-	if (!_control_mode.flag_control_auto_enabled && !_in_smooth_takeoff && !_flight_tasks.isAnyTaskActive()) {
+	if (!_control_mode.flag_control_auto_enabled && !_in_smooth_takeoff) {
 		vel_sp_slewrate();
 	}
 
@@ -2937,7 +2880,6 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
-
 		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
 		float yaw_offs = _wrap_pi(yaw_target - _yaw);
 
@@ -3427,21 +3369,6 @@ MulticopterPositionControl::task_main()
 
 			update_smooth_takeoff();
 
-			/* map commander modes to tasks */
-			switch (_vehicle_status.nav_state) {
-			case vehicle_status_s::NAVIGATION_STATE_SPORT:
-				_flight_tasks.switchTask(2);
-				break;
-
-			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-				/* in this mode any task can run */
-				break;
-
-			default:
-				_flight_tasks.switchTask(-1);
-			}
-
-
 			if (_control_mode.flag_control_altitude_enabled
 			    || _control_mode.flag_control_position_enabled
 			    || _control_mode.flag_control_climb_rate_enabled
@@ -3482,16 +3409,13 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* generate attitude setpoint from manual controls */
-			if (!_flight_tasks.isAnyTaskActive()) {
-				if (_control_mode.flag_control_manual_enabled
-				    && _control_mode.flag_control_attitude_enabled) {
+			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
 					generate_attitude_setpoint();
 
-				} else {
+			} else {
 					_reset_yaw_sp = true;
 					_att_sp.yaw_sp_move_rate = 0.0f;
-				}
 			}
 
 			/* update previous velocity for velocity controller D part */
