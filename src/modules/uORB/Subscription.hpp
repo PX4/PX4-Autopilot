@@ -89,6 +89,7 @@ public:
 
 protected:
 	const struct orb_metadata *_meta;
+	unsigned _instance;
 	int _handle;
 };
 

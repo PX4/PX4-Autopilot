@@ -99,7 +99,7 @@ public:
 		return _vehicle_local_position_setpoint;
 	}
 
-	static constexpr vehicle_local_position_setpoint_s empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
+	static const vehicle_local_position_setpoint_s empty_setpoint;
 
 protected:
 	/* Time abstraction */
