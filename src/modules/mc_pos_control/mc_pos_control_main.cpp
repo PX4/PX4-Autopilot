@@ -3411,11 +3411,11 @@ MulticopterPositionControl::task_main()
 			/* generate attitude setpoint from manual controls */
 			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
-					generate_attitude_setpoint();
+				generate_attitude_setpoint();
 
 			} else {
-					_reset_yaw_sp = true;
-					_att_sp.yaw_sp_move_rate = 0.0f;
+				_reset_yaw_sp = true;
+				_att_sp.yaw_sp_move_rate = 0.0f;
 			}
 
 			/* update previous velocity for velocity controller D part */
