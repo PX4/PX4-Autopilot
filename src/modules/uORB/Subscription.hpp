@@ -38,9 +38,9 @@
 
 #pragma once
 
-#include <uORB/uORB.h>
 #include <containers/List.hpp>
-#include <systemlib/err.h>
+#include <px4_defines.h>
+#include <uORB/uORB.h>
 
 namespace uORB
 {
