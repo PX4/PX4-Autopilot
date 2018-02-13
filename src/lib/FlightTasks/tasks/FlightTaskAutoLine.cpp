@@ -89,7 +89,6 @@ bool FlightTaskAutoLine::update()
 	return true;
 }
 
-
 void FlightTaskAutoLine::_reset()
 {
 	/* Set setpoints equal current state. */
