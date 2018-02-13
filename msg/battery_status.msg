@@ -9,6 +9,7 @@ int32 cell_count		# Number of cells
 bool connected			# Whether or not a battery is connected, based on a voltage threshold
 bool system_source		# Whether or not a this battery is the active power source for VDD_5V_IN
 uint8 priority        	# Zerro based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
+uint16 capacity         # actual capacity of the battery
 
 bool is_powering_off		# Power off event imminent indication, false if unknown
 
