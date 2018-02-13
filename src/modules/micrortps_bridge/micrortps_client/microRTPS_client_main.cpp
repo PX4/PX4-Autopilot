@@ -261,6 +261,8 @@ int micrortps_client_main(int argc, char *argv[])
 
 		if (nullptr != transport_node) { transport_node->close(); }
 
+		_rtps_task = -1;
+
 		return 0;
 	}
 
