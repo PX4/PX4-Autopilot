@@ -69,6 +69,8 @@ public:
 
 protected:
 
+	virtual void _reset() = 0; /**< Method that gets called once WaypointType has changed. */
+
 	matrix::Vector3f _prev_prev_wp{}; /**< Triplet previous-previous triplet. This will be used for smoothing trajectories -> not used yet. */
 	matrix::Vector3f _prev_wp{}; /**< Triplet previous setpoint in local frame. If not previous triplet is available, the prev_wp is set to current position. */
 	matrix::Vector3f _target{}; /**< Triplet target setpoint in local frame. */
@@ -79,8 +81,6 @@ protected:
 	float _mc_cruise_speed =
 		0.0f; /**< Cruise speed with which multicopter flies and gets set by triplet. If no valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
-
-	virtual void _reset() = 0; /**< Method called one type has changed. */
 
 private:
 	control::BlockParamFloat _mc_cruise_default; /**< Default mc cruise speed*/
