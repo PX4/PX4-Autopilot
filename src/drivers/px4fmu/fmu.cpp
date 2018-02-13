@@ -275,6 +275,7 @@ private:
 
 	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
 	float _thr_mdl_fac;	// thrust to pwm modelling factor
+	bool _airmode; 		// multicopter air-mode
 
 	perf_counter_t	_ctl_latency;
 
@@ -385,6 +386,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_to_mixer_status(nullptr),
 	_mot_t_max(0.0f),
 	_thr_mdl_fac(0.0f),
+	_airmode(false),
 	_ctl_latency(perf_alloc(PC_ELAPSED, "ctl_lat"))
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
@@ -1292,6 +1294,7 @@ PX4FMU::cycle()
 					// factor 2 is needed because actuator outputs are in the range [-1,1]
 					const float delta_out_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
 					_mixers->set_max_delta_out_once(delta_out_max);
+					_mixers->set_airmode(_airmode);
 				}
 
 				if (_thr_mdl_fac > FLT_EPSILON) {
@@ -1782,6 +1785,16 @@ void PX4FMU::update_params()
 
 	if (param_handle != PARAM_INVALID) {
 		param_get(param_handle, &_thr_mdl_fac);
+	}
+
+	// multicopter air-mode
+	param_handle = param_find("MC_AIRMODE");
+
+	if (param_handle != PARAM_INVALID) {
+		int val;
+		param_get(param_handle, &val);
+		_airmode = val > 0;
+		PX4_DEBUG("%s: %d", "MC_AIRMODE", _airmode);
 	}
 }
 

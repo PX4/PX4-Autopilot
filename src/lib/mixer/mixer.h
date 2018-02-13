@@ -218,6 +218,13 @@ public:
 	 */
 	virtual void 			set_thrust_factor(float val) {}
 
+	/**
+	 * @brief Set airmode. Airmode allows the mixer to increase the total thrust in order to unsaturate the motors.
+	 *
+	 * @param[in]  airmode   Dis/-activate airmode by setting it to false/true
+	 */
+	virtual void set_airmode(bool airmode) {};
+
 protected:
 	/** client-supplied callback used when fetching control values */
 	ControlCallback			_control_cb;
@@ -402,6 +409,8 @@ public:
 	 * @param[in]  val   The value
 	 */
 	virtual void	set_thrust_factor(float val);
+
+	virtual void 	set_airmode(bool airmode);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -650,6 +659,8 @@ public:
 	 */
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
+	virtual void 			set_airmode(bool airmode);
+
 	union saturation_status {
 		struct {
 			uint16_t valid		: 1; // 0 - true when the saturation status is used
@@ -674,6 +685,8 @@ private:
 	float				_idle_speed;
 	float 				_delta_out_max;
 	float 				_thrust_factor;
+
+	bool                		_airmode;
 
 	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
 	saturation_status _saturation_status;
