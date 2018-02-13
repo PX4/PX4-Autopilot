@@ -137,7 +137,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_prev_wp = _position;
 		}
 
-		/* Check if previous is valid and update accordingly */
+		/* Check if next is valid and update accordingly */
 		if (_type == WaypointType::loiter) {
 			_next_wp = _target;
 

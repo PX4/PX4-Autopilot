@@ -66,23 +66,18 @@ bool FlightTaskAutoLine::activate()
 bool FlightTaskAutoLine::update()
 {
 	if (_type == WaypointType::idle) {
-
 		_generateIdleSetpoints();
 
 	} else if (_type == WaypointType::land) {
-
 		_generateLandSetpoints();
 
 	} else if (_type == WaypointType::loiter || _type == WaypointType::position) {
-
 		_generateSetpoints();
 
 	} else if (_type == WaypointType::takeoff) {
-
 		_generateTakeoffSetpoints();
 
 	} else if (_type == WaypointType::velocity) {
-
 		_generateVelocitySetpoints();
 	}
 
@@ -119,14 +114,16 @@ void FlightTaskAutoLine::_generateIdleSetpoints()
 
 void FlightTaskAutoLine::_generateLandSetpoints()
 {
+	/* Keep xy-position and go down with landspeed. */
 	_pos_sp_xy = Vector2f(&_target(0));
-	_pos_sp_z = NAN;
-	_vel_sp_xy *= NAN;
 	_vel_sp_z = _land_speed.get();
+	_pos_sp_z = NAN;
+	_vel_sp_xy = Vector2f(NAN, NAN);
 }
 
 void FlightTaskAutoLine::_generateTakeoffSetpoints()
 {
+	/* Takeoff is completely defined by position. */
 	_pos_sp_xy = Vector2f(&_target(0));
 	_pos_sp_z = _target(2);
 	_vel_sp_xy.zero();
@@ -142,13 +139,13 @@ void FlightTaskAutoLine::_generateSetpoints()
 
 void FlightTaskAutoLine::_updateInternalWaypoints()
 {
-
-	if (_type == WaypointType::loiter) {
-		/* If loiter, then we want to stop at loiter anyway. Hence, just
-		 * set next waypoint to target.
-		 */
-		_next_wp = _target;
-	}
+	/* The internal Waypoints might differ from previous_wp and target. The cases where it differs:
+	 * 1. The vehicle already passe the target -> go straight to target
+	 * 2. The vehicle is more than cruise speed in front of previous waypoint -> go straight to previous wp
+	 * 3. The vehicle is more than cruise speed from track -> go straight to closest point on track
+	 *
+	 * If a new target is available, then the speed at the target is computed from the angle previous-target-next
+	 */
 
 	/* Adjust destination and origin based on current vehicle state. */
 	Vector2f u_prev_to_target = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero();
@@ -177,7 +174,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 				angle = Vector2f(&(_destination - _origin)(0)).unit_or_zero()
 					* Vector2f(&(_destination - _next_wp)(0)).unit_or_zero()
 					+ 1.0f;
-				_speed_at_target = _getVelcoityFromAngle(angle);
+				_speed_at_target = _getVelocityFromAngle(angle);
 			}
 		}
 
@@ -200,7 +197,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 				angle = Vector2f(&(_destination - _origin)(0)).unit_or_zero()
 					* Vector2f(&(_destination - _next_wp)(0)).unit_or_zero()
 					+ 1.0f;
-				_speed_at_target = _getVelcoityFromAngle(angle);
+				_speed_at_target = _getVelocityFromAngle(angle);
 			}
 
 		}
@@ -224,7 +221,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 				angle = Vector2f(&(_destination - _origin)(0)).unit_or_zero()
 					* Vector2f(&(_destination - _next_wp)(0)).unit_or_zero()
 					+ 1.0f;
-				_speed_at_target = _getVelcoityFromAngle(angle);
+				_speed_at_target = _getVelocityFromAngle(angle);
 			}
 
 		}
@@ -249,7 +246,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 					Vector2f(&(_destination - _origin)(0)).unit_or_zero()
 					* Vector2f(&(_destination - _next_wp)(0)).unit_or_zero()
 					+ 1.0f;
-				_speed_at_target = _getVelcoityFromAngle(angle);
+				_speed_at_target = _getVelocityFromAngle(angle);
 			}
 		}
 	}
@@ -263,11 +260,12 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _nav_rad.get()) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < _nav_rad.get())) {
 
-		/* Vehicle reached target in xy and does not want to pass. Lock position */
+		/* Vehicle reached target in xy and no passing required. Lock position */
 		_pos_sp_xy = Vector2f(&_destination(0));
 		_vel_sp_xy.zero();
 
 	} else {
+
 		/* Get various path specific vectors. */
 		Vector2f u_prev_to_dest = Vector2f(&(_destination - _origin)(0)).unit_or_zero();
 		Vector2f prev_to_pos(&(_position - _origin)(0));
@@ -284,7 +282,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		const float threshold_max = target_threshold;
 
 		if (target_threshold < 0.5f * prev_to_dest.length()) {
-			/* Target threshold can not be more than distance from previous to target */
+			/* Target threshold cannot be more than distance from previous to target */
 			target_threshold = 0.5f * prev_to_dest.length();
 		}
 
@@ -307,11 +305,15 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 			float acceptance_radius = _nav_rad.get();
 
 			if (_speed_at_target < 0.01f) {
+				/* If vehicle wants to stop at the target, then set acceptance radius
+				 * to zero as well.
+				 */
 				acceptance_radius = 0.0f;
 			}
 
 			if ((target_threshold - acceptance_radius) >= SIGMA_NORM) {
 
+				/* Slow down depending on distance to target minus acceptance radius */
 				float m = (speed_threshold - _speed_at_target) / (target_threshold - acceptance_radius);
 				speed_sp_track = m * (closest_to_dest.length() - acceptance_radius) + _speed_at_target; // speed at transition
 
@@ -321,7 +323,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 			/* If we are close to target and the previous speed setpoint along track was smaller than
 			 * current speed setpoint along track, then take over the previous one.
-			 * This ensures smoothness since we anyway want to slow down
+			 * This ensures smoothness since we anyway want to slow down.
 			 */
 			if ((speed_sp_prev_track < speed_sp_track)
 			    && (speed_sp_track * speed_sp_prev_track > 0.0f)
@@ -331,7 +333,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 		} else {
 
-			/* Vehicle is still far from destination. Accelerate or keep maximum target speed */
+			/* Vehicle is still far from destination. Accelerate or keep maximum target speed. */
 			float acc_track = (speed_sp_track - speed_sp_prev_track) / _deltatime;
 
 			float yaw_diff = 0.0f;
@@ -340,10 +342,11 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 				yaw_diff = _wrap_pi(_yaw_wp - _yaw);
 			}
 
-			/* If yaw offset is large, only accelerate with 0.5 m/s^2 */
+			/* If yaw offset is large, only accelerate with 0.5 m/s^2. */
 			float acc_max = (fabsf(yaw_diff) > math::radians(_mis_yaw_error.get())) ? 0.5f : _acc_xy.get();
 
 			if (acc_track > acc_max) {
+				/* Accelerate towards target */
 				speed_sp_track = acc_max * _deltatime + speed_sp_prev_track;
 			}
 		}
@@ -437,7 +440,7 @@ void FlightTaskAutoLine::_generateVelocitySetpoints()
 	_pos_sp_xy = Vector2f(NAN, NAN);
 }
 
-float FlightTaskAutoLine::_getVelcoityFromAngle(const float angle)
+float FlightTaskAutoLine::_getVelocityFromAngle(const float angle)
 {
 	/* Minimum cruise speed when passing waypoint */
 	float min_cruise_speed = 0.0f;
