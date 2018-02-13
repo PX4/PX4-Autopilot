@@ -254,6 +254,11 @@ mixer_tick(void)
 	 */
 	mixer_group.set_trims(r_page_servo_control_trim, PX4IO_SERVO_COUNT);
 
+	/*
+	 * Update air-mode parameter
+	 */
+	mixer_group.set_airmode(REG_TO_BOOL(r_setup_airmode));
+
 
 	/*
 	 * Run the mixers.
