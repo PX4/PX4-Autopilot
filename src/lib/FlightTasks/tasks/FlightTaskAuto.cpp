@@ -95,7 +95,13 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	_yaw_wp = _sub_triplet_setpoint->get().current.yaw;
-	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
+	WaypointType type = (WaypointType)_sub_triplet_setpoint->get().current.type;
+
+	if (type != _type) {
+		_reset();
+	}
+
+	_type = type;
 
 	/* We need to have a valid current triplet */
 	if (_isFinite(_sub_triplet_setpoint->get().current)) {
