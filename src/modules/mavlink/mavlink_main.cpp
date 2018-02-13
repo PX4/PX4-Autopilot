@@ -577,9 +577,6 @@ void Mavlink::mavlink_update_system()
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 		_param_broadcast = param_find("MAV_BROADCAST");
-
-		/* test param - needs to be referenced, but is unused */
-		(void)param_find("MAV_TEST_PAR");
 	}
 
 	/* update system and component id */

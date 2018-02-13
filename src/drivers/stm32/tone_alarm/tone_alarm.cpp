@@ -367,7 +367,7 @@ ToneAlarm::ToneAlarm() :
 	_play_tone(false),
 	_tunes(),
 	_silence_length(0),
-	_cbrk(CBRK_OFF),
+	_cbrk(CBRK_UNINIT),
 	_tune_control_sub(-1)
 {
 	// enable debug() calls

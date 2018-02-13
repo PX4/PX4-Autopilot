@@ -21,6 +21,7 @@ set(config_module_list
 	drivers/device
 	drivers/differential_pressure
 	drivers/distance_sensor
+	#drivers/telemetry
 
 	modules/sensors
 

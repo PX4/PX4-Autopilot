@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,28 +32,65 @@
  ****************************************************************************/
 
 /**
- * @file rcloss_params.c
+ * @file comms.c
+ * @author Simon Wilks <sjwilks@gmail.com>
  *
- * Parameters for RC Loss (OBC)
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-/*
- * OBC RC Loss mode parameters, accessible via MAVLink
- */
+#include "comms.h"
 
-/**
- * RC Loss Loiter Time (CASA Outback Challenge rules)
- *
- * The amount of time in seconds the system should loiter at current position before termination.
- * Only applies if NAV_RCL_ACT is set to 2 (CASA Outback Challenge rules).
- * Set to -1 to make the system skip loitering.
- *
- * @unit s
- * @min -1.0
- * @decimal 1
- * @increment 0.1
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_RCL_LT, 120.0f);
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <systemlib/err.h>
+#include <termios.h>
+
+int
+open_uart(const char *device)
+{
+	/* baud rate */
+	static const speed_t speed = B19200;
+
+	/* open uart */
+	const int uart = open(device, O_RDWR | O_NOCTTY);
+
+	if (uart < 0) {
+		PX4_ERR("opening %s", device);
+		return 1;
+	}
+
+	/* Back up the original uart configuration to restore it after exit */
+	int termios_state;
+	struct termios uart_config_original;
+
+	if ((termios_state = tcgetattr(uart, &uart_config_original)) < 0) {
+		close(uart);
+		PX4_ERR("%s: %d", device, termios_state);
+		return 1;
+	}
+
+	/* Fill the struct for the new configuration */
+	struct termios uart_config;
+	tcgetattr(uart, &uart_config);
+
+	/* Clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+
+	/* Set baud rate */
+	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+		close(uart);
+		PX4_ERR("%s: %d (cfsetispeed, cfsetospeed)", device, termios_state);
+		return 1;
+	}
+
+	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+		close(uart);
+		PX4_ERR("%s (tcsetattr)", device);
+		return 1;
+	}
+
+	/* Activate single wire mode */
+	ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+
+	return uart;
+}

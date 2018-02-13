@@ -52,7 +52,7 @@ The generated files will be written to the `modules` directory.
                     result += "%s\n" % doc
                 usage_string = module.usage_string()
                 if len(usage_string) > 0:
-                    result += "### Usage\n```\n%s\n```\n" % usage_string
+                    result += "### Usage {#%s_usage}\n```\n%s\n```\n" % (module.name(), usage_string)
 
             self._outputs[category] = result
 

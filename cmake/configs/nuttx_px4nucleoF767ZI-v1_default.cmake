@@ -11,23 +11,21 @@ set(config_module_list
 	drivers/differential_pressure
 	drivers/distance_sensor
 	drivers/magnetometer
+	drivers/telemetry
 
-	drivers/adis16448
+	drivers/imu/adis16448
 	drivers/airspeed
 	drivers/blinkm
-	drivers/bma180
-	drivers/bmi160
+	drivers/imu/bma180
+	drivers/imu/bmi160
 	drivers/boards
-	drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/frsky_telemetry
 	drivers/gps
-	drivers/hott
 	drivers/led
 	drivers/mkblctrl
-	drivers/mpu6000
-	drivers/mpu9250
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
 	drivers/oreoled
 	drivers/pwm_input
 	drivers/pwm_out_sim

@@ -11,6 +11,7 @@ set(config_module_list
 	drivers/differential_pressure
 	drivers/distance_sensor
 	#drivers/magnetometer
+	drivers/telemetry
 
 	drivers/device
 	drivers/stm32
@@ -19,16 +20,14 @@ set(config_module_list
 	drivers/led
 	drivers/px4fmu
 	drivers/boards
-	drivers/lsm303d
-	drivers/l3gd20
+	drivers/imu/lsm303d
+	drivers/imu/l3gd20
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/airspeed
-	#drivers/frsky_telemetry
 	modules/sensors
 	#drivers/pwm_input
 	#drivers/camera_trigger
-	drivers/bst
 
 	#
 	# System commands

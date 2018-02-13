@@ -10,24 +10,23 @@ set(config_module_list
 	drivers/barometer
 	drivers/differential_pressure
 	drivers/distance_sensor
+	drivers/magnetometer
+	drivers/telemetry
 
 	drivers/airspeed
 	drivers/batt_smbus
 	drivers/blinkm
 	drivers/boards
-	drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/frsky_telemetry
 	drivers/gps
 	#drivers/hott
-	drivers/l3gd20
+	drivers/imu/l3gd20
 	drivers/led
-	drivers/lsm303d
-	drivers/magnetometer/hmc5883
+	drivers/imu/lsm303d
 	#drivers/mkblctrl
-	drivers/mpu6000
-	drivers/mpu9250
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
 	#drivers/oreoled
 	drivers/pwm_input
 	drivers/pwm_out_sim

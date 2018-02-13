@@ -15,7 +15,7 @@ set(config_module_list
 	drivers/gps
 	drivers/led
 	drivers/magnetometer/hmc5883
-	drivers/mpu6000
+	drivers/imu/mpu6000
 	drivers/px4fmu
 	drivers/rgbled_pwm
 	drivers/stm32
