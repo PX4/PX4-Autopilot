@@ -45,27 +45,21 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <drivers/device/i2c.h>
+#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
-
 #include <px4_config.h>
 #include <px4_workqueue.h>
-
-#include <systemlib/battery.h>
 #include <systemlib/perf_counter.h>
-
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/subsystem_info.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/uORB.h>
-
-#include <drivers/device/i2c.h>
 
 #define BATT_SMBUS_ADDR_MIN             0x00	///< lowest possible address
 #define BATT_SMBUS_ADDR_MAX             0xFF	///< highest possible address
 
 #define BATT_SMBUS_I2C_BUS              PX4_I2C_BUS_EXPANSION
-#define BATT_SMBUS_ADDR                 0x16	///< Default I2C address
+#define BATT_SMBUS_ADDR                 0x0b	///< Default 7 bit address I2C address. 8 bit = 0x16
 #define BATT_SMBUS_TEMP                 0x08	///< temperature register
 #define BATT_SMBUS_VOLTAGE              0x09	///< voltage register
 #define BATT_SMBUS_REMAINING_CAPACITY	0x0f	///< predicted remaining battery capacity as a percentage
@@ -91,7 +85,7 @@
 class BATT_SMBUS : public device::I2C
 {
 public:
-	BATT_SMBUS(int bus = PX4_I2C_BUS_EXPANSION, uint16_t batt_smbus_addr = BATT_SMBUS_ADDR, bool pec = false);
+	BATT_SMBUS(int bus = PX4_I2C_BUS_EXPANSION, uint16_t batt_smbus_addr = BATT_SMBUS_ADDR);
 	virtual ~BATT_SMBUS();
 
 	/**
@@ -155,11 +149,6 @@ protected:
 private:
 
 	/**
-	 * Check for changes in vehicle control mode.
-	 */
-	void		vehicle_control_mode_poll();
-
-	/**
 	 * Start periodic reads from the battery
 	 */
 	void			start();
@@ -213,23 +202,25 @@ private:
 	 */
 	uint8_t	get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len);
 
+	/**
+	 * Write a word to Manufacturer Access register (0x00)
+	 * @param cmd the word to be written to Manufacturer Access
+	 */
+	uint8_t	ManufacturerAccess(uint16_t cmd);
+
 	// internal variables
 	bool			_enabled;	///< true if we have successfully connected to battery
-	work_s			_work;		///< work queue for scheduling reads
-	orb_advert_t	_battery_pub;	///< uORB battery topic
-	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
-	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
-	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
-	char           *_manufacturer_name;  ///< The name of the battery manufacturer
+	work_s			_work{};		///< work queue for scheduling reads
+
 	battery_status_s _last_report;	///< last published report, used for test()
 
-	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
-	bool		_armed{false};				/**< arming status of the vehicle */
+	orb_advert_t	_batt_topic;	///< uORB battery topic
+	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
 
-	int		_actuator_ctrl_0_sub{-1};		/**< attitude controls sub */
-	int		_vcontrol_mode_sub{-1};		/**< vehicle control mode subscription */
-
-	bool	_enable_pec;		///< PEC enabled or disabled on fuel gauge
+	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
+	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
+	uint16_t		_batt_startup_capacity;	///< battery's remaining capacity on startup
+	char           *_manufacturer_name;  ///< The name of the battery manufacturer
 };
 
 namespace
@@ -245,20 +236,16 @@ int manufacturer_name();
 int manufacture_date();
 int serial_number();
 
-BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr, bool pec) :
+BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
 	_enabled(false),
-	_work{},
-	_battery_pub(nullptr),
+	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),
 	_batt_capacity(0),
-	_manufacturer_name(nullptr),
-	_enable_pec(pec)
+	_batt_startup_capacity(0),
+	_manufacturer_name(nullptr)
 {
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
-
 	// capture startup time
 	_start_time = hrt_absolute_time();
 }
@@ -270,21 +257,6 @@ BATT_SMBUS::~BATT_SMBUS()
 
 	if (_manufacturer_name != nullptr) {
 		delete[] _manufacturer_name;
-	}
-}
-
-void
-BATT_SMBUS::vehicle_control_mode_poll()
-{
-	struct vehicle_control_mode_s vcontrol_mode;
-	bool vcontrol_mode_updated;
-
-	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
-
-	if (vcontrol_mode_updated) {
-
-		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
-		_armed = vcontrol_mode.flag_armed;
 	}
 }
 
@@ -330,8 +302,8 @@ BATT_SMBUS::test()
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				PX4_INFO("V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d Shutdown:%d", (double)status.voltage_v, (double)status.current_a,
-					 (double)status.discharged_mah, (int)_batt_capacity);
+				PX4_INFO("V=%4.2f C=%4.2f DismAh=%f Cap:%f Remaining:%3.2f", (double)status.voltage_v, (double)status.current_a,
+					 (double)status.discharged_mah, (double)status.capacity, (double)status.remaining);
 			}
 		}
 
@@ -355,7 +327,7 @@ BATT_SMBUS::search()
 
 		if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
 			if (tmp > 0) {
-				PX4_INFO("battery found at 0x%x", (int)i);
+				PX4_INFO("battery found at 0x%x", get_device_address());
 				found_slave = true;
 				break;
 			}
@@ -433,9 +405,6 @@ BATT_SMBUS::probe()
 void
 BATT_SMBUS::start()
 {
-	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
-
 	// schedule a cycle to start things
 	work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this, 1);
 }
@@ -443,8 +412,6 @@ BATT_SMBUS::start()
 void
 BATT_SMBUS::stop()
 {
-	orb_unsubscribe(_actuator_ctrl_0_sub);
-	orb_unsubscribe(_vcontrol_mode_sub);
 	work_cancel(HPWORK, &_work);
 }
 
@@ -461,9 +428,6 @@ BATT_SMBUS::cycle()
 {
 	// get current time
 	uint64_t now = hrt_absolute_time();
-
-	/* check vehicle status for changes to publication state */
-	vehicle_control_mode_poll();
 
 	// exit without rescheduling if we have failed to find a battery after 10 seconds
 	if (!_enabled && (now - _start_time > BATT_SMBUS_TIMEOUT_US)) {
@@ -483,7 +447,7 @@ BATT_SMBUS::cycle()
 	}
 
 	// read data from sensor
-	struct battery_status_s new_report;
+	battery_status_s new_report = {};
 
 	// set time of reading
 	new_report.timestamp = now;
@@ -493,24 +457,30 @@ BATT_SMBUS::cycle()
 
 	if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
 
-		//Consider the battery connected if voltage returns true
-		bool connected = true;
-
-		// initialise new_report
-		memset(&new_report, 0, sizeof(new_report));
+		new_report.connected = true;
 
 		// convert millivolts to volts
 		new_report.voltage_v = ((float)tmp) / 1000.0f;
+		new_report.voltage_filtered_v = new_report.voltage_v;
 
 		// read current
 		if (read_reg(BATT_SMBUS_CURRENT, tmp) == OK) {
 			new_report.current_a = ((float)convert_twos_comp(tmp)) / 1000.0f;
+			new_report.current_filtered_a = new_report.current_a;
 		}
 
 		// read battery design capacity
 		if (_batt_capacity == 0) {
 			if (read_reg(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp) == OK) {
+				new_report.capacity = tmp;
 				_batt_capacity = tmp;
+			}
+		}
+
+		// read battery capacity on startup
+		if (_batt_startup_capacity == 0) {
+			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
+				_batt_startup_capacity = tmp;
 			}
 		}
 
@@ -518,22 +488,28 @@ BATT_SMBUS::cycle()
 		if (_batt_capacity > 0) {
 			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
 				if (tmp < _batt_capacity) {
-					new_report.discharged_mah = _batt_capacity - tmp;
+					new_report.remaining = (float)(1.000f - (((float)_batt_capacity - (float)tmp) / (float)_batt_capacity));
+
+					// calculate total discharged amount
+					new_report.discharged_mah = (float)((float)_batt_startup_capacity - (float)tmp);
 				}
 			}
 		}
 
-		// publish to orb
-		actuator_controls_s ctrl;
-		orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+		new_report.capacity = _batt_capacity;
 
-		battery_status_s battery_status;
-		_battery.updateBatteryStatus(now, new_report.voltage_v, new_report.current_a,
-					     connected, 0, 0,
-					     ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-					     _armed, &battery_status);
-		int instance;
-		orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &battery_status, &instance, ORB_PRIO_DEFAULT);
+		// publish to orb
+		if (_batt_topic != nullptr) {
+			orb_publish(_batt_orb_id, _batt_topic, &new_report);
+
+		} else {
+			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
+
+			if (_batt_topic == nullptr) {
+				PX4_ERR("ADVERT FAIL");
+				return;
+			}
+		}
 
 		// copy report for test()
 		_last_report = new_report;
@@ -556,19 +532,15 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 	int ret = transfer(&reg, 1, buff, 3);
 
 	if (ret == OK) {
-		if (_enable_pec) {
-			// check PEC
-			uint8_t pec = get_PEC(reg, true, buff, 2);
+		// check PEC
+		uint8_t pec = get_PEC(reg, true, buff, 2);
 
-			if (pec == buff[2]) {
-				val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
-
-			} else {
-				ret = ENOTTY;
-			}
+		if (pec == buff[2]) {
+			val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
 
 		} else {
-			val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
+			PX4_ERR("BATT_SMBUS PEC Check Failed");
+			ret = ENOTTY;
 		}
 	}
 
@@ -584,16 +556,30 @@ BATT_SMBUS::write_reg(uint8_t reg, uint16_t val)
 	buff[0] = reg;
 	buff[2] = uint8_t(val << 8) & 0xff;
 	buff[1] = (uint8_t)val;
+	buff[3] = get_PEC(reg, false, &buff[1],  2); // Append PEC
 
 	// write bytes to register
 	int ret = transfer(buff, 3, nullptr, 0);
 
 	if (ret != OK) {
-		PX4_WARN("Register write error");
+		PX4_DEBUG("Register write error");
 	}
 
 	// return success or failure
 	return ret;
+}
+
+uint16_t
+BATT_SMBUS::convert_twos_comp(uint16_t val)
+{
+	if ((val & 0x8000) == 0x8000) {
+		uint16_t tmp;
+		tmp = ~val;
+		tmp = tmp + 1;
+		return tmp;
+	}
+
+	return val;
 }
 
 uint8_t
@@ -614,6 +600,13 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_
 
 	// sanity check length returned by smbus
 	if (bufflen == 0 || bufflen > max_len) {
+		return 0;
+	}
+
+	// check PEC
+	uint8_t pec = get_PEC(reg, true, buff, bufflen + 1);
+
+	if (pec != buff[bufflen + 1]) {
 		return 0;
 	}
 
@@ -639,14 +632,14 @@ BATT_SMBUS::write_block(uint8_t reg, uint8_t *data, uint8_t len)
 	buff[0] = reg;
 	buff[1] = len;
 	memcpy(&buff[2], data, len);
-	//buff[len + 2] = get_PEC(reg, false, &buff[1],  len + 1); // Append PEC
+	buff[len + 2] = get_PEC(reg, false, &buff[1],  len + 1); // Append PEC
 
 	// send bytes
 	int ret = transfer(buff, len + 3, nullptr, 0);
 
 	// return zero on failure
 	if (ret != OK) {
-		PX4_WARN("Block write error\n");
+		PX4_DEBUG("Block write error");
 		return 0;
 	}
 
@@ -715,20 +708,7 @@ BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len
 	return crc;
 }
 
-uint16_t
-BATT_SMBUS::convert_twos_comp(uint16_t val)
-{
-	if ((val & 0x8000) == 0x8000) {
-		uint16_t tmp;
-		tmp = ~val;
-		tmp = tmp + 1;
-		return tmp;
-	}
-
-	return val;
-}
-
-/* uint8_t
+uint8_t
 BATT_SMBUS::ManufacturerAccess(uint16_t cmd)
 {
 	// write bytes to Manufacturer Access
@@ -739,18 +719,17 @@ BATT_SMBUS::ManufacturerAccess(uint16_t cmd)
 	}
 
 	return ret;
-} */
+}
 
 ///////////////////////// shell functions ///////////////////////
 
 void
 batt_smbus_usage()
 {
-	PX4_INFO("missing command: try 'start', 'test', 'stop', 'search', 'man_name', 'man_date', 'dev_name', 'serial_num', 'dev_chem',  'sbs_info', 'current'");
+	PX4_INFO("missing command: try 'start', 'test', 'stop', 'search', 'man_name', 'man_date', 'dev_name', 'serial_num', 'dev_chem',  'sbs_info'");
 	PX4_INFO("options:");
 	PX4_INFO("    -b i2cbus (%d)", BATT_SMBUS_I2C_BUS);
 	PX4_INFO("    -a addr (0x%x)", BATT_SMBUS_ADDR);
-	PX4_INFO("    -p Enable PEC");
 }
 
 int
@@ -804,12 +783,11 @@ batt_smbus_main(int argc, char *argv[])
 {
 	int i2cdevice = BATT_SMBUS_I2C_BUS;
 	int batt_smbusadr = BATT_SMBUS_ADDR; // 7bit address
-	bool pec_enable = false; //PEC disabled by default
 
 	int ch;
 
 	// jump over start/off/etc and look at options first
-	while ((ch = getopt(argc, argv, "a:b:p")) != EOF) {
+	while ((ch = getopt(argc, argv, "a:b")) != EOF) {
 		switch (ch) {
 		case 'a':
 			batt_smbusadr = strtol(optarg, nullptr, 0);
@@ -818,9 +796,6 @@ batt_smbus_main(int argc, char *argv[])
 		case 'b':
 			i2cdevice = strtol(optarg, nullptr, 0);
 			break;
-
-		case 'p':
-			pec_enable = true;
 
 		default:
 			batt_smbus_usage();
@@ -841,7 +816,7 @@ batt_smbus_main(int argc, char *argv[])
 
 		} else {
 			// create new global object
-			g_batt_smbus = new BATT_SMBUS(i2cdevice, batt_smbusadr, pec_enable);
+			g_batt_smbus = new BATT_SMBUS(i2cdevice, batt_smbusadr);
 
 			if (g_batt_smbus == nullptr) {
 				errx(1, "new failed");
