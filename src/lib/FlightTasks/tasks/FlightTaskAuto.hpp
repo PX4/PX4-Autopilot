@@ -80,6 +80,8 @@ protected:
 		0.0f; /**< Cruise speed with which multicopter flies and gets set by triplet. If no valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
+	virtual void _reset() = 0; /**< Method called one type has changed. */
+
 private:
 	control::BlockParamFloat _mc_cruise_default; /**< Default mc cruise speed*/
 

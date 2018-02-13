@@ -93,5 +93,9 @@ protected:
 	void _generateSetpoints(); /**< Generate velocity and position setpoint for following line. */
 	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
 	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
+
+private:
+	float _getVelocityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
+	void _reset(); /** Resets setpoint. */
 	float _getVelcoityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
 };
