@@ -542,4 +542,18 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
  * @increment 10
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
+PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 0.f);
+
+/**
+ * Multicopter air-mode
+ *
+ * The air-mode enables the mixer to increase or decrease the total thrust of the multirotor
+ * in order to keep attitude and rate control even at low and high throttle.
+ * This function should be disabled during tuning as it will help the controller
+ * to diverge if the closed-loop is unstable.
+ *
+ * @boolean
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_INT32(MC_AIRMODE, 0);
+

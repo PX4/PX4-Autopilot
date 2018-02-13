@@ -185,7 +185,17 @@ MixerGroup::set_thrust_factor(float val)
 		mixer->set_thrust_factor(val);
 		mixer = mixer->_next;
 	}
+}
 
+void
+MixerGroup::set_airmode(bool airmode)
+{
+	Mixer	*mixer = _first;
+
+	while (mixer != nullptr) {
+		mixer->set_airmode(airmode);
+		mixer = mixer->_next;
+	}
 }
 
 uint16_t
