@@ -59,14 +59,7 @@ FlightTaskAutoLine::FlightTaskAutoLine(control::SuperBlock *parent, const char *
 
 bool FlightTaskAutoLine::activate()
 {
-	_vel_sp_xy = matrix::Vector2f(&_velocity(0));
-	_pos_sp_xy = matrix::Vector2f(&_position(0));
-	_vel_sp_z = _velocity(2);
-	_pos_sp_z = _position(2);
-	_destination = _target;
-	_origin = _prev_wp;
-	_speed_at_target = 0.0f;
-
+	_reset();
 	return FlightTaskAuto::activate();
 }
 
@@ -99,6 +92,19 @@ bool FlightTaskAutoLine::update()
 	_setYawSetpoint(_yaw_wp);
 
 	return true;
+}
+
+
+void FlightTaskAutoLine::_reset()
+{
+	/* Set setpoints equal current state. */
+	_vel_sp_xy = matrix::Vector2f(&_velocity(0));
+	_pos_sp_xy = matrix::Vector2f(&_position(0));
+	_vel_sp_z = _velocity(2);
+	_pos_sp_z = _position(2);
+	_destination = _target;
+	_origin = _prev_wp;
+	_speed_at_target = 0.0f;
 }
 
 void FlightTaskAutoLine::_generateIdleSetpoints()
