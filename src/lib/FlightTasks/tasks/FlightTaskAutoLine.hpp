@@ -97,5 +97,4 @@ protected:
 private:
 	float _getVelocityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
 	void _reset(); /** Resets setpoint. */
-	float _getVelcoityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
 };
