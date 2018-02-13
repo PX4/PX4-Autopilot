@@ -51,7 +51,7 @@ import px4tools
 import sys
 from mavros import mavlink
 from mavros.mission import QGroundControlWP
-from mavros_msgs.msg import Mavlink, Waypoint
+from mavros_msgs.msg import Mavlink, Waypoint, WaypointReached
 from mavros_test_common import MavrosTestCommon
 from pymavlink import mavutil
 from threading import Thread
@@ -151,12 +151,13 @@ class MavrosMissionTest(MavrosTestCommon):
     def setUp(self):
         super(self.__class__, self).setUp()
 
-        self.mc_rad = 5  # meters
-        self.fw_rad = 60
-        self.fw_alt_rad = 10
+        self.mission_item_reached = -1  # first mission item is 0
         self.mission_name = ""
 
         self.mavlink_pub = rospy.Publisher('mavlink/to', Mavlink, queue_size=1)
+        self.mission_item_reached_sub = rospy.Subscriber(
+            'mavros/mission/reached', WaypointReached,
+            self.mission_item_reached_callback)
 
         # need to simulate heartbeat to prevent datalink loss detection
         self.hb_mav_msg = mavutil.mavlink.MAVLink_heartbeat_message(
@@ -182,8 +183,13 @@ class MavrosMissionTest(MavrosTestCommon):
             except rospy.ROSInterruptException:
                 pass
 
-    def is_at_position(self, lat, lon, alt, xy_offset, z_offset):
-        """alt(amsl), xy_offset, z_offset: meters"""
+    def mission_item_reached_callback(self, data):
+        if self.mission_item_reached != data.wp_seq:
+            rospy.loginfo("mission item reached: {0}".format(data.wp_seq))
+            self.mission_item_reached = data.wp_seq
+
+    def distance_to_wp(self, lat, lon, alt):
+        """alt(amsl): meters"""
         R = 6371000  # metres
         rlat1 = math.radians(lat)
         rlat2 = math.radians(self.global_position.latitude)
@@ -199,7 +205,7 @@ class MavrosMissionTest(MavrosTestCommon):
         alt_d = abs(alt - self.altitude.amsl)
 
         rospy.logdebug("d: {0}, alt_d: {1}".format(d, alt_d))
-        return (d < xy_offset and alt_d < z_offset), d, alt_d
+        return d, alt_d
 
     def reach_position(self, lat, lon, alt, timeout, index):
         """alt(amsl): meters, timeout(int): seconds"""
@@ -208,28 +214,14 @@ class MavrosMissionTest(MavrosTestCommon):
             format(lat, lon, alt, index))
         best_pos_xy_d = None
         best_pos_z_d = None
-        fcu_advanced = False
+        reached = False
+        mission_length = len(self.mission_wp.waypoints)
 
         # does it reach the position in 'timeout' seconds?
         loop_freq = 2  # Hz
         rate = rospy.Rate(loop_freq)
         for i in xrange(timeout * loop_freq):
-            # use FW radius if VTOL in FW or transition or FW
-            if (self.mav_type == mavutil.mavlink.MAV_TYPE_FIXED_WING or
-                    self.extended_state.vtol_state ==
-                    mavutil.mavlink.MAV_VTOL_STATE_FW or
-                    self.extended_state.vtol_state ==
-                    mavutil.mavlink.MAV_VTOL_STATE_TRANSITION_TO_MC or
-                    self.extended_state.vtol_state ==
-                    mavutil.mavlink.MAV_VTOL_STATE_TRANSITION_TO_FW):
-                xy_radius = self.fw_rad
-                z_radius = self.fw_alt_rad
-            else:  # assume MC
-                xy_radius = self.mc_rad
-                z_radius = self.mc_rad
-
-            reached, pos_xy_d, pos_z_d = self.is_at_position(
-                lat, lon, alt, xy_radius, z_radius)
+            pos_xy_d, pos_z_d = self.distance_to_wp(lat, lon, alt)
 
             # remember best distances
             if not best_pos_xy_d or best_pos_xy_d > pos_xy_d:
@@ -237,20 +229,26 @@ class MavrosMissionTest(MavrosTestCommon):
             if not best_pos_z_d or best_pos_z_d > pos_z_d:
                 best_pos_z_d = pos_z_d
 
+            # FCU advanced to the next mission item, or finished mission
+            reached = (
+                # advanced to next wp
+                (index < self.mission_wp.current_seq)
+                # end of mission, reset to first wp
+                or (mission_length > 1 and index == (mission_length - 1)
+                    and self.mission_wp.current_seq == 0)
+                # end of mission with only 1 wp
+                or (mission_length == 1 and self.mission_item_reached == 0))
+
             if reached:
                 rospy.loginfo(
                     "position reached | pos_xy_d: {0:.2f}, pos_z_d: {1:.2f}, index: {2} | seconds: {3} of {4}".
                     format(pos_xy_d, pos_z_d, index, i / loop_freq, timeout))
                 break
-            elif not fcu_advanced and (index < self.mission_wp.current_seq or (
-                    index == len(self.mission_wp.waypoints) and
-                    self.mission_wp.current_seq == 0)):
-                # FCU advanced to the next mission item, or finished mission
-                fcu_advanced = True
+            elif i == 0 or ((i / loop_freq) % 10) == 0:
+                # log distance first iteration and every 10 sec
                 rospy.loginfo(
-                    "FCU advanced to mission item index {0} when checking position | xy off: {1}, z off: {2}, pos_xy_d: {3:.2f}, pos_z_d: {4:.2f},".
-                    format(self.mission_wp.current_seq, xy_radius, z_radius,
-                           pos_xy_d, pos_z_d))
+                    "current distance to waypoint | pos_xy_d: {0:.2f}, pos_z_d: {1:.2f}, index: {2}".
+                    format(pos_xy_d, pos_z_d, index))
 
             try:
                 rate.sleep()
@@ -259,9 +257,9 @@ class MavrosMissionTest(MavrosTestCommon):
 
         self.assertTrue(
             reached,
-            "took too long to get to position | lat: {0:.9f}, lon: {1:.9f}, alt: {2:.2f}, xy off: {3}, z off: {4}, current pos_xy_d: {5:.2f}, current pos_z_d: {6:.2f}, best pos_xy_d: {7:.2f}, best pos_z_d: {8:.2f}, index: {9} | timeout(seconds): {10}".
-            format(lat, lon, alt, xy_radius, z_radius, pos_xy_d, pos_z_d,
-                   best_pos_xy_d, best_pos_z_d, index, timeout))
+            "position not reached | lat: {0:.9f}, lon: {1:.9f}, alt: {2:.2f}, current pos_xy_d: {3:.2f}, current pos_z_d: {4:.2f}, best pos_xy_d: {5:.2f}, best pos_z_d: {6:.2f}, index: {7} | timeout(seconds): {8}".
+            format(lat, lon, alt, pos_xy_d, pos_z_d, best_pos_xy_d,
+                   best_pos_z_d, index, timeout))
 
     #
     # Test method
@@ -297,8 +295,8 @@ class MavrosMissionTest(MavrosTestCommon):
         rospy.loginfo("run mission {0}".format(self.mission_name))
         for index, waypoint in enumerate(wps):
             # only check position for waypoints where this makes sense
-            if (waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT or
-                    waypoint.frame == Waypoint.FRAME_GLOBAL):
+            if (waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT
+                    or waypoint.frame == Waypoint.FRAME_GLOBAL):
                 alt = waypoint.z_alt
                 if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
                     alt += self.altitude.amsl - self.altitude.relative
@@ -320,8 +318,8 @@ class MavrosMissionTest(MavrosTestCommon):
                 self.wait_for_vtol_state(transition, 60, index)
 
             # after reaching position, wait for landing detection if applicable
-            if (waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND or
-                    waypoint.command == mavutil.mavlink.MAV_CMD_NAV_LAND):
+            if (waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND
+                    or waypoint.command == mavutil.mavlink.MAV_CMD_NAV_LAND):
                 self.wait_for_landed_state(
                     mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND, 60, index)
 
