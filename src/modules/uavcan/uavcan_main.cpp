@@ -417,6 +417,20 @@ int  UavcanNode::get_param(int remote_node_id, const char *name)
 	return rv;
 }
 
+void UavcanNode::update_params()
+{
+    param_t param_handle;
+
+    // multicopter air-mode
+    param_handle = param_find("MC_AIRMODE");
+
+    if (param_handle != PARAM_INVALID) {
+	    int val;
+	    param_get(param_handle, &val);
+	    _airmode = val > 0;
+    }
+}
+
 int UavcanNode::start_fw_server()
 {
 	int rv = -1;
@@ -821,6 +835,8 @@ int UavcanNode::run()
 
 	while (!_task_should_exit) {
 
+		update_params();
+
 		switch (_fw_server_action) {
 		case Start:
 			_fw_server_status = start_fw_server();
@@ -907,6 +923,8 @@ int UavcanNode::run()
 				// XXX one output group has 8 outputs max,
 				// but this driver could well serve multiple groups.
 				unsigned num_outputs_max = 8;
+
+				_mixers->set_airmode(_airmode);
 
 				// Do mixing
 				_outputs.noutputs = _mixers->mix(&_outputs.output[0], num_outputs_max);
