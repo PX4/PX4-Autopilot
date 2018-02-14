@@ -61,7 +61,6 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 bool FlightTaskAuto::activate()
 {
 	_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
-	_position_lock = matrix::Vector3f(NAN, NAN, NAN);
 	_yaw_wp = _yaw;
 	return FlightTask::activate();
 }
@@ -87,6 +86,54 @@ bool FlightTaskAuto::_evaluateTriplets()
 	 * takeoff/land was initiated. Until then we do this kind of logic here.
 	 */
 
+	if (!_sub_triplet_setpoint->get().current.valid) {
+		/* Best we can do is to just set all waypoints to current state */
+		_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
+		_yaw_wp = _yaw;
+		return false;
+	}
+
+	/* Get target waypoint. */
+	matrix::Vector3f target;
+	map_projection_project(&_reference_position,
+			       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &target(0), &target(1));
+	target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
+
+
+	/* Check if anything has changed. We do that by comparing the target
+	 * setpoint to the previous target.
+	 * TODO This is a hack and it would be much
+	 * better if the navigator only sends out a waypoints once tthey have changed.
+	 */
+
+	/* Dont't do any updates if the current target has not changed */
+	if (!(fabsf(target(0) - _target(0)) > 0.001f || fabsf(target(1) - _target(1)) > 0.001f
+	      || fabsf(target(2) - _target(2)) > 0.001f  || fabsf(_sub_triplet_setpoint->get().current.yaw - _yaw_wp) > 0.001f)) {
+		/* Nothing has changed: just keep old waypoints */
+		return true;
+	}
+
+	/* Update all waypoints */
+	_target = target;
+
+	if (!PX4_ISFINITE(target(0)) || !PX4_ISFINITE(target(1))) {
+		/* Horizontal target is not finite. */
+		_target(0) = _position(0);
+		_target(1) = _position(1);
+	}
+
+	if (!PX4_ISFINITE(2)) {
+		_target(2) = _position(2);
+	}
+
+	_yaw_wp = _sub_triplet_setpoint->get().current.yaw;
+
+	if (!PX4_ISFINITE(_yaw_wp)) {
+		_yaw_wp = _yaw;
+
+	} else {
+	}
+
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
 
 	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
@@ -94,90 +141,32 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_mc_cruise_speed = _mc_cruise_default.get();
 	}
 
-	_yaw_wp = _sub_triplet_setpoint->get().current.yaw;
-	WaypointType type = (WaypointType)_sub_triplet_setpoint->get().current.type;
+	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
 
-	if (type != _type) {
-		_reset();
-	}
+	_prev_prev_wp = _prev_wp; // previous -1 is set to previsou
 
-	_type = type;
-
-	/* We need to have a valid current triplet */
-	if (_isFinite(_sub_triplet_setpoint->get().current)) {
-
-		/* Reset position lock */
-		_position_lock = matrix::Vector3f(NAN, NAN, NAN);
-
-		/* 1. only consider updated if current target has has changed.
-		 * Note how bad this implementation is. In mission, in every iteration we do double operations */
-		matrix::Vector3f target;
-		map_projection_project(&_reference_position,
-				       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &target(0), &target(1));
-		target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
-
-		/* Dont't do any updates if the current target has not changed */
-		if (fabsf(target.length() - _target.length()) < FLT_EPSILON) {
-			return true;
-		}
-
-		/* We have a new target setpoint: update all previous setpoints */
-		_target = target;
-
-		/* Set previous to previous - 1 */
-		_prev_prev_wp = _prev_wp;
-
-		/* Check if previous is valid and update accordingly */
-		if (_isFinite(_sub_triplet_setpoint->get().previous) && _sub_triplet_setpoint->get().previous.valid) {
-			map_projection_project(&_reference_position, _sub_triplet_setpoint->get().previous.lat,
-					       _sub_triplet_setpoint->get().previous.lon, &_prev_wp(0), &_prev_wp(1));
-			_prev_wp(2) = -(_sub_triplet_setpoint->get().previous.alt - _reference_altitude);
-
-		} else {
-			_prev_wp = _position;
-		}
-
-		/* Check if next is valid and update accordingly */
-		if (_type == WaypointType::loiter) {
-			_next_wp = _target;
-
-		} else if (_isFinite(_sub_triplet_setpoint->get().next) && _sub_triplet_setpoint->get().next.valid) {
-			map_projection_project(&_reference_position, _sub_triplet_setpoint->get().next.lat,
-					       _sub_triplet_setpoint->get().next.lon, &_next_wp(0), &_next_wp(1));
-			_next_wp(2) = -(_sub_triplet_setpoint->get().next.alt - _reference_altitude);
-
-		} else {
-			_next_wp = _target;
-		}
-
-		return true;
-
-	} else if (PX4_ISFINITE(_sub_triplet_setpoint->get().current.alt)) {
-		/* We only have a valid altitude. Hold position in xy. */
-
-		_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
-
-		if (!PX4_ISFINITE(_position_lock.length())) {
-			_position_lock = _position;
-		}
-
-		_prev_prev_wp = _prev_wp;
-		_prev_wp = _position_lock;
-		_prev_wp(2) = _target(2);
-		_target = _position_lock;
-		_target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
-		_next_wp = _target;
-
-		return true;
+	if (_isFinite(_sub_triplet_setpoint->get().previous) && _sub_triplet_setpoint->get().previous.valid) {
+		map_projection_project(&_reference_position, _sub_triplet_setpoint->get().previous.lat,
+				       _sub_triplet_setpoint->get().previous.lon, &_prev_wp(0), &_prev_wp(1));
+		_prev_wp(2) = -(_sub_triplet_setpoint->get().previous.alt - _reference_altitude);
 
 	} else {
-		/* Reset everything */
-		_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
-		_position_lock = matrix::Vector3f(NAN, NAN, NAN);
-		_yaw_wp = _yaw;
-
-		return false;
+		_prev_wp = _position;
 	}
+
+	if (_type == WaypointType::loiter) {
+		_next_wp = _target;
+
+	} else if (_isFinite(_sub_triplet_setpoint->get().next) && _sub_triplet_setpoint->get().next.valid) {
+		map_projection_project(&_reference_position, _sub_triplet_setpoint->get().next.lat,
+				       _sub_triplet_setpoint->get().next.lon, &_next_wp(0), &_next_wp(1));
+		_next_wp(2) = -(_sub_triplet_setpoint->get().next.alt - _reference_altitude);
+
+	} else {
+		_next_wp = _target;
+	}
+
+	return true;
 }
 
 bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
