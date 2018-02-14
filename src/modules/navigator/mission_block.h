@@ -74,8 +74,6 @@ protected:
 	 */
 	bool is_mission_item_reached();
 
-	bool position_achieved(const mission_item_s &item);
-
 	/**
 	 * Reset all reached flags
 	 */
@@ -121,18 +119,25 @@ protected:
 
 	void issue_command(const mission_item_s &item);
 
-	float get_time_inside(const struct mission_item_s &item);
+	float get_time_inside(const mission_item_s &item) const ;
 
-	float get_absolute_altitude_for_item(const mission_item_s &mission_item);
+	float get_absolute_altitude_for_item(const mission_item_s &mission_item) const;
 
 	mission_item_s _mission_item{};
 
 	bool _waypoint_position_reached{false};
-	bool _waypoint_yaw_reached{false};
 
-	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
-	hrt_abstime _time_wp_reached{0};
 
 	orb_advert_t    _actuator_pub{nullptr};
+
+private:
+	bool position_achieved(const mission_item_s &item);
+	bool loiter_achieved(const double &lat, const double &lon, const float &alt) const;
+	bool yaw_achieved(const mission_item_s &item) const;
+	bool time_inside_finished(const mission_item_s &item) const;
+
+	void set_loiter_exit(const mission_item_s &item);
+
+	hrt_abstime _time_wp_reached{UINT64_MAX};
 };
