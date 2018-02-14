@@ -921,12 +921,52 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			_att_sp.pitch_body = 0.0f;
 
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+
+			float position_sp_alt = pos_sp_curr.alt;
+
+			if (pos_sp_prev.valid && PX4_ISFINITE(pos_sp_prev.alt) &&
+			    ((pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_POSITION) ||
+			     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_LOITER) ||
+			     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF))
+			   ) {
+				// FOH
+
+				const float distance_current_previous = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon,
+									pos_sp_prev.lat, pos_sp_prev.lon);
+
+				/* Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one */
+				if ((distance_current_previous - pos_sp_curr.acceptance_radius) > FLT_EPSILON) {
+					/* Calculate distance to current waypoint */
+					const float d_current = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, curr_pos(0), curr_pos(1));
+
+					/* Save distance to waypoint if it is the smallest ever achieved, however make sure that
+					 * min_current_sp_distance_xy is never larger than the distance between the current and the previous wp */
+					const float min_current_sp_distance_xy = min(d_current, distance_current_previous);
+
+					/* if the minimal distance is smaller then the acceptance radius, we should be at waypoint alt
+					 * navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude */
+					if (min_current_sp_distance_xy > pos_sp_curr.acceptance_radius) {
+
+						/* update the altitude sp of the 'current' item in the sp triplet, but do not update the altitude sp
+						 * of the mission item as it is used to check if the mission item is reached
+						 * The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
+						 * radius around the current waypoint
+						 **/
+						const float delta_alt = (pos_sp_curr.alt - pos_sp_prev.alt);
+						const float grad = -delta_alt / (distance_current_previous - pos_sp_curr.acceptance_radius);
+						const float a = pos_sp_prev.alt - grad * distance_current_previous;
+
+						position_sp_alt = a + grad * min_current_sp_distance_xy;
+					}
+				}
+			}
+
 			/* waypoint is a plain navigation waypoint */
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, nav_speed_2d);
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
-			tecs_update_pitch_throttle(pos_sp_curr.alt,
+			tecs_update_pitch_throttle(position_sp_alt,
 						   calculate_target_airspeed(mission_airspeed),
 						   radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
 						   radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
