@@ -118,9 +118,13 @@ MissionBlock::is_mission_item_reached()
 		return true;
 
 	default:
-		/* do nothing, this is a 3D waypoint */
-		break;
+		return position_achieved(_mission_item);
 	}
+}
+
+bool
+MissionBlock::position_achieved(const mission_item_s &item)
+{
 
 	hrt_abstime now = hrt_absolute_time();
 
