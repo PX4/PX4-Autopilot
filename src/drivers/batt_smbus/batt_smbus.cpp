@@ -72,6 +72,8 @@
 #define BATT_SMBUS_CURRENT              0x0a	///< current register
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US	(1000000 / 10)	///< time in microseconds, measure at 10Hz
 #define BATT_SMBUS_TIMEOUT_US			10000000	///< timeout looking for battery 10seconds after startup
+#define BATT_SMBUS_CYCLE_COUNT			0x17	///< number of cycles the battery has experienced
+#define BATT_SMBUS_RUN_TIME_TO_EMPTY	0x11	///< predicted remaining battery capacity based on the present rate of discharge in min
 
 #define BATT_SMBUS_MANUFACTURER_ACCESS	0x00
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS    0x44
@@ -221,6 +223,8 @@ private:
 	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
 	uint16_t		_batt_startup_capacity;	///< battery's remaining capacity on startup
 	char           *_manufacturer_name;  ///< The name of the battery manufacturer
+	uint16_t		_cycle_count;	///< number of cycles the battery has experienced
+	uint16_t		_serial_number;		///< serial number register
 };
 
 namespace
@@ -244,7 +248,9 @@ BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	_start_time(0),
 	_batt_capacity(0),
 	_batt_startup_capacity(0),
-	_manufacturer_name(nullptr)
+	_manufacturer_name(nullptr),
+	_cycle_count(0),
+	_serial_number(0)
 {
 	// capture startup time
 	_start_time = hrt_absolute_time();
@@ -294,21 +300,24 @@ BATT_SMBUS::test()
 	struct battery_status_s status;
 	uint64_t start_time = hrt_absolute_time();
 
-	// loop for 5 seconds
-	while ((hrt_absolute_time() - start_time) < 5000000) {
+	// loop for 3 seconds
+	while ((hrt_absolute_time() - start_time) < 3000000) {
 
 		// display new info that has arrived from the orb
 		orb_check(sub, &updated);
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				PX4_INFO("V=%4.2f C=%4.2f DismAh=%f Cap:%f Remaining:%3.2f", (double)status.voltage_v, (double)status.current_a,
-					 (double)status.discharged_mah, (double)status.capacity, (double)status.remaining);
+				PX4_INFO("V=%4.2f C=%4.2f DismAh=%f Cap:%hu TempC:%4.2f Remaining:%3.2f RunTimeToEmpty:%hu CycleCount:%hu SerialNum:%04x",
+					 (double)status.voltage_v, (double)status.current_a, (double)status.discharged_mah, (uint16_t)status.capacity,
+					 (double)status.temperature,
+					 (double)status.remaining, (uint16_t)status.run_time_to_empty, (uint16_t)status.cycle_count,
+					 (uint16_t)status.serial_number);
 			}
 		}
 
-		// sleep for 0.05 seconds
-		usleep(100000);
+		// sleep for 0.2 seconds
+		usleep(200000);
 	}
 
 	return OK;
@@ -446,14 +455,40 @@ BATT_SMBUS::cycle()
 		}
 	}
 
+	// read battery serial number on startup
+	if (_serial_number == 0) {
+		_serial_number = serial_number();
+	}
+
+	// temporary variable for storing SMBUS reads
+	uint16_t tmp;
+
+	// read battery capacity on startup
+	if (_batt_startup_capacity == 0) {
+		if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
+			_batt_startup_capacity = tmp;
+		}
+	}
+
+	// read battery cycle count on startup
+	if (_cycle_count == 0) {
+		if (read_reg(BATT_SMBUS_CYCLE_COUNT, tmp) == OK) {
+			_cycle_count = tmp;
+		}
+	}
+
+	// read battery design capacity on startup
+	if (_batt_capacity == 0) {
+		if (read_reg(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp) == OK) {
+			_batt_capacity = tmp;
+		}
+	}
+
 	// read data from sensor
 	battery_status_s new_report = {};
 
 	// set time of reading
 	new_report.timestamp = now;
-
-	// read voltage
-	uint16_t tmp;
 
 	if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
 
@@ -469,19 +504,9 @@ BATT_SMBUS::cycle()
 			new_report.current_filtered_a = new_report.current_a;
 		}
 
-		// read battery design capacity
-		if (_batt_capacity == 0) {
-			if (read_reg(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp) == OK) {
-				new_report.capacity = tmp;
-				_batt_capacity = tmp;
-			}
-		}
-
-		// read battery capacity on startup
-		if (_batt_startup_capacity == 0) {
-			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
-				_batt_startup_capacity = tmp;
-			}
+		// read run time to empty
+		if (read_reg(BATT_SMBUS_RUN_TIME_TO_EMPTY, tmp) == OK) {
+			new_report.run_time_to_empty = tmp;
 		}
 
 		// read remaining capacity
@@ -496,7 +521,14 @@ BATT_SMBUS::cycle()
 			}
 		}
 
+		// read battery temperature and covert to Celsius
+		if (read_reg(BATT_SMBUS_TEMP, tmp) == OK) {
+			new_report.temperature = (float)(((float)tmp / 10.0f) - 273.15f);
+		}
+
 		new_report.capacity = _batt_capacity;
+		new_report.cycle_count = _cycle_count;
+		new_report.serial_number = _serial_number;
 
 		// publish to orb
 		if (_batt_topic != nullptr) {
