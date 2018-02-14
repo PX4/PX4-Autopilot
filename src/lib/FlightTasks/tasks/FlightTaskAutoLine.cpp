@@ -81,9 +81,7 @@ bool FlightTaskAutoLine::update()
 		_generateVelocitySetpoints();
 	}
 
-	/* Send setpoints */
-	_setVelocitySetpoint(Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), _vel_sp_z));
-	_setPositionSetpoint(Vector3f(_pos_sp_xy(0), _pos_sp_xy(1), _pos_sp_z));
+	/* For now yaw setpoint comes directly form triplets */
 	_setYawSetpoint(_yaw_wp);
 
 	return true;
@@ -104,29 +102,29 @@ void FlightTaskAutoLine::_reset()
 void FlightTaskAutoLine::_generateIdleSetpoints()
 {
 	/* Send zero thrust setpoint */
-	_vel_sp_xy = matrix::Vector2f(NAN, NAN);
-	_vel_sp_z = NAN;
-	_pos_sp_xy = matrix::Vector2f(NAN, NAN);
-	_pos_sp_z = NAN;
 	_setThrustSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
+
+	/* Set member setpoints to current state */
+	_reset();
 }
 
 void FlightTaskAutoLine::_generateLandSetpoints()
 {
 	/* Keep xy-position and go down with landspeed. */
-	_pos_sp_xy = Vector2f(&_target(0));
-	_vel_sp_z = _land_speed.get();
-	_pos_sp_z = NAN;
-	_vel_sp_xy = Vector2f(NAN, NAN);
+	_setPositionSetpoint(Vector3f(_target(0), _target(1), NAN));
+	_setVelocitySetpoint(Vector3f(NAN, NAN, _land_speed.get()));
+
+	/* Set member setpoints to current state */
+	_reset();
 }
 
 void FlightTaskAutoLine::_generateTakeoffSetpoints()
 {
 	/* Takeoff is completely defined by position. */
-	_pos_sp_xy = Vector2f(&_target(0));
-	_pos_sp_z = _target(2);
-	_vel_sp_xy.zero();
-	_vel_sp_z = 0.0f;
+	_setPositionSetpoint(_target);
+
+	/* Set member setpoints to current state */
+	_reset();
 }
 
 void FlightTaskAutoLine::_generateSetpoints()
@@ -134,6 +132,8 @@ void FlightTaskAutoLine::_generateSetpoints()
 	_updateInternalWaypoints();
 	_generateAltitudeSetpoints();
 	_generateXYsetpoints();
+	_setPositionSetpoint(Vector3f(_pos_sp_xy(0), _pos_sp_xy(1), _pos_sp_z));
+	_setVelocitySetpoint(Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), _vel_sp_z));
 }
 
 void FlightTaskAutoLine::_updateInternalWaypoints()
@@ -339,6 +339,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 			if (PX4_ISFINITE(_yaw_wp)) {
 				yaw_diff = _wrap_pi(_yaw_wp - _yaw);
+				PX4_WARN("Yaw Waypoint not finite");
 			}
 
 			/* If yaw offset is large, only accelerate with 0.5 m/s^2. */
@@ -433,10 +434,11 @@ void FlightTaskAutoLine::_generateVelocitySetpoints()
 {
 	/* TODO: Remove velocity force logic from navigator, since
 	 * navigator should only send out waypoints. */
-	_vel_sp_xy = Vector2f(&_velocity(0)).unit_or_zero() * _mc_cruise_speed;
-	_vel_sp_z = 0.0f;
-	_pos_sp_z = _position(2);
-	_pos_sp_xy = Vector2f(NAN, NAN);
+	_setPositionSetpoint(Vector3f(NAN, NAN, _position(2)));
+	Vector2f vel_sp_xy = Vector2f(&_velocity(0)).unit_or_zero() * _mc_cruise_speed;
+	_setVelocitySetpoint(Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN));
+
+	_reset();
 }
 
 float FlightTaskAutoLine::_getVelocityFromAngle(const float angle)
