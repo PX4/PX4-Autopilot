@@ -54,9 +54,6 @@ public:
 	bool update() override;
 
 protected:
-
-	void _reset() override;
-
 	matrix::Vector2f _vel_sp_xy{};
 	matrix::Vector2f _pos_sp_xy{};
 	float _vel_sp_z = 0.0f;
@@ -98,4 +95,5 @@ protected:
 
 private:
 	float _getVelocityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
+	void _reset(); /** Resets member variables to current vehicle state */
 };
