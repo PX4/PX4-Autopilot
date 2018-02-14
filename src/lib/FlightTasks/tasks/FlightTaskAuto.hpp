@@ -69,8 +69,6 @@ public:
 
 protected:
 
-	virtual void _reset() = 0; /**< Method that gets called once WaypointType has changed. */
-
 	matrix::Vector3f _prev_prev_wp{}; /**< Triplet previous-previous triplet. This will be used for smoothing trajectories -> not used yet. */
 	matrix::Vector3f _prev_wp{}; /**< Triplet previous setpoint in local frame. If not previous triplet is available, the prev_wp is set to current position. */
 	matrix::Vector3f _target{}; /**< Triplet target setpoint in local frame. */
@@ -84,10 +82,7 @@ protected:
 
 private:
 	control::BlockParamFloat _mc_cruise_default; /**< Default mc cruise speed*/
-
-	matrix::Vector3f _position_lock{}; /**< Position lock is NAN except when target lat/lon are not finite. */
 	map_projection_reference_s _reference; /**< Reference frame from global to local */
-
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 
 	bool _evaluateTriplets(); /**< Checks and sets triplets */
