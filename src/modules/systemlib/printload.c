@@ -175,8 +175,8 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 		unsigned tcb_pid = system_load.tasks[i].tcb->pid;
 		size_t stack_size = system_load.tasks[i].tcb->adj_stack_size;
 		ssize_t stack_free = 0;
-		char tcb_name[CONFIG_TASK_NAME_SIZE];
-		strncpy(tcb_name, system_load.tasks[i].tcb->name, CONFIG_TASK_NAME_SIZE);
+		char tcb_name[CONFIG_TASK_NAME_SIZE + 1];
+		strncpy(tcb_name, system_load.tasks[i].tcb->name, CONFIG_TASK_NAME_SIZE + 1);
 
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
 
