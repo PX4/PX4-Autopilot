@@ -36,7 +36,7 @@ msg_id_map = {
     'gps_inject_data': 31,
 
     'home_position': 33,
-    'input_rc': 34,
+    'input_rc_out': 34,
     'led_control': 35,
     'log_message': 36,
     'manual_control_setpoint': 37,
