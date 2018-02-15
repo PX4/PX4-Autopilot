@@ -56,29 +56,17 @@ public:
 	virtual ~FlightTaskSport() = default;
 
 protected:
-	void _scaleSticks() override
+	void _updateSetpoints() override
 	{
+		FlightTaskManualPosition::_updateSetpoints(); // get all setpoints from position task
 
-		/* Get all stick scaling from FlightTaskManualAltitude */
-		FlightTaskManualAltitude::_scaleSticks();
-
-		/* Constrain length of stick inputs to 1 for xy*/
-		matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
-
-		float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
-
-		if (mag > FLT_EPSILON) {
-			stick_xy = stick_xy.normalized() * mag;
+		/* Scale horizontal velocity setpoint by maximum allowed velocity. */
+		if (PX4_ISFINITE(_vel_sp(0)) && Vector2f(&_vel_sp(0)).length() > 0.0f) {
+			Vector2f vel_sp_xy = Vector2f(&_vel_sp(0));
+			vel_sp_xy = vel_sp_xy.normalized() * _vel_xy_max.get() / _vel_xy_manual_max.get() * vel_sp_xy.length();
+			_vel_sp(0) = vel_sp_xy(0);
+			_vel_sp(1) = vel_sp_xy(1);
 		}
-
-		/* Scale to velocity using max velocity */
-		Vector2f vel_sp_xy = stick_xy * _vel_xy_max.get();
-
-		/* Rotate setpoint into local frame. */
-		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-		matrix::Vector3f vel_world = q_yaw.conjugate(matrix::Vector3f(vel_sp_xy(0), vel_sp_xy(1), 0.0f));
-		_vel_sp(0) = vel_world(0);
-		_vel_sp(1) = vel_world(1);
 	}
 
 private:
