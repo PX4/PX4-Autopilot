@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,15 +50,14 @@ FlightTaskManualPosition::FlightTaskManualPosition(control::SuperBlock *parent, 
 
 bool FlightTaskManualPosition::activate()
 {
-	_pos_sp_xy = matrix::Vector2f(NAN, NAN);
-	_vel_sp_xy = matrix::Vector2f(0.0f, 0.0f);
-	return FlightTaskManualAltitude::activate();
+	bool ret = FlightTaskManualAltitude::activate();
+	_vel_sp(0) = _vel_sp(1) = 0.0f;
+	return ret;
 }
 
 void FlightTaskManualPosition::_scaleSticks()
 {
-	/* Use same scaling as for FlightTaskManualAltitude to
-	 * get yaw and z */
+	/* Use same scaling as for FlightTaskManualAltitude */
 	FlightTaskManualAltitude::_scaleSticks();
 
 	/* Constrain length of stick inputs to 1 for xy*/
@@ -71,47 +70,36 @@ void FlightTaskManualPosition::_scaleSticks()
 	}
 
 	/* Scale to velocity.*/
-	_vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
+	matrix::Vector2f vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
 
 	/* Rotate setpoint into local frame. */
 	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-	matrix::Vector3f vel_world = q_yaw.conjugate(matrix::Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), 0.0f));
-	_vel_sp_xy = matrix::Vector2f(vel_world(0), vel_world(1));
+	matrix::Vector3f vel_world = q_yaw.conjugate(matrix::Vector3f(vel_sp_xy(0), vel_sp_xy(1), 0.0f));
+	_vel_sp(0) = vel_world(0);
+	_vel_sp(1) = vel_world(1);
 }
 
 void FlightTaskManualPosition::_updateXYlock()
 {
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
-	const bool apply_brake = _vel_sp_xy.length() < FLT_EPSILON;
+	const bool apply_brake = Vector2f(&_vel_sp(0)).length() < FLT_EPSILON;
 	const bool stopped = (_vel_hold_thr_xy.get() < FLT_EPSILON || vel_xy_norm < _vel_hold_thr_xy.get());
 
-	if (apply_brake && stopped && !PX4_ISFINITE(_pos_sp_xy(0))) {
-		_pos_sp_xy = matrix::Vector2f(&_position(0));
+	if (apply_brake && stopped && !PX4_ISFINITE(_pos_sp(0))) {
+		_pos_sp(0) = _position(0);
+		_pos_sp(1) = _position(1);
 
 	} else if (!apply_brake) {
-		/* Don't use position setpoint */
-		_pos_sp_xy = _pos_sp_xy * NAN;
+		/* don't lock*/
+		_pos_sp(0) = NAN;
+		_pos_sp(1) = NAN;
 	}
 }
 
 void FlightTaskManualPosition::_updateSetpoints()
 {
-	FlightTaskManualAltitude::_updateSetpoints(); // get yaw and z setpoints
+	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
+	_thr_sp *= NAN; // don't require any thrust setpoints
 	_updateXYlock(); // check for position lock
-}
-
-bool FlightTaskManualPosition::update()
-{
-	_scaleSticks();
-	_updateSetpoints();
-
-	_setPositionSetpoint(Vector3f(_pos_sp_xy(0), _pos_sp_xy(1), _pos_sp_z));
-	_setVelocitySetpoint(Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), _vel_sp_z));
-	_setYawSetpoint(_yaw_sp);
-	_setYawspeedSetpoint(_yaw_rate_sp);
-	_setThrustSetpoint(Vector3f(NAN, NAN, NAN));
-
-
-	return true;
 }
