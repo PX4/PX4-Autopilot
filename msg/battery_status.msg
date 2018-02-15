@@ -2,6 +2,7 @@ float32 voltage_v		# Battery voltage in volts, 0 if unknown
 float32 voltage_filtered_v	# Battery voltage in volts, filtered, 0 if unknown
 float32 current_a		# Battery current in amperes, -1 if unknown
 float32 current_filtered_a	# Battery current in amperes, filtered, 0 if unknown
+float32 average_current_a		# Battery current average in amperes, -1 if unknown
 float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
 float32 remaining		# From 1 to 0, -1 if unknown
 float32 scale		# Power scaling factor, >= 1, or -1 if unknown
@@ -13,6 +14,7 @@ uint8 priority        	# Zerro based priority is the connection on the Power Con
 uint16 capacity         # actual capacity of the battery
 uint16 cycle_count         # number of discharge cycles the battery has experienced
 uint16 run_time_to_empty   # predicted remaining battery capacity based on the present rate of discharge in min
+uint16 average_time_to_empty   # predicted remaining battery capacity based on the average rate of discharge in min
 uint16 serial_number       # serial number of the battery pack
 
 
