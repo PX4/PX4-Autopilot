@@ -85,8 +85,12 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 	/* Rotate setpoint into local frame. */
 	matrix::Vector3f sp{_sticks(0), _sticks(1), 0.0f};
 	sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw)) * sp);
-	const float x = sp(0) * math::radians(_tilt_max_man.get());
-	const float y = sp(1) * math::radians(_tilt_max_man.get());
+
+	/* Ensure that maximum tilt is in [0.001, Pi] */
+	float tilt_max = math::constrain(math::radians(_tilt_max_man.get()), 0.001f, M_PI_F);
+
+	const float x = sp(0) * tilt_max;
+	const float y = sp(1) * tilt_max;
 
 	/* The norm of the xy stick input provides the pointing
 	 * direction of the horizontal desired thrust setpoint. The magnitude of the
@@ -97,8 +101,8 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 	matrix::Vector2f v = matrix::Vector2f(y, -x);
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
 
-	if (v_norm > _tilt_max_man.get()) { // limit to the configured maximum tilt angle
-		v *= _tilt_max_man.get() / v_norm;
+	if (v_norm > tilt_max) { // limit to the configured maximum tilt angle
+		v *= tilt_max / v_norm;
 	}
 
 	/* The final thrust setpoint is found by rotating the scaled unit vector pointing
@@ -118,7 +122,7 @@ float FlightTaskManualStabilized::_throttleCurve()
 {
 	/* Scale stick z from [-1,1] to [min thrust, max thrust]
 	 * with hover throttle at 0.5 stick */
-	float throttle = -((_sticks_expo(2) - 1.0f) * 0.5f);
+	float throttle = -((_sticks(2) - 1.0f) * 0.5f);
 
 	if (throttle < 0.5f) {
 		return (_throttle_hover.get() - _throttle_min.get()) / 0.5f * throttle + _throttle_min.get();
