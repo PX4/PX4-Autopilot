@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,18 +50,13 @@ public:
 
 	bool activate() override;
 
-	bool update() override;
-
 protected:
-	float _vel_sp_z{}; /**< Scaled velocity from stick. During altitude lock it is equal to NAN. */
-	float _pos_sp_z{}; /**< Setpoint in z during lock. Otherwise NAN. */
-
-	control::BlockParamFloat _vel_max_down; /**< Maximum speed allowed to go up. */
-	control::BlockParamFloat _vel_max_up; /**< Maximum speed allowed to go down. */
+	control::BlockParamFloat _vel_max_down; /**< maximum speed allowed to go up */
+	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */
 	control::BlockParamFloat _vel_hold_thr_z; /**< velocity threshold to switch back into vertical position hold */
 
-	void _updateAltitudeLock(); /**< Checks for position lock. */
-	void _updateSetpoints() override; /**< Updates all setpoints. */
-	void _scaleSticks() override; /**< Scales sticks to velocity in z. */
+	void _updateAltitudeLock(); /**< checks for position lock */
+	void _updateSetpoints() override; /**< updates all setpoints */
+	void _scaleSticks() override; /**< scales sticks to velocity in z */
 
 };

@@ -50,9 +50,9 @@ FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, 
 
 bool FlightTaskManualAltitude::activate()
 {
-	_pos_sp_z = NAN;
-	_vel_sp_z = 0.0f;
-	return FlightTaskManualStabilized::activate();
+	bool ret = FlightTaskManualStabilized::activate();
+	_vel_sp(2) = 0.0f;
+	return  ret;
 }
 
 void FlightTaskManualAltitude::_scaleSticks()
@@ -62,7 +62,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 
 	/* Scale horizontal velocity with expo curve stick input*/
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
-	_vel_sp_z = vel_max_z * _sticks_expo(2);
+	_vel_sp(2) = vel_max_z * _sticks_expo(2);
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()
@@ -72,20 +72,23 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	 */
 
 	/* handle position and altitude hold */
-	const bool apply_brake_z = fabsf(_vel_sp_z) <= FLT_EPSILON;
+	const bool apply_brake_z = fabsf(_vel_sp(2)) <= FLT_EPSILON;
 	const bool stopped_z = (_vel_hold_thr_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _vel_hold_thr_z.get());
 
-	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_pos_sp_z)) {
-		_pos_sp_z = _position(2);
+	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_pos_sp(2))) {
+		_pos_sp(2) = _position(2);
 
 	} else if (!apply_brake_z) {
-		_pos_sp_z = NAN;
+		_pos_sp(2) = NAN;
 	}
 }
 
 void FlightTaskManualAltitude::_updateSetpoints()
 {
-	FlightTaskManualStabilized::_updateSetpoints(); // get yaw setpoint
+	FlightTaskManualStabilized::_updateSetpoints(); // get yaw and thrust setpoints
+
+	_thr_sp *= NAN; // Don't need thrust setpoint from Stabilized mode.
+
 	/* Thrust in xy are extracted directly from stick inputs. A magnitude of
 	 * 1 means that maximum thrust along xy is required. A magnitude of 0 means no
 	 * thrust along xy is required. The maximum thrust along xy depends on the thrust
@@ -101,19 +104,5 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	_thr_sp(0) = sp(0);
 	_thr_sp(1) = sp(1);
 
-	_updateAltitudeLock(); // get z setpoints
-}
-
-bool FlightTaskManualAltitude::update()
-{
-	_scaleSticks();
-	_updateSetpoints();
-
-	_setPositionSetpoint(Vector3f(NAN, NAN, _pos_sp_z));
-	_setVelocitySetpoint(Vector3f(NAN, NAN, _vel_sp_z));
-	_setYawSetpoint(_yaw_sp);
-	_setYawspeedSetpoint(_yaw_rate_sp);
-	_setThrustSetpoint(Vector3f(_thr_sp(0), _thr_sp(1), NAN));
-
-	return true;
+	_updateAltitudeLock();
 }
