@@ -1134,6 +1134,8 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 	// Low risk change for now. TODO : full covariance matrix
 	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
 	vision_position.epv = sqrtf(pos.covariance[17]);
+	vision_position.evh = sqrtf(fmaxf(pos.covariance[24], pos.covariance[30]));
+	vision_position.evv = sqrtf(pos.covariance[35]);
 
 	// set position/velocity invalid if standard deviation is bigger than ev_max_std_dev
 	const float ev_max_std_dev = 100.0f;
@@ -1142,7 +1144,7 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 		vision_position.xy_valid = false;
 	}
 
-	if (sqrtf(fmaxf(pos.covariance[24], pos.covariance[30])) > ev_max_std_dev) {
+	if (vision_position.evh > ev_max_std_dev) {
 		vision_position.v_xy_valid = false;
 	}
 
@@ -1150,7 +1152,7 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 		vision_position.z_valid = false;
 	}
 
-	if (sqrtf(pos.covariance[35]) > ev_max_std_dev) {
+	if (vision_position.evv > ev_max_std_dev) {
 		vision_position.v_z_valid = false;
 	}
 
