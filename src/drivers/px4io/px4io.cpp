@@ -1226,8 +1226,9 @@ PX4IO::task_main()
 				parm_handle = param_find("MC_AIRMODE");
 
 				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_AIRMODE, SIGNED_TO_REG(param_val));
+					int32_t param_val_int;
+					param_get(parm_handle, &param_val_int);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_AIRMODE, SIGNED_TO_REG(param_val_int));
 				}
 			}
 
