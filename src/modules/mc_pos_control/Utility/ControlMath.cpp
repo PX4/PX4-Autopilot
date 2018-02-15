@@ -58,17 +58,19 @@ namespace ControlMath
  * Tilt is adjusted such that vector component in D-direction
  * has higher priority.
  */
-matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float &tilt_max)
+matrix::Vector3f constrainTilt(const matrix::Vector3f &vec, const float maximum_tilt)
 {
 	/* We only consider maximum tilt < 90 */
+	float tilt_max = maximum_tilt;
+
 	if (tilt_max > M_PI_2_F) {
-		return vec;
+		tilt_max = M_PI_2_F;
 	}
 
 	/* Desired tilt is above 90 -> in order to stay within tilt,
 	 * vector has to be zero (N-E-D frame)*/
 	if (vec(2) > 0.0f) {
-		return matrix::Vector3f{};
+		return matrix::Vector3f();
 	}
 
 	/* Maximum tilt is 0 */
@@ -160,7 +162,7 @@ void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], 
 	}
 }
 
-vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float &yaw_sp)
+vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp)
 {
 
 	vehicle_attitude_setpoint_s att_sp;
@@ -225,6 +227,5 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 	att_sp.thrust = thr_sp.length();
 
 	return att_sp;
-
 }
 }
