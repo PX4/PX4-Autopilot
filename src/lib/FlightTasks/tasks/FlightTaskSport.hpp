@@ -43,6 +43,8 @@
 #include "mathlib/mathlib.h"
 #include <float.h>
 
+using namespace matrix;
+
 class FlightTaskSport : public FlightTaskManualPosition
 {
 public:
@@ -70,12 +72,13 @@ protected:
 		}
 
 		/* Scale to velocity using max velocity */
-		_vel_sp_xy = stick_xy * _vel_xy_max.get();
+		Vector2f vel_sp_xy = stick_xy * _vel_xy_max.get();
 
 		/* Rotate setpoint into local frame. */
-		matrix::Vector3f vel_sp { _vel_sp_xy(0), _vel_sp_xy(1), 0.0f };
-		vel_sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw)) * vel_sp);
-		_vel_sp_xy = matrix::Vector2f(vel_sp(0), vel_sp(1));
+		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
+		matrix::Vector3f vel_world = q_yaw.conjugate(matrix::Vector3f(vel_sp_xy(0), vel_sp_xy(1), 0.0f));
+		_vel_sp(0) = vel_world(0);
+		_vel_sp(1) = vel_world(1);
 	}
 
 private:
