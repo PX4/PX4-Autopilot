@@ -434,6 +434,7 @@ then
 		sh /etc/init.d/rc.sensors
 		commander start
 	fi
+
 	send_event start
 	load_mon start
 
@@ -599,7 +600,7 @@ then
 			# Avoid using either of the two available serials
 			set MAVLINK_F none
 		fi
-fi
+	fi
 
 	if [ "x$MAVLINK_F" == xnone ]
 	then

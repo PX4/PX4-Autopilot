@@ -34,9 +34,6 @@ else
 	# Internal SPI (auto detect ms5611 or ms5607)
 	ms5611 -T 0 -s start
 
-	# Blacksheep telemetry
-	bst start
-
 	adc start
 fi
 
@@ -54,10 +51,6 @@ fi
 
 if ver hwcmp AUAV_X21
 then
-	# External I2C bus
-	hmc5883 -C -T -X start
-	lis3mdl -X start
-
 	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
 	mpu6000 -R 2 -T 20608 start
 
@@ -72,10 +65,6 @@ if ver hwcmp PX4FMU_V2
 then
 	# V2 build hwtypecmp is always false
 	set BOARD_FMUV3 0
-
-	# External I2C bus
-	hmc5883 -C -T -X start
-	lis3mdl -X start
 
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 4 start
@@ -171,23 +160,12 @@ fi
 
 if ver hwcmp PX4_SAME70XPLAINED_V1
 then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
 	# Internal SPI bus mpu9250 is rotated 90 deg yaw
 	mpu9250 -R 2 start
 fi
 
 if ver hwcmp PX4FMU_V4
 then
-	# External I2C bus
-	hmc5883 -C -T -X start
-	lis3mdl -X start
-	bmp280 -I start
-
-	# expansion i2c used for BMM150 rotated by 90deg
-	bmm150 -R 2 start
-
 	if hmc5883 -C -T -S -R 2 start
 	then
 		# hmc5883 internal SPI bus is rotated 90 deg yaw
@@ -233,9 +211,6 @@ fi
 
 if ver hwcmp MINDPX_V2
 then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 12 start
 
@@ -263,9 +238,6 @@ if ver hwcmp AEROFC_V1
 then
 	ms5611 -T 0 start
 	mpu9250 -s -R 14 start
-
-	# Possible external compasses
-	hmc5883 -X start
 
 	ist8310 -C -b 1 -R 4 start
 	aerofc_adc start
@@ -295,14 +267,10 @@ then
 
 	# Internal SPI bus
 	lis3mdl -R 0 start
-
-	# Possible external compasses
-	hmc5883 -C -T -X start
 fi
 
 if ver hwcmp PX4FMU_V5
 then
-
 	# Internal SPI bus ICM-20602
 	mpu6000 -R 8 -s -T 20602 start
 
@@ -315,14 +283,6 @@ then
 	# Internal SPI bus BMI055 gyro
 	bmi055 -G -R 10 start
 
-	# Possible external compasses
-	hmc5883 -C -T -X start
-
-	# Possible external compasses
-
-	ist8310 -C -b 1 start
-	ist8310 -C -b 2 start
-
 	# Possible internal compass
 	ist8310 -C -b 5 start
 fi
@@ -333,126 +293,7 @@ then
 	lsm303d start
 fi
 
-#
-# Optional drivers
-#
-
-if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
-then
-	if param compare CBRK_AIRSPD_CHK 0
-	then
-		if sdp3x_airspeed start
-		then
-		else
-			sdp3x_airspeed start -b 2
-		fi
-
-		# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
-		# detected as MS5525 because the chip manufacturer was so
-		# clever to assign the same I2C address and skip a WHO_AM_I
-		# register.
-		if [ $BOARD_FMUV3 == 21 ]
-		then
-			ms5525_airspeed start -b 2
-		else
-			ms5525_airspeed start
-		fi
-
-		if ms4525_airspeed start
-		then
-		else
-			ms4525_airspeed start -b 2
-		fi
-
-		if ets_airspeed start
-		then
-		else
-			ets_airspeed start -b 1
-		fi
-	fi
-fi
-
-# Sensors on the PWM interface bank
-if param compare SENS_EN_LL40LS 1
-then
-	if pwm_input start
-	then
-		ll40ls start pwm
-	fi
-fi
-
-# Lidar-Lite on I2C
-if param compare SENS_EN_LL40LS 2
-then
-	ll40ls start i2c
-fi
-
-# lightware serial lidar sensor
-if param greater SENS_EN_SF0X 0
-then
-	sf0x start
-fi
-
-# lightware i2c lidar sensor
-if param greater SENS_EN_SF1XX 0
-then
-	sf1xx start
-fi
-
-# mb12xx sonar sensor
-if param greater SENS_EN_MB12XX 0
-then
-	mb12xx start
-fi
-
-# teraranger one tof sensor
-if param greater SENS_EN_TRANGER 0
-then
-	teraranger start
-fi
-
-# Benewake TFMini
-if param greater SENS_EN_TFMINI 0
-then
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
-	then
-		# start the driver on serial 4/5
-		tfmini start -d /dev/ttyS6
-	else
-		if ver hwcmp AEROFC_V1
-		then
-			# start the driver on telemetry
-			tfmini start -d /dev/ttyS3
-		else
-			if param compare SYS_COMPANION 0
-			then
-				# start on default mavlink companion device
-				tfmini start -d /dev/ttyS2
-			fi
-		fi
-	fi
-fi
-
-# LeddarOne
-if param greater SENS_EN_LEDDAR1 0
-then
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
-	then
-		# start the driver on serial 4/5
-		leddar_one -d /dev/ttyS6 start
-	fi
-	if ver hwcmp AEROFC_V1
-	then
-		# start the driver on telemetry
-		leddar_one -d /dev/ttyS3 start
-	else
-		if param compare SYS_COMPANION 0
-		then
-			# start on default mavlink companion device
-			leddar_one -d /dev/ttyS2 start
-		fi
-	fi
-fi
+sh /etc/init.d/rc.sensors_external
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 20000
