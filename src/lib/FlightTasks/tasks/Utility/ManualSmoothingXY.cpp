@@ -123,8 +123,8 @@ ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::V
 		 * that the user demanded a direction change.
 		 * The detection is done in body frame. */
 		/* Rotate velocity setpoint into body frame */
-		matrix::Vector2f vel_sp_heading = _getInHeadingFrame(vel_sp, yaw);
-		matrix::Vector2f vel_heading = _getInHeadingFrame(vel, yaw);
+		matrix::Vector2f vel_sp_heading = _getWorldToHeadingFrame(vel_sp, yaw);
+		matrix::Vector2f vel_heading = _getWorldToHeadingFrame(vel, yaw);
 
 		if (vel_sp_heading.length() > FLT_EPSILON) {
 			vel_sp_heading.normalize();
@@ -250,7 +250,7 @@ ManualSmoothingXY::_velocitySlewRate(matrix::Vector2f &vel_sp, const float dt)
 }
 
 matrix::Vector2f
-ManualSmoothingXY::_getInHeadingFrame(const matrix::Vector2f &vec, const float &yaw)
+ManualSmoothingXY::_getWorldToHeadingFrame(const matrix::Vector2f &vec, const float &yaw)
 {
 
 	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
@@ -259,10 +259,10 @@ ManualSmoothingXY::_getInHeadingFrame(const matrix::Vector2f &vec, const float &
 }
 
 matrix::Vector2f
-ManualSmoothingXY::_getInWorldFrame(const matrix::Vector2f &vec, const float &yaw)
+ManualSmoothingXY::_getHeadingToWorldFrame(const matrix::Vector2f &vec, const float &yaw)
 {
 
 	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
-	matrix::Vector3f vec_heading = q_yaw.conjugate(matrix::Vector3f(vec(0), vec(1), 0.0f));
-	return matrix::Vector2f(&vec_heading(0));
+	matrix::Vector3f vec_world = q_yaw.conjugate(matrix::Vector3f(vec(0), vec(1), 0.0f));
+	return matrix::Vector2f(&vec_world(0));
 }
