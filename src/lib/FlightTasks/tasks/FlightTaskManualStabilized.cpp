@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@ FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *pare
 
 bool FlightTaskManualStabilized::activate()
 {
-	_yaw_sp = NAN;
+	_resetToNAN();
 	_yaw_rate_sp = 0.0f;
 	_thr_sp = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
 	return FlightTaskManual::activate();
@@ -130,11 +130,14 @@ float FlightTaskManualStabilized::_throttleCurve()
 
 bool FlightTaskManualStabilized::update()
 {
-	_scaleSticks(); // scales sticks linearly to yaw/yawspeed and thrust
-	_updateSetpoints(); // applies yaw and position lock if required
+	_scaleSticks();
+	_updateSetpoints();
+
+	_setPositionSetpoint(_pos_sp);
+	_setVelocitySetpoint(_vel_sp);
+	_setThrustSetpoint(_thr_sp);
 	_setYawSetpoint(_yaw_sp);
 	_setYawspeedSetpoint(_yaw_rate_sp);
-	_setThrustSetpoint(_thr_sp);
 
 	return true;
 }

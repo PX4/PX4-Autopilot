@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,24 +54,20 @@ public:
 	bool update() override;
 
 protected:
-	float _yaw_rate_sp{}; /**< Scaled yaw rate from stick. NAN if yaw is locked. */
-	float _yaw_sp{}; /**< Yaw setpoint once locked. Otherwise NAN. */
-	matrix::Vector3f _thr_sp{}; /**< Thrust setpoint from sticks */
-
-	virtual void _updateSetpoints(); /**< Updates all setpoints. */
-	virtual void _scaleSticks(); /**< Scales sticks to yaw and thrust. */
+	virtual void _updateSetpoints(); /**< updates all setpoints*/
+	virtual void _scaleSticks(); /**< scales sticks to yaw and thrust */
 
 private:
 
-	float _throttle{}; /** Mapped from stick z. */
+	float _throttle{}; /** mapped from stick z */
 
-	void _updateHeadingSetpoints(); /**< Sets yaw or yaw speed. */
-	void _updateThrustSetpoints(); /**< Sets thrust setpoint */
-	float _throttleCurve(); /**< Piecewise linear mapping from stick to throttle. */
+	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
+	void _updateThrustSetpoints(); /**< sets thrust setpoint */
+	float _throttleCurve(); /**< piecewise linear mapping from stick to throttle */
 
-	control::BlockParamFloat _yaw_rate_scaling; /**< Scaling factor from stick to yaw rate. */
-	control::BlockParamFloat _tilt_max_man; /**< Maximum tilt allowed for manual flight */
-	control::BlockParamFloat _throttle_min; /**< Minimum throttle that always has to be satisfied in flight*/
-	control::BlockParamFloat _throttle_max; /**< Maximum throttle that always has to be satisfied in flight*/
-	control::BlockParamFloat _throttle_hover; /**< Throttle value at which vehicle is at hover equilibrium */
+	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
+	control::BlockParamFloat _tilt_max_man; /**< maximum tilt allowed for manual flight */
+	control::BlockParamFloat _throttle_min; /**< minimum throttle that always has to be satisfied in flight*/
+	control::BlockParamFloat _throttle_max; /**< maximum throttle that always has to be satisfied in flight*/
+	control::BlockParamFloat _throttle_hover; /**< yhrottle value at which vehicle is at hover equilibrium */
 };
