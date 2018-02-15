@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -97,4 +97,13 @@ bool FlightTaskManual::_evaluateSticks()
 		_sticks_expo.zero();
 		return false;
 	}
+}
+
+void FlightTaskManual::_resetToNAN()
+{
+	_thr_sp *= NAN;
+	_vel_sp *= NAN;
+	_pos_sp *= NAN;
+	_yaw_sp = NAN;
+	_yaw_rate_sp = NAN;
 }
