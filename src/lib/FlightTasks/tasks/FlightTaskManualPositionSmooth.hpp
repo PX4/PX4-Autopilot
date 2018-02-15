@@ -49,14 +49,9 @@ public:
 
 	virtual ~FlightTaskManualPositionSmooth() = default;
 
-	bool activate() override;
-
 protected:
 
 	virtual void _updateSetpoints() override;
-	ManualSmoothingXY _smoothingXY; // Smoothing for velocity setpoints.
-	ManualSmoothingZ _smoothingZ; //Smoothing for velocity in z.
-	float _vel_sp_prev_z{}; // Velocity setpoint from previous iteration.
-
-
+	ManualSmoothingXY _smoothingXY; /**< smoothing for velocity setpoints in xy */
+	ManualSmoothingZ _smoothingZ; /**< smoothing for velocity in z */
 };
