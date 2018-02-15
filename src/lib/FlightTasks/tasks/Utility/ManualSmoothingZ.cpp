@@ -60,13 +60,9 @@ void
 ManualSmoothingZ::smoothVelFromSticks(float &vel_sp, const float dt)
 {
 	updateParams();
-
 	updateAcceleration(vel_sp, dt);
-
 	velocitySlewRate(vel_sp, dt);
-
 	_vel_sp_prev = vel_sp;
-
 }
 
 void
@@ -88,7 +84,6 @@ ManualSmoothingZ::setParams()
 	param_get(_acc_max_up_h, &_acc_max_up);
 	param_get(_acc_max_down_h, &_acc_max_down);
 	param_get(_jerk_max_h, &_jerk_max);
-
 }
 
 void
