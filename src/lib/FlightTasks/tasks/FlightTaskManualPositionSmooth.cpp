@@ -45,27 +45,23 @@ FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth(control::SuperBlo
 	_smoothingZ(_velocity(2), _sticks(2))
 {}
 
-
-bool FlightTaskManualPositionSmooth::activate()
-{
-	_vel_sp_prev_z = _velocity(2);
-	return FlightTaskManualPosition::activate();
-}
-
 void FlightTaskManualPositionSmooth::_updateSetpoints()
 {
-	/* Get yaw setpont, unsmoothed position setpoints */
+	/* Get yaw setpont, un-smoothed position setpoints.*/
 	FlightTaskManualPosition::_updateSetpoints();
 
-	/* Smooth velocity setpoint in xy */
+	/* Smooth velocity setpoint in xy.*/
 	matrix::Vector2f vel(&_velocity(0));
-	_smoothingXY.smoothVelocity(_vel_sp_xy, vel, _yaw, _yaw_rate_sp, _deltatime);
+	Vector2f vel_sp_xy = Vector2f(&_vel_sp(0));
+	_smoothingXY.smoothVelocity(vel_sp_xy, vel, _yaw, _yaw_rate_sp, _deltatime);
+	_vel_sp(0) = vel_sp_xy(0);
+	_vel_sp(1) = vel_sp_xy(1);
 
-	/* Check for altitude lock*/
+	/* Check for altitude lock.*/
 	_updateXYlock();
 
-	/* Smooth velocity in z*/
-	_smoothingZ.smoothVelFromSticks(_vel_sp_z, _deltatime);
+	/* Smooth velocity in z.*/
+	_smoothingZ.smoothVelFromSticks(_vel_sp(2), _deltatime);
 
 	/* Check for altitude lock*/
 	_updateAltitudeLock();
