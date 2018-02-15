@@ -116,7 +116,7 @@ private:
 	void _getStateAcceleration(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const Intention &intention,
 				   const float dt);
 	void _velocitySlewRate(matrix::Vector2f &vel_sp, const float dt);
-	matrix::Vector2f _getInHeadingFrame(const matrix::Vector2f &vec, const float &yaw) ;
-	matrix::Vector2f _getInWorldFrame(const matrix::Vector2f &vec, const float &yaw);
+	matrix::Vector2f _getWorldToHeadingFrame(const matrix::Vector2f &vec, const float &yaw) ;
+	matrix::Vector2f _getHeadingToWorldFrame(const matrix::Vector2f &vec, const float &yaw);
 
 };
