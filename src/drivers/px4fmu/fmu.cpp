@@ -1294,7 +1294,6 @@ PX4FMU::cycle()
 					// factor 2 is needed because actuator outputs are in the range [-1,1]
 					const float delta_out_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
 					_mixers->set_max_delta_out_once(delta_out_max);
-					_mixers->set_airmode(_airmode);
 				}
 
 				if (_thr_mdl_fac > FLT_EPSILON) {
@@ -1362,6 +1361,8 @@ PX4FMU::cycle()
 					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance,
 							 ORB_PRIO_DEFAULT);
 				}
+
+				_mixers->set_airmode(_airmode);
 
 				perf_end(_ctl_latency);
 			}
@@ -1791,7 +1792,7 @@ void PX4FMU::update_params()
 	param_handle = param_find("MC_AIRMODE");
 
 	if (param_handle != PARAM_INVALID) {
-		int val;
+		int32_t val;
 		param_get(param_handle, &val);
 		_airmode = val > 0;
 		PX4_DEBUG("%s: %d", "MC_AIRMODE", _airmode);
