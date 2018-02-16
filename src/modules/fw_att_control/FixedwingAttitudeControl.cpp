@@ -42,54 +42,13 @@ extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	SuperBlock(nullptr, "FW_ATT"),
-	/* subscriptions */
-	_att_sub(-1),
-	_att_sp_sub(-1),
-	_battery_status_sub(-1),
-	_global_pos_sub(-1),
-	_manual_sub(-1),
-	_params_sub(-1),
-	_vcontrol_mode_sub(-1),
-	_vehicle_land_detected_sub(-1),
-	_vehicle_status_sub(-1),
-
-	/* publications */
-	_rate_sp_pub(nullptr),
-	_attitude_sp_pub(nullptr),
-	_actuators_0_pub(nullptr),
-	_actuators_2_pub(nullptr),
-	_rate_ctrl_status_pub(nullptr),
-
-	_rates_sp_id(nullptr),
-	_actuators_id(nullptr),
-	_attitude_setpoint_id(nullptr),
-
 	_sub_airspeed(ORB_ID(airspeed), 0, 0, &getSubscriptions()),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
-	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano")),
-	/* states */
-	_flaps_applied(0),
-	_flaperons_applied(0),
-	_roll(0.0f),
-	_pitch(0.0f),
-	_yaw(0.0f)
+	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano"))
 {
-	/* safely initialize structs */
-	_actuators = {};
-	_actuators_airframe = {};
-	_att = {};
-	_att_sp = {};
-	_battery_status = {};
-	_global_pos = {};
-	_manual = {};
-	_rates_sp = {};
-	_vcontrol_mode = {};
-	_vehicle_land_detected = {};
-	_vehicle_status = {};
-
 	_parameter_handles.p_tc = param_find("FW_P_TC");
 	_parameter_handles.p_p = param_find("FW_PR_P");
 	_parameter_handles.p_i = param_find("FW_PR_I");
