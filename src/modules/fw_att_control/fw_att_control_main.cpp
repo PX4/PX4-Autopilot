@@ -124,6 +124,7 @@ private:
 	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
+	int		_airspeed_sub;		/**< airspeed subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
@@ -146,8 +147,7 @@ private:
 	struct vehicle_land_detected_s			_vehicle_land_detected;	/**< vehicle land detected */
 	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
 	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
-
-	Subscription<airspeed_s>			_sub_airspeed;
+	struct airspeed_s _airspeed; /**< airspeed */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -329,6 +329,11 @@ private:
 	void		battery_status_poll();
 
 	/**
+	 * Check for airspeed updates.
+	 */
+	void		airspeed_poll();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -361,6 +366,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_vcontrol_mode_sub(-1),
 	_vehicle_land_detected_sub(-1),
 	_vehicle_status_sub(-1),
+	_airspeed_sub(-1),
 
 	/* publications */
 	_rate_sp_pub(nullptr),
@@ -372,8 +378,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_rates_sp_id(nullptr),
 	_actuators_id(nullptr),
 	_attitude_setpoint_id(nullptr),
-
-	_sub_airspeed(ORB_ID(airspeed), 0, 0, nullptr),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
@@ -707,6 +711,18 @@ FixedwingAttitudeControl::battery_status_poll()
 }
 
 void
+FixedwingAttitudeControl::airspeed_poll()
+{
+	/* check if there is a new message */
+	bool updated;
+	orb_check(_airspeed_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+	}
+}
+
+void
 FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	att_control::g_control->task_main();
@@ -727,6 +743,7 @@ FixedwingAttitudeControl::task_main()
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 
 	parameters_update();
 
@@ -737,7 +754,7 @@ FixedwingAttitudeControl::task_main()
 	vehicle_status_poll();
 	vehicle_land_detected_poll();
 	battery_status_poll();
-	_sub_airspeed.update();
+	airspeed_poll();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
@@ -851,7 +868,6 @@ FixedwingAttitudeControl::task_main()
 				_att.yawspeed = helper;
 			}
 
-			_sub_airspeed.update();
 			vehicle_setpoint_poll();
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
@@ -859,6 +875,7 @@ FixedwingAttitudeControl::task_main()
 			vehicle_status_poll();
 			vehicle_land_detected_poll();
 			battery_status_poll();
+			airspeed_poll();
 
 			// the position controller will not emit attitude setpoints in some modes
 			// we need to make sure that this flag is reset
@@ -938,12 +955,12 @@ FixedwingAttitudeControl::task_main()
 				float airspeed;
 
 				/* if airspeed is non-finite or not valid or if we are asked not to control it, we assume the normal average speed */
-				const bool airspeed_valid = PX4_ISFINITE(_sub_airspeed.get().indicated_airspeed_m_s)
-							    && ((_sub_airspeed.get().timestamp - hrt_absolute_time()) < 1e6);
+				const bool airspeed_valid = PX4_ISFINITE(_airspeed.indicated_airspeed_m_s)
+							    && (fabs((double)_airspeed.timestamp - (double)hrt_absolute_time()) < 1.0e6);
 
 				if (airspeed_valid) {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-					airspeed = math::max(0.5f, _sub_airspeed.get().indicated_airspeed_m_s);
+					airspeed = math::max(0.5f, _airspeed.indicated_airspeed_m_s);
 
 				} else {
 					airspeed = _parameters.airspeed_trim;
