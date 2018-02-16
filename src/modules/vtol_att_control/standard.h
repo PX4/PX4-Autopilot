@@ -62,7 +62,6 @@ public:
 	virtual void update_fw_state();
 	virtual void update_mc_state();
 	virtual void fill_actuator_outputs();
-	virtual void waiting_on_tecs();
 
 private:
 
@@ -78,11 +77,14 @@ private:
 		float down_pitch_max;
 		float forward_thrust_scale;
 		int32_t airspeed_disabled;
+		float airspeed_min;
+		float airspeed_trim;
 		float pitch_setpoint_offset;
 		float reverse_output;
 		float reverse_delay;
 		float back_trans_throttle;
 		float mpc_xy_cruise;
+		float mpc_thr_hover;
 	} _params_standard;
 
 	struct {
@@ -97,11 +99,14 @@ private:
 		param_t down_pitch_max;
 		param_t forward_thrust_scale;
 		param_t airspeed_disabled;
+		param_t airspeed_min;
+		param_t airspeed_trim;
 		param_t pitch_setpoint_offset;
 		param_t reverse_output;
 		param_t reverse_delay;
 		param_t back_trans_throttle;
 		param_t mpc_xy_cruise;
+		param_t mpc_thr_hover;
 	} _params_handles_standard;
 
 	enum vtol_mode {
@@ -119,7 +124,6 @@ private:
 	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
 	float _reverse_output;
-	float _airspeed_trans_blend_margin;
 
 	void set_max_mc(unsigned pwm_value);
 

@@ -220,8 +220,7 @@ static struct vehicle_status_s status = {};
 static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
-static struct vehicle_control_mode_s control_mode = {};
-static struct offboard_control_mode_s offboard_control_mode = {};
+
 static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
 static struct commander_state_s internal_state = {};
@@ -232,7 +231,6 @@ static manual_control_setpoint_s sp_man = {};		///< the current manual control s
 static manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
 static uint8_t _last_sp_man_arm_switch = 0;
 
-static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
 
 
@@ -295,9 +293,7 @@ void reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_l
 
 bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy, const hrt_abstime& data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state, bool *validity_changed);
 
-void set_control_mode();
-
-bool stabilization_required();
+bool stabilization_required(const vehicle_status_s& vstatus);
 
 void print_reject_mode(struct vehicle_status_s *current_status, const char *msg);
 
@@ -1365,10 +1361,6 @@ Commander::run()
 	/* armed topic */
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
-	/* vehicle control mode topic */
-	memset(&control_mode, 0, sizeof(control_mode));
-	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
-
 	/* home position */
 	orb_advert_t home_pub = nullptr;
 	memset(&_home, 0, sizeof(_home));
@@ -1409,10 +1401,6 @@ Commander::run()
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	memset(&sp_man, 0, sizeof(sp_man));
-
-	/* Subscribe to offboard control data */
-	int offboard_control_mode_sub = orb_subscribe(ORB_ID(offboard_control_mode));
-	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));
 
 	/* Subscribe to telemetry status topics */
 	int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
@@ -1494,9 +1482,6 @@ Commander::run()
 
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
-	//struct vtol_vehicle_status_s vtol_status;
-	memset(&vtol_status, 0, sizeof(vtol_status));
-	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
 	/* subscribe to estimator status topic */
 	int estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
@@ -1531,8 +1516,8 @@ Commander::run()
 	int32_t system_type;
 	param_get(_param_sys_type, &system_type); // get system type
 	status.system_type = (uint8_t)system_type;
-	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
-	status.is_vtol = is_vtol(&status);
+	status.is_rotary_wing = is_rotary_wing(status) || is_vtol(status);
+	status.is_vtol = is_vtol(status);
 
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
@@ -1576,7 +1561,7 @@ Commander::run()
 			// sensor diagnostics done continuously, not just at boot so don't warn about any issues just yet
 			status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true,
 				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status_flags.circuit_breaker_engaged_gpsfailure_check,
-				false, is_vtol(&status), false, false, hrt_elapsed_time(&commander_boot_timestamp));
+				false, status.is_vtol, false, false, hrt_elapsed_time(&commander_boot_timestamp));
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
@@ -1663,16 +1648,8 @@ Commander::run()
 					status.system_type = (uint8_t)system_type;
 				}
 
-				/* disable manual override for all systems that rely on electronic stabilization */
-				if (is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode)) {
-					status.is_rotary_wing = true;
-
-				} else {
-					status.is_rotary_wing = false;
-				}
-
-				/* set vehicle_status.is_vtol flag */
-				status.is_vtol = is_vtol(&status);
+				status.is_vtol = is_vtol(status);
+				status.is_rotary_wing = is_rotary_wing(status) || status.is_vtol;
 
 				/* check and update system / component ID */
 				int32_t sys_id = 0;
@@ -1777,14 +1754,11 @@ Commander::run()
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 		}
 
-		orb_check(offboard_control_mode_sub, &updated);
+		updated = _offboard_control_mode_sub.update();
 
-		if (updated) {
-			orb_copy(ORB_ID(offboard_control_mode), offboard_control_mode_sub, &offboard_control_mode);
-		}
+		if ((_offboard_control_mode_sub.get().timestamp > commander_boot_timestamp) &&
+			(hrt_elapsed_time(&_offboard_control_mode_sub.get().timestamp) < OFFBOARD_TIMEOUT)) {
 
-		if (offboard_control_mode.timestamp != 0 &&
-		    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
 			if (status_flags.offboard_control_signal_lost) {
 				status_flags.offboard_control_signal_lost = false;
 				status_flags.offboard_control_loss_timeout = false;
@@ -1798,14 +1772,14 @@ Commander::run()
 			}
 
 			/* check timer if offboard was there but now lost */
-			if (!status_flags.offboard_control_loss_timeout && offboard_control_mode.timestamp != 0) {
+			if (!status_flags.offboard_control_loss_timeout && _offboard_control_mode_sub.get().timestamp != 0) {
 				if (offboard_loss_timeout < FLT_EPSILON) {
 					/* execute loss action immediately */
 					status_flags.offboard_control_loss_timeout = true;
 
 				} else {
 					/* wait for timeout if set */
-					status_flags.offboard_control_loss_timeout = offboard_control_mode.timestamp +
+					status_flags.offboard_control_loss_timeout = _offboard_control_mode_sub.get().timestamp +
 						OFFBOARD_TIMEOUT + offboard_loss_timeout * 1e6f < hrt_absolute_time();
 				}
 
@@ -1847,12 +1821,12 @@ Commander::run()
 						/* HITL configuration: check only RC input */
 						Preflight::preflightCheck(&mavlink_log_pub, false, false,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
-								 true, is_vtol(&status), false, false, hrt_elapsed_time(&commander_boot_timestamp));
+								 true, status.is_vtol, false, false, hrt_elapsed_time(&commander_boot_timestamp));
 					} else {
 						/* check sensors also */
 						Preflight::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT,
-								 true, is_vtol(&status), hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
+								 true, status.is_vtol, hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
 					}
 
 					// Provide feedback on mission state
@@ -1966,25 +1940,42 @@ Commander::run()
 
 		if (updated) {
 			/* vtol status changed */
-			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
-			status.vtol_fw_permanent_stab = vtol_status.fw_permanent_stab;
+			vtol_vehicle_status_s vtol_status = {};
+			int ret = orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
 
 			/* Make sure that this is only adjusted if vehicle really is of type vtol */
-			if (is_vtol(&status)) {
+			if ((ret == PX4_OK) && (vtol_status.timestamp > commander_boot_timestamp) && status.is_vtol) {
+
+				status.vtol_fw_permanent_stab = vtol_status.fw_permanent_stab;
+
+				bool is_rotary_wing = true;
+				bool in_transition_mode = false;
+
+				switch (vtol_status.vtol_state) {
+				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW:
+					in_transition_mode = true;
+					break;
+				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC:
+					in_transition_mode = true;
+					break;
+				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC:
+					break;
+				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW:
+					is_rotary_wing = false;
+					break;
+
+				default:
+					break;
+				}
 
 				// Check if there has been any change while updating the flags
-				if (status.is_rotary_wing != vtol_status.vtol_in_rw_mode) {
-					status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
+				if (status.is_rotary_wing != is_rotary_wing) {
+					status.is_rotary_wing = is_rotary_wing;
 					status_changed = true;
 				}
 
-				if (status.in_transition_mode != vtol_status.vtol_in_trans_mode) {
-					status.in_transition_mode = vtol_status.vtol_in_trans_mode;
-					status_changed = true;
-				}
-
-				if (status.in_transition_to_fw != vtol_status.in_transition_to_fw) {
-					status.in_transition_to_fw = vtol_status.in_transition_to_fw;
+				if (status.in_transition_mode != in_transition_mode) {
+					status.in_transition_mode = in_transition_mode;
 					status_changed = true;
 				}
 
@@ -3023,10 +3014,9 @@ Commander::run()
 		}
 
 		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags) at 1 Hz or immediately when changed */
-		if (hrt_elapsed_time(&control_mode.timestamp) >= 1000000 || status_changed) {
-			set_control_mode();
-			control_mode.timestamp = now;
-			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
+		if (hrt_elapsed_time(&status.timestamp) >= 1000000 || status_changed) {
+
+			publish_control_mode(status, _offboard_control_mode_sub.get());
 
 			status.timestamp = now;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
@@ -3101,7 +3091,7 @@ Commander::run()
 		}
 
 		/* play sensor failure tunes if we already waited for hotplug sensors to come up and failed */
-		hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
+		hotplug_timeout = (hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
 
 		if (!sensor_fail_tune_played && (!status_flags.condition_system_sensors_initialized && hotplug_timeout)) {
 			set_tune_override(TONE_GPS_WARNING_TUNE);
@@ -3158,7 +3148,6 @@ Commander::run()
 	led_deinit();
 	buzzer_deinit();
 	px4_close(sp_man_sub);
-	px4_close(offboard_control_mode_sub);
 	px4_close(local_position_sub);
 	px4_close(global_position_sub);
 	px4_close(gps_sub);
@@ -3786,84 +3775,52 @@ check_posvel_validity(const bool data_valid, const float data_accuracy, const fl
 	return valid;
 }
 
-void
-set_control_mode()
+bool
+Commander::publish_control_mode(const vehicle_status_s& vstatus, const offboard_control_mode_s& offboard_control_mode)
 {
-	/* set vehicle_control_mode according to set_navigation_state */
-	control_mode.flag_armed = armed.armed;
-	control_mode.flag_external_manual_override_ok = (!status.is_rotary_wing && !status.is_vtol);
-	control_mode.flag_system_hil_enabled = status.hil_state == vehicle_status_s::HIL_STATE_ON;
-	control_mode.flag_control_offboard_enabled = false;
+	// all flags default to false
+	vehicle_control_mode_s control_mode = {};
+	control_mode.timestamp = hrt_absolute_time();
+	control_mode.flag_armed = (vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	control_mode.flag_external_manual_override_ok = (!vstatus.is_rotary_wing && !vstatus.is_vtol);
 
-	switch (status.nav_state) {
+	/* set vehicle_control_mode according to set_navigation_state */
+	switch (vstatus.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_auto_enabled = false;
-		control_mode.flag_control_rates_enabled = stabilization_required();
-		control_mode.flag_control_attitude_enabled = stabilization_required();
-		control_mode.flag_control_rattitude_enabled = false;
-		control_mode.flag_control_altitude_enabled = false;
-		control_mode.flag_control_climb_rate_enabled = false;
-		control_mode.flag_control_position_enabled = false;
-		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
+		control_mode.flag_control_rates_enabled = stabilization_required(status);
+		control_mode.flag_control_attitude_enabled = stabilization_required(status);
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = false;
-		control_mode.flag_control_altitude_enabled = false;
-		control_mode.flag_control_climb_rate_enabled = false;
-		control_mode.flag_control_position_enabled = false;
-		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
 		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_rattitude_enabled = true;
-		control_mode.flag_control_altitude_enabled = false;
-		control_mode.flag_control_climb_rate_enabled = false;
-		control_mode.flag_control_position_enabled = false;
-		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_position_enabled = false;
-		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_position_enabled = !status.in_transition_mode;
-		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
+		control_mode.flag_control_position_enabled = !vstatus.in_transition_mode;
+		control_mode.flag_control_velocity_enabled = !vstatus.in_transition_mode;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
@@ -3879,80 +3836,40 @@ set_control_mode()
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = !status.in_transition_mode;
 		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-		control_mode.flag_control_manual_enabled = false;
-		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = false;
-		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_position_enabled = false;
-		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = false;
-		control_mode.flag_control_rattitude_enabled = false;
-		control_mode.flag_control_altitude_enabled = false;
-		control_mode.flag_control_climb_rate_enabled = false;
-		control_mode.flag_control_position_enabled = false;
-		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		/* TODO: check if this makes sense */
-		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = false;
-		control_mode.flag_control_position_enabled = false;
-		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		/* disable all controllers on termination */
-		control_mode.flag_control_manual_enabled = false;
-		control_mode.flag_control_auto_enabled = false;
-		control_mode.flag_control_rates_enabled = false;
-		control_mode.flag_control_attitude_enabled = false;
-		control_mode.flag_control_rattitude_enabled = false;
-		control_mode.flag_control_position_enabled = false;
-		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_altitude_enabled = false;
-		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_termination_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		control_mode.flag_control_manual_enabled = false;
-		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_offboard_enabled = true;
 
 		/*
@@ -3969,8 +3886,6 @@ set_control_mode()
 			!offboard_control_mode.ignore_position ||
 			!offboard_control_mode.ignore_velocity ||
 			!offboard_control_mode.ignore_acceleration_force;
-
-		control_mode.flag_control_rattitude_enabled = false;
 
 		control_mode.flag_control_acceleration_enabled = !offboard_control_mode.ignore_acceleration_force &&
 		  !status.in_transition_mode;
@@ -3991,17 +3906,28 @@ set_control_mode()
 		break;
 
 	default:
-		break;
+		return false;
 	}
+
+	if (_control_mode_pub == nullptr) {
+		_control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
+	} else {
+		orb_publish(ORB_ID(vehicle_control_mode), _control_mode_pub, &control_mode);
+	}
+
+	return true;
 }
 
 bool
-stabilization_required()
+stabilization_required(const vehicle_status_s& vstatus)
 {
-	return (status.is_rotary_wing ||		// is a rotary wing, or
-		status.vtol_fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
-		(vtol_status.vtol_in_trans_mode && 	// is currently a VTOL transitioning AND
-			!status.is_rotary_wing));	// is a fixed wing, ie: transitioning back to rotary wing mode
+	// is a rotary wing, or
+	// is a VTOL in fixed wing mode and stabilisation is on, or
+	// is currently a VTOL transitioning AND
+	// is a fixed wing, ie: transitioning back to rotary wing mode
+	return (vstatus.is_rotary_wing ||
+		vstatus.vtol_fw_permanent_stab ||
+		(vstatus.in_transition_mode && !vstatus.is_rotary_wing));
 }
 
 void
@@ -4265,7 +4191,7 @@ void *commander_low_prio_loop(void *arg)
 
 						status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
 							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), arm_requirements & ARM_REQ_GPS_BIT,
-							true, is_vtol(&status), hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
+							true, status.is_vtol, hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
 
 						arming_state_transition(&status,
 									&battery,

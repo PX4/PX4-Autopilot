@@ -59,6 +59,7 @@ param set SYS_RESTART_TYPE 2
 param set VT_MOT_COUNT 4
 param set VT_TRANS_THR 0.75
 param set VT_TYPE 2
+param set VT_ARSP_TRANS 18
 replay tryapplyparams
 simulator start -s
 tone_alarm start

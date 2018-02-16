@@ -193,29 +193,24 @@ void Tailsitter::update_vtol_state()
 	switch (_vtol_schedule.flight_mode) {
 	case MC_MODE:
 		_vtol_mode = ROTARY_WING;
-		_vtol_vehicle_status->vtol_in_trans_mode = false;
 		_flag_was_in_trans_mode = false;
 		break;
 
 	case FW_MODE:
 		_vtol_mode = FIXED_WING;
-		_vtol_vehicle_status->vtol_in_trans_mode = false;
 		_flag_was_in_trans_mode = false;
 		break;
 
 	case TRANSITION_FRONT_P1:
 		_vtol_mode = TRANSITION_TO_FW;
-		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
 
 	case TRANSITION_FRONT_P2:
 		_vtol_mode = TRANSITION_TO_FW;
-		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
 
 	case TRANSITION_BACK:
 		_vtol_mode = TRANSITION_TO_MC;
-		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
 	}
 }
@@ -336,12 +331,6 @@ void Tailsitter::update_transition_state()
 	math::Quaternion q_sp;
 	q_sp.from_euler(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body);
 	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
-}
-
-void Tailsitter::waiting_on_tecs()
-{
-	// copy the last trust value from the front transition
-	_v_att_sp->thrust = _thrust_transition;
 }
 
 void Tailsitter::update_mc_state()
