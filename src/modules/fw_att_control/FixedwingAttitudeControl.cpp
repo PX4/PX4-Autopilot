@@ -407,8 +407,6 @@ void FixedwingAttitudeControl::run()
 	fds[0].events = POLLIN;
 
 	while (!should_exit()) {
-		static int loop_counter = 0;
-
 		/* wait for up to 500ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
@@ -866,7 +864,6 @@ void FixedwingAttitudeControl::run()
 			}
 		}
 
-		loop_counter++;
 		perf_end(_loop_perf);
 	}
 }
