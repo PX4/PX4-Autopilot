@@ -578,8 +578,8 @@ protected:
 			bat_msg.serial_number = (battery_status.connected) ? battery_status.serial_number : 0;
 			bat_msg.capacity = (battery_status.connected) ? battery_status.capacity : 0;
 			bat_msg.cycle_count = (battery_status.connected) ? battery_status.cycle_count : UINT16_MAX;
-			bat_msg.run_time_to_empty = (battery_status.connected) ? battery_status.run_time_to_empty : 0;
-			bat_msg.average_time_to_empty = (battery_status.connected) ? battery_status.average_time_to_empty : 0;
+			bat_msg.run_time_to_empty = (battery_status.connected) ? battery_status.run_time_to_empty * 60 : 0;
+			bat_msg.average_time_to_empty = (battery_status.connected) ? battery_status.average_time_to_empty * 60 : 0;
 
 			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
 				if ((int)i < battery_status.cell_count && battery_status.connected) {
