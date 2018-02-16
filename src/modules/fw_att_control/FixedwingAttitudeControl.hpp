@@ -94,37 +94,37 @@ public:
 
 private:
 
-	int		_att_sub;			/**< vehicle attitude */
-	int		_att_sp_sub;			/**< vehicle attitude setpoint */
-	int		_battery_status_sub;		/**< battery status subscription */
-	int		_global_pos_sub;		/**< global position subscription */
-	int		_manual_sub;			/**< notification of manual control updates */
-	int		_params_sub;			/**< notification of parameter updates */
-	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
-	int		_vehicle_status_sub;		/**< vehicle status subscription */
+	int		_att_sub{-1};				/**< vehicle attitude */
+	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
+	int		_battery_status_sub{-1};		/**< battery status subscription */
+	int		_global_pos_sub{-1};			/**< global position subscription */
+	int		_manual_sub{-1};			/**< notification of manual control updates */
+	int		_params_sub{-1};			/**< notification of parameter updates */
+	int		_vcontrol_mode_sub{-1};			/**< vehicle status subscription */
+	int		_vehicle_land_detected_sub{-1};		/**< vehicle land detected subscription */
+	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
 
-	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
-	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
-	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
-	orb_advert_t	_actuators_2_pub;		/**< actuator control group 1 setpoint (Airframe) */
-	orb_advert_t	_rate_ctrl_status_pub;		/**< rate controller status publication */
+	orb_advert_t	_rate_sp_pub{nullptr};			/**< rate setpoint publication */
+	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint point */
+	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
+	orb_advert_t	_actuators_2_pub{nullptr};		/**< actuator control group 1 setpoint (Airframe) */
+	orb_advert_t	_rate_ctrl_status_pub{nullptr};		/**< rate controller status publication */
 
-	orb_id_t _rates_sp_id;	// pointer to correct rates setpoint uORB metadata structure
-	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
-	orb_id_t _attitude_setpoint_id;
+	orb_id_t _rates_sp_id{nullptr};	// pointer to correct rates setpoint uORB metadata structure
+	orb_id_t _actuators_id{nullptr};	// pointer to correct actuator controls0 uORB metadata structure
+	orb_id_t _attitude_setpoint_id{nullptr};
 
-	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
-	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
-	struct battery_status_s				_battery_status;	/**< battery status */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct vehicle_attitude_s			_att;		/**< vehicle attitude setpoint */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
-	struct vehicle_global_position_s		_global_pos;		/**< global position */
-	struct vehicle_land_detected_s			_vehicle_land_detected;	/**< vehicle land detected */
-	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
-	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
+	actuator_controls_s			_actuators {};		/**< actuator control inputs */
+	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
+	battery_status_s			_battery_status {};	/**< battery status */
+	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
+	vehicle_attitude_s			_att {};		/**< vehicle attitude setpoint */
+	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
+	vehicle_control_mode_s			_vcontrol_mode {};	/**< vehicle control mode */
+	vehicle_global_position_s		_global_pos {};		/**< global position */
+	vehicle_land_detected_s			_vehicle_land_detected {};	/**< vehicle land detected */
+	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
+	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
 	Subscription<airspeed_s>			_sub_airspeed;
 
@@ -132,8 +132,8 @@ private:
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
 	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
-	float _flaps_applied;
-	float _flaperons_applied;
+	float _flaps_applied{0.0f};
+	float _flaperons_applied{0.0f};
 
 	struct {
 		float p_tc;
@@ -193,7 +193,7 @@ private:
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 
-	}		_parameters{};			/**< local copies of interesting parameters */
+	} _parameters{};			/**< local copies of interesting parameters */
 
 	struct {
 
@@ -255,7 +255,7 @@ private:
 	} _parameter_handles{};		/**< handles for interesting parameters */
 
 	// Rotation matrix and euler angles to extract from control state
-	math::Matrix<3, 3> _R;
+	math::Matrix<3, 3> _R{};
 	float _roll{0.0f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
