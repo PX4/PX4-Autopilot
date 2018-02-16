@@ -128,6 +128,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(nullptr),
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
+	_obstacle_distance_pub(nullptr),
 	_land_detector_pub(nullptr),
 	_time_offset_pub(nullptr),
 	_follow_target_pub(nullptr),
@@ -319,6 +320,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_PLAY_TUNE:
 		handle_message_play_tune(msg);
+		break;
+
+	case MAVLINK_MSG_ID_OBSTACLE_DISTANCE:
+		handle_message_obstacle_distance(msg);
 		break;
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
@@ -1477,6 +1482,28 @@ MavlinkReceiver::handle_message_play_tune(mavlink_message_t *msg)
 				px4_close(fd);
 			}
 		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
+{
+	mavlink_obstacle_distance_t mavlink_obstacle_distance;
+	mavlink_msg_obstacle_distance_decode(msg, &mavlink_obstacle_distance);
+
+	obstacle_distance_s obstacle_distance = {};
+	obstacle_distance.timestamp = hrt_absolute_time();
+	obstacle_distance.sensor_type = mavlink_obstacle_distance.sensor_type;
+	memcpy(obstacle_distance.distances, mavlink_obstacle_distance.distances, sizeof(obstacle_distance.distances));
+	obstacle_distance.increment = mavlink_obstacle_distance.increment;
+	obstacle_distance.min_distance = mavlink_obstacle_distance.min_distance;
+	obstacle_distance.max_distance = mavlink_obstacle_distance.max_distance;
+
+	if (_obstacle_distance_pub == nullptr) {
+		_obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &obstacle_distance);
+
+	} else {
+		orb_publish(ORB_ID(obstacle_distance), _obstacle_distance_pub, &obstacle_distance);
 	}
 }
 
