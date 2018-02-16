@@ -41,6 +41,9 @@
  *
  */
 
+#include <controllib/block/BlockParam.hpp>
+#include <controllib/blocks.hpp>
+#include <px4_module.h>
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
@@ -82,38 +85,32 @@ using uORB::Subscription;
  */
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
-class FixedwingAttitudeControl
+
+class FixedwingAttitudeControl final : public control::SuperBlock, public ModuleBase<FixedwingAttitudeControl>
 {
 public:
-	/**
-	 * Constructor
-	 */
 	FixedwingAttitudeControl();
+	~FixedwingAttitudeControl() override;
 
-	/**
-	 * Destructor, also kills the main task.
-	 */
-	~FixedwingAttitudeControl();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Start the main task.
-	 *
-	 * @return	PX4_OK on success.
-	 */
-	int		start();
+	/** @see ModuleBase */
+	static FixedwingAttitudeControl *instantiate(int argc, char *argv[]);
 
-	/**
-	 * Task status
-	 *
-	 * @return	true if the mainloop is running
-	 */
-	bool		task_running() { return _task_running; }
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 private:
-
-	bool		_task_should_exit;		/**< if true, attitude control task should exit */
-	bool		_task_running;			/**< if true, task is running in its mainloop */
-	int		_control_task;			/**< task handle */
 
 	int		_att_sub;			/**< vehicle attitude */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
@@ -328,29 +325,10 @@ private:
 	 */
 	void		battery_status_poll();
 
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main attitude controller collection task.
-	 */
-	void		task_main();
-
 };
 
-namespace att_control
-{
-FixedwingAttitudeControl	*g_control = nullptr;
-}
-
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
-
-	_task_should_exit(false),
-	_task_running(false),
-	_control_task(-1),
-
+	SuperBlock(nullptr, "FW_ATT"),
 	/* subscriptions */
 	_att_sub(-1),
 	_att_sp_sub(-1),
@@ -373,7 +351,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_actuators_id(nullptr),
 	_attitude_setpoint_id(nullptr),
 
-	_sub_airspeed(ORB_ID(airspeed), 0, 0, nullptr),
+	_sub_airspeed(ORB_ID(airspeed), 0, 0, &getSubscriptions()),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
@@ -465,31 +443,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
 {
-	if (_control_task != -1) {
-
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_control_task);
-				break;
-			}
-		} while (_control_task != -1);
-	}
-
 	perf_free(_loop_perf);
 	perf_free(_nonfinite_input_perf);
 	perf_free(_nonfinite_output_perf);
-
-	att_control::g_control = nullptr;
 }
 
 int
@@ -706,14 +662,7 @@ FixedwingAttitudeControl::battery_status_poll()
 	}
 }
 
-void
-FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
-{
-	att_control::g_control->task_main();
-}
-
-void
-FixedwingAttitudeControl::task_main()
+void FixedwingAttitudeControl::run()
 {
 	/*
 	 * do subscriptions
@@ -737,7 +686,6 @@ FixedwingAttitudeControl::task_main()
 	vehicle_status_poll();
 	vehicle_land_detected_poll();
 	battery_status_poll();
-	_sub_airspeed.update();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
@@ -746,9 +694,7 @@ FixedwingAttitudeControl::task_main()
 	fds[0].fd = _att_sub;
 	fds[0].events = POLLIN;
 
-	_task_running = true;
-
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 		static int loop_counter = 0;
 
 		/* wait for up to 500ms for data */
@@ -851,7 +797,7 @@ FixedwingAttitudeControl::task_main()
 				_att.yawspeed = helper;
 			}
 
-			_sub_airspeed.update();
+			updateSubscriptions();
 			vehicle_setpoint_poll();
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
@@ -939,7 +885,7 @@ FixedwingAttitudeControl::task_main()
 
 				/* if airspeed is non-finite or not valid or if we are asked not to control it, we assume the normal average speed */
 				const bool airspeed_valid = PX4_ISFINITE(_sub_airspeed.get().indicated_airspeed_m_s)
-							    && ((_sub_airspeed.get().timestamp - hrt_absolute_time()) < 1e6);
+							    && (hrt_elapsed_time(&_sub_airspeed.get().timestamp) < 1e6);
 
 				if (airspeed_valid) {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
@@ -1245,100 +1191,67 @@ FixedwingAttitudeControl::task_main()
 		loop_counter++;
 		perf_end(_loop_perf);
 	}
-
-	warnx("exiting.\n");
-
-	_control_task = -1;
-	_task_running = false;
 }
 
-int
-FixedwingAttitudeControl::start()
+FixedwingAttitudeControl *FixedwingAttitudeControl::instantiate(int argc, char *argv[])
 {
-	ASSERT(_control_task == -1);
+	return new FixedwingAttitudeControl();
+}
 
-	/* start the task */
-	_control_task = px4_task_spawn_cmd("fw_att_control",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_ATTITUDE_CONTROL,
-					   1500,
-					   (px4_main_t)&FixedwingAttitudeControl::task_main_trampoline,
-					   nullptr);
+int FixedwingAttitudeControl::task_spawn(int argc, char *argv[])
+{
+	_task_id = px4_task_spawn_cmd("fw_att_controol",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_ATTITUDE_CONTROL,
+				      1500,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
-	if (_control_task < 0) {
-		warn("task start failed");
+	if (_task_id < 0) {
+		_task_id = -1;
 		return -errno;
 	}
 
-	return PX4_OK;
+	return 0;
+}
+
+int FixedwingAttitudeControl::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int FixedwingAttitudeControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+fw_att_control is the fixed wing attitude controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_COMMAND("start");
+
+	PRINT_MODULE_USAGE_NAME("fw_att_control", "controller");
+
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int FixedwingAttitudeControl::print_status()
+{
+	PX4_INFO("Running");
+
+	// perf?
+
+	return 0;
 }
 
 int fw_att_control_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		warnx("usage: fw_att_control {start|stop|status}");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (att_control::g_control != nullptr) {
-			warnx("already running");
-			return 1;
-		}
-
-		att_control::g_control = new FixedwingAttitudeControl;
-
-		if (att_control::g_control == nullptr) {
-			warnx("alloc failed");
-			return 1;
-		}
-
-		if (PX4_OK != att_control::g_control->start()) {
-			delete att_control::g_control;
-			att_control::g_control = nullptr;
-			warn("start failed");
-			return 1;
-		}
-
-		/* check if the waiting is necessary at all */
-		if (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
-
-			/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-			while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
-				usleep(50000);
-				printf(".");
-				fflush(stdout);
-			}
-
-			printf("\n");
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (att_control::g_control == nullptr) {
-			warnx("not running");
-			return 1;
-		}
-
-		delete att_control::g_control;
-		att_control::g_control = nullptr;
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (att_control::g_control) {
-			warnx("running");
-			return 0;
-
-		} else {
-			warnx("not running");
-			return 1;
-		}
-	}
-
-	warnx("unrecognized command");
-	return 1;
+	return FixedwingAttitudeControl::main(argc, argv);
 }
