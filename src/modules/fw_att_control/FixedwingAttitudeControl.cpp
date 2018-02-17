@@ -325,18 +325,6 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 	}
 }
 
-void
-FixedwingAttitudeControl::battery_status_poll()
-{
-	/* check if there is a new message */
-	bool updated;
-	orb_check(_battery_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(battery_status), _battery_status_sub, &_battery_status);
-	}
-}
-
 void FixedwingAttitudeControl::run()
 {
 	/*
@@ -360,7 +348,6 @@ void FixedwingAttitudeControl::run()
 	vehicle_manual_poll();
 	vehicle_status_poll();
 	vehicle_land_detected_poll();
-	battery_status_poll();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
@@ -478,7 +465,6 @@ void FixedwingAttitudeControl::run()
 			global_pos_poll();
 			vehicle_status_poll();
 			vehicle_land_detected_poll();
-			battery_status_poll();
 
 			// the position controller will not emit attitude setpoints in some modes
 			// we need to make sure that this flag is reset
@@ -715,9 +701,23 @@ void FixedwingAttitudeControl::run()
 								&& !_vehicle_status.engine_failure) ? throttle_sp : 0.0f;
 
 						/* scale effort by battery status */
-						if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
+						if (_parameters.bat_scale_en &&
 						    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
-							_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
+
+							bool updated = false;
+							orb_check(_battery_status_sub, &updated);
+
+							if (updated) {
+								battery_status_s battery_status = {};
+
+								if (orb_copy(ORB_ID(battery_status), _battery_status_sub, &battery_status) == PX4_OK) {
+									if (battery_status.scale > 0.0f) {
+										_battery_scale = battery_status.scale;
+									}
+								}
+							}
+
+							_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_scale;
 						}
 
 					} else {
