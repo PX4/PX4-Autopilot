@@ -35,10 +35,8 @@
 
 extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
 
-FixedwingPositionControl *l1_control::g_control;
-static int _control_task = -1;			///< task handle for sensor task */
-
 FixedwingPositionControl::FixedwingPositionControl() :
+	SuperBlock(nullptr, "FW_POS"),
 	_sub_airspeed(ORB_ID(airspeed)),
 	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control"))
@@ -103,27 +101,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 FixedwingPositionControl::~FixedwingPositionControl()
 {
-	if (_control_task != -1) {
-
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_control_task);
-				break;
-			}
-		} while (_control_task != -1);
-	}
-
-	l1_control::g_control = nullptr;
+	perf_free(_loop_perf);
 }
 
 int
@@ -386,22 +364,6 @@ FixedwingPositionControl::position_setpoint_triplet_poll()
 	if (pos_sp_triplet_updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 	}
-}
-
-void
-FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
-{
-	l1_control::g_control = new FixedwingPositionControl();
-
-	if (l1_control::g_control == nullptr) {
-		PX4_WARN("OUT OF MEM");
-		return;
-	}
-
-	/* only returns on exit */
-	l1_control::g_control->task_main();
-	delete l1_control::g_control;
-	l1_control::g_control = nullptr;
 }
 
 float
@@ -1491,7 +1453,7 @@ FixedwingPositionControl::handle_command()
 }
 
 void
-FixedwingPositionControl::task_main()
+FixedwingPositionControl::run()
 {
 	/*
 	 * do subscriptions
@@ -1526,8 +1488,7 @@ FixedwingPositionControl::task_main()
 	/* abort on a nonzero return value from the parameter init */
 	if (parameters_update() != PX4_OK) {
 		/* parameter setup went wrong, abort */
-		PX4_WARN("aborting startup due to errors.");
-		_task_should_exit = true;
+		PX4_ERR("aborting startup due to errors.");
 	}
 
 	/* wakeup source(s) */
@@ -1537,9 +1498,7 @@ FixedwingPositionControl::task_main()
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
 
-	_task_running = true;
-
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 
 		/* wait for up to 500ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
@@ -1676,12 +1635,6 @@ FixedwingPositionControl::task_main()
 			perf_end(_loop_perf);
 		}
 	}
-
-	_task_running = false;
-
-	PX4_WARN("exiting.\n");
-
-	_control_task = -1;
 }
 
 void
@@ -1910,79 +1863,63 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	}
 }
 
-int
-FixedwingPositionControl::start()
+FixedwingPositionControl *FixedwingPositionControl::instantiate(int argc, char *argv[])
 {
-	ASSERT(_control_task == -1);
+	return new FixedwingPositionControl();
+}
 
-	/* start the task */
-	_control_task = px4_task_spawn_cmd("fw_pos_ctrl_l1",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_POSITION_CONTROL,
-					   1810,
-					   (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
-					   nullptr);
+int FixedwingPositionControl::task_spawn(int argc, char *argv[])
+{
+	_task_id = px4_task_spawn_cmd("fw_pos_control_l1",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_POSITION_CONTROL,
+				      1810,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
-	if (_control_task < 0) {
-		warn("task start failed");
+	if (_task_id < 0) {
+		_task_id = -1;
 		return -errno;
 	}
 
-	return PX4_OK;
+	return 0;
+}
+
+int FixedwingPositionControl::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int FixedwingPositionControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+fw_pos_control_l1 is the fixed wing position controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_COMMAND("start");
+
+	PRINT_MODULE_USAGE_NAME("fw_pos_control_l1", "controller");
+
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int FixedwingPositionControl::print_status()
+{
+	PX4_INFO("Running");
+
+	return 0;
 }
 
 int fw_pos_control_l1_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		PX4_WARN("usage: fw_pos_control_l1 {start|stop|status}");
-		return 1;
-	}
-
-	if (strcmp(argv[1], "start") == 0) {
-
-		if (l1_control::g_control != nullptr) {
-			PX4_WARN("already running");
-			return 1;
-		}
-
-		if (OK != FixedwingPositionControl::start()) {
-			warn("start failed");
-			return 1;
-		}
-
-		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-		while (l1_control::g_control == nullptr || !l1_control::g_control->task_running()) {
-			usleep(50000);
-			printf(".");
-			fflush(stdout);
-		}
-
-		printf("\n");
-
-		return 0;
-	}
-
-	if (strcmp(argv[1], "stop") == 0) {
-		if (l1_control::g_control == nullptr) {
-			PX4_WARN("not running");
-			return 1;
-		}
-
-		delete l1_control::g_control;
-		l1_control::g_control = nullptr;
-		return 0;
-	}
-
-	if (strcmp(argv[1], "status") == 0) {
-		if (l1_control::g_control != nullptr) {
-			PX4_INFO("running");
-			return 0;
-		}
-
-		PX4_WARN("not running");
-		return 1;
-	}
-
-	PX4_WARN("unrecognized command");
-	return 1;
+	return FixedwingPositionControl::main(argc, argv);
 }
