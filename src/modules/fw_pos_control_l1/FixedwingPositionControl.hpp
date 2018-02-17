@@ -48,22 +48,24 @@
 #ifndef FIXEDWINGPOSITIONCONTROL_HPP_
 #define FIXEDWINGPOSITIONCONTROL_HPP_
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-
-#include <cfloat>
-
 #include "Landingslope.hpp"
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
 
+#include <cfloat>
+
+#include <controllib/block/BlockParam.hpp>
+#include <controllib/blocks.hpp>
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <ecl/tecs/tecs.h>
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_module.h>
+#include <px4_posix.h>
+#include <px4_tasks.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
@@ -71,16 +73,16 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
@@ -120,33 +122,34 @@ using uORB::Subscription;
 using namespace launchdetection;
 using namespace runwaytakeoff;
 
-class FixedwingPositionControl
+class FixedwingPositionControl final : public control::SuperBlock, public ModuleBase<FixedwingPositionControl>
 {
 public:
 	FixedwingPositionControl();
-	~FixedwingPositionControl();
+	~FixedwingPositionControl() override;
 	FixedwingPositionControl(const FixedwingPositionControl &) = delete;
 	FixedwingPositionControl operator=(const FixedwingPositionControl &other) = delete;
 
-	/**
-	 * Start the sensors task.
-	 *
-	 * @return	OK on success.
-	 */
-	static int	start();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Task status
-	 *
-	 * @return	true if the mainloop is running
-	 */
-	bool		task_running() { return _task_running; }
+	/** @see ModuleBase */
+	static FixedwingPositionControl *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
-
-	bool		_task_should_exit{false};		///< if true, sensor task should exit */
-	bool		_task_running{false};			///< if true, task is running in its mainloop */
 
 	int		_global_pos_sub{-1};
 	int		_local_pos_sub{-1};
@@ -473,10 +476,5 @@ private:
 					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL);
 
 };
-
-namespace l1_control
-{
-extern FixedwingPositionControl *g_control;
-} // namespace l1_control
 
 #endif // FIXEDWINGPOSITIONCONTROL_HPP_
