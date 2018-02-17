@@ -116,7 +116,6 @@ private:
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
-	battery_status_s			_battery_status {};	/**< battery status */
 	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
 	vehicle_attitude_s			_att {};		/**< vehicle attitude setpoint */
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
@@ -135,6 +134,8 @@ private:
 	float _flaperons_applied{0.0f};
 
 	bool _landed{true};
+
+	float _battery_scale{1.0f};
 
 	struct {
 		float p_tc;
@@ -300,10 +301,5 @@ private:
 	 * Check for vehicle land detected updates.
 	 */
 	void		vehicle_land_detected_poll();
-
-	/**
-	 * Check for battery status updates.
-	 */
-	void		battery_status_poll();
 
 };
