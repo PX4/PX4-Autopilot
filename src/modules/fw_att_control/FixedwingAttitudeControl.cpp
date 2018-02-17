@@ -541,14 +541,6 @@ void FixedwingAttitudeControl::run()
 			/* lock integrator until control is started */
 			bool lock_integrator = !(_vcontrol_mode.flag_control_rates_enabled && !_vehicle_status.is_rotary_wing);
 
-			/* Simple handling of failsafe: deploy parachute if failsafe is on */
-			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_airframe.control[7] = 1.0f;
-
-			} else {
-				_actuators_airframe.control[7] = 0.0f;
-			}
-
 			/* if we are in rotary wing mode, do nothing */
 			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {
 				continue;
@@ -830,8 +822,6 @@ void FixedwingAttitudeControl::run()
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
 			_actuators.timestamp_sample = _att.timestamp;
-			_actuators_airframe.timestamp = hrt_absolute_time();
-			_actuators_airframe.timestamp_sample = _att.timestamp;
 
 			/* Only publish if any of the proper modes are enabled */
 			if (_vcontrol_mode.flag_control_rates_enabled ||
@@ -843,15 +833,6 @@ void FixedwingAttitudeControl::run()
 
 				} else if (_actuators_id) {
 					_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
-				}
-
-				if (_actuators_2_pub != nullptr) {
-					/* publish the actuator controls*/
-					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
-
-				} else {
-					/* advertise and publish */
-					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
 				}
 			}
 		}

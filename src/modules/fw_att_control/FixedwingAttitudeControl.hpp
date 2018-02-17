@@ -105,7 +105,6 @@ private:
 	orb_advert_t	_rate_sp_pub{nullptr};			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint point */
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
-	orb_advert_t	_actuators_2_pub{nullptr};		/**< actuator control group 1 setpoint (Airframe) */
 	orb_advert_t	_rate_ctrl_status_pub{nullptr};		/**< rate controller status publication */
 
 	orb_id_t _rates_sp_id{nullptr};	// pointer to correct rates setpoint uORB metadata structure
@@ -113,7 +112,6 @@ private:
 	orb_id_t _attitude_setpoint_id{nullptr};
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
-	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
 	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
 	vehicle_attitude_s			_att {};		/**< vehicle attitude setpoint */
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
