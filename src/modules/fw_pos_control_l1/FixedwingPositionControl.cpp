@@ -1514,12 +1514,6 @@ FixedwingPositionControl::run()
 			continue;
 		}
 
-		vehicle_control_mode_poll();
-		vehicle_command_poll();
-		vehicle_land_detected_poll();
-		vehicle_status_poll();
-		_sub_sensors.update();
-
 		/* only update parameters if they changed */
 		bool params_updated = false;
 		orb_check(_params_sub, &params_updated);
@@ -1562,10 +1556,15 @@ FixedwingPositionControl::run()
 			_alt_reset_counter = _global_pos.alt_reset_counter;
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
+			_sub_sensors.update();
 			airspeed_poll();
-			vehicle_attitude_poll();
 			manual_control_setpoint_poll();
 			position_setpoint_triplet_poll();
+			vehicle_attitude_poll();
+			vehicle_command_poll();
+			vehicle_control_mode_poll();
+			vehicle_land_detected_poll();
+			vehicle_status_poll();
 
 			math::Vector<2> curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
 			math::Vector<2> ground_speed(_global_pos.vel_n, _global_pos.vel_e);
