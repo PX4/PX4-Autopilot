@@ -317,7 +317,11 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 	orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
 
 	if (vehicle_land_detected_updated) {
-		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
+		vehicle_land_detected_s vehicle_land_detected {};
+
+		if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
+			_landed = vehicle_land_detected.landed;
+		}
 	}
 }
 
@@ -619,7 +623,7 @@ void FixedwingAttitudeControl::run()
 				/* Reset integrators if the aircraft is on ground
 				 * or a multicopter (but not transitioning VTOL)
 				 */
-				if (_vehicle_land_detected.landed
+				if (_landed
 				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
 
 					_roll_ctrl.reset_integrator();
