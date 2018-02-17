@@ -249,9 +249,73 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 	/* get pilots inputs */
 	orb_check(_manual_sub, &manual_updated);
 
-	if (manual_updated) {
+	// only update manual if in a manual mode
+	if (_vcontrol_mode.flag_control_manual_enabled && manual_updated) {
 
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
+		if (orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual) == PX4_OK) {
+
+			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
+			if (_vcontrol_mode.flag_control_rattitude_enabled) {
+				if (fabsf(_manual.y) > _parameters.rattitude_thres || fabsf(_manual.x) > _parameters.rattitude_thres) {
+					_vcontrol_mode.flag_control_attitude_enabled = false;
+				}
+			}
+
+			if (!_vcontrol_mode.flag_control_climb_rate_enabled &&
+			    !_vcontrol_mode.flag_control_offboard_enabled) {
+
+				if (_vcontrol_mode.flag_control_attitude_enabled) {
+					// STABILIZED mode generate the attitude setpoint from manual user inputs
+					_att_sp.timestamp = hrt_absolute_time();
+					_att_sp.roll_body = _manual.y * _parameters.man_roll_max + _parameters.rollsp_offset_rad;
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max, _parameters.man_roll_max);
+					_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max + _parameters.pitchsp_offset_rad;
+					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max, _parameters.man_pitch_max);
+					_att_sp.yaw_body = 0.0f;
+					_att_sp.thrust = _manual.z;
+
+					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+					q.copyTo(_att_sp.q_d);
+					_att_sp.q_d_valid = true;
+
+					if (_attitude_setpoint_id != nullptr) {
+						/* publish the attitude rates setpoint */
+						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
+
+					} else if (_attitude_setpoint_id) {
+						/* advertise the attitude rates setpoint */
+						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+					}
+
+				} else if (_vcontrol_mode.flag_control_rates_enabled &&
+					   !_vcontrol_mode.flag_control_attitude_enabled) {
+
+					// RATE mode we need to generate the rate setpoint from manual user inputs
+					_rates_sp.timestamp = hrt_absolute_time();
+					_rates_sp.roll = _manual.y * _parameters.acro_max_x_rate_rad;
+					_rates_sp.pitch = -_manual.x * _parameters.acro_max_y_rate_rad;
+					_rates_sp.yaw = _manual.r * _parameters.acro_max_z_rate_rad;
+					_rates_sp.thrust = _manual.z;
+
+					if (_rate_sp_pub != nullptr) {
+						/* publish the attitude rates setpoint */
+						orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
+
+					} else if (_rates_sp_id) {
+						/* advertise the attitude rates setpoint */
+						_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp);
+					}
+
+				} else {
+					/* manual/direct control */
+					_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y * _parameters.man_roll_scale + _parameters.trim_roll;
+					_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x * _parameters.man_pitch_scale +
+							_parameters.trim_pitch;
+					_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r * _parameters.man_yaw_scale + _parameters.trim_yaw;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
+				}
+			}
+		}
 	}
 }
 
@@ -528,14 +592,6 @@ void FixedwingAttitudeControl::run()
 				_flaperons_applied = flaperon_control;
 			}
 
-			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
-			if (_vcontrol_mode.flag_control_rattitude_enabled) {
-				if (fabsf(_manual.y) > _parameters.rattitude_thres ||
-				    fabsf(_manual.x) > _parameters.rattitude_thres) {
-					_vcontrol_mode.flag_control_attitude_enabled = false;
-				}
-			}
-
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
 				/* scale around tuning airspeed */
@@ -571,25 +627,6 @@ void FixedwingAttitudeControl::run()
 							  _global_pos.vel_e * _global_pos.vel_e);
 				float gspd_scaling_trim = (_parameters.airspeed_min * 0.6f);
 				float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
-
-				// in STABILIZED mode we need to generate the attitude setpoint
-				// from manual user inputs
-				if (!_vcontrol_mode.flag_control_climb_rate_enabled && !_vcontrol_mode.flag_control_offboard_enabled) {
-					_att_sp.timestamp = hrt_absolute_time();
-					_att_sp.roll_body = _manual.y * _parameters.man_roll_max + _parameters.rollsp_offset_rad;
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max, _parameters.man_roll_max);
-					_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max + _parameters.pitchsp_offset_rad;
-					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max, _parameters.man_pitch_max);
-					_att_sp.yaw_body = 0.0f;
-					_att_sp.thrust = _manual.z;
-
-					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
-					q.copyTo(_att_sp.q_d);
-					_att_sp.q_d_valid = true;
-
-					int instance;
-					orb_publish_auto(_attitude_setpoint_id, &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
-				}
 
 				/* reset integrals where needed */
 				if (_att_sp.roll_reset_integral) {
@@ -724,11 +761,30 @@ void FixedwingAttitudeControl::run()
 						perf_count(_nonfinite_input_perf);
 					}
 
+					/*
+					 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
+					 * only once available
+					 */
+					_rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
+					_rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
+					_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
+
+					_rates_sp.timestamp = hrt_absolute_time();
+
+					if (_rate_sp_pub != nullptr) {
+						/* publish the attitude rates setpoint */
+						orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
+
+					} else if (_rates_sp_id) {
+						/* advertise the attitude rates setpoint */
+						_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp);
+					}
+
 				} else {
 					// pure rate control
-					_roll_ctrl.set_bodyrate_setpoint(_manual.y * _parameters.acro_max_x_rate_rad);
-					_pitch_ctrl.set_bodyrate_setpoint(-_manual.x * _parameters.acro_max_y_rate_rad);
-					_yaw_ctrl.set_bodyrate_setpoint(_manual.r * _parameters.acro_max_z_rate_rad);
+					_roll_ctrl.set_bodyrate_setpoint(_rates_sp.roll);
+					_pitch_ctrl.set_bodyrate_setpoint(_rates_sp.pitch);
+					_yaw_ctrl.set_bodyrate_setpoint(_rates_sp.yaw);
 
 					float roll_u = _roll_ctrl.control_bodyrate(control_input);
 					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll :
@@ -745,25 +801,6 @@ void FixedwingAttitudeControl::run()
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(throttle_sp) ? throttle_sp : 0.0f;
 				}
 
-				/*
-				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
-				 * only once available
-				 */
-				_rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
-				_rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
-				_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
-
-				_rates_sp.timestamp = hrt_absolute_time();
-
-				if (_rate_sp_pub != nullptr) {
-					/* publish the attitude rates setpoint */
-					orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
-
-				} else if (_rates_sp_id) {
-					/* advertise the attitude rates setpoint */
-					_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp);
-				}
-
 				rate_ctrl_status_s rate_ctrl_status;
 				rate_ctrl_status.timestamp = hrt_absolute_time();
 				rate_ctrl_status.rollspeed = _att.rollspeed;
@@ -776,14 +813,6 @@ void FixedwingAttitudeControl::run()
 
 				int instance;
 				orb_publish_auto(ORB_ID(rate_ctrl_status), &_rate_ctrl_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);
-
-			} else {
-				/* manual/direct control */
-				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y * _parameters.man_roll_scale + _parameters.trim_roll;
-				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x * _parameters.man_pitch_scale +
-						_parameters.trim_pitch;
-				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r * _parameters.man_yaw_scale + _parameters.trim_yaw;
-				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
 
 			// Add feed-forward from roll control output to yaw control output
