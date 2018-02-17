@@ -122,7 +122,6 @@ private:
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
 	vehicle_control_mode_s			_vcontrol_mode {};	/**< vehicle control mode */
 	vehicle_global_position_s		_global_pos {};		/**< global position */
-	vehicle_land_detected_s			_vehicle_land_detected {};	/**< vehicle land detected */
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
@@ -134,6 +133,8 @@ private:
 
 	float _flaps_applied{0.0f};
 	float _flaperons_applied{0.0f};
+
+	bool _landed{true};
 
 	struct {
 		float p_tc;
