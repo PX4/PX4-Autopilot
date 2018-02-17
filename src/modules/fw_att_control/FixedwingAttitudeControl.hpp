@@ -267,39 +267,18 @@ private:
 	ECL_YawController				_yaw_ctrl;
 	ECL_WheelController			_wheel_ctrl;
 
+	void control_flaps(const float dt);
+
 	/**
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
 
-	/**
-	 * Check for changes in vehicle control mode.
-	 */
 	void		vehicle_control_mode_poll();
-
-	/**
-	 * Check for changes in manual inputs.
-	 */
 	void		vehicle_manual_poll();
-
-	/**
-	 * Check for set triplet updates.
-	 */
 	void		vehicle_setpoint_poll();
-
-	/**
-	 * Check for global position updates.
-	 */
 	void		global_pos_poll();
-
-	/**
-	 * Check for vehicle status updates.
-	 */
 	void		vehicle_status_poll();
-
-	/**
-	 * Check for vehicle land detected updates.
-	 */
 	void		vehicle_land_detected_poll();
 
 };
