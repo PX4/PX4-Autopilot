@@ -995,9 +995,10 @@ void Navigator::check_traffic()
 		transponder_report_s tr;
 		orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
 
-		uint16_t required_flags = ADSB_FLAGS_VALID_COORDS | ADSB_FLAGS_VALID_HEADING | ADSB_FLAGS_VALID_VELOCITY | ADSB_FLAGS_VALID_ALTITUDE;
+		uint16_t required_flags = ADSB_FLAGS_VALID_COORDS | ADSB_FLAGS_VALID_HEADING | ADSB_FLAGS_VALID_VELOCITY |
+					  ADSB_FLAGS_VALID_ALTITUDE;
 
-		if ((tr.flags & required_flags) != required_flags){
+		if ((tr.flags & required_flags) != required_flags) {
 			orb_check(_traffic_sub, &changed);
 			continue;
 		}
