@@ -550,47 +550,7 @@ void FixedwingAttitudeControl::run()
 				continue;
 			}
 
-			/* default flaps to center */
-			float flap_control = 0.0f;
-
-			/* map flaps by default to manual if valid */
-			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled
-			    && fabsf(_parameters.flaps_scale) > 0.01f) {
-				flap_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
-
-			} else if (_vcontrol_mode.flag_control_auto_enabled
-				   && fabsf(_parameters.flaps_scale) > 0.01f) {
-				flap_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
-			}
-
-			// move the actual control value continuous with time, full flap travel in 1sec
-			if (fabsf(_flaps_applied - flap_control) > 0.01f) {
-				_flaps_applied += (_flaps_applied - flap_control) < 0 ? deltaT : -deltaT;
-
-			} else {
-				_flaps_applied = flap_control;
-			}
-
-			/* default flaperon to center */
-			float flaperon_control = 0.0f;
-
-			/* map flaperons by default to manual if valid */
-			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled
-			    && fabsf(_parameters.flaperon_scale) > 0.01f) {
-				flaperon_control = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
-
-			} else if (_vcontrol_mode.flag_control_auto_enabled
-				   && fabsf(_parameters.flaperon_scale) > 0.01f) {
-				flaperon_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
-			}
-
-			// move the actual control value continuous with time, full flap travel in 1sec
-			if (fabsf(_flaperons_applied - flaperon_control) > 0.01f) {
-				_flaperons_applied += (_flaperons_applied - flaperon_control) < 0 ? deltaT : -deltaT;
-
-			} else {
-				_flaperons_applied = flaperon_control;
-			}
+			control_flaps(deltaT);
 
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
@@ -856,6 +816,51 @@ void FixedwingAttitudeControl::run()
 		}
 
 		perf_end(_loop_perf);
+	}
+}
+
+void FixedwingAttitudeControl::control_flaps(const float dt)
+{
+	/* default flaps to center */
+	float flap_control = 0.0f;
+
+	/* map flaps by default to manual if valid */
+	if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled
+	    && fabsf(_parameters.flaps_scale) > 0.01f) {
+		flap_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
+
+	} else if (_vcontrol_mode.flag_control_auto_enabled
+		   && fabsf(_parameters.flaps_scale) > 0.01f) {
+		flap_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
+	}
+
+	// move the actual control value continuous with time, full flap travel in 1sec
+	if (fabsf(_flaps_applied - flap_control) > 0.01f) {
+		_flaps_applied += (_flaps_applied - flap_control) < 0 ? dt : -dt;
+
+	} else {
+		_flaps_applied = flap_control;
+	}
+
+	/* default flaperon to center */
+	float flaperon_control = 0.0f;
+
+	/* map flaperons by default to manual if valid */
+	if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled
+	    && fabsf(_parameters.flaperon_scale) > 0.01f) {
+		flaperon_control = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
+
+	} else if (_vcontrol_mode.flag_control_auto_enabled
+		   && fabsf(_parameters.flaperon_scale) > 0.01f) {
+		flaperon_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
+	}
+
+	// move the actual control value continuous with time, full flap travel in 1sec
+	if (fabsf(_flaperons_applied - flaperon_control) > 0.01f) {
+		_flaperons_applied += (_flaperons_applied - flaperon_control) < 0 ? dt : -dt;
+
+	} else {
+		_flaperons_applied = flaperon_control;
 	}
 }
 
