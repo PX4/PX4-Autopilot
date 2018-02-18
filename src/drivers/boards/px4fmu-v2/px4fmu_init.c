@@ -134,8 +134,8 @@ static char hw_type[4] = HW_VER_TYPE_INIT;
 __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_DIS);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_DIS, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -144,7 +144,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_DIS, 0);
 }
 
 /************************************************************************************
@@ -185,6 +185,13 @@ __EXPORT void board_on_reset(int status)
 	 */
 
 	if (status >= 0) {
+		/* on reboot (status >= 0) power off sensors and peripherals */
+		stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+		stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+
+		stm32_configgpio(GPIO_VDD_5V_PERIPH_DIS);
+		stm32_gpiowrite(GPIO_VDD_5V_PERIPH_DIS, 1);
+
 		up_mdelay(400);
 	}
 }
@@ -334,7 +341,7 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_DIS);
 	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
 	stm32_configgpio(GPIO_VDD_SERVO_VALID);
