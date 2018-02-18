@@ -82,7 +82,6 @@
 #include <systemlib/airspeed.h>
 #include <commander/px4_custom_mode.h>
 #include <geo/geo.h>
-#include <navigator/navigator.h>
 
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -2082,13 +2081,19 @@ void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.tslc = adsb.tslc;
 	t.squawk = adsb.squawk;
 
-	t.flags = PX4_ADSB_FLAGS_RETRANSLATE;  //Unset in receiver already broadcast its messages
-	if (adsb.flags & ADSB_FLAGS_VALID_COORDS) { t.flags |= PX4_ADSB_FLAGS_VALID_COORDS; }
-	if (adsb.flags & ADSB_FLAGS_VALID_ALTITUDE) { t.flags |= PX4_ADSB_FLAGS_VALID_ALTITUDE; }
-	if (adsb.flags & ADSB_FLAGS_VALID_HEADING) { t.flags |= PX4_ADSB_FLAGS_VALID_HEADING; }
-	if (adsb.flags & ADSB_FLAGS_VALID_VELOCITY) { t.flags |= PX4_ADSB_FLAGS_VALID_VELOCITY; }
-	if (adsb.flags & ADSB_FLAGS_VALID_CALLSIGN) { t.flags |= PX4_ADSB_FLAGS_VALID_CALLSIGN; }
-	if (adsb.flags & ADSB_FLAGS_VALID_SQUAWK) { t.flags |= PX4_ADSB_FLAGS_VALID_SQUAWK; }
+	t.flags = transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;  //Unset in receiver already broadcast its messages
+
+	if (adsb.flags & ADSB_FLAGS_VALID_COORDS) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS; }
+
+	if (adsb.flags & ADSB_FLAGS_VALID_ALTITUDE) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE; }
+
+	if (adsb.flags & ADSB_FLAGS_VALID_HEADING) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING; }
+
+	if (adsb.flags & ADSB_FLAGS_VALID_VELOCITY) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY; }
+
+	if (adsb.flags & ADSB_FLAGS_VALID_CALLSIGN) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; }
+
+	if (adsb.flags & ADSB_FLAGS_VALID_SQUAWK) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK; }
 
 	//PX4_INFO("code: %d callsign: %s, vel: %8.4f, tslc: %d", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity, (int)t.tslc);
 

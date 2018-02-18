@@ -79,17 +79,6 @@
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 11
 
-typedef enum adsb_transponder_flags_e
-{
-	PX4_ADSB_FLAGS_VALID_COORDS=1, /*  | */
-	PX4_ADSB_FLAGS_VALID_ALTITUDE=2, /*  | */
-	PX4_ADSB_FLAGS_VALID_HEADING=4, /*  | */
-	PX4_ADSB_FLAGS_VALID_VELOCITY=8, /*  | */
-	PX4_ADSB_FLAGS_VALID_CALLSIGN=16, /*  | */
-	PX4_ADSB_FLAGS_VALID_SQUAWK=32, /*  | */
-	PX4_ADSB_FLAGS_RETRANSLATE=256, /*  | */
-} adsb_transponder_flags_t;
-
 
 class Navigator : public control::SuperBlock
 {

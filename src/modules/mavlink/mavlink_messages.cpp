@@ -54,7 +54,6 @@
 #include <px4_time.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
-#include <navigator/navigator.h>
 
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
@@ -1346,7 +1345,8 @@ protected:
 
 		while (_pos_sub->update(&_pos_time, &pos)) {
 			mavlink_adsb_vehicle_t msg = {};
-			if (!(pos.flags & PX4_ADSB_FLAGS_RETRANSLATE)) { continue; }
+
+			if (!(pos.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE)) { continue; }
 
 			msg.ICAO_address = pos.ICAO_address;
 			msg.lat = pos.lat * 1e7;
@@ -1362,12 +1362,18 @@ protected:
 			msg.squawk = pos.squawk;
 
 			msg.flags = 0;
-			if (pos.flags & PX4_ADSB_FLAGS_VALID_COORDS) { msg.flags |= ADSB_FLAGS_VALID_COORDS; }
-			if (pos.flags & PX4_ADSB_FLAGS_VALID_ALTITUDE) { msg.flags |= ADSB_FLAGS_VALID_ALTITUDE; }
-			if (pos.flags & PX4_ADSB_FLAGS_VALID_HEADING) { msg.flags |= ADSB_FLAGS_VALID_HEADING; }
-			if (pos.flags & PX4_ADSB_FLAGS_VALID_VELOCITY) { msg.flags |= ADSB_FLAGS_VALID_VELOCITY; }
-			if (pos.flags & PX4_ADSB_FLAGS_VALID_CALLSIGN) { msg.flags |= ADSB_FLAGS_VALID_CALLSIGN; }
-			if (pos.flags & PX4_ADSB_FLAGS_VALID_SQUAWK) { msg.flags |= ADSB_FLAGS_VALID_SQUAWK; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS) { msg.flags |= ADSB_FLAGS_VALID_COORDS; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE) { msg.flags |= ADSB_FLAGS_VALID_ALTITUDE; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING) { msg.flags |= ADSB_FLAGS_VALID_HEADING; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY) { msg.flags |= ADSB_FLAGS_VALID_VELOCITY; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) { msg.flags |= ADSB_FLAGS_VALID_CALLSIGN; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) { msg.flags |= ADSB_FLAGS_VALID_SQUAWK; }
 
 			mavlink_msg_adsb_vehicle_send_struct(_mavlink->get_channel(), &msg);
 			sent = true;

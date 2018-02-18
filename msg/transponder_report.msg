@@ -12,4 +12,13 @@ uint8 tslc 		# Time since last communication in seconds
 uint16 flags 		# Flags to indicate various statuses including valid data fields
 uint16 squawk 		# Squawk code
 
+# ADSB flags
+uint16 PX4_ADSB_FLAGS_VALID_COORDS = 1
+uint16 PX4_ADSB_FLAGS_VALID_ALTITUDE = 2
+uint16 PX4_ADSB_FLAGS_VALID_HEADING = 4
+uint16 PX4_ADSB_FLAGS_VALID_VELOCITY = 8
+uint16 PX4_ADSB_FLAGS_VALID_CALLSIGN = 16
+uint16 PX4_ADSB_FLAGS_VALID_SQUAWK = 32
+uint16 PX4_ADSB_FLAGS_RETRANSLATE = 256
+
 uint32 ORB_QUEUE_LENGTH = 10
