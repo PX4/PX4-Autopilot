@@ -110,7 +110,6 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -673,7 +672,7 @@ bool
 Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety_local,
 		    vehicle_command_s *cmd, actuator_armed_s *armed_local,
 		    home_position_s *home, vehicle_global_position_s *global_pos,
-		    vehicle_local_position_s *local_pos, vehicle_attitude_s *attitude, orb_advert_t *home_pub,
+		    vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, bool *changed)
 {
 	/* only handle commands that are meant to be handled by this system and component */
@@ -883,7 +882,7 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 						(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) &&
 						!home->manual_home) {
 
-						set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude, false);
+						set_home_position(*home_pub, *home, *local_pos, *global_pos, false);
 					}
 				}
 			}
@@ -920,7 +919,7 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 
 			if (use_current) {
 				/* use current position */
-				if (set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude, false)) {
+				if (set_home_position(*home_pub, *home, *local_pos, *global_pos, false)) {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 				} else {
@@ -1145,7 +1144,7 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 bool
 Commander::set_home_position(orb_advert_t &homePub, home_position_s &home,
 					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
-					const vehicle_attitude_s &attitude, bool set_alt_only_to_lpos_ref)
+					bool set_alt_only_to_lpos_ref)
 {
 	if (!set_alt_only_to_lpos_ref) {
 		//Need global and local position fix to be able to set home
@@ -1170,8 +1169,7 @@ Commander::set_home_position(orb_advert_t &homePub, home_position_s &home,
 		home.y = localPosition.y;
 		home.z = localPosition.z;
 
-		matrix::Eulerf euler = matrix::Quatf(attitude.q);
-		home.yaw = euler.psi();
+		home.yaw = localPosition.yaw;
 
 		//Play tune first time we initialize HOME
 		if (!status_flags.condition_home_position_valid) {
@@ -1428,10 +1426,6 @@ Commander::run()
 	/* Subscribe to local position data */
 	int local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	struct vehicle_local_position_s local_position = {};
-
-	/* Subscribe to attitude data */
-	int attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	struct vehicle_attitude_s attitude = {};
 
 	/* Subscribe to land detector */
 	int land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -2059,14 +2053,6 @@ Commander::run()
 					check_posvel_validity(local_position.v_xy_valid, local_position.evh, evh_threshold, local_position.timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
 				}
 			}
-		}
-
-		/* update attitude estimate */
-		orb_check(attitude_sub, &updated);
-
-		if (updated) {
-			/* attitude changed */
-			orb_copy(ORB_ID(vehicle_attitude), attitude_sub, &attitude);
 		}
 
 		/* update condition_local_altitude_valid */
@@ -2776,8 +2762,7 @@ Commander::run()
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position,
-					&attitude, &home_pub, &command_ack_pub, &status_changed)) {
+			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position, &home_pub, &command_ack_pub, &status_changed)) {
 				status_changed = true;
 			}
 		}
@@ -2846,7 +2831,7 @@ Commander::run()
 					(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
 
 					/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
-					set_home_position(home_pub, _home, local_position, global_position, attitude, false);
+					set_home_position(home_pub, _home, local_position, global_position, false);
 				}
 			} else {
 				if (status_flags.condition_home_position_valid) {
@@ -2860,12 +2845,12 @@ Commander::run()
 						if (home_dist_xy > local_position.epv * 2 || home_dist_z > local_position.eph * 2) {
 
 							/* update when disarmed, landed and moved away from current home position */
-							set_home_position(home_pub, _home, local_position, global_position, attitude, false);
+							set_home_position(home_pub, _home, local_position, global_position, false);
 						}
 					}
 				} else {
 					/* First time home position update - but only if disarmed */
-					set_home_position(home_pub, _home, local_position, global_position, attitude, false);
+					set_home_position(home_pub, _home, local_position, global_position, false);
 				}
 			}
 
@@ -2873,7 +2858,7 @@ Commander::run()
 			 * This allows home atitude to be used in the calculation of height above takeoff location when GPS
 			 * use has commenced after takeoff. */
 			if (!_home.valid_alt && local_position.z_global) {
-				set_home_position(home_pub, _home, local_position, global_position, attitude, true);
+				set_home_position(home_pub, _home, local_position, global_position, true);
 
 			}
 		}
