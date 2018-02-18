@@ -94,7 +94,7 @@ __EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
 
 /**
  * Compute the delta between a timestamp taken in the past
- * and now.
+ * and now. If the timestamp is from the future zero is returned.
  *
  * This function is safe to use even if the timestamp is updated
  * by an interrupt during execution.

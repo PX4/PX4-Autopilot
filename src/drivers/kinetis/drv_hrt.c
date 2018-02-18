@@ -613,7 +613,14 @@ hrt_elapsed_time(const volatile hrt_abstime *then)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
-	hrt_abstime delta = hrt_absolute_time() - *then;
+	hrt_abstime now = hrt_absolute_time();
+
+	if (*then > now) {
+		px4_leave_critical_section(flags);
+		return 0;
+	}
+
+	hrt_abstime delta = now - *then;
 
 	px4_leave_critical_section(flags);
 
