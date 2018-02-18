@@ -68,6 +68,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 
 using math::constrain;
 
@@ -118,8 +120,6 @@ private:
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
-	uint64_t _timestamp_mag_us = 0;		///< magnetomer data timestamp (uSec)
-	uint64_t _timestamp_balt_us = 0;	///< pressure altitude data timestamp (uSec)
 	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
 
 	// Used to down sample magnetometer data
@@ -520,7 +520,9 @@ void Ekf2::run()
 	int vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
+	int airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	int landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
+	int magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
 
 	bool imu_bias_reset_request = false;
 
@@ -584,6 +586,7 @@ void Ekf2::run()
 
 		bool gps_updated = false;
 		bool airspeed_updated = false;
+		bool airdata_updated = false;
 		bool sensor_selection_updated = false;
 		bool optical_flow_updated = false;
 		bool range_finder_updated = false;
@@ -592,6 +595,7 @@ void Ekf2::run()
 		bool vision_attitude_updated = false;
 		bool vehicle_status_updated = false;
 		bool landing_target_pose_updated = false;
+		bool magnetometer_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), sensors_sub, &sensors);
 		// update all other topics if they have new data
@@ -614,6 +618,9 @@ void Ekf2::run()
 		if (airspeed_updated) {
 			orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
 		}
+
+		orb_check(airdata_sub, &airdata_updated);
+		orb_check(magnetometer_sub, &magnetometer_updated);
 
 		orb_check(sensor_selection_sub, &sensor_selection_updated);
 
@@ -707,14 +714,10 @@ void Ekf2::run()
 		_ekf.setIMUData(now, sensors.gyro_integral_dt, sensors.accelerometer_integral_dt, gyro_integral, accel_integral);
 
 		// read mag data
-		if (sensors.magnetometer_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-			// set a zero timestamp to let the ekf replay program know that this data is not valid
-			_timestamp_mag_us = 0;
+		if (magnetometer_updated) {
+			vehicle_magnetometer_s magnetometer = {};
 
-		} else {
-			if ((sensors.timestamp + sensors.magnetometer_timestamp_relative) != _timestamp_mag_us) {
-				_timestamp_mag_us = sensors.timestamp + sensors.magnetometer_timestamp_relative;
-
+			if (orb_copy(ORB_ID(vehicle_magnetometer), magnetometer_sub, &magnetometer) == PX4_OK) {
 				// Reset learned bias parameters if there has been a persistant change in magnetometer ID
 				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
 				// and notification events
@@ -749,11 +752,11 @@ void Ekf2::run()
 
 				// If the time last used by the EKF is less than specified, then accumulate the
 				// data and push the average when the specified interval is reached.
-				_mag_time_sum_ms += _timestamp_mag_us / 1000;
+				_mag_time_sum_ms += magnetometer.timestamp / 1000;
 				_mag_sample_count++;
-				_mag_data_sum[0] += sensors.magnetometer_ga[0];
-				_mag_data_sum[1] += sensors.magnetometer_ga[1];
-				_mag_data_sum[2] += sensors.magnetometer_ga[2];
+				_mag_data_sum[0] += magnetometer.magnetometer_ga[0];
+				_mag_data_sum[1] += magnetometer.magnetometer_ga[1];
+				_mag_data_sum[2] += magnetometer.magnetometer_ga[2];
 				uint32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
 
 				if (mag_time_ms - _mag_time_ms_last_used > _params->sensor_interval_min_ms) {
@@ -777,29 +780,23 @@ void Ekf2::run()
 		}
 
 		// read baro data
-		if (sensors.baro_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-			// set a zero timestamp to let the ekf replay program know that this data is not valid
-			_timestamp_balt_us = 0;
+		if (airdata_updated) {
+			vehicle_air_data_s airdata;
 
-		} else {
-			if ((sensors.timestamp + sensors.baro_timestamp_relative) != _timestamp_balt_us) {
-				_timestamp_balt_us = sensors.timestamp + sensors.baro_timestamp_relative;
+			if (orb_copy(ORB_ID(vehicle_air_data), airdata_sub, &airdata) == PX4_OK) {
 
 				// If the time last used by the EKF is less than specified, then accumulate the
 				// data and push the average when the specified interval is reached.
-				_balt_time_sum_ms += _timestamp_balt_us / 1000;
+				_balt_time_sum_ms += airdata.timestamp / 1000;
 				_balt_sample_count++;
-				_balt_data_sum += sensors.baro_alt_meter;
+				_balt_data_sum += airdata.baro_alt_meter;
 				uint32_t balt_time_ms = _balt_time_sum_ms / _balt_sample_count;
 
 				if (balt_time_ms - _balt_time_ms_last_used > (uint32_t)_params->sensor_interval_min_ms) {
 					// take mean across sample period
 					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
 
-					// estimate air density assuming typical 20degC ambient temperature
-					const float pressure_to_density = 1.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
-					const float rho = pressure_to_density * sensors.baro_pressure_pa;
-					_ekf.set_air_density(rho);
+					_ekf.set_air_density(airdata.rho);
 
 					// calculate static pressure error = Pmeas - Ptruth
 					// model position error sensitivity as a body fixed ellipse with different scale in the positive and negtive X direction
@@ -819,11 +816,11 @@ void Ekf2::run()
 					const float y_v2 = fminf(vel_body_wind(1) * vel_body_wind(1), max_airspeed_sq);
 					const float z_v2 = fminf(vel_body_wind(2) * vel_body_wind(2), max_airspeed_sq);
 
-					const float pstatic_err = 0.5f * rho * (K_pstatic_coef_x * x_v2) + (_K_pstatic_coef_y.get() * y_v2) +
-								  (_K_pstatic_coef_z.get() * z_v2);
+					const float pstatic_err = 0.5f * airdata.rho *
+								  (K_pstatic_coef_x * x_v2) + (_K_pstatic_coef_y.get() * y_v2) + (_K_pstatic_coef_z.get() * z_v2);
 
 					// correct baro measurement using pressure error estimate and assuming sea level gravity
-					balt_data_avg += pstatic_err / (rho * CONSTANTS_ONE_G);
+					balt_data_avg += pstatic_err / (airdata.rho * CONSTANTS_ONE_G);
 
 					// push to estimator
 					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, balt_data_avg);
@@ -1112,8 +1109,6 @@ void Ekf2::run()
 					global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
 				}
 
-				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
-
 				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
 
 				_vehicle_global_position_pub.update();
@@ -1128,17 +1123,9 @@ void Ekf2::run()
 
 				bias.timestamp = now;
 
-				bias.gyro_x = sensors.gyro_rad[0] - gyro_bias[0];
-				bias.gyro_y = sensors.gyro_rad[1] - gyro_bias[1];
-				bias.gyro_z = sensors.gyro_rad[2] - gyro_bias[2];
-
 				bias.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
 				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
 				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
-
-				bias.mag_x = sensors.magnetometer_ga[0] - (_last_valid_mag_cal[0] / 1000.0f); // mGauss -> Gauss
-				bias.mag_y = sensors.magnetometer_ga[1] - (_last_valid_mag_cal[1] / 1000.0f); // mGauss -> Gauss
-				bias.mag_z = sensors.magnetometer_ga[2] - (_last_valid_mag_cal[2] / 1000.0f); // mGauss -> Gauss
 
 				bias.gyro_x_bias = gyro_bias[0];
 				bias.gyro_y_bias = gyro_bias[1];

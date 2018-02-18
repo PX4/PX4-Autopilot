@@ -249,7 +249,6 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	// Get air pressure and pressure altitude
 	// valid for troposphere (below 11km AMSL)
 	baro.pressure = imu->abs_pressure;
-	baro.altitude = imu->pressure_alt;
 	baro.temperature = imu->temperature;
 
 	write_baro_data(&baro);
@@ -652,7 +651,6 @@ void Simulator::initializeSensorData()
 	RawBaroData baro = {};
 	// calculate air pressure from altitude (valid for low altitude)
 	baro.pressure = 120000.0f;
-	baro.altitude = 0.0f;
 	baro.temperature = 25.0f;
 
 	write_baro_data(&baro);

@@ -139,7 +139,6 @@ BAROSIM::BAROSIM(const char *path) :
 	_measure_perf(perf_alloc(PC_ELAPSED, "barosim_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "barosim_comms_errors"))
 {
-
 }
 
 BAROSIM::~BAROSIM()
@@ -190,6 +189,9 @@ BAROSIM::init()
 		PX4_ERR("failed to create sensor_baro publication");
 		return -ENODEV;
 	}
+
+	/* fill report structures */
+	start();
 
 out:
 	return ret;
