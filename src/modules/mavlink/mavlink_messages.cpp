@@ -3720,7 +3720,7 @@ protected:
 		_msg()
 	{
 		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
-		_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
+		_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
 	}
 
 	bool send(const hrt_abstime t)
@@ -3770,9 +3770,6 @@ protected:
 						}
 					}
 				}
-
-			} else {
-				_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
 			}
 		}
 
