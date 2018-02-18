@@ -136,8 +136,6 @@ typedef enum VEHICLE_MODE_FLAG
 	VEHICLE_MODE_FLAG_ENUM_END=129, /*  | */
 } VEHICLE_MODE_FLAG;
 
-static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
-
 /* Decouple update interval and hysteresis counters, all depends on intervals */
 #define COMMANDER_MONITORING_INTERVAL 10000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
@@ -1344,13 +1342,6 @@ Commander::run()
 	status_flags.condition_local_velocity_valid = false;
 	status_flags.condition_local_altitude_valid = false;
 
-	// initialize gps failure to false if circuit breaker enabled
-	if (status_flags.circuit_breaker_engaged_gpsfailure_check) {
-		status_flags.gps_failure = false;
-	} else {
-		status_flags.gps_failure = true;
-	}
-
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
@@ -1457,10 +1448,6 @@ Commander::run()
 
 	/* Subscribe to GPS topic */
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	struct vehicle_gps_position_s gps_position;
-	memset(&gps_position, 0, sizeof(gps_position));
-	gps_position.eph = FLT_MAX;
-	gps_position.epv = FLT_MAX;
 
 	/* Subscribe to differential pressure topic */
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
@@ -2339,54 +2326,22 @@ Commander::run()
 		orb_check(gps_sub, &updated);
 
 		if (updated) {
+
+			vehicle_gps_position_s gps_position = {};
+			gps_position.eph = FLT_MAX;
+			gps_position.epv = FLT_MAX;
+
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
-		}
 
-		/* Initialize map projection if gps is valid */
-		if (!map_projection_global_initialized()
-		    && (gps_position.eph < eph_threshold)
-		    && (gps_position.epv < epv_threshold)
-		    && hrt_elapsed_time((hrt_abstime *)&gps_position.timestamp) < 1e6) {
-			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
-			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
-						  (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
-		}
+			/* Initialize map projection if gps is valid */
+			if (!map_projection_global_initialized()
+			    && (gps_position.eph < eph_threshold)
+			    && (gps_position.epv < epv_threshold)
+			    && hrt_elapsed_time((hrt_abstime *)&gps_position.timestamp) < 1e6) {
 
-		/* check if GPS is ok */
-		if (!status_flags.circuit_breaker_engaged_gpsfailure_check) {
-			bool gpsIsNoisy = gps_position.noise_per_ms > 0 && gps_position.noise_per_ms < COMMANDER_MAX_GPS_NOISE;
-
-			//Check if GPS receiver is too noisy while we are disarmed
-			if (!armed.armed && gpsIsNoisy) {
-				if (!status_flags.gps_failure) {
-					mavlink_log_critical(&mavlink_log_pub, "GPS signal noisy");
-					set_tune_override(TONE_GPS_WARNING_TUNE);
-
-					//GPS suffers from signal jamming or excessive noise, disable GPS-aided flight
-					status_flags.gps_failure = true;
-					status_changed = true;
-				}
+				/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
+				globallocalconverter_init(gps_position.lat * 1.0e-7, gps_position.lon * 1.0e-7, gps_position.alt * 1.0e-3f, hrt_absolute_time());
 			}
-
-			// Check fix type and data freshness
-			if (gps_position.fix_type >= 3 && hrt_elapsed_time(&gps_position.timestamp) < FAILSAFE_DEFAULT_TIMEOUT) {
-				/* handle the case where gps was regained */
-				if (status_flags.gps_failure && !gpsIsNoisy) {
-					status_flags.gps_failure = false;
-					status_changed = true;
-					if (status_flags.condition_home_position_valid) {
-						mavlink_log_critical(&mavlink_log_pub, "GPS fix regained");
-					}
-				}
-
-			} else if (!status_flags.gps_failure) {
-				status_flags.gps_failure = true;
-				status_changed = true;
-				if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-					mavlink_log_critical(&mavlink_log_pub, "GPS fix lost");
-				}
-			}
-
 		}
 
 		/* start mission result check */
@@ -2890,7 +2845,7 @@ Commander::run()
 			    internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
 			    internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL &&
 			    internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL &&
-			    ((status.data_link_lost && status_flags.gps_failure))) {
+			    status.data_link_lost) {
 
 				armed.force_failsafe = true;
 				status_changed = true;
@@ -2915,7 +2870,7 @@ Commander::run()
 			     internal_state.main_state == commander_state_s::MAIN_STATE_STAB ||
 			     internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
 			     internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL) &&
-			    ((status.rc_signal_lost && status_flags.gps_failure))) {
+			    status.rc_signal_lost) {
 
 				armed.force_failsafe = true;
 				status_changed = true;

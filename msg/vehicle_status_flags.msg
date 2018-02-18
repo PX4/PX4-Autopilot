@@ -31,5 +31,4 @@ bool offboard_control_loss_timeout                # true if offboard is lost for
 bool rc_signal_found_once
 bool rc_input_blocked                                # set if RC input should be ignored temporarily
 bool vtol_transition_failure                        # Set to true if vtol transition failed
-bool gps_failure                                # Set to true if a gps failure is detected
 bool usb_connected                                # status of the USB power supply
