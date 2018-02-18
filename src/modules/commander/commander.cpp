@@ -116,7 +116,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status_flags.h>
@@ -1440,15 +1439,6 @@ Commander::run()
 	int land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	land_detector.landed = true;
 
-	/*
-	 * The home position is set based on GPS only, to prevent a dependency between
-	 * position estimator and commander. RAW GPS is more than good enough for a
-	 * non-flying vehicle.
-	 */
-
-	/* Subscribe to GPS topic */
-	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-
 	/* Subscribe to differential pressure topic */
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	struct differential_pressure_s diff_pres;
@@ -2318,32 +2308,6 @@ Commander::run()
 			}
 		}
 
-		/*
-		 * Check GPS fix quality. Note that this check augments the position validity
-		 * checks and adds an additional level of protection.
-		 */
-
-		orb_check(gps_sub, &updated);
-
-		if (updated) {
-
-			vehicle_gps_position_s gps_position = {};
-			gps_position.eph = FLT_MAX;
-			gps_position.epv = FLT_MAX;
-
-			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
-
-			/* Initialize map projection if gps is valid */
-			if (!map_projection_global_initialized()
-			    && (gps_position.eph < eph_threshold)
-			    && (gps_position.epv < epv_threshold)
-			    && hrt_elapsed_time((hrt_abstime *)&gps_position.timestamp) < 1e6) {
-
-				/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
-				globallocalconverter_init(gps_position.lat * 1.0e-7, gps_position.lon * 1.0e-7, gps_position.alt * 1.0e-3f, hrt_absolute_time());
-			}
-		}
-
 		/* start mission result check */
 		const auto prev_mission_instance_count = _mission_result_sub.get().instance_count;
 		if (_mission_result_sub.update()) {
@@ -3116,7 +3080,6 @@ Commander::run()
 	px4_close(offboard_control_mode_sub);
 	px4_close(local_position_sub);
 	px4_close(global_position_sub);
-	px4_close(gps_sub);
 	px4_close(safety_sub);
 	px4_close(cmd_sub);
 	px4_close(subsys_sub);
