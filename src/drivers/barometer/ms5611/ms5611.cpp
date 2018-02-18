@@ -349,7 +349,7 @@ MS5611::init()
 
 		if (autodetect) {
 			if (_device_type == MS5611_DEVICE) {
-				if (brp.altitude > 5300.f) {
+				if (brp.pressure < 520.0f) {
 					/* This is likely not this device, try again */
 					_device_type = MS5607_DEVICE;
 					_measure_phase = 0;
@@ -358,8 +358,8 @@ MS5611::init()
 				}
 
 			} else if (_device_type == MS5607_DEVICE) {
-				if (brp.altitude > 5300.f) {
-					/* Both devices returned very high altitude;
+				if (brp.pressure < 520.0f) {
+					/* Both devices returned a very low pressure;
 					 * have fun on Everest using MS5611 */
 					_device_type = MS5611_DEVICE;
 				}

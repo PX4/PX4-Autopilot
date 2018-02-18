@@ -53,6 +53,7 @@
 
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -65,10 +66,12 @@ struct frsky_subscription_data_s {
 	struct battery_status_s battery_status;
 	struct vehicle_global_position_s global_pos;
 	struct sensor_combined_s sensor_combined;
+	struct vehicle_air_data_s airdata;
 	struct vehicle_gps_position_s vehicle_gps_position;
 	uint8_t current_flight_mode; // == vehicle_status.nav_state
 
 	int battery_status_sub;
+	int vehicle_air_data_sub;
 	int vehicle_global_position_sub;
 	int sensor_sub;
 	int vehicle_gps_position_sub;
@@ -89,6 +92,7 @@ bool frsky_init()
 	}
 
 	subscription_data->battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+	subscription_data->vehicle_air_data_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	subscription_data->vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	subscription_data->sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	subscription_data->vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -168,6 +172,12 @@ void frsky_update_topics()
 		orb_copy(ORB_ID(sensor_combined), subs->sensor_sub, &subs->sensor_combined);
 	}
 
+	orb_check(subs->vehicle_air_data_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_air_data), subs->vehicle_air_data_sub, &subs->airdata);
+	}
+
 	/* get a local copy of the vehicle status */
 	orb_check(subs->vehicle_status_sub, &updated);
 
@@ -212,10 +222,8 @@ void frsky_send_frame1(int uart)
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Y, roundf(subs->sensor_combined.accelerometer_m_s2[1] * 1000.0f));
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Z, roundf(subs->sensor_combined.accelerometer_m_s2[2] * 1000.0f));
 
-	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP,
-			subs->sensor_combined.baro_alt_meter);
-	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP,
-			roundf(frac(subs->sensor_combined.baro_alt_meter) * 100.0f));
+	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP, subs->airdata.baro_alt_meter);
+	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP, roundf(frac(subs->airdata.baro_alt_meter) * 100.0f));
 
 	frsky_send_data(uart, FRSKY_ID_VFAS,
 			roundf(subs->battery_status.voltage_v * 10.0f));

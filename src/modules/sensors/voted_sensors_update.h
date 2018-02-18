@@ -56,6 +56,8 @@
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 
 #include <DevMgr.hpp>
 
@@ -106,7 +108,7 @@ public:
 	/**
 	 * read new sensor data
 	 */
-	void sensors_poll(sensor_combined_s &raw);
+	void sensors_poll(sensor_combined_s &raw, vehicle_air_data_s &airdata, vehicle_magnetometer_s &magnetometer);
 
 	/**
 	 * set the relative timestamps of each sensor timestamp, based on the last sensors_poll,
@@ -189,7 +191,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		mag_poll(struct sensor_combined_s &raw);
+	void		mag_poll(vehicle_magnetometer_s &magnetometer);
 
 	/**
 	 * Poll the barometer for updated data.
@@ -197,7 +199,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		baro_poll(struct sensor_combined_s &raw);
+	void		baro_poll(vehicle_air_data_s &airdata);
 
 	/**
 	 * Check & handle failover of a sensor
@@ -244,10 +246,10 @@ private:
 	orb_advert_t	_mavlink_log_pub = nullptr;
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
 
 	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX]; /**< latest full timestamp */
-	uint64_t _last_mag_timestamp[MAG_COUNT_MAX]; /**< latest full timestamp */
-	uint64_t _last_baro_timestamp[BARO_COUNT_MAX]; /**< latest full timestamp */
 
 	matrix::Dcmf	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	matrix::Dcmf	_mag_rotation[MAG_COUNT_MAX];	/**< rotation matrix for the orientation that the external mag0 is mounted */

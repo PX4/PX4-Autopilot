@@ -52,6 +52,7 @@
 
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -69,12 +70,14 @@ struct s_port_subscription_data_s {
 	int battery_status_sub;
 	int vehicle_status_sub;
 	int gps_position_sub;
+	int vehicle_air_data_sub;
 
 	struct sensor_combined_s sensor_combined;
 	struct vehicle_global_position_s global_pos;
 	struct vehicle_local_position_s local_pos;
 	struct battery_status_s battery_status;
 	struct vehicle_status_s vehicle_status;
+	struct vehicle_air_data_s vehicle_air_data;
 	struct vehicle_gps_position_s gps_position;
 };
 
@@ -92,13 +95,13 @@ bool sPort_init()
 		return false;
 	}
 
-
 	s_port_subscription_data->sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	s_port_subscription_data->global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	s_port_subscription_data->local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	s_port_subscription_data->battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 	s_port_subscription_data->vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	s_port_subscription_data->gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	s_port_subscription_data->vehicle_air_data_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 
 	return true;
 }
@@ -112,6 +115,7 @@ void sPort_deinit()
 		orb_unsubscribe(s_port_subscription_data->battery_status_sub);
 		orb_unsubscribe(s_port_subscription_data->vehicle_status_sub);
 		orb_unsubscribe(s_port_subscription_data->gps_position_sub);
+		orb_unsubscribe(s_port_subscription_data->vehicle_air_data_sub);
 		free(s_port_subscription_data);
 		s_port_subscription_data = NULL;
 	}
@@ -162,6 +166,13 @@ void sPort_update_topics()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_gps_position), subs->gps_position_sub, &subs->gps_position);
+	}
+
+	/* get a local copy of the gps position data */
+	orb_check(subs->vehicle_air_data_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_air_data), subs->vehicle_air_data_sub, &subs->vehicle_air_data);
 	}
 
 }
@@ -254,7 +265,7 @@ void sPort_send_CUR(int uart)
 void sPort_send_ALT(int uart)
 {
 	/* send data */
-	uint32_t alt = (int)(100 * s_port_subscription_data->sensor_combined.baro_alt_meter);
+	uint32_t alt = (int)(100 * s_port_subscription_data->vehicle_air_data.baro_alt_meter);
 	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 

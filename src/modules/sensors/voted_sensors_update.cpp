@@ -42,7 +42,7 @@
 #include <systemlib/mavlink_log.h>
 
 #include <conversion/rotation.h>
-#include <geo/geo.h>
+#include <ecl/geo/geo.h>
 
 #define MAG_ROT_VAL_INTERNAL		-1
 #define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
@@ -55,8 +55,6 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_en
 {
 	memset(&_last_sensor_data, 0, sizeof(_last_sensor_data));
 	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
-	memset(&_last_mag_timestamp, 0, sizeof(_last_mag_timestamp));
-	memset(&_last_baro_timestamp, 0, sizeof(_last_baro_timestamp));
 	memset(&_accel_diff, 0, sizeof(_accel_diff));
 	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
 	memset(&_mag_diff, 0, sizeof(_mag_diff));
@@ -90,8 +88,6 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_en
 int VotedSensorsUpdate::init(sensor_combined_s &raw)
 {
 	raw.accelerometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
-	raw.magnetometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
-	raw.baro_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
 	raw.timestamp = 0;
 
 	initialize_sensors();
@@ -747,7 +743,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 	}
 }
 
-void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
+void VotedSensorsUpdate::mag_poll(vehicle_magnetometer_s &magnetometer)
 {
 	for (unsigned uorb_index = 0; uorb_index < _mag.subscription_count; uorb_index++) {
 		bool mag_updated;
@@ -772,11 +768,11 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 			matrix::Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
 			vect = _mag_rotation[uorb_index] * vect;
 
-			_last_sensor_data[uorb_index].magnetometer_ga[0] = vect(0);
-			_last_sensor_data[uorb_index].magnetometer_ga[1] = vect(1);
-			_last_sensor_data[uorb_index].magnetometer_ga[2] = vect(2);
+			_last_magnetometer[uorb_index].timestamp = mag_report.timestamp;
+			_last_magnetometer[uorb_index].magnetometer_ga[0] = vect(0);
+			_last_magnetometer[uorb_index].magnetometer_ga[1] = vect(1);
+			_last_magnetometer[uorb_index].magnetometer_ga[2] = vect(2);
 
-			_last_mag_timestamp[uorb_index] = mag_report.timestamp;
 			_mag.voter.put(uorb_index, mag_report.timestamp, vect.data(), mag_report.error_count, _mag.priority[uorb_index]);
 		}
 	}
@@ -785,7 +781,7 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 	_mag.voter.get_best(hrt_absolute_time(), &best_index);
 
 	if (best_index >= 0) {
-		memcpy(&raw.magnetometer_ga, &_last_sensor_data[best_index].magnetometer_ga, sizeof(raw.magnetometer_ga));
+		magnetometer = _last_magnetometer[best_index];
 		_mag.last_best_vote = (uint8_t)best_index;
 
 		if (_selection.mag_device_id != _mag_device_id[best_index]) {
@@ -795,7 +791,7 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 	}
 }
 
-void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
+void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 {
 	bool got_update = false;
 	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2 };
@@ -837,11 +833,11 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			got_update = true;
 			matrix::Vector3f vect(baro_report.pressure, 0.f, 0.f);
 
-			_last_sensor_data[uorb_index].baro_temp_celcius = baro_report.temperature;
-			_last_sensor_data[uorb_index].baro_pressure_pa = corrected_pressure;
+			_last_airdata[uorb_index].timestamp = baro_report.timestamp;
+			_last_airdata[uorb_index].baro_temp_celcius = baro_report.temperature;
+			_last_airdata[uorb_index].baro_pressure_pa = corrected_pressure;
 
-			_last_baro_timestamp[uorb_index] = baro_report.timestamp;
-			_baro.voter.put(uorb_index, baro_report.timestamp, vect.data, baro_report.error_count, _baro.priority[uorb_index]);
+			_baro.voter.put(uorb_index, baro_report.timestamp, vect.data(), baro_report.error_count, _baro.priority[uorb_index]);
 		}
 	}
 
@@ -850,8 +846,7 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 		_baro.voter.get_best(hrt_absolute_time(), &best_index);
 
 		if (best_index >= 0) {
-			raw.baro_temp_celcius = _last_sensor_data[best_index].baro_temp_celcius;
-			raw.baro_pressure_pa = _last_sensor_data[best_index].baro_pressure_pa;
+			airdata = _last_airdata[best_index];
 
 			if (_baro.last_best_vote != best_index) {
 				_baro.last_best_vote = (uint8_t)best_index;
@@ -873,7 +868,7 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			const float p1 = _parameters.baro_qnh * 0.1f;
 
 			/* measured pressure in kPa */
-			const float p = raw.baro_pressure_pa * 0.001f;
+			const float p = airdata.baro_pressure_pa * 0.001f;
 
 			/*
 			 * Solve:
@@ -884,8 +879,15 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			 * h = -------------------------------  + h1
 			 *                   a
 			 */
-			raw.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
+			airdata.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
 
+
+			// calculate air density
+			// estimate air density assuming typical 20degC ambient temperature
+			// TODO: use air temperature if available (differential pressure sensors)
+			static constexpr float pressure_to_density = 1.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f -
+					CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+			airdata.rho = pressure_to_density * airdata.baro_pressure_pa;
 		}
 	}
 }
@@ -1015,12 +1017,13 @@ VotedSensorsUpdate::apply_mag_calibration(DevHandle &h, const struct mag_calibra
 #endif
 }
 
-void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw)
+void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw, vehicle_air_data_s &airdata,
+				      vehicle_magnetometer_s &magnetometer)
 {
 	accel_poll(raw);
 	gyro_poll(raw);
-	mag_poll(raw);
-	baro_poll(raw);
+	mag_poll(magnetometer);
+	baro_poll(airdata);
 
 	// publish sensor corrections if necessary
 	if (!_hil_enabled && _corrections_changed) {
@@ -1064,15 +1067,6 @@ void VotedSensorsUpdate::set_relative_timestamps(sensor_combined_s &raw)
 	if (_last_accel_timestamp[_accel.last_best_vote]) {
 		raw.accelerometer_timestamp_relative = (int32_t)((int64_t)_last_accel_timestamp[_accel.last_best_vote] -
 						       (int64_t)raw.timestamp);
-	}
-
-	if (_last_mag_timestamp[_mag.last_best_vote]) {
-		raw.magnetometer_timestamp_relative = (int32_t)((int64_t)_last_mag_timestamp[_mag.last_best_vote] -
-						      (int64_t)raw.timestamp);
-	}
-
-	if (_last_baro_timestamp[_baro.last_best_vote]) {
-		raw.baro_timestamp_relative = (int32_t)((int64_t)_last_baro_timestamp[_baro.last_best_vote] - (int64_t)raw.timestamp);
 	}
 }
 
@@ -1191,8 +1185,9 @@ void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
 			// calculate mag_diff_sum_sq for the specified sensor against the primary
 			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 				_mag_diff[axis_index][check_index] = 0.95f * _mag_diff[axis_index][check_index] + 0.05f *
-								     (_last_sensor_data[_mag.last_best_vote].magnetometer_ga[axis_index] -
-								      _last_sensor_data[sensor_index].magnetometer_ga[axis_index]);
+								     (_last_magnetometer[_mag.last_best_vote].magnetometer_ga[axis_index] -
+								      _last_magnetometer[sensor_index].magnetometer_ga[axis_index]);
+
 				mag_diff_sum_sq += _mag_diff[axis_index][check_index] * _mag_diff[axis_index][check_index];
 
 			}
