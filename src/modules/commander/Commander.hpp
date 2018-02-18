@@ -51,7 +51,6 @@
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/safety.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -95,12 +94,12 @@ private:
 
 	bool handle_command(vehicle_status_s *status, const safety_s *safety, vehicle_command_s *cmd,
 			    actuator_armed_s *armed, home_position_s *home, vehicle_global_position_s *global_pos,
-			    vehicle_local_position_s *local_pos, vehicle_attitude_s *attitude, orb_advert_t *home_pub,
+			    vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
 			    orb_advert_t *command_ack_pub, bool *changed);
 
 	bool set_home_position(orb_advert_t &homePub, home_position_s &home,
 				const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
-				const vehicle_attitude_s &attitude, bool set_alt_only_to_lpos_ref);
+				bool set_alt_only_to_lpos_ref);
 
 	void mission_init();
 
