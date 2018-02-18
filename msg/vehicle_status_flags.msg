@@ -12,7 +12,6 @@ bool condition_home_position_valid			# indicates a valid home position (a valid 
 bool condition_local_position_valid		# set to true by the commander app if the quality of the local position estimate is good enough to use for navigation
 bool condition_local_velocity_valid		# set to true by the commander app if the quality of the local horizontal velocity data is good enough to use for navigation
 bool condition_local_altitude_valid
-bool condition_airspeed_valid                        # set to true by the commander app if there is a valid airspeed measurement available
 bool condition_power_input_valid                # set if input power is valid
 
 bool circuit_breaker_engaged_power_check
