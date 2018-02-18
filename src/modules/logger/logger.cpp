@@ -682,8 +682,10 @@ void Logger::add_estimator_replay_topics()
 	add_topic("optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
+	add_topic("vehicle_air_data");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
+	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");

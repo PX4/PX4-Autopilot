@@ -55,6 +55,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 
 extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[]);
 
@@ -106,6 +107,7 @@ private:
 	int		_global_pos_sub = -1;
 	int		_vision_sub = -1;
 	int		_mocap_sub = -1;
+	int		_magnetometer_sub = -1;
 
 	orb_advert_t	_att_pub = nullptr;
 
@@ -260,6 +262,7 @@ void AttitudeEstimatorQ::task_main()
 	_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
 
 	update_parameters(true);
 
@@ -309,10 +312,20 @@ void AttitudeEstimatorQ::task_main()
 				}
 			}
 
-			if (sensors.magnetometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-				_mag(0) = sensors.magnetometer_ga[0];
-				_mag(1) = sensors.magnetometer_ga[1];
-				_mag(2) = sensors.magnetometer_ga[2];
+			_data_good = true;
+		}
+
+		// Update magnetometer
+		bool magnetometer_updated = false;
+		orb_check(_magnetometer_sub, &magnetometer_updated);
+
+		if (magnetometer_updated) {
+			vehicle_magnetometer_s magnetometer = {};
+
+			if (orb_copy(ORB_ID(vehicle_magnetometer), _magnetometer_sub, &magnetometer) == PX4_OK) {
+				_mag(0) = magnetometer.magnetometer_ga[0];
+				_mag(1) = magnetometer.magnetometer_ga[1];
+				_mag(2) = magnetometer.magnetometer_ga[2];
 
 				if (_mag.length() < 0.01f) {
 					PX4_ERR("WARNING: degenerate mag!");
@@ -320,7 +333,6 @@ void AttitudeEstimatorQ::task_main()
 				}
 			}
 
-			_data_good = true;
 		}
 
 		// Update vision and motion capture heading
@@ -443,6 +455,7 @@ void AttitudeEstimatorQ::task_main()
 	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_vision_sub);
 	orb_unsubscribe(_mocap_sub);
+	orb_unsubscribe(_magnetometer_sub);
 }
 
 void AttitudeEstimatorQ::update_parameters(bool force)

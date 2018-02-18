@@ -59,7 +59,7 @@
 #include <systemlib/err.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <math.h>	// NAN
 
 #include "sPort_data.h"
@@ -319,11 +319,9 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		PX4_INFO("sending FrSky SmartPort telemetry");
 
-		struct sensor_combined_s sensor_combined = {};
-
 		float filtered_alt = NAN;
 		float last_baro_alt = 0.f;
-		int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+		int airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 
 		uint32_t lastBATV_ms = 0;
 		uint32_t lastCUR_ms = 0;
@@ -364,17 +362,18 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			/* get a local copy of the current sensor values
 			 * in order to apply a lowpass filter to baro pressure.
 			 */
-			bool sensor_updated;
-			orb_check(sensor_sub, &sensor_updated);
+			bool sensor_updated = false;
+			orb_check(airdata_sub, &sensor_updated);
 
 			if (sensor_updated) {
-				orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensor_combined);
+				struct vehicle_air_data_s airdata;
+				orb_copy(ORB_ID(vehicle_air_data), airdata_sub, &airdata);
 
 				if (isnan(filtered_alt)) {
-					filtered_alt = sensor_combined.baro_alt_meter;
+					filtered_alt = airdata.baro_alt_meter;
 
 				} else {
-					filtered_alt = .05f * sensor_combined.baro_alt_meter + .95f * filtered_alt;
+					filtered_alt = .05f * airdata.baro_alt_meter + .95f * filtered_alt;
 				}
 			}
 

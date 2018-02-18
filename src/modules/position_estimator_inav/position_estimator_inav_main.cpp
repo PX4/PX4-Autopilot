@@ -63,6 +63,7 @@
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <poll.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
@@ -368,6 +369,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&lidar, 0, sizeof(lidar));
 	struct vehicle_rates_setpoint_s rates_setpoint;
 	memset(&rates_setpoint, 0, sizeof(rates_setpoint));
+	struct vehicle_air_data_s airdata;
+	memset(&airdata, 0, sizeof(vehicle_air_data_s));
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -380,6 +383,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vision_position_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
 	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+	int vehicle_air_data_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	// because we can have several distance sensor instances with different orientations
 	int distance_sensor_subs[ORB_MULTI_MAX_INSTANCES];
 
@@ -430,26 +434,34 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				bool baro_updated = (sensor.baro_timestamp_relative != sensor.RELATIVE_TIMESTAMP_INVALID);
+				bool baro_updated = false;
+				orb_check(vehicle_air_data_sub, &baro_updated);
 
-				if (wait_baro && sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp && baro_updated) {
-					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
-					baro_wait_for_sample_time = hrt_absolute_time();
+				if (baro_updated) {
+					orb_copy(ORB_ID(vehicle_air_data), vehicle_air_data_sub, &airdata);
 
-					/* mean calculation over several measurements */
-					if (baro_init_cnt < baro_init_num) {
-						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
-							baro_offset += sensor.baro_alt_meter;
-							baro_init_cnt++;
+					if (wait_baro && airdata.timestamp != baro_timestamp) {
+
+						baro_timestamp = airdata.timestamp;
+						baro_wait_for_sample_time = hrt_absolute_time();
+
+						/* mean calculation over several measurements */
+						if (baro_init_cnt < baro_init_num) {
+							if (PX4_ISFINITE(airdata.baro_alt_meter)) {
+								baro_offset += airdata.baro_alt_meter;
+								baro_init_cnt++;
+							}
+
+						} else {
+							wait_baro = false;
+							baro_offset /= (float) baro_init_cnt;
+							local_pos.z_valid = true;
+							local_pos.v_z_valid = true;
 						}
-
-					} else {
-						wait_baro = false;
-						baro_offset /= (float) baro_init_cnt;
-						local_pos.z_valid = true;
-						local_pos.v_z_valid = true;
 					}
 				}
+
+
 			}
 
 		} else {
@@ -532,9 +544,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					accel_updates++;
 				}
 
-				if (sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
-					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
-					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
+				if (airdata.timestamp != baro_timestamp) {
+					corr_baro = baro_offset - airdata.baro_alt_meter - z_est[0];
+					baro_timestamp = airdata.timestamp;
 					baro_updates++;
 				}
 			}
@@ -1404,8 +1416,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				} else {
 					global_pos.terrain_alt_valid = false;
 				}
-
-				global_pos.pressure_alt = sensor.baro_alt_meter;
 
 				if (vehicle_global_position_pub == nullptr) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
