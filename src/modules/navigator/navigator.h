@@ -79,6 +79,7 @@
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 11
 
+
 class Navigator : public control::SuperBlock
 {
 public:

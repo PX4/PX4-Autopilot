@@ -963,7 +963,10 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign));
 	tr.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
 	tr.tslc = 2; // Time since last communication in seconds
-	tr.flags = 0; // Flags to indicate various statuses including valid data fields
+	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+		   transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
+		   transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+		   transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
 	orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &tr, transponder_report_s::ORB_QUEUE_LENGTH);
@@ -993,9 +996,19 @@ void Navigator::check_traffic()
 		transponder_report_s tr;
 		orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
 
+		uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+					  transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+					  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY | transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+
+		if ((tr.flags & required_flags) != required_flags) {
+			orb_check(_traffic_sub, &changed);
+			continue;
+		}
+
 		float d_hor, d_vert;
 		get_distance_to_point_global_wgs84(lat, lon, alt,
 						   tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
+
 
 		// predict final altitude (positive is up) in prediction time frame
 		float end_alt = tr.altitude + (d_vert / tr.hor_velocity) * tr.ver_velocity;
@@ -1031,18 +1044,22 @@ void Navigator::check_traffic()
 
 					case 0: {
 							/* ignore */
-							PX4_WARN("TRAFFIC %s, hdg: %d", tr.callsign, traffic_direction);
+							PX4_WARN("TRAFFIC %s, hdg: %d", tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
+								 "unknown",
+								 traffic_direction);
 							break;
 						}
 
 					case 1: {
-							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately", tr.callsign,
+							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately",
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction);
 							break;
 						}
 
 					case 2: {
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home", tr.callsign,
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home",
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction);
 
 							// set the return altitude to minimum
