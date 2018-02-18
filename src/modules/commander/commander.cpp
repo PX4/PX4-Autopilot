@@ -1453,8 +1453,6 @@ Commander::run()
 
 	/* Subscribe to actuator controls (outputs) */
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	struct actuator_controls_s actuator_controls;
-	memset(&actuator_controls, 0, sizeof(actuator_controls));
 
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
@@ -1549,8 +1547,6 @@ Commander::run()
 	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
 	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 
-	transition_result_t arming_ret;
-
 	int32_t datalink_loss_act = 0;
 	int32_t rc_loss_act = 0;
 	int32_t datalink_loss_timeout = 10;
@@ -1607,7 +1603,7 @@ Commander::run()
 
 	while (!should_exit()) {
 
-		arming_ret = TRANSITION_NOT_CHANGED;
+		transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
 
 		/* update parameters */
 		bool params_updated = false;
@@ -2682,31 +2678,37 @@ Commander::run()
 			}
 		}
 
-		/* handle commands last, as the system needs to be updated to handle them */
+		// engine failure detection
+		// TODO: move out of commander
 		orb_check(actuator_controls_sub, &updated);
 
 		if (updated) {
-			/* got command */
-			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
-
 			/* Check engine failure
 			 * only for fixed wing for now
 			 */
 			if (!status_flags.circuit_breaker_engaged_enginefailure_check &&
-			    status.is_rotary_wing == false &&
-			    armed.armed &&
-			    ((actuator_controls.control[3] > ef_throttle_thres &&
-			      battery.current_a / actuator_controls.control[3] <
-			      ef_current2throttle_thres) ||
-			     (status.engine_failure))) {
-				/* potential failure, measure time */
-				if (timestamp_engine_healthy > 0 &&
-				    hrt_elapsed_time(&timestamp_engine_healthy) >
-				    ef_time_thres * 1e6f &&
-				    !status.engine_failure) {
-					status.engine_failure = true;
-					status_changed = true;
-					mavlink_log_critical(&mavlink_log_pub, "Engine Failure");
+			    !status.is_rotary_wing && !status.is_vtol && armed.armed) {
+
+				actuator_controls_s actuator_controls = {};
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
+
+				const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+				const float current2throttle = battery.current_a / throttle;
+
+				if (((throttle > ef_throttle_thres) && (current2throttle < ef_current2throttle_thres))
+					|| status.engine_failure) {
+
+					const float elapsed = hrt_elapsed_time(&timestamp_engine_healthy) / 1e6f;
+
+					/* potential failure, measure time */
+					if ((timestamp_engine_healthy > 0) && (elapsed > ef_time_thres)
+						&& !status.engine_failure) {
+
+						status.engine_failure = true;
+						status_changed = true;
+
+						PX4_ERR("Engine Failure");
+					}
 				}
 
 			} else {
