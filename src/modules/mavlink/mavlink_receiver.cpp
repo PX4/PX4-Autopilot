@@ -1055,17 +1055,27 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		if (_control_mode.flag_control_offboard_enabled) {
 
 			actuator_controls.timestamp = hrt_absolute_time();
+			uint8_t control_group           = set_actuator_control_target.group_mlx;
 
 			/* Set duty cycles for the servos in actuator_controls_0 */
-			for (size_t i = 0; i < 8; i++) {
-				actuator_controls.control[i] = set_actuator_control_target.controls[i];
-			}
+			memcpy(actuator_controls.control, set_actuator_control_target.controls, 8*sizeof(float));
 
 			if (_actuator_controls_pub == nullptr) {
-				_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
-
+				switch(control_group){
+					case 0: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls); break;
+					case 1: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_1), &actuator_controls); break;
+					case 2: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls); break;
+					case 3: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls); break;
+					default: break;
+				}
 			} else {
-				orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls);
+				switch(control_group){
+					case 0: orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls); break;
+					case 1: orb_publish(ORB_ID(actuator_controls_1), _actuator_controls_pub, &actuator_controls); break;
+					case 2: orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_pub, &actuator_controls); break;
+					case 3: orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_pub, &actuator_controls); break;
+					default: break;
+				}
 			}
 		}
 	}
