@@ -78,6 +78,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <systemlib/err.h>
 
@@ -133,6 +134,8 @@ private:
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
+	bool _airmode; 		///< multicopter air-mode
+
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main();
 
@@ -144,7 +147,7 @@ private:
 	int		pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 	void 	subscribe();
 
-
+	void	update_params();
 };
 
 namespace
@@ -173,7 +176,8 @@ PWMSim::PWMSim() :
 	_groups_required(0),
 	_groups_subscribed(0),
 	_task_should_exit(false),
-	_mixers(nullptr)
+	_mixers(nullptr),
+	_airmode(false)
 {
 	memset(_controls, 0, sizeof(_controls));
 
@@ -350,6 +354,18 @@ PWMSim::subscribe()
 	}
 }
 
+void PWMSim::update_params()
+{
+	// multicopter air-mode
+	param_t param_handle = param_find("MC_AIRMODE");
+
+	if (param_handle != PARAM_INVALID) {
+		int32_t val;
+		param_get(param_handle, &val);
+		_airmode = val > 0;
+	}
+}
+
 void
 PWMSim::task_main()
 {
@@ -364,6 +380,8 @@ PWMSim::task_main()
 	/* advertise the mixed control outputs, insist on the first group output */
 	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
 
+	update_params();
+	int params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -389,6 +407,10 @@ PWMSim::task_main()
 
 			// up_pwm_servo_set_rate(_update_rate);
 			_current_update_rate = _update_rate;
+		}
+
+		if (_mixers) {
+			_mixers->set_airmode(_airmode);
 		}
 
 		/* this can happen during boot, but after the sleep its likely resolved */
@@ -519,6 +541,16 @@ PWMSim::task_main()
 			_failsafe = aa.force_failsafe;
 			_lockdown = aa.manual_lockdown;
 		}
+
+		/* check for parameter updates */
+		bool param_updated = false;
+		orb_check(params_sub, &param_updated);
+
+		if (param_updated) {
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			update_params();
+		}
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -528,6 +560,7 @@ PWMSim::task_main()
 	}
 
 	orb_unsubscribe(_armed_sub);
+	orb_unsubscribe(params_sub);
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
