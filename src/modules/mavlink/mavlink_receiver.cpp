@@ -1058,23 +1058,32 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 			uint8_t control_group           = set_actuator_control_target.group_mlx;
 
 			/* Set duty cycles for the servos in actuator_controls_0 */
-			memcpy(actuator_controls.control, set_actuator_control_target.controls, 8*sizeof(float));
+			memcpy(actuator_controls.control, set_actuator_control_target.controls, 8 * sizeof(float));
 
 			if (_actuator_controls_pub == nullptr) {
-				switch(control_group){
-					case 0: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls); break;
-					case 1: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_1), &actuator_controls); break;
-					case 2: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls); break;
-					case 3: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls); break;
-					default: break;
+				switch (control_group) {
+				case 0: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls); break;
+
+				case 1: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_1), &actuator_controls); break;
+
+				case 2: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls); break;
+
+				case 3: _actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls); break;
+
+				default: break;
 				}
+
 			} else {
-				switch(control_group){
-					case 0: orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls); break;
-					case 1: orb_publish(ORB_ID(actuator_controls_1), _actuator_controls_pub, &actuator_controls); break;
-					case 2: orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_pub, &actuator_controls); break;
-					case 3: orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_pub, &actuator_controls); break;
-					default: break;
+				switch (control_group) {
+				case 0: orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls); break;
+
+				case 1: orb_publish(ORB_ID(actuator_controls_1), _actuator_controls_pub, &actuator_controls); break;
+
+				case 2: orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_pub, &actuator_controls); break;
+
+				case 3: orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_pub, &actuator_controls); break;
+
+				default: break;
 				}
 			}
 		}
