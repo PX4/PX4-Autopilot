@@ -44,6 +44,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
@@ -99,17 +100,19 @@ int32_t _pwm_max;
 
 MixerGroup *_mixer_group = nullptr;
 
-void usage();
+static void usage();
 
-void start();
+static void start();
 
-void stop();
+static void stop();
 
-void task_main_trampoline(int argc, char *argv[]);
+static void task_main_trampoline(int argc, char *argv[]);
 
-void subscribe();
+static void subscribe();
 
-void task_main(int argc, char *argv[]);
+static void task_main(int argc, char *argv[]);
+
+static void update_params(bool &airmode);
 
 /* mixer initialization */
 int initialize_mixer(const char *mixer_filename);
@@ -125,6 +128,19 @@ int mixer_control_callback(uintptr_t handle,
 	input = controls[control_group].control[control_index];
 
 	return 0;
+}
+
+
+void update_params(bool &airmode)
+{
+	// multicopter air-mode
+	param_t param_handle = param_find("MC_AIRMODE");
+
+	if (param_handle != PARAM_INVALID) {
+		int32_t val;
+		param_get(param_handle, &val);
+		airmode = val > 0;
+	}
 }
 
 
@@ -227,6 +243,10 @@ void task_main(int argc, char *argv[])
 	// subscribe and set up polling
 	subscribe();
 
+	bool airmode = false;
+	update_params(airmode);
+	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+
 	int rc_channels_sub = -1;
 
 	// Start disarmed
@@ -242,6 +262,10 @@ void task_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+		}
+
+		if (_mixer_group) {
+			_mixer_group->set_airmode(airmode);
 		}
 
 		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
@@ -366,6 +390,17 @@ void task_main(int argc, char *argv[])
 			PX4_ERR("Could not mix output! Exiting...");
 			_task_should_exit = true;
 		}
+
+		/* check for parameter updates */
+		bool param_updated = false;
+		orb_check(params_sub, &param_updated);
+
+		if (param_updated) {
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			update_params(airmode);
+		}
+
 	}
 
 	delete pwm_out;
@@ -383,6 +418,10 @@ void task_main(int argc, char *argv[])
 
 	if (rc_channels_sub != -1) {
 		orb_unsubscribe(rc_channels_sub);
+	}
+
+	if (params_sub != -1) {
+		orb_unsubscribe(params_sub);
 	}
 
 	_is_running = false;
