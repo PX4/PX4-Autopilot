@@ -74,7 +74,7 @@ PARAM_DEFINE_FLOAT(MC_PITCH_TC, 0.2f);
  *
  * @unit 1/s
  * @min 0.0
- * @max 8
+ * @max 12
  * @decimal 2
  * @increment 0.1
  * @group Multicopter Attitude Control
@@ -149,7 +149,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
  *
  * @unit 1/s
  * @min 0.0
- * @max 10
+ * @max 12
  * @decimal 2
  * @increment 0.1
  * @group Multicopter Attitude Control
