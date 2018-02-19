@@ -1531,6 +1531,8 @@ Commander::run()
 			struct parameter_update_s param_changed;
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
+			updateParams();
+
 			/* update parameters */
 			if (!armed.armed) {
 				if (param_get(_param_sys_type, &system_type) != OK) {
