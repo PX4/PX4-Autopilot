@@ -103,6 +103,15 @@ private:
 
 	void mission_init();
 
+	// engine failure detection
+	// TODO: move out of commander
+	int _actuator_controls_sub{-1};
+	float _ef_throttle_thres{1.0f};
+	float _ef_current2throttle_thres{0.0f};
+	float _ef_time_thres{1000.0f};
+	uint64_t _timestamp_engine_healthy{0}; /**< absolute time when engine was healty */
+	void check_engine_failure(vehicle_status_s& vehicle_status, bool& status_changed);
+
 };
 
 #endif /* COMMANDER_HPP_ */

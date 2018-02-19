@@ -1452,7 +1452,7 @@ Commander::run()
 	memset(&system_power, 0, sizeof(system_power));
 
 	/* Subscribe to actuator controls (outputs) */
-	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	_actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
@@ -1566,12 +1566,6 @@ Commander::run()
 
 	int32_t takeoff_complete_act = 0;
 
-	/* Thresholds for engine failure detection */
-	float ef_throttle_thres = 1.0f;
-	float ef_current2throttle_thres = 0.0f;
-	float ef_time_thres = 1000.0f;
-	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
-
 	int32_t disarm_when_landed = 0;
 	int32_t low_bat_action = 0;
 
@@ -1662,9 +1656,9 @@ Commander::run()
 			min_stick_change *= 0.02f;
 			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
-			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
-			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
-			param_get(_param_ef_time_thres, &ef_time_thres);
+			param_get(_param_ef_throttle_thres, &_ef_throttle_thres);
+			param_get(_param_ef_current2throttle_thres, &_ef_current2throttle_thres);
+			param_get(_param_ef_time_thres, &_ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
 			param_get(_param_flight_uuid, &flight_uuid);
@@ -2678,49 +2672,7 @@ Commander::run()
 			}
 		}
 
-		// engine failure detection
-		// TODO: move out of commander
-		orb_check(actuator_controls_sub, &updated);
-
-		if (updated) {
-			/* Check engine failure
-			 * only for fixed wing for now
-			 */
-			if (!status_flags.circuit_breaker_engaged_enginefailure_check &&
-			    !status.is_rotary_wing && !status.is_vtol && armed.armed) {
-
-				actuator_controls_s actuator_controls = {};
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
-
-				const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
-				const float current2throttle = battery.current_a / throttle;
-
-				if (((throttle > ef_throttle_thres) && (current2throttle < ef_current2throttle_thres))
-					|| status.engine_failure) {
-
-					const float elapsed = hrt_elapsed_time(&timestamp_engine_healthy) / 1e6f;
-
-					/* potential failure, measure time */
-					if ((timestamp_engine_healthy > 0) && (elapsed > ef_time_thres)
-						&& !status.engine_failure) {
-
-						status.engine_failure = true;
-						status_changed = true;
-
-						PX4_ERR("Engine Failure");
-					}
-				}
-
-			} else {
-				/* no failure reset flag */
-				timestamp_engine_healthy = hrt_absolute_time();
-
-				if (status.engine_failure) {
-					status.engine_failure = false;
-					status_changed = true;
-				}
-			}
-		}
+		check_engine_failure(status, status_changed);
 
 		/* Reset main state to loiter or auto-mission after takeoff is completed.
 		 * Sometimes, the mission result topic is outdated and the mission is still signaled
@@ -4330,5 +4282,52 @@ void Commander::mission_init()
 
 		orb_advert_t mission_pub = orb_advertise(ORB_ID(mission), &mission);
 		orb_unadvertise(mission_pub);
+	}
+}
+
+void Commander::check_engine_failure(vehicle_status_s& vehicle_status, bool& status_changed)
+{
+	// TODO: move out of commander
+	if (!status_flags.circuit_breaker_engaged_enginefailure_check &&
+		!status.is_rotary_wing && !status.is_vtol && armed.armed) {
+
+		bool updated = false;
+		orb_check(_actuator_controls_sub, &updated);
+
+		if (updated) {
+			/* Check engine failure
+			 * only for fixed wing for now
+			 */
+			actuator_controls_s actuator_controls = {};
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuator_controls_sub, &actuator_controls);
+
+			const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+			const float current2throttle = battery.current_a / throttle;
+
+			if (((throttle > _ef_throttle_thres) && (current2throttle < _ef_current2throttle_thres))
+				|| status.engine_failure) {
+
+				const float elapsed = hrt_elapsed_time(&_timestamp_engine_healthy) / 1e6f;
+
+				/* potential failure, measure time */
+				if ((_timestamp_engine_healthy > 0) && (elapsed > _ef_time_thres)
+					&& !status.engine_failure) {
+
+					vehicle_status.engine_failure = true;
+					status_changed = true;
+
+					PX4_ERR("Engine Failure");
+				}
+			}
+
+		} else {
+			/* no failure reset flag */
+			_timestamp_engine_healthy = hrt_absolute_time();
+
+			if (status.engine_failure) {
+				vehicle_status.engine_failure = false;
+				status_changed = true;
+			}
+		}
 	}
 }
