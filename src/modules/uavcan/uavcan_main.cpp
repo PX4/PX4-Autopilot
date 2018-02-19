@@ -58,6 +58,7 @@
 #include <arch/chip/chip.h>
 
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
@@ -419,16 +420,14 @@ int  UavcanNode::get_param(int remote_node_id, const char *name)
 
 void UavcanNode::update_params()
 {
-    param_t param_handle;
+	// multicopter air-mode
+	param_t param_handle = param_find("MC_AIRMODE");
 
-    // multicopter air-mode
-    param_handle = param_find("MC_AIRMODE");
-
-    if (param_handle != PARAM_INVALID) {
-	    int val;
-	    param_get(param_handle, &val);
-	    _airmode = val > 0;
-    }
+	if (param_handle != PARAM_INVALID) {
+		int32_t val;
+		param_get(param_handle, &val);
+		_airmode = val > 0;
+	}
 }
 
 int UavcanNode::start_fw_server()
@@ -828,9 +827,21 @@ int UavcanNode::run()
 		_actuator_direct_poll_fd_num = add_poll_fd(_actuator_direct_sub);
 	}
 
+	update_params();
+
+	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+
 	while (!_task_should_exit) {
 
-		update_params();
+		/* check for parameter updates */
+		bool param_updated = false;
+		orb_check(params_sub, &param_updated);
+
+		if (param_updated) {
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			update_params();
+		}
 
 		switch (_fw_server_action) {
 		case Start:
@@ -990,6 +1001,8 @@ int UavcanNode::run()
 			}
 		}
 	}
+
+	orb_unsubscribe(params_sub);
 
 	(void)::close(busevent_fd);
 
