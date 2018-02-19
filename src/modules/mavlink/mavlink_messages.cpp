@@ -3719,8 +3719,8 @@ protected:
 		_control_mode_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_control_mode))),
 		_msg()
 	{
-		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
-		_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
+		_msg.vtol_state = MAV_VTOL_STATE_MC;
+		_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
 	}
 
 	bool send(const hrt_abstime t)
@@ -3770,9 +3770,6 @@ protected:
 						}
 					}
 				}
-
-			} else {
-				_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
 			}
 		}
 
