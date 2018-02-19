@@ -60,6 +60,7 @@
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer/mixer.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
@@ -167,11 +168,16 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_controller_latency_perf;
 
-	math::Vector<3>		_rates_prev;	/**< angular rates on previous step */
-	math::Vector<3>		_rates_sp_prev; /**< previous rates setpoint */
+	math::LowPassFilter2p _lp_filters_d[3];                      /**< low-pass filters for D-term (roll, pitch & yaw) */
+	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
+	float _loop_update_rate_hz;                                  /**< current rate-controller loop update rate in [Hz] */
+
+	math::Vector<3>		_rates_prev;		/**< angular rates on previous step */
+	math::Vector<3>		_rates_prev_filtered;	/**< angular rates on previous step (low-pass filtered) */
+	math::Vector<3>		_rates_sp_prev;		/**< previous rates setpoint */
 	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
-	float				_thrust_sp;		/**< thrust setpoint */
+	float			_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
@@ -191,6 +197,7 @@ private:
 		param_t pitch_rate_integ_lim;
 		param_t pitch_rate_d;
 		param_t pitch_rate_ff;
+		param_t d_term_cutoff_freq;
 		param_t tpa_breakpoint_p;
 		param_t tpa_breakpoint_i;
 		param_t tpa_breakpoint_d;
@@ -239,6 +246,8 @@ private:
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates */
 		float yaw_ff;						/**< yaw control feed-forward */
+
+		float d_term_cutoff_freq;			/**< Cutoff frequency for the D-term filter */
 
 		float tpa_breakpoint_p;				/**< Throttle PID Attenuation breakpoint */
 		float tpa_breakpoint_i;				/**< Throttle PID Attenuation breakpoint */
@@ -368,7 +377,14 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_saturation_status{},
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
+	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
+
+	_lp_filters_d{
+	{initial_update_rate_hz, 50.f},
+	{initial_update_rate_hz, 50.f},
+	{initial_update_rate_hz, 50.f}}, // will be initialized correctly when params are loaded
+
+_loop_update_rate_hz(initial_update_rate_hz)
 {
 	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) {
 		_sensor_gyro_sub[i] = -1;
@@ -400,6 +416,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.board_offset[2] = 0.0f;
 
 	_rates_prev.zero();
+	_rates_prev_filtered.zero();
 	_rates_sp.zero();
 	_rates_sp_prev.zero();
 	_rates_int.zero();
@@ -422,6 +439,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.pitch_rate_integ_lim	= 	param_find("MC_PR_INT_LIM");
 	_params_handles.pitch_rate_d		= 	param_find("MC_PITCHRATE_D");
 	_params_handles.pitch_rate_ff 		= 	param_find("MC_PITCHRATE_FF");
+
+	_params_handles.d_term_cutoff_freq	= 	param_find("MC_DTERM_CUTOFF");
 
 	_params_handles.tpa_breakpoint_p 	= 	param_find("MC_TPA_BREAK_P");
 	_params_handles.tpa_breakpoint_i 	= 	param_find("MC_TPA_BREAK_I");
@@ -539,6 +558,14 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_d(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
 	param_get(_params_handles.pitch_rate_ff, &v);
 	_params.rate_ff(1) = v;
+
+	param_get(_params_handles.d_term_cutoff_freq, &_params.d_term_cutoff_freq);
+	_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+	_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+	_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+	_lp_filters_d[0].reset(_rates_prev(0));
+	_lp_filters_d[1].reset(_rates_prev(1));
+	_lp_filters_d[2].reset(_rates_prev(2));
 
 	param_get(_params_handles.tpa_breakpoint_p, &_params.tpa_breakpoint_p);
 	param_get(_params_handles.tpa_breakpoint_i, &_params.tpa_breakpoint_i);
@@ -998,13 +1025,20 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
 
+	/* apply low-pass filtering to the rates for D-term */
+	math::Vector<3> rates_filtered(
+		_lp_filters_d[0].apply(rates(0)),
+		_lp_filters_d[1].apply(rates(1)),
+		_lp_filters_d[2].apply(rates(2)));
+
 	_att_control = rates_p_scaled.emult(rates_err) +
-		       _rates_int +
-		       rates_d_scaled.emult(_rates_prev - rates) / dt +
+		       _rates_int -
+		       rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt +
 		       _params.rate_ff.emult(_rates_sp);
 
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
+	_rates_prev_filtered = rates_filtered;
 
 	/* update integral only if motors are providing enough thrust to be effective */
 	if (_thrust_sp > MIN_TAKEOFF_THRUST) {
@@ -1093,7 +1127,10 @@ MulticopterAttitudeControl::task_main()
 	px4_pollfd_struct_t poll_fds = {};
 	poll_fds.events = POLLIN;
 
+	const hrt_abstime task_start = hrt_absolute_time();
 	hrt_abstime last_run = task_start;
+	float dt_accumulator = 0.f;
+	int loop_counter = 0;
 
 	while (!_task_should_exit) {
 
@@ -1299,6 +1336,23 @@ MulticopterAttitudeControl::task_main()
 					}
 				}
 			}
+
+			/* calculate loop update rate while disarmed or at least a few times (updating the filter is expensive) */
+			if (!_v_control_mode.flag_armed || (now - task_start) < 3300000) {
+				dt_accumulator += dt;
+				++loop_counter;
+
+				if (dt_accumulator > 1.f) {
+					const float loop_update_rate = (float)loop_counter / dt_accumulator;
+					_loop_update_rate_hz = _loop_update_rate_hz * 0.5f + loop_update_rate * 0.5f;
+					dt_accumulator = 0;
+					loop_counter = 0;
+					_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+					_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+					_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+				}
+			}
+
 		}
 
 		perf_end(_loop_perf);
