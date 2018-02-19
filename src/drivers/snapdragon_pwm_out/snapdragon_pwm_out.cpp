@@ -44,6 +44,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
@@ -117,23 +118,25 @@ MultirotorMixer *_mixer = nullptr;
  * forward declaration
  */
 
-void usage();
+static void usage();
 
-void start();
+static void start();
 
-void stop();
+static void stop();
 
-int pwm_initialize(const char *device);
+static int pwm_initialize(const char *device);
 
-void pwm_deinitialize();
+static void pwm_deinitialize();
 
-void send_outputs_pwm(const uint16_t *pwm);
+static void send_outputs_pwm(const uint16_t *pwm);
 
-void task_main_trampoline(int argc, char *argv[]);
+static void task_main_trampoline(int argc, char *argv[]);
 
-void subscribe();
+static void subscribe();
 
-void task_main(int argc, char *argv[]);
+static void task_main(int argc, char *argv[]);
+
+static void update_params(bool &airmode);
 
 int initialize_mixer(const char *mixer_filename);
 
@@ -157,6 +160,17 @@ int mixer_control_callback(uintptr_t handle,
 	return 0;
 }
 
+void update_params(bool &airmode)
+{
+	// multicopter air-mode
+	param_t param_handle = param_find("MC_AIRMODE");
+
+	if (param_handle != PARAM_INVALID) {
+		int32_t val;
+		param_get(param_handle, &val);
+		airmode = val > 0;
+	}
+}
 
 int initialize_mixer(const char *mixer_filename)
 {
@@ -343,6 +357,10 @@ void task_main(int argc, char *argv[])
 	// subscribe and set up polling
 	subscribe();
 
+	bool airmode = false;
+	update_params(airmode);
+	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+
 	// Start disarmed
 	_armed.armed = false;
 	_armed.prearmed = false;
@@ -354,6 +372,10 @@ void task_main(int argc, char *argv[])
 
 	// Main loop
 	while (!_task_should_exit) {
+
+		if (_mixer) {
+			_mixer->set_airmode(airmode);
+		}
 
 		/* wait up to 10ms for data */
 		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
@@ -438,6 +460,15 @@ void task_main(int argc, char *argv[])
 			_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
 		}
 
+		/* check for parameter updates */
+		bool param_updated = false;
+		orb_check(params_sub, &param_updated);
+
+		if (param_updated) {
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			update_params(airmode);
+		}
 	}
 
 	pwm_deinitialize();
@@ -449,6 +480,7 @@ void task_main(int argc, char *argv[])
 	}
 
 	orb_unsubscribe(_armed_sub);
+	orb_unsubscribe(params_sub);
 	_is_running = false;
 
 }
