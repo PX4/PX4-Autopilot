@@ -1240,7 +1240,6 @@ Commander::run()
 	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
-	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1553,8 +1552,6 @@ Commander::run()
 	/* RC override auto modes */
 	int32_t rc_override = 0;
 
-	int32_t takeoff_complete_act = 0;
-
 	int32_t disarm_when_landed = 0;
 	int32_t low_bat_action = 0;
 
@@ -1695,8 +1692,6 @@ Commander::run()
 
 			/* failsafe response to loss of navigation accuracy */
 			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
-
-			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
 			param_init_forced = false;
 		}
@@ -2196,44 +2191,7 @@ Commander::run()
 			}
 		}
 
-		/* start mission result check */
-		const auto prev_mission_instance_count = _mission_result_sub.get().instance_count;
-		if (_mission_result_sub.update()) {
-			const mission_result_s& mission_result = _mission_result_sub.get();
-
-			// if mission_result is valid for the current mission
-			const bool mission_result_ok = (mission_result.timestamp > commander_boot_timestamp) && (mission_result.instance_count > 0);
-
-			status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
-
-			if (mission_result_ok) {
-
-				if (status.mission_failure != mission_result.failure) {
-					status.mission_failure = mission_result.failure;
-					status_changed = true;
-
-					if (status.mission_failure) {
-						mavlink_log_critical(&mavlink_log_pub, "Mission cannot be completed");
-					}
-				}
-
-				/* Only evaluate mission state if home is set */
-				if (status_flags.condition_home_position_valid &&
-					(prev_mission_instance_count != mission_result.instance_count)) {
-
-					if (!status_flags.condition_auto_mission_available) {
-						/* the mission is invalid */
-						tune_mission_fail(true);
-					} else if (mission_result.warning) {
-						/* the mission has a warning */
-						tune_mission_fail(true);
-					} else {
-						/* the mission is valid */
-						tune_mission_ok(true);
-					}
-				}
-			}
-		}
+		check_mission(status, status_changed);
 
 		/* start geofence result check */
 		orb_check(geofence_result_sub, &updated);
@@ -2539,25 +2497,6 @@ Commander::run()
 
 		check_data_link(status, status_changed, hotplug_timeout, checkAirspeed);
 		check_engine_failure(status, status_changed);
-
-		/* Reset main state to loiter or auto-mission after takeoff is completed.
-		 * Sometimes, the mission result topic is outdated and the mission is still signaled
-		 * as finished even though we only just started with the takeoff. Therefore, we also
-		 * check the timestamp of the mission_result topic. */
-		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-			&& (_mission_result_sub.get().timestamp > internal_state.timestamp)
-			&& _mission_result_sub.get().finished) {
-
-			const bool mission_available = (_mission_result_sub.get().timestamp > commander_boot_timestamp)
-				&& (_mission_result_sub.get().instance_count > 0) && _mission_result_sub.get().valid;
-
-			if ((takeoff_complete_act == 1) && mission_available) {
-				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
-
-			} else {
-				main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
-			}
-		}
 
 		/* check if we are disarmed and there is a better mode to wait in */
 		if (!armed.armed) {
@@ -4148,6 +4087,68 @@ void Commander::mission_init()
 
 		orb_advert_t mission_pub = orb_advertise(ORB_ID(mission), &mission);
 		orb_unadvertise(mission_pub);
+	}
+}
+
+void Commander::check_mission(vehicle_status_s& vehicle_status, bool& status_changed)
+{
+	/* start mission result check */
+	const auto prev_mission_instance_count = _mission_result_sub.get().instance_count;
+	if (_mission_result_sub.update()) {
+		const mission_result_s& mission_result = _mission_result_sub.get();
+
+		// if mission_result is valid for the current mission
+		const bool mission_result_ok = (mission_result.timestamp > commander_boot_timestamp) && (mission_result.instance_count > 0);
+
+		status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
+
+		if (mission_result_ok) {
+
+			if (vehicle_status.mission_failure != mission_result.failure) {
+
+				vehicle_status.mission_failure = mission_result.failure;
+				status_changed = true;
+
+				if (status.mission_failure) {
+					mavlink_log_critical(&mavlink_log_pub, "Mission cannot be completed");
+				}
+			}
+
+			/* Only evaluate mission state if home is set */
+			if (status_flags.condition_home_position_valid &&
+				(prev_mission_instance_count != mission_result.instance_count)) {
+
+				if (!status_flags.condition_auto_mission_available) {
+					/* the mission is invalid */
+					tune_mission_fail(true);
+				} else if (mission_result.warning) {
+					/* the mission has a warning */
+					tune_mission_fail(true);
+				} else {
+					/* the mission is valid */
+					tune_mission_ok(true);
+				}
+			}
+		}
+	}
+
+	/* Reset main state to loiter or auto-mission after takeoff is completed.
+	 * Sometimes, the mission result topic is outdated and the mission is still signaled
+	 * as finished even though we only just started with the takeoff. Therefore, we also
+	 * check the timestamp of the mission_result topic. */
+	if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+		&& (_mission_result_sub.get().timestamp > internal_state.timestamp)
+		&& _mission_result_sub.get().finished) {
+
+		const bool mission_available = (_mission_result_sub.get().timestamp > commander_boot_timestamp)
+			&& (_mission_result_sub.get().instance_count > 0) && _mission_result_sub.get().valid;
+
+		if ((_param_takeoff_finished_action.get() == 1) && mission_available) {
+			main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+
+		} else {
+			main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+		}
 	}
 }
 

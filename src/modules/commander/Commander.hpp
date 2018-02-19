@@ -67,6 +67,7 @@ public:
 		SuperBlock(nullptr, "COM"),
 		_param_datalink_loss_timeout(this, "DL_LOSS_T"),
 		_param_datalink_regain_timeout(this, "DL_REG_T"),
+		_param_takeoff_finished_action(this, "TAKEOFF_ACT"),
 		_mission_result_sub(ORB_ID(mission_result), 0, 0, &getSubscriptions())
 	{
 		updateParams();
@@ -94,6 +95,8 @@ private:
 	BlockParamInt	_param_datalink_loss_timeout;
 	BlockParamInt	_param_datalink_regain_timeout;
 
+	BlockParamInt	_param_takeoff_finished_action;
+
 	// Subscriptions
 	Subscription<mission_result_s> _mission_result_sub;
 
@@ -107,6 +110,8 @@ private:
 				bool set_alt_only_to_lpos_ref);
 
 	void mission_init();
+
+	void check_mission(vehicle_status_s& vehicle_status, bool& status_changed);
 
 	// data link
 	int _telemetry_subs[ORB_MULTI_MAX_INSTANCES];
