@@ -69,7 +69,6 @@
 
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
@@ -145,20 +144,6 @@ private:
 	int		pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 	void 	subscribe();
 
-	struct GPIOConfig {
-		uint32_t	input;
-		uint32_t	output;
-		uint32_t	alt;
-	};
-
-	static const GPIOConfig	_gpio_tab[];
-	static const unsigned	_ngpio;
-
-	void		gpio_reset();
-	void		gpio_set_function(uint32_t gpios, int function);
-	void		gpio_write(uint32_t gpios, int function);
-	uint32_t	gpio_read();
-	int		gpio_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 };
 
@@ -544,11 +529,6 @@ PWMSim::task_main()
 
 	orb_unsubscribe(_armed_sub);
 
-	/* make sure servos are off */
-	// up_pwm_servo_deinit();
-
-	/* note - someone else is responsible for restoring the GPIO config */
-
 	/* tell the dtor that we are exiting */
 	_task = -1;
 }
@@ -862,13 +842,6 @@ PortMode g_port_mode = PORT_MODE_UNDEFINED;
 int
 hil_new_mode(PortMode new_mode)
 {
-	// uint32_t gpio_bits;
-
-
-//	/* reset to all-inputs */
-//	g_pwm_sim->ioctl(0, GPIO_RESET, 0);
-
-	// gpio_bits = 0;
 
 	PWMSim::Mode servo_mode = PWMSim::MODE_NONE;
 
