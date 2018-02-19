@@ -1093,6 +1093,8 @@ MulticopterAttitudeControl::task_main()
 	px4_pollfd_struct_t poll_fds = {};
 	poll_fds.events = POLLIN;
 
+	hrt_abstime last_run = task_start;
+
 	while (!_task_should_exit) {
 
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
@@ -1117,9 +1119,9 @@ MulticopterAttitudeControl::task_main()
 
 		/* run controller on gyro changes */
 		if (poll_fds.revents & POLLIN) {
-			static uint64_t last_run = 0;
-			float dt = (hrt_absolute_time() - last_run) / 1000000.0f;
-			last_run = hrt_absolute_time();
+			const hrt_abstime now = hrt_absolute_time();
+			float dt = (now - last_run) / 1e6f;
+			last_run = now;
 
 			/* guard against too small (< 2ms) and too large (> 20ms) dt's */
 			if (dt < 0.002f) {
