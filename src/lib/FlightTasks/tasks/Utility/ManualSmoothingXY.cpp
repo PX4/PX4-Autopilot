@@ -166,8 +166,14 @@ ManualSmoothingXY::_getStateAcceleration(const matrix::Vector2f &vel_sp, const m
 	switch (intention) {
 	case Intention::brake: {
 
-			/* First iteration where user demands brake */
-			if (intention != _intention) {
+			if (_intention == Intention::direction_change) {
+				/* Vehicle switched from direciton change to brake.
+				 * Don't do any slwerate but rather just stop.
+				 */
+				_jerk_state_dependent = 1e6f;
+				_vel_sp_prev = vel;
+
+			} else if (intention != _intention) {
 				/* we start braking with lowest acceleration
 				 * This make stopping smoother. */
 				_acc_state_dependent = _dec_xy_min;
@@ -176,12 +182,12 @@ ManualSmoothingXY::_getStateAcceleration(const matrix::Vector2f &vel_sp, const m
 				 * that the vehicle will stop much quicker at large speed but
 				 * very slow at low speed.
 				 */
-				_jerk_state_dependent = _jerk_max; // default
+				_jerk_state_dependent = 1e6f; // default
 
 				if (_jerk_max > _jerk_min) {
 
-					_jerk_state_dependent = (_jerk_max - _jerk_min)
-								/ _vel_manual * vel.length() + _jerk_min;
+					_jerk_state_dependent = math::min((_jerk_max - _jerk_min)
+									  / _vel_manual * vel.length() + _jerk_min, _jerk_max);
 				}
 
 				/* Since user wants to brake smoothly but NOT continuing to fly
