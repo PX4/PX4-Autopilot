@@ -207,8 +207,8 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	// Otherwise, a scaler is computed to make the distance between the two extrema exacly 1.0 and the boost
 	// value is computed to maximize the roll-pitch control.
 	//
-	// Note: thrust boost is computed assuming thrust_gain==1 for all motors.
-	// On asymmetric platforms, some motors have thrust_gain<1,
+	// Note: thrust boost is computed assuming thrust_scale==1 for all motors.
+	// On asymmetric platforms, some motors have thrust_scale<1,
 	// which may result in motor saturation after thrust boost is applied
 	// TODO: revise the saturation/boosting strategy
 	if (delta_out_max <= 1.0f) {
