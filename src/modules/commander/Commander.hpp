@@ -111,6 +111,10 @@ private:
 
 	void mission_init();
 
+	// system power
+	int _system_power_sub{-1};
+	void check_system_power(vehicle_status_flags_s& vehicle_status_flags, float& power_rail_voltage);
+
 	void check_mission(vehicle_status_s& vehicle_status, bool& status_changed);
 
 	// data link

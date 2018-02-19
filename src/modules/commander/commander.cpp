@@ -1437,9 +1437,7 @@ Commander::run()
 	memset(&info, 0, sizeof(info));
 
 	/* Subscribe to system power */
-	int system_power_sub = orb_subscribe(ORB_ID(system_power));
-	struct system_power_s system_power;
-	memset(&system_power, 0, sizeof(system_power));
+	_system_power_sub = orb_subscribe(ORB_ID(system_power));
 
 	/* Subscribe to actuator controls (outputs) */
 	_actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
@@ -1593,6 +1591,8 @@ Commander::run()
 			/* parameters changed */
 			struct parameter_update_s param_changed;
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
+
+			updateParams();
 
 			/* update parameters */
 			if (!armed.armed) {
@@ -1750,40 +1750,7 @@ Commander::run()
 			}
 		}
 
-		orb_check(system_power_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(system_power), system_power_sub, &system_power);
-
-			if (hrt_elapsed_time(&system_power.timestamp) < 200000) {
-				if (system_power.servo_valid &&
-				    !system_power.brick_valid &&
-				    !system_power.usb_connected) {
-					/* flying only on servo rail, this is unsafe */
-					status_flags.condition_power_input_valid = false;
-
-				} else {
-					status_flags.condition_power_input_valid = true;
-				}
-
-				/* copy avionics voltage */
-				avionics_power_rail_voltage = system_power.voltage5V_v;
-
-				/* if the USB hardware connection went away, reboot */
-				if (status_flags.usb_connected && !system_power.usb_connected) {
-					/*
-					 * apparently the USB cable went away but we are still powered,
-					 * so lets reset to a classic non-usb state.
-					 */
-					mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting.")
-					usleep(400000);
-					px4_shutdown_request(true, false);
-				}
-
-				/* finally judge the USB connected state based on software detection */
-				status_flags.usb_connected = _usb_telemetry_active;
-			}
-		}
+		check_system_power(status_flags, avionics_power_rail_voltage);
 
 		/* update safety topic */
 		orb_check(safety_sub, &updated);
@@ -4087,6 +4054,47 @@ void Commander::mission_init()
 
 		orb_advert_t mission_pub = orb_advertise(ORB_ID(mission), &mission);
 		orb_unadvertise(mission_pub);
+	}
+}
+
+void Commander::check_system_power(vehicle_status_flags_s& vehicle_status_flags, float& power_rail_voltage)
+{
+	bool updated = false;
+	orb_check(_system_power_sub, &updated);
+
+	if (updated) {
+		system_power_s system_power;
+		orb_copy(ORB_ID(system_power), _system_power_sub, &system_power);
+
+		if (hrt_elapsed_time(&system_power.timestamp) < 200000) {
+			if (system_power.servo_valid &&
+			    !system_power.brick_valid &&
+			    !system_power.usb_connected) {
+
+				/* flying only on servo rail, this is unsafe */
+				vehicle_status_flags.condition_power_input_valid = false;
+
+			} else {
+				vehicle_status_flags.condition_power_input_valid = true;
+			}
+
+			/* copy avionics voltage */
+			power_rail_voltage = system_power.voltage5V_v;
+
+			/* if the USB hardware connection went away, reboot */
+			if (vehicle_status_flags.usb_connected && !system_power.usb_connected) {
+				/*
+				 * apparently the USB cable went away but we are still powered,
+				 * so lets reset to a classic non-usb state.
+				 */
+				mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting.")
+				usleep(400000);
+				px4_shutdown_request(true, false);
+			}
+
+			/* finally judge the USB connected state based on software detection */
+			vehicle_status_flags.usb_connected = _usb_telemetry_active;
+		}
 	}
 }
 
