@@ -64,7 +64,7 @@ PositionControl::PositionControl()
 	_Pvxy_h = param_find("MPC_XY_VEL_P");
 	_Ivxy_h = param_find("MPC_XY_VEL_I");
 	_Dvxy_h = param_find("MPC_XY_VEL_D");
-	_VelMaxXY = param_find("MPC_XY_VEL_MAX");
+	_VelMaxXY_h = param_find("MPC_XY_VEL_MAX");
 	_VelMaxZdown_h = param_find("MPC_Z_VEL_MAX_DN");
 	_VelMaxZup_h = param_find("MPC_Z_VEL_MAX_UP");
 	_ThrHover_h = param_find("MPC_THR_HOVER");
