@@ -174,7 +174,6 @@ private:
 
 	math::Vector<3>		_rates_prev;		/**< angular rates on previous step */
 	math::Vector<3>		_rates_prev_filtered;	/**< angular rates on previous step (low-pass filtered) */
-	math::Vector<3>		_rates_sp_prev;		/**< previous rates setpoint */
 	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
 	float			_thrust_sp;		/**< thrust setpoint */
@@ -418,7 +417,6 @@ _loop_update_rate_hz(initial_update_rate_hz)
 	_rates_prev.zero();
 	_rates_prev_filtered.zero();
 	_rates_sp.zero();
-	_rates_sp_prev.zero();
 	_rates_int.zero();
 	_thrust_sp = 0.0f;
 	_att_control.zero();
@@ -1036,7 +1034,6 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 		       rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt +
 		       _params.rate_ff.emult(_rates_sp);
 
-	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
 	_rates_prev_filtered = rates_filtered;
 
