@@ -32,3 +32,4 @@ bool rc_signal_found_once
 bool rc_input_blocked                                # set if RC input should be ignored temporarily
 bool vtol_transition_failure                        # Set to true if vtol transition failed
 bool usb_connected                                # status of the USB power supply
+
