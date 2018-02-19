@@ -131,7 +131,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (!PX4_ISFINITE(_yaw_wp)) {
 		_yaw_wp = _yaw;
 
-	} else {
 	}
 
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
