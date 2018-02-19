@@ -65,6 +65,8 @@ class Commander : public control::SuperBlock, public ModuleBase<Commander>
 public:
 	Commander() :
 		SuperBlock(nullptr, "COM"),
+		_param_datalink_loss_timeout(this, "DL_LOSS_T"),
+		_param_datalink_regain_timeout(this, "DL_REG_T"),
 		_mission_result_sub(ORB_ID(mission_result), 0, 0, &getSubscriptions())
 	{
 		updateParams();
@@ -89,6 +91,9 @@ public:
 
 private:
 
+	BlockParamInt	_param_datalink_loss_timeout;
+	BlockParamInt	_param_datalink_regain_timeout;
+
 	// Subscriptions
 	Subscription<mission_result_s> _mission_result_sub;
 
@@ -102,6 +107,14 @@ private:
 				bool set_alt_only_to_lpos_ref);
 
 	void mission_init();
+
+	// data link
+	int _telemetry_subs[ORB_MULTI_MAX_INSTANCES];
+	uint64_t _telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
+	uint64_t _telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
+	bool _telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES];
+	bool _telemetry_lost[ORB_MULTI_MAX_INSTANCES];
+	void check_data_link(vehicle_status_s& vehicle_status, bool& status_changed, bool& hotplug_timeout, bool checkAirspeed);
 
 	// engine failure detection
 	// TODO: move out of commander

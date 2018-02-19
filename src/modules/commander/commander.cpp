@@ -1222,9 +1222,7 @@ Commander::run()
 	param_t _param_offboard_loss_act = param_find("COM_OBL_ACT");
 	param_t _param_offboard_loss_rc_act = param_find("COM_OBL_RC_ACT");
 	param_t _param_enable_rc_loss = param_find("NAV_RCL_ACT");
-	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
-	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
@@ -1400,19 +1398,12 @@ Commander::run()
 	int offboard_control_mode_sub = orb_subscribe(ORB_ID(offboard_control_mode));
 	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));
 
-	/* Subscribe to telemetry status topics */
-	int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
-	uint64_t telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
-	uint64_t telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
-	bool telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES];
-	bool telemetry_lost[ORB_MULTI_MAX_INSTANCES];
-
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		telemetry_subs[i] = -1;
-		telemetry_last_heartbeat[i] = 0;
-		telemetry_last_dl_loss[i] = 0;
-		telemetry_lost[i] = true;
-		telemetry_preflight_checks_reported[i] = false;
+		_telemetry_subs[i] = -1;
+		_telemetry_last_heartbeat[i] = 0;
+		_telemetry_last_dl_loss[i] = 0;
+		_telemetry_lost[i] = true;
+		_telemetry_preflight_checks_reported[i] = false;
 	}
 
 	/* Subscribe to global position */
@@ -1549,9 +1540,7 @@ Commander::run()
 
 	int32_t datalink_loss_act = 0;
 	int32_t rc_loss_act = 0;
-	int32_t datalink_loss_timeout = 10;
 	float rc_loss_timeout = 0.5;
-	int32_t datalink_regain_timeout = 0;
 	float offboard_loss_timeout = 0.0f;
 	int32_t offboard_loss_act = 0;
 	int32_t offboard_loss_rc_act = 0;
@@ -1645,7 +1634,6 @@ Commander::run()
 			/* Safety parameters */
 			param_get(_param_enable_datalink_loss, &datalink_loss_act);
 			param_get(_param_enable_rc_loss, &rc_loss_act);
-			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_rc_in_off, &rc_in_off);
 			status.rc_input_mode = rc_in_off;
@@ -1655,7 +1643,6 @@ Commander::run()
 			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
 			min_stick_change *= 0.02f;
 			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
-			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 			param_get(_param_ef_throttle_thres, &_ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &_ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &_ef_time_thres);
@@ -1765,66 +1752,6 @@ Commander::run()
 
 				if (status_flags.offboard_control_loss_timeout) {
 					status_changed = true;
-				}
-			}
-		}
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-
-			if (telemetry_subs[i] < 0) {
-				telemetry_subs[i] = orb_subscribe_multi(ORB_ID(telemetry_status), i);
-			}
-
-			orb_check(telemetry_subs[i], &updated);
-
-			if (updated) {
-				telemetry_status_s telemetry = {};
-				orb_copy(ORB_ID(telemetry_status), telemetry_subs[i], &telemetry);
-
-				/* perform system checks when new telemetry link connected */
-				if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
-				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)
-				        || !telemetry_preflight_checks_reported[i]) &&
-				    /* and this link has a communication partner */
-				    (telemetry.heartbeat_time > 0) &&
-				    /* and it is still connected */
-				    (hrt_elapsed_time(&telemetry.heartbeat_time) < 2 * 1000 * 1000) &&
-				    /* and the system is not already armed (and potentially flying) */
-				    !armed.armed) {
-
-					hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
-					/* flag the checks as reported for this link when we actually report them */
-					telemetry_preflight_checks_reported[i] = hotplug_timeout;
-
-					/* provide RC and sensor status feedback to the user */
-					if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
-						/* HITL configuration: check only RC input */
-						Preflight::preflightCheck(&mavlink_log_pub, false, false,
-								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
-								 true, is_vtol(&status), false, false, hrt_elapsed_time(&commander_boot_timestamp));
-					} else {
-						/* check sensors also */
-						Preflight::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
-								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT,
-								 true, is_vtol(&status), hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
-					}
-
-					// Provide feedback on mission state
-					const mission_result_s& mission_result = _mission_result_sub.get();
-					if ((mission_result.timestamp > commander_boot_timestamp) && hotplug_timeout &&
-						(mission_result.instance_count > 0) && !mission_result.valid) {
-
-						mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
-					}
-				}
-
-				/* set (and don't reset) telemetry via USB as active once a MAVLink connection is up */
-				if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB) {
-					_usb_telemetry_active = true;
-				}
-
-				if (telemetry.heartbeat_time > 0) {
-					telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
 				}
 			}
 		}
@@ -2610,68 +2537,7 @@ Commander::run()
 			}
 		}
 
-		/* data links check */
-		bool have_link = false;
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if (telemetry_last_heartbeat[i] != 0 &&
-			    hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout * 1e6) {
-				/* handle the case where data link was gained first time or regained,
-				 * accept datalink as healthy only after datalink_regain_timeout seconds
-				 * */
-				if (telemetry_lost[i] &&
-				    hrt_elapsed_time(&telemetry_last_dl_loss[i]) > datalink_regain_timeout * 1e6) {
-
-					/* report a regain */
-					if (telemetry_last_dl_loss[i] > 0) {
-						mavlink_and_console_log_info(&mavlink_log_pub, "data link #%i regained", i);
-					} else if (telemetry_last_dl_loss[i] == 0) {
-						/* new link */
-					}
-
-					/* got link again or new */
-					status_flags.condition_system_prearm_error_reported = false;
-					status_changed = true;
-
-					telemetry_lost[i] = false;
-					have_link = true;
-
-				} else if (!telemetry_lost[i]) {
-					/* telemetry was healthy also in last iteration
-					 * we don't have to check a timeout */
-					have_link = true;
-				}
-
-			} else {
-
-				if (!telemetry_lost[i]) {
-					/* only reset the timestamp to a different time on state change */
-					telemetry_last_dl_loss[i]  = hrt_absolute_time();
-
-					mavlink_and_console_log_info(&mavlink_log_pub, "data link #%i lost", i);
-					telemetry_lost[i] = true;
-				}
-			}
-		}
-
-		if (have_link) {
-			/* handle the case where data link was regained */
-			if (status.data_link_lost) {
-				status.data_link_lost = false;
-				status_changed = true;
-			}
-
-		} else {
-			if (!status.data_link_lost) {
-				if (armed.armed) {
-					mavlink_log_critical(&mavlink_log_pub, "ALL DATA LINKS LOST");
-				}
-				status.data_link_lost = true;
-				status.data_link_lost_counter++;
-				status_changed = true;
-			}
-		}
-
+		check_data_link(status, status_changed, hotplug_timeout, checkAirspeed);
 		check_engine_failure(status, status_changed);
 
 		/* Reset main state to loiter or auto-mission after takeoff is completed.
@@ -4282,6 +4148,132 @@ void Commander::mission_init()
 
 		orb_advert_t mission_pub = orb_advertise(ORB_ID(mission), &mission);
 		orb_unadvertise(mission_pub);
+	}
+}
+
+void Commander::check_data_link(vehicle_status_s& vehicle_status, bool& status_changed, bool& hotplug_timeout, const bool checkAirspeed)
+{
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+
+		if (_telemetry_subs[i] < 0) {
+			_telemetry_subs[i] = orb_subscribe_multi(ORB_ID(telemetry_status), i);
+		}
+
+		bool updated = false;
+		orb_check(_telemetry_subs[i], &updated);
+
+		if (updated) {
+			telemetry_status_s telemetry = {};
+			orb_copy(ORB_ID(telemetry_status), _telemetry_subs[i], &telemetry);
+
+			/* perform system checks when new telemetry link connected */
+			if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
+			    (_telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&_telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)
+			        || !_telemetry_preflight_checks_reported[i]) &&
+			    /* and this link has a communication partner */
+			    (telemetry.heartbeat_time > 0) &&
+			    /* and it is still connected */
+			    (hrt_elapsed_time(&telemetry.heartbeat_time) < 2 * 1000 * 1000) &&
+			    /* and the system is not already armed (and potentially flying) */
+			    !armed.armed) {
+
+				hotplug_timeout = (hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
+				/* flag the checks as reported for this link when we actually report them */
+				_telemetry_preflight_checks_reported[i] = hotplug_timeout;
+
+				/* provide RC and sensor status feedback to the user */
+				if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
+					/* HITL configuration: check only RC input */
+					Preflight::preflightCheck(&mavlink_log_pub, false, false,
+							(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
+							 true, is_vtol(&status), false, false, hrt_elapsed_time(&commander_boot_timestamp));
+				} else {
+					/* check sensors also */
+					Preflight::preflightCheck(&mavlink_log_pub, true, checkAirspeed,
+							(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT,
+							 true, is_vtol(&status), hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
+				}
+
+				// Provide feedback on mission state
+				const mission_result_s& mission_result = _mission_result_sub.get();
+				if ((mission_result.timestamp > commander_boot_timestamp) && hotplug_timeout &&
+					(mission_result.instance_count > 0) && !mission_result.valid) {
+
+					mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
+				}
+			}
+
+			/* set (and don't reset) telemetry via USB as active once a MAVLink connection is up */
+			if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB) {
+				_usb_telemetry_active = true;
+			}
+
+			if (telemetry.heartbeat_time > 0) {
+				_telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
+			}
+		}
+	}
+
+	/* data links check */
+	bool have_link = false;
+
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (_telemetry_last_heartbeat[i] != 0 &&
+		    hrt_elapsed_time(&_telemetry_last_heartbeat[i]) < _param_datalink_loss_timeout.get() * 1e6) {
+			/* handle the case where data link was gained first time or regained,
+			 * accept datalink as healthy only after datalink_regain_timeout seconds
+			 * */
+			if (_telemetry_lost[i] &&
+			    hrt_elapsed_time(&_telemetry_last_dl_loss[i]) > _param_datalink_regain_timeout.get() * 1e6) {
+
+				/* report a regain */
+				if (_telemetry_last_dl_loss[i] > 0) {
+					mavlink_and_console_log_info(&mavlink_log_pub, "data link #%i regained", i);
+				} else if (_telemetry_last_dl_loss[i] == 0) {
+					/* new link */
+				}
+
+				/* got link again or new */
+				status_flags.condition_system_prearm_error_reported = false;
+				status_changed = true;
+
+				_telemetry_lost[i] = false;
+				have_link = true;
+
+			} else if (!_telemetry_lost[i]) {
+				/* telemetry was healthy also in last iteration
+				 * we don't have to check a timeout */
+				have_link = true;
+			}
+
+		} else {
+
+			if (!_telemetry_lost[i]) {
+				/* only reset the timestamp to a different time on state change */
+				_telemetry_last_dl_loss[i]  = hrt_absolute_time();
+
+				mavlink_and_console_log_info(&mavlink_log_pub, "data link #%i lost", i);
+				_telemetry_lost[i] = true;
+			}
+		}
+	}
+
+	if (have_link) {
+		/* handle the case where data link was regained */
+		if (status.data_link_lost) {
+			status.data_link_lost = false;
+			status_changed = true;
+		}
+
+	} else {
+		if (!status.data_link_lost) {
+			if (armed.armed) {
+				mavlink_log_critical(&mavlink_log_pub, "ALL DATA LINKS LOST");
+			}
+			status.data_link_lost = true;
+			status.data_link_lost_counter++;
+			status_changed = true;
+		}
 	}
 }
 
