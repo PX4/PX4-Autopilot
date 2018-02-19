@@ -154,7 +154,7 @@ void constrainPIDu(matrix::Vector3f &u, bool stop_I[2], const float Ulimits[2], 
 		 * since we do not know better. (no direction given)
 		 */
 		if (u.length() < 0.0001f) {
-			u = matrix::Vector3f(0.0f, 0.0f, math::sign(u(2)) * Ulimits[1]);
+			u = matrix::Vector3f(0.0f, 0.0f, -Ulimits[1]);
 
 		} else {
 			u = u.normalized() * Ulimits[1];
