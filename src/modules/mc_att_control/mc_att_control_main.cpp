@@ -558,12 +558,15 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_ff(1) = v;
 
 	param_get(_params_handles.d_term_cutoff_freq, &_params.d_term_cutoff_freq);
-	_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
-	_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
-	_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
-	_lp_filters_d[0].reset(_rates_prev(0));
-	_lp_filters_d[1].reset(_rates_prev(1));
-	_lp_filters_d[2].reset(_rates_prev(2));
+
+	if (fabsf(_lp_filters_d[0].get_cutoff_freq() - _params.d_term_cutoff_freq) > 0.01f) {
+		_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+		_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+		_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+		_lp_filters_d[0].reset(_rates_prev(0));
+		_lp_filters_d[1].reset(_rates_prev(1));
+		_lp_filters_d[2].reset(_rates_prev(2));
+	}
 
 	param_get(_params_handles.tpa_breakpoint_p, &_params.tpa_breakpoint_p);
 	param_get(_params_handles.tpa_breakpoint_i, &_params.tpa_breakpoint_i);
