@@ -1452,7 +1452,6 @@ Commander::run()
 
 	/* subscribe to estimator status topic */
 	int estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
-	struct estimator_status_s estimator_status;
 
 	/* class variables used to check for navigation failure after takeoff */
 	hrt_abstime time_at_takeoff = 0; // last time we were on the ground
@@ -1894,6 +1893,7 @@ Commander::run()
 			bool estimator_status_updated = false;
 			orb_check(estimator_status_sub, &estimator_status_updated);
 			if (estimator_status_updated) {
+				estimator_status_s estimator_status;
 				orb_copy(ORB_ID(estimator_status), estimator_status_sub, &estimator_status);
 				if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 					// reset flags and timer
