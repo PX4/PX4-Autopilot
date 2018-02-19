@@ -50,9 +50,9 @@
 #include <drivers/drv_board_led.h>
 
 
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
-bool is_vtol(const struct vehicle_status_s *current_status);
+bool is_multirotor(const vehicle_status_s &vstatus);
+bool is_rotary_wing(const vehicle_status_s &vstatus);
+bool is_vtol(const vehicle_status_s &vstatus);
 
 int buzzer_init(void);
 void buzzer_deinit(void);
