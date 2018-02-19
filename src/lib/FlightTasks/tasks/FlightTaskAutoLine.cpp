@@ -339,7 +339,6 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 			if (PX4_ISFINITE(_yaw_wp)) {
 				yaw_diff = _wrap_pi(_yaw_wp - _yaw);
-				PX4_WARN("Yaw Waypoint not finite");
 			}
 
 			/* If yaw offset is large, only accelerate with 0.5 m/s^2. */
