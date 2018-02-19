@@ -1535,6 +1535,13 @@ MulticopterPositionControl::control_offboard()
 
 			_hold_offboard_z = false;
 
+			/* disable position control as it is not enabled */
+			if(_control_mode.flag_control_position_enabled){
+				_run_pos_control = true;
+			} else {
+				_run_pos_control = false;
+			}
+
 		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
 
 			/* reset alt setpoint to current altitude if needed */
