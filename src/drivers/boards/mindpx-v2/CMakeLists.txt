@@ -30,15 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__mindpx-v2
-	SRCS
-		mindpx_can.c
-		mindpx2_init.c
-		mindpx_timer_config.c
-		mindpx_spi.c
-		mindpx_usb.c
-		mindpx2_led.c
-	DEPENDS
-		platforms__common
-	)
+
+px4_add_library(drivers_board
+	can.c
+	init.c
+	led.c
+	spi.c
+	timer_config.c
+	usb.c
+)
