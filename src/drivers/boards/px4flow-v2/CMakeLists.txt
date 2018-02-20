@@ -31,14 +31,8 @@
 #
 ############################################################################
 
-message(FATAL_ERROR Configuraton is incomplete")
-
-px4_add_module(
-	MODULE drivers__boards__px4flow-v2
-	SRCS
-		px4flow_init.c
-		px4flow_led.c
-		px4flow_can.c
-	DEPENDS
-		platforms__common
-	)
+px4_add_library(drivers_board
+	can.c
+	init.c
+	led.c
+)

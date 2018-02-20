@@ -31,12 +31,8 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__boards__px4esc-v1
-	SRCS
-		px4esc_init.c
-		px4esc_led.c
-		px4esc_usb.c
-	DEPENDS
-		platforms__common
-	)
+px4_add_library(drivers_board
+	init.c
+	led.c
+	usb.c
+)
