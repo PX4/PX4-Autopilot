@@ -121,8 +121,6 @@ private:
 	float _VelMaxZ[2]; //index 0: index up; 1: down
 	float _ThrHover{0.5f};
 	float _ThrLimit[2]; //index 0: max, index 1: min
-	float _Pyaw{};
-	float _YawRateMax{};
 	bool _skipController{false};
 
 	/* Helper methods */
