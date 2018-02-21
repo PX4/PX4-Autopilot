@@ -61,7 +61,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	FlightTaskManualAltitude::_scaleSticks();
 
 	/* Constrain length of stick inputs to 1 for xy*/
-	matrix::Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
+	Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
 	float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
 
@@ -70,13 +70,12 @@ void FlightTaskManualPosition::_scaleSticks()
 	}
 
 	/* Scale to velocity.*/
-	matrix::Vector2f vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
+	Vector2f vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
 
 	/* Rotate setpoint into local frame. */
-	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-	matrix::Vector3f vel_world = q_yaw.conjugate(matrix::Vector3f(vel_sp_xy(0), vel_sp_xy(1), 0.0f));
-	_vel_sp(0) = vel_world(0);
-	_vel_sp(1) = vel_world(1);
+	Vector3f vel_local = (Dcmf(Eulerf(0.0f, 0.0f, _yaw_sp)) * Vector3f(vel_sp_xy(0), vel_sp_xy(1), 0.0f));
+	_vel_sp(0) = vel_local(0);
+	_vel_sp(1) = vel_local(1);
 }
 
 void FlightTaskManualPosition::_updateXYlock()
