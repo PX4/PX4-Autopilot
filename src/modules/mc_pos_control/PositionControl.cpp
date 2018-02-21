@@ -47,8 +47,6 @@
 #include <mathlib/mathlib.h>
 #include "uORB/topics/parameter_update.h"
 #include "Utility/ControlMath.hpp"
-#include <lib/ecl/geo/geo.h>  //TODO: only used for wrap_pi -> move this to mathlib since
-// it makes more sense
 
 using namespace matrix;
 
@@ -116,8 +114,6 @@ void PositionControl::generateThrustYawSetpoint(const float &dt)
 		_positionController();
 		_velocityController(dt);
 	}
-
-	_yawController(dt);
 }
 
 void PositionControl::_interfaceMapping()
@@ -167,23 +163,15 @@ void PositionControl::_interfaceMapping()
 		}
 	}
 
-	if (!PX4_ISFINITE(_yawspeed_sp)) {
+	if (PX4_ISFINITE(_yawspeed_sp) && fabsf(_yawspeed_sp) > 0.0f) {
+		_yawspeed_sp = math::sign(_yawspeed_sp) * math::min(fabsf(_yawspeed_sp), math::radians(_YawRateMax));
 
-		/* Target yaw is yaw setpoint. No need for yawspeed */
+	} else {
 		_yawspeed_sp = 0.0f;
+	}
 
-		if (!PX4_ISFINITE(_yaw_sp)) {
-
-			/* There is no finite setpoint. The best
-			 * we can do is to just re-use old setpoint */
-			_yaw_sp = _yaw_sp_int;
-		}
-
-	} else if (!PX4_ISFINITE(_yaw_sp)) {
-		/* Nothing is finite: Best we can do is to just
-		 * reuse old setpoint.
-		 */
-		_yaw_sp = _yaw_sp_int;
+	if (!PX4_ISFINITE(_yaw_sp)) {
+		_yaw_sp = _yaw;
 	}
 }
 
@@ -246,17 +234,19 @@ void PositionControl::_velocityController(const float &dt)
 	}
 
 	_thr_sp += thr_sp;
+
 	/* Limit tilt with priority on z
 	 * For manual controlled mode excluding pure manual and rate control, maximum tilt is 90;
 	 * It is to note that pure manual and rate control will never enter _velocityController method. */
 	_thr_sp = ControlMath::constrainTilt(_thr_sp, tilt_max);
+
 
 	/* Constrain thrust set-point and update saturation flag */
 	/* To get (r-y) for horizontal direction, we look at the dot-product
 	 * for vel_err and _vel_sp. The sign of the dot product indicates
 	 * if (r-y) is greater or smaller than 0
 	 */
-	float dot_xy = matrix::Vector2f(&vel_err(0)) * matrix::Vector2f(&_vel_sp(0));
+	float dot_xy = matrix::Vector2f(&_vel_sp(0)) * matrix::Vector2f(&_vel(0));
 	float direction[2] = {dot_xy, -vel_err(2)}; // negative sign because of N-E-D
 	bool stop_I[2] = {false, false}; // stop integration for xy and z
 	ControlMath::constrainPIDu(_thr_sp, stop_I, _ThrLimit, direction);
@@ -272,23 +262,6 @@ void PositionControl::_velocityController(const float &dt)
 	}
 
 
-}
-
-void PositionControl::_yawController(const float &dt)
-{
-	const float yaw_offset_max = math::radians(_YawRateMax) / _Pyaw;
-	const float  yaw_target = _wrap_pi(_yaw_sp + _yawspeed_sp * dt);
-	const float yaw_offset = _wrap_pi(yaw_target - _yaw);
-
-	// If the yaw offset became too big for the system to track stop
-	// shifting it, only allow if it would make the offset smaller again.
-	if (fabsf(yaw_offset) < yaw_offset_max || (_yawspeed_sp > 0 && yaw_offset < 0)
-	    || (_yawspeed_sp < 0 && yaw_offset > 0)) {
-		_yaw_sp = yaw_target;
-	}
-
-	/* Update yaw setpoint integral */
-	_yaw_sp_int = _yaw_sp;
 }
 
 void PositionControl::updateConstraints(const Controller::Constraints &constraints)
