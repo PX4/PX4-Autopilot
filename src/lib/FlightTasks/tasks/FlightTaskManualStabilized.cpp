@@ -84,7 +84,8 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 {
 	/* Rotate setpoint into local frame. */
 	matrix::Vector3f sp{_sticks(0), _sticks(1), 0.0f};
-	sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw)) * sp);
+
+	sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw_sp)) * sp);
 
 	/* Ensure that maximum tilt is in [0.001, Pi] */
 	float tilt_max = math::constrain(math::radians(_tilt_max_man.get()), 0.001f, M_PI_F);
