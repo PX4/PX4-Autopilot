@@ -46,7 +46,8 @@ FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *pare
 	_tilt_max_man(parent, "MPC_MAN_TILT_MAX", false),
 	_throttle_min(parent, "MPC_THR_MIN", false),
 	_throttle_max(parent, "MPC_THR_MAX", false),
-	_throttle_hover(parent, "MPC_THR_HOVER", false)
+	_throttle_hover(parent, "MPC_THR_HOVER", false),
+	_yaw_rate_max(parent, "MPC_MAN_Y_MAX", false)
 {}
 
 bool FlightTaskManualStabilized::activate()
@@ -62,6 +63,7 @@ void FlightTaskManualStabilized::_scaleSticks()
 	/* Scale sticks to yaw and thrust using
 	 * linear scale for yaw and piecewise linear map for thrust. */
 	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
+	_yaw_rate_sp = math::sign(_yaw_rate_sp) * math::min(fabsf(_yaw_rate_sp), math::radians(_yaw_rate_max.get()));
 	_throttle = _throttleCurve();
 }
 
