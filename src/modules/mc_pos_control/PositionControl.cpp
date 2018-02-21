@@ -68,8 +68,6 @@ PositionControl::PositionControl()
 	_ThrHover_h = param_find("MPC_THR_HOVER");
 	_ThrMax_h = param_find("MPC_THR_MAX");
 	_ThrMin_h = param_find("MPC_THR_MIN");
-	_YawRateMax_h = param_find("MPC_MAN_Y_MAX");
-	_Pyaw_h = param_find("MC_YAW_P");
 
 	/* Set parameter the very first time. */
 	_setParams();
@@ -163,10 +161,7 @@ void PositionControl::_interfaceMapping()
 		}
 	}
 
-	if (PX4_ISFINITE(_yawspeed_sp) && fabsf(_yawspeed_sp) > 0.0f) {
-		_yawspeed_sp = math::sign(_yawspeed_sp) * math::min(fabsf(_yawspeed_sp), math::radians(_YawRateMax));
-
-	} else {
+	if (!PX4_ISFINITE(_yawspeed_sp)) {
 		_yawspeed_sp = 0.0f;
 	}
 
@@ -306,7 +301,4 @@ void PositionControl::_setParams()
 	param_get(_ThrHover_h, &_ThrHover);
 	param_get(_ThrMax_h, &_ThrLimit[0]);
 	param_get(_ThrMin_h, &_ThrLimit[1]);
-
-	param_get(_YawRateMax_h, &_YawRateMax);
-	param_get(_Pyaw_h, &_Pyaw);
 }
