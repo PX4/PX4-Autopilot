@@ -686,10 +686,16 @@ then
 	#
 	if param greater UAVCAN_ENABLE 0
 	then
+		# Start core UAVCAN module
 		if uavcan start
 		then
-			set LOGGER_BUF 6
-			uavcan start fw
+			if param greater UAVCAN_ENABLE 1
+			then
+				# Reduce logger buffer to free up some RAM for UAVCAN servers
+				set LOGGER_BUF 6
+				# Start UAVCAN firmware update server and dynamic node ID allocation server
+				uavcan start fw
+			fi
 		else
 			tone_alarm ${TUNE_ERR}
 		fi
