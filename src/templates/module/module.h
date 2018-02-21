@@ -34,13 +34,12 @@
 #pragma once
 
 #include <px4_module.h>
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include <px4_module_params.h>
 
 extern "C" __EXPORT int module_main(int argc, char *argv[]);
 
 
-class Module : public ModuleBase<Module>, public control::SuperBlock
+class Module : public ModuleBase<Module>, public ModuleParams
 {
 public:
 	Module(int example_param, bool example_flag);
@@ -75,6 +74,9 @@ private:
 	void parameters_update(int parameter_update_sub, bool force = false);
 
 
-	control::BlockParamInt _sys_autostart; /**< example parameter */
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,   /**< example parameter */
+		(ParamInt<px4::params::SYS_AUTOCONFIG>) _sys_autoconfig  /**< another parameter */
+	)
 };
 
