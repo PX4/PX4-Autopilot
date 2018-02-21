@@ -94,7 +94,6 @@ private:
 
 	/* Other variables */
 	matrix::Vector3f _thr_int{};
-	float _yaw_sp_int{};
 	Controller::Constraints _constraints{};
 
 	/* Parameter handles */
@@ -130,7 +129,6 @@ private:
 	void _interfaceMapping();
 	void _positionController();
 	void _velocityController(const float &dt);
-	void _yawController(const float &dt);
 	void _updateParams();
 	void _setParams();
 };
