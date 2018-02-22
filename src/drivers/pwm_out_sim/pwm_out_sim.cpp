@@ -86,6 +86,8 @@ class PWMSim : public device::CDev
 {
 	const uint32_t PWM_SIM_DISARMED_MAGIC = 900;
 	const uint32_t PWM_SIM_FAILSAFE_MAGIC = 600;
+	const uint32_t PWM_SIM_PWM_MIN_MAGIC = 1000;
+	const uint32_t PWM_SIM_PWM_MAX_MAGIC = 2000;
 public:
 	enum Mode {
 		MODE_2PWM,
@@ -108,7 +110,7 @@ public:
 	int		_task;
 
 private:
-	static const unsigned _max_actuators = 8;
+	static const unsigned _max_actuators = 16;
 
 	Mode		_mode;
 	int 		_update_rate;
@@ -120,6 +122,8 @@ private:
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
+	unsigned 	_pwm_min[_max_actuators];
+	unsigned 	_pwm_max[_max_actuators];
 
 	uint32_t	_groups_required;
 	uint32_t	_groups_subscribed;
@@ -191,6 +195,11 @@ PWMSim::PWMSim() :
 	_mixers(nullptr)
 {
 	memset(_controls, 0, sizeof(_controls));
+
+	for(unsigned i = 0; i < _max_actuators; i++) {
+		_pwm_min[i] = PWM_SIM_PWM_MIN_MAGIC;
+		_pwm_max[i] = PWM_SIM_PWM_MAX_MAGIC;
+	}
 
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -463,6 +472,10 @@ PWMSim::task_main()
 				num_outputs = 8;
 				break;
 
+			case MODE_12PWM:
+				num_outputs = 12;
+				break;
+
 			case MODE_16PWM:
 				num_outputs = 16;
 				break;
@@ -493,6 +506,14 @@ PWMSim::task_main()
 				    outputs.output[i] <= 1.0f) {
 					/* scale for PWM output 1000 - 2000us */
 					outputs.output[i] = 1500 + (500 * outputs.output[i]);
+
+					if (outputs.output[i] > _pwm_max[i]) {
+						outputs.output[i] = _pwm_max[i];
+					}
+
+					if (outputs.output[i] < _pwm_min[i]) {
+						outputs.output[i] = _pwm_min[i];
+					}
 
 				} else {
 					/*
@@ -617,6 +638,26 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_DISARM:
 		// up_pwm_servo_arm(false);
 		break;
+
+	case PWM_SERVO_SET_MIN_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+			for(unsigned i = 0; i < pwm->channel_count; i++) {
+
+				if (i <= _max_actuators)
+					_pwm_min[i] = pwm->values[i];
+			}
+			break;
+		}
+
+	case PWM_SERVO_SET_MAX_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+			for(unsigned i = 0; i < pwm->channel_count; i++) {
+
+				if (i <= _max_actuators)
+					_pwm_max[i] = pwm->values[i];
+			}
+			break;
+		}
 
 	case PWM_SERVO_SET_UPDATE_RATE:
 		// PWMSim always outputs at the alternate (usually faster) rate
@@ -753,6 +794,10 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case MIXERIOCGETOUTPUTCOUNT:
 		if (_mode == MODE_16PWM) {
 			*(unsigned *)arg = 16;
+
+		} else if (_mode == MODE_12PWM) {
+
+			*(unsigned *)arg = 12;
 
 		} else if (_mode == MODE_8PWM) {
 
@@ -993,7 +1038,7 @@ pwm_out_sim_main(int argc, char *argv[])
 
 	// this was all cut-and-pasted from the FMU driver; it's junk
 	if (!strcmp(verb, "mode_pwm")) {
-		new_mode = PORT1_FULL_PWM;
+		new_mode = PORT2_12PWM;
 
 	} else if (!strcmp(verb, "mode_port2_pwm8")) {
 		new_mode = PORT2_8PWM;
