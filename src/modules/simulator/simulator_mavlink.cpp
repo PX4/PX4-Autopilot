@@ -94,6 +94,7 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 	    _system_type == MAV_TYPE_OCTOROTOR ||
 	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
 	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
+	    _system_type == MAV_TYPE_VTOL_TILTROTOR ||
 	    _system_type == MAV_TYPE_VTOL_RESERVED2) {
 
 		/* multirotors: set number of rotor outputs depending on type */
@@ -101,25 +102,23 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 		unsigned n;
 
 		switch (_system_type) {
-		case MAV_TYPE_QUADROTOR:
-			n = 4;
-			break;
-
-		case MAV_TYPE_HEXAROTOR:
-			n = 6;
-			break;
-
-		case MAV_TYPE_VTOL_DUOROTOR:
+			case MAV_TYPE_VTOL_DUOROTOR:
 			n = 2;
 			break;
 
+		case MAV_TYPE_QUADROTOR:
 		case MAV_TYPE_VTOL_QUADROTOR:
+		case MAV_TYPE_VTOL_TILTROTOR:
 			n = 4;
 			break;
 
 		case MAV_TYPE_VTOL_RESERVED2:
 			// this is the standard VTOL / quad plane with 5 propellers
 			n = 5;
+			break;
+
+		case MAV_TYPE_HEXAROTOR:
+			n = 6;
 			break;
 
 		default:
