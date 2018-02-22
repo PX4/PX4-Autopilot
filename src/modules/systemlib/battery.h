@@ -113,12 +113,13 @@ private:
 	control::BlockParamFloat _crit_thr;
 	control::BlockParamFloat _emergency_thr;
 
+	bool _battery_initialized = false;
 	float _voltage_filtered_v = -1.f;
 	float _current_filtered_a = -1.f;
 	float _discharged_mah = 0.f;
 	float _discharged_mah_loop = 0.f;
-	float _remaining_voltage = 1.f;		///< normalized battery charge level remaining based on voltage
-	float _remaining = 2.f;			///< normalized battery charge level, selected based on config param
+	float _remaining_voltage = -1.f;		///< normalized battery charge level remaining based on voltage
+	float _remaining = -1.f;			///< normalized battery charge level, selected based on config param
 	float _scale = 1.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
