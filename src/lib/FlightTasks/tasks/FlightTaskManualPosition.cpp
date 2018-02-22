@@ -73,9 +73,9 @@ void FlightTaskManualPosition::_scaleSticks()
 	Vector2f vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
 
 	/* Rotate setpoint into local frame. */
-	Vector3f vel_local = (Dcmf(Eulerf(0.0f, 0.0f, _yaw_sp)) * Vector3f(vel_sp_xy(0), vel_sp_xy(1), 0.0f));
-	_vel_sp(0) = vel_local(0);
-	_vel_sp(1) = vel_local(1);
+	_rotateIntoHeadingFrame(vel_sp_xy);
+	_vel_sp(0) = vel_sp_xy(0);
+	_vel_sp(1) = vel_sp_xy(1);
 }
 
 void FlightTaskManualPosition::_updateXYlock()
