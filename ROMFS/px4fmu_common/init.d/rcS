@@ -600,7 +600,7 @@ then
 	if param compare SYS_COMPANION 20
 	then
 		syslink start
-		mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
+		mavlink start -d /dev/bridge0 -b 57600 -m osd -r 900
 	fi
 	if param compare SYS_COMPANION 921600
 	then
