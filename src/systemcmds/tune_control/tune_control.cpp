@@ -98,7 +98,7 @@ tune_control_main(int argc, char *argv[])
 	unsigned int value;
 	tune_control_s tune_control = {};
 	tune_control.tune_id = 0;
-	tune_control.strength = 40;
+	tune_control.strength = tune_control_s::STRENGTH_NORMAL;
 
 	while ((ch = px4_getopt(argc, argv, "f:d:t:m:s:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -151,7 +151,7 @@ tune_control_main(int argc, char *argv[])
 				tune_control.strength = value;
 
 			} else {
-				tune_control.strength = 40;
+				tune_control.strength = tune_control_s::STRENGTH_NORMAL;
 			}
 
 			break;
