@@ -53,13 +53,6 @@ Battery::Battery() :
 	_low_thr(this, "LOW_THR"),
 	_crit_thr(this, "CRIT_THR"),
 	_emergency_thr(this, "EMERGEN_THR"),
-	_voltage_filtered_v(-1.f),
-	_current_filtered_a(-1.f),
-	_discharged_mah(0.f),
-	_discharged_mah_loop(0.f),
-	_remaining_voltage(1.f),
-	_remaining(2.f),
-	_scale(1.f),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
