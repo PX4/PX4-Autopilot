@@ -56,6 +56,7 @@ public:
 protected:
 	virtual void _updateSetpoints(); /**< updates all setpoints*/
 	virtual void _scaleSticks(); /**< scales sticks to yaw and thrust */
+	void _rotateIntoHeadingFrame(matrix::Vector2f &vec); /**< rotates vector into local frame */
 
 private:
 
