@@ -196,7 +196,7 @@ PWMSim::PWMSim() :
 {
 	memset(_controls, 0, sizeof(_controls));
 
-	for(unsigned i = 0; i < _max_actuators; i++) {
+	for (unsigned i = 0; i < _max_actuators; i++) {
 		_pwm_min[i] = PWM_SIM_PWM_MIN_MAGIC;
 		_pwm_max[i] = PWM_SIM_PWM_MAX_MAGIC;
 	}
@@ -641,21 +641,27 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-			for(unsigned i = 0; i < pwm->channel_count; i++) {
 
-				if (i <= _max_actuators)
+			for (unsigned i = 0; i < pwm->channel_count; i++) {
+
+				if (i <= _max_actuators) {
 					_pwm_min[i] = pwm->values[i];
+				}
 			}
+
 			break;
 		}
 
 	case PWM_SERVO_SET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-			for(unsigned i = 0; i < pwm->channel_count; i++) {
 
-				if (i <= _max_actuators)
+			for (unsigned i = 0; i < pwm->channel_count; i++) {
+
+				if (i <= _max_actuators) {
 					_pwm_max[i] = pwm->values[i];
+				}
 			}
+
 			break;
 		}
 
