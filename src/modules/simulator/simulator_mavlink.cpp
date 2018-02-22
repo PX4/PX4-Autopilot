@@ -102,7 +102,7 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 		unsigned n;
 
 		switch (_system_type) {
-			case MAV_TYPE_VTOL_DUOROTOR:
+		case MAV_TYPE_VTOL_DUOROTOR:
 			n = 2;
 			break;
 
