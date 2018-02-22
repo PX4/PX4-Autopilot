@@ -278,7 +278,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					q.copyTo(_att_sp.q_d);
 					_att_sp.q_d_valid = true;
 
-					if (_attitude_setpoint_id != nullptr) {
+					if (_attitude_sp_pub != nullptr) {
 						/* publish the attitude rates setpoint */
 						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
 
