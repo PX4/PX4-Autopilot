@@ -85,9 +85,8 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 void FlightTaskManualStabilized::_updateThrustSetpoints()
 {
 	/* Rotate setpoint into local frame. */
-	matrix::Vector3f sp{_sticks(0), _sticks(1), 0.0f};
-
-	sp = (matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, _yaw_sp)) * sp);
+	Vector2f sp{_sticks(0), _sticks(1)};
+	_rotateIntoHeadingFrame(sp);
 
 	/* Ensure that maximum tilt is in [0.001, Pi] */
 	float tilt_max = math::constrain(math::radians(_tilt_max_man.get()), 0.001f, M_PI_F);
@@ -101,7 +100,7 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 	 * be captured through Axis-Angle.
 	 */
 	/* The Axis-Angle is the perpendicular vector to xy-stick input */
-	matrix::Vector2f v = matrix::Vector2f(y, -x);
+	Vector2f v = Vector2f(y, -x);
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
 
 	if (v_norm > tilt_max) { // limit to the configured maximum tilt angle
@@ -111,8 +110,16 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 	/* The final thrust setpoint is found by rotating the scaled unit vector pointing
 	 * upward by the Axis-Angle.
 	 */
-	matrix::Quatf q_sp = matrix::AxisAnglef(v(0), v(1), 0.0f);
-	_thr_sp = q_sp.conjugate(matrix::Vector3f(0.0f, 0.0f, -1.0f)) * _throttle;
+	Quatf q_sp = AxisAnglef(v(0), v(1), 0.0f);
+	_thr_sp = q_sp.conjugate(Vector3f(0.0f, 0.0f, -1.0f)) * _throttle;
+}
+
+void FlightTaskManualStabilized::_rotateIntoHeadingFrame(Vector2f &v)
+{
+	float yaw_rotate = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw;
+	Vector3f v_r = Vector3f(Dcmf(Eulerf(0.0f, 0.0f, yaw_rotate)) * Vector3f(v(0), v(1), 0.0f));
+	v(0) = v_r(0);
+	v(1) = v_r(1);
 }
 
 void FlightTaskManualStabilized::_updateSetpoints()

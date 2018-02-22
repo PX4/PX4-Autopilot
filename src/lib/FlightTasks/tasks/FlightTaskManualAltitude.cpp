@@ -94,8 +94,8 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	 * thrust along xy is required. The maximum thrust along xy depends on the thrust
 	 * setpoint along z-direction, which is computed in PositionControl.cpp.
 	 */
-	Vector3f sp{_sticks(0), _sticks(1), 0.0f};
-	sp = (Dcmf(Eulerf(0.0f, 0.0f, _yaw_sp)) * sp);
+	Vector2f sp{_sticks(0), _sticks(1)};
+	_rotateIntoHeadingFrame(sp);
 
 	if (sp.length() > 1.0f) {
 		sp.normalize();
