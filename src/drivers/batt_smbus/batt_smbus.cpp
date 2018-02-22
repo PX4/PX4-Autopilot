@@ -86,6 +86,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
+
 class BATT_SMBUS : public device::I2C
 {
 public:
@@ -227,6 +228,9 @@ private:
 	char           *_manufacturer_name;  ///< The name of the battery manufacturer
 	uint16_t		_cycle_count;	///< number of cycles the battery has experienced
 	uint16_t		_serial_number;		///< serial number register
+	float 			_crit_thr;	///< Critical battery threshold param
+	float 			_low_thr;	///< Low battery threshold param
+	float 			_emergency_thr;		///< Emergency battery threshold param
 };
 
 namespace
@@ -252,7 +256,10 @@ BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	_batt_startup_capacity(0),
 	_manufacturer_name(nullptr),
 	_cycle_count(0),
-	_serial_number(0)
+	_serial_number(0),
+	_crit_thr(0.0f),
+	_low_thr(0.0f),
+	_emergency_thr(0.0f)
 {
 	// capture startup time
 	_start_time = hrt_absolute_time();
@@ -485,6 +492,19 @@ BATT_SMBUS::cycle()
 		}
 	}
 
+	// read battery threshold params on startup
+	if (_crit_thr < 0.01f) {
+		param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
+	}
+
+	if (_low_thr < 0.01f) {
+		param_get(param_find("BAT_LOW_THR"), &_low_thr);
+	}
+
+	if (_emergency_thr < 0.01f) {
+		param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
+	}
+
 	// read data from sensor
 	battery_status_s new_report = {};
 
@@ -535,6 +555,20 @@ BATT_SMBUS::cycle()
 		// read battery temperature and covert to Celsius
 		if (read_reg(BATT_SMBUS_TEMP, tmp) == OK) {
 			new_report.temperature = (float)(((float)tmp / 10.0f) - 273.15f);
+		}
+
+		// propagate warning state only if the state
+		if (new_report.remaining < _emergency_thr) {
+			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+
+		} else if (new_report.remaining < _crit_thr) {
+			new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+
+		} else if (new_report.remaining < _low_thr) {
+			new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
+
+		} else {
+			new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
 		}
 
 		new_report.capacity = _batt_capacity;
