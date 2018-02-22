@@ -89,10 +89,14 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
 	estimateRemaining(_voltage_filtered_v, _current_filtered_a, throttle_normalized, armed);
-	determineWarning(connected);
 	computeScale();
 
+	if (_battery_initialized) {
+		determineWarning(connected);
+	}
+
 	if (_voltage_filtered_v > 2.1f) {
+		_battery_initialized = true;
 		battery_status->voltage_v = voltage_v;
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
 		battery_status->scale = _scale;
@@ -110,7 +114,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 void
 Battery::filterVoltage(float voltage_v)
 {
-	if (_voltage_filtered_v < 0.f) {
+	if (!_battery_initialized) {
 		_voltage_filtered_v = voltage_v;
 	}
 
@@ -125,7 +129,7 @@ Battery::filterVoltage(float voltage_v)
 void
 Battery::filterCurrent(float current_a)
 {
-	if (_current_filtered_a < 0.f) {
+	if (!_battery_initialized) {
 		_current_filtered_a = current_a;
 	}
 
@@ -183,7 +187,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 	// choose which quantity we're using for final reporting
 	if (_capacity.get() > 0.f) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
-		if (_remaining > 1.f) {
+		if (!_battery_initialized) {
 			// initialization of the estimation state
 			_remaining = _remaining_voltage;
 
