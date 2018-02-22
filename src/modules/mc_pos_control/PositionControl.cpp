@@ -87,7 +87,7 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 	_vel_sp = Data(&setpoint.vx);
 	_acc_sp = Data(&setpoint.acc_x);
 	_thr_sp = Data(setpoint.thrust);
-	_yaw_sp = setpoint.yaw; //integrate
+	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
 	_interfaceMapping();
 
