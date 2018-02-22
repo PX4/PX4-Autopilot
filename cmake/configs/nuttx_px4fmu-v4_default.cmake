@@ -12,13 +12,11 @@ set(config_module_list
 	drivers/distance_sensor
 	drivers/magnetometer
 	drivers/telemetry
+	drivers/imu
 
 	drivers/airspeed
 	drivers/batt_smbus
 	drivers/blinkm
-	drivers/imu/bma180
-	drivers/imu/bmi055
-	drivers/imu/bmi160
 	drivers/boards
 	drivers/camera_trigger
 	drivers/device
@@ -26,8 +24,6 @@ set(config_module_list
 	drivers/irlock
 	drivers/led
 	drivers/mkblctrl
-	drivers/imu/mpu6000
-	drivers/imu/mpu9250
 	drivers/oreoled
 	drivers/pca9685
 	drivers/pwm_input
