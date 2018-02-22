@@ -112,8 +112,6 @@ private:
 	param_t _ThrHover_h{PARAM_INVALID};
 	param_t _ThrMax_h{PARAM_INVALID};
 	param_t _ThrMin_h{PARAM_INVALID};
-	param_t _YawRateMax_h{PARAM_INVALID};
-	param_t _Pyaw_h{PARAM_INVALID}; //only temporary: this will be moved into attitude controller
 
 	/* Parameters */
 	matrix::Vector3f Pp, Pv, Iv, Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
