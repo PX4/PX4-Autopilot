@@ -116,13 +116,13 @@ bool FlightTaskAuto::_evaluateTriplets()
 	/* Update all waypoints */
 	_target = target;
 
-	if (!PX4_ISFINITE(target(0)) || !PX4_ISFINITE(target(1))) {
+	if (!PX4_ISFINITE(_target(0)) || !PX4_ISFINITE(_target(1))) {
 		/* Horizontal target is not finite. */
 		_target(0) = _position(0);
 		_target(1) = _position(1);
 	}
 
-	if (!PX4_ISFINITE(2)) {
+	if (!PX4_ISFINITE(_target(2))) {
 		_target(2) = _position(2);
 	}
 
