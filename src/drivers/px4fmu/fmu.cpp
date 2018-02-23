@@ -265,7 +265,6 @@ private:
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
 	uint16_t	_max_pwm[_max_actuators];
-	uint16_t	_trim_pwm[_max_actuators];
 	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
@@ -391,7 +390,6 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
 		_max_pwm[i] = PWM_DEFAULT_MAX;
-		_trim_pwm[i] = PWM_DEFAULT_TRIM;
 	}
 
 	_control_topics[0] = ORB_ID(actuator_controls_0);
@@ -2157,12 +2155,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_TRIM_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < _max_actuators; i++) {
-				pwm->values[i] = _trim_pwm[i];
-			}
+			pwm->channel_count = _mixers->get_trims((int16_t *)pwm->values);
 
-			pwm->channel_count = _max_actuators;
-			arg = (unsigned long)&pwm;
 			break;
 		}
 
