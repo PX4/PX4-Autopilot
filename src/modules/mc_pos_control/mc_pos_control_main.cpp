@@ -3064,7 +3064,8 @@ MulticopterPositionControl::task_main()
 			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL:
 			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_LAND:
 
-				_flight_tasks.switchTask(8);
+				/*TODO: clean up navigation state and commander state, which both share too many equal states */
+				_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 				break;
 
 			default:
