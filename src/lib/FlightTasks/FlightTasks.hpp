@@ -64,6 +64,7 @@ enum class FlightTaskIndex : int {
 	PositionSmooth,
 	Orbit,
 	Sport,
+	AutoLine,
 
 	Count // number of tasks
 };
