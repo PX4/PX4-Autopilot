@@ -3124,7 +3124,7 @@ MulticopterPositionControl::task_main()
 					_in_smooth_takeoff = true;
 					_takeoff_sp = 0.5f;
 
-				} else if (PX4_ISFINITE(setpoint.thr[2]) && setpoint.thr[2] < -0.6f) {
+				} else if (PX4_ISFINITE(setpoint.thrust[2]) && setpoint.thrust[2] < -0.6f) {
 					/* There is a thrust setpoint pointing upwards and larger than 0.6f.
 					 * The threshold ensures that there is no takeoff by just switching into manual
 					 */
@@ -3165,18 +3165,18 @@ MulticopterPositionControl::task_main()
 
 					/* Smooth takeoff is achieved once target thrust is reached. (NED frame).
 					 * TODO: test this */
-					_in_smooth_takeoff = _takeoff_sp > setpoint.thr[2];
+					_in_smooth_takeoff = _takeoff_sp > setpoint.thrust[2];
 
 					/* ramp vertical velocity limit up to hover takeoff */
 					if (-_takeoff_sp < 0.5f) {
-						_takeoff_sp += setpoint.thr[2] * _dt / (_takeoff_ramp_time.get() * 0.5f);
+						_takeoff_sp += setpoint.thrust[2] * _dt / (_takeoff_ramp_time.get() * 0.5f);
 
 					} else {
-						_takeoff_sp = setpoint.thr[2];
+						_takeoff_sp = setpoint.thrust[2];
 					}
 
 					/* limit vertical velocity to the current ramp value */
-					setpoint.thr[2] = math::max(setpoint.thr[2], _takeoff_sp);
+					setpoint.thrust[2] = math::max(setpoint.thrust[2], _takeoff_sp);
 				}
 			}
 
@@ -3184,9 +3184,9 @@ MulticopterPositionControl::task_main()
 			// Otherwise just stay idle.
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
 				// Keep throttle low
-				setpoint.thr[0] = 0.0f;
-				setpoint.thr[1] = 0.0f;
-				setpoint.thr[2] = 0.0f;
+				setpoint.thrust[0] = 0.0f;
+				setpoint.thrust[1] = 0.0f;
+				setpoint.thrust[2] = 0.0f;
 				setpoint.yawspeed = 0.0f;
 				setpoint.yaw = _yaw;
 			}
@@ -3200,7 +3200,7 @@ MulticopterPositionControl::task_main()
 
 			/* We adjust thrust setpoint based on landdetector and the
 			 * vehicle is NOT in pure Manual mode. */
-			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thr[2])) {
+			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				if (_vehicle_land_detected.ground_contact) {
 
 					/* if still or already on ground command zero xy thrust_sp in body
@@ -3243,7 +3243,7 @@ MulticopterPositionControl::task_main()
 			_local_pos_sp.vx = _control.getVelSp()(0);
 			_local_pos_sp.vy = _control.getVelSp()(1);
 			_local_pos_sp.vz = _control.getVelSp()(2);
-			thr_sp.copyTo(_local_pos_sp.thr);
+			thr_sp.copyTo(_local_pos_sp.thrust);
 
 			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
 			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
