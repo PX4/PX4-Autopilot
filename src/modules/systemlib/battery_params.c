@@ -188,7 +188,7 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
  * Defines the capacity of the attached battery.
  *
  * @group Battery Calibration
- * @unit mA
+ * @unit mAh
  * @decimal 0
  * @min -1.0
  * @max 100000
