@@ -1225,9 +1225,14 @@ protected:
 		msg.time_boot_ms = hrt_absolute_time() / 1000;
 		msg.time_unix_usec = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
-		mavlink_msg_system_time_send_struct(_mavlink->get_channel(), &msg);
+		// If the time is before 2001-01-01, it's probably the default 2000
+		// and we don't need to bother sending it because it's definitely wrong.
+		if (msg.time_unix_usec > 978307200000000) {
+			mavlink_msg_system_time_send_struct(_mavlink->get_channel(), &msg);
+			return true;
+		}
 
-		return true;
+		return false;
 	}
 };
 
