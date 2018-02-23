@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_magnetometer.h>
 
 using math::constrain;
+using namespace time_literals;
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
 
@@ -192,6 +193,12 @@ private:
 
 	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
+
+	hrt_abstime _last_forward_transition_us{0};	///< last time the VTOL did a transition to fixed wing (uSec)
+
+	bool _is_rotary_wing{true};	///< variable used to detect a VTOL forward transition
+
+	uint8_t	_arming_state{0};
 
 	Ekf _ekf;
 
@@ -583,7 +590,6 @@ void Ekf2::run()
 	// properly populated
 	sensor_combined_s sensors = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
-	vehicle_status_s vehicle_status = {};
 	sensor_selection_s sensor_selection = {};
 
 	while (!should_exit()) {
@@ -629,6 +635,17 @@ void Ekf2::run()
 		ekf2_timestamps.vision_attitude_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vision_position_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
+		// get common timestamp
+		// in replay mode we are getting the timestamp from the sensor topic
+		hrt_abstime now = 0;
+
+		if (_replay_mode) {
+			now = sensors.timestamp;
+
+		} else {
+			now = hrt_absolute_time();
+		}
+
 		// update all other topics if they have new data
 
 		bool vehicle_status_updated = false;
@@ -636,12 +653,33 @@ void Ekf2::run()
 		orb_check(_status_sub, &vehicle_status_updated);
 
 		if (vehicle_status_updated) {
-			if (orb_copy(ORB_ID(vehicle_status), _status_sub, &vehicle_status) == PX4_OK) {
-				// only fuse synthetic sideslip measurements if conditions are met
-				_ekf.set_fuse_beta_flag(!vehicle_status.is_rotary_wing && (_fuseBeta.get() == 1));
+			vehicle_status_s vehicle_status;
 
+			if (orb_copy(ORB_ID(vehicle_status), _status_sub, &vehicle_status) == PX4_OK) {
 				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 				_ekf.set_is_fixed_wing(!vehicle_status.is_rotary_wing);
+
+				if (!vehicle_status.is_rotary_wing && _is_rotary_wing) {
+					_last_forward_transition_us = now;
+				}
+
+				_is_rotary_wing = vehicle_status.is_rotary_wing;
+				_arming_state = vehicle_status.arming_state;
+
+				bool inhibit_beta_fuse = _is_rotary_wing;
+
+				if (!_is_rotary_wing) {
+					// check that wind states are active and no timeout have occurred before using sideslip fusion
+					filter_control_status_u control_status{};
+					_ekf.get_control_mode(&control_status.value);
+
+					if (!control_status.flags.wind && (now - _last_forward_transition_us < 3_s)) {
+						inhibit_beta_fuse = true;
+					}
+				}
+
+				// sideslip estimation can only be used for vehicles that are limited to forward flight only.
+				_ekf.set_fuse_beta_flag(_fuseBeta.get() && !inhibit_beta_fuse);
 			}
 		}
 
@@ -671,16 +709,6 @@ void Ekf2::run()
 		// attempt reset until successful
 		if (imu_bias_reset_request) {
 			imu_bias_reset_request = !_ekf.reset_imu_bias();
-		}
-
-		// in replay mode we are getting the actual timestamp from the sensor topic
-		hrt_abstime now = 0;
-
-		if (_replay_mode) {
-			now = sensors.timestamp;
-
-		} else {
-			now = hrt_absolute_time();
 		}
 
 		// push imu data into estimator
@@ -721,7 +749,7 @@ void Ekf2::run()
 					}
 				}
 
-				if ((vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
+				if ((_arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
 					// this means we need to reset the learned bias values to zero
 					_mag_bias_x.set(0.f);
@@ -861,22 +889,24 @@ void Ekf2::run()
 			}
 		}
 
-		bool airspeed_updated = false;
-		orb_check(_airspeed_sub, &airspeed_updated);
+		if (!_is_rotary_wing && (_arspFusionThreshold.get() > FLT_EPSILON)) {
+			bool airspeed_updated = false;
+			orb_check(_airspeed_sub, &airspeed_updated);
 
-		if (airspeed_updated) {
-			airspeed_s airspeed;
+			if (airspeed_updated) {
+				airspeed_s airspeed;
 
-			if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
-				// only set airspeed data if condition for airspeed fusion are met
-				if ((_arspFusionThreshold.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _arspFusionThreshold.get())) {
+				if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
+					// only set airspeed data if condition for airspeed fusion are met
+					if (airspeed.true_airspeed_m_s > _arspFusionThreshold.get()) {
 
-					const float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
-					_ekf.setAirspeedData(airspeed.timestamp, airspeed.true_airspeed_m_s, eas2tas);
+						const float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
+						_ekf.setAirspeedData(airspeed.timestamp, airspeed.true_airspeed_m_s, eas2tas);
+					}
+
+					ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
+							(int64_t)ekf2_timestamps.timestamp / 100);
 				}
-
-				ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
-						(int64_t)ekf2_timestamps.timestamp / 100);
 			}
 		}
 
@@ -1248,7 +1278,7 @@ void Ekf2::run()
 
 				// Check if conditions are OK to for learning of magnetometer bias values
 				if (!vehicle_land_detected.landed && // not on ground
-				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
+				    (_arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
 				    (status.filter_fault_flags == 0) && // there are no filter faults
 				    (status.control_mode_flags & (1 << 5))) { // the EKF is operating in the correct mode
 
@@ -1298,7 +1328,7 @@ void Ekf2::run()
 				}
 
 				// Check and save the last valid calibration when we are disarmed
-				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+				if ((_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				    && (status.filter_fault_flags == 0)
 				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
 
@@ -1339,7 +1369,7 @@ void Ekf2::run()
 				_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
-				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+				if (_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 					// calculate coefficients for LPF applied to innovation sequences
 					float alpha = constrain(sensors.accelerometer_integral_dt / 1.e6f * _innov_lpf_tau_inv, 0.0f, 1.0f);
 					float beta = 1.0f - alpha;
