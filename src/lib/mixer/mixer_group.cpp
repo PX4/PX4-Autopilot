@@ -132,10 +132,10 @@ MixerGroup::set_trims(int16_t *values, unsigned n)
 		/* convert from integer to float */
 		float offset = (float)values[index] / 10000;
 
-		/* to be safe, clamp offset to range of [-100, 100] usec */
-		if (offset < -0.2f) { offset = -0.2f; }
+		/* to be safe, clamp offset to range of [-500, 500] usec */
+		if (offset < -1.0f) { offset = -1.0f; }
 
-		if (offset >  0.2f) { offset =  0.2f; }
+		if (offset >  1.0f) { offset =  1.0f; }
 
 		debug("set trim: %d, offset: %5.3f", values[index], (double)offset);
 		index += mixer->set_trim(offset);
