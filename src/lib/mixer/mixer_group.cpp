@@ -145,6 +145,37 @@ MixerGroup::set_trims(int16_t *values, unsigned n)
 	return index;
 }
 
+/*
+ * get_trims() has no effect except for the SimpleMixer implementation for which get_trim()
+ * always returns the value one and sets the trim value.
+ * The only other existing implementation is MultirotorMixer, which ignores the trim value
+ * and returns _rotor_count.
+ */
+unsigned
+MixerGroup::get_trims(int16_t *values)
+{
+	Mixer	*mixer = _first;
+	unsigned index_mixer = 0;
+	unsigned index = 0;
+	float trim;
+
+	while (mixer != nullptr) {
+		trim = 0;
+		index_mixer += mixer->get_trim(&trim);
+
+		// MultirotorMixer returns the number of motors so we
+		// loop through index_mixer and set the same trim value for all motors
+		while (index < index_mixer) {
+			values[index] = trim * 10000;
+			index++;
+		}
+
+		mixer = mixer->_next;
+	}
+
+	return index;
+}
+
 void
 MixerGroup::set_thrust_factor(float val)
 {
