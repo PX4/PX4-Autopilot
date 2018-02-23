@@ -93,6 +93,14 @@ bool FlightTaskAuto::_evaluateTriplets()
 		return false;
 	}
 
+	/* Always update cruise speed since that can change without waypoint changes */
+	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
+
+	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
+		/* Use default */
+		_mc_cruise_speed = _mc_cruise_default.get();
+	}
+
 	/* Get target waypoint. */
 	matrix::Vector3f target;
 	map_projection_project(&_reference_position,
@@ -131,13 +139,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (!PX4_ISFINITE(_yaw_wp)) {
 		_yaw_wp = _yaw;
 
-	}
-
-	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
-
-	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
-		/* Use default */
-		_mc_cruise_speed = _mc_cruise_default.get();
 	}
 
 	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
