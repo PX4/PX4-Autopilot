@@ -3,7 +3,7 @@ param load
 param set MAV_TYPE 22
 param set VT_TYPE 2
 param set VT_MOT_COUNT 4
-param set VT_TRANS_THR 0.75
+param set VT_F_TRANS_THR 0.75
 param set SYS_AUTOSTART 13006
 param set SYS_RESTART_TYPE 2
 param set SYS_MC_EST_GROUP 1
