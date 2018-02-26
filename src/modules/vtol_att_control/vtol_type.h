@@ -67,7 +67,7 @@ struct Params {
 	float front_trans_throttle;
 	float back_trans_throttle;
 	float airspeed_blend;
-	int32_t airspeed_mode;
+	bool airspeed_disabled;
 	float front_trans_timeout;
 	float mpc_xy_cruise;
 };
