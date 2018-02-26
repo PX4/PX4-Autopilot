@@ -84,10 +84,6 @@
 #include <cfloat>
 #include <cstring>
 
-#ifndef __PX4_QURT
-#include <mavlink/mavlink_main.h>
-#endif
-
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -145,11 +141,6 @@ typedef enum VEHICLE_MODE_FLAG
 #define PRINT_MODE_REJECT_INTERVAL	500000
 
 #define INAIR_RESTART_HOLDOFF_INTERVAL	500000
-
-#ifndef __PX4_QURT
-#define MAVLINK_ENABLE_TRANSMITTING	1	/**< parameter value to enable transmitting for a mavlink instance */
-#define MAVLINK_DISABLE_TRANSMITTING	0	/**< parameter value to disable transmitting for a mavlink instance */
-#endif
 
 /* Controls the probation period which is the amount of time required for position and velocity checks to pass before the validity can be changed from false to true*/
 #define POSVEL_PROBATION_TAKEOFF 30		/**< probation duration set at takeoff (sec) */
@@ -1315,9 +1306,7 @@ Commander::run()
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
 	orb_advert_t commander_state_pub = nullptr;
-#ifndef __PX4_QURT
 	orb_advert_t vehicle_cmd_pub = nullptr;
-#endif
 	orb_advert_t vehicle_status_flags_pub = nullptr;
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
@@ -2607,7 +2596,6 @@ Commander::run()
 				status_changed = true;
 			}
 
-#ifndef __PX4_QURT
 			if (status.high_latency_data_link_active && have_low_latency_link) {
 				// regained a low latency telemetry link, deactivate the high latency link
 				// to avoid transmitting unnecessary data over that link
@@ -2616,9 +2604,8 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "LOW LATENCY DATA LINKS REGAINED, DEACTIVATING HIGH LATENCY LINK");
 
 				vehicle_command_s vehicle_cmd;
-				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING;
-				vehicle_cmd.param1 = Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM;
-				vehicle_cmd.param2 = MAVLINK_DISABLE_TRANSMITTING;
+				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
+				vehicle_cmd.param1 = 0.0f;
 				if (vehicle_cmd_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_command), vehicle_cmd_pub, &vehicle_cmd);
 
@@ -2626,18 +2613,14 @@ Commander::run()
 					vehicle_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_cmd);
 				}
 			}
-#endif
-
 		} else {
-#ifndef __PX4_QURT
 			if (high_latency_link_exists && !status.high_latency_data_link_active && armed.armed) {
 				// low latency telemetry lost and high latency link existing
 				status.high_latency_data_link_active = true;
 				status_changed = true;
 				vehicle_command_s vehicle_cmd;
-				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING;
-				vehicle_cmd.param1 = Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM;
-				vehicle_cmd.param2 = MAVLINK_ENABLE_TRANSMITTING;
+				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
+				vehicle_cmd.param1 = 1.0f;
 				if (vehicle_cmd_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_command), vehicle_cmd_pub, &vehicle_cmd);
 
@@ -2651,9 +2634,6 @@ Commander::run()
 					mavlink_log_critical(&mavlink_log_pub, "ACTIVATING AVAILABLE HIGH LATENCY LINK");
 				}
 			} else if (!status.data_link_lost) {
-#else
-			if (!status.data_link_lost) {
-#endif
 				if (armed.armed) {
 					mavlink_log_critical(&mavlink_log_pub, "ALL DATA LINKS LOST");
 				}
