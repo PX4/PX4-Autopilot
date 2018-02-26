@@ -460,10 +460,9 @@ void Ekf::controlGpsFusion()
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
+		bool gps_checks_passing = (_time_last_imu - _last_gps_fail_us > (uint64_t)5e6);
 		if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.flags.gps) {
-			if (_control_status.flags.tilt_align && _NED_origin_initialised
-			    && (_time_last_imu - _last_gps_fail_us > (uint64_t)5e6)) {
-
+			if (_control_status.flags.tilt_align && _NED_origin_initialised && gps_checks_passing) {
 				// If the heading is not aligned, reset the yaw and magnetic field states
 				if (!_control_status.flags.yaw_align) {
 					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
@@ -498,6 +497,12 @@ void Ekf::controlGpsFusion()
 		}  else if (!(_params.fusion_mode & MASK_USE_GPS)) {
 			_control_status.flags.gps = false;
 
+		}
+
+		// Handle the case where we are using GPS and another source of aiding and GPS is failing checks
+		if (_control_status.flags.gps  && !gps_checks_passing && (_control_status.flags.opt_flow || _control_status.flags.ev_pos)) {
+			_control_status.flags.gps = false;
+			ECL_WARN("EKF GPS data quality poor - stopping use");
 		}
 
 		// handle the case when we now have GPS, but have not been using it for an extended period
