@@ -192,6 +192,15 @@ private:
 		param_t wv_takeoff;
 		param_t wv_loiter;
 		param_t wv_land;
+		param_t front_trans_duration;
+		param_t back_trans_duration;
+		param_t transition_airspeed;
+		param_t front_trans_throttle;
+		param_t back_trans_throttle;
+		param_t airspeed_blend;
+		param_t airspeed_mode;
+		param_t front_trans_timeout;
+		param_t mpc_xy_cruise;
 	} _params_handles{};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines

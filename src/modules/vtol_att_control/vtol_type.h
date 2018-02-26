@@ -61,6 +61,15 @@ struct Params {
 	bool wv_takeoff;
 	bool wv_loiter;
 	bool wv_land;
+	float front_trans_duration;
+	float back_trans_duration;
+	float transition_airspeed;
+	float front_trans_throttle;
+	float back_trans_throttle;
+	float airspeed_blend;
+	int32_t airspeed_mode;
+	float front_trans_timeout;
+	float mpc_xy_cruise;
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
