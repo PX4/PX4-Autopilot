@@ -228,6 +228,8 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 		(_gps_check_fail_status.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD))
 	) {
 		_last_gps_fail_us = _time_last_imu;
+	} else {
+		_last_gps_pass_us = _time_last_imu;
 	}
 
 	// continuous period without fail of 10 seconds required to return a healthy status

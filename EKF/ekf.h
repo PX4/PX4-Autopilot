@@ -372,6 +372,7 @@ private:
 	float _gps_velN_filt{0.0f};		///< GPS filtered North velocity (m/sec)
 	float _gps_velE_filt{0.0f};		///< GPS filtered East velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
+	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	uint64_t _last_gps_origin_time_us{0};	///< time the origin was last set (uSec)
