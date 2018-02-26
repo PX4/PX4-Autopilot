@@ -41,9 +41,6 @@
 
 #pragma once
 
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-
 class FlightTask
 {
 public:
@@ -83,12 +80,6 @@ public:
 	};
 
 	/**
-	 * Get the resulting setpoints of the task execution via pointer
-	 * @return pointer to setpoint struct
-	 */
-	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return &_vehicle_position_setpoint; };
-
-	/**
 	 * Set vehicle local position data pointer
 	 * @param pointer to vehicle local position
 	 */
@@ -99,6 +90,12 @@ public:
 	 * @param pointer to manual control setpoint
 	 */
 	void set_manual_control_setpoint_pointer(const manual_control_setpoint_s *manual_control_setpoint) { _manual_control_setpoint = manual_control_setpoint; };
+
+	/**
+	 * Get the resulting setpoints of the task execution via pointer
+	 * @return pointer to setpoint struct
+	 */
+	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return &_vehicle_position_setpoint; };
 
 protected:
 
