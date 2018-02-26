@@ -165,7 +165,7 @@ int IridiumSBD::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case FIONWRITE: {
+	case FIONSPACE: {
 			int count = SATCOM_TX_BUF_LEN - tx_buf_write_idx;
 			*(int *)arg = count;
 
