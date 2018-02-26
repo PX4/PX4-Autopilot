@@ -990,6 +990,7 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 		return;
 	}
 
+
 	_last_write_try_time = hrt_absolute_time();
 
 	if (_mavlink_start_time == 0) {
@@ -1036,7 +1037,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
 	}
-
 }
 
 void
@@ -2200,18 +2200,14 @@ Mavlink::task_main(int argc, char *argv[])
 		struct vehicle_command_s vehicle_cmd;
 
 		if (cmd_sub->update(&cmd_time, &vehicle_cmd)) {
-			if (vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_MAVLINK_ENABLE_SENDING) {
-				if (_mode == (int)roundf(vehicle_cmd.param1)) {
-					if (_transmitting_enabled != (int)vehicle_cmd.param2) {
-						if ((int)vehicle_cmd.param2) {
-							PX4_INFO("Enable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
+			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) && (_mode == MAVLINK_MODE_IRIDIUM)) {
+				if (!_transmitting_enabled && (vehicle_cmd.param1 > 0.5f)) {
+					PX4_INFO("Enable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
+					_transmitting_enabled = true;
 
-						} else {
-							PX4_INFO("Disable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
-						}
-
-						_transmitting_enabled = (int)vehicle_cmd.param2;
-					}
+				} else if (_transmitting_enabled && (vehicle_cmd.param1 <= 0.5f)) {
+					PX4_INFO("Disable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
+					_transmitting_enabled = false;
 				}
 			}
 		}

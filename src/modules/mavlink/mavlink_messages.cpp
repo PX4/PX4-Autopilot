@@ -4202,7 +4202,7 @@ protected:
 
 			// failure flags, requires an initial value of 0, set by the default values
 			if (_status_flags_time > 0) {
-				if (status_flags.gps_failure || !status_flags.condition_global_position_valid) {
+				if (!status_flags.condition_global_position_valid) { //TODO check if there is a better way to get only GPS failure
 					msg.failure_flags |= HL_FAILURE_FLAG_GPS;
 				}
 
