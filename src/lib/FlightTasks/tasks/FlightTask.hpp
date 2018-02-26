@@ -75,7 +75,11 @@ public:
 	 */
 	virtual int update()
 	{
-		_time = hrt_elapsed_time(&_starting_time_stamp) / 1e6;
+		_time = hrt_elapsed_time(&_starting_time_stamp) / 1e6f;
+		_deltatime  = math::min(hrt_elapsed_time(&_last_time_stamp) / 1e6f, (float)_timeout);
+		_last_time_stamp = hrt_absolute_time();
+		_evaluate_sticks();
+		_evaluate_position();
 		return 0;
 	};
 
@@ -99,8 +103,12 @@ public:
 
 protected:
 
-	float _get_time() { return _time; }
+	float _time = 0; /*< passed time in seconds since the task was activated */
+	float _deltatime = 0; /*< passed time in seconds since the task was last updated */
 	void _reset_time() { _starting_time_stamp = hrt_absolute_time(); };
+
+	matrix::Vector<float, 4> _sticks;
+	matrix::Vector3f _position;
 
 	void _set_position_setpoint(const matrix::Vector3f position_setpoint)
 	{
@@ -124,16 +132,45 @@ protected:
 	};
 
 private:
+	static const int _timeout = 500000;
 
-	/* local time for a task */
-	float _time = 0; /*< passed time in seconds since the task was activated */
 	hrt_abstime _starting_time_stamp; /*< time stamp when task was activated */
+	hrt_abstime _last_time_stamp; /*< time stamp when task was last updated */
 
-	/* General Input */
+	/* General input that every task has */
 	const vehicle_local_position_s *_vehicle_local_position;
 	const manual_control_setpoint_s *_manual_control_setpoint;
 
-	/* General Output */
+	/* General output that every task has */
 	vehicle_local_position_setpoint_s _vehicle_position_setpoint;
+
+	void _evaluate_position()
+	{
+		if (_vehicle_local_position != NULL && hrt_elapsed_time(&_vehicle_local_position->timestamp) < _timeout) {
+			_position(0) = _vehicle_local_position->x;
+			_position(1) = _vehicle_local_position->y;
+			_position(2) = _vehicle_local_position->z;
+
+		} else {
+			for (int i = 0; i < 3; i++) {
+				_position(i) = 0.f;
+			}
+		}
+	}
+
+	void _evaluate_sticks()
+	{
+		if (_manual_control_setpoint != NULL && hrt_elapsed_time(&_manual_control_setpoint->timestamp) < _timeout) {
+			_sticks(0) = _manual_control_setpoint->y; /* "roll" [-1,1] */
+			_sticks(1) = _manual_control_setpoint->x; /* "pitch" [-1,1] */
+			_sticks(2) = _manual_control_setpoint->r; /* "yaw" [-1,1] */
+			_sticks(3) = (_manual_control_setpoint->z - 0.5f) * 2.f; /* "thrust" resacaled from [0,1] to [-1,1] */
+
+		} else {
+			for (int i = 0; i < 4; i++) {
+				_sticks(i) = 0.f;
+			}
+		}
+	}
 
 };
