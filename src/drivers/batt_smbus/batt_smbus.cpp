@@ -543,12 +543,16 @@ BATT_SMBUS::cycle()
 		// read remaining capacity
 		if (_batt_capacity > 0) {
 			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
-				if (tmp < _batt_capacity) {
-					new_report.remaining = (float)(1.000f - (((float)_batt_capacity - (float)tmp) / (float)_batt_capacity));
 
-					// calculate total discharged amount
-					new_report.discharged_mah = (float)((float)_batt_startup_capacity - (float)tmp);
+				if (tmp > _batt_capacity) {
+					PX4_WARN("Remaining Cap greater than total: Cap:%hu RemainingCap:%hu", (uint16_t)_batt_capacity, (uint16_t)tmp);
+					_batt_capacity = (uint16_t)tmp;
 				}
+
+				new_report.remaining = (float)(1.000f - (((float)_batt_capacity - (float)tmp) / (float)_batt_capacity));
+
+				// calculate total discharged amount
+				new_report.discharged_mah = (float)((float)_batt_startup_capacity - (float)tmp);
 			}
 		}
 
