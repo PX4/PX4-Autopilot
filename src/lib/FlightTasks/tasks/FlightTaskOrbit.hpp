@@ -67,19 +67,23 @@ public:
 
 	/**
 	 * Call regularly in the control loop cycle to execute the task
-	 * @param TODO
 	 * @return 0 on success, >0 on error otherwise
 	 */
 	virtual int update()
 	{
 		FlightTask::update();
-		float v = 2 * M_PI_F * 0.1f; /* velocity for orbiting in radians per second */
+		r += _sticks(1) * _deltatime;
+		vu += _sticks(0) * _deltatime;
+		printf("%f %f %f\n", (double)_deltatime, (double)r, (double)vu);
+		float v = 2 * M_PI_F * vu; /* velocity for orbiting in radians per second */
 		float altitude = 2; /* altitude in meters */
-		_set_position_setpoint(matrix::Vector3f(1.f * cosf(v * _get_time()), 1.f * sinf(v * _get_time()), -altitude));
+		_set_position_setpoint(matrix::Vector3f(r * cosf(v * _time), r * sinf(v * _time), -altitude));
 		return 0;
 	};
 
 private:
 
+	float r = 2.f; /* radius with which to orbit the target */
+	float vu =  0.1f; /* velocity for orbiting in revolutions per second */
 
 };
