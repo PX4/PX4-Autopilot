@@ -138,6 +138,36 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 
 /**
+ * Target throttle value for the transition to fixed wing flight.
+ * standard vtol: pusher
+ * tailsitter, tiltrotor: main throttle
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 0.7f);
+
+/**
+ * Target throttle value for the transition to hover flight.
+ * standard vtol: pusher
+ * tailsitter, tiltrotor: main throttle
+ *
+ * Note for standard vtol:
+ * For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active breaking
+ * For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a positive value to apply active breaking
+ *
+ * @min -1
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
+
+/**
  * Approximate deceleration during back transition
  *
  * The approximate deceleration during a back transition in m/s/s

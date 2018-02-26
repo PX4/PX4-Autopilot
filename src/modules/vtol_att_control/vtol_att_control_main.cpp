@@ -77,6 +77,17 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
 	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 
+	_params_handles.front_trans_duration = param_find("VT_F_TRANS_DUR");
+	_params_handles.back_trans_duration = param_find("VT_B_TRANS_DUR");
+	_params_handles.transition_airspeed = param_find("VT_ARSP_TRANS");
+	_params_handles.front_trans_throttle = param_find("VT_F_TRANS_THR");
+	_params_handles.back_trans_throttle = param_find("VT_B_TRANS_THR");
+	_params_handles.airspeed_blend = param_find("VT_ARSP_BLEND");
+	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
+	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
+
+
 	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
 	_params_handles.wv_land = param_find("VT_WV_LND_EN");
 	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
@@ -486,6 +497,17 @@ VtolAttitudeControl::parameters_update()
 
 	param_get(_params_handles.wv_land, &l);
 	_params.wv_land = (l == 1);
+
+
+	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
+	param_get(_params_handles.back_trans_duration, &_params.back_trans_duration);
+	param_get(_params_handles.transition_airspeed, &_params.transition_airspeed);
+	param_get(_params_handles.front_trans_throttle, &_params.front_trans_throttle);
+	param_get(_params_handles.back_trans_throttle, &_params.back_trans_throttle);
+	param_get(_params_handles.airspeed_blend, &_params.airspeed_blend);
+	param_get(_params_handles.airspeed_mode, &_params.airspeed_mode);
+	param_get(_params_handles.front_trans_timeout, &_params.front_trans_timeout);
+	param_get(_params_handles.mpc_xy_cruise, &_params.mpc_xy_cruise);
 
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
