@@ -46,7 +46,9 @@
 class FlightTaskOrbit : public FlightTask
 {
 public:
-	FlightTaskOrbit() {};
+	FlightTaskOrbit(SuperBlock *parent, const char *name) :
+		FlightTask(parent, name)
+	{};
 	virtual ~FlightTaskOrbit() {};
 
 	/**
