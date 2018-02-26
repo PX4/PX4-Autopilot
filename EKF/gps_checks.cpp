@@ -58,46 +58,41 @@
 
 bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 {
-	// Run GPS checks whenever the WGS-84 origin is not set or the vehicle is not using GPS
-	// Also run checks if the vehicle is on-ground as the check data can be used by vehicle pre-flight checks
-	if (!_control_status.flags.in_air || !_NED_origin_initialised || !_control_status.flags.gps) {
-		bool gps_checks_pass = gps_is_good(gps);
+	// Run GPS checks always
+	bool gps_checks_pass = gps_is_good(gps);
+	if (!_NED_origin_initialised && gps_checks_pass) {
+		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
+		double lat = gps->lat / 1.0e7;
+		double lon = gps->lon / 1.0e7;
+		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 
-		if (!_NED_origin_initialised && gps_checks_pass) {
-			// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-			double lat = gps->lat / 1.0e7;
-			double lon = gps->lon / 1.0e7;
-			map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
+		// if we are already doing aiding, corect for the change in posiiton since the EKF started navigating
+		if (_control_status.flags.opt_flow || _control_status.flags.gps || _control_status.flags.ev_pos) {
+			double est_lat, est_lon;
+			map_projection_reproject(&_pos_ref, -_state.pos(0), -_state.pos(1), &est_lat, &est_lon);
+			map_projection_init_timestamped(&_pos_ref, est_lat, est_lon, _time_last_imu);
+		}
 
-			// if we are already doing aiding, corect for the change in posiiton since the EKF started navigating
-			if (_control_status.flags.opt_flow || _control_status.flags.gps || _control_status.flags.ev_pos) {
-				double est_lat, est_lon;
-				map_projection_reproject(&_pos_ref, -_state.pos(0), -_state.pos(1), &est_lat, &est_lon);
-				map_projection_init_timestamped(&_pos_ref, est_lat, est_lon, _time_last_imu);
-			}
+		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
+		_gps_alt_ref = 1e-3f * (float)gps->alt + _state.pos(2);
+		_NED_origin_initialised = true;
+		_last_gps_origin_time_us = _time_last_imu;
+		// set the magnetic declination returned by the geo library using the current GPS position
+		_mag_declination_gps = math::radians(get_mag_declination(lat, lon));
+		// save the horizontal and vertical position uncertainty of the origin
+		_gps_origin_eph = gps->eph;
+		_gps_origin_epv = gps->epv;
 
-			// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
-			_gps_alt_ref = 1e-3f * (float)gps->alt + _state.pos(2);
-			_NED_origin_initialised = true;
-			_last_gps_origin_time_us = _time_last_imu;
-			// set the magnetic declination returned by the geo library using the current GPS position
-			_mag_declination_gps = math::radians(get_mag_declination(lat, lon));
-			// save the horizontal and vertical position uncertainty of the origin
-			_gps_origin_eph = gps->eph;
-			_gps_origin_epv = gps->epv;
-
-			// if the user has selected GPS as the primary height source, switch across to using it
-			if (_primary_hgt_source == VDIST_SENSOR_GPS) {
-				ECL_INFO("EKF GPS checks passed (WGS-84 origin set, using GPS height)");
-				_control_status.flags.baro_hgt = false;
-				_control_status.flags.gps_hgt = true;
-				_control_status.flags.rng_hgt = false;
-				// zero the sensor offset
-				_hgt_sensor_offset = 0.0f;
-
-			} else {
-				ECL_INFO("EKF GPS checks passed (WGS-84 origin set)");
-			}
+		// if the user has selected GPS as the primary height source, switch across to using it
+		if (_primary_hgt_source == VDIST_SENSOR_GPS) {
+			ECL_INFO("EKF GPS checks passed (WGS-84 origin set, using GPS height)");
+			_control_status.flags.baro_hgt = false;
+			_control_status.flags.gps_hgt = true;
+			_control_status.flags.rng_hgt = false;
+			// zero the sensor offset
+			_hgt_sensor_offset = 0.0f;
+		} else {
+			ECL_INFO("EKF GPS checks passed (WGS-84 origin set)");
 		}
 	}
 
