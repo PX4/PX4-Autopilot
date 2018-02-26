@@ -41,10 +41,11 @@
 
 #pragma once
 
-class FlightTask
+class FlightTask : public control::SuperBlock
 {
 public:
-	FlightTask()
+	FlightTask(SuperBlock *parent, const char *name) :
+		SuperBlock(parent, name)
 	{
 		_vehicle_position = nullptr;
 		_manual_control_setpoint = nullptr;
@@ -78,6 +79,7 @@ public:
 		_time = hrt_elapsed_time(&_starting_time_stamp) / 1e6f;
 		_deltatime  = math::min(hrt_elapsed_time(&_last_time_stamp) / 1e6f, (float)_timeout);
 		_last_time_stamp = hrt_absolute_time();
+		updateSubscriptions();
 		_evaluate_sticks();
 		_evaluate_position();
 		_evaluate_velocity();
