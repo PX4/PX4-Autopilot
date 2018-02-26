@@ -47,13 +47,15 @@
 class FlightTaskManual : public FlightTask
 {
 public:
-	FlightTaskManual() :
+	FlightTaskManual(SuperBlock *parent, const char *name) :
+		FlightTask(parent, name),
 		_xy_vel_man_expo(nullptr, "MPC_XY_MAN_EXPO"),
 		_z_vel_man_expo(nullptr, "MPC_Z_MAN_EXPO"),
 		_hold_dz(nullptr, "MPC_HOLD_DZ"),
 		_velocity_hor_manual(nullptr, "MPC_VEL_MANUAL"),
 		_z_vel_max_up(nullptr, "MPC_Z_VEL_MAX_UP"),
-		_z_vel_max_down(nullptr, "MPC_Z_VEL_MAX_DN")
+		_z_vel_max_down(nullptr, "MPC_Z_VEL_MAX_DN"),
+		_sub_control_state(ORB_ID(control_state), 0, 0, &getSubscriptions())
 	{};
 	virtual ~FlightTaskManual() {};
 
@@ -98,12 +100,8 @@ public:
 			man_vel_sp(1) /= man_vel_hor_length;
 		}
 
-		/* prepare yaw to rotate into NED frame */
-		float yaw_input_fame = 0;
-		//float yaw_input_fame = _yaw;
-
-		/* setpoint in NED frame */
-		man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_fame)) * man_vel_sp;
+		/* rotate setpoint to be in NED frame */
+		man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, get_input_frame_yaw())) * man_vel_sp;
 
 		/* scale smaller than unit length vector to maximal manual speed (m/s) */
 		matrix::Vector3f vel_scale(_velocity_hor_manual.get(),
@@ -116,6 +114,14 @@ public:
 		return 0;
 	};
 
+protected:
+	float get_input_frame_yaw()
+	{
+		matrix::Quatf q(&_sub_control_state.get().q[0]);
+		matrix::Eulerf euler_angles(q);
+		return euler_angles(2);
+	};
+
 private:
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
@@ -123,5 +129,7 @@ private:
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed */
 	control::BlockParamFloat _z_vel_max_up; /**< maximal vertical velocity when flying upwards with the stick */
 	control::BlockParamFloat _z_vel_max_down; /**< maximal vertical velocity when flying downwards with the stick */
+
+	uORB::Subscription<control_state_s> _sub_control_state;
 
 };

@@ -48,7 +48,10 @@
 class FlightTasks
 {
 public:
-	FlightTasks() {};
+	FlightTasks(control::SuperBlock *parent) :
+		Manual(parent, "MAN"),
+		Orbit(parent, "ORB")
+	{};
 	~FlightTasks() {};
 
 	/**
