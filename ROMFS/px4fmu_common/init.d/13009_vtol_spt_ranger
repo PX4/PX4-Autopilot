@@ -19,7 +19,7 @@ then
     param set VT_ARSP_TRANS   15.0
     param set VT_B_TRANS_DUR  4.0
     param set VT_TRANS_MIN_TM 5.0
-    param set VT_TRANS_THR    0.6
+    param set VT_F_TRANS_THR    0.6
     param set VT_TRANS_TIMEOUT    30.0
 
     param set FW_AIRSPD_MAX   22.0

@@ -14,7 +14,7 @@ if [ $AUTOCNF == yes ]
 then
 	param set VT_TYPE 2
 	param set VT_MOT_COUNT 4
-	param set VT_TRANS_THR 0.75
+	param set VT_F_TRANS_THR 0.75
 
 	param set PWM_AUX_REV1 1
 	param set PWM_AUX_REV2 1
