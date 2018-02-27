@@ -50,7 +50,6 @@
 
 Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	VtolType(attc),
-	_min_front_trans_dur(0.5f),
 	_thrust_transition_start(0.0f),
 	_yaw_transition(0.0f),
 	_pitch_transition_start(0.0f)
@@ -64,11 +63,7 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_tailsitter.front_trans_dur = param_find("VT_F_TRANS_DUR");
 	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
-	_params_handles_tailsitter.back_trans_dur = param_find("VT_B_TRANS_DUR");
-	_params_handles_tailsitter.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_params_handles_tailsitter.airspeed_blend_start = param_find("VT_ARSP_BLEND");
 }
 
 Tailsitter::~Tailsitter()
@@ -81,32 +76,9 @@ Tailsitter::parameters_update()
 {
 	float v;
 
-	/* vtol duration of a front transition */
-	param_get(_params_handles_tailsitter.front_trans_dur, &v);
-	_params_tailsitter.front_trans_dur = math::constrain(v, 1.0f, 5.0f);
-
 	/* vtol front transition phase 2 duration */
 	param_get(_params_handles_tailsitter.front_trans_dur_p2, &v);
 	_params_tailsitter.front_trans_dur_p2 = v;
-
-	/* vtol duration of a back transition */
-	param_get(_params_handles_tailsitter.back_trans_dur, &v);
-	_params_tailsitter.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
-
-	/* vtol airspeed at which it is ok to switch to fw mode */
-	param_get(_params_handles_tailsitter.airspeed_trans, &v);
-	_params_tailsitter.airspeed_trans = v;
-
-	/* vtol airspeed at which we start blending mc/fw controls */
-	param_get(_params_handles_tailsitter.airspeed_blend_start, &v);
-	_params_tailsitter.airspeed_blend_start = v;
-
-	/* avoid parameters which will lead to zero division in the transition code */
-	_params_tailsitter.front_trans_dur = math::max(_params_tailsitter.front_trans_dur, _min_front_trans_dur);
-
-	if (_params_tailsitter.airspeed_trans < _params_tailsitter.airspeed_blend_start + 1.0f) {
-		_params_tailsitter.airspeed_trans = _params_tailsitter.airspeed_blend_start + 1.0f;
-	}
 }
 
 void Tailsitter::update_vtol_state()
@@ -168,7 +140,7 @@ void Tailsitter::update_vtol_state()
 		case TRANSITION_FRONT_P1:
 
 			// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-			if ((_airspeed->indicated_airspeed_m_s >= _params_tailsitter.airspeed_trans
+			if ((_airspeed->indicated_airspeed_m_s >= _params->transition_airspeed
 			     && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				//_vtol_schedule.transition_start = hrt_absolute_time();
@@ -236,14 +208,14 @@ void Tailsitter::update_transition_state()
 
 		/** create time dependant pitch angle set point + 0.2 rad overlap over the switch value*/
 		_v_att_sp->pitch_body = _pitch_transition_start	- (fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
-					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
+					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params->front_trans_duration * 1000000.0f));
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1 - 0.2f,
 							_pitch_transition_start);
 
 		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
-		if (_airspeed->indicated_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
+		if (_airspeed->indicated_airspeed_m_s <= _params->transition_airspeed) {
 			_thrust_transition = _thrust_transition_start + (fabsf(THROTTLE_TRANSITION_MAX * _thrust_transition_start) *
-					     (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
+					     (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params->front_trans_duration * 1000000.0f));
 			_thrust_transition = math::constrain(_thrust_transition, _thrust_transition_start,
 							     (1.0f + THROTTLE_TRANSITION_MAX) * _thrust_transition_start);
 			_v_att_sp->thrust = _thrust_transition;
@@ -306,7 +278,7 @@ void Tailsitter::update_transition_state()
 
 		/** create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value*/
 		_v_att_sp->pitch_body = M_PI_2_F + _pitch_transition_start + fabsf(PITCH_TRANSITION_BACK + 1.57f) *
-					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.back_trans_dur * 1000000.0f);
+					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params->back_trans_duration * 1000000.0f);
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, -2.0f, PITCH_TRANSITION_BACK + 0.2f);
 
 		//  throttle value is decreesed
@@ -317,9 +289,9 @@ void Tailsitter::update_transition_state()
 
 		/** smoothly move control weight to MC */
 		_mc_roll_weight = 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
-				  (_params_tailsitter.back_trans_dur * 1000000.0f);
+				  (_params->back_trans_duration * 1000000.0f);
 		_mc_pitch_weight = 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) /
-				   (_params_tailsitter.back_trans_dur * 1000000.0f);
+				   (_params->back_trans_duration * 1000000.0f);
 
 	}
 
