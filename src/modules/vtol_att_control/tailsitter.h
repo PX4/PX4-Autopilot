@@ -74,7 +74,6 @@ private:
 	enum vtol_mode {
 		MC_MODE = 0,			/**< vtol is in multicopter mode */
 		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
-		TRANSITION_FRONT_P2,	/**< vtol is in front transition part 2 mode */
 		TRANSITION_BACK,		/**< vtol is in back transition mode */
 		FW_MODE					/**< vtol is in fixed wing mode */
 	};
