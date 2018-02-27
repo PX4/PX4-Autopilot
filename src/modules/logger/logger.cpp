@@ -92,6 +92,19 @@ using namespace px4::logger;
 static void timer_callback(void *arg)
 {
 	px4_sem_t *semaphore = (px4_sem_t *)arg;
+
+	/* check the value of the semaphore: if the logger cannot keep up with running it's main loop as fast
+	 * as the timer_callback here increases the semaphore count, the counter would increase unbounded,
+	 * leading to an overflow at some point. This case we want to avoid here, so we check the current
+	 * value against a (somewhat arbitrary) threshold, and avoid calling sem_post() if it's exceeded.
+	 * (it's not a problem if the threshold is a bit too large, it just means the logger will do
+	 * multiple iterations at once, the next time it's scheduled). */
+	int semaphore_value;
+
+	if (px4_sem_getvalue(semaphore, &semaphore_value) == 0 && semaphore_value > 1) {
+		return;
+	}
+
 	px4_sem_post(semaphore);
 }
 
