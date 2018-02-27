@@ -392,6 +392,8 @@ private:
 
 	bool manual_wants_takeoff();
 
+	void set_takeoff_velocity(float &vel_sp_z);
+
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
@@ -2515,11 +2517,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_smooth_takeoff) {
-		_in_smooth_takeoff = _takeoff_vel_limit < -_vel_sp(2);
-		/* ramp vertical velocity limit up to takeoff speed */
-		_takeoff_vel_limit += -_vel_sp(2) * _dt / _takeoff_ramp_time.get();
-		/* limit vertical velocity to the current ramp value */
-		_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_vel_limit);
+		set_takeoff_velocity(_vel_sp(2));
 	}
 
 	/* make sure velocity setpoint is constrained in all directions (xyz) */
@@ -3236,6 +3234,16 @@ MulticopterPositionControl::task_main()
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
 
 	_control_task = -1;
+}
+
+void
+MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
+{
+	_in_smooth_takeoff = _takeoff_vel_limit < -vel_sp_z;
+	/* ramp vertical velocity limit up to takeoff speed */
+	_takeoff_vel_limit += -vel_sp_z * _dt / _takeoff_ramp_time.get();
+	/* limit vertical velocity to the current ramp value */
+	vel_sp_z = math::max(vel_sp_z, -_takeoff_vel_limit);
 }
 
 int
