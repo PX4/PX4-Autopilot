@@ -47,8 +47,7 @@
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_rear_motors(ENABLED),
-	_tilt_control(0.0f),
-	_min_front_trans_dur(0.5f)
+	_tilt_control(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
@@ -59,16 +58,11 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_tiltrotor.front_trans_dur = param_find("VT_F_TRANS_DUR");
-	_params_handles_tiltrotor.back_trans_dur = param_find("VT_B_TRANS_DUR");
 	_params_handles_tiltrotor.tilt_mc = param_find("VT_TILT_MC");
 	_params_handles_tiltrotor.tilt_transition = param_find("VT_TILT_TRANS");
 	_params_handles_tiltrotor.tilt_fw = param_find("VT_TILT_FW");
-	_params_handles_tiltrotor.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_params_handles_tiltrotor.airspeed_blend_start = param_find("VT_ARSP_BLEND");
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFFID");
-	_params_handles_tiltrotor.airspeed_disabled = param_find("FW_ARSP_MODE");
 	_params_handles_tiltrotor.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles_tiltrotor.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 }
@@ -88,14 +82,6 @@ Tiltrotor::parameters_update()
 	param_get(_params_handles_tiltrotor.fw_motors_off, &l);
 	_params_tiltrotor.fw_motors_off = get_motor_off_channels(l);
 
-	/* vtol duration of a front transition */
-	param_get(_params_handles_tiltrotor.front_trans_dur, &v);
-	_params_tiltrotor.front_trans_dur = math::constrain(v, 1.0f, 5.0f);
-
-	/* vtol duration of a back transition */
-	param_get(_params_handles_tiltrotor.back_trans_dur, &v);
-	_params_tiltrotor.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
-
 	/* vtol tilt mechanism position in mc mode */
 	param_get(_params_handles_tiltrotor.tilt_mc, &v);
 	_params_tiltrotor.tilt_mc = v;
@@ -108,28 +94,9 @@ Tiltrotor::parameters_update()
 	param_get(_params_handles_tiltrotor.tilt_fw, &v);
 	_params_tiltrotor.tilt_fw = v;
 
-	/* vtol airspeed at which it is ok to switch to fw mode */
-	param_get(_params_handles_tiltrotor.airspeed_trans, &v);
-	_params_tiltrotor.airspeed_trans = v;
-
-	/* vtol airspeed at which we start blending mc/fw controls */
-	param_get(_params_handles_tiltrotor.airspeed_blend_start, &v);
-	_params_tiltrotor.airspeed_blend_start = v;
-
 	/* vtol front transition phase 2 duration */
 	param_get(_params_handles_tiltrotor.front_trans_dur_p2, &v);
 	_params_tiltrotor.front_trans_dur_p2 = v;
-
-	/* avoid parameters which will lead to zero division in the transition code */
-	_params_tiltrotor.front_trans_dur = math::max(_params_tiltrotor.front_trans_dur, _min_front_trans_dur);
-
-	if (_params_tiltrotor.airspeed_trans < _params_tiltrotor.airspeed_blend_start + 1.0f) {
-		_params_tiltrotor.airspeed_trans = _params_tiltrotor.airspeed_blend_start + 1.0f;
-	}
-
-	/* airspeed mode */
-	param_get(_params_handles_tiltrotor.airspeed_disabled, &l);
-	_params_tiltrotor.airspeed_disabled = math::constrain(l, 0, 1);
 
 	param_get(_params_handles_tiltrotor.diff_thrust, &_params_tiltrotor.diff_thrust);
 
@@ -213,12 +180,12 @@ void Tiltrotor::update_vtol_state()
 				bool transition_to_p2 = can_transition_on_ground();
 
 				// check if we have reached airspeed to switch to fw mode
-				transition_to_p2 |= !_params_tiltrotor.airspeed_disabled &&
-						    _airspeed->indicated_airspeed_m_s >= _params_tiltrotor.airspeed_trans &&
+				transition_to_p2 |= !_params->airspeed_disabled &&
+						    _airspeed->indicated_airspeed_m_s >= _params->transition_airspeed &&
 						    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params->front_trans_time_min * 1e6f);
 
 				// check if airspeed is invalid and transition by time
-				transition_to_p2 |= _params_tiltrotor.airspeed_disabled &&
+				transition_to_p2 |= _params->airspeed_disabled &&
 						    _tilt_control > _params_tiltrotor.tilt_transition &&
 						    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params->front_trans_time_openloop * 1e6f);
 
@@ -325,27 +292,26 @@ void Tiltrotor::update_transition_state()
 		if (_tilt_control <= _params_tiltrotor.tilt_transition) {
 			_tilt_control = _params_tiltrotor.tilt_mc +
 					fabsf(_params_tiltrotor.tilt_transition - _params_tiltrotor.tilt_mc) * (float)hrt_elapsed_time(
-						&_vtol_schedule.transition_start) / (_params_tiltrotor.front_trans_dur * 1000000.0f);
+						&_vtol_schedule.transition_start) / (_params->front_trans_duration * 1e6f);
 		}
 
-		bool use_airspeed = !_params_tiltrotor.airspeed_disabled;
 
 		// at low speeds give full weight to MC
 		_mc_roll_weight = 1.0f;
 		_mc_yaw_weight = 1.0f;
 
 		// reduce MC controls once the plane has picked up speed
-		if (use_airspeed && _airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
+		if (!_params->airspeed_disabled && _airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
 			_mc_yaw_weight = 0.0f;
 		}
 
-		if (use_airspeed && _airspeed->indicated_airspeed_m_s >= _params_tiltrotor.airspeed_blend_start) {
-			_mc_roll_weight = 1.0f - (_airspeed->indicated_airspeed_m_s - _params_tiltrotor.airspeed_blend_start) /
-					  (_params_tiltrotor.airspeed_trans - _params_tiltrotor.airspeed_blend_start);
+		if (!_params->airspeed_disabled && _airspeed->indicated_airspeed_m_s >= _params->airspeed_blend) {
+			_mc_roll_weight = 1.0f - (_airspeed->indicated_airspeed_m_s - _params->airspeed_blend) /
+					  (_params->transition_airspeed - _params->airspeed_blend);
 		}
 
 		// without airspeed do timed weight changes
-		if (!use_airspeed
+		if (_params->airspeed_disabled
 		    && (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params->front_trans_time_min * 1e6f)) {
 			_mc_roll_weight = 1.0f - ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) - _params->front_trans_time_min *
 						  1e6f) / (_params->front_trans_time_openloop * 1e6f - _params->front_trans_time_min * 1e6f);
@@ -386,7 +352,7 @@ void Tiltrotor::update_transition_state()
 		if (_tilt_control > _params_tiltrotor.tilt_mc) {
 			_tilt_control = _params_tiltrotor.tilt_fw -
 					fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_mc) * (float)hrt_elapsed_time(
-						&_vtol_schedule.transition_start) / (_params_tiltrotor.back_trans_dur * 1000000.0f);
+						&_vtol_schedule.transition_start) / (_params->back_trans_duration * 1e6f);
 		}
 
 		// set zero throttle for backtransition otherwise unwanted moments will be created
