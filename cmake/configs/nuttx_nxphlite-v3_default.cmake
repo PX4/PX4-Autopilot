@@ -142,6 +142,7 @@ set(config_module_list
 	lib/tunes
 	lib/version
 	lib/DriverFramework/framework
+	lib/FlightTasks
 
 	#
 	# OBC challenge
