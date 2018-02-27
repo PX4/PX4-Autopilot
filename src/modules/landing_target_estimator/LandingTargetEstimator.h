@@ -52,6 +52,7 @@
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/landing_target_innovations.h>
+#include <uORB/topics/pozyx_report.h>
 #include <uORB/topics/parameter_update.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -126,6 +127,8 @@ private:
 		param_t mode;
 		param_t scale_x;
 		param_t scale_y;
+		param_t offset_x;
+		param_t offset_y;
 	} _paramHandle;
 
 	struct {
@@ -136,33 +139,44 @@ private:
 		TargetMode mode;
 		float scale_x;
 		float scale_y;
+		float offset_x;
+		float offset_y;
 	} _params;
+
+	struct {
+		hrt_abstime timestamp;
+		float rel_pos_x;
+		float rel_pos_y;
+		float rel_pos_z;
+	} _sensor_report;
 
 	int _vehicleLocalPositionSub;
 	int _attitudeSub;
 	int _sensorBiasSub;
 	int _irlockReportSub;
+	int _pozyxReportSub;
 
 	struct vehicle_local_position_s	_vehicleLocalPosition;
 	struct vehicle_attitude_s	_vehicleAttitude;
 	struct sensor_bias_s		_sensorBias;
 	struct irlock_report_s		_irlockReport;
+	struct pozyx_report_s		_pozyxReport;
 
 	// keep track of which topics we have received
 	bool _vehicleLocalPosition_valid;
 	bool _vehicleAttitude_valid;
 	bool _sensorBias_valid;
-	bool _new_irlockReport;
+	bool _new_sensorReport;
 	bool _estimator_initialized;
 	// keep track of whether last measurement was rejected
 	bool _faulty;
 
 	matrix::Dcm<float> _R_att;
-	matrix::Vector<float, 2> _rel_pos;
 	KalmanFilter _kalman_filter_x;
 	KalmanFilter _kalman_filter_y;
 	hrt_abstime _last_predict; // timestamp of last filter prediction
 	hrt_abstime _last_update; // timestamp of last filter update (used to check timeout)
+	float _uncertainty_scale;
 
 	void _check_params(const bool force);
 
