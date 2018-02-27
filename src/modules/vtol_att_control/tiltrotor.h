@@ -62,31 +62,21 @@ public:
 private:
 
 	struct {
-		float front_trans_dur;			/**< duration of first part of front transition */
-		float back_trans_dur;			/**< duration of back transition */
 		float tilt_mc;					/**< actuator value corresponding to mc tilt */
 		float tilt_transition;			/**< actuator value corresponding to transition tilt (e.g 45 degrees) */
 		float tilt_fw;					/**< actuator value corresponding to fw tilt */
-		float airspeed_trans;			/**< airspeed at which we switch to fw mode after transition */
-		float airspeed_blend_start;		/**< airspeed at which we start blending mc/fw controls */
 		float front_trans_dur_p2;
 		int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
-		int32_t airspeed_disabled;
 		int32_t diff_thrust;
 		float diff_thrust_scale;
 	} _params_tiltrotor;
 
 	struct {
-		param_t front_trans_dur;
-		param_t back_trans_dur;
 		param_t tilt_mc;
 		param_t tilt_transition;
 		param_t tilt_fw;
-		param_t airspeed_trans;
-		param_t airspeed_blend_start;
 		param_t front_trans_dur_p2;
 		param_t fw_motors_off;
-		param_t airspeed_disabled;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
 	} _params_handles_tiltrotor;
@@ -117,8 +107,6 @@ private:
 	} _vtol_schedule;
 
 	float _tilt_control;		/**< actuator value for the tilt servo */
-
-	const float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
 
 	/**
 	 * Return a bitmap of channels that should be turned off in fixed wing mode.
