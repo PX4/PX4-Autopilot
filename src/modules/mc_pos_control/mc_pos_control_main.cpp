@@ -3136,75 +3136,77 @@ MulticopterPositionControl::task_main()
 			_alt_hold_engaged = false;
 		}
 
-		if (_control_mode.flag_control_altitude_enabled ||
-		    _control_mode.flag_control_position_enabled ||
-		    _control_mode.flag_control_climb_rate_enabled ||
-		    _control_mode.flag_control_velocity_enabled ||
-		    _control_mode.flag_control_acceleration_enabled) {
+		{
+			if (_control_mode.flag_control_altitude_enabled ||
+			    _control_mode.flag_control_position_enabled ||
+			    _control_mode.flag_control_climb_rate_enabled ||
+			    _control_mode.flag_control_velocity_enabled ||
+			    _control_mode.flag_control_acceleration_enabled) {
 
-			do_control();
+				do_control();
 
-			/* fill local position, velocity and thrust setpoint */
-			_local_pos_sp.timestamp = hrt_absolute_time();
-			_local_pos_sp.x = _pos_sp(0);
-			_local_pos_sp.y = _pos_sp(1);
-			_local_pos_sp.z = _pos_sp(2);
-			_local_pos_sp.yaw = _att_sp.yaw_body;
-			_local_pos_sp.vx = _vel_sp(0);
-			_local_pos_sp.vy = _vel_sp(1);
-			_local_pos_sp.vz = _vel_sp(2);
+				/* fill local position, velocity and thrust setpoint */
+				_local_pos_sp.timestamp = hrt_absolute_time();
+				_local_pos_sp.x = _pos_sp(0);
+				_local_pos_sp.y = _pos_sp(1);
+				_local_pos_sp.z = _pos_sp(2);
+				_local_pos_sp.yaw = _att_sp.yaw_body;
+				_local_pos_sp.vx = _vel_sp(0);
+				_local_pos_sp.vy = _vel_sp(1);
+				_local_pos_sp.vz = _vel_sp(2);
 
-			/* publish local position setpoint */
-			if (_local_pos_sp_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
+				/* publish local position setpoint */
+				if (_local_pos_sp_pub != nullptr) {
+					orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
+
+				} else {
+					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
+				}
 
 			} else {
-				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
+				/* position controller disabled, reset setpoints */
+				_reset_pos_sp = true;
+				_reset_alt_sp = true;
+				_do_reset_alt_pos_flag = true;
+				_mode_auto = false;
+				_reset_int_z = true;
+				_reset_int_xy = true;
+
+				/* store last velocity in case a mode switch to position control occurs */
+				_vel_sp_prev = _vel;
 			}
 
-		} else {
-			/* position controller disabled, reset setpoints */
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
-			_do_reset_alt_pos_flag = true;
-			_mode_auto = false;
-			_reset_int_z = true;
-			_reset_int_xy = true;
+			/* generate attitude setpoint from manual controls */
+			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
-			/* store last velocity in case a mode switch to position control occurs */
-			_vel_sp_prev = _vel;
-		}
+				generate_attitude_setpoint();
 
-		/* generate attitude setpoint from manual controls */
-		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
+			} else {
+				_reset_yaw_sp = true;
+				_att_sp.yaw_sp_move_rate = 0.0f;
+			}
 
-			generate_attitude_setpoint();
+			/* update previous velocity for velocity controller D part */
+			_vel_prev = _vel;
 
-		} else {
-			_reset_yaw_sp = true;
-			_att_sp.yaw_sp_move_rate = 0.0f;
-		}
+			/* publish attitude setpoint
+			 * Do not publish if
+			 * - offboard is enabled but position/velocity/accel control is disabled,
+			 * in this case the attitude setpoint is published by the mavlink app.
+			 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+			 * attitude setpoints for the transition).
+			 */
+			if (!(_control_mode.flag_control_offboard_enabled &&
+			      !(_control_mode.flag_control_position_enabled ||
+				_control_mode.flag_control_velocity_enabled ||
+				_control_mode.flag_control_acceleration_enabled))) {
 
-		/* update previous velocity for velocity controller D part */
-		_vel_prev = _vel;
+				if (_att_sp_pub != nullptr) {
+					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
-		/* publish attitude setpoint
-		 * Do not publish if
-		 * - offboard is enabled but position/velocity/accel control is disabled,
-		 * in this case the attitude setpoint is published by the mavlink app.
-		 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
-		 * attitude setpoints for the transition).
-		 */
-		if (!(_control_mode.flag_control_offboard_enabled &&
-		      !(_control_mode.flag_control_position_enabled ||
-			_control_mode.flag_control_velocity_enabled ||
-			_control_mode.flag_control_acceleration_enabled))) {
-
-			if (_att_sp_pub != nullptr) {
-				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-			} else if (_attitude_setpoint_id) {
-				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+				} else if (_attitude_setpoint_id) {
+					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+				}
 			}
 		}
 	}
