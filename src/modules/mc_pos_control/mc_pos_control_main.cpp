@@ -76,6 +76,10 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
+#include <lib/FlightTasks/FlightTasks.hpp>
+#include "PositionControl.hpp"
+#include "Utility/ControlMath.hpp"
+
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
 /**
@@ -162,6 +166,7 @@ private:
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct home_position_s				_home_pos; 				/**< home position */
 
+	control::BlockParamInt _test_flight_tasks; /**< temporary flag for the transition to flight tasks */
 	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
 	control::BlockParamFloat _manual_thr_max; /**< maximal throttle output when flying in manual mode */
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
@@ -182,6 +187,10 @@ private:
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
+
+
+	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
+	PositionControl _control{}; /**< class handling the core PID position controller */
 
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
 
@@ -383,6 +392,7 @@ private:
 
 	void set_manual_acceleration_z(float &max_acc_z, const float stick_input_z_NED);
 
+
 	/**
 	 * limit altitude based on several conditions
 	 */
@@ -395,6 +405,17 @@ private:
 	void set_takeoff_velocity(float &vel_sp_z);
 
 	void landdetection_thrust_limit(matrix::Vector3f &thrust_sp);
+
+	void set_idle_state();
+
+	/**
+	 * Temporary method for flight control compuation
+	 */
+	void updateConstraints(Controller::Constraints &constrains);
+
+	void publish_attitude();
+
+	void publish_local_pos_sp();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -441,6 +462,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos_sp_triplet{},
 	_local_pos_sp{},
 	_home_pos{},
+	_test_flight_tasks(this, "FLT_TSK"),
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
@@ -3136,7 +3158,108 @@ MulticopterPositionControl::task_main()
 			_alt_hold_engaged = false;
 		}
 
-		{
+		if (_test_flight_tasks.get()) {
+			switch (_vehicle_status.nav_state) {
+			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+				_flight_tasks.switchTask(FlightTaskIndex::AltitudeSmooth);
+				break;
+
+			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+				_flight_tasks.switchTask(FlightTaskIndex::PositionSmooth);
+				break;
+
+			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+				_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
+				break;
+
+			default:
+				/* not supported yet */
+				_flight_tasks.switchTask(FlightTaskIndex::None);
+			}
+
+		} else {
+			/* make sure to disable any task when we are not testing them */
+			_flight_tasks.switchTask(FlightTaskIndex::None);
+		}
+
+		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
+
+			_flight_tasks.update();
+
+			/* Get Flighttask setpoints */
+			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
+
+			/* Get _contstraints depending on flight mode
+			 * This logic will be set by FlightTasks */
+			Controller::Constraints constraints;
+			updateConstraints(constraints);
+
+			/* For takeoff we adjust the velocity setpoint in the z-direction */
+			if (_in_smooth_takeoff) {
+				/* Adjust velocity setpoint in z if we are in smooth takeoff */
+				set_takeoff_velocity(setpoint.vz);
+			}
+
+			/* this logic is only temporary.
+			 * Mode switch related things will be handled within
+			 * Flighttask activate method
+			 */
+			if (_vehicle_status.nav_state
+			    == _vehicle_status.NAVIGATION_STATE_MANUAL) {
+				/* we set triplets to false
+				 * this ensures that when switching to auto, the position
+				 * controller will not use the old triplets but waits until triplets
+				 * have been updated */
+				_mode_auto = false;
+				_pos_sp_triplet.current.valid = false;
+				_pos_sp_triplet.previous.valid = false;
+				_hold_offboard_xy = false;
+				_hold_offboard_z = false;
+
+			}
+
+			// We can only run the control if we're already in-air, have a takeoff setpoint,
+			// or if we're in offboard control.
+			// Otherwise, we should just bail out
+			if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
+				// Keep throttle low while still on ground.
+				set_idle_state();
+
+			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL ||
+				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL ||
+				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
+
+
+				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
+				_control.updateSetpoint(setpoint);
+				_control.updateConstraints(constraints);
+				_control.generateThrustYawSetpoint(_dt);
+
+				/* fill local position, velocity and thrust setpoint */
+				_local_pos_sp.timestamp = hrt_absolute_time();
+				_local_pos_sp.x = _control.getPosSp()(0);
+				_local_pos_sp.y = _control.getPosSp()(1);
+				_local_pos_sp.z = _control.getPosSp()(2);
+				_local_pos_sp.yaw = _control.getYawSetpoint();
+				_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
+				_local_pos_sp.vx = _control.getVelSp()(0);
+				_local_pos_sp.vy = _control.getVelSp()(1);
+				_local_pos_sp.vz = _control.getVelSp()(2);
+				_control.getThrustSetpoint().copyTo(_local_pos_sp.thrust);
+
+				/* We adjust thrust setpoint based on landdetector */
+				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
+				landdetection_thrust_limit(thr_sp); //TODO: only do that if not in pure manual
+
+				_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
+				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
+
+			}
+
+			publish_local_pos_sp();
+			publish_attitude();
+
+		} else {
 			if (_control_mode.flag_control_altitude_enabled ||
 			    _control_mode.flag_control_position_enabled ||
 			    _control_mode.flag_control_climb_rate_enabled ||
@@ -3224,6 +3347,95 @@ MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
 	_takeoff_vel_limit += -vel_sp_z * _dt / _takeoff_ramp_time.get();
 	/* limit vertical velocity to the current ramp value */
 	vel_sp_z = math::max(vel_sp_z, -_takeoff_vel_limit);
+}
+
+void
+MulticopterPositionControl::publish_attitude()
+{
+	/* publish attitude setpoint
+	 * Do not publish if
+	 * - offboard is enabled but position/velocity/accel control is disabled,
+	 * in this case the attitude setpoint is published by the mavlink app.
+	 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+	 * attitude setpoints for the transition).
+	 * - if not armed
+	 */
+	if (_control_mode.flag_armed &&
+	    (!(_control_mode.flag_control_offboard_enabled &&
+	       !(_control_mode.flag_control_position_enabled ||
+		 _control_mode.flag_control_velocity_enabled ||
+		 _control_mode.flag_control_acceleration_enabled)))) {
+
+		_att_sp.timestamp = hrt_absolute_time();
+
+		if (_att_sp_pub != nullptr) {
+			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
+		} else if (_attitude_setpoint_id) {
+			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+		}
+	}
+}
+
+void
+MulticopterPositionControl::publish_local_pos_sp()
+{
+
+	_local_pos_sp.timestamp = hrt_absolute_time();
+
+	/* publish local position setpoint */
+	if (_local_pos_sp_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_local_position_setpoint),
+			    _local_pos_sp_pub, &_local_pos_sp);
+
+	} else {
+		_local_pos_sp_pub = orb_advertise(
+					    ORB_ID(vehicle_local_position_setpoint),
+					    &_local_pos_sp);
+	}
+}
+
+void
+MulticopterPositionControl::set_idle_state()
+{
+	_local_pos_sp.x = _pos(0);
+	_local_pos_sp.y = _pos(1);
+	_local_pos_sp.z = _pos(2) + 1.0f; //1m into ground when idle
+	_local_pos_sp.vx = 0.0f;
+	_local_pos_sp.vy = 0.0f;
+	_local_pos_sp.vz = 1.0f; //1m/s into ground
+	_local_pos_sp.yaw = _yaw;
+	_local_pos_sp.yawspeed = 0.0f;
+
+	_att_sp.roll_body = 0.0f;
+	_att_sp.pitch_body = 0.0f;
+	_att_sp.yaw_body = _yaw;
+	_att_sp.yaw_sp_move_rate = 0.0f;
+	matrix::Quatf q_sp = matrix::Eulerf(0.0f, 0.0f, _yaw);
+	q_sp.copyTo(_att_sp.q_d);
+	_att_sp.q_d_valid = true; //TODO: check if this flag is used anywhere
+	_att_sp.thrust = 0.0f;
+}
+
+void
+MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
+{
+	/* _contstraints */
+	constraints.tilt_max = NAN; // Default no maximum tilt
+
+	/* Set maximum tilt  */
+	if (!_control_mode.flag_control_manual_enabled
+	    && _pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type
+	    == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+		/* Auto landing tilt */
+		constraints.tilt_max = _params.tilt_max_land;
+
+	} else {
+		/* Velocity/acceleration control tilt */
+		constraints.tilt_max = _params.tilt_max_air;
+	}
 }
 
 void
