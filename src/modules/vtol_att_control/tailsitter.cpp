@@ -175,7 +175,7 @@ void Tailsitter::update_vtol_state()
 
 void Tailsitter::update_transition_state()
 {
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start);
+	float time_since_trans_start = ((float)(hrt_absolute_time() - _vtol_schedule.transition_start)) / 1e6f;
 
 	if (!_flag_was_in_trans_mode) {
 		// save desired heading for transition and last thrust value
@@ -190,8 +190,8 @@ void Tailsitter::update_transition_state()
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 
 		// create time dependant pitch angle set point + 0.2 rad overlap over the switch value
-		_v_att_sp->pitch_body = _pitch_transition_start	- (fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
-					time_since_trans_start / (_params->front_trans_duration * 1e6f));
+		_v_att_sp->pitch_body = _pitch_transition_start	- fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
+					time_since_trans_start / _params->front_trans_duration;
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1 - 0.2f,
 							_pitch_transition_start);
 
@@ -217,7 +217,7 @@ void Tailsitter::update_transition_state()
 
 		// create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value
 		_v_att_sp->pitch_body = M_PI_2_F + _pitch_transition_start + fabsf(PITCH_TRANSITION_BACK + 1.57f) *
-					time_since_trans_start / (_params->back_trans_duration * 1e6f);
+					time_since_trans_start / _params->back_trans_duration;
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, -2.0f, PITCH_TRANSITION_BACK + 0.2f);
 
 
@@ -227,8 +227,8 @@ void Tailsitter::update_transition_state()
 		_mc_yaw_weight = 0.0f;
 
 		// smoothly move control weight to MC
-		_mc_roll_weight = 1.0f * time_since_trans_start / (_params->back_trans_duration * 1e6f);
-		_mc_pitch_weight = 1.0f * time_since_trans_start / (_params->back_trans_duration * 1e6f);
+		_mc_roll_weight = 1.0f * time_since_trans_start / _params->back_trans_duration;
+		_mc_pitch_weight = 1.0f * time_since_trans_start / _params->back_trans_duration;
 
 	}
 
