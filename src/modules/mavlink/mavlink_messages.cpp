@@ -3974,6 +3974,11 @@ public:
 		return MAVLINK_MSG_ID_HIGH_LATENCY2_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
+	bool const_rate()
+	{
+		return true;
+	}
+
 private:
 	MavlinkOrbSubscription *_actuator_sub_0;
 	uint64_t _actuator_time_0;
