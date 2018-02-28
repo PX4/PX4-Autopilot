@@ -52,9 +52,7 @@ FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *pare
 
 bool FlightTaskManualStabilized::activate()
 {
-	_resetToNAN();
-	_yaw_rate_sp = 0.0f;
-	_thr_sp = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
+	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
 	return FlightTaskManual::activate();
 }
 
@@ -62,8 +60,9 @@ void FlightTaskManualStabilized::_scaleSticks()
 {
 	/* Scale sticks to yaw and thrust using
 	 * linear scale for yaw and piecewise linear map for thrust. */
-	_yaw_rate_sp = _sticks(3) * math::radians(_yaw_rate_scaling.get());
-	_yaw_rate_sp = math::sign(_yaw_rate_sp) * math::min(fabsf(_yaw_rate_sp), math::radians(_yaw_rate_max.get()));
+	_yawspeed_setpoint = _sticks(3) * math::radians(_yaw_rate_scaling.get());
+	_yawspeed_setpoint = math::sign(_yawspeed_setpoint) * math::min(fabsf(_yawspeed_setpoint),
+			     math::radians(_yaw_rate_max.get()));
 	_throttle = _throttleCurve();
 }
 
@@ -74,11 +73,11 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 	 * TODO: add yawspeed to get threshold.*/
 	const bool stick_yaw_zero = fabsf(_sticks(3)) <= _stick_dz.get();
 
-	if (stick_yaw_zero && !PX4_ISFINITE(_yaw_sp)) {
-		_yaw_sp = _yaw;
+	if (stick_yaw_zero && !PX4_ISFINITE(_yaw_setpoint)) {
+		_yaw_setpoint = _yaw;
 
 	} else if (!stick_yaw_zero) {
-		_yaw_sp = NAN;
+		_yaw_setpoint = NAN;
 	}
 }
 
@@ -111,12 +110,12 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 	 * upward by the Axis-Angle.
 	 */
 	Quatf q_sp = AxisAnglef(v(0), v(1), 0.0f);
-	_thr_sp = q_sp.conjugate(Vector3f(0.0f, 0.0f, -1.0f)) * _throttle;
+	_thrust_setpoint = q_sp.conjugate(Vector3f(0.0f, 0.0f, -1.0f)) * _throttle;
 }
 
 void FlightTaskManualStabilized::_rotateIntoHeadingFrame(Vector2f &v)
 {
-	float yaw_rotate = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw;
+	float yaw_rotate = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
 	Vector3f v_r = Vector3f(Dcmf(Eulerf(0.0f, 0.0f, yaw_rotate)) * Vector3f(v(0), v(1), 0.0f));
 	v(0) = v_r(0);
 	v(1) = v_r(1);
@@ -146,12 +145,6 @@ bool FlightTaskManualStabilized::update()
 {
 	_scaleSticks();
 	_updateSetpoints();
-
-	_position_setpoint = _pos_sp;
-	_velocity_setpoint = _vel_sp;
-	_thrust_setpoint = _thr_sp;
-	_yaw_setpoint = _yaw_sp;
-	_yawspeed_setpoint = _yaw_rate_sp;
 
 	return true;
 }
