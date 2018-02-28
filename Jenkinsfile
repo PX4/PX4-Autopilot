@@ -352,14 +352,14 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1.txt vehicle:=standard_vtol'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1.plan vehicle:=standard_vtol'
           }
           post {
             success {
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_1: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
               sh'''#!/bin/bash -xe
                     find . -type f -name "ros*.xml" | \
                         while read f
@@ -386,14 +386,14 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2.txt vehicle:=standard_vtol'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2.plan vehicle:=standard_vtol'
           }
           post {
             success {
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_new_2: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
               sh'''#!/bin/bash -xe
                     find . -type f -name "ros*.xml" | \
                         while read f
@@ -420,14 +420,14 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1.txt vehicle:=standard_vtol'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1.plan vehicle:=standard_vtol'
           }
           post {
             success {
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_1: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
               sh'''#!/bin/bash -xe
                     find . -type f -name "ros*.xml" | \
                         while read f
@@ -454,14 +454,14 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2.txt vehicle:=standard_vtol'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2.plan vehicle:=standard_vtol'
           }
           post {
             success {
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
-              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_2: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
               sh'''#!/bin/bash -xe
                     find . -type f -name "ros*.xml" | \
                         while read f
@@ -488,14 +488,14 @@ pipeline {
             //sh 'git fetch --tags'
             //sh 'make posix_sitl_default'
             //sh 'make posix_sitl_default sitl_gazebo'
-            //sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_3.txt vehicle:=standard_vtol'
+            //sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_3.plan vehicle:=standard_vtol'
           }
           post {
             //success {
-            //  sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+            //  sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             //}
             failure {
-              //sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3.txt: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              //sh './Tools/upload_log.py -q --description "ROS mission test vtol_old_3: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
               sh'''#!/bin/bash -xe
                     find . -type f -name "ros*.xml" | \
                         while read f
@@ -522,14 +522,14 @@ pipeline {
             sh 'git fetch --tags'
             sh 'make posix_sitl_default'
             sh 'make posix_sitl_default sitl_gazebo'
-            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box.mission vehicle:=iris'
+            sh './test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box.plan vehicle:=iris'
           }
           post {
             success {
-              sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box.mission: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             }
             failure {
-              sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box.mission: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
+              sh './Tools/upload_log.py -q --description "ROS mission test multirotor_box: ${CHANGE_ID}" --feedback "${CHANGE_TITLE} - ${CHANGE_URL}" --source CI --email "${CHANGE_AUTHOR_EMAIL}" .ros/rootfs/fs/microsd/log/*/*.ulg'
               sh'''#!/bin/bash -xe
                     find . -type f -name "ros*.xml" | \
                         while read f
