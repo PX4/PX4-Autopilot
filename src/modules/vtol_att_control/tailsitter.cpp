@@ -227,8 +227,7 @@ void Tailsitter::update_transition_state()
 		_mc_yaw_weight = 0.0f;
 
 		// smoothly move control weight to MC
-		_mc_roll_weight = 1.0f * time_since_trans_start / _params->back_trans_duration;
-		_mc_pitch_weight = 1.0f * time_since_trans_start / _params->back_trans_duration;
+		_mc_roll_weight = _mc_pitch_weight = 1.0f * time_since_trans_start / _params->back_trans_duration;
 
 	}
 
