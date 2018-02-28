@@ -236,7 +236,7 @@ class MavrosMissionTest(MavrosTestCommon):
 
         self.mission_name = sys.argv[1]
         mission_file = os.path.dirname(
-            os.path.realpath(__file__)) + "/" + sys.argv[1]
+            os.path.realpath(__file__)) + "/missions/" + sys.argv[1]
 
         rospy.loginfo("reading mission {0}".format(mission_file))
         try:
