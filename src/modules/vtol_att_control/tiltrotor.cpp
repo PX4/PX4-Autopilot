@@ -179,7 +179,7 @@ void Tiltrotor::update_vtol_state()
 				// allow switch if we are not armed for the sake of bench testing
 				bool transition_to_p2 = can_transition_on_ground();
 
-				float time_since_trans_start = ((float)(hrt_absolute_time() - _vtol_schedule.transition_start)) / 1e6f;
+				float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
 				// check if we have reached airspeed to switch to fw mode
 				transition_to_p2 |= !_params->airspeed_disabled &&
@@ -279,7 +279,7 @@ void Tiltrotor::update_transition_state()
 {
 	VtolType::update_transition_state();
 
-	float time_since_trans_start = ((float)(hrt_absolute_time() - _vtol_schedule.transition_start)) / 1e6f;
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
 	if (!_flag_was_in_trans_mode) {
 		// save desired heading for transition and last thrust value
