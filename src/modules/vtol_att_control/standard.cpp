@@ -119,7 +119,7 @@ void Standard::update_vtol_state()
 	 */
 
 	float mc_weight = _mc_roll_weight;
-	float time_since_trans_start = ((float)(hrt_absolute_time() - _vtol_schedule.transition_start)) / 1e6f;
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
 	if (!_attc->is_fixed_wing_requested()) {
 
@@ -232,7 +232,7 @@ void Standard::update_vtol_state()
 void Standard::update_transition_state()
 {
 	float mc_weight = 1.0f;
-	float time_since_trans_start = ((float)(hrt_absolute_time() - _vtol_schedule.transition_start)) / 1e6f;
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
 	VtolType::update_transition_state();
 
