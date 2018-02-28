@@ -197,11 +197,9 @@ class MavrosMissionTest(MavrosTestCommon):
             reached = (
                 # advanced to next wp
                 (index < self.mission_wp.current_seq)
-                # end of mission, reset to first wp
-                or (mission_length > 1 and index == (mission_length - 1)
-                    and self.mission_wp.current_seq == 0)
-                # end of mission with only 1 wp
-                or (mission_length == 1 and self.mission_item_reached == 0))
+                # end of mission
+                or (index == (mission_length - 1)
+                    and self.mission_item_reached == index))
 
             if reached:
                 rospy.loginfo(
