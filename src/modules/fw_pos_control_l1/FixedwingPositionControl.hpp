@@ -439,7 +439,8 @@ private:
 
 	bool		control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
 					 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-
+	void		control_takeoff(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
+					const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 	void		control_landing(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
 					const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
