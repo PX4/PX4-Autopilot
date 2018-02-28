@@ -71,5 +71,4 @@ private:
 	control::BlockParamFloat _throttle_min; /**< minimum throttle that always has to be satisfied in flight*/
 	control::BlockParamFloat _throttle_max; /**< maximum throttle that always has to be satisfied in flight*/
 	control::BlockParamFloat _throttle_hover; /**< throttle value at which vehicle is at hover equilibrium */
-	control::BlockParamFloat _yaw_rate_max; /** manual maximum yawspeed */
 };
