@@ -91,12 +91,7 @@ public:
 	 * Get the output data from the current task
 	 * @return output setpoint, to be executed by position control
 	 */
-	const vehicle_local_position_setpoint_s &getPositionSetpoint();
-
-	/**
-	 * Convenient operator to get the output data from the current task
-	 */
-	inline const vehicle_local_position_setpoint_s &operator()() { return getPositionSetpoint(); }
+	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
 	/**
 	 * Switch to the next task in the available list (for testing)

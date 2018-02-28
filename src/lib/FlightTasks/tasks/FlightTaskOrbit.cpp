@@ -79,9 +79,10 @@ bool FlightTaskOrbit::update()
 	_v = math::constrain(_v, -7.f, 7.f);
 	_z += _sticks_expo(2) * _deltatime;
 
-	Vector2f center_to_position = Vector2f(_position.data()) - _center;
+	_position_setpoint = Vector3f(NAN, NAN, _z);
 
 	/* xy velocity to go around in a circle */
+	Vector2f center_to_position = Vector2f(_position.data()) - _center;
 	Vector2f velocity_xy = Vector2f(center_to_position(1), -center_to_position(0));
 	velocity_xy = velocity_xy.unit_or_zero();
 	velocity_xy *= _v;
@@ -89,10 +90,9 @@ bool FlightTaskOrbit::update()
 	/* xy velocity adjustment to stay on the radius distance */
 	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
 
-	float yaw = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+	_velocity_setpoint = Vector3f(velocity_xy(0), velocity_xy(1), 0.f);
 
-	_setPositionSetpoint(Vector3f(NAN, NAN, _z));
-	_setVelocitySetpoint(Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
-	_setYawSetpoint(yaw);
+	/* make vehicle front always point towards the center */
+	_yawspeed_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 	return true;
 }

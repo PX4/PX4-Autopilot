@@ -56,7 +56,7 @@ class FlightTask : public control::Block
 public:
 	FlightTask(control::SuperBlock *parent, const char *name) :
 		Block(parent, name)
-	{ _resetSetpoint(); }
+	{ _resetSetpoints(); }
 
 	virtual ~FlightTask() = default;
 
@@ -94,10 +94,7 @@ public:
 	/**
 	 * Get the output data
 	 */
-	const vehicle_local_position_setpoint_s &getPositionSetpoint()
-	{
-		return _vehicle_local_position_setpoint;
-	}
+	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
 	static const vehicle_local_position_setpoint_s empty_setpoint;
 
@@ -110,35 +107,27 @@ protected:
 	hrt_abstime _time_stamp_current = 0; /**< time stamp at the beginning of the current task update */
 	hrt_abstime _time_stamp_last = 0; /**< time stamp when task was last updated */
 
-	/* Current vehicle position */
+	/* Current vehicle state */
 	matrix::Vector3f _position; /**< current vehicle position */
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f;
 
-	/* Put the position vector produced by the task into the setpoint message */
-	void _setPositionSetpoint(const matrix::Vector3f &position_setpoint) { position_setpoint.copyToRaw(&_vehicle_local_position_setpoint.x); }
+	/* Setpoints the position controller needs to execute
+	 * NAN values mean the state does not get controlled */
+	matrix::Vector3f _position_setpoint;
+	matrix::Vector3f _velocity_setpoint;
+	matrix::Vector3f _acceleration_setpoint;
+	matrix::Vector3f _thrust_setpoint;
+	float _yaw_setpoint;
+	float _yawspeed_setpoint;
 
-	/* Put the velocity vector produced by the task into the setpoint message */
-	void _setVelocitySetpoint(const matrix::Vector3f &velocity_setpoint) { velocity_setpoint.copyToRaw(&_vehicle_local_position_setpoint.vx); }
-
-	/* Put the acceleration vector produced by the task into the setpoint message */
-	void _setAccelerationSetpoint(const matrix::Vector3f &acceleration_setpoint) { acceleration_setpoint.copyToRaw(&_vehicle_local_position_setpoint.acc_x); }
-
-	/* Put the yaw angle produced by the task into the setpoint message */
-	void _setYawSetpoint(const float yaw) { _vehicle_local_position_setpoint.yaw = yaw; }
-
-	/* Put the yaw anglular rate produced by the task into the setpoint message */
-	void _setYawspeedSetpoint(const float &yawspeed) { _vehicle_local_position_setpoint.yawspeed = yawspeed; }
-
-	/* Put the thrust setpoint produced by the task into the setpoint message */
-	void _setThrustSetpoint(const matrix::Vector3f &thrust_setpoint) { thrust_setpoint.copyTo(_vehicle_local_position_setpoint.thrust); }
+	/**
+	 * Get the output data
+	 */
+	void _resetSetpoints();
 
 private:
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-
-	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint; /**< Output position setpoint that every task has */
-
-	void _resetSetpoint() { _vehicle_local_position_setpoint = empty_setpoint; }
 
 	bool _evaluateVehiclePosition();
 };

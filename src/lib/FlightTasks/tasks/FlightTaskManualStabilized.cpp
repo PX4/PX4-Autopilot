@@ -147,11 +147,11 @@ bool FlightTaskManualStabilized::update()
 	_scaleSticks();
 	_updateSetpoints();
 
-	_setPositionSetpoint(_pos_sp);
-	_setVelocitySetpoint(_vel_sp);
-	_setThrustSetpoint(_thr_sp);
-	_setYawSetpoint(_yaw_sp);
-	_setYawspeedSetpoint(_yaw_rate_sp);
+	_position_setpoint = _pos_sp;
+	_velocity_setpoint = _vel_sp;
+	_thrust_setpoint = _thr_sp;
+	_yaw_setpoint = _yaw_sp;
+	_yawspeed_setpoint = _yaw_rate_sp;
 
 	return true;
 }
