@@ -43,16 +43,15 @@
 #define TAILSITTER_H
 
 #include "vtol_type.h"
-#include <systemlib/perf_counter.h>  /** is it necsacery? **/
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 
-class Tailsitter : public VtolType
+class Tailsitter final : public VtolType
 {
 
 public:
 	Tailsitter(VtolAttitudeControl *_att_controller);
-	~Tailsitter();
+	~Tailsitter() = default;
 
 	virtual void update_vtol_state();
 	virtual void update_transition_state();
@@ -63,22 +62,7 @@ public:
 
 private:
 
-	struct {
-		float front_trans_dur;			/**< duration of first part of front transition */
-		float front_trans_dur_p2;
-		float back_trans_dur;			/**< duration of back transition */
-		float airspeed_trans;			/**< airspeed at which we switch to fw mode after transition */
-		float airspeed_blend_start;		/**< airspeed at which we start blending mc/fw controls */
-	} _params_tailsitter;
-
-	struct {
-		param_t front_trans_dur;
-		param_t front_trans_dur_p2;
-		param_t back_trans_dur;
-		param_t airspeed_trans;
-		param_t airspeed_blend_start;
-
-	} _params_handles_tailsitter;
+	BlockParamFloat	_param_front_trans_dur_p2;
 
 	enum vtol_mode {
 		MC_MODE = 0,			/**< vtol is in multicopter mode */
@@ -91,19 +75,11 @@ private:
 	struct {
 		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
 		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
-	} _vtol_schedule;
+	} _vtol_schedule{};
 
-	/** not sure about it yet ?! **/
-	float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
-
-	float _thrust_transition_start; // throttle value when we start the front transition
-	float _yaw_transition;	// yaw angle in which transition will take place
-	float _pitch_transition_start;  // pitch angle at the start of transition (tailsitter)
-
-	/**
-	 * Update parameters.
-	 */
-	virtual void parameters_update();
+	float _thrust_transition_start{0.0f}; // throttle value when we start the front transition
+	float _yaw_transition{0.0f};	// yaw angle in which transition will take place
+	float _pitch_transition_start{0.0f};  // pitch angle at the start of transition (tailsitter)
 
 };
 #endif

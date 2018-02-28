@@ -124,3 +124,17 @@ PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
+
+/**
+ * Front transition timeout
+ *
+ * Time in seconds after which transition will be cancelled. Disabled if set to 0.
+ *
+ * @unit s
+ * @min 0.00
+ * @max 30.00
+ * @increment 1
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);

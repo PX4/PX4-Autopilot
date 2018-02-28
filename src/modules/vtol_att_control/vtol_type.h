@@ -45,30 +45,16 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
-
-struct Params {
-	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
-	int32_t vtol_motor_count;		// number of motors
-	float fw_pitch_trim;		// trim for neutral elevon position in fw mode
-	int32_t vtol_type;
-	bool elevons_mc_lock;		// lock elevons in multicopter mode
-	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
-	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
-	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
-	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
-	float front_trans_time_openloop;
-	float front_trans_time_min;
-	bool wv_takeoff;
-	bool wv_loiter;
-	bool wv_land;
-};
+#include <drivers/drv_pwm_output.h>
+#include <uORB/topics/vtol_vehicle_status.h>
+#include <controllib/block/Block.hpp>
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
 enum mode {
-	TRANSITION_TO_FW = 1,
-	TRANSITION_TO_MC = 2,
-	ROTARY_WING = 3,
-	FIXED_WING = 4
+	TRANSITION_TO_FW = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW,
+	TRANSITION_TO_MC = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC,
+	ROTARY_WING = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC,
+	FIXED_WING = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
 };
 
 enum vtol_type {
@@ -79,7 +65,13 @@ enum vtol_type {
 
 class VtolAttitudeControl;
 
-class VtolType
+using control::BlockParamFloat;
+using control::BlockParamInt;
+
+using math::constrain;
+using math::max;
+
+class VtolType : public control::SuperBlock
 {
 public:
 
@@ -87,26 +79,11 @@ public:
 	VtolType(const VtolType &) = delete;
 	VtolType &operator=(const VtolType &) = delete;
 
-	virtual ~VtolType();
+	virtual ~VtolType() = default;
 
-	/**
-	 * Update vtol state.
-	 */
 	virtual void update_vtol_state() = 0;
-
-	/**
-	 * Update transition state.
-	 */
 	virtual void update_transition_state() = 0;
-
-	/**
-	 * Update multicopter state.
-	 */
 	virtual void update_mc_state();
-
-	/**
-	 * Update fixed wing state.
-	 */
 	virtual void update_fw_state();
 
 	/**
@@ -130,23 +107,19 @@ public:
 	 */
 	bool can_transition_on_ground();
 
-	void set_idle_mc();
-	void set_idle_fw();
+	mode get_mode() const { return _vtol_mode; }
 
-	mode get_mode() {return _vtol_mode;}
-
-	virtual void parameters_update() = 0;
+	virtual void parameters_update() { updateParams(); }
 
 protected:
 	VtolAttitudeControl *_attc;
-	mode _vtol_mode;
+	mode _vtol_mode{ROTARY_WING};
 
 	struct vehicle_attitude_s		*_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	*_v_att_sp;			//vehicle attitude setpoint
 	struct vehicle_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
-	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
 	struct actuator_controls_s			*_actuators_out_0;			//actuator controls going to the mc mixer
 	struct actuator_controls_s			*_actuators_out_1;			//actuator controls going to the fw mixer (used for elevons)
 	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_att_control
@@ -157,11 +130,37 @@ protected:
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 
-	struct Params 					*_params;
+	// VTOL parameters
+	BlockParamFloat	_param_idle_pwm_mc; // TODO: consider removing VT_IDLE_PWM_MC
+	BlockParamInt	_param_vtol_motor_count;
+	BlockParamFloat	_param_fw_pitch_trim; // TODO: consider removing VT_FW_PITCH_TRIM
+	BlockParamInt	_param_elevons_mc_lock;
+
+	// VTOL front transition parameters
+	BlockParamFloat	_param_front_trans_dur;
+	BlockParamFloat	_param_front_trans_time_min;
+	BlockParamFloat	_param_airspeed_blend_start;
+	BlockParamFloat	_param_airspeed_trans;
+
+	// VTOL back transition parameters
+	BlockParamFloat	_param_back_trans_dur;
+
+	// VTOL quadchute parameters
+	BlockParamFloat	_param_qc_fw_min_alt;	// minimum relative altitude for FW mode (QuadChute)
+	BlockParamFloat	_param_qc_fw_alt_err;	// altitude error for FW mode (QuadChute)
+	BlockParamInt	_param_qc_fw_max_pitch;		// maximum pitch angle FW mode (QuadChute)
+	BlockParamInt	_param_qc_fw_max_roll;		// maximum roll angle FW mode (QuadChute)
+
+	// VTOL weathervane parameters
+	BlockParamInt	_param_wv_takeoff;
+	BlockParamInt	_param_wv_loiter;
+	BlockParamInt	_param_wv_land;
+
+	// non VTOL params
+	BlockParamInt	_param_airspeed_mode;
 
 	bool flag_idle_mc = true;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 
-	bool _pusher_active = false;
 	float _mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
@@ -174,9 +173,16 @@ protected:
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
+
 	hrt_abstime _trans_finished_ts = 0;
+
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
+
+	struct pwm_output_values _max_mc_pwm_values {};
+
+	bool enable_mc_motors();
+	bool disable_mc_motors();
 
 };
 

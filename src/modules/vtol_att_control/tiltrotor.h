@@ -40,17 +40,16 @@
 
 #ifndef TILTROTOR_H
 #define TILTROTOR_H
+
 #include "vtol_type.h"
-#include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 
-class Tiltrotor : public VtolType
+class Tiltrotor final : public VtolType
 {
-
 public:
 
 	Tiltrotor(VtolAttitudeControl *_att_controller);
-	~Tiltrotor();
+	virtual ~Tiltrotor() = default;
 
 	virtual void update_vtol_state();
 	virtual void update_transition_state();
@@ -61,35 +60,15 @@ public:
 
 private:
 
-	struct {
-		float front_trans_dur;			/**< duration of first part of front transition */
-		float back_trans_dur;			/**< duration of back transition */
-		float tilt_mc;					/**< actuator value corresponding to mc tilt */
-		float tilt_transition;			/**< actuator value corresponding to transition tilt (e.g 45 degrees) */
-		float tilt_fw;					/**< actuator value corresponding to fw tilt */
-		float airspeed_trans;			/**< airspeed at which we switch to fw mode after transition */
-		float airspeed_blend_start;		/**< airspeed at which we start blending mc/fw controls */
-		float front_trans_dur_p2;
-		int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
-		int32_t airspeed_disabled;
-		int32_t diff_thrust;
-		float diff_thrust_scale;
-	} _params_tiltrotor;
+	BlockParamFloat	_param_tilt_mc;					/**< actuator value corresponding to mc tilt */
+	BlockParamFloat	_param_tilt_transition;			/**< actuator value corresponding to transition tilt (e.g 45 degrees) */
+	BlockParamFloat	_param_tilt_fw;					/**< actuator value corresponding to fw tilt */
+	BlockParamFloat	_param_front_trans_time_openloop;
+	BlockParamFloat	_param_front_trans_dur_p2;
 
-	struct {
-		param_t front_trans_dur;
-		param_t back_trans_dur;
-		param_t tilt_mc;
-		param_t tilt_transition;
-		param_t tilt_fw;
-		param_t airspeed_trans;
-		param_t airspeed_blend_start;
-		param_t front_trans_dur_p2;
-		param_t fw_motors_off;
-		param_t airspeed_disabled;
-		param_t diff_thrust;
-		param_t diff_thrust_scale;
-	} _params_handles_tiltrotor;
+	BlockParamInt	_param_fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
+	BlockParamInt	_param_diff_thrust;
+	BlockParamFloat	_param_diff_thrust_scale;
 
 	enum vtol_mode {
 		MC_MODE = 0,			/**< vtol is in multicopter mode */
@@ -109,21 +88,21 @@ private:
 		DISABLED,
 		IDLE,
 		VALUE
-	} _rear_motors;
+	} _rear_motors{ENABLED};
 
 	struct {
 		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
 		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
 	} _vtol_schedule;
 
-	float _tilt_control;		/**< actuator value for the tilt servo */
+	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 
-	const float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
+	uint32_t _fw_motors_off{0};
 
 	/**
 	 * Return a bitmap of channels that should be turned off in fixed wing mode.
 	 */
-	int get_motor_off_channels(const int channels);
+	uint32_t get_motor_off_channels(const int channels);
 
 	/**
 	 * Return true if the motor channel is off in fixed wing mode.

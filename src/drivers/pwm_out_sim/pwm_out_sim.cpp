@@ -708,6 +708,11 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case PWM_SERVO_SET_MIN_PWM: {
+			// accept message, but do nothing
+			break;
+		}
+
 	case PWM_SERVO_GET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
@@ -727,6 +732,11 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			}
 
 			pwm->channel_count = _num_outputs;
+			break;
+		}
+
+	case PWM_SERVO_SET_MAX_PWM: {
+			// accept message, but do nothing
 			break;
 		}
 

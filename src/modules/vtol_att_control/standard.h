@@ -45,84 +45,60 @@
 
 #ifndef STANDARD_H
 #define STANDARD_H
+
 #include "vtol_type.h"
-#include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 
-class Standard : public VtolType
+class Standard final : public VtolType
 {
-
 public:
 
 	Standard(VtolAttitudeControl *_att_controller);
-	~Standard();
+	~Standard() override = default;
 
-	virtual void update_vtol_state();
-	virtual void update_transition_state();
-	virtual void update_fw_state();
-	virtual void update_mc_state();
-	virtual void fill_actuator_outputs();
-	virtual void waiting_on_tecs();
+	void update_vtol_state() override;
+	void update_transition_state() override;
+	void update_fw_state() override;
+	void update_mc_state() override;
+	void fill_actuator_outputs() override;
+	void waiting_on_tecs() override;
 
 private:
 
-	struct {
-		float front_trans_dur;
-		float back_trans_dur;
-		float back_trans_ramp;
-		float pusher_trans;
-		float airspeed_blend;
-		float airspeed_trans;
-		float front_trans_timeout;
-		float front_trans_time_min;
-		float down_pitch_max;
-		float forward_thrust_scale;
-		int32_t airspeed_disabled;
-		float pitch_setpoint_offset;
-		float reverse_output;
-		float reverse_delay;
-		float back_trans_throttle;
-		float mpc_xy_cruise;
-	} _params_standard;
+	BlockParamFloat _param_pusher_trans;
+	BlockParamFloat	_param_front_trans_timeout;
 
-	struct {
-		param_t front_trans_dur;
-		param_t back_trans_dur;
-		param_t back_trans_ramp;
-		param_t pusher_trans;
-		param_t airspeed_blend;
-		param_t airspeed_trans;
-		param_t front_trans_timeout;
-		param_t front_trans_time_min;
-		param_t down_pitch_max;
-		param_t forward_thrust_scale;
-		param_t airspeed_disabled;
-		param_t pitch_setpoint_offset;
-		param_t reverse_output;
-		param_t reverse_delay;
-		param_t back_trans_throttle;
-		param_t mpc_xy_cruise;
-	} _params_handles_standard;
+	BlockParamFloat	_param_back_trans_throttle;	// back transition throttle (usually reverse throttle)
+	BlockParamFloat	_param_back_trans_ramp;
+	BlockParamFloat _param_back_reverse_output;	// airbrakes value during back transition (eg ESC direction)
+	BlockParamFloat	_param_back_reverse_delay;	// delay before applying back transition throttle
+
+	// VTOL standard pusher assist
+	BlockParamFloat	_param_down_pitch_max;
+	BlockParamFloat	_param_forward_thrust_scale;
+
+	// non VTOL parameters
+	BlockParamFloat	_param_fw_pitch_setpoint_offset;
+	BlockParamFloat	_param_mc_xy_cruise_velocity;
 
 	enum vtol_mode {
-		MC_MODE = 0,
-		TRANSITION_TO_FW,
-		TRANSITION_TO_MC,
-		FW_MODE
+		MC_MODE = mode::ROTARY_WING,
+		TRANSITION_TO_FW = mode::TRANSITION_TO_FW,
+		TRANSITION_TO_MC = mode::TRANSITION_TO_MC,
+		FW_MODE = mode::FIXED_WING
 	};
 
 	struct {
 		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
-	} _vtol_schedule;
+	} _vtol_schedule{};
 
-	bool _flag_enable_mc_motors;
-	float _pusher_throttle;
-	float _reverse_output;
-	float _airspeed_trans_blend_margin;
+	// TODO: replace with vtol_type's flag_idle_mc
+	bool _flag_enable_mc_motors{true};
 
-	void set_max_mc(unsigned pwm_value);
+	bool _transition_achieved{false}; // transition achieved flag
 
-	virtual void parameters_update();
+	float _pusher_throttle{0.0f};
+	float _airbrakes_output{0.0f};
 };
 #endif

@@ -114,11 +114,8 @@ public:
 	struct vehicle_local_position_setpoint_s	*get_local_pos_sp() {return &_local_pos_sp;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
 
-	struct Params 					*get_params() {return &_params;}
-
-
 private:
-//******************flags & handlers******************************************************
+
 	bool	_task_should_exit{false};
 	int	_control_task{-1};		//task handle for VTOL attitude controller
 
@@ -142,7 +139,7 @@ private:
 	int	_v_control_mode_sub{-1};	//vehicle control mode subscription
 	int	_vehicle_cmd_sub{-1};
 
-	//handlers for publishers
+	// handlers for publishers
 	orb_advert_t	_actuators_0_pub{nullptr};		//input for the mixer (roll,pitch,yaw,thrust)
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
 	orb_advert_t	_v_att_sp_pub{nullptr};
@@ -151,7 +148,6 @@ private:
 	orb_advert_t	_vtol_vehicle_status_pub{nullptr};
 	orb_advert_t 	_actuators_1_pub{nullptr};
 
-//*******************data containers***********************************************************
 
 	vehicle_attitude_setpoint_s		_v_att_sp{};			//vehicle attitude setpoint
 	vehicle_attitude_setpoint_s 		_fw_virtual_att_sp{};	// virtual fw attitude setpoint
@@ -174,25 +170,7 @@ private:
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
 
-	Params _params{};	// struct holding the parameters
-
-	struct {
-		param_t idle_pwm_mc;
-		param_t vtol_motor_count;
-		param_t vtol_fw_permanent_stab;
-		param_t fw_pitch_trim;
-		param_t vtol_type;
-		param_t elevons_mc_lock;
-		param_t fw_min_alt;
-		param_t fw_alt_err;
-		param_t fw_qc_max_pitch;
-		param_t fw_qc_max_roll;
-		param_t front_trans_time_openloop;
-		param_t front_trans_time_min;
-		param_t wv_takeoff;
-		param_t wv_loiter;
-		param_t wv_land;
-	} _params_handles{};
+	param_t _param_vtol_fw_permanent_stab{PARAM_INVALID};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
 	 * for fixed wings we want to have an idle speed of zero since we do not want
@@ -202,7 +180,6 @@ private:
 
 	VtolType *_vtol_type{nullptr};	// base class for different vtol types
 
-//*****************Member functions***********************************************************************
 
 	void 		task_main();	//main task
 	static void	task_main_trampoline(int argc, char *argv[]);	//Shim for calling task_main from task_create.
@@ -222,7 +199,7 @@ private:
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
 	void 		vehicle_local_pos_sp_poll();		// Check for changes in setpoint values
 
-	int 		parameters_update();			//Update local paraemter cache
+	void 		parameters_update();			//Update local paraemter cache
 
 	void 		fill_mc_att_rates_sp();
 	void 		fill_fw_att_rates_sp();
