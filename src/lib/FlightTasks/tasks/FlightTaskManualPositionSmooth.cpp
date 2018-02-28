@@ -52,16 +52,16 @@ void FlightTaskManualPositionSmooth::_updateSetpoints()
 
 	/* Smooth velocity setpoint in xy.*/
 	matrix::Vector2f vel(&_velocity(0));
-	Vector2f vel_sp_xy = Vector2f(&_vel_sp(0));
-	_smoothingXY.smoothVelocity(vel_sp_xy, vel, _yaw, _yaw_rate_sp, _deltatime);
-	_vel_sp(0) = vel_sp_xy(0);
-	_vel_sp(1) = vel_sp_xy(1);
+	Vector2f vel_sp_xy = Vector2f(&_velocity_setpoint(0));
+	_smoothingXY.smoothVelocity(vel_sp_xy, vel, _yaw, _yawspeed_setpoint, _deltatime);
+	_velocity_setpoint(0) = vel_sp_xy(0);
+	_velocity_setpoint(1) = vel_sp_xy(1);
 
 	/* Check for altitude lock.*/
 	_updateXYlock();
 
 	/* Smooth velocity in z.*/
-	_smoothingZ.smoothVelFromSticks(_vel_sp(2), _deltatime);
+	_smoothingZ.smoothVelFromSticks(_velocity_setpoint(2), _deltatime);
 
 	/* Check for altitude lock*/
 	_updateAltitudeLock();

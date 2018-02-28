@@ -98,12 +98,3 @@ bool FlightTaskManual::_evaluateSticks()
 		return false;
 	}
 }
-
-void FlightTaskManual::_resetToNAN()
-{
-	_thr_sp *= NAN;
-	_vel_sp *= NAN;
-	_pos_sp *= NAN;
-	_yaw_sp = NAN;
-	_yaw_rate_sp = NAN;
-}
