@@ -15,7 +15,7 @@ bool FlightTasks::update()
 	return false;
 }
 
-const vehicle_local_position_setpoint_s &FlightTasks::getPositionSetpoint()
+const vehicle_local_position_setpoint_s FlightTasks::getPositionSetpoint()
 {
 	if (isAnyTaskActive()) {
 		return _current_task->getPositionSetpoint();
