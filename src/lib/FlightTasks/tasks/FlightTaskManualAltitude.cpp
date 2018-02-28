@@ -48,13 +48,6 @@ FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, 
 
 {}
 
-bool FlightTaskManualAltitude::activate()
-{
-	bool ret = FlightTaskManualStabilized::activate();
-	_vel_sp(2) = 0.0f;
-	return  ret;
-}
-
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	/* Reuse same scaling as for stabilized */
@@ -62,7 +55,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 
 	/* Scale horizontal velocity with expo curve stick input*/
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
-	_vel_sp(2) = vel_max_z * _sticks_expo(2);
+	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()
@@ -72,14 +65,14 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	 */
 
 	/* handle position and altitude hold */
-	const bool apply_brake_z = fabsf(_vel_sp(2)) <= FLT_EPSILON;
+	const bool apply_brake_z = fabsf(_velocity_setpoint(2)) <= FLT_EPSILON;
 	const bool stopped_z = (_vel_hold_thr_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _vel_hold_thr_z.get());
 
-	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_pos_sp(2))) {
-		_pos_sp(2) = _position(2);
+	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_position_setpoint(2))) {
+		_position_setpoint(2) = _position(2);
 
 	} else if (!apply_brake_z) {
-		_pos_sp(2) = NAN;
+		_position_setpoint(2) = NAN;
 	}
 }
 
@@ -87,7 +80,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 {
 	FlightTaskManualStabilized::_updateSetpoints(); // get yaw and thrust setpoints
 
-	_thr_sp *= NAN; // Don't need thrust setpoint from Stabilized mode.
+	_thrust_setpoint *= NAN; // Don't need thrust setpoint from Stabilized mode.
 
 	/* Thrust in xy are extracted directly from stick inputs. A magnitude of
 	 * 1 means that maximum thrust along xy is required. A magnitude of 0 means no
@@ -101,8 +94,8 @@ void FlightTaskManualAltitude::_updateSetpoints()
 		sp.normalize();
 	}
 
-	_thr_sp(0) = sp(0);
-	_thr_sp(1) = sp(1);
+	_thrust_setpoint(0) = sp(0);
+	_thrust_setpoint(1) = sp(1);
 
 	_updateAltitudeLock();
 }

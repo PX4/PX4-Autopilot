@@ -48,13 +48,6 @@ FlightTaskManualPosition::FlightTaskManualPosition(control::SuperBlock *parent, 
 	_vel_hold_thr_xy(parent,  "MPC_HOLD_MAX_XY", false)
 {}
 
-bool FlightTaskManualPosition::activate()
-{
-	bool ret = FlightTaskManualAltitude::activate();
-	_vel_sp(0) = _vel_sp(1) = 0.0f;
-	return ret;
-}
-
 void FlightTaskManualPosition::_scaleSticks()
 {
 	/* Use same scaling as for FlightTaskManualAltitude */
@@ -74,31 +67,31 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
-	_vel_sp(0) = vel_sp_xy(0);
-	_vel_sp(1) = vel_sp_xy(1);
+	_velocity_setpoint(0) = vel_sp_xy(0);
+	_velocity_setpoint(1) = vel_sp_xy(1);
 }
 
 void FlightTaskManualPosition::_updateXYlock()
 {
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
-	const bool apply_brake = Vector2f(&_vel_sp(0)).length() < FLT_EPSILON;
+	const bool apply_brake = Vector2f(&_velocity_setpoint(0)).length() < FLT_EPSILON;
 	const bool stopped = (_vel_hold_thr_xy.get() < FLT_EPSILON || vel_xy_norm < _vel_hold_thr_xy.get());
 
-	if (apply_brake && stopped && !PX4_ISFINITE(_pos_sp(0))) {
-		_pos_sp(0) = _position(0);
-		_pos_sp(1) = _position(1);
+	if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(0))) {
+		_position_setpoint(0) = _position(0);
+		_position_setpoint(1) = _position(1);
 
 	} else if (!apply_brake) {
 		/* don't lock*/
-		_pos_sp(0) = NAN;
-		_pos_sp(1) = NAN;
+		_position_setpoint(0) = NAN;
+		_position_setpoint(1) = NAN;
 	}
 }
 
 void FlightTaskManualPosition::_updateSetpoints()
 {
 	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
-	_thr_sp *= NAN; // don't require any thrust setpoints
+	_thrust_setpoint *= NAN; // don't require any thrust setpoints
 	_updateXYlock(); // check for position lock
 }
