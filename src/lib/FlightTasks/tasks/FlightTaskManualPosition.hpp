@@ -49,8 +49,6 @@ public:
 
 	virtual ~FlightTaskManualPosition() = default;
 
-	bool activate() override;
-
 protected:
 	control::BlockParamFloat _vel_xy_manual_max; /**< maximum speed allowed horizontally */
 	control::BlockParamFloat _acc_xy_max;/**< maximum acceleration horizontally. Only used to compute lock time */
