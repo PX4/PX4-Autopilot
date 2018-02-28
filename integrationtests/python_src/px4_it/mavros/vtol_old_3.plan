@@ -1,0 +1,77 @@
+{
+    "fileType": "Plan",
+    "geoFence": {
+        "polygon": [
+        ],
+        "version": 1
+    },
+    "groundStation": "QGroundControl",
+    "mission": {
+        "cruiseSpeed": 15,
+        "firmwareType": 12,
+        "hoverSpeed": 5,
+        "items": [
+            {
+                "autoContinue": true,
+                "command": 16,
+                "doJumpId": 1,
+                "frame": 3,
+                "params": [
+                    15.0,
+                    0,
+                    0,
+                    null,
+                    47.398157669127094,
+                    8.5460336317115377,
+                    12.0
+                ],
+                "type": "SimpleItem"
+            },
+            {
+                "autoContinue": true,
+                "command": 3000,
+                "doJumpId": 2,
+                "frame": 2,
+                "params": [
+                    4,
+                    0,
+                    0,
+                    0,
+                    47.398033142089844,
+                    8.5457897186279297,
+                    12.0
+                ],
+                "type": "SimpleItem"
+            },
+            {
+                "autoContinue": true,
+                "command": 16,
+                "doJumpId": 3,
+                "frame": 3,
+                "params": [
+                    0,
+                    0,
+                    0,
+                    null,
+                    47.399269104003906,
+                    8.5455722808837891,
+                    12.0
+                ],
+                "type": "SimpleItem"
+            }
+        ],
+        "plannedHomePosition": [
+            47.397742,
+            8.545594,
+            12.0
+        ],
+        "vehicleType": 19,
+        "version": 2
+    },
+    "rallyPoints": {
+        "points": [
+        ],
+        "version": 1
+    },
+    "version": 1
+}
