@@ -50,7 +50,7 @@ void FlightTaskManualAltitudeSmooth::_updateSetpoints()
 	FlightTaskManualAltitude::_updateSetpoints();
 
 	/* Smooth velocity in z*/
-	_smoothing.smoothVelFromSticks(_vel_sp(2), _deltatime);
+	_smoothing.smoothVelFromSticks(_velocity_setpoint(2), _deltatime);
 
 	/* Check for altitude lock*/
 	_updateAltitudeLock();

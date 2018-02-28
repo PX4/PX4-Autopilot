@@ -48,8 +48,6 @@ public:
 
 	virtual ~FlightTaskManualAltitude() = default;
 
-	bool activate() override;
-
 protected:
 	control::BlockParamFloat _vel_max_down; /**< maximum speed allowed to go up */
 	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */

@@ -63,15 +63,6 @@ protected:
 	matrix::Vector3f _sticks_expo; /**< modified manual sticks using expo function*/
 	control::BlockParamFloat _stick_dz; /**< 0-deadzone around the center for the sticks */
 
-	/* Setpoints: NAN means that setpoint is not being considered. */
-	matrix::Vector3f _thr_sp{NAN, NAN, NAN}; /**< thrust setpoint */
-	matrix::Vector3f _vel_sp{NAN, NAN, NAN}; /**< velocity setpoint */
-	matrix::Vector3f _pos_sp{NAN, NAN, NAN}; /**< position setpoint */
-	float _yaw_sp{NAN};						 /**< yaw setpoint */
-	float _yaw_rate_sp{NAN};				 /**< yawspeed setpoint */
-
-	void _resetToNAN();
-
 private:
 
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
