@@ -44,7 +44,7 @@ FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *pare
 	FlightTaskManual(parent, name),
 	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false),
 	_tilt_max_man(parent, "MPC_MAN_TILT_MAX", false),
-	_throttle_min(parent, "MPC_THR_MIN", false),
+	_throttle_min_stabilized(parent, "MPC_THR_MIN", false),
 	_throttle_max(parent, "MPC_THR_MAX", false),
 	_throttle_hover(parent, "MPC_THR_HOVER", false)
 {}
@@ -131,7 +131,7 @@ float FlightTaskManualStabilized::_throttleCurve()
 	float throttle = -((_sticks(2) - 1.0f) * 0.5f);
 
 	if (throttle < 0.5f) {
-		return (_throttle_hover.get() - _throttle_min.get()) / 0.5f * throttle + _throttle_min.get();
+		return (_throttle_hover.get() - _throttle_min_stabilized.get()) / 0.5f * throttle + _throttle_min_stabilized.get();
 
 	} else {
 		return (_throttle_max.get() - _throttle_hover.get()) / 0.5f * (throttle - 1.0f) + _throttle_max.get();
