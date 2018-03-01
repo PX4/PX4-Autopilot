@@ -3087,31 +3087,21 @@ MulticopterPositionControl::task_main()
 			Controller::Constraints constraints;
 			updateConstraints(constraints);
 
-			/* Check for smooth takeoff
-			 * TODO: This logic is split between mc_pos_controller and PositionController.
-			 * It would be much better if everything is contained in one class. */
+			/* Check for smooth takeoff */
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && _control_mode.flag_armed) {
 				/* Vehicle is still landed and no takeoff was initiated yet.
-				 * Adjust for different takeoff casese. */
+				 * Adjust for different takeoff cases. */
 
 				if (PX4_ISFINITE(setpoint.z) && setpoint.z < _pos(2) - 0.2f) {
-					/* There is a position setpoint above current position. Enable smooth takeoff */
+					/* There is a position setpoint above current position. Enable smooth takeoff. */
 					_in_smooth_takeoff = true;
 					_takeoff_sp = 0.5f;
 
 				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -0.6f) {
-					/* There is a velocity setpoint point up and larger than 0.6. The 0.6
-					 * ensures that a minimum velocity is first required to initiate a takeoff.
-					 */
+					/* There is a velocity setpoint that points upward and larger than 0.6. The 0.6
+					 * ensures that a minimum velocity is first required to initiate a takeoff.*/
 					_in_smooth_takeoff = true;
 					_takeoff_sp = 0.5f;
-
-				} else if (PX4_ISFINITE(setpoint.thrust[2]) && setpoint.thrust[2] < -0.6f) {
-					/* There is a thrust setpoint pointing upwards and larger than 0.6f.
-					 * The threshold ensures that there is no takeoff by just switching into manual
-					 */
-					_in_smooth_takeoff = true;
-					_takeoff_sp = 0.0f;
 
 				} else {
 					/* Default */
@@ -3119,6 +3109,10 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
+			/* If in smooth takeoff, adjust setpoints based on what is valid:
+			 * 1. position setpoint is valid -> go with 1m/s to specific altitude (TODO: temporary and can be changed to anything)
+			 * 2. position setpoint not valid but velcoit setpoint valid: ramp up velocity
+			 */
 			if (_in_smooth_takeoff) {
 
 				if (PX4_ISFINITE(setpoint.z)) {
@@ -3142,23 +3136,6 @@ MulticopterPositionControl::task_main()
 					_takeoff_sp += setpoint.vz * _dt / _takeoff_ramp_time.get();
 					/* limit vertical velocity to the current ramp value */
 					setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
-
-				} else {
-
-					/* Smooth takeoff is achieved once target thrust is reached. (NED frame).
-					 * TODO: test this */
-					_in_smooth_takeoff = _takeoff_sp > setpoint.thrust[2];
-
-					/* ramp vertical velocity limit up to hover takeoff */
-					if (-_takeoff_sp < 0.5f) {
-						_takeoff_sp += setpoint.thrust[2] * _dt / (_takeoff_ramp_time.get() * 0.5f);
-
-					} else {
-						_takeoff_sp = setpoint.thrust[2];
-					}
-
-					/* limit vertical velocity to the current ramp value */
-					setpoint.thrust[2] = math::max(setpoint.thrust[2], _takeoff_sp);
 				}
 			}
 
