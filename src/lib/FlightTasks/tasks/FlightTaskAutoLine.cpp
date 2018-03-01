@@ -81,8 +81,11 @@ bool FlightTaskAutoLine::update()
 		_generateVelocitySetpoints();
 	}
 
-	/* For now yaw setpoint comes directly form triplets */
-	_setYawSetpoint(_yaw_wp);
+	/* For now yaw setpoint comes directly form triplets.
+	 * TODO: In the future, however, yaw should be set in this
+	 * task based on flag: yaw along path, yaw along gimbal, yaw
+	 * same as during home... */
+	_yaw_setpoint = _yaw_wp;
 
 	return true;
 }
@@ -90,10 +93,8 @@ bool FlightTaskAutoLine::update()
 void FlightTaskAutoLine::_reset()
 {
 	/* Set setpoints equal current state. */
-	_vel_sp_xy = matrix::Vector2f(&_velocity(0));
-	_pos_sp_xy = matrix::Vector2f(&_position(0));
-	_vel_sp_z = _velocity(2);
-	_pos_sp_z = _position(2);
+	_velocity_setpoint = _velocity;
+	_position_setpoint = _position;
 	_destination = _target;
 	_origin = _prev_wp;
 	_speed_at_target = 0.0f;
@@ -102,7 +103,7 @@ void FlightTaskAutoLine::_reset()
 void FlightTaskAutoLine::_generateIdleSetpoints()
 {
 	/* Send zero thrust setpoint */
-	_setThrustSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
+	_thrust_setpoint.zero();
 
 	/* Set member setpoints to current state */
 	_reset();
@@ -111,8 +112,8 @@ void FlightTaskAutoLine::_generateIdleSetpoints()
 void FlightTaskAutoLine::_generateLandSetpoints()
 {
 	/* Keep xy-position and go down with landspeed. */
-	_setPositionSetpoint(Vector3f(_target(0), _target(1), NAN));
-	_setVelocitySetpoint(Vector3f(NAN, NAN, _land_speed.get()));
+	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
+	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, _land_speed.get()));
 
 	/* Set member setpoints to current state */
 	_reset();
@@ -120,8 +121,8 @@ void FlightTaskAutoLine::_generateLandSetpoints()
 
 void FlightTaskAutoLine::_generateTakeoffSetpoints()
 {
-	/* Takeoff is completely defined by position. */
-	_setPositionSetpoint(_target);
+	/* Takeoff is completely defined by target position. */
+	_position_setpoint = _target;
 
 	/* Set member setpoints to current state */
 	_reset();
@@ -132,8 +133,6 @@ void FlightTaskAutoLine::_generateSetpoints()
 	_updateInternalWaypoints();
 	_generateAltitudeSetpoints();
 	_generateXYsetpoints();
-	_setPositionSetpoint(Vector3f(_pos_sp_xy(0), _pos_sp_xy(1), _pos_sp_z));
-	_setVelocitySetpoint(Vector3f(_vel_sp_xy(0), _vel_sp_xy(1), _vel_sp_z));
 }
 
 void FlightTaskAutoLine::_updateInternalWaypoints()
@@ -253,15 +252,16 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
-	Vector2f pos_sp_to_dest = Vector2f(&_target(0)) - _pos_sp_xy;
+	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
 	const bool has_reached_altitude = fabsf(_destination(2) - _position(2)) < _nav_rad.get();
 
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _nav_rad.get()) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < _nav_rad.get())) {
 
 		/* Vehicle reached target in xy and no passing required. Lock position */
-		_pos_sp_xy = Vector2f(&_destination(0));
-		_vel_sp_xy.zero();
+		_position_setpoint(0) = _destination(0);
+		_position_setpoint(1) = _destination(1);
+		_velocity_setpoint.zero();
 
 	} else {
 
@@ -272,7 +272,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		Vector2f closest_to_dest = Vector2f(&(_destination - _position)(0));
 		Vector2f prev_to_dest = Vector2f(&(_destination - _origin)(0));
 		float speed_sp_track = _mc_cruise_speed;
-		float speed_sp_prev_track = math::max(_vel_sp_xy * u_prev_to_dest, 0.0f);
+		float speed_sp_prev_track = math::max(Vector2f(&_velocity_setpoint(0)) * u_prev_to_dest, 0.0f);
 
 		/* Distance to target when brake should occur. The assumption is made that
 		 * 1.5 * cruising speed is enough to break. */
@@ -352,8 +352,11 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
 
-		_pos_sp_xy = closest_pt;
-		_vel_sp_xy = u_prev_to_dest * speed_sp_track;
+		_position_setpoint(0) = closest_pt(0);
+		_position_setpoint(1) = closest_pt(1);
+		Vector2f velocity_sp_xy = u_prev_to_dest * speed_sp_track;
+		_velocity_setpoint(0) =  velocity_sp_xy(0);
+		_velocity_setpoint(1) =  velocity_sp_xy(1);
 	}
 }
 
@@ -404,11 +407,11 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		} else if (dist_to_prev < target_threshold) {
 			/* we want to accelerate */
 
-			const float acc = (speed_sp - fabsf(_vel_sp_z)) / _deltatime;
+			const float acc = (speed_sp - fabsf(_velocity_setpoint(2))) / _deltatime;
 			const float acc_max = (flying_upward) ? (_acc_max_up.get() * 0.5f) : (_acc_max_down.get() * 0.5f);
 
 			if (acc > acc_max) {
-				speed_sp = acc_max * _deltatime + fabsf(_vel_sp_z);
+				speed_sp = acc_max * _deltatime + fabsf(_velocity_setpoint(2));
 			}
 		}
 
@@ -419,23 +422,23 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		}
 
 		/* get the sign of vel_sp_z */
-		_vel_sp_z = (flying_upward) ? -speed_sp : speed_sp;
-		_pos_sp_z = NAN; // We don't care about position setpoint */
+		_velocity_setpoint(2) = (flying_upward) ? -speed_sp : speed_sp;
+		_position_setpoint(2) = NAN; // We don't care about position setpoint */
 
 	} else {
 
 		/* Vehicle reached desired target altitude */
-		_vel_sp_z = 0.0f;
-		_pos_sp_z = _target(2);
+		_velocity_setpoint(2) = 0.0f;
+		_position_setpoint(2) = _target(2);
 	}
 }
 void FlightTaskAutoLine::_generateVelocitySetpoints()
 {
 	/* TODO: Remove velocity force logic from navigator, since
 	 * navigator should only send out waypoints. */
-	_setPositionSetpoint(Vector3f(NAN, NAN, _position(2)));
+	_position_setpoint = Vector3f(NAN, NAN, _position(2));
 	Vector2f vel_sp_xy = Vector2f(&_velocity(0)).unit_or_zero() * _mc_cruise_speed;
-	_setVelocitySetpoint(Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN));
+	_velocity_setpoint = Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN);
 
 	_reset();
 }

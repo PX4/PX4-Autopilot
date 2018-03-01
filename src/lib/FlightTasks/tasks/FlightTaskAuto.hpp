@@ -73,11 +73,9 @@ protected:
 	matrix::Vector3f _prev_wp{}; /**< Triplet previous setpoint in local frame. If not previous triplet is available, the prev_wp is set to current position. */
 	matrix::Vector3f _target{}; /**< Triplet target setpoint in local frame. */
 	matrix::Vector3f _next_wp{}; /**< Triplet setpoint in local frame. If no next setpoint is available, next is set to target. */
-	float _yaw_wp =
-		0.0f; /**< Triplet yaw waypoint. Unfortunately navigator sends yaw setpoint continuously. It would be better if a yaw setpoint is attached
+	float _yaw_wp{0.0f}; /**< Triplet yaw waypoint. Unfortunately navigator sends yaw setpoint continuously. It would be better if a yaw setpoint is attached
 	to triplet waypoint. This way it would be easy for multicopter to implement features where yaw does not matter. */
-	float _mc_cruise_speed =
-		0.0f; /**< Cruise speed with which multicopter flies and gets set by triplet. If no valid, default cruise speed is used. */
+	float _mc_cruise_speed{0.0f}; /**< Cruise speed with which multicopter flies and gets set by triplet. If no valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 private:
