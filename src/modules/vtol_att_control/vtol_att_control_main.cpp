@@ -767,6 +767,7 @@ int vtol_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		PX4_WARN("usage: vtol_att_control {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
