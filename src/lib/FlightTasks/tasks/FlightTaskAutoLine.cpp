@@ -124,6 +124,13 @@ void FlightTaskAutoLine::_generateTakeoffSetpoints()
 	/* Takeoff is completely defined by target position. */
 	_position_setpoint = _target;
 
+void FlightTaskAutoLine::_generateVelocitySetpoints()
+{
+	/* TODO: Remove velocity force logic from navigator, since
+	 * navigator should only send out waypoints. */
+	_position_setpoint = Vector3f(NAN, NAN, _position(2));
+	Vector2f vel_sp_xy = Vector2f(&_velocity(0)).unit_or_zero() * _mc_cruise_speed;
+	_velocity_setpoint = Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN);
 	/* Set member setpoints to current state */
 	_reset();
 }
@@ -431,16 +438,6 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		_velocity_setpoint(2) = 0.0f;
 		_position_setpoint(2) = _target(2);
 	}
-}
-void FlightTaskAutoLine::_generateVelocitySetpoints()
-{
-	/* TODO: Remove velocity force logic from navigator, since
-	 * navigator should only send out waypoints. */
-	_position_setpoint = Vector3f(NAN, NAN, _position(2));
-	Vector2f vel_sp_xy = Vector2f(&_velocity(0)).unit_or_zero() * _mc_cruise_speed;
-	_velocity_setpoint = Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN);
-
-	_reset();
 }
 
 float FlightTaskAutoLine::_getVelocityFromAngle(const float angle)
