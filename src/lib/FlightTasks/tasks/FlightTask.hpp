@@ -114,7 +114,6 @@ protected:
 	hrt_abstime _time_stamp_activate = 0; /**< time stamp when task was activated */
 	hrt_abstime _time_stamp_current = 0; /**< time stamp at the beginning of the current task update */
 	hrt_abstime _time_stamp_last = 0; /**< time stamp when task was last updated */
-	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update */
 
 	/* Current vehicle state */
 	matrix::Vector3f _position; /**< current vehicle position */
@@ -130,17 +129,17 @@ protected:
 	float _yaw_setpoint;
 	float _yawspeed_setpoint;
 
-	/* Current reference position */
-	map_projection_reference_s _reference_position{}; /**< structure used to project lat/lon setpoint into local frame */
-	float _reference_altitude = 0.0f;  /**< altitude relative to ground */
-
 	/**
 	 * Get the output data
 	 */
 	void _resetSetpoints();
 
-private:
+	/**
+	 *  Vehicle local position subscription
+	 *  TODO: Implement a message that is smaller than the
+	 *  current vehicle local position message
+	 */
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
 
-	bool _evaluateVehiclePosition();
+	virtual bool _evaluateVehiclePosition();
 };
