@@ -92,6 +92,10 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
 	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
 
+	// if vehicle is vtol these handles will be set when we get the vehicle status
+	_parameter_handles.airspeed_trans = PARAM_INVALID;
+	_parameter_handles.vtol_type = PARAM_INVALID;
+
 	// initialize to invalid vtol type
 	_parameters.vtol_type = -1;
 
@@ -172,6 +176,14 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
+
+	if (_parameter_handles.vtol_type != PARAM_INVALID) {
+		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
+	}
+
+	if (_parameter_handles.airspeed_trans != PARAM_INVALID) {
+		param_get(_parameter_handles.airspeed_trans, &_parameters.airspeed_trans);
+	}
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
