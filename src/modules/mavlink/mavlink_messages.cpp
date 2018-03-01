@@ -553,7 +553,7 @@ protected:
 			msg.load = cpuload.load * 1000.0f;
 			msg.voltage_battery = (battery_status.connected) ? battery_status.voltage_filtered_v * 1000.0f : UINT16_MAX;
 			msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100.0f : -1;
-			msg.battery_remaining = (battery_status.connected) ? battery_status.remaining * 100.0f : -1;
+			msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
 			// TODO: fill in something useful in the fields below
 			msg.drop_rate_comm = 0;
 			msg.errors_comm = 0;
@@ -572,7 +572,7 @@ protected:
 			bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
 			bat_msg.energy_consumed = -1;
 			bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
-			bat_msg.battery_remaining = (battery_status.connected) ? battery_status.remaining * 100.0f : -1;
+			bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
 			bat_msg.temperature = INT16_MAX;
 
 			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
