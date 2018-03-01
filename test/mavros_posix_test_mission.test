@@ -15,5 +15,5 @@
         <arg name="respawn_gazebo" value="$(arg respawn_gazebo)"/>
     </include>
     <!-- ROStest -->
-    <test test-name="mission_test" pkg="px4" type="mission_test.py" time-limit="300.0" args="$(arg mission)"/>
+    <test test-name="$(arg mission)" pkg="px4" type="mission_test.py" time-limit="300.0" args="$(arg mission).plan"/>
 </launch>
