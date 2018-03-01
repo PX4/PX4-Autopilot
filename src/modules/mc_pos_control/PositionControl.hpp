@@ -111,7 +111,8 @@ private:
 	param_t _VelMaxZup_h{PARAM_INVALID};
 	param_t _ThrHover_h{PARAM_INVALID};
 	param_t _ThrMax_h{PARAM_INVALID};
-	param_t _ThrMin_h{PARAM_INVALID};
+	param_t _ThrMinPosition_h{PARAM_INVALID};
+	param_t _ThrMinStab_h{PARAM_INVALID};
 
 	/* Parameters */
 	matrix::Vector3f Pp, Pv, Iv, Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
@@ -129,6 +130,8 @@ private:
 	float _ThrHover{0.5f};
 
 	float _ThrLimit[2]; //index 0: max, index 1: min
+	float _ThrMinPosition{0.0f}; // minimum throttle for any position controlled mode
+	float _ThrMinStab{0.0f}; // minimum throttle for stabilized
 	bool _skipController{false};
 
 	/* Helper methods */
