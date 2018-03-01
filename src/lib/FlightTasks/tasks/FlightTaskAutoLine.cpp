@@ -66,13 +66,29 @@ bool FlightTaskAutoLine::activate()
 
 bool FlightTaskAutoLine::update()
 {
+	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
+	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position;
+
+	/* 1st time that vehicle starts to follow line. Reset all setpoints to current vehicle state */
+	if (follow_line && !follow_line_prev) {
+		_reset();
+	}
+
+	/* The only time a thrust setpoint is sent out is during
+	 * idle. Hence, reset thrust setpoint to NAN in case the
+	 * vehicle exits idle.
+	 */
+	if (_type_previous == WaypointType::idle) {
+		_thrust_setpoint = Vector3f(NAN, NAN, NAN);
+	}
+
 	if (_type == WaypointType::idle) {
 		_generateIdleSetpoints();
 
 	} else if (_type == WaypointType::land) {
 		_generateLandSetpoints();
 
-	} else if (_type == WaypointType::loiter || _type == WaypointType::position) {
+	} else if (follow_line) {
 		_generateSetpoints();
 
 	} else if (_type == WaypointType::takeoff) {
@@ -87,6 +103,9 @@ bool FlightTaskAutoLine::update()
 	 * task based on flag: yaw along path, yaw along gimbal, yaw
 	 * same as during home... */
 	_yaw_setpoint = _yaw_wp;
+
+	/* Update previous type */
+	_type_previous = _type;
 
 	return true;
 }
