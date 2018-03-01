@@ -68,7 +68,8 @@ private:
 
 	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
 	control::BlockParamFloat _tilt_max_man; /**< maximum tilt allowed for manual flight */
-	control::BlockParamFloat _throttle_min_stabilized; /**< minimum throttle that always has to be satisfied in flight for stabilized mode*/
+	control::BlockParamFloat
+	_throttle_min_stabilized; /**< minimum throttle that always has to be satisfied in flight for stabilized mode*/
 	control::BlockParamFloat _throttle_max; /**< maximum throttle that always has to be satisfied in flight*/
 	control::BlockParamFloat _throttle_hover; /**< throttle value at which vehicle is at hover equilibrium */
 };
