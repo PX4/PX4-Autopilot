@@ -128,6 +128,9 @@ void IridiumSBD::status()
 
 	PX4_INFO("TX buf written:               %d", instance->tx_buf_write_idx);
 	PX4_INFO("Signal quality:               %d", instance->signal_quality);
+	PX4_INFO("TX session pending:           %d", instance->tx_session_pending);
+	PX4_INFO("RX session pending:           %d", instance->rx_session_pending);
+	PX4_INFO("RX read pending:              %d", instance->rx_read_pending);
 	PX4_INFO("Time since last signal check: %lld", hrt_absolute_time() - instance->last_signal_check);
 	PX4_INFO("Last heartbeat:               %lld", instance->last_heartbeat);
 }
@@ -237,6 +240,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 
 	if (read_at_command() != SATCOM_RESULT_OK) {
 		PX4_WARN("modem not responding");
+		task_should_exit = true;
 		return;
 	}
 
@@ -245,6 +249,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 
 	if (read_at_command() != SATCOM_RESULT_OK) {
 		PX4_WARN("modem not responding");
+		task_should_exit = true;
 		return;
 	}
 
@@ -443,6 +448,7 @@ void IridiumSBD::sbdsession_loop(void)
 	mt_queued = strtol(*rx_buf_parse, rx_buf_parse, 10);
 
 	VERBOSE_INFO("MO ST: %d, MT ST: %d, MT LEN: %d, MT QUEUED: %d", mo_status, mt_status, mt_len, mt_queued);
+	VERBOSE_INFO("SBD session duration: %.2f", (hrt_absolute_time() - session_start_time) / 1000000.0);
 
 	switch (mo_status) {
 	case 0:
