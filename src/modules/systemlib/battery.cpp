@@ -56,8 +56,6 @@ Battery::Battery() :
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
-	/* load initial params */
-	updateParams();
 }
 
 Battery::~Battery()
