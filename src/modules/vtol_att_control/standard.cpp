@@ -257,11 +257,9 @@ void Standard::update_transition_state()
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
 
-		} else if (_params->airspeed_disabled &&
-			   time_since_trans_start < _params->front_trans_time_min &&
-			   time_since_trans_start > _params->front_trans_time_min / 2.0f) {
-			mc_weight = 1.0f - ((time_since_trans_start -  _params->front_trans_time_min / 2.0f) /
-					    (_params->front_trans_time_min / 2.0f));
+		} else if (_params->airspeed_disabled) {
+			mc_weight = 1.0f - (time_since_trans_start -  _params->front_trans_time_min) / _params->front_trans_time_min;
+			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
 
 		}
 
