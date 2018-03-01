@@ -1107,8 +1107,6 @@ Navigator::force_vtol()
 	       && _param_force_vtol.get();
 }
 
-
-
 static void usage()
 {
 	PX4_INFO("usage: navigator {start|stop|status|fencefile}");
