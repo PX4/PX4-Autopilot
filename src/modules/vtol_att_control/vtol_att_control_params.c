@@ -209,7 +209,7 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
  *
  * @unit s
  * @min 0.0
- * @max 10.0
+ * @max 20.0
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
