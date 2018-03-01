@@ -82,8 +82,13 @@ private:
 	control::BlockParamFloat _mc_cruise_default; /**< Default mc cruise speed*/
 	map_projection_reference_s _reference; /**< Reference frame from global to local */
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame */
+	float _reference_altitude = 0.0f;  /**< Altitude relative to ground */
+	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update */
 
 	bool _evaluateTriplets(); /**< Checks and sets triplets */
 	bool _isFinite(const position_setpoint_s sp);
 	void _updateReference();
+
+	bool _evaluateVehiclePosition() override; /**< Required for reference update */
 };
