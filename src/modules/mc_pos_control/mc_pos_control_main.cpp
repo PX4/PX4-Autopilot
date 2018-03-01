@@ -3139,9 +3139,9 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			// We can only run the control if we're already in-air, have a takeoff setpoint,
-			// Otherwise just stay idle.
-			if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
+			/* We can only run the control if we're already in-air, have a takeoff setpoint, and are not
+			in pure manual. Otherwise just stay idle. */
+			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				// Keep throttle low
 				setpoint.thrust[0] = 0.0f;
 				setpoint.thrust[1] = 0.0f;
