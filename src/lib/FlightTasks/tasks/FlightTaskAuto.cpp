@@ -143,7 +143,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
 
-	_prev_prev_wp = _prev_wp; // previous -1 is set to previsou
+	_prev_prev_wp = _prev_wp; // previous -1 is set to previous
 
 	if (_isFinite(_sub_triplet_setpoint->get().previous) && _sub_triplet_setpoint->get().previous.valid) {
 		map_projection_project(&_reference_position, _sub_triplet_setpoint->get().previous.lat,
@@ -172,4 +172,20 @@ bool FlightTaskAuto::_evaluateTriplets()
 bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
 {
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
+}
+
+bool FlightTaskAuto::_evaluateVehiclePosition()
+{
+	FlightTask::_evaluateVehiclePosition();
+
+	/* Check if reference has changed and update. */
+	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference) {
+		map_projection_init(&_reference_position,
+				    _sub_vehicle_local_position->get().ref_lat,
+				    _sub_vehicle_local_position->get().ref_lon);
+		_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
+		_time_stamp_reference = _sub_vehicle_local_position->get().ref_timestamp;
+	}
+
+	return true;
 }
