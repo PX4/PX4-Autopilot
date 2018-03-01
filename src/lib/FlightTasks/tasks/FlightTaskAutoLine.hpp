@@ -54,10 +54,6 @@ public:
 	bool update() override;
 
 protected:
-	matrix::Vector2f _vel_sp_xy{};
-	matrix::Vector2f _pos_sp_xy{};
-	float _vel_sp_z = 0.0f;
-	float _pos_sp_z = 0.0f;
 
 	matrix::Vector3f _destination{}; /**< Current target. Is not necessarily the same as triplet target. */
 	matrix::Vector3f _origin{}; /**< Previous waypoint. Is not necessarily the same as triplet previous. */
