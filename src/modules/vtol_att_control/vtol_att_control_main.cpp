@@ -596,6 +596,19 @@ void VtolAttitudeControl::task_main()
 			parameters_update();
 		}
 
+		// run vtol_att on MC actuator publications, unless in full FW mode
+		switch (_vtol_type->get_mode()) {
+		case TRANSITION_TO_FW:
+		case TRANSITION_TO_MC:
+		case ROTARY_WING:
+			fds[0].fd = _actuator_inputs_mc;
+			break;
+
+		case FIXED_WING:
+			fds[0].fd = _actuator_inputs_fw;
+			break;
+		}
+
 		/* wait for up to 100ms for data */
 		int pret = px4_poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
 
@@ -610,19 +623,6 @@ void VtolAttitudeControl::task_main()
 			/* sleep a bit before next try */
 			usleep(100000);
 			continue;
-		}
-
-		// run vtol_att on MC actuator publications, unless in full FW mode
-		switch (_vtol_type->get_mode()) {
-		case TRANSITION_TO_FW:
-		case TRANSITION_TO_MC:
-		case ROTARY_WING:
-			fds[0].fd = _actuator_inputs_mc;
-			break;
-
-		case FIXED_WING:
-			fds[0].fd = _actuator_inputs_fw;
-			break;
 		}
 
 		vehicle_control_mode_poll();
