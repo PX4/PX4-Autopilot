@@ -240,14 +240,7 @@ void Tailsitter::update_transition_state()
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1 - 0.2f,
 							_pitch_transition_start);
 
-		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
-		if (_airspeed->indicated_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
-			_thrust_transition = _thrust_transition_start + (fabsf(THROTTLE_TRANSITION_MAX * _thrust_transition_start) *
-					     (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
-			_thrust_transition = math::constrain(_thrust_transition, _thrust_transition_start,
-							     (1.0f + THROTTLE_TRANSITION_MAX) * _thrust_transition_start);
-			_v_att_sp->thrust = _thrust_transition;
-		}
+		_v_att_sp->thrust = _mc_virtual_att_sp->thrust;
 
 		// disable mc yaw control once the plane has picked up speed
 		if (_airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
@@ -309,8 +302,8 @@ void Tailsitter::update_transition_state()
 					(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.back_trans_dur * 1000000.0f);
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, -2.0f, PITCH_TRANSITION_BACK + 0.2f);
 
-		//  throttle value is decreesed
-		_v_att_sp->thrust = _thrust_transition_start * 0.9f;
+
+		_v_att_sp->thrust = _mc_virtual_att_sp->thrust;
 
 		/** keep yaw disabled */
 		_mc_yaw_weight = 0.0f;
