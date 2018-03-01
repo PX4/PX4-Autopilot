@@ -3158,7 +3158,7 @@ MulticopterPositionControl::task_main()
 
 			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
 
-			/* We adjust thrust setpoint based on landdetector and the
+			/* We adjust thrust setpoint based on landdetector only if the
 			 * vehicle is NOT in pure Manual mode. */
 			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				if (_vehicle_land_detected.ground_contact) {
