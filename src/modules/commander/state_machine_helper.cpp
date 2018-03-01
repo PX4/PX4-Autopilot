@@ -1047,7 +1047,8 @@ void set_link_loss_nav_state(vehicle_status_s *status,
 	} else if (link_loss_act == link_loss_actions_t::AUTO_RTL
 		   && status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 
-		if (link_regained_action) {
+		if (link_regained_action || (internal_state->main_state == commander_state_s::MAIN_STATE_MANUAL) || (internal_state->main_state == commander_state_s::MAIN_STATE_ACRO) ||
+			(internal_state->main_state == commander_state_s::MAIN_STATE_STAB) || (internal_state->main_state == commander_state_s::MAIN_STATE_RATTITUDE)) {
 			uint8_t main_state_prev = 0;
 			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, status_flags, internal_state);
 		}
