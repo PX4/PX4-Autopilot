@@ -3087,23 +3087,6 @@ MulticopterPositionControl::task_main()
 			Controller::Constraints constraints;
 			updateConstraints(constraints);
 
-			/* this logic is only temporary.
-			 * Mode switch related things will be handled within
-			 * Flighttask activate method
-			 */
-			if (_vehicle_status.nav_state
-			    == _vehicle_status.NAVIGATION_STATE_MANUAL) {
-				/* we set triplets to false
-				 * this ensures that when switching to auto, the position
-				 * controller will not use the old triplets but waits until triplets
-				 * have been updated */
-				_mode_auto = false;
-				_pos_sp_triplet.current.valid = false;
-				_pos_sp_triplet.previous.valid = false;
-				_hold_offboard_xy = false;
-				_hold_offboard_z = false;
-			}
-
 			/* Check for smooth takeoff
 			 * TODO: This logic is split between mc_pos_controller and PositionController.
 			 * It would be much better if everything is contained in one class. */
