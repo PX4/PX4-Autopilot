@@ -4305,7 +4305,13 @@ protected:
 			_throttle.reset();
 			_windspeed.reset();
 
-			mavlink_msg_high_latency2_send_struct(_mavlink->get_channel(), &msg);
+			// only send the struct if transmitting is allowed
+			// this assures that the stream timer is only reset when actually a message is transmitted
+			updated = _mavlink->should_transmit();
+
+			if (updated) {
+				mavlink_msg_high_latency2_send_struct(_mavlink->get_channel(), &msg);
+			}
 		}
 
 		return updated;
