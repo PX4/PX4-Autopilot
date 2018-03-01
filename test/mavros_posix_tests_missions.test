@@ -13,10 +13,10 @@
         <arg name="respawn_gazebo" value="$(arg respawn_gazebo)"/>
     </include>
     <!-- ROStest -->
-    <test test-name="multicopter_box" pkg="px4" type="mission_test.py" time-limit="120.0" args="multirotor_box.mission"/>
-    <test test-name="mission_test_new_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_new_1.txt"/>
-    <test test-name="mission_test_new_2" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_new_2.txt"/>
-    <test test-name="mission_test_old_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_1.txt"/>
-    <test test-name="mission_test_old_2" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_2.txt"/>
-    <test test-name="mission_test_old_3" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_3.txt"/>
+    <test test-name="multicopter_box" pkg="px4" type="mission_test.py" time-limit="120.0" args="multirotor_box.plan"/>
+    <test test-name="mission_test_new_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_new_1.plan"/>
+    <test test-name="mission_test_new_2" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_new_2.plan"/>
+    <test test-name="mission_test_old_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_1.plan"/>
+    <test test-name="mission_test_old_2" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_2.plan"/>
+    <test test-name="mission_test_old_3" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_3.plan"/>
 </launch>
