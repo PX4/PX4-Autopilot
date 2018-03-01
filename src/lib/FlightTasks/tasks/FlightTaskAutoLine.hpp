@@ -92,4 +92,6 @@ protected:
 private:
 	float _getVelocityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
 	void _reset(); /** Resets member variables to current vehicle state */
+	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
+
 };
