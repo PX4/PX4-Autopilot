@@ -194,6 +194,7 @@ Mavlink::Mavlink() :
 	next(nullptr),
 	_instance_id(0),
 	_transmitting_enabled(true),
+	_transmitting_enabled_commanded(false),
 	_mavlink_log_pub(nullptr),
 	_task_running(false),
 	_mavlink_buffer{},
@@ -215,7 +216,6 @@ Mavlink::Mavlink() :
 	_channel(MAVLINK_COMM_0),
 	_radio_id(0),
 	_logbuffer(5, sizeof(mavlink_log_s)),
-	_total_counter(0),
 	_receive_thread{},
 	_forwarding_on(false),
 	_ftp_on(false),
@@ -1977,11 +1977,12 @@ Mavlink::task_main(int argc, char *argv[])
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
 
-	/* Activate sending the data by default except for the IRIDIUM mode */
+	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
 	_transmitting_enabled = true;
+	_transmitting_enabled_commanded = true;
 
 	if (_mode == MAVLINK_MODE_IRIDIUM) {
-		_transmitting_enabled = false;
+		_transmitting_enabled_commanded = false;
 	}
 
 	/* add default streams depending on mode */
@@ -2124,7 +2125,7 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
-		configure_stream("HIGH_LATENCY2", 0.1f);
+		configure_stream("HIGH_LATENCY2", 0.015f);
 		break;
 
 	case MAVLINK_MODE_MINIMAL:
@@ -2201,13 +2202,21 @@ Mavlink::task_main(int argc, char *argv[])
 
 		if (cmd_sub->update(&cmd_time, &vehicle_cmd)) {
 			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) && (_mode == MAVLINK_MODE_IRIDIUM)) {
-				if (!_transmitting_enabled && (vehicle_cmd.param1 > 0.5f)) {
-					PX4_INFO("Enable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
-					_transmitting_enabled = true;
+				if ((vehicle_cmd.param1 > 0.5f)) {
+					if (!_transmitting_enabled) {
+						PX4_INFO("Enable transmitting with IRIDIUM mavlink on device %s by command", _device_name);
+					}
 
-				} else if (_transmitting_enabled && (vehicle_cmd.param1 <= 0.5f)) {
-					PX4_INFO("Disable transmitting with mavlink instance of type %s on device %s", mavlink_mode_str(_mode), _device_name);
+					_transmitting_enabled = true;
+					_transmitting_enabled_commanded = true;
+
+				} else if ((vehicle_cmd.param1 <= 0.5f)) {
+					if (_transmitting_enabled) {
+						PX4_INFO("Disable transmitting with IRIDIUM mavlink on device %s by command", _device_name);
+					}
+
 					_transmitting_enabled = false;
+					_transmitting_enabled_commanded = false;
 				}
 			}
 		}
@@ -2313,6 +2322,13 @@ Mavlink::task_main(int argc, char *argv[])
 		MavlinkStream *stream;
 		LL_FOREACH(_streams, stream) {
 			stream->update(t);
+		}
+
+		if (_mode == MAVLINK_MODE_IRIDIUM) {
+			if ((_last_write_success_time > 0u) && !_transmitting_enabled_commanded && _transmitting_enabled) {
+				_transmitting_enabled = false;
+				PX4_INFO("Disable Iridium Mavlink after first packet is sent");
+			}
 		}
 
 		/* pass messages from other UARTs */

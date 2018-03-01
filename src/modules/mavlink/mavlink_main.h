@@ -394,7 +394,7 @@ public:
 	void			unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
 
 	/**
-	 * Count a transmision error
+	 * Count a transmission error
 	 */
 	void			count_txerr();
 
@@ -486,6 +486,7 @@ protected:
 private:
 	int			_instance_id;
 	bool			_transmitting_enabled;
+	bool			_transmitting_enabled_commanded;
 
 	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
@@ -521,7 +522,6 @@ private:
 	int32_t			_radio_id;
 
 	ringbuffer::RingBuffer		_logbuffer;
-	unsigned int		_total_counter;
 
 	pthread_t		_receive_thread;
 
