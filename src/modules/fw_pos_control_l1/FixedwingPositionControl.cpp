@@ -1269,6 +1269,21 @@ FixedwingPositionControl::control_landing(const math::Vector<2> &curr_pos, const
 		wp_distance_save = 0.0f;
 	}
 
+	// create virtual waypoint which is on the desired flight path but
+	// some distance behind landing waypoint. This will make sure that the plane
+	// will always follow the desired flight path even if we get close or past
+	// the landing waypoint
+	if (pos_sp_prev.valid) {
+		double lat = pos_sp_curr.lat;
+		double lon = pos_sp_curr.lon;
+
+		create_waypoint_from_line_and_dist(pos_sp_curr.lat, pos_sp_curr.lon,
+						   pos_sp_prev.lat, pos_sp_prev.lon, -1000.0f, &lat, &lon);
+
+		curr_wp(0) = (float)lat;
+		curr_wp(1) = (float)lon;
+	}
+
 	// we want the plane to keep tracking the desired flight path until we start flaring
 	// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
 	if ((_parameters.land_heading_hold_horizontal_distance > 0.0f) && !_land_noreturn_horizontal &&
@@ -1305,9 +1320,6 @@ FixedwingPositionControl::control_landing(const math::Vector<2> &curr_pos, const
 
 	/* Vertical landing control */
 	/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
-	float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
-	float airspeed_land = _parameters.land_airspeed_scale * _parameters.airspeed_min;
-	float airspeed_approach = _parameters.land_airspeed_scale * _parameters.airspeed_min;
 
 	// default to no terrain estimation, just use landing waypoint altitude
 	float terrain_alt = pos_sp_curr.alt;
@@ -1396,6 +1408,9 @@ FixedwingPositionControl::control_landing(const math::Vector<2> &curr_pos, const
 			_land_stayonground = true;
 		}
 
+		const float airspeed_land = _parameters.land_airspeed_scale * _parameters.airspeed_min;
+		const float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
+
 		tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
 					   calculate_target_airspeed(airspeed_land),
 					   radians(_parameters.land_flare_pitch_min_deg),
@@ -1456,6 +1471,8 @@ FixedwingPositionControl::control_landing(const math::Vector<2> &curr_pos, const
 				altitude_desired_rel = _global_pos.alt - terrain_alt;
 			}
 		}
+
+		const float airspeed_approach = _parameters.land_airspeed_scale * _parameters.airspeed_min;
 
 		tecs_update_pitch_throttle(terrain_alt + altitude_desired_rel,
 					   calculate_target_airspeed(airspeed_approach),
