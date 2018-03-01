@@ -59,8 +59,9 @@ FlightTaskAutoLine::FlightTaskAutoLine(control::SuperBlock *parent, const char *
 
 bool FlightTaskAutoLine::activate()
 {
+	bool ret = FlightTaskAuto::activate();
 	_reset();
-	return FlightTaskAuto::activate();
+	return ret;
 }
 
 bool FlightTaskAutoLine::update()
