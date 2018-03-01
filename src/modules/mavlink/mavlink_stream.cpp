@@ -79,9 +79,11 @@ MavlinkStream::update(const hrt_abstime t)
 		// this will give different messages on the same run a different
 		// initial timestamp which will help spacing them out
 		// on the link scheduling
-		_last_sent = hrt_absolute_time();
 #ifndef __PX4_QURT
-		(void)send(t);
+		if (send(t)) {
+			_last_sent = hrt_absolute_time();
+		}
+
 #endif
 		return 0;
 	}
