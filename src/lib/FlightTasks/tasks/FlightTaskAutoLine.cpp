@@ -123,10 +123,9 @@ void FlightTaskAutoLine::_reset()
 void FlightTaskAutoLine::_generateIdleSetpoints()
 {
 	/* Send zero thrust setpoint */
+	_position_setpoint = Vector3f(NAN, NAN, NAN); // Don't require any position/velocity setpoints
+	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
 	_thrust_setpoint.zero();
-
-	/* Set member setpoints to current state */
-	_reset();
 }
 
 void FlightTaskAutoLine::_generateLandSetpoints()
@@ -134,15 +133,14 @@ void FlightTaskAutoLine::_generateLandSetpoints()
 	/* Keep xy-position and go down with landspeed. */
 	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
 	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, _land_speed.get()));
-
-	/* Set member setpoints to current state */
-	_reset();
 }
 
 void FlightTaskAutoLine::_generateTakeoffSetpoints()
 {
 	/* Takeoff is completely defined by target position. */
 	_position_setpoint = _target;
+	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
+}
 
 void FlightTaskAutoLine::_generateVelocitySetpoints()
 {
@@ -151,8 +149,6 @@ void FlightTaskAutoLine::_generateVelocitySetpoints()
 	_position_setpoint = Vector3f(NAN, NAN, _position(2));
 	Vector2f vel_sp_xy = Vector2f(&_velocity(0)).unit_or_zero() * _mc_cruise_speed;
 	_velocity_setpoint = Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN);
-	/* Set member setpoints to current state */
-	_reset();
 }
 
 void FlightTaskAutoLine::_generateSetpoints()
@@ -165,8 +161,8 @@ void FlightTaskAutoLine::_generateSetpoints()
 void FlightTaskAutoLine::_updateInternalWaypoints()
 {
 	/* The internal Waypoints might differ from previous_wp and target. The cases where it differs:
-	 * 1. The vehicle already passe the target -> go straight to target
-	 * 2. The vehicle is more than cruise speed in front of previous waypoint -> go straight to previous wp
+	 * 1. The vehicle already passed the target -> go straight to target
+	 * 2. The vehicle is more than cruise speed in front of previous waypoint -> go straight to previous waypoint
 	 * 3. The vehicle is more than cruise speed from track -> go straight to closest point on track
 	 *
 	 * If a new target is available, then the speed at the target is computed from the angle previous-target-next
@@ -288,7 +284,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		/* Vehicle reached target in xy and no passing required. Lock position */
 		_position_setpoint(0) = _destination(0);
 		_position_setpoint(1) = _destination(1);
-		_velocity_setpoint.zero();
+		_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
 
 	} else {
 
