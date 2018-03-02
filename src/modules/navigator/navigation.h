@@ -39,8 +39,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef NAVIGATION_H_
-#define NAVIGATION_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -194,4 +193,3 @@ struct mission_save_point_s {
  */
 
 
-#endif

@@ -38,9 +38,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef NAVIGATOR_TAKEOFF_H
-#define NAVIGATOR_TAKEOFF_H
-
+#pragma once
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -58,5 +56,3 @@ private:
 
 	void set_takeoff_position();
 };
-
-#endif

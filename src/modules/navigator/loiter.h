@@ -38,8 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_LOITER_H
-#define NAVIGATOR_LOITER_H
+#pragma once
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -83,5 +82,3 @@ private:
 
 	bool _loiter_pos_set{false};
 };
-
-#endif

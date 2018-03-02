@@ -38,8 +38,7 @@
  * @author Andreas Antener <andreas@uaventure.com>
  */
 
-#ifndef NAVIGATOR_LAND_H
-#define NAVIGATOR_LAND_H
+#pragma once
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -53,5 +52,3 @@ public:
 	void on_activation() override;
 	void on_active() override;
 };
-
-#endif
