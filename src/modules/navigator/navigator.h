@@ -39,8 +39,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef NAVIGATOR_H
-#define NAVIGATOR_H
+#pragma once
 
 #include "datalinkloss.h"
 #include "enginefailure.h"
@@ -389,4 +388,3 @@ private:
 
 	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 };
-#endif

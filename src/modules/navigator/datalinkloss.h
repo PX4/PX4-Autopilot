@@ -37,8 +37,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_DATALINKLOSS_H
-#define NAVIGATOR_DATALINKLOSS_H
+#pragma once
 
 #include <px4_module_params.h>
 
@@ -91,4 +90,3 @@ private:
 	void		advance_dll();
 
 };
-#endif

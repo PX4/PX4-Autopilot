@@ -38,8 +38,7 @@
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
-#ifndef NAVIGATOR_PRECLAND_H
-#define NAVIGATOR_PRECLAND_H
+#pragma once
 
 #include <matrix/math.hpp>
 #include <geo/geo.h>
@@ -133,5 +132,3 @@ private:
 	)
 
 };
-
-#endif

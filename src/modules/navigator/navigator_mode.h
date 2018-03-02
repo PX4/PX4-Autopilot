@@ -39,8 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef NAVIGATOR_MODE_H
-#define NAVIGATOR_MODE_H
+#pragma once
 
 class Navigator;
 
@@ -80,5 +79,3 @@ protected:
 private:
 	bool _active{false};
 };
-
-#endif

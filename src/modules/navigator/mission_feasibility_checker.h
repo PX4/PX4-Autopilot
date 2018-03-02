@@ -39,8 +39,7 @@
  * @author Sander Smeets <sander@droneslab.com>
  */
 
-#ifndef MISSION_FEASIBILITY_CHECKER_H_
-#define MISSION_FEASIBILITY_CHECKER_H_
+#pragma once
 
 #include <dataman/dataman.h>
 #include <uORB/topics/mission.h>
@@ -88,4 +87,3 @@ public:
 
 };
 
-#endif /* MISSION_FEASIBILITY_CHECKER_H_ */

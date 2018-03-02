@@ -38,8 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_MISSION_BLOCK_H
-#define NAVIGATOR_MISSION_BLOCK_H
+#pragma once
 
 #include "navigator_mode.h"
 #include "navigation.h"
@@ -128,5 +127,3 @@ protected:
 
 	orb_advert_t    _actuator_pub{nullptr};
 };
-
-#endif

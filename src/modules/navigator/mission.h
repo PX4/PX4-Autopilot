@@ -42,8 +42,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef NAVIGATOR_MISSION_H
-#define NAVIGATOR_MISSION_H
+#pragma once
 
 #include "mission_block.h"
 #include "mission_feasibility_checker.h"
@@ -271,5 +270,3 @@ private:
 		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
 };
-
-#endif
