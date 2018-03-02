@@ -177,6 +177,8 @@ private:
 	// Used to correct baro data for positional errors
 	Vector3f _vel_body_wind = {};	// XYZ velocity relative to wind in body frame (m/s)
 
+	hrt_abstime _last_aspd_us = 0;	///< last time airspeed data was received (uSec)
+
 	Ekf _ekf;
 
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
@@ -543,6 +545,17 @@ void Ekf2::run()
 		orb_copy(ORB_ID(sensor_combined), sensors_sub, &sensors);
 		// update all other topics if they have new data
 
+		// get common timestamp
+		// in replay mode we are getting the timestamp from the sensor topic
+		hrt_abstime now = 0;
+
+		if (_replay_mode) {
+			now = sensors.timestamp;
+
+		} else {
+			now = hrt_absolute_time();
+		}
+
 		orb_check(status_sub, &vehicle_status_updated);
 
 		if (vehicle_status_updated) {
@@ -560,6 +573,7 @@ void Ekf2::run()
 
 		if (airspeed_updated) {
 			orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
+			_last_aspd_us = now;
 		}
 
 		orb_check(sensor_baro_sub, &baro_updated);
@@ -632,16 +646,6 @@ void Ekf2::run()
 
 		if (vision_attitude_updated) {
 			orb_copy(ORB_ID(vehicle_vision_attitude), ev_att_sub, &ev_att);
-		}
-
-		// in replay mode we are getting the actual timestamp from the sensor topic
-		hrt_abstime now = 0;
-
-		if (_replay_mode) {
-			now = sensors.timestamp;
-
-		} else {
-			now = hrt_absolute_time();
 		}
 
 		// push imu data into estimator
@@ -819,8 +823,21 @@ void Ekf2::run()
 		}
 
 		if (vehicle_status_updated) {
-			// only fuse synthetic sideslip measurements if conditions are met
-			bool fuse_beta = !vehicle_status.is_rotary_wing && (_fuseBeta.get() == 1);
+			// if airspeed data is present, inhibit use of sideslip fusion until wind estimation
+			// has commenced to prevent possible bad initial estimates and rejection of airspeed data
+			bool inhibit_use = false;
+			bool airspeed_sensor_in_use = (now - _last_aspd_us < 1*1000*1000);
+			if (airspeed_sensor_in_use) {
+				// check that wind states are active before using sideslip fusion
+				filter_control_status_u control_status{};
+				_ekf.get_control_mode(&control_status.value);
+				if (!control_status.flags.wind) {
+					inhibit_use = true;
+				}
+			}
+
+			// sideslip estimation can only be used for vehicles that are limited to forward flight only.
+			bool fuse_beta = !vehicle_status.is_rotary_wing && (_fuseBeta.get() == 1) && !inhibit_use;
 			_ekf.set_fuse_beta_flag(fuse_beta);
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
