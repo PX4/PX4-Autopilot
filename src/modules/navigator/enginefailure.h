@@ -37,8 +37,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_ENGINEFAILURE_H
-#define NAVIGATOR_ENGINEFAILURE_H
+#pragma once
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -72,4 +71,3 @@ private:
 	void		advance_ef();
 
 };
-#endif

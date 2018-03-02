@@ -38,8 +38,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef GEOFENCE_H_
-#define GEOFENCE_H_
+#pragma once
 
 #include <cfloat>
 
@@ -210,5 +209,3 @@ private:
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 };
-
-#endif /* GEOFENCE_H_ */

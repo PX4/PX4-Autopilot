@@ -37,8 +37,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_GPSFAILURE_H
-#define NAVIGATOR_GPSFAILURE_H
+#pragma once
 
 #include <px4_module_params.h>
 
@@ -86,4 +85,3 @@ private:
 	void		advance_gpsf();
 
 };
-#endif

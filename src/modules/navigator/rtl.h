@@ -38,8 +38,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef NAVIGATOR_RTL_H
-#define NAVIGATOR_RTL_H
+#pragma once
 
 #include <px4_module_params.h>
 
@@ -94,5 +93,3 @@ private:
 		(ParamInt<px4::params::RTL_LAND_TYPE>) _param_rtl_land_type
 	)
 };
-
-#endif

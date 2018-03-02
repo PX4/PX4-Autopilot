@@ -37,8 +37,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_RCLOSS_H
-#define NAVIGATOR_RCLOSS_H
+#pragma once
 
 #include <px4_module_params.h>
 
@@ -80,4 +79,3 @@ private:
 	void		advance_rcl();
 
 };
-#endif
