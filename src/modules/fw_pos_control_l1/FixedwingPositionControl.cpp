@@ -658,7 +658,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
 
 	// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
-	if ((fabsf(air_gnd_angle) > M_PI_F) || (ground_speed.length() < 3.0f)) {
+	if ((fabsf(air_gnd_angle) > M_PI_2_F) || (ground_speed.length() < 3.0f)) {
 		nav_speed_2d = air_speed_2d;
 
 	} else {
