@@ -232,6 +232,8 @@ Navigator::run()
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
 
+	hrt_abstime last_geofence_check = 0;
+
 	while (!should_exit()) {
 
 		/* wait for up to 1000ms for data */
@@ -552,8 +554,6 @@ Navigator::run()
 		check_traffic();
 
 		/* Check geofence violation */
-		static hrt_abstime last_geofence_check = 0;
-
 		if (have_geofence_position_data &&
 		    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 		    (hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
