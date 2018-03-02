@@ -53,6 +53,7 @@
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
+#include <px4_module_params.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -64,10 +65,10 @@
 
 class Navigator;
 
-class Mission final : public MissionBlock
+class Mission : public MissionBlock, public ModuleParams
 {
 public:
-	Mission(Navigator *navigator, const char *name);
+	Mission(Navigator *navigator);
 	~Mission() override = default;
 
 	void on_inactive() override;
@@ -227,11 +228,13 @@ private:
 	 */
 	bool find_offboard_land_start();
 
-	control::BlockParamFloat _param_dist_1wp;
-	control::BlockParamFloat _param_dist_between_wps;
-	control::BlockParamInt _param_altmode;
-	control::BlockParamInt _param_yawmode;
-	control::BlockParamInt _param_mnt_yaw_ctl;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_dist_1wp,
+		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_dist_between_wps,
+		(ParamInt<px4::params::MIS_ALTMODE>) _param_altmode,
+		(ParamInt<px4::params::MIS_YAWMODE>) _param_yawmode,
+		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl
+	)
 
 	struct mission_s _offboard_mission {};
 

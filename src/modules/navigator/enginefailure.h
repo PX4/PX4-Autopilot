@@ -45,10 +45,10 @@
 
 class Navigator;
 
-class EngineFailure final : public MissionBlock
+class EngineFailure : public MissionBlock
 {
 public:
-	EngineFailure(Navigator *navigator, const char *name);
+	EngineFailure(Navigator *navigator);
 	~EngineFailure() = default;
 
 	void on_inactive() override;
