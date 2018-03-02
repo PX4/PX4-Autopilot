@@ -90,9 +90,11 @@ bool FlightTaskAuto::_evaluateTriplets()
 		/* Best we can do is to just set all waypoints to current state */
 		_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
 		_yaw_wp = _yaw;
+		_type = WaypointType::position;
 		return false;
 	}
 
+	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
 	/* Always update cruise speed since that can change without waypoint changes */
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
 
@@ -140,8 +142,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_yaw_wp = _yaw;
 
 	}
-
-	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
 
 	_prev_prev_wp = _prev_wp; // previous -1 is set to previous
 
