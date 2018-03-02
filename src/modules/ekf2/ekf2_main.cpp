@@ -327,8 +327,6 @@ private:
 	BlockParamFloat _K_pstatic_coef_y;	///< static pressure position error coefficient along the Y body axis
 	BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
 
-	BlockParamInt _airspeed_disabled;	///< airspeed mode parameter
-
 };
 
 Ekf2::Ekf2():
@@ -440,9 +438,7 @@ Ekf2::Ekf2():
 	_K_pstatic_coef_xp(this, "PCOEF_XP"),
 	_K_pstatic_coef_xn(this, "PCOEF_XN"),
 	_K_pstatic_coef_y(this, "PCOEF_Y"),
-	_K_pstatic_coef_z(this, "PCOEF_Z"),
-	// non EKF2 parameters
-	_airspeed_disabled(this, "FW_ARSP_MODE", false)
+	_K_pstatic_coef_z(this, "PCOEF_Z")
 {
 }
 
@@ -560,9 +556,7 @@ void Ekf2::run()
 		}
 
 		// Do not attempt to use airspeed if use has been disabled by the user.
-		if (_airspeed_disabled.get() == 0) {
-			orb_check(airspeed_sub, &airspeed_updated);
-		}
+		orb_check(airspeed_sub, &airspeed_updated);
 
 		if (airspeed_updated) {
 			orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
