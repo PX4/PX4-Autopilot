@@ -68,7 +68,7 @@ class PrecLand : public MissionBlock, public ModuleParams
 public:
 	PrecLand(Navigator *navigator);
 
-	~PrecLand();
+	~PrecLand() = default;
 
 	virtual void on_inactive();
 

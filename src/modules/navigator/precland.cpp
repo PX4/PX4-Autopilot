@@ -71,10 +71,6 @@ PrecLand::PrecLand(Navigator *navigator) :
 {
 }
 
-PrecLand::~PrecLand()
-{
-}
-
 void
 PrecLand::on_inactive()
 {
