@@ -284,7 +284,7 @@ BATT_SMBUS::init()
 	ret = I2C::init();
 
 	if (ret != OK) {
-		errx(1, "failed to init I2C");
+		PX4_ERR("failed to init I2C");
 		return ret;
 
 	} else {
@@ -893,20 +893,20 @@ batt_smbus_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		if (g_batt_smbus != nullptr) {
-			errx(1, "already started");
+			PX4_ERR("already started");
 
 		} else {
 			// create new global object
 			g_batt_smbus = new BATT_SMBUS(i2cdevice, batt_smbusadr);
 
 			if (g_batt_smbus == nullptr) {
-				errx(1, "new failed");
+				PX4_ERR("new failed");
 			}
 
 			if (OK != g_batt_smbus->init()) {
 				delete g_batt_smbus;
 				g_batt_smbus = nullptr;
-				errx(1, "init failed");
+				PX4_ERR("init failed");
 			}
 		}
 
