@@ -114,31 +114,6 @@ Navigator::Navigator() :
 
 }
 
-Navigator::~Navigator()
-{
-	if (_navigator_task != -1) {
-
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_navigator_task);
-				break;
-			}
-		} while (_navigator_task != -1);
-	}
-
-	navigator::g_navigator = nullptr;
-}
-
 void
 Navigator::global_position_update()
 {
@@ -209,13 +184,7 @@ Navigator::params_update()
 }
 
 void
-Navigator::task_main_trampoline(int argc, char *argv[])
-{
-	navigator::g_navigator->task_main();
-}
-
-void
-Navigator::task_main()
+Navigator::run()
 {
 	bool have_geofence_position_data = false;
 
@@ -263,7 +232,7 @@ Navigator::task_main()
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
 
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 
 		/* wait for up to 1000ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
@@ -770,38 +739,43 @@ Navigator::task_main()
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);
 	orb_unsubscribe(_vehicle_command_sub);
-
-	PX4_INFO("exiting");
-
-	_navigator_task = -1;
 }
 
-int
-Navigator::start()
+int Navigator::task_spawn(int argc, char *argv[])
 {
-	ASSERT(_navigator_task == -1);
+	_task_id = px4_task_spawn_cmd("navigator",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_NAVIGATION,
+				      1800,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
-	/* start the task */
-	_navigator_task = px4_task_spawn_cmd("navigator",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_NAVIGATION,
-					     1800,
-					     (px4_main_t)&Navigator::task_main_trampoline,
-					     nullptr);
-
-	if (_navigator_task < 0) {
-		warn("task start failed");
+	if (_task_id < 0) {
+		_task_id = -1;
 		return -errno;
 	}
 
-	return OK;
+	return 0;
 }
 
-void
-Navigator::status()
+Navigator *Navigator::instantiate(int argc, char *argv[])
 {
-	_geofence.printStatus();
+	Navigator *instance = new Navigator();
 
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+	}
+
+	return instance;
+}
+
+int
+Navigator::print_status()
+{
+	PX4_INFO("Running");
+
+	_geofence.printStatus();
+	return 0;
 }
 
 void
@@ -1102,68 +1076,61 @@ Navigator::force_vtol()
 	       && _param_force_vtol.get();
 }
 
-static void usage()
+int Navigator::print_usage(const char *reason)
 {
-	PX4_INFO("usage: navigator {start|stop|status|fencefile}");
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
+takeoff and RTL.
+It is also responsible for geofence violation checking.
+
+### Implementation
+The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
+The member `_navigation_mode` contains the current active mode.
+
+Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
+controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("navigator", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int Navigator::custom_command(int argc, char *argv[])
+{
+	if (!is_running()) {
+		print_usage("not running");
+		return 1;
+	}
+
+	if (!strcmp(argv[0], "fencefile")) {
+		get_instance()->load_fence_from_file(GEOFENCE_FILENAME);
+		return 0;
+
+	} else if (!strcmp(argv[0], "fake_traffic")) {
+		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f);
+		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f);
+		get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f);
+		return 0;
+	}
+
+	return print_usage("unknown command");
 }
 
 int navigator_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		usage();
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (navigator::g_navigator != nullptr) {
-			PX4_WARN("already running");
-			return 1;
-		}
-
-		navigator::g_navigator = new Navigator;
-
-		if (navigator::g_navigator == nullptr) {
-			PX4_ERR("alloc failed");
-			return 1;
-		}
-
-		if (OK != navigator::g_navigator->start()) {
-			delete navigator::g_navigator;
-			navigator::g_navigator = nullptr;
-			PX4_ERR("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (navigator::g_navigator == nullptr) {
-		PX4_INFO("not running");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		delete navigator::g_navigator;
-		navigator::g_navigator = nullptr;
-
-	} else if (!strcmp(argv[1], "status")) {
-		navigator::g_navigator->status();
-
-	} else if (!strcmp(argv[1], "fencefile")) {
-		navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
-
-	} else if (!strcmp(argv[1], "fake_traffic")) {
-		navigator::g_navigator->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f);
-		navigator::g_navigator->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f);
-		navigator::g_navigator->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f);
-
-	} else {
-		usage();
-		return 1;
-	}
-
-	return 0;
+	return Navigator::main(argc, argv);
 }
 
 void
