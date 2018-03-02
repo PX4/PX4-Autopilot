@@ -44,8 +44,6 @@
 #include "navigator_mode.h"
 #include "navigation.h"
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/mission.h>
@@ -62,7 +60,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	MissionBlock(Navigator *navigator, const char *name);
+	MissionBlock(Navigator *navigator);
 	virtual ~MissionBlock() = default;
 
 	MissionBlock(const MissionBlock &) = delete;

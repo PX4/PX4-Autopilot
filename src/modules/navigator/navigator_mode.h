@@ -42,15 +42,12 @@
 #ifndef NAVIGATOR_MODE_H
 #define NAVIGATOR_MODE_H
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-
 class Navigator;
 
-class NavigatorMode : public control::Block
+class NavigatorMode
 {
 public:
-	NavigatorMode(Navigator *navigator, const char *name);
+	NavigatorMode(Navigator *navigator);
 	virtual ~NavigatorMode() = default;
 	NavigatorMode(const NavigatorMode &) = delete;
 	NavigatorMode operator=(const NavigatorMode &) = delete;

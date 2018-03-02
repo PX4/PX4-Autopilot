@@ -52,8 +52,8 @@
 #include "navigator.h"
 #include "enginefailure.h"
 
-EngineFailure::EngineFailure(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
+EngineFailure::EngineFailure(Navigator *navigator) :
+	MissionBlock(navigator),
 	_ef_state(EF_STATE_NONE)
 {
 }
