@@ -260,7 +260,7 @@ public:
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss.get(); }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay.get(); }
 
-	bool		force_vtol() const { return _vstatus.is_vtol && !_vstatus.is_rotary_wing && _param_force_vtol.get(); }
+	bool		force_vtol();
 
 private:
 
