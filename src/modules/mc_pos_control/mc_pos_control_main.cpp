@@ -3092,7 +3092,7 @@ MulticopterPositionControl::task_main()
 				/* Vehicle is still landed and no takeoff was initiated yet.
 				 * Adjust for different takeoff cases. */
 
-				if (PX4_ISFINITE(setpoint.z) && setpoint.z < _pos(2) - 0.2f) {
+				if (PX4_ISFINITE(setpoint.z) && setpoint.z < _pos(2) + 0.2f) {
 					/* There is a position setpoint above current position. Enable smooth takeoff. */
 					_in_smooth_takeoff = true;
 					_takeoff_sp = 0.5f;
@@ -3116,11 +3116,11 @@ MulticopterPositionControl::task_main()
 			if (_in_smooth_takeoff) {
 
 				if (PX4_ISFINITE(setpoint.z)) {
-
 					/* Limit velocity setpoint to maximum takeoff velocity which is hard coded at 0.8 m/s.*/
 					setpoint.vz = -0.8f;
-					/* Smooth takeoff is achieved once takeoff altitude is reached */
-					_in_smooth_takeoff = setpoint.z < (_pos(2) + 0.2f);
+					/* Smooth takeoff is achieved once takeoff altitude is reached or
+					 * takeoff setpoint reached desired velocity.*/
+					_in_smooth_takeoff = _takeoff_sp > setpoint.vz && setpoint.z < (_pos(2) + 0.2f);
 					/* For takeoff we only need velocity or thrust. Therefore, set setpoint to NAN */
 					setpoint.z = NAN;
 					/* ramp vertical velocity limit up to takeoff speed */
@@ -3129,8 +3129,7 @@ MulticopterPositionControl::task_main()
 					setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
 
 				} else if (PX4_ISFINITE(setpoint.vz)) {
-
-					/* Smooth takeoff is achieved once takeoff altitude is reached */
+					/* Smooth takeoff is achieved once desired velocity setpoint is reached. */
 					_in_smooth_takeoff = _takeoff_sp > setpoint.vz;
 					/* ramp vertical velocity limit up to takeoff speed */
 					_takeoff_sp += setpoint.vz * _dt / _takeoff_ramp_time.get();
