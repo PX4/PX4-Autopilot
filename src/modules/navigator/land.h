@@ -43,7 +43,7 @@
 #include "navigator_mode.h"
 #include "mission_block.h"
 
-class Land final : public MissionBlock
+class Land : public MissionBlock
 {
 public:
 	Land(Navigator *navigator);
