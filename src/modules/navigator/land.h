@@ -47,7 +47,7 @@
 class Land final : public MissionBlock
 {
 public:
-	Land(Navigator *navigator, const char *name);
+	Land(Navigator *navigator);
 	~Land() = default;
 
 	void on_activation() override;

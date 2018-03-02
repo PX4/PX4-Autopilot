@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file Takeoff.h
+ * @file takeoff.h
  *
  * Helper class to take off
  *
@@ -41,8 +41,6 @@
 #ifndef NAVIGATOR_TAKEOFF_H
 #define NAVIGATOR_TAKEOFF_H
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -50,7 +48,7 @@
 class Takeoff final : public MissionBlock
 {
 public:
-	Takeoff(Navigator *navigator, const char *name);
+	Takeoff(Navigator *navigator);
 	~Takeoff() = default;
 
 	void on_activation() override;

@@ -56,9 +56,8 @@
 #include "rtl.h"
 #include "takeoff.h"
 
-#include <controllib/block/BlockParam.hpp>
-#include <controllib/blocks.hpp>
 #include <navigator/navigation.h>
+#include <px4_module_params.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
@@ -80,7 +79,7 @@
 #define NAVIGATOR_MODE_ARRAY_SIZE 11
 
 
-class Navigator : public control::SuperBlock
+class Navigator : public ModuleParams
 {
 public:
 	Navigator();
@@ -331,24 +330,27 @@ private:
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
-	// navigator parameters
-	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
-	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
-	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
-	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
-	control::BlockParamInt _param_force_vtol;	/**< acceptance radius for multicopter altitude */
-	control::BlockParamInt _param_traffic_avoidance_mode;	/**< avoiding other aircraft is enabled */
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_loiter_radius,	/**< loiter radius for fixedwing */
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_acceptance_radius,	/**< acceptance for takeoff */
+		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)
+		_param_fw_alt_acceptance_radius,	/**< acceptance radius for fixedwing altitude */
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
+		_param_mc_alt_acceptance_radius,	/**< acceptance radius for multicopter altitude */
+		(ParamInt<px4::params::NAV_FORCE_VT>) _param_force_vtol,	/**< acceptance radius for multicopter altitude */
+		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_traffic_avoidance_mode,	/**< avoiding other aircraft is enabled */
 
-	// non-navigator parameters
-	// Mission (MIS_*)
-	control::BlockParamFloat _param_loiter_min_alt;
-	control::BlockParamFloat _param_takeoff_min_alt;
-	control::BlockParamFloat _param_yaw_timeout;
-	control::BlockParamFloat _param_yaw_err;
+		// non-navigator parameters
+		// Mission (MIS_*)
+		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_loiter_min_alt,
+		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_takeoff_min_alt,
+		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_yaw_timeout,
+		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_yaw_err,
 
-	// VTOL parameters TODO: get these out of navigator
-	control::BlockParamFloat _param_back_trans_dec_mss;
-	control::BlockParamFloat _param_reverse_delay;
+		// VTOL parameters TODO: get these out of navigator
+		(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_back_trans_dec_mss,
+		(ParamFloat<px4::params::VT_B_REV_DEL>) _param_reverse_delay
+	)
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};

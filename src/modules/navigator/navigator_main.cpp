@@ -84,34 +84,20 @@ Navigator	*g_navigator;
 }
 
 Navigator::Navigator() :
-	SuperBlock(nullptr, "NAV"),
+	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
-	_mission(this, "MIS"),
-	_loiter(this, "LOI"),
-	_takeoff(this, "TKF"),
-	_land(this, "LND"),
-	_precland(this, "PLD"),
-	_rtl(this, "RTL"),
-	_rcLoss(this, "RCL"),
-	_dataLinkLoss(this, "DLL"),
-	_engineFailure(this, "EF"),
-	_gpsFailure(this, "GPSF"),
-	_follow_target(this, "TAR"),
-	// navigator params
-	_param_loiter_radius(this, "LOITER_RAD"),
-	_param_acceptance_radius(this, "ACC_RAD"),
-	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
-	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
-	_param_force_vtol(this, "FORCE_VT"),
-	_param_traffic_avoidance_mode(this, "TRAFF_AVOID"),
-	// non-navigator params
-	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
-	_param_takeoff_min_alt(this, "MIS_TAKEOFF_ALT", false),
-	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
-	_param_yaw_err(this, "MIS_YAW_ERR", false),
-	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
-	_param_reverse_delay(this, "VT_B_REV_DEL", false)
+	_mission(this),
+	_loiter(this),
+	_takeoff(this),
+	_land(this),
+	_precland(this),
+	_rtl(this),
+	_rcLoss(this),
+	_dataLinkLoss(this),
+	_engineFailure(this),
+	_gpsFailure(this),
+	_follow_target(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;

@@ -41,8 +41,8 @@
 #include "land.h"
 #include "navigator.h"
 
-Land::Land(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name)
+Land::Land(Navigator *navigator) :
+	MissionBlock(navigator)
 {
 }
 

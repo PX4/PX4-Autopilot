@@ -58,12 +58,9 @@
 
 constexpr float FollowTarget::_follow_position_matricies[4][9];
 
-FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_min_alt(this, "NAV_MIN_FT_HT", false),
-	_param_tracking_dist(this, "NAV_FT_DST", false),
-	_param_tracking_side(this, "NAV_FT_FS", false),
-	_param_tracking_resp(this, "NAV_FT_RS", false)
+FollowTarget::FollowTarget(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
 	_current_vel.zero();
 	_step_vel.zero();
