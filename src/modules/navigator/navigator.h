@@ -57,6 +57,7 @@
 
 #include <navigator/navigation.h>
 #include <px4_module_params.h>
+#include <px4_module.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
@@ -78,25 +79,31 @@
 #define NAVIGATOR_MODE_ARRAY_SIZE 11
 
 
-class Navigator : public ModuleParams
+class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
 public:
 	Navigator();
-	~Navigator();
+	virtual ~Navigator() = default;
 	Navigator(const Navigator &) = delete;
 	Navigator operator=(const Navigator &) = delete;
 
-	/**
-	 * Start the navigator task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Display the navigator status.
-	 */
-	void		status();
+	/** @see ModuleBase */
+	static Navigator *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 	/**
 	 * Load fence from file
@@ -262,9 +269,6 @@ public:
 
 private:
 
-	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
-	int		_navigator_task{-1};		/**< task handle for sensor task */
-
 	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
 	int		_global_pos_sub{-1};		/**< global position subscription */
 	int		_gps_pos_sub{-1};		/**< gps position subscription */
@@ -365,16 +369,6 @@ private:
 	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main task.
-	 */
-	void		task_main();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers
