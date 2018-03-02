@@ -894,6 +894,7 @@ batt_smbus_main(int argc, char *argv[])
 	if (!strcmp(verb, "start")) {
 		if (g_batt_smbus != nullptr) {
 			PX4_ERR("already started");
+			return 1;
 
 		} else {
 			// create new global object
@@ -901,12 +902,14 @@ batt_smbus_main(int argc, char *argv[])
 
 			if (g_batt_smbus == nullptr) {
 				PX4_ERR("new failed");
+				return 1;
 			}
 
 			if (OK != g_batt_smbus->init()) {
 				delete g_batt_smbus;
 				g_batt_smbus = nullptr;
 				PX4_ERR("init failed");
+				return 1;
 			}
 		}
 
