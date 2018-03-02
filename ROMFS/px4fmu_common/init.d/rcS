@@ -91,6 +91,7 @@ fi
 # Disable autostart if the script found.
 #
 set FRC /fs/microsd/etc/rc.txt
+
 if [ -f $FRC ]
 then
 	sh $FRC
@@ -191,25 +192,12 @@ then
 	set AUX_MODE pwm
 	set FMU_ARGS ""
 	set MAVLINK_F default
-	set MAVLINK_COMPANION_DEVICE /dev/ttyS2
+	set MAVLINK_COMPANION_DEVICE_1 /dev/ttyS1
+	set MAVLINK_COMPANION_DEVICE_2 /dev/ttyS2
 	set MAV_TYPE none
 	set FAILSAFE none
 	set USE_IO no
 	set LOGGER_BUF 14
-
-	if ver hwcmp PX4FMU_V5
-	then
-		set LOGGER_BUF 64
-	fi
-
-	if ver hwcmp CRAZYFLIE
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			param set SYS_AUTOSTART 4900
-			set AUTOCNF yes
-		fi
-	fi
 
 	if ver hwcmp AEROFC_V1
 	then
@@ -223,10 +211,24 @@ then
 		param set SYS_AUTOSTART 4070
 	fi
 
+	if ver hwcmp CRAZYFLIE
+	then
+		if param compare SYS_AUTOSTART 0
+		then
+			param set SYS_AUTOSTART 4900
+			set AUTOCNF yes
+		fi
+	fi
+
 	if ver hwcmp NXPHLITE_V3
 	then
 		param set SYS_FMU_TASK 1
 		set MAVLINK_COMPANION_DEVICE /dev/ttyS4
+	fi
+
+	if ver hwcmp PX4FMU_V5
+	then
+		set LOGGER_BUF 64
 	fi
 
 	#
@@ -544,14 +546,6 @@ then
 		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
 		set MAVLINK_F "-r 1200 -f"
 
-		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
-		if ver hwcmp PX4FMU_V4
-		then
-			set MAVLINK_F "-r 1200 -d /dev/ttyS1"
-			# Start MAVLink on Wifi (ESP8266 port)
-			mavlink start -r 20000 -b 921600 -d /dev/ttyS0
-		fi
-
 		if ver hwcmp AEROFC_V1
 		then
 			set MAVLINK_F "-r 1200 -d /dev/ttyS3"
@@ -572,6 +566,15 @@ then
 			# Avoid using either of the two available serials
 			set MAVLINK_F none
 		fi
+
+		if ver hwcmp PX4FMU_V4
+		then
+			# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
+			# Start MAVLink on Wifi (ESP8266 port)
+			mavlink start -d /dev/ttyS0 -b 921600 -r 20000
+
+			set MAVLINK_F "-d ${MAVLINK_COMPANION_DEVICE_1}-r 1200 "
+		fi
 	fi
 
 	if [ "x$MAVLINK_F" == xnone ]
@@ -588,7 +591,7 @@ then
 	# but this works for now
 	if param compare SYS_COMPANION 10
 	then
-		frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
+		frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE_2}
 	else
 		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
 		then
@@ -602,68 +605,94 @@ then
 		syslink start
 		mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
 	fi
-	if param compare SYS_COMPANION 921600
+
+	# SYS_COMPANION 19200 BAUD rates
+	if param compare SYS_COMPANION 19200
 	then
-		if ver hwcmp AEROFC_V1
-		then
-			if protocol_splitter start ${MAVLINK_COMPANION_DEVICE}
-			then
-				mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
-				micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
-			else
-				 mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
-			fi
-		else
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
-		fi
-	fi
-	if param compare SYS_COMPANION 57600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x -f
-	fi
-	if param compare SYS_COMPANION 460800
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x -f
-	fi
-	if param compare SYS_COMPANION 157600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m osd -r 1000
-	fi
-	if param compare SYS_COMPANION 257600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x -f
-	fi
-	if param compare SYS_COMPANION 319200
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000 -f
-	fi
-	if param compare SYS_COMPANION 338400
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -r 1000 -f
-	fi
-	if param compare SYS_COMPANION 357600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -f
-	fi
-	if param compare SYS_COMPANION 3115200
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000 -f
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 19200 -r 1000 -f
 	fi
 	if param compare SYS_COMPANION 419200
 	then
-		iridiumsbd start -d /dev/ttyS2
+		iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE_2}
 		mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
+	fi
+
+	# SYS_COMPANION 38400 BAUD rates
+	if param compare SYS_COMPANION 38400
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 38400 -r 1000 -f
+	fi
+	if param compare SYS_COMPANION 338400
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 38400 -r 1000 -f
+	fi
+
+	# SYS_COMPANION 57600 BAUD rates
+	if param compare SYS_COMPANION 57600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 57600 -m onboard -r 5000 -x -f
+	fi
+	if param compare SYS_COMPANION 157600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 57600 -m osd -r 1000
+	fi
+	if param compare SYS_COMPANION 257600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 57600 -m magic -r 5000 -x -f
+	fi
+	if param compare SYS_COMPANION 357600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 57600 -r 1000 -f
+	fi
+
+	# SYS_COMPANION 115200 BAUD rates
+	if param compare SYS_COMPANION 115200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 115200 -r 1000 -f
+	fi
+	if param compare SYS_COMPANION 3115200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 115200 -r 1000 -f
+	fi
+
+	# SYS_COMPANION 460800 BAUD rates
+	if param compare SYS_COMPANION 460800
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 460800 -m onboard -r 5000 -x -f
+	fi
+
+	# SYS_COMPANION 921600 BAUD rates
+	if param compare SYS_COMPANION 921600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 921600 -m onboard -r 80000 -x -f
+
+		if ver hwcmp AEROFC_V1
+		then
+			if protocol_splitter start ${MAVLINK_COMPANION_DEVICE_2}
+			then
+				mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
+				micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
+			fi
+		fi
 	fi
 	if param compare SYS_COMPANION 1921600
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -r 20000
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 921600 -r 20000
 	fi
-	if param compare SYS_COMPANION 1500000
+	if param compare SYS_COMPANION 2921600
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x -f
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_1} -b 921600 -m normal  -r 100000
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 921600 -m normal  -r 20000
 	fi
 
-	unset MAVLINK_COMPANION_DEVICE
+	# SYS_COMPANION 1500000 BAUD rates
+	if param compare SYS_COMPANION 1500000
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE_2} -b 1500000 -m onboard -r 10000 -x -f
+	fi
+
+	unset MAVLINK_COMPANION_DEVICE_1
+	unset MAVLINK_COMPANION_DEVICE_2
 
 	#
 	# Starting stuff according to UAVCAN_ENABLE value
