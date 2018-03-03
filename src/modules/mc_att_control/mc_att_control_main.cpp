@@ -182,8 +182,6 @@ private:
 	float			_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
-	math::Matrix<3, 3>  _I;				/**< identity matrix */
-
 	math::Matrix<3, 3>	_board_rotation = {};	/**< rotation matrix for the orientation that the board is mounted */
 
 	struct {
@@ -420,7 +418,6 @@ _loop_update_rate_hz(initial_update_rate_hz)
 	_thrust_sp = 0.0f;
 	_att_control.zero();
 
-	_I.identity();
 	_board_rotation.identity();
 
 	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
@@ -842,15 +839,22 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	q.normalize();
 	qd.normalize();
 
-	/* calculate reduced attitude which we would command if we about the vehicle's yaw */
+	/* calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch */
 	Vector3f e_z = q.dcm_z();
 	Vector3f e_z_d = qd.dcm_z();
 	Quatf qd_red(e_z, e_z_d);
-	qd_red *= q;
+
+	if (Quatf(qd_red - Quatf(0, 1, 0, 0)).norm() > 1e-5f) {
+		qd_red *= q;
+
+	} else {
+		/* except for the numerical corner case where it doesn't help */
+		qd_red = qd;
+	}
 
 	/* mix full and reduced desired attitude */
 	Quatf q_mix = qd_red.inversed() * qd;
-	q_mix *= math::sign(q_mix(0));
+	q_mix *= math::signNoZero(q_mix(0));
 	qd = qd_red * Quatf(cosf(yaw_w * acosf(q_mix(0))), 0, 0, sinf(yaw_w * asinf(q_mix(3))));
 
 	/* quaternion attitude control law, qe is rotation from q to qd */
@@ -858,12 +862,11 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* using sin(alpha/2) scaled rotation axis as attitude error (see quaternion definition by axis angle)
 	 * also taking care of the antipodal unit quaternion ambiguity */
-	Vector3f eq = 2.f * math::sign(qe(0)) * qe.imag();
+	Vector3f eq = 2.f * math::signNoZero(qe(0)) * qe.imag();
 
 	/* calculate angular rates setpoint */
 	eq = eq.emult(attitude_gain);
 	_rates_sp = math::Vector<3>(eq.data());
-
 
 	/* Feed forward the yaw setpoint rate. We need to transform the yaw from world into body frame.
 	 * The following is a simplification of:
