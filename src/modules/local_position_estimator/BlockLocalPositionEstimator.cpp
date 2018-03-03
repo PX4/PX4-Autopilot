@@ -208,9 +208,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	       (_fusion.get() & FUSE_BARO) != 0);
 }
 
-BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
-{}
-
 Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dynamics(
 	float t,
 	const Vector<float, BlockLocalPositionEstimator::n_x> &x,
