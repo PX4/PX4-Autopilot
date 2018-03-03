@@ -93,7 +93,6 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MIN_TAKEOFF_THRUST    0.2f
 #define TPA_RATE_LOWER_LIMIT 0.05f
-#define ATTITUDE_TC_DEFAULT 0.2f
 
 #define AXIS_INDEX_ROLL 0
 #define AXIS_INDEX_PITCH 1
@@ -222,9 +221,6 @@ private:
 		param_t acro_expo;
 		param_t acro_superexpo;
 		param_t rattitude_thres;
-
-		param_t roll_tc;
-		param_t pitch_tc;
 
 		param_t vtol_type;
 		param_t vtol_opt_recovery_enabled;
@@ -469,9 +465,6 @@ _loop_update_rate_hz(initial_update_rate_hz)
 
 	_params_handles.rattitude_thres 	= 	param_find("MC_RATT_TH");
 
-	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
-	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
-
 	_params_handles.bat_scale_en		=	param_find("MC_BAT_SCALE_EN");
 
 	/* rotations */
@@ -525,36 +518,31 @@ MulticopterAttitudeControl::parameters_update()
 {
 	float v;
 
-	float roll_tc, pitch_tc;
-
-	param_get(_params_handles.roll_tc, &roll_tc);
-	param_get(_params_handles.pitch_tc, &pitch_tc);
-
 	/* roll gains */
 	param_get(_params_handles.roll_p, &v);
-	_params.att_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
+	_params.att_p(0) = v;
 	param_get(_params_handles.roll_rate_p, &v);
-	_params.rate_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
+	_params.rate_p(0) = v;
 	param_get(_params_handles.roll_rate_i, &v);
 	_params.rate_i(0) = v;
 	param_get(_params_handles.roll_rate_integ_lim, &v);
 	_params.rate_int_lim(0) = v;
 	param_get(_params_handles.roll_rate_d, &v);
-	_params.rate_d(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
+	_params.rate_d(0) = v;
 	param_get(_params_handles.roll_rate_ff, &v);
 	_params.rate_ff(0) = v;
 
 	/* pitch gains */
 	param_get(_params_handles.pitch_p, &v);
-	_params.att_p(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
+	_params.att_p(1) = v;
 	param_get(_params_handles.pitch_rate_p, &v);
-	_params.rate_p(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
+	_params.rate_p(1) = v;
 	param_get(_params_handles.pitch_rate_i, &v);
 	_params.rate_i(1) = v;
 	param_get(_params_handles.pitch_rate_integ_lim, &v);
 	_params.rate_int_lim(1) = v;
 	param_get(_params_handles.pitch_rate_d, &v);
-	_params.rate_d(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
+	_params.rate_d(1) = v;
 	param_get(_params_handles.pitch_rate_ff, &v);
 	_params.rate_ff(1) = v;
 

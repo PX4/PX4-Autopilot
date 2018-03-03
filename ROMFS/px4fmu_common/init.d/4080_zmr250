@@ -17,17 +17,15 @@ set PWM_OUT 1234
 
 if [ $AUTOCNF == yes ]
 then
-	param set MC_ROLL_P 2.0
-	param set MC_ROLLRATE_P 0.05
+	param set MC_ROLL_P 2.2
+	param set MC_ROLLRATE_P 0.06
 	param set MC_ROLLRATE_I 0.2
-	param set MC_ROLLRATE_D 0.0015
-	param set MC_ROLL_TC 0.18
+	param set MC_ROLLRATE_D 0.0017
 
-	param set MC_PITCH_P 2.0
-	param set MC_PITCHRATE_P 0.05
+	param set MC_PITCH_P 2.2
+	param set MC_PITCHRATE_P 0.06
 	param set MC_PITCHRATE_I 0.2
-	param set MC_PITCHRATE_D 0.0015
-	param set MC_PITCH_TC 0.18
+	param set MC_PITCHRATE_D 0.0017
 
 	param set MC_YAW_P 1.0
 	param set MC_YAWRATE_P 0.15
