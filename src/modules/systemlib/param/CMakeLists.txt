@@ -86,6 +86,7 @@ add_custom_command(OUTPUT ${parameters_xml}
 		--xml ${parameters_xml}
 		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
+		--board ${BOARD}
 		#--verbose
 	DEPENDS
 		${param_src_files}
