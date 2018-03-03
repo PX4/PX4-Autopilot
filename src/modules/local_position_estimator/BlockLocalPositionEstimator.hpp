@@ -147,12 +147,11 @@ public:
 	// public methods
 	BlockLocalPositionEstimator();
 	void update();
-	virtual ~BlockLocalPositionEstimator();
+	virtual ~BlockLocalPositionEstimator() = default;
 
 private:
-	// prevent copy and assignment
-	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &);
-	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &);
+	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &) = delete;
+	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &) = delete;
 
 	// methods
 	// ----------------------------
