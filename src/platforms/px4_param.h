@@ -139,6 +139,40 @@ private:
 	float _val;
 };
 
+// external version
+template<px4::params p>
+class Param<float &, p>
+{
+public:
+	// static type-check
+	static_assert(px4::param_types_array[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
+
+	Param(float &external_val)
+		: _val(external_val)
+	{
+		param_set_used(handle());
+		update();
+	}
+
+	float get() const { return _val; }
+
+	const float &reference() const { return _val; }
+
+	/// Store the parameter value to the parameter storage (@see param_set())
+	bool commit() const { return param_set(handle(), &_val) == 0; }
+
+	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
+	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
+
+	void set(float val) { _val = val; }
+
+	bool update() { return param_get(handle(), &_val) == 0; }
+
+	param_t handle() const { return param_handle(p); }
+private:
+	float &_val;
+};
+
 template<px4::params p>
 class Param<int32_t, p>
 {
@@ -171,6 +205,39 @@ private:
 	int32_t _val;
 };
 
+//external version
+template<px4::params p>
+class Param<int32_t &, p>
+{
+public:
+	// static type-check
+	static_assert(px4::param_types_array[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
+
+	Param(int32_t &external_val)
+		: _val(external_val)
+	{
+		param_set_used(handle());
+		update();
+	}
+
+	int32_t get() const { return _val; }
+
+	const int32_t &reference() const { return _val; }
+
+	/// Store the parameter value to the parameter storage (@see param_set())
+	bool commit() const { return param_set(handle(), &_val) == 0; }
+
+	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
+	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
+
+	void set(int32_t val) { _val = val; }
+
+	bool update() { return param_get(handle(), &_val) == 0; }
+
+	param_t handle() const { return param_handle(p); }
+private:
+	int32_t &_val;
+};
 
 template<px4::params p>
 class Param<bool, p>
@@ -228,6 +295,12 @@ using ParamFloat = Param<float, p>;
 
 template <px4::params p>
 using ParamInt = Param<int32_t, p>;
+
+template <px4::params p>
+using ParamExtFloat = Param<float &, p>;
+
+template <px4::params p>
+using ParamExtInt = Param<int32_t &, p>;
 
 template <px4::params p>
 using ParamBool = Param<bool, p>;
