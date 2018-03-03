@@ -849,7 +849,20 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	q.normalize();
 	qd.normalize();
 
-	/* full quaternion attitude control, qe is rotation from q to qd */
+
+	/* calculate reduced attitude which we would command if we about the vehicle's yaw */
+	Vector3f e_z = q.dcm_z();
+	Vector3f e_z_d = qd.dcm_z();
+	Quatf qd_red(e_z, e_z_d);
+	qd_red *= q;
+
+	/* mix full and reduced desired attitude */
+	Quatf q_mix = qd_red.inversed() * qd;
+	q_mix *= math::sign(q_mix(0));
+	qd = qd_red * Quatf(cosf(yaw_w * acosf(q_mix(0))), 0, 0, sinf(yaw_w * asinf(q_mix(3))));
+
+
+	/* quaternion attitude control law, qe is rotation from q to qd */
 	Quatf qe = q.inversed() * qd;
 
 	/* using sin(alpha/2) scaled rotation axis as attitude error (see quaternion definition by axis angle)
