@@ -101,6 +101,8 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MAX_GYRO_COUNT 3
 
+using namespace matrix;
+
 class MulticopterAttitudeControl
 {
 public:
@@ -235,7 +237,7 @@ private:
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
-		math::Vector<3> att_p;					/**< P gain for angular error */
+		Vector3f attitude_p;					/**< P gain for attitude control */
 		math::Vector<3> rate_p;				/**< P gain for angular rate error */
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_int_lim;			/**< integrator state limit for rate loop */
@@ -388,7 +390,6 @@ _loop_update_rate_hz(initial_update_rate_hz)
 
 	_vehicle_status.is_rotary_wing = true;
 
-	_params.att_p.zero();
 	_params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_int_lim.zero();
@@ -520,7 +521,7 @@ MulticopterAttitudeControl::parameters_update()
 
 	/* roll gains */
 	param_get(_params_handles.roll_p, &v);
-	_params.att_p(0) = v;
+	_params.attitude_p(0) = v;
 	param_get(_params_handles.roll_rate_p, &v);
 	_params.rate_p(0) = v;
 	param_get(_params_handles.roll_rate_i, &v);
@@ -534,7 +535,7 @@ MulticopterAttitudeControl::parameters_update()
 
 	/* pitch gains */
 	param_get(_params_handles.pitch_p, &v);
-	_params.att_p(1) = v;
+	_params.attitude_p(1) = v;
 	param_get(_params_handles.pitch_rate_p, &v);
 	_params.rate_p(1) = v;
 	param_get(_params_handles.pitch_rate_i, &v);
@@ -566,7 +567,7 @@ MulticopterAttitudeControl::parameters_update()
 
 	/* yaw gains */
 	param_get(_params_handles.yaw_p, &v);
-	_params.att_p(2) = v;
+	_params.attitude_p(2) = v;
 	param_get(_params_handles.yaw_rate_p, &v);
 	_params.rate_p(2) = v;
 	param_get(_params_handles.yaw_rate_i, &v);
@@ -826,17 +827,19 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	vehicle_attitude_setpoint_poll();
 	_thrust_sp = _v_att_sp.thrust;
 
-	using namespace matrix;
-	float yaw_w = .4f;
+	/* prepare yaw weight from the ratio between roll/pitch and yaw gains */
+	Vector3f attitude_gain = _params.attitude_p;
+	const float roll_pitch_gain = (attitude_gain(0) + attitude_gain(1)) / 2.f;
+	const float yaw_w = math::constrain(attitude_gain(2) / roll_pitch_gain, 0.f, 1.f);
+	attitude_gain(2) = roll_pitch_gain;
 
 	/* get estimated and desired vehicle attitude */
 	Quatf q(_v_att.q);
 	Quatf qd(_v_att_sp.q_d);
 
-	/* ensure quaternions are exactly normalized because acosf(1.00001) == NaN */
+	/* ensure input quaternions are exactly normalized because acosf(1.00001) == NaN */
 	q.normalize();
 	qd.normalize();
-
 
 	/* calculate reduced attitude which we would command if we about the vehicle's yaw */
 	Vector3f e_z = q.dcm_z();
@@ -849,22 +852,21 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	q_mix *= math::sign(q_mix(0));
 	qd = qd_red * Quatf(cosf(yaw_w * acosf(q_mix(0))), 0, 0, sinf(yaw_w * asinf(q_mix(3))));
 
-
 	/* quaternion attitude control law, qe is rotation from q to qd */
 	Quatf qe = q.inversed() * qd;
 
 	/* using sin(alpha/2) scaled rotation axis as attitude error (see quaternion definition by axis angle)
 	 * also taking care of the antipodal unit quaternion ambiguity */
 	Vector3f eq = 2.f * math::sign(qe(0)) * qe.imag();
-	math::Vector<3> e_R(eq.data());
 
 	/* calculate angular rates setpoint */
-	_rates_sp = _params.att_p.emult(e_R);
+	eq = eq.emult(attitude_gain);
+	_rates_sp = math::Vector<3>(eq.data());
 
 
 	/* Feed forward the yaw setpoint rate. We need to transform the yaw from world into body frame.
 	 * The following is a simplification of:
-	 * R.transposed() * math::Vector<3>(0.f, 0.f, _v_att_sp.yaw_sp_move_rate * _params.yaw_ff)
+	 * R.transposed() * Vector3f(0.f, 0.f, _v_att_sp.yaw_sp_move_rate * _params.yaw_ff)
 	 */
 	Vector3f yaw_feedforward_rate = q.inversed().dcm_z();
 	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _params.yaw_ff;
@@ -1148,7 +1150,8 @@ MulticopterAttitudeControl::task_main()
 					_thrust_sp = _v_att_sp.thrust;
 					math::Quaternion q(_v_att.q[0], _v_att.q[1], _v_att.q[2], _v_att.q[3]);
 					math::Quaternion q_sp(&_v_att_sp.q_d[0]);
-					_ts_opt_recovery->setAttGains(_params.att_p, _params.yaw_ff);
+					math::Vector<3> attitude_p(_params.attitude_p.data());
+					_ts_opt_recovery->setAttGains(attitude_p, _params.yaw_ff);
 					_ts_opt_recovery->calcOptimalRates(q, q_sp, _v_att_sp.yaw_sp_move_rate, _rates_sp);
 
 					/* limit rates */
