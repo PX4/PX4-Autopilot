@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,12 +37,13 @@
  *
  * Publication documenting this type of Quaternion Attitude Control:
  * Nonlinear Quadrocopter Attitude Control (2013)
- * by Dario Brescianini, Markus Hehn and Raffaello D’Andrea
+ * by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
  * Institute for Dynamic Systems and Control (IDSC), ETH Zurich
  *
  * @author Lorenz Meier		<lorenz@px4.io>
  * @author Anton Babushkin	<anton.babushkin@me.com>
  * @author Sander Smeets	<sander@droneslab.com>
+ * @author Matthias Grob	<maetugr@gmail.com>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
