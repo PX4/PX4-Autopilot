@@ -263,7 +263,7 @@ class MavrosMissionTest(MavrosTestCommon):
                 if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
                     alt += self.altitude.amsl - self.altitude.relative
 
-                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 60,
+                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 120,
                                     index)
 
             # check if VTOL transition happens if applicable
