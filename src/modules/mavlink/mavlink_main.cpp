@@ -369,12 +369,6 @@ Mavlink::count_txerr()
 	perf_count(_txerr_perf);
 }
 
-void
-Mavlink::set_mode(enum MAVLINK_MODE mode)
-{
-	_mode = mode;
-}
-
 int
 Mavlink::instance_count()
 {
@@ -1871,6 +1865,9 @@ Mavlink::task_main(int argc, char *argv[])
 			} else if (strcmp(myoptarg, "iridium") == 0) {
 				_mode = MAVLINK_MODE_IRIDIUM;
 				_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
+
+			} else if (strcmp(myoptarg, "minimal") == 0) {
+				_mode = MAVLINK_MODE_MINIMAL;
 			}
 
 			break;
@@ -2119,6 +2116,19 @@ Mavlink::task_main(int argc, char *argv[])
 
 	case MAVLINK_MODE_IRIDIUM:
 		configure_stream("HIGH_LATENCY", 0.1f);
+		break;
+
+	case MAVLINK_MODE_MINIMAL:
+		configure_stream("SYS_STATUS", 0.1f);
+		configure_stream("EXTENDED_SYS_STATE", 0.1f);
+		configure_stream("ATTITUDE", 10.0f);
+		configure_stream("RC_CHANNELS", 0.5f);
+		configure_stream("ALTITUDE", 0.5f);
+		configure_stream("GPS_RAW_INT", 0.5f);
+		configure_stream("GLOBAL_POSITION_INT", 5.0f);
+		configure_stream("HOME_POSITION", 0.1f);
+		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream("VFR_HUD", 1.0f);
 		break;
 
 	default:
@@ -2773,7 +2783,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr,
 					"Partner IP (broadcasting can be enabled via MAV_BROADCAST param)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
