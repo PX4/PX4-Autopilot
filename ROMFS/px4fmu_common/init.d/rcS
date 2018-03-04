@@ -651,8 +651,24 @@ then
 	fi
 	if param compare SYS_COMPANION 419200
 	then
-		iridiumsbd start -d /dev/ttyS2
+		iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE}
 		mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
+	fi
+	if param compare SYS_COMPANION 519200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 538400
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 557600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 5115200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -m minimal -r 1000
 	fi
 	if param compare SYS_COMPANION 1921600
 	then
