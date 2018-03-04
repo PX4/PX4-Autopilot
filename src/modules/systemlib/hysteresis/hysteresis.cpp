@@ -37,16 +37,31 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <px4_log.h>
-#include "systemlib/hysteresis/hysteresis.h"
-
+#include "hysteresis.h"
 
 namespace systemlib
 {
 
+void
+Hysteresis::set_time_from_true(const uint32_t new_hysteresis_time_us)
+{
+	_hysteresis_time_from_true_us = new_hysteresis_time_us;
+}
 
 void
-Hysteresis::set_state_and_update(const bool new_state)
+Hysteresis::set_time_from_false(const uint32_t new_hysteresis_time_us)
+{
+	_hysteresis_time_from_false_us = new_hysteresis_time_us;
+}
+
+bool
+Hysteresis::get_state() const
+{
+	return _state;
+}
+
+void
+Hysteresis::update(const bool new_state)
 {
 	if (new_state != _state) {
 		if (new_state != _requested_state) {
@@ -60,16 +75,22 @@ Hysteresis::set_state_and_update(const bool new_state)
 
 	update();
 }
-
 void
 Hysteresis::update()
 {
 	if (_requested_state != _state) {
 
-		if (hrt_elapsed_time(&_last_time_to_change_state) >= (_state ?
-				_hysteresis_time_from_true_us :
-				_hysteresis_time_from_false_us)) {
-			_state = _requested_state;
+		const hrt_abstime elapsed = hrt_elapsed_time(&_last_time_to_change_state);
+
+		if (_state && !_requested_state) {
+			if (elapsed >= _hysteresis_time_from_true_us) {
+				_state = false;
+			}
+
+		} else if (!_state && _requested_state) {
+			if (elapsed >= _hysteresis_time_from_false_us) {
+				_state = true;
+			}
 		}
 	}
 }

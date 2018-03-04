@@ -187,10 +187,10 @@ void LandDetector::_update_state()
 {
 	/* when we are landed we also have ground contact for sure but only one output state can be true at a particular time
 	 * with higher priority for landed */
-	_freefall_hysteresis.set_state_and_update(_get_freefall_state());
-	_landed_hysteresis.set_state_and_update(_get_landed_state());
-	_maybe_landed_hysteresis.set_state_and_update(_get_maybe_landed_state());
-	_ground_contact_hysteresis.set_state_and_update(_get_ground_contact_state());
+	_freefall_hysteresis.update(_get_freefall_state());
+	_landed_hysteresis.update(_get_landed_state());
+	_maybe_landed_hysteresis.update(_get_maybe_landed_state());
+	_ground_contact_hysteresis.update(_get_ground_contact_state());
 
 	if (_freefall_hysteresis.get_state()) {
 		_state = LandDetectionState::FREEFALL;
