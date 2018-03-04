@@ -61,7 +61,7 @@ barosim start
 adcsim start
 gpssim start
 measairspeedsim start
-pwm_out_sim mode_pwm
+pwm_out_sim start
 sensors start
 commander start
 navigator start

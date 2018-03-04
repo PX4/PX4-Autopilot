@@ -504,7 +504,7 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			if pwm_out_sim mode_pwm16
+			if pwm_out_sim start
 			then
 			else
 				tune_control play -m ${TUNE_ERR}

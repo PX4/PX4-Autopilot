@@ -56,7 +56,7 @@ const char *get_commands()
 		"mc_pos_control start\n"
 		"mc_att_control start\n"
 		"sleep 1\n"
-		"pwm_out_sim mode_pwm\n"
+		"pwm_out_sim start\n"
 		"param set RC1_MAX 2015\n"
 		"param set RC1_MIN 996\n"
 		"param set RC1_TRIM 1502\n"
