@@ -116,9 +116,17 @@ private:
 	/* Parameters */
 	matrix::Vector3f Pp, Pv, Iv, Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
 	float _VelMaxXY{};
-	float _VelMaxZ[2]; //index 0: index up; 1: down
+	struct DirectionD {
+		float up;
+		float down;
+	};
+	DirectionD _VelMaxZ;
+	struct Limits {
+		float max;
+		float min;
+	};
+	Limits _ThrustLimit;
 	float _ThrHover{0.5f};
-	float _ThrLimit[2]; //index 0: max, index 1: min
 	bool _skipController{false};
 
 	/* Helper methods */
