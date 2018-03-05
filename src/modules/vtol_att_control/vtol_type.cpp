@@ -67,77 +67,14 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_land_detected = _attc->get_land_detected();
 	_params = _attc->get_params();
 
-	flag_idle_mc = true;
+	for (auto &pwm_max : _max_mc_pwm_values.values) {
+		pwm_max = PWM_DEFAULT_MAX;
+	}
 }
 
 VtolType::~VtolType()
 {
 
-}
-
-/**
-* Adjust idle speed for mc mode.
-*/
-void VtolType::set_idle_mc()
-{
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int fd = px4_open(dev, 0);
-
-	if (fd < 0) {
-		PX4_WARN("can't open %s", dev);
-	}
-
-	unsigned servo_count;
-	int ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-	unsigned pwm_value = _params->idle_pwm_mc;
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
-
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = pwm_value;
-		pwm_values.channel_count++;
-	}
-
-	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
-
-	if (ret != OK) {
-		PX4_WARN("failed setting min values");
-	}
-
-	px4_close(fd);
-
-	flag_idle_mc = true;
-}
-
-/**
-* Adjust idle speed for fw mode.
-*/
-void VtolType::set_idle_fw()
-{
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int fd = px4_open(dev, 0);
-
-	if (fd < 0) {
-		PX4_WARN("can't open %s", dev);
-	}
-
-	struct pwm_output_values pwm_values;
-
-	memset(&pwm_values, 0, sizeof(pwm_values));
-
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
-
-		pwm_values.values[i] = PWM_MOTOR_OFF;
-		pwm_values.channel_count++;
-	}
-
-	int ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
-
-	if (ret != OK) {
-		PX4_WARN("failed setting min values");
-	}
-
-	px4_close(fd);
 }
 
 void VtolType::update_mc_state()
@@ -263,5 +200,87 @@ void VtolType::check_quadchute_condition()
 			}
 		}
 	}
+}
 
+bool
+VtolType::disable_mc_motors()
+{
+	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	int fd = px4_open(dev, 0);
+
+	if (fd < 0) {
+		PX4_ERR("can't open %s", dev);
+		return false;
+	}
+
+	// first save the current max values
+	struct pwm_output_values max_pwm_values = {};
+
+	int ret = px4_ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&max_pwm_values);
+
+	if (ret == OK) {
+		_max_mc_pwm_values = max_pwm_values;
+
+	} else {
+		PX4_ERR("failed getting max values");
+		px4_close(fd);
+		return false;
+	}
+
+	// now get the disarmed PWM values
+	pwm_output_values disarmed_pwm_values = {};
+	ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&disarmed_pwm_values);
+
+	if (ret == OK) {
+
+		// finally disable by setting the MC motors max to the disarmed value
+		max_pwm_values.channel_count = _params->vtol_motor_count;
+
+		for (int i = 0; i < _params->vtol_motor_count; i++) {
+			max_pwm_values.values[i] = disarmed_pwm_values.values[i];
+		}
+
+		ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&max_pwm_values);
+
+		if (ret != OK) {
+			PX4_ERR("failed setting max values");
+		}
+
+	} else {
+		PX4_ERR("failed getting max values");
+	}
+
+	px4_close(fd);
+
+	return (ret == PX4_OK);
+}
+
+bool
+VtolType::enable_mc_motors()
+{
+	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	int fd = px4_open(dev, 0);
+
+	if (fd < 0) {
+		PX4_ERR("can't open %s", dev);
+		return false;
+	}
+
+	struct pwm_output_values pwm_values = {};
+
+	pwm_values.channel_count = _params->vtol_motor_count;
+
+	for (int i = 0; i < _params->vtol_motor_count; i++) {
+		pwm_values.values[i] = _max_mc_pwm_values.values[i];
+	}
+
+	int ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
+
+	if (ret != OK) {
+		PX4_ERR("failed setting max values");
+	}
+
+	px4_close(fd);
+
+	return (ret == PX4_OK);
 }

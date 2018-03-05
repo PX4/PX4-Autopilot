@@ -98,12 +98,12 @@ private:
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
 	} _vtol_schedule;
 
-	bool _flag_enable_mc_motors;
+	// TODO: replace with vtol_type's flag_idle_mc
+	bool _flag_enable_mc_motors{true};
+
 	float _pusher_throttle;
 	float _reverse_output;
 	float _airspeed_trans_blend_margin;
-
-	void set_max_mc(unsigned pwm_value);
 
 	virtual void parameters_update();
 };
