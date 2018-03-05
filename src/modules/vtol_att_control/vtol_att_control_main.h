@@ -180,7 +180,6 @@ private:
 		param_t idle_pwm_mc;
 		param_t vtol_motor_count;
 		param_t vtol_fw_permanent_stab;
-		param_t fw_pitch_trim;
 		param_t vtol_type;
 		param_t elevons_mc_lock;
 		param_t fw_min_alt;

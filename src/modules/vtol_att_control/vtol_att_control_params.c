@@ -74,19 +74,6 @@ PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
 PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
 
 /**
- * Fixed wing pitch trim
- *
- * This parameter allows to adjust the neutral elevon position in fixed wing mode.
- *
- * @min -1.0
- * @max 1.0
- * @increment 0.01
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
-
-/**
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
  *
  * @value 0 Tailsitter
