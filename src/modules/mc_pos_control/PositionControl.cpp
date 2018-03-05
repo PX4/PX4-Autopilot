@@ -183,7 +183,8 @@ void PositionControl::_positionController()
 		_vel_sp(1) = _vel_sp(1) * _VelMaxXY / vel_norm_xy;
 	}
 
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ[0], _VelMaxZ[1]);
+	/* Saturate velocity in D-direction */
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ.up, _VelMaxZ.down);
 }
 
 void PositionControl::_velocityController(const float &dt)
@@ -193,67 +194,101 @@ void PositionControl::_velocityController(const float &dt)
 	 * u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral)
 	 * Umin <= u_des <= Umax
 	 *
-	 * Saturation for vel_integral;
+	 * Anti-Windup:
 	 * u_des = _thr_sp; r = _vel_sp; y = _vel
 	 * u_des >= Umax and r - y >= 0 => Saturation = true
 	 * u_des >= Umax and r - y <= 0 => Saturation = false
 	 * u_des <= Umin and r - y <= 0 => Saturation = true
 	 * u_des <= Umin and r - y >= 0 => Saturation = false
 	 *
+	 *	Notes:
+	 * - PID implementation is in NED-frame
+	 * - control output in D-direction has priority over NE-direction
+	 * - the equilibrium point for the PID is at hover-thrust
+	 * - the maximum tilt cannot exceed 90 degrees. This means that it is
+	 * 	 not possible to have a desired thrust direction pointing in the positive
+	 * 	 D-direction (= downward)
+	 * - the desired thrust in D-direction is limited by the thrust limits
+	 * - the desired thrust in NE-direction is limited by the thrust excess after
+	 * 	 consideration of the desired thrust in D-direction. In addition, the thrust in
+	 * 	 NE-direction is also limited by the maximum tilt.
 	 */
+
+	/* Get maximum tilt */
+	float tilt_max = M_PI_2_F;
+
+	if (PX4_ISFINITE(_constraints.tilt_max) && _constraints.tilt_max <= tilt_max) {
+		tilt_max = _constraints.tilt_max;
+	}
 
 	Vector3f vel_err = _vel_sp - _vel;
 
-	/* TODO: add offboard acceleration mode
-	 * PID-controller */
-	Vector3f offset(0.0f, 0.0f, _ThrHover);
-	Vector3f thr_sp = Pv.emult(vel_err) + Dv.emult(_vel_dot) + _thr_int - offset;
+	/*
+	 * TODO: add offboard acceleration mode
+	 * */
 
-	/* Get maximum tilt */
-	float tilt_max = PX4_ISFINITE(_constraints.tilt_max) ? _constraints.tilt_max : M_PI_2_F;
-	tilt_max = math::min(tilt_max, M_PI_2_F);
+	/* Consider thrust in D-direction */
+	float thrust_desired_D = Pv(2) * vel_err(2) + Dv(2) * _vel_dot(2) + _thr_int(2) - _ThrHover;
 
-	/* Compute maximum allowed thrust along xy based on thrust in z-direction and
-	 * scale _thrust_sp by that value. This only has an effect for altitude mode where
-	 * _thr_sp(0:1).length() > 0.0f.
-	 */
+	/* The Thrust limits are negated and swapped due to NED-frame */
+	float uMax = -_ThrustLimit.min;
+	float uMin = -_ThrustLimit.max;
+
+	/* Apply Anti-Windup in D-direction */
+	bool stop_integral_D = (thrust_desired_D >= uMax && vel_err(2) >= 0.0f) ||
+			       (thrust_desired_D <= uMin && vel_err(2) <= 0.0f);
+
+	if (!stop_integral_D) {
+		_thr_int(2) += vel_err(2) * Iv(2) * dt;
+
+	}
+
+	/* Satureate thrust setpoint in D-direction */
+	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
 	if (matrix::Vector2f(&_thr_sp(0)).length() > FLT_EPSILON) {
 
-		float thr_xy_max = fabsf(thr_sp(2)) * tanf(tilt_max);
+		/* Thrust setpoints in NE-direction is already provided. Only
+		 * scaling is required.
+		 */
+
+		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(tilt_max);
 		_thr_sp(0) *= thr_xy_max;
 		_thr_sp(1) *= thr_xy_max;
 
+	} else {
+
+		/* PID for NE-direction */
+		Vector2f thrust_desired_NE;
+		thrust_desired_NE(0) = Pv(0) * vel_err(0) + Dv(0) * _vel_dot(0) + _thr_int(0);
+		thrust_desired_NE(1) = Pv(1) * vel_err(1) + Dv(1) * _vel_dot(1) + _thr_int(1);
+
+		/* Get maximum allowed thrust in NE based on tilt and excess thrust */
+		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(tilt_max);
+		float thrust_max_NE = sqrtf(_ThrustLimit.max * _ThrustLimit.max - fabsf(_thr_sp(2) * fabsf(_thr_sp(2))));
+		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
+
+		/* Get the direction of (r-y) in NE-direction */
+		float direction_NE = Vector2f(&vel_err(0)) * Vector2f(&_vel_sp(0));
+
+		/* Apply Anti-Windup in NE-direction */
+		bool stop_integral_NE = (thrust_desired_NE.length() >= thrust_max_NE && direction_NE >= 0.0f);
+
+		if (!stop_integral_NE) {
+			_thr_int(0) += vel_err(0) * Iv(0) * dt;
+			_thr_int(1) += vel_err(1) * Iv(1) * dt;
+		}
+
+		/* Saturate thrust in NE-direction */
+		_thr_sp(0) = thrust_desired_NE(0);
+		_thr_sp(1) = thrust_desired_NE(1);
+
+		if (thrust_desired_NE.length() > thrust_max_NE) {
+			_thr_sp(0) = thrust_desired_NE(0) / thrust_desired_NE.length() * thrust_max_NE;
+			_thr_sp(1) = thrust_desired_NE(1) / thrust_desired_NE.length() * thrust_max_NE;
+
+		}
 	}
-
-	_thr_sp += thr_sp;
-
-	/* Limit tilt with priority on z
-	 * For manual controlled mode excluding pure manual and rate control, maximum tilt is 90;
-	 * It is to note that pure manual and rate control will never enter _velocityController method. */
-	_thr_sp = ControlMath::constrainTilt(_thr_sp, tilt_max);
-
-
-	/* Constrain thrust set-point and update saturation flag */
-	/* To get (r-y) for horizontal direction, we look at the dot-product
-	 * for vel_err and _vel_sp. The sign of the dot product indicates
-	 * if (r-y) is greater or smaller than 0
-	 */
-	float dot_xy = matrix::Vector2f(&_vel_sp(0)) * matrix::Vector2f(&_vel(0));
-	float direction[2] = {dot_xy, -vel_err(2)}; // negative sign because of N-E-D
-	bool stop_I[2] = {false, false}; // stop integration for xy and z
-	ControlMath::constrainPIDu(_thr_sp, stop_I, _ThrLimit, direction);
-
-	/* Update integrals */
-	if (!stop_I[0]) {
-		_thr_int(0) += vel_err(0) * Iv(0) * dt;
-		_thr_int(1) += vel_err(1) * Iv(1) * dt;
-	}
-
-	if (!stop_I[1]) {
-		_thr_int(2) += vel_err(2) * Iv(2) * dt;
-	}
-
 
 }
 
@@ -293,10 +328,10 @@ void PositionControl::_setParams()
 	param_get(_Dvz_h, &Dv(2));
 
 	param_get(_VelMaxXY_h, &_VelMaxXY);
-	param_get(_VelMaxZup_h, &_VelMaxZ[0]);
-	param_get(_VelMaxZdown_h, &_VelMaxZ[1]);
+	param_get(_VelMaxZup_h, &_VelMaxZ.up);
+	param_get(_VelMaxZdown_h, &_VelMaxZ.down);
 
 	param_get(_ThrHover_h, &_ThrHover);
-	param_get(_ThrMax_h, &_ThrLimit[0]);
-	param_get(_ThrMin_h, &_ThrLimit[1]);
+	param_get(_ThrMax_h, &_ThrustLimit.max);
+	param_get(_ThrMin_h, &_ThrustLimit.min);
 }
