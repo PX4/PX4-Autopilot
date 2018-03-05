@@ -67,6 +67,7 @@ PositionControl::PositionControl()
 	_ThrMax_h = param_find("MPC_THR_MAX");
 	_ThrMinPosition_h = param_find("MPC_THR_MIN");
 	_ThrMinStab_h = param_find("MPC_MANTHR_MIN");
+	_parameter_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* Set parameter the very first time. */
 	_setParams();
