@@ -334,7 +334,7 @@ bool MulticopterLandDetector::_has_low_thrust()
 	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.3f;
 
 	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuators.control[3] <= sys_min_throttle;
+	return _actuators.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
 }
 
 bool MulticopterLandDetector::_has_minimal_thrust()
@@ -348,7 +348,7 @@ bool MulticopterLandDetector::_has_minimal_thrust()
 	}
 
 	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuators.control[3] <= sys_min_throttle;
+	return _actuators.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
 }
 
 } // namespace land_detector
