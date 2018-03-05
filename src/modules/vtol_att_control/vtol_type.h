@@ -45,6 +45,7 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
@@ -182,9 +183,16 @@ protected:
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
+
 	hrt_abstime _trans_finished_ts = 0;
+
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
+
+	struct pwm_output_values _max_mc_pwm_values {};
+
+	bool enable_mc_motors();
+	bool disable_mc_motors();
 
 };
 

@@ -111,7 +111,7 @@ private:
 	/**
 	 * Return a bitmap of channels that should be turned off in fixed wing mode.
 	 */
-	int get_motor_off_channels(const int channels);
+	uint32_t get_motor_off_channels(const int channels);
 
 	/**
 	 * Return true if the motor channel is off in fixed wing mode.

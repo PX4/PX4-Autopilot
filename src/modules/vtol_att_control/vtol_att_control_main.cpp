@@ -595,9 +595,6 @@ void VtolAttitudeControl::task_main()
 
 	parameters_update();  // initialize parameter cache
 
-	// make sure we start with idle in mc mode
-	_vtol_type->set_idle_mc();
-
 	/* wakeup source*/
 	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd     = _actuator_inputs_mc;
