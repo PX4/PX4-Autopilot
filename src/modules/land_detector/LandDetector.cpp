@@ -101,12 +101,16 @@ void LandDetector::_cycle()
 	_check_params(false);
 	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	_update_topics();
-	_update_state();
 
-	const bool landDetected = (_state == LandDetectionState::LANDED);
-	const bool freefallDetected = (_state == LandDetectionState::FREEFALL);
-	const bool maybe_landedDetected = (_state == LandDetectionState::MAYBE_LANDED);
-	const bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
+	_freefall_hysteresis.update(_get_freefall_state());
+	_landed_hysteresis.update(_get_landed_state());
+	_maybe_landed_hysteresis.update(_get_maybe_landed_state());
+	_ground_contact_hysteresis.update(_get_ground_contact_state());
+
+	const bool landDetected = _landed_hysteresis.get_state();
+	const bool freefallDetected = _freefall_hysteresis.get_state();
+	const bool maybe_landedDetected = _maybe_landed_hysteresis.get_state();
+	const bool ground_contactDetected = _ground_contact_hysteresis.get_state();
 	const float alt_max = _get_max_altitude();
 
 	const hrt_abstime now = hrt_absolute_time();
@@ -180,32 +184,6 @@ void LandDetector::_check_params(const bool force)
 		_total_flight_time = ((uint64_t)flight_time) << 32;
 		param_get(_p_total_flight_time_low, (int32_t *)&flight_time);
 		_total_flight_time |= flight_time;
-	}
-}
-
-void LandDetector::_update_state()
-{
-	/* when we are landed we also have ground contact for sure but only one output state can be true at a particular time
-	 * with higher priority for landed */
-	_freefall_hysteresis.update(_get_freefall_state());
-	_landed_hysteresis.update(_get_landed_state());
-	_maybe_landed_hysteresis.update(_get_maybe_landed_state());
-	_ground_contact_hysteresis.update(_get_ground_contact_state());
-
-	if (_freefall_hysteresis.get_state()) {
-		_state = LandDetectionState::FREEFALL;
-
-	} else if (_landed_hysteresis.get_state()) {
-		_state = LandDetectionState::LANDED;
-
-	} else if (_maybe_landed_hysteresis.get_state()) {
-		_state = LandDetectionState::MAYBE_LANDED;
-
-	} else if (_ground_contact_hysteresis.get_state()) {
-		_state = LandDetectionState::GROUND_CONTACT;
-
-	} else {
-		_state = LandDetectionState::FLYING;
 	}
 }
 
