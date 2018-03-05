@@ -165,7 +165,6 @@ static int32_t posctl_nav_loss_gain = 10; /**< the rate at which the probation d
 
 // Probation times for position and velocity validity checks to pass if failed
 static uint64_t gpos_probation_time_us = POSVEL_PROBATION_MIN;
-static uint64_t gvel_probation_time_us = POSVEL_PROBATION_MIN;
 static uint64_t lpos_probation_time_us = POSVEL_PROBATION_MIN;
 static uint64_t lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
@@ -193,7 +192,6 @@ static float evh_threshold = 1.0f;	// Horizontal velocity error threshold (m)
 static hrt_abstime last_lpos_fail_time_us = 0;	// Last time that the local position validity recovery check failed (usec)
 static hrt_abstime last_gpos_fail_time_us = 0;	// Last time that the global position validity recovery check failed (usec)
 static hrt_abstime last_lvel_fail_time_us = 0;	// Last time that the local velocity validity recovery check failed (usec)
-static hrt_abstime last_gvel_fail_time_us = 0;	// Last time that the global velocity validity recovery check failed (usec)
 
 static hrt_abstime gpos_last_update_time_us = 0; // last time a global position update was received (usec)
 
@@ -1332,7 +1330,6 @@ Commander::run()
 
 	/* Set position and velocity validty to false */
 	status_flags.condition_global_position_valid = false;
-	status_flags.condition_global_velocity_valid = false;
 	status_flags.condition_local_position_valid = false;
 	status_flags.condition_local_velocity_valid = false;
 	status_flags.condition_local_altitude_valid = false;
@@ -1510,7 +1507,6 @@ Commander::run()
 	last_lpos_fail_time_us = commander_boot_timestamp;
 	last_gpos_fail_time_us = commander_boot_timestamp;
 	last_lvel_fail_time_us = commander_boot_timestamp;
-	last_gvel_fail_time_us = commander_boot_timestamp;
 
 	// Run preflight check
 	int32_t rc_in_off = 0;
@@ -1967,7 +1963,6 @@ Commander::run()
 		// This is necessary because the global position message is by definition valid if published.
 		if ((hrt_absolute_time() - gpos_last_update_time_us) > 1000000) {
 			status_flags.condition_global_position_valid = false;
-			status_flags.condition_global_velocity_valid = false;
 		}
 
 		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
@@ -2021,11 +2016,9 @@ Commander::run()
 				// If nav is failed, then declare local position and velocity as invalid
 				if (nav_test_failed) {
 					status_flags.condition_global_position_valid = false;
-					status_flags.condition_global_velocity_valid = false;
 				} else {
 					// use global position message to determine validity
 					check_posvel_validity(true, global_position.eph, eph_threshold, global_position.timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
-					check_posvel_validity(true, global_position.evh, evh_threshold, global_position.timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, &status_changed);
 				}
 			}
 		}
@@ -2072,7 +2065,6 @@ Commander::run()
 						// This is a larger value to give the vehicle time to complete a failsafe landing
 						// if faulty sensors cause loss of navigation shortly after takeoff.
 						gpos_probation_time_us = posctl_nav_loss_prob;
-						gvel_probation_time_us = posctl_nav_loss_prob;
 						lpos_probation_time_us = posctl_nav_loss_prob;
 						lvel_probation_time_us = posctl_nav_loss_prob;
 					}
@@ -3614,13 +3606,11 @@ reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_local_
 {
 	// reset all the check probation times back to the minimum value
 	gpos_probation_time_us = POSVEL_PROBATION_MIN;
-	gvel_probation_time_us = POSVEL_PROBATION_MIN;
 	lpos_probation_time_us = POSVEL_PROBATION_MIN;
 	lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 	// recheck validity
 	check_posvel_validity(true, global_position->eph, eph_threshold, global_position->timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, changed);
-	check_posvel_validity(true, global_position->evh, evh_threshold, global_position->timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, changed);
 	check_posvel_validity(local_position->xy_valid, local_position->eph, eph_threshold, local_position->timestamp, &last_lpos_fail_time_us, &lpos_probation_time_us, &status_flags.condition_local_position_valid, changed);
 	check_posvel_validity(local_position->v_xy_valid, local_position->evh, evh_threshold, local_position->timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, changed);
 }
