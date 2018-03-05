@@ -199,8 +199,6 @@ FixedwingAttitudeControl::parameters_update()
 	_pitch_ctrl.set_k_i(_parameters.p_i);
 	_pitch_ctrl.set_k_ff(_parameters.p_ff);
 	_pitch_ctrl.set_integrator_max(_parameters.p_integrator_max);
-	_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
-	_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
 
 	/* roll control parameters */
 	_roll_ctrl.set_time_constant(_parameters.r_tc);
@@ -208,14 +206,12 @@ FixedwingAttitudeControl::parameters_update()
 	_roll_ctrl.set_k_i(_parameters.r_i);
 	_roll_ctrl.set_k_ff(_parameters.r_ff);
 	_roll_ctrl.set_integrator_max(_parameters.r_integrator_max);
-	_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
 
 	/* yaw control parameters */
 	_yaw_ctrl.set_k_p(_parameters.y_p);
 	_yaw_ctrl.set_k_i(_parameters.y_i);
 	_yaw_ctrl.set_k_ff(_parameters.y_ff);
 	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
-	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	/* wheel control parameters */
 	_wheel_ctrl.set_k_p(_parameters.w_p);
@@ -637,6 +633,24 @@ void FixedwingAttitudeControl::run()
 				control_input.lock_integrator = lock_integrator;
 				control_input.groundspeed = groundspeed;
 				control_input.groundspeed_scaler = groundspeed_scaler;
+
+				/* reset body angular rate limits on mode change */
+				if ((_vcontrol_mode.flag_control_attitude_enabled != _flag_control_attitude_enabled_last) || params_updated) {
+					if (_vcontrol_mode.flag_control_attitude_enabled) {
+						_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
+						_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
+						_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
+						_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
+
+					} else {
+						_roll_ctrl.set_max_rate(_parameters.acro_max_x_rate_rad);
+						_pitch_ctrl.set_max_rate_pos(_parameters.acro_max_y_rate_rad);
+						_pitch_ctrl.set_max_rate_neg(_parameters.acro_max_y_rate_rad);
+						_yaw_ctrl.set_max_rate(_parameters.acro_max_z_rate_rad);
+					}
+				}
+
+				_flag_control_attitude_enabled_last = _vcontrol_mode.flag_control_attitude_enabled;
 
 				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
