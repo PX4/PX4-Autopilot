@@ -47,7 +47,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <poll.h>
 #include <termios.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -340,11 +339,13 @@ Syslink::task_main()
 	update_params(true);
 
 	while (_task_running) {
-		int poll_ret = px4_poll(fds, 2, 1000);
+		int poll_ret = px4_poll(fds, 2, 2);
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
-			/* this means none of our providers is giving us data */
+			/* timeout: this means none of our providers is giving us data */
+			send_queued_raw_message();
+
 		} else if (poll_ret < 0) {
 			/* this is seriously bad - should be an emergency */
 			if (error_counter < 10 || error_counter % 50 == 0) {
