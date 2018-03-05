@@ -71,25 +71,7 @@
 namespace land_detector
 {
 
-MulticopterLandDetector::MulticopterLandDetector() :
-	_paramHandle(),
-	_params(),
-	_vehicleLocalPositionSub(-1),
-	_vehicleLocalPositionSetpointSub(-1),
-	_actuatorsSub(-1),
-	_attitudeSub(-1),
-	_sensor_bias_sub(-1),
-	_vehicle_control_mode_sub(-1),
-	_battery_sub(-1),
-	_vehicleLocalPosition{},
-	_vehicleLocalPositionSetpoint{},
-	_actuators{},
-	_vehicleAttitude{},
-	_sensors{},
-	_control_mode{},
-	_battery{},
-	_min_trust_start(0),
-	_landed_time(0)
+MulticopterLandDetector::MulticopterLandDetector()
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
