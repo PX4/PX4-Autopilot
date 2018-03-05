@@ -169,7 +169,8 @@ public:
 		MAVLINK_MODE_OSD,
 		MAVLINK_MODE_MAGIC,
 		MAVLINK_MODE_CONFIG,
-		MAVLINK_MODE_IRIDIUM
+		MAVLINK_MODE_IRIDIUM,
+		MAVLINK_MODE_MINIMAL
 	};
 
 	enum BROADCAST_MODE {
@@ -201,12 +202,14 @@ public:
 		case MAVLINK_MODE_IRIDIUM:
 			return "Iridium";
 
+		case MAVLINK_MODE_MINIMAL:
+			return "Minimal";
+
 		default:
 			return "Unknown";
 		}
 	}
 
-	void			set_mode(enum MAVLINK_MODE);
 	enum MAVLINK_MODE	get_mode() { return _mode; }
 
 	bool			get_hil_enabled() { return _hil_enabled; }

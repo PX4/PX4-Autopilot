@@ -27,6 +27,7 @@ pipeline {
                       sh "make sizes"
                       sh "ccache -s"
                       archiveArtifacts(artifacts: 'build/*/*.px4', fingerprint: true)
+                      archiveArtifacts(artifacts: 'build/*/*.elf', fingerprint: true)
                     }
                   }
                 }
@@ -54,6 +55,7 @@ pipeline {
                     sh "make sizes"
                     sh "ccache -s"
                     archiveArtifacts(artifacts: 'build/*/*.px4', fingerprint: true)
+                    archiveArtifacts(artifacts: 'build/*/*.elf', fingerprint: true)
                   }
                 }
               }
@@ -79,6 +81,7 @@ pipeline {
                       sh "make sizes"
                       sh "ccache -s"
                       archiveArtifacts(artifacts: 'build/*/*.px4', fingerprint: true)
+                      archiveArtifacts(artifacts: 'build/*/*.elf', fingerprint: true)
                     }
                   }
                 }
