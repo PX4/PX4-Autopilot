@@ -282,9 +282,11 @@ controls_tick()
 
 	perf_end(c_gather_ppm);
 
+	bool dsm_updated = false, st24_updated = false, sumd_updated = false;
+
 	if (!((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS) || (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_PPM))) {
 		perf_begin(c_gather_dsm);
-		bool dsm_updated, st24_updated, sumd_updated;
+
 		(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
 
 		if (dsm_updated) {
