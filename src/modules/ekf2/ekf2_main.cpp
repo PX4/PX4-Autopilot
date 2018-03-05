@@ -1048,8 +1048,6 @@ void Ekf2::run()
 				global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
 				global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
 
-				global_pos.pos_d_deriv = lpos.z_deriv; // vertical position time derivative, m/s
-
 				global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
 
 				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);

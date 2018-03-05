@@ -721,9 +721,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().vel_e = xLP(X_vy);
 		_pub_gpos.get().vel_d = xLP(X_vz);
 
-		// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
-		_pub_gpos.get().pos_d_deriv = xLP(X_vz);
-
 		_pub_gpos.get().yaw = _eul(2);
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
