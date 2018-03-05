@@ -295,7 +295,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_rates_sp.roll = _manual.y * _parameters.acro_max_x_rate_rad;
 					_rates_sp.pitch = -_manual.x * _parameters.acro_max_y_rate_rad;
 					_rates_sp.yaw = _manual.r * _parameters.acro_max_z_rate_rad;
-                    _rates_sp.thrust = _manual.z;
+					_rates_sp.thrust = _manual.z;
 
 					if (_rate_sp_pub != nullptr) {
 						/* publish the attitude rates setpoint */
@@ -391,7 +391,7 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 
 void FixedwingAttitudeControl::run()
 {
-    static int k = 0;
+	static int k = 0;
 	/*
 	 * do subscriptions
 	 */
@@ -639,7 +639,7 @@ void FixedwingAttitudeControl::run()
 				control_input.groundspeed = groundspeed;
 				control_input.groundspeed_scaler = groundspeed_scaler;
 
-                /* Run attitude controllers */
+				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 					if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
 						_roll_ctrl.control_attitude(control_input);
