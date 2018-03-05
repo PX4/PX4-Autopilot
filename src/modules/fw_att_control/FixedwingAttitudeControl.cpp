@@ -295,7 +295,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_rates_sp.roll = _manual.y * _parameters.acro_max_x_rate_rad;
 					_rates_sp.pitch = -_manual.x * _parameters.acro_max_y_rate_rad;
 					_rates_sp.yaw = _manual.r * _parameters.acro_max_z_rate_rad;
-					_rates_sp.thrust = _manual.z;
+                    _rates_sp.thrust = _manual.z;
 
 					if (_rate_sp_pub != nullptr) {
 						/* publish the attitude rates setpoint */
@@ -391,6 +391,7 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 
 void FixedwingAttitudeControl::run()
 {
+    static int k = 0;
 	/*
 	 * do subscriptions
 	 */
@@ -639,6 +640,10 @@ void FixedwingAttitudeControl::run()
 				control_input.groundspeed_scaler = groundspeed_scaler;
 
 				/* Run attitude controllers */
+                if(k++%1000 == 0){
+                    PX4_WARN("roll_sp %f, pitch_sp %f, thrust %f", (double)roll_sp, (double)pitch_sp, (double)throttle_sp);
+                }
+
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 					if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
 						_roll_ctrl.control_attitude(control_input);
@@ -650,6 +655,7 @@ void FixedwingAttitudeControl::run()
 						control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();
 						control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
 						control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
+
 
 						/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 						float roll_u = _roll_ctrl.control_euler_rate(control_input);
@@ -678,6 +684,11 @@ void FixedwingAttitudeControl::run()
 						} else {
 							yaw_u = _yaw_ctrl.control_euler_rate(control_input);
 						}
+
+                        if(k%1000 == 0){
+                            PX4_WARN("yaw_u %f pitch_u %f roll_u %f", (double)yaw_u, (double)pitch_u, (double)roll_u);
+                        }
+
 
 						_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 								_parameters.trim_yaw;

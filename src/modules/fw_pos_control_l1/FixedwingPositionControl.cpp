@@ -628,6 +628,7 @@ bool
 FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
 		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
+    static int i = 0;
 	float dt = 0.01f;
 
 	if (_control_position_last_called > 0) {
@@ -685,8 +686,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		/* reset integrators */
 		_tecs.reset_state();
 	}
+    i++;
+    if(i%200 == 0)
+    {
+        PX4_WARN("HERE2 %d %d", _control_mode.flag_control_altitude_enabled, _control_mode.flag_control_rates_enabled);
+    }
+    if (_control_mode.flag_control_auto_enabled && pos_sp_curr.valid) {
 
-	if (_control_mode.flag_control_auto_enabled && pos_sp_curr.valid) {
 		/* AUTONOMOUS FLIGHT */
 
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -1193,7 +1199,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		}
 
 	} else if (_control_mode.flag_control_velocity_enabled &&
-		   _control_mode.flag_control_altitude_enabled) {
+           _control_mode.flag_control_altitude_enabled &&
+           !_control_mode.flag_control_rates_enabled) {
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
 		   heading is set to a distant waypoint */
 
@@ -1303,52 +1310,101 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 			_att_sp.yaw_body = 0;
 		}
 
-	} else if (_control_mode.flag_control_altitude_enabled) {
-		/* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
+    } else if (_control_mode.flag_control_altitude_enabled
+               && _control_mode.flag_control_rates_enabled) {
+        /* Offboard altitude mode, control on yaw rate with fixed altitude */
 
-		if (_control_mode_current != FW_POSCTRL_MODE_POSITION && _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
-			/* Need to init because last loop iteration was in a different mode */
-			_hold_alt = _global_pos.alt;
-		}
+        if(i%200 == 0)
+        {
+            PX4_WARN("alt %f ", (double)pos_sp_curr.z);
+        }
 
-		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
+        _hold_alt = _global_pos.alt;
+        float airspeed = _parameters.airspeed_trim;
+        float throttle = _parameters.throttle_cruise;
 
-		/* Get demanded airspeed */
-		float altctrl_airspeed = get_demanded_airspeed();
+        if(PX4_ISFINITE(pos_sp_curr.cruising_speed) &&
+           pos_sp_curr.cruising_speed > 0.1f) {
+            airspeed = pos_sp_curr.cruising_speed;
+        }
 
-		/* update desired altitude based on user pitch stick input */
-		bool climbout_requested = update_desired_altitude(dt);
+        if (PX4_ISFINITE(pos_sp_curr.cruising_throttle) &&
+            pos_sp_curr.cruising_throttle > 0.01f) {
 
-		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground
-		* and set limit to pitch angle to prevent stearing into ground
-		*/
-		float pitch_limit_min{0.0f};
-		do_takeoff_help(&_hold_alt, &pitch_limit_min);
+            throttle = pos_sp_curr.cruising_throttle;
+        }
 
-		/* throttle limiting */
-		throttle_max = _parameters.throttle_max;
+        float speed = calculate_target_airspeed(airspeed);
+        tecs_update_pitch_throttle(pos_sp_curr.z,
+                       speed,
+                       radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
+                       radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
+                       _parameters.throttle_min,
+                       _parameters.throttle_max,
+                       throttle,
+                       false,
+                       radians(_parameters.pitch_limit_min));
 
-		if (_vehicle_land_detected.landed && (fabsf(_manual.z) < THROTTLE_THRESH)) {
-			throttle_max = 0.0f;
-		}
+       float roll_sp = atan2(pos_sp_curr.yawspeed * speed, 9.81f);
+        _att_sp.roll_body = math::constrain(roll_sp, -_parameters.roll_limit, _parameters.roll_limit);
 
-		tecs_update_pitch_throttle(_hold_alt,
-					   altctrl_airspeed,
-					   radians(_parameters.pitch_limit_min),
-					   radians(_parameters.pitch_limit_max),
-					   _parameters.throttle_min,
-					   throttle_max,
-					   _parameters.throttle_cruise,
-					   climbout_requested,
-					   climbout_requested ? radians(10.0f) : pitch_limit_min,
-					   tecs_status_s::TECS_MODE_NORMAL);
 
-		_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
-		_att_sp.yaw_body = 0;
+    } else if (_control_mode.flag_control_altitude_enabled) {
+        /* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
+        if (_control_mode_current != FW_POSCTRL_MODE_OFFBOARD_ALTITUDE &&
+                _control_mode_current != FW_POSCTRL_MODE_POSITION &&
+                _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
+            /* Need to init because last loop iteration was in a different mode */
+            _hold_alt = _global_pos.alt;
+        }
+
+        if(i%200 == 0)
+        {
+            PX4_WARN("HERE4");
+        }
+
+        _control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
+
+        /* Get demanded airspeed */
+        float altctrl_airspeed = get_demanded_airspeed();
+
+        /* update desired altitude based on user pitch stick input */
+        bool climbout_requested = update_desired_altitude(dt);
+
+        /* if we assume that user is taking off then help by demanding altitude setpoint well above ground
+        * and set limit to pitch angle to prevent stearing into ground
+        */
+        float pitch_limit_min{0.0f};
+        do_takeoff_help(&_hold_alt, &pitch_limit_min);
+
+        /* throttle limiting */
+        throttle_max = _parameters.throttle_max;
+
+        if (_vehicle_land_detected.landed && (fabsf(_manual.z) < THROTTLE_THRESH)) {
+            throttle_max = 0.0f;
+        }
+
+        tecs_update_pitch_throttle(_hold_alt,
+                       altctrl_airspeed,
+                       radians(_parameters.pitch_limit_min),
+                       radians(_parameters.pitch_limit_max),
+                       _parameters.throttle_min,
+                       throttle_max,
+                       _parameters.throttle_cruise,
+                       climbout_requested,
+                       climbout_requested ? radians(10.0f) : pitch_limit_min,
+                       tecs_status_s::TECS_MODE_NORMAL);
+
+        _att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
+        _att_sp.yaw_body = 0;
 
 	} else {
-		_control_mode_current = FW_POSCTRL_MODE_OTHER;
+        _control_mode_current = FW_POSCTRL_MODE_OTHER;
 
+        if(i%200 == 0)
+        {
+            PX4_WARN("HERE5");
+        }
 		/* do not publish the setpoint */
 		setpoint = false;
 
@@ -1537,7 +1593,7 @@ FixedwingPositionControl::run()
 
 			/* update parameters from storage */
 			parameters_update();
-		}
+        }
 
 		/* only run controller if position changed */
 		if ((fds[0].revents & POLLIN) != 0) {
@@ -1584,7 +1640,7 @@ FixedwingPositionControl::run()
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
 			 * publish setpoint.
-			 */
+             */
 			if (control_position(curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current)) {
 				_att_sp.timestamp = hrt_absolute_time();
 
