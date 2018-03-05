@@ -2236,7 +2236,11 @@ Mavlink::task_main(int argc, char *argv[])
 				msg.target_component = command_ack.target_component;
 				current_command_ack = command_ack.command;
 
+				// always transmit the acknowledge
+				bool _transmitting_enabled_temp = _transmitting_enabled;
+				_transmitting_enabled = true;
 				mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+				_transmitting_enabled = _transmitting_enabled_temp;
 			}
 		}
 
