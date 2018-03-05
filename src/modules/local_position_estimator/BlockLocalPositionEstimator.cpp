@@ -729,9 +729,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().terrain_alt_valid = _estimatorInitialized & EST_TZ;
 		_pub_gpos.get().dead_reckoning = !(_estimatorInitialized & EST_XY);
 		_pub_gpos.update();
-		// TODO provide calculated values for these
-		_pub_gpos.get().evh = 0.0f;
-		_pub_gpos.get().evv = 0.0f;
 	}
 }
 
