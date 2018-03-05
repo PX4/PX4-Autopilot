@@ -1397,10 +1397,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.eph = eph;
 				global_pos.epv = epv;
 
-				// TODO provide calculated values for these
-				global_pos.evh = 0.0f;
-				global_pos.evv = 0.0f;
-
 				if (terrain_estimator.is_valid()) {
 					global_pos.terrain_alt = global_pos.alt - terrain_estimator.get_distance_to_ground();
 					global_pos.terrain_alt_valid = true;

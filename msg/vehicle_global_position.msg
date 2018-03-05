@@ -21,8 +21,6 @@ float32 yaw 			# Euler yaw angle relative to NED earth-fixed frame, -PI..+PI, (r
 
 float32 eph			# Standard deviation of horizontal position error, (metres)
 float32 epv			# Standard deviation of vertical position error, (metres)
-float32 evh			# Standard deviation of horizontal velocity error, (metres/sec)
-float32 evv			# Standard deviation of horizontal velocity error, (metres/sec)
 
 float32 terrain_alt		# Terrain altitude WGS84, (metres)
 bool terrain_alt_valid		# Terrain altitude estimate is valid
