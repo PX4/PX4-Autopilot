@@ -687,6 +687,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	}
 
 	if (_control_mode.flag_control_auto_enabled && pos_sp_curr.valid) {
+
 		/* AUTONOMOUS FLIGHT */
 
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -1193,7 +1194,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		}
 
 	} else if (_control_mode.flag_control_velocity_enabled &&
-		   _control_mode.flag_control_altitude_enabled) {
+		   _control_mode.flag_control_altitude_enabled &&
+		   !_control_mode.flag_control_offboard_enabled) {
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
 		   heading is set to a distant waypoint */
 
@@ -1303,10 +1305,47 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 			_att_sp.yaw_body = 0;
 		}
 
+	} else if (_control_mode.flag_control_altitude_enabled
+		   && _control_mode.flag_control_offboard_enabled
+		   && pos_sp_curr.valid) {
+		/* Offboard altitude mode, control on yaw rate with fixed altitude */
+		_control_mode_current = FW_POSCTRL_MODE_OFFBOARD_ALTITUDE;
+
+		_hold_alt = _global_pos.alt;
+		float airspeed = _parameters.airspeed_trim;
+		float throttle = _parameters.throttle_cruise;
+
+		if (PX4_ISFINITE(pos_sp_curr.cruising_speed) &&
+		    pos_sp_curr.cruising_speed > 0.1f) {
+			airspeed = pos_sp_curr.cruising_speed;
+		}
+
+		if (PX4_ISFINITE(pos_sp_curr.cruising_throttle) &&
+		    pos_sp_curr.cruising_throttle > 0.01f) {
+
+			throttle = pos_sp_curr.cruising_throttle;
+		}
+
+		float speed = calculate_target_airspeed(airspeed);
+		tecs_update_pitch_throttle(pos_sp_curr.z,
+					   speed,
+					   radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
+					   radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
+					   _parameters.throttle_min,
+					   _parameters.throttle_max,
+					   throttle,
+					   false,
+					   radians(_parameters.pitch_limit_min));
+
+		// Calculate the bank angle needed to achieve the yaw rate
+		float roll_sp = atan2(pos_sp_curr.yawspeed * speed, 9.81f);
+		_att_sp.roll_body = math::constrain(roll_sp, -_parameters.roll_limit, _parameters.roll_limit);
+
 	} else if (_control_mode.flag_control_altitude_enabled) {
 		/* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
-
-		if (_control_mode_current != FW_POSCTRL_MODE_POSITION && _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
+		if (_control_mode_current != FW_POSCTRL_MODE_OFFBOARD_ALTITUDE &&
+		    _control_mode_current != FW_POSCTRL_MODE_POSITION &&
+		    _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
 		}
@@ -1584,7 +1623,7 @@ FixedwingPositionControl::run()
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
 			 * publish setpoint.
-			 */
+			*/
 			if (control_position(curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current)) {
 				_att_sp.timestamp = hrt_absolute_time();
 
