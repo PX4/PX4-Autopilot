@@ -137,6 +137,8 @@ private:
 
 	float _battery_scale{1.0f};
 
+	bool _flag_control_attitude_enabled_last{false};
+
 	struct {
 		float p_tc;
 		float p_p;
