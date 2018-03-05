@@ -391,7 +391,6 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 
 void FixedwingAttitudeControl::run()
 {
-	static int k = 0;
 	/*
 	 * do subscriptions
 	 */

@@ -628,7 +628,6 @@ bool
 FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
 		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	static int i = 0;
 	float dt = 0.01f;
 
 	if (_control_position_last_called > 0) {
