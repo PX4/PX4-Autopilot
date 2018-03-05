@@ -58,7 +58,7 @@ set(config_module_list
 	drivers/distance_sensor/srf02_i2c
 	drivers/distance_sensor/teraranger
 	drivers/distance_sensor/tfmini
-	drivers/distance_sensor/ulanding
+	#drivers/distance_sensor/ulanding
 	modules/sensors
 
 	#
