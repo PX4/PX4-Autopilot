@@ -104,7 +104,7 @@ Tiltrotor::parameters_update()
 	_params_tiltrotor.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 }
 
-int Tiltrotor::get_motor_off_channels(int channels)
+uint32_t Tiltrotor::get_motor_off_channels(int channels)
 {
 	int channel_bitmap = 0;
 
@@ -251,8 +251,7 @@ void Tiltrotor::update_mc_state()
 
 	// set idle speed for rotary wing mode
 	if (!flag_idle_mc) {
-		set_idle_mc();
-		flag_idle_mc = true;
+		flag_idle_mc = enable_mc_motors();
 	}
 }
 
@@ -270,8 +269,7 @@ void Tiltrotor::update_fw_state()
 
 	// adjust idle for fixed wing flight
 	if (flag_idle_mc) {
-		set_idle_fw();
-		flag_idle_mc = false;
+		flag_idle_mc = !disable_mc_motors();
 	}
 }
 
@@ -347,8 +345,7 @@ void Tiltrotor::update_transition_state()
 		}
 
 		if (!flag_idle_mc) {
-			set_idle_mc();
-			flag_idle_mc = true;
+			flag_idle_mc = enable_mc_motors();
 		}
 
 		// tilt rotors back
@@ -447,8 +444,6 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state, int value)
 		break;
 	}
 
-	int ret;
-	unsigned servo_count;
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = px4_open(dev, 0);
 
@@ -456,9 +451,7 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state, int value)
 		PX4_WARN("can't open %s", dev);
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-	struct pwm_output_values pwm_max_values;
-	memset(&pwm_max_values, 0, sizeof(pwm_max_values));
+	struct pwm_output_values pwm_max_values = {};
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
 		if (is_motor_off_channel(i)) {
@@ -471,10 +464,10 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state, int value)
 		pwm_max_values.channel_count = _params->vtol_motor_count;
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_max_values);
+	int ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_max_values);
 
 	if (ret != OK) {
-		PX4_WARN("failed setting max values");
+		PX4_ERR("failed setting max values");
 	}
 
 	px4_close(fd);

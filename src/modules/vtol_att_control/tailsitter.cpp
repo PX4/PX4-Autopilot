@@ -214,8 +214,7 @@ void Tailsitter::update_transition_state()
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
 
 		if (!flag_idle_mc) {
-			set_idle_mc();
-			flag_idle_mc = true;
+			flag_idle_mc = enable_mc_motors();
 		}
 
 		// create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value
@@ -261,8 +260,7 @@ void Tailsitter::update_mc_state()
 
 	// set idle speed for rotary wing mode
 	if (!flag_idle_mc) {
-		set_idle_mc();
-		flag_idle_mc = true;
+		flag_idle_mc = enable_mc_motors();
 	}
 }
 
@@ -271,8 +269,7 @@ void Tailsitter::update_fw_state()
 	VtolType::update_fw_state();
 
 	if (flag_idle_mc) {
-		set_idle_fw();
-		flag_idle_mc = false;
+		flag_idle_mc = !disable_mc_motors();
 	}
 }
 
