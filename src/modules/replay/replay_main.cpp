@@ -352,14 +352,10 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 		if (topic_name == "sensor_combined") {
 			if (string(orb_meta->o_fields) == "uint64_t timestamp;float[3] gyro_rad;uint32_t gyro_integral_dt;"
 			    "int32_t accelerometer_timestamp_relative;float[3] accelerometer_m_s2;"
-			    "uint32_t accelerometer_integral_dt;int32_t magnetometer_timestamp_relative;"
-			    "float[3] magnetometer_ga;int32_t baro_timestamp_relative;float baro_alt_meter;"
-			    "float baro_temp_celcius;" &&
+			    "uint32_t accelerometer_integral_dt" &&
 			    file_format == "uint64_t timestamp;float[3] gyro_rad;float gyro_integral_dt;"
 			    "int32_t accelerometer_timestamp_relative;float[3] accelerometer_m_s2;"
-			    "float accelerometer_integral_dt;int32_t magnetometer_timestamp_relative;"
-			    "float[3] magnetometer_ga;int32_t baro_timestamp_relative;float baro_alt_meter;"
-			    "float baro_temp_celcius;") {
+			    "float accelerometer_integral_dt;") {
 				int gyro_integral_dt_offset_log;
 				int gyro_integral_dt_offset_intern;
 				int accelerometer_integral_dt_offset_log;
