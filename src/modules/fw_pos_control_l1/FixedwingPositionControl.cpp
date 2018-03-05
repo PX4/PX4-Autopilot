@@ -686,11 +686,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		/* reset integrators */
 		_tecs.reset_state();
 	}
-    i++;
-    if(i%200 == 0)
-    {
-        PX4_WARN("HERE2 %d %d", _control_mode.flag_control_altitude_enabled, _control_mode.flag_control_rates_enabled);
-    }
+
     if (_control_mode.flag_control_auto_enabled && pos_sp_curr.valid) {
 
 		/* AUTONOMOUS FLIGHT */
@@ -1200,7 +1196,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 	} else if (_control_mode.flag_control_velocity_enabled &&
            _control_mode.flag_control_altitude_enabled &&
-           !_control_mode.flag_control_rates_enabled) {
+           !_control_mode.flag_control_offboard_enabled) {
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
 		   heading is set to a distant waypoint */
 
@@ -1311,13 +1307,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		}
 
     } else if (_control_mode.flag_control_altitude_enabled
-               && _control_mode.flag_control_rates_enabled) {
+               && _control_mode.flag_control_offboard_enabled
+               && pos_sp_curr.valid) {
         /* Offboard altitude mode, control on yaw rate with fixed altitude */
-
-        if(i%200 == 0)
-        {
-            PX4_WARN("alt %f ", (double)pos_sp_curr.z);
-        }
+        _control_mode_current = FW_POSCTRL_MODE_OFFBOARD_ALTITUDE;
 
         _hold_alt = _global_pos.alt;
         float airspeed = _parameters.airspeed_trim;
@@ -1345,9 +1338,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
                        false,
                        radians(_parameters.pitch_limit_min));
 
+       // Calculate the bank angle needed to achieve the yaw rate
        float roll_sp = atan2(pos_sp_curr.yawspeed * speed, 9.81f);
         _att_sp.roll_body = math::constrain(roll_sp, -_parameters.roll_limit, _parameters.roll_limit);
-
 
     } else if (_control_mode.flag_control_altitude_enabled) {
         /* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
@@ -1356,11 +1349,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
                 _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
             /* Need to init because last loop iteration was in a different mode */
             _hold_alt = _global_pos.alt;
-        }
-
-        if(i%200 == 0)
-        {
-            PX4_WARN("HERE4");
         }
 
         _control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
@@ -1401,10 +1389,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	} else {
         _control_mode_current = FW_POSCTRL_MODE_OTHER;
 
-        if(i%200 == 0)
-        {
-            PX4_WARN("HERE5");
-        }
 		/* do not publish the setpoint */
 		setpoint = false;
 

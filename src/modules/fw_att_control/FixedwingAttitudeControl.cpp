@@ -639,11 +639,7 @@ void FixedwingAttitudeControl::run()
 				control_input.groundspeed = groundspeed;
 				control_input.groundspeed_scaler = groundspeed_scaler;
 
-				/* Run attitude controllers */
-                if(k++%1000 == 0){
-                    PX4_WARN("roll_sp %f, pitch_sp %f, thrust %f", (double)roll_sp, (double)pitch_sp, (double)throttle_sp);
-                }
-
+                /* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 					if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
 						_roll_ctrl.control_attitude(control_input);
@@ -684,11 +680,6 @@ void FixedwingAttitudeControl::run()
 						} else {
 							yaw_u = _yaw_ctrl.control_euler_rate(control_input);
 						}
-
-                        if(k%1000 == 0){
-                            PX4_WARN("yaw_u %f pitch_u %f roll_u %f", (double)yaw_u, (double)pitch_u, (double)roll_u);
-                        }
-
 
 						_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 								_parameters.trim_yaw;
