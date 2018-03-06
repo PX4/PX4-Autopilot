@@ -67,6 +67,8 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/trajectory_bezier.h>
+#include <uORB/topics/trajectory_waypoint.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -157,6 +159,7 @@ private:
 	void handle_message_logging_ack(mavlink_message_t *msg);
 	void handle_message_play_tune(mavlink_message_t *msg);
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
+	void handle_message_trajectory(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
@@ -232,6 +235,8 @@ private:
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _obstacle_distance_pub;
+	orb_advert_t _trajectory_waypoint_pub;
+	orb_advert_t _trajectory_bezier_pub;
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _follow_target_pub;
 	orb_advert_t _landing_target_pose_pub;
