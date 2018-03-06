@@ -1051,8 +1051,6 @@ void Ekf2::run()
 				global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
 
 				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
-				global_pos.evh = lpos.evh;
-				global_pos.evv = lpos.evv;
 
 				global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
 

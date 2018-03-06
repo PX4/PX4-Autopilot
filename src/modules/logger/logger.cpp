@@ -584,12 +584,6 @@ bool Logger::try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance)
 
 void Logger::add_default_topics()
 {
-#ifdef CONFIG_ARCH_BOARD_SITL
-	add_topic("vehicle_attitude_groundtruth", 10);
-	add_topic("vehicle_global_position_groundtruth", 100);
-	add_topic("vehicle_local_position_groundtruth", 100);
-#endif
-
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
@@ -634,6 +628,27 @@ void Logger::add_default_topics()
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
+
+#ifdef CONFIG_ARCH_BOARD_SITL
+	add_topic("actuator_armed");
+	add_topic("actuator_controls_virtual_fw");
+	add_topic("actuator_controls_virtual_mc");
+	add_topic("commander_state");
+	add_topic("fw_pos_ctrl_status");
+	add_topic("fw_virtual_attitude_setpoint");
+	add_topic("led_control");
+	add_topic("mc_virtual_attitude_setpoint");
+	add_topic("multirotor_motor_limits");
+	add_topic("offboard_control_mode");
+	add_topic("parameter_update");
+	add_topic("time_offset");
+	add_topic("tune_control");
+	add_topic("vehicle_attitude_groundtruth", 10);
+	add_topic("vehicle_command_ack");
+	add_topic("vehicle_global_position_groundtruth", 100);
+	add_topic("vehicle_local_position_groundtruth", 100);
+	add_topic("vehicle_roi");
+#endif
 }
 
 void Logger::add_high_rate_topics()
