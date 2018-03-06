@@ -722,7 +722,16 @@ Navigator::task_main()
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
-			reset_triplets();
+			// We don't reset the triplet if we just did an auto-takeoff and are now
+			// going to loiter. Otherwise, we lose the takeoff altitude and end up lower
+			// than where we wanted to go.
+			//
+			// FIXME: a better solution would be to add reset where they are needed and remove
+			//        this general reset here.
+			if (!(_navigation_mode == &_takeoff &&
+			      navigation_mode_new == &_loiter)) {
+				reset_triplets();
+			}
 		}
 
 		_navigation_mode = navigation_mode_new;
