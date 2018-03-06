@@ -437,6 +437,24 @@ then
 	fi
 fi
 
+if param compare SENS_EN_POZYX 2
+then
+	if pozyx start /dev/ttyS2
+	then
+	fi
+fi
+
+if param compare SENS_EN_POZYX 4
+then
+	# Serial 4 on FMUv2
+	if ver hwcmp PX4FMU_V2
+	then
+		if pozyx start /dev/ttyS6
+		then
+		fi
+	fi
+fi
+
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 20000
 sensors start
