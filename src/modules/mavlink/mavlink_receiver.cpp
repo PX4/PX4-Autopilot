@@ -1056,9 +1056,14 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 
 			actuator_controls.timestamp = hrt_absolute_time();
 			uint8_t control_group           = set_actuator_control_target.group_mlx;
-
+			static int8_t control_group_previous = -1;
 			/* Set duty cycles for the servos in actuator_controls_0 */
 			memcpy(actuator_controls.control, set_actuator_control_target.controls, 8 * sizeof(float));
+
+			/* Reset orb advertising when current control group is unequal to the previous control group */
+			if (!(control_group == control_group_previous)) {
+				_actuator_controls_pub = nullptr;
+			}
 
 			if (_actuator_controls_pub == nullptr) {
 				switch (control_group) {
@@ -1086,6 +1091,8 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 				default: break;
 				}
 			}
+
+			control_group_previous = (int8_t) control_group;
 		}
 	}
 
