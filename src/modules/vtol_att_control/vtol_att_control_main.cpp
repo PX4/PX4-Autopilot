@@ -59,7 +59,7 @@ VtolAttitudeControl *g_control;
 */
 VtolAttitudeControl::VtolAttitudeControl()
 {
-	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
+	_vtol_vehicle_status.vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_count = 0;
@@ -659,38 +659,18 @@ void VtolAttitudeControl::task_main()
 
 		// check in which mode we are in and call mode specific functions
 		if (_vtol_type->get_mode() == ROTARY_WING) {
-
 			mc_virtual_att_sp_poll();
-
-			// vehicle is in rotary wing mode
-			_vtol_vehicle_status.vtol_in_rw_mode = true;
-			_vtol_vehicle_status.vtol_in_trans_mode = false;
-
-			// got data from mc attitude controller
 			_vtol_type->update_mc_state();
 			fill_mc_att_rates_sp();
 
 		} else if (_vtol_type->get_mode() == FIXED_WING) {
-
 			fw_virtual_att_sp_poll();
-
-			// vehicle is in fw mode
-			_vtol_vehicle_status.vtol_in_rw_mode = false;
-			_vtol_vehicle_status.vtol_in_trans_mode = false;
-
 			_vtol_type->update_fw_state();
 			fill_fw_att_rates_sp();
 
 		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
-
 			mc_virtual_att_sp_poll();
 			fw_virtual_att_sp_poll();
-
-			// vehicle is doing a transition
-			_vtol_vehicle_status.vtol_in_trans_mode = true;
-			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
-			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == TRANSITION_TO_FW);
-
 			_vtol_type->update_transition_state();
 			fill_mc_att_rates_sp();
 		}
@@ -726,8 +706,8 @@ void VtolAttitudeControl::task_main()
 			}
 		}
 
-		/*Advertise/Publish vtol vehicle status*/
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
+		_vtol_vehicle_status.vtol_state = _vtol_type->get_mode();
 
 		if (_vtol_vehicle_status_pub != nullptr) {
 			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);

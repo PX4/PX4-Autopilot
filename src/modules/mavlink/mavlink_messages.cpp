@@ -3713,6 +3713,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_status_sub;
+	MavlinkOrbSubscription *_vtol_status_sub;
 	MavlinkOrbSubscription *_landed_sub;
 	MavlinkOrbSubscription *_pos_sp_triplet_sub;
 	MavlinkOrbSubscription *_control_mode_sub;
@@ -3725,6 +3726,7 @@ private:
 protected:
 	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_vtol_status_sub(_mavlink->add_orb_subscription(ORB_ID(vtol_vehicle_status))),
 		_landed_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected))),
 		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
 		_control_mode_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_control_mode))),
@@ -3736,26 +3738,16 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct vehicle_status_s status;
-		struct vehicle_land_detected_s land_detected;
+		vehicle_status_s status;
+		vehicle_land_detected_s land_detected;
 		bool updated = false;
 
 		if (_status_sub->update(&status)) {
 			updated = true;
+			vtol_vehicle_status_s vtol_status = {};
 
-			if (status.is_vtol) {
-				if (!status.in_transition_mode && status.is_rotary_wing) {
-					_msg.vtol_state = MAV_VTOL_STATE_MC;
-
-				} else if (!status.in_transition_mode) {
-					_msg.vtol_state = MAV_VTOL_STATE_FW;
-
-				} else if (status.in_transition_mode && status.in_transition_to_fw) {
-					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
-
-				} else if (status.in_transition_mode) {
-					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_MC;
-				}
+			if (status.is_vtol && _vtol_status_sub->update(&vtol_status)) {
+				_msg.vtol_state = vtol_status.vtol_state;
 			}
 		}
 

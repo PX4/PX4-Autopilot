@@ -83,28 +83,30 @@ using namespace DriverFramework;
 
 #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
 
-bool is_multirotor(const struct vehicle_status_s *current_status)
+bool is_multirotor(const vehicle_status_s &vstatus)
 {
-	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_TRICOPTER));
+	return ((vstatus.system_type == VEHICLE_TYPE_QUADROTOR) ||
+		(vstatus.system_type == VEHICLE_TYPE_HEXAROTOR) ||
+		(vstatus.system_type == VEHICLE_TYPE_OCTOROTOR) ||
+		(vstatus.system_type == VEHICLE_TYPE_TRICOPTER));
 }
 
-bool is_rotary_wing(const struct vehicle_status_s *current_status)
+bool is_rotary_wing(const vehicle_status_s &vstatus)
 {
-	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
-		   || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+	return is_multirotor(vstatus) ||
+	       (vstatus.system_type == VEHICLE_TYPE_HELICOPTER) ||
+	       (vstatus.system_type == VEHICLE_TYPE_COAXIAL);
 }
 
-bool is_vtol(const struct vehicle_status_s * current_status) {
-	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED2 ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED3 ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
+bool is_vtol(const vehicle_status_s &vstatus)
+{
+	return (vstatus.system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
+		vstatus.system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
+		vstatus.system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
+		vstatus.system_type == VEHICLE_TYPE_VTOL_RESERVED2 ||
+		vstatus.system_type == VEHICLE_TYPE_VTOL_RESERVED3 ||
+		vstatus.system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
+		vstatus.system_type == VEHICLE_TYPE_VTOL_RESERVED5);
 }
 
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
@@ -336,6 +338,7 @@ void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint
 	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
 }
 
-void rgbled_set_color_and_mode(uint8_t color, uint8_t mode){
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode)
+{
 	rgbled_set_color_and_mode(color, mode, 0, 0);
 }

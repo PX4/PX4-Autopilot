@@ -50,6 +50,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -65,7 +66,11 @@ class Commander : public control::SuperBlock, public ModuleBase<Commander>
 public:
 	Commander() :
 		SuperBlock(nullptr, "COM"),
-		_mission_result_sub(ORB_ID(mission_result), 0, 0, &getSubscriptions())
+		_param_datalink_loss_timeout(this, "DL_LOSS_T"),
+		_param_datalink_regain_timeout(this, "DL_REG_T"),
+		_param_takeoff_finished_action(this, "TAKEOFF_ACT"),
+		_mission_result_sub(ORB_ID(mission_result), 0, 0, &getSubscriptions()),
+		_offboard_control_mode_sub(ORB_ID(offboard_control_mode), 0, 0, &getSubscriptions())
 	{
 		updateParams();
 	}
@@ -89,8 +94,16 @@ public:
 
 private:
 
+	BlockParamInt	_param_datalink_loss_timeout;
+	BlockParamInt	_param_datalink_regain_timeout;
+
+	BlockParamInt	_param_takeoff_finished_action;
+
 	// Subscriptions
 	Subscription<mission_result_s> _mission_result_sub;
+	Subscription<offboard_control_mode_s> _offboard_control_mode_sub;
+
+	orb_advert_t _control_mode_pub{nullptr};
 
 	bool handle_command(vehicle_status_s *status, const safety_s *safety, vehicle_command_s *cmd,
 			    actuator_armed_s *armed, home_position_s *home, vehicle_global_position_s *global_pos,
@@ -101,7 +114,32 @@ private:
 				const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
 				bool set_alt_only_to_lpos_ref);
 
+	bool publish_control_mode(const vehicle_status_s &vstatus, const offboard_control_mode_s &offboard_control_mode);
+
 	void mission_init();
+
+	// system power
+	int _system_power_sub{-1};
+	void check_system_power(vehicle_status_flags_s& vehicle_status_flags, float& power_rail_voltage);
+
+	void check_mission(vehicle_status_s& vehicle_status, bool& status_changed);
+
+	// data link
+	int _telemetry_subs[ORB_MULTI_MAX_INSTANCES];
+	uint64_t _telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
+	uint64_t _telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
+	bool _telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES];
+	bool _telemetry_lost[ORB_MULTI_MAX_INSTANCES];
+	void check_data_link(vehicle_status_s& vehicle_status, bool& status_changed, bool& hotplug_timeout, bool checkAirspeed);
+
+	// engine failure detection
+	// TODO: move out of commander
+	int _actuator_controls_sub{-1};
+	float _ef_throttle_thres{1.0f};
+	float _ef_current2throttle_thres{0.0f};
+	float _ef_time_thres{1000.0f};
+	uint64_t _timestamp_engine_healthy{0}; /**< absolute time when engine was healty */
+	void check_engine_failure(vehicle_status_s& vehicle_status, bool& status_changed);
 
 };
 
