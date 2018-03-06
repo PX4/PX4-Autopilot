@@ -137,6 +137,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
 	_obstacle_distance_pub(nullptr),
+	_trajectory_waypoint_pub(nullptr),
+	_trajectory_bezier_pub(nullptr),
 	_land_detector_pub(nullptr),
 	_follow_target_pub(nullptr),
 	_landing_target_pose_pub(nullptr),
@@ -326,6 +328,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_OBSTACLE_DISTANCE:
 		handle_message_obstacle_distance(msg);
+		break;
+
+	case MAVLINK_MSG_ID_TRAJECTORY:
+		handle_message_trajectory(msg);
 		break;
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
@@ -1627,6 +1633,57 @@ MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(obstacle_distance), _obstacle_distance_pub, &obstacle_distance);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_trajectory(mavlink_message_t *msg)
+{
+	mavlink_trajectory_t trajectory;
+	mavlink_msg_trajectory_decode(msg, &trajectory);
+
+	if (trajectory.type == trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS) {
+
+		struct trajectory_waypoint_s trajectory_waypoint = {};
+
+		trajectory_waypoint.timestamp = hrt_absolute_time();
+		trajectory_waypoint.type = trajectory.type;
+
+		memcpy(trajectory_waypoint.point_0, trajectory.point_1, sizeof(trajectory_waypoint.point_0));
+		memcpy(trajectory_waypoint.point_1, trajectory.point_2, sizeof(trajectory_waypoint.point_1));
+		memcpy(trajectory_waypoint.point_2, trajectory.point_3, sizeof(trajectory_waypoint.point_2));
+		memcpy(trajectory_waypoint.point_3, trajectory.point_4, sizeof(trajectory_waypoint.point_3));
+		memcpy(trajectory_waypoint.point_4, trajectory.point_5, sizeof(trajectory_waypoint.point_4));
+
+		memcpy(trajectory_waypoint.point_valid, trajectory.point_valid, sizeof(trajectory_waypoint.point_valid));
+
+		if (_trajectory_waypoint_pub == nullptr) {
+			_trajectory_waypoint_pub = orb_advertise(ORB_ID(trajectory_waypoint), &trajectory_waypoint);
+
+		} else {
+			orb_publish(ORB_ID(trajectory_waypoint), _trajectory_waypoint_pub, &trajectory_waypoint);
+		}
+	} else if (trajectory.type == trajectory_bezier_s::MAV_TRAJECTORY_REPRESENTATION_BEZIER) {
+
+		struct trajectory_bezier_s trajectory_bezier = {};
+
+		trajectory_bezier.timestamp = hrt_absolute_time();
+		trajectory_bezier.type = trajectory.type;
+
+		memcpy(trajectory_bezier.point_0, trajectory.point_1, sizeof(trajectory_bezier.point_0));
+		memcpy(trajectory_bezier.point_1, trajectory.point_2, sizeof(trajectory_bezier.point_1));
+		memcpy(trajectory_bezier.point_2, trajectory.point_3, sizeof(trajectory_bezier.point_2));
+		memcpy(trajectory_bezier.point_3, trajectory.point_4, sizeof(trajectory_bezier.point_3));
+		memcpy(trajectory_bezier.point_4, trajectory.point_5, sizeof(trajectory_bezier.point_4));
+
+		memcpy(trajectory_bezier.point_valid, trajectory.point_valid, sizeof(trajectory_bezier.point_valid));
+
+		if (_trajectory_bezier_pub == nullptr) {
+			_trajectory_bezier_pub = orb_advertise(ORB_ID(trajectory_bezier), &trajectory_bezier);
+
+		} else {
+			orb_publish(ORB_ID(trajectory_bezier), _trajectory_bezier_pub, &trajectory_bezier);
+		}
 	}
 }
 
