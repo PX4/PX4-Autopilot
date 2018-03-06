@@ -258,10 +258,6 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	param_pointer = param_find("ISBD_READ_INT");
 	param_get(param_pointer, &param_read_interval_s);
 
-//	if (param_read_interval_s < 0) {
-//		param_read_interval_s = 10;
-//	}
-
 	param_pointer = param_find("ISBD_SBD_TIMEOUT");
 	param_get(param_pointer, &param_session_timeout_s);
 
@@ -330,12 +326,12 @@ void IridiumSBD::standby_loop(void)
 	// check for incoming SBDRING, handled inside read_at_command()
 	read_at_command();
 
-	if (param_read_interval_s > 0 && ((int64_t)(hrt_absolute_time() - last_read_time) > param_read_interval_s * 1000000)) {
+	if (param_read_interval_s > 0 && ((hrt_absolute_time() - last_read_time) > (uint64_t)param_read_interval_s * 1000000)) {
 		rx_session_pending = true;
 	}
 
 	// write the MO buffer when the message stacking time expires
-	if ((tx_buf_write_idx > 0) && ((int64_t)(hrt_absolute_time() - last_write_time) > param_stacking_time_ms * 1000)) {
+	if ((tx_buf_write_idx > 0) && ((hrt_absolute_time() - last_write_time) > (uint64_t)param_stacking_time_ms * 1000)) {
 		write_tx_buf();
 	}
 
@@ -406,8 +402,8 @@ void IridiumSBD::sbdsession_loop(void)
 
 	if (res == SATCOM_RESULT_NA) {
 		if ((param_session_timeout_s > 0)
-		    && ((int64_t)((hrt_absolute_time() - session_start_time))
-			> param_session_timeout_s * 1000000)) {
+		    && (((hrt_absolute_time() - session_start_time))
+			> (uint64_t)param_session_timeout_s * 1000000)) {
 
 			PX4_WARN("SBD SESSION: TIMEOUT!");
 			new_state = SATCOM_STATE_STANDBY;
@@ -504,7 +500,7 @@ void IridiumSBD::test_loop(void)
 	}
 
 	// timeout after 60 s in the test state
-	if ((int64_t)((hrt_absolute_time() - test_timer)) > 60000000) {
+	if ((hrt_absolute_time() - test_timer) > 60000000) {
 		PX4_WARN("TEST TIMEOUT AFTER %lld S", (hrt_absolute_time() - test_timer) / 1000000);
 		new_state = SATCOM_STATE_STANDBY;
 	}

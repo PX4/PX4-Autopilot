@@ -1,14 +1,14 @@
 #include <systemlib/param/param.h>
 
 /**
- * Satellite radio read interval
+ * Satellite radio read interval. Only required to be nonzero if data is not sent using a ring call.
  *
  * @unit s
  * @min 0
- * @max 300
+ * @max 5000
  * @group Iridium SBD
  */
-PARAM_DEFINE_INT32(ISBD_READ_INT, 60);
+PARAM_DEFINE_INT32(ISBD_READ_INT, 0);
 
 /**
  * Iridium SBD session timeout
