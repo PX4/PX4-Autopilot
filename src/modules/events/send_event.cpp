@@ -152,9 +152,10 @@ void SendEvent::process_commands()
 	switch (cmd.command) {
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 
+		const hrt_abstime t_start = hrt_absolute_time();
+		static constexpr hrt_abstime timeout = 2000000; /* 2secs */
+
 		vehicle_status_s vehicle_status = {};
-		hrt_abstime t_start = hrt_absolute_time();
-		hrt_abstime timeout = 2000000; /* 2secs */
 
 		do {
 			if (_subscriber_handler.vehicle_status_updated()) {
@@ -165,7 +166,8 @@ void SendEvent::process_commands()
 				break;
 			}
 
-		} while (hrt_absolute_time() < (t_start + timeout));
+			usleep(100);
+		} while (hrt_elapsed_time(&t_start) > timeout);
 
 		if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_INIT) {
 			answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
