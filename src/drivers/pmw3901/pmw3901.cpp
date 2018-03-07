@@ -75,13 +75,13 @@
 #ifdef PX4_SPI_BUS_EXT
 #define PMW3901_BUS PX4_SPI_BUS_EXT
 #else
-#define PMW3901_BUS 0
+#define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
 #endif
 
-#define PMW3901_SPI_BUS_SPEED    2*1000*1000      // 2MHz
+#define PMW3901_SPI_BUS_SPEED    (2000000L)      // 1MHz
 
-#define DIR_READ(a)                     ((a) | (1 << 7))
-#define DIR_WRITE(a)                    ((a) & 0x7f)
+#define DIR_WRITE(a)                   ((a) | (1 << 7))
+#define DIR_READ(a)                    ((a) & 0x7f)
 
 #define PMW3901_BASEADDR      	0b0101001 					// set camera address
 #define PMW3901_DEVICE_PATH   	"/dev/pmw3901"
@@ -98,6 +98,7 @@ class PMW3901 : public device::SPI
 public:
 	PMW3901(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
 		   int bus = PMW3901_BUS, int address = PMW3901_BASEADDR);
+
 	virtual ~PMW3901();
 
 	virtual int 		init();
@@ -152,12 +153,11 @@ private:
 	int					measure();
 	int					collect();
 
-	int 				write(unsigned reg, uint8_t *data, unsigned count);
-	int 				read(unsigned reg, uint8_t *data, unsigned count);
-  int         writeRegister(unsigned reg, uint8_t data);
+	int 				readRegister(unsigned reg, uint8_t *data, unsigned count);
+  	int         		writeRegister(unsigned reg, uint8_t data);
 
 	int 				sensorInit();
-  void        readMotionCount(uint16_t &deltaX, uint16_t &deltaY);
+  	void        		readMotionCount(int16_t &deltaX, int16_t &deltaY);
 
 	/**
 	* Static trampoline from the workq context; because we don't have a
@@ -171,13 +171,15 @@ private:
 };
 
 
+
+
 /*
  * Driver 'main' command.
  */
 extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
 PMW3901::PMW3901(uint8_t rotation, int bus, int address) :
-	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, address, SPIDEV_MODE3, PMW3901_SPI_BUS_SPEED),
+	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PX4_SPIDEV_EXTERNAL1_1, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
 	_rotation(rotation),
 	_min_distance(-1.0f),
 	_max_distance(-1.0f),
@@ -231,22 +233,24 @@ PMW3901::sensorInit()
 
   // initialize pmw3901 flow sensor
 
+    readRegister(0x00, &data[0], 1); // chip id
+  readRegister(0x5F, &data[1], 1); // inverse chip id
+
   // Power on reset
   writeRegister(0x3A, 0x5A);
   usleep(5000);
 
    // Test the SPI communication, checking chipId and inverse chipId
-  read(0x00, &data[0], 1); // chip id
-  read(0x5F, &data[1], 1); // inverse chip id
 
-  if (data[0] != 0x49 && data[1] != 0xB8) return false;
+
+  //if (data[0] != 0x49 && data[1] != 0xB8) return false;
 
   // Reading the motion registers one time
-  read(0x02, &data[0], 1);
-  read(0x03, &data[1], 1);
-  read(0x04, &data[2], 1);
-  read(0x05, &data[3], 1);
-  read(0x06, &data[4], 1);
+  readRegister(0x02, &data[0], 1);
+  readRegister(0x03, &data[1], 1);
+  readRegister(0x04, &data[2], 1);
+  readRegister(0x05, &data[3], 1);
+  readRegister(0x06, &data[4], 1);
   usleep(1000);
 
   // set performance optimization registers
@@ -310,7 +314,7 @@ PMW3901::sensorInit()
   writeRegister(0x40, 0x41);
   writeRegister(0x70, 0x00);
 
-  usleep(100000);
+  usleep(10000);
 
   writeRegister(0x32, 0x44);
   writeRegister(0x7F, 0x07);
@@ -345,7 +349,7 @@ PMW3901::init()
 		goto out;
 	}
 
-  set_frequency(PMW3901_SPI_BUS_SPEED);
+  	set_frequency(PMW3901_SPI_BUS_SPEED);
 
 	sensorInit();
 
@@ -370,6 +374,7 @@ PMW3901::init()
 		if (_distance_sensor_topic == nullptr) {
 			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 		}
+
 	}
 
 	ret = OK;
@@ -383,7 +388,6 @@ out:
 int
 PMW3901::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
-	printf("ioctl\n");
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
@@ -494,15 +498,14 @@ PMW3901::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 
 int
-PMW3901::read(unsigned reg, uint8_t *data, unsigned count)
+PMW3901::readRegister(unsigned reg, uint8_t *data, unsigned count)
 {
   uint8_t cmd[5]; // read up to 4 bytes
   int ret;
 
   cmd[0] = DIR_READ(reg);
-  //cmd[1] = 0;
 
-  transfer(cmd, cmd, count+1);
+  transfer(&cmd[0], &cmd[0], count+1);
   memcpy(&data[0], &cmd[1], count);
 
   ret = OK;
@@ -512,27 +515,27 @@ PMW3901::read(unsigned reg, uint8_t *data, unsigned count)
 }
 
 
-int
-PMW3901::write(unsigned reg, uint8_t *data, unsigned count)
-{
-  uint8_t cmd[5]; // write up to 4 bytes
-  int ret;
+// int
+// PMW3901::write(unsigned reg, uint8_t *data, unsigned count)
+// {
+//   uint8_t cmd[5]; // write up to 4 bytes
+//   int ret;
 
-	if (sizeof(cmd) < (count + 1)) {
-		return -EIO;
-	}
+// 	if (sizeof(cmd) < (count + 1)) {
+// 		return -EIO;
+// 	}
 
-	cmd[0] = DIR_WRITE(reg);
-	//cmd[1] = *(uint8_t *)data;
-  memcpy(&cmd[1], &data[0], count);
+// 	cmd[0] = DIR_WRITE(reg);
 
-	transfer(&cmd[0], nullptr, count + 1);
+//   memcpy(&cmd[1], &data[0], count);
 
-  ret = OK;
+// 	transfer(&cmd[0], nullptr, count + 1);
 
-  return ret;
+//   ret = OK;
 
-}
+//   return ret;
+
+// }
 
 
 int
@@ -557,36 +560,36 @@ PMW3901::writeRegister(unsigned reg, uint8_t data)
 int
 PMW3901::measure()
 {
-	int ret;
-  uint16_t deltaX, deltaY;
+  int ret;
+  int16_t deltaX, deltaY;
 
   readMotionCount(deltaX, deltaY);
+  printf("deltaX= %d, deltaY= %d\n", deltaX, deltaY);
 
-  printf("deltaX= %u, deltaY= %u", deltaX, deltaY);
+  ret = OK;
 
-	ret = OK;
+  return ret;
 
-	return ret;
 }
 
 
-void PMW3901::readMotionCount(uint16_t &deltaX, uint16_t &deltaY)
+void PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
 {
- uint8_t tmp;
- uint8_t dX[2];
- uint8_t dY[2];
+	 uint8_t tmp;
+	 uint8_t dX[2];
+	 uint8_t dY[2];
 
- read(0x02, &tmp, 1);
+	 readRegister(0x02, &tmp, 1);
 
- read(0x03, &dX[0], 1);
- read(0x04, &dX[1], 1);
- deltaX = ((int16_t)dX[1] << 8) | dX[0];
+	 readRegister(0x03, &dX[0], 1);
+	 readRegister(0x04, &dX[1], 1);
+	 deltaX = ((int16_t)dX[1] << 8) | dX[0];
 
- read(0x05, &dY[0], 1);
- read(0x06, &dY[1], 1);
- deltaY = ((int16_t)dY[1] << 8) | dY[0];
+	 readRegister(0x05, &dY[0], 1);
+	 readRegister(0x06, &dY[1], 1);
+	 deltaY = ((int16_t)dY[1] << 8) | dY[0];
 
- return;
+	 return;
 
 }
 
@@ -878,6 +881,10 @@ pmw3901_main(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
+	if (argc < 2) {
+		goto out;
+	}
+
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
@@ -924,6 +931,8 @@ pmw3901_main(int argc, char *argv[])
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
 		pmw3901::info();
 	}
+
+out:
 
 	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
 	return PX4_ERROR;
