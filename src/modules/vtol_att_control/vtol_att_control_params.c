@@ -148,7 +148,7 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
  * @decimal 3
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 0.7f);
+PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
 
 /**
  * Target throttle value for the transition to hover flight.
