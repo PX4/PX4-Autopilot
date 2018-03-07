@@ -67,7 +67,6 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
 	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
-	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
@@ -449,10 +448,6 @@ VtolAttitudeControl::parameters_update()
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
 	_vtol_vehicle_status.fw_permanent_stab = (l == 1);
-
-	/* vtol pitch trim for fw mode */
-	param_get(_params_handles.fw_pitch_trim, &v);
-	_params.fw_pitch_trim = v;
 
 	param_get(_params_handles.vtol_type, &l);
 	_params.vtol_type = l;
