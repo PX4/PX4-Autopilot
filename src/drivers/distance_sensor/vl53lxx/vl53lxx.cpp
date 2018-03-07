@@ -72,8 +72,8 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#ifdef PX4_I2C_BUS_EXPANSION1
-#define VL53LXX_BUS 			PX4_I2C_BUS_EXPANSION1		// I2C2 on fmu-v5
+#ifdef PX4_I2C_BUS_EXPANSION3
+#define VL53LXX_BUS 			PX4_I2C_BUS_EXPANSION3		// I2C port (I2C4) on fmu-v5
 #else
 #define VL53LXX_BUS 			PX4_I2C_BUS_EXPANSION 		// I2C on all others (pixracer)
 #endif
