@@ -64,10 +64,12 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/integrator.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/optical_flow.h>
 
 #include <board_config.h>
 
@@ -78,12 +80,11 @@
 #define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
 #endif
 
-#define PMW3901_SPI_BUS_SPEED    (2000000L)      // 1MHz
+#define PMW3901_SPI_BUS_SPEED    (2000000L)      // 2MHz
 
 #define DIR_WRITE(a)                   ((a) | (1 << 7))
 #define DIR_READ(a)                    ((a) & 0x7f)
 
-#define PMW3901_BASEADDR      	0b0101001 					// set camera address
 #define PMW3901_DEVICE_PATH   	"/dev/pmw3901"
 
 /* VL53LXX Registers addresses */
@@ -97,7 +98,7 @@ class PMW3901 : public device::SPI
 {
 public:
 	PMW3901(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
-		   int bus = PMW3901_BUS, int address = PMW3901_BASEADDR);
+		   int bus = PMW3901_BUS);
 
 	virtual ~PMW3901();
 
@@ -126,10 +127,14 @@ private:
 
 	orb_advert_t		_distance_sensor_topic;
 
+	int					_distance_sensor_sub;
+
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 
 	uint8_t 			stop_variable_;
+
+	Integrator			_flow_int;
 
 
 	/**
@@ -178,7 +183,7 @@ private:
  */
 extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
-PMW3901::PMW3901(uint8_t rotation, int bus, int address) :
+PMW3901::PMW3901(uint8_t rotation, int bus) :
 	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PX4_SPIDEV_EXTERNAL1_1, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
 	_rotation(rotation),
 	_min_distance(-1.0f),
@@ -191,8 +196,10 @@ PMW3901::PMW3901(uint8_t rotation, int bus, int address) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
+	_distance_sensor_sub(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "tr1_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err"))
+	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err")),
+	_flow_int(100000, false)
 {
 	// up the retries since the device misses the first measure attempts
 	//I2C::_retries = 3;
@@ -215,7 +222,7 @@ PMW3901::~PMW3901()
 	}
 
 	if (_class_instance != -1) {
-		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
+		unregister_class_devname(PMW3901_DEVICE_PATH, _class_instance);
 	}
 
 	// free perf counters
@@ -342,7 +349,7 @@ PMW3901::init()
 {
 	int ret = PX4_ERROR;
 
-	set_device_address(PMW3901_BASEADDR);
+	_distance_sensor_sub = orb_subscribe(ORB_ID(distance_sensor));
 
 	/* do I2C init (and probe) first */
 	if (SPI::init() != OK) {
@@ -354,28 +361,28 @@ PMW3901::init()
 	sensorInit();
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(optical_flow_s));
 
 	if (_reports == nullptr) {
 		goto out;
 	}
 
-	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+	//_class_instance = register_class_devname(PMW3901_DEVICE_PATH);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {               // change to optical flow topic
+	//if (_class_instance == CLASS_DEVICE_PRIMARY) {               // change to optical flow topic
 		/* get a publish handle on the range finder topic */
-		struct distance_sensor_s ds_report;
+		// struct distance_sensor_s ds_report;
 		//measure();
-		_reports->get(&ds_report);
+		// _reports->get(&ds_report);
 
-		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-					 &_orb_class_instance, ORB_PRIO_LOW);
+		// _distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+		// 			 &_orb_class_instance, ORB_PRIO_LOW);
 
-		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
-		}
+		// if (_distance_sensor_topic == nullptr) {
+		// 	DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		// }
 
-	}
+	//}
 
 	ret = OK;
 	_sensor_ok = true;
@@ -544,11 +551,10 @@ PMW3901::writeRegister(unsigned reg, uint8_t data)
   uint8_t cmd[2]; // write up to 4 bytes
   int ret;
 
-	cmd[0] = DIR_WRITE(reg);
-
+  cmd[0] = DIR_WRITE(reg);
   cmd[1] = data;
 
-	transfer(&cmd[0], nullptr, 2);
+  transfer(&cmd[0], nullptr, 2);
 
   ret = OK;
 
@@ -564,7 +570,26 @@ PMW3901::measure()
   int16_t deltaX, deltaY;
 
   readMotionCount(deltaX, deltaY);
+  
+  uint64_t timestamp = hrt_absolute_time();
+  uint64_t integral_dt;
+
+  math::Vector<3> aval(deltaX, deltaY, 0);
+  math::Vector<3> aval_integrated;
+  double x_integral;
+  double y_integral;
+
+  bool accel_notify = _flow_int.put(timestamp, aval, aval_integrated, integral_dt);
+
+  x_integral = (double)aval_integrated(0);
+  y_integral = (double)aval_integrated(1);
+
+  printf("Timestamp = %lld\n", timestamp);
   printf("deltaX= %d, deltaY= %d\n", deltaX, deltaY);
+
+  if(accel_notify) {
+  	printf("Integral: X=%.2lf, Y=%.2lf\n\n", x_integral, y_integral);
+  }
 
   ret = OK;
 
@@ -695,7 +720,7 @@ PMW3901::cycle()
 		   &_work,
 		   (worker_t)&PMW3901::cycle_trampoline,
 		   this,
-		   USEC2TICK(20000));
+		   USEC2TICK(10000));
 
 }
 
