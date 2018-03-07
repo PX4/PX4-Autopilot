@@ -123,11 +123,23 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
 	param_get(_parameter_handles.pitch_limit_max, &(_parameters.pitch_limit_max));
 	param_get(_parameter_handles.roll_limit, &(_parameters.roll_limit));
-	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
-	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
-	param_get(_parameter_handles.throttle_idle, &(_parameters.throttle_idle));
-	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+
+	float v = 0.0f;
+
+	param_get(_parameter_handles.throttle_idle, &v);
+	_parameters.throttle_idle = constrain(v, 0.0f, 1.0f);
+
+	param_get(_parameter_handles.throttle_min, &v);
+	_parameters.throttle_min = constrain(v, 0.0f, 1.0f);
+
+	param_get(_parameter_handles.throttle_max, &v);
+	_parameters.throttle_max = constrain(v, _parameters.throttle_min, 1.0f);
+
+	param_get(_parameter_handles.throttle_cruise, &v);
+	_parameters.throttle_cruise = constrain(v, _parameters.throttle_min + 0.01f, _parameters.throttle_max - 0.01f);
+
 	param_get(_parameter_handles.throttle_alt_scale, &(_parameters.throttle_alt_scale));
+
 	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
@@ -740,7 +752,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		if (PX4_ISFINITE(pos_sp_curr.cruising_throttle) &&
 		    pos_sp_curr.cruising_throttle > 0.01f) {
 
-			mission_throttle = pos_sp_curr.cruising_throttle;
+			mission_throttle = constrain(pos_sp_curr.cruising_throttle,
+						     _parameters.throttle_min + 0.01f,
+						     _parameters.throttle_max - 0.01f);
 		}
 
 		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
