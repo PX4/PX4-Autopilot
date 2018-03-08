@@ -3099,7 +3099,7 @@ MulticopterPositionControl::task_main()
 					_takeoff_sp = 0.5f;
 
 				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -1.0f) {
-					/* There is a velocity setpoint that points upward and larger than 0.6. The 0.6
+					/* There is a velocity setpoint that points upward and larger than 1 m/s. The 1 m/s
 					 * ensures that a minimum velocity is first required to initiate a takeoff.*/
 					_in_smooth_takeoff = true;
 					_takeoff_sp = 0.5f;
