@@ -1223,32 +1223,36 @@ void Ekf2::run()
 					_total_cal_time_us = 0;
 				}
 
-//				{
-//					float velNE_wind[2];
-//					_ekf.get_wind_velocity(velNE_wind);
+				{
 
-//					// Calculate wind-compensated velocity in body frame
-//					Vector3f v_wind_comp(velocity);
-//					matrix::Dcmf R_to_body(q.inversed());
-//					v_wind_comp(0) -= velNE_wind[0];
-//					v_wind_comp(1) -= velNE_wind[1];
-//					_vel_body_wind = R_to_body * v_wind_comp; // TODO: move this elsewhere
+					// Velocity of body origin in local NED frame (m/s)
+					float velocity[3];
+					_ekf.get_velocity(velocity);
 
-//					// Publish wind estimate
-//					wind_estimate_s wind_estimate;
-//					wind_estimate.timestamp = now;
-//					wind_estimate.windspeed_north = velNE_wind[0];
-//					wind_estimate.windspeed_east = velNE_wind[1];
-//					wind_estimate.variance_north = status.covariances[22];
-//					wind_estimate.variance_east = status.covariances[23];
+					matrix::Quatf q;
+					_ekf.copy_quaternion(q.data());
 
-//					if (_wind_pub == nullptr) {
-//						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+					// Calculate wind-compensated velocity in body frame
+					Vector3f v_wind_comp(velocity);
+					matrix::Dcmf R_to_body(q.inversed());
+					float velNE_wind[2];
+					_ekf.get_wind_velocity(velNE_wind);
 
-//					} else {
-//						orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-//					}
-//				}
+					v_wind_comp(0) -= velNE_wind[0];
+					v_wind_comp(1) -= velNE_wind[1];
+					_vel_body_wind = R_to_body * v_wind_comp; // TODO: move this elsewhere
+
+					// Publish wind estimate
+					wind_estimate_s wind_estimate;
+					wind_estimate.timestamp = now;
+					wind_estimate.windspeed_north = velNE_wind[0];
+					wind_estimate.windspeed_east = velNE_wind[1];
+					wind_estimate.variance_north = status.covariances[22];
+					wind_estimate.variance_east = status.covariances[23];
+
+					int wind_instance;
+					orb_publish_auto(ORB_ID(wind_estimate), &_wind_pub, &wind_estimate, &wind_instance, ORB_PRIO_DEFAULT);
+				}
 			}
 
 			{
