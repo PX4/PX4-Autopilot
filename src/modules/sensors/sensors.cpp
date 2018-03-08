@@ -350,16 +350,15 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		float air_temperature_celsius = (diff_pres.temperature > -300.0f) ? diff_pres.temperature :
 						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
-		airspeed_s airspeed;
-		airspeed.timestamp = diff_pres.timestamp;
+		_airspeed.timestamp = diff_pres.timestamp;
 
 		/* push data into validator */
 		float airspeed_input[3] = { diff_pres.differential_pressure_raw_pa, diff_pres.temperature, 0.0f };
 
-		_airspeed_validator.put(airspeed.timestamp, airspeed_input, diff_pres.error_count,
+		_airspeed_validator.put(_airspeed.timestamp, airspeed_input, diff_pres.error_count,
 					ORB_PRIO_HIGH);
 
-		airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
+		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
 
 		enum AIRSPEED_SENSOR_MODEL smodel;
 
@@ -381,19 +380,19 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		}
 
 		/* don't risk to feed negative airspeed into the system */
-		airspeed.indicated_airspeed_m_s = math::max(0.0f,
-						  calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
-								  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-								  diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
-								  air_temperature_celsius));
+		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
+						   calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
+								   smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
+								   diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
+								   air_temperature_celsius));
 
-		airspeed.true_airspeed_m_s = math::max(0.0f,
-						       calc_true_airspeed_from_indicated(airspeed.indicated_airspeed_m_s,
-								       _voted_sensors_update.baro_pressure(), air_temperature_celsius));
-
-		airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-							calc_true_airspeed(diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
+		_airspeed.true_airspeed_m_s = math::max(0.0f,
+							calc_true_airspeed_from_indicated(_airspeed.indicated_airspeed_m_s,
 									_voted_sensors_update.baro_pressure(), air_temperature_celsius));
+
+		_airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
+				calc_true_airspeed(diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
+						   _voted_sensors_update.baro_pressure(), air_temperature_celsius));
 
 		_airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
 				calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
@@ -429,9 +428,9 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 	int instance;
 
+
 	if (updated) {
 		_airspeed.scale = _wind_estimator.get_tas_scale();
-
 		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &_airspeed, &instance, ORB_PRIO_DEFAULT);
 
 	}
