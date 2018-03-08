@@ -729,10 +729,6 @@ Sensors::run()
 
 	_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 
-	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-		_battery[b].reset(&_battery_status[b]);
-	}
-
 	/* get a set of initial values */
 	_voted_sensors_update.sensors_poll(raw);
 
