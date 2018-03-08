@@ -4036,6 +4036,8 @@ private:
 	SimpleAnalyzer _throttle;
 	SimpleAnalyzer _windspeed;
 
+	hrt_abstime _last_reset_time = 0;
+
 	/* do not allow top copying this class */
 	MavlinkStreamHighLatency2(MavlinkStreamHighLatency2 &);
 	MavlinkStreamHighLatency2 &operator = (const MavlinkStreamHighLatency2 &);
@@ -4086,232 +4088,340 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		struct airspeed_s airspeed = {};
-		struct battery_status_s battery = {};
-		struct estimator_status_s estimator_status = {};
-		struct fw_pos_ctrl_status_s fw_pos_ctrl_status = {};
-		struct mission_result_s mission_result = {};
-		struct geofence_result_s geofence = {};
-		struct tecs_status_s tecs_status = {};
-		struct vehicle_attitude_setpoint_s attitude_sp = {};
-		struct vehicle_global_position_s global_pos = {};
-		struct vehicle_status_s status = {};
-		struct vehicle_status_flags_s status_flags = {};
-		struct wind_estimate_s wind = {};
-
-		bool updated = _airspeed_sub->update(&_airspeed_time, &airspeed);
-		updated |= _airspeed.valid();
-		updated |= _airspeed_sp.valid();
-		updated |= _battery.valid();
-		updated |= _climb_rate.valid();
-		updated |= _eph.valid();
-		updated |= _epv.valid();
-		updated |= _groundspeed.valid();
-		updated |= _temperature.valid();
-		updated |= _throttle.valid();
-		updated |= _windspeed.valid();
-		updated |= _attitude_sp_sub->update(&_attitude_sp_time, &attitude_sp);
-		updated |= _battery_sub->update(&_battery_time, &battery);
-		updated |= _estimator_status_sub->update(&_estimator_status_time, &estimator_status);
-		updated |= _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status_time, &fw_pos_ctrl_status);
-		updated |= _geofence_sub->update(&_geofence_time, &geofence);
-		updated |= _global_pos_sub->update(&_global_pos_time, &global_pos);
-		updated |= _mission_result_sub->update(&_mission_result_time, &mission_result);
-		updated |= _status_sub->update(&_status_time, &status);
-		updated |= _status_flags_sub->update(&_status_flags_time, &status_flags);
-		updated |= _tecs_status_sub->update(&_tecs_time, &tecs_status);
-		updated |= _wind_sub->update(&_wind_time, &wind);
-
-		if (updated) {
+		// only send the struct if transmitting is allowed
+		// this assures that the stream timer is only reset when actually a message is transmitted
+		if (_mavlink->should_transmit()) {
 			mavlink_high_latency2_t msg = {};
 			set_default_values(msg);
 
-			convert_limit_safe(t / 1000, &msg.timestamp);
-			msg.type = _mavlink->get_system_type();
-			msg.autopilot = MAV_AUTOPILOT_PX4;
+			bool updated = _airspeed.valid();
+			updated |= _airspeed_sp.valid();
+			updated |= _battery.valid();
+			updated |= _climb_rate.valid();
+			updated |= _eph.valid();
+			updated |= _epv.valid();
+			updated |= _groundspeed.valid();
+			updated |= _temperature.valid();
+			updated |= _throttle.valid();
+			updated |= _windspeed.valid();
+			updated |= write_airspeed(&msg);
+			updated |= write_attitude_sp(&msg);
+			updated |= write_battery_status(&msg);
+			updated |= write_estimator_status(&msg);
+			updated |= write_fw_ctrl_status(&msg);
+			updated |= write_geofence_result(&msg);
+			updated |= write_global_position(&msg);
+			updated |= write_mission_result(&msg);
+			updated |= write_tecs_status(&msg);
+			updated |= write_vehicle_status(&msg);
+			updated |= write_vehicle_status_flags(&msg);
+			updated |= write_wind_estimate(&msg);
 
-			if (_attitude_sp_time > 0) {
-				msg.target_heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
-			}
+			if (updated) {
+				convert_limit_safe(t / 1000, &msg.timestamp);
+				msg.type = _mavlink->get_system_type();
+				msg.autopilot = MAV_AUTOPILOT_PX4;
 
-			if (_fw_pos_ctrl_status_time > 0) {
-				convert_limit_safe(fw_pos_ctrl_status.wp_dist * 0.1f, &msg.target_distance);
-			}
-
-			if (_global_pos_time > 0) {
-				convert_limit_safe(global_pos.lat * 1e7, &msg.latitude);
-				convert_limit_safe(global_pos.lon * 1e7, &msg.longitude);
-
-				if (global_pos.alt > 0) {
-					convert_limit_safe(global_pos.alt + 0.5f, &msg.altitude);
-
-				} else {
-					convert_limit_safe(global_pos.alt - 0.5f, &msg.altitude);
+				if (_airspeed.valid()) {
+					_airspeed.get_scaled(msg.airspeed, 5.0f);
 				}
 
-				msg.heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(global_pos.yaw)) * 0.5f);
-			}
-
-			if (_mission_result_time > 0) {
-				msg.wp_num = mission_result.seq_current;
-			}
-
-			if (_tecs_time > 0) {
-				convert_limit_safe(tecs_status.altitudeSp, &msg.target_altitude);
-			}
-
-			if (_wind_time > 0) {
-				msg.wind_heading = static_cast<uint8_t>(
-							   math::degrees(_wrap_2pi(atan2f(wind.windspeed_east, wind.windspeed_north))) * 0.5f);
-			}
-
-			if (_airspeed.valid()) {
-				_airspeed.get_scaled(msg.airspeed, 5.0f);
-			}
-
-			if (_airspeed_sp.valid()) {
-				_airspeed_sp.get_scaled(msg.airspeed_sp, 5.0f);
-			}
-
-			if (_battery.valid()) {
-				_battery.get_scaled(msg.battery, 100.0f);
-			}
-
-			if (_climb_rate.valid()) {
-				_climb_rate.get_scaled(msg.climb_rate, 10.0f);
-			}
-
-			if (_eph.valid()) {
-				_eph.get_scaled(msg.eph, 10.0f);
-			}
-
-			if (_epv.valid()) {
-				_epv.get_scaled(msg.epv, 10.0f);
-			}
-
-			if (_groundspeed.valid()) {
-				_groundspeed.get_scaled(msg.groundspeed, 5.0f);
-			}
-
-			if (_temperature.valid()) {
-				_temperature.get_scaled(msg.temperature_air, 1.0f);
-			}
-
-			if (_throttle.valid()) {
-				_throttle.get_scaled(msg.throttle, 100.0f);
-			}
-
-			if (_windspeed.valid()) {
-				_windspeed.get_scaled(msg.windspeed, 5.0f);
-			}
-
-			// failure flags, requires an initial value of 0, set by the default values
-			if (_status_flags_time > 0) {
-				if (!status_flags.condition_global_position_valid) { //TODO check if there is a better way to get only GPS failure
-					msg.failure_flags |= HL_FAILURE_FLAG_GPS;
+				if (_airspeed_sp.valid()) {
+					_airspeed_sp.get_scaled(msg.airspeed_sp, 5.0f);
 				}
 
-				if (status_flags.offboard_control_signal_lost && status_flags.offboard_control_signal_found_once) {
-					msg.failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
+				if (_battery.valid()) {
+					_battery.get_scaled(msg.battery, 100.0f);
 				}
+
+				if (_climb_rate.valid()) {
+					_climb_rate.get_scaled(msg.climb_rate, 10.0f);
+				}
+
+				if (_eph.valid()) {
+					_eph.get_scaled(msg.eph, 10.0f);
+				}
+
+				if (_epv.valid()) {
+					_epv.get_scaled(msg.epv, 10.0f);
+				}
+
+				if (_groundspeed.valid()) {
+					_groundspeed.get_scaled(msg.groundspeed, 5.0f);
+				}
+
+				if (_temperature.valid()) {
+					_temperature.get_scaled(msg.temperature_air, 1.0f);
+				}
+
+				if (_throttle.valid()) {
+					_throttle.get_scaled(msg.throttle, 100.0f);
+				}
+
+				if (_windspeed.valid()) {
+					_windspeed.get_scaled(msg.windspeed, 5.0f);
+				}
+
+				reset_analysers(t);
+
+				mavlink_msg_high_latency2_send_struct(_mavlink->get_channel(), &msg);
 			}
 
-			if (_airspeed_time > 0) {
-				if (airspeed.confidence < 0.95f) { // the same threshold as for the commander
-					msg.failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
-				}
+			return updated;
+
+		} else {
+			// reset the analysers every 60 seconds if nothing should be transmitted
+			if ((t - _last_reset_time) > 60000000) {
+				reset_analysers(t);
+				PX4_INFO("Resetting HIGH_LATENCY2 analysers");
 			}
 
-			if (_status_time > 0) {
-				if ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)
-				    && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)) {
-					msg.failure_flags |= HL_FAILURE_FLAG_ABSOLUTE_PRESSURE;
-				}
+			return false;
+		}
+	}
 
-				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_ACCEL)
-				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_ACCEL)) ||
-				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_ACCEL2) &&
-				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_ACCEL2))) {
-					msg.failure_flags |= HL_FAILURE_FLAG_3D_ACCEL;
-				}
+	void reset_analysers(const hrt_abstime t)
+	{
+		// reset the analyzers
+		_airspeed.reset();
+		_airspeed_sp.reset();
+		_battery.reset();
+		_climb_rate.reset();
+		_eph.reset();
+		_epv.reset();
+		_groundspeed.reset();
+		_temperature.reset();
+		_throttle.reset();
+		_windspeed.reset();
 
-				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_GYRO)
-				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_GYRO)) ||
-				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_GYRO2) &&
-				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_GYRO2))) {
-					msg.failure_flags |= HL_FAILURE_FLAG_3D_GYRO;
-				}
+		_last_reset_time = t;
+	}
 
-				if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_MAG)
-				     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_MAG)) ||
-				    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_MAG2) &&
-				     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_MAG2))) {
-					msg.failure_flags |= HL_FAILURE_FLAG_3D_MAG;
-				}
+	bool write_airspeed(mavlink_high_latency2_t *msg)
+	{
+		struct airspeed_s airspeed = {};
 
-				if ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_TERRAIN)
-				    && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_TERRAIN)) {
-					msg.failure_flags |= HL_FAILURE_FLAG_TERRAIN;
-				}
+		const bool updated = _airspeed_sub->update(&_airspeed_time, &airspeed);
 
-				if (status.rc_signal_lost) {
-					msg.failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
-				}
+		if (_airspeed_time > 0) {
+			if (airspeed.confidence < 0.95f) { // the same threshold as for the commander
+				msg->failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
+			}
+		}
 
-				if (status.engine_failure) {
-					msg.failure_flags |= HL_FAILURE_FLAG_ENGINE;
-				}
+		return updated;
+	}
 
-				if (status.mission_failure) {
-					msg.failure_flags |= HL_FAILURE_FLAG_MISSION;
-				}
+	bool write_attitude_sp(mavlink_high_latency2_t *msg)
+	{
+		struct vehicle_attitude_setpoint_s attitude_sp = {};
+
+		const bool updated = _attitude_sp_sub->update(&_attitude_sp_time, &attitude_sp);
+
+		if (_attitude_sp_time > 0) {
+			msg->target_heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
+		}
+
+		return updated;
+	}
+
+	bool write_battery_status(mavlink_high_latency2_t *msg)
+	{
+		struct battery_status_s battery = {};
+
+		const bool updated = _battery_sub->update(&_battery_time, &battery);
+
+		if (_battery_time > 0) {
+			if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
+				msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
+			}
+		}
+
+		return updated;
+	}
+
+	bool write_estimator_status(mavlink_high_latency2_t *msg)
+	{
+		struct estimator_status_s estimator_status = {};
+
+		const bool updated = _estimator_status_sub->update(&_estimator_status_time, &estimator_status);
+
+		if (_estimator_status_time > 0) {
+			if (estimator_status.gps_check_fail_flags > 0 ||
+			    estimator_status.filter_fault_flags > 0 ||
+			    estimator_status.innovation_check_flags > 0) {
+				msg->failure_flags |= HL_FAILURE_FLAG_ESTIMATOR;
+			}
+		}
+
+		return updated;
+	}
+
+	bool write_fw_ctrl_status(mavlink_high_latency2_t *msg)
+	{
+		struct fw_pos_ctrl_status_s fw_pos_ctrl_status = {};
+
+		const bool updated = _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status_time, &fw_pos_ctrl_status);
+
+		if (_fw_pos_ctrl_status_time > 0) {
+			convert_limit_safe(fw_pos_ctrl_status.wp_dist * 0.1f, &msg->target_distance);
+		}
+
+		return updated;
+	}
+
+	bool write_geofence_result(mavlink_high_latency2_t *msg)
+	{
+		struct geofence_result_s geofence = {};
+
+		const bool updated = _geofence_sub->update(&_geofence_time, &geofence);
+
+		if (_geofence_time > 0) {
+			if (geofence.geofence_violated) {
+				msg->failure_flags |= HL_FAILURE_FLAG_GEOFENCE;
+			}
+		}
+
+		return updated;
+	}
+
+	bool write_global_position(mavlink_high_latency2_t *msg)
+	{
+		struct vehicle_global_position_s global_pos = {};
+
+		const bool updated = _global_pos_sub->update(&_global_pos_time, &global_pos);
+
+		if (_global_pos_time > 0) {
+			convert_limit_safe(global_pos.lat * 1e7, &msg->latitude);
+			convert_limit_safe(global_pos.lon * 1e7, &msg->longitude);
+
+			if (global_pos.alt > 0) {
+				convert_limit_safe(global_pos.alt + 0.5f, &msg->altitude);
+
+			} else {
+				convert_limit_safe(global_pos.alt - 0.5f, &msg->altitude);
 			}
 
-			if (_battery_time > 0) {
-				if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
-					msg.failure_flags |= HL_FAILURE_FLAG_BATTERY;
-				}
+			msg->heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(global_pos.yaw)) * 0.5f);
+		}
+
+		return updated;
+	}
+
+	bool write_mission_result(mavlink_high_latency2_t *msg)
+	{
+		struct mission_result_s mission_result = {};
+
+		const bool updated = _mission_result_sub->update(&_mission_result_time, &mission_result);
+
+		if (_mission_result_time > 0) {
+			msg->wp_num = mission_result.seq_current;
+		}
+
+		return updated;
+	}
+
+	bool write_tecs_status(mavlink_high_latency2_t *msg)
+	{
+		struct tecs_status_s tecs_status = {};
+
+		const bool updated = _tecs_status_sub->update(&_tecs_time, &tecs_status);
+
+		if (_tecs_time > 0) {
+			convert_limit_safe(tecs_status.altitudeSp, &msg->target_altitude);
+		}
+
+		return updated;
+	}
+
+	bool write_vehicle_status(mavlink_high_latency2_t *msg)
+	{
+		struct vehicle_status_s status = {};
+
+		const bool updated = _status_sub->update(&_status_time, &status);
+
+		if (_status_time > 0) {
+			if ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)
+			    && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE)) {
+				msg->failure_flags |= HL_FAILURE_FLAG_ABSOLUTE_PRESSURE;
 			}
 
-			if (_geofence_time > 0) {
-				if (geofence.geofence_violated) {
-					msg.failure_flags |= HL_FAILURE_FLAG_GEOFENCE;
-				}
+			if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_ACCEL)
+			     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_ACCEL)) ||
+			    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_ACCEL2) &&
+			     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_ACCEL2))) {
+				msg->failure_flags |= HL_FAILURE_FLAG_3D_ACCEL;
 			}
 
-			if (_estimator_status_time > 0) {
-				if (estimator_status.gps_check_fail_flags > 0 ||
-				    estimator_status.filter_fault_flags > 0 ||
-				    estimator_status.innovation_check_flags > 0) {
-					msg.failure_flags |= HL_FAILURE_FLAG_ESTIMATOR;
-				}
+			if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_GYRO)
+			     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_GYRO)) ||
+			    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_GYRO2) &&
+			     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_GYRO2))) {
+				msg->failure_flags |= HL_FAILURE_FLAG_3D_GYRO;
+			}
+
+			if (((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_MAG)
+			     && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_MAG)) ||
+			    ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_SENSOR_3D_MAG2) &&
+			     !(status.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_3D_MAG2))) {
+				msg->failure_flags |= HL_FAILURE_FLAG_3D_MAG;
+			}
+
+			if ((status.onboard_control_sensors_enabled & MAV_SYS_STATUS_TERRAIN)
+			    && !(status.onboard_control_sensors_health & MAV_SYS_STATUS_TERRAIN)) {
+				msg->failure_flags |= HL_FAILURE_FLAG_TERRAIN;
+			}
+
+			if (status.rc_signal_lost) {
+				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
+			}
+
+			if (status.engine_failure) {
+				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
+			}
+
+			if (status.mission_failure) {
+				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
 			}
 
 			// flight mode
 			union px4_custom_mode custom_mode;
 			uint8_t mavlink_base_mode;
 			get_mavlink_custom_mode(&status, &mavlink_base_mode, &custom_mode);
-			msg.custom_mode = custom_mode.custom_mode_hl;
+			msg->custom_mode = custom_mode.custom_mode_hl;
+		}
 
-			// reset the analyzers
-			_airspeed.reset();
-			_airspeed_sp.reset();
-			_battery.reset();
-			_climb_rate.reset();
-			_eph.reset();
-			_epv.reset();
-			_groundspeed.reset();
-			_temperature.reset();
-			_throttle.reset();
-			_windspeed.reset();
+		return updated;
+	}
 
-			// only send the struct if transmitting is allowed
-			// this assures that the stream timer is only reset when actually a message is transmitted
-			updated = _mavlink->should_transmit();
+	bool write_vehicle_status_flags(mavlink_high_latency2_t *msg)
+	{
+		struct vehicle_status_flags_s status_flags = {};
 
-			if (updated) {
-				mavlink_msg_high_latency2_send_struct(_mavlink->get_channel(), &msg);
+		const bool updated = _status_flags_sub->update(&_status_flags_time, &status_flags);
+
+		if (_status_flags_time > 0) {
+			if (!status_flags.condition_global_position_valid) { //TODO check if there is a better way to get only GPS failure
+				msg->failure_flags |= HL_FAILURE_FLAG_GPS;
 			}
+
+			if (status_flags.offboard_control_signal_lost && status_flags.offboard_control_signal_found_once) {
+				msg->failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
+			}
+		}
+
+		return updated;
+	}
+
+	bool write_wind_estimate(mavlink_high_latency2_t *msg)
+	{
+		struct wind_estimate_s wind = {};
+
+		const bool updated = _wind_sub->update(&_wind_time, &wind);
+
+		if (_wind_time > 0) {
+			msg->wind_heading = static_cast<uint8_t>(
+						    math::degrees(_wrap_2pi(atan2f(wind.windspeed_east, wind.windspeed_north))) * 0.5f);
 		}
 
 		return updated;
@@ -4321,39 +4431,71 @@ protected:
 	{
 		const float update_rate = 1.0f / (_mavlink->get_main_loop_delay() * 1e-6f);
 
+		update_airspeed(update_rate);
+
+		update_tecs_status(update_rate);
+
+		update_battery_status(update_rate);
+
+		update_global_position(update_rate);
+
+		update_gps(update_rate);
+
+		update_vehicle_status(update_rate);
+
+		update_wind_estimate(update_rate);
+	}
+
+	void update_airspeed(float update_rate)
+	{
 		struct airspeed_s airspeed = {};
 
 		if (_airspeed_sub->update(&airspeed)) {
 			_airspeed.add_value(airspeed.indicated_airspeed_m_s, update_rate);
 			_temperature.add_value(airspeed.air_temperature_celsius, update_rate);
 		}
+	}
 
+	void update_tecs_status(float update_rate)
+	{
 		struct tecs_status_s tecs_status = {};
 
 		if (_tecs_status_sub->update(&tecs_status)) {
 			_airspeed_sp.add_value(tecs_status.airspeedSp, update_rate);
 		}
+	}
 
+	void update_battery_status(float update_rate)
+	{
 		struct battery_status_s battery = {};
 
 		if (_battery_sub->update(&battery)) {
 			_battery.add_value(battery.remaining, update_rate);
 		}
+	}
 
+	void update_global_position(float update_rate)
+	{
 		struct vehicle_global_position_s global_pos = {};
 
 		if (_global_pos_sub->update(&global_pos)) {
 			_climb_rate.add_value(fabsf(global_pos.vel_d), update_rate);
 			_groundspeed.add_value(sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e), update_rate);
 		}
+	}
 
+	void update_gps(float update_rate)
+	{
 		struct vehicle_gps_position_s gps = {};
 
 		if (_gps_sub->update(&gps)) {
 			_eph.add_value(gps.eph, update_rate);
 			_epv.add_value(gps.epv, update_rate);
 		}
+	}
 
+	void update_vehicle_status(float update_rate)
+	{
 		struct vehicle_status_s status = {};
 
 		if (_status_sub->update(&status)) {
@@ -4375,7 +4517,10 @@ protected:
 				_throttle.add_value(0.0f, update_rate);
 			}
 		}
+	}
 
+	void update_wind_estimate(float update_rate)
+	{
 		struct wind_estimate_s wind = {};
 
 		if (_wind_sub->update(&wind)) {
