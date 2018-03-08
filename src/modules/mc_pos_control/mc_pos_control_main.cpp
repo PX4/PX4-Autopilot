@@ -3092,12 +3092,12 @@ MulticopterPositionControl::task_main()
 				/* Vehicle is still landed and no takeoff was initiated yet.
 				 * Adjust for different takeoff cases. */
 
-				if (PX4_ISFINITE(setpoint.z) && setpoint.z < _pos(2) + 0.2f) {
+				if (PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2)) {
 					/* There is a position setpoint above current position. Enable smooth takeoff. */
 					_in_smooth_takeoff = true;
 					_takeoff_sp = 0.5f;
 
-				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -0.6f) {
+				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -1.0f) {
 					/* There is a velocity setpoint that points upward and larger than 0.6. The 0.6
 					 * ensures that a minimum velocity is first required to initiate a takeoff.*/
 					_in_smooth_takeoff = true;
