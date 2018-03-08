@@ -57,7 +57,7 @@ public:
 	/**
 	 * Get the interval
 	 *
-	 * @param interval the inveral in microseconds (us) between messages
+	 * @param interval the interval in microseconds (us) between messages
 	 */
 	void set_interval(const int interval);
 
