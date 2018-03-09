@@ -64,7 +64,7 @@ MissionReverse::~MissionReverse()
 void
 MissionReverse::on_inactive()
 {
-	if (!_navigator->in_rtl_state() && _mission_reverse_finished) {
+	if (!_navigator->in_rtl_state()) {
 		_mission_reverse_finished = false;
 	}
 }
