@@ -304,4 +304,6 @@ private:
 
 	pthread_mutex_t tx_buf_mutex = pthread_mutex_t();
 	bool verbose = false;
+
+	orb_advert_t _mavlink_log_pub{nullptr};
 };
