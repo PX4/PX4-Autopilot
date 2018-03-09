@@ -28,7 +28,7 @@ bool FlightTask::updateInitialize()
 	_time = (_time_stamp_current - _time_stamp_activate) / 1e6f;
 	_deltatime  = math::min((_time_stamp_current - _time_stamp_last), _timeout) / 1e6f;
 	_time_stamp_last = _time_stamp_current;
-	return _evaluateVehiclePosition();
+	return _evaluateVehicleLocalPosition();
 }
 
 const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
@@ -54,7 +54,7 @@ void FlightTask::_resetSetpoints()
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
 }
 
-bool FlightTask::_evaluateVehiclePosition()
+bool FlightTask::_evaluateVehicleLocalPosition()
 {
 	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout) {
 		_position = matrix::Vector3f(&_sub_vehicle_local_position->get().x);
