@@ -65,13 +65,6 @@ float ECL_RollController::control_attitude(const struct ECL_ControlData &ctl_dat
 	/* Apply P controller */
 	_rate_setpoint = roll_error / _tc;
 
-	/* limit the rate */ //XXX: move to body angluar rates
-
-	if (_max_rate > 0.01f) {
-		_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
-		_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
-	}
-
 	return _rate_setpoint;
 }
 
@@ -136,7 +129,8 @@ float ECL_RollController::control_euler_rate(const struct ECL_ControlData &ctl_d
 	/* Transform setpoint to body angular rates (jacobian) */
 	_bodyrate_setpoint = ctl_data.roll_rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint;
 
+	set_bodyrate_setpoint(_bodyrate_setpoint);
+	
 	return control_bodyrate(ctl_data);
 
 }
-

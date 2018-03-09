@@ -118,13 +118,6 @@ float ECL_YawController::control_attitude_impl_openloop(const struct ECL_Control
 				 ctl_data.airspeed_min : ctl_data.airspeed);
 	}
 
-	/* limit the rate */ //XXX: move to body angluar rates
-
-	if (_max_rate > 0.01f) {
-		_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
-		_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
-	}
-
 	if (!PX4_ISFINITE(_rate_setpoint)) {
 		warnx("yaw rate sepoint not finite");
 		_rate_setpoint = 0.0f;
@@ -214,6 +207,8 @@ float ECL_YawController::control_euler_rate(const struct ECL_ControlData &ctl_da
 	/* Transform setpoint to body angular rates (jacobian) */
 	_bodyrate_setpoint = -sinf(ctl_data.roll) * ctl_data.pitch_rate_setpoint +
 			     cosf(ctl_data.roll) * cosf(ctl_data.pitch) * _rate_setpoint;
+
+	set_bodyrate_setpoint(_bodyrate_setpoint);
 
 	return control_bodyrate(ctl_data);
 
