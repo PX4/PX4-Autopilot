@@ -253,14 +253,13 @@ Syslink::open_serial(const char *dev)
 	tcgetattr(fd, &config);
 
 	// clear ONLCR flag (which appends a CR for every LF)
-
 	config.c_oflag &= 0;
 
-	config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+	config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG); // beat
 
 	// Disable hardware flow control
 	config.c_cflag &= ~CRTSCTS;
-	//config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+	//config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);  //beat
 
 
 	/* Set baud rate */
@@ -761,18 +760,17 @@ Syslink::send_message(syslink_message_t *msg)
 	send_bytes(&msg->type, sizeof(msg->type));
 	send_bytes(&msg->length, sizeof(msg->length));
 	static int ack_count=0;
-	//for (int i=0; i<msg->length; i++){
 		if(msg->data[8]==77)
 			{ack_count++;
 				printf("Sending Ack msgid after msg length=%d, count=%d \n", msg->length, ack_count);} //barza
-	//}
+	
 
-/*	printf(" msg->type=%d, msg->length=%d ", msg->type, msg->length);
+	printf("msg->length=%d ", msg->length);
      for (int i = 0; i < msg->length; i++) {
          printf("%d ", msg->data[i]);}
          printf(" cksum1=%d, cksum2=%d ", msg->cksum[1], msg->cksum[2]);
     printf("\n");
-*/
+
 
 
 	send_bytes(&msg->data, msg->length);
