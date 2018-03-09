@@ -139,7 +139,7 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 
 	} else if (v0.length() < 0.001f) {
 		/* The first vector is 0. */
-		return v0 * 0.0f;
+		return v1.normalized() * max;
 
 	} else {
 		/*
@@ -181,12 +181,10 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 		 * 	- s (=scaling factor) needs to be positive
 		 * 	- (max - ||v||) always larger than zero, otherwise it never entered this if-statement
 		 * */
-
-		float s = 0.0f;
 		matrix::Vector2f u1 = v1.normalized();
 		float m = u1.dot(v0);
 		float c = v0.length() * v0.length() - max * max;
-		s = -m + sqrtf(m * m - c);
+		float s = -m + sqrtf(m * m - c);
 		return v0 + u1 * s;
 	}
 }
