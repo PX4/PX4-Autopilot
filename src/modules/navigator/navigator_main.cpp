@@ -581,7 +581,7 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: {
 				_pos_sp_triplet_published_invalid_once = false;
 
-				const bool rtl_activated = _previous_vstatus.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+				const bool rtl_activated = _previous_nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 				switch (rtl_type()) {
 				case RTL::RTL_LAND:
@@ -628,7 +628,7 @@ Navigator::run()
 						    (!get_land_detected()->landed)) {
 							// reset the current offboard index if we switch a non mission mode and a non-commanded mission mode
 							if ((!((_navigation_mode == &_mission) &&
-							       (_previous_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) &&
+							       (_previous_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) &&
 							    (_navigation_mode != &_mission_reverse)) {
 								_mission_reverse.switch_from_nonmission();
 							}
@@ -718,7 +718,7 @@ Navigator::run()
 		}
 
 		// update the vehicle status
-		_previous_vstatus = _vstatus;
+		_previous_nav_state = _vstatus.nav_state;
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
