@@ -47,6 +47,7 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
+#include <systemlib/mavlink_log.h>
 
 #include "drivers/drv_iridiumsbd.h"
 
@@ -590,7 +591,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 		if (*buffer == MAVLINK_PACKAGE_START) {
 			if (SATCOM_TX_BUF_LEN - tx_buf_write_idx - SATCOM_MIN_TX_BUF_SPACE - (*(buffer + 1) + 8) < 0) {
 				tx_buf_write_idx = 0;
-				PX4_INFO("Deleting full TX buffer before writing new message");
+				mavlink_log_critical(&_mavlink_log_pub, "Deleting full TX buffer before writing new message");
 			}
 		}
 	}
@@ -598,7 +599,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	// check and reset the remaining buffer space for any non mavlink messages
 	if (SATCOM_TX_BUF_LEN - tx_buf_write_idx - SATCOM_MIN_TX_BUF_SPACE < 0) {
 		tx_buf_write_idx = 0;
-		PX4_INFO("Deleting full TX buffer");
+		mavlink_log_critical(&_mavlink_log_pub, "Deleting full TX buffer");
 	}
 
 	VERBOSE_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, tx_buf_write_idx);
