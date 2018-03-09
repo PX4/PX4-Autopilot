@@ -47,9 +47,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
-#include <lib/geo/geo.h>
 #include "../SubscriptionArray.hpp"
-
 
 class FlightTask : public ModuleParams
 {
