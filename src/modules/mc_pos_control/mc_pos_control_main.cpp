@@ -3163,8 +3163,6 @@ MulticopterPositionControl::task_main()
 			 * vehicle is NOT in pure Manual mode. */
 			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				if (_vehicle_land_detected.ground_contact) {
-
-					/* if still or already on ground command zero xy thrust_sp in body
 					/* Set thrust in xy to zero */
 					thr_sp(0) = 0.0f;
 					thr_sp(1) = 0.0f;
