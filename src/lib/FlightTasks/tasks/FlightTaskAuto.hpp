@@ -91,5 +91,5 @@ private:
 	bool _isFinite(const position_setpoint_s sp);
 	void _updateReference();
 
-	bool _evaluateVehicleGlobalPosition(); /**< Required for reference update */
+	void _evaluateVehicleGlobalPosition(); /**< Required for reference update */
 };
