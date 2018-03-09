@@ -246,7 +246,7 @@ void PositionControl::_velocityController(const float &dt)
 	/* Satureate thrust setpoint in D-direction */
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
-	if (matrix::Vector2f(&_thr_sp(0)).length() > FLT_EPSILON) {
+	if (_thr_sp(0) + _thr_sp(1)  > FLT_EPSILON) {
 
 		/* Thrust setpoints in NE-direction is already provided. Only
 		 * scaling is required.
@@ -265,14 +265,15 @@ void PositionControl::_velocityController(const float &dt)
 
 		/* Get maximum allowed thrust in NE based on tilt and excess thrust */
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(tilt_max);
-		float thrust_max_NE = sqrtf(_ThrustLimit.max * _ThrustLimit.max - fabsf(_thr_sp(2) * fabsf(_thr_sp(2))));
+		float thrust_max_NE = sqrtf(_ThrustLimit.max * _ThrustLimit.max - _thr_sp(2) * _thr_sp(2));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
 		/* Get the direction of (r-y) in NE-direction */
 		float direction_NE = Vector2f(&vel_err(0)) * Vector2f(&_vel_sp(0));
 
 		/* Apply Anti-Windup in NE-direction */
-		bool stop_integral_NE = (thrust_desired_NE.length() >= thrust_max_NE && direction_NE >= 0.0f);
+		bool stop_integral_NE = (thrust_desired_NE * thrust_desired_NE >= thrust_max_NE * thrust_max_NE &&
+					 direction_NE >= 0.0f);
 
 		if (!stop_integral_NE) {
 			_thr_int(0) += vel_err(0) * Iv(0) * dt;
@@ -283,9 +284,10 @@ void PositionControl::_velocityController(const float &dt)
 		_thr_sp(0) = thrust_desired_NE(0);
 		_thr_sp(1) = thrust_desired_NE(1);
 
-		if (thrust_desired_NE.length() > thrust_max_NE) {
-			_thr_sp(0) = thrust_desired_NE(0) / thrust_desired_NE.length() * thrust_max_NE;
-			_thr_sp(1) = thrust_desired_NE(1) / thrust_desired_NE.length() * thrust_max_NE;
+		if (thrust_desired_NE * thrust_desired_NE > thrust_max_NE * thrust_max_NE) {
+			float mag = thrust_desired_NE.length();
+			_thr_sp(0) = thrust_desired_NE(0) / mag * thrust_max_NE;
+			_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
 
 		}
 	}
