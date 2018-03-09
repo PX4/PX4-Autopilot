@@ -3180,6 +3180,7 @@ MulticopterPositionControl::task_main()
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
 
+
 		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
 
 			_flight_tasks.update();
