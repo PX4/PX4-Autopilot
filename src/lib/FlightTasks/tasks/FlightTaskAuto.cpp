@@ -68,6 +68,7 @@ bool FlightTaskAuto::activate()
 bool FlightTaskAuto::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
+	_evaluateVehicleGlobalPosition();
 	return (ret && _evaluateTriplets());
 }
 
@@ -174,18 +175,17 @@ bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
 }
 
-bool FlightTaskAuto::_evaluateVehicleGlobalPosition()
+void FlightTaskAuto::_evaluateVehicleGlobalPosition()
 {
 	FlightTask::_evaluateVehicleLocalPosition();
 
 	/* Check if reference has changed and update. */
 	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference) {
+		PX4_INFO("inside");
 		map_projection_init(&_reference_position,
 				    _sub_vehicle_local_position->get().ref_lat,
 				    _sub_vehicle_local_position->get().ref_lon);
 		_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
 		_time_stamp_reference = _sub_vehicle_local_position->get().ref_timestamp;
 	}
-
-	return true;
 }
