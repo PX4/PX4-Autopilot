@@ -113,21 +113,39 @@ SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 {
 	crtp_message_t msg;
 	msg.header = 0;
+	//printf("buflen=%d\n", buflen );
 
 	// Queue and send next time we get a RAW radio packet
 	int remaining = buflen;
 
+/*    printf("buflen=%d ", buflen );
+     for (size_t i = 0; i < buflen; i++) {
+         printf("%d ", (int)buffer[i]);}
+    printf("\n");*/
+
+
 	while (remaining > 0) {
-		int datasize = MIN(remaining, CRTP_MAX_DATA_SIZE);
+		int datasize = MIN(remaining, CRTP_MAX_DATA_SIZE-1);
 		msg.size = datasize + sizeof(msg.header);
 		msg.port = CRTP_PORT_MAVLINK;
 		memcpy(&msg.data, buffer, datasize);
 
-		_link->_writebuffer.force(&msg, sizeof(crtp_message_t));
+		if(_link->_writebuffer.force(&msg, sizeof(crtp_message_t))){
+			printf("write buffer overflow!!! \n");
+		}
 
 		buffer += datasize;
 		remaining -= datasize;
 	}
+
+	/*static int ack_count=0;
+	if (buflen==10){ //writing header of mavlink msg into the buffer
+			if(msg.data[7]==77){
+				ack_count++;
+				printf("ack_count in write before=%d \n", ack_count);
+			}
+		
+	}*/
 
 	return buflen;
 }
@@ -154,6 +172,40 @@ SyslinkBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 void
 SyslinkBridge::pipe_message(crtp_message_t *msg)
 {
+	static int cmd_count=0;
+	static int bytes_received=0;
+	static int bytes_received_with_header=0;
+	static int prev_seq=0; 
+
+         if(msg->data[4]-prev_seq > 1)
+         {
+         	printf("msgs lost!!! msg lost=%d bytes_received=%d bytes_received_with_header=%d \n", msg->data[4]-prev_seq-1, bytes_received, bytes_received_with_header);
+         	 bytes_received=0;
+         	 bytes_received_with_header=0;
+         }
+
+
+	
+	if(msg->data[7]==76)
+			{cmd_count++;
+				//int arm_disarm_cmd=(int)msg->data[13]*256 + msg->data[12];
+				printf(" cmd_count after=%d, arm_disarm_cmd_12=%d arm_disarm_cmd_13=%d\n", cmd_count, msg->data[12], msg->data[13]);
+
+			} //sizeof(msg->data)=31
+
+
+		/*printf("syslink_bridge msg->size=%d ", msg->size);
+		for (int i = 0; i < msg->size-1; i++) {
+         printf("%d ",msg->data[i]);
+        }
+         printf("\n");*/
+
+         bytes_received+=msg->size-1;
+         bytes_received_with_header+=msg->size;
+         prev_seq=msg->data[4];
+
+
+	
 	_readbuffer.force(msg, sizeof(msg->size) + msg->size);
 	poll_notify(POLLIN);
 }

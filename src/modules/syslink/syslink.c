@@ -89,6 +89,7 @@ int syslink_parse_char(syslink_parse_state *state, char c, syslink_message_t *ms
 
 		if (c > SYSLINK_MAX_DATA_LEN) { // Too long
 			state->state = SYSLINK_STATE_START;
+			printf("Too long c=%d \n", (int)c);
 
 		} else {
 			state->state = c > 0 ? SYSLINK_STATE_DATA : SYSLINK_STATE_CKSUM;
@@ -110,7 +111,7 @@ int syslink_parse_char(syslink_parse_state *state, char c, syslink_message_t *ms
 
 	case SYSLINK_STATE_CKSUM:
 		if (c != msg->cksum[state->index]) {
-			PX4_INFO("Bad checksum");
+			printf("Bad checksum \n"); //PX4_INFO
 			state->state = SYSLINK_STATE_START;
 			state->index = 0;
 			break;

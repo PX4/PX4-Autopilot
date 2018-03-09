@@ -173,7 +173,7 @@ Syslink::send_queued_raw_message()
 	_count_out++;
 
 	_writebuffer.get(&msg.length, sizeof(crtp_message_t));
-
+	//printf("buflen=%d\n", msg.length);
 	return send_message(&msg);
 }
 
@@ -327,7 +327,7 @@ Syslink::task_main()
 
 	int error_counter = 0;
 
-	char buf[64];
+	char buf[64]; //char buf[64];
 	int nread;
 
 	syslink_parse_state state;
@@ -344,6 +344,7 @@ Syslink::task_main()
 		/* handle the poll result */
 		if (poll_ret == 0) {
 			/* timeout: this means none of our providers is giving us data */
+			//printf("timeout!!\n"); //barza
 			send_queued_raw_message();
 
 		} else if (poll_ret < 0) {
@@ -363,6 +364,7 @@ Syslink::task_main()
 				}
 
 				for (int i = 0; i < nread; i++) {
+					//if (buf[i]==76) {printf("notify!!!!! cmd about to parse at byte=%d \n", i);}
 					if (syslink_parse_char(&state, buf[i], &msg)) {
 						handle_message(&msg);
 					}
@@ -383,7 +385,35 @@ Syslink::task_main()
 
 void
 Syslink::handle_message(syslink_message_t *msg)
-{
+{	
+/*	static bool cmd_received=false;
+	static int cmd_count=0;
+
+	if(cmd_received) {
+         	printf("syslink_main msg->length=%d ", msg->length);
+ 		for (int i = 0; i < msg->length; i++) {
+         printf("%d ",msg->data[i]);}
+         printf("\n");
+         cmd_received=false;
+         }
+
+	if(msg->length > 8) {
+		if(msg->data[8]==76)
+			{cmd_count++;
+			printf(" cmd_count before=%d, arm_disarm_cmd_12=%d arm_disarm_cmd_13=%d \n", cmd_count, msg->data[13], msg->data[14]);
+		printf("syslink_main msg->length=%d ", msg->length);
+ 		for (int i = 0; i < msg->length; i++) {
+         printf("%d ",msg->data[i]);}
+         printf("\n");
+         cmd_received=true;
+         } //barza
+
+     }
+
+     */
+	
+
+
 	hrt_abstime t = hrt_absolute_time();
 
 	if (t - _lasttime > 1000000) {
@@ -447,7 +477,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		_rssi = 140 - rssi * 100 / (100 - 40);
 
 	} else if (msg->type == SYSLINK_RADIO_RAW) {
-		handle_raw(msg);
+		handle_raw(msg); //barza
 		_lastrxtime = t;
 
 	} else if ((msg->type & SYSLINK_GROUP) == SYSLINK_RADIO) {
@@ -712,7 +742,13 @@ Syslink::send_bytes(const void *data, size_t len)
 		// Block until we can send a byte
 		while (px4_arch_gpioread(GPIO_NRF_TXEN)) ;
 
-		write(_fd, ((const char *)data) + i, 1);
+		
+
+		if (write(_fd, ((const char *)data) + i, 1)!= 1){
+			printf("error write failed\n");
+		}
+
+	
 	}
 
 	return 0;
@@ -725,6 +761,21 @@ Syslink::send_message(syslink_message_t *msg)
 	send_bytes(syslink_magic, 2);
 	send_bytes(&msg->type, sizeof(msg->type));
 	send_bytes(&msg->length, sizeof(msg->length));
+	static int ack_count=0;
+	//for (int i=0; i<msg->length; i++){
+		if(msg->data[8]==77)
+			{ack_count++;
+				printf("Sending Ack msgid after msg length=%d, count=%d \n", msg->length, ack_count);} //barza
+	//}
+
+/*	printf(" msg->type=%d, msg->length=%d ", msg->type, msg->length);
+     for (int i = 0; i < msg->length; i++) {
+         printf("%d ", msg->data[i]);}
+         printf(" cksum1=%d, cksum2=%d ", msg->cksum[1], msg->cksum[2]);
+    printf("\n");
+*/
+
+
 	send_bytes(&msg->data, msg->length);
 	send_bytes(&msg->cksum, sizeof(msg->cksum));
 	return 0;
