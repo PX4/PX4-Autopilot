@@ -69,6 +69,9 @@ public:
 
 	bool is_estimate_valid() { return _initialised; }
 
+	bool check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint64_t &time_meas_rejected,
+				       bool &reinit_filter);
+
 	float get_tas_scale() { return _state(tas); }
 	float get_tas_innov() { return _tas_innov; }
 	float get_tas_innov_var() { return _tas_innov_var; }
@@ -111,7 +114,9 @@ private:
 	uint64_t _time_last_airspeed_fuse = 0;	// timestamp of last airspeed fusion
 	uint64_t _time_last_beta_fuse = 0;		// timestamp of last sideslip fusion
 	uint64_t _time_last_update = 0;			// timestamp of last covariance prediction
-	uint64_t _time_rejected_beta = 0;
+	uint64_t _time_rejected_beta = 0;		// timestamp of when sideslip measurements have consistently started to be rejected
+	uint64_t _time_rejected_tas =
+		0;		// timestamp of when true airspeed measurements have consistently started to be rejected
 
 	// initialise state and state covariance matrix
 	bool initialise(const Vector3f &velI, const Vector2f &velIvar, const float tas_meas);

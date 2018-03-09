@@ -85,6 +85,10 @@ WindEstimator::initialise(const Vector3f &velI, const Vector2f &velIvar, const f
 
 	_P = L * _P * L.transpose();
 
+	// reset the timestamp for measurement rejection
+	_time_rejected_tas = 0;
+	_time_rejected_beta = 0;
+
 	return true;
 }
 
@@ -177,7 +181,19 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	// innovation variance
 	_tas_innov_var = S._data[0][0];
 
-	if (_tas_innov_var < 0.0f) {
+	bool reinit_filter = false;
+	bool meas_is_rejected = false;
+
+	meas_is_rejected = check_if_meas_is_rejected(time_now, _tas_innov, _tas_innov_var, _time_rejected_tas, reinit_filter);
+
+	reinit_filter |= _tas_innov_var < 0.0f;
+
+	if (meas_is_rejected || reinit_filter) {
+		if (reinit_filter) {
+			_initialised =	initialise(velI, Vector2f(0.1f, 0.1f), velI.length());
+		}
+
+		// we either did a filter reset or the current measurement was rejected so do not fuse
 		return;
 	}
 
@@ -258,15 +274,21 @@ WindEstimator::fuse_beta(uint64_t time_now, const Vector3f &velI, const Quatf &q
 	_beta_innov = 0.0f - beta_pred;
 	_beta_innov_var = S._data[0][0];
 
-	if (fabsf(_beta_innov) > sqrtf(_beta_innov_var)) {
-		_time_rejected_beta = _time_rejected_beta == 0 ? time_now : _time_rejected_beta;
+	bool reinit_filter = false;
+	bool meas_is_rejected = false;
 
-	} else {
-		_time_rejected_beta = 0;
-	}
+	meas_is_rejected = check_if_meas_is_rejected(time_now, _beta_innov, _beta_innov_var, _time_rejected_beta,
+			   reinit_filter);
 
-	if (time_now - _time_rejected_beta > 5e6 && _time_rejected_beta != 0) {
-		_initialised =	initialise(velI, Vector2f(0.1f, 0.1f), velI.length());
+	reinit_filter |= _beta_innov_var < 0.0f;
+
+	if (meas_is_rejected || reinit_filter) {
+		if (reinit_filter) {
+			_initialised =	initialise(velI, Vector2f(0.1f, 0.1f), velI.length());
+		}
+
+		// we either did a filter reset or the current measurement was rejected so do not fuse
+		return;
 	}
 
 	// apply correction to state
@@ -315,4 +337,20 @@ WindEstimator::run_sanity_checks()
 			_P(column, row) = tmp;
 		}
 	}
+}
+
+bool
+WindEstimator::check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint64_t &time_meas_rejected,
+		bool &reinit_filter)
+{
+	if (innov * innov > innov_var) {
+		time_meas_rejected = time_meas_rejected == 0 ? time_now : time_meas_rejected;
+
+	} else {
+		time_meas_rejected = 0;
+	}
+
+	reinit_filter = time_now - time_meas_rejected > 5e6 && time_meas_rejected != 0;
+
+	return time_meas_rejected != 0;
 }
