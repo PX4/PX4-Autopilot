@@ -118,19 +118,10 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
  * This means that if the length of v0+v1 exceeds max, then it is constraint such
  * that v0 has priority.
  * Inputs:
- * @max => maximum magnitude of vector (v0 + v1)
- * @v0 => vector that is prioritized
- * @v1 => vector that is scaled such that max is not exceeded
- *
- * Output:
- * vector that is the sum of v1 and v0 with v0 prioritized.
- *
- * vf = final vector with ||vf|| <= max
- * s = scaling factor
- * u1 = unit of v1
- * vf = v0 + v1 = v0 + s * u1
- * constraint: ||vf|| <= max
- * solve for s: ||vf|| = ||v0 + s * u1|| <= max
+ * @max: maximum magnitude of vector (v0 + v1)
+ * @v0: vector that is prioritized
+ * @v1: vector that is scaled such that max is not exceeded
+ * @return: vector that is the sum of v1 and v0 with v0 prioritized.
  */
 matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float max)
 {
@@ -140,28 +131,62 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 
 	} else if (v0.length() >= max) {
 		/* The magnitude along v0, which has priority, already exceeds maximum.*/
-		return v0;
+		return v0.normalized() * max;
 
 	} else if (fabsf(matrix::Vector2f(v1 - v0).norm()) < 0.001f) {
 		/* The two vectors are equal. */
 		return v0.normalized() * max;
 
-	} else if (v1.length() < 0.001f) {
-		/* The second vector is 0. */
-		return v0.normalized() * max;
+	} else if (v0.length() < 0.001f) {
+		/* The first vector is 0. */
+		return v0 * 0.0f;
 
 	} else {
-		/* Constrain but prioritize v0. */
+		/*
+		 * vf = final vector with ||vf|| <= max
+		 * s = scaling factor
+		 * u1 = unit of v1
+		 * vf = v0 + v1 = v0 + s * u1
+		 * constraint: ||vf|| <= max
+		 *
+		 * solve for s: ||vf|| = ||v0 + s * u1|| <= max
+		 *
+		 * Derivation:
+		 * For simplicity, replace v0 -> v, u1 -> u
+		 * 				   		   v0(0/1/2) -> v0/1/2
+		 * 				   		   u1(0/1/2) -> u0/1/2
+		 *
+		 * ||v + s * u||^2 = (v0+s*u0)^2+(v1+s*u1)^2+(v1+s*u1)^2 = max^2
+		 * v0^2+2*s*u0*v0+s^2*u0^2 + v1^2+2*s*u1*v1+s^2*u1^2 + v2^2+2*s*u2*v2+s^2*u2^2 = max^2
+		 * s^2*(u0^2+u1^2+u2^2) + s*2*(u0*v0+u1*v1+u2*v2) + (v0^2+v1^2+v2^2-max^2) = 0
+		 *
+		 * quadratic equation:
+		 * -> s^2*a + s*b + c = 0 with solution: s1/2 = (-b +- sqrt(b^2 - 4*a*c))/(2*a)
+		 *
+		 * b = 2 * u.dot(v)
+		 * a = 1 (because u is normalized)
+		 * c = (v0^2+v1^2+v2^2-max^2) = -max^2 + ||v||^2
+		 *
+		 * sqrt(b^2 - 4*a*c) =
+		 * 		sqrt(4*u.dot(v)^2 - 4*(||v||^2 - max^2)) = 2*sqrt(u.dot(v)^2 +- (||v||^2 -max^2))
+		 *
+		 * s1/2 = ( -2*u.dot(v) +- 2*sqrt(u.dot(v)^2 - (||v||^2 -max^2)) / 2
+		 *      =  -u.dot(v) +- sqrt(u.dot(v)^2 - (||v||^2 -max^2))
+		 * m = u.dot(v)
+		 * s = -m + sqrt(m^2 - c)
+		 *
+		 *
+		 *
+		 * notes:
+		 * 	- s (=scaling factor) needs to be positive
+		 * 	- (max - ||v||) always larger than zero, otherwise it never entered this if-statement
+		 * */
+
 		float s = 0.0f;
 		matrix::Vector2f u1 = v1.normalized();
-		float det = sqrtf(max * max * u1.length() * u1.length() - (v0(0) * u1(1) - v0(1) * u1(0)) * (v0(0) * u1(1) - v0(1) * u1(
-					  0)));
-		float b = v0(0) * u1(0) + v0(1) * u1(1);
-
-		if (det >= b) {
-			s = (det - b) / (u1.length() * u1.length());
-		}
-
+		float m = u1.dot(v0);
+		float c = v0.length() * v0.length() - max * max;
+		s = -m + sqrtf(m * m - c);
 		return v0 + u1 * s;
 	}
 }
