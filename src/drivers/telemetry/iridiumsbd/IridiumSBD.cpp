@@ -78,7 +78,7 @@ int IridiumSBD::start(int argc, char *argv[])
 	IridiumSBD::instance = new IridiumSBD();
 
 	IridiumSBD::task_handle = px4_task_spawn_cmd("iridiumsbd", SCHED_DEFAULT,
-				  SCHED_PRIORITY_SLOW_DRIVER, 1200, (main_t)&IridiumSBD::main_loop_helper, argv);
+				  SCHED_PRIORITY_SLOW_DRIVER, 1300, (main_t)&IridiumSBD::main_loop_helper, argv);
 
 	return OK;
 }
@@ -463,6 +463,9 @@ void IridiumSBD::sbdsession_loop(void)
 			rx_read_pending = true;
 		}
 
+		// after a successful session reset the tx buffer
+		tx_buf_write_idx = 0;
+
 		publish_telemetry_status();
 
 		break;
@@ -471,6 +474,9 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: MO SUCCESS, MT FAIL");
 		last_heartbeat = hrt_absolute_time();
 		publish_telemetry_status();
+
+		// after a successful session reset the tx buffer
+		tx_buf_write_idx = 0;
 
 		tx_session_pending = false;
 		break;
@@ -579,6 +585,22 @@ void IridiumSBD::start_test(void)
 
 ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 {
+	// check and reset the remaining buffer space for incoming MavLink messages
+	if (buflen == 6) {
+		if (*buffer == MAVLINK_PACKAGE_START) {
+			if (SATCOM_TX_BUF_LEN - tx_buf_write_idx - SATCOM_MIN_TX_BUF_SPACE - (*(buffer + 1) + 8) < 0) {
+				tx_buf_write_idx = 0;
+				PX4_INFO("Deleting full TX buffer before writing new message");
+			}
+		}
+	}
+
+	// check and reset the remaining buffer space for any non mavlink messages
+	if (SATCOM_TX_BUF_LEN - tx_buf_write_idx - SATCOM_MIN_TX_BUF_SPACE < 0) {
+		tx_buf_write_idx = 0;
+		PX4_INFO("Deleting full TX buffer");
+	}
+
 	VERBOSE_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, tx_buf_write_idx);
 
 	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN - tx_buf_write_idx) {
@@ -671,8 +693,6 @@ void IridiumSBD::write_tx_buf()
 	}
 
 	VERBOSE_INFO("WRITE SBD: DATA WRITTEN TO MODEM");
-
-	tx_buf_write_idx = 0;
 
 	pthread_mutex_unlock(&tx_buf_mutex);
 
