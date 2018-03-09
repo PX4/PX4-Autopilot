@@ -139,5 +139,5 @@ protected:
 	 */
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
 
-	virtual bool _evaluateVehiclePosition();
+	bool _evaluateVehicleLocalPosition();
 };
