@@ -3118,7 +3118,7 @@ MulticopterPositionControl::task_main()
 
 				if (PX4_ISFINITE(setpoint.z)) {
 					/* Limit velocity setpoint to maximum takeoff velocity which is hard coded at 0.8 m/s.*/
-					setpoint.vz = -1.0f;
+					setpoint.vz = _params.tko_speed;
 					/* Smooth takeoff is ON if altitude is below target altitude AND
 					 * takeoff setpoint reached desired setpoint OR velocity reached desired velocity setpoint.
 					 * The 0.1/0.2 are used for clearance threshold. */
