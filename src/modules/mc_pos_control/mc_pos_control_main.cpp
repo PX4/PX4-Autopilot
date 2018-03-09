@@ -3089,56 +3089,50 @@ MulticopterPositionControl::task_main()
 			Controller::Constraints constraints;
 			updateConstraints(constraints);
 
-			/* Check for smooth takeoff */
+			// Check for smooth takeoff
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && _control_mode.flag_armed) {
-				/* Vehicle is still landed and no takeoff was initiated yet.
-				 * Adjust for different takeoff cases. */
-
-				if (PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2)) {
-					/* There is a position setpoint above current position. Enable smooth takeoff. */
-					_in_smooth_takeoff = true;
-					_takeoff_sp = 0.5f;
-
-				} else if (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -1.0f) {
-					/* There is a velocity setpoint that points upward and larger than 1 m/s. The 1 m/s
-					 * ensures that a minimum velocity is first required to initiate a takeoff.*/
+				// Vehicle is still landed and no takeoff was initiated yet.
+				// Adjust for different takeoff cases.
+				if ((PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2)) ||
+				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -1.0f)) {
+					// There is a position setpoint above current position or velocity setpoint larger than
+					// 1m/s. Enable smooth takeoff.
 					_in_smooth_takeoff = true;
 					_takeoff_sp = 0.5f;
 
 				} else {
-					/* Default */
+					// Default
 					_in_smooth_takeoff = false;
 				}
 			}
 
-			/* If in smooth takeoff, adjust setpoints based on what is valid:
-			 * 1. position setpoint is valid -> go with 1m/s to specific altitude (TODO: temporary and can be changed to anything)
-			 * 2. position setpoint not valid but velcoit setpoint valid: ramp up velocity
-			 */
-			if (_in_smooth_takeoff) {
-
+			// If in smooth takeoff, adjust setpoints based on what is valid:
+			// 1. position setpoint is valid -> go with takeoffspeed to specific altitude
+			// 2. position setpoint not valid but velcoit setpoint valid: ramp up velocity
+			if (_in_smooth_takeoff && (PX4_ISFINITE(setpoint.z) || PX4_ISFINITE(setpoint.vz))) {
 				if (PX4_ISFINITE(setpoint.z)) {
-					/* Limit velocity setpoint to maximum takeoff velocity which is hard coded at 0.8 m/s.*/
-					setpoint.vz = _params.tko_speed;
-					/* Smooth takeoff is ON if altitude is below target altitude AND
-					 * takeoff setpoint reached desired setpoint OR velocity reached desired velocity setpoint.
-					 * The 0.1/0.2 are used for clearance threshold. */
-					_in_smooth_takeoff = (_takeoff_sp > setpoint.vz || _vel(2)  > setpoint.vz + 0.1f) && (_pos(2) > setpoint.z + 0.2f) ;
-					/* For takeoff we only need velocity or thrust. Therefore, set setpoint to NAN */
-					setpoint.z = NAN;
-					/* ramp vertical velocity limit up to takeoff speed */
-					_takeoff_sp += setpoint.vz * _dt / _takeoff_ramp_time.get();
-					/* limit vertical velocity to the current ramp value */
-					setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
+					// Valid position setpoint. Set speed to takeoff velocity.
+					setpoint.vz = -_params.tko_speed;
+					// Smooth takeoff is ON if altitude is below target altitude AND
+					// takeoff setpoint reached desired setpoint OR velocity reached desired velocity setpoint.
+					// The 0.1 is used as clearance threshold.
+					_in_smooth_takeoff = (_takeoff_sp > setpoint.vz || _vel(2) > setpoint.vz + 0.1f) && (_pos(2) > setpoint.z);
 
-				} else if (PX4_ISFINITE(setpoint.vz)) {
-					/* Smooth takeoff is achieved once desired velocity setpoint is reached. */
+				} else {
+					// Valid velocity septoint.
+					// Smooth takeoff is achieved once desired velocity setpoint is reached.
 					_in_smooth_takeoff = _takeoff_sp > setpoint.vz;
-					/* ramp vertical velocity limit up to takeoff speed */
-					_takeoff_sp += setpoint.vz * _dt / _takeoff_ramp_time.get();
-					/* limit vertical velocity to the current ramp value */
-					setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
 				}
+
+				// During takeoff we only care about velocity.
+				setpoint.z = NAN;
+				// Ramp vertical velocity limit up to takeoff speed. */
+				_takeoff_sp += setpoint.vz * _dt / _takeoff_ramp_time.get();
+				// Limit vertical velocity to the current ramp value.
+				setpoint.vz = math::max(setpoint.vz, _takeoff_sp);
+
+			} else {
+				_in_smooth_takeoff = false;
 			}
 
 			/* We can only run the control if we're already in-air, have a takeoff setpoint, and are not
