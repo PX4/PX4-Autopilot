@@ -174,9 +174,9 @@ bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
 }
 
-bool FlightTaskAuto::_evaluateVehiclePosition()
+bool FlightTaskAuto::_evaluateVehicleGlobalPosition()
 {
-	FlightTask::_evaluateVehiclePosition();
+	FlightTask::_evaluateVehicleLocalPosition();
 
 	/* Check if reference has changed and update. */
 	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference) {
