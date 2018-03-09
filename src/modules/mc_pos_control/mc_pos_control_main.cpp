@@ -3165,24 +3165,9 @@ MulticopterPositionControl::task_main()
 				if (_vehicle_land_detected.ground_contact) {
 
 					/* if still or already on ground command zero xy thrust_sp in body
-					 * frame to consider uneven ground */
-
-					/* Temporary until replacement to matrix lib */
-					matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(
-										&_R(0, 0));
-					/* thrust setpoint in body frame*/
-					matrix::Vector3f thrust_sp_body = R.transpose() * thr_sp;
-
-					/* we dont want to make any correction in body x and y*/
-					thrust_sp_body(0) = 0.0f;
-					thrust_sp_body(1) = 0.0f;
-
-					/* make sure z component of thrust_sp_body is larger than 0 (positive thrust is downward) */
-					thrust_sp_body(2) =
-						thr_sp(2) > 0.0f ? thr_sp(2) : 0.0f;
-
-					/* convert back to local frame (NED) */
-					thr_sp = R * thrust_sp_body;
+					/* Set thrust in xy to zero */
+					thr_sp(0) = 0.0f;
+					thr_sp(1) = 0.0f;
 				}
 
 				if (_vehicle_land_detected.maybe_landed) {
