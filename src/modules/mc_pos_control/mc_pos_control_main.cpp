@@ -3208,6 +3208,10 @@ MulticopterPositionControl::task_main()
 
 			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
 			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
+			_att_sp.fw_control_yaw = false;
+			_att_sp.disable_mc_yaw_control = false;
+			_att_sp.apply_flaps = false;
+			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
 			publish_local_pos_sp();
 			publish_attitude();
