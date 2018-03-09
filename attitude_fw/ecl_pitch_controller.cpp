@@ -72,17 +72,6 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 	/*  Apply P controller: rate setpoint from current error and time constant */
 	_rate_setpoint =  pitch_error / _tc;
 
-	/* limit the rate */
-	if (_max_rate > 0.01f && _max_rate_neg > 0.01f) {
-		if (_rate_setpoint > 0.0f) {
-			_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
-
-		} else {
-			_rate_setpoint = (_rate_setpoint < -_max_rate_neg) ? -_max_rate_neg : _rate_setpoint;
-		}
-
-	}
-
 	return _rate_setpoint;
 }
 
@@ -147,6 +136,8 @@ float ECL_PitchController::control_euler_rate(const struct ECL_ControlData &ctl_
 	/* Transform setpoint to body angular rates (jacobian) */
 	_bodyrate_setpoint = cosf(ctl_data.roll) * _rate_setpoint +
 			     cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.yaw_rate_setpoint;
+
+	set_bodyrate_setpoint(_bodyrate_setpoint);
 
 	return control_bodyrate(ctl_data);
 }
