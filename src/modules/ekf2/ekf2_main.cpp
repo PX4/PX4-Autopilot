@@ -1247,8 +1247,11 @@ void Ekf2::run()
 					wind_estimate.timestamp = now;
 					wind_estimate.windspeed_north = velNE_wind[0];
 					wind_estimate.windspeed_east = velNE_wind[1];
-					wind_estimate.variance_north = status.covariances[22];
-					wind_estimate.variance_east = status.covariances[23];
+
+					float wind_var_north_east[2];
+					_ekf.get_wind_velocity_var(wind_var_north_east);
+					wind_estimate.variance_north = wind_var_north_east[0];
+					wind_estimate.variance_east = wind_var_north_east[1];
 
 					int wind_instance;
 					orb_publish_auto(ORB_ID(wind_estimate), &_wind_pub, &wind_estimate, &wind_instance, ORB_PRIO_DEFAULT);
