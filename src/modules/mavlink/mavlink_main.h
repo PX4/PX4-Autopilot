@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -178,6 +178,12 @@ public:
 		BROADCAST_MODE_ON
 	};
 
+	enum FLOW_CONTROL_MODE {
+		FLOW_CONTROL_OFF = 0,
+		FLOW_CONTROL_AUTO,
+		FLOW_CONTROL_ON
+	};
+
 	static const char *mavlink_mode_str(enum MAVLINK_MODE mode)
 	{
 		switch (mode) {
@@ -218,7 +224,7 @@ public:
 
 	bool			get_forward_externalsp() { return _forward_externalsp; }
 
-	bool			get_flow_control_enabled() { return _flow_control_enabled; }
+	bool			get_flow_control_enabled() { return _flow_control_mode; }
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
@@ -316,7 +322,7 @@ public:
 	 *
 	 * @param enabled	True if hardware flow control should be enabled
 	 */
-	int			enable_flow_control(bool enabled);
+	int			enable_flow_control(enum FLOW_CONTROL_MODE enabled);
 #endif
 
 	mavlink_channel_t	get_channel();
@@ -542,7 +548,7 @@ private:
 	float			_subscribe_to_stream_rate;
 	bool 			_udp_initialised;
 
-	bool			_flow_control_enabled;
+	enum FLOW_CONTROL_MODE	_flow_control_mode;
 	uint64_t		_last_write_success_time;
 	uint64_t		_last_write_try_time;
 	uint64_t		_mavlink_start_time;
@@ -608,7 +614,7 @@ private:
 	void			mavlink_update_system();
 
 #ifndef __PX4_QURT
-	int			mavlink_open_uart(int baudrate, const char *uart_name);
+	int			mavlink_open_uart(int baudrate, const char *uart_name, bool force_flow_control);
 #endif
 
 	static int		interval_from_rate(float rate);
