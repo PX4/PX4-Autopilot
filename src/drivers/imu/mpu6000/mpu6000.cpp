@@ -2012,11 +2012,16 @@ MPU6000::measure()
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
+	// We calculate sensor temperature as :
+	// temperature_real = temperature_raw / temperature_sensitivity + zero_offset
+	//
+	// Sensitivity (in LSB/degC) is from the Invensense datasheet for the specific sensor
+	// Zero offset (in degC) varies from part to part, and this datasheet value is a good default
 	if (is_icm_device()) { // if it is an ICM20608
 		_last_temperature = (report.temp) / 326.8f + 25.0f;
 
 	} else { // If it is an MPU6000
-		_last_temperature = (report.temp) / 361.0f + 35.0f;
+		_last_temperature = (report.temp) / 340.0f + 35.0f;
 	}
 
 	arb.temperature_raw = report.temp;
