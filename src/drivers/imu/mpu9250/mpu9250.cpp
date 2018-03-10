@@ -1439,7 +1439,12 @@ MPU9250::measure()
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
-	_last_temperature = (report.temp) / 361.0f + 35.0f;
+	// We calculate sensor temperature as :
+	// temperature_real = temperature_raw / temperature_sensitivity + zero_offset
+	//
+	// Sensitivity (in LSB/degC) is from the Invensense datasheet for the specific sensor
+	// Zero offset (in degC) varies from part to part, and this datasheet value is a good default
+	_last_temperature = (report.temp) / 333.87f + 21.0f;
 
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
