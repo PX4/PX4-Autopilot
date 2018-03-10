@@ -129,6 +129,8 @@ private:
 		param_t scale_y;
 		param_t offset_x;
 		param_t offset_y;
+		param_t sensor_offset_x;
+		param_t sensor_offset_y;
 	} _paramHandle;
 
 	struct {
@@ -141,6 +143,8 @@ private:
 		float scale_y;
 		float offset_x;
 		float offset_y;
+		float sensor_offset_x;
+		float sensor_offset_y;
 	} _params;
 
 	struct {

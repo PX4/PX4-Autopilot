@@ -75,6 +75,8 @@ LandingTargetEstimator::LandingTargetEstimator() :
 	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
 	_paramHandle.offset_x = param_find("LTEST_OFF_X");
 	_paramHandle.offset_y = param_find("LTEST_OFF_Y");
+	_paramHandle.sensor_offset_x = param_find("LTEST_S_OFF_X");
+	_paramHandle.sensor_offset_y = param_find("LTEST_S_OFF_Y");
 
 	// Initialize uORB topics.
 	_initialize_topics();
@@ -171,8 +173,18 @@ void LandingTargetEstimator::update()
 
 			_target_pose.is_static = (_params.mode == TargetMode::Stationary);
 
+			// offset the landing target in earth frame
 			x += _params.offset_x;
 			y += _params.offset_y;
+
+			// offset the landing target in body frame
+			matrix::Vector3f off;
+			off(0) = _params.sensor_offset_x;
+			off(1) = _params.sensor_offset_y;
+			off(2) = 0.0f;
+			off = _R_att * off;
+			x += off(0);
+			y += off(1);
 
 			_target_pose.rel_pos_valid = true;
 			_target_pose.rel_vel_valid = true;
@@ -357,6 +369,8 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.scale_y, &_params.scale_y);
 	param_get(_paramHandle.offset_x, &_params.offset_x);
 	param_get(_paramHandle.offset_y, &_params.offset_y);
+	param_get(_paramHandle.sensor_offset_x, &_params.sensor_offset_x);
+	param_get(_paramHandle.sensor_offset_y, &_params.sensor_offset_y);
 }
 
 

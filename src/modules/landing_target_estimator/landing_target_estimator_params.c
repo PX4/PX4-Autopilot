@@ -134,8 +134,9 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
 PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
 
 /**
- * Landing target offset from estimated position in x axis
+ * Landing target X offset from estimated position in NED
  *
+ * @unit m
  * @min 0.0
  * @max 100.0
  * @decimal 2
@@ -145,8 +146,9 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
 PARAM_DEFINE_FLOAT(LTEST_OFF_X, 0.0f);
 
 /**
- * Landing target offset from estimated position in y axis
+ * Landing target Y offset from estimated position in NED
  *
+ * @unit m
  * @min 0.0
  * @max 100.0
  * @decimal 2
@@ -154,3 +156,27 @@ PARAM_DEFINE_FLOAT(LTEST_OFF_X, 0.0f);
  * @group Landing target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_OFF_Y, 0.0f);
+
+/**
+ * Sensor X position offset in body frame
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_S_OFF_X, 0.0f);
+
+/**
+ * Sensor Y position offset in body frame
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_S_OFF_Y, 0.0f);
