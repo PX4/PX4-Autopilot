@@ -506,10 +506,8 @@ FXOS8701CQ::FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation
 	_last_raw_mag_z(0),
 	_checked_next(0)
 {
-
-
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_FXOS8701C;
 
