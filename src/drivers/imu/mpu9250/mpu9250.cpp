@@ -1379,7 +1379,7 @@ MPU9250::measure()
 	/*
 	 * Adjust and scale results to m/s^2.
 	 */
-	grb.timestamp = arb.timestamp = hrt_absolute_time();
+	uint64_t timestamp_sample = hrt_absolute_time();
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
@@ -1403,7 +1403,6 @@ MPU9250::measure()
 	 */
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
-
 	arb.x_raw = report.accel_x;
 	arb.y_raw = report.accel_y;
 	arb.z_raw = report.accel_z;
@@ -1426,7 +1425,7 @@ MPU9250::measure()
 	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
 	math::Vector<3> aval_integrated;
 
-	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
+	bool accel_notify = _accel_int.put(timestamp_sample, aval, aval_integrated, arb.integral_dt, arb.timestamp);
 	arb.x_integral = aval_integrated(0);
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
@@ -1438,6 +1437,8 @@ MPU9250::measure()
 
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
+	
+	arb.timestamp_sample_relative = (int32_t)((int64_t)arb.timestamp - (int64_t)timestamp_sample);
 
 	/* return device ID */
 	arb.device_id = _device_id.devid;
@@ -1464,7 +1465,7 @@ MPU9250::measure()
 	math::Vector<3> gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
 	math::Vector<3> gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
+	bool gyro_notify = _gyro_int.put(timestamp_sample, gval, gval_integrated, grb.integral_dt, grb.timestamp);
 	grb.x_integral = gval_integrated(0);
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
@@ -1474,6 +1475,8 @@ MPU9250::measure()
 
 	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
+
+	grb.timestamp_sample_relative = (int32_t)((int64_t)grb.timestamp - (int64_t)timestamp_sample);
 
 	/* return device ID */
 	grb.device_id = _gyro->_device_id.devid;

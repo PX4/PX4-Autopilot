@@ -717,9 +717,7 @@ BMI055_accel::measure()
 	 */
 	accel_report        arb;
 
-
-	arb.timestamp = hrt_absolute_time();
-
+	uint64_t timestamp_sample = hrt_absolute_time();
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
@@ -761,7 +759,7 @@ BMI055_accel::measure()
 	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
 	math::Vector<3> aval_integrated;
 
-	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
+	bool accel_notify = _accel_int.put(timestamp_sample, aval, aval_integrated, arb.integral_dt, arb.timestamp);
 	arb.x_integral = aval_integrated(0);
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
@@ -773,6 +771,9 @@ BMI055_accel::measure()
 
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
+
+	arb.timestamp_sample_relative = (int32_t)((int64_t)arb.timestamp - (int64_t)timestamp_sample);
+
 	arb.device_id = _device_id.devid;
 
 	_accel_reports->force(&arb);
