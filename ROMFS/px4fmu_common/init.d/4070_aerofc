@@ -76,4 +76,4 @@ set MIXER quad_x
 set USE_IO no
 
 param set SYS_COMPANION 921600
-set MAVLINK_COMPANION_DEVICE /dev/ttyS1
+set MAVLINK_DEVICE_2 /dev/ttyS1

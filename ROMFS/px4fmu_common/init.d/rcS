@@ -33,6 +33,54 @@ set +e
 # UART7			/dev/ttyS5		?
 # UART8			/dev/ttyS6		CONSOLE
 
+
+#
+# Declare all script variables here and initialize default values
+#
+set AUTOCNF				no
+set AUX_MODE				pwm
+set DATAMAN_OPT 			""
+set FAILSAFE				none
+set FAILSAFE_AUX			none
+set FCONFIG				/fs/microsd/etc/config.txt
+set FEXTRAS				/fs/microsd/etc/extras.txt
+set FMU_ARGS				""
+set FMU_MODE				pwm
+set FRC					/fs/microsd/etc/rc.txt
+set IO_FILE				/etc/extras/
+set IO_PRESENT				no
+set LOG_FILE				/fs/microsd/bootlog.txt
+set LOGGER_BUF				14
+set MAVLINK_DEVICE_1 			/dev/ttyS1
+set MAVLINK_DEVICE_1_ARGS		"-r 1200 -f"
+set MAVLINK_DEVICE_1_BAUD		"57600"
+set MAVLINK_DEVICE_2			none
+set MAVLINK_DEVICE_2_ARGS		none
+set MAVLINK_DEVICE_2_BAUD		none
+set MAV_TYPE				none
+set MIXER				none
+set MIXER_AUX				none
+set MKBLCTRL_ARG			""
+set MK_MODE				none
+set MODE				autostart
+set OUTPUT_MODE				none
+set PARAM_FILE				/fs/microsd/params
+set PWM_AUX_DISARMED			p:PWM_AUX_DISARMED
+set PWM_AUX_MAX				p:PWM_AUX_MAX
+set PWM_AUX_MIN 			p:PWM_AUX_MIN
+set PWM_AUX_OUT				none
+set PWM_AUX_RATE			none
+set PWM_DISARMED			p:PWM_DISARMED
+set PWM_MAX				p:PWM_MAX
+set PWM_MIN				p:PWM_MIN
+set PWM_OUT				none
+set PWM_RATE				p:PWM_RATE
+set USE_IO				no
+set TEMP_CALIB_ARGS 			""
+set TUNE_ERR				"ML<<CP4CP4CP4CP4CP4"
+set VEHICLE_TYPE			none
+
+
 #
 # Mount the procfs.
 #
@@ -167,36 +215,6 @@ then
 		fi
 	fi
 
-	#
-	# Set default values
-	#
-	set VEHICLE_TYPE none
-	set MIXER none
-	set MIXER_AUX none
-	set OUTPUT_MODE none
-	set PWM_OUT none
-	set PWM_RATE p:PWM_RATE
-	set PWM_DISARMED p:PWM_DISARMED
-	set PWM_MIN p:PWM_MIN
-	set PWM_MAX p:PWM_MAX
-	set PWM_AUX_OUT none
-	set PWM_AUX_RATE none
-	set PWM_ACHDIS none
-	set PWM_AUX_DISARMED p:PWM_AUX_DISARMED
-	set PWM_AUX_MIN p:PWM_AUX_MIN
-	set PWM_AUX_MAX p:PWM_AUX_MAX
-	set FAILSAFE_AUX none
-	set MK_MODE none
-	set FMU_MODE pwm
-	set AUX_MODE pwm
-	set FMU_ARGS ""
-	set MAVLINK_F default
-	set MAVLINK_COMPANION_DEVICE /dev/ttyS2
-	set MAV_TYPE none
-	set FAILSAFE none
-	set USE_IO no
-	set LOGGER_BUF 14
-
 	if ver hwcmp PX4FMU_V5
 	then
 		set LOGGER_BUF 64
@@ -221,12 +239,6 @@ then
 		# We don't allow changing AUTOSTART as it doesn't work in
 		# other configurations
 		param set SYS_AUTOSTART 4070
-	fi
-
-	if ver hwcmp NXPHLITE_V3
-	then
-		param set SYS_FMU_TASK 1
-		set MAVLINK_COMPANION_DEVICE /dev/ttyS4
 	fi
 
 	#
@@ -288,7 +300,7 @@ then
 		fi
 
 		# Run FMU as task on Pixracer and on boards with enough RAM
-		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
+		if ver hwcmp NXPHLITE_V3 PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
 		then
 			param set SYS_FMU_TASK 1
 		fi
@@ -539,148 +551,6 @@ then
 		fi
 	fi
 
-	if [ $MAVLINK_F == default ]
-	then
-		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
-		set MAVLINK_F "-r 1200 -f"
-
-		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
-		if ver hwcmp PX4FMU_V4
-		then
-			set MAVLINK_F "-r 1200 -d /dev/ttyS1"
-			# Start MAVLink on Wifi (ESP8266 port)
-			mavlink start -r 20000 -b 921600 -d /dev/ttyS0
-		fi
-
-		if ver hwcmp AEROFC_V1
-		then
-			set MAVLINK_F "-r 1200 -d /dev/ttyS3"
-
-			# Only start mavlink if the Benewake TFMini or LeddarOne isn't being used
-			if param greater SENS_EN_TFMINI 0
-			then
-				set MAVLINK_F none
-			fi
-			if param greater SENS_EN_LEDDAR1 0
-			then
-				set MAVLINK_F none				
-			fi
-		fi
-
-		if ver hwcmp CRAZYFLIE
-		then
-			# Avoid using either of the two available serials
-			set MAVLINK_F none
-		fi
-	fi
-
-	if [ "x$MAVLINK_F" == xnone ]
-	then
-	else
-		mavlink start ${MAVLINK_F}
-	fi
-	unset MAVLINK_F
-
-	#
-	# MAVLink onboard / TELEM2
-	#
-	# XXX We need a better way for runtime eval of shell variables,
-	# but this works for now
-	if param compare SYS_COMPANION 10
-	then
-		frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
-	else
-		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
-		then
-			# This is TELEM4 on Pixhawk 3 Pro
-			frsky_telemetry start -d /dev/ttyS6
-		fi
-	fi
-
-	if param compare SYS_COMPANION 20
-	then
-		syslink start
-		mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
-	fi
-	if param compare SYS_COMPANION 921600
-	then
-		if ver hwcmp AEROFC_V1
-		then
-			if protocol_splitter start ${MAVLINK_COMPANION_DEVICE}
-			then
-				mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
-				micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
-			else
-				 mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
-			fi
-		else
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
-		fi
-	fi
-	if param compare SYS_COMPANION 57600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x -f
-	fi
-	if param compare SYS_COMPANION 460800
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x -f
-	fi
-	if param compare SYS_COMPANION 157600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m osd -r 1000
-	fi
-	if param compare SYS_COMPANION 257600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x -f
-	fi
-	if param compare SYS_COMPANION 319200
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000 -f
-	fi
-	if param compare SYS_COMPANION 338400
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -r 1000 -f
-	fi
-	if param compare SYS_COMPANION 357600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -f
-	fi
-	if param compare SYS_COMPANION 3115200
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000 -f
-	fi
-	if param compare SYS_COMPANION 419200
-	then
-		iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE}
-		mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
-	fi
-	if param compare SYS_COMPANION 519200
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -m minimal -r 1000
-	fi
-	if param compare SYS_COMPANION 538400
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -m minimal -r 1000
-	fi
-	if param compare SYS_COMPANION 557600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m minimal -r 1000
-	fi
-	if param compare SYS_COMPANION 5115200
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -m minimal -r 1000
-	fi
-	if param compare SYS_COMPANION 1921600
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -r 20000
-	fi
-	if param compare SYS_COMPANION 1500000
-	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x -f
-	fi
-
-	unset MAVLINK_COMPANION_DEVICE
-
 	#
 	# Starting stuff according to UAVCAN_ENABLE value
 	#
@@ -701,18 +571,15 @@ then
 		fi
 	fi
 
+	#
+	# Start mavlink
+	#
+	sh /etc/init.d/rc.mavlink
+
 	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5
 	then
 		# Check for flow sensor - as it is a background task, launch it last
 		px4flow start &
-	fi
-
-	if ver hwcmp AEROFC_V1
-	then
-		# don't start mavlink ttyACM0 on aerofc_v1
-	else
-		# Start MAVLink
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 	fi
 
 	#
@@ -964,9 +831,48 @@ then
 # End of autostart
 fi
 
-# There is no further script processing, so we can free some RAM
-# XXX potentially unset all script variables.
-unset TUNE_ERR
-
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
+
+
+# Unset all declared script variables to free RAM
+unset AUTOCNF
+unset AUX_MODE
+unset DATAMAN_OPT
+unset FAILSAFE
+unset FAILSAFE_AUX
+unset FCONFIG
+unset FEXTRAS
+unset FMU_ARGS
+unset FMU_MODE
+unset FRC
+unset IO_FILE
+unset IO_PRESENT
+unset LOG_FILE
+unset LOGGER_BUF
+unset MAVLINK_DEVICE_1
+unset MAVLINK_DEVICE_1_ARGS
+unset MAVLINK_DEVICE_2
+unset MAVLINK_DEVICE_2_ARGS
+unset MAV_TYPE
+unset MIXER
+unset MIXER_AUX
+unset MKBLCTRL_ARG
+unset MK_MODE
+unset MODE
+unset OUTPUT_MODE
+unset PARAM_FILE
+unset PWM_AUX_DISARMED
+unset PWM_AUX_MAX
+unset PWM_AUX_MIN
+unset PWM_AUX_OUT
+unset PWM_AUX_RATE
+unset PWM_DISARMED
+unset PWM_MAX
+unset PWM_MIN
+unset PWM_OUT
+unset PWM_RATE
+unset USE_IO
+unset TEMP_CALIB_ARGS
+unset TUNE_ERR
+unset VEHICLE_TYPE
