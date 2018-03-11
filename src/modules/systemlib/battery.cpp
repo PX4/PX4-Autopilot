@@ -127,14 +127,15 @@ Battery::filterCurrent(float current_a)
 	}
 }
 
-void Battery::filterThrottle(float throttle){
+void Battery::filterThrottle(float throttle)
+{
 	if (!_battery_initialized) {
 		_throttle_filtered = throttle;
 	}
 
 	const float filtered_next = _throttle_filtered * 0.99f + throttle * 0.01f;
 
-	if (PX4_ISFINITE(filtered_next)){
+	if (PX4_ISFINITE(filtered_next)) {
 		_throttle_filtered = filtered_next;
 	}
 }
