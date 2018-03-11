@@ -46,6 +46,7 @@
 Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
 	_auto_reset_interval(auto_reset_interval),
 	_last_integration_time(0),
+	_timestamp_integral(0),
 	_last_reset_time(0),
 	_alpha(0.0f, 0.0f, 0.0f),
 	_last_alpha(0.0f, 0.0f, 0.0f),
@@ -63,12 +64,13 @@ Integrator::~Integrator()
 }
 
 bool
-Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt)
+Integrator::put(uint64_t timestamp_sample, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt, uint64_t &timestamp_integral)
 {
 	if (_last_integration_time == 0) {
 		/* this is the first item in the integrator */
-		_last_integration_time = timestamp;
-		_last_reset_time = timestamp;
+		_last_integration_time = timestamp_sample;
+		_timestamp_integral = timestamp_sample;
+		_last_reset_time = timestamp_sample;
 		_last_val = val;
 
 		return false;
@@ -79,8 +81,8 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 	// Integrate:
 	// Leave dt at 0 if the integration time does not make sense.
 	// Without this check the integral is likely to explode.
-	if (timestamp >= _last_integration_time) {
-		dt = (double)(timestamp - _last_integration_time) / 1000000.0;
+	if (timestamp_sample >= _last_integration_time) {
+		dt = (double)(timestamp_sample - _last_integration_time) / 1000000.0;
 	}
 
 	// Use trapezoidal integration to calculate the delta integral
@@ -102,10 +104,11 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 	// accumulate delta integrals
 	_alpha += delta_alpha;
 
-	_last_integration_time = timestamp;
+	_last_integration_time = timestamp_sample;
+	_timestamp_integral = (_timestamp_integral / 2) + (timestamp_sample / 2); // average timestamp of integral
 
 	// Only do auto reset if auto reset interval is not 0.
-	if (_auto_reset_interval > 0 && (timestamp - _last_reset_time) >= _auto_reset_interval) {
+	if (_auto_reset_interval > 0 && (timestamp_sample - _last_reset_time) >= _auto_reset_interval) {
 
 		// apply coning corrections if required
 		if (_coning_comp_on) {
@@ -114,6 +117,8 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 		} else {
 			integral = _alpha;
 		}
+
+		timestamp_integral = _timestamp_integral;
 
 		// reset the integrals and coning corrections
 		_reset(integral_dt);
@@ -127,12 +132,13 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 
 bool
 Integrator::put_with_interval(unsigned interval_us, math::Vector<3> &val, math::Vector<3> &integral,
-			      uint64_t &integral_dt)
+			      uint64_t &integral_dt, uint64_t &timestamp_integral)
 {
 	if (_last_integration_time == 0) {
 		/* this is the first item in the integrator */
 		uint64_t now = hrt_absolute_time();
 		_last_integration_time = now;
+		_timestamp_integral = now;
 		_last_reset_time = now;
 		_last_val = val;
 
@@ -140,15 +146,16 @@ Integrator::put_with_interval(unsigned interval_us, math::Vector<3> &val, math::
 	}
 
 	// Create the timestamp artifically.
-	uint64_t timestamp = _last_integration_time + interval_us;
+	uint64_t timestamp_sample = _last_integration_time + interval_us;
 
-	return put(timestamp, val, integral, integral_dt);
+	return put(timestamp_sample, val, integral, integral_dt, timestamp_integral);
 }
 
 math::Vector<3>
-Integrator::get(bool reset, uint64_t &integral_dt)
+Integrator::get(bool reset, uint64_t &integral_dt, uint64_t &timestamp_integral)
 {
 	math::Vector<3> val = _alpha;
+	timestamp_integral = _timestamp_integral;
 
 	if (reset) {
 		_reset(integral_dt);
@@ -158,10 +165,11 @@ Integrator::get(bool reset, uint64_t &integral_dt)
 }
 
 math::Vector<3>
-Integrator::get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> &filtered_val)
+Integrator::get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> &filtered_val, 
+					uint64_t &timestamp_integral)
 {
 	// Do the usual get with reset first but don't return yet.
-	math::Vector<3> ret_integral = get(reset, integral_dt);
+	math::Vector<3> ret_integral = get(reset, integral_dt, timestamp_integral);
 
 	// Because we need both the integral and the integral_dt.
 	filtered_val(0) = ret_integral(0) * 1000000 / integral_dt;
