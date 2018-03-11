@@ -71,9 +71,10 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	reset(battery_status);
 	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
+	filterThrottle(throttle_normalized);
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(_voltage_filtered_v, _current_filtered_a, throttle_normalized, armed);
+	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered, armed);
 	computeScale();
 
 	if (_battery_initialized) {
@@ -126,6 +127,17 @@ Battery::filterCurrent(float current_a)
 	}
 }
 
+void Battery::filterThrottle(float throttle){
+	if (!_battery_initialized) {
+		_throttle_filtered = throttle;
+	}
+
+	const float filtered_next = _throttle_filtered * 0.99f + throttle * 0.01f;
+
+	if (PX4_ISFINITE(filtered_next)){
+		_throttle_filtered = filtered_next;
+	}
+}
 
 void
 Battery::sumDischarged(hrt_abstime timestamp, float current_a)
@@ -150,7 +162,7 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 }
 
 void
-Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
+Battery::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
 {
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _n_cells.get();
@@ -161,7 +173,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 
 	} else {
 		// assume linear relation between throttle and voltage drop
-		cell_voltage += throttle_normalized * _v_load_drop.get();
+		cell_voltage += throttle * _v_load_drop.get();
 	}
 
 	_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);
