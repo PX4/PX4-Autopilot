@@ -10,6 +10,7 @@ float32 temperature	# temperature in degrees celsius
 float32 range_m_s2	# range in m/s^2 (+- this value)
 float32 scaling
 
+int32 timestamp_sample_relative	# timestamp of the raw measurement, relative to main timestamp
 int16 x_raw
 int16 y_raw
 int16 z_raw
