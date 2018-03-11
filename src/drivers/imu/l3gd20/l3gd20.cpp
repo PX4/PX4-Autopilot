@@ -983,7 +983,7 @@ L3GD20::measure()
 	 *	 	  the offset is 74 from the origin and subtracting
 	 *		  74 from all measurements centers them around zero.
 	 */
-	report.timestamp = hrt_absolute_time();
+	uint64_t timestamp_sample = hrt_absolute_time();
 	report.error_count = perf_event_count(_bad_registers);
 
 	switch (_orientation) {
@@ -1035,7 +1035,7 @@ L3GD20::measure()
 	math::Vector<3> gval(xin, yin, zin);
 	math::Vector<3> gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(report.timestamp, gval, gval_integrated, report.integral_dt);
+	bool gyro_notify = _gyro_int.put(timestamp_sample, gval, gval_integrated, report.integral_dt, report.timestamp);
 	report.x_integral = gval_integrated(0);
 	report.y_integral = gval_integrated(1);
 	report.z_integral = gval_integrated(2);
@@ -1044,6 +1044,8 @@ L3GD20::measure()
 
 	report.scaling = _gyro_range_scale;
 	report.range_rad_s = _gyro_range_rad_s;
+
+	report.timestamp_sample_relative = (int32_t)((int64_t)report.timestamp - (int64_t)timestamp_sample);
 
 	/* return device ID */
 	report.device_id = _device_id.devid;

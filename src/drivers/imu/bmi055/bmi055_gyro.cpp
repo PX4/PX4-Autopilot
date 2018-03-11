@@ -687,8 +687,7 @@ BMI055_gyro::measure()
 	 */
 	gyro_report     grb;
 
-
-	grb.timestamp =  hrt_absolute_time();
+	uint64_t timestamp_sample = hrt_absolute_time();
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
@@ -733,7 +732,7 @@ BMI055_gyro::measure()
 	math::Vector<3> gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
 	math::Vector<3> gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, grb.integral_dt);
+	bool gyro_notify = _gyro_int.put(timestamp_sample, gval, gval_integrated, grb.integral_dt, grb.timestamp);
 	grb.x_integral = gval_integrated(0);
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
@@ -743,6 +742,9 @@ BMI055_gyro::measure()
 
 	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
+
+	grb.timestamp_sample_relative = (int32_t)((int64_t)grb.timestamp - (int64_t)timestamp_sample);
+
 	grb.device_id = _device_id.devid;
 
 	_gyro_reports->force(&grb);

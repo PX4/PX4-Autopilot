@@ -53,14 +53,15 @@ public:
 	/**
 	 * Put an item into the integral.
 	 *
-	 * @param timestamp	Timestamp of the current value.
+	 * @param timestamp_sample	Timestamp of the current value.
 	 * @param val		Item to put.
 	 * @param integral	Current integral in case the integrator did reset, else the value will not be modified
 	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
+	 * @param timestamp_integral	Timestamp of the integrated value (average).
 	 * @return		true if putting the item triggered an integral reset and the integral should be
 	 *			published.
 	 */
-	bool put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt);
+	bool put(uint64_t timestamp_sample, math::Vector<3> &val, math::Vector<3> &integral, uint64_t &integral_dt, uint64_t &timestamp_integral);
 
 	/**
 	 * Put an item into the integral but provide an interval instead of a timestamp.
@@ -71,20 +72,22 @@ public:
 	 * @param integral_dt	Get the dt in us of the current integration (only if reset). Note that this
 	 *			values might not be accurate vs. hrt_absolute_time because it is just the sum of the
 	 *			supplied intervals.
+	 * @param timestamp_integral	Timestamp of the integrated value (average).
 	 * @return		true if putting the item triggered an integral reset and the integral should be
 	 *			published.
 	 */
 	bool put_with_interval(unsigned interval_us, math::Vector<3> &val, math::Vector<3> &integral,
-			       uint64_t &integral_dt);
+			       uint64_t &integral_dt, uint64_t &timestamp_integral);
 
 	/**
 	 * Get the current integral and reset the integrator if needed.
 	 *
 	 * @param reset	    	Reset the integral to zero.
 	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
+	 * @param timestamp_integral	Timestamp of the integrated value (average).
 	 * @return		the integral since the last read-reset
 	 */
-	math::Vector<3>		get(bool reset, uint64_t &integral_dt);
+	math::Vector<3>		get(bool reset, uint64_t &integral_dt, uint64_t &timestamp_integral);
 
 	/**
 	 * Get the current integral and reset the integrator if needed. Additionally give the
@@ -93,14 +96,16 @@ public:
 	 * @param reset	    	Reset the integral to zero.
 	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
 	 * @param filtered_val	The integral differentiated by the integration time.
+	 * @param timestamp_integral	Timestamp of the integrated value (average).
 	 * @return		the integral since the last read-reset
 	 */
-	math::Vector<3>		get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> &filtered_val);
+	math::Vector<3>		get_and_filtered(bool reset, uint64_t &integral_dt, math::Vector<3> &filtered_val, uint64_t &timestamp_integral);
 
 private:
 	uint64_t _auto_reset_interval;			/**< the interval after which the content will be published
 							     and the integrator reset, 0 if no auto-reset */
 	uint64_t _last_integration_time;		/**< timestamp of the last integration step */
+	uint64_t _timestamp_integral;		/**< timestamp of the integrated measurement (average) */
 	uint64_t _last_reset_time;			/**< last auto-announcement of integral value */
 	math::Vector<3> _alpha;				/**< integrated value before coning corrections are applied */
 	math::Vector<3> _last_alpha;			/**< previous value of _alpha */
