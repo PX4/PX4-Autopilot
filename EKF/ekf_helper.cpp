@@ -567,7 +567,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		Dcmf R_to_earth(euler321);
 
 		// calculate the observed yaw angle
-		if (_params.fusion_mode & MASK_USE_EVYAW) {
+		if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
 			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
@@ -621,7 +621,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		R_to_earth(2, 1) = s1;
 
 		// calculate the observed yaw angle
-		if (_params.fusion_mode & MASK_USE_EVYAW) {
+		if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
 			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
@@ -703,14 +703,12 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
 		// reset the rotation from the EV to EKF frame of reference if it is being used
-		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS)
-		    && !(_params.fusion_mode & MASK_USE_EVYAW)) {
-
+		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_yaw) {
 			resetExtVisRotMat();
 		}
 
 		// update the yaw angle variance using the variance of the measurement
-		if (_params.fusion_mode & MASK_USE_EVYAW) {
+		if (!_control_status.flags.ev_yaw) {
 			// using error estimate from external vision data
 			angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
 
