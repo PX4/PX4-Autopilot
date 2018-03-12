@@ -272,13 +272,11 @@ MissionReverse::mission_changed()
 void
 MissionReverse::command_vtol_transition()
 {
-	_mission->_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-	_mission->_mission_item.params[0] = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-	_mission->_mission_item.yaw = _navigator->get_global_position()->yaw;
+	set_vtol_transition_item(&_mission->_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->previous = pos_sp_triplet->current;
-	_mission->generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
+	_mission->generate_waypoint_from_heading(&pos_sp_triplet->current, _mission->_mission_item.yaw);
 	_navigator->set_position_setpoint_triplet_updated();
 	_mission->issue_command(_mission->_mission_item);
 }
