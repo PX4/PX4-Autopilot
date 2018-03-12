@@ -49,6 +49,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/parameter_update.h>
 
 class PWMSim : public device::CDev, public ModuleBase<PWMSim>
 {
@@ -129,10 +130,13 @@ private:
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 
+	bool 	_airmode{false}; 	///< multicopter air-mode
+
 	static int	control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
 
 	void 	subscribe();
 
+	void 	update_params();
 };
 
 #endif /* DRIVERS_PWM_OUT_SIM_PWMSIM_HPP_ */
