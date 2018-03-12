@@ -93,7 +93,6 @@
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/time_offset.h>
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/camera_trigger.h>
@@ -1185,7 +1184,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct satellite_info_s sat_info;
 		struct wind_estimate_s wind_estimate;
 		struct vtol_vehicle_status_s vtol_status;
-		struct time_offset_s time_offset;
 		struct rate_ctrl_status_s rate_ctrl_status;
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
@@ -2070,13 +2068,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_WIND.cov_x = buf.wind_estimate.variance_north;
 				log_msg.body.log_WIND.cov_y = buf.wind_estimate.variance_east;
 				LOGBUFFER_WRITE_AND_COUNT(WIND);
-			}
-
-			/* --- TIMESYNC OFFSET --- */
-			if (copy_if_updated(ORB_ID(time_offset), &subs.tsync_sub, &buf.time_offset)) {
-				log_msg.msg_type = LOG_TSYN_MSG;
-				log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
-				LOGBUFFER_WRITE_AND_COUNT(TSYN);
 			}
 
 			/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
