@@ -48,54 +48,61 @@ FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, 
 
 {}
 
-void FlightTaskManualAltitude::_scaleSticks()
-{
-	/* Reuse same scaling as for stabilized */
-	FlightTaskManualStabilized::_scaleSticks();
-
-	/* Scale horizontal velocity with expo curve stick input*/
-	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
-	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
-}
-
-void FlightTaskManualAltitude::_updateAltitudeLock()
+float FlightTaskManualAltitude::calcAltSetpoint(float climb_rate_setpoint)
 {
 	/* Depending on stick inputs and velocity, position is locked.
 	 * If not locked, altitude setpoint is set to NAN.
 	 */
 
 	/* handle position and altitude hold */
-	const bool apply_brake_z = fabsf(_velocity_setpoint(2)) <= FLT_EPSILON;
+	const bool apply_brake_z = fabsf(climb_rate_setpoint) <= FLT_EPSILON;
 	const bool stopped_z = (_vel_hold_thr_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _vel_hold_thr_z.get());
 
-	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_position_setpoint(2))) {
-		_position_setpoint(2) = _position(2);
+	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_last_altitude_setpoint)) {
+		_last_altitude_setpoint = _position(2);
 
 	} else if (!apply_brake_z) {
-		_position_setpoint(2) = NAN;
+		_last_altitude_setpoint = NAN;
 	}
+
+	return _last_altitude_setpoint;
 }
 
-void FlightTaskManualAltitude::_updateSetpoints()
+float FlightTaskManualAltitude::calcClimbRateSetpoint()
 {
-	FlightTaskManualStabilized::_updateSetpoints(); // get yaw and thrust setpoints
+	/* Scale horizontal velocity with expo curve stick input*/
+	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
+	return vel_max_z * _sticks_expo(2);
+}
 
-	_thrust_setpoint *= NAN; // Don't need thrust setpoint from Stabilized mode.
+void
+FlightTaskManualAltitude::calcYawAndThrustXY(ControlSetpoint &setpoint)
+{
+	setpoint.yawspeed_setpoint = calcYawSpeedSetpoint();
+	float yaw_setpoint = calcYawSetpoint();
 
-	/* Thrust in xy are extracted directly from stick inputs. A magnitude of
-	 * 1 means that maximum thrust along xy is required. A magnitude of 0 means no
-	 * thrust along xy is required. The maximum thrust along xy depends on the thrust
-	 * setpoint along z-direction, which is computed in PositionControl.cpp.
-	 */
 	Vector2f sp{_sticks(0), _sticks(1)};
-	_rotateIntoHeadingFrame(sp);
+	_rotateIntoHeadingFrame(sp, yaw_setpoint);
 
 	if (sp.length() > 1.0f) {
 		sp.normalize();
 	}
 
-	_thrust_setpoint(0) = sp(0);
-	_thrust_setpoint(1) = sp(1);
+	setpoint.thrust_setpoint(0) = sp(0);
+	setpoint.thrust_setpoint(1) = sp(1);
+}
 
-	_updateAltitudeLock();
+void
+FlightTaskManualAltitude::initialiseOutputs(ControlSetpoint &setpoint)
+{
+	setpoint.thrust_setpoint(2) = NAN;
+}
+
+void FlightTaskManualAltitude::updateOutput(ControlSetpoint &setpoint)
+{
+	calcYawAndThrustXY(setpoint);
+
+	float climb_rate_setpoint = calcClimbRateSetpoint();
+	setpoint.velocity_setpoint(2) = climb_rate_setpoint;
+	setpoint.position_setpoint(2) = calcAltSetpoint(climb_rate_setpoint);
 }

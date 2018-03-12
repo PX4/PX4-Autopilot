@@ -45,25 +45,34 @@ FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth(control::SuperBlo
 	_smoothingZ(_velocity(2), _sticks(2))
 {}
 
-void FlightTaskManualPositionSmooth::_updateSetpoints()
+void FlightTaskManualPositionSmooth::updateOutput(ControlSetpoint &setpoint)
 {
-	/* Get yaw setpont, un-smoothed position setpoints.*/
-	FlightTaskManualPosition::_updateSetpoints();
 
-	/* Smooth velocity setpoint in xy.*/
+	// calculate yaw- alitude and climbrate setpoint
+	FlightTaskManualAltitude::updateOutput(setpoint);
+
+	// smooth climb rate setpoint
+	_smoothingZ.smoothVelFromSticks(setpoint.velocity_setpoint(2), _deltatime);
+
+	// calculate altitude setpoint, e.g. check for altitude lock
+	setpoint.position_setpoint(2) = calcAltSetpoint(setpoint.velocity_setpoint(2));
+
+	// calculate xy velocity setpoint
+	matrix::Vector2f velocity_setpoint;
+	calcVelocitySetpoint(setpoint.yaw_setpoint, velocity_setpoint);
+
+	// smooth xy velocity setpoint
 	matrix::Vector2f vel(&_velocity(0));
-	Vector2f vel_sp_xy = Vector2f(&_velocity_setpoint(0));
-	_smoothingXY.smoothVelocity(vel_sp_xy, vel, _yaw, _yawspeed_setpoint, _deltatime);
-	_velocity_setpoint(0) = vel_sp_xy(0);
-	_velocity_setpoint(1) = vel_sp_xy(1);
+	_smoothingXY.smoothVelocity(velocity_setpoint, vel, _yaw, setpoint.yawspeed_setpoint, _deltatime);
 
-	/* Check for altitude lock.*/
-	_updateXYlock();
+	setpoint.velocity_setpoint(0) = velocity_setpoint(0);
+	setpoint.velocity_setpoint(1) = velocity_setpoint(1);
 
-	/* Smooth velocity in z.*/
-	_smoothingZ.smoothVelFromSticks(_velocity_setpoint(2), _deltatime);
+	// calculate xy position setpoint, e.g. check for position lock
+	matrix::Vector2f position_setpoint;
+	calcPositionSetpoint(velocity_setpoint, position_setpoint);
 
-	/* Check for altitude lock*/
-	_updateAltitudeLock();
+	setpoint.position_setpoint(0) = position_setpoint(0);
+	setpoint.position_setpoint(1) = position_setpoint(1);
 
 }

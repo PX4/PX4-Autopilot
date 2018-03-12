@@ -49,40 +49,11 @@ FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *pare
 	_throttle_hover(parent, "MPC_THR_HOVER", false)
 {}
 
-bool FlightTaskManualStabilized::activate()
-{
-	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
-	return FlightTaskManual::activate();
-}
-
-void FlightTaskManualStabilized::_scaleSticks()
-{
-	/* Scale sticks to yaw and thrust using
-	 * linear scale for yaw and piecewise linear map for thrust. */
-	_yawspeed_setpoint = _sticks(3) * math::radians(_yaw_rate_scaling.get());
-	_throttle = _throttleCurve();
-}
-
-void FlightTaskManualStabilized::_updateHeadingSetpoints()
-{
-	/* Yaw-lock depends on stick input. If not locked,
-	 * yaw_sp is set to NAN.
-	 * TODO: add yawspeed to get threshold.*/
-	const bool stick_yaw_zero = fabsf(_sticks(3)) <= _stick_dz.get();
-
-	if (stick_yaw_zero && !PX4_ISFINITE(_yaw_setpoint)) {
-		_yaw_setpoint = _yaw;
-
-	} else if (!stick_yaw_zero) {
-		_yaw_setpoint = NAN;
-	}
-}
-
-void FlightTaskManualStabilized::_updateThrustSetpoints()
+void FlightTaskManualStabilized::calcThrustSetpoint(matrix::Vector3f &thrust_vector, float yaw_setpoint)
 {
 	/* Rotate setpoint into local frame. */
 	Vector2f sp{_sticks(0), _sticks(1)};
-	_rotateIntoHeadingFrame(sp);
+	_rotateIntoHeadingFrame(sp, yaw_setpoint);
 
 	/* Ensure that maximum tilt is in [0.001, Pi] */
 	float tilt_max = math::constrain(math::radians(_tilt_max_man.get()), 0.001f, M_PI_F);
@@ -107,22 +78,39 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 	 * upward by the Axis-Angle.
 	 */
 	Quatf q_sp = AxisAnglef(v(0), v(1), 0.0f);
-	_thrust_setpoint = q_sp.conjugate(Vector3f(0.0f, 0.0f, -1.0f)) * _throttle;
+	thrust_vector = q_sp.conjugate(Vector3f(0.0f, 0.0f, -1.0f)) * _throttleCurve();
 }
 
-void FlightTaskManualStabilized::_rotateIntoHeadingFrame(Vector2f &v)
+float FlightTaskManualStabilized::calcYawSetpoint()
 {
-	float yaw_rotate = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
+	/* Yaw-lock depends on stick input. If not locked,
+	 * yaw_sp is set to NAN.
+	 * TODO: add yawspeed to get threshold.*/
+	const bool stick_yaw_zero = fabsf(_sticks(3)) <= _stick_dz.get();
+
+	if (stick_yaw_zero && !PX4_ISFINITE(_last_yaw_setpoint)) {
+		_last_yaw_setpoint = _yaw;
+
+	} else if (!stick_yaw_zero) {
+		_last_yaw_setpoint = NAN;
+	}
+
+	return _last_yaw_setpoint;
+}
+
+float FlightTaskManualStabilized::calcYawSpeedSetpoint()
+{
+	return _sticks(3) * math::radians(_yaw_rate_scaling.get());
+}
+
+void FlightTaskManualStabilized::_rotateIntoHeadingFrame(matrix::Vector2f &v, float yaw_setpoint)
+{
+	float yaw_rotate = PX4_ISFINITE(yaw_setpoint) ? yaw_setpoint : _yaw;
 	Vector3f v_r = Vector3f(Dcmf(Eulerf(0.0f, 0.0f, yaw_rotate)) * Vector3f(v(0), v(1), 0.0f));
 	v(0) = v_r(0);
 	v(1) = v_r(1);
 }
 
-void FlightTaskManualStabilized::_updateSetpoints()
-{
-	_updateHeadingSetpoints();
-	_updateThrustSetpoints();
-}
 
 float FlightTaskManualStabilized::_throttleCurve()
 {
@@ -138,10 +126,19 @@ float FlightTaskManualStabilized::_throttleCurve()
 	}
 }
 
-bool FlightTaskManualStabilized::update()
+void
+FlightTaskManualStabilized::initialiseOutputs(ControlSetpoint &setpoint)
 {
-	_scaleSticks();
-	_updateSetpoints();
+	setpoint.thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
+}
 
-	return true;
+void FlightTaskManualStabilized::updateOutput(ControlSetpoint &setpoint)
+{
+
+	float yaw_setpoint = calcYawSetpoint();
+	setpoint.yaw_setpoint = yaw_setpoint;
+	setpoint.yawspeed_setpoint = calcYawSpeedSetpoint();
+
+	// calculate 3D thrust vector from stick inputs
+	calcThrustSetpoint(setpoint.thrust_setpoint, yaw_setpoint);
 }

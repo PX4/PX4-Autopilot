@@ -50,6 +50,16 @@
 
 #include "../SubscriptionArray.hpp"
 
+// this defines the output of the FlightTask library
+struct ControlSetpoint {
+	matrix::Vector3f position_setpoint;
+	matrix::Vector3f velocity_setpoint;
+	matrix::Vector3f acceleration_setpoint;
+	matrix::Vector3f thrust_setpoint;
+	float yaw_setpoint;
+	float yawspeed_setpoint;
+};
+
 
 class FlightTask : public control::Block
 {
@@ -72,6 +82,8 @@ public:
 	 */
 	virtual bool activate();
 
+	virtual void initialiseOutputs(ControlSetpoint &setpoint) = 0;
+
 	/**
 	 * To be called to adopt parameters from an arrived vehicle command
 	 * @return true if accepted, false if declined
@@ -89,7 +101,14 @@ public:
 	 * To be called regularly in the control loop cycle to execute the task
 	 * @return true on success, false on error
 	 */
-	virtual bool update() = 0;
+	virtual bool update()
+	{
+		updateOutput(_ctrl_setpoints);
+
+		return true;
+	}
+
+	virtual void updateOutput(ControlSetpoint &setpoint) = 0;
 
 	/**
 	 * Get the output data
@@ -112,15 +131,6 @@ protected:
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f;
 
-	/* Setpoints the position controller needs to execute
-	 * NAN values mean the state does not get controlled */
-	matrix::Vector3f _position_setpoint;
-	matrix::Vector3f _velocity_setpoint;
-	matrix::Vector3f _acceleration_setpoint;
-	matrix::Vector3f _thrust_setpoint;
-	float _yaw_setpoint;
-	float _yawspeed_setpoint;
-
 	/**
 	 * Get the output data
 	 */
@@ -130,4 +140,8 @@ private:
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
 
 	bool _evaluateVehiclePosition();
+
+	/* Setpoints the position controller needs to execute
+	 * NAN values mean the state does not get controlled */
+	ControlSetpoint _ctrl_setpoints;
 };

@@ -49,9 +49,10 @@ public:
 
 	virtual ~FlightTaskManualPositionSmooth() = default;
 
+	virtual void updateOutput(ControlSetpoint &setpoint);
+
 protected:
 
-	virtual void _updateSetpoints() override;
 	ManualSmoothingXY _smoothingXY; /**< smoothing for velocity setpoints in xy */
 	ManualSmoothingZ _smoothingZ; /**< smoothing for velocity in z */
 };

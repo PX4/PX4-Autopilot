@@ -64,13 +64,13 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		_current_task = new (&_task_union.position_smooth) FlightTaskManualPositionSmooth(this, "MANPOSSM");
 		break;
 
-	case FlightTaskIndex::Orbit:
-		_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
-		break;
+	// case FlightTaskIndex::Orbit:
+	// 	_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
+	// 	break;
 
-	case FlightTaskIndex::Sport:
-		_current_task = new (&_task_union.sport) FlightTaskSport(this, "SPO");
-		break;
+	// case FlightTaskIndex::Sport:
+	// 	_current_task = new (&_task_union.sport) FlightTaskSport(this, "SPO");
+	// 	break;
 
 	default:
 		/* invalid task */

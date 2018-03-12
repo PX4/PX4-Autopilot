@@ -49,21 +49,23 @@ public:
 
 	virtual ~FlightTaskManualStabilized() = default;
 
-	bool activate() override;
+	void initialiseOutputs(ControlSetpoint &setpoint);
 
-	bool update() override;
+	void updateOutput(ControlSetpoint &setpoint);
 
 protected:
-	virtual void _updateSetpoints(); /**< updates all setpoints*/
-	virtual void _scaleSticks(); /**< scales sticks to yaw and thrust */
-	void _rotateIntoHeadingFrame(matrix::Vector2f &vec); /**< rotates vector into local frame */
+	void _rotateIntoHeadingFrame(matrix::Vector2f &v, float yaw_setpoint); /**< rotates vector into local frame */
+
+	void calcThrustSetpoint(matrix::Vector3f &thrust_vector, float yaw_setpoint);
+
+	float calcYawSetpoint();
+
+	float calcYawSpeedSetpoint();
 
 private:
 
 	float _throttle{}; /** mapped from stick z */
 
-	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
-	void _updateThrustSetpoints(); /**< sets thrust setpoint */
 	float _throttleCurve(); /**< piecewise linear mapping from stick to throttle */
 
 	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
@@ -71,4 +73,6 @@ private:
 	control::BlockParamFloat _throttle_min; /**< minimum throttle that always has to be satisfied in flight*/
 	control::BlockParamFloat _throttle_max; /**< maximum throttle that always has to be satisfied in flight*/
 	control::BlockParamFloat _throttle_hover; /**< throttle value at which vehicle is at hover equilibrium */
+
+	float _last_yaw_setpoint = NAN;
 };

@@ -47,8 +47,7 @@ public:
 	FlightTaskManualAltitudeSmooth(control::SuperBlock *parent, const char *name);
 	virtual ~FlightTaskManualAltitudeSmooth() = default;
 
-protected:
-	virtual void _updateSetpoints() override;
+	void updateOutput(ControlSetpoint &setpoint);
 
 private:
 	ManualSmoothingZ _smoothing; /**< smoothing for velocity setpoints */

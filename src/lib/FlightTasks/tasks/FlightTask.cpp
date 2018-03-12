@@ -18,6 +18,9 @@ bool FlightTask::activate()
 {
 	_resetSetpoints();
 	_time_stamp_activate = hrt_absolute_time();
+
+	initialiseOutputs(_ctrl_setpoints);
+
 	return true;
 }
 
@@ -35,22 +38,22 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 	/* fill position setpoint message */
 	vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
 	vehicle_local_position_setpoint.timestamp = hrt_absolute_time();
-	_position_setpoint.copyToRaw(&vehicle_local_position_setpoint.x);
-	_velocity_setpoint.copyToRaw(&vehicle_local_position_setpoint.vx);
-	_acceleration_setpoint.copyToRaw(&vehicle_local_position_setpoint.acc_x);
-	_thrust_setpoint.copyTo(vehicle_local_position_setpoint.thrust);
-	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
-	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;
+	_ctrl_setpoints.position_setpoint.copyToRaw(&vehicle_local_position_setpoint.x);
+	_ctrl_setpoints.velocity_setpoint.copyToRaw(&vehicle_local_position_setpoint.vx);
+	_ctrl_setpoints.acceleration_setpoint.copyToRaw(&vehicle_local_position_setpoint.acc_x);
+	_ctrl_setpoints.thrust_setpoint.copyTo(vehicle_local_position_setpoint.thrust);
+	vehicle_local_position_setpoint.yaw = _ctrl_setpoints.yaw_setpoint;
+	vehicle_local_position_setpoint.yawspeed = _ctrl_setpoints.yawspeed_setpoint;
 	return vehicle_local_position_setpoint;
 }
 
 void FlightTask::_resetSetpoints()
 {
-	_position_setpoint *= NAN;
-	_velocity_setpoint *= NAN;
-	_acceleration_setpoint *= NAN;
-	_thrust_setpoint *= NAN;
-	_yaw_setpoint = _yawspeed_setpoint = NAN;
+	_ctrl_setpoints.position_setpoint *= NAN;
+	_ctrl_setpoints.velocity_setpoint *= NAN;
+	_ctrl_setpoints.acceleration_setpoint *= NAN;
+	_ctrl_setpoints.thrust_setpoint *= NAN;
+	_ctrl_setpoints.yaw_setpoint = _ctrl_setpoints.yawspeed_setpoint = NAN;
 }
 
 bool FlightTask::_evaluateVehiclePosition()
