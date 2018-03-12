@@ -103,7 +103,7 @@ set(msg_files
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
-	time_offset.msg
+	timesync_status.msg
 	transponder_report.msg
 	tune_control.msg
 	uavcan_parameter_request.msg
