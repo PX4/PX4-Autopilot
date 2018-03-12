@@ -151,9 +151,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
 		// needs to be calculated and the observations rotated into the EKF frame of reference
-		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS)
-		    && !(_params.fusion_mode & MASK_USE_EVYAW)) {
-
+		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_yaw) {
 			// rotate EV measurements into the EKF Navigation frame
 			calcExtVisRotMat();
 		}
@@ -182,7 +180,7 @@ void Ekf::controlExternalVisionFusion()
 		}
 
 		// external vision yaw aiding selection logic
-		if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
+		if (!_control_status.flags.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
 			// don't start using EV data unless daa is arriving frequently
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// reset the yaw angle to the value from the observaton quaternion
@@ -465,9 +463,12 @@ void Ekf::controlGpsFusion()
 		if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.flags.gps) {
 			if (_control_status.flags.tilt_align && _NED_origin_initialised && gps_checks_passing) {
 				// If the heading is not aligned, reset the yaw and magnetic field states
-				if (!_control_status.flags.yaw_align) {
+				// Do not use external vision for yaw if using GPS because yaw needs to be
+				// defined relative to an NED reference frame
+				if (!_control_status.flags.yaw_align || _control_status.flags.ev_yaw) {
+					_control_status.flags.yaw_align = false;
+					_control_status.flags.ev_yaw = false;
 					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
-
 				}
 
 				// If the heading is valid start using gps aiding
@@ -490,7 +491,6 @@ void Ekf::controlGpsFusion()
 					if (_control_status.flags.gps) {
 						ECL_INFO("EKF commencing GPS fusion");
 						_time_last_gps = _time_last_imu;
-
 					}
 				}
 			}
