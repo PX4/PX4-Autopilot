@@ -217,7 +217,6 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 
 		} else if (max_out > 1.0f) {
 			boost = -(max_out - 1.0f);
-
 		}
 
 	} else {
@@ -226,7 +225,13 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	}
 
 	if (!_airmode) {
-		boost = math::min(boost, 0.0f); // Disable positive boosting if not in air-mode
+		// disable positive boosting if not in air-mode
+		// boosting is positive when min_out < 0.0
+		// roll_pitch_scale is reduced accordingly
+		if (boost > 0.0f) {
+			roll_pitch_scale = thrust / (thrust - min_out);
+			boost = 0.0f;
+		}
 	}
 
 	// capture saturation
