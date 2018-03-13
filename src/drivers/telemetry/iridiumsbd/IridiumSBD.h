@@ -261,6 +261,32 @@ private:
 	 */
 	void publish_telemetry_status(void);
 
+	/**
+	 * Notification of the first open of CDev.
+	 *
+	 * This function is called when the device open count transitions from zero
+	 * to one.  The driver lock is held for the duration of the call.
+	 *
+	 * Notes that CDev is used and blocks stopping the driver.
+	 *
+	 * @param filep		Pointer to the NuttX file structure.
+	 * @return		OK if the open should proceed, -errno otherwise.
+	 */
+	virtual int	open_first(struct file *filep) override;
+
+	/**
+	 * Notification of the last close of CDev.
+	 *
+	 * This function is called when the device open count transitions from
+	 * one to zero.  The driver lock is held for the duration of the call.
+	 *
+	 * Notes that CDev is not used anymore and allows stopping the driver.
+	 *
+	 * @param filep		Pointer to the NuttX file structure.
+	 * @return		OK if the open should return OK, -errno otherwise.
+	 */
+	virtual int	close_last(struct file *filep) override;
+
 	static IridiumSBD *instance;
 	static int task_handle;
 	bool task_should_exit = false;
@@ -294,6 +320,8 @@ private:
 	bool rx_session_pending = false;
 	bool rx_read_pending = false;
 	bool tx_session_pending = false;
+
+	bool cdev_used = false;
 
 	hrt_abstime last_write_time = 0;
 	hrt_abstime last_read_time = 0;

@@ -91,6 +91,11 @@ int IridiumSBD::stop()
 		return PX4_ERROR;
 	}
 
+	if (IridiumSBD::instance->cdev_used) {
+		PX4_WARN("device is used. Stop all users (MavLink)");
+		return PX4_ERROR;
+	}
+
 	PX4_WARN("stopping...");
 
 	IridiumSBD::instance->task_should_exit = true;
@@ -921,6 +926,20 @@ void IridiumSBD::publish_telemetry_status()
 		orb_publish(ORB_ID(telemetry_status), telemetry_status_pub, &tstatus);
 	}
 }
+
+int	IridiumSBD::open_first(struct file *filep)
+{
+	cdev_used = true;
+	return CDev::open_first(filep);
+}
+
+int	IridiumSBD::close_last(struct file *filep)
+{
+	cdev_used = false;
+	return CDev::close_last(filep);
+}
+
+
 
 int iridiumsbd_main(int argc, char *argv[])
 {
