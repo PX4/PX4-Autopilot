@@ -289,50 +289,50 @@ private:
 
 	static IridiumSBD *instance;
 	static int task_handle;
-	bool task_should_exit = false;
+	bool _task_should_exit = false;
 	int uart_fd = -1;
 
-	int32_t param_read_interval_s = -1;
-	int32_t param_session_timeout_s = -1;
-	int32_t param_stacking_time_ms = -1;
+	int32_t _param_read_interval_s = -1;
+	int32_t _param_session_timeout_s = -1;
+	int32_t _param_stacking_time_ms = -1;
 
-	hrt_abstime last_signal_check = 0;
-	uint8_t signal_quality = 0;
+	hrt_abstime _last_signal_check = 0;
+	uint8_t _signal_quality = 0;
 
-	orb_advert_t telemetry_status_pub = nullptr;
+	orb_advert_t _telemetry_status_pub = nullptr;
 
-	bool test_pending = false;
-	char test_command[32];
-	hrt_abstime test_timer = 0;
+	bool _test_pending = false;
+	char _test_command[32];
+	hrt_abstime _test_timer = 0;
 
-	uint8_t rx_command_buf[SATCOM_RX_COMMAND_BUF_LEN] = {0};
-	int rx_command_len = 0;
+	uint8_t _rx_command_buf[SATCOM_RX_COMMAND_BUF_LEN] = {0};
+	int _rx_command_len = 0;
 
-	uint8_t rx_msg_buf[SATCOM_RX_MSG_BUF_LEN] = {0};
-	int rx_msg_end_idx = 0;
-	int rx_msg_read_idx = 0;
+	uint8_t _rx_msg_buf[SATCOM_RX_MSG_BUF_LEN] = {0};
+	int _rx_msg_end_idx = 0;
+	int _rx_msg_read_idx = 0;
 
-	uint8_t tx_buf[SATCOM_TX_BUF_LEN] = {0};
-	int tx_buf_write_idx = 0;
+	uint8_t _tx_buf[SATCOM_TX_BUF_LEN] = {0};
+	int _tx_buf_write_idx = 0;
 
-	bool tx_buf_write_pending = false;
-	bool ring_pending = false;
-	bool rx_session_pending = false;
-	bool rx_read_pending = false;
-	bool tx_session_pending = false;
+	bool _tx_buf_write_pending = false;
+	bool _ring_pending = false;
+	bool _rx_session_pending = false;
+	bool _rx_read_pending = false;
+	bool _tx_session_pending = false;
 
-	bool cdev_used = false;
+	bool _cdev_used = false;
 
-	hrt_abstime last_write_time = 0;
-	hrt_abstime last_read_time = 0;
-	hrt_abstime last_heartbeat = 0;
-	hrt_abstime session_start_time = 0;
+	hrt_abstime _last_write_time = 0;
+	hrt_abstime _last_read_time = 0;
+	hrt_abstime _last_heartbeat = 0;
+	hrt_abstime _session_start_time = 0;
 
-	satcom_state state = SATCOM_STATE_STANDBY;
-	satcom_state new_state = SATCOM_STATE_STANDBY;
+	satcom_state _state = SATCOM_STATE_STANDBY;
+	satcom_state _new_state = SATCOM_STATE_STANDBY;
 
-	pthread_mutex_t tx_buf_mutex = pthread_mutex_t();
-	bool verbose = false;
+	pthread_mutex_t _tx_buf_mutex = pthread_mutex_t();
+	bool _verbose = false;
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 };
