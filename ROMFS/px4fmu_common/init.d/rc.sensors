@@ -46,7 +46,7 @@ then
 	mpl3115a2 -I start
 
 	# Internal SPI (accel + mag)
-	fxos8700cq start -a 8 -R 0
+	fxos8701cq start -a 8 -R 0
 
 	# Internal SPI (gyro)
 	fxas21002c start -R 0

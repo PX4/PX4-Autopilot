@@ -346,11 +346,6 @@ static void hrt_ppm_decode(uint32_t status)
 	uint16_t interval;
 	unsigned i;
 
-	/* if we missed an edge, we have to give up */
-	if (status & TPM_STATUS_TOF) {
-		goto error;
-	}
-
 	/* how long since the last edge? - this handles counter wrapping implicitly. */
 	width = count - ppm.last_edge;
 
@@ -510,7 +505,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 #ifdef HRT_PPM_CHANNEL
 
 	/* was this a PPM edge? */
-	if (status & (STATUS_PPM | TPM_STATUS_TOF)) {
+	if (status & (STATUS_PPM)) {
 		hrt_ppm_decode(status);
 	}
 
