@@ -270,6 +270,7 @@ PARAM_DEFINE_FLOAT(IMU_ACCEL_CUTOFF, 30.0f);
  *
  * @min 0
  * @max 1
+ * @unit m/s/s
  * @group Wind Estimator
  */
 PARAM_DEFINE_FLOAT(WEST_W_P_NOISE, 0.1f);
@@ -288,6 +289,7 @@ PARAM_DEFINE_FLOAT(WEST_SC_P_NOISE, 0.0001);
  *
  * @min 0
  * @max 4
+ * @unit m/s
  * @group Wind Estimator
  */
 PARAM_DEFINE_FLOAT(WEST_TAS_NOISE, 1.4);
@@ -297,6 +299,7 @@ PARAM_DEFINE_FLOAT(WEST_TAS_NOISE, 1.4);
  *
  * @min 0
  * @max 1
+ * @unit rad
  * @group Wind Estimator
  */
 PARAM_DEFINE_FLOAT(WEST_BETA_NOISE, 0.3);
