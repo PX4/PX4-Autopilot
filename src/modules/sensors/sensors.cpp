@@ -403,26 +403,27 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	}
 
 	// update wind and airspeed estimator
-	_wind_estimator.update(hrt_absolute_time());
+	hrt_abstime time_now_us = hrt_absolute_time();
+	_wind_estimator.update(time_now_us);
 
-	bool fuse_airspeed = updated && (hrt_elapsed_time(&_time_last_airspeed_fused) > 5e4);
-	bool fuse_beta = (hrt_elapsed_time(&_time_last_beta_fused) > 5e4) && _vehicle_local_position.v_xy_valid;
+	bool fuse_airspeed = updated && (time_now_us - _time_last_airspeed_fused) > 50 * 1000;
+	bool fuse_beta = (time_now_us - _time_last_beta_fused) > 50 * 1000 && _vehicle_local_position.v_xy_valid;
 
 	if (fuse_beta || fuse_airspeed) {
 		matrix::Dcmf R_to_earth(matrix::Quatf(_vehicle_attitude.q));
 		matrix::Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 
 		if (fuse_beta) {
-			_wind_estimator.fuse_beta(hrt_absolute_time(), &vI._data[0][0], _vehicle_attitude.q);
-			_time_last_beta_fused = hrt_absolute_time();
+			_wind_estimator.fuse_beta(time_now_us, &vI._data[0][0], _vehicle_attitude.q);
+			_time_last_beta_fused = time_now_us;
 		}
 
 		if (fuse_airspeed) {
 			matrix::Vector3f vel_var(_vehicle_local_position.evh, _vehicle_local_position.evh, _vehicle_local_position.evv);
 			vel_var = R_to_earth * vel_var;
-			_wind_estimator.fuse_airspeed(hrt_absolute_time(), _airspeed.indicated_airspeed_m_s, &vI._data[0][0],
+			_wind_estimator.fuse_airspeed(time_now_us, _airspeed.indicated_airspeed_m_s, &vI._data[0][0],
 						      &vel_var._data[0][0]);
-			_time_last_airspeed_fused = hrt_absolute_time();
+			_time_last_airspeed_fused = time_now_us;
 		}
 	}
 
@@ -436,7 +437,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	}
 
 	if (fuse_beta) {
-		_wind_est.timestamp = hrt_absolute_time();
+		_wind_est.timestamp = time_now_us;
 		float wind[2];
 		_wind_estimator.get_wind(wind);
 		_wind_est.windspeed_north = wind[0];
