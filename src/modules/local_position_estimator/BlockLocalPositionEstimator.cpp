@@ -21,6 +21,7 @@ static const char *msg_label = "[lpe] ";	// rate of land detector correction
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(nullptr, "LPE"),
+	ModuleParams(nullptr),
 	// subscriptions, set rate, add to list
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
 	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
@@ -55,52 +56,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// map projection
 	_map_ref(),
-
-	// block parameters
-	_fusion(this, "FUSION"),
-	_vxy_pub_thresh(this, "VXY_PUB"),
-	_z_pub_thresh(this, "Z_PUB"),
-	_sonar_z_stddev(this, "SNR_Z"),
-	_sonar_z_offset(this, "SNR_OFF_Z"),
-	_lidar_z_stddev(this, "LDR_Z"),
-	_lidar_z_offset(this, "LDR_OFF_Z"),
-	_accel_xy_stddev(this, "ACC_XY"),
-	_accel_z_stddev(this, "ACC_Z"),
-	_baro_stddev(this, "BAR_Z"),
-	_gps_delay(this, "GPS_DELAY"),
-	_gps_xy_stddev(this, "GPS_XY"),
-	_gps_z_stddev(this, "GPS_Z"),
-	_gps_vxy_stddev(this, "GPS_VXY"),
-	_gps_vz_stddev(this, "GPS_VZ"),
-	_gps_eph_max(this, "EPH_MAX"),
-	_gps_epv_max(this, "EPV_MAX"),
-	_vision_xy_stddev(this, "VIS_XY"),
-	_vision_z_stddev(this, "VIS_Z"),
-	_vision_delay(this, "VIS_DELAY"),
-	_mocap_p_stddev(this, "VIC_P"),
-	_flow_z_offset(this, "FLW_OFF_Z"),
-	_flow_scale(this, "FLW_SCALE"),
-	//_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
-	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
-	_flow_min_q(this, "FLW_QMIN"),
-	_flow_r(this, "FLW_R"),
-	_flow_rr(this, "FLW_RR"),
-	_land_z_stddev(this, "LAND_Z"),
-	_land_vxy_stddev(this, "LAND_VXY"),
-	_pn_p_noise_density(this, "PN_P"),
-	_pn_v_noise_density(this, "PN_V"),
-	_pn_b_noise_density(this, "PN_B"),
-	_pn_t_noise_density(this, "PN_T"),
-	_t_max_grade(this, "T_MAX_GRADE"),
-
-	// landing target
-	_target_min_cov(this, "LT_COV"),
-	_target_mode(this, "LTEST_MODE", false),
-
-	// init origin
-	_fake_origin(this, "FAKE_ORIGIN"),
-	_init_origin_lat(this, "LAT"),
-	_init_origin_lon(this, "LON"),
 
 	// flow gyro
 	_flow_gyro_x_high_pass(this, "FGYRO_HP"),
@@ -191,9 +146,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// map
 	_map_ref.init_done = false;
 
-	// intialize parameter dependent matrices
-	updateParams();
-
 	// print fusion settings to console
 	printf("[lpe] fuse gps: %d, flow: %d, vis_pos: %d, "
 	       "landing_target: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
@@ -207,9 +159,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
 	       (_fusion.get() & FUSE_BARO) != 0);
 }
-
-BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
-{}
 
 Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dynamics(
 	float t,
@@ -326,7 +275,8 @@ void BlockLocalPositionEstimator::update()
 
 	// update parameters
 	if (paramsUpdated) {
-		updateParams();
+		SuperBlock::updateParams();
+		ModuleParams::updateParams();
 		updateSSParams();
 	}
 

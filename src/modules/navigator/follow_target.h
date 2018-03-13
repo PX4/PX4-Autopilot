@@ -45,13 +45,14 @@
 #include "navigator_mode.h"
 #include "mission_block.h"
 
+#include <px4_module_params.h>
 #include <uORB/topics/follow_target.h>
 
-class FollowTarget final : public MissionBlock
+class FollowTarget : public MissionBlock, public ModuleParams
 {
 
 public:
-	FollowTarget(Navigator *navigator, const char *name);
+	FollowTarget(Navigator *navigator);
 	~FollowTarget() = default;
 
 	void on_inactive() override;
@@ -107,10 +108,12 @@ private:
 	}; // follow left side
 
 
-	control::BlockParamFloat	_param_min_alt;
-	control::BlockParamFloat 	_param_tracking_dist;
-	control::BlockParamInt 		_param_tracking_side;
-	control::BlockParamFloat 	_param_tracking_resp;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_MIN_FT_HT>)	_param_min_alt,
+		(ParamFloat<px4::params::NAV_FT_DST>) _param_tracking_dist,
+		(ParamInt<px4::params::NAV_FT_FS>) _param_tracking_side,
+		(ParamFloat<px4::params::NAV_FT_RS>) _param_tracking_resp
+	)
 
 	FollowTargetState _follow_target_state{SET_WAIT_FOR_TARGET_POSITION};
 	int _follow_target_position{FOLLOW_FROM_BEHIND};

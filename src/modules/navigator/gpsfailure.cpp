@@ -51,12 +51,9 @@
 using matrix::Eulerf;
 using matrix::Quatf;
 
-GpsFailure::GpsFailure(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_loitertime(this, "LT"),
-	_param_openlooploiter_roll(this, "R"),
-	_param_openlooploiter_pitch(this, "P"),
-	_param_openlooploiter_thrust(this, "TR")
+GpsFailure::GpsFailure(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
 }
 

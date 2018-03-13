@@ -38,13 +38,12 @@
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
-#ifndef NAVIGATOR_PRECLAND_H
-#define NAVIGATOR_PRECLAND_H
+#pragma once
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-#include <uORB/topics/landing_target_pose.h>
+#include <matrix/math.hpp>
 #include <geo/geo.h>
+#include <px4_module_params.h>
+#include <uORB/topics/landing_target_pose.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -64,12 +63,12 @@ enum class PrecLandMode {
 	Required = 2 // try to find landing target if not visible at the beginning
 };
 
-class PrecLand : public MissionBlock
+class PrecLand : public MissionBlock, public ModuleParams
 {
 public:
-	PrecLand(Navigator *navigator, const char *name);
+	PrecLand(Navigator *navigator);
 
-	~PrecLand();
+	~PrecLand() = default;
 
 	virtual void on_inactive();
 
@@ -121,15 +120,15 @@ private:
 
 	PrecLandMode _mode;
 
-	control::BlockParamFloat _param_timeout;
-	control::BlockParamFloat _param_hacc_rad;
-	control::BlockParamFloat _param_final_approach_alt;
-	control::BlockParamFloat _param_search_alt;
-	control::BlockParamFloat _param_search_timeout;
-	control::BlockParamInt   _param_max_searches;
-	control::BlockParamFloat _param_acceleration_hor;
-	control::BlockParamFloat _param_xy_vel_cruise;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
+		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_hacc_rad,
+		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_final_approach_alt,
+		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_search_alt,
+		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_search_timeout,
+		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_max_searches,
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise
+	)
 
 };
-
-#endif

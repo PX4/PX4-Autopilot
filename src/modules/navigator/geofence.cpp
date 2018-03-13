@@ -53,14 +53,8 @@
 #define GEOFENCE_RANGE_WARNING_LIMIT 5000000
 
 Geofence::Geofence(Navigator *navigator) :
-	SuperBlock(navigator, "GF"),
-	_navigator(navigator),
-	_param_action(this, "GF_ACTION", false),
-	_param_altitude_mode(this, "GF_ALTMODE", false),
-	_param_source(this, "GF_SOURCE", false),
-	_param_counter_threshold(this, "GF_COUNT", false),
-	_param_max_hor_distance(this, "GF_MAX_HOR_DIST", false),
-	_param_max_ver_distance(this, "GF_MAX_VER_DIST", false)
+	ModuleParams(navigator),
+	_navigator(navigator)
 {
 	// we assume there's no concurrent fence update on startup
 	_updateFence();

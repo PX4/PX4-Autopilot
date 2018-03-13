@@ -54,8 +54,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
-MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name)
+MissionBlock::MissionBlock(Navigator *navigator) :
+	NavigatorMode(navigator)
 {
 }
 

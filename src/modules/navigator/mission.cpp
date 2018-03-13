@@ -59,13 +59,9 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
-Mission::Mission(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_dist_1wp(this, "MIS_DIST_1WP", false),
-	_param_dist_between_wps(this, "MIS_DIST_WPS", false),
-	_param_altmode(this, "MIS_ALTMODE", false),
-	_param_yawmode(this, "MIS_YAWMODE", false),
-	_param_mnt_yaw_ctl(this, "MIS_MNT_YAW_CTL", false)
+Mission::Mission(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
 }
 

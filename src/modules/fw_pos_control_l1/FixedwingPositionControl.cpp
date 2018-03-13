@@ -1914,10 +1914,9 @@ fw_pos_control_l1 is the fixed wing position controller.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_COMMAND("start");
 
 	PRINT_MODULE_USAGE_NAME("fw_pos_control_l1", "controller");
-
+	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
