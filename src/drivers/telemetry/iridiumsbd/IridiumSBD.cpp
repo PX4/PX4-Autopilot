@@ -332,7 +332,7 @@ void IridiumSBD::standby_loop(void)
 	}
 
 	// write the MO buffer when the message stacking time expires
-	if ((tx_buf_write_idx > 0) && ((hrt_absolute_time() - last_write_time) > (uint64_t)param_stacking_time_ms * 1000)) {
+	if (tx_buf_write_pending && ((hrt_absolute_time() - last_write_time) > (uint64_t)param_stacking_time_ms * 1000)) {
 		write_tx_buf();
 	}
 
@@ -614,6 +614,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 
 	tx_buf_write_idx += buflen;
 	last_write_time = hrt_absolute_time();
+	tx_buf_write_pending = true;
 
 	pthread_mutex_unlock(&tx_buf_mutex);
 
@@ -694,6 +695,8 @@ void IridiumSBD::write_tx_buf()
 	}
 
 	VERBOSE_INFO("WRITE SBD: DATA WRITTEN TO MODEM");
+
+	tx_buf_write_pending = false;
 
 	pthread_mutex_unlock(&tx_buf_mutex);
 
