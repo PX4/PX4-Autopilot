@@ -119,11 +119,9 @@ __END_DECLS
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 static int hw_version = 0;
 static int hw_revision = 0;
 static char hw_type[4] = HW_VER_TYPE_INIT;
-#endif
 
 /************************************************************************************
  * Name: board_peripheral_reset
@@ -213,6 +211,7 @@ __EXPORT void board_on_reset(int status)
  *  10   00 - 0x8 FMUv2
  *  11   10 - 0xE Cube AKA V2.0
  *  10   10 - 0xA PixhawkMini
+ *  10   11 - 0xB FMUv2 questionable hardware (should be treated like regular FMUv2)
  *
  *  This will return OK on success and -1 on not supported
  *
@@ -224,7 +223,6 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 static int determin_hw_version(int *version, int *revision)
 {
 	*revision = 0; /* default revision */
@@ -307,7 +305,6 @@ __EXPORT int board_get_hw_revision()
 {
 	return  hw_revision;
 }
-#endif // BOARD_HAS_SIMPLE_HW_VERSIONING
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -344,7 +341,6 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_USB_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
-
 }
 
 /****************************************************************************
@@ -380,24 +376,18 @@ static struct sdio_dev_s *sdio;
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-
 	/* run C++ ctors before we go any further */
-
 	up_cxxinitialize();
-
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
 
 #else
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
 
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+	/* Ensure the power is on 1 ms before we drive the GPIO pins */
+	usleep(1000);
 
 	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
 		switch (hw_version) {
-		default:
 		case 0x8:
 			break;
 
@@ -409,15 +399,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		case 0xA:
 			hw_type[2] = 'M';
 			break;
+
+		default:
+			// questionable px4fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do)
+			message("bad version detected, forcing to fmu-v2\n");
+			hw_version = 0x8;
+			break;
 		}
 
-		PX4_INFO("Ver 0x%1X : Rev %x %s", hw_version, hw_revision, hw_type);
+		message("\nFMUv2 ver 0x%1X : Rev %x %s\n", hw_version, hw_revision, hw_type);
 	}
-
-#endif // BOARD_HAS_SIMPLE_HW_VERSIONING
-
-	/* Ensure the power is on 1 ms before we drive the GPIO pins */
-	usleep(1000);
 
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
@@ -646,8 +637,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
 
 	if (!sdio) {
-		message("[boot] Failed to initialize SDIO slot %d\n",
-			CONFIG_NSH_MMCSDSLOTNO);
+		message("[boot] Failed to initialize SDIO slot %d\n", CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
 
