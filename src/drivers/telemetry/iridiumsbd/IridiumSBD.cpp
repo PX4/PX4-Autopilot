@@ -170,7 +170,7 @@ int IridiumSBD::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case FIONSPACE: {
-			int count = SATCOM_TX_BUF_LEN - tx_buf_write_idx;
+			int count = SATCOM_TX_BUF_LEN - tx_buf_write_idx + SATCOM_MAX_MESSAGE_LENGTH;
 			*(int *)arg = count;
 
 			return OK;
@@ -408,6 +408,8 @@ void IridiumSBD::sbdsession_loop(void)
 
 			PX4_WARN("SBD SESSION: TIMEOUT!");
 			new_state = SATCOM_STATE_STANDBY;
+			pthread_mutex_unlock(&tx_buf_mutex);
+
 		}
 
 		return;
@@ -417,6 +419,7 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: ERROR. RESULT: %d", res);
 
 		new_state = SATCOM_STATE_STANDBY;
+		pthread_mutex_unlock(&tx_buf_mutex);
 		return;
 	}
 
@@ -425,6 +428,7 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: WRONG ANSWER: %s", rx_command_buf);
 
 		new_state = SATCOM_STATE_STANDBY;
+		pthread_mutex_unlock(&tx_buf_mutex);
 		return;
 	}
 
@@ -494,6 +498,7 @@ void IridiumSBD::sbdsession_loop(void)
 	}
 
 	new_state = SATCOM_STATE_STANDBY;
+	pthread_mutex_unlock(&tx_buf_mutex);
 }
 
 void IridiumSBD::test_loop(void)
@@ -545,6 +550,7 @@ void IridiumSBD::start_sbd_session(void)
 	}
 
 	new_state = SATCOM_STATE_SBDSESSION;
+	pthread_mutex_lock(&tx_buf_mutex);
 	session_start_time = hrt_absolute_time();
 }
 
@@ -586,29 +592,30 @@ void IridiumSBD::start_test(void)
 
 ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 {
-	// check and reset the remaining buffer space for incoming MavLink messages
+	// general check if the incoming message would be too large (the buffer should not reset in that case)
+	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN) {
+		return PX4_ERROR;
+	}
+
+	// check if there is enough space for the incoming mavlink message
 	if (buflen == 6) {
 		if (*buffer == MAVLINK_PACKAGE_START) {
-			if (SATCOM_TX_BUF_LEN - tx_buf_write_idx - SATCOM_MIN_TX_BUF_SPACE - (*(buffer + 1) + 8) < 0) {
+			if (SATCOM_TX_BUF_LEN - tx_buf_write_idx - (*(buffer + 1) + 8) < 0) {
 				tx_buf_write_idx = 0;
 				mavlink_log_critical(&_mavlink_log_pub, "Deleting full TX buffer before writing new message");
 			}
 		}
 	}
 
-	// check and reset the remaining buffer space for any non mavlink messages
-	if (SATCOM_TX_BUF_LEN - tx_buf_write_idx - SATCOM_MIN_TX_BUF_SPACE < 0) {
+	// check if there is enough space for the incoming non mavlink message
+	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN - tx_buf_write_idx) {
 		tx_buf_write_idx = 0;
 		mavlink_log_critical(&_mavlink_log_pub, "Deleting full TX buffer");
 	}
 
-	VERBOSE_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, tx_buf_write_idx);
-
-	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN - tx_buf_write_idx) {
-		return PX4_ERROR;
-	}
-
 	pthread_mutex_lock(&tx_buf_mutex);
+
+	VERBOSE_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, tx_buf_write_idx);
 
 	memcpy(tx_buf + tx_buf_write_idx, buffer, buflen);
 
@@ -658,6 +665,7 @@ void IridiumSBD::write_tx_buf()
 
 	if (read_at_command() != SATCOM_RESULT_READY) {
 		VERBOSE_INFO("WRITE SBD: MODEM NOT RESPONDING!");
+		pthread_mutex_unlock(&tx_buf_mutex);
 		return;
 	}
 

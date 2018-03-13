@@ -84,7 +84,7 @@ typedef enum {
 extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 
 #define SATCOM_TX_BUF_LEN			340		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
-#define SATCOM_MIN_TX_BUF_SPACE		50		// Minimum remaining buffer space required, should be equal to the largerst message intended to send
+#define SATCOM_MAX_MESSAGE_LENGTH		50		// Maximum length of the expected messages sent over this link
 #define SATCOM_RX_MSG_BUF_LEN			270		// RX buffer size for MT messages
 #define SATCOM_RX_COMMAND_BUF_LEN		50		// RX buffer size for other commands
 #define SATCOM_SIGNAL_REFRESH_DELAY		20000000 // update signal quality every 20s
