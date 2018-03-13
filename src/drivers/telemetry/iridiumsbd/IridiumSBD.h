@@ -289,6 +289,7 @@ private:
 	uint8_t tx_buf[SATCOM_TX_BUF_LEN] = {0};
 	int tx_buf_write_idx = 0;
 
+	bool tx_buf_write_pending = false;
 	bool ring_pending = false;
 	bool rx_session_pending = false;
 	bool rx_read_pending = false;
