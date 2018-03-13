@@ -69,6 +69,23 @@ endfunction()
 # get list of all ROMFS files
 add_subdirectory(${romfs_src_dir})
 
+# Copy the optional files into ROMFS
+if (DEFINED romfs_optional_files)
+	set(optional_files)
+	message(STATUS "The ROMFS optional files: ${romfs_optional_files}")
+	foreach(optional_file ${romfs_optional_files})
+		get_filename_component(file_name ${optional_file} NAME)
+		set(file_dest ${romfs_temp_dir}/extras/${file_name})
+		add_custom_command(OUTPUT ${file_dest}
+			COMMAND mkdir -p ${romfs_temp_dir}/extras/
+			COMMAND cmake -E copy ${optional_file} ${file_dest}
+			DEPENDS ${optional_file}
+			COMMENT "Adding extra ROMFS file: ${optional_file}"
+			)
+		list(APPEND optional_files ${file_dest})
+	endforeach()
+endif()
+
 # directory setup
 # copy all romfs files, process airframes, prune comments
 add_custom_command(OUTPUT ${romfs_temp_dir}/init.d/rcS ${romfs_temp_dir}/init.d/rc.autostart
@@ -83,6 +100,7 @@ add_custom_command(OUTPUT ${romfs_temp_dir}/init.d/rcS ${romfs_temp_dir}/init.d/
 		${config_romfs_files_list}
 		${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d/rcS
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		${optional_files}
 	)
 
 set(romfs_dependencies)
