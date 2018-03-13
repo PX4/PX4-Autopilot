@@ -172,34 +172,34 @@ SyslinkBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 void
 SyslinkBridge::pipe_message(crtp_message_t *msg)
 {
-	static int cmd_count=0;
+	//static int cmd_count=0;
 	static int bytes_received=0;
 	static int bytes_received_with_header=0;
 	static int prev_seq=0; 
 
          if(msg->data[4]-prev_seq > 1)
          {
-         	printf("msgs lost!!! msg lost=%d bytes_received=%d bytes_received_with_header=%d \n", msg->data[4]-prev_seq-1, bytes_received, bytes_received_with_header);
+         	printf("msgs lost!!! msg lost=%d msg_seq_lost=%d bytes_received=%d bytes_received_with_header=%d \n", msg->data[4]-prev_seq-1, msg->data[4], bytes_received, bytes_received_with_header);
          	 bytes_received=0;
          	 bytes_received_with_header=0;
          }
 
 
 	
-	if(msg->data[7]==76)
+/*	if(msg->data[7]==76)
 			{cmd_count++;
-				//int arm_disarm_cmd=(int)msg->data[13]*256 + msg->data[12];
+				
 				printf(" cmd_count after=%d, arm_disarm_cmd_12=%d arm_disarm_cmd_13=%d\n", cmd_count, msg->data[12], msg->data[13]);
 
 			} //sizeof(msg->data)=31
+*/
 
-
-		/*printf("syslink_bridge msg->size=%d ", msg->size);
+		printf("syslink_bridge msg->size=%d ", msg->size);
 		for (int i = 0; i < msg->size-1; i++) {
          printf("%d ",msg->data[i]);
         }
-         printf("\n");*/
-
+         printf("\n");
+         
          bytes_received+=msg->size-1;
          bytes_received_with_header+=msg->size;
          prev_seq=msg->data[4];

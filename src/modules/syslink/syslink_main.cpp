@@ -362,6 +362,7 @@ Syslink::task_main()
 		} else {
 			if (fds[0].revents & POLLIN) {
 				if ((nread = read(_fd, buf, sizeof(buf))) < 0) {
+					printf("\n Reading gave error!!!!!!\n");
 					continue;
 				}
 
@@ -388,11 +389,11 @@ Syslink::task_main()
 void
 Syslink::handle_message(syslink_message_t *msg)
 {	
-/*	static bool cmd_received=false;
+	static bool cmd_received=false;
 	static int cmd_count=0;
 
-	if(cmd_received) {
-         	printf("syslink_main msg->length=%d ", msg->length);
+	if(cmd_received && msg->type == SYSLINK_RADIO_RAW ) {
+         	printf("syslink_main cmd_msg_received->length=%d ", msg->length);
  		for (int i = 0; i < msg->length; i++) {
          printf("%d ",msg->data[i]);}
          printf("\n");
@@ -403,7 +404,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		if(msg->data[8]==76)
 			{cmd_count++;
 			printf(" cmd_count before=%d, arm_disarm_cmd_12=%d arm_disarm_cmd_13=%d \n", cmd_count, msg->data[13], msg->data[14]);
-		printf("syslink_main msg->length=%d ", msg->length);
+		printf("syslink_main cmd_msg_received->length=%d ", msg->length);
  		for (int i = 0; i < msg->length; i++) {
          printf("%d ",msg->data[i]);}
          printf("\n");
@@ -412,7 +413,7 @@ Syslink::handle_message(syslink_message_t *msg)
 
      }
 
-     */
+     
 	
 
 
@@ -740,14 +741,25 @@ Syslink::send_bytes(const void *data, size_t len)
 	// TODO: This could be way more efficient
 	//       Using interrupts/DMA/polling would be much better
 
+	printf(" start ");
 	for (size_t i = 0; i < len; i++) {
 		// Block until we can send a byte
 		while (px4_arch_gpioread(GPIO_NRF_TXEN)) ;
 
-		write(_fd, ((const char *)data) + i, 1);
+		ssize_t numbytesWritten = write(_fd, ((const char *)data) + i, 1);
+
+		if(numbytesWritten<0){
+			printf("\n Error Writing in syslink!!! \n");
+		} else{
+			printf("%d ", ((const char *)data)[i]);
+
+		}
+
 		fsync(_fd);
 
 	}
+
+	printf(" len= %d \n", len);
 
 	return 0;
 }
@@ -765,12 +777,12 @@ Syslink::send_message(syslink_message_t *msg)
 				printf("Sending Ack msgid after msg length=%d, count=%d \n", msg->length, ack_count);} //barza
 	
 
-	printf("msg->length=%d ", msg->length);
+	/*printf("msg->length=%d ", msg->length);
      for (int i = 0; i < msg->length; i++) {
          printf("%d ", msg->data[i]);}
          printf(" cksum1=%d, cksum2=%d ", msg->cksum[1], msg->cksum[2]);
     printf("\n");
-
+*/
 
 
 	send_bytes(&msg->data, msg->length);
