@@ -536,7 +536,7 @@ PWMSim::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("pwmsim",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				      1000,
+				      1100,
 				      (px4_main_t)&run_trampoline,
 				      nullptr);
 
