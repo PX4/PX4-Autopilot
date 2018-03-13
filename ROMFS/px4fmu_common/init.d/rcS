@@ -138,13 +138,11 @@ fi
 # Look for an init script on the microSD card.
 # Disable autostart if the script found.
 #
-set FRC /fs/microsd/etc/rc.txt
 if [ -f $FRC ]
 then
 	sh $FRC
 	set MODE custom
 fi
-unset FRC
 
 if [ $MODE == autostart ]
 then
@@ -262,7 +260,6 @@ then
 	else
 		sh /etc/init.d/rc.autostart
 	fi
-	unset MODE
 
 	#
 	# If mount (gimbal) control is enabled and output mode is AUX, set the aux
@@ -280,13 +277,11 @@ then
 	#
 	# Override parameters from user configuration file
 	#
-	set FCONFIG /fs/microsd/etc/config.txt
 	if [ -f $FCONFIG ]
 	then
 		echo "Custom: ${FCONFIG}"
 		sh $FCONFIG
 	fi
-	unset FCONFIG
 
 	#
 	# If autoconfig parameter was set, reset it and save parameters
@@ -307,7 +302,6 @@ then
 
 		param set SYS_AUTOCONFIG 0
 	fi
-	unset AUTOCNF
 
 	set IO_PRESENT no
 
@@ -357,7 +351,6 @@ then
 				fi
 			fi
 		fi
-		unset IO_FILE
 
 		if [ $IO_PRESENT == no ]
 		then
@@ -404,7 +397,6 @@ then
 	if dataman start $DATAMAN_OPT
 	then
 	fi
-	unset DATAMAN_OPT
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
@@ -495,7 +487,6 @@ then
 
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
-			set MKBLCTRL_ARG ""
 			if [ $MKBLCTRL_MODE == x ]
 			then
 				set MKBLCTRL_ARG "-mkmode x"
@@ -510,9 +501,7 @@ then
 			else
 				tune_control play -m ${TUNE_ERR}
 			fi
-			unset MKBLCTRL_ARG
 		fi
-		unset MK_MODE
 
 		if [ $OUTPUT_MODE == hil ]
 		then
@@ -743,10 +732,6 @@ then
 		sh /etc/init.d/rc.ugv_apps
 	fi
 
-	unset MIXER
-	unset MAV_TYPE
-	unset OUTPUT_MODE
-
 	#
 	# Start the navigator
 	#
@@ -762,13 +747,11 @@ then
 	fi
 
 	# Start any custom addons
-	set FEXTRAS /fs/microsd/etc/extras.txt
 	if [ -f $FEXTRAS ]
 	then
 		echo "Addons script: ${FEXTRAS}"
 		sh $FEXTRAS
 	fi
-	unset FEXTRAS
 
 	if ver hwcmp CRAZYFLIE
 	then
@@ -815,7 +798,6 @@ then
 	then
 		send_event temperature_calibration ${TEMP_CALIB_ARGS}
 	fi
-	unset TEMP_CALIB_ARGS
 
 	# vmount to control mounts such as gimbals, disabled by default.
 	if param compare MNT_MODE_IN -1
