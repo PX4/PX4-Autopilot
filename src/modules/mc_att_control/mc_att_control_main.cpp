@@ -389,6 +389,10 @@ _loop_update_rate_hz(initial_update_rate_hz)
 
 	_vehicle_status.is_rotary_wing = true;
 
+	/* initialize quaternions in messages to be valid */
+	_v_att.q[0] = 1.f;
+	_v_att_sp.q_d[0] = 1.f;
+
 	_params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_int_lim.zero();
