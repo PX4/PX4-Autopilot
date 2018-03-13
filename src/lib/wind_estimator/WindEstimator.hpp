@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,10 +40,6 @@
 
 #include <mathlib/mathlib.h>
 
-using namespace matrix;
-using math::max;
-using math::constrain;
-
 class WindEstimator
 {
 public:
@@ -58,8 +54,9 @@ public:
 
 	void update(uint64_t time_now);
 
-	void fuse_airspeed(uint64_t time_now, float true_airspeed, const Vector3f &velI, const Vector2f &velIvar);
-	void fuse_beta(uint64_t time_now, const Vector3f &velI, const Quatf &q_att);
+	void fuse_airspeed(uint64_t time_now, float true_airspeed, const matrix::Vector3f &velI,
+			   const matrix::Vector2f &velIvar);
+	void fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const matrix::Quatf &q_att);
 
 	void get_wind(float wind[2])
 	{
@@ -93,33 +90,33 @@ private:
 		w_n = 0,
 		w_e,
 		tas
-	};	// enum which can be used to access state.
+	};	///< enum which can be used to access state.
 
-	Vector3f _state;		// state vector
-	Matrix3f _P;		// state covariance matrix
+	matrix::Vector3f _state;		///< state vector
+	matrix::Matrix3f _P;		///< state covariance matrix
 
-	float _tas_innov{0.0f};	// true airspeed innovation
-	float _tas_innov_var{0.0f};	// true airspeed innovation variance
+	float _tas_innov{0.0f};	///< true airspeed innovation
+	float _tas_innov_var{0.0f};	///< true airspeed innovation variance
 
-	float _beta_innov{0.0f};	// sideslip innovation
-	float _beta_innov_var{0.0f};	// sideslip innovation variance
+	float _beta_innov{0.0f};	///< sideslip innovation
+	float _beta_innov_var{0.0f};	///< sideslip innovation variance
 
-	bool _initialised{false};	// True: filter has been initialised
+	bool _initialised{false};	///< True: filter has been initialised
 
-	float _wind_p_var{0.1f};	// wind process noise variance
-	float _tas_scale_p_var{0.0001f};	// true airspeed scale process noise variance
-	float _tas_var{1.4f};		// true airspeed measurement noise variance
-	float _beta_var{0.5f};	// sideslip measurement noise variance
+	float _wind_p_var{0.1f};	///< wind process noise variance
+	float _tas_scale_p_var{0.0001f};	///< true airspeed scale process noise variance
+	float _tas_var{1.4f};		///< true airspeed measurement noise variance
+	float _beta_var{0.5f};	///< sideslip measurement noise variance
 
-	uint64_t _time_last_airspeed_fuse = 0;	// timestamp of last airspeed fusion
-	uint64_t _time_last_beta_fuse = 0;		// timestamp of last sideslip fusion
-	uint64_t _time_last_update = 0;			// timestamp of last covariance prediction
-	uint64_t _time_rejected_beta = 0;		// timestamp of when sideslip measurements have consistently started to be rejected
+	uint64_t _time_last_airspeed_fuse = 0;	///< timestamp of last airspeed fusion
+	uint64_t _time_last_beta_fuse = 0;		///< timestamp of last sideslip fusion
+	uint64_t _time_last_update = 0;			///< timestamp of last covariance prediction
+	uint64_t _time_rejected_beta = 0;		///< timestamp of when sideslip measurements have consistently started to be rejected
 	uint64_t _time_rejected_tas =
-		0;		// timestamp of when true airspeed measurements have consistently started to be rejected
+		0;		///<timestamp of when true airspeed measurements have consistently started to be rejected
 
 	// initialise state and state covariance matrix
-	bool initialise(const Vector3f &velI, const Vector2f &velIvar, const float tas_meas);
+	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas);
 
 	void run_sanity_checks();
 };
