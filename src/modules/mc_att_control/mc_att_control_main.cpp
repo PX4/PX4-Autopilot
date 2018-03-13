@@ -845,9 +845,9 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	Quatf qd_red(e_z, e_z_d);
 
 	if (abs(qd_red(1)) > (1.f - 1e-5f) || abs(qd_red(2)) > (1.f - 1e-5f)) {
-		/* In the numerical corner case where the vehicle and thrust have the completely opposite direction
-		 * and we have no yaw input with full attitude control anyways directly take the combination of
-		 * roll and pitch leading to the correct desired yaw. Ignoring this case would be totally safe and stable. */
+		/* In the infinitesimal corner case where the vehicle and thrust have the completely opposite direction,
+		 * full attitude control anyways generates no yaw input and directly takes the combination of
+		 * roll and pitch leading to the correct desired yaw. Ignoring this case would still be totally safe and stable. */
 		qd_red = qd;
 
 	} else {
