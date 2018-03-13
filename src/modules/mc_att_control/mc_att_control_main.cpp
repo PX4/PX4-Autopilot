@@ -858,6 +858,9 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* mix full and reduced desired attitude */
 	Quatf q_mix = qd_red.inversed() * qd;
 	q_mix *= math::signNoZero(q_mix(0));
+	/* catch numerical problems with the domain of acosf and asinf */
+	q_mix(0) = math::constrain(q_mix(0), -1.f, 1.f);
+	q_mix(3) = math::constrain(q_mix(3), -1.f, 1.f);
 	qd = qd_red * Quatf(cosf(yaw_w * acosf(q_mix(0))), 0, 0, sinf(yaw_w * asinf(q_mix(3))));
 
 	/* quaternion attitude control law, qe is rotation from q to qd */
