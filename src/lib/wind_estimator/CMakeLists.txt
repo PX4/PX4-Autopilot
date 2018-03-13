@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,7 +32,6 @@
 ############################################################################
 px4_add_module(
 	MODULE lib__wind_estimator
-	STACK_MAIN 1024
 	COMPILE_FLAGS
 	SRCS
 		WindEstimator.cpp
