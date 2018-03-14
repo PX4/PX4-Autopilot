@@ -107,6 +107,9 @@ private:
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
 
+	bool publish_wind_estimate(const hrt_abstime &timestamp);
+
+	const Vector3f get_vel_body_wind();
 
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
@@ -172,9 +175,6 @@ private:
 
 	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
-
-	// Used to correct baro data for positional errors
-	Vector3f _vel_body_wind = {};	// XYZ velocity relative to wind in body frame (m/s)
 
 	Ekf _ekf;
 
@@ -814,20 +814,24 @@ void Ekf2::run()
 
 					// calculate static pressure error = Pmeas - Ptruth
 					// model position error sensitivity as a body fixed ellipse with different scale in the positive and negtive X direction
-					float max_airspeed_sq = _aspd_max.get();
-					max_airspeed_sq *= max_airspeed_sq;
+					const float max_airspeed_sq = _aspd_max.get() * _aspd_max.get();
 					float K_pstatic_coef_x;
 
-					if (_vel_body_wind(0) >= 0.0f) {
+					const Vector3f vel_body_wind = get_vel_body_wind();
+
+					if (vel_body_wind(0) >= 0.0f) {
 						K_pstatic_coef_x = _K_pstatic_coef_xp.get();
 
 					} else {
 						K_pstatic_coef_x = _K_pstatic_coef_xn.get();
 					}
 
-					float pstatic_err = 0.5f * rho * (K_pstatic_coef_x * fminf(_vel_body_wind(0) * _vel_body_wind(0), max_airspeed_sq) +
-									  _K_pstatic_coef_y.get() * fminf(_vel_body_wind(1) * _vel_body_wind(1), max_airspeed_sq) +
-									  _K_pstatic_coef_z.get() * fminf(_vel_body_wind(2) * _vel_body_wind(2), max_airspeed_sq));
+					const float x_v2 = fminf(vel_body_wind(0) * vel_body_wind(0), max_airspeed_sq);
+					const float y_v2 = fminf(vel_body_wind(1) * vel_body_wind(1), max_airspeed_sq);
+					const float z_v2 = fminf(vel_body_wind(2) * vel_body_wind(2), max_airspeed_sq);
+
+					const float pstatic_err = 0.5f * rho * (K_pstatic_coef_x * x_v2) + (_K_pstatic_coef_y.get() * y_v2) +
+								  (_K_pstatic_coef_z.get() * z_v2);
 
 					// correct baro measurement using pressure error estimate and assuming sea level gravity
 					balt_data_avg += pstatic_err / (rho * CONSTANTS_ONE_G);
@@ -1266,40 +1270,7 @@ void Ekf2::run()
 					_total_cal_time_us = 0;
 				}
 
-				{
-					// Velocity of body origin in local NED frame (m/s)
-					float velocity[3];
-					_ekf.get_velocity(velocity);
-
-					matrix::Quatf q;
-					_ekf.copy_quaternion(q.data());
-
-					// Calculate wind-compensated velocity in body frame
-					Vector3f v_wind_comp(velocity);
-					matrix::Dcmf R_to_body(q.inversed());
-
-					float velNE_wind[2];
-					_ekf.get_wind_velocity(velNE_wind);
-
-					v_wind_comp(0) -= velNE_wind[0];
-					v_wind_comp(1) -= velNE_wind[1];
-					_vel_body_wind = R_to_body * v_wind_comp; // TODO: move this elsewhere
-
-					// Publish wind estimate
-					wind_estimate_s wind_estimate;
-					wind_estimate.timestamp = now;
-					wind_estimate.windspeed_north = velNE_wind[0];
-					wind_estimate.windspeed_east = velNE_wind[1];
-					wind_estimate.variance_north = status.covariances[22];
-					wind_estimate.variance_east = status.covariances[23];
-
-					if (_wind_pub == nullptr) {
-						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
-
-					} else {
-						orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-					}
-				}
+				publish_wind_estimate(now);
 			}
 
 			{
@@ -1511,6 +1482,59 @@ int Ekf2::getRangeSubIndex(const int *subs)
 	}
 
 	return -1;
+}
+
+bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
+{
+	bool published = false;
+
+	if (_ekf.get_wind_status()) {
+		float velNE_wind[2];
+		_ekf.get_wind_velocity(velNE_wind);
+
+		float wind_var[2];
+		_ekf.get_wind_velocity_var(wind_var);
+
+		// Publish wind estimate
+		wind_estimate_s wind_estimate;
+		wind_estimate.timestamp = timestamp;
+		wind_estimate.windspeed_north = velNE_wind[0];
+		wind_estimate.windspeed_east = velNE_wind[1];
+		wind_estimate.variance_north = wind_var[0];
+		wind_estimate.variance_east = wind_var[1];
+
+		if (_wind_pub == nullptr) {
+			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+
+		} else {
+			orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+		}
+
+		published = true;
+	}
+
+	return published;
+}
+
+const Vector3f Ekf2::get_vel_body_wind()
+{
+	// Used to correct baro data for positional errors
+
+	matrix::Quatf q;
+	_ekf.copy_quaternion(q.data());
+	matrix::Dcmf R_to_body(q.inversed());
+
+	// Calculate wind-compensated velocity in body frame
+	// Velocity of body origin in local NED frame (m/s)
+	float velocity[3];
+	_ekf.get_velocity(velocity);
+
+	float velNE_wind[2];
+	_ekf.get_wind_velocity(velNE_wind);
+
+	Vector3f v_wind_comp = {velocity[0] - velNE_wind[0], velocity[1] - velNE_wind[1], velocity[2]};
+
+	return R_to_body * v_wind_comp;
 }
 
 Ekf2 *Ekf2::instantiate(int argc, char *argv[])
