@@ -759,7 +759,9 @@ Syslink::send_bytes(const void *data, size_t len)
 
 	}
 
+
 	printf(" len= %d \n", len);
+
 
 	return 0;
 }
@@ -767,6 +769,7 @@ Syslink::send_bytes(const void *data, size_t len)
 int
 Syslink::send_message(syslink_message_t *msg)
 {
+	//usleep(10000);
 	syslink_compute_cksum(msg);
 	send_bytes(syslink_magic, 2);
 	send_bytes(&msg->type, sizeof(msg->type));
