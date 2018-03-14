@@ -70,7 +70,7 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	/**
-	 * run the main loop: if running as task, continuously iterate, otherwise execute only one single cycle
+	 * run the main loop
 	 */
 	void cycle();
 
@@ -131,7 +131,7 @@ WindEstimatorModule::task_spawn(int argc, char *argv[])
 	/* schedule a cycle to start things */
 	work_queue(LPWORK, &_work, (worker_t)&WindEstimatorModule::cycle_trampoline, nullptr, 0);
 
-	// wait until task is up & running (the mode_* commands depend on it)
+	// wait until task is up & running
 	if (wait_until_running() < 0) {
 		_task_id = -1;
 		return -1;
