@@ -34,6 +34,7 @@
 #include <ecl/airdata/WindEstimator.hpp>
 
 #include <px4_module.h>
+#include <px4_module_params.h>
 #include <px4_workqueue.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -43,11 +44,12 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 
 #define SCHEDULE_INTERVAL	100000	/**< The schedule interval in usec (10 Hz) */
 
-class WindEstimatorModule : public ModuleBase<WindEstimatorModule>
+class WindEstimatorModule : public ModuleBase<WindEstimatorModule>, public ModuleParams
 {
 public:
 
@@ -81,6 +83,14 @@ private:
 	int _vehicle_attitude_sub{-1};
 	int _vehicle_local_position_sub{-1};
 	int _airspeed_sub{-1};
+	int _param_sub{-1};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::WEST_W_P_NOISE>) wind_p_noise,
+		(ParamFloat<px4::params::WEST_SC_P_NOISE>) tas_scale_p_noise,
+		(ParamFloat<px4::params::WEST_TAS_NOISE>) tas_noise,
+		(ParamFloat<px4::params::WEST_BETA_NOISE>) beta_noise
+	)
 
 	static void	cycle_trampoline(void *arg);
 	int 		start();
@@ -92,11 +102,17 @@ private:
 
 work_s	WindEstimatorModule::_work = {};
 
-WindEstimatorModule::WindEstimatorModule()
+WindEstimatorModule::WindEstimatorModule():
+	ModuleParams(nullptr)
 {
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	_param_sub = orb_subscribe(ORB_ID(parameter_update));
+
+	// initialise parameters
+	update_params();
+
 }
 
 WindEstimatorModule::~WindEstimatorModule()
@@ -104,6 +120,7 @@ WindEstimatorModule::~WindEstimatorModule()
 	orb_unsubscribe(_vehicle_attitude_sub);
 	orb_unsubscribe(_vehicle_local_position_sub);
 	orb_unsubscribe(_airspeed_sub);
+	orb_unsubscribe(_param_sub);
 
 	orb_unadvertise(_wind_est_pub);
 }
@@ -148,6 +165,13 @@ WindEstimatorModule::cycle_trampoline(void *arg)
 void
 WindEstimatorModule::cycle()
 {
+	bool param_updated;
+	orb_check(_param_sub, &param_updated);
+
+	if (param_updated) {
+		update_params();
+	}
+
 	vehicle_attitude_s vehicle_attitude = {};
 	vehicle_local_position_s vehicle_local_position = {};
 	airspeed_s airspeed = {};
@@ -223,28 +247,13 @@ WindEstimatorModule::cycle()
 
 void WindEstimatorModule::update_params()
 {
-	param_t p_wind_p_noise = param_find("WEST_W_P_NOISE");
-	param_t p_tas_scale_p_noise = param_find("WEST_SC_P_NOISE");
-	param_t p_tas_noise = param_find("WEST_TAS_NOISE");
-	param_t p_beta_noise = param_find("WEST_BETA_NOISE");
-
-	float wind_p_noise = 0.0f;
-	param_get(p_wind_p_noise, &wind_p_noise);
-
-	float tas_scale_p_noise = 0.0f;
-	param_get(p_tas_scale_p_noise, &tas_scale_p_noise);
-
-	float tas_noise = 0.0f;
-	param_get(p_tas_noise, &tas_noise);
-
-	float beta_noise = 0.0f;
-	param_get(p_beta_noise, &beta_noise);
+	updateParams();
 
 	// update wind & airspeed scale estimator parameters
-	_wind_estimator.set_wind_p_noise(wind_p_noise);
-	_wind_estimator.set_tas_scale_p_noise(tas_scale_p_noise);
-	_wind_estimator.set_tas_noise(tas_noise);
-	_wind_estimator.set_beta_noise(beta_noise);
+	_wind_estimator.set_wind_p_noise(wind_p_noise.get());
+	_wind_estimator.set_tas_scale_p_noise(tas_scale_p_noise.get());
+	_wind_estimator.set_tas_noise(tas_noise.get());
+	_wind_estimator.set_beta_noise(beta_noise.get());
 
 }
 
