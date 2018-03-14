@@ -59,9 +59,7 @@
 
 #include "board_config.h"
 
-#ifdef PX4_I2C_OBDEV_HMC5883
-
-#define HMC5883L_ADDRESS		PX4_I2C_OBDEV_HMC5883
+#define HMC5883L_ADDRESS		0x1E
 
 device::Device *HMC5883_I2C_interface(int bus);
 
@@ -172,5 +170,3 @@ HMC5883_I2C::read(unsigned address, void *data, unsigned count)
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
-
-#endif /* PX4_I2C_OBDEV_HMC5883 */
