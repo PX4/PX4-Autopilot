@@ -51,7 +51,9 @@ class WindEstimatorModule : public ModuleBase<WindEstimatorModule>
 {
 public:
 
-	WindEstimatorModule() {};
+	WindEstimatorModule();
+
+	~WindEstimatorModule();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -86,8 +88,6 @@ private:
 	int _vehicle_local_position_sub{-1};
 	int _airspeed_sub{-1};
 
-	bool _topics_subscribed{false};
-
 	static void	cycle_trampoline(void *arg);
 	int 		start();
 
@@ -97,6 +97,22 @@ private:
 };
 
 work_s	WindEstimatorModule::_work = {};
+
+WindEstimatorModule::WindEstimatorModule()
+{
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+}
+
+WindEstimatorModule::~WindEstimatorModule()
+{
+	orb_unsubscribe(_vehicle_attitude_sub);
+	orb_unsubscribe(_vehicle_local_position_sub);
+	orb_unsubscribe(_airspeed_sub);
+
+	orb_unadvertise(_wind_est_pub);
+}
 
 int
 WindEstimatorModule::task_spawn(int argc, char *argv[])
@@ -133,24 +149,6 @@ WindEstimatorModule::cycle_trampoline(void *arg)
 	dev->cycle();
 }
 
-bool
-WindEstimatorModule::subscribe_topics()
-{
-	if (_vehicle_attitude_sub < 0) {
-		_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	}
-
-	if (_vehicle_local_position_sub < 0) {
-		_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	}
-
-	if (_airspeed_sub < 0) {
-		_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	}
-
-	return true;
-}
-
 void
 WindEstimatorModule::cycle()
 {
@@ -158,9 +156,6 @@ WindEstimatorModule::cycle()
 	vehicle_local_position_s vehicle_local_position = {};
 	airspeed_s airspeed = {};
 
-	if (!_topics_subscribed) {
-		_topics_subscribed = subscribe_topics();
-	}
 
 	hrt_abstime time_now_usec = hrt_absolute_time();
 
