@@ -88,6 +88,7 @@ set(config_module_list
 	modules/ekf2
 	modules/local_position_estimator
 	modules/position_estimator_inav
+	modules/wind_estimator
 
 	#
 	# Vehicle Control
