@@ -95,6 +95,7 @@ set(config_module_list
 	modules/landing_target_estimator
 	modules/local_position_estimator
 	modules/position_estimator_inav
+	modules/wind_estimator
 
 	#
 	# Vehicle Control
