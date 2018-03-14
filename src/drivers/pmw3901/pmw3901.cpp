@@ -72,27 +72,35 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/sensor_gyro.h>
 
 #include <board_config.h>
 
 /* Configuration Constants */
-#ifdef PX4_SPI_BUS_EXT
-#define PMW3901_BUS PX4_SPI_BUS_EXT
+#ifdef PX4_SPI_BUS_EXT1
+#define PMW3901_BUS 							PX4_SPI_BUS_EXT1 			// fmu-v4pro 
 #else
-#define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
+#define PMW3901_BUS 							PX4_SPI_BUS_EXTERNAL1		// fmu-v5 
 #endif
 
-#define PMW3901_SPI_BUS_SPEED    				(2000000L)      		// 2MHz
+#ifdef PX4_SPIDEV_EXT0
+#define PMW3901_SPIDEV 							PX4_SPIDEV_EXT0 			// fmu-v4pro
+#else
+#define PMW3901_SPIDEV 							PX4_SPIDEV_EXTERNAL1_1		// fmu-v5 
+#endif
+
+#define PMW3901_SPI_BUS_SPEED    				(2000000L)      			// 2MHz
 
 #define DIR_WRITE(a)             				((a) | (1 << 7))
 #define DIR_READ(a)                    			((a) & 0x7f)
 
 #define PMW3901_DEVICE_PATH   					"/dev/pmw3901"
 
-/* VL53LXX Registers addresses */
-#define PMW3901_CONVERSION_INTERVAL 			1000 					/*  10 ms */
-#define PMW3901_SAMPLE_RATE						10000 					/*  20 ms */
-#define PMW3901_INTEGRATOR_RESET_TIME			100000					/* 100 ms */
+/* PMW3901 Registers addresses */
+#define PMW3901_CONVERSION_INTERVAL 			1000 						/*   1 ms */
+#define PMW3901_SAMPLE_RATE						10000 						/*  10 ms */
+#define PMW3901_INTEGRATOR_RESET_TIME			100000						/* 100 ms */
+
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -116,6 +124,8 @@ public:
 	*/
 	void				print_info();
 
+	int					collect();
+
 private:
 	uint8_t _rotation;
 	work_s						_work;
@@ -125,7 +135,8 @@ private:
 	int							_class_instance;
 	int							_orb_class_instance;
 
-	orb_advert_t				_optical_flow_topic;
+	orb_advert_t				_optical_flow_pub;
+	//int 						_gyro_data_sub;
 
 	perf_counter_t				_sample_perf;
 	perf_counter_t				_comms_errors;
@@ -133,6 +144,7 @@ private:
 	Integrator					_flow_int;
 
 	enum Rotation 				_sensor_rotation;
+
 
 
 	/**
@@ -153,13 +165,13 @@ private:
 	* and start a new one.
 	*/
 	void				cycle();
-	int					collect();
+	// int					collect();
 
 	int 				readRegister(unsigned reg, uint8_t *data, unsigned count);
   	int         		writeRegister(unsigned reg, uint8_t data);
 
 	int 				sensorInit();
-  	int        		readMotionCount(int16_t &deltaX, int16_t &deltaY);
+  	int        			readMotionCount(int16_t &deltaX, int16_t &deltaY);
 
 	/**
 	* Static trampoline from the workq context; because we don't have a
@@ -181,14 +193,14 @@ private:
 extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
 PMW3901::PMW3901(uint8_t rotation, int bus) :
-	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PX4_SPIDEV_EXTERNAL1_1, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
+	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
 	_rotation(rotation),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_optical_flow_topic(nullptr),
+	_optical_flow_pub(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "tr1_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err")),
 	_flow_int(PMW3901_INTEGRATOR_RESET_TIME, false),
@@ -551,54 +563,87 @@ PMW3901::collect()
 	int ret;
   	int16_t deltaX, deltaY;
 
+  	math::Vector<3> 			aval_flow_integrated;
+	uint64_t 					integral_dt_flow;
+
+	float x_integral, y_integral;
+
+  	//bool updated = false;
+  	//sensor_gyro_s gyro_data;
+
+  	//memset(&gyro_data, 0, sizeof(gyro_data));
+
+  	//int gyro_data_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
+
+
   	perf_begin(_sample_perf);
 
-  	readMotionCount(deltaX, deltaY);
-  
   	uint64_t timestamp = hrt_absolute_time();
-  	uint64_t integral_dt;
 
-  	math::Vector<3> aval(deltaX, deltaY, 0);
-  	math::Vector<3> aval_integrated;
-  	float x_integral;
-  	float y_integral;
+  	readMotionCount(deltaX, deltaY);
 
-  	bool accel_notify = _flow_int.put(timestamp, aval, aval_integrated, integral_dt);
 
-  	printf("Timestamp = %lld\n", timestamp);
+  	math::Vector<3> aval_flow(deltaX, deltaY, 0);
+  	//math::Vector<3> aval_gyro(gyro_data.x, gyro_data.y, gyro_data.z);
+
+  	bool flow_notify = _flow_int.put(timestamp, aval_flow, aval_flow_integrated, integral_dt_flow);
+  	//bool gyro_notify = _gyro_int.put(timestamp, aval_gyro, aval_gyro_integrated, integral_dt_gyro);
+
+    printf("Timestamp = %lld\n", timestamp);
   	printf("deltaX= %d, deltaY= %d\n", deltaX, deltaY);
+  	
 
-  	if(accel_notify) {
+  	if(flow_notify) {
 
-  		x_integral = (float)aval_integrated(0);
-  		y_integral = (float)aval_integrated(1);
+  		//x_integral = (float)aval_flow_integrated(0) / (float)integral_dt_flow * 1000000.0f * 0.23f;			// proportional factor + convert from pixels to radians
+  		//y_integral = (float)aval_flow_integrated(1) / (float)integral_dt_flow * 1000000.0f * 0.23f;			// proportional factor + convert from pixels to radians 
 
-  		printf("Integral: X=%.4lf, Y=%.4lf\n", (double)x_integral, (double)y_integral);
-  		printf("dt = %lld\n\n", integral_dt);
+  		x_integral = (float)aval_flow_integrated(0) * 0.23f;			// proportional factor + convert from pixels to radians
+  		y_integral = (float)aval_flow_integrated(1) * 0.23f;
+
+  		//while(!updated){
+  		//orb_check(gyro_data_sub, &updated);
+	  	//}
+
+	  	//if(updated) {
+	  		//orb_copy(ORB_ID(sensor_gyro), gyro_data_sub, &gyro_data);
+	  		//printf("deltaX= %.3lf, deltaY= %.3lf, deltaZ= %.3lf\n", (double)gyro_data.x, (double)gyro_data.y, (double)gyro_data.z);
+	  	//}
+
+  		// x_integral_gyro = (float)aval_gyro_integrated(0) / (float)integral_dt_gyro;
+  		// y_integral_gyro = (float)aval_gyro_integrated(1) / (float)integral_dt_gyro;
+  		// z_integral_gyro = (float)aval_gyro_integrated(2) / (float)integral_dt_gyro;
+
+  		//printf("Integral: X=%.4lf, Y=%.4lf\n", (double)x_integral, (double)y_integral);
+  		//printf("dt = %lld\n\n", integral_dt_flow);
 
   		struct optical_flow_s report;
 
   		report.timestamp = hrt_absolute_time();
 
-  		report.pixel_flow_x_integral = static_cast<float>(x_integral); /// 10000.0f;		//convert to radians
-  		report.pixel_flow_y_integral = static_cast<float>(y_integral); /// 10000.0f;		//convert to radians
+  		report.pixel_flow_x_integral = static_cast<float>(x_integral); 
+  		report.pixel_flow_y_integral = static_cast<float>(y_integral); 
+
+  		//report.gyro_x_rate_integral = static_cast<float>(gyro_data.x);
+  		//report.gyro_y_rate_integral = static_cast<float>(gyro_data.y);
+  		//report.gyro_z_rate_integral = static_cast<float>(gyro_data.z);
 
   		report.frame_count_since_last_readout = 10.0f;
-  		report.integration_timespan = 100000; //microseconds
-  		// report.time_since_last_sonar_update = f_integral.sonar_timestamp;//microseconds
+  		report.integration_timespan = integral_dt_flow; 				//microseconds
 
   		report.sensor_id = 0;
+  		report.quality = 255;  // TO DO: how do we set this? ekf looks at this in order to see if sample should be used or not!!!
 
   		/* rotate measurements in yaw from sensor frame to body frame according to parameter SENS_FLOW_ROT */
   		//float zeroval = 0.0f;
 		//rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 
-		if (_optical_flow_topic == nullptr) {
+		if (_optical_flow_pub == nullptr) {
 
-			_optical_flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
+			_optical_flow_pub = orb_advertise(ORB_ID(optical_flow), &report);
 		} else {
 
-			orb_publish(ORB_ID(optical_flow), _optical_flow_topic, &report);
+			orb_publish(ORB_ID(optical_flow), _optical_flow_pub, &report);
 		}
 
 		/* post a report to the ring */
@@ -608,6 +653,8 @@ PMW3901::collect()
 		poll_notify(POLLIN);
 
   	}
+
+  	//orb_unsubscribe(gyro_data_sub);
 
   	ret = OK;
 
@@ -640,6 +687,8 @@ PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
 
 	// uint8_t data[5] = { DIR_READ(0x03), 0, 0, 0, 0 };
 
+	// uint8_t data[5] = { DIR_READ(0x16), 0, 0, 0, 0 };
+
 	ret = transfer(&data[0], &data[0], 10);
 
 	if (OK != ret) {
@@ -650,6 +699,9 @@ PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
 
 	deltaX = ((int16_t)data[5] << 8) | data[3];
 	deltaY = ((int16_t)data[9] << 8) | data[7];
+
+	// deltaX = ((int16_t)data[2] << 8) | data[1];
+	// deltaY = ((int16_t)data[4] << 8) | data[3];
 
 	ret = OK;
 
@@ -835,8 +887,13 @@ test()
 	}
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {			// change this to read only a few samples 
-		errx(1, "failed to set 2Hz poll rate");
+	// if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {			// change this to read only a few samples 
+	// 	errx(1, "failed to set 2Hz poll rate");
+	// }
+
+	for(int i = 0; i < 10000; i++){
+		g_dev->collect();
+		usleep(10000);
 	}
 
 	errx(0, "PASS");
