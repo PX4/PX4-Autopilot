@@ -479,6 +479,9 @@ Ekf2::Ekf2():
 	_bcoef_x(_params->bcoef_x),
 	_bcoef_y(_params->bcoef_y)
 {
+	// advertise the wind topic early to make sure we get the first instance (before the standalone wind estimator)
+	wind_estimate_s wind_estimate = {};
+	_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
 }
 
 int Ekf2::print_status()
