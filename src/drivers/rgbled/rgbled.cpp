@@ -71,7 +71,7 @@
 #define RGBLED_ONTIME 120
 #define RGBLED_OFFTIME 120
 
-#define ADDR			PX4_I2C_OBDEV_LED	/**< I2C adress of TCA62724FMG */
+#define ADDR			0x55	/**< I2C adress of TCA62724FMG */
 #define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
 #define SUB_ADDR_PWM0		0x81	/**< blue     (without auto-increment) */
 #define SUB_ADDR_PWM1		0x82	/**< green    (without auto-increment) */
