@@ -90,6 +90,7 @@ set(config_module_list
 	lib/rc
 	lib/terrain_estimation
 	lib/version
+	lib/wind_estimator
 
 	#
 	# OBC challenge

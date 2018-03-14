@@ -82,6 +82,7 @@ set(config_module_list
 	lib/mixer
 	lib/terrain_estimation
 	lib/version
+	lib/wind_estimator
 )
 
 set(config_df_driver_list

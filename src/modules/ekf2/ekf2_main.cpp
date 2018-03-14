@@ -1267,6 +1267,7 @@ void Ekf2::run()
 				}
 
 				{
+
 					// Velocity of body origin in local NED frame (m/s)
 					float velocity[3];
 					_ekf.get_velocity(velocity);
@@ -1277,7 +1278,6 @@ void Ekf2::run()
 					// Calculate wind-compensated velocity in body frame
 					Vector3f v_wind_comp(velocity);
 					matrix::Dcmf R_to_body(q.inversed());
-
 					float velNE_wind[2];
 					_ekf.get_wind_velocity(velNE_wind);
 
@@ -1290,15 +1290,14 @@ void Ekf2::run()
 					wind_estimate.timestamp = now;
 					wind_estimate.windspeed_north = velNE_wind[0];
 					wind_estimate.windspeed_east = velNE_wind[1];
-					wind_estimate.variance_north = status.covariances[22];
-					wind_estimate.variance_east = status.covariances[23];
 
-					if (_wind_pub == nullptr) {
-						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+					float wind_var_north_east[2];
+					_ekf.get_wind_velocity_var(wind_var_north_east);
+					wind_estimate.variance_north = wind_var_north_east[0];
+					wind_estimate.variance_east = wind_var_north_east[1];
 
-					} else {
-						orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-					}
+					int wind_instance;
+					orb_publish_auto(ORB_ID(wind_estimate), &_wind_pub, &wind_estimate, &wind_instance, ORB_PRIO_DEFAULT);
 				}
 			}
 
