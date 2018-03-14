@@ -169,4 +169,4 @@ MPU6000_I2C::probe()
 	return (read(MPUREG_WHOAMI, &whoami, 1) > 0 && (whoami == expected)) ? 0 : -EIO;
 
 }
-#endif /* PX4_I2C_OBDEV_HMC5883 */
+#endif /* USE_I2C */
