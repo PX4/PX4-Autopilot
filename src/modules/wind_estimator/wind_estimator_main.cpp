@@ -72,17 +72,11 @@ public:
 	 */
 	void cycle();
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 private:
 	static struct work_s	_work;
 
 	WindEstimator _wind_estimator;
 	orb_advert_t 	_wind_est_pub{nullptr};			/**< wind estimate topic */
-
-	hrt_abstime _time_last_airspeed_fused{0};		/* timestamp of when last time airspeed measurement was fused into wind estimator */
-	hrt_abstime _time_last_beta_fused{0};		/* timestamp of when last time sideslip measurement was fused into wind estimator */
 
 	int _vehicle_attitude_sub{-1};
 	int _vehicle_local_position_sub{-1};
@@ -158,43 +152,45 @@ WindEstimatorModule::cycle()
 	vehicle_local_position_s vehicle_local_position = {};
 	airspeed_s airspeed = {};
 
+	orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude);
+	orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed);
+	orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &vehicle_local_position);
 
 	hrt_abstime time_now_usec = hrt_absolute_time();
 
 	// update wind and airspeed estimator
 	_wind_estimator.update(time_now_usec);
 
-	// limit airspeed and sideslip fusion rate to 20Hz
-	bool fuse_airspeed = (time_now_usec - _time_last_airspeed_fused) > 50 * 1000;
-	bool fuse_beta = (time_now_usec - _time_last_beta_fused) > 50 * 1000;
+	// validate required conditions for the filter to fuse measurements
+	bool fuse = time_now_usec - vehicle_local_position.timestamp < 1000 * 1000 && vehicle_local_position.timestamp;
+	fuse &= time_now_usec - vehicle_attitude.timestamp < 1000 * 1000;
+	fuse &= vehicle_local_position.v_xy_valid;
 
-	if (fuse_beta || fuse_airspeed) {
+	// additionally, for airspeed fusion we need to have recent measurements
+	bool fuse_airspeed = fuse && time_now_usec - airspeed.timestamp < 1000 * 1000;
 
-		// we need to fuse, so update topics
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude);
-		orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed);
-		orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &vehicle_local_position);
+
+	if (fuse) {
 
 		matrix::Dcmf R_to_earth(matrix::Quatf(vehicle_attitude.q));
 		matrix::Vector3f vI(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 
-		if (fuse_beta && vehicle_local_position.v_xy_valid) {
-			_wind_estimator.fuse_beta(time_now_usec, &vI._data[0][0], vehicle_attitude.q);
-			_time_last_beta_fused = time_now_usec;
-		}
+		// sideslip fusion
+		_wind_estimator.fuse_beta(time_now_usec, &vI._data[0][0], vehicle_attitude.q);
 
-		if (fuse_airspeed && vehicle_local_position.v_xy_valid) {
+		if (fuse_airspeed) {
 			matrix::Vector3f vel_var(vehicle_local_position.evh, vehicle_local_position.evh, vehicle_local_position.evv);
 			vel_var = R_to_earth * vel_var;
+
+			//airspeed fusion
 			_wind_estimator.fuse_airspeed(time_now_usec, airspeed.indicated_airspeed_m_s, &vI._data[0][0],
 						      &vel_var._data[0][0]);
-			_time_last_airspeed_fused = time_now_usec;
 		}
 	}
 
 
 	// if we fused either airspeed or sideslip we publish a wind_estimate message
-	if (_time_last_beta_fused == time_now_usec || _time_last_airspeed_fused == time_now_usec) {
+	if (fuse) {
 		wind_estimate_s wind_est = {};
 
 		wind_est.timestamp = time_now_usec;
@@ -293,11 +289,6 @@ measured_airspeed = scale_factor * real_airspeed.
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-	return 0;
-}
-
-int WindEstimatorModule::print_status()
-{
 	return 0;
 }
 
