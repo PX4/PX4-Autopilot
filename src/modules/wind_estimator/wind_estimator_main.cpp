@@ -126,6 +126,8 @@ WindEstimatorModule::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
+	_task_id = task_id_is_work_queue;
+
 	return PX4_OK;
 }
 
