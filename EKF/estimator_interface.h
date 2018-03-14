@@ -208,6 +208,9 @@ public:
 	// get vehicle landed status data
 	bool get_in_air_status() {return _control_status.flags.in_air;}
 
+	// get wind estimation status
+	bool get_wind_status() { return _control_status.flags.wind; }
+
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) {_control_status.flags.fixed_wing = is_fixed_wing;}
 
