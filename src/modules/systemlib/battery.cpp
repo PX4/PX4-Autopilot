@@ -56,8 +56,6 @@ Battery::Battery() :
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
-	/* load initial params */
-	updateParams();
 }
 
 Battery::~Battery()
@@ -167,8 +165,6 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 void
 Battery::estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed)
 {
-
-
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _n_cells.get();
 
@@ -177,9 +173,8 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 		cell_voltage += _r_internal.get() * current_a;
 
 	} else {
-		// assume quadratic relation between throttle and current
-		// good assumption if throttle represents RPM
-		cell_voltage += throttle_normalized * throttle_normalized * _v_load_drop.get();
+		// assume linear relation between throttle and voltage drop
+		cell_voltage += throttle_normalized * _v_load_drop.get();
 	}
 
 	_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);

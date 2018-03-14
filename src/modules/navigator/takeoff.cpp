@@ -41,8 +41,8 @@
 #include "takeoff.h"
 #include "navigator.h"
 
-Takeoff::Takeoff(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name)
+Takeoff::Takeoff(Navigator *navigator) :
+	MissionBlock(navigator)
 {
 }
 

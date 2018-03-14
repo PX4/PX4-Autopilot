@@ -37,18 +37,19 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_RCLOSS_H
-#define NAVIGATOR_RCLOSS_H
+#pragma once
+
+#include <px4_module_params.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
 
 class Navigator;
 
-class RCLoss final : public MissionBlock
+class RCLoss : public MissionBlock, public ModuleParams
 {
 public:
-	RCLoss(Navigator *navigator, const char *name);
+	RCLoss(Navigator *navigator);
 	~RCLoss() = default;
 
 	void on_inactive() override;
@@ -56,8 +57,9 @@ public:
 	void on_active() override;
 
 private:
-	/* Params */
-	control::BlockParamFloat _param_loitertime;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_RCL_LT>) _param_loitertime
+	)
 
 	enum RCLState {
 		RCL_STATE_NONE = 0,
@@ -77,4 +79,3 @@ private:
 	void		advance_rcl();
 
 };
-#endif

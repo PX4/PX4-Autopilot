@@ -59,29 +59,15 @@
 
 #define STATE_TIMEOUT 10000000 // [us] Maximum time to spend in any state
 
-PrecLand::PrecLand(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
+PrecLand::PrecLand(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator),
 	_targetPoseSub(0),
 	_target_pose_valid(false),
 	_state_start_time(0),
 	_search_cnt(0),
-	_approach_alt(0),
-	_param_timeout(this, "PLD_BTOUT", false),
-	_param_hacc_rad(this, "PLD_HACC_RAD", false),
-	_param_final_approach_alt(this, "PLD_FAPPR_ALT", false),
-	_param_search_alt(this, "PLD_SRCH_ALT", false),
-	_param_search_timeout(this, "PLD_SRCH_TOUT", false),
-	_param_max_searches(this, "PLD_MAX_SRCH", false),
-	_param_acceleration_hor(this, "MPC_ACC_HOR", false),
-	_param_xy_vel_cruise(this, "MPC_XY_CRUISE", false)
+	_approach_alt(0)
 
-{
-	/* load initial params */
-	updateParams();
-
-}
-
-PrecLand::~PrecLand()
 {
 }
 

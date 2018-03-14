@@ -128,6 +128,18 @@ set(msg_files
 	wind_estimate.msg
 	)
 
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+	# Check that the msg directory and the CMakeLists.txt file exists
+	if(EXISTS ${EXTERNAL_MODULES_LOCATION}/msg/CMakeLists.txt)
+		add_subdirectory(${EXTERNAL_MODULES_LOCATION}/msg external_msg)
+
+		# Add each of the external message files to the global msg_files list
+		foreach(external_msg_file ${config_msg_list_external})
+			list(APPEND msg_files ${EXTERNAL_MODULES_LOCATION}/msg/${external_msg_file})
+		endforeach()
+	endif()
+endif()
+
 px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
 px4_add_git_submodule(TARGET git_genmsg PATH tools/genmsg)
 

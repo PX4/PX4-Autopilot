@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,58 +30,60 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file gpsfailure.h
- * Helper class for Data Link Loss Mode according to the OBC rules
+ * @file px4_module_params.h
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * C++ base class for modules/classes using configuration parameters
  */
 
 #pragma once
 
-#include <px4_module_params.h>
+#include <containers/List.hpp>
 
-#include "mission_block.h"
+#include "px4_param.h"
 
-class Navigator;
-
-class GpsFailure : public MissionBlock, public ModuleParams
+class ModuleParams : public ListNode<ModuleParams *>
 {
 public:
-	GpsFailure(Navigator *navigator);
-	~GpsFailure() = default;
 
-	void on_inactive() override;
-	void on_activation() override;
-	void on_active() override;
+	ModuleParams(ModuleParams *parent)
+	{
+		if (parent) {
+			parent->_children.add(this);
+		}
+	}
+
+	virtual ~ModuleParams() = default;
+
+	// no copy, assignment, move, move assignment
+	ModuleParams(const ModuleParams &) = delete;
+	ModuleParams &operator=(const ModuleParams &) = delete;
+	ModuleParams(ModuleParams &&) = delete;
+	ModuleParams &operator=(ModuleParams &&) = delete;
+
+protected:
+	/**
+	 * Call this whenever the module gets a parameter change notification. It will automatically
+	 * call updateParams() for all children, which then call updateParamsImpl().
+	 */
+	void updateParams()
+	{
+		ModuleParams *child = _children.getHead();
+
+		while (child) {
+			child->updateParams();
+			child = child->getSibling();
+		}
+
+		updateParamsImpl();
+	}
+
+	/**
+	 * The implementation for this is generated with the macro DEFINE_PARAMETERS()
+	 */
+	virtual void updateParamsImpl() {}
 
 private:
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_GPSF_LT>) _param_loitertime,
-		(ParamFloat<px4::params::NAV_GPSF_R>) _param_openlooploiter_roll,
-		(ParamFloat<px4::params::NAV_GPSF_P>) _param_openlooploiter_pitch,
-		(ParamFloat<px4::params::NAV_GPSF_TR>) _param_openlooploiter_thrust
-	)
-
-	enum GPSFState {
-		GPSF_STATE_NONE = 0,
-		GPSF_STATE_LOITER = 1,
-		GPSF_STATE_TERMINATE = 2,
-		GPSF_STATE_END = 3,
-	} _gpsf_state{GPSF_STATE_NONE};
-
-	hrt_abstime _timestamp_activation{0}; //*< timestamp when this mode was activated */
-
-	orb_advert_t	_att_sp_pub{nullptr};
-
-	/**
-	 * Set the GPSF item
-	 */
-	void		set_gpsf_item();
-
-	/**
-	 * Move to next GPSF item
-	 */
-	void		advance_gpsf();
-
+	List<ModuleParams *> _children;
 };

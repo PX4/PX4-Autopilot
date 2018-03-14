@@ -84,34 +84,20 @@ Navigator	*g_navigator;
 }
 
 Navigator::Navigator() :
-	SuperBlock(nullptr, "NAV"),
+	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
-	_mission(this, "MIS"),
-	_loiter(this, "LOI"),
-	_takeoff(this, "TKF"),
-	_land(this, "LND"),
-	_precland(this, "PLD"),
-	_rtl(this, "RTL"),
-	_rcLoss(this, "RCL"),
-	_dataLinkLoss(this, "DLL"),
-	_engineFailure(this, "EF"),
-	_gpsFailure(this, "GPSF"),
-	_follow_target(this, "TAR"),
-	// navigator params
-	_param_loiter_radius(this, "LOITER_RAD"),
-	_param_acceptance_radius(this, "ACC_RAD"),
-	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
-	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
-	_param_force_vtol(this, "FORCE_VT"),
-	_param_traffic_avoidance_mode(this, "TRAFF_AVOID"),
-	// non-navigator params
-	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
-	_param_takeoff_min_alt(this, "MIS_TAKEOFF_ALT", false),
-	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
-	_param_yaw_err(this, "MIS_YAW_ERR", false),
-	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
-	_param_reverse_delay(this, "VT_B_REV_DEL", false)
+	_mission(this),
+	_loiter(this),
+	_takeoff(this),
+	_land(this),
+	_precland(this),
+	_rtl(this),
+	_rcLoss(this),
+	_dataLinkLoss(this),
+	_engineFailure(this),
+	_gpsFailure(this),
+	_follow_target(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -126,31 +112,6 @@ Navigator::Navigator() :
 	_navigation_mode_array[9] = &_precland;
 	_navigation_mode_array[10] = &_follow_target;
 
-}
-
-Navigator::~Navigator()
-{
-	if (_navigator_task != -1) {
-
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_navigator_task);
-				break;
-			}
-		} while (_navigator_task != -1);
-	}
-
-	navigator::g_navigator = nullptr;
 }
 
 void
@@ -223,13 +184,7 @@ Navigator::params_update()
 }
 
 void
-Navigator::task_main_trampoline(int argc, char *argv[])
-{
-	navigator::g_navigator->task_main();
-}
-
-void
-Navigator::task_main()
+Navigator::run()
 {
 	bool have_geofence_position_data = false;
 
@@ -277,7 +232,9 @@ Navigator::task_main()
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
 
-	while (!_task_should_exit) {
+	hrt_abstime last_geofence_check = 0;
+
+	while (!should_exit()) {
 
 		/* wait for up to 1000ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
@@ -597,8 +554,6 @@ Navigator::task_main()
 		check_traffic();
 
 		/* Check geofence violation */
-		static hrt_abstime last_geofence_check = 0;
-
 		if (have_geofence_position_data &&
 		    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 		    (hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
@@ -722,7 +677,16 @@ Navigator::task_main()
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
-			reset_triplets();
+			// We don't reset the triplet if we just did an auto-takeoff and are now
+			// going to loiter. Otherwise, we lose the takeoff altitude and end up lower
+			// than where we wanted to go.
+			//
+			// FIXME: a better solution would be to add reset where they are needed and remove
+			//        this general reset here.
+			if (!(_navigation_mode == &_takeoff &&
+			      navigation_mode_new == &_loiter)) {
+				reset_triplets();
+			}
 		}
 
 		_navigation_mode = navigation_mode_new;
@@ -775,38 +739,43 @@ Navigator::task_main()
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);
 	orb_unsubscribe(_vehicle_command_sub);
-
-	PX4_INFO("exiting");
-
-	_navigator_task = -1;
 }
 
-int
-Navigator::start()
+int Navigator::task_spawn(int argc, char *argv[])
 {
-	ASSERT(_navigator_task == -1);
+	_task_id = px4_task_spawn_cmd("navigator",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_NAVIGATION,
+				      1800,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
-	/* start the task */
-	_navigator_task = px4_task_spawn_cmd("navigator",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_NAVIGATION,
-					     1800,
-					     (px4_main_t)&Navigator::task_main_trampoline,
-					     nullptr);
-
-	if (_navigator_task < 0) {
-		warn("task start failed");
+	if (_task_id < 0) {
+		_task_id = -1;
 		return -errno;
 	}
 
-	return OK;
+	return 0;
 }
 
-void
-Navigator::status()
+Navigator *Navigator::instantiate(int argc, char *argv[])
 {
-	_geofence.printStatus();
+	Navigator *instance = new Navigator();
 
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+	}
+
+	return instance;
+}
+
+int
+Navigator::print_status()
+{
+	PX4_INFO("Running");
+
+	_geofence.printStatus();
+	return 0;
 }
 
 void
@@ -1107,68 +1076,61 @@ Navigator::force_vtol()
 	       && _param_force_vtol.get();
 }
 
-static void usage()
+int Navigator::print_usage(const char *reason)
 {
-	PX4_INFO("usage: navigator {start|stop|status|fencefile}");
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
+takeoff and RTL.
+It is also responsible for geofence violation checking.
+
+### Implementation
+The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
+The member `_navigation_mode` contains the current active mode.
+
+Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
+controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("navigator", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int Navigator::custom_command(int argc, char *argv[])
+{
+	if (!is_running()) {
+		print_usage("not running");
+		return 1;
+	}
+
+	if (!strcmp(argv[0], "fencefile")) {
+		get_instance()->load_fence_from_file(GEOFENCE_FILENAME);
+		return 0;
+
+	} else if (!strcmp(argv[0], "fake_traffic")) {
+		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f);
+		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f);
+		get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f);
+		return 0;
+	}
+
+	return print_usage("unknown command");
 }
 
 int navigator_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		usage();
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (navigator::g_navigator != nullptr) {
-			PX4_WARN("already running");
-			return 1;
-		}
-
-		navigator::g_navigator = new Navigator;
-
-		if (navigator::g_navigator == nullptr) {
-			PX4_ERR("alloc failed");
-			return 1;
-		}
-
-		if (OK != navigator::g_navigator->start()) {
-			delete navigator::g_navigator;
-			navigator::g_navigator = nullptr;
-			PX4_ERR("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (navigator::g_navigator == nullptr) {
-		PX4_INFO("not running");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		delete navigator::g_navigator;
-		navigator::g_navigator = nullptr;
-
-	} else if (!strcmp(argv[1], "status")) {
-		navigator::g_navigator->status();
-
-	} else if (!strcmp(argv[1], "fencefile")) {
-		navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
-
-	} else if (!strcmp(argv[1], "fake_traffic")) {
-		navigator::g_navigator->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f);
-		navigator::g_navigator->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f);
-		navigator::g_navigator->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f);
-
-	} else {
-		usage();
-		return 1;
-	}
-
-	return 0;
+	return Navigator::main(argc, argv);
 }
 
 void

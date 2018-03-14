@@ -67,7 +67,6 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
 	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
-	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
@@ -76,6 +75,17 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.fw_qc_max_roll = param_find("VT_FW_QC_R");
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
 	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
+
+	_params_handles.front_trans_duration = param_find("VT_F_TRANS_DUR");
+	_params_handles.back_trans_duration = param_find("VT_B_TRANS_DUR");
+	_params_handles.transition_airspeed = param_find("VT_ARSP_TRANS");
+	_params_handles.front_trans_throttle = param_find("VT_F_TRANS_THR");
+	_params_handles.back_trans_throttle = param_find("VT_B_TRANS_THR");
+	_params_handles.airspeed_blend = param_find("VT_ARSP_BLEND");
+	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
+	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
+
 
 	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
 	_params_handles.wv_land = param_find("VT_WV_LND_EN");
@@ -439,10 +449,6 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
 	_vtol_vehicle_status.fw_permanent_stab = (l == 1);
 
-	/* vtol pitch trim for fw mode */
-	param_get(_params_handles.fw_pitch_trim, &v);
-	_params.fw_pitch_trim = v;
-
 	param_get(_params_handles.vtol_type, &l);
 	_params.vtol_type = l;
 
@@ -486,6 +492,21 @@ VtolAttitudeControl::parameters_update()
 
 	param_get(_params_handles.wv_land, &l);
 	_params.wv_land = (l == 1);
+
+
+	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
+	param_get(_params_handles.back_trans_duration, &_params.back_trans_duration);
+	param_get(_params_handles.transition_airspeed, &_params.transition_airspeed);
+	param_get(_params_handles.front_trans_throttle, &_params.front_trans_throttle);
+	param_get(_params_handles.back_trans_throttle, &_params.back_trans_throttle);
+	param_get(_params_handles.airspeed_blend, &_params.airspeed_blend);
+	param_get(_params_handles.airspeed_mode, &l);
+	_params.airspeed_disabled = l != 0;
+	param_get(_params_handles.front_trans_timeout, &_params.front_trans_timeout);
+	param_get(_params_handles.mpc_xy_cruise, &_params.mpc_xy_cruise);
+
+	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
+	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {

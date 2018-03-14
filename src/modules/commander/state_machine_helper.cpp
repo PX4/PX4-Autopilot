@@ -966,7 +966,7 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 {
 	bool fallback_required = false;
 
-	if (using_global_pos && (!status_flags->condition_global_position_valid || !status_flags->condition_global_velocity_valid)) {
+	if (using_global_pos && !status_flags->condition_global_position_valid) {
 		fallback_required = true;
 	} else if (!using_global_pos && (!status_flags->condition_local_position_valid || !status_flags->condition_local_velocity_valid)) {
 		fallback_required = true;

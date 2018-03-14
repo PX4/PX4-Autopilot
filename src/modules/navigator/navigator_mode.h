@@ -39,18 +39,14 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef NAVIGATOR_MODE_H
-#define NAVIGATOR_MODE_H
-
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#pragma once
 
 class Navigator;
 
-class NavigatorMode : public control::SuperBlock
+class NavigatorMode
 {
 public:
-	NavigatorMode(Navigator *navigator, const char *name);
+	NavigatorMode(Navigator *navigator);
 	virtual ~NavigatorMode() = default;
 	NavigatorMode(const NavigatorMode &) = delete;
 	NavigatorMode operator=(const NavigatorMode &) = delete;
@@ -83,5 +79,3 @@ protected:
 private:
 	bool _active{false};
 };
-
-#endif

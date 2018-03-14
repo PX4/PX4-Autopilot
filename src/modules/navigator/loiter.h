@@ -38,16 +38,17 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_LOITER_H
-#define NAVIGATOR_LOITER_H
+#pragma once
 
 #include "navigator_mode.h"
 #include "mission_block.h"
 
-class Loiter final : public MissionBlock
+#include <px4_module_params.h>
+
+class Loiter : public MissionBlock, public ModuleParams
 {
 public:
-	Loiter(Navigator *navigator, const char *name);
+	Loiter(Navigator *navigator);
 	~Loiter() = default;
 
 	void on_inactive() override;
@@ -75,9 +76,9 @@ private:
 	 */
 	void set_loiter_position();
 
-	control::BlockParamInt _param_yawmode;
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MIS_YAWMODE>) _param_yawmode
+	)
 
 	bool _loiter_pos_set{false};
 };
-
-#endif

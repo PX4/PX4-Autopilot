@@ -74,19 +74,6 @@ PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
 PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
 
 /**
- * Fixed wing pitch trim
- *
- * This parameter allows to adjust the neutral elevon position in fixed wing mode.
- *
- * @min -1.0
- * @max 1.0
- * @increment 0.01
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
-
-/**
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
  *
  * @value 0 Tailsitter
@@ -136,6 +123,36 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
+
+/**
+ * Target throttle value for the transition to fixed wing flight.
+ * standard vtol: pusher
+ * tailsitter, tiltrotor: main throttle
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
+
+/**
+ * Target throttle value for the transition to hover flight.
+ * standard vtol: pusher
+ * tailsitter, tiltrotor: main throttle
+ *
+ * Note for standard vtol:
+ * For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active breaking
+ * For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a positive value to apply active breaking
+ *
+ * @min -1
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
 
 /**
  * Approximate deceleration during back transition

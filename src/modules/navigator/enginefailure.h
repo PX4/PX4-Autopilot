@@ -37,18 +37,17 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_ENGINEFAILURE_H
-#define NAVIGATOR_ENGINEFAILURE_H
+#pragma once
 
 #include "navigator_mode.h"
 #include "mission_block.h"
 
 class Navigator;
 
-class EngineFailure final : public MissionBlock
+class EngineFailure : public MissionBlock
 {
 public:
-	EngineFailure(Navigator *navigator, const char *name);
+	EngineFailure(Navigator *navigator);
 	~EngineFailure() = default;
 
 	void on_inactive() override;
@@ -72,4 +71,3 @@ private:
 	void		advance_ef();
 
 };
-#endif

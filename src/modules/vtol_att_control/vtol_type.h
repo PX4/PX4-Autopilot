@@ -49,7 +49,6 @@
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
 	int32_t vtol_motor_count;		// number of motors
-	float fw_pitch_trim;		// trim for neutral elevon position in fw mode
 	int32_t vtol_type;
 	bool elevons_mc_lock;		// lock elevons in multicopter mode
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
@@ -61,6 +60,15 @@ struct Params {
 	bool wv_takeoff;
 	bool wv_loiter;
 	bool wv_land;
+	float front_trans_duration;
+	float back_trans_duration;
+	float transition_airspeed;
+	float front_trans_throttle;
+	float back_trans_throttle;
+	float airspeed_blend;
+	bool airspeed_disabled;
+	float front_trans_timeout;
+	float mpc_xy_cruise;
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg

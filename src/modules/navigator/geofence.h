@@ -38,14 +38,11 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef GEOFENCE_H_
-#define GEOFENCE_H_
+#pragma once
 
 #include <cfloat>
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-#include <controllib/blocks.hpp>
+#include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
 #include <geo/geo.h>
 #include <px4_defines.h>
@@ -57,7 +54,7 @@
 
 class Navigator;
 
-class Geofence : public control::SuperBlock
+class Geofence : public ModuleParams
 {
 public:
 	Geofence(Navigator *navigator);
@@ -159,13 +156,14 @@ private:
 
 	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
 
-	/* Params */
-	control::BlockParamInt _param_action;
-	control::BlockParamInt _param_altitude_mode;
-	control::BlockParamInt _param_source;
-	control::BlockParamInt _param_counter_threshold;
-	control::BlockParamFloat _param_max_hor_distance;
-	control::BlockParamFloat _param_max_ver_distance;
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::GF_ACTION>) _param_action,
+		(ParamInt<px4::params::GF_ALTMODE>) _param_altitude_mode,
+		(ParamInt<px4::params::GF_SOURCE>) _param_source,
+		(ParamInt<px4::params::GF_COUNT>) _param_counter_threshold,
+		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_max_hor_distance,
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_max_ver_distance
+	)
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
@@ -211,5 +209,3 @@ private:
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 };
-
-#endif /* GEOFENCE_H_ */
