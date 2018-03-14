@@ -72,6 +72,12 @@ inline constexpr const _Tp &constrain(const _Tp &val, const _Tp &min_val, const 
 	return (val < min_val) ? min_val : ((val > max_val) ? max_val : val);
 }
 
+template<typename _Tp>
+inline constexpr bool isInRange(const _Tp &val, const _Tp &min_val, const _Tp &max_val)
+{
+	return (min_val <= val) && (val <= max_val);
+}
+
 float __EXPORT radians(float degrees);
 
 double __EXPORT radians(double degrees);

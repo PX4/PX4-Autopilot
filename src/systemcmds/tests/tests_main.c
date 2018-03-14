@@ -126,6 +126,8 @@ const struct {
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"versioning",		test_versioning,	0},
+	{"ctlmath",		test_controlmath, 0},
+	{"smoothz", 	test_smooth_z, 0},
 	{NULL,			NULL, 		0}
 };
 
