@@ -68,14 +68,17 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/obstacle_distance.h>
 
 #include <board_config.h>
+
+#define NAN_F 0.0F/0.0F
 
 /* Configuration Constants */
 #ifdef PX4_I2C_BUS_EXPANSION3
 #define VL53LXX_BUS 				PX4_I2C_BUS_EXPANSION3		// I2C port (I2C4) on fmu-v5
 #else
-#define VL53LXX_BUS 				PX4_I2C_BUS_EXPANSION 		// I2C on all others (pixracer)
+#define VL53LXX_BUS 				PX4_I2C_BUS_EXPANSION 		// I2C on all others
 #endif
 
 #define VL53LXX_BASEADDR      		0b0101001 					// 7-bit address 
@@ -135,10 +138,12 @@ private:
 	ringbuffer::RingBuffer		*_reports;
 	bool						_sensor_ok;
 	int							_measure_ticks;
+	bool 						_collect_phase;
+	bool 						_new_measurement;
+
 	int							_class_instance;
 	int							_orb_class_instance;
-	bool 						_collect_phase;
-
+	
 	orb_advert_t				_distance_sensor_topic;
 
 	perf_counter_t				_sample_perf;
@@ -202,10 +207,11 @@ VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
+	_collect_phase(false),
+	_new_measurement(true),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_collect_phase(false),
 	_sample_perf(perf_alloc(PC_ELAPSED, "tr1_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err"))
 {
@@ -597,7 +603,6 @@ VL53LXX::measure()
 
 		while((system_start & 0x01) == 1) {
 			readRegister(SYSRANGE_START_REG, system_start);
-			usleep(1000);
 		}
 
 	}
@@ -605,16 +610,12 @@ VL53LXX::measure()
 	readRegister(RESULT_INTERRUPT_STATUS_REG, wait_for_measurement);
 
 	if((wait_for_measurement & 0x07) == 0){
-		work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, 1000);
-		return;
+		work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, 1000);		// reschedule every 1 ms until measurement is ready
+		ret = OK;
+		return ret;
 	}
 
 	_collect_phase = true;
-
-	// while((wait_for_measurement & 0x07) == 0) {
-	// 	readRegister(RESULT_INTERRUPT_STATUS_REG, wait_for_measurement);
-	// 	usleep(1000);
-	// }
 
 	ret = transfer(&cmd, sizeof(cmd), nullptr, 0);
 
@@ -639,6 +640,8 @@ VL53LXX::collect()
 	uint8_t val[2] = {0, 0};
 
 	perf_begin(_sample_perf);
+
+	_collect_phase = false;
 
 	ret = transfer(nullptr, 0, &val[0], 2);
 
@@ -677,6 +680,7 @@ VL53LXX::collect()
 	ret = OK;
 
 	perf_end(_sample_perf);
+
 	return ret;
 }
 
@@ -728,10 +732,13 @@ VL53LXX::cycle_trampoline(void *arg)
 void
 VL53LXX::cycle()
 {
-	measure();			// no wait state between measure() and collect()
+	measure();											
+
 	if(_collect_phase) {
 		
 		_collect_phase = false;	
+		_new_measurement = true;
+
 		collect();
 
 		work_queue(HPWORK,
