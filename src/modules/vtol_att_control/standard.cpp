@@ -135,7 +135,6 @@ void Standard::update_vtol_state()
 			if (_vtol_vehicle_status->vtol_transition_failsafe == true) {
 				// Failsafe event, engage mc motors immediately
 				_vtol_schedule.flight_mode = MC_MODE;
-				_flag_enable_mc_motors = true;
 				_pusher_throttle = 0.0f;
 				_reverse_output = 0.0f;
 
@@ -143,7 +142,6 @@ void Standard::update_vtol_state()
 			} else {
 				// Regular backtransition
 				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
-				_flag_enable_mc_motors = true;
 				_vtol_schedule.transition_start = hrt_absolute_time();
 				_reverse_output = _params_standard.reverse_output;
 
@@ -194,8 +192,7 @@ void Standard::update_vtol_state()
 			    can_transition_on_ground()) {
 
 				_vtol_schedule.flight_mode = FW_MODE;
-				// we can turn off the multirotor motors now
-				_flag_enable_mc_motors = false;
+
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
 			}
@@ -300,8 +297,8 @@ void Standard::update_transition_state()
 		}
 
 		// in back transition we need to start the MC motors again
-		if (_flag_enable_mc_motors) {
-			_flag_enable_mc_motors = !enable_mc_motors();
+		if (_motor_state != ENABLED) {
+			_motor_state = set_motor_state(_motor_state, ENABLED);
 		}
 	}
 
@@ -318,8 +315,8 @@ void Standard::update_mc_state()
 	VtolType::update_mc_state();
 
 	// enable MC motors here in case we transitioned directly to MC mode
-	if (_flag_enable_mc_motors) {
-		_flag_enable_mc_motors = !enable_mc_motors();
+	if (_motor_state != ENABLED) {
+		_motor_state = set_motor_state(_motor_state, ENABLED);
 	}
 
 	// if the thrust scale param is zero or the drone is on manual mode,
@@ -399,8 +396,8 @@ void Standard::update_fw_state()
 	VtolType::update_fw_state();
 
 	// stop MC motors in FW mode
-	if (!_flag_enable_mc_motors) {
-		_flag_enable_mc_motors = disable_mc_motors();
+	if (_motor_state != DISABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, DISABLED);
 	}
 }
 
