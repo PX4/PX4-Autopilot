@@ -85,6 +85,7 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
+	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 
 
 	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
@@ -504,6 +505,15 @@ VtolAttitudeControl::parameters_update()
 	_params.airspeed_disabled = l != 0;
 	param_get(_params_handles.front_trans_timeout, &_params.front_trans_timeout);
 	param_get(_params_handles.mpc_xy_cruise, &_params.mpc_xy_cruise);
+	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
+
+	// standard vtol always needs to turn all mc motors off when going into fixed wing mode
+	// normally the parameter fw_motors_off can be used to specify this, however, since historically standard vtol code
+	// did not use the interface of the VtolType class to disable motors we will have users flying  around with a wrong
+	// parameter value. Therefore, explicitly set it here such that all motors will be disabled as expected.
+	if (_params.vtol_type == vtol_type::STANDARD) {
+		_params.fw_motors_off = 0xff;
+	}
 
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
@@ -594,6 +604,8 @@ void VtolAttitudeControl::task_main()
 	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
 
 	parameters_update();  // initialize parameter cache
+
+	_task_should_exit = !_vtol_type->init();
 
 	/* wakeup source*/
 	px4_pollfd_struct_t fds[1] = {};
