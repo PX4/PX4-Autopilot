@@ -115,6 +115,14 @@ bool VtolType::init()
 
 void VtolType::update_mc_state()
 {
+	if (!flag_idle_mc) {
+		flag_idle_mc = set_idle_mc();
+	}
+
+	if (_motor_state != ENABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, ENABLED);
+	}
+
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
@@ -143,6 +151,14 @@ void VtolType::update_mc_state()
 
 void VtolType::update_fw_state()
 {
+	if (flag_idle_mc) {
+		flag_idle_mc = !set_idle_fw();
+	}
+
+	if (_motor_state != DISABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, DISABLED);
+	}
+
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 	_mc_roll_weight = 0.0f;

@@ -257,20 +257,11 @@ void Tailsitter::waiting_on_tecs()
 void Tailsitter::update_mc_state()
 {
 	VtolType::update_mc_state();
-
-	// set idle speed for rotary wing mode
-	if (!flag_idle_mc) {
-		flag_idle_mc = set_idle_mc();
-	}
 }
 
 void Tailsitter::update_fw_state()
 {
 	VtolType::update_fw_state();
-
-	if (flag_idle_mc) {
-		flag_idle_mc = !set_idle_fw();
-	}
 }
 
 /**
