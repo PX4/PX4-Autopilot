@@ -314,11 +314,6 @@ void Standard::update_mc_state()
 {
 	VtolType::update_mc_state();
 
-	// enable MC motors here in case we transitioned directly to MC mode
-	if (_motor_state != ENABLED) {
-		_motor_state = set_motor_state(_motor_state, ENABLED);
-	}
-
 	// if the thrust scale param is zero or the drone is on manual mode,
 	// then the pusher-for-pitch strategy is disabled and we can return
 	if (_params_standard.forward_thrust_scale < FLT_EPSILON ||
@@ -394,11 +389,6 @@ void Standard::update_mc_state()
 void Standard::update_fw_state()
 {
 	VtolType::update_fw_state();
-
-	// stop MC motors in FW mode
-	if (_motor_state != DISABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, DISABLED);
-	}
 }
 
 /**
