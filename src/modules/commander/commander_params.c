@@ -685,6 +685,8 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
  * @unit sec
  * @reboot_required true
  * @group Commander
+ * @min 1
+ * @max 100
  */
 PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
 
@@ -700,6 +702,8 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
  * @unit sec
  * @reboot_required true
  * @group Commander
+ * @min 1
+ * @max 100
  */
 PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30);
 
