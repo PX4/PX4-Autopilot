@@ -156,6 +156,8 @@ public:
 	 */
 	bool can_transition_on_ground();
 
+
+
 	mode get_mode() {return _vtol_mode;}
 
 	virtual void parameters_update() = 0;
@@ -205,16 +207,55 @@ protected:
 
 	motor_state _motor_state = motor_state::DISABLED;
 
+
+
+	/**
+	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
+	 *             that they are spinning in mc mode.
+	 *
+	 * @return     true on success
+	 */
 	bool set_idle_mc();
+
+	/**
+	 * @brief      Sets mc motor minimum pwm to PWM_MIN which ensures that the
+	 *             motors stop spinning on zero throttle in fw mode.
+	 *
+	 * @return     true on success
+	 */
 	bool set_idle_fw();
 
+
+	/**
+	 * @brief      Sets state of a selection of motors, see struct motor_state
+	 *
+	 * @param[in]  current_state  The current motor state
+	 * @param[in]  next_state     The next state
+	 * @param[in]  value          Desired pwm value if next_state =
+	 *                            motor_state::VALUE
+	 *
+	 * @return     next_state if succesfull, otherwise current_state
+	 */
 	motor_state set_motor_state(const motor_state current_state, const motor_state next_state, const int value = 0);
 
 private:
 
+
+	/**
+	 * @brief      Stores the max pwm values given by the system.
+	 */
 	struct pwm_output_values _max_mc_pwm_values {};
 	struct pwm_output_values _disarmed_pwm_values {};
 
+
+
+	/**
+	 * @brief      Determines if this channel is one selected by VT_FW_MOT_OFFID
+	 *
+	 * @param[in]  channel  The channel
+	 *
+	 * @return     True if motor off channel, False otherwise.
+	 */
 	bool is_motor_off_channel(const int channel);
 
 };
