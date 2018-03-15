@@ -878,10 +878,9 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	eq = eq.emult(attitude_gain);
 	_rates_sp = math::Vector<3>(eq.data());
 
-	/* Feed forward the yaw setpoint rate. We need to transform the yaw from world into body frame.
-	 * The following is a simplification of:
-	 * R.transposed() * Vector3f(0.f, 0.f, _v_att_sp.yaw_sp_move_rate * _params.yaw_ff)
-	 */
+	/* Feed forward the yaw setpoint rate. We need to apply the yaw rate in the body frame.
+	 * We infer the body z axis by taking the last column of R.transposed (== q.inversed)
+	 * because it's the rotation axis for body yaw and multiply it by the rate and gain. */
 	Vector3f yaw_feedforward_rate = q.inversed().dcm_z();
 	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _params.yaw_ff;
 
