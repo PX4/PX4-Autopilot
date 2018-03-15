@@ -399,7 +399,7 @@ fi
 # Benewake TFMini
 if param greater SENS_EN_TFMINI 0
 then
-	if ver hwcmp PX4FMU_V3
+	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
 	then
 		# start the driver on serial 4/5
 		tfmini start -d /dev/ttyS6
@@ -421,7 +421,7 @@ fi
 # LeddarOne
 if param greater SENS_EN_LEDDAR1 0
 then
-	if ver hwcmp PX4FMU_V3
+	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
 	then
 		# start the driver on serial 4/5
 		leddar_one -d /dev/ttyS6 start
