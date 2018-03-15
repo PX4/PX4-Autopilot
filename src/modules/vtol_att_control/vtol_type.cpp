@@ -254,9 +254,6 @@ void VtolType::check_quadchute_condition()
 	}
 }
 
-/**
-* Adjust idle speed for mc mode.
-*/
 bool VtolType::set_idle_mc()
 {
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
@@ -289,9 +286,6 @@ bool VtolType::set_idle_mc()
 	return ret == PX4_OK;
 }
 
-/**
-* Adjust idle speed for fw mode.
-*/
 bool VtolType::set_idle_fw()
 {
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
@@ -322,11 +316,6 @@ bool VtolType::set_idle_fw()
 
 	return ret == PX4_OK;
 }
-
-/**
-* Set state of selected motors.
-* See _params->fw_motors_off for selection of motors.
-*/
 
 motor_state VtolType::set_motor_state(const motor_state current_state, const motor_state next_state, const int value)
 {
