@@ -72,6 +72,8 @@ void InputBase::control_data_set_lon_lat(double lon, double lat, float altitude,
 	_control_data.type_data.lonlat.altitude = altitude;
 	_control_data.type_data.lonlat.roll_angle = roll_angle;
 	_control_data.type_data.lonlat.pitch_fixed_angle = pitch_fixed_angle;
+	_control_data.type_data.lonlat.pitch_angle_offset = 0.f;
+	_control_data.type_data.lonlat.yaw_angle_offset = 0.f;
 }
 
 } /* namespace vmount */
