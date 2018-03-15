@@ -216,16 +216,6 @@ void Tiltrotor::update_mc_state()
 
 	// make sure motors are not tilted
 	_tilt_control = _params_tiltrotor.tilt_mc;
-
-	// enable rear motors
-	if (_motor_state != ENABLED) {
-		_motor_state = set_motor_state(_motor_state, ENABLED);
-	}
-
-	// set idle speed for rotary wing mode
-	if (!flag_idle_mc) {
-		flag_idle_mc = set_idle_mc();
-	}
 }
 
 void Tiltrotor::update_fw_state()
@@ -234,16 +224,6 @@ void Tiltrotor::update_fw_state()
 
 	// make sure motors are tilted forward
 	_tilt_control = _params_tiltrotor.tilt_fw;
-
-	// disable rear motors
-	if (_motor_state != DISABLED) {
-		_motor_state = set_motor_state(_motor_state, DISABLED);
-	}
-
-	// adjust idle for fixed wing flight
-	if (flag_idle_mc) {
-		flag_idle_mc = !set_idle_fw();
-	}
 }
 
 void Tiltrotor::update_transition_state()
