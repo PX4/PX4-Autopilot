@@ -1075,6 +1075,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
+	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -2606,6 +2607,10 @@ Commander::run()
 				vehicle_command_s vehicle_cmd;
 				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
 				vehicle_cmd.param1 = 0.0f;
+				vehicle_cmd.from_external = false;
+				vehicle_cmd.target_system = status.system_id;
+				vehicle_cmd.target_component = 0;
+
 				if (vehicle_cmd_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_command), vehicle_cmd_pub, &vehicle_cmd);
 
@@ -2618,9 +2623,14 @@ Commander::run()
 				// low latency telemetry lost and high latency link existing
 				status.high_latency_data_link_active = true;
 				status_changed = true;
+
 				vehicle_command_s vehicle_cmd;
 				vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
 				vehicle_cmd.param1 = 1.0f;
+				vehicle_cmd.from_external = false;
+				vehicle_cmd.target_system = status.system_id;
+				vehicle_cmd.target_component = 0;
+
 				if (vehicle_cmd_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_command), vehicle_cmd_pub, &vehicle_cmd);
 
