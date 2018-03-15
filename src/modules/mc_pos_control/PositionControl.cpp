@@ -243,10 +243,10 @@ void PositionControl::_velocityController(const float &dt)
 
 	}
 
-	/* Satureate thrust setpoint in D-direction */
+	/* Saturate thrust setpoint in D-direction */
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
-	if (_thr_sp(0) + _thr_sp(1)  > FLT_EPSILON) {
+	if (fabsf(_thr_sp(0)) + fabsf(_thr_sp(1))  > FLT_EPSILON) {
 
 		/* Thrust setpoints in NE-direction is already provided. Only
 		 * scaling is required.
