@@ -343,14 +343,15 @@ Syslink::task_main()
 	while (_task_running) {
 		int poll_ret = px4_poll(fds, 2, 2);
 
-		/* handle the poll result */
+
+		// handle the poll result
 		if (poll_ret == 0) {
-			/* timeout: this means none of our providers is giving us data */
+			//timeout: this means none of our providers is giving us data 
 			//printf("timeout!!\n"); //barza
 			send_queued_raw_message();
 
 		} else if (poll_ret < 0) {
-			/* this is seriously bad - should be an emergency */
+			// this is seriously bad - should be an emergency 
 			if (error_counter < 10 || error_counter % 50 == 0) {
 				/* use a counter to prevent flooding (and slowing us down) */
 				PX4_ERR("[syslink] ERROR return value from poll(): %d"
@@ -380,6 +381,10 @@ Syslink::task_main()
 				update_params(false);
 			}
 		}
+
+		
+	
+
 	}
 
 	close(_fd);
@@ -769,7 +774,7 @@ Syslink::send_bytes(const void *data, size_t len)
 int
 Syslink::send_message(syslink_message_t *msg)
 {
-	//usleep(10000);
+
 	syslink_compute_cksum(msg);
 	send_bytes(syslink_magic, 2);
 	send_bytes(&msg->type, sizeof(msg->type));
