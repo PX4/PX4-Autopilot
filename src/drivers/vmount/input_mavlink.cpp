@@ -122,8 +122,6 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 
 				*control_data = &_control_data;
 
-			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPINDEX) {
-				//TODO how to do this?
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
 				control_data_set_lon_lat(vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
