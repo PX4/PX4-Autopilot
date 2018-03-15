@@ -503,9 +503,9 @@ Navigator::run()
 
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 					_vroi.mode = vehicle_command_s::VEHICLE_ROI_WPNEXT;
-					_vroi.pitchOffset = cmd.param5;
-					_vroi.rollOffset = cmd.param6;
-					_vroi.yawOffset = cmd.param7;
+					_vroi.pitch_offset = (float)cmd.param5 * M_DEG_TO_RAD_F;
+					_vroi.roll_offset = (float)cmd.param6 * M_DEG_TO_RAD_F;
+					_vroi.yaw_offset = (float)cmd.param7 * M_DEG_TO_RAD_F;
 					break;
 
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
