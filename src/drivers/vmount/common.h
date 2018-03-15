@@ -75,6 +75,8 @@ struct ControlData {
 			double lat;              /**< latitude in [deg] */
 			float altitude;          /**< altitude in [m] */
 			float roll_angle;        /**< roll is set to a fixed angle. Set to 0 for level horizon [rad] */
+			float pitch_angle_offset; /**< angular offset for pitch [rad] */
+			float yaw_angle_offset;  /**< angular offset for yaw [rad] */
 			float pitch_fixed_angle; /**< ignored if < -pi, otherwise use a fixed pitch angle instead of the altitude */
 		} lonlat;
 	} type_data;
