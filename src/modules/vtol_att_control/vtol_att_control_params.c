@@ -316,3 +316,14 @@ PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
+
+/**
+ * The channel number of motors that must be turned off in fixed wing mode.
+ *
+ * @min 0
+ * @max 12345678
+ * @increment 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);

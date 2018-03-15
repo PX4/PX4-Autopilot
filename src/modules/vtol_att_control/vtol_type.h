@@ -70,6 +70,7 @@ struct Params {
 	bool airspeed_disabled;
 	float front_trans_timeout;
 	float mpc_xy_cruise;
+	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
@@ -86,6 +87,17 @@ enum vtol_type {
 	STANDARD
 };
 
+// these are states that can be applied to a selection of multirotor motors.
+// e.g. if we need to shut off some motors after transitioning to fixed wing mode
+// we can individually disable them while others might still need to be enabled to produce thrust.
+// we can select the target motors via VT_FW_MOT_OFFID
+enum motor_state {
+	ENABLED = 0,		// motor max pwm will be set to the standard max pwm value
+	DISABLED,			// motor max pwm will be set to a value that shuts the motor off
+	IDLE,				// motor max pwm will be set to VT_IDLE_PWM_MC
+	VALUE 				// motor max pwm will be set to a specific value provided, see set_motor_state()
+};
+
 class VtolAttitudeControl;
 
 class VtolType
@@ -97,6 +109,11 @@ public:
 	VtolType &operator=(const VtolType &) = delete;
 
 	virtual ~VtolType();
+
+	/**
+	 * Initialise.
+	 */
+	bool init();
 
 	/**
 	 * Update vtol state.
@@ -138,9 +155,6 @@ public:
 	 * Returns true if we're allowed to do a mode transition on the ground.
 	 */
 	bool can_transition_on_ground();
-
-	void set_idle_mc();
-	void set_idle_fw();
 
 	mode get_mode() {return _vtol_mode;}
 
@@ -189,10 +203,19 @@ protected:
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
 
-	struct pwm_output_values _max_mc_pwm_values {};
+	motor_state _motor_state = motor_state::DISABLED;
 
-	bool enable_mc_motors();
-	bool disable_mc_motors();
+	bool set_idle_mc();
+	bool set_idle_fw();
+
+	motor_state set_motor_state(const motor_state current_state, const motor_state next_state, const int value = 0);
+
+private:
+
+	struct pwm_output_values _max_mc_pwm_values {};
+	struct pwm_output_values _disarmed_pwm_values {};
+
+	bool is_motor_off_channel(const int channel);
 
 };
 

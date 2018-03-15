@@ -87,17 +87,6 @@ PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
 PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
 
 /**
- * The channel number of motors that must be turned off in fixed wing mode.
- *
- * @min 0
- * @max 12345678
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);
-
-/**
  * Differential thrust in forwards flight.
  *
  * Set to 1 to enable differential thrust in fixed-wing flight.

@@ -66,7 +66,6 @@ private:
 		float tilt_transition;			/**< actuator value corresponding to transition tilt (e.g 45 degrees) */
 		float tilt_fw;					/**< actuator value corresponding to fw tilt */
 		float front_trans_dur_p2;
-		int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 		int32_t diff_thrust;
 		float diff_thrust_scale;
 	} _params_tiltrotor;
@@ -76,7 +75,6 @@ private:
 		param_t tilt_transition;
 		param_t tilt_fw;
 		param_t front_trans_dur_p2;
-		param_t fw_motors_off;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
 	} _params_handles_tiltrotor;
@@ -94,12 +92,7 @@ private:
 	 * These engines need to be shut down in fw mode. During the back-transition
 	 * they need to idle otherwise they need too much time to spin up for mc mode.
 	 */
-	enum rear_motor_state {
-		ENABLED = 0,
-		DISABLED,
-		IDLE,
-		VALUE
-	} _rear_motors;
+
 
 	struct {
 		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
@@ -107,21 +100,6 @@ private:
 	} _vtol_schedule;
 
 	float _tilt_control;		/**< actuator value for the tilt servo */
-
-	/**
-	 * Return a bitmap of channels that should be turned off in fixed wing mode.
-	 */
-	uint32_t get_motor_off_channels(const int channels);
-
-	/**
-	 * Return true if the motor channel is off in fixed wing mode.
-	 */
-	bool is_motor_off_channel(const int channel);
-
-	/**
-	 * Adjust the state of the rear motors. In fw mode they shouldn't spin.
-	 */
-	void set_rear_motor_state(rear_motor_state state, int value = 0);
 
 	/**
 	 * Update parameters.
