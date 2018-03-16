@@ -8,8 +8,12 @@ import re
 # This script is run from Build/<target>_default.build/$(PX4_BASE)/Firmware/src/systemcmds/topic_listener
 
 # argv[1] must be the full path of the top Firmware dir
+# argv[2] (optional) is the full path to the EXTERNAL_MODULES_LOCATION
 
 raw_messages = glob.glob(sys.argv[1]+"/msg/*.msg")
+if len(sys.argv) > 2:
+	external_raw_messages = glob.glob(sys.argv[2]+"/msg/*.msg")
+	raw_messages += external_raw_messages # Append the msgs defined in the EXTERNAL_MODULES_LOCATION to the normal msg list
 messages = []
 topics = []
 message_elements = []
