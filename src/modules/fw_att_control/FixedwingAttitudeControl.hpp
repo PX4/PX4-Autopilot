@@ -174,6 +174,14 @@ private:
 		float trim_roll;
 		float trim_pitch;
 		float trim_yaw;
+		float dtrim_roll_vmin;
+		float dtrim_pitch_vmin;
+		float dtrim_yaw_vmin;
+		float dtrim_roll_vmax;
+		float dtrim_pitch_vmax;
+		float dtrim_yaw_vmax;
+		float dtrim_roll_flaps;
+		float dtrim_pitch_flaps;
 		float rollsp_offset_deg;		/**< Roll Setpoint Offset in deg */
 		float pitchsp_offset_deg;		/**< Pitch Setpoint Offset in deg */
 		float rollsp_offset_rad;		/**< Roll Setpoint Offset in rad */
@@ -235,6 +243,14 @@ private:
 		param_t trim_roll;
 		param_t trim_pitch;
 		param_t trim_yaw;
+		param_t dtrim_roll_vmin;
+		param_t dtrim_pitch_vmin;
+		param_t dtrim_yaw_vmin;
+		param_t dtrim_roll_vmax;
+		param_t dtrim_pitch_vmax;
+		param_t dtrim_yaw_vmax;
+		param_t dtrim_roll_flaps;
+		param_t dtrim_pitch_flaps;
 		param_t rollsp_offset_deg;
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
