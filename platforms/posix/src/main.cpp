@@ -241,8 +241,10 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 static void usage()
 {
 
-	cout << "./px4 [-d] [data_directory] startup_config [-h]" << endl;
-	cout << "   -d            - Optional flag to run the app in daemon mode and does not listen for user input." <<
+	cout << "./px4 [-d] [-w] [data_directory] startup_config [-h]" << endl;
+	cout << "   -d            - Optional flag to run the app in daemon mode and does not listen for user input" <<
+	     endl;
+	cout << "   -w            - Use the startup_config location and name as the working directory for rootfs" <<
 	     endl;
 	cout << "                   This is needed if px4 is intended to be run as a upstart job on linux" << endl;
 	cout << "<data_directory> - directory where ROMFS and posix-configs are located (if not given, CWD is used)" << endl;
@@ -296,6 +298,7 @@ int main(int argc, char **argv)
 {
 	bool daemon_mode = false;
 	bool chroot_on = false;
+	bool change_working_dir = false;
 
 	tcgetattr(0, &orig_term);
 	atexit(restore_term);
@@ -330,6 +333,9 @@ int main(int argc, char **argv)
 			// the arg starts with -
 			if (strncmp(argv[index], "-d", 2) == 0) {
 				daemon_mode = true;
+
+			} else if (strncmp(argv[index], "-w", 2) == 0) {
+				change_working_dir = true;
 
 			} else if (strncmp(argv[index], "-h", 2) == 0) {
 				usage();
@@ -395,6 +401,29 @@ int main(int argc, char **argv)
 	if (!fileExists(commands_file)) {
 		PX4_ERR("Error opening commands file, does not exist: %s", commands_file.c_str());
 		return -1;
+	}
+
+	if (change_working_dir) {
+		char rootfs_path[path_max_len];
+
+		strcpy(rootfs_path, commands_file.c_str());
+		strcat(rootfs_path, "_wd");
+
+		// check if there is an existing path to working directory, or make it
+		if (!dirExists(rootfs_path)) {
+			if (mkpath(rootfs_path, S_IRUSR | S_IWUSR | S_IXUSR) == -1) {
+				PX4_ERR("Error making rootfs path %s", rootfs_path);
+				return -1;
+			}
+		}
+
+		// change current working directory
+		if (chdir(rootfs_path) == -1) {
+			PX4_ERR("Error changing to rootfs path %s", rootfs_path);
+			return -1;
+		}
+
+		cout << "working directory: " << pwd() << endl;
 	}
 
 	// create sym-links
