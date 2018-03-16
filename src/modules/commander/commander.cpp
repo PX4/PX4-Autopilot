@@ -133,7 +133,7 @@ typedef enum VEHICLE_MODE_FLAG
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
 
-static constexpr uint64_t HOTPLUG_SENS_TIMEOUT = (8 * 1000 * 1000);	/**< wait for hotplug sensors to come online for upto 8 seconds */
+static constexpr uint64_t HOTPLUG_SENS_TIMEOUT = 8_s;	/**< wait for hotplug sensors to come online for upto 8 seconds */
 
 #define PRINT_INTERVAL	5000000
 #define PRINT_MODE_REJECT_INTERVAL	500000
@@ -1787,11 +1787,8 @@ Commander::run()
 							}
 
 							// if the innovation test has failed continuously, declare the nav as failed
-							if ((hrt_absolute_time() - time_last_innov_pass) > 1_s) {
+							if (hrt_elapsed_time(&time_last_innov_pass) > 1_s) {
 								nav_test_failed = true;
-								status_flags.condition_local_position_valid = false;
-								status_flags.condition_local_velocity_valid = false;
-								status_flags.condition_global_position_valid = false;
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
 							}
 						}
@@ -1803,14 +1800,20 @@ Commander::run()
 		/* run global position accuracy checks */
 		// Check if quality checking of position accuracy and consistency is to be performed
 		if (run_quality_checks) {
-			// use global position message to determine validity
-			const vehicle_global_position_s& global_position = _global_position_sub.get();
-			check_posvel_validity(true, global_position.eph, _eph_threshold.get(), global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
+			if (nav_test_failed) {
+				status_flags.condition_global_position_valid = false;
+				status_flags.condition_local_position_valid = false;
+				status_flags.condition_local_velocity_valid = false;
+			} else {
+				// use global position message to determine validity
+				const vehicle_global_position_s& global_position = _global_position_sub.get();
+				check_posvel_validity(true, global_position.eph, _eph_threshold.get(), global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
 
-			// use local position message to determine validity
-			const vehicle_local_position_s& local_position = _local_position_sub.get();
-			check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold.get(), local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
-			check_posvel_validity(local_position.v_xy_valid, local_position.evh, _evh_threshold.get(), local_position.timestamp, &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
+				// use local position message to determine validity
+				const vehicle_local_position_s& local_position = _local_position_sub.get();
+				check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold.get(), local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
+				check_posvel_validity(local_position.v_xy_valid, local_position.evh, _evh_threshold.get(), local_position.timestamp, &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
+			}
 		}
 
 		check_valid(_local_position_sub.get().timestamp, _failsafe_pos_delay.get() * sec_to_usec, _local_position_sub.get().z_valid, &(status_flags.condition_local_altitude_valid), &status_changed);
@@ -2311,9 +2314,9 @@ Commander::run()
 				}
 
 				stick_on_counter++;
-				/* do not reset the counter when holding the arm button longer than needed */
 
 			} else if (!(arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) {
+				/* do not reset the counter when holding the arm button longer than needed */
 				stick_on_counter = 0;
 			}
 
