@@ -32,7 +32,7 @@
 ############################################################################
 
 add_custom_command(OUTPUT topic_listener.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${PX4_SOURCE_DIR} > topic_listener.cpp
+                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${PX4_SOURCE_DIR} ${EXTERNAL_MODULES_LOCATION} > topic_listener.cpp
                 DEPENDS generate_listener.py uorb_msgs
                 )
 
