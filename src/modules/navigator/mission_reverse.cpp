@@ -64,6 +64,8 @@ MissionReverse::~MissionReverse()
 void
 MissionReverse::on_inactive()
 {
+	mission_changed(false);
+
 	if (!_navigator->in_rtl_state()) {
 		_mission_reverse_finished = false;
 	}
@@ -77,6 +79,7 @@ MissionReverse::on_inactivation()
 void
 MissionReverse::on_activation()
 {
+	_mission->set_execution_mode(Mission::EXECUTION_REVERSE);
 	_mission_reverse_finished = false;
 
 	if (_mission->_current_offboard_mission_index < 0) {
@@ -126,7 +129,7 @@ MissionReverse::on_active()
 		return;
 	}
 
-	if (mission_changed()) {
+	if (mission_changed(true)) {
 		_mission->_current_offboard_mission_index = index_closest_mission_item();
 		set_mission_items();
 	}
@@ -209,7 +212,7 @@ MissionReverse::advance_mission()
 void
 MissionReverse::set_mission_items()
 {
-	_mission->set_mission_items(true);
+	_mission->set_mission_items();
 	_mission_reverse_finished = _mission->_mission_type == Mission::MISSION_TYPE_NONE;
 }
 
@@ -255,7 +258,7 @@ MissionReverse::index_closest_mission_item() const
 }
 
 bool
-MissionReverse::mission_changed()
+MissionReverse::mission_changed(bool update_mission)
 {
 	if ((_previous_mission.timestamp == _mission->_offboard_mission.timestamp) &&
 	    (_previous_mission.current_seq == _mission->_offboard_mission.current_seq) &&
@@ -264,7 +267,11 @@ MissionReverse::mission_changed()
 		return false;
 
 	} else {
-		_previous_mission = _mission->_offboard_mission;
+		if (update_mission) {
+			_previous_mission = _mission->_offboard_mission;
+		}
+
+		_mission_reverse_finished = false;
 		return true;
 	}
 }

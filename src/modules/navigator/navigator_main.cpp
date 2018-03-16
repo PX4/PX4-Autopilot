@@ -560,6 +560,8 @@ Navigator::run()
 		switch (_vstatus.nav_state) {
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
+
+			_mission.set_execution_mode(Mission::EXECUTION_NORMAL);
 			navigation_mode_new = &_mission;
 
 			if (_navigation_mode == &_mission_reverse) {
@@ -619,11 +621,12 @@ Navigator::run()
 							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
 						}
 
+						_mission.set_execution_mode(Mission::EXECUTION_FAST_FORWARD);
 						navigation_mode_new = &_mission;
 
 					} else {
 						// fly the mission in reverse if switching from a non-manual mode
-						if (((_navigation_mode != nullptr) && (_navigation_mode != &_rtl)) &&
+						if ((_navigation_mode != nullptr) &&
 						    (! _mission_reverse.get_mission_reverse_finished()) &&
 						    (!get_land_detected()->landed)) {
 							// reset the current offboard index if we switch a non mission mode and a non-commanded mission mode

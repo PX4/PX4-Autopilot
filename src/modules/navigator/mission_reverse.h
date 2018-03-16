@@ -89,8 +89,10 @@ private:
 
 	/**
 	 * Return if the mission has changed since the last iteration.
+	 *
+	 * @param[in] update_mission: Indicates if the internal mission should be updated.
 	 */
-	bool mission_changed();
+	bool mission_changed(bool update_mission);
 
 	/**
 	 * Issue a vtol transition to the FW mode.

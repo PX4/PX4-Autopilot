@@ -92,6 +92,12 @@ public:
 		MISSION_YAWMODE_MAX = 4
 	};
 
+	enum mission_execution_mode {
+		EXECUTION_NORMAL,		/**< Execute the mission according to the planned items */
+		EXECUTION_REVERSE,		/**< Execute the mission in reverse order, ignoring commands and converting all waypoints to normal ones */
+		EXECUTION_FAST_FORWARD,	/**< Execute the mission as fast as possible, for example converting loiter waypoints to normal ones*/
+	};
+
 	bool set_current_offboard_mission_index(uint16_t index);
 
 	bool land_start();
@@ -103,6 +109,8 @@ public:
 	void switch_from_reverse();
 
 	void set_closest_item_as_current();
+
+	void set_execution_mode(const mission_execution_mode mode);
 private:
 
 	/**
@@ -118,7 +126,7 @@ private:
 	/**
 	 * Set new mission items
 	 */
-	void set_mission_items(bool reverse);
+	void set_mission_items();
 
 	/**
 	 * Returns true if we need to do a takeoff at the current state
@@ -176,7 +184,7 @@ private:
 	 *
 	 * @return true if current mission item available
 	 */
-	bool prepare_mission_items(bool reverse, mission_item_s *mission_item,
+	bool prepare_mission_items(mission_item_s *mission_item,
 				   mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
@@ -185,7 +193,7 @@ private:
 	 *
 	 * @return true if successful
 	 */
-	bool read_mission_item(bool reverse, int offset, struct mission_item_s *mission_item);
+	bool read_mission_item(int offset, struct mission_item_s *mission_item);
 
 	/**
 	 * Save current offboard mission state to dataman
@@ -280,4 +288,7 @@ private:
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
+
+	mission_execution_mode _mission_execution_mode{EXECUTION_NORMAL};	/**< the current mode of how the mission is executed */
+	bool _execution_mode_changed{false};
 };
