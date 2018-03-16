@@ -62,7 +62,13 @@ int board_set_bootload_mode(board_reset_e mode)
 	}
 
 	stm32_pwr_enablebkp(true);
-	*(uint32_t *)STM32_RTC_BKR(0) = regvalue;
+
+// Check if we can to use the new register definition
+#ifndef STM32_RTC_BK0R
+	*(uint32_t *)STM32_BKP_BASE = regvalue;
+#else
+	*(uint32_t *)STM32_RTC_BK0R = regvalue;
+#endif
 	stm32_pwr_enablebkp(false);
 	return OK;
 }
