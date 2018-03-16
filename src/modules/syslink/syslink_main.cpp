@@ -255,7 +255,6 @@ Syslink::open_serial(const char *dev)
 
 	// clear ONLCR flag (which appends a CR for every LF)
 	config.c_oflag &= 0;
-	
 	config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
 	// Disable hardware flow control
