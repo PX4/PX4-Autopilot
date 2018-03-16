@@ -131,7 +131,6 @@ typedef enum VEHICLE_MODE_FLAG
 #define STICK_ON_OFF_LIMIT 0.9f
 
 #define OFFBOARD_TIMEOUT		500000
-#define DIFFPRESS_TIMEOUT		2000000
 
 static constexpr uint64_t HOTPLUG_SENS_TIMEOUT = 8_s;	/**< wait for hotplug sensors to come online for upto 8 seconds */
 
