@@ -27,11 +27,11 @@ sh /etc/init.d/rc.mc_defaults
 
 #Parameters here:
 
-
-
+param set CBRK_USB_CHK 197848
+param set CBRK_IO_SAFETY 22027
 
 # Configure this as Quadrotor
-set MAV_TYPE 2
+# set MAV_TYPE 14
 
 # Set mixer
 set MIXER tilt_quad
