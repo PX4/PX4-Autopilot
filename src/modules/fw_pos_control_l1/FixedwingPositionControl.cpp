@@ -1866,7 +1866,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 			if (PX4_ISFINITE(baro.pressure) && PX4_ISFINITE(_parameters.throttle_alt_scale)) {
 				// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
 				const float eas2tas = sqrtf(MSL_PRESSURE_MILLIBAR / baro.pressure);
-				const float scale = constrain(eas2tas * _parameters.throttle_alt_scale, 0.9f, 2.0f);
+				const float scale = constrain((eas2tas - 1.0f) * _parameters.throttle_alt_scale + 1.0f, 1.0f, 2.0f);
 
 				throttle_max = constrain(throttle_max * scale, throttle_min, 1.0f);
 				throttle_cruise = constrain(throttle_cruise * scale, throttle_min + 0.01f, throttle_max - 0.01f);
