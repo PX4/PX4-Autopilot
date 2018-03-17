@@ -138,11 +138,10 @@ define cmake-build
 +@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
-COLOR_BLUE = \033[0;34m
-NO_COLOR   = \033[m
-
 define colorecho
-+@echo "${COLOR_BLUE}${1} ${NO_COLOR}"
++@tput setaf 6
++@echo $1
++@tput sgr0
 endef
 
 # Get a list of all config targets.
@@ -189,6 +188,7 @@ qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
 
 # px4fmu NuttX firmware
 px4fmu_firmware: \
+	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
@@ -299,12 +299,12 @@ s3put_coverage: tests_coverage
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
-	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh
+	@$(SRC_DIR)/Tools/check_code_style_all.sh
 	@git diff --check
 
 format:
 	$(call colorecho,"Formatting with astyle")
-	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh --fix
+	@$(SRC_DIR)/Tools/check_code_style_all.sh --fix
 
 # Testing
 # --------------------------------------------------------------------
@@ -361,21 +361,6 @@ clang-tidy-quiet: posix_sitl_default-clang
 cppcheck: posix_sitl_default
 	@cppcheck -i$(SRC_DIR)/src/examples --std=c++11 --std=c99 --std=posix --project=build_posix_sitl_default/compile_commands.json --xml-version=2 2> cppcheck-result.xml
 	@cppcheck-htmlreport --source-encoding=ascii --file=cppcheck-result.xml --report-dir=cppcheck --source-dir=$(SRC_DIR)/src/
-
-check_stack: px4fmu-v3_default
-	@echo "Checking worst case stack usage with avstack.pl ..."
-	@echo " "
-	@cd build_px4fmu-v3_default/ && mkdir -p stack_usage && $(SRC_DIR)/Tools/stack_usage/avstack.pl `find . -name *.obj` > stack_usage/avstack_output.txt 2> stack_usage/avstack_errors.txt
-	@head -n 10 build_px4fmu-v3_default/stack_usage/avstack_output.txt | c++filt
-	@echo " "
-	@echo "Checking worst case stack usage with checkstack.pl ..."
-	@echo " "
-	@echo "Top 10:"
-	@cd build_px4fmu-v3_default/ && mkdir -p stack_usage && arm-none-eabi-objdump -d src/firmware/nuttx/firmware_nuttx | $(SRC_DIR)/Tools/stack_usage/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
-	@head -n 10 build_px4fmu-v3_default/stack_usage/checkstack_output.txt | c++filt
-	@echo " "
-	@echo "Symbols with 'main', 'thread' or 'task':"
-	@cat build_px4fmu-v3_default/stack_usage/checkstack_output.txt | c++filt | grep -E 'thread|main|task'
 
 # Cleanup
 # --------------------------------------------------------------------

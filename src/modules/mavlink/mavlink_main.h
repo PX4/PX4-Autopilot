@@ -579,7 +579,6 @@ private:
 	bool			_param_initialized;
 	uint32_t		_broadcast_mode;
 
-        param_t			_param_formation_id;
 	param_t			_param_system_id;
 	param_t			_param_component_id;
 	param_t			_param_proto_ver;

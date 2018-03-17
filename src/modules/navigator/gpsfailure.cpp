@@ -37,21 +37,24 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include "gpsfailure.h"
-#include "navigator.h"
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include <fcntl.h>
 
 #include <systemlib/mavlink_log.h>
+#include <systemlib/err.h>
 #include <geo/geo.h>
 #include <navigator/navigation.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/home_position.h>
-#include <mathlib/mathlib.h>
 
-using matrix::Eulerf;
-using matrix::Quatf;
+#include "navigator.h"
+#include "gpsfailure.h"
 
-static constexpr float DELAY_SIGMA = 0.01f;
+#define DELAY_SIGMA	0.01f
 
 GpsFailure::GpsFailure(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
@@ -64,9 +67,12 @@ GpsFailure::GpsFailure(Navigator *navigator, const char *name) :
 {
 	/* load initial params */
 	updateParams();
-
 	/* initial reset */
 	on_inactive();
+}
+
+GpsFailure::~GpsFailure()
+{
 }
 
 void
@@ -90,34 +96,24 @@ GpsFailure::on_activation()
 void
 GpsFailure::on_active()
 {
+
 	switch (_gpsf_state) {
 	case GPSF_STATE_LOITER: {
 			/* Position controller does not run in this mode:
 			 * navigator has to publish an attitude setpoint */
-			vehicle_attitude_setpoint_s att_sp = {};
-			att_sp.timestamp = hrt_absolute_time();
-			att_sp.roll_body = math::radians(_param_openlooploiter_roll.get());
-			att_sp.pitch_body = math::radians(_param_openlooploiter_pitch.get());
-			att_sp.thrust = _param_openlooploiter_thrust.get();
-
-			Quatf q(Eulerf(att_sp.roll_body, att_sp.pitch_body, 0.0f));
-			q.copyTo(att_sp.q_d);
-			att_sp.q_d_valid = true;
-
-			if (_att_sp_pub != nullptr) {
-				/* publish att sp*/
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
-
-			} else {
-				/* advertise and publish */
-				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
-			}
+			_navigator->get_att_sp()->roll_body = M_DEG_TO_RAD_F * _param_openlooploiter_roll.get();
+			_navigator->get_att_sp()->pitch_body = M_DEG_TO_RAD_F * _param_openlooploiter_pitch.get();
+			_navigator->get_att_sp()->thrust = _param_openlooploiter_thrust.get();
+			_navigator->publish_att_sp();
 
 			/* Measure time */
-			if ((_param_loitertime.get() > FLT_EPSILON) &&
-			    (hrt_elapsed_time(&_timestamp_activation) > _param_loitertime.get() * 1e6f)) {
-				/* no recovery, advance the state machine */
-				PX4_WARN("GPS not recovered, switching to next failure state");
+			hrt_abstime elapsed = hrt_elapsed_time(&_timestamp_activation);
+
+			//warnx("open loop loiter, posctl enabled %u, elapsed %.1fs, thrust %.2f",
+			//_navigator->get_control_mode()->flag_control_position_enabled, elapsed * 1e-6, (double)_param_openlooploiter_thrust.get());
+			if (elapsed > _param_loitertime.get() * 1e6f) {
+				/* no recovery, adavance the state machine */
+				warnx("gps not recovered, switch to next state");
 				advance_gpsf();
 			}
 
@@ -146,17 +142,17 @@ GpsFailure::set_gpsf_item()
 
 	switch (_gpsf_state) {
 	case GPSF_STATE_TERMINATE: {
-			/* Request flight termination from commander */
+			/* Request flight termination from the commander */
 			_navigator->get_mission_result()->flight_termination = true;
 			_navigator->set_mission_result_updated();
-			PX4_WARN("GPS failure: request flight termination");
+			warnx("gps fail: request flight termination");
 		}
-		break;
 
 	default:
 		break;
 	}
 
+	reset_mission_item_reached();
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -166,18 +162,20 @@ GpsFailure::advance_gpsf()
 	switch (_gpsf_state) {
 	case GPSF_STATE_NONE:
 		_gpsf_state = GPSF_STATE_LOITER;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Global position failure: fixed bank loiter");
+		warnx("gpsf loiter");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "GPS failed: open loop loiter");
 		break;
 
 	case GPSF_STATE_LOITER:
 		_gpsf_state = GPSF_STATE_TERMINATE;
-		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "no GPS recovery, terminating flight");
+		warnx("gpsf terminate");
+		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "no gps recovery, termination");
+		warnx("mavlink sent");
 		break;
 
 	case GPSF_STATE_TERMINATE:
-		PX4_WARN("terminate");
+		warnx("gpsf end");
 		_gpsf_state = GPSF_STATE_END;
-		break;
 
 	default:
 		break;

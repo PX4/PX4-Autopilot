@@ -41,7 +41,7 @@
 #include "state_machine_helper_test.h"
 
 #include "../state_machine_helper.h"
-#include <unit_test.h>
+#include <unit_test/unit_test.h>
 
 class StateMachineHelperTest : public UnitTest
 {
@@ -297,7 +297,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 				nullptr /* no mavlink_log_pub */,
 				&status_flags,
 				5.0f, /* avionics rail voltage */
-				(check_gps ? ARM_REQ_GPS_BIT : 0),
+				check_gps,
+				false, /* valid mission not required*/
 				2e6 /* 2 seconds after boot, everything should be checked */
 				);
 

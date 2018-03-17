@@ -122,14 +122,13 @@ void SendEvent::cycle()
 
 void SendEvent::process_commands()
 {
+	struct vehicle_command_s cmd;
 	bool updated;
 	orb_check(_vehicle_command_sub, &updated);
 
 	if (!updated) {
 		return;
 	}
-
-	struct vehicle_command_s cmd;
 
 	orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
@@ -168,17 +167,12 @@ void SendEvent::process_commands()
 
 void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 {
+	struct vehicle_command_ack_s command_ack;
+
 	/* publish ACK */
-	struct vehicle_command_ack_s command_ack = {
-		.timestamp = hrt_absolute_time(),
-		.result_param2 = 0,
-		.command = cmd.command,
-		.result = (uint8_t)result,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd.source_system,
-		.target_component = cmd.source_component
-	};
+	command_ack.command = cmd.command;
+	command_ack.result = result;
+	command_ack.timestamp = hrt_absolute_time();
 
 	if (_command_ack_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
@@ -262,17 +256,18 @@ int SendEvent::custom_command(int argc, char *argv[])
 			}
 		}
 
-		struct vehicle_command_s cmd = {
-			.timestamp = 0,
-			.param5 = (float)((accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN),
-			.param6 = NAN,
-			.param1 = (float)((gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN),
-			.param2 = NAN,
-			.param3 = NAN,
-			.param4 = NAN,
-			.param7 = (float)((baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN),
-			.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION
-		};
+		vehicle_command_s cmd = {};
+		cmd.target_system = -1;
+		cmd.target_component = -1;
+
+		cmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
+		cmd.param1 = (gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
+		cmd.param2 = NAN;
+		cmd.param3 = NAN;
+		cmd.param4 = NAN;
+		cmd.param5 = (accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
+		cmd.param6 = NAN;
+		cmd.param7 = (baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);

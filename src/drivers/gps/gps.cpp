@@ -65,12 +65,12 @@
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_module.h>
-#include <px4_tasks.h>
 #include <px4_time.h>
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <drivers/drv_gps.h>
@@ -404,11 +404,10 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 			 * If more bytes are available, we'll go back to poll() again.
 			 */
 #ifdef __PX4_NUTTX
-			int err = 0;
-			int bytesAvailable = 0;
+			int err = 0, bytesAvailable = 0;
 			err = ioctl(_serial_fd, FIONREAD, (unsigned long)&bytesAvailable);
 
-			if ((err != 0) || (bytesAvailable < (int)buf_length)) {
+			if ((err != 0) || (bytesAvailable < buf_length)) {
 				usleep(GPS_WAIT_BEFORE_READ * 1000);
 			}
 

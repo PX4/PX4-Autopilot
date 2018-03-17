@@ -105,8 +105,6 @@ enum ORIGIN {
  *
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
- *
- * Corresponds to one of the DM_KEY_WAYPOINTS_OFFBOARD_* dataman items
  */
 #pragma pack(push, 1)
 struct mission_item_s {
@@ -117,7 +115,6 @@ struct mission_item_s {
 			union {
 				float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 				float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
-				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
 			};
 			float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
 			float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
@@ -131,58 +128,18 @@ struct mission_item_s {
 	uint16_t nav_cmd;					/**< navigation command					*/
 	int16_t do_jump_mission_index;		/**< index where the do jump will go to                 */
 	uint16_t do_jump_repeat_count;		/**< how many times do jump needs to be done            */
-	union {
-		uint16_t do_jump_current_count;		/**< count how many times the jump has been done	*/
-		uint16_t vertex_count;			/**< Polygon vertex count (geofence)	*/
-	};
+	uint16_t do_jump_current_count;		/**< count how many times the jump has been done	*/
 	struct {
-		uint16_t frame : 4,					/**< mission frame */
+		uint16_t frame : 4,					/**< mission frame ***/
 			 origin : 3,						/**< how the mission item was generated */
 			 loiter_exit_xtrack : 1,			/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
-			 force_heading : 1,				/**< heading needs to be reached */
+			 force_heading : 1,				/**< heading needs to be reached ***/
 			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
 			 autocontinue : 1,				/**< true if next waypoint should follow after this one */
 			 disable_mc_yaw : 1,				/**< weathervane mode */
 			 vtol_back_transition : 1;		/**< part of the vtol back transition sequence */
 	};
 };
-
-/**
- * dataman housekeeping information for a specific item.
- * Corresponds to the first dataman entry of DM_KEY_FENCE_POINTS and DM_KEY_SAFE_POINTS
- */
-struct mission_stats_entry_s {
-	uint16_t num_items;			/**< total number of items stored (excluding this one) */
-	uint16_t update_counter;			/**< This counter is increased when (some) items change (this can wrap) */
-};
-
-/**
- * Geofence vertex point.
- * Corresponds to the DM_KEY_FENCE_POINTS dataman item
- */
-struct mission_fence_point_s {
-	double lat;
-	double lon;
-	float alt;
-	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
-	union {
-		uint16_t vertex_count;			/**< number of vertices in this polygon */
-		float circle_radius;			/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
-	};
-	uint8_t frame;					/**< MAV_FRAME */
-};
-
-/**
- * Save Point (Rally Point).
- * Corresponds to the DM_KEY_SAFE_POINTS dataman item
- */
-struct mission_save_point_s {
-	double lat;
-	double lon;
-	float alt;
-	uint8_t frame;					/**< MAV_FRAME */
-};
-
 #pragma pack(pop)
 #include <uORB/topics/mission.h>
 

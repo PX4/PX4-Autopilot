@@ -28,7 +28,6 @@ set(config_module_list
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
 	drivers/iridiumsbd
-	drivers/ist8310
 	drivers/led
 	drivers/lis3mdl
 	drivers/ll40ls
@@ -44,7 +43,6 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
-	drivers/rgbled
 	drivers/rgbled_pwm
 	drivers/sdp3x_airspeed
 	drivers/sf0x
@@ -91,6 +89,7 @@ set(config_module_list
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/mc_pos_control/mc_pos_control_tests
+	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -141,9 +140,6 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 
-	# micro RTPS
-	modules/micrortps_bridge/micrortps_client
-
 	#
 	# Libraries
 	#
@@ -163,7 +159,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
-	lib/micro-CDR
 
 	#
 	# Platform
@@ -214,17 +209,17 @@ set(config_module_list
 	#examples/ekf_att_pos_estimator
 )
 
-set(config_rtps_send_topics
-   sensor_combined
-   )
-
-set(config_rtps_receive_topics
-   sensor_baro
-   )
-
 set(config_extra_builtin_cmds
 	serdis
 	sercon
+	)
+
+set(config_extra_libs
+	uavcan
+	uavcan_stm32_driver
+	)
+
+set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

@@ -17,8 +17,6 @@ class MarkdownTablesOutput():
  
         type_set = set()
         
-        if len(image_path) > 0 and image_path[-1] != '/':
-            image_path = image_path + '/'
 
         for group in groups:
             if group.GetClass() not in type_set:
@@ -31,7 +29,7 @@ class MarkdownTablesOutput():
             image_name = group.GetImageName()
             result += '<div>\n'
             if image_name != 'AirframeUnknown':
-                image_name = image_path + image_name
+                image_name = os.path.join(image_path, image_name)
                 result += '<img src="%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
 
             # check if all outputs are equal for the group: if so, show them

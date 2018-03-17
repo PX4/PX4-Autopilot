@@ -41,6 +41,7 @@
 #include "input_mavlink.h"
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_roi.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
@@ -85,6 +86,8 @@ int InputMavlinkROI::initialize()
 
 	return 0;
 }
+
+
 
 int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active)
 {
@@ -149,15 +152,9 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 		}
 
 		// check whether the position setpoint got updated
-		if (polls[1].revents & POLLIN) {
-			if (_cur_roi_mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
-				_read_control_data_from_position_setpoint_sub();
-				*control_data = &_control_data;
-
-			} else { // must do an orb_copy() in *every* case
-				position_setpoint_triplet_s position_setpoint_triplet;
-				orb_copy(ORB_ID(position_setpoint_triplet), _position_setpoint_triplet_sub, &position_setpoint_triplet);
-			}
+		if ((polls[1].revents & POLLIN) && _cur_roi_mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
+			_read_control_data_from_position_setpoint_sub();
+			*control_data = &_control_data;
 		}
 	}
 
@@ -178,26 +175,8 @@ void InputMavlinkROI::print_status()
 	PX4_INFO("Input: Mavlink (ROI)");
 }
 
-
 InputMavlinkCmdMount::InputMavlinkCmdMount()
 {
-	param_t handle = param_find("MAV_SYS_ID");
-
-	if (handle == PARAM_INVALID) {
-		_mav_sys_id = 1;
-
-	} else {
-		param_get(handle, &_mav_sys_id);
-	}
-
-	handle = param_find("MAV_COMP_ID");
-
-	if (handle == PARAM_INVALID) {
-		_mav_comp_id = 1;
-
-	} else {
-		param_get(handle, &_mav_comp_id);
-	}
 }
 
 InputMavlinkCmdMount::~InputMavlinkCmdMount()
@@ -241,11 +220,6 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 			vehicle_command_s vehicle_command;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &vehicle_command);
 
-			// process only if the command is for us
-			if (vehicle_command.target_system != _mav_sys_id || vehicle_command.target_component != _mav_comp_id) {
-				return 0;
-			}
-
 			for (int i = 0; i < 3; ++i) {
 				_control_data.stabilize_axis[i] = _stabilize[i];
 			}
@@ -285,13 +259,13 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					break;
 
 				case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-					control_data_set_lon_lat((double)vehicle_command.param2, (double)vehicle_command.param1, vehicle_command.param3);
+					control_data_set_lon_lat(vehicle_command.param2, vehicle_command.param1, vehicle_command.param3);
 
 					*control_data = &_control_data;
 					break;
 				}
 
-				_ack_vehicle_command(&vehicle_command);
+				_ack_vehicle_command(vehicle_command.command);
 
 			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
 				_stabilize[0] = (uint8_t) vehicle_command.param2 == 1;
@@ -300,7 +274,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 				_control_data.type = ControlData::Type::Neutral; //always switch to neutral position
 
 				*control_data = &_control_data;
-				_ack_vehicle_command(&vehicle_command);
+				_ack_vehicle_command(vehicle_command.command);
 			}
 		}
 
@@ -309,18 +283,12 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 	return 0;
 }
 
-void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
+void InputMavlinkCmdMount::_ack_vehicle_command(uint16_t command)
 {
-	vehicle_command_ack_s vehicle_command_ack = {
-		.timestamp = hrt_absolute_time(),
-		.result_param2 = 0,
-		.command = cmd->command,
-		.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd->source_system,
-		.target_component = cmd->source_component
-	};
+	vehicle_command_ack_s vehicle_command_ack;
+	vehicle_command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack.command = command;
+	vehicle_command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 	if (_vehicle_command_ack_pub == nullptr) {
 		_vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,

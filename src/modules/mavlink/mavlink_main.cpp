@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 bool exit_sd = false;
-int formation_id = 1;
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
@@ -275,8 +275,7 @@ Mavlink::Mavlink() :
 	_param_system_type(PARAM_INVALID),
 	_param_use_hil_gps(PARAM_INVALID),
 	_param_forward_externalsp(PARAM_INVALID),
-        _param_broadcast(PARAM_INVALID),
-        _param_formation_id(PARAM_INVALID),
+	_param_broadcast(PARAM_INVALID),
 	_system_type(0),
 
 	/* performance counters */
@@ -586,7 +585,7 @@ void Mavlink::mavlink_update_system()
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 		_param_broadcast = param_find("MAV_BROADCAST");
-                _param_formation_id = param_find("MAV_FORMATION_ID");
+
 		/* test param - needs to be referenced, but is unused */
 		(void)param_find("MAV_TEST_PAR");
 	}
@@ -597,8 +596,6 @@ void Mavlink::mavlink_update_system()
 
 	int32_t component_id;
 	param_get(_param_component_id, &component_id);
-
-        param_get(_param_formation_id, &formation_id);
 
 	int32_t proto = 0;
 	param_get(_param_proto_ver, &proto);
@@ -1984,24 +1981,27 @@ Mavlink::task_main(int argc, char *argv[])
 	status_sub->update(&status_time, &status);
 	struct vehicle_command_ack_s command_ack;
 	ack_sub->update(&ack_time, &command_ack);
-        //if (mavlink_system.compid == 1)
-                //open_log_main(log_pthread);
-        /* add default streams depending on mode */
-        if (_mode != MAVLINK_MODE_IRIDIUM) {
+	if (mavlink_system.compid == 1)
+		open_log_main(log_pthread);
+
+	/* add default streams depending on mode */
+	if (_mode != MAVLINK_MODE_IRIDIUM) {
+
 		/* HEARTBEAT is constant rate stream, rate never adjusted */
-                configure_stream("HEARTBEAT", 1.0f);
+		configure_stream("HEARTBEAT", 1.0f);
 
 		/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
-                //configure_stream("STATUSTEXT",5.0f);
+		//configure_stream("STATUSTEXT",5.0f);
 
 		/* COMMAND_LONG stream: use unlimited rate to send all commands */
-                //configure_stream("COMMAND_LONG");
+		//configure_stream("COMMAND_LONG");
 
 	}
 
 	switch (_mode) {
-        case MAVLINK_MODE_NORMAL:
-                /*configure_stream("MANUAL_CONTROL", 5.0f);
+	case MAVLINK_MODE_NORMAL:
+	/*	configure_stream("HEARTBEAT", 1.0f);
+		configure_stream("MANUAL_CONTROL", 5.0f);
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("HIGHRES_IMU", 1.5f);
@@ -2025,26 +2025,17 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream("VFR_HUD", 4.0f);
-                configure_stream("CAMERA_IMAGE_CAPTURED");*/
-                if (mavlink_system.compid == 1) {
-                        configure_stream("SYS_STATUS", 1.0f);
-                        configure_stream("EXTENDED_SYS_STATE", 1.0f);
-                        configure_stream("ATTITUDE", 1.0f);
-                        configure_stream("ALTITUDE", 1.0f);
-                        configure_stream("GPS_RAW_INT", 1.0f);
+		configure_stream("CAMERA_IMAGE_CAPTURED");*/
+		if (mavlink_system.compid == 1) {
 			configure_stream("CHEN_FORMATION", 10.0f);
-                        configure_stream("HEARTBEAT", 1.0f);
 		} else {
-                    configure_stream("SYS_STATUS", 0.1f);
-                    configure_stream("EXTENDED_SYS_STATE", 0.1f);
-                    configure_stream("GPS_RAW_INT", 1.0f);
-                    configure_stream("HEARTBEAT", 1.0f);
-                }
+			//configure_stream("CHEN_FORMATION", 0.3f);
+		}
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
 
-                configure_stream("MANUAL_CONTROL", 5.0f);
+		configure_stream("MANUAL_CONTROL", 5.0f);
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 5.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
@@ -2075,11 +2066,11 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("CAMERA_CAPTURE", 2.0f);
 		configure_stream("CAMERA_TRIGGER");
 		configure_stream("CAMERA_IMAGE_CAPTURED");
-                configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
+		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
 		break;
 
-        case MAVLINK_MODE_OSD:
-                /*configure_stream("SYS_STATUS", 5.0f);
+	case MAVLINK_MODE_OSD:
+		/*configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ATTITUDE", 25.0f);
 		configure_stream("RC_CHANNELS", 5.0f);
@@ -2092,33 +2083,24 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("VFR_HUD", 25.0f);
 		configure_stream("WIND_COV", 2.0f);
-                configure_stream("SYSTEM_TIME", 1.0f);*/
+		configure_stream("SYSTEM_TIME", 1.0f);*/
 
-               if (mavlink_system.compid == 1) {
-                   configure_stream("SYS_STATUS", 1.0f);
-                   configure_stream("EXTENDED_SYS_STATE", 1.0f);
-                   configure_stream("ATTITUDE", 1.0f);
-                   configure_stream("ALTITUDE", 1.0f);
-                   configure_stream("GPS_RAW_INT", 1.0f);
-                   configure_stream("CHEN_FORMATION", 10.0f);
-                   configure_stream("HEARTBEAT", 1.0f);
+		if (mavlink_system.compid == 1) {
+			configure_stream("CHEN_FORMATION",10.0f);
 		} else {
-                    configure_stream("SYS_STATUS", 0.1f);
-                    configure_stream("EXTENDED_SYS_STATE", 0.1f);
-                    configure_stream("GPS_RAW_INT", 1.0f);
-                    configure_stream("HEARTBEAT", 1.0f);
-                }
+			//configure_stream("CHEN_FORMATION", 0.3f);
+		}
 
 		break;
 
 	case MAVLINK_MODE_MAGIC:
 		//stream nothing
-                configure_stream("GLOBAL_POSITION_INT", 5.0f);
+		//configure_stream("GLOBAL_POSITION_INT", 5.0f);
 		break;
 
 	case MAVLINK_MODE_CONFIG:
 		// Enable a number of interesting streams we want via USB
-                configure_stream("HEARTBEAT", 1.0f);
+		configure_stream("HEARTBEAT", 1.0f);
 		configure_stream("STATUSTEXT",5.0f);
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
@@ -2150,11 +2132,11 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("CAMERA_TRIGGER");
 		configure_stream("CAMERA_IMAGE_CAPTURED");
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
-                configure_stream("MANUAL_CONTROL", 5.0f);
+		configure_stream("MANUAL_CONTROL", 5.0f);
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
-                configure_stream("HIGH_LATENCY", 0.1f);
+		configure_stream("HIGH_LATENCY", 0.1f);
 		break;
 
 	default:

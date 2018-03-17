@@ -67,13 +67,6 @@ enum class link_loss_actions_t {
     LOCKDOWN = 6,
 };
 
-typedef enum {
-	ARM_REQ_NONE = 0,
-	ARM_REQ_MISSION_BIT = (1 << 0),
-	ARM_REQ_ARM_AUTH_BIT = (1 << 1),
-	ARM_REQ_GPS_BIT = (1 << 2),
-} arm_requirements_t;
-
 // This is a struct used by the commander internally.
 struct status_flags_s {
     bool condition_calibration_enabled;
@@ -125,7 +118,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					    orb_advert_t *mavlink_log_pub,        ///< uORB handle for mavlink log
 					    status_flags_s *status_flags,
 					    float avionics_power_rail_voltage,
-					    uint8_t arm_requirements,
+					    bool arm_without_gps,
+					    bool arm_mission_required,
 					    hrt_abstime time_since_boot);
 
 transition_result_t
@@ -170,6 +164,6 @@ void set_data_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *ar
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
 		    bool force_report, status_flags_s *status_flags, battery_status_s *battery,
-		    uint8_t arm_requirements, hrt_abstime time_since_boot);
+		    bool arm_without_gps, bool arm_mission_required, hrt_abstime time_since_boot);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

@@ -94,8 +94,6 @@ public:
 	*/
 	static void     cycle_trampoline(void *arg);
 
-	const char *get_dev_name() override;
-
 protected:
 
 	int measure() override;

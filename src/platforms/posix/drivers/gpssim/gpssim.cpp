@@ -71,7 +71,6 @@ using namespace DriverFramework;
 #define GPSSIM_DEVICE_PATH "/dev/gpssim"
 
 #define TIMEOUT_5HZ 500
-#define TIMEOUT_10MS 10
 #define RATE_MEASUREMENT_PERIOD 5000000
 
 /* class for dynamic allocation of satellite info data */
@@ -275,32 +274,22 @@ GPSSIM::receive(int timeout)
 	simulator::RawGPSData gps;
 	sim->getGPSSample((uint8_t *)&gps, sizeof(gps));
 
-	static int64_t timestamp_last = 0;
+	_report_gps_pos.timestamp = hrt_absolute_time();
+	_report_gps_pos.lat = gps.lat;
+	_report_gps_pos.lon = gps.lon;
+	_report_gps_pos.alt = gps.alt;
+	_report_gps_pos.eph = (float)gps.eph * 1e-2f;
+	_report_gps_pos.epv = (float)gps.epv * 1e-2f;
+	_report_gps_pos.vel_m_s = (float)(gps.vel) / 100.0f;
+	_report_gps_pos.vel_n_m_s = (float)(gps.vn) / 100.0f;
+	_report_gps_pos.vel_e_m_s = (float)(gps.ve) / 100.0f;
+	_report_gps_pos.vel_d_m_s = (float)(gps.vd) / 100.0f;
+	_report_gps_pos.cog_rad = (float)(gps.cog) * 3.1415f / (100.0f * 180.0f);
+	_report_gps_pos.fix_type = gps.fix_type;
+	_report_gps_pos.satellites_used = gps.satellites_visible;
 
-	if (gps.timestamp != timestamp_last) {
-		_report_gps_pos.timestamp = hrt_absolute_time();
-		_report_gps_pos.lat = gps.lat;
-		_report_gps_pos.lon = gps.lon;
-		_report_gps_pos.alt = gps.alt;
-		_report_gps_pos.eph = (float)gps.eph * 1e-2f;
-		_report_gps_pos.epv = (float)gps.epv * 1e-2f;
-		_report_gps_pos.vel_m_s = (float)(gps.vel) / 100.0f;
-		_report_gps_pos.vel_n_m_s = (float)(gps.vn) / 100.0f;
-		_report_gps_pos.vel_e_m_s = (float)(gps.ve) / 100.0f;
-		_report_gps_pos.vel_d_m_s = (float)(gps.vd) / 100.0f;
-		_report_gps_pos.cog_rad = (float)(gps.cog) * 3.1415f / (100.0f * 180.0f);
-		_report_gps_pos.fix_type = gps.fix_type;
-		_report_gps_pos.satellites_used = gps.satellites_visible;
-
-		timestamp_last = gps.timestamp;
-
-		return 1;
-
-	} else {
-
-		usleep(timeout);
-		return 0;
-	}
+	usleep(200000);
+	return 1;
 }
 
 void
@@ -360,12 +349,10 @@ GPSSIM::task_main()
 			// GPS is obviously detected successfully, reset statistics
 			//_Helper->reset_update_rates();
 
-			int recv_ret = 0;
-
-			while ((recv_ret = receive(TIMEOUT_10MS)) >= 0 && !_task_should_exit) {
+			while ((receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
 				/* opportunistic publishing - else invalid data would end up on the bus */
 
-				if (recv_ret && !(m_pub_blocked)) {
+				if (!(m_pub_blocked)) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
 					if (_p_report_sat_info) {

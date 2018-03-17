@@ -58,7 +58,6 @@
 
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
-#include "uORB/topics/actuator_controls.h"
 
 enum RampState {
 	RAMP_INIT,

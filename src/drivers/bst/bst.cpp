@@ -49,7 +49,6 @@
 #include <math.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <mathlib/math/Quaternion.hpp>
 
 using namespace matrix;

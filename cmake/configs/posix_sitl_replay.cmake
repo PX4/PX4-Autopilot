@@ -28,7 +28,6 @@ set(config_module_list
 	lib/geo_lookup
 	lib/version
 	lib/DriverFramework/framework
-	lib/micro-CDR
 	)
 
 set(config_extra_builtin_cmds

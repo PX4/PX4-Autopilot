@@ -91,6 +91,22 @@ PARAM_DEFINE_INT32(SYS_HITL, 0);
 PARAM_DEFINE_INT32(SYS_USE_IO, 1);
 
 /**
+ * Run the FMU as a task to reduce latency
+ *
+ * If true, the FMU will run in a separate task instead of on the work queue.
+ * Set this if low latency is required, for example for racing.
+ *
+ * This is a trade-off between RAM usage and latency: running as a task, it
+ * requires a separate stack and directly polls on the control topics, whereas
+ * running on the work queue, it runs at a fixed update rate.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_FMU_TASK, 0);
+
+/**
  * Set restart type
  *
  * Set by px4io to indicate type of restart

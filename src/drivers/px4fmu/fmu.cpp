@@ -74,6 +74,7 @@
 #include <systemlib/board_serial.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/scheduling_priorities.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_input_capture.h>
@@ -116,8 +117,12 @@
 enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
+	PORT_FULL_SERIAL,
 	PORT_FULL_PWM,
 	PORT_RC_IN,
+	PORT_GPIO_AND_SERIAL,
+	PORT_PWM_AND_SERIAL,
+	PORT_PWM_AND_GPIO,
 	PORT_PWM4,
 	PORT_PWM3,
 	PORT_PWM2,
@@ -1023,7 +1028,7 @@ PX4FMU::task_spawn(int argc, char *argv[])
 
 		_task_id = px4_task_spawn_cmd("fmu",
 					      SCHED_DEFAULT,
-					      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+					      SCHED_PRIORITY_FAST_DRIVER - 1,
 					      1310,
 					      (px4_main_t)&run_trampoline,
 					      nullptr);
@@ -2353,7 +2358,9 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			/* change the number of outputs that are enabled for
 			 * PWM. This is used to change the split between GPIO
 			 * and PWM under control of the flight config
-			 * parameters.
+			 * parameters. Note that this does not allow for
+			 * changing a set of pins to be used for serial on
+			 * FMUv1
 			 */
 			switch (arg) {
 			case 0:
@@ -2651,6 +2658,24 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 #if !defined(BOARD_HAS_FMU_GPIO)
 	return -EINVAL;
 #else
+#  if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
+
+	/*
+	 * GPIOs 0 and 1 must have the same direction as they are buffered
+	 * by a shared 2-port driver.  Any attempt to set either sets both.
+	 */
+	if ((gpios & BOARD_GPIO_SHARED_BUFFERED_BITS)) {
+		gpios |= BOARD_GPIO_SHARED_BUFFERED_BITS;
+
+		/* flip the buffer to output mode if required */
+		if (GPIO_SET_OUTPUT == function ||
+		    GPIO_SET_OUTPUT_LOW == function ||
+		    GPIO_SET_OUTPUT_HIGH == function) {
+			px4_arch_gpiowrite(GPIO_GPIO_DIR, 1);
+		}
+	}
+
+#  endif
 
 	/* configure selected GPIOs as required */
 	for (unsigned i = 0; i < _ngpio; i++) {
@@ -2694,6 +2719,14 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		}
 	}
 
+#  if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
+
+	/* flip buffer to input mode if required */
+	if ((GPIO_SET_INPUT == function) && (gpios & BOARD_GPIO_SHARED_BUFFERED_BITS)) {
+		px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
+	}
+
+#  endif
 	return OK;
 #endif // !defined(BOARD_HAS_FMU_GPIO)
 
@@ -2953,9 +2986,11 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		return -1;
 	}
 
+	uint32_t gpio_bits;
 	PX4FMU::Mode servo_mode;
 	bool mode_with_input = false;
 
+	gpio_bits = 0;
 	servo_mode = PX4FMU::MODE_NONE;
 
 	switch (new_mode) {
@@ -3016,6 +3051,36 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		break;
 #endif
 
+		/* mixed modes supported on v1 board only */
+#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO)
+
+	case PORT_FULL_SERIAL:
+		/* set all multi-GPIOs to serial mode */
+		gpio_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
+		mode_with_input = true;
+		break;
+
+	case PORT_GPIO_AND_SERIAL:
+		/* set RX/TX multi-GPIOs to serial mode */
+		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
+		mode_with_input = true;
+		break;
+
+	case PORT_PWM_AND_SERIAL:
+		/* select 2-pin PWM mode */
+		servo_mode = PX4FMU::MODE_2PWM;
+		/* set RX/TX multi-GPIOs to serial mode */
+		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
+		mode_with_input = true;
+		break;
+
+	case PORT_PWM_AND_GPIO:
+		/* select 2-pin PWM mode */
+		servo_mode = PX4FMU::MODE_2PWM;
+		mode_with_input = true;
+		break;
+#endif
+
 	default:
 		return -1;
 	}
@@ -3027,6 +3092,11 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		/* reset to all-inputs */
 		if (mode_with_input) {
 			object->ioctl(0, GPIO_RESET, 0);
+
+			/* adjust GPIO config for serial mode(s) */
+			if (gpio_bits != 0) {
+				object->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
+			}
 		}
 
 		/* (re)set the PWM output mode */
@@ -3412,6 +3482,20 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm2cap2")) {
 		new_mode = PORT_PWM2CAP2;
 #endif
+#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO)
+
+	} else if (!strcmp(verb, "mode_serial")) {
+		new_mode = PORT_FULL_SERIAL;
+
+	} else if (!strcmp(verb, "mode_gpio_serial")) {
+		new_mode = PORT_GPIO_AND_SERIAL;
+
+	} else if (!strcmp(verb, "mode_pwm_serial")) {
+		new_mode = PORT_PWM_AND_SERIAL;
+
+	} else if (!strcmp(verb, "mode_pwm_gpio")) {
+		new_mode = PORT_PWM_AND_GPIO;
+#endif
 	}
 
 	/* was a new mode set? */
@@ -3497,6 +3581,12 @@ mixer files.
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
+#endif
+#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO) // only used by px4fmu-v1 HW
+	PRINT_MODULE_USAGE_COMMAND("mode_serial");
+	PRINT_MODULE_USAGE_COMMAND("mode_gpio_serial");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm_serial");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm_gpio");
 #endif
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "Send a DSM bind command (module must be running)");

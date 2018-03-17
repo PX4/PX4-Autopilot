@@ -564,8 +564,3 @@ void LidarLiteI2C::print_info()
 	printf("distance: %ucm (0x%04x)\n",
 	       (unsigned)_last_distance, (unsigned)_last_distance);
 }
-
-const char *LidarLiteI2C::get_dev_name()
-{
-	return get_devname();
-}

@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/aerofc-v1/usbnsh/setenv.sh
+# configs/px4fmu-v1/usbnsh/setenv.sh
 #
 #   Copyright (C) 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

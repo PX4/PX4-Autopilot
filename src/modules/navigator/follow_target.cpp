@@ -181,7 +181,7 @@ void FollowTarget::on_active()
 			follower.y_offset -= 0.05;
 			calcu_relative_angle_distance();
 		} else if (_manual.y < -0.9 && _manual.x < -0.9) {
-                        /*if (_current_target_motion.plane_id % 4 == 1) {
+			if (_current_target_motion.plane_id % 4 == 1) {
 				follower.x_offset = 3;
 				follower.y_offset = 3;
 				ischanging = 1;
@@ -206,7 +206,7 @@ void FollowTarget::on_active()
 			follower.x_offset = (_current_target_motion.plane_id - 1) * 2;
 			follower.y_offset = (_current_target_motion.plane_id - 1) * 2;
 			calcu_relative_angle_distance();
-                        ischanging = 1;*/
+			ischanging = 1;
 		}
 		if (_manual.r > 0.9) {
 			follower.relative_angle += 0.06;
@@ -337,20 +337,20 @@ void FollowTarget::on_active()
 		double x_vel = _navigator->get_global_position()->vel_n +_target_distance(0);
 		double y_vel = _navigator->get_global_position()->vel_e +_target_distance(1);
 		if ((_est_target_vel(0) - x_vel) > 1.0F) {
-                        _target_position_offset(0) = 1;
+			_target_position_offset(0) = 6;
 		} else if ((_est_target_vel(0) - x_vel) < -1.0F) {
-                        _target_position_offset(0) = -1;
+			_target_position_offset(0) = -6;
 		} else if (fabs(_est_target_vel(0) - x_vel) > 0.3F) {
-                        _target_position_offset(0) = (_est_target_vel(0) - x_vel) * 1;
+			_target_position_offset(0) = (_est_target_vel(0) - x_vel) * 6;
 		} else {
 			_target_position_offset(0) = 0;
 		}
 		if ((_est_target_vel(1) - y_vel) > 1.0F) {
-                        _target_position_offset(1) = 1;
+			_target_position_offset(1) = 6;
 		} else if ((_est_target_vel(1) - y_vel) < -1.0F) {
-                        _target_position_offset(1) = -1;
+			_target_position_offset(1) = -6;
 		} else if (fabs(_est_target_vel(1) - y_vel) > 0.3F) {
-                        _target_position_offset(1) = (_est_target_vel(1) - y_vel) * 1;
+			_target_position_offset(1) = (_est_target_vel(1) - y_vel) * 6;
 		} else {
 			_target_position_offset(1) = 0;
 		}
@@ -493,7 +493,7 @@ void FollowTarget::update_position_sp(bool use_velocity, bool use_position, floa
 	pos_sp_triplet->previous.valid = use_position;
 	pos_sp_triplet->previous = pos_sp_triplet->current;
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-        printf("%f,%f\n",pos_sp_triplet->current.lat,pos_sp_triplet->current.lon);
+
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 	pos_sp_triplet->current.position_valid = use_position;
 	pos_sp_triplet->current.velocity_valid = use_velocity;

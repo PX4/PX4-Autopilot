@@ -55,7 +55,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on I2C
  */
-class __EXPORT I2C : public CDev
+class __EXPORT I2C : public VDev
 {
 
 public:
@@ -88,8 +88,7 @@ protected:
 	I2C(const char *name,
 	    const char *devname,
 	    int bus,
-	    uint16_t address,
-	    uint32_t frequency = 0);
+	    uint16_t address);
 	virtual ~I2C();
 
 	virtual int	init();
@@ -122,20 +121,6 @@ protected:
 	 *			otherwise.
 	 */
 	int		transfer(struct i2c_msg *msgv, unsigned msgs);
-
-	/**
-	 * Change the bus address.
-	 *
-	 * Most often useful during probe() when the driver is testing
-	 * several possible bus addresses.
-	 *
-	 * @param address	The new bus address to set.
-	 */
-	void		set_address(uint16_t address)
-	{
-		_address = address;
-		_device_id.devid_s.address = _address;
-	}
 
 private:
 	uint16_t		_address;

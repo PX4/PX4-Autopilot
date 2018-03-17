@@ -50,7 +50,11 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on SPI
  */
+#ifdef __PX4_NUTTX
 class __EXPORT SPI : public CDev
+#else
+class __EXPORT SPI : public VDev
+#endif
 {
 protected:
 	/**

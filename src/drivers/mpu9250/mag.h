@@ -106,7 +106,6 @@ public:
 
 	int ak8963_reset(void);
 	int ak8963_setup(void);
-	int ak8963_setup_master_i2c(void);
 	bool ak8963_check_id(uint8_t &id);
 	bool ak8963_read_adjustments(void);
 
@@ -127,6 +126,7 @@ protected:
 
 
 	bool is_passthrough() { return _interface == nullptr; }
+
 
 	int self_test(void);
 

@@ -80,7 +80,6 @@ void qurt_log(const char *fmt, ...)
 	va_start(args, fmt);
 	printf(fmt, args);
 	printf("n");
-	va_end(args);
 }
 #endif
 

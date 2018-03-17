@@ -63,10 +63,6 @@
 #define SDP3X_RESET_CMD			0x06
 #define SDP3X_CONT_MEAS_AVG_MODE	0x3615
 
-#define SDP3X_SCALE_PRESSURE_SDP31	20
-#define SDP3X_SCALE_PRESSURE_SDP32	5
-#define SDP3X_SCALE_PRESSURE_SDP33	60
-
 #define PATH_SDP3X "/dev/sdp3x"
 
 // Measurement rate is 20Hz
@@ -107,6 +103,7 @@ private:
 	 */
 	int write_command(uint16_t command);
 
+	bool _inited{false};
 	uint16_t _scale{0};
 };
 

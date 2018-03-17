@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file Subscription.hpp
+ * @file Subscription.h
  *
  */
 
 #pragma once
+
+#include <assert.h>
 
 #include <uORB/uORB.h>
 #include <containers/List.hpp>
@@ -46,12 +48,14 @@ namespace uORB
 {
 
 /**
- * Base subscription wrapper class, used in list traversal
+ * Base subscription warapper class, used in list traversal
  * of various subscriptions.
  */
 class __EXPORT SubscriptionBase
 {
 public:
+// methods
+
 	/**
 	 * Constructor
 	 *
@@ -61,14 +65,8 @@ public:
 	 * 	between updates
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionBase(const struct orb_metadata *meta, unsigned interval = 0, unsigned instance = 0);
-	virtual ~SubscriptionBase();
-
-	// no copy, assignment, move, move assignment
-	SubscriptionBase(const SubscriptionBase &) = delete;
-	SubscriptionBase &operator=(const SubscriptionBase &) = delete;
-	SubscriptionBase(SubscriptionBase &&) = delete;
-	SubscriptionBase &operator=(SubscriptionBase &&) = delete;
+	SubscriptionBase(const struct orb_metadata *meta,
+			 unsigned interval = 0, unsigned instance = 0);
 
 	/**
 	 * Check if there is a new update.
@@ -79,14 +77,35 @@ public:
 	 * Update the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	bool update(void *data);
+	void update(void *data);
 
+	/**
+	 * Deconstructor
+	 */
+	virtual ~SubscriptionBase();
+
+// accessors
+	const struct orb_metadata *getMeta() { return _meta; }
 	int getHandle() const { return _handle; }
 
+	unsigned getInterval() const
+	{
+		unsigned int interval;
+		orb_get_interval(getHandle(), &interval);
+		return interval;
+	}
 protected:
+// accessors
+	void setHandle(int handle) { _handle = handle; }
+// attributes
 	const struct orb_metadata *_meta;
-	unsigned _instance;
+	int _instance;
 	int _handle;
+private:
+	// disallow copy
+	SubscriptionBase(const SubscriptionBase &other);
+	// disallow assignment
+	SubscriptionBase &operator=(const SubscriptionBase &other);
 };
 
 /**
@@ -97,7 +116,10 @@ typedef SubscriptionBase SubscriptionTiny;
 /**
  * The subscription base class as a list node.
  */
-class __EXPORT SubscriptionNode : public SubscriptionBase, public ListNode<SubscriptionNode *>
+class __EXPORT SubscriptionNode :
+
+	public SubscriptionBase,
+	public ListNode<SubscriptionNode *>
 {
 public:
 	/**
@@ -111,16 +133,20 @@ public:
 	 * @param list 	A pointer to a list of subscriptions
 	 * 	that this should be appended to.
 	 */
-	SubscriptionNode(const struct orb_metadata *meta, unsigned interval = 0, unsigned instance = 0,
-			 List<SubscriptionNode *> *list = nullptr);
-
-	virtual ~SubscriptionNode() override = default;
+	SubscriptionNode(const struct orb_metadata *meta,
+			 unsigned interval = 0,
+			 int instance = 0,
+			 List<SubscriptionNode *> *list = nullptr) :
+		SubscriptionBase(meta, interval, instance)
+	{
+		if (list != nullptr) { list->add(this); }
+	}
 
 	/**
 	 * This function is the callback for list traversal
 	 * updates, a child class must implement it.
 	 */
-	virtual bool update() = 0;
+	virtual void update() = 0;
 
 };
 
@@ -128,7 +154,8 @@ public:
  * Subscription wrapper class
  */
 template<class T>
-class __EXPORT Subscription final : public SubscriptionNode
+class __EXPORT Subscription :
+	public SubscriptionNode
 {
 public:
 	/**
@@ -141,26 +168,43 @@ public:
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
-	Subscription(const struct orb_metadata *meta, unsigned interval = 0, unsigned instance = 0,
+	Subscription(const struct orb_metadata *meta,
+		     unsigned interval = 0,
+		     int instance = 0,
 		     List<SubscriptionNode *> *list = nullptr):
 		SubscriptionNode(meta, interval, instance, list),
 		_data() // initialize data structure to zero
 	{}
 
-	~Subscription() override final = default;
 
-	// no copy, assignment, move, move assignment
-	Subscription(const Subscription &) = delete;
-	Subscription &operator=(const Subscription &) = delete;
-	Subscription(Subscription &&) = delete;
-	Subscription &operator=(Subscription &&) = delete;
+	Subscription(const Subscription &other):
+		SubscriptionNode(other._meta, other.getInterval(), other._instance, nullptr),
+		_data() // initialize data structure to zero
+	{}
+
+
+	/**
+	 * Deconstructor
+	 */
+	virtual ~Subscription()
+	{}
+
 
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
-	bool update() override final
+	void update()
 	{
-		return SubscriptionBase::update((void *)(&_data));
+		SubscriptionBase::update((void *)(&_data));
+	}
+
+
+	/**
+	 * Create an update function that uses the embedded struct.
+	 */
+	bool check_updated()
+	{
+		return SubscriptionBase::updated();
 	}
 
 	/*

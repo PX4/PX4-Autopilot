@@ -54,30 +54,9 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
+#define LL40LS_DEVICE_PATH_INT  "/dev/ll40ls_int"
+#define LL40LS_DEVICE_PATH_EXT  "/dev/ll40ls_ext"
 #define LL40LS_DEVICE_PATH_PWM  "/dev/ll40ls_pwm"
-
-enum LL40LS_BUS {
-	LL40LS_BUS_I2C_ALL = 0,
-	LL40LS_BUS_I2C_INTERNAL,
-	LL40LS_BUS_I2C_EXTERNAL,
-	LL40LS_BUS_PWM
-};
-
-static struct ll40ls_bus_option {
-	enum LL40LS_BUS busid;
-	const char *devname;
-	uint8_t busnum;
-} bus_options[] = {
-#ifdef PX4_I2C_BUS_EXPANSION
-	{ LL40LS_BUS_I2C_EXTERNAL, "/dev/ll40ls_ext", PX4_I2C_BUS_EXPANSION },
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION1
-	{ LL40LS_BUS_I2C_EXTERNAL, "/dev/ll40ls_ext1", PX4_I2C_BUS_EXPANSION1 },
-#endif
-#ifdef PX4_I2C_BUS_ONBOARD
-	{ LL40LS_BUS_I2C_INTERNAL, "/dev/ll40ls_int", PX4_I2C_BUS_ONBOARD },
-#endif
-};
 
 /*
  * Driver 'main' command.
@@ -91,97 +70,210 @@ extern "C" __EXPORT int ll40ls_main(int argc, char *argv[]);
 namespace ll40ls
 {
 
-LidarLite *instance = nullptr;
+LidarLiteI2C	*g_dev_int;
+LidarLiteI2C	*g_dev_ext;
+LidarLitePWM	*g_dev_pwm;
 
-void	start(enum LL40LS_BUS busid);
-void	stop();
-void	test();
-void	reset();
-void	info();
-void	regdump();
+LidarLite *get_dev(const bool use_i2c, const int bus);
+void	start(const bool use_i2c, const int bus);
+void	stop(const bool use_i2c, const int bus);
+void	test(const bool use_i2c, const int bus);
+void	reset(const bool use_i2c, const int bus);
+void	info(const bool use_i2c, const int bus);
+void    regdump(const bool use_i2c, const int bus);
 void	usage();
+
+/**
+ * Get the correct device pointer
+ */
+LidarLite *get_dev(const bool use_i2c, const int bus)
+{
+	LidarLite *g_dev = nullptr;
+
+	if (use_i2c) {
+		g_dev = static_cast<LidarLite *>(bus == PX4_I2C_BUS_EXPANSION ? g_dev_ext : g_dev_int);
+
+		if (g_dev == nullptr) {
+			errx(1, "i2c driver not running");
+		}
+
+	} else {
+		g_dev = static_cast<LidarLite *>(g_dev_pwm);
+
+		if (g_dev == nullptr) {
+			errx(1, "pwm driver not running");
+		}
+	}
+
+	return g_dev;
+};
 
 /**
  * Start the driver.
  */
-void start(enum LL40LS_BUS busid)
+void start(const bool use_i2c, const int bus)
 {
-	int fd, ret;
-
-	if (instance) {
-		warnx("driver already started");
+	if (g_dev_int != nullptr || g_dev_ext != nullptr || g_dev_pwm != nullptr) {
+		errx(1, "driver already started");
 	}
 
-	if (busid == LL40LS_BUS_PWM) {
-		instance = new LidarLitePWM(LL40LS_DEVICE_PATH_PWM);
+	if (use_i2c) {
+		/* create the driver, attempt expansion bus first */
+		if (bus == -1 || bus == PX4_I2C_BUS_EXPANSION) {
+			if (g_dev_ext != nullptr) {
+				errx(0, "already started external");
+			}
 
-		if (!instance) {
-			warnx("Failed to instantiate LidarLitePWM");
-			return;
+			g_dev_ext = new LidarLiteI2C(PX4_I2C_BUS_EXPANSION, LL40LS_DEVICE_PATH_EXT);
+
+			if (g_dev_ext != nullptr && PX4_OK != g_dev_ext->init()) {
+				delete g_dev_ext;
+				g_dev_ext = nullptr;
+
+				if (bus == PX4_I2C_BUS_EXPANSION) {
+					goto fail;
+				}
+			}
 		}
 
-		if (instance->init() != PX4_OK) {
-			warnx("failed to initialize LidarLitePWM");
-			goto fail;
+#ifdef PX4_I2C_BUS_ONBOARD
+
+		/* if this failed, attempt onboard sensor */
+		if (bus == -1 || bus == PX4_I2C_BUS_ONBOARD) {
+			if (g_dev_int != nullptr) {
+				errx(0, "already started internal");
+			}
+
+			g_dev_int = new LidarLiteI2C(PX4_I2C_BUS_ONBOARD, LL40LS_DEVICE_PATH_INT);
+
+			if (g_dev_int != nullptr && PX4_OK != g_dev_int->init()) {
+				/* tear down the failing onboard instance */
+				delete g_dev_int;
+				g_dev_int = nullptr;
+
+				if (bus == PX4_I2C_BUS_ONBOARD) {
+					goto fail;
+				}
+			}
+
+			if (g_dev_int == nullptr && bus == PX4_I2C_BUS_ONBOARD) {
+				goto fail;
+			}
+		}
+
+#endif
+
+		/* set the poll rate to default, starts automatic data collection */
+		if (g_dev_int != nullptr) {
+			int fd = open(LL40LS_DEVICE_PATH_INT, O_RDONLY);
+
+			if (fd == -1) {
+				goto fail;
+			}
+
+			int ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
+			close(fd);
+
+			if (ret < 0) {
+				goto fail;
+			}
+		}
+
+		if (g_dev_ext != nullptr) {
+			int fd = open(LL40LS_DEVICE_PATH_EXT, O_RDONLY);
+
+			if (fd == -1) {
+				goto fail;
+			}
+
+			int ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
+			close(fd);
+
+			if (ret < 0) {
+				goto fail;
+			}
 		}
 
 	} else {
-		for (uint8_t i = 0; i < (sizeof(bus_options) / sizeof(bus_options[0])); i++) {
-			if (busid != LL40LS_BUS_I2C_ALL && busid != bus_options[i].busid) {
-				continue;
+		g_dev_pwm = new LidarLitePWM(LL40LS_DEVICE_PATH_PWM);
+
+		if (g_dev_pwm != nullptr && PX4_OK != g_dev_pwm->init()) {
+			delete g_dev_pwm;
+			g_dev_pwm = nullptr;
+			warnx("failed to init PWM");
+		}
+
+		if (g_dev_pwm != nullptr) {
+			int fd = open(LL40LS_DEVICE_PATH_PWM, O_RDONLY);
+
+			if (fd == -1) {
+				warnx("fd nothing");
+				goto fail;
 			}
 
-			instance = new LidarLiteI2C(bus_options[i].busnum, bus_options[i].devname);
+			int ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
+			close(fd);
 
-			if (!instance) {
-				warnx("Failed to instantiate LidarLiteI2C");
-				return;
+			if (ret < 0) {
+				warnx("pollrate fail");
+				goto fail;
 			}
-
-			if (instance->init() == PX4_OK) {
-				break;
-			}
-
-			warnx("failed to initialize LidarLiteI2C on busnum=%u", bus_options[i].busnum);
-			delete instance;
-			instance = nullptr;
 		}
 	}
 
-	if (!instance) {
-		warnx("No LidarLite found");
-		return;
-	}
-
-	fd = open(instance->get_dev_name(), O_RDONLY);
-
-	if (fd == -1) {
-		warnx("Error opening fd");
-		goto fail;
-	}
-
-	ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-	close(fd);
-
-	if (ret < 0) {
-		warnx("pollrate fail");
-		goto fail;
-	}
-
-	return;
+	exit(0);
 
 fail:
-	delete instance;
-	instance = nullptr;
+
+#ifdef PX4_I2C_BUS_ONBOARD
+
+	if (g_dev_int != nullptr && (bus == -1 || bus == PX4_I2C_BUS_ONBOARD)) {
+		delete g_dev_int;
+		g_dev_int = nullptr;
+	}
+
+#endif
+
+	if (g_dev_ext != nullptr && (bus == -1 || bus == PX4_I2C_BUS_EXPANSION)) {
+		delete g_dev_ext;
+		g_dev_ext = nullptr;
+	}
+
+	if (g_dev_pwm != nullptr) {
+		delete g_dev_pwm;
+		g_dev_pwm = nullptr;
+	}
+
+	errx(1, "driver start failed");
 }
 
 /**
  * Stop the driver
  */
-void stop()
+void stop(const bool use_i2c, const int bus)
 {
-	delete instance;
-	instance = nullptr;
+	if (use_i2c) {
+		if (bus == PX4_I2C_BUS_EXPANSION) {
+			if (g_dev_ext != nullptr) {
+				delete g_dev_ext;
+				g_dev_ext = nullptr;
+			}
+
+		} else {
+			if (g_dev_int != nullptr) {
+				delete g_dev_int;
+				g_dev_int = nullptr;
+			}
+		}
+
+	} else {
+		if (g_dev_pwm != nullptr)  {
+			delete g_dev_pwm;
+			g_dev_pwm = nullptr;
+		}
+	}
+
+	exit(0);
 }
 
 /**
@@ -190,30 +282,32 @@ void stop()
  * and automatic modes.
  */
 void
-test()
+test(const bool use_i2c, const int bus)
 {
 	struct distance_sensor_s report;
 	ssize_t sz;
 	int ret;
 
-	if (!instance) {
-		warnx("No ll40ls driver running");
-		errx(1, "FAIL");
+	const char *path;
+
+	if (use_i2c) {
+		path = ((bus == -1 || bus == PX4_I2C_BUS_EXPANSION) ? LL40LS_DEVICE_PATH_EXT : LL40LS_DEVICE_PATH_INT);
+
+	} else {
+		path = LL40LS_DEVICE_PATH_PWM;
 	}
 
-	int fd = open(instance->get_dev_name(), O_RDONLY);
+	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("Error opening fd");
-		errx(1, "FAIL");
+		err(1, "%s %s open failed, is the driver running?", (use_i2c) ? "I2C" : "PWM", path);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		warnx("immediate read failed");
-		goto error;
+		err(1, "immediate read failed");
 	}
 
 	warnx("single read");
@@ -222,8 +316,7 @@ test()
 
 	/* start the sensor polling at 2Hz */
 	if (PX4_OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		warnx("failed to set 2Hz poll rate");
-		goto error;
+		errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5 times and report each value */
@@ -236,16 +329,14 @@ test()
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out waiting for sensor data");
-			goto error;
+			errx(1, "timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warnx("periodic read failed");
-			goto error;
+			err(1, "periodic read failed");
 		}
 
 		warnx("periodic read %u", i);
@@ -257,78 +348,67 @@ test()
 
 	/* reset the sensor polling to default rate */
 	if (PX4_OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		warnx("failed to set default poll rate");
-		goto error;
+		errx(1, "failed to set default poll rate");
 	}
 
-	close(fd);
 	errx(0, "PASS");
-
-error:
-	close(fd);
-	errx(1, "FAIL");
 }
 
 /**
  * Reset the driver.
  */
 void
-reset()
+reset(const bool use_i2c, const int bus)
 {
-	if (!instance) {
-		warnx("No ll40ls driver running");
-		return;
+
+	const char *path;
+
+	if (use_i2c) {
+		path = ((bus == PX4_I2C_BUS_EXPANSION) ? LL40LS_DEVICE_PATH_EXT : LL40LS_DEVICE_PATH_INT);
+
+	} else {
+		path = LL40LS_DEVICE_PATH_PWM;
 	}
 
-	int fd = open(instance->get_dev_name(), O_RDONLY);
+	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("Error opening fd");
-		return;
+		err(1, "failed ");
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		warnx("driver reset failed");
-		goto error;
+		err(1, "driver reset failed");
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		warnx("driver poll restart failed");
-		goto error;
+		err(1, "driver poll restart failed");
 	}
 
-error:
-	close(fd);
+	exit(0);
 }
 
 /**
  * Print a little info about the driver.
  */
 void
-info()
+info(const bool use_i2c, const int bus)
 {
-	if (!instance) {
-		warnx("No ll40ls driver running");
-		return;
-	}
-
-	printf("state @ %p\n", instance);
-	instance->print_info();
+	LidarLite *g_dev = get_dev(use_i2c, bus);
+	printf("state @ %p\n", g_dev);
+	g_dev->print_info();
+	exit(0);
 }
 
 /**
  * Dump registers
  */
 void
-regdump()
+regdump(const bool use_i2c, const int bus)
 {
-	if (!instance) {
-		warnx("No ll40ls driver running");
-		return;
-	}
-
-	printf("regdump @ %p\n", instance);
-	instance->print_registers();
+	LidarLite *g_dev = get_dev(use_i2c, bus);
+	printf("regdump @ %p\n", g_dev);
+	g_dev->print_registers();
+	exit(0);
 }
 
 void
@@ -348,41 +428,44 @@ int
 ll40ls_main(int argc, char *argv[])
 {
 	int ch;
-	enum LL40LS_BUS busid = LL40LS_BUS_I2C_ALL;
+	int bus = -1;
 
 	while ((ch = getopt(argc, argv, "XI")) != EOF) {
 		switch (ch) {
 #ifdef PX4_I2C_BUS_ONBOARD
 
 		case 'I':
-			busid = LL40LS_BUS_I2C_INTERNAL;
+			bus = PX4_I2C_BUS_ONBOARD;
 			break;
 #endif
 
 		case 'X':
-			busid = LL40LS_BUS_I2C_EXTERNAL;
+			bus = PX4_I2C_BUS_EXPANSION;
 			break;
 
 		default:
 			ll40ls::usage();
-			return 0;
+			exit(0);
 		}
 	}
+
+	/* default to I2C if no protocol is given */
+	bool use_i2c = true;
 
 	/* determine protocol first because it's needed next */
 	if (argc > optind + 1) {
 		const char *protocol = argv[optind + 1];
 
 		if (!strcmp(protocol, "pwm")) {
-			busid = LL40LS_BUS_PWM;;
+			use_i2c = false;
 
 		} else if (!strcmp(protocol, "i2c")) {
-			// Do nothing
+			use_i2c = true;
 
 		} else {
 			warnx("unknown protocol, choose pwm or i2c");
 			ll40ls::usage();
-			return 0;
+			exit(0);
 		}
 	}
 
@@ -390,32 +473,43 @@ ll40ls_main(int argc, char *argv[])
 	if (argc > optind) {
 		const char *verb = argv[optind];
 
+		/* Start/load the driver. */
 		if (!strcmp(verb, "start")) {
-			ll40ls::start(busid);
-
-		} else if (!strcmp(verb, "stop")) {
-			ll40ls::stop();
-
-		} else if (!strcmp(verb, "test")) {
-			ll40ls::test();
-
-		} else if (!strcmp(verb, "reset")) {
-			ll40ls::reset();
-
-		} else if (!strcmp(verb, "regdump")) {
-			ll40ls::regdump();
-
-		} else if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
-			ll40ls::info();
-
-		} else {
-			ll40ls::usage();
+			ll40ls::start(use_i2c, bus);
 		}
 
-		return 0;
+		/* Stop the driver */
+		if (!strcmp(verb, "stop")) {
+			ll40ls::stop(use_i2c, bus);
+		}
+
+		/* Test the driver/device. */
+		else if (!strcmp(verb, "test")) {
+			ll40ls::test(use_i2c, bus);
+		}
+
+		/* Reset the driver. */
+		else if (!strcmp(verb, "reset")) {
+			ll40ls::reset(use_i2c, bus);
+		}
+
+		/* dump registers */
+		else if (!strcmp(verb, "regdump")) {
+			ll40ls::regdump(use_i2c, bus);
+		}
+
+		/* Print driver information. */
+		else if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
+			ll40ls::info(use_i2c, bus);
+		}
+
+		else {
+			ll40ls::usage();
+			exit(0);
+		}
 	}
 
 	warnx("unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
 	ll40ls::usage();
-	return 0;
+	exit(0);
 }

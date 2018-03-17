@@ -32,6 +32,8 @@
 ############################################################################
 
 set(msg_file_names
+	chen_sd_formation.msg
+	formation_followers.msg
 	actuator_armed.msg
 	actuator_controls.msg
 	actuator_direct.msg
@@ -40,6 +42,7 @@ set(msg_file_names
 	airspeed.msg
 	att_pos_mocap.msg
 	battery_status.msg
+	circle.msg
 	camera_trigger.msg
 	camera_capture.msg
 	collision_report.msg
@@ -47,8 +50,6 @@ set(msg_file_names
 	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
-	debug_value.msg
-	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_innovations.msg
@@ -57,11 +58,10 @@ set(msg_file_names
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
+	fence.msg
+	fence_vertex.msg
 	filtered_bottom_flow.msg
 	follow_target.msg
-	formation_followers.msg
-	chen_sd_formation.msg	
-	circle.msg
 	fw_pos_ctrl_status.msg
 	geofence_result.msg
 	gps_dump.msg

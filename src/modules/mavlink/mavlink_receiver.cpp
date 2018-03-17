@@ -42,7 +42,6 @@
 
 /* XXX trim includes */
 extern bool isFollowerUpdated;
-extern int formation_id;
 #include <px4_config.h>
 #include <px4_time.h>
 #include <px4_tasks.h>
@@ -159,7 +158,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mom_switch_state(0),
 	_p_bat_emergen_thr(param_find("BAT_EMERGEN_THR")),
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
-        _p_bat_low_thr(param_find("BAT_LOW_THR"))
+	_p_bat_low_thr(param_find("BAT_LOW_THR"))
 {
 }
 
@@ -175,7 +174,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_CONFIG) {
 			_mavlink->set_config_link_on(true);
 		}
-        }
+	}
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_COMMAND_LONG:
 		if (_mavlink->accepting_commands()) {
@@ -184,7 +183,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 		break;
 	case MAVLINK_MSG_ID_Chen_Formation_msg:
-                if((msg->compid == 1)&&(formation_id!=1))
+		if((msg->compid == 1)&&(mavlink_system.compid!=1))
 		{
 		handle_message_Chen_Formation_msg(msg);
 		}
@@ -384,8 +383,8 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 		break;
 
 	default:
-                target_ok = (target_system == mavlink_system.sysid) &&
-                                 (target_component == MAV_COMP_ID_ALL);
+		target_ok = (target_system == mavlink_system.sysid) && ((target_component == mavlink_system.compid)
+				|| (target_component == MAV_COMP_ID_ALL));
 		break;
 	}
 
@@ -518,16 +517,19 @@ MavlinkReceiver::handle_message_Chen_Formation_msg(mavlink_message_t *msg)
 	mavlink_chen_formation_msg_t chen_formation;
 	mavlink_msg_chen_formation_msg_decode(msg, &chen_formation);
 	follow_target_s follow_target_topic = { };
-
+	if(chen_formation.plane_id!=1)
+		{isFollowerUpdated = true;
+		return;
+		}
 	follow_target_topic.timestamp = hrt_absolute_time();
-        follow_target_topic.lat =chen_formation.lat * 1e-7;
-        follow_target_topic.lon = chen_formation.lon * 1e-7;
-        follow_target_topic.alt = chen_formation.alt* 1e-2;
+	follow_target_topic.lat =chen_formation.lat * 1e-7;
+	follow_target_topic.lon = chen_formation.lon * 1e-7;
+	follow_target_topic.alt = chen_formation.alt* 1e-2;
 	follow_target_topic.vx = chen_formation.vx* 1e-2;
 	follow_target_topic.vy = chen_formation.vy* 1e-2;
 	follow_target_topic.vz = -chen_formation.vz/100;
 	follow_target_topic.leader_hdg = chen_formation.hdg * 1e-2;
-        follow_target_topic.plane_id =1;
+	follow_target_topic.plane_id = mavlink_system.compid;
 	if (_follow_target_pub == nullptr) {
 		_follow_target_pub = orb_advertise(ORB_ID(follow_target),
 				&follow_target_topic);

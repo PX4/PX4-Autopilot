@@ -36,12 +36,31 @@
  * @author Simon Wilks <simon@px4.io>
  * @author Lorenz Meier <lorenz@px4.io>
  *
+ * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
 
 #include <px4_config.h>
-#include <drivers/device/device.h>
 
 #include <drivers/device/i2c.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <semaphore.h>
+#include <string.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <errno.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/wqueue.h>
+#include <nuttx/clock.h>
+
+#include <arch/board/board.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
@@ -67,7 +86,6 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const cha
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
 	_airspeed_pub(nullptr),
-	_airspeed_orb_class_instance(-1),
 	_subsys_pub(nullptr),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
@@ -120,17 +138,20 @@ Airspeed::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(AIRSPEED_BASE_DEVICE_PATH);
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	measure();
-	differential_pressure_s arp;
-	_reports->get(&arp);
+	/* publication init */
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 
-	/* measurement will have generated a report, publish */
-	_airspeed_pub = orb_advertise_multi(ORB_ID(differential_pressure), &arp, &_airspeed_orb_class_instance,
-					    ORB_PRIO_HIGH - _class_instance);
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct differential_pressure_s arp;
+		measure();
+		_reports->get(&arp);
 
-	if (_airspeed_pub == nullptr) {
-		PX4_WARN("uORB started?");
+		/* measurement will have generated a report, publish */
+		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
+
+		if (_airspeed_pub == nullptr) {
+			PX4_WARN("uORB started?");
+		}
 	}
 
 	ret = OK;
@@ -155,7 +176,7 @@ Airspeed::probe()
 }
 
 int
-Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -231,14 +252,14 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			ATOMIC_ENTER;
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			ATOMIC_LEAVE;
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -270,7 +291,7 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-Airspeed::read(device::file_t *filp, char *buffer, size_t buflen)
+Airspeed::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(differential_pressure_s);
 	differential_pressure_s *abuf = reinterpret_cast<differential_pressure_s *>(buffer);

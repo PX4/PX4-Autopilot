@@ -67,7 +67,11 @@ set(config_module_list
 	platforms/nuttx
 	platforms/common
 	platforms/nuttx/px4_layer
-	lib/micro-CDR
 
 
 )
+
+set(config_extra_libs
+	uavcan
+	uavcan_stm32_driver
+	)

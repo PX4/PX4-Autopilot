@@ -117,14 +117,6 @@ extern void led_off(int led);
 __END_DECLS
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-static int hw_version = -1;
-static int hw_revision = -1;
-static char hw_type[4] = HW_VER_TYPE_INIT;
-#endif
-/****************************************************************************
  * Protected Functions
  ****************************************************************************/
 /****************************************************************************
@@ -153,165 +145,6 @@ __EXPORT void board_peripheral_reset(int ms)
 }
 
 /************************************************************************************
-  * Name: board_on_reset
- *
- * Description:
- * Optionally provided function called on entry to board_system_reset
- * It should perform any house keeping prior to the rest.
- *
- * status - 1 if resetting to boot loader
- *          0 if just resetting
- *
- ************************************************************************************/
-
-__EXPORT void board_on_reset(int status)
-{
-	UNUSED(status);
-	/* configure the GPIO pins to outputs and keep them low */
-
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
-	stm32_configgpio(GPIO_GPIO1_OUTPUT);
-	stm32_configgpio(GPIO_GPIO2_OUTPUT);
-	stm32_configgpio(GPIO_GPIO3_OUTPUT);
-	stm32_configgpio(GPIO_GPIO4_OUTPUT);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
-
-	/* On resets invoked from system (not boot) insure we establish a low
-	 * output state (discharge the pins) on PWM pins before they become inputs.
-	 *
-	 * We also delay the onset of the that 3.1 Ms pulse as boot. This has
-	 * triggered some ESC to spin. By adding this delay here the reset
-	 * is pushed out > 400 ms. So the ESC PWM input can not mistake
-	 * the 3.1 Ms pulse as a valid PWM command.
-	 *
-	 * fixme:Establish in upstream NuttX an CONFIG_IO_INIT_STATE to
-	 * the initialize the IO lines in the clock config.
-	 *
-	 */
-
-	if (status >= 0) {
-		up_mdelay(400);
-	}
-}
-
-/************************************************************************************
-  * Name: determin_hw_version
- *
- * Description:
- *
- * This function looks at HW deltas to determine what the
- * build is running on using the following criteria:
- *
- * MSN  PB12   FMUv2                Cube             MINI
- * CAN2_RX       CONECTOR             MX30521          NC
- * PU.PD         1,0                   1,1             1,0
- *
- * LSN  PB4    FMUv2                Cube             MINI
- *               ACCEL_DRDY LSM303D    NC              NC
- * PU.PD         0,0                   1,0             1,0
-
- *  PB12:PB4
- *  ud   ud
- *  10   00 - 0x8 FMUv2
- *  11   10 - 0xE Cube AKA V2.0
- *  10   10 - 0xA PixhawkMini
- *
- *  This will return OK on success and -1 on not supported
- *
- *  hw_type Initial state is {'V','2',0, 0}
- *   V 2    - FMUv2
- *   V 3 0  - FMUv3 2.0
- *   V 3 1  - FMUv3 2.1 - not differentiateable,
- *   V 2 M  - FMUv2 Mini
- *
- ************************************************************************************/
-
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-static int determin_hw_version(int *version, int *revision)
-{
-	*revision = -1; /* unknown */
-	int rv = 0;
-	int pos = 0;
-	stm32_configgpio(GPIO_PULLDOWN | (HW_VER_PB4 & ~GPIO_PUPD_MASK));
-	up_udelay(10);
-	rv |= stm32_gpioread(HW_VER_PB4) << pos++;
-	stm32_configgpio(HW_VER_PB4);
-	up_udelay(10);
-	rv |= stm32_gpioread(HW_VER_PB4) << pos++;
-
-	int votes = 16;
-	int ones[2] = {0, 0};
-	int zeros[2] = {0, 0};
-
-	while (votes--) {
-		stm32_configgpio(GPIO_PULLDOWN | (HW_VER_PB12 & ~GPIO_PUPD_MASK));
-		up_udelay(10);
-		stm32_gpioread(HW_VER_PB12) ? ones[0]++ : zeros[0]++;
-		stm32_configgpio(HW_VER_PB12);
-		up_udelay(10);
-		stm32_gpioread(HW_VER_PB12) ? ones[1]++ : zeros[1]++;
-	}
-
-	if (ones[0] > zeros[0]) {
-		rv |= 1 << pos;
-	}
-
-	pos++;
-
-	if (ones[1] > zeros[1]) {
-		rv |= 1 << pos;
-	}
-
-	stm32_configgpio(HW_VER_PB4_INIT);
-	stm32_configgpio(HW_VER_PB12_INIT);
-	*version = rv;
-	return OK;
-}
-
-/************************************************************************************
- * Name: board_get_hw_type_name
- *
- * Description:
- *   Optional returns a string defining the HW type
- *
- *
- ************************************************************************************/
-
-__EXPORT const char *board_get_hw_type_name()
-{
-	return (const char *) hw_type;
-}
-
-/************************************************************************************
- * Name: board_get_hw_version
- *
- * Description:
- *   Optional returns a integer HW version
- *
- *
- ************************************************************************************/
-
-__EXPORT int board_get_hw_version()
-{
-	return  HW_VER_SIMPLE(hw_version);
-}
-
-/************************************************************************************
- * Name: board_get_hw_revision
- *
- * Description:
- *   Optional returns a integer HW revision
- *
- *
- ************************************************************************************/
-
-__EXPORT int board_get_hw_revision()
-{
-	return  hw_revision;
-}
-#endif // BOARD_HAS_SIMPLE_HW_VERSIONING
-
-/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
@@ -324,15 +157,6 @@ __EXPORT int board_get_hw_revision()
 __EXPORT void
 stm32_boardinitialize(void)
 {
-	board_on_reset(-1);
-
-	/* configure LEDs */
-	board_autoled_initialize();
-
-	/* Start with the Sensor voltage off */
-
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-
 	/* configure ADC pins */
 
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
@@ -344,17 +168,26 @@ stm32_boardinitialize(void)
 
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
 	stm32_configgpio(GPIO_VDD_SERVO_VALID);
 	stm32_configgpio(GPIO_VDD_USB_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
+	/* configure the GPIO pins to outputs and keep them low */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
-	/* configure SPI interfaces is deferred to board_app_initialize
-	 * to delay the sensor power up with out adding a delay
-	 */
+	/* configure SPI interfaces */
+	stm32_spiinitialize();
 
+	/* configure LEDs */
+	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -389,7 +222,6 @@ static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */
@@ -404,44 +236,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
 
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-
-	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
-		switch (hw_version) {
-		default:
-		case 0x8:
-			break;
-
-		case 0xE:
-			hw_type[1]++;
-			hw_type[2] = '0';
-			break;
-
-		case 0xA:
-			hw_type[2] = 'M';
-			break;
-		}
-
-		PX4_INFO("Ver 0x%1X : Rev %x %s", hw_version, hw_revision, hw_type);
-	}
-
-#endif // BOARD_HAS_SIMPLE_HW_VERSIONING
-
-	/* Bring up the Sensor power */
-
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
-
-	/* Ensure the power is on 1 ms before we drive the GPIO pins */
-
-	usleep(1000);
-
-	/* Now it is ok to drive the pins high so configure SPI GPIO */
-
-	stm32_spiinitialize();
-
-
 	/* configure the high-resolution time/callout interface */
-
 	hrt_init();
 
 	param_init();
@@ -626,6 +421,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
+	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL_MAG, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */
@@ -645,6 +444,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
+	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
 	spi4 = stm32_spibus_initialize(4);
 
@@ -652,6 +452,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi4, 10000000);
 	SPI_SETBITS(spi4, 8);
 	SPI_SETMODE(spi4, SPIDEV_MODE3);
+	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
+	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */

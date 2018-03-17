@@ -169,11 +169,7 @@ private:
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] = {nullptr};			/**< battery status */
-
-#if BOARD_NUMBER_BRICKS > 1
 	int 			_battery_pub_intance0ndx = 0; /**< track the index of instance 0 */
-#endif
-
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
@@ -337,9 +333,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.timestamp = _diff_pres.timestamp;
 
 		/* push data into validator */
-		float airspeed_input[3] = { _diff_pres.differential_pressure_raw_pa, _diff_pres.temperature, 0.0f };
-
-		_airspeed_validator.put(_airspeed.timestamp, airspeed_input, _diff_pres.error_count,
+		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count,
 					ORB_PRIO_HIGH);
 
 		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
@@ -463,6 +457,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		 */
 
 		int selected_source = -1;
+		orb_advert_t tmp_h = nullptr;
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
@@ -508,20 +503,17 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 							 * that is valid as the one that is the selected source for the
 							 * VDD_5V_IN
 							 */
+
 							selected_source = b;
 
-#if BOARD_NUMBER_BRICKS > 1
-
 							/* Move the selected_source to instance 0 */
-							if (_battery_pub_intance0ndx != selected_source) {
+							if (_battery_pub_intance0ndx != b) {
 
-								orb_advert_t tmp_h = _battery_pub[_battery_pub_intance0ndx];
-								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[selected_source];
-								_battery_pub[selected_source] = tmp_h;
-								_battery_pub_intance0ndx = selected_source;
+								tmp_h = _battery_pub[_battery_pub_intance0ndx];
+								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[b];
+								_battery_pub[b] = tmp_h;
+								_battery_pub_intance0ndx = b;
 							}
-
-#endif
 						}
 
 						// todo:per brick scaling
@@ -721,7 +713,7 @@ int Sensors::task_spawn(int argc, char *argv[])
 	/* start the task */
 	_task_id = px4_task_spawn_cmd("sensors",
 				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_SENSOR_HUB,
+				      SCHED_PRIORITY_MAX - 6,
 				      2000,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);

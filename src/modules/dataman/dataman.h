@@ -41,6 +41,9 @@
 #include <string.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/fence.h>
+#include <uORB/topics/fence_vertex.h>
+#include <uORB/topics/home_position.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,7 +66,11 @@ typedef enum {
 #if defined(MEMORY_CONSTRAINED_SYSTEM)
 enum {
 	DM_KEY_SAFE_POINTS_MAX = 8,
-	DM_KEY_FENCE_POINTS_MAX = 16,
+#ifdef __cplusplus
+	DM_KEY_FENCE_POINTS_MAX = fence_s::GEOFENCE_MAX_VERTICES,
+#else
+	DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
+#endif
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX = (NUM_MISSIONS_SUPPORTED / 10),
@@ -74,7 +81,11 @@ enum {
 /** The maximum number of instances for each item type */
 enum {
 	DM_KEY_SAFE_POINTS_MAX = 8,
-	DM_KEY_FENCE_POINTS_MAX = 64,
+#ifdef __cplusplus
+	DM_KEY_FENCE_POINTS_MAX = fence_s::GEOFENCE_MAX_VERTICES,
+#else
+	DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
+#endif
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED,
@@ -103,10 +114,7 @@ struct dataman_compat_s {
 /* increment this define whenever a binary incompatible change is performed */
 #define DM_COMPAT_VERSION	1ULL
 
-#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
-		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \
-		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_save_point_s) << 4) + \
-		       sizeof(struct dataman_compat_s))
+#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
 
 /** Retrieve from the data manager store */
 __EXPORT ssize_t
@@ -127,30 +135,16 @@ dm_write(
 	size_t buflen			/* Length in bytes of data to retrieve */
 );
 
-/**
- * Lock all items of a type. Can be used for atomic updates of multiple items (single items are always updated
- * atomically).
- * Note that this lock is independent from dm_read & dm_write calls.
- * @return 0 on success and lock taken, -1 on error (lock not taken, errno set)
- */
-__EXPORT int
+/** Lock all items of this type */
+__EXPORT void
 dm_lock(
-	dm_item_t item			/* The item type to lock */
+	dm_item_t item			/* The item type to clear */
 );
 
-/**
- * Try to lock all items of a type (@see sem_trywait()).
- * @return 0 if lock is taken, -1 otherwise (on error or if already locked. errno is set accordingly)
- */
-__EXPORT int
-dm_trylock(
-	dm_item_t item			/* The item type to lock */
-);
-
-/** Unlock all items of a type */
+/** Unlock all items of this type */
 __EXPORT void
 dm_unlock(
-	dm_item_t item			/* The item type to unlock */
+	dm_item_t item			/* The item type to clear */
 );
 
 /** Erase all items of this type */

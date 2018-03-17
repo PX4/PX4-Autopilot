@@ -17,12 +17,6 @@ set(config_module_list
 	# Board support modules
 	#
 	drivers/device
-	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/sdp3x_airspeed
-
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_lsm9ds1_wrapper
@@ -80,7 +74,6 @@ set(config_module_list
 	#
 	# PX4 drivers
 	#
-	drivers/linux_sbus
 	drivers/gps
 	drivers/navio_adc
 	drivers/navio_sysfs_rc_in
@@ -108,7 +101,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-	lib/micro-CDR
 
 	#
 	# POSIX

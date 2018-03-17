@@ -79,8 +79,6 @@ int test_ppm_loopback(int argc, char *argv[])
 
 	if (result != OK) {
 		warnx("PWM_SERVO_GET_COUNT");
-
-		(void)close(servo_fd);
 		return ERROR;
 	}
 

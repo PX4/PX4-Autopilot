@@ -56,7 +56,11 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
+#ifdef __PX4_NUTTX
 class LED : device::CDev
+#else
+class LED : device::VDev
+#endif
 {
 public:
 	LED();
@@ -66,7 +70,12 @@ public:
 	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 };
 
-LED::LED() : CDev("led", LED0_DEVICE_PATH)
+LED::LED() :
+#ifdef __PX4_NUTTX
+	CDev("led", LED0_DEVICE_PATH)
+#else
+	VDev("led", LED0_DEVICE_PATH)
+#endif
 {
 	// force immediate init/device registration
 	init();
@@ -80,7 +89,11 @@ int
 LED::init()
 {
 	DEVICE_DEBUG("LED::init");
+#ifdef __PX4_NUTTX
 	CDev::init();
+#else
+	VDev::init();
+#endif
 	led_init();
 
 	return 0;
@@ -104,8 +117,13 @@ LED::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		led_toggle(arg);
 		break;
 
+
 	default:
+#ifdef __PX4_NUTTX
 		result = CDev::ioctl(filp, cmd, arg);
+#else
+		result = VDev::ioctl(filp, cmd, arg);
+#endif
 	}
 
 	return result;

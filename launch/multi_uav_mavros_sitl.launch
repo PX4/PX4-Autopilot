@@ -30,7 +30,7 @@
     <!-- UAV1 iris_1-->
     <group ns="uav1">
         <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
-        <arg name="gcs_url" value="udp://:14510@localhost:14500"/>
+        <arg name="gcs_url" value=""/>
         <arg name="tgt_system" value="1"/> 
         <arg name="tgt_component" value="1"/>
         <arg name="rcS1" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_1"/>
@@ -49,7 +49,7 @@
             <arg name="ID" value="$(arg ID)"/>
         </include>
 
-        <!--include file="$(find mavros)/launch/node.launch">
+        <include file="$(find mavros)/launch/node.launch">
             <arg name="pluginlists_yaml" value="$(arg pluginlists_yaml)" />
             <arg name="config_yaml" value="$(arg config_yaml)" />
 
@@ -57,7 +57,7 @@
             <arg name="gcs_url" value="$(arg gcs_url)" />
             <arg name="tgt_system" value="$(arg tgt_system)" />
             <arg name="tgt_component" value="$(arg tgt_component)" />
-        </include-->
+        </include>
     </group>
 
     <!-- UAV2 iris_2 -->
@@ -82,7 +82,7 @@
             <arg name="ID" value="$(arg ID)"/>
         </include>
 
-        <!--include file="$(find mavros)/launch/node.launch">
+        <include file="$(find mavros)/launch/node.launch">
             <arg name="pluginlists_yaml" value="$(arg pluginlists_yaml)" />
             <arg name="config_yaml" value="$(arg config_yaml)" />
 
@@ -90,7 +90,7 @@
             <arg name="gcs_url" value="$(arg gcs_url)" />
             <arg name="tgt_system" value="$(arg tgt_system)" />
             <arg name="tgt_component" value="$(arg tgt_component)" />
-        </include-->
+        </include>
     </group>
 
 </launch>

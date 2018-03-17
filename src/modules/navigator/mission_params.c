@@ -92,9 +92,9 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  *
  * @unit m
  * @min 0
- * @max 10000
+ * @max 1000
  * @decimal 1
- * @increment 100
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
@@ -125,7 +125,6 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
  * @value 1 Heading towards waypoint
  * @value 2 Heading towards home
  * @value 3 Heading away from home
- * @value 4 Heading towards ROI
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
@@ -134,7 +133,7 @@ PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
  * Time in seconds we wait on reaching target heading at a waypoint if it is forced.
  *
  * If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
- * waypoint forces the heading the timeout will matter. For example on VTOL forwards transition.
+ * waypoint forces the heading the timeout will matter. For example on VTOL forwards transiton.
  * Mainly useful for VTOLs that have less yaw authority and might not reach target
  * yaw in wind. Disabled by default.
  *

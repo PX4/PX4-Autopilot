@@ -58,8 +58,6 @@ class ParameterGroup(object):
             return "QuadRotorWide"
         elif (self.name == "Quadrotor H"):
             return "QuadRotorH"
-        elif (self.name == "Dodecarotor cox"):
-            return "DodecaRotorXCoaxial"
         elif (self.name == "Simulation"):
             return "AirframeSimulation"
         elif (self.name == "Plane A-Tail"):

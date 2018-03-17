@@ -44,6 +44,7 @@
 #include "datalinkloss.h"
 #include "enginefailure.h"
 #include "follow_target.h"
+#include "circle.h"
 #include "geofence.h"
 #include "gpsfailure.h"
 #include "land.h"
@@ -68,13 +69,12 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/uORB.h>
 
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 10
+#define NAVIGATOR_MODE_ARRAY_SIZE 11
 
 class Navigator : public control::SuperBlock
 {
@@ -89,12 +89,17 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	int		start();
+	int			start();
 
 	/**
 	 * Display the navigator status.
 	 */
 	void		status();
+
+	/**
+	 * Add point to geofence
+	 */
+	void		add_fence_point(int argc, char *argv[]);
 
 	/**
 	 * Load fence from file
@@ -130,12 +135,12 @@ public:
 	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
 	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
+	struct vehicle_attitude_setpoint_s *get_att_sp() { return &_att_sp; }
 	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
 	struct vehicle_gps_position_s *get_gps_position() { return &_gps_pos; }
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
-	struct vehicle_roi_s *get_vroi() { return &_vroi; }
 
 	bool home_position_valid() { return (_home_pos.timestamp > 0); }
 
@@ -189,12 +194,6 @@ public:
 	 */
 	void		reset_cruising_speed();
 
-
-	/**
-	 *  Set triplets to invalid
-	 */
-	void 		reset_triplets();
-
 	/**
 	 * Get the target throttle
 	 *
@@ -244,8 +243,8 @@ private:
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
-	int		_vehicle_roi_sub{-1};		/**< vehicle ROI subscription */
 
+	orb_advert_t	_att_sp_pub{nullptr};
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mission_result_pub{nullptr};
 	orb_advert_t	_pos_sp_triplet_pub{nullptr};
@@ -263,9 +262,8 @@ private:
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
-	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
+	vehicle_local_position_s			_local_pos;		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
-	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */
 
@@ -290,6 +288,9 @@ private:
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
+	Circle _circle;
+	param_t chen_circle_replace;
+	int should_use_circle;
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
@@ -313,7 +314,6 @@ private:
 	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
-	void		vehicle_roi_update();
 
 	/**
 	 * Shim for calling task_main from task_create.

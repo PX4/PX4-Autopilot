@@ -84,6 +84,7 @@ set(config_module_list
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/mc_pos_control/mc_pos_control_tests
+	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -151,7 +152,6 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
-	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -198,6 +198,14 @@ set(config_extra_builtin_cmds
 
 set(config_io_board
 	px4io-v2
+	)
+
+set(config_extra_libs
+	uavcan
+	uavcan_stm32_driver
+	)
+
+set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

@@ -1,5 +1,5 @@
 <launch>
-<arg name="ns" default="/" />
+<arg name="ns"/>
 <arg name="mavlink_fcu_url" default="udp://localhost:14565@localhost:14560"/>
 
 <include file="$(find px4)/launch/multicopter_w.launch">
@@ -21,4 +21,3 @@
 </group>
 
 </launch>
-<!-- vim: set ft=xml et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->

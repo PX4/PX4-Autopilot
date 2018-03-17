@@ -49,6 +49,10 @@
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
+#include <uORB/topics/fence.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/fw_pos_ctrl_status.h>
+#include <uORB/topics/vehicle_status.h>
 
 bool
 MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission, float max_waypoint_distance,
@@ -184,8 +188,7 @@ MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionIt
 			// Geofence function checks against home altitude amsl
 			missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 
-			if (MissionBlock::item_contains_position(&missionitem) &&
-			    !geofence.check(missionitem)) {
+			if (MissionBlock::item_contains_position(&missionitem) && !geofence.inside(missionitem)) {
 
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %d", i + 1);
 				return false;

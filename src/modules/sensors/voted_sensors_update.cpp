@@ -51,7 +51,7 @@ using namespace sensors;
 using namespace DriverFramework;
 
 
-const double VotedSensorsUpdate::_msl_pressure = 101.325;
+const double VotedSensorsUpdate::_msl_pressure = 101.325f;
 
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
 	: _parameters(parameters), _hil_enabled(hil_enabled)
@@ -411,7 +411,7 @@ void VotedSensorsUpdate::parameters_update()
 		}
 
 		int topic_device_id = report.device_id;
-		bool is_external = report.is_external;
+		bool is_external = (bool)report.is_external;
 		_mag_device_id[topic_instance] = topic_device_id;
 
 		// find the driver handle that matches the topic_device_id

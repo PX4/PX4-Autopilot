@@ -829,6 +829,16 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 				wp_distance_save = 0.0f;
 			}
 
+			// create virtual waypoint which is on the desired flight path but
+			// some distance behind landing waypoint. This will make sure that the plane
+			// will always follow the desired flight path even if we get close or past
+			// the landing waypoint
+			double lat{0.0f};
+			double lon{0.0f};
+			create_waypoint_from_line_and_dist(pos_sp_curr.lat, pos_sp_curr.lon,
+							   pos_sp_prev.lat, pos_sp_prev.lon, -1000.0f, &lat, &lon);
+
+			math::Vector<2> curr_wp_shifted {(float)lat, (float)lon};
 
 			// we want the plane to keep tracking the desired flight path until we start flaring
 			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
@@ -1456,12 +1466,15 @@ FixedwingPositionControl::handle_command()
 {
 	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
 		// only abort landing before point of no return (horizontal and vertical)
-		if (_control_mode.flag_control_auto_enabled &&
-		    _pos_sp_triplet.current.valid &&
-		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			_fw_pos_ctrl_status.abort_landing = true;
-			mavlink_log_critical(&_mavlink_log_pub, "Landing, aborted");
+			if (_land_noreturn_vertical) {
+				mavlink_log_info(&_mavlink_log_pub, "Landing, can't abort after flare");
+
+			} else {
+				_fw_pos_ctrl_status.abort_landing = true;
+				mavlink_log_info(&_mavlink_log_pub, "Landing, aborted");
+			}
 		}
 	}
 }
@@ -1847,7 +1860,7 @@ FixedwingPositionControl::start()
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("fw_pos_ctrl_l1",
 					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_POSITION_CONTROL,
+					   SCHED_PRIORITY_MAX - 5,
 					   1700,
 					   (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
 					   nullptr);

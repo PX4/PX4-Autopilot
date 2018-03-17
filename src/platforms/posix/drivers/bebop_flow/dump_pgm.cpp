@@ -48,9 +48,10 @@ char pgm_path[] = "/home/root/images/";
 
 void dump_pgm(const void *data, uint32_t size, uint32_t seq, uint32_t timestamp)
 {
-	// Check if dump directory exists
-	struct stat sb = {};
+	int written, total, fd;
+	struct stat sb;
 
+	// Check if dump directory exists
 	if (!(stat(pgm_path, &sb) == 0 && S_ISDIR(sb.st_mode))) {
 		PX4_ERR("Dump directory does not exist: %s", pgm_path);
 		PX4_ERR("No images are written!");
@@ -62,7 +63,7 @@ void dump_pgm(const void *data, uint32_t size, uint32_t seq, uint32_t timestamp)
 	snprintf(file_path, sizeof(file_path), "%s%s%08u.pgm", pgm_path, pgm_dumpname, seq);
 	PX4_INFO("%s", file_path);
 
-	int fd = open(file_path, O_WRONLY | O_NONBLOCK | O_CREAT, 00666);
+	fd = open(file_path, O_WRONLY | O_NONBLOCK | O_CREAT, 00666);
 
 	if (fd < 0) {
 		PX4_ERR("Dump: Unable to open file");
@@ -71,10 +72,10 @@ void dump_pgm(const void *data, uint32_t size, uint32_t seq, uint32_t timestamp)
 
 	// Write pgm header
 	snprintf(&pgm_header[4], 15, "%014d", (int)timestamp);
-	size_t written = write(fd, pgm_header, sizeof(pgm_header));
+	written = write(fd, pgm_header, sizeof(pgm_header));
 
 	// Write image data
-	size_t total = 0;
+	total = 0;
 
 	do {
 		written = write(fd, data, size);

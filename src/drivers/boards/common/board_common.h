@@ -84,7 +84,7 @@
  *
  * The PX4_xxxx_BUS_FIRST_CS and PX4_xxxxx_BUS_LAST_CS
  * #define PX4_SENSORS_BUS_FIRST_CS  PX4_SPIDEV_ICM_20689
- *  #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
+*  #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
  *
  *
  */
@@ -93,31 +93,6 @@
 #define PX4_SPI_BUS_ID(bd)        (((bd) >> 4) & 0xf)
 #define PX4_SPI_DEV_ID(bd)        ((bd) & 0xf)
 
-/* I2C PX4 clock configuration
- *
- * A board may override BOARD_NUMBER_I2C_BUSES and BOARD_I2C_BUS_CLOCK_INIT
- * simply by defining the #defines.
- *
- * If none are provided the default number of I2C busses  will be taken from
- * the px4 micro hal and the init will be from the legacy values of 100K.
- */
-#if !defined(BOARD_NUMBER_I2C_BUSES)
-# define BOARD_NUMBER_I2C_BUSES PX4_NUMBER_I2C_BUSES
-#endif
-
-#if !defined(BOARD_I2C_BUS_CLOCK_INIT)
-#  if (BOARD_NUMBER_I2C_BUSES) == 1
-#    define BOARD_I2C_BUS_CLOCK_INIT {100000}
-#  elif (BOARD_NUMBER_I2C_BUSES) == 2
-#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000}
-#  elif (BOARD_NUMBER_I2C_BUSES) == 3
-#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
-#  elif (BOARD_NUMBER_I2C_BUSES) == 4
-#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
-#  else
-#    error BOARD_NUMBER_I2C_BUSES not supported
-#  endif
-#endif
 /* ADC defining tools
  * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
  */
@@ -230,6 +205,9 @@
 #    define PX4IO_FW_SEARCH_PATHS BOARD_PX4IO_FW_SEARCH_PATHS
 #  else
 /*  Use PX4IO FW search paths defaults based on version */
+#    if BOARD_USES_PX4IO_VERSION == 1
+#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4io-v1.bin", "/fs/microsd/px4io1.bin", "/fs/microsd/px4io.bin", nullptr }
+#    endif
 #    if BOARD_USES_PX4IO_VERSION == 2
 #      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4io-v2.bin", "/fs/microsd/px4io2.bin", "/fs/microsd/px4io.bin", nullptr }
 #    endif
@@ -250,17 +228,6 @@
 #define BOARD_HAS_CAPTURE 1
 #endif
 
-/*
- * Defined when a supports version and type API.
- */
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-#  define BOARD_HAS_VERSIONING 1
-#  define HW_VER_SIMPLE(s)	     0x90000+(s)
-
-#  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
-#  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
-#  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
-#endif
 
 /************************************************************************************
  * Public Data
@@ -423,51 +390,6 @@ __EXPORT void board_system_reset(int status) noreturn_function;
 #  define board_set_bootload_mode(mode)
 #else
 __EXPORT int board_set_bootload_mode(board_reset_e mode);
-#endif
-
-/************************************************************************************
- * Name: board_get_hw_type
- *
- * Description:
- *   Optional returns a string defining the HW type
- *
- *
- ************************************************************************************/
-
-#if defined(BOARD_HAS_VERSIONING)
-__EXPORT const char *board_get_hw_type_name(void);
-#else
-#define board_get_hw_type_name() ""
-#endif
-
-/************************************************************************************
- * Name: board_get_hw_version
- *
- * Description:
- *   Optional returns a integer HW version
- *
- *
- ************************************************************************************/
-
-#if defined(BOARD_HAS_VERSIONING)
-__EXPORT int board_get_hw_version(void);
-#else
-#define board_get_hw_version() 0
-#endif
-
-/************************************************************************************
- * Name: board_get_hw_revision
- *
- * Description:
- *   Optional returns a integer HW revision
- *
- *
- ************************************************************************************/
-
-#if defined(BOARD_HAS_VERSIONING)
-__EXPORT int board_get_hw_revision(void);
-#else
-#define board_get_hw_revision() 0
 #endif
 
 #if !defined(BOARD_OVERRIDE_UUID)

@@ -142,31 +142,9 @@ Mission::on_inactive()
 }
 
 void
-Mission::on_inactivation()
-{
-	// Disable camera trigger
-	vehicle_command_s cmd{};
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
-	// Pause trigger
-	cmd.param1 = -1.0f;
-	cmd.param3 = 1.0f;
-	cmd.timestamp = hrt_absolute_time();
-	_navigator->publish_vehicle_cmd(cmd);
-}
-
-void
 Mission::on_activation()
 {
 	set_mission_items();
-
-	// unpause triggering if it was paused
-	vehicle_command_s cmd{};
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
-	// unpause trigger
-	cmd.param1 = -1.0f;
-	cmd.param3 = 0.0f;
-	cmd.timestamp = hrt_absolute_time();
-	_navigator->publish_vehicle_cmd(cmd);
 }
 
 void
@@ -284,7 +262,7 @@ Mission::find_offboard_land_start()
 	dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
 	for (size_t i = 0; i < _offboard_mission.count; i++) {
-		struct mission_item_s missionitem = {};
+		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(missionitem);
 
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
@@ -303,9 +281,6 @@ Mission::find_offboard_land_start()
 void
 Mission::update_onboard_mission()
 {
-	/* reset triplets */
-	_navigator->reset_triplets();
-
 	if (orb_copy(ORB_ID(onboard_mission), _navigator->get_onboard_mission_sub(), &_onboard_mission) == OK) {
 		/* accept the current index set by the onboard mission if it is within bounds */
 		if (_onboard_mission.current_seq >= 0
@@ -353,13 +328,7 @@ Mission::update_offboard_mission()
 {
 	bool failed = true;
 
-	/* reset triplets */
-	_navigator->reset_triplets();
-
 	if (orb_copy(ORB_ID(offboard_mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {
-		// The following is not really a warning, but it can be useful to have this message in the log file
-		PX4_WARN("offboard mission updated: dataman_id=%d, count=%d, current_seq=%d", _offboard_mission.dataman_id,
-			 _offboard_mission.count, _offboard_mission.current_seq);
 
 		/* determine current index */
 		if (_offboard_mission.current_seq >= 0 && _offboard_mission.current_seq < (int)_offboard_mission.count) {
@@ -396,7 +365,7 @@ Mission::update_offboard_mission()
 		}
 
 	} else {
-		PX4_ERR("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
+		PX4_WARN("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
 	}
 
 	if (failed) {
@@ -404,7 +373,7 @@ Mission::update_offboard_mission()
 		_offboard_mission.current_seq = 0;
 		_current_offboard_mission_index = 0;
 
-		PX4_ERR("mission check failed");
+		PX4_WARN("mission check failed");
 	}
 
 	set_current_offboard_mission_item();
@@ -1024,12 +993,6 @@ Mission::heading_sp_update()
 			point_to_latlon[0] = _navigator->get_home_position()->lat;
 			point_to_latlon[1] = _navigator->get_home_position()->lon;
 
-		} else if (_param_yawmode.get() == MISSION_YAWMODE_TO_ROI
-			   && _navigator->get_vroi()->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-			/* target location is ROI */
-			point_to_latlon[0] = _navigator->get_vroi()->lat;
-			point_to_latlon[1] = _navigator->get_vroi()->lon;
-
 		} else {
 			/* target location is next (current) waypoint */
 			point_to_latlon[0] = pos_sp_triplet->current.lat;
@@ -1070,15 +1033,11 @@ Mission::altitude_sp_foh_update()
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	/* Don't change setpoint if last and current waypoint are not valid
-	 * or if the previous altitude isn't from a position or loiter setpoint or
-	 * if rotary wing since that is handled in the mc_pos_control
+	 * or if the previous altitude isn't from a position or loiter setpoint
 	 */
-
-
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid || !PX4_ISFINITE(pos_sp_triplet->previous.alt)
 	    || !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
-		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER) ||
-	    _navigator->get_vstatus()->is_rotary_wing) {
+		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
 		return;
 	}
@@ -1129,10 +1088,8 @@ Mission::altitude_sp_foh_update()
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
 	}
 
-
 	// we set altitude directly so we can run this in parallel to the heading update
 	_navigator->set_position_setpoint_triplet_updated();
-
 }
 
 void
@@ -1163,7 +1120,7 @@ void
 Mission::do_abort_landing()
 {
 	// Abort FW landing
-	//  first climb out then loiter over intended landing location
+	//  turn the land waypoint into a loiter and stay there
 
 	if (_mission_item.nav_cmd != NAV_CMD_LAND) {
 		return;
@@ -1172,48 +1129,39 @@ Mission::do_abort_landing()
 	// loiter at the larger of MIS_LTRMIN_ALT above the landing point
 	//  or 2 * FW_CLMBOUT_DIFF above the current altitude
 	float alt_landing = get_absolute_altitude_for_item(_mission_item);
-	float min_climbout = _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get());
-	float alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(), min_climbout);
 
-	// turn current landing waypoint into an indefinite loiter
+	// ignore _param_loiter_min_alt if smaller then 0 (-1)
+	float alt_sp;
+
+	if (_param_loiter_min_alt.get() > 0.0f) {
+		alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(),
+				   _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get()));
+
+	} else {
+		alt_sp = math::max(alt_landing, _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get()));
+	}
+
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.altitude_is_relative = false;
 	_mission_item.altitude = alt_sp;
+	_mission_item.yaw = NAN;
 	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.autocontinue = false;
 	_mission_item.origin = ORIGIN_ONBOARD;
 
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+
 	_navigator->set_position_setpoint_triplet_updated();
 
-	mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "Holding at %dm above landing.",
-				     (int)(alt_sp - alt_landing));
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %dm above landing.", (int)(alt_sp - alt_landing));
 
-	// reset mission index to start of landing
-	int land_start_index = find_offboard_land_start();
-
-	if (land_start_index != -1) {
-		_current_offboard_mission_index = land_start_index;
-
-	} else {
-		// move mission index back (landing approach point)
-		_current_offboard_mission_index -= 1;
-	}
-
-	// send reposition cmd to get out of mission
-	vehicle_command_s vcmd = {};
-	mission_item_to_vehicle_command(&_mission_item, &vcmd);
-	vcmd.timestamp = hrt_absolute_time();
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-	vcmd.param1 = -1;
-	vcmd.param2 = 1;
-	vcmd.param5 = _mission_item.lat;
-	vcmd.param6 = _mission_item.lon;
-	vcmd.param7 = alt_sp;
-
-	_navigator->publish_vehicle_cmd(vcmd);
+	// move mission index back 1 (landing approach point) so that re-entering
+	//  the mission doesn't try to land from the loiter above land
+	// TODO: reset index to MAV_CMD_DO_LAND_START
+	_current_offboard_mission_index -= 1;
 }
 
 bool
@@ -1350,11 +1298,7 @@ Mission::save_offboard_mission_state()
 	mission_s mission_state = {};
 
 	/* lock MISSION_STATE item */
-	int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
-
-	if (dm_lock_ret != 0) {
-		PX4_ERR("lock failed");
-	}
+	dm_lock(DM_KEY_MISSION_STATE);
 
 	/* read current state */
 	int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
@@ -1367,6 +1311,7 @@ Mission::save_offboard_mission_state()
 				if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
 					     sizeof(mission_s)) != sizeof(mission_s)) {
 
+					warnx("ERROR: can't save mission state");
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't save mission state.");
 				}
 			}
@@ -1378,20 +1323,20 @@ Mission::save_offboard_mission_state()
 		mission_state.count = _offboard_mission.count;
 		mission_state.current_seq = _current_offboard_mission_index;
 
+		warnx("ERROR: invalid mission state");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Invalid mission state.");
 
 		/* write modified state only if changed */
 		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
 			     sizeof(mission_s)) != sizeof(mission_s)) {
 
+			warnx("ERROR: can't save mission state");
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't save mission state.");
 		}
 	}
 
 	/* unlock MISSION_STATE item */
-	if (dm_lock_ret == 0) {
-		dm_unlock(DM_KEY_MISSION_STATE);
-	}
+	dm_unlock(DM_KEY_MISSION_STATE);
 }
 
 void

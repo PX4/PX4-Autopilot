@@ -39,17 +39,22 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <drivers/drv_hrt.h>
 #include <px4_config.h>
 #include <px4_defines.h>
-#include <px4_posix.h>
 #include <px4_tasks.h>
-#include <systemlib/systemlib.h>
+#include <px4_posix.h>
+#include <unistd.h>					//usleep
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <drivers/drv_hrt.h>
+#include <systemlib/systemlib.h>	//Scheduler
 
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
-#include "RoverLandDetector.h"
 #include "VtolLandDetector.h"
+#include "RoverLandDetector.h"
 
 
 namespace land_detector
@@ -68,16 +73,16 @@ int LandDetector::task_spawn(int argc, char *argv[])
 
 	LandDetector *obj;
 
-	if (strcmp(argv[1], "fixedwing") == 0) {
+	if (!strcmp(argv[1], "fixedwing")) {
 		obj = new FixedwingLandDetector();
 
-	} else if (strcmp(argv[1], "multicopter") == 0) {
+	} else if (!strcmp(argv[1], "multicopter")) {
 		obj = new MulticopterLandDetector();
 
-	} else if (strcmp(argv[1], "vtol") == 0) {
+	} else if (!strcmp(argv[1], "vtol")) {
 		obj = new VtolLandDetector();
 
-	} else if (strcmp(argv[1], "ugv") == 0) {
+	} else if (!strcmp(argv[1], "ugv")) {
 		obj = new RoverLandDetector();
 
 	} else {
@@ -85,7 +90,7 @@ int LandDetector::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	if (obj == nullptr) {
+	if (!obj) {
 		PX4_ERR("alloc failed");
 		return -1;
 	}
@@ -134,7 +139,7 @@ int LandDetector::print_status()
 
 int LandDetector::print_usage(const char *reason)
 {
-	if (reason != nullptr) {
+	if (reason) {
 		PX4_ERR("%s\n", reason);
 	}
 
@@ -177,4 +182,4 @@ int land_detector_main(int argc, char *argv[])
 	return LandDetector::main(argc, argv);
 }
 
-} // namespace land_detector
+}

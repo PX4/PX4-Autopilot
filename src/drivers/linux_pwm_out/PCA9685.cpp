@@ -55,7 +55,7 @@
 
 using namespace linux_pwm_out;
 
-int PCA9685::init(int bus, int address)
+void PCA9685::init(int bus, int address)
 {
 	_fd = open_fd(bus, address);
 	reset();
@@ -65,7 +65,6 @@ int PCA9685::init(int bus, int address)
 	/* 200HZ for 12bit Resolution, supported by most of the esc's */
 	setPWMFreq(200);
 	usleep(1000 * 1000);
-	return 0;
 }
 
 int PCA9685::send_output_pwm(const uint16_t *pwm, int num_outputs)

@@ -32,7 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__rgbled_pwm
-	MAIN rgbled_pwm
+	MAIN rgbled
 	COMPILE_FLAGS
 	SRCS
 		rgbled_pwm.cpp

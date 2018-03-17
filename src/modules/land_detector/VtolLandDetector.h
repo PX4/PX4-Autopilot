@@ -42,7 +42,6 @@
 #pragma once
 
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/vehicle_status.h>
 
 #include "MulticopterLandDetector.h"
 
@@ -55,29 +54,33 @@ public:
 	VtolLandDetector();
 
 protected:
-	void _initialize_topics() override;
-	void _update_params() override;
-	void _update_topics() override;
-	bool _get_landed_state() override;
-	bool _get_maybe_landed_state() override;
+	virtual void _initialize_topics() override;
+
+	virtual void _update_params() override;
+
+	virtual void _update_topics() override;
+
+	virtual bool _get_landed_state() override;
+
+	virtual bool  _get_ground_contact_state() override;
+
+	virtual bool _get_freefall_state() override;
 
 private:
 	struct {
 		param_t maxAirSpeed;
-	} _paramHandle{};
+	} _paramHandle;
 
 	struct {
 		float maxAirSpeed;
-	} _params{};
+	} _params;
 
-	int _airspeedSub{-1};
-	int _vehicle_status_sub{-1};
+	int _airspeedSub;
 
-	airspeed_s		_airspeed{};
-	vehicle_status_s	_vehicle_status{};
+	struct airspeed_s _airspeed;
 
-	bool _was_in_air{false}; /**< indicates whether the vehicle was in the air in the previous iteration */
-	float _airspeed_filtered{0.0f}; /**< low pass filtered airspeed */
+	bool _was_in_air; /**< indicates whether the vehicle was in the air in the previous iteration */
+	float _airspeed_filtered; /**< low pass filtered airspeed */
 };
 
 

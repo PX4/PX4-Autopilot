@@ -44,11 +44,14 @@ set(nuttx_patches
 	00010-BACKPORT-stm32-flash-F4-dcache-corruption-fix-no-HSI-on.patch
 	00011-BACKPORT-priority-restoration-fix.patch
 	00012-BACKPORT-stack-coloration-overreach-fix.patch
+	00013-BACKPORT-stm32-serial-dma-hotfix.patch
 	00014-BACKPORT-i2c-hotfix.patch
 	00015-BACKPORT-stm32f7-DTCM.patch
 	00016-BACKPORT-fix-CRTSCTS-defines.patch
 	00017-BACKPORT-cdcacm.patch
+	00018-BACKPORT-stm32-serial-break.patch
 	00019-BACKPORT-stm32-rcc-keep-HSI-on.patch
+	00020-BACKPORT-ramtron-CONFIG-prefix.patch
 	00021-BACKPORT-stm32f3x-add-BKP.patch
 	00022-BACKPORT-stm32-bkp-reference-fix.patch
 	00023-BACKPORT-stm32f7-bkp-reference-fix.patch
@@ -56,12 +59,8 @@ set(nuttx_patches
 	00025-BACKPORT-add-set-ex-to-nsh.patch
 	00026-BACKPORT-stm32fX-serial-fix-freezing.patch
 	00027-BACKPORT-stm32-sdio-1-bit-and-16G-fix.patch
-	00028-BACKPORT-mtd-FLASH-corruption.patch
-	00029-BACKPORT-stm32-serial-upstream-sans-IRQ.patch
 	00030-BACKPORT-fix-arm-none-eabi-gcc-7-warnings-nuttx.patch
 	00031-BACKPORT-fix-arm-none-eabi-gcc-7-warnings-apps.patch
-	00032-BACKPORT-stm32f7-pinmap-FMC-I2C4-fixes.patch
-	00033-BACKPORT-stm32f7-sdmmc-dcache-fix.patch
 	90000-PENDING-wip-inflight-to-upstream.patch
 	)
 

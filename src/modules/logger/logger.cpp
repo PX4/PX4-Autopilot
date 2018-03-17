@@ -49,6 +49,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 #include <drivers/drv_hrt.h>
@@ -191,7 +192,7 @@ int Logger::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("logger",
 				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_LOG_CAPTURE,
+				      SCHED_PRIORITY_MAX - 10,
 				      3600,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
@@ -536,29 +537,33 @@ void Logger::add_common_topics()
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
-	add_topic("airspeed", 200);
+	add_topic("airspeed");
 	add_topic("att_pos_mocap", 50);
-	add_topic("battery_status", 500);
+	add_topic("battery_status", 300);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
-	add_topic("commander_state", 200);
+	add_topic("commander_state", 100);
+	add_topic("control_state", 100);
 	add_topic("cpuload");
-	add_topic("distance_sensor", 100);
-	add_topic("ekf2_innovations", 200);
+	add_topic("differential_pressure", 50);
+	add_topic("distance_sensor");
+	add_topic("ekf2_innovations", 50);
 	add_topic("esc_status", 250);
-	add_topic("estimator_status", 200);
-	add_topic("input_rc", 200);
-	add_topic("manual_control_setpoint", 200);
+	add_topic("estimator_status", 200); //this one is large
+	add_topic("gps_dump"); //this will only be published if gps_dump_comm is set
+	add_topic("input_rc", 100);
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
-	add_topic("rc_channels", 200);
+	add_topic("rc_channels", 100);
+	add_topic("satellite_info");
 	add_topic("sensor_combined", 100);
-	add_topic("sensor_preflight", 200);
-	add_topic("system_power", 500);
-	add_topic("tecs_status", 200);
+	add_topic("sensor_preflight", 50);
+	add_topic("system_power", 300);
+	add_topic("task_stack_info");
+	add_topic("tecs_status", 20);
 	add_topic("telemetry_status");
 	add_topic("vehicle_attitude", 30);
-	add_topic("vehicle_attitude_setpoint", 100);
+	add_topic("vehicle_attitude_setpoint", 30);
 	add_topic("vehicle_command");
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_gps_position");
@@ -566,30 +571,18 @@ void Logger::add_common_topics()
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_rates_setpoint", 30);
-	add_topic("vehicle_status", 200);
+	add_topic("vehicle_status");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
-	add_topic("vtol_vehicle_status", 200);
-	add_topic("wind_estimate", 200);
+	add_topic("vtol_vehicle_status", 100);
+	add_topic("wind_estimate", 100);
 }
 
 void Logger::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
 	add_topic("ekf2_timestamps");
-
-	// current EKF2 subscriptions
-	add_topic("airspeed");
-	add_topic("distance_sensor");
-	add_topic("optical_flow");
-	add_topic("sensor_baro");
 	add_topic("sensor_combined");
-	add_topic("sensor_selection");
-	add_topic("vehicle_gps_position");
-	add_topic("vehicle_land_detected");
-	add_topic("vehicle_status");
-	add_topic("vehicle_vision_attitude");
-	add_topic("vehicle_vision_position");
 }
 
 void Logger::add_thermal_calibration_topics()
@@ -874,22 +867,22 @@ void Logger::run()
 
 				if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 					if ((int)(command.param1 + 0.5f) != 0) {
-						ack_vehicle_command(vehicle_command_ack_pub, &command,
+						ack_vehicle_command(vehicle_command_ack_pub, command.command,
 								    vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
 					} else if (can_start_mavlink_log()) {
-						ack_vehicle_command(vehicle_command_ack_pub, &command,
+						ack_vehicle_command(vehicle_command_ack_pub, command.command,
 								    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 						start_log_mavlink();
 
 					} else {
-						ack_vehicle_command(vehicle_command_ack_pub, &command,
+						ack_vehicle_command(vehicle_command_ack_pub, command.command,
 								    vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 					}
 
 				} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
 					stop_log_mavlink();
-					ack_vehicle_command(vehicle_command_ack_pub, &command,
+					ack_vehicle_command(vehicle_command_ack_pub, command.command,
 							    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				}
 			}
@@ -919,7 +912,8 @@ void Logger::run()
 
 			/* Check if parameters have changed */
 			// this needs to change to a timestamped record to record a history of parameter changes
-			if (parameter_update_sub.update()) {
+			if (parameter_update_sub.check_updated()) {
+				parameter_update_sub.update();
 				write_changed_parameters();
 			}
 
@@ -2005,18 +1999,12 @@ int Logger::remove_directory(const char *dir)
 	return ret;
 }
 
-void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result)
+void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result)
 {
-	vehicle_command_ack_s vehicle_command_ack = {
-		.timestamp = hrt_absolute_time(),
-		.result_param2 = 0,
-		.command = cmd->command,
-		.result = (uint8_t)result,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd->source_system,
-		.target_component = cmd->source_component
-	};
+	vehicle_command_ack_s vehicle_command_ack;
+	vehicle_command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack.command = command;
+	vehicle_command_ack.result = result;
 
 	if (vehicle_command_ack_pub == nullptr) {
 		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,

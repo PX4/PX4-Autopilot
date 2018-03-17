@@ -39,7 +39,6 @@
  */
 
 #include <px4_config.h>
-#include <px4_tasks.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -71,6 +70,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
@@ -228,6 +228,28 @@ public:
 		_test_fmu_fail = is_fail;
 	};
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	/**
+	 * Set the DSM VCC is controlled by relay one flag
+	 *
+	 * @param[in] enable true=DSM satellite VCC is controlled by relay1, false=DSM satellite VCC not controlled
+	 */
+	inline void		set_dsm_vcc_ctl(bool enable)
+	{
+		_dsm_vcc_ctl = enable;
+	};
+
+	/**
+	 * Get the DSM VCC is controlled by relay one flag
+	 *
+	 * @return true=DSM satellite VCC is controlled by relay1, false=DSM satellite VCC not controlled
+	 */
+	inline bool		get_dsm_vcc_ctl()
+	{
+		return _dsm_vcc_ctl;
+	};
+#endif
+
 	inline uint16_t		system_status() const {return _status;}
 
 private:
@@ -305,6 +327,10 @@ private:
 
 	float			_last_throttle; ///< last throttle value for battery calculation
 	bool			_test_fmu_fail; ///< To test what happens if IO looses FMU
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
+#endif
 
 	/**
 	 * Trampoline to the worker task
@@ -449,6 +475,16 @@ private:
 	void			dsm_bind_ioctl(int dsmMode);
 
 	/**
+	 * Handle a battery update from IO.
+	 *
+	 * Publish IO battery information if necessary.
+	 *
+	 * @param vbatt		vbatt register
+	 * @param ibatt		ibatt register
+	 */
+	void			io_handle_battery(uint16_t vbatt, uint16_t ibatt);
+
+	/**
 	 * Handle a servorail update from IO.
 	 *
 	 * Publish servo rail information if necessary.
@@ -528,6 +564,10 @@ PX4IO::PX4IO(device::Device *interface) :
 	_analog_rc_rssi_volt(-1.0f),
 	_last_throttle(0.0f),
 	_test_fmu_fail(false)
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	, _dsm_vcc_ctl(false)
+#endif
+
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -752,6 +792,8 @@ PX4IO::init()
 
 		} while (true);
 
+		/* send command to arm system via command API */
+		vehicle_command_s cmd;
 		/* send this to itself */
 		param_t sys_id_param = param_find("MAV_SYS_ID");
 		param_t comp_id_param = param_find("MAV_COMP_ID");
@@ -767,25 +809,23 @@ PX4IO::init()
 			errx(1, "PRM CMPID");
 		}
 
-		/* send command to arm system via command API */
-		struct vehicle_command_s cmd = {
-			.timestamp = hrt_absolute_time(),
-			.param5 = 0.0f,
-			.param6 = 0.0f,
-			/* request arming */
-			.param1 = 1.0f,
-			.param2 = 0.0f,
-			.param3 = 0.0f,
-			.param4 = 0.0f,
-			.param7 = 0.0f,
-			.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
-			.target_system = (uint8_t)sys_id,
-			.target_component = (uint8_t)comp_id,
-			.source_system = (uint8_t)sys_id,
-			.source_component = (uint8_t)comp_id,
-			/* ask to confirm command */
-			.confirmation = 1
-		};
+		cmd.target_system = sys_id;
+		cmd.target_component = comp_id;
+		cmd.source_system = sys_id;
+		cmd.source_component = comp_id;
+		/* request arming */
+		cmd.param1 = 1.0f;
+		cmd.param2 = 0;
+		cmd.param3 = 0;
+		cmd.param4 = 0;
+		cmd.param5 = 0;
+		cmd.param6 = 0;
+		cmd.param7 = 0;
+		cmd.timestamp = hrt_absolute_time();
+		cmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
+
+		/* ask to confirm command */
+		cmd.confirmation =  1;
 
 		/* send command once */
 		orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -1738,6 +1778,43 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 }
 
 void
+PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
+{
+	/* only publish if battery has a valid minimum voltage */
+	if (vbatt <= 4900) {
+		return;
+	}
+
+	battery_status_s	battery_status;
+
+	const hrt_abstime timestamp = hrt_absolute_time();
+	/* voltage is scaled to mV */
+	const float voltage_v = vbatt / 1000.0f;
+
+	/*
+	  ibatt contains the raw ADC count, as 12 bit ADC
+	  value, with full range being 3.3v
+	*/
+	float current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
+	current_a += _battery_amp_bias;
+
+	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, true, true, 0,
+				     _last_throttle,
+				     _armed, &battery_status);
+
+	/* the announced battery status would conflict with the simulated battery status in HIL */
+	if (!(_pub_blocked)) {
+		/* lazily publish the battery voltage */
+		if (_to_battery != nullptr) {
+			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
+
+		} else {
+			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+		}
+	}
+}
+
+void
 PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 {
 	_servorail_status.timestamp = hrt_absolute_time();
@@ -1784,7 +1861,13 @@ PX4IO::io_get_status()
 	io_handle_status(regs[0]);
 	io_handle_alarms(regs[1]);
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	io_handle_battery(regs[2], regs[3]);
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 	io_handle_vservo(regs[4], regs[5]);
+#endif
 
 	return ret;
 }
@@ -2394,11 +2477,20 @@ PX4IO::print_status(bool extended_status)
 	       ((arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) ? " TERM_FAILSAFE" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) ? " OVERRIDE_IMMEDIATE" : "")
 	      );
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE),
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS));
+#endif
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 	printf("rates 0x%04x default %u alt %u sbus %u\n",
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE));
+#endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
 
 	for (unsigned group = 0; group < 4; group++) {
@@ -2816,20 +2908,68 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 
 	case GPIO_RESET: {
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+			uint32_t bits = (1 << _max_relays) - 1;
+
+			/* don't touch relay1 if it's controlling RX vcc */
+			if (_dsm_vcc_ctl) {
+				bits &= ~PX4IO_P_SETUP_RELAYS_POWER1;
+			}
+
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, bits, 0);
+#endif
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 			ret = -EINVAL;
+#endif
 			break;
 		}
 
 	case GPIO_SET:
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+		arg &= ((1 << _max_relays) - 1);
+
+		/* don't touch relay1 if it's controlling RX vcc */
+		if (_dsm_vcc_ctl & (arg & PX4IO_P_SETUP_RELAYS_POWER1)) {
+			ret = -EINVAL;
+			break;
+		}
+
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, arg);
+#endif
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		ret = -EINVAL;
+#endif
 		break;
 
 	case GPIO_CLEAR:
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+		arg &= ((1 << _max_relays) - 1);
+
+		/* don't touch relay1 if it's controlling RX vcc */
+		if (_dsm_vcc_ctl & (arg & PX4IO_P_SETUP_RELAYS_POWER1)) {
+			ret = -EINVAL;
+			break;
+		}
+
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg, 0);
+#endif
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		ret = -EINVAL;
+#endif
 		break;
 
 	case GPIO_GET:
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+		*(uint32_t *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS);
+
+		if (*(uint32_t *)arg == _io_reg_get_error) {
+			ret = -EIO;
+		}
+
+#endif
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		ret = -EINVAL;
+#endif
 		break;
 
 	case MIXERIOCGETOUTPUTCOUNT:
@@ -3081,6 +3221,8 @@ get_interface()
 {
 	device::Device *interface = nullptr;
 
+#ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
+
 #ifdef PX4IO_SERIAL_BASE
 	interface = PX4IO_serial_interface();
 #endif
@@ -3088,6 +3230,8 @@ get_interface()
 	if (interface != nullptr) {
 		goto got;
 	}
+
+#endif
 
 #ifdef PX4_I2C_OBDEV_PX4IO
 	interface = PX4IO_i2c_interface();
@@ -3146,6 +3290,17 @@ start(int argc, char *argv[])
 		errx(1, "driver init failed");
 	}
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	int dsm_vcc_ctl;
+
+	if (param_get(param_find("RC_RL1_DSM_VCC"), &dsm_vcc_ctl) == OK) {
+		if (dsm_vcc_ctl) {
+			g_dev->set_dsm_vcc_ctl(true);
+			g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
+		}
+	}
+
+#endif
 	exit(0);
 }
 
@@ -3262,6 +3417,14 @@ bind(int argc, char *argv[])
 		errx(1, "px4io must be started first");
 	}
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+
+	if (!g_dev->get_dsm_vcc_ctl()) {
+		errx(1, "DSM bind feature not enabled");
+	}
+
+#endif
+
 	if (argc < 3) {
 		errx(0, "needs argument, use dsm2, dsmx or dsmx8");
 	}
@@ -3288,6 +3451,9 @@ bind(int argc, char *argv[])
 		errx(1, "system must not be armed");
 	}
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
+#endif
 	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
 
 	exit(0);

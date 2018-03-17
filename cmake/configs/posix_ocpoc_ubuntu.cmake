@@ -72,7 +72,6 @@ set(config_module_list
 	drivers/ocpoc_sbus_rc_in
 	drivers/linux_pwm_out
 	drivers/rgbled
-	drivers/ulanding
 
 	#
 	# Libraries
@@ -93,7 +92,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/rc
 	lib/led
-	lib/micro-CDR
 
 	#
 	# POSIX

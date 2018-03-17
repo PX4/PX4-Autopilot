@@ -41,7 +41,6 @@
 
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <px4_getopt.h>
 
 #include <lib/rc/dsm.h>
 #include <drivers/drv_rc_input.h>
@@ -77,23 +76,7 @@ void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_
 
 void task_main(int argc, char *argv[])
 {
-	const char *device_path = SPEKTRUM_UART_DEVICE_PATH;
-	int ch;
-	int myoptind = 1;
-	const char *myoptarg = NULL;
-
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'd':
-			device_path = myoptarg;
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	int uart_fd = dsm_init(device_path);
+	int uart_fd = dsm_init(SPEKTRUM_UART_DEVICE_PATH);
 
 	if (uart_fd < 1) {
 		PX4_ERR("dsm init failed");
@@ -207,7 +190,7 @@ void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_
 	input_rc.rc_total_frame_count = 0;
 }
 
-int start(int argc, char *argv[])
+int start()
 {
 	if (_is_running) {
 		PX4_WARN("already running");
@@ -223,7 +206,7 @@ int start(int argc, char *argv[])
 					  SCHED_PRIORITY_DEFAULT,
 					  2000,
 					  (px4_main_t)&task_main,
-					  (char *const *)argv);
+					  nullptr);
 
 	if (_task_handle < 0) {
 		PX4_ERR("task start failed");
@@ -280,7 +263,7 @@ int spektrum_rc_main(int argc, char *argv[])
 
 
 	if (!strcmp(verb, "start")) {
-		return spektrum_rc::start(argc - 1, argv + 1);
+		return spektrum_rc::start();
 	}
 
 	else if (!strcmp(verb, "stop")) {

@@ -33,8 +33,6 @@
 
 #include "IridiumSBD.h"
 
-#include <px4_tasks.h>
-
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -47,6 +45,7 @@
 #include <nuttx/config.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
 
 #include "drivers/drv_iridiumsbd.h"
@@ -276,7 +275,7 @@ void IridiumSBD::standby_loop(void)
 	// check for incoming SBDRING, handled inside read_at_command()
 	read_at_command();
 
-	if (param_read_interval_s != 0 && ((int64_t)(hrt_absolute_time() - last_read_time) > param_read_interval_s * 1000000)) {
+	if (param_read_interval_s != 0 && (hrt_absolute_time() - last_read_time) / 1000000 > param_read_interval_s) {
 		rx_session_pending = true;
 	}
 
@@ -456,7 +455,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 {
 	if (verbose) { PX4_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, tx_buf_write_idx); }
 
-	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN - tx_buf_write_idx) {
+	if (buflen > SATCOM_TX_BUF_LEN - tx_buf_write_idx) {
 		return PX4_ERROR;
 	}
 
@@ -514,7 +513,11 @@ int IridiumSBD::ioctl(struct file *filp, int cmd, unsigned long arg)
 	default: {
 
 			/* see if the parent class can make any use of it */
+#ifdef __PX4_NUTTX
 			return CDev::ioctl(filp, cmd, arg);
+#else
+			return VDev::ioctl(filp, cmd, arg);
+#endif
 		}
 	}
 }

@@ -13,10 +13,10 @@
     <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>
     <arg name="mavlink_udp_port" default="14560" />
 
-    
-    <param name="launchWorkAround" command="rosrun px4 repair.sh $(find px4) $(arg vehicle) $(arg mavlink_udp_port) $(arg ID)" />
 
-    <arg name="cmd" default="gz sdf -p $(arg vehicle)_$(arg ID).urdf" />
+
+    <arg name="cmd" default="$(find xacro)/xacro.py $(find px4)/Tools/sitl_gazebo/models/rotors_description/urdf/$(arg vehicle)_base.xacro rotors_description_dir:=$(find px4)/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(arg mavlink_udp_port) > $(arg vehicle)_$(arg ID).urdf ; 'gz sdf -p $(arg vehicle)_$(arg ID).urdf'" />
+
 
     <param command="$(arg cmd)" name="$(arg vehicle)_$(arg ID)_sdf" />
 

@@ -54,25 +54,10 @@
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-/* Un-comment to support some RC00 polarities inversions
- * on test HW as well as R and G LEDs on UI LED are swapped
- */
-//#define PX4_FMUV5_RC00
-
-#define PX4_FMUV5_RC01
-#define BOARD_HAS_LTC4417
-
-#if defined(BOARD_HAS_LTC4417)
-#  define BOARD_HAS_LTC44XX_VALIDS      2 // No LTC or N Bricks
-#  define BOARD_HAS_USB_VALID           1 // LTC Has No USB valid
-#  define BOARD_HAS_NBAT_V              2 // Only one Vbat to ADC
-#  define BOARD_HAS_NBAT_I              2 // No Ibat ADC
-#else
-#  define BOARD_HAS_LTC44XX_VALIDS      0 // No LTC or N Bricks
-#  define BOARD_HAS_USB_VALID           0 // LTC Has No USB valid
-#  define BOARD_HAS_NBAT_V              1 // Only one Vbat to ADC
-#  define BOARD_HAS_NBAT_I              0 // No Ibat ADC
-#endif
+#define BOARD_HAS_LTC44XX_VALIDS      2 // No LTC or N Bricks
+#define BOARD_HAS_USB_VALID           1 // LTC Has No USB valid
+#define BOARD_HAS_NBAT_V              2 // Only one Vbat to ADC
+#define BOARD_HAS_NBAT_I              2 // No Ibat ADC
 
 /* PX4FMU GPIOs ***********************************************************************************/
 
@@ -212,12 +197,8 @@
 
 #define PX4_I2C_BUS_EXPANSION	1
 #define PX4_I2C_BUS_EXPANSION1	2
-#define PX4_I2C_BUS_EXPANSION2	3
-#define PX4_I2C_BUS_EXPANSION3	4
+#define PX4_I2C_BUS_EXPANSION2	4
 #define PX4_I2C_BUS_LED			PX4_I2C_BUS_EXPANSION
-
-#define BOARD_NUMBER_I2C_BUSES  4
-#define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
 
 /* Devices on the external bus.
  *
@@ -378,22 +359,19 @@
 
 #define DIRECT_INPUT_TIMER_CHANNELS  8
 
-#define BOARD_HAS_LED_PWM              1
+#define BOARD_HAS_LED_PWM
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
 
 #define LED_TIM3_CH1OUT   /* PC6   T3C1  GREEN */ GPIO_TIM3_CH1OUT_3
 #define LED_TIM3_CH2OUT   /* PC7   T3C2  BLUE  */ GPIO_TIM3_CH2OUT_3
 #define LED_TIM3_CH4OUT   /* PB1   T3C4  RED   */ GPIO_TIM3_CH4OUT_1
 
-#define BOARD_HAS_UI_LED_PWM            1
-#if defined(PX4_FMUV5_RC00)
-# define BOARD_UI_LED_SWAP_RG           1
-#else
-#  define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
-#endif
-#define UI_LED_TIM5_CH1OUT /* PH10  T5C1  RED   */ GPIO_TIM5_CH1OUT_2
-#define UI_LED_TIM5_CH2OUT /* PH11  T5C2  GREEN */ GPIO_TIM5_CH2OUT_2
-#define UI_LED_TIM5_CH3OUT /* PH12  T5C3  BLUE  */ GPIO_TIM5_CH3OUT_2
+#define BOARD_HAS_UILED_PWM
+#undef BOARD_UILED_PWM_DRIVE_ACTIVE_LOW
+
+#define UILED_TIM5_CH1OUT /* PH10  T5C1  RED   */ GPIO_TIM5_CH1OUT_2
+#define UILED_TIM5_CH2OUT /* PH11  T5C2  GREEN */ GPIO_TIM5_CH2OUT_2
+#define UILED_TIM5_CH3OUT /* PH12  T5C3  BLUE  */ GPIO_TIM5_CH3OUT_2
 
 
 /* User GPIOs
@@ -435,14 +413,7 @@
 #define BOARD_NUMBER_BRICKS             2
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
-#if defined(PX4_FMUV5_RC00)
-#  define GPIO_VDD_5V_PERIPH_EN         /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN4)
-#  define GPIO_xVDD_5V_PERIPH_EN                   GPIO_VDD_5V_PERIPH_EN
-#endif
-#if defined(PX4_FMUV5_RC01)
-#  define GPIO_nVDD_5V_PERIPH_EN         /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
-#  define GPIO_xVDD_5V_PERIPH_EN                    GPIO_nVDD_5V_PERIPH_EN
-#endif
+#define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_nVDD_5V_PERIPH_OC          /* PE15 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
 #define GPIO_nVDD_5V_HIPOWER_EN         /* PF12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTF|GPIO_PIN12)
 #define GPIO_nVDD_5V_HIPOWER_OC         /* PG13 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTF|GPIO_PIN13)
@@ -455,16 +426,10 @@
 
 /* Define True logic Power Control in arch agnostic form */
 
-#if defined(PX4_FMUV5_RC00)
-#define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, (on_true))
-#endif
-#if defined(PX4_FMUV5_RC01)
 #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
-#endif
 #define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
 #define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
-#define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
 #define VDD_5V_RC_EN(on_true)              px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))
 #define VDD_5V_WIFI_EN(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_WIFI_EN, (on_true))
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
@@ -606,7 +571,7 @@
 		{GPIO_nPOWER_IN_A,       0,                              0}, \
 		{GPIO_nPOWER_IN_B,       0,                              0}, \
 		{GPIO_nPOWER_IN_C,       0,                              0}, \
-		{0,                      GPIO_xVDD_5V_PERIPH_EN,         0}, \
+		{0,                      GPIO_nVDD_5V_PERIPH_EN,         0}, \
 		{GPIO_nVDD_5V_PERIPH_OC, 0,                              0}, \
 		{0,                      GPIO_nVDD_5V_HIPOWER_EN,        0}, \
 		{GPIO_nVDD_5V_HIPOWER_OC,0,                              0}, \
@@ -681,7 +646,7 @@
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
-		GPIO_xVDD_5V_PERIPH_EN,           \
+		GPIO_nVDD_5V_PERIPH_EN,           \
 		GPIO_nVDD_5V_PERIPH_OC,           \
 		GPIO_nVDD_5V_HIPOWER_EN,          \
 		GPIO_nVDD_5V_HIPOWER_OC,          \

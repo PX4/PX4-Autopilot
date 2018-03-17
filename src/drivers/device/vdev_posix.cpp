@@ -59,7 +59,7 @@ volatile bool sim_delay = false;
 
 extern "C" {
 
-#define PX4_MAX_FD 350
+#define PX4_MAX_FD 300
 	static device::file_t *filemap[PX4_MAX_FD] = {};
 
 	int px4_errno;
@@ -72,14 +72,14 @@ extern "C" {
 		return ret;
 	}
 
-	inline CDev *get_vdev(int fd)
+	inline VDev *get_vdev(int fd)
 	{
 		pthread_mutex_lock(&filemutex);
 		bool valid = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != nullptr);
-		CDev *dev;
+		VDev *dev;
 
 		if (valid) {
-			dev = (CDev *)(filemap[fd]->vdev);
+			dev = (VDev *)(filemap[fd]->vdev);
 
 		} else {
 			dev = nullptr;
@@ -92,7 +92,7 @@ extern "C" {
 	int px4_open(const char *path, int flags, ...)
 	{
 		PX4_DEBUG("px4_open");
-		CDev *dev = CDev::getDev(path);
+		VDev *dev = VDev::getDev(path);
 		int ret = 0;
 		int i;
 		mode_t mode;
@@ -163,7 +163,7 @@ extern "C" {
 	{
 		int ret;
 
-		CDev *dev = get_vdev(fd);
+		VDev *dev = get_vdev(fd);
 
 		if (dev) {
 			pthread_mutex_lock(&filemutex);
@@ -193,7 +193,7 @@ extern "C" {
 	{
 		int ret;
 
-		CDev *dev = get_vdev(fd);
+		VDev *dev = get_vdev(fd);
 
 		if (dev) {
 			PX4_DEBUG("px4_read fd = %d", fd);
@@ -215,7 +215,7 @@ extern "C" {
 	{
 		int ret;
 
-		CDev *dev = get_vdev(fd);
+		VDev *dev = get_vdev(fd);
 
 		if (dev) {
 			PX4_DEBUG("px4_write fd = %d", fd);
@@ -238,7 +238,7 @@ extern "C" {
 		PX4_DEBUG("px4_ioctl fd = %d", fd);
 		int ret = 0;
 
-		CDev *dev = get_vdev(fd);
+		VDev *dev = get_vdev(fd);
 
 		if (dev) {
 			ret = dev->ioctl(filemap[fd], cmd, arg);
@@ -297,11 +297,11 @@ extern "C" {
 			fds[i].revents = 0;
 			fds[i].priv    = nullptr;
 
-			CDev *dev = get_vdev(fds[i].fd);
+			VDev *dev = get_vdev(fds[i].fd);
 
 			// If fd is valid
 			if (dev) {
-				PX4_DEBUG("%s: px4_poll: CDev->poll(setup) %d", thread_name, fds[i].fd);
+				PX4_DEBUG("%s: px4_poll: VDev->poll(setup) %d", thread_name, fds[i].fd);
 				ret = dev->poll(filemap[fds[i].fd], &fds[i], true);
 
 				if (ret < 0) {
@@ -358,11 +358,11 @@ extern "C" {
 			// go through all fds and count how many have data
 			for (i = 0; i < nfds; ++i) {
 
-				CDev *dev = get_vdev(fds[i].fd);
+				VDev *dev = get_vdev(fds[i].fd);
 
 				// If fd is valid
 				if (dev) {
-					PX4_DEBUG("%s: px4_poll: CDev->poll(teardown) %d", thread_name, fds[i].fd);
+					PX4_DEBUG("%s: px4_poll: VDev->poll(teardown) %d", thread_name, fds[i].fd);
 					ret = dev->poll(filemap[fds[i].fd], &fds[i], false);
 
 					if (ret < 0) {
@@ -396,23 +396,23 @@ extern "C" {
 			return -1;
 		}
 
-		CDev *dev = CDev::getDev(pathname);
+		VDev *dev = VDev::getDev(pathname);
 		return (dev != nullptr) ? 0 : -1;
 	}
 
 	void px4_show_devices()
 	{
-		CDev::showDevices();
+		VDev::showDevices();
 	}
 
 	void px4_show_topics()
 	{
-		CDev::showTopics();
+		VDev::showTopics();
 	}
 
 	void px4_show_files()
 	{
-		CDev::showFiles();
+		VDev::showFiles();
 	}
 
 	void px4_enable_sim_lockstep()
@@ -440,6 +440,16 @@ extern "C" {
 	bool px4_sim_delay_enabled()
 	{
 		return sim_delay;
+	}
+
+	const char *px4_get_device_names(unsigned int *handle)
+	{
+		return VDev::devList(handle);
+	}
+
+	const char *px4_get_topic_names(unsigned int *handle)
+	{
+		return VDev::topicList(handle);
 	}
 
 }

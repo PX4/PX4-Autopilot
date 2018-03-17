@@ -573,12 +573,10 @@ function(px4_os_add_flags)
 	set(added_c_flags
 		-nodefaultlibs
 		-nostdlib
-		-fstack-usage
 		)
 	set(added_cxx_flags
 		-nodefaultlibs
 		-nostdlib
-		-fstack-usage
 		)
 
 	set(added_optimization_flags)

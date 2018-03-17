@@ -64,7 +64,7 @@
 PARAM_DEFINE_FLOAT(FW_R_TC, 0.4f);
 
 /**
- * Attitude pitch time constant
+ * Attitude Pitch Time Constant
  *
  * This defines the latency between a pitch step input and the achieved setpoint
  * (inverse to a P gain). Half a second is a good start value and fits for
@@ -186,7 +186,7 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
 PARAM_DEFINE_FLOAT(FW_RR_I, 0.01f);
 
 /**
- * Roll integrator anti-windup
+ * Roll Integrator Anti-Windup
  *
  * The portion of the integrator part in the control surface deflection is limited to this value.
  *
@@ -199,7 +199,7 @@ PARAM_DEFINE_FLOAT(FW_RR_I, 0.01f);
 PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
 
 /**
- * Maximum roll rate
+ * Maximum Roll Rate
  *
  * This limits the maximum roll rate the controller will output (in degrees per
  * second). Setting a value of zero disables the limit.
@@ -258,7 +258,7 @@ PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
 PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 
 /**
- * Maximum yaw rate
+ * Maximum Yaw Rate
  *
  * This limits the maximum yaw rate the controller will output (in degrees per
  * second). Setting a value of zero disables the limit.
@@ -444,7 +444,7 @@ PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
 PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
 
 /**
- * Roll setpoint offset
+ * Roll Setpoint Offset
  *
  * An airframe specific offset of the roll setpoint in degrees, the value is
  * added to the roll setpoint and should correspond to the typical cruise speed
@@ -460,7 +460,7 @@ PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
 PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f);
 
 /**
- * Pitch setpoint offset
+ * Pitch Setpoint Offset
  *
  * An airframe specific offset of the pitch setpoint in degrees, the value is
  * added to the pitch setpoint and should correspond to the typical cruise
@@ -476,7 +476,7 @@ PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
 
 /**
- * Max manual roll
+ * Max Manual Roll
  *
  * Max roll for manual control in attitude stabilized mode
  *
@@ -490,7 +490,7 @@ PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
 
 /**
- * Max manual pitch
+ * Max Manual Pitch
  *
  * Max pitch for manual control in attitude stabilized mode
  *

@@ -36,7 +36,6 @@ px4_add_module(
 	STACK_MAIN 4096
 	STACK_MAX 2450
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		commander.cpp
 		state_machine_helper.cpp
@@ -50,7 +49,6 @@ px4_add_module(
 		airspeed_calibration.cpp
 		esc_calibration.cpp
 		PreflightCheck.cpp
-		arm_auth.cpp
 	DEPENDS
 		platforms__common
 	)

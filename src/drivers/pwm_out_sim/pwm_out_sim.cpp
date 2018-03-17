@@ -82,7 +82,11 @@
 
 #include <systemlib/err.h>
 
+#ifdef __PX4_NUTTX
 class PWMSim : public device::CDev
+#else
+class PWMSim : public device::VDev
+#endif
 {
 	const uint32_t PWM_SIM_DISARMED_MAGIC = 900;
 	const uint32_t PWM_SIM_FAILSAFE_MAGIC = 600;
@@ -174,7 +178,12 @@ bool PWMSim::_lockdown = false;
 bool PWMSim::_failsafe = false;
 
 PWMSim::PWMSim() :
-	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
+#ifdef __PX4_NUTTX
+	CDev
+#else
+	VDev
+#endif
+	("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
 	_task(-1),
 	_mode(MODE_NONE),
 	_update_rate(50),
@@ -235,7 +244,11 @@ PWMSim::init()
 	ASSERT(_task == -1);
 
 	/* do regular cdev init */
+#ifdef __PX4_NUTTX
 	ret = CDev::init();
+#else
+	ret = VDev::init();
+#endif
 
 	if (ret != OK) {
 		return ret;
@@ -596,7 +609,11 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	/* if nobody wants it, let CDev have it */
 	if (ret == -ENOTTY) {
+#ifdef __PX4_NUTTX
 		ret = CDev::ioctl(filp, cmd, arg);
+#else
+		ret = VDev::ioctl(filp, cmd, arg);
+#endif
 	}
 
 	return ret;
@@ -852,6 +869,8 @@ enum PortMode {
 	PORT_MODE_UNDEFINED = 0,
 	PORT1_MODE_UNSET,
 	PORT1_FULL_PWM,
+	PORT1_PWM_AND_SERIAL,
+	PORT1_PWM_AND_GPIO,
 	PORT2_MODE_UNSET,
 	PORT2_8PWM,
 	PORT2_12PWM,
@@ -883,6 +902,18 @@ hil_new_mode(PortMode new_mode)
 	case PORT1_FULL_PWM:
 		/* select 4-pin PWM mode */
 		servo_mode = PWMSim::MODE_8PWM;
+		break;
+
+	case PORT1_PWM_AND_SERIAL:
+		/* select 2-pin PWM mode */
+		servo_mode = PWMSim::MODE_2PWM;
+//		/* set RX/TX multi-GPIOs to serial mode */
+//		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
+		break;
+
+	case PORT1_PWM_AND_GPIO:
+		/* select 2-pin PWM mode */
+		servo_mode = PWMSim::MODE_2PWM;
 		break;
 
 	case PORT2_8PWM:
@@ -967,7 +998,7 @@ static void
 usage()
 {
 	PX4_WARN("unrecognized command, try:");
-	PX4_WARN("  mode_pwm, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16");
+	PX4_WARN("  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16");
 }
 
 int
@@ -999,6 +1030,12 @@ pwm_out_sim_main(int argc, char *argv[])
 	// this was all cut-and-pasted from the FMU driver; it's junk
 	if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT1_FULL_PWM;
+
+	} else if (!strcmp(verb, "mode_pwm_serial")) {
+		new_mode = PORT1_PWM_AND_SERIAL;
+
+	} else if (!strcmp(verb, "mode_pwm_gpio")) {
+		new_mode = PORT1_PWM_AND_GPIO;
 
 	} else if (!strcmp(verb, "mode_port2_pwm8")) {
 		new_mode = PORT2_8PWM;

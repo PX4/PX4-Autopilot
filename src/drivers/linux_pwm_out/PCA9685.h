@@ -82,15 +82,15 @@ public:
 	 */
 	PCA9685(int bus, int address);
 
-	int init() override { return _fd >= 0 ? 0 : -1; }
+	int init() override { return _fd >= 0; }
 
 	int send_output_pwm(const uint16_t *pwm, int num_outputs) override;
 
 
-	int init(int bus, int address);
+	void init(int bus, int address);
 	virtual ~PCA9685();
 
-	/** Sets PCA9685 mode to 00 */
+	/// Sets PCA9685 mode to 00
 	void reset();
 
 	/**

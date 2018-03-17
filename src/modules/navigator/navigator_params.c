@@ -183,3 +183,10 @@ PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
+/**
+ * use circle mode
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(CHEN_CIRCLE, 1);

@@ -70,8 +70,6 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -841,7 +839,7 @@ void Ekf2Replay::task_main()
 
 	// create path which tells user location of replay file
 	char tmp2[] = "./build_posix_sitl_replay/src/firmware/posix";
-	char *replay_file_location = (char *) calloc(1 + strlen(tmp) + strlen(tmp2) + strlen(replay_log_name), 1);
+	char *replay_file_location = (char *) malloc(1 + strlen(tmp) + strlen(tmp2) + strlen(replay_log_name));
 	strcat(replay_file_location, tmp2);
 	strcat(replay_file_location, replay_log_name);
 	strcat(replay_file_location, tmp);
@@ -1050,8 +1048,6 @@ void Ekf2Replay::task_main()
 		PX4_INFO("Mag innov RMS = %6.4f", (double)sqrtf(_magInnovSumSq / _numInnovSamples));
 		PX4_INFO("TAS innov RMS = %6.3f", (double)sqrtf(_tasInnovSumSq / _numInnovSamples));
 	}
-
-	free(path_to_replay_log);
 
 }
 

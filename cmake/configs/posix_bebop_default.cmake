@@ -16,7 +16,6 @@ set(config_module_list
 	# Board support modules
 	#
 	drivers/device
-	drivers/linux_sbus
 	modules/sensors
 	platforms/posix/drivers/df_ms5607_wrapper
 	platforms/posix/drivers/df_mpu6050_wrapper
@@ -89,7 +88,6 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-	lib/micro-CDR
 
 	#
 	# POSIX

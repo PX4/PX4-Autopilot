@@ -81,15 +81,15 @@ struct ThreadData {
 static volatile ThreadData *g_thread_data = nullptr;
 
 struct Parameters {
-	int32_t mnt_mode_in;
-	int32_t mnt_mode_out;
-	int32_t mnt_mav_sysid;
-	int32_t mnt_mav_compid;
-	int32_t mnt_ob_lock_mode;
-	int32_t mnt_ob_norm_mode;
-	int32_t mnt_man_pitch;
-	int32_t mnt_man_roll;
-	int32_t mnt_man_yaw;
+	int mnt_mode_in;
+	int mnt_mode_out;
+	int mnt_mav_sysid;
+	int mnt_mav_compid;
+	int mnt_ob_lock_mode;
+	int mnt_ob_norm_mode;
+	int mnt_man_pitch;
+	int mnt_man_roll;
+	int mnt_man_yaw;
 
 	bool operator!=(const Parameters &p)
 	{
@@ -222,7 +222,6 @@ static int vmount_thread_main(int argc, char *argv[])
 	g_thread_data = &thread_data;
 
 	int last_active = 0;
-	hrt_abstime last_output_update = 0;
 
 	while (!thread_should_exit) {
 
@@ -337,26 +336,21 @@ static int vmount_thread_main(int argc, char *argv[])
 					continue;
 				}
 
-				if (control_data_to_check != nullptr || already_active) {
+				if (control_data_to_check != nullptr) {
 					control_data = control_data_to_check;
 					last_active = i;
 				}
 			}
 
-			hrt_abstime now = hrt_absolute_time();
-			if (now - last_output_update > 10000) { // rate-limit the update of outputs
-				last_output_update = now;
+			//update output
+			int ret = thread_data.output_obj->update(control_data);
 
-				//update output
-				int ret = thread_data.output_obj->update(control_data);
-
-				if (ret) {
-					PX4_ERR("failed to write output (%i)", ret);
-					break;
-				}
-
-				thread_data.output_obj->publish();
+			if (ret) {
+				PX4_ERR("failed to write output (%i)", ret);
+				break;
 			}
+
+			thread_data.output_obj->publish();
 
 		} else {
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
@@ -443,8 +437,8 @@ int vmount_main(int argc, char *argv[])
 		thread_should_exit = false;
 		int vmount_task = px4_task_spawn_cmd("vmount",
 						     SCHED_DEFAULT,
-						     SCHED_PRIORITY_DEFAULT,
-						     1900,
+						     SCHED_PRIORITY_DEFAULT + 40,
+						     1500,
 						     vmount_thread_main,
 						     (char *const *)argv + 1);
 

@@ -46,7 +46,6 @@
 #include <px4_module.h>
 #include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
@@ -61,8 +60,7 @@ public:
 		FLYING = 0,
 		LANDED = 1,
 		FREEFALL = 2,
-		GROUND_CONTACT = 3,
-		MAYBE_LANDED = 4
+		GROUND_CONTACT = 3
 	};
 
 	LandDetector();
@@ -106,6 +104,7 @@ protected:
 	 */
 	virtual void _update_topics() = 0;
 
+
 	/**
 	 * Update parameters.
 	 */
@@ -115,11 +114,6 @@ protected:
 	 * @return true if UAV is in a landed state.
 	 */
 	virtual bool _get_landed_state() = 0;
-
-	/**
-	 * @return true if UAV is in almost landed state
-	 */
-	virtual bool _get_maybe_landed_state() = 0;
 
 	/**
 	 * @return true if UAV is touching ground but not landed
@@ -146,17 +140,27 @@ protected:
 	/** Run main land detector loop at this rate in Hz. */
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
 
-	orb_advert_t _landDetectedPub{nullptr};
-	vehicle_land_detected_s _landDetected{};
+	/** Time in us that landing conditions have to hold before triggering a land. */
+	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
 
-	int _parameterSub{-1};
+	/** Time in us that ground contact condition have to hold before triggering contact ground */
+	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 1000000;
 
-	LandDetectionState _state{LandDetectionState::LANDED};
+	/** Time interval in us in which wider acceptance thresholds are used after arming. */
+	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME_US = 2000000;
 
-	systemlib::Hysteresis _freefall_hysteresis{false};
-	systemlib::Hysteresis _landed_hysteresis{true};
-	systemlib::Hysteresis _maybe_landed_hysteresis{true};
-	systemlib::Hysteresis _ground_contact_hysteresis{true};
+	orb_advert_t _landDetectedPub;
+	struct vehicle_land_detected_s _landDetected;
+
+	int _parameterSub;
+
+	LandDetectionState _state;
+
+	systemlib::Hysteresis _freefall_hysteresis;
+	systemlib::Hysteresis _landed_hysteresis;
+	systemlib::Hysteresis _ground_contact_hysteresis;
+
+	float _altitude_max;
 
 private:
 	static void _cycle_trampoline(void *arg);
@@ -167,14 +171,12 @@ private:
 
 	void _update_state();
 
-	param_t _p_total_flight_time_high{PARAM_INVALID};
-	param_t _p_total_flight_time_low{PARAM_INVALID};
-	uint64_t _total_flight_time{0}; ///< in microseconds
-	hrt_abstime _takeoff_time{0};
+	param_t _p_total_flight_time_high;
+	param_t _p_total_flight_time_low;
+	uint64_t _total_flight_time; ///< in microseconds
+	hrt_abstime _takeoff_time;
 
-	struct work_s	_work {};
-
-	perf_counter_t	_cycle_perf;
+	struct work_s	_work;
 };
 
 

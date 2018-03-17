@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,13 +37,11 @@
  * Implements basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- * @author David Sidrane <david_s5@nscdg.com>
- * @author Andreas Jochum <Andreas@NicaDrone.com>
- *
+ *		 David Sidrane <david_s5@nscdg.com>
+ *		 Andreas Jochum <Andreas@NicaDrone.com>
  */
 
 #include <px4_config.h>
-#include <px4_tasks.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -53,6 +51,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/board_serial.h>
+#include <systemlib/scheduling_priorities.h>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
@@ -104,12 +103,11 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 		std::abort();
 	}
 
-	res = px4_sem_init(&_server_command_sem, 0, 0);
+	res = px4_sem_init(&_server_command_sem, 0 , 0);
 
 	if (res < 0) {
 		std::abort();
 	}
-
 	/* _server_command_sem use case is a signal */
 	px4_sem_setprotocol(&_server_command_sem, SEM_PRIO_NONE);
 }
@@ -168,7 +166,10 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 	int rv = -1;
 
 	if (UavcanNode::instance()) {
-		if (!std::strncmp(px4_board_name(), "PX4FMU_V2", 9)) {
+		if (!std::strncmp(px4_board_name(), "PX4FMU_V1", 9)) {
+			hwver.major = 1;
+
+		} else if (!std::strncmp(px4_board_name(), "PX4FMU_V2", 9)) {
 			hwver.major = 2;
 
 		} else {
@@ -539,7 +540,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
 	 * shipped with libuavcan does not support deinitialization.
 	 */
-	static CanInitHelper *can = nullptr;
+	static CanInitHelper* can = nullptr;
 
 	if (can == nullptr) {
 
@@ -1118,24 +1119,22 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case UAVCAN_IOCG_NODEID_INPROGRESS: {
-			UavcanServers   *_servers = UavcanServers::instance();
+		UavcanServers   *_servers = UavcanServers::instance();
 
-			if (_servers == nullptr) {
-				// status unavailable
-				ret = -EINVAL;
-				break;
-
-			} else if (_servers->guessIfAllDynamicNodesAreAllocated()) {
-				// node discovery complete
-				ret = -ETIME;
-				break;
-
-			} else {
-				// node discovery in progress
-				ret = OK;
-				break;
-			}
+		if (_servers == nullptr) {
+			// status unavailable
+			ret = -EINVAL;
+			break;
+		} else if (_servers->guessIfAllDynamicNodesAreAllocated()) {
+			// node discovery complete
+			ret = -ETIME;
+			break;
+		} else {
+			// node discovery in progress
+			ret = OK;
+			break;
 		}
+	}
 
 	default:
 		ret = -ENOTTY;
@@ -1212,7 +1211,7 @@ UavcanNode::print_info()
 
 		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
 			const float temp_celsius = (esc.esc[i].esc_temperature > 0) ?
-						   (esc.esc[i].esc_temperature - 273.15F) : 0.0F;
+				(esc.esc[i].esc_temperature - 273.15F) : 0.0F;
 
 			printf("%d\t",    esc.esc[i].esc_address);
 			printf("%3.2f\t", (double)esc.esc[i].esc_voltage);
@@ -1240,10 +1239,10 @@ UavcanNode::print_info()
 	// Printing all nodes that are online
 	std::printf("Online nodes (Node ID, Health, Mode):\n");
 	_node_status_monitor.forEachNode([](uavcan::NodeID nid, uavcan::NodeStatusMonitor::NodeStatus ns) {
-		static constexpr const char *HEALTH[] = {
+		static constexpr const char* HEALTH[] = {
 			"OK", "WARN", "ERR", "CRIT"
 		};
-		static constexpr const char *MODES[] = {
+		static constexpr const char* MODES[] = {
 			"OPERAT", "INIT", "MAINT", "SW_UPD", "?", "?", "?", "OFFLN"
 		};
 		std::printf("\t% 3d %-10s %-10s\n", int(nid.get()), HEALTH[ns.health], MODES[ns.mode]);
@@ -1427,15 +1426,12 @@ int uavcan_main(int argc, char *argv[])
 			if (hardpoint_id >= 0 && hardpoint_id < 256 &&
 			    command >= 0 && command < 65536) {
 				inst->hardpoint_controller_set((uint8_t) hardpoint_id, (uint16_t) command);
-
 			} else {
 				errx(1, "Invalid argument");
 			}
-
 		} else {
 			errx(1, "Invalid hardpoint command");
 		}
-
 		::exit(0);
 	}
 
@@ -1447,12 +1443,10 @@ int uavcan_main(int argc, char *argv[])
 			/* Let's recover any memory we can */
 
 			inst->shrink();
-
 			if (rv < 0) {
 				warnx("Firmware Server Failed to Stop %d", rv);
 				::exit(rv);
 			}
-
 			::exit(0);
 
 		} else {

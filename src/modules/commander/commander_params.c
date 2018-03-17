@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * override request by the pilot.
  *
  * @group Commander
- * @unit %
+ # @unit %
  * @min 5
  * @max 40
  * @decimal 0
@@ -370,7 +370,6 @@ PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
- * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
 
@@ -394,7 +393,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
- * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
 
@@ -418,7 +416,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
- * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
 
@@ -442,7 +439,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
- * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
 
@@ -466,7 +462,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
- * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 
@@ -490,7 +485,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
- * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
 
@@ -588,7 +582,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_ACC, 0.7f);
  * @decimal 3
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
+PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.2f);
 
 /**
  * Enable RC stick override of auto modes
@@ -620,58 +614,3 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
-
-/**
- * Arm authorization parameters, this uint32_t will be splitted between starting from the LSB:
- * - 8bits to authorizer system id
- * - 16bits to authentication method parameter, this will be used to store a timeout for the first 2 methods but can be used to another parameter for other new authentication methods.
- * - 7bits to authentication method
- * 		- one arm = 0
- * 		- two step arm = 1
- * * the MSB bit is not used to avoid problems in the conversion between int and uint
- *
- * Default value: (10 << 0 | 1000 << 8 | 0 << 24) = 256010
- * - authorizer system id = 10
- * - authentication method parameter = 10000msec of timeout
- * - authentication method = during arm
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
-
-/**
- * Loss of position failsafe activation delay.
- *
- * This sets number of seconds that the position checks need to be failed before the failsafe will activate.
- * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5 and 10 should be used.
- *
- * @unit sec
- * @reboot_required true
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
-
-/**
- * Loss of position probation delay at takeoff.
- *
- * The probation delay is the number of seconds that the EKF innovation checks need to pass for the position to be declared good after it has been declared bad.
- * The probation delay will be reset to this parameter value when takeoff is detected.
- * After takeoff, if position checks are passing, the probation delay will reduce by one second for every lapsed second of valid position down to a minimum of 1 second.
- * If position checks are failing, the probation delay will increase by COM_POS_FS_GAIN seconds for every lapsed second up to a maximum of 100 seconds.
- * The default value has been optimised for rotary wing applications. For fixed wing applications, a value of 1 should be used.
- *
- * @unit sec
- * @reboot_required true
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30);
-
-/**
- * Loss of position probation gain factor.
- *
- * This sets the rate that the loss of position probation time grows when position checks are failing.
- * The default value has been optimised for rotary wing applications. For fixed wing applications a value of 0 should be used.
- *
- * @reboot_required true
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);

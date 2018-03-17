@@ -43,9 +43,8 @@
 #include <sys/ioctl.h>
 #include <arch/irq.h>
 
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
+#include <stdlib.h>
+#include <stdio.h>
 
 #ifdef CONFIG_DISABLE_POLL
 # error This driver is not compatible with CONFIG_DISABLE_POLL

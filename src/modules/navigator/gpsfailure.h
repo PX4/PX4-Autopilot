@@ -47,6 +47,9 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 
+#include <drivers/drv_hrt.h>
+
+#include "navigator_mode.h"
 #include "mission_block.h"
 
 class Navigator;
@@ -55,11 +58,14 @@ class GpsFailure : public MissionBlock
 {
 public:
 	GpsFailure(Navigator *navigator, const char *name);
-	~GpsFailure() = default;
 
-	void on_inactive() override;
-	void on_activation() override;
-	void on_active() override;
+	~GpsFailure();
+
+	virtual void on_inactive();
+
+	virtual void on_activation();
+
+	virtual void on_active();
 
 private:
 	/* Params */
@@ -73,11 +79,9 @@ private:
 		GPSF_STATE_LOITER = 1,
 		GPSF_STATE_TERMINATE = 2,
 		GPSF_STATE_END = 3,
-	} _gpsf_state{GPSF_STATE_NONE};
+	} _gpsf_state;
 
-	hrt_abstime _timestamp_activation{0}; //*< timestamp when this mode was activated */
-
-	orb_advert_t	_att_sp_pub{nullptr};
+	hrt_abstime _timestamp_activation; //*< timestamp when this mode was activated */
 
 	/**
 	 * Set the GPSF item
