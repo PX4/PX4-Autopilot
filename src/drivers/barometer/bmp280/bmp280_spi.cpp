@@ -87,10 +87,10 @@ bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint8_t device, bool exter
 	return new BMP280_SPI(busnum, device, external);
 }
 
-BMP280_SPI::BMP280_SPI(uint8_t bus, uint32_t device, bool external) :
+BMP280_SPI::BMP280_SPI(uint8_t bus, uint32_t device, bool externalL) :
 	SPI("BMP280_SPI", nullptr, bus, device, SPIDEV_MODE3, 10 * 1000 * 1000)
 {
-	_external = external;
+	_external = externalL;
 }
 
 bool BMP280_SPI::is_external()
