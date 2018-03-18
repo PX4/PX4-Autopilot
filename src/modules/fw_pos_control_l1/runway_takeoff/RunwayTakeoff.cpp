@@ -48,6 +48,8 @@
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 
+using matrix::Vector2f;
+
 namespace runwaytakeoff
 {
 
@@ -271,7 +273,7 @@ float RunwayTakeoff::getMaxPitch(float max)
 /*
  * Returns the "previous" (start) WP for navigation.
  */
-math::Vector<2> RunwayTakeoff::getStartWP()
+Vector2f RunwayTakeoff::getStartWP()
 {
 	return _start_wp;
 }

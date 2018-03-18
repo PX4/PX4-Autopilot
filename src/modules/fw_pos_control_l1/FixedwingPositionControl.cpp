@@ -356,11 +356,9 @@ FixedwingPositionControl::vehicle_attitude_poll()
 	}
 
 	/* set rotation matrix and euler angles */
-	math::Quaternion q_att(_att.q);
-	_R_nb = q_att.to_dcm();
+	_R_nb = Quatf(_att.q);
 
-	math::Vector<3> euler_angles;
-	euler_angles = _R_nb.to_euler();
+	Eulerf euler_angles(_R_nb);
 	_roll    = euler_angles(0);
 	_pitch   = euler_angles(1);
 	_yaw     = euler_angles(2);
@@ -432,13 +430,13 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 }
 
 void
-FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &curr_pos,
-		const math::Vector<2> &ground_speed,
+FixedwingPositionControl::calculate_gndspeed_undershoot(const Vector2f &curr_pos,
+		const Vector2f &ground_speed,
 		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	if (pos_sp_curr.valid && !_l1_control.circle_mode()) {
 		/* rotate ground speed vector with current attitude */
-		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
+		Vector2f yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
 		yaw_vector.normalize();
 		float ground_speed_body = yaw_vector * ground_speed;
 
@@ -625,7 +623,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 }
 
 bool
-FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
+FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vector2f &ground_speed,
 		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	float dt = 0.01f;
@@ -651,8 +649,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 	// l1 navigation logic breaks down when wind speed exceeds max airspeed
 	// compute 2D groundspeed from airspeed-heading projection
-	math::Vector<2> air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
-	math::Vector<2> nav_speed_2d{0.0f, 0.0f};
+	Vector2f air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
+	Vector2f nav_speed_2d{0.0f, 0.0f};
 
 	// angle between air_speed_2d and ground_speed
 	float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
@@ -704,7 +702,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		_tecs.set_speed_weight(_parameters.speed_weight);
 
 		/* current waypoint (the one currently heading for) */
-		math::Vector<2> curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
+		Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
 
 		/* Initialize attitude controller integrator reset flags to 0 */
 		_att_sp.roll_reset_integral = false;
@@ -712,7 +710,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		_att_sp.yaw_reset_integral = false;
 
 		/* previous waypoint */
-		math::Vector<2> prev_wp{0.0f, 0.0f};
+		Vector2f prev_wp{0.0f, 0.0f};
 
 		if (pos_sp_prev.valid) {
 			prev_wp(0) = (float)pos_sp_prev.lat;
@@ -908,8 +906,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 					get_waypoint_heading_distance(_hdg_hold_yaw, _hdg_hold_prev_wp, _hdg_hold_curr_wp, false);
 				}
 
-				math::Vector<2> prev_wp{(float)_hdg_hold_prev_wp.lat, (float)_hdg_hold_prev_wp.lon};
-				math::Vector<2> curr_wp{(float)_hdg_hold_curr_wp.lat, (float)_hdg_hold_curr_wp.lon};
+				Vector2f prev_wp{(float)_hdg_hold_prev_wp.lat, (float)_hdg_hold_prev_wp.lon};
+				Vector2f curr_wp{(float)_hdg_hold_curr_wp.lat, (float)_hdg_hold_curr_wp.lon};
 
 				/* populate l1 control setpoint */
 				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
@@ -1058,12 +1056,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 }
 
 void
-FixedwingPositionControl::control_takeoff(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
+FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector2f &ground_speed,
 		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	/* current waypoint (the one currently heading for) */
-	math::Vector<2> curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
-	math::Vector<2> prev_wp{0.0f, 0.0f}; /* previous waypoint */
+	Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
+	Vector2f prev_wp{0.0f, 0.0f}; /* previous waypoint */
 
 	if (pos_sp_prev.valid) {
 		prev_wp(0) = (float)pos_sp_prev.lat;
@@ -1224,12 +1222,12 @@ FixedwingPositionControl::control_takeoff(const math::Vector<2> &curr_pos, const
 }
 
 void
-FixedwingPositionControl::control_landing(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
+FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector2f &ground_speed,
 		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	/* current waypoint (the one currently heading for) */
-	math::Vector<2> curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
-	math::Vector<2> prev_wp{0.0f, 0.0f}; /* previous waypoint */
+	Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
+	Vector2f prev_wp{0.0f, 0.0f}; /* previous waypoint */
 
 	if (pos_sp_prev.valid) {
 		prev_wp(0) = (float)pos_sp_prev.lat;
@@ -1637,8 +1635,8 @@ FixedwingPositionControl::run()
 			vehicle_land_detected_poll();
 			vehicle_status_poll();
 
-			math::Vector<2> curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
-			math::Vector<2> ground_speed(_global_pos.vel_n, _global_pos.vel_e);
+			Vector2f curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
+			Vector2f ground_speed(_global_pos.vel_n, _global_pos.vel_e);
 
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
@@ -1694,7 +1692,7 @@ FixedwingPositionControl::run()
 					_fw_pos_ctrl_status.target_bearing = _l1_control.target_bearing();
 					_fw_pos_ctrl_status.xtrack_error = _l1_control.crosstrack_error();
 
-					math::Vector<2> curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
+					Vector2f curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
 
 					_fw_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(curr_pos(0), curr_pos(1), curr_wp(0), curr_wp(1));
 
@@ -1829,15 +1827,13 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 	// between multirotor and fixed wing flight
 	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		math::Matrix<3, 3> R_offset;
-		R_offset.from_euler(0, M_PI_2_F, 0);
-		math::Matrix<3, 3> R_fixed_wing = _R_nb * R_offset;
-		math::Vector<3> euler = R_fixed_wing.to_euler();
+		Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
+		Eulerf euler = Eulerf(_R_nb * R_offset);
 		pitch_for_tecs = euler(1);
 	}
 
 	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_sub_sensors.get().accel_x, _sub_sensors.get().accel_y, _sub_sensors.get().accel_z);
+	Vector3f accel_body(_sub_sensors.get().accel_x, _sub_sensors.get().accel_y, _sub_sensors.get().accel_z);
 
 	// tailsitters use the multicopter frame as reference, in fixed wing
 	// we need to use the fixed wing frame
