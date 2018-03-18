@@ -288,6 +288,29 @@ public:
         *this = (*this) - scalar;
     }
 
+    bool operator==(const Matrix<Type, M, N> &other) const
+    {
+        const Matrix<Type, M, N> &self = *this;
+
+        // TODO: set this based on Type
+        static constexpr float eps = 1e-4f;
+
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                if (fabs(self(i, j) - other(i, j) > eps) ) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    bool operator!=(const Matrix<Type, M, N> &other) const
+    {
+        const Matrix<Type, M, N> &self = *this;
+        return !(self == other);
+    }
 
     /**
      * Misc. Functions
