@@ -18,7 +18,6 @@
 #
 sercon
 
-set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
 set DATAMAN_OPT -r
 
@@ -38,7 +37,6 @@ else
 			unset DATAMAN_OPT
 		else
 			echo "ERROR [init] Format failed"
-			tone_alarm MNBG
 			set LOG_FILE /dev/null
 		fi
 	else
@@ -64,9 +62,7 @@ param select $PARAM_FILE
 if param load
 then
 else
-	if param reset
-	then
-	fi
+	param reset
 fi
 
 tone_alarm start
@@ -74,13 +70,9 @@ tone_alarm start
 #
 # Start system state indicator
 #
-if rgbled_pwm start
-then
-fi
+rgbled_pwm start
 
-if rgbled start
-then
-fi
+rgbled start
 
 #
 # Set parameters and env variables for selected AUTOSTART
@@ -335,9 +327,7 @@ unset OUTPUT_MODE
 #
 # Start the RC input driver
 #
-if fmu mode_pwm1
-then
-fi
+fmu mode_pwm1
 
 #
 # Use 400 Hz PWM output for landing gear (frequency also affects RGB LED)
@@ -352,13 +342,7 @@ mixer load /dev/px4fmu /etc/mixers/gear.mix
 #
 # Start the navigator
 #
-if navigator start
-then
-fi
-
-# There is no further script processing, so we can free some RAM
-# XXX potentially unset all script variables.
-unset TUNE_ERR
+navigator start
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete

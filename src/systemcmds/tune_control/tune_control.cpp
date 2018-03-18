@@ -97,6 +97,7 @@ tune_control_main(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 	unsigned int value;
 	tune_control_s tune_control = {};
+	tune_control.timestamp = hrt_absolute_time();
 	tune_control.tune_id = 0;
 	tune_control.strength = tune_control_s::STRENGTH_NORMAL;
 
@@ -120,7 +121,18 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 't':
-			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
+
+			tune_string = myoptarg;
+
+			if (!strcmp(tune_string, "startup")) {
+				value = tune_control_s::TUNE_ID_STARTUP;
+
+			} else if (!strcmp(tune_string, "error")) {
+				value = tune_control_s::TUNE_ID_ERROR_SEVERE;
+
+			} else {
+				value = (uint8_t)(strtol(myoptarg, nullptr, 0));
+			}
 
 			if (value > 0 && value < tunes.get_default_tunes_size()) {
 				tune_control.tune_id = value;
@@ -168,19 +180,22 @@ tune_control_main(int argc, char *argv[])
 		return 1;
 	}
 
-	unsigned frequency, duration, silence;
+	uint16_t frequency = 0;
+	uint32_t duration = 0;
+	uint32_t silence = 0;
 	int exit_counter = 0;
 
 	if (!strcmp(argv[myoptind], "play")) {
 		if (string_input) {
+
 			PX4_INFO("Start playback...");
 			tunes.set_string(tune_string);
 
 			while (tunes.get_next_tune(frequency, duration, silence) > 0) {
 				tune_control.tune_id = 0;
-				tune_control.frequency = (uint16_t)frequency;
-				tune_control.duration = (uint32_t)duration;
-				tune_control.silence = (uint32_t)silence;
+				tune_control.frequency = frequency;
+				tune_control.duration = duration;
+				tune_control.silence = silence;
 				publish_tune_control(tune_control);
 				usleep(duration + silence);
 				exit_counter++;
@@ -198,7 +213,6 @@ tune_control_main(int argc, char *argv[])
 				tune_control.tune_id = 1;
 			}
 
-			PX4_INFO("Publishing standard tune %d", tune_control.tune_id);
 			publish_tune_control(tune_control);
 		}
 

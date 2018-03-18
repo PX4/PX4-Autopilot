@@ -51,7 +51,6 @@ ver all
 #
 set MODE autostart
 
-set TUNE_ERR "ML<<CP4CP4CP4CP4CP4"
 set LOG_FILE /fs/microsd/bootlog.txt
 
 #
@@ -62,15 +61,12 @@ if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	if hardfault_log check
 	then
-		tone_alarm error
 		if hardfault_log commit
 		then
 			hardfault_log reset
-			tone_alarm stop
 		fi
 	fi
 else
-	tone_alarm MBAGP
 	if mkfatfs /dev/mmcsd0
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
@@ -78,7 +74,6 @@ else
 			echo "INFO  [init] card formatted"
 		else
 			echo "ERROR [init] format failed"
-			tone_alarm MNBG
 			set LOG_FILE /dev/null
 		fi
 	else
@@ -110,7 +105,7 @@ then
 	tone_alarm start
 
 	# play startup tone
-	tune_control play -t 1
+	tune_control play -t startup
 
 	#
 	# Load parameters
@@ -125,9 +120,7 @@ then
 	if param load
 	then
 	else
-		if param reset
-		then
-		fi
+		param reset
 	fi
 
 	#
@@ -155,16 +148,6 @@ then
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
-
-		#
-		# Release 1.4.0 transitional support:
-		# set to old default if unconfigured.
-		# this preserves the previous behaviour
-		#
-		if param compare BAT_N_CELLS 0
-		then
-			param set BAT_N_CELLS 3
-		fi
 	fi
 
 	#
@@ -312,7 +295,7 @@ then
 			then
 				set IO_PRESENT yes
 			else
-				tone_alarm MLL32CP8MB
+				tune_control play -m MLL32CP8MB
 
 				if px4io start
 				then
@@ -332,16 +315,16 @@ then
 					if px4io checkcrc ${IO_FILE}
 					then
 						echo "PX4IO CRC OK after updating" >> $LOG_FILE
-						tone_alarm MLL8CDE
+						tune_control play -m MLL8CDE
 
 						set IO_PRESENT yes
 					else
 						echo "PX4IO update failed" >> $LOG_FILE
-						tone_alarm ${TUNE_ERR}
+						tune_control play -t error
 					fi
 				else
 					echo "PX4IO update failed" >> $LOG_FILE
-					tune_control play -m ${TUNE_ERR}
+					tune_control play -t error
 				fi
 			fi
 		fi
@@ -350,7 +333,7 @@ then
 		if [ $IO_PRESENT == no ]
 		then
 			echo "PX4IO not found" >> $LOG_FILE
-			tune_control play -m ${TUNE_ERR}
+			tune_control play -t error
 		fi
 	fi
 
@@ -467,7 +450,7 @@ then
 				sh /etc/init.d/rc.io
 			else
 				echo "PX4IO start failed" >> $LOG_FILE
-				tune_control play -m  ${TUNE_ERR}
+				tune_control play -t error
 			fi
 		fi
 
@@ -477,7 +460,7 @@ then
 			then
 			else
 				echo "FMU start failed" >> $LOG_FILE
-				tune_control play -m ${TUNE_ERR}
+				tune_control play -t error
 			fi
 		fi
 
@@ -496,7 +479,7 @@ then
 			if mkblctrl $MKBLCTRL_ARG
 			then
 			else
-				tune_control play -m ${TUNE_ERR}
+				tune_control play -t error
 			fi
 			unset MKBLCTRL_ARG
 		fi
@@ -507,7 +490,7 @@ then
 			if pwm_out_sim start
 			then
 			else
-				tune_control play -m ${TUNE_ERR}
+				tune_control play -t error
 			fi
 		fi
 
@@ -523,7 +506,7 @@ then
 					sh /etc/init.d/rc.io
 				else
 					echo "PX4IO start failed" >> $LOG_FILE
-					tune_control play -m ${TUNE_ERR}
+					tune_control play -t error
 				fi
 			fi
 		else
@@ -533,7 +516,7 @@ then
 				then
 				else
 					echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
-					tune_control play -m ${TUNE_ERR}
+					tune_control play -t error
 				fi
 			fi
 		fi
@@ -697,7 +680,7 @@ then
 				uavcan start fw
 			fi
 		else
-			tone_alarm ${TUNE_ERR}
+			tune_control play -t error
 		fi
 	fi
 
@@ -917,11 +900,9 @@ then
 			if [ $LOG_FILE == /dev/null ]
 			then
 				# Play SOS
-				tone_alarm error
+				tune_control play -t error
 			fi
-
 		fi
-
 	fi
 
 	#
@@ -954,19 +935,13 @@ then
 	if param compare MNT_MODE_IN -1
 	then
 	else
-		if vmount start
-		then
-		fi
+		vmount start
 	fi
 
 	sh /etc/init.d/rc.logging
 
 # End of autostart
 fi
-
-# There is no further script processing, so we can free some RAM
-# XXX potentially unset all script variables.
-unset TUNE_ERR
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete

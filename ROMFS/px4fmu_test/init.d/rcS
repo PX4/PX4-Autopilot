@@ -31,7 +31,7 @@ then
 else
 	echo "[i] no microSD card found"
 	# Play SOS
-	tone_alarm error
+	tune_control play -t error
 fi
 
 #
@@ -78,22 +78,22 @@ then
 	echo "PX4IO CRC OK"
 else
 	echo "PX4IO CRC failure"
-	tone_alarm MBABGP
+	tune_control play -m MBABGP
 	if px4io forceupdate 14662 $io_file
 	then
 		if px4io start
 		then
 			echo "PX4IO restart OK"
-			tone_alarm MSPAA
+			tune_control play -m MSPAA
 		else
 			echo "PX4IO restart failed"
-			tone_alarm MNGGG
+			tune_control play -m MNGGG
 			set unit_test_failure 1
 			set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 		fi
 	else
 		echo "PX4IO update failed"
-		tone_alarm MNGGG
+		tune_control play -m MNGGG
 		set unit_test_failure 1
 		set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 	fi

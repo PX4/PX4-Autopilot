@@ -49,11 +49,10 @@
 #define BEAT_TIME_CONVERSION_US BEAT_TIME_CONVERSION_MS * 1000
 #define BEAT_TIME_CONVERSION BEAT_TIME_CONVERSION_US
 
-// semitone offsets from C for the characters 'A'-'G'
-const uint8_t Tunes::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
+constexpr const char *Tunes::_default_tunes[];
+constexpr uint8_t Tunes::_note_tab[];
 
-Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_note_length,
-	     NoteMode default_mode):
+Tunes::Tunes(uint8_t default_tempo, uint8_t default_octave, uint8_t default_note_length, NoteMode default_mode):
 	_default_tempo(default_tempo),
 	_default_note_length(default_note_length),
 	_default_mode(default_mode),
@@ -89,10 +88,10 @@ int Tunes::set_control(const tune_control_s &tune_control)
 {
 	bool reset_playing_tune = false;
 
-	if (tune_control.tune_id < _default_tunes_size) {
+	if (tune_control.tune_id < get_default_tunes_size()) {
 		switch (tune_control.tune_id) {
 		case tune_control_s::TUNE_ID_CUSTOM:
-			_frequency = (unsigned)tune_control.frequency;
+			_frequency = tune_control.frequency;
 			_duration = (unsigned)tune_control.duration;
 			_silence = (unsigned)tune_control.silence;
 			_using_custom_msg = true;
@@ -120,7 +119,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 
 			// TODO: come up with a better strategy
 			if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
-				_tune = _default_tunes[tune_control.tune_id];
+				_tune = Tunes::_default_tunes[tune_control.tune_id];
 				_tune_start_ptr = _default_tunes[tune_control.tune_id];
 				_next = _tune;
 			}
@@ -146,7 +145,7 @@ void Tunes::set_string(const char *string)
 	}
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence)
+int Tunes::get_next_tune(uint16_t &frequency, uint32_t &duration, uint32_t &silence)
 {
 	// Return the vaules for frequency and duration if the custom msg was received
 	if (_using_custom_msg) {
@@ -348,13 +347,13 @@ tune_end:
 	}
 }
 
-unsigned Tunes::note_to_frequency(unsigned note)
+uint32_t Tunes::note_to_frequency(uint8_t note)
 {
 	// compute the frequency (Hz)
 	return (unsigned)(880.0f * powf(2.0f, ((int)note - 46) / 12.0f));
 }
 
-unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
+uint32_t Tunes::note_duration(uint32_t &silence, uint8_t note_length, uint8_t dots)
 {
 	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
 
@@ -391,7 +390,7 @@ unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned 
 	return note_period;
 }
 
-unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots)
+uint32_t Tunes::rest_duration(uint32_t rest_length, uint8_t dots)
 {
 	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
 
@@ -420,7 +419,7 @@ int Tunes::next_char()
 	return toupper(*_next);
 }
 
-unsigned Tunes::next_number()
+uint8_t Tunes::next_number()
 {
 	unsigned number = 0;
 	int c;
@@ -437,7 +436,7 @@ unsigned Tunes::next_number()
 	}
 }
 
-unsigned Tunes::next_dots()
+uint8_t Tunes::next_dots()
 {
 	unsigned dots = 0;
 

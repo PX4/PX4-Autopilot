@@ -26,9 +26,9 @@ then
 	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix ]
 	then
 		set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix
-	# Try out the old convention, for backward compatibility
+	
 	else
-
+		# Try out the old convention, for backward compatibility
 		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.mix ]
 		then
 			set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.mix
@@ -60,7 +60,7 @@ then
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		tune_control play -t error
 	fi
 
 	unset MIXER_FILE
@@ -69,7 +69,7 @@ else
 	then
 		echo "ERROR  [init] Mixer undefined"
 		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		tune_control play -t error
 	fi
 fi
 
@@ -138,7 +138,6 @@ then
 	then
 		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
 	else
-
 		if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
 		then
 			set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
@@ -175,7 +174,7 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
-			tone_alarm ${TUNE_ERR}
+			tune_control play -t error
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi
