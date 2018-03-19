@@ -69,7 +69,7 @@ bool FlightTaskAutoLine::update()
 	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
 	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position;
 
-	/* 1st time that vehicle starts to follow line. Reset all setpoints to current vehicle state */
+	/* 1st time that vehicle starts to follow line. Reset all setpoints to current vehicle state. */
 	if (follow_line && !follow_line_prev) {
 		_reset();
 	}
@@ -100,8 +100,8 @@ bool FlightTaskAutoLine::update()
 
 	/* For now yaw setpoint comes directly form triplets.
 	 * TODO: In the future, however, yaw should be set in this
-	 * task based on flag: yaw along path, yaw along gimbal, yaw
-	 * same as during home... */
+	 * task based on flag: yaw along path, yaw based on gimbal, yaw
+	 * same as home yaw ... */
 	_yaw_setpoint = _yaw_wp;
 
 	/* Update previous type */

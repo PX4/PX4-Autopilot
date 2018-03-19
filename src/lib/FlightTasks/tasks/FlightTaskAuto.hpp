@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,9 @@
 #include <uORB/topics/position_setpoint.h>
 #include <lib/geo/geo.h>
 
-/* This enum has to agree with position_setpoint_s type definition */
+/* This enum has to agree with position_setpoint_s type definition
+ * The only reason for not using the struct position_setpoint is because
+ * of the size */
 enum class WaypointType : int {
 	position = 0,
 	velocity,
@@ -69,27 +71,24 @@ public:
 	bool updateInitialize() override;
 
 protected:
-
-	matrix::Vector3f _prev_prev_wp{}; /**< Triplet previous-previous triplet. This will be used for smoothing trajectories -> not used yet. */
-	matrix::Vector3f _prev_wp{}; /**< Triplet previous setpoint in local frame. If not previous triplet is available, the prev_wp is set to current position. */
-	matrix::Vector3f _target{}; /**< Triplet target setpoint in local frame. */
-	matrix::Vector3f _next_wp{}; /**< Triplet setpoint in local frame. If no next setpoint is available, next is set to target. */
-	float _yaw_wp{0.0f}; /**< Triplet yaw waypoint. Unfortunately navigator sends yaw setpoint continuously. It would be better if a yaw setpoint is attached
-	to triplet waypoint. This way it would be easy for multicopter to implement features where yaw does not matter. */
-	float _mc_cruise_speed{0.0f}; /**< Cruise speed with which multicopter flies and gets set by triplet. If no valid, default cruise speed is used. */
+	matrix::Vector3f _prev_prev_wp{}; /**< Pre-previous waypoint (local frame). This will be used for smoothing trajectories -> not used yet. */
+	matrix::Vector3f _prev_wp{}; /**< Previous waypoint  (local frame). If no previous triplet is available, the prev_wp is set to current position. */
+	matrix::Vector3f _target{}; /**< Target waypoint  (local frame).*/
+	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
+	float _yaw_wp{0.0f}; /**< Triplet yaw waypoint. Currently it is not a yaw-waypoint, but rather a yaw setpoint at each time stamp. */
+	float _mc_cruise_speed{0.0f}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 private:
-	control::BlockParamFloat _mc_cruise_default; /**< Default mc cruise speed*/
-	map_projection_reference_s _reference; /**< Reference frame from global to local */
+	control::BlockParamFloat _mc_cruise_default; /**< Default mc cruise speed.*/
+	map_projection_reference_s _reference; /**< Reference frame from global to local. */
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
-	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame */
-	float _reference_altitude = 0.0f;  /**< Altitude relative to ground */
-	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update */
+	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
+	float _reference_altitude = 0.0f;  /**< Altitude relative to ground. */
+	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update occured. */
 
-	bool _evaluateTriplets(); /**< Checks and sets triplets */
-	bool _isFinite(const position_setpoint_s sp);
-	void _updateReference();
-
-	void _evaluateVehicleGlobalPosition(); /**< Required for reference update */
+	bool _evaluateTriplets(); /**< Checks and sets triplets. */
+	bool _isFinite(const position_setpoint_s sp); /**< Checks if all waypoint triplets are finite. */
+	void _updateReference(); /**< Updates the local reference. */
+	void _evaluateVehicleGlobalPosition(); /**< Checks if global position is valid. */
 };
