@@ -38,5 +38,5 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 		git_ecl
-		lib__ecl
+		ecl
 	)

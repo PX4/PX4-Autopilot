@@ -42,7 +42,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <unistd.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>

@@ -37,7 +37,7 @@
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_wheel_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <px4_config.h>
 #include <px4_defines.h>

@@ -41,7 +41,7 @@
 
 #include "common.h"
 #include <drivers/drv_hrt.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
 

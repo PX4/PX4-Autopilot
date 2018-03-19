@@ -69,7 +69,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <dataman/dataman.h>
 #include <version/version.h>
 

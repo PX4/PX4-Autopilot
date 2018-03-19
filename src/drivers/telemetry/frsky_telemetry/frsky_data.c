@@ -48,7 +48,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <arch/math.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <stdbool.h>
 
 #include <uORB/topics/battery_status.h>

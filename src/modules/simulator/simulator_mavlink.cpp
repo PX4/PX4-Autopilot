@@ -38,7 +38,7 @@
 #include "simulator.h"
 #include <simulator_config.h>
 #include "errno.h"
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <drivers/drv_pwm_output.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

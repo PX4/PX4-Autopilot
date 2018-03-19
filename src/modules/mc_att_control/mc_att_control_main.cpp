@@ -47,7 +47,7 @@
 
 #include <conversion/rotation.h>
 #include <drivers/drv_hrt.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <systemlib/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>

@@ -37,7 +37,7 @@
  */
 
 #include "terrain_estimator.h"
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 
 #define DISTANCE_TIMEOUT 100000		// time in usec after which laser is considered dead
 
