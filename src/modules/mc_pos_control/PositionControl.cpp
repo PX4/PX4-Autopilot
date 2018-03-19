@@ -95,11 +95,11 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 	 * controller and just return thrust.
 	 */
 	_skipController = false;
-	_ThrLimit[1] = _ThrMinPosition;
+	_ThrustLimit.min = _ThrMinPosition;
 
 	if (PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1]) && PX4_ISFINITE(setpoint.thrust[2])) {
 		_skipController = true;
-		_ThrLimit[1] = _ThrMinStab;
+		_ThrustLimit.min = _ThrMinStab;
 		_pos_sp.zero();
 		_vel_sp.zero();
 		_acc_sp.zero();
@@ -188,7 +188,7 @@ void PositionControl::_positionController()
 			     _VelMaxXY);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ[0], _VelMaxZ[1]);
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ.up, _VelMaxZ.down);
 }
 
 void PositionControl::_velocityController(const float &dt)
@@ -333,7 +333,7 @@ void PositionControl::_setParams()
 	param_get(_VelMaxZdown_h, &_VelMaxZ.down);
 
 	param_get(_ThrHover_h, &_ThrHover);
-	param_get(_ThrMax_h, &_ThrLimit[0]);
+	param_get(_ThrMax_h, &_ThrustLimit.max);
 	param_get(_ThrMinPosition_h, &_ThrMinPosition);
 	param_get(_ThrMinStab_h, &_ThrMinStab);
 }
