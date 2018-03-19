@@ -51,8 +51,8 @@ using math::min;
  * inertial nav data is not available. It also calculates a true airspeed derivative
  * which is used by the airspeed complimentary filter.
  */
-void TECS::update_vehicle_state_estimates(float airspeed, const math::Matrix<3, 3> &rotMat,
-		const math::Vector<3> &accel_body, bool altitude_lock, bool in_air,
+void TECS::update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &rotMat,
+		const matrix::Vector3f &accel_body, bool altitude_lock, bool in_air,
 		float altitude, bool vz_valid, float vz, float az)
 {
 
@@ -306,7 +306,7 @@ void TECS::_update_energy_estimates()
 	_SKE_rate = _tas_state * _speed_derivative;// kinetic energy rate of change
 }
 
-void TECS::_update_throttle_setpoint(const float throttle_cruise, const math::Matrix<3, 3> &rotMat)
+void TECS::_update_throttle_setpoint(const float throttle_cruise, const matrix::Dcmf &rotMat)
 {
 	// Calculate total energy error
 	_STE_error = _SPE_setpoint - _SPE_estimate + _SKE_setpoint - _SKE_estimate;
@@ -575,7 +575,7 @@ void TECS::_update_STE_rate_lim()
 	_STE_rate_min = - _min_sink_rate * CONSTANTS_ONE_G;
 }
 
-void TECS::update_pitch_throttle(const math::Matrix<3, 3> &rotMat, float pitch, float baro_altitude, float hgt_setpoint,
+void TECS::update_pitch_throttle(const matrix::Dcmf &rotMat, float pitch, float baro_altitude, float hgt_setpoint,
 				 float EAS_setpoint, float indicated_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
 				 float throttle_min, float throttle_max, float throttle_cruise, float pitch_limit_min, float pitch_limit_max)
 {
