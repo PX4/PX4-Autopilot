@@ -1529,13 +1529,11 @@ Commander::run()
 	if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 		// HIL configuration selected: real sensors will be disabled
 		status_flags.condition_system_sensors_initialized = false;
-		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	} else {
 			// sensor diagnostics done continuously, not just at boot so don't warn about any issues just yet
 			status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true,
 				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status_flags.circuit_breaker_engaged_gpsfailure_check,
 				false, is_vtol(&status), false, false, hrt_elapsed_time(&commander_boot_timestamp));
-			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
 	// user adjustable duration required to assert arm/disarm via throttle/rudder stick
