@@ -480,14 +480,7 @@ void FixedwingAttitudeControl::run()
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
 			/* get current rotation matrix and euler angles from control state quaternions */
-			math::Quaternion q_att(_att.q[0], _att.q[1], _att.q[2], _att.q[3]);
-			_R = q_att.to_dcm();
-
-			math::Vector<3> euler_angles;
-			euler_angles = _R.to_euler();
-			_roll    = euler_angles(0);
-			_pitch   = euler_angles(1);
-			_yaw     = euler_angles(2);
+			matrix::Dcmf R = matrix::Quatf(_att.q);
 
 			if (_vehicle_status.is_vtol && _parameters.vtol_type == vtol_type::TAILSITTER) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
@@ -506,35 +499,33 @@ void FixedwingAttitudeControl::run()
 				 * Rxy	Ryy  Rzy		-Rzy  Ryy  Rxy
 				 * Rxz	Ryz  Rzz		-Rzz  Ryz  Rxz
 				 * */
-				math::Matrix<3, 3> R_adapted = _R;		//modified rotation matrix
+				matrix::Dcmf R_adapted = R;		//modified rotation matrix
 
 				/* move z to x */
-				R_adapted(0, 0) = _R(0, 2);
-				R_adapted(1, 0) = _R(1, 2);
-				R_adapted(2, 0) = _R(2, 2);
+				R_adapted(0, 0) = R(0, 2);
+				R_adapted(1, 0) = R(1, 2);
+				R_adapted(2, 0) = R(2, 2);
 
 				/* move x to z */
-				R_adapted(0, 2) = _R(0, 0);
-				R_adapted(1, 2) = _R(1, 0);
-				R_adapted(2, 2) = _R(2, 0);
+				R_adapted(0, 2) = R(0, 0);
+				R_adapted(1, 2) = R(1, 0);
+				R_adapted(2, 2) = R(2, 0);
 
 				/* change direction of pitch (convert to right handed system) */
 				R_adapted(0, 0) = -R_adapted(0, 0);
 				R_adapted(1, 0) = -R_adapted(1, 0);
 				R_adapted(2, 0) = -R_adapted(2, 0);
-				euler_angles = R_adapted.to_euler();  //adapted euler angles for fixed wing operation
 
 				/* fill in new attitude data */
-				_R = R_adapted;
-				_roll    = euler_angles(0);
-				_pitch   = euler_angles(1);
-				_yaw     = euler_angles(2);
+				R = R_adapted;
 
 				/* lastly, roll- and yawspeed have to be swaped */
 				float helper = _att.rollspeed;
 				_att.rollspeed = -_att.yawspeed;
 				_att.yawspeed = helper;
 			}
+
+			matrix::Eulerf euler_angles(R);
 
 			updateSubscriptions();
 			vehicle_setpoint_poll();
@@ -634,9 +625,9 @@ void FixedwingAttitudeControl::run()
 
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
-				control_input.roll = _roll;
-				control_input.pitch = _pitch;
-				control_input.yaw = _yaw;
+				control_input.roll = euler_angles.phi();
+				control_input.pitch = euler_angles.theta();
+				control_input.yaw = euler_angles.psi();
 				control_input.body_x_rate = _att.rollspeed;
 				control_input.body_y_rate = _att.pitchspeed;
 				control_input.body_z_rate = _att.yawspeed;

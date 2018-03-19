@@ -274,12 +274,6 @@ private:
 
 	} _parameter_handles{};		/**< handles for interesting parameters */
 
-	// Rotation matrix and euler angles to extract from control state
-	math::Matrix<3, 3> _R{};
-	float _roll{0.0f};
-	float _pitch{0.0f};
-	float _yaw{0.0f};
-
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
