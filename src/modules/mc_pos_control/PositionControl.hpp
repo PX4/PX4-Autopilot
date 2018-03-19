@@ -127,9 +127,8 @@ private:
 		float min;
 	};
 	Limits _ThrustLimit;
-	float _ThrHover{0.5f};
 
-	float _ThrLimit[2]; //index 0: max, index 1: min
+	float _ThrHover{0.5f};
 	float _ThrMinPosition{0.0f}; // minimum throttle for any position controlled mode
 	float _ThrMinStab{0.0f}; // minimum throttle for stabilized
 	bool _skipController{false};
