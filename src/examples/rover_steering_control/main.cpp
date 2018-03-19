@@ -63,7 +63,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <matrix/math.hpp>

@@ -4,7 +4,7 @@
 #include <px4_module_params.h>
 #include <controllib/blocks.hpp>
 #include <mathlib/mathlib.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <matrix/Matrix.hpp>
 
 // uORB Subscriptions
