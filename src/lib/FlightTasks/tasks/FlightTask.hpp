@@ -132,12 +132,6 @@ protected:
 	 */
 	void _resetSetpoints();
 
-	/**
-	 *  Vehicle local position subscription
-	 *  TODO: Implement a message that is smaller than the
-	 *  current vehicle local position message
-	 */
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-
 	bool _evaluateVehicleLocalPosition();
 };

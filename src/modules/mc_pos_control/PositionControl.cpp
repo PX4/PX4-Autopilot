@@ -227,10 +227,6 @@ void PositionControl::_velocityController(const float &dt)
 
 	Vector3f vel_err = _vel_sp - _vel;
 
-	/*
-	 * TODO: add offboard acceleration mode
-	 * */
-
 	/* Consider thrust in D-direction */
 	float thrust_desired_D = Pv(2) * vel_err(2) + Dv(2) * _vel_dot(2) + _thr_int(2) - _ThrHover;
 
