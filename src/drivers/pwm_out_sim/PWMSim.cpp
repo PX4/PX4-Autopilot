@@ -533,7 +533,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 int
 PWMSim::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("pwmsim",
+	_task_id = px4_task_spawn_cmd("pwm_out_sim",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 				      1100,
@@ -604,29 +604,23 @@ int PWMSim::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
+Driver for simulated PWM outputs.
 
-Driver/configurator for the virtual PWMSim port.
-
-This virtual driver emulates PWM / servo outputs for setups where
-the connected hardware does not provide enough or no PWM outputs.
-
-Its only function is to take actuator_control uORB messages,
+Its only function is to take `actuator_control` uORB messages,
 mix them with any loaded mixer and output the result to the
-actuator_output uORB topic. PWMSim can also be performed with normal
-PWM outputs, a special flag prevents the outputs to be operated
-during PWMSim mode. If PWMSim is not performed with a standalone FMU,
-but in a real system, it is NOT recommended to use this virtual
-driver. Use instead the normal FMU or IO driver.
+`actuator_output` uORB topic.
+
+It is used in SITL and HITL.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("pwmsim", "driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task (without any mode set, use any of the mode_* cmds)");
+	PRINT_MODULE_USAGE_NAME("pwm_out_sim", "driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task in mode_pwm16");
 
 	PRINT_MODULE_USAGE_PARAM_COMMENT("All of the mode_* commands will start the pwm sim if not running already");
 
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm");
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm16");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mode_pwm", "use 8 PWM outputs");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mode_pwm16", "use 16 PWM outputs");
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
