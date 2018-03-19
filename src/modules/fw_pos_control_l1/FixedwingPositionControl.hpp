@@ -237,7 +237,7 @@ private:
 
 	float _groundspeed_undershoot{0.0f};			///< ground speed error to min. speed in m/s
 
-	math::Matrix<3, 3> _R_nb;				///< current attitude
+	Dcmf _R_nb;				///< current attitude
 	float _roll{0.0f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
@@ -437,35 +437,25 @@ private:
 	 */
 	bool		update_desired_altitude(float dt);
 
-	bool		control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
-					 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-	void		control_takeoff(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
-					const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-	void		control_landing(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
-					const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	bool		control_position(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+					 const position_setpoint_s &pos_sp_curr);
+	void		control_takeoff(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+					const position_setpoint_s &pos_sp_curr);
+	void		control_landing(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+					const position_setpoint_s &pos_sp_curr);
 
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
 
 	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand);
-	void		calculate_gndspeed_undershoot(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
+	void		calculate_gndspeed_undershoot(const Vector2f &curr_pos, const Vector2f &ground_speed,
 			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * Handle incoming vehicle commands
 	 */
 	void		handle_command();
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main();
 
 	void		reset_takeoff_state();
 	void		reset_landing_state();
