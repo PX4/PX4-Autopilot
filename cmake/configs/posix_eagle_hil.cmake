@@ -41,8 +41,6 @@ set(config_module_list
 	lib/controllib
 	lib/mathlib
 	lib/ecl
-	lib/geo
-	lib/geo_lookup
 	lib/conversion
 	lib/version
 	lib/DriverFramework/framework

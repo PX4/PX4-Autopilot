@@ -69,7 +69,7 @@
 #include <uORB/topics/vehicle_status.h>
 
 #include <float.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
 

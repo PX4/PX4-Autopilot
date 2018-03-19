@@ -40,7 +40,8 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
+#include <lib/ecl/geo_lookup/geo_mag_declination.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <mathlib/mathlib.h>
 #include <px4_config.h>

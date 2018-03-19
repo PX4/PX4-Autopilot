@@ -64,7 +64,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
 

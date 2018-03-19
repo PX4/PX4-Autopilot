@@ -35,11 +35,11 @@ px4_add_module(
 	MAIN gnd_pos_control
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/lib/ecl
 	SRCS
 		GroundRoverPositionControl.cpp
 	DEPENDS
-		platforms__common
 		git_ecl
-		lib__ecl
+		ecl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

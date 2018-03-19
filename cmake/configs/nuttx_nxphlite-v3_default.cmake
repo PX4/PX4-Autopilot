@@ -131,8 +131,6 @@ set(config_module_list
 	#
 	lib/controllib
 	lib/ecl
-	lib/geo
-	lib/geo_lookup
 	lib/conversion
 	lib/led
 	lib/mathlib

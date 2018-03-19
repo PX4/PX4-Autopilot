@@ -57,7 +57,7 @@
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <ecl/tecs/tecs.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <px4_config.h>
 #include <px4_defines.h>

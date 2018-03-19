@@ -52,7 +52,7 @@
 #include <dataman/dataman.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <navigator/navigation.h>
 #include <uORB/uORB.h>

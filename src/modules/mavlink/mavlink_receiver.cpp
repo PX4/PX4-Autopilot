@@ -81,7 +81,7 @@
 #include <systemlib/err.h>
 #include <systemlib/airspeed.h>
 #include <commander/px4_custom_mode.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 
 #include <uORB/topics/vehicle_command_ack.h>
 

@@ -37,9 +37,11 @@ px4_add_module(
 		-Wno-sign-compare # TODO: fix all sign-compare
 	STACK_MAIN 2500
 	STACK_MAX 4000
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/lib/ecl
 	SRCS
 		ekf2_main.cpp
 	DEPENDS
-		platforms__common
 		git_ecl
+		ecl
 	)

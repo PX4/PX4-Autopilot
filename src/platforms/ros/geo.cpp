@@ -42,7 +42,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <px4.h>
 #include <unistd.h>
 #include <pthread.h>
