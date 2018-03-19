@@ -36,6 +36,7 @@
 
 #include <controllib/blocks.hpp>
 #include <px4_module.h>
+#include <px4_module_params.h>
 
 // publications
 #include <uORB/Publication.hpp>
@@ -55,19 +56,16 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-using control::BlockParamFloat;
-using control::BlockParamInt;
 using uORB::Publication;
 using uORB::Subscription;
 
-class Commander : public control::SuperBlock, public ModuleBase<Commander>
+class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
 	Commander() :
-		SuperBlock(nullptr, "COM"),
-		_mission_result_sub(ORB_ID(mission_result), 0, 0, &getSubscriptions())
+		ModuleParams(nullptr),
+		_mission_result_sub(ORB_ID(mission_result))
 	{
-		updateParams();
 	}
 
 	/** @see ModuleBase */
