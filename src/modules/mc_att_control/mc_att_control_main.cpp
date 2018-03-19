@@ -97,54 +97,13 @@ To reduce control latency, the module directly polls on the gyro topic published
 }
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
-
-	/* subscriptions */
-	_v_att_sub(-1),
-	_v_att_sp_sub(-1),
-	_v_control_mode_sub(-1),
-	_params_sub(-1),
-	_manual_control_sp_sub(-1),
-	_vehicle_status_sub(-1),
-	_motor_limits_sub(-1),
-	_battery_status_sub(-1),
-	_sensor_correction_sub(-1),
-	_sensor_bias_sub(-1),
-
-	/* gyro selection */
-	_gyro_count(1),
-	_selected_gyro(0),
-
-	/* publications */
-	_v_rates_sp_pub(nullptr),
-	_actuators_0_pub(nullptr),
-	_controller_status_pub(nullptr),
-	_rates_sp_id(nullptr),
-	_actuators_id(nullptr),
-
-	_actuators_0_circuit_breaker_enabled(false),
-
-	_v_att{},
-	_v_att_sp{},
-	_v_rates_sp{},
-	_manual_control_sp{},
-	_v_control_mode{},
-	_actuators{},
-	_vehicle_status{},
-	_battery_status{},
-	_sensor_gyro{},
-	_sensor_correction{},
-	_sensor_bias{},
-	_saturation_status{},
-	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 
 	_lp_filters_d{
 	{initial_update_rate_hz, 50.f},
 	{initial_update_rate_hz, 50.f},
-	{initial_update_rate_hz, 50.f}}, // will be initialized correctly when params are loaded
-
-_loop_update_rate_hz(initial_update_rate_hz)
+	{initial_update_rate_hz, 50.f}} // will be initialized correctly when params are loaded
 {
 	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) {
 		_sensor_gyro_sub[i] = -1;

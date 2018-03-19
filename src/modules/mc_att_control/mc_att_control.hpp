@@ -87,42 +87,42 @@ public:
 
 private:
 
-	int		_v_att_sub;		/**< vehicle attitude subscription */
-	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
-	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
-	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
-	int		_params_sub;			/**< parameter updates subscription */
-	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
-	int		_vehicle_status_sub;	/**< vehicle status subscription */
-	int		_motor_limits_sub;		/**< motor limits subscription */
-	int		_battery_status_sub;	/**< battery status subscription */
+	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
+	int		_v_att_sp_sub{-1};		/**< vehicle attitude setpoint subscription */
+	int		_v_rates_sp_sub{-1};		/**< vehicle rates setpoint subscription */
+	int		_v_control_mode_sub{-1};	/**< vehicle control mode subscription */
+	int		_params_sub{-1};		/**< parameter updates subscription */
+	int		_manual_control_sp_sub{-1};	/**< manual control setpoint subscription */
+	int		_vehicle_status_sub{-1};	/**< vehicle status subscription */
+	int		_motor_limits_sub{-1};		/**< motor limits subscription */
+	int		_battery_status_sub{-1};	/**< battery status subscription */
 	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
-	int		_sensor_correction_sub;	/**< sensor thermal correction subscription */
-	int		_sensor_bias_sub;	/**< sensor in-run bias correction subscription */
+	int		_sensor_correction_sub{-1};	/**< sensor thermal correction subscription */
+	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
 
-	unsigned _gyro_count;
-	int _selected_gyro;
+	unsigned _gyro_count{1};
+	int _selected_gyro{0};
 
-	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
-	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
-	orb_advert_t	_controller_status_pub;	/**< controller status publication */
+	orb_advert_t	_v_rates_sp_pub{nullptr};		/**< rate setpoint publication */
+	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
+	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
 
-	orb_id_t _rates_sp_id;	/**< pointer to correct rates setpoint uORB metadata structure */
-	orb_id_t _actuators_id;	/**< pointer to correct actuator controls0 uORB metadata structure */
+	orb_id_t _rates_sp_id{nullptr};		/**< pointer to correct rates setpoint uORB metadata structure */
+	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
 
-	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
+	bool		_actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 
-	struct vehicle_attitude_s		_v_att;			/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s	_v_att_sp;		/**< vehicle attitude setpoint */
-	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
-	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
-	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
-	struct actuator_controls_s		_actuators;		/**< actuator controls */
-	struct vehicle_status_s			_vehicle_status;	/**< vehicle status */
-	struct battery_status_s			_battery_status;	/**< battery status */
-	struct sensor_gyro_s			_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
-	struct sensor_correction_s		_sensor_correction;	/**< sensor thermal corrections */
-	struct sensor_bias_s			_sensor_bias;		/**< sensor in-run bias corrections */
+	struct vehicle_attitude_s		_v_att {};		/**< vehicle attitude */
+	struct vehicle_attitude_setpoint_s	_v_att_sp {};		/**< vehicle attitude setpoint */
+	struct vehicle_rates_setpoint_s		_v_rates_sp {};		/**< vehicle rates setpoint */
+	struct manual_control_setpoint_s	_manual_control_sp {};	/**< manual control setpoint */
+	struct vehicle_control_mode_s		_v_control_mode {};	/**< vehicle control mode */
+	struct actuator_controls_s		_actuators {};		/**< actuator controls */
+	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
+	struct battery_status_s			_battery_status {};	/**< battery status */
+	struct sensor_gyro_s			_sensor_gyro {};	/**< gyro data before thermal correctons and ekf bias estimates are applied */
+	struct sensor_correction_s		_sensor_correction {};	/**< sensor thermal corrections */
+	struct sensor_bias_s			_sensor_bias {};	/**< sensor in-run bias corrections */
 
 	MultirotorMixer::saturation_status _saturation_status{};
 
@@ -131,7 +131,7 @@ private:
 
 	math::LowPassFilter2p _lp_filters_d[3];                      /**< low-pass filters for D-term (roll, pitch & yaw) */
 	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
-	float _loop_update_rate_hz;                                  /**< current rate-controller loop update rate in [Hz] */
+	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
 	math::Vector<3>		_rates_prev;		/**< angular rates on previous step */
 	math::Vector<3>		_rates_prev_filtered;	/**< angular rates on previous step (low-pass filtered) */
