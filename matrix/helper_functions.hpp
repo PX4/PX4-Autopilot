@@ -2,6 +2,10 @@
 
 #include "math.hpp"
 
+#if defined (__PX4_NUTTX) || defined (__PX4_QURT)
+#include <px4_defines.h>
+#endif
+
 namespace matrix
 {
 
