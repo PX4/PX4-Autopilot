@@ -563,7 +563,7 @@ int PWMSim::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
-	/* start the FMU if not running */
+	/* start the task if not running */
 	if (!is_running()) {
 		int ret = PWMSim::task_spawn(argc, argv);
 
@@ -590,6 +590,8 @@ int PWMSim::custom_command(int argc, char *argv[])
 			/* (re)set the PWM output mode */
 			return object->set_mode(servo_mode);
 		}
+
+		return 0;
 	}
 
 	return print_usage("unknown command");
