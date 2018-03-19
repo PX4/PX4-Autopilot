@@ -1017,6 +1017,22 @@ MulticopterAttitudeControl::run()
 		perf_end(_loop_perf);
 	}
 
+	orb_unsubscribe(_v_att_sub);
+	orb_unsubscribe(_v_att_sp_sub);
+	orb_unsubscribe(_v_rates_sp_sub);
+	orb_unsubscribe(_v_control_mode_sub);
+	orb_unsubscribe(_params_sub);
+	orb_unsubscribe(_manual_control_sp_sub);
+	orb_unsubscribe(_vehicle_status_sub);
+	orb_unsubscribe(_motor_limits_sub);
+	orb_unsubscribe(_battery_status_sub);
+
+	for (unsigned s = 0; s < _gyro_count; s++) {
+		orb_unsubscribe(_sensor_gyro_sub[s]);
+	}
+
+	orb_unsubscribe(_sensor_correction_sub);
+	orb_unsubscribe(_sensor_bias_sub);
 }
 
 int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
