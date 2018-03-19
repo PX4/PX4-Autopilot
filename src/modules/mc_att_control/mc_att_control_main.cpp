@@ -35,60 +35,21 @@
  * @file mc_att_control_main.cpp
  * Multicopter attitude controller.
  *
- * Publication documenting this type of Quaternion Attitude Control:
- * Nonlinear Quadrocopter Attitude Control (2013)
- * by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
- * Institute for Dynamic Systems and Control (IDSC), ETH Zurich
- *
  * @author Lorenz Meier		<lorenz@px4.io>
  * @author Anton Babushkin	<anton.babushkin@me.com>
  * @author Sander Smeets	<sander@droneslab.com>
  * @author Matthias Grob	<maetugr@gmail.com>
+ * @author Beat Küng		<beat-kueng@gmx.net>
  *
- * The controller has two loops: P loop for angular error and PD loop for angular rate error.
- * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
- * For small deviations controller rotates copter to have shortest path of thrust vector and independently rotates around yaw,
- * so actual rotation axis is not constant. For large deviations controller rotates copter around fixed axis.
- * These two approaches fused seamlessly with weight depending on angular error.
- * When thrust vector directed near-horizontally (e.g. roll ~= PI/2) yaw setpoint ignored because of singularity.
- * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
- * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
+
+#include "mc_att_control.hpp"
 
 #include <conversion/rotation.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
-#include <lib/mathlib/mathlib.h>
-#include <lib/mixer/mixer.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/multirotor_motor_limits.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/rate_ctrl_status.h>
-#include <uORB/topics/sensor_bias.h>
-#include <uORB/topics/sensor_correction.h>
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
-
-/**
- * Multicopter attitude control app start / stop handling function
- *
- * @ingroup apps
- */
-extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MIN_TAKEOFF_THRUST    0.2f
 #define TPA_RATE_LOWER_LIMIT 0.05f
@@ -98,234 +59,44 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define AXIS_INDEX_YAW 2
 #define AXIS_COUNT 3
 
-#define MAX_GYRO_COUNT 3
-
 using namespace matrix;
 
-class MulticopterAttitudeControl
+
+int MulticopterAttitudeControl::print_usage(const char *reason)
 {
-public:
-	/**
-	 * Constructor
-	 */
-	MulticopterAttitudeControl();
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
 
-	/**
-	 * Destructor, also kills the main task
-	 */
-	~MulticopterAttitudeControl();
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+This implements the multicopter attitude and rate controller. It takes attitude
+setpoints (`vehicle_attitude_setpoint`) or rate setpoints (in acro mode
+via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
 
-	/**
-	 * Start the multicopter attitude control task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
+The controller has two loops: a P loop for angular error and a PID loop for angular rate error.
 
-private:
+Publication documenting the implemented Quaternion Attitude Control:
+Nonlinear Quadrocopter Attitude Control (2013)
+by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
+Institute for Dynamic Systems and Control (IDSC), ETH Zurich
 
-	bool	_task_should_exit;		/**< if true, task_main() should exit */
-	int		_control_task;			/**< task handle */
+https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf
 
-	int		_v_att_sub;		/**< vehicle attitude subscription */
-	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
-	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
-	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
-	int		_params_sub;			/**< parameter updates subscription */
-	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
-	int		_vehicle_status_sub;	/**< vehicle status subscription */
-	int		_motor_limits_sub;		/**< motor limits subscription */
-	int		_battery_status_sub;	/**< battery status subscription */
-	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
-	int		_sensor_correction_sub;	/**< sensor thermal correction subscription */
-	int		_sensor_bias_sub;	/**< sensor in-run bias correction subscription */
+### Implementation
+To reduce control latency, the module directly polls on the gyro topic published by the IMU driver.
 
-	unsigned _gyro_count;
-	int _selected_gyro;
+)DESCR_STR");
 
-	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
-	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
-	orb_advert_t	_controller_status_pub;	/**< controller status publication */
+	PRINT_MODULE_USAGE_NAME("mc_att_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-	orb_id_t _rates_sp_id;	/**< pointer to correct rates setpoint uORB metadata structure */
-	orb_id_t _actuators_id;	/**< pointer to correct actuator controls0 uORB metadata structure */
-
-	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
-
-	struct vehicle_attitude_s		_v_att;			/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s	_v_att_sp;		/**< vehicle attitude setpoint */
-	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
-	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
-	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
-	struct actuator_controls_s		_actuators;		/**< actuator controls */
-	struct vehicle_status_s			_vehicle_status;	/**< vehicle status */
-	struct battery_status_s			_battery_status;	/**< battery status */
-	struct sensor_gyro_s			_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
-	struct sensor_correction_s		_sensor_correction;	/**< sensor thermal corrections */
-	struct sensor_bias_s			_sensor_bias;		/**< sensor in-run bias corrections */
-
-	MultirotorMixer::saturation_status _saturation_status{};
-
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_controller_latency_perf;
-
-	math::LowPassFilter2p _lp_filters_d[3];                      /**< low-pass filters for D-term (roll, pitch & yaw) */
-	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
-	float _loop_update_rate_hz;                                  /**< current rate-controller loop update rate in [Hz] */
-
-	math::Vector<3>		_rates_prev;		/**< angular rates on previous step */
-	math::Vector<3>		_rates_prev_filtered;	/**< angular rates on previous step (low-pass filtered) */
-	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
-	math::Vector<3>		_rates_int;		/**< angular rates integral error */
-	float			_thrust_sp;		/**< thrust setpoint */
-	math::Vector<3>		_att_control;	/**< attitude control vector */
-
-	math::Matrix<3, 3>	_board_rotation = {};	/**< rotation matrix for the orientation that the board is mounted */
-
-	struct {
-		param_t roll_p;
-		param_t roll_rate_p;
-		param_t roll_rate_i;
-		param_t roll_rate_integ_lim;
-		param_t roll_rate_d;
-		param_t roll_rate_ff;
-		param_t pitch_p;
-		param_t pitch_rate_p;
-		param_t pitch_rate_i;
-		param_t pitch_rate_integ_lim;
-		param_t pitch_rate_d;
-		param_t pitch_rate_ff;
-		param_t d_term_cutoff_freq;
-		param_t tpa_breakpoint_p;
-		param_t tpa_breakpoint_i;
-		param_t tpa_breakpoint_d;
-		param_t tpa_rate_p;
-		param_t tpa_rate_i;
-		param_t tpa_rate_d;
-		param_t yaw_p;
-		param_t yaw_rate_p;
-		param_t yaw_rate_i;
-		param_t yaw_rate_integ_lim;
-		param_t yaw_rate_d;
-		param_t yaw_rate_ff;
-		param_t yaw_ff;
-		param_t roll_rate_max;
-		param_t pitch_rate_max;
-		param_t yaw_rate_max;
-		param_t yaw_auto_max;
-
-		param_t acro_roll_max;
-		param_t acro_pitch_max;
-		param_t acro_yaw_max;
-		param_t acro_expo;
-		param_t acro_superexpo;
-		param_t rattitude_thres;
-
-		param_t vtol_wv_yaw_rate_scale;
-
-		param_t bat_scale_en;
-
-		param_t board_rotation;
-
-		param_t board_offset[3];
-
-	}		_params_handles;		/**< handles for interesting parameters */
-
-	struct {
-		Vector3f attitude_p;					/**< P gain for attitude control */
-		math::Vector<3> rate_p;				/**< P gain for angular rate error */
-		math::Vector<3> rate_i;				/**< I gain for angular rate error */
-		math::Vector<3> rate_int_lim;			/**< integrator state limit for rate loop */
-		math::Vector<3> rate_d;				/**< D gain for angular rate error */
-		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates */
-		float yaw_ff;						/**< yaw control feed-forward */
-
-		float d_term_cutoff_freq;			/**< Cutoff frequency for the D-term filter */
-
-		float tpa_breakpoint_p;				/**< Throttle PID Attenuation breakpoint */
-		float tpa_breakpoint_i;				/**< Throttle PID Attenuation breakpoint */
-		float tpa_breakpoint_d;				/**< Throttle PID Attenuation breakpoint */
-		float tpa_rate_p;					/**< Throttle PID Attenuation slope */
-		float tpa_rate_i;					/**< Throttle PID Attenuation slope */
-		float tpa_rate_d;					/**< Throttle PID Attenuation slope */
-
-		float roll_rate_max;
-		float pitch_rate_max;
-		float yaw_rate_max;
-		float yaw_auto_max;
-		math::Vector<3> mc_rate_max;		/**< attitude rate limits in stabilized modes */
-		math::Vector<3> auto_rate_max;		/**< attitude rate limits in auto modes */
-		matrix::Vector3f acro_rate_max;		/**< max attitude rates in acro mode */
-		float acro_expo;					/**< function parameter for expo stick curve shape */
-		float acro_superexpo;				/**< function parameter for superexpo stick curve shape */
-		float rattitude_thres;
-
-		float vtol_wv_yaw_rate_scale;			/**< Scale value [0, 1] for yaw rate setpoint  */
-
-		int32_t bat_scale_en;
-
-		int32_t board_rotation;
-
-		float board_offset[3];
-
-	}		_params;
-
-	/**
-	 * Update our local parameter cache.
-	 */
-	void			parameters_update();
-
-	/**
-	 * Check for parameter update and handle it.
-	 */
-	void		battery_status_poll();
-	void		parameter_update_poll();
-	void		sensor_bias_poll();
-	void		sensor_correction_poll();
-	void		vehicle_attitude_poll();
-	void		vehicle_attitude_setpoint_poll();
-	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll();
-	void		vehicle_motor_limits_poll();
-	void		vehicle_rates_setpoint_poll();
-	void		vehicle_status_poll();
-
-	/**
-	 * Attitude controller.
-	 */
-	void		control_attitude(float dt);
-
-	/**
-	 * Attitude rates controller.
-	 */
-	void		control_attitude_rates(float dt);
-
-	/**
-	 * Throttle PID attenuation.
-	 */
-	math::Vector<3> pid_attenuations(float tpa_breakpoint, float tpa_rate);
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main attitude control task.
-	 */
-	void		task_main();
-};
-
-namespace mc_att_control
-{
-
-MulticopterAttitudeControl	*g_control;
+	return 0;
 }
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
-
-	_task_should_exit(false),
-	_control_task(-1),
 
 	/* subscriptions */
 	_v_att_sub(-1),
@@ -480,30 +251,6 @@ _loop_update_rate_hz(initial_update_rate_hz)
 		_sensor_correction.gyro_scale_1[i] = 1.0f;
 		_sensor_correction.gyro_scale_2[i] = 1.0f;
 	}
-}
-
-MulticopterAttitudeControl::~MulticopterAttitudeControl()
-{
-	if (_control_task != -1) {
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_control_task);
-				break;
-			}
-		} while (_control_task != -1);
-	}
-
-	mc_att_control::g_control = nullptr;
 }
 
 void
@@ -1020,13 +767,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 }
 
 void
-MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
-{
-	mc_att_control::g_control->task_main();
-}
-
-void
-MulticopterAttitudeControl::task_main()
+MulticopterAttitudeControl::run()
 {
 
 	/*
@@ -1067,21 +808,21 @@ MulticopterAttitudeControl::task_main()
 	float dt_accumulator = 0.f;
 	int loop_counter = 0;
 
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
 		int pret = px4_poll(&poll_fds, 1, 100);
 
-		/* timed out - periodic check for _task_should_exit */
+		/* timed out - periodic check for should_exit() */
 		if (pret == 0) {
 			continue;
 		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("mc att ctrl: poll error %d, %d", pret, errno);
+			PX4_ERR("poll error %d, %d", pret, errno);
 			/* sleep a bit before next try */
 			usleep(100000);
 			continue;
@@ -1276,83 +1017,36 @@ MulticopterAttitudeControl::task_main()
 		perf_end(_loop_perf);
 	}
 
-	_control_task = -1;
 }
 
-int
-MulticopterAttitudeControl::start()
+int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 {
-	ASSERT(_control_task == -1);
-
-	/* start the task */
-	_control_task = px4_task_spawn_cmd("mc_att_control",
+	_task_id = px4_task_spawn_cmd("mc_att_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_ATTITUDE_CONTROL,
 					   1700,
-					   (px4_main_t)&MulticopterAttitudeControl::task_main_trampoline,
-					   nullptr);
+					   (px4_main_t)&run_trampoline,
+					   (char *const *)argv);
 
-	if (_control_task < 0) {
-		warn("task start failed");
+	if (_task_id < 0) {
+		_task_id = -1;
 		return -errno;
 	}
 
-	return OK;
+	return 0;
+}
+
+MulticopterAttitudeControl *MulticopterAttitudeControl::instantiate(int argc, char *argv[])
+{
+	return new MulticopterAttitudeControl();
+}
+
+int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
 }
 
 int mc_att_control_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		warnx("usage: mc_att_control {start|stop|status}");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (mc_att_control::g_control != nullptr) {
-			warnx("already running");
-			return 1;
-		}
-
-		mc_att_control::g_control = new MulticopterAttitudeControl;
-
-		if (mc_att_control::g_control == nullptr) {
-			warnx("alloc failed");
-			return 1;
-		}
-
-		if (OK != mc_att_control::g_control->start()) {
-			delete mc_att_control::g_control;
-			mc_att_control::g_control = nullptr;
-			warnx("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (mc_att_control::g_control == nullptr) {
-			warnx("not running");
-			return 1;
-		}
-
-		delete mc_att_control::g_control;
-		mc_att_control::g_control = nullptr;
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (mc_att_control::g_control) {
-			warnx("running");
-			return 0;
-
-		} else {
-			warnx("not running");
-			return 1;
-		}
-	}
-
-	warnx("unrecognized command");
-	return 1;
+	return MulticopterAttitudeControl::main(argc, argv);
 }
