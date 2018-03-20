@@ -42,16 +42,15 @@
 #define LAUNCHDETECTOR_H
 
 #include "LaunchMethod.h"
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include <px4_module_params.h>
 
 namespace launchdetection
 {
 
-class __EXPORT LaunchDetector : public control::SuperBlock
+class __EXPORT LaunchDetector : public ModuleParams
 {
 public:
-	LaunchDetector();
+	LaunchDetector(ModuleParams *parent);
 	~LaunchDetector() override;
 
 	LaunchDetector(const LaunchDetector &) = delete;
@@ -61,23 +60,25 @@ public:
 
 	void update(float accel_x);
 	LaunchDetectionResult getLaunchDetected();
-	bool launchDetectionEnabled() { return launchdetection_on.get(); }
+	bool launchDetectionEnabled() { return _launchdetection_on.get(); }
 
 	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
 	float getPitchMax(float pitchMaxDefault);
 
 private:
-	/* holds an index to the launchMethod in the array launchMethods
+	/* holds an index to the launchMethod in the array _launchMethods
 	 * which detected a Launch. If no launchMethod has detected a launch yet the
 	 * value is -1. Once one launchMethod has detected a launch only this
 	 * method is checked for further advancing in the state machine
 	 * (e.g. when to power up the motors)
 	 */
-	int activeLaunchDetectionMethodIndex{-1};
+	int _activeLaunchDetectionMethodIndex{-1};
 
-	LaunchMethod *launchMethods[1];
+	LaunchMethod *_launchMethods[1];
 
-	control::BlockParamBool launchdetection_on;
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::LAUN_ALL_ON>) _launchdetection_on
+	)
 };
 
 } // namespace launchdetection
