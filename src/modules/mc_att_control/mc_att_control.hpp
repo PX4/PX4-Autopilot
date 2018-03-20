@@ -38,6 +38,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_module.h>
+#include <px4_module_params.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <uORB/topics/actuator_controls.h>
@@ -63,7 +64,7 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define MAX_GYRO_COUNT 3
 
 
-class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>
+class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams
 {
 public:
 	MulticopterAttitudeControl();
@@ -140,100 +141,80 @@ private:
 	float			_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
-	math::Matrix<3, 3>	_board_rotation = {};	/**< rotation matrix for the orientation that the board is mounted */
+	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 
-	struct {
-		param_t roll_p;
-		param_t roll_rate_p;
-		param_t roll_rate_i;
-		param_t roll_rate_integ_lim;
-		param_t roll_rate_d;
-		param_t roll_rate_ff;
-		param_t pitch_p;
-		param_t pitch_rate_p;
-		param_t pitch_rate_i;
-		param_t pitch_rate_integ_lim;
-		param_t pitch_rate_d;
-		param_t pitch_rate_ff;
-		param_t d_term_cutoff_freq;
-		param_t tpa_breakpoint_p;
-		param_t tpa_breakpoint_i;
-		param_t tpa_breakpoint_d;
-		param_t tpa_rate_p;
-		param_t tpa_rate_i;
-		param_t tpa_rate_d;
-		param_t yaw_p;
-		param_t yaw_rate_p;
-		param_t yaw_rate_i;
-		param_t yaw_rate_integ_lim;
-		param_t yaw_rate_d;
-		param_t yaw_rate_ff;
-		param_t yaw_ff;
-		param_t roll_rate_max;
-		param_t pitch_rate_max;
-		param_t yaw_rate_max;
-		param_t yaw_auto_max;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MC_ROLL_P>) _roll_p,
+		(ParamFloat<px4::params::MC_ROLLRATE_P>) _roll_rate_p,
+		(ParamFloat<px4::params::MC_ROLLRATE_I>) _roll_rate_i,
+		(ParamFloat<px4::params::MC_RR_INT_LIM>) _roll_rate_integ_lim,
+		(ParamFloat<px4::params::MC_ROLLRATE_D>) _roll_rate_d,
+		(ParamFloat<px4::params::MC_ROLLRATE_FF>) _roll_rate_ff,
 
-		param_t acro_roll_max;
-		param_t acro_pitch_max;
-		param_t acro_yaw_max;
-		param_t acro_expo;
-		param_t acro_superexpo;
-		param_t rattitude_thres;
+		(ParamFloat<px4::params::MC_PITCH_P>) _pitch_p,
+		(ParamFloat<px4::params::MC_PITCHRATE_P>) _pitch_rate_p,
+		(ParamFloat<px4::params::MC_PITCHRATE_I>) _pitch_rate_i,
+		(ParamFloat<px4::params::MC_PR_INT_LIM>) _pitch_rate_integ_lim,
+		(ParamFloat<px4::params::MC_PITCHRATE_D>) _pitch_rate_d,
+		(ParamFloat<px4::params::MC_PITCHRATE_FF>) _pitch_rate_ff,
 
-		param_t vtol_wv_yaw_rate_scale;
+		(ParamFloat<px4::params::MC_YAW_P>) _yaw_p,
+		(ParamFloat<px4::params::MC_YAWRATE_P>) _yaw_rate_p,
+		(ParamFloat<px4::params::MC_YAWRATE_I>) _yaw_rate_i,
+		(ParamFloat<px4::params::MC_YR_INT_LIM>) _yaw_rate_integ_lim,
+		(ParamFloat<px4::params::MC_YAWRATE_D>) _yaw_rate_d,
+		(ParamFloat<px4::params::MC_YAWRATE_FF>) _yaw_rate_ff,
 
-		param_t bat_scale_en;
+		(ParamFloat<px4::params::MC_YAW_FF>) _yaw_ff,					/**< yaw control feed-forward */
 
-		param_t board_rotation;
+		(ParamFloat<px4::params::MC_DTERM_CUTOFF>) _d_term_cutoff_freq,			/**< Cutoff frequency for the D-term filter */
 
-		param_t board_offset[3];
+		(ParamFloat<px4::params::MC_TPA_BREAK_P>) _tpa_breakpoint_p,			/**< Throttle PID Attenuation breakpoint */
+		(ParamFloat<px4::params::MC_TPA_BREAK_I>) _tpa_breakpoint_i,			/**< Throttle PID Attenuation breakpoint */
+		(ParamFloat<px4::params::MC_TPA_BREAK_D>) _tpa_breakpoint_d,			/**< Throttle PID Attenuation breakpoint */
+		(ParamFloat<px4::params::MC_TPA_RATE_P>) _tpa_rate_p,				/**< Throttle PID Attenuation slope */
+		(ParamFloat<px4::params::MC_TPA_RATE_I>) _tpa_rate_i,				/**< Throttle PID Attenuation slope */
+		(ParamFloat<px4::params::MC_TPA_RATE_D>) _tpa_rate_d,				/**< Throttle PID Attenuation slope */
 
-	}		_params_handles;		/**< handles for interesting parameters */
+		(ParamFloat<px4::params::MC_ROLLRATE_MAX>) _roll_rate_max,
+		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _pitch_rate_max,
+		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _yaw_rate_max,
+		(ParamFloat<px4::params::MC_YAWRAUTO_MAX>) _yaw_auto_max,
 
-	struct {
-		matrix::Vector3f attitude_p;					/**< P gain for attitude control */
-		math::Vector<3> rate_p;				/**< P gain for angular rate error */
-		math::Vector<3> rate_i;				/**< I gain for angular rate error */
-		math::Vector<3> rate_int_lim;			/**< integrator state limit for rate loop */
-		math::Vector<3> rate_d;				/**< D gain for angular rate error */
-		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates */
-		float yaw_ff;						/**< yaw control feed-forward */
+		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _acro_roll_max,
+		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _acro_pitch_max,
+		(ParamFloat<px4::params::MC_ACRO_Y_MAX>) _acro_yaw_max,
+		(ParamFloat<px4::params::MC_ACRO_EXPO>) _acro_expo,				/**< function parameter for expo stick curve shape */
+		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _acro_superexpo,			/**< function parameter for superexpo stick curve shape */
 
-		float d_term_cutoff_freq;			/**< Cutoff frequency for the D-term filter */
+		(ParamFloat<px4::params::MC_RATT_TH>) _rattitude_thres,
 
-		float tpa_breakpoint_p;				/**< Throttle PID Attenuation breakpoint */
-		float tpa_breakpoint_i;				/**< Throttle PID Attenuation breakpoint */
-		float tpa_breakpoint_d;				/**< Throttle PID Attenuation breakpoint */
-		float tpa_rate_p;					/**< Throttle PID Attenuation slope */
-		float tpa_rate_i;					/**< Throttle PID Attenuation slope */
-		float tpa_rate_d;					/**< Throttle PID Attenuation slope */
+		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _bat_scale_en,
 
-		float roll_rate_max;
-		float pitch_rate_max;
-		float yaw_rate_max;
-		float yaw_auto_max;
-		math::Vector<3> mc_rate_max;		/**< attitude rate limits in stabilized modes */
-		math::Vector<3> auto_rate_max;		/**< attitude rate limits in auto modes */
-		matrix::Vector3f acro_rate_max;		/**< max attitude rates in acro mode */
-		float acro_expo;					/**< function parameter for expo stick curve shape */
-		float acro_superexpo;				/**< function parameter for superexpo stick curve shape */
-		float rattitude_thres;
+		(ParamInt<px4::params::SENS_BOARD_ROT>) _board_rotation_param,
 
-		float vtol_wv_yaw_rate_scale;			/**< Scale value [0, 1] for yaw rate setpoint  */
+		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _board_offset_x,
+		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _board_offset_y,
+		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _board_offset_z,
 
-		int32_t bat_scale_en;
+		(ParamFloat<px4::params::VT_WV_YAWR_SCL>) _vtol_wv_yaw_rate_scale		/**< Scale value [0, 1] for yaw rate setpoint  */
+	)
 
-		int32_t board_rotation;
+	matrix::Vector3f _attitude_p;				/**< P gain for attitude control */
+	math::Vector<3> _rate_p;				/**< P gain for angular rate error */
+	math::Vector<3> _rate_i;				/**< I gain for angular rate error */
+	math::Vector<3> _rate_int_lim;				/**< integrator state limit for rate loop */
+	math::Vector<3> _rate_d;				/**< D gain for angular rate error */
+	math::Vector<3>	_rate_ff;				/**< Feedforward gain for desired rates */
 
-		float board_offset[3];
-
-	}		_params;
+	math::Vector<3> _mc_rate_max;				/**< attitude rate limits in stabilized modes */
+	math::Vector<3> _auto_rate_max;				/**< attitude rate limits in auto modes */
+	matrix::Vector3f _acro_rate_max;			/**< max attitude rates in acro mode */
 
 	/**
 	 * Update our local parameter cache.
 	 */
-	void			parameters_update();
+	void			parameters_updated();
 
 	/**
 	 * Check for parameter update and handle it.
