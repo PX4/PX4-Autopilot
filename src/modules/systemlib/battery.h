@@ -41,24 +41,15 @@
 
 #pragma once
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_hrt.h>
+#include <px4_module_params.h>
 
 
-class Battery : public control::SuperBlock
+class Battery : public ModuleParams
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Battery();
-
-	/**
-	 * Destructor
-	 */
-	~Battery();
 
 	/**
 	 * Reset all battery stats and report invalid/nothing.
@@ -103,15 +94,17 @@ private:
 	void determineWarning(bool connected);
 	void computeScale();
 
-	control::BlockParamFloat _v_empty;
-	control::BlockParamFloat _v_charged;
-	control::BlockParamInt _n_cells;
-	control::BlockParamFloat _capacity;
-	control::BlockParamFloat _v_load_drop;
-	control::BlockParamFloat _r_internal;
-	control::BlockParamFloat _low_thr;
-	control::BlockParamFloat _crit_thr;
-	control::BlockParamFloat _emergency_thr;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::BAT_V_EMPTY>) _v_empty,
+		(ParamFloat<px4::params::BAT_V_CHARGED>) _v_charged,
+		(ParamInt<px4::params::BAT_N_CELLS>) _n_cells,
+		(ParamFloat<px4::params::BAT_CAPACITY>) _capacity,
+		(ParamFloat<px4::params::BAT_V_LOAD_DROP>) _v_load_drop,
+		(ParamFloat<px4::params::BAT_R_INTERNAL>) _r_internal,
+		(ParamFloat<px4::params::BAT_LOW_THR>) _low_thr,
+		(ParamFloat<px4::params::BAT_CRIT_THR>) _crit_thr,
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _emergency_thr
+	)
 
 	bool _battery_initialized = false;
 	float _voltage_filtered_v = -1.f;
