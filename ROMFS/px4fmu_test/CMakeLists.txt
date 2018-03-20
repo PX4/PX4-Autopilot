@@ -31,19 +31,10 @@
 #
 ############################################################################
 
-set(config_romfs_files_list
-	init.d/rcS
-	init.d/rc.sensors
-	init.d/rc.standalone
-	mixers/complex_test.mix
-	mixers/IO_pass.mix
-	mixers/quad_test.mix
-	mixers/uuv_quad_x.mix
-	mixers/vtol1_test.mix
-	mixers/vtol2_test.mix
-	unit_test_data/mavlink_tests/test_238.data
-	unit_test_data/mavlink_tests/test_239.data
-	unit_test_data/mavlink_tests/test_240.data
-	)
+set(config_romfs_files_list)
+
+add_subdirectory(init.d)
+add_subdirectory(mixers)
+add_subdirectory(unit_test_data)
 
 set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

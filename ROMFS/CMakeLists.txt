@@ -1,15 +1,12 @@
 
 message(STATUS "ROMFS: ${config_romfs_root}")
 
-set(romfs_temp_dir ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root})
+#set(romfs_bin_dir ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root})
+set(romfs_temp_dir ${PX4_BINARY_DIR}/ROMFS/genromfs)
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
 
 # get list of all ROMFS files
-add_subdirectory(${romfs_src_dir} ${romfs_temp_dir})
-set(romfs_src_files)
-foreach(romfs_file ${config_romfs_files_list})
-	list(APPEND romfs_src_files ${romfs_src_dir}/${romfs_file})
-endforeach()
+add_subdirectory(${romfs_src_dir})
 
 # directory setup
 # copy all romfs files, process airframes, prune comments
@@ -22,7 +19,7 @@ add_custom_command(OUTPUT ${romfs_temp_dir}/init.d/rcS ${romfs_temp_dir}/init.d/
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		--folder ${romfs_temp_dir} --board ${BOARD}
 	DEPENDS
-		${romfs_src_files}
+		${config_romfs_files_list}
 		${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d/rcS
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 	)

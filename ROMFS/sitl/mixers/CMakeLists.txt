@@ -31,9 +31,12 @@
 #
 ############################################################################
 
-set(config_romfs_files_list)
-
-add_subdirectory(init.d)
-add_subdirectory(mixers)
+list(APPEND config_romfs_files_list
+	${CMAKE_CURRENT_LIST_DIR}/delta_wing_sitl.main.mix
+	${CMAKE_CURRENT_LIST_DIR}/plane_sitl.main.mix
+	${CMAKE_CURRENT_LIST_DIR}/rover_sitl.main.mix
+	${CMAKE_CURRENT_LIST_DIR}/standard_vtol_sitl.main.mix
+	${CMAKE_CURRENT_LIST_DIR}/tiltrotor_sitl.main.mix
+	)
 
 set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

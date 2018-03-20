@@ -31,9 +31,11 @@
 #
 ############################################################################
 
-set(config_romfs_files_list)
-
-add_subdirectory(init.d)
-add_subdirectory(mixers)
+list(APPEND config_romfs_files_list
+	${CMAKE_CURRENT_LIST_DIR}/gear.mix
+	${CMAKE_CURRENT_LIST_DIR}/hexa_x.main.mix
+	${CMAKE_CURRENT_LIST_DIR}/hexa_x.main.mix
+	${CMAKE_CURRENT_LIST_DIR}/quad_x.main.mix
+	)
 
 set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

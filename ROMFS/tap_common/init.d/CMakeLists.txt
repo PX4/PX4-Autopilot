@@ -31,9 +31,18 @@
 #
 ############################################################################
 
-set(config_romfs_files_list)
-
-add_subdirectory(init.d)
-add_subdirectory(mixers)
+list(APPEND config_romfs_files_list
+	${CMAKE_CURRENT_LIST_DIR}/4001_quad_x
+	${CMAKE_CURRENT_LIST_DIR}/6001_hexa_x
+	${CMAKE_CURRENT_LIST_DIR}/rc.fw_apps
+	${CMAKE_CURRENT_LIST_DIR}/rc.fw_defaults
+	${CMAKE_CURRENT_LIST_DIR}/rc.interface
+	${CMAKE_CURRENT_LIST_DIR}/rc.mc_apps
+	${CMAKE_CURRENT_LIST_DIR}/rc.mc_defaults
+	${CMAKE_CURRENT_LIST_DIR}/rcS
+	${CMAKE_CURRENT_LIST_DIR}/rc.sensors
+	${CMAKE_CURRENT_LIST_DIR}/rc.vtol_apps
+	${CMAKE_CURRENT_LIST_DIR}/rc.vtol_defaults	
+	)
 
 set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

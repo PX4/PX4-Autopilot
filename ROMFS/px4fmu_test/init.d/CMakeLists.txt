@@ -31,9 +31,10 @@
 #
 ############################################################################
 
-set(config_romfs_files_list)
-
-add_subdirectory(init.d)
-add_subdirectory(mixers)
+list(APPEND config_romfs_files_list
+	${CMAKE_CURRENT_LIST_DIR}/rcS
+	${CMAKE_CURRENT_LIST_DIR}/rc.sensors
+	${CMAKE_CURRENT_LIST_DIR}/rc.standalone	
+	)
 
 set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

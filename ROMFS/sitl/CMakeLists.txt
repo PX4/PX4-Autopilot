@@ -31,12 +31,8 @@
 #
 ############################################################################
 
-set(config_romfs_files_list
-	mixers/delta_wing_sitl.main.mix
-	mixers/plane_sitl.main.mix
-	mixers/rover_sitl.main.mix
-	mixers/standard_vtol_sitl.main.mix
-	mixers/tiltrotor_sitl.main.mix
-	)
+set(config_romfs_files_list)
+
+add_subdirectory(mixers)
 
 set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

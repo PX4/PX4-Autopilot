@@ -31,21 +31,9 @@
 #
 ############################################################################
 
-set(config_romfs_files_list
-	init.d/4001_quad_x
-	init.d/6001_hexa_x
-	init.d/rc.fw_apps
-	init.d/rc.fw_defaults
-	init.d/rc.interface
-	init.d/rc.mc_apps
-	init.d/rc.mc_defaults
-	init.d/rcS
-	init.d/rc.sensors
-	init.d/rc.vtol_apps
-	init.d/rc.vtol_defaults
-	mixers/gear.mix
-	mixers/hexa_x.main.mix
-	mixers/quad_x.main.mix
-	)
+set(config_romfs_files_list)
+
+add_subdirectory(init.d)
+add_subdirectory(mixers)
 
 set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)
