@@ -88,6 +88,42 @@ public:
 
 private:
 
+	/**
+	 * initialize some vectors/matrices from parameters
+	 */
+	void			parameters_updated();
+
+	/**
+	 * Check for parameter update and handle it.
+	 */
+	void		battery_status_poll();
+	void		parameter_update_poll();
+	void		sensor_bias_poll();
+	void		sensor_correction_poll();
+	void		vehicle_attitude_poll();
+	void		vehicle_attitude_setpoint_poll();
+	void		vehicle_control_mode_poll();
+	void		vehicle_manual_poll();
+	void		vehicle_motor_limits_poll();
+	void		vehicle_rates_setpoint_poll();
+	void		vehicle_status_poll();
+
+	/**
+	 * Attitude controller.
+	 */
+	void		control_attitude(float dt);
+
+	/**
+	 * Attitude rates controller.
+	 */
+	void		control_attitude_rates(float dt);
+
+	/**
+	 * Throttle PID attenuation.
+	 */
+	math::Vector<3> pid_attenuations(float tpa_breakpoint, float tpa_rate);
+
+
 	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
 	int		_v_att_sp_sub{-1};		/**< vehicle attitude setpoint subscription */
 	int		_v_rates_sp_sub{-1};		/**< vehicle rates setpoint subscription */
@@ -211,39 +247,5 @@ private:
 	math::Vector<3> _auto_rate_max;				/**< attitude rate limits in auto modes */
 	matrix::Vector3f _acro_rate_max;			/**< max attitude rates in acro mode */
 
-	/**
-	 * Update our local parameter cache.
-	 */
-	void			parameters_updated();
-
-	/**
-	 * Check for parameter update and handle it.
-	 */
-	void		battery_status_poll();
-	void		parameter_update_poll();
-	void		sensor_bias_poll();
-	void		sensor_correction_poll();
-	void		vehicle_attitude_poll();
-	void		vehicle_attitude_setpoint_poll();
-	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll();
-	void		vehicle_motor_limits_poll();
-	void		vehicle_rates_setpoint_poll();
-	void		vehicle_status_poll();
-
-	/**
-	 * Attitude controller.
-	 */
-	void		control_attitude(float dt);
-
-	/**
-	 * Attitude rates controller.
-	 */
-	void		control_attitude_rates(float dt);
-
-	/**
-	 * Throttle PID attenuation.
-	 */
-	math::Vector<3> pid_attenuations(float tpa_breakpoint, float tpa_rate);
 };
 
