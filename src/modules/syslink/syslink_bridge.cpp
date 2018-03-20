@@ -39,6 +39,7 @@
  */
 
 #include "syslink_main.h"
+#include <cstring>
 
 
 
