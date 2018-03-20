@@ -36,10 +36,12 @@
 extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
 
 FixedwingPositionControl::FixedwingPositionControl() :
-	SuperBlock(nullptr, "FW_POS"),
+	ModuleParams(nullptr),
 	_sub_airspeed(ORB_ID(airspeed)),
 	_sub_sensors(ORB_ID(sensor_bias)),
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
+	_launchDetector(this),
+	_runway_takeoff(this)
 {
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("FW_L1_DAMPING");
@@ -219,9 +221,7 @@ FixedwingPositionControl::parameters_update()
 	_fw_pos_ctrl_status.landing_flare_length = _landingslope.flare_length();
 	fw_pos_ctrl_status_publish();
 
-	/* Update Launch Detector Parameters */
-	_launchDetector.updateParams();
-	_runway_takeoff.updateParams();
+	updateParams();
 
 	/* sanity check parameters */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
