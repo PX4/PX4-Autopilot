@@ -45,6 +45,7 @@
 
 #include <px4_config.h>
 #include <px4_module.h>
+#include <px4_module_params.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
@@ -129,7 +130,7 @@ using namespace sensors;
  */
 extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 
-class Sensors : public ModuleBase<Sensors>
+class Sensors : public ModuleBase<Sensors>, public ModuleParams
 {
 public:
 	Sensors(bool hil_enabled);
@@ -229,6 +230,7 @@ private:
 };
 
 Sensors::Sensors(bool hil_enabled) :
+	ModuleParams(nullptr),
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_rc_update(_parameters),
@@ -238,6 +240,10 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
+
+	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+		_battery[b].setParent(this);
+	}
 }
 
 int
@@ -396,6 +402,7 @@ Sensors::parameter_update_poll(bool forced)
 		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 		parameters_update();
+		updateParams();
 
 		/* update airspeed scale */
 		int fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
@@ -412,10 +419,6 @@ Sensors::parameter_update_poll(bool forced)
 			}
 
 			px4_close(fd);
-		}
-
-		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-			_battery[b].updateParams();
 		}
 	}
 }
