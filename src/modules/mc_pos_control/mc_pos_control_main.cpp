@@ -3092,8 +3092,9 @@ MulticopterPositionControl::task_main()
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && _control_mode.flag_armed) {
 				// Vehicle is still landed and no takeoff was initiated yet.
 				// Adjust for different takeoff cases.
-				if ((PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2)) ||
-				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -1.0f)) {
+				// The minimum takeoff altitude needs to be at least 20cm above current position
+				if ((PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2) - 0.2f) ||
+				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -_params.tko_speed)) {
 					// There is a position setpoint above current position or velocity setpoint larger than
 					// 1m/s. Enable smooth takeoff.
 					_in_smooth_takeoff = true;
