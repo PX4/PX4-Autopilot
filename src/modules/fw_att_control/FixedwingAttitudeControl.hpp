@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-#include <controllib/block/BlockParam.hpp>
-#include <controllib/blocks.hpp>
 #include <px4_module.h>
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
@@ -68,7 +66,7 @@ using matrix::Quatf;
 
 using uORB::Subscription;
 
-class FixedwingAttitudeControl final : public control::SuperBlock, public ModuleBase<FixedwingAttitudeControl>
+class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>
 {
 public:
 	FixedwingAttitudeControl();
@@ -124,7 +122,7 @@ private:
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
-	Subscription<airspeed_s>			_sub_airspeed;
+	Subscription<airspeed_s>			_airspeed_sub;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
