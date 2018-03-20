@@ -93,7 +93,7 @@ public:
 	 *
 	 * @param  string    tune input string
 	 */
-	void set_string(const char *const string);
+	void set_string(const char *const string, uint8_t strength);
 
 	/**
 	 * Get next note in the current tune, which has been provided by either
@@ -115,7 +115,7 @@ public:
 	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
 	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence,
-			  unsigned &strength);
+			  uint8_t &strength);
 
 	/**
 	 *  Get the number of default tunes. This is useful for when a tune is
@@ -148,7 +148,7 @@ private:
 	unsigned _frequency;
 	unsigned _duration;
 	unsigned _silence;
-	unsigned _strength;
+	uint8_t _strength;
 	bool _using_custom_msg = false;
 
 	/**

@@ -115,7 +115,6 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		// Special treatment for custom tunes
 		if (tune_control.tune_id == static_cast<int>(TuneID::CUSTOM)) {
 			_using_custom_msg = true;
-			_tune = nullptr;  // remove tune in case of override
 			_frequency = (unsigned)tune_control.frequency;
 			_duration = (unsigned)tune_control.duration;
 			_silence = (unsigned)tune_control.silence;
@@ -144,7 +143,7 @@ void Tunes::set_string(const char *const string, uint8_t strength)
 }
 
 int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
-			 unsigned &silence, unsigned &strength)
+			 unsigned &silence, uint8_t &strength)
 {
 	int ret = get_next_tune(frequency, duration, silence);
 
