@@ -59,6 +59,7 @@
 #include <px4_module_params.h>
 #include <px4_module.h>
 #include <systemlib/perf_counter.h>
+#include <lib/geo/geo.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission.h>
@@ -158,6 +159,8 @@ public:
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
+	struct map_projection_reference_s *get_local_reference_pos() {return &_ref_pos;} /**< Method that returns reference projection structure */
+	float 	get_local_reference_alt() {return _ref_alt;} /**< Method that returns reference altitdue */
 
 	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
@@ -307,6 +310,9 @@ private:
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
+	map_projection_reference_s _ref_pos{}; /**< local reference position structure */
+	hrt_abstime _ref_timestamp{0}; /**< time stamp when reference for local frame has been updated */
+	float _ref_alt{0.0f}; /**< local reference altitude */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -317,6 +323,7 @@ private:
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
+	bool _ref_alt_is_global{false}; /**< true when the reference altitude is defined in a global reference frame */
 
 	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
@@ -369,6 +376,7 @@ private:
 	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
+	void 		local_reference_update();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers
