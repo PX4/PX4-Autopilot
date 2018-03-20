@@ -97,6 +97,7 @@ To reduce control latency, the module directly polls on the gyro topic published
 }
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
+	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 
@@ -115,93 +116,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_att.q[0] = 1.f;
 	_v_att_sp.q_d[0] = 1.f;
 
-	_params.rate_p.zero();
-	_params.rate_i.zero();
-	_params.rate_int_lim.zero();
-	_params.rate_d.zero();
-	_params.rate_ff.zero();
-	_params.yaw_ff = 0.0f;
-	_params.roll_rate_max = 0.0f;
-	_params.pitch_rate_max = 0.0f;
-	_params.yaw_rate_max = 0.0f;
-	_params.mc_rate_max.zero();
-	_params.auto_rate_max.zero();
-	_params.acro_rate_max.zero();
-	_params.rattitude_thres = 1.0f;
-
-	_params.bat_scale_en = 0;
-
-	_params.board_rotation = 0;
-
-	_params.board_offset[0] = 0.0f;
-	_params.board_offset[1] = 0.0f;
-	_params.board_offset[2] = 0.0f;
-
 	_rates_prev.zero();
 	_rates_prev_filtered.zero();
 	_rates_sp.zero();
 	_rates_int.zero();
 	_thrust_sp = 0.0f;
 	_att_control.zero();
-
-	_board_rotation.identity();
-
-	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
-	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
-	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
-	_params_handles.roll_rate_integ_lim	= 	param_find("MC_RR_INT_LIM");
-	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
-	_params_handles.roll_rate_ff		= 	param_find("MC_ROLLRATE_FF");
-
-	_params_handles.pitch_p			= 	param_find("MC_PITCH_P");
-	_params_handles.pitch_rate_p		= 	param_find("MC_PITCHRATE_P");
-	_params_handles.pitch_rate_i		= 	param_find("MC_PITCHRATE_I");
-	_params_handles.pitch_rate_integ_lim	= 	param_find("MC_PR_INT_LIM");
-	_params_handles.pitch_rate_d		= 	param_find("MC_PITCHRATE_D");
-	_params_handles.pitch_rate_ff 		= 	param_find("MC_PITCHRATE_FF");
-
-	_params_handles.d_term_cutoff_freq	= 	param_find("MC_DTERM_CUTOFF");
-
-	_params_handles.tpa_breakpoint_p 	= 	param_find("MC_TPA_BREAK_P");
-	_params_handles.tpa_breakpoint_i 	= 	param_find("MC_TPA_BREAK_I");
-	_params_handles.tpa_breakpoint_d 	= 	param_find("MC_TPA_BREAK_D");
-	_params_handles.tpa_rate_p	 	= 	param_find("MC_TPA_RATE_P");
-	_params_handles.tpa_rate_i	 	= 	param_find("MC_TPA_RATE_I");
-	_params_handles.tpa_rate_d	 	= 	param_find("MC_TPA_RATE_D");
-
-	_params_handles.yaw_p			=	param_find("MC_YAW_P");
-	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
-	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
-	_params_handles.yaw_rate_integ_lim	= 	param_find("MC_YR_INT_LIM");
-	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
-	_params_handles.yaw_rate_ff	 	= 	param_find("MC_YAWRATE_FF");
-	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
-
-	_params_handles.roll_rate_max		= 	param_find("MC_ROLLRATE_MAX");
-	_params_handles.pitch_rate_max		= 	param_find("MC_PITCHRATE_MAX");
-	_params_handles.yaw_rate_max		= 	param_find("MC_YAWRATE_MAX");
-	_params_handles.yaw_auto_max		= 	param_find("MC_YAWRAUTO_MAX");
-
-	_params_handles.acro_roll_max		= 	param_find("MC_ACRO_R_MAX");
-	_params_handles.acro_pitch_max		= 	param_find("MC_ACRO_P_MAX");
-	_params_handles.acro_yaw_max		= 	param_find("MC_ACRO_Y_MAX");
-	_params_handles.acro_expo		= 	param_find("MC_ACRO_EXPO");
-	_params_handles.acro_superexpo		= 	param_find("MC_ACRO_SUPEXPO");
-
-	_params_handles.rattitude_thres 	= 	param_find("MC_RATT_TH");
-
-	_params_handles.bat_scale_en		=	param_find("MC_BAT_SCALE_EN");
-
-	/* rotations */
-	_params_handles.board_rotation		=	param_find("SENS_BOARD_ROT");
-
-	/* rotation offsets */
-	_params_handles.board_offset[0]		=	param_find("SENS_BOARD_X_OFF");
-	_params_handles.board_offset[1]		=	param_find("SENS_BOARD_Y_OFF");
-	_params_handles.board_offset[2]		=	param_find("SENS_BOARD_Z_OFF");
-
-	/* fetch initial parameter values */
-	parameters_update();
 
 	/* initialize thermal corrections as we might not immediately get a topic update (only non-zero values) */
 	for (unsigned i = 0; i < 3; i++) {
@@ -210,131 +130,73 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 		_sensor_correction.gyro_scale_1[i] = 1.0f;
 		_sensor_correction.gyro_scale_2[i] = 1.0f;
 	}
+
+	parameters_updated();
 }
 
 void
-MulticopterAttitudeControl::parameters_update()
+MulticopterAttitudeControl::parameters_updated()
 {
-	float v;
+	/* Store some of the parameters in a more convenient way & precompute often-used values */
 
 	/* roll gains */
-	param_get(_params_handles.roll_p, &v);
-	_params.attitude_p(0) = v;
-	param_get(_params_handles.roll_rate_p, &v);
-	_params.rate_p(0) = v;
-	param_get(_params_handles.roll_rate_i, &v);
-	_params.rate_i(0) = v;
-	param_get(_params_handles.roll_rate_integ_lim, &v);
-	_params.rate_int_lim(0) = v;
-	param_get(_params_handles.roll_rate_d, &v);
-	_params.rate_d(0) = v;
-	param_get(_params_handles.roll_rate_ff, &v);
-	_params.rate_ff(0) = v;
+	_attitude_p(0) = _roll_p.get();
+	_rate_p(0) = _roll_rate_p.get();
+	_rate_i(0) = _roll_rate_i.get();
+	_rate_int_lim(0) = _roll_rate_integ_lim.get();
+	_rate_d(0) = _roll_rate_d.get();
+	_rate_ff(0) = _roll_rate_ff.get();
 
 	/* pitch gains */
-	param_get(_params_handles.pitch_p, &v);
-	_params.attitude_p(1) = v;
-	param_get(_params_handles.pitch_rate_p, &v);
-	_params.rate_p(1) = v;
-	param_get(_params_handles.pitch_rate_i, &v);
-	_params.rate_i(1) = v;
-	param_get(_params_handles.pitch_rate_integ_lim, &v);
-	_params.rate_int_lim(1) = v;
-	param_get(_params_handles.pitch_rate_d, &v);
-	_params.rate_d(1) = v;
-	param_get(_params_handles.pitch_rate_ff, &v);
-	_params.rate_ff(1) = v;
+	_attitude_p(1) = _pitch_p.get();
+	_rate_p(1) = _pitch_rate_p.get();
+	_rate_i(1) = _pitch_rate_i.get();
+	_rate_int_lim(1) = _pitch_rate_integ_lim.get();
+	_rate_d(1) = _pitch_rate_d.get();
+	_rate_ff(1) = _pitch_rate_ff.get();
 
-	param_get(_params_handles.d_term_cutoff_freq, &_params.d_term_cutoff_freq);
+	/* yaw gains */
+	_attitude_p(2) = _yaw_p.get();
+	_rate_p(2) = _yaw_rate_p.get();
+	_rate_i(2) = _yaw_rate_i.get();
+	_rate_int_lim(2) = _yaw_rate_integ_lim.get();
+	_rate_d(2) = _yaw_rate_d.get();
+	_rate_ff(2) = _yaw_rate_ff.get();
 
-	if (fabsf(_lp_filters_d[0].get_cutoff_freq() - _params.d_term_cutoff_freq) > 0.01f) {
-		_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
-		_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
-		_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+	if (fabsf(_lp_filters_d[0].get_cutoff_freq() - _d_term_cutoff_freq.get()) > 0.01f) {
+		_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+		_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+		_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
 		_lp_filters_d[0].reset(_rates_prev(0));
 		_lp_filters_d[1].reset(_rates_prev(1));
 		_lp_filters_d[2].reset(_rates_prev(2));
 	}
 
-	param_get(_params_handles.tpa_breakpoint_p, &_params.tpa_breakpoint_p);
-	param_get(_params_handles.tpa_breakpoint_i, &_params.tpa_breakpoint_i);
-	param_get(_params_handles.tpa_breakpoint_d, &_params.tpa_breakpoint_d);
-	param_get(_params_handles.tpa_rate_p, &_params.tpa_rate_p);
-	param_get(_params_handles.tpa_rate_i, &_params.tpa_rate_i);
-	param_get(_params_handles.tpa_rate_d, &_params.tpa_rate_d);
-
-	/* yaw gains */
-	param_get(_params_handles.yaw_p, &v);
-	_params.attitude_p(2) = v;
-	param_get(_params_handles.yaw_rate_p, &v);
-	_params.rate_p(2) = v;
-	param_get(_params_handles.yaw_rate_i, &v);
-	_params.rate_i(2) = v;
-	param_get(_params_handles.yaw_rate_integ_lim, &v);
-	_params.rate_int_lim(2) = v;
-	param_get(_params_handles.yaw_rate_d, &v);
-	_params.rate_d(2) = v;
-	param_get(_params_handles.yaw_rate_ff, &v);
-	_params.rate_ff(2) = v;
-
-	param_get(_params_handles.yaw_ff, &_params.yaw_ff);
-
 	/* angular rate limits */
-	param_get(_params_handles.roll_rate_max, &_params.roll_rate_max);
-	_params.mc_rate_max(0) = math::radians(_params.roll_rate_max);
-	param_get(_params_handles.pitch_rate_max, &_params.pitch_rate_max);
-	_params.mc_rate_max(1) = math::radians(_params.pitch_rate_max);
-	param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
-	_params.mc_rate_max(2) = math::radians(_params.yaw_rate_max);
+	_mc_rate_max(0) = math::radians(_roll_rate_max.get());
+	_mc_rate_max(1) = math::radians(_pitch_rate_max.get());
+	_mc_rate_max(2) = math::radians(_yaw_rate_max.get());
 
 	/* auto angular rate limits */
-	param_get(_params_handles.roll_rate_max, &_params.roll_rate_max);
-	_params.auto_rate_max(0) = math::radians(_params.roll_rate_max);
-	param_get(_params_handles.pitch_rate_max, &_params.pitch_rate_max);
-	_params.auto_rate_max(1) = math::radians(_params.pitch_rate_max);
-	param_get(_params_handles.yaw_auto_max, &_params.yaw_auto_max);
-	_params.auto_rate_max(2) = math::radians(_params.yaw_auto_max);
+	_auto_rate_max(0) = math::radians(_roll_rate_max.get());
+	_auto_rate_max(1) = math::radians(_pitch_rate_max.get());
+	_auto_rate_max(2) = math::radians(_yaw_auto_max.get());
 
 	/* manual rate control acro mode rate limits and expo */
-	param_get(_params_handles.acro_roll_max, &v);
-	_params.acro_rate_max(0) = math::radians(v);
-	param_get(_params_handles.acro_pitch_max, &v);
-	_params.acro_rate_max(1) = math::radians(v);
-	param_get(_params_handles.acro_yaw_max, &v);
-	_params.acro_rate_max(2) = math::radians(v);
-	param_get(_params_handles.acro_expo, &_params.acro_expo);
-	param_get(_params_handles.acro_superexpo, &_params.acro_superexpo);
-
-	/* stick deflection needed in rattitude mode to control rates not angles */
-	param_get(_params_handles.rattitude_thres, &_params.rattitude_thres);
-
-	if (_vehicle_status.is_vtol) {
-		param_get(_params_handles.vtol_wv_yaw_rate_scale, &_params.vtol_wv_yaw_rate_scale);
-
-	} else {
-		_params.vtol_wv_yaw_rate_scale = 0.f;
-	}
-
-	param_get(_params_handles.bat_scale_en, &_params.bat_scale_en);
+	_acro_rate_max(0) = math::radians(_acro_roll_max.get());
+	_acro_rate_max(1) = math::radians(_acro_pitch_max.get());
+	_acro_rate_max(2) = math::radians(_acro_yaw_max.get());
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
-	/* rotation of the autopilot relative to the body */
-	param_get(_params_handles.board_rotation, &(_params.board_rotation));
-
-	/* fine adjustment of the rotation */
-	param_get(_params_handles.board_offset[0], &(_params.board_offset[0]));
-	param_get(_params_handles.board_offset[1], &(_params.board_offset[1]));
-	param_get(_params_handles.board_offset[2], &(_params.board_offset[2]));
-
 	/* get transformation matrix from sensor/board to body frame */
-	get_rot_matrix((enum Rotation)_params.board_rotation, &_board_rotation);
+	get_rot_matrix((enum Rotation)_board_rotation_param.get(), &_board_rotation);
 
 	/* fine tune the rotation */
 	math::Matrix<3, 3> board_rotation_offset;
-	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _params.board_offset[0],
-					 M_DEG_TO_RAD_F * _params.board_offset[1],
-					 M_DEG_TO_RAD_F * _params.board_offset[2]);
+	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _board_offset_x.get(),
+					 M_DEG_TO_RAD_F * _board_offset_y.get(),
+					 M_DEG_TO_RAD_F * _board_offset_z.get());
 	_board_rotation = board_rotation_offset * _board_rotation;
 }
 
@@ -349,7 +211,8 @@ MulticopterAttitudeControl::parameter_update_poll()
 	if (updated) {
 		struct parameter_update_s param_update;
 		orb_copy(ORB_ID(parameter_update), _params_sub, &param_update);
-		parameters_update();
+		updateParams();
+		parameters_updated();
 	}
 }
 
@@ -418,10 +281,6 @@ MulticopterAttitudeControl::vehicle_status_poll()
 			if (_vehicle_status.is_vtol) {
 				_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
-
-				_params_handles.vtol_wv_yaw_rate_scale = param_find("VT_WV_YAWR_SCL");
-
-				parameters_update();
 
 			} else {
 				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
@@ -512,7 +371,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	_thrust_sp = _v_att_sp.thrust;
 
 	/* prepare yaw weight from the ratio between roll/pitch and yaw gains */
-	Vector3f attitude_gain = _params.attitude_p;
+	Vector3f attitude_gain = _attitude_p;
 	const float roll_pitch_gain = (attitude_gain(0) + attitude_gain(1)) / 2.f;
 	const float yaw_w = math::constrain(attitude_gain(2) / roll_pitch_gain, 0.f, 1.f);
 	attitude_gain(2) = roll_pitch_gain;
@@ -564,7 +423,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	 * We infer the body z axis by taking the last column of R.transposed (== q.inversed)
 	 * because it's the rotation axis for body yaw and multiply it by the rate and gain. */
 	Vector3f yaw_feedforward_rate = q.inversed().dcm_z();
-	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _params.yaw_ff;
+	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _yaw_ff.get();
 
 	yaw_feedforward_rate(2) *= yaw_w;
 	_rates_sp += math::Vector<3>(yaw_feedforward_rate.data());
@@ -574,10 +433,10 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	for (int i = 0; i < 3; i++) {
 		if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
 		    !_v_control_mode.flag_control_manual_enabled) {
-			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.auto_rate_max(i), _params.auto_rate_max(i));
+			_rates_sp(i) = math::constrain(_rates_sp(i), -_auto_rate_max(i), _auto_rate_max(i));
 
 		} else {
-			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
+			_rates_sp(i) = math::constrain(_rates_sp(i), -_mc_rate_max(i), _mc_rate_max(i));
 		}
 	}
 
@@ -585,7 +444,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	if (_vehicle_status.is_vtol && _v_att_sp.disable_mc_yaw_control) {
 		if (_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) {
 
-			const float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
+			const float wv_yaw_rate_max = _auto_rate_max(2) * _vtol_wv_yaw_rate_scale.get();
 			_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
 
 			// prevent integrator winding up in weathervane mode
@@ -660,9 +519,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	rates(1) -= _sensor_bias.gyro_y_bias;
 	rates(2) -= _sensor_bias.gyro_z_bias;
 
-	math::Vector<3> rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_rate_p));
-	//math::Vector<3> rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_rate_i));
-	math::Vector<3> rates_d_scaled = _params.rate_d.emult(pid_attenuations(_params.tpa_breakpoint_d, _params.tpa_rate_d));
+	math::Vector<3> rates_p_scaled = _rate_p.emult(pid_attenuations(_tpa_breakpoint_p.get(), _tpa_rate_p.get()));
+	//math::Vector<3> rates_i_scaled = _rate_i.emult(pid_attenuations(_tpa_breakpoint_i.get(), _tpa_rate_i.get()));
+	math::Vector<3> rates_d_scaled = _rate_d.emult(pid_attenuations(_tpa_breakpoint_d.get(), _tpa_rate_d.get()));
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
@@ -676,7 +535,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	_att_control = rates_p_scaled.emult(rates_err) +
 		       _rates_int -
 		       rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt +
-		       _params.rate_ff.emult(_rates_sp);
+		       _rate_ff.emult(_rates_sp);
 
 	_rates_prev = rates;
 	_rates_prev_filtered = rates_filtered;
@@ -709,9 +568,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 			}
 
 			// Perform the integration using a first order method and do not propaate the result if out of range or invalid
-			float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
+			float rate_i = _rates_int(i) + _rate_i(i) * rates_err(i) * dt;
 
-			if (PX4_ISFINITE(rate_i) && rate_i > -_params.rate_int_lim(i) && rate_i < _params.rate_int_lim(i)) {
+			if (PX4_ISFINITE(rate_i) && rate_i > -_rate_int_lim(i) && rate_i < _rate_int_lim(i)) {
 				_rates_int(i) = rate_i;
 
 			}
@@ -720,7 +579,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* explicitly limit the integrator state */
 	for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
-		_rates_int(i) = math::constrain(_rates_int(i), -_params.rate_int_lim(i), _params.rate_int_lim(i));
+		_rates_int(i) = math::constrain(_rates_int(i), -_rate_int_lim(i), _rate_int_lim(i));
 
 	}
 }
@@ -754,9 +613,6 @@ MulticopterAttitudeControl::run()
 
 	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
-
-	/* initialize parameters cache */
-	parameters_update();
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
@@ -821,8 +677,8 @@ MulticopterAttitudeControl::run()
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
 			 * even bother running the attitude controllers */
 			if (_v_control_mode.flag_control_rattitude_enabled) {
-				if (fabsf(_manual_control_sp.y) > _params.rattitude_thres ||
-				    fabsf(_manual_control_sp.x) > _params.rattitude_thres) {
+				if (fabsf(_manual_control_sp.y) > _rattitude_thres.get() ||
+				    fabsf(_manual_control_sp.x) > _rattitude_thres.get()) {
 					_v_control_mode.flag_control_attitude_enabled = false;
 				}
 			}
@@ -850,10 +706,10 @@ MulticopterAttitudeControl::run()
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
 					matrix::Vector3f man_rate_sp;
-					man_rate_sp(0) = math::superexpo(_manual_control_sp.y, _params.acro_expo, _params.acro_superexpo);
-					man_rate_sp(1) = math::superexpo(-_manual_control_sp.x, _params.acro_expo, _params.acro_superexpo);
-					man_rate_sp(2) = math::superexpo(_manual_control_sp.r, _params.acro_expo, _params.acro_superexpo);
-					man_rate_sp = man_rate_sp.emult(_params.acro_rate_max);
+					man_rate_sp(0) = math::superexpo(_manual_control_sp.y, _acro_expo.get(), _acro_superexpo.get());
+					man_rate_sp(1) = math::superexpo(-_manual_control_sp.x, _acro_expo.get(), _acro_superexpo.get());
+					man_rate_sp(2) = math::superexpo(_manual_control_sp.r, _acro_expo.get(), _acro_superexpo.get());
+					man_rate_sp = man_rate_sp.emult(_acro_rate_max);
 					_rates_sp = math::Vector<3>(man_rate_sp.data());
 					_thrust_sp = _manual_control_sp.z;
 
@@ -894,7 +750,7 @@ MulticopterAttitudeControl::run()
 				_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
 				/* scale effort by battery status */
-				if (_params.bat_scale_en && _battery_status.scale > 0.0f) {
+				if (_bat_scale_en.get() && _battery_status.scale > 0.0f) {
 					for (int i = 0; i < 4; i++) {
 						_actuators.control[i] *= _battery_status.scale;
 					}
@@ -965,9 +821,9 @@ MulticopterAttitudeControl::run()
 					_loop_update_rate_hz = _loop_update_rate_hz * 0.5f + loop_update_rate * 0.5f;
 					dt_accumulator = 0;
 					loop_counter = 0;
-					_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
-					_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
-					_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _params.d_term_cutoff_freq);
+					_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+					_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+					_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
 				}
 			}
 
