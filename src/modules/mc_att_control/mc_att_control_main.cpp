@@ -49,7 +49,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <systemlib/circuit_breaker.h>
-#include <systemlib/param/param.h>
 
 #define MIN_TAKEOFF_THRUST    0.2f
 #define TPA_RATE_LOWER_LIMIT 0.05f
