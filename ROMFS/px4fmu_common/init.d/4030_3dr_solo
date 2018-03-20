@@ -92,5 +92,4 @@ set PWM_OUT 1234
 set MIXER_AUX none
 
 # enable high-speed link on telem 1
-set MAVLINK_DEVICE_1_BAUD  "921600"
-set MAVLINK_DEVICE_1_ARGS  "-r 80000 -m onboard -x"
+set MAVLINK_DEVICE_1_ARGS  "-b 921600 -r 80000 -m onboard -x"

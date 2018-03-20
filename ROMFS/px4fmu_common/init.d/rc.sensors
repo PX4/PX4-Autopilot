@@ -38,6 +38,61 @@ else
 	bst start
 
 	adc start
+
+	ms5611 -T 0 start
+	mpu9250 -s -R 14 start
+
+	# Possible external compasses
+	hmc5883 -X start
+
+	ist8310 -C -b 1 -R 4 start
+	aerofc_adc start
+	ll40ls start i2c
+fi
+
+if ver hwcmp AEROCORE2
+then
+	l3gd20 -R 12 start
+	lsm303d start
+fi
+
+if ver hwcmp AUAV_X21
+then
+	# External I2C bus
+	hmc5883 -C -T -X start
+	lis3mdl -X start
+
+	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	mpu6000 -R 2 -T 20608 start
+
+	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
+	mpu6000 -R 2 -T 20602 start
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	mpu9250 -R 2 start
+fi
+
+if ver hwcmp CRAZYFLIE
+then
+	# Onboard I2C
+	mpu9250 -R 12 start
+
+	# I2C bypass of mpu
+	lps25h start
+fi
+
+if ver hwcmp MINDPX_V2
+then
+	# External I2C bus
+	hmc5883 -C -T -X start
+
+	# Internal I2C bus
+	hmc5883 -C -T -I -R 12 start
+
+	mpu6000 -s -R 8 start
+	mpu9250 -s -R 8 start
+	lsm303d -R 10 start
+	l3gd20 -R 14 start
 fi
 
 if ver hwcmp NXPHLITE_V3
@@ -52,17 +107,10 @@ then
 	fxas21002c start -R 0
 fi
 
-if ver hwcmp AUAV_X21
+if ver hwcmp PX4_SAME70XPLAINED_V1
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
-	lis3mdl -X start
-
-	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20608 start
-
-	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20602 start
 
 	# Internal SPI bus mpu9250 is rotated 90 deg yaw
 	mpu9250 -R 2 start
@@ -169,15 +217,6 @@ then
 	unset BOARD_FMUV3
 fi
 
-if ver hwcmp PX4_SAME70XPLAINED_V1
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
-fi
-
 if ver hwcmp PX4FMU_V4
 then
 	# External I2C bus
@@ -231,42 +270,6 @@ then
 	fi
 fi
 
-if ver hwcmp MINDPX_V2
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal I2C bus
-	hmc5883 -C -T -I -R 12 start
-
-	mpu6000 -s -R 8 start
-	mpu9250 -s -R 8 start
-	lsm303d -R 10 start
-	l3gd20 -R 14 start
-fi
-
-if ver hwcmp CRAZYFLIE
-then
-	# Onboard I2C
-	mpu9250 -R 12 start
-
-	# I2C bypass of mpu
-	lps25h start
-fi
-
-if ver hwcmp AEROFC_V1
-then
-	ms5611 -T 0 start
-	mpu9250 -s -R 14 start
-
-	# Possible external compasses
-	hmc5883 -X start
-
-	ist8310 -C -b 1 -R 4 start
-	aerofc_adc start
-	ll40ls start i2c
-fi
-
 if ver hwcmp PX4FMU_V4PRO
 then
 	# Internal SPI bus ICM-20608-G
@@ -310,12 +313,6 @@ then
 
 	# Possible internal compass
 	ist8310 -C -b 5 start
-fi
-
-if ver hwcmp AEROCORE2
-then
-	l3gd20 -R 12 start
-	lsm303d start
 fi
 
 #
@@ -399,7 +396,7 @@ fi
 # Benewake TFMini
 if param greater SENS_EN_TFMINI 0
 then
-	if ver hwcmp PX4FMU_V3
+	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
 	then
 		# start the driver on serial 4/5
 		tfmini start -d /dev/ttyS6
@@ -421,7 +418,7 @@ fi
 # LeddarOne
 if param greater SENS_EN_LEDDAR1 0
 then
-	if ver hwcmp PX4FMU_V3
+	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
 	then
 		# start the driver on serial 4/5
 		leddar_one -d /dev/ttyS6 start

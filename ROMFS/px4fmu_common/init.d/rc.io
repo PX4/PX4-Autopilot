@@ -15,3 +15,5 @@ set PX4IO_LIMIT 400
 if px4io limit ${PX4IO_LIMIT}
 then
 fi
+
+unset PX4IO_LIMIT

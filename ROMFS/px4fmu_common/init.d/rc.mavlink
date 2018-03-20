@@ -1,6 +1,6 @@
 #!nsh
 #
-# MAVLINK startup script.
+# MAVLINK stream startup script.
 #
 # NOTE: environment variable references:
 #    If the dollar sign ('$') is followed by a left bracket ('{') then the
@@ -17,12 +17,17 @@
 #
 
 #
+# Declare local script variables and initialize default values
+#
+
+
+#
 # Setup for board specific configurations
 #
 if ver hwcmp AEROFC_V1
 then
 	set MAVLINK_DEVICE_1 "/dev/ttyS3"
-	set MAVLINK_DEVICE_1_ARGS "-r 1200"
+	set MAVLINK_DEVICE_1_ARGS "-b 57600 -r 1200"
 
 	# Only start mavlink if the Benewake TFMini or LeddarOne isn't being used
 	if param greater SENS_EN_TFMINI 0
@@ -31,7 +36,7 @@ then
 	fi
 	if param greater SENS_EN_LEDDAR1 0
 	then
-		set MAVLINK_DEVICE_1 none				
+		set MAVLINK_DEVICE_1 none
 	fi
 
 	if protocol_splitter start ${MAVLINK_DEVICE_2}
@@ -39,9 +44,6 @@ then
 		mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
 		micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
 	fi
-else
-	# Start MAVLink
-	mavlink start -d /dev/ttyACM0 -r 800000 -m config -x
 fi
 
 if ver hwcmp CRAZYFLIE
@@ -55,27 +57,19 @@ then
 	set MAVLINK_DEVICE_2 /dev/ttyS4
 fi
 
-if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
+if ver hwcmp MINDPX_V2 PX4FMU_V4 PX4FMU_V4PRO
 then
 	# This is TELEM4 on Pixhawk 3 Pro
 	frsky_telemetry start -d /dev/ttyS6
 
 	if ver hwcmp PX4FMU_V4
 	then
-	# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
-		set MAVLINK_DEVICE_1 	  "/dev/ttyS1"
-		set MAVLINK_DEVICE_1_ARGS "-r 1200"
+		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
+		set MAVLINK_DEVICE_1_ARGS "-b 57600 -r 1200"
 
 		# Start MAVLink on Wifi (ESP8266 port)
 		mavlink start -d /dev/ttyS0 -b 921600 -r 20000
 	fi
-fi
-
-#
-# Start Mavlink Device 1
-#
-if [ "x$MAVLINK_DEVICE_1" != xnone ]
-	mavlink start -d ${MAVLINK_DEVICE_1}  -b ${MAVLINK_DEVICE_1_BAUD} ${MAVLINK_DEVICE_1_ARGS}
 fi
 
 #
@@ -88,19 +82,17 @@ fi
 
 if param compare SYS_COMPANION 20
 then
-	syslink start
-
 	set MAVLINK_DEVICE_2		"/dev/bridge0"
-	set MAVLINK_DEVICE_2_BAUD	"57600"
-	set MAVLINK_DEVICE_2_ARGS 	"-m osd -r 40000"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 57600 -m osd -r 40000"
+
+	syslink start
 fi
 
 # 19200 Baud Rate
 if param compare SYS_COMPANION 319200
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"19200"
-	set MAVLINK_DEVICE_2_ARGS 	"-r 1000 -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 19200 -r 1000 -f"
 fi
 if param compare SYS_COMPANION 419200
 then	
@@ -110,103 +102,106 @@ fi
 if param compare SYS_COMPANION 519200
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"19200"
-	set MAVLINK_DEVICE_2_ARGS 	"-m minimal -r 1000"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 19200 -m minimal -r 1000"
 fi
 
 # 38400 Baud Rate
 if param compare SYS_COMPANION 338400
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"38400"
-	set MAVLINK_DEVICE_2_ARGS 	"-r 1000 -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 38400 -r 1000 -f"
 fi
 if param compare SYS_COMPANION 538400
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"38400"
-	set MAVLINK_DEVICE_2_ARGS 	"-m minimal -r 1000"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 38400 -m minimal -r 1000"
 fi
 
 # 57600 Baud Rate
 if param compare SYS_COMPANION 57600
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"57600"
-	set MAVLINK_DEVICE_2_ARGS 	"-m onboard -r 5000 -x -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 57600 -m onboard -r 5000 -x -f"
 fi
 if param compare SYS_COMPANION 157600
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"57600"
-	set MAVLINK_DEVICE_2_ARGS 	"-m osd -r 1000"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 57600 -m osd -r 1000"
 fi
 if param compare SYS_COMPANION 257600
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"57600"
-	set MAVLINK_DEVICE_2_ARGS 	"-m magic -r 5000 -x -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 57600 -m magic -r 5000 -x -f"
 fi
 if param compare SYS_COMPANION 357600
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"57600"
-	set MAVLINK_DEVICE_2_ARGS 	"-r 1000 -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 57600 -r 1000 -f"
 fi
 if param compare SYS_COMPANION 557600
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"57600"
-	set MAVLINK_DEVICE_2_ARGS 	"-m minimal -r 1000"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 57600 -m minimal -r 1000"
 fi
 
 if param compare SYS_COMPANION 3115200
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"115200"
-	set MAVLINK_DEVICE_2_ARGS 	"-r 1000 -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 115200 -r 1000 -f"
 fi
 if param compare SYS_COMPANION 5115200
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"115200"
-	set MAVLINK_DEVICE_2_ARGS 	"-m minimal -r 1000"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 115200 -m minimal -r 1000"
 fi
 
-$ 460800 Baud Rate
+# 460800 Baud Rate
 if param compare SYS_COMPANION 460800
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"460800"
-	set MAVLINK_DEVICE_2_ARGS 	"-m onboard -r 5000 -x -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 460800-m onboard -r 5000 -x -f"
 fi
 
 # 921600 Buad Rate
 if param compare SYS_COMPANION 921600
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"921600"
-	set MAVLINK_DEVICE_2_ARGS 	"-m onboard -r 80000 -x -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 921600 -m onboard -r 80000 -x -f"
 fi
 if param compare SYS_COMPANION 1921600
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"921600"
-	set MAVLINK_DEVICE_2_ARGS 	"-r 20000"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 921600 -r 20000"
 fi
 
 # 1500000 Baud Rate
 if param compare SYS_COMPANION 1500000
 then
 	set MAVLINK_DEVICE_2		"/dev/ttyS2"
-	set MAVLINK_DEVICE_2_BAUD	"1500000"
-	set MAVLINK_DEVICE_2_ARGS 	"-m onboard -r 10000 -x -f"
+	set MAVLINK_DEVICE_2_ARGS 	"-b 1500000 -m onboard -r 10000 -x -f"
 fi
 
+
+#
+# Start Mavlink Device 0
+#
+mavlink start -d /dev/ttyACM0 -r 800000 -m config -x
+
+#
+# Start Mavlink Device 1
+#
+if [ "x$MAVLINK_DEVICE_1" != xnone ]
+	mavlink start -d ${MAVLINK_DEVICE_1} ${MAVLINK_DEVICE_1_ARGS}
+fi
 
 #
 # Start Mavlink Device 2
 #
 if [ "x$MAVLINK_DEVICE_2" != xnone ]
-	mavlink start -d ${MAVLINK_DEVICE_2} -b ${MAVLINK_DEVICE_2_BAUD} ${MAVLINK_DEVICE_2_ARGS}
+	mavlink start -d ${MAVLINK_DEVICE_2} ${MAVLINK_DEVICE_2_ARGS}
 fi
+
+
+#
+# Unset all local script variables to free RAM
+#
