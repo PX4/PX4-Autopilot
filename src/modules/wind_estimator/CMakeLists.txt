@@ -33,6 +33,8 @@
 px4_add_module(
 	MODULE modules__wind_estimator
 	MAIN wind_estimator
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/lib/ecl
 	SRCS
 		wind_estimator_main.cpp
 )
