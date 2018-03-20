@@ -41,8 +41,7 @@
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
-	SuperBlock(nullptr, "FW_ATT"),
-	_sub_airspeed(ORB_ID(airspeed), 0, 0, &getSubscriptions()),
+	_airspeed_sub(ORB_ID(airspeed)),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
@@ -527,7 +526,7 @@ void FixedwingAttitudeControl::run()
 
 			matrix::Eulerf euler_angles(R);
 
-			updateSubscriptions();
+			_airspeed_sub.update();
 			vehicle_setpoint_poll();
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
@@ -563,12 +562,12 @@ void FixedwingAttitudeControl::run()
 				float airspeed;
 
 				/* if airspeed is non-finite or not valid or if we are asked not to control it, we assume the normal average speed */
-				const bool airspeed_valid = PX4_ISFINITE(_sub_airspeed.get().indicated_airspeed_m_s)
-							    && (hrt_elapsed_time(&_sub_airspeed.get().timestamp) < 1e6);
+				const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
+							    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1e6);
 
 				if (airspeed_valid) {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-					airspeed = math::max(0.5f, _sub_airspeed.get().indicated_airspeed_m_s);
+					airspeed = math::max(0.5f, _airspeed_sub.get().indicated_airspeed_m_s);
 
 				} else {
 					airspeed = _parameters.airspeed_trim;
