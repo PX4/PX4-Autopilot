@@ -72,7 +72,7 @@ usage()
 		"\t-s <strength>\t\tStrength of the tone between 0-100\n"
 		"\t-m <melody>\t\tMelody in a string form ex: \"MFT200e8a8a\"\n"
 		"\n"
-		"tune_control stop \t\t Stops playback, useful for repeated tunes\n"
+		"tune_control stop \t\tStops playback, useful for repeated tunes\n"
 	);
 }
 
@@ -147,7 +147,7 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 's':
-			value = (uint16_t)(strtol(myoptarg, nullptr, 0));
+			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
 
 			if (value > 0 && value < 100) {
 				tune_control.strength = value;
@@ -170,20 +170,21 @@ tune_control_main(int argc, char *argv[])
 		return 1;
 	}
 
-	unsigned frequency, duration, silence, strength;
+	unsigned frequency, duration, silence;
+	uint8_t strength;
 	int exit_counter = 0;
 
 	if (!strcmp(argv[myoptind], "play")) {
 		if (string_input) {
 			PX4_INFO("Start playback...");
-			tunes.set_string(tune_string);
+			tunes.set_string(tune_string, tune_control.strength);
 
 			while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
 				tune_control.tune_id = 0;
 				tune_control.frequency = (uint16_t)frequency;
 				tune_control.duration = (uint32_t)duration;
 				tune_control.silence = (uint32_t)silence;
-				tune_control.strength = (uint32_t)strength;
+				tune_control.strength = (uint8_t)strength;
 				publish_tune_control(tune_control);
 				usleep(duration + silence);
 				exit_counter++;
