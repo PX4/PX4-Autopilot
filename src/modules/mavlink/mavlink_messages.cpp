@@ -74,6 +74,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/trajectory_waypoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
@@ -3050,6 +3051,81 @@ protected:
 	}
 };
 
+class MavlinkStreamTrajectory: public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamTrajectory::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "TRAJECTORY";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_TRAJECTORY;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamTrajectory(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _traj_wp_avoidance_sub->is_published() ? (MAVLINK_MSG_ID_TRAJECTORY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+		       : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_traj_wp_avoidance_sub;
+	uint64_t _traj_wp_avoidance_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamTrajectory(MavlinkStreamTrajectory &);
+	MavlinkStreamTrajectory &operator = (const MavlinkStreamTrajectory &);
+
+protected:
+	explicit MavlinkStreamTrajectory(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_traj_wp_avoidance_sub(_mavlink->add_orb_subscription(ORB_ID(trajectory_waypoint_desired))),
+		_traj_wp_avoidance_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		struct trajectory_waypoint_s traj_wp_avoidance_desired;
+
+		if (_traj_wp_avoidance_sub->update(&_traj_wp_avoidance_time, &traj_wp_avoidance_desired)) {
+			mavlink_trajectory_t msg = {};
+
+			msg.time_usec = traj_wp_avoidance_desired.timestamp;
+			msg.type = traj_wp_avoidance_desired.type;
+
+			memcpy(msg.point_1, traj_wp_avoidance_desired.point_0, sizeof(msg.point_1));
+			memcpy(msg.point_2, traj_wp_avoidance_desired.point_1, sizeof(msg.point_2));
+			memcpy(msg.point_3, traj_wp_avoidance_desired.point_2, sizeof(msg.point_3));
+			memcpy(msg.point_4, traj_wp_avoidance_desired.point_3, sizeof(msg.point_4));
+			memcpy(msg.point_5, traj_wp_avoidance_desired.point_4, sizeof(msg.point_5));
+
+			memcpy(msg.point_valid, traj_wp_avoidance_desired.point_valid, sizeof(msg.point_valid));
+
+			mavlink_msg_trajectory_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
 class MavlinkStreamOpticalFlowRad : public MavlinkStream
 {
 public:
@@ -4161,6 +4237,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamAttitudeTarget::new_instance, &MavlinkStreamAttitudeTarget::get_name_static, &MavlinkStreamAttitudeTarget::get_id_static),
 	StreamListItem(&MavlinkStreamRCChannels::new_instance, &MavlinkStreamRCChannels::get_name_static, &MavlinkStreamRCChannels::get_id_static),
 	StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static, &MavlinkStreamManualControl::get_id_static),
+	StreamListItem(&MavlinkStreamTrajectory::new_instance, &MavlinkStreamTrajectory::get_name_static, &MavlinkStreamTrajectory::get_id_static),
 	StreamListItem(&MavlinkStreamOpticalFlowRad::new_instance, &MavlinkStreamOpticalFlowRad::get_name_static, &MavlinkStreamOpticalFlowRad::get_id_static),
 	StreamListItem(&MavlinkStreamActuatorControlTarget<0>::new_instance, &MavlinkStreamActuatorControlTarget<0>::get_name_static, &MavlinkStreamActuatorControlTarget<0>::get_id_static),
 	StreamListItem(&MavlinkStreamActuatorControlTarget<1>::new_instance, &MavlinkStreamActuatorControlTarget<1>::get_name_static, &MavlinkStreamActuatorControlTarget<1>::get_id_static),
