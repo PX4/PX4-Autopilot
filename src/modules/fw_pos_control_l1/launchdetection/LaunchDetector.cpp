@@ -40,40 +40,38 @@
 #include "CatapultLaunchMethod.h"
 #include "LaunchDetector.h"
 
+#include <px4_log.h>
+
 namespace launchdetection
 {
 
-LaunchDetector::LaunchDetector() :
-	SuperBlock(nullptr, "LAUN"),
-	launchdetection_on(this, "ALL_ON")
+LaunchDetector::LaunchDetector(ModuleParams *parent) :
+	ModuleParams(parent)
 {
 	/* init all detectors */
-	launchMethods[0] = new CatapultLaunchMethod(this);
-
-	/* update all parameters of all detectors */
-	updateParams();
+	_launchMethods[0] = new CatapultLaunchMethod(this);
 }
 
 LaunchDetector::~LaunchDetector()
 {
-	delete launchMethods[0];
+	delete _launchMethods[0];
 }
 
 void LaunchDetector::reset()
 {
 	/* Reset all detectors */
-	for (const auto launchMethod : launchMethods) {
+	for (const auto launchMethod : _launchMethods) {
 		launchMethod->reset();
 	}
 
 	/* Reset active launchdetector */
-	activeLaunchDetectionMethodIndex = -1;
+	_activeLaunchDetectionMethodIndex = -1;
 }
 
 void LaunchDetector::update(float accel_x)
 {
 	if (launchDetectionEnabled()) {
-		for (const auto launchMethod : launchMethods) {
+		for (const auto launchMethod : _launchMethods) {
 			launchMethod->update(accel_x);
 		}
 	}
@@ -82,18 +80,18 @@ void LaunchDetector::update(float accel_x)
 LaunchDetectionResult LaunchDetector::getLaunchDetected()
 {
 	if (launchDetectionEnabled()) {
-		if (activeLaunchDetectionMethodIndex < 0) {
-			/* None of the active launchmethods has detected a launch, check all launchmethods */
-			for (unsigned i = 0; i < (sizeof(launchMethods) / sizeof(launchMethods[0])); i++) {
-				if (launchMethods[i]->getLaunchDetected() != LAUNCHDETECTION_RES_NONE) {
-					PX4_WARN("selecting launchmethod %d", i);
-					activeLaunchDetectionMethodIndex = i; // from now on only check this method
-					return launchMethods[i]->getLaunchDetected();
+		if (_activeLaunchDetectionMethodIndex < 0) {
+			/* None of the active _launchmethods has detected a launch, check all _launchmethods */
+			for (unsigned i = 0; i < (sizeof(_launchMethods) / sizeof(_launchMethods[0])); i++) {
+				if (_launchMethods[i]->getLaunchDetected() != LAUNCHDETECTION_RES_NONE) {
+					PX4_INFO("selecting launchmethod %d", i);
+					_activeLaunchDetectionMethodIndex = i; // from now on only check this method
+					return _launchMethods[i]->getLaunchDetected();
 				}
 			}
 
 		} else {
-			return launchMethods[activeLaunchDetectionMethodIndex]->getLaunchDetected();
+			return _launchMethods[_activeLaunchDetectionMethodIndex]->getLaunchDetected();
 		}
 	}
 
@@ -108,16 +106,16 @@ float LaunchDetector::getPitchMax(float pitchMaxDefault)
 
 	/* if a lauchdetectionmethod is active or only one exists return the pitch limit from this method,
 	 * otherwise use the default limit */
-	if (activeLaunchDetectionMethodIndex < 0) {
-		if (sizeof(launchMethods) / sizeof(LaunchMethod *) > 1) {
+	if (_activeLaunchDetectionMethodIndex < 0) {
+		if (sizeof(_launchMethods) / sizeof(LaunchMethod *) > 1) {
 			return pitchMaxDefault;
 
 		} else {
-			return launchMethods[0]->getPitchMax(pitchMaxDefault);
+			return _launchMethods[0]->getPitchMax(pitchMaxDefault);
 		}
 
 	} else {
-		return launchMethods[activeLaunchDetectionMethodIndex]->getPitchMax(pitchMaxDefault);
+		return _launchMethods[_activeLaunchDetectionMethodIndex]->getPitchMax(pitchMaxDefault);
 	}
 }
 

@@ -54,8 +54,6 @@
 
 #include <cfloat>
 
-#include <controllib/block/BlockParam.hpp>
-#include <controllib/blocks.hpp>
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <ecl/tecs/tecs.h>
@@ -64,6 +62,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_module.h>
+#include <px4_module_params.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/perf_counter.h>
@@ -122,7 +121,7 @@ using uORB::Subscription;
 using namespace launchdetection;
 using namespace runwaytakeoff;
 
-class FixedwingPositionControl final : public control::SuperBlock, public ModuleBase<FixedwingPositionControl>
+class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams
 {
 public:
 	FixedwingPositionControl();
