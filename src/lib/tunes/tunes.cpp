@@ -131,14 +131,15 @@ int Tunes::set_control(const tune_control_s &tune_control)
 	return OK;
 }
 
-void Tunes::set_string(const char *const string)
+void Tunes::set_string(const char *const string, uint8_t strength)
 {
-	// Only play new tune if current tune is a repeated one nothing is being played
-	if (_repeat || _tune == nullptr) {
+	// Only play new tune if nothing is being played currently
+	if (_tune == nullptr) {
 		// set tune string the first time
 		_tune = string;
 		_tune_start_ptr = string;
 		_next = _tune;
+		_strength = strength;
 	}
 }
 
