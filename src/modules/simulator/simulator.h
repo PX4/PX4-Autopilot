@@ -39,6 +39,7 @@
 #pragma once
 
 #include <px4_posix.h>
+#include <px4_module_params.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -55,8 +56,6 @@
 #include <drivers/drv_rc_input.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/battery.h>
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
@@ -188,7 +187,7 @@ protected:
 
 };
 
-class Simulator : public control::SuperBlock
+class Simulator : public ModuleParams
 {
 public:
 	static Simulator *getInstance();
@@ -226,7 +225,7 @@ public:
 	bool isInitialized() { return _initialized; }
 
 private:
-	Simulator() : SuperBlock(nullptr, "SIM"),
+	Simulator() : ModuleParams(nullptr),
 		_accel(1),
 		_mpu(1),
 		_baro(1),
@@ -274,8 +273,7 @@ private:
 		_actuators{},
 		_attitude{},
 		_manual{},
-		_vehicle_status{},
-		_battery_drain_interval_s(this, "BAT_DRAIN")
+		_vehicle_status{}
 #endif
 	{
 		// We need to know the type for the correct mapping from
@@ -283,7 +281,8 @@ private:
 		param_t param_system_type = param_find("MAV_TYPE");
 		param_get(param_system_type, &_system_type);
 
-		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
+		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)
+		{
 			_actuator_outputs_sub[i] = -1;
 		}
 
@@ -386,7 +385,9 @@ private:
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
 
-	control::BlockParamFloat _battery_drain_interval_s; ///< battery drain interval
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s ///< battery drain interval
+	)
 
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);
