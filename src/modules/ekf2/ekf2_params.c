@@ -607,6 +607,17 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
 
 /**
+ * Maximum lapsed time from last fusion of measurements that constrain velocity drift before the EKF will report the horizontal nav solution as invalid.
+ *
+ * @group EKF2
+ * @group EKF2
+ * @min 500000
+ * @max 10000000
+ * @unit uSec
+ */
+PARAM_DEFINE_INT32(EKF2_NOAID_TOUT, 5000000);
+
+/**
  * Measurement noise for range finder fusion
  *
  * @group EKF2
