@@ -299,9 +299,9 @@ int WindEstimatorModule::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 This module runs a combined wind and airspeed scale factor estimator.
-If provided the vehicle NED speed and the vehicle attitude it can estimate the horizontal wind components based on a zero
+If provided the vehicle NED speed and attitude it can estimate the horizontal wind components based on a zero
 sideslip assumption. This makes the estimator only suitable for fixed wing vehicles.
-If additionally provided an airspeed measurment this module also estimates an airspeed scale factor based on the following model:
+If provided an airspeed measurement this module also estimates an airspeed scale factor based on the following model:
 measured_airspeed = scale_factor * real_airspeed.
 
 )DESCR_STR");
