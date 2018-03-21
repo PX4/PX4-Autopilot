@@ -620,8 +620,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
-	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
-	math::Vector<3> aval_integrated;
+	matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
+	matrix::Vector3f aval_integrated;
 
 	_accel_int.put(accel_report.timestamp, aval, aval_integrated, accel_report.integral_dt);
 	accel_report.x_integral = aval_integrated(0);
@@ -652,8 +652,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	gyro_report.y = _gyro_filter_y.apply(y_gyro_in_new);
 	gyro_report.z = _gyro_filter_z.apply(z_gyro_in_new);
 
-	math::Vector<3> gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
-	math::Vector<3> gval_integrated;
+	matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
+	matrix::Vector3f gval_integrated;
 
 	_gyro_int.put(gyro_report.timestamp, gval, gval_integrated, gyro_report.integral_dt);
 	gyro_report.x_integral = gval_integrated(0);
