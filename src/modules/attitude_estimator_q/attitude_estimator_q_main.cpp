@@ -60,9 +60,10 @@
 
 extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[]);
 
-using math::Vector;
-using math::Matrix;
-using math::Quaternion;
+using matrix::Dcmf;
+using matrix::Eulerf;
+using matrix::Quatf;
+using matrix::Vector3f;
 
 class AttitudeEstimatorQ;
 
@@ -134,21 +135,21 @@ private:
 	float		_bias_max = 0.0f;
 	int32_t		_ext_hdg_mode = 0;
 
-	Vector<3>	_gyro;
-	Vector<3>	_accel;
-	Vector<3>	_mag;
+	Vector3f	_gyro;
+	Vector3f	_accel;
+	Vector3f	_mag;
 
-	Vector<3>	_vision_hdg;
-	Vector<3>	_mocap_hdg;
+	Vector3f	_vision_hdg;
+	Vector3f	_mocap_hdg;
 
-	Quaternion	_q;
-	Vector<3>	_rates;
-	Vector<3>	_gyro_bias;
+	Quatf		_q;
+	Vector3f	_rates;
+	Vector3f	_gyro_bias;
 
-	Vector<3>	_vel_prev;
+	Vector3f	_vel_prev;
 	hrt_abstime	_vel_prev_t = 0;
 
-	Vector<3>	_pos_acc;
+	Vector3f	_pos_acc;
 
 	bool		_inited = false;
 	bool		_data_good = false;
@@ -342,15 +343,15 @@ void AttitudeEstimatorQ::task_main()
 			vehicle_attitude_s vision;
 
 			if (orb_copy(ORB_ID(vehicle_vision_attitude), _vision_sub, &vision) == PX4_OK) {
-				math::Quaternion q(vision.q);
+				Quatf q(vision.q);
 
-				math::Matrix<3, 3> Rvis = q.to_dcm();
-				math::Vector<3> v(1.0f, 0.0f, 0.4f);
+				Dcmf Rvis = Quatf(vision.q);
+				Vector3f v(1.0f, 0.0f, 0.4f);
 
 				// Rvis is Rwr (robot respect to world) while v is respect to world.
 				// Hence Rvis must be transposed having (Rwr)' * Vw
 				// Rrw * Vw = vn. This way we have consistency
-				_vision_hdg = Rvis.transposed() * v;
+				_vision_hdg = Rvis.transpose() * v;
 
 				// vision external heading usage (ATT_EXT_HDG_M 1)
 				if (_ext_hdg_mode == 1) {
@@ -367,15 +368,13 @@ void AttitudeEstimatorQ::task_main()
 			att_pos_mocap_s mocap;
 
 			if (orb_copy(ORB_ID(att_pos_mocap), _mocap_sub, &mocap) == PX4_OK) {
-				math::Quaternion q(mocap.q);
-				math::Matrix<3, 3> Rmoc = q.to_dcm();
-
-				math::Vector<3> v(1.0f, 0.0f, 0.4f);
+				Dcmf Rmoc = Quatf(mocap.q);
+				Vector3f v(1.0f, 0.0f, 0.4f);
 
 				// Rmoc is Rwr (robot respect to world) while v is respect to world.
 				// Hence Rmoc must be transposed having (Rwr)' * Vw
 				// Rrw * Vw = vn. This way we have consistency
-				_mocap_hdg = Rmoc.transposed() * v;
+				_mocap_hdg = Rmoc.transpose() * v;
 
 				// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
 				if (_ext_hdg_mode == 2) {
@@ -399,7 +398,7 @@ void AttitudeEstimatorQ::task_main()
 
 				if (_acc_comp && gpos.timestamp != 0 && hrt_absolute_time() < gpos.timestamp + 20000 && gpos.eph < 5.0f && _inited) {
 					/* position data is actual */
-					Vector<3> vel(gpos.vel_n, gpos.vel_e, gpos.vel_d);
+					Vector3f vel(gpos.vel_n, gpos.vel_e, gpos.vel_d);
 
 					/* velocity updated */
 					if (_vel_prev_t != 0 && gpos.timestamp != _vel_prev_t) {
@@ -502,28 +501,27 @@ bool AttitudeEstimatorQ::init()
 {
 	// Rotation matrix can be easily constructed from acceleration and mag field vectors
 	// 'k' is Earth Z axis (Down) unit vector in body frame
-	Vector<3> k = -_accel;
+	Vector3f k = -_accel;
 	k.normalize();
 
 	// 'i' is Earth X axis (North) unit vector in body frame, orthogonal with 'k'
-	Vector<3> i = (_mag - k * (_mag * k));
+	Vector3f i = (_mag - k * (_mag * k));
 	i.normalize();
 
 	// 'j' is Earth Y axis (East) unit vector in body frame, orthogonal with 'k' and 'i'
-	Vector<3> j = k % i;
+	Vector3f j = k % i;
 
 	// Fill rotation matrix
-	Matrix<3, 3> R;
-	R.set_row(0, i);
-	R.set_row(1, j);
-	R.set_row(2, k);
+	Dcmf R;
+	R.setRow(0, i);
+	R.setRow(1, j);
+	R.setRow(2, k);
 
 	// Convert to quaternion
 	_q.from_dcm(R);
 
 	// Compensate for magnetic declination
-	Quaternion decl_rotation;
-	decl_rotation.from_yaw(_mag_decl);
+	Quatf decl_rotation = Eulerf(0.0f, 0.0f, _mag_decl);
 	_q = decl_rotation * _q;
 
 	_q.normalize();
@@ -551,36 +549,36 @@ bool AttitudeEstimatorQ::update(float dt)
 		return init();
 	}
 
-	Quaternion q_last = _q;
+	Quatf q_last = _q;
 
 	// Angular rate of correction
-	Vector<3> corr;
+	Vector3f corr;
 	float spinRate = _gyro.length();
 
 	if (_ext_hdg_mode > 0 && _ext_hdg_good) {
 		if (_ext_hdg_mode == 1) {
 			// Vision heading correction
 			// Project heading to global frame and extract XY component
-			Vector<3> vision_hdg_earth = _q.conjugate(_vision_hdg);
+			Vector3f vision_hdg_earth = _q.conjugate(_vision_hdg);
 			float vision_hdg_err = _wrap_pi(atan2f(vision_hdg_earth(1), vision_hdg_earth(0)));
 			// Project correction to body frame
-			corr += _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, -vision_hdg_err)) * _w_ext_hdg;
+			corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -vision_hdg_err)) * _w_ext_hdg;
 		}
 
 		if (_ext_hdg_mode == 2) {
 			// Mocap heading correction
 			// Project heading to global frame and extract XY component
-			Vector<3> mocap_hdg_earth = _q.conjugate(_mocap_hdg);
+			Vector3f mocap_hdg_earth = _q.conjugate(_mocap_hdg);
 			float mocap_hdg_err = _wrap_pi(atan2f(mocap_hdg_earth(1), mocap_hdg_earth(0)));
 			// Project correction to body frame
-			corr += _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, -mocap_hdg_err)) * _w_ext_hdg;
+			corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -mocap_hdg_err)) * _w_ext_hdg;
 		}
 	}
 
 	if (_ext_hdg_mode == 0 || !_ext_hdg_good) {
 		// Magnetometer correction
 		// Project mag field vector to global frame and extract XY component
-		Vector<3> mag_earth = _q.conjugate(_mag);
+		Vector3f mag_earth = _q.conjugate(_mag);
 		float mag_err = _wrap_pi(atan2f(mag_earth(1), mag_earth(0)) - _mag_decl);
 		float gainMult = 1.0f;
 		const float fifty_dps = 0.873f;
@@ -590,7 +588,7 @@ bool AttitudeEstimatorQ::update(float dt)
 		}
 
 		// Project magnetometer correction to body frame
-		corr += _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, -mag_err)) * _w_mag * gainMult;
+		corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -mag_err)) * _w_mag * gainMult;
 	}
 
 	_q.normalize();
@@ -598,9 +596,9 @@ bool AttitudeEstimatorQ::update(float dt)
 
 	// Accelerometer correction
 	// Project 'k' unit vector of earth frame to body frame
-	// Vector<3> k = _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, 1.0f));
+	// Vector3f k = _q.conjugate_inversed(Vector3f(0.0f, 0.0f, 1.0f));
 	// Optimized version with dropped zeros
-	Vector<3> k(
+	Vector3f k(
 		2.0f * (_q(1) * _q(3) - _q(0) * _q(2)),
 		2.0f * (_q(2) * _q(3) + _q(0) * _q(1)),
 		(_q(0) * _q(0) - _q(1) * _q(1) - _q(2) * _q(2) + _q(3) * _q(3))
@@ -633,7 +631,7 @@ bool AttitudeEstimatorQ::update(float dt)
 	corr += _rates;
 
 	// Apply correction to state
-	_q += _q.derivative(corr) * dt;
+	_q += _q.derivative1(corr) * dt;
 
 	// Normalize quaternion
 	_q.normalize();
@@ -658,8 +656,7 @@ void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 
 	} else {
 		// Immediately rotate current estimation to avoid gyro bias growth
-		Quaternion decl_rotation;
-		decl_rotation.from_yaw(new_declination - _mag_decl);
+		Quatf decl_rotation = Eulerf(0.0f, 0.0f, new_declination - _mag_decl);
 		_q = decl_rotation * _q;
 		_mag_decl = new_declination;
 	}
