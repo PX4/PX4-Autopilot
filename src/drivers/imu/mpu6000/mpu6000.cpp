@@ -594,6 +594,9 @@ MPU6000::~MPU6000()
 	/* make sure we are truly inactive */
 	stop();
 
+	orb_unadvertise(_accel_topic);
+	orb_unadvertise(_gyro->_gyro_topic);
+
 	/* delete the gyro subdriver */
 	delete _gyro;
 
