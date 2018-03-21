@@ -51,6 +51,13 @@ int sign(T val)
 	return (T(0) < val) - (val < T(0));
 }
 
+// Type-safe signum function with zero treted as positive
+template<typename T>
+int signNoZero(T val)
+{
+	return (T(0) <= val) - (val < T(0));
+}
+
 /*
  * So called exponential curve function implementation.
  * It is essentially a linear combination between a linear and a cubic function.

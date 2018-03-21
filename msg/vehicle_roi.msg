@@ -9,13 +9,12 @@ uint8 ROI_ENUM_END = 5
 
 uint8 mode          # ROI mode (see above)
 
-uint32 mission_seq  # mission sequence to point to
-uint32 target_seq   # target sequence to point to
-
 float64 lat			    # Latitude to point to
 float64 lon			    # Longitude to point to
 float32 alt			    # Altitude to point to
 
-float32 pitchOffset		# Additional pitch offset to next waypoint
-float32 rollOffset		# Additional roll offset to next waypoint
-float32 yawOffset		# Additional yaw offset to next waypoint
+# additional angle offsets to next waypoint (only used with ROI_WPNEXT)
+float32 roll_offset		# angle offset in rad
+float32 pitch_offset		# angle offset in rad
+float32 yaw_offset		# angle offset in rad
+

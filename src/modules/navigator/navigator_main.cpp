@@ -496,40 +496,20 @@ Navigator::run()
 
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
 					_vroi.mode = vehicle_command_s::VEHICLE_ROI_LOCATION;
-					break;
-
-				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
-					_vroi.mode = vehicle_command_s::VEHICLE_ROI_WPNEXT;
-					_vroi.pitchOffset = cmd.param5;
-					_vroi.rollOffset = cmd.param6;
-					_vroi.yawOffset = cmd.param7;
-					break;
-
-				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
-					_vroi.mode = vehicle_command_s::VEHICLE_ROI_NONE;
-					break;
-				}
-
-				switch (_vroi.mode) {
-				case vehicle_command_s::VEHICLE_ROI_NONE:
-					break;
-
-				case vehicle_command_s::VEHICLE_ROI_WPNEXT:
-					// TODO: implement point toward next MISSION
-					break;
-
-				case vehicle_command_s::VEHICLE_ROI_WPINDEX:
-					_vroi.mission_seq = cmd.param2;
-					break;
-
-				case vehicle_command_s::VEHICLE_ROI_LOCATION:
 					_vroi.lat = cmd.param5;
 					_vroi.lon = cmd.param6;
 					_vroi.alt = cmd.param7;
 					break;
 
-				case vehicle_command_s::VEHICLE_ROI_TARGET:
-					_vroi.target_seq = cmd.param2;
+				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
+					_vroi.mode = vehicle_command_s::VEHICLE_ROI_WPNEXT;
+					_vroi.pitch_offset = (float)cmd.param5 * M_DEG_TO_RAD_F;
+					_vroi.roll_offset = (float)cmd.param6 * M_DEG_TO_RAD_F;
+					_vroi.yaw_offset = (float)cmd.param7 * M_DEG_TO_RAD_F;
+					break;
+
+				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
+					_vroi.mode = vehicle_command_s::VEHICLE_ROI_NONE;
 					break;
 
 				default:

@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
  * The default value of 0 will disable scaling.
  *
  * @min 0.0
- * @max 2.0
+ * @max 10.0
  * @decimal 1
  * @increment 0.1
  * @group FW L1 Control

@@ -87,7 +87,7 @@ public:
 	bool resetIntegrators();
 	float getMinPitch(float sp_min, float climbout_min, float min);
 	float getMaxPitch(float max);
-	math::Vector<2> getStartWP();
+	matrix::Vector2f getStartWP();
 
 	void reset();
 
@@ -100,7 +100,7 @@ private:
 	float _init_yaw;
 	bool _climbout;
 	unsigned _throttle_ramp_time;
-	math::Vector<2> _start_wp;
+	matrix::Vector2f _start_wp;
 
 	/** parameters **/
 	control::BlockParamBool _runway_takeoff_enabled;
