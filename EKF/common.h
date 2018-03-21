@@ -326,6 +326,8 @@ struct parameters {
 						///< the EKF will report that it has been inertial dead-reckoning for too long  and needs to revert to a
 						/// mode that doesn't privide horizontal vbelocity and position estimates (uSec)
 
+	int32_t valid_timeout_max{5000000};	///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
+
 	// multi-rotor drag specific force fusion
 	float drag_noise{2.5f};			///< observation noise variance for drag specific force measurements (m/sec**2)**2
 	float bcoef_x{25.0f};			///< ballistic coefficient along the X-axis (kg/m**2)

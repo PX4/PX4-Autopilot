@@ -237,7 +237,7 @@ public:
 	virtual bool global_position_is_valid() = 0;
 
 	// return true if the EKF is dead reckoning the position using inertial data only
-	virtual bool inertial_dead_reckoning() = 0;
+	bool inertial_dead_reckoning() {return _is_dead_reckoning;}
 
 	// return true if the terrain estimate is valid
 	virtual bool get_terrain_valid() = 0;
@@ -453,6 +453,7 @@ protected:
 	innovation_fault_status_u _innov_check_fail_status{};
 
 	bool _is_dead_reckoning{false};	// true if we are no longer fusing measurements that constrain horizontal velocity drift
+	bool _deadreckon_time_exceeded{false};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
 
 	// IMU vibration monitoring
 	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement

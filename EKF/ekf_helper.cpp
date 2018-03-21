@@ -1296,11 +1296,11 @@ void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first,
 bool Ekf::global_position_is_valid()
 {
 	// return true if we are not doing unconstrained free inertial navigation and the origin is set
-	return (_NED_origin_initialised && !inertial_dead_reckoning());
+	return (_NED_origin_initialised && !_deadreckon_time_exceeded);
 }
 
 // return true if we are totally reliant on inertial dead-reckoning for position
-bool Ekf::inertial_dead_reckoning()
+void Ekf::update_deadreckoning_status()
 {
 	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos)
 			    && ((_time_last_imu - _time_last_pos_fuse <= _params.no_aid_timeout_max)
@@ -1309,7 +1309,15 @@ bool Ekf::inertial_dead_reckoning()
 	bool optFlowAiding = _control_status.flags.opt_flow && (_time_last_imu - _time_last_of_fuse <= _params.no_aid_timeout_max);
 	bool airDataAiding = _control_status.flags.wind && (_time_last_imu - _time_last_arsp_fuse <= _params.no_aid_timeout_max) && (_time_last_imu - _time_last_beta_fuse <= _params.no_aid_timeout_max);
 
-	return !velPosAiding && !optFlowAiding && !airDataAiding;
+	_is_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
+
+	// record the time we start inertial dead reckoning
+	if (!_is_dead_reckoning) {
+		_time_ins_deadreckon_start = _time_last_imu - _params.no_aid_timeout_max;
+	}
+
+	// report if we have been deadreckoning for too long
+	_deadreckon_time_exceeded =  ((_time_last_imu - _time_ins_deadreckon_start) > (unsigned)_params.valid_timeout_max);
 }
 
 // perform a vector cross product
