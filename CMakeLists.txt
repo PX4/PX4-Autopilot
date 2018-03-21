@@ -37,6 +37,7 @@ px4_add_module(
 	STACK_MAX 6000
 	COMPILE_FLAGS
 	SRCS
+		airdata/WindEstimator.cpp
 		attitude_fw/ecl_controller.cpp
 		attitude_fw/ecl_pitch_controller.cpp
 		attitude_fw/ecl_roll_controller.cpp
