@@ -93,7 +93,9 @@ private:
 		(ParamFloat<px4::params::WEST_W_P_NOISE>) wind_p_noise,
 		(ParamFloat<px4::params::WEST_SC_P_NOISE>) tas_scale_p_noise,
 		(ParamFloat<px4::params::WEST_TAS_NOISE>) tas_noise,
-		(ParamFloat<px4::params::WEST_BETA_NOISE>) beta_noise
+		(ParamFloat<px4::params::WEST_BETA_NOISE>) beta_noise,
+		(ParamInt<px4::params::WEST_TAS_GATE>) airspeed_gate,
+		(ParamInt<px4::params::WEST_BETA_GATE>) sideslip_gate
 	)
 
 	static void	cycle_trampoline(void *arg);
@@ -274,6 +276,8 @@ void WindEstimatorModule::update_params()
 	_wind_estimator.set_tas_scale_p_noise(tas_scale_p_noise.get());
 	_wind_estimator.set_tas_noise(tas_noise.get());
 	_wind_estimator.set_beta_noise(beta_noise.get());
+	_wind_estimator.set_tas_gate(airspeed_gate.get());
+	_wind_estimator.set_beta_gate(sideslip_gate.get());
 }
 
 int WindEstimatorModule::custom_command(int argc, char *argv[])
