@@ -1,9 +1,6 @@
 {
     "fileType": "Plan",
     "geoFence": {
-        "polygon": [
-        ],
-        "version": 1
     },
     "groundStation": "QGroundControl",
     "mission": {
@@ -12,18 +9,21 @@
         "hoverSpeed": 5,
         "items": [
             {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 12,
+                "AltitudeMode": 0,
                 "autoContinue": true,
                 "command": 16,
                 "doJumpId": 1,
                 "frame": 3,
                 "params": [
-                    15.0,
+                    15,
                     0,
                     0,
                     null,
                     47.398157669127094,
-                    8.5460336317115377,
-                    12.0
+                    8.546033631711538,
+                    12
                 ],
                 "type": "SimpleItem"
             },
@@ -38,12 +38,15 @@
                     0,
                     0,
                     47.398033142089844,
-                    8.5457897186279297,
-                    12.0
+                    8.54578971862793,
+                    12
                 ],
                 "type": "SimpleItem"
             },
             {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 12,
+                "AltitudeMode": 0,
                 "autoContinue": true,
                 "command": 16,
                 "doJumpId": 3,
@@ -53,19 +56,19 @@
                     0,
                     0,
                     null,
-                    47.399269104003906,
-                    8.5455722808837891,
-                    12.0
+                    47.400993929351195,
+                    8.544680403485842,
+                    12
                 ],
                 "type": "SimpleItem"
             }
         ],
         "plannedHomePosition": [
-            47.397742,
-            8.545594,
-            12.0
+            47.3977419,
+            8.5455943,
+            489
         ],
-        "vehicleType": 19,
+        "vehicleType": 20,
         "version": 2
     },
     "rallyPoints": {
