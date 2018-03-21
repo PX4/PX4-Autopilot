@@ -1808,11 +1808,11 @@ protected:
 			vmsg.x = vpos.x;
 			vmsg.y = vpos.y;
 			vmsg.z = vpos.z;
-			math::Quaternion q(vatt.q);
-			math::Vector<3> rpy = q.to_euler();
-			vmsg.roll = rpy(0);
-			vmsg.pitch = rpy(1);
-			vmsg.yaw = rpy(2);
+
+			matrix::Eulerf euler = matrix::Quatf(vatt.q);
+			vmsg.roll = euler.phi();
+			vmsg.pitch = euler.theta();
+			vmsg.yaw = euler.psi();
 
 			mavlink_msg_vision_position_estimate_send_struct(_mavlink->get_channel(), &vmsg);
 		}
