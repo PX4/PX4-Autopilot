@@ -55,4 +55,4 @@ land_detector start vtol
 #
 # Start Wind and Airspeed Scale Estimator
 #
-wind_estimator start
+#wind_estimator start
