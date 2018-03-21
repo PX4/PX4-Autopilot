@@ -428,7 +428,6 @@ private:
 	bool _in_range_aid_mode{false};		///< true when range finder is to be used as the height reference instead of the primary height sensor
 
 	// variables used to check for "stuck" rng data
-	bool _rng_stuck{false};		///< true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
 	float _rng_check_min_val{0.0f};		///< minimum value for new rng measurement when being stuck
 	float _rng_check_max_val{0.0f};		///< maximum value for new rng measurement when being stuck
 
