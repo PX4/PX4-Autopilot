@@ -50,6 +50,15 @@ get_rot_matrix(enum Rotation rot, math::Matrix<3, 3> *rot_matrix)
 	rot_matrix->from_euler(roll, pitch, yaw);
 }
 
+__EXPORT matrix::Dcmf
+get_rot_matrix(enum Rotation rot)
+{
+	return matrix::Dcmf{matrix::Eulerf{
+			math::radians((float)rot_lookup[rot].roll),
+			math::radians((float)rot_lookup[rot].pitch),
+			math::radians((float)rot_lookup[rot].yaw)}};
+}
+
 #define HALF_SQRT_2 0.70710678118654757f
 
 __EXPORT void
