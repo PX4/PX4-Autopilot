@@ -550,7 +550,7 @@ void EstimatorInterface::unallocate_buffers()
 bool EstimatorInterface::local_position_is_valid()
 {
 	// return true if we are not doing unconstrained free inertial navigation
-	return !inertial_dead_reckoning();
+	return !_deadreckon_time_exceeded;
 }
 
 void EstimatorInterface::print_status() {

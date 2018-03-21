@@ -136,12 +136,8 @@ void Ekf::controlFusionModes()
 	// Additional NE velocity data from an auxiliary sensor can be fused
 	controlAuxVelFusion();
 
-	// report dead reckoning if we are no longer fusing measurements that directly constrain velocity drift
-	_is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > _params.no_aid_timeout_max)
-			&& (_time_last_imu - _time_last_delpos_fuse > _params.no_aid_timeout_max)
-			&& (_time_last_imu - _time_last_vel_fuse > _params.no_aid_timeout_max)
-			&& (_time_last_imu - _time_last_of_fuse > _params.no_aid_timeout_max);
-
+	// check if we are no longer fusing measurements that directly constrain velocity drift
+	update_deadreckoning_status();
 }
 
 void Ekf::controlExternalVisionFusion()

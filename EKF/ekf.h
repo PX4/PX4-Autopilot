@@ -173,8 +173,8 @@ public:
 	// return true if the global position estimate is valid
 	bool global_position_is_valid();
 
-	// return true if the EKF is dead reckoning the position using inertial data only
-	bool inertial_dead_reckoning();
+	// check if the EKF is dead reckoning horizontal velocity using inertial data only
+	void update_deadreckoning_status();
 
 	// return true if the terrain estimate is valid
 	bool get_terrain_valid();
@@ -291,6 +291,7 @@ private:
 	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 
 	uint64_t _time_last_fake_gps{0};	///< last time we faked GPS position measurements to constrain tilt errors during operation without external aiding (uSec)
+	uint64_t _time_ins_deadreckon_start{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
 
 	uint64_t _time_last_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
 	uint64_t _time_last_delpos_fuse{0};	///< time the last fusion of incremental horizontal position measurements was performed (uSec)
