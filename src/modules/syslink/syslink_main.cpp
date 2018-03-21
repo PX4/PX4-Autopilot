@@ -68,6 +68,7 @@
 #include "syslink_main.h"
 #include "drv_deck.h"
 
+#include <stdlib.h> 
 
 __BEGIN_DECLS
 extern void led_init(void);
@@ -174,6 +175,48 @@ Syslink::send_queued_raw_message()
 
 	_writebuffer.get(&msg.length, sizeof(crtp_message_t));
 	//printf("buflen=%d\n", msg.length);
+
+
+	/*//for (int i=0; i<1000; i++){
+    static int i=0;
+		msg.length = 31;// rand() % 27 + 5;//31;
+		//if (msg.length>31){
+		//	msg.length=31;
+		//}
+
+		for (int j=0; j< msg.length; j++){
+			msg.data[j]=3;
+		}
+
+		msg.data[0]=128;
+		msg.data[4]=i;
+		i++;
+
+		send_message(&msg);
+
+		//usleep(10000);
+	//}
+*/
+
+		
+/*
+		for (int j=msg.length; j< 30; j++){
+			msg.data[j]=0;
+		}
+
+		msg.data[30]=msg.length-1;
+		
+		//usleep(10000);
+	
+
+		msg.length = 31;*/
+	
+
+
+	//send_message(&msg);
+	usleep(100000);
+	
+	
 	return send_message(&msg);
 }
 
@@ -337,53 +380,54 @@ Syslink::task_main()
 
 	syslink_parse_init(&state);
 
-	// setup initial parameters
+	//setup initial parameters
 	update_params(true);
 
 	while (_task_running) {
 		int poll_ret = px4_poll(fds, 2, 2);
 
+		
 
-		// handle the poll result
-		if (poll_ret == 0) {
-			//timeout: this means none of our providers is giving us data 
-			//printf("timeout!!\n"); //barza
-			send_queued_raw_message();
 
-		} else if (poll_ret < 0) {
-			// this is seriously bad - should be an emergency 
-			if (error_counter < 10 || error_counter % 50 == 0) {
-				/* use a counter to prevent flooding (and slowing us down) */
-				PX4_ERR("[syslink] ERROR return value from poll(): %d"
-					, poll_ret);
-			}
+		 // handle the poll result
+		 if (poll_ret == 0) {
+		 	//timeout: this means none of our providers is giving us data 
+		 	//printf("timeout!!\n"); //barza
+		 	send_queued_raw_message(); //buz
 
-			error_counter++;
+		 } else if (poll_ret < 0) {
+		 	// this is seriously bad - should be an emergency 
+		 	if (error_counter < 10 || error_counter % 50 == 0) {
+		 		/* use a counter to prevent flooding (and slowing us down) */
+		 		PX4_ERR("[syslink] ERROR return value from poll(): %d"
+		 			, poll_ret);
+		 	}
 
-		} else {
-			if (fds[0].revents & POLLIN) {
-				if ((nread = read(_fd, buf, sizeof(buf))) < 0) {
-					printf("\n Reading gave error!!!!!!\n");
-					continue;
-				}
+		 	error_counter++;
+		 } else {
+		 	if (fds[0].revents & POLLIN) {
+		 		if ((nread = read(_fd, buf, sizeof(buf))) < 0) {
+		 			printf("\n Reading gave error!!!!!!\n");
+		 			continue;
+		 		}
 
-				for (int i = 0; i < nread; i++) {
-					//if (buf[i]==76) {printf("notify!!!!! cmd about to parse at byte=%d \n", i);}
-					if (syslink_parse_char(&state, buf[i], &msg)) {
-						handle_message(&msg);
-					}
-				}
-			}
+		 		for (int i = 0; i < nread; i++) {
+		 			//if (buf[i]==76) {printf("notify!!!!! cmd about to parse at byte=%d \n", i);}
+		 			if (syslink_parse_char(&state, buf[i], &msg)) {
+		 				handle_message(&msg);
+		 			}
+		 		}
+		 	}
 
-			if (fds[1].revents & POLLIN) {
-				struct parameter_update_s update;
-				orb_copy(ORB_ID(parameter_update), _params_sub, &update);
-				update_params(false);
-			}
-		}
+		 	if (fds[1].revents & POLLIN) {
+		 		struct parameter_update_s update;
+		 		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+		 		update_params(false);
+		 	}
+		 }
 
 		
-	
+	//send_queued_raw_message(); //buz
 
 	}
 
@@ -417,8 +461,6 @@ Syslink::handle_message(syslink_message_t *msg)
          } //barza
 
      }
-
-     
 	
 
 
@@ -499,7 +541,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		PX4_INFO("GOT %d", msg->type);
 	}
 
-	// Send queued messages
+	 //Send queued messages //buz
 	if (!_queue.empty()) {
 		_queue.get(msg, sizeof(syslink_message_t));
 		send_message(msg);
@@ -539,7 +581,7 @@ Syslink::handle_message(syslink_message_t *msg)
 	}
 
 
-	// resend parameters if they haven't been acknowledged
+	// resend parameters if they haven't been acknowledged //buz
 	if (_params_ack[0] == 0 && t - _params_update[0] > 10000) {
 		set_channel(_channel);
 
@@ -622,7 +664,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 		_bridge->pipe_message(c);
 
 	} else {
-		handle_raw_other(sys);
+		handle_raw_other(sys); //buz
 	}
 
 	// Block all non-requested messaged in bootloader mode
@@ -631,7 +673,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 	}
 
 	// Allow one raw message to be sent from the queue
-	send_queued_raw_message();
+	send_queued_raw_message(); //buz
 }
 
 void

@@ -47,8 +47,7 @@ SyslinkBridge::SyslinkBridge(Syslink *link) :
 	CDev("SyslinkBridge", "/dev/bridge0"),
 	_link(link),
 	_readbuffer(16, sizeof(crtp_message_t))
-{
-
+{	
 
 }
 
@@ -111,24 +110,30 @@ SyslinkBridge::read(struct file *filp, char *buffer, size_t buflen)
 ssize_t
 SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 {
-	crtp_message_t msg;
+/*	crtp_message_t msg;
 	msg.header = 0;
 	//printf("buflen=%d\n", buflen );
 
 	// Queue and send next time we get a RAW radio packet
 	int remaining = buflen;
 
-/*    printf("buflen=%d ", buflen );
+    printf("buflen=%d ", buflen );
      for (size_t i = 0; i < buflen; i++) {
          printf("%d ", (int)buffer[i]);}
-    printf("\n");*/
+    printf("\n");
 
 
 	while (remaining > 0) {
-		int datasize = MIN(remaining, CRTP_MAX_DATA_SIZE-1);
+		int datasize = MIN(remaining, CRTP_MAX_DATA_SIZE-2);
 		msg.size = datasize + sizeof(msg.header);
 		msg.port = CRTP_PORT_MAVLINK;
 		memcpy(&msg.data, buffer, datasize);
+
+		printf("pushing msg datasize=%d ", datasize);
+		for (int i = 0; i < datasize; i++) {
+         printf("%d ", (int)msg.data[i]);}
+    	printf("\n");
+
 
 		if(_link->_writebuffer.force(&msg, sizeof(crtp_message_t))){
 			printf("write buffer overflow!!! \n");
@@ -138,7 +143,7 @@ SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 		remaining -= datasize;
 	}
 
-	/*static int ack_count=0;
+	static int ack_count=0;
 	if (buflen==10){ //writing header of mavlink msg into the buffer
 			if(msg.data[7]==77){
 				ack_count++;
@@ -146,6 +151,57 @@ SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 			}
 		
 	}*/
+
+static bool init=1;
+
+if (init) {
+_msg_to_send.header = 0;
+_msg_to_send.size=sizeof(_msg_to_send.header);
+_msg_to_send.port = CRTP_PORT_MAVLINK;
+init=0;
+}
+
+static int msg_rem = CRTP_MAX_DATA_SIZE-1; //30bytes data   so size of crtp= 30 bytes data + 1 byte header + 1 extra byte not filled
+
+static int last_index = 0;
+
+int buflen_rem = buflen;
+
+
+    printf("buflen=%d ", buflen);
+     for (size_t i = 0; i < buflen; i++) {
+         printf("%d ", (int)buffer[i]);}
+    printf("\n");
+
+
+while(buflen_rem>0){
+
+	int datasize=MIN(msg_rem, buflen_rem);
+	_msg_to_send.size+=datasize;
+	memcpy(&_msg_to_send.data[last_index], buffer, datasize);
+
+	last_index+=datasize;
+	buffer+=datasize;
+	msg_rem-=datasize;
+	buflen_rem-=datasize;
+
+	if(msg_rem==0){
+
+
+		printf("pushing msg datasize=%d ", _msg_to_send.size);
+		for (int i = 0; i < last_index; i++) {
+         printf("%d ", (int)_msg_to_send.data[i]);}
+    	printf("\n");
+
+		if(_link->_writebuffer.force(&_msg_to_send, sizeof(crtp_message_t))){
+			printf("write buffer overflow!!! \n");
+		}
+
+		last_index=0;
+		_msg_to_send.size=sizeof(_msg_to_send.header);
+		msg_rem= CRTP_MAX_DATA_SIZE-1;
+	}
+}
 
 	return buflen;
 }
@@ -158,7 +214,7 @@ SyslinkBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case FIONSPACE:
-		*((int *) arg) = _link->_writebuffer.space() * CRTP_MAX_DATA_SIZE;
+		*((int *) arg) = _link->_writebuffer.space() * CRTP_MAX_DATA_SIZE;  //shouldn't this be sizeof(crtp_message_t)?
 		return 0;
 
 	default:
