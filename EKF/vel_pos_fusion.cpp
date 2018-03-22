@@ -42,7 +42,8 @@
  */
 
 #include "ekf.h"
-#include "mathlib.h"
+#include <ecl.h>
+#include <mathlib/mathlib.h>
 
 void Ekf::fuseVelPosHeight()
 {

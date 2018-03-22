@@ -41,155 +41,19 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
-#ifdef POSIX_SHARED
 
-#include "ecl.h"
-
-#include <stdio.h>
-#include <math.h>
-#include <stdbool.h>
-#include <string.h>
-#include <float.h>
-
-/****************************************************************************
- *
- *   Copyright (c) 2014 MAV GEO Library (MAVGEO). All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name MAVGEO nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
-
-/**
-* @file geo_mag_declination.c
-*
-* Calculation / lookup table for earth magnetic field declination.
-*
-* Lookup table from Scott Ferguson <scottfromscott@gmail.com>
-*
-* XXX Lookup table currently too coarse in resolution (only full degrees)
-* and lat/lon res - needs extension medium term.
-*
-*/
-
-#include <stdint.h>
 #include "geo.h"
+#include <ecl.h>
 
-/** set this always to the sampling in degrees for the table below */
-#define SAMPLING_RES		10.0f
-#define SAMPLING_MIN_LAT	-60.0f
-#define SAMPLING_MAX_LAT	60.0f
-#define SAMPLING_MIN_LON	-180.0f
-#define SAMPLING_MAX_LON	180.0f
-
-static const int8_t declination_table[13][37] = \
-{
-	{ 46, 45, 44, 42, 41, 40, 38, 36, 33, 28, 23, 16, 10, 4, -1, -5, -9, -14, -19, -26, -33, -40, -48, -55, -61, -66, -71, -74, -75, -72, -61, -25, 22, 40, 45, 47, 46 },
-	{ 30, 30, 30, 30, 29, 29, 29, 29, 27, 24, 18, 11, 3, -3, -9, -12, -15, -17, -21, -26, -32, -39, -45, -51, -55, -57, -56, -53, -44, -31, -14, 0, 13, 21, 26, 29, 30 },
-	{ 21, 22, 22, 22, 22, 22, 22, 22, 21, 18, 13, 5, -3, -11, -17, -20, -21, -22, -23, -25, -29, -35, -40, -44, -45, -44, -40, -32, -22, -12, -3, 3, 9, 14, 18, 20, 21 },
-	{ 16, 17, 17, 17, 17, 17, 16, 16, 16, 13, 8, 0, -9, -16, -21, -24, -25, -25, -23, -20, -21, -24, -28, -31, -31, -29, -24, -17, -9, -3, 0, 4, 7, 10, 13, 15, 16 },
-	{ 12, 13, 13, 13, 13, 13, 12, 12, 11, 9, 3, -4, -12, -19, -23, -24, -24, -22, -17, -12, -9, -10, -13, -17, -18, -16, -13, -8, -3, 0, 1, 3, 6, 8, 10, 12, 12 },
-	{ 10, 10, 10, 10, 10, 10, 10, 9, 9, 6, 0, -6, -14, -20, -22, -22, -19, -15, -10, -6, -2, -2, -4, -7, -8, -8, -7, -4, 0, 1, 1, 2, 4, 6, 8, 10, 10 },
-	{ 9, 9, 9, 9, 9, 9, 8, 8, 7, 4, -1, -8, -15, -19, -20, -18, -14, -9, -5, -2, 0, 1, 0, -2, -3, -4, -3, -2, 0, 0, 0, 1, 3, 5, 7, 8, 9 },
-	{ 8, 8, 8, 9, 9, 9, 8, 8, 6, 2, -3, -9, -15, -18, -17, -14, -10, -6, -2, 0, 1, 2, 2, 0, -1, -1, -2, -1, 0, 0, 0, 0, 1, 3, 5, 7, 8 },
-	{ 8, 9, 9, 10, 10, 10, 10, 8, 5, 0, -5, -11, -15, -16, -15, -12, -8, -4, -1, 0, 2, 3, 2, 1, 0, 0, 0, 0, 0, -1, -2, -2, -1, 0, 3, 6, 8 },
-	{ 6, 9, 10, 11, 12, 12, 11, 9, 5, 0, -7, -12, -15, -15, -13, -10, -7, -3, 0, 1, 2, 3, 3, 3, 2, 1, 0, 0, -1, -3, -4, -5, -5, -2, 0, 3, 6 },
-	{ 5, 8, 11, 13, 15, 15, 14, 11, 5, -1, -9, -14, -17, -16, -14, -11, -7, -3, 0, 1, 3, 4, 5, 5, 5, 4, 3, 1, -1, -4, -7, -8, -8, -6, -2, 1, 5 },
-	{ 4, 8, 12, 15, 17, 18, 16, 12, 5, -3, -12, -18, -20, -19, -16, -13, -8, -4, -1, 1, 4, 6, 8, 9, 9, 9, 7, 3, -1, -6, -10, -12, -11, -9, -5, 0, 4 },
-	{ 3, 9, 14, 17, 20, 21, 19, 14, 4, -8, -19, -25, -26, -25, -21, -17, -12, -7, -2, 1, 5, 9, 13, 15, 16, 16, 13, 7, 0, -7, -12, -15, -14, -11, -6, -1, 3 },
-};
-
-static float get_lookup_table_val(unsigned lat, unsigned lon);
-
-float get_mag_declination(float lat, float lon)
-{
-	/*
-	 * If the values exceed valid ranges, return zero as default
-	 * as we have no way of knowing what the closest real value
-	 * would be.
-	 */
-	if (lat < -90.0f || lat > 90.0f ||
-	    lon < -180.0f || lon > 180.0f) {
-		return 0.0f;
-	}
-
-	/* round down to nearest sampling resolution */
-	int min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES;
-	int min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES;
-
-	/* for the rare case of hitting the bounds exactly
-	 * the rounding logic wouldn't fit, so enforce it.
-	 */
-
-	/* limit to table bounds - required for maxima even when table spans full globe range */
-	if (lat <= SAMPLING_MIN_LAT) {
-		min_lat = SAMPLING_MIN_LAT;
-	}
-
-	if (lat >= SAMPLING_MAX_LAT) {
-		min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES;
-	}
-
-	if (lon <= SAMPLING_MIN_LON) {
-		min_lon = SAMPLING_MIN_LON;
-	}
-
-	if (lon >= SAMPLING_MAX_LON) {
-		min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES;
-	}
-
-	/* find index of nearest low sampling point */
-	unsigned min_lat_index = (-(SAMPLING_MIN_LAT) + min_lat)  / SAMPLING_RES;
-	unsigned min_lon_index = (-(SAMPLING_MIN_LON) + min_lon) / SAMPLING_RES;
-
-	float declination_sw = get_lookup_table_val(min_lat_index, min_lon_index);
-	float declination_se = get_lookup_table_val(min_lat_index, min_lon_index + 1);
-	float declination_ne = get_lookup_table_val(min_lat_index + 1, min_lon_index + 1);
-	float declination_nw = get_lookup_table_val(min_lat_index + 1, min_lon_index);
-
-	/* perform bilinear interpolation on the four grid corners */
-
-	float declination_min = ((lon - min_lon) / SAMPLING_RES) * (declination_se - declination_sw) + declination_sw;
-	float declination_max = ((lon - min_lon) / SAMPLING_RES) * (declination_ne - declination_nw) + declination_nw;
-
-	return ((lat - min_lat) / SAMPLING_RES) * (declination_max - declination_min) + declination_min;
-}
-
-float get_lookup_table_val(unsigned lat_index, unsigned lon_index)
-{
-	return declination_table[lat_index][lon_index];
-}
+#include <mathlib/mathlib.h>
+#include <cfloat>
 
 /*
  * Azimuthal Equidistant Projection
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-static struct map_projection_reference_s mp_ref = {0.0, 0.0, 0.0, 0.0, false, 0};
+static struct map_projection_reference_s mp_ref = {};
 static struct globallocal_converter_reference_s gl_ref = {0.0f, false};
 
 bool map_projection_global_initialized()
@@ -212,18 +76,18 @@ uint64_t map_projection_timestamp(const struct map_projection_reference_s *ref)
 	return ref->timestamp;
 }
 
-int map_projection_global_init(double lat_0, double lon_0,
-			       uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+// lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+int map_projection_global_init(double lat_0, double lon_0, uint64_t timestamp)
 {
 	return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
 }
 
-int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
-				    uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+// lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp)
 {
 
-	ref->lat_rad = lat_0 * M_DEG_TO_RAD;
-	ref->lon_rad = lon_0 * M_DEG_TO_RAD;
+	ref->lat_rad = math::radians(lat_0);
+	ref->lon_rad = math::radians(lon_0);
 	ref->sin_lat = sin(ref->lat_rad);
 	ref->cos_lat = cos(ref->lat_rad);
 
@@ -233,13 +97,18 @@ int map_projection_init_timestamped(struct map_projection_reference_s *ref, doub
 	return 0;
 }
 
+//lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0)
+{
+	return map_projection_init_timestamped(ref, lat_0, lon_0, ecl_absolute_time());
+}
+
 int map_projection_global_reference(double *ref_lat_rad, double *ref_lon_rad)
 {
 	return map_projection_reference(&mp_ref, ref_lat_rad, ref_lon_rad);
 }
 
-int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad,
-			     double *ref_lon_rad)
+int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -254,18 +123,16 @@ int map_projection_reference(const struct map_projection_reference_s *ref, doubl
 int map_projection_global_project(double lat, double lon, float *x, float *y)
 {
 	return map_projection_project(&mp_ref, lat, lon, x, y);
-
 }
 
-int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x,
-			   float *y)
+int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
 	}
 
-	double lat_rad = lat * M_DEG_TO_RAD;
-	double lon_rad = lon * M_DEG_TO_RAD;
+	double lat_rad = math::radians(lat);
+	double lon_rad = math::radians(lon);
 
 	double sin_lat = sin(lat_rad);
 	double cos_lat = cos(lat_rad);
@@ -294,15 +161,14 @@ int map_projection_global_reproject(float x, float y, double *lat, double *lon)
 	return map_projection_reproject(&mp_ref, x, y, lat, lon);
 }
 
-int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat,
-			     double *lon)
+int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
 	}
 
-	double x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
-	double y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
+	double x_rad = (double)x / CONSTANTS_RADIUS_OF_EARTH;
+	double y_rad = (double)y / CONSTANTS_RADIUS_OF_EARTH;
 	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
 	double sin_c = sin(c);
 	double cos_c = cos(c);
@@ -332,11 +198,11 @@ int map_projection_global_getref(double *lat_0, double *lon_0)
 	}
 
 	if (lat_0 != nullptr) {
-		*lat_0 = M_RAD_TO_DEG * mp_ref.lat_rad;
+		*lat_0 = math::degrees(mp_ref.lat_rad);
 	}
 
 	if (lon_0 != nullptr) {
-		*lon_0 = M_RAD_TO_DEG * mp_ref.lon_rad;
+		*lon_0 = math::degrees(mp_ref.lon_rad);
 	}
 
 	return 0;
@@ -421,7 +287,7 @@ float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_n
 }
 
 void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist,
-					double *lat_target, double *lon_target)
+		double *lat_target, double *lon_target)
 {
 	if (fabsf(dist) < FLT_EPSILON) {
 		*lat_target = lat_A;
@@ -439,28 +305,28 @@ void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B
 }
 
 void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
-					double *lat_target, double *lon_target)
+		double *lat_target, double *lon_target)
 {
 	bearing = _wrap_2pi(bearing);
-	double radius_ratio = (double)(fabs(dist) / CONSTANTS_RADIUS_OF_EARTH);
+	double radius_ratio = fabs((double)dist) / CONSTANTS_RADIUS_OF_EARTH;
 
-	double lat_start_rad = lat_start * M_DEG_TO_RAD;
-	double lon_start_rad = lon_start * M_DEG_TO_RAD;
+	double lat_start_rad = math::radians(lat_start);
+	double lon_start_rad = math::radians(lon_start);
 
-	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos((
-				   double)bearing));
+	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos((double)bearing));
 	*lon_target = lon_start_rad + atan2(sin((double)bearing) * sin(radius_ratio) * cos(lat_start_rad),
 					    cos(radius_ratio) - sin(lat_start_rad) * sin(*lat_target));
 
-	*lat_target *= M_RAD_TO_DEG;
-	*lon_target *= M_RAD_TO_DEG;
+	*lat_target = math::degrees(*lat_target);
+	*lon_target = math::degrees(*lon_target);
 }
+
 float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
-	double lat_now_rad = lat_now * M_DEG_TO_RAD;
-	double lon_now_rad = lon_now * M_DEG_TO_RAD;
-	double lat_next_rad = lat_next * M_DEG_TO_RAD;
-	double lon_next_rad = lon_next * M_DEG_TO_RAD;
+	double lat_now_rad = math::radians(lat_now);
+	double lon_now_rad = math::radians(lon_now);
+	double lat_next_rad = math::radians(lat_next);
+	double lon_next_rad = math::radians(lon_next);
 
 	double d_lon = lon_next_rad - lon_now_rad;
 
@@ -473,13 +339,13 @@ float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_ne
 	return theta;
 }
 
-void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n,
-				 float *v_e)
+void
+get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e)
 {
-	double lat_now_rad = lat_now * M_DEG_TO_RAD;
-	double lon_now_rad = lon_now * M_DEG_TO_RAD;
-	double lat_next_rad = lat_next * M_DEG_TO_RAD;
-	double lon_next_rad = lon_next * M_DEG_TO_RAD;
+	double lat_now_rad = math::radians(lat_now);
+	double lon_now_rad = math::radians(lon_now);
+	double lat_next_rad = math::radians(lat_next);
+	double lon_next_rad = math::radians(lon_next);
 
 	double d_lon = lon_next_rad - lon_now_rad;
 
@@ -489,13 +355,13 @@ void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next
 	*v_e = CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad);
 }
 
-void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next,
-				      float *v_n, float *v_e)
+void
+get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e)
 {
-	double lat_now_rad = lat_now * M_DEG_TO_RAD;
-	double lon_now_rad = lon_now * M_DEG_TO_RAD;
-	double lat_next_rad = lat_next * M_DEG_TO_RAD;
-	double lon_next_rad = lon_next * M_DEG_TO_RAD;
+	double lat_now_rad = math::radians(lat_now);
+	double lon_now_rad = math::radians(lon_now);
+	double lat_next_rad = math::radians(lat_next);
+	double lon_next_rad = math::radians(lon_next);
 
 	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
@@ -505,73 +371,64 @@ void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat
 	*v_e = CONSTANTS_RADIUS_OF_EARTH * d_lon * cos(lat_now_rad);
 }
 
-void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
-				   double *lon_res)
+void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res)
 {
-	double lat_now_rad = lat_now * M_DEG_TO_RAD;
-	double lon_now_rad = lon_now * M_DEG_TO_RAD;
+	double lat_now_rad = math::radians(lat_now);
+	double lon_now_rad = math::radians(lon_now);
 
-	*lat_res = (lat_now_rad + (double)v_n / CONSTANTS_RADIUS_OF_EARTH) * M_RAD_TO_DEG;
-	*lon_res = (lon_now_rad + (double)v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad))) * M_RAD_TO_DEG;
+	*lat_res = math::degrees(lat_now_rad + (double)v_n / CONSTANTS_RADIUS_OF_EARTH);
+	*lon_res = math::degrees(lon_now_rad + (double)v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad)));
 }
 
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
 
 int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-			 double lat_start, double lon_start, double lat_end, double lon_end)
+				  double lat_start, double lon_start, double lat_end, double lon_end)
 {
-// This function returns the distance to the nearest point on the track line.  Distance is positive if current
-// position is right of the track and negative if left of the track as seen from a point on the track line
-// headed towards the end point.
+	// This function returns the distance to the nearest point on the track line.  Distance is positive if current
+	// position is right of the track and negative if left of the track as seen from a point on the track line
+	// headed towards the end point.
 
-	float dist_to_end;
-	float bearing_end;
-	float bearing_track;
-	float bearing_diff;
-
-	int return_value = ERROR;	// Set error flag, cleared when valid result calculated.
+	int return_value = -1;	// Set error flag, cleared when valid result calculated.
 	crosstrack_error->past_end = false;
 	crosstrack_error->distance = 0.0f;
 	crosstrack_error->bearing = 0.0f;
 
-	dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+	float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
 	// Return error if arguments are bad
 	if (dist_to_end < 0.1f) {
-		return ERROR;
+		return -1;
 	}
 
-	bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
-	bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
-	bearing_diff = bearing_track - bearing_end;
-	bearing_diff = _wrap_pi(bearing_diff);
+	float bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+	float bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
+	float bearing_diff = _wrap_pi(bearing_track - bearing_end);
 
 	// Return past_end = true if past end point of line
 	if (bearing_diff > M_PI_2_F || bearing_diff < -M_PI_2_F) {
 		crosstrack_error->past_end = true;
-		return_value = OK;
+		return_value = 0;
 		return return_value;
 	}
 
 	crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff);
 
-	if (sin(bearing_diff) >= 0) {
+	if (sinf(bearing_diff) >= 0) {
 		crosstrack_error->bearing = _wrap_pi(bearing_track - M_PI_2_F);
 
 	} else {
 		crosstrack_error->bearing = _wrap_pi(bearing_track + M_PI_2_F);
 	}
 
-	return_value = OK;
+	return_value = 0;
 
 	return return_value;
-
 }
 
-
 int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-			double lat_center, double lon_center,
-			float radius, float arc_start_bearing, float arc_sweep)
+				 double lat_center, double lon_center,
+				 float radius, float arc_start_bearing, float arc_sweep)
 {
 	// This function returns the distance to the nearest point on the track arc.  Distance is positive if current
 	// position is right of the arc and negative if left of the arc as seen from the closest point on the arc and
@@ -579,42 +436,49 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 
 	// Determine if the current position is inside or outside the sector between the line from the center
 	// to the arc start and the line from the center to the arc end
-	float	bearing_sector_start;
-	float	bearing_sector_end;
-	float	bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
-	bool	in_sector;
+	float bearing_sector_start;
+	float bearing_sector_end;
+	float bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
+	bool in_sector;
 
-	int return_value = ERROR;		// Set error flag, cleared when valid result calculated.
+	int return_value = -1;		// Set error flag, cleared when valid result calculated.
 	crosstrack_error->past_end = false;
 	crosstrack_error->distance = 0.0f;
 	crosstrack_error->bearing = 0.0f;
 
 	// Return error if arguments are bad
-	if (radius < 0.1f) { return return_value; }
-
+	if (radius < 0.1f) {
+		return return_value;
+	}
 
 	if (arc_sweep >= 0.0f) {
 		bearing_sector_start = arc_start_bearing;
 		bearing_sector_end = arc_start_bearing + arc_sweep;
 
-		if (bearing_sector_end > 2.0f * M_PI_F) { bearing_sector_end -= M_TWOPI_F; }
+		if (bearing_sector_end > 2.0f * M_PI_F) { bearing_sector_end -= (2 * M_PI_F); }
 
 	} else {
 		bearing_sector_end = arc_start_bearing;
 		bearing_sector_start = arc_start_bearing - arc_sweep;
 
-		if (bearing_sector_start < 0.0f) { bearing_sector_start += M_TWOPI_F; }
+		if (bearing_sector_start < 0.0f) { bearing_sector_start += (2 * M_PI_F); }
 	}
 
 	in_sector = false;
 
 	// Case where sector does not span zero
 	if (bearing_sector_end >= bearing_sector_start && bearing_now >= bearing_sector_start
-	    && bearing_now <= bearing_sector_end) { in_sector = true; }
+	    && bearing_now <= bearing_sector_end) {
+
+		in_sector = true;
+	}
 
 	// Case where sector does span zero
 	if (bearing_sector_end < bearing_sector_start && (bearing_now > bearing_sector_start
-			|| bearing_now < bearing_sector_end)) { in_sector = true; }
+			|| bearing_now < bearing_sector_end)) {
+
+		in_sector = true;
+	}
 
 	// If in the sector then calculate distance and bearing to closest point
 	if (in_sector) {
@@ -639,10 +503,10 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 		// calculate the position of the start and end points.  We should not be doing this often
 		// as this function generally will not be called repeatedly when we are out of the sector.
 
-		double start_disp_x = (double)radius * sin(arc_start_bearing);
-		double start_disp_y = (double)radius * cos(arc_start_bearing);
-		double end_disp_x = (double)radius * sin(_wrap_pi((double)(arc_start_bearing + arc_sweep)));
-		double end_disp_y = (double)radius * cos(_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double start_disp_x = (double)radius * sin((double)arc_start_bearing);
+		double start_disp_y = (double)radius * cos((double)arc_start_bearing);
+		double end_disp_x = (double)radius * sin((double)_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double end_disp_y = (double)radius * cos((double)_wrap_pi((double)(arc_start_bearing + arc_sweep)));
 		double lon_start = lon_now + start_disp_x / 111111.0;
 		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
 		double lon_end = lon_now + end_disp_x / 111111.0;
@@ -660,11 +524,10 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 			crosstrack_error->distance = dist_to_end;
 			crosstrack_error->bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 		}
-
 	}
 
 	crosstrack_error->bearing = _wrap_pi((double)crosstrack_error->bearing);
-	return_value = OK;
+	return_value = 0;
 	return return_value;
 }
 
@@ -692,7 +555,6 @@ float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float a
 	return sqrtf(dxy * dxy + dz * dz);
 }
 
-
 float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now,
 		float x_next, float y_next, float z_next,
 		float *dist_xy, float *dist_z)
@@ -717,7 +579,7 @@ float _wrap_pi(float bearing)
 	int c = 0;
 
 	while (bearing >= M_PI_F) {
-		bearing -= M_TWOPI_F;
+		bearing -= (2 * M_PI_F);
 
 		if (c++ > 3) {
 			return NAN;
@@ -727,7 +589,7 @@ float _wrap_pi(float bearing)
 	c = 0;
 
 	while (bearing < -M_PI_F) {
-		bearing += M_TWOPI_F;
+		bearing += (2 * M_PI_F);
 
 		if (c++ > 3) {
 			return NAN;
@@ -746,8 +608,8 @@ float _wrap_2pi(float bearing)
 
 	int c = 0;
 
-	while (bearing >= M_TWOPI_F) {
-		bearing -= M_TWOPI_F;
+	while (bearing >= (2 * M_PI_F)) {
+		bearing -= (2 * M_PI_F);
 
 		if (c++ > 3) {
 			return NAN;
@@ -757,7 +619,7 @@ float _wrap_2pi(float bearing)
 	c = 0;
 
 	while (bearing < 0.0f) {
-		bearing += M_TWOPI_F;
+		bearing += (2 * M_PI_F);
 
 		if (c++ > 3) {
 			return NAN;
@@ -826,4 +688,3 @@ float _wrap_360(float bearing)
 
 	return bearing;
 }
-#endif //POSIX_SHARED

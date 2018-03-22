@@ -42,23 +42,18 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  * Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
  */
-#ifndef GEO_H
-#define GEO_H
-#ifdef POSIX_SHARED
+
+#pragma once
+
 #include <stdbool.h>
-#include "mathlib.h"
+#include <stdint.h>
 
 #define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
 #define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C		1.225f			/* kg/m^3		*/
 #define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
-#define M_TWOPI_F 6.28318530717958647692f
-#define M_PI_2_F  1.57079632679489661923f
-#define M_RAD_TO_DEG 57.29577951308232087679f
-#define M_DEG_TO_RAD 0.01745329251994329576f
-#define OK 0
-#define ERROR -1
+
 // XXX remove
 struct crosstrack_error_s {
 	bool past_end;		// Flag indicating we are past the end of the line/arc segment
@@ -68,18 +63,20 @@ struct crosstrack_error_s {
 
 /* lat/lon are in radians */
 struct map_projection_reference_s {
+	uint64_t timestamp;
 	double lat_rad;
 	double lon_rad;
 	double sin_lat;
 	double cos_lat;
 	bool init_done;
-	uint64_t timestamp;
 };
 
 struct globallocal_converter_reference_s {
 	float alt;
 	bool init_done;
 };
+
+__BEGIN_DECLS
 
 /**
  * Checks if global projection was initialized
@@ -115,9 +112,17 @@ int map_projection_global_reference(double *ref_lat_rad, double *ref_lon_rad);
  * Writes the reference values of the projection given by the argument to ref_lat and ref_lon
  * @return 0 if map_projection_init was called before, -1 else
  */
-int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad,
-			     double *ref_lon_rad);
+int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad);
 
+/**
+ * Initializes the global map transformation.
+ *
+ * Initializes the transformation between the geographic coordinate system and
+ * the azimuthal equidistant plane
+ * @param lat in degrees (47.1234567°, not 471234567°)
+ * @param lon in degrees (8.1234567°, not 81234567°)
+ */
+int map_projection_global_init(double lat_0, double lon_0, uint64_t timestamp);
 
 /**
  * Initializes the map transformation given by the argument.
@@ -127,8 +132,7 @@ int map_projection_reference(const struct map_projection_reference_s *ref, doubl
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-int map_projection_init_timestamped(struct map_projection_reference_s *ref,
-				    double lat_0, double lon_0, uint64_t timestamp);
+int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp);
 
 /**
  * Initializes the map transformation given by the argument and sets the timestamp to now.
@@ -151,7 +155,6 @@ int map_projection_init(struct map_projection_reference_s *ref, double lat_0, do
  */
 int map_projection_global_project(double lat, double lon, float *x, float *y);
 
-
 /* Transforms a point in the geographic coordinate system to the local
  * azimuthal equidistant plane using the projection given by the argument
 * @param x north
@@ -160,8 +163,7 @@ int map_projection_global_project(double lat, double lon, float *x, float *y);
 * @param lon in degrees (8.1234567°, not 81234567°)
 * @return 0 if map_projection_init was called before, -1 else
 */
-int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x,
-			   float *y);
+int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y);
 
 /**
  * Transforms a point in the local azimuthal equidistant plane to the
@@ -185,8 +187,7 @@ int map_projection_global_reproject(float x, float y, double *lat, double *lon);
  * @param lon in degrees (8.1234567°, not 81234567°)
  * @return 0 if map_projection_init was called before, -1 else
  */
-int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat,
-			     double *lon);
+int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon);
 
 /**
  * Get reference position of the global map projection
@@ -229,7 +230,6 @@ int globallocalconverter_getref(double *lat_0, double *lon_0, float *alt_0);
  */
 float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
-
 /**
  * Creates a new waypoint C on the line of two given waypoints (A, B) at certain distance
  * from waypoint A
@@ -243,7 +243,7 @@ float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_n
  * @param lon_target longitude of target waypoint C in degrees (47.1234567°, not 471234567°)
  */
 void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist,
-					double *lat_target, double *lon_target);
+		double *lat_target, double *lon_target);
 
 /**
  * Creates a waypoint from given waypoint, distance and bearing
@@ -257,7 +257,7 @@ void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B
  * @param lon_target longitude of target waypoint in degrees (47.1234567°, not 471234567°)
  */
 void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
-					double *lat_target, double *lon_target);
+		double *lat_target, double *lon_target);
 
 /**
  * Returns the bearing to the next waypoint in radians.
@@ -269,21 +269,18 @@ void waypoint_from_heading_and_distance(double lat_start, double lon_start, floa
  */
 float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
-void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n,
-				 float *v_e);
+void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e);
 
-void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next,
-				      float *v_n, float *v_e);
+void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e);
 
-void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
-				   double *lon_res);
+void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res);
 
 int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-			 double lat_start, double lon_start, double lat_end, double lon_end);
+				  double lat_start, double lon_start, double lat_end, double lon_end);
 
 int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-			double lat_center, double lon_center,
-			float radius, float arc_start_bearing, float arc_sweep);
+				 double lat_center, double lon_center,
+				 float radius, float arc_start_bearing, float arc_sweep);
 
 /*
  * Calculate distance in global frame
@@ -303,8 +300,5 @@ float _wrap_180(float bearing);
 float _wrap_360(float bearing);
 float _wrap_pi(float bearing);
 float _wrap_2pi(float bearing);
-float get_mag_declination(float lat, float lon);
-#else
-#include <lib/geo/geo.h>
-#endif //POSIX_SHARED
-#endif //GEO_H
+
+__END_DECLS

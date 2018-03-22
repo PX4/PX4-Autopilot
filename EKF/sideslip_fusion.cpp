@@ -39,9 +39,10 @@
  * @author Paul Riseborough <p_riseborough@live.com.au>
  *
  */
-#include "../ecl.h"
+
 #include "ekf.h"
-#include "mathlib.h"
+#include <ecl.h>
+#include <mathlib/mathlib.h>
 
 void Ekf::fuseSideslip()
 {

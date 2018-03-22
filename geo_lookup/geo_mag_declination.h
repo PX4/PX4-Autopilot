@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2014 MAV GEO Library (MAVGEO). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name MAVGEO nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,43 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file ecl.h
- * Adapter / shim layer for system calls needed by ECL
- *
- */
+* @file geo_mag_declination.h
+*
+* Calculation / lookup table for earth magnetic field declination.
+*
+*/
+
 #pragma once
 
-#if defined(__PX4_POSIX) || defined(__PX4_NUTTX)
+__BEGIN_DECLS
 
-#include <drivers/drv_hrt.h>
-#include <px4_log.h>
+float get_mag_declination(float lat, float lon);
 
-#define ecl_absolute_time hrt_absolute_time
-#define ecl_elapsed_time hrt_elapsed_time
-#define ECL_INFO PX4_INFO
-#define ECL_WARN PX4_WARN
-#define ECL_ERR	 PX4_ERR
-
-#else
-
-#define ecl_absolute_time() (0)
-#define ecl_elapsed_time (0)
-#define ECL_INFO printf
-#define ECL_WARN printf
-#define ECL_ERR printf
-
-#endif
-
-#ifndef __PX4_QURT
-#if defined(__cplusplus) && !defined(__PX4_NUTTX)
-#include <cmath>
-#define ISFINITE(x) std::isfinite(x)
-#else
-#define ISFINITE(x) isfinite(x)
-#endif
-#endif
-
-#if defined(__PX4_QURT)
-// Missing math.h defines
-#define ISFINITE(x) __builtin_isfinite(x)
-#endif
+__END_DECLS

@@ -39,9 +39,10 @@
  *
  */
 
-#include "../ecl.h"
 #include "ekf.h"
-#include "mathlib.h"
+
+#include <ecl.h>
+#include <mathlib/mathlib.h>
 #include <cstdlib>
 
 // Reset the velocity states. If we have a recent and valid

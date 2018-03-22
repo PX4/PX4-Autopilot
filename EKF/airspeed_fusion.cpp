@@ -42,7 +42,7 @@
  */
 #include "../ecl.h"
 #include "ekf.h"
-#include "mathlib.h"
+#include <mathlib/mathlib.h>
 
 void Ekf::fuseAirspeed()
 {

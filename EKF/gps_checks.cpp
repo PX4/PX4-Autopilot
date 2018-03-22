@@ -39,10 +39,11 @@
  *
  */
 
-#include "../ecl.h"
 #include "ekf.h"
-#include "mathlib.h"
-#include "geo.h"
+
+#include <ecl.h>
+#include <geo_lookup/geo_mag_declination.h>
+#include <mathlib/mathlib.h>
 
 // GPS pre-flight check bit locations
 #define MASK_GPS_NSATS  (1<<0)
