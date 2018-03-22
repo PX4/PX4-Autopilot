@@ -64,7 +64,10 @@ bool Ekf::resetVelocity()
 		zeroOffDiag(P,4,6);
 
 	} else {
-		return false;
+		// Used when falling back to non-aiding mode of operation
+		_state.vel(0) = 0.0f;
+		_state.vel(1) = 0.0f;
+		setDiag(P,4,5,25.0f);
 	}
 
 	// calculate the change in velocity and apply to the output predictor state history
@@ -122,7 +125,10 @@ bool Ekf::resetPosition()
 		setDiag(P,7,8,sq(_ev_sample_delayed.posErr));
 
 	} else {
-		return false;
+		// Used when falling back to non-aiding mode of operation
+		_state.pos(0) = _last_known_posNE(0);
+		_state.pos(1) = _last_known_posNE(1);
+		setDiag(P,7,8,sq(_params.pos_noaid_noise));
 	}
 
 	// calculate the change in position and apply to the output predictor state history

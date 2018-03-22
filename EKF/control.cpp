@@ -1339,6 +1339,9 @@ void Ekf::controlVelPosFusion()
 {
 	// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
 	// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
+	if (!(_params.fusion_mode & MASK_USE_GPS)) {
+		_control_status.flags.gps = false;
+	}
 	if (!_control_status.flags.gps &&
 			!_control_status.flags.opt_flow &&
 			!_control_status.flags.ev_pos &&
@@ -1347,9 +1350,8 @@ void Ekf::controlVelPosFusion()
 	{
 		// Reset position and velocity states if we re-commence this aiding method
 		if ((_time_last_imu - _time_last_fake_gps) > (uint64_t)4e5) {
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
-			_state.vel.setZero();
+			resetPosition();
+			resetVelocity();
 			_fuse_hpos_as_odom = false;
 			if (_time_last_fake_gps != 0) {
 				ECL_WARN("EKF stopping navigation");
@@ -1358,6 +1360,8 @@ void Ekf::controlVelPosFusion()
 		}
 
 		_fuse_pos = true;
+		_fuse_hor_vel = false;
+		_fuse_vert_vel = false;
 		_time_last_fake_gps = _time_last_imu;
 
 		if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
@@ -1365,6 +1369,9 @@ void Ekf::controlVelPosFusion()
 		} else {
 			_posObsNoiseNE = 0.5f;
 		}
+		_vel_pos_innov[0] = 0.0f;
+		_vel_pos_innov[1] = 0.0f;
+		_vel_pos_innov[2] = 0.0f;
 		_vel_pos_innov[3] = _state.pos(0) - _last_known_posNE(0);
 		_vel_pos_innov[4] = _state.pos(1) - _last_known_posNE(1);
 
