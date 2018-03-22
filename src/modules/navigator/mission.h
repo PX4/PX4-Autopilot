@@ -47,7 +47,6 @@
 #include "mission_block.h"
 #include "mission_feasibility_checker.h"
 #include "navigator_mode.h"
-#include "mission_reverse.h"
 
 #include <cfloat>
 
@@ -64,12 +63,9 @@
 #include <uORB/uORB.h>
 
 class Navigator;
-class MissionReverse;
 
 class Mission : public MissionBlock, public ModuleParams
 {
-private:
-	friend MissionReverse;
 public:
 	Mission(Navigator *navigator);
 	~Mission() override = default;
@@ -105,8 +101,7 @@ public:
 
 	uint16_t get_land_start_index() const { return _land_start_index; }
 	bool get_land_start_available() const { return _land_start_available; }
-
-	void switch_from_reverse();
+	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
 
 	void set_closest_item_as_current();
 
@@ -271,7 +266,7 @@ private:
 	bool _inited{false};
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
-	bool _switch_from_reverse{false};
+	bool _mission_waypoints_changed{false};
 
 	float _min_current_sp_distance_xy{FLT_MAX}; /**< minimum distance which was achieved to the current waypoint  */
 

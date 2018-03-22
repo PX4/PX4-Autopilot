@@ -69,12 +69,10 @@ Mission::Mission(Navigator *navigator) :
 void
 Mission::on_inactive()
 {
-	if (!_navigator->is_mission_reverse()) {
-		/* We need to reset the mission cruising speed, otherwise the
-		 * mission velocity which might have been set using mission items
-		 * is used for missions such as RTL. */
-		_navigator->set_cruising_speed();
-	}
+	/* We need to reset the mission cruising speed, otherwise the
+	 * mission velocity which might have been set using mission items
+	 * is used for missions such as RTL. */
+	_navigator->set_cruising_speed();
 
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_position_valid()) {
@@ -87,6 +85,10 @@ Mission::on_inactive()
 
 		if (offboard_updated) {
 			update_offboard_mission();
+
+			if (_mission_type == MISSION_TYPE_NONE && _offboard_mission.count > 0) {
+				_mission_type = MISSION_TYPE_OFFBOARD;
+			}
 		}
 
 		/* reset the current offboard mission if needed */
@@ -128,13 +130,11 @@ Mission::on_inactive()
 		_need_takeoff = true;
 	}
 
-	if (!_navigator->is_mission_reverse()) {
-		/* reset so current mission item gets restarted if mission was paused */
-		_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+	/* reset so current mission item gets restarted if mission was paused */
+	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
-		/* reset so MISSION_ITEM_REACHED isn't published */
-		_navigator->get_mission_result()->seq_reached = -1;
-	}
+	/* reset so MISSION_ITEM_REACHED isn't published */
+	_navigator->get_mission_result()->seq_reached = -1;
 }
 
 void
@@ -152,18 +152,6 @@ Mission::on_inactivation()
 void
 Mission::on_activation()
 {
-	if (_current_offboard_mission_index < 0) {
-		_current_offboard_mission_index = 0;
-	}
-
-	if (_switch_from_reverse) {
-		if (_current_offboard_mission_index < _offboard_mission.count - 1) {
-			_current_offboard_mission_index++;
-		}
-
-		_switch_from_reverse = false;
-	}
-
 	set_mission_items();
 
 	// unpause triggering if it was paused
@@ -197,7 +185,17 @@ Mission::on_active()
 	}
 
 	/* reset mission items if needed */
-	if (offboard_updated || _execution_mode_changed) {
+	if (offboard_updated || _mission_waypoints_changed) {
+		if (_mission_waypoints_changed) {
+			_current_offboard_mission_index = index_closest_mission_item();
+			_mission_waypoints_changed = false;
+		}
+
+		set_mission_items();
+	}
+
+	/* reset the mission items if the execution mode changed */
+	if (_execution_mode_changed) {
 		_execution_mode_changed = false;
 		set_mission_items();
 	}
@@ -285,12 +283,6 @@ Mission::set_current_offboard_mission_index(uint16_t index)
 }
 
 void
-Mission::switch_from_reverse()
-{
-	_switch_from_reverse = true;
-}
-
-void
 Mission::set_closest_item_as_current()
 {
 	_current_offboard_mission_index = index_closest_mission_item();
@@ -301,9 +293,61 @@ Mission::set_execution_mode(const mission_execution_mode mode)
 {
 	if (_mission_execution_mode != mode) {
 		_execution_mode_changed = true;
+
+		switch (_mission_execution_mode) {
+		case EXECUTION_NORMAL:
+		case EXECUTION_FAST_FORWARD:
+			if (mode == EXECUTION_REVERSE) {
+				// command a transition if in vtol mc mode
+				if (_navigator->get_vstatus()->is_rotary_wing &&
+				    _navigator->get_vstatus()->is_vtol &&
+				    !_navigator->get_land_detected()->landed) {
+
+					set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+
+					position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+					pos_sp_triplet->previous = pos_sp_triplet->current;
+					generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
+					_navigator->set_position_setpoint_triplet_updated();
+					issue_command(_mission_item);
+				}
+
+				if (_mission_type == MISSION_TYPE_NONE && _offboard_mission.count > 0) {
+					_mission_type = MISSION_TYPE_OFFBOARD;
+				}
+
+				if (_current_offboard_mission_index > _offboard_mission.count - 1) {
+					_current_offboard_mission_index = _offboard_mission.count - 1;
+
+				} else if (_current_offboard_mission_index > 0) {
+					--_current_offboard_mission_index;
+				}
+
+				_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+			}
+
+			break;
+
+		case EXECUTION_REVERSE:
+			if ((mode == EXECUTION_NORMAL) ||
+			    (mode == EXECUTION_FAST_FORWARD)) {
+				// handle switch from reverse to forward mission
+				if (_current_offboard_mission_index < 0) {
+					_current_offboard_mission_index = 0;
+
+				} else if (_current_offboard_mission_index < _offboard_mission.count - 1) {
+					++_current_offboard_mission_index;
+				}
+
+				_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+			}
+
+			break;
+
+		}
+
 		_mission_execution_mode = mode;
 	}
-
 }
 
 bool
@@ -377,6 +421,8 @@ Mission::update_offboard_mission()
 	/* reset triplets */
 	_navigator->reset_triplets();
 
+	struct mission_s old_offboard_mission = _offboard_mission;
+
 	if (orb_copy(ORB_ID(mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {
 		/* determine current index */
 		if (_offboard_mission.current_seq >= 0 && _offboard_mission.current_seq < (int)_offboard_mission.count) {
@@ -411,6 +457,14 @@ Mission::update_offboard_mission()
 			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 		}
 
+		/* check if the mission changed and log it if the mission mode is active
+		 * TODO add a flag to mission_s which actually tracks the number of waypoints */
+		if (((_offboard_mission.count != old_offboard_mission.count) ||
+		     (_offboard_mission.dataman_id != old_offboard_mission.dataman_id)) &&
+		    _navigator->is_planned_mission()) {
+			_mission_waypoints_changed = true;
+		}
+
 	} else {
 		PX4_ERR("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
 	}
@@ -440,7 +494,42 @@ Mission::advance_mission()
 
 	switch (_mission_type) {
 	case MISSION_TYPE_OFFBOARD:
-		_current_offboard_mission_index++;
+		switch (_mission_execution_mode) {
+		case EXECUTION_NORMAL:
+		case EXECUTION_FAST_FORWARD: {
+				_current_offboard_mission_index++;
+				break;
+			}
+
+		case EXECUTION_REVERSE: {
+				// find next position item in reverse order
+				dm_item_t dm_current = (dm_item_t)(_offboard_mission.dataman_id);
+
+				for (int32_t i = _current_offboard_mission_index - 1; i >= 0; i--) {
+					struct mission_item_s missionitem = {};
+					const ssize_t len = sizeof(missionitem);
+
+					if (dm_read(dm_current, i, &missionitem, len) != len) {
+						/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+						PX4_ERR("dataman read failure");
+						break;
+					}
+
+					if (item_contains_position(missionitem)) {
+						_current_offboard_mission_index = i;
+						return;
+					}
+				}
+
+				// finished flying back the mission
+				_current_offboard_mission_index = -1;
+				break;
+			}
+
+		default:
+			_current_offboard_mission_index++;
+		}
+
 		break;
 
 	case MISSION_TYPE_NONE:
@@ -1348,15 +1437,14 @@ bool
 Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 {
 	/* select offboard mission */
-	struct mission_s *mission = &_offboard_mission;
-	int current_index = _current_offboard_mission_index;
+	const int current_index = _current_offboard_mission_index;
 	int index_to_read = current_index + offset;
 
 	int *mission_index_ptr = (offset == 0) ? &_current_offboard_mission_index : &index_to_read;
 	const dm_item_t dm_item = (dm_item_t)_offboard_mission.dataman_id;
 
 	/* do not work on empty missions */
-	if (mission->count == 0) {
+	if (_offboard_mission.count == 0) {
 		return false;
 	}
 
@@ -1364,11 +1452,11 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 	 * 10 iterations we have to assume that the DO JUMPS are probably cycling and give up. */
 	for (int i = 0; i < 10; i++) {
 
-		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
+		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)_offboard_mission.count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
-			if ((*mission_index_ptr != (int)mission->count) && (*mission_index_ptr != -1)) {
+			if ((*mission_index_ptr != (int)_offboard_mission.count) && (*mission_index_ptr != -1)) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item index out of bound, index: %d, max: %d.",
-						     *mission_index_ptr, mission->count);
+						     *mission_index_ptr, _offboard_mission.count);
 			}
 
 			return false;
@@ -1657,6 +1745,23 @@ Mission::index_closest_mission_item() const
 					min_dist_index = i;
 				}
 			}
+		}
+	}
+
+	// for mission reverse also consider the home position
+	if (_mission_execution_mode == EXECUTION_REVERSE) {
+		float dist = get_distance_to_point_global_wgs84(
+				     _navigator->get_home_position()->lat,
+				     _navigator->get_home_position()->lon,
+				     _navigator->get_home_position()->alt,
+				     _navigator->get_global_position()->lat,
+				     _navigator->get_global_position()->lon,
+				     _navigator->get_global_position()->alt,
+				     &dist_xy, &dist_z);
+
+		if (dist < min_dist) {
+			min_dist = dist;
+			min_dist_index = -1;
 		}
 	}
 
