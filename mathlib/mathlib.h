@@ -43,10 +43,16 @@
 #ifdef POSIX_SHARED
 // #include <Eigen/Dense>
 // #include <algorithm>
+#ifndef M_PI_F
 #define M_PI_F 3.14159265358979323846f
+#endif
 
 #ifndef M_PI
 #define M_PI (3.14159265358979323846f)
+#endif
+
+#ifndef M_PI_2_F
+#define M_PI_2_F (M_PI / 2.0f)
 #endif
 
 namespace math

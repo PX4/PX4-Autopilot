@@ -39,9 +39,10 @@
  * @author Paul Riseborough <p_riseborough@live.com.au>
  */
 
-#include "../ecl.h"
 #include "ekf.h"
-#include "mathlib.h"
+
+#include <ecl.h>
+#include <mathlib/mathlib.h>
 
 bool Ekf::init(uint64_t timestamp)
 {
@@ -359,7 +360,7 @@ void Ekf::predictState()
 	_state.vel += corrected_delta_vel_ef;
 
 	// compensate for acceleration due to gravity
-	_state.vel(2) += _gravity_mss * _imu_sample_delayed.delta_vel_dt;
+	_state.vel(2) += CONSTANTS_ONE_G * _imu_sample_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * _imu_sample_delayed.delta_vel_dt * 0.5f;
@@ -485,7 +486,7 @@ void Ekf::calculateOutputStates()
 	Vector3f delta_vel_NED = _R_to_earth_now * delta_vel;
 
 	// corrrect for measured accceleration due to gravity
-	delta_vel_NED(2) += _gravity_mss * imu_new.delta_vel_dt;
+	delta_vel_NED(2) += CONSTANTS_ONE_G * imu_new.delta_vel_dt;
 
 	// calculate the earth frame velocity derivatives
 	if (imu_new.delta_vel_dt > 1e-4f) {

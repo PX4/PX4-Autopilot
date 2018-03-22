@@ -42,9 +42,8 @@
 
 #include "estimator_interface.h"
 
-#include "../ecl.h"
-#include <math.h>
-#include "mathlib.h"
+#include <ecl.h>
+#include <mathlib/mathlib.h>
 
 // Accumulate imu data and store to buffer at desired rate
 void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt,

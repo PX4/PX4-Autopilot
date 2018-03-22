@@ -39,11 +39,12 @@
  *
  */
 
-#include <matrix/matrix/math.hpp>
-#include "RingBuffer.h"
-#include "geo.h"
 #include "common.h"
-#include "mathlib.h"
+#include "RingBuffer.h"
+
+#include <geo/geo.h>
+#include <matrix/matrix/math.hpp>
+#include <mathlib/mathlib.h>
 
 using namespace estimator;
 
@@ -416,7 +417,7 @@ protected:
 	// Used by the multi-rotor specific drag force fusion
 	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
 	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
-	float _air_density{1.225f};		// air density (kg/m**3)
+	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
 
 	// Output Predictor
 	outputSample _output_sample_delayed{};	// filter output on the delayed time horizon

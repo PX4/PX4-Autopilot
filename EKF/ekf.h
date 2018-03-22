@@ -41,7 +41,6 @@
  */
 
 #include "estimator_interface.h"
-#include "geo.h"
 
 class Ekf : public EstimatorInterface
 {
@@ -236,7 +235,6 @@ private:
 
 	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
 	static constexpr float _k_earth_rate{0.000072921f};	///< earth spin rate (rad/sec)
-	static constexpr float _gravity_mss{9.80665f};		///< average earth gravity at sea level (m/sec**2)
 
 	struct {
 		uint8_t velNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)

@@ -40,10 +40,11 @@
  *
  */
 
-#include "../ecl.h"
 #include "ekf.h"
+
+#include <ecl.h>
 #include <math.h>
-#include "mathlib.h"
+#include <mathlib/mathlib.h>
 
 void Ekf::initialiseCovariance()
 {
@@ -753,8 +754,7 @@ void Ekf::fixCovarianceErrors()
 		float minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
 
 		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
-			P[stateIndex][stateIndex] = math::constrain(P[stateIndex][stateIndex], minAllowedStateVar,
-						    sq(_gravity_mss * _dt_ekf_avg));
+			P[stateIndex][stateIndex] = math::constrain(P[stateIndex][stateIndex], minAllowedStateVar, sq(CONSTANTS_ONE_G * _dt_ekf_avg));
 		}
 
 		// If any one axis has fallen below the safe minimum, all delta velocity covariance terms must be reset to zero

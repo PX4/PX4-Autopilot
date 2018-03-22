@@ -40,6 +40,8 @@
  *
  */
 
+#include <matrix/matrix/math.hpp>
+
 namespace estimator
 {
 

@@ -49,6 +49,9 @@ include_directories(
 	)
 
 set(SRCS
+	../geo/geo.cpp
+	../geo_lookup/geo_mag_declination.cpp
+	../mathlib/mathlib.cpp
 	airspeed_fusion.cpp
 	control.cpp
 	covariance.cpp
@@ -56,10 +59,8 @@ set(SRCS
 	ekf.cpp
 	ekf_helper.cpp
 	estimator_interface.cpp
-	geo.cpp
 	gps_checks.cpp
 	mag_fusion.cpp
-	mathlib.cpp
 	optflow_fusion.cpp
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
