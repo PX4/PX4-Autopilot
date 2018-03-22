@@ -116,14 +116,15 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 				*control_data = &_control_data;
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPNEXT) {
+				_control_data.type = ControlData::Type::LonLat;
 				_read_control_data_from_position_setpoint_sub();
-				_control_data.type_data.lonlat.roll_angle = 0.f;
 				_control_data.type_data.lonlat.pitch_fixed_angle = -10.f;
 
-				*control_data = &_control_data;
+				_control_data.type_data.lonlat.roll_angle = vehicle_roi.roll_offset;
+				_control_data.type_data.lonlat.pitch_angle_offset = vehicle_roi.pitch_offset;
+				_control_data.type_data.lonlat.yaw_angle_offset = vehicle_roi.yaw_offset;
 
-			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPINDEX) {
-				//TODO how to do this?
+				*control_data = &_control_data;
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
 				control_data_set_lon_lat(vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);

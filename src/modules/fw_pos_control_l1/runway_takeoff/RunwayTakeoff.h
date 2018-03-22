@@ -46,8 +46,7 @@
 #include <math.h>
 
 #include <drivers/drv_hrt.h>
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include <px4_module_params.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 
@@ -62,11 +61,11 @@ enum RunwayTakeoffState {
 	FLY = 4 /**< fly towards takeoff waypoint */
 };
 
-class __EXPORT RunwayTakeoff : public control::SuperBlock
+class __EXPORT RunwayTakeoff : public ModuleParams
 {
 public:
-	RunwayTakeoff();
-	~RunwayTakeoff();
+	RunwayTakeoff(ModuleParams *parent);
+	~RunwayTakeoff() = default;
 
 	void init(float yaw, double current_lat, double current_lon);
 	void update(float airspeed, float alt_agl, double current_lat, double current_lon, orb_advert_t *mavlink_log_pub);
@@ -87,11 +86,10 @@ public:
 	bool resetIntegrators();
 	float getMinPitch(float sp_min, float climbout_min, float min);
 	float getMaxPitch(float max);
-	math::Vector<2> getStartWP();
+	matrix::Vector2f getStartWP();
 
 	void reset();
 
-protected:
 private:
 	/** state variables **/
 	RunwayTakeoffState _state;
@@ -100,19 +98,20 @@ private:
 	float _init_yaw;
 	bool _climbout;
 	unsigned _throttle_ramp_time;
-	math::Vector<2> _start_wp;
+	matrix::Vector2f _start_wp;
 
-	/** parameters **/
-	control::BlockParamBool _runway_takeoff_enabled;
-	control::BlockParamInt _heading_mode;
-	control::BlockParamFloat _nav_alt;
-	control::BlockParamFloat _takeoff_throttle;
-	control::BlockParamFloat _runway_pitch_sp;
-	control::BlockParamFloat _max_takeoff_pitch;
-	control::BlockParamFloat _max_takeoff_roll;
-	control::BlockParamFloat _min_airspeed_scaling;
-	control::BlockParamFloat _airspeed_min;
-	control::BlockParamFloat _climbout_diff;
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::RWTO_TKOFF>) _runway_takeoff_enabled,
+		(ParamInt<px4::params::RWTO_HDG>) _heading_mode,
+		(ParamFloat<px4::params::RWTO_NAV_ALT>) _nav_alt,
+		(ParamFloat<px4::params::RWTO_MAX_THR>) _takeoff_throttle,
+		(ParamFloat<px4::params::RWTO_PSP>) _runway_pitch_sp,
+		(ParamFloat<px4::params::RWTO_MAX_PITCH>) _max_takeoff_pitch,
+		(ParamFloat<px4::params::RWTO_MAX_ROLL>) _max_takeoff_roll,
+		(ParamFloat<px4::params::RWTO_AIRSPD_SCL>) _min_airspeed_scaling,
+		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _airspeed_min,
+		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>) _climbout_diff
+	)
 
 };
 

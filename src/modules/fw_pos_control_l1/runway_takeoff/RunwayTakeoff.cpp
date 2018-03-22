@@ -43,40 +43,23 @@
 #include <math.h>
 
 #include "RunwayTakeoff.h"
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
+
+using matrix::Vector2f;
 
 namespace runwaytakeoff
 {
 
-RunwayTakeoff::RunwayTakeoff() :
-	SuperBlock(nullptr, "RWTO"),
+RunwayTakeoff::RunwayTakeoff(ModuleParams *parent) :
+	ModuleParams(parent),
 	_state(),
 	_initialized(false),
 	_initialized_time(0),
 	_init_yaw(0),
 	_climbout(false),
-	_throttle_ramp_time(2 * 1e6),
-	_runway_takeoff_enabled(this, "TKOFF"),
-	_heading_mode(this, "HDG"),
-	_nav_alt(this, "NAV_ALT"),
-	_takeoff_throttle(this, "MAX_THR"),
-	_runway_pitch_sp(this, "PSP"),
-	_max_takeoff_pitch(this, "MAX_PITCH"),
-	_max_takeoff_roll(this, "MAX_ROLL"),
-	_min_airspeed_scaling(this, "AIRSPD_SCL"),
-	_airspeed_min(this, "FW_AIRSPD_MIN", false),
-	_climbout_diff(this, "FW_CLMBOUT_DIFF", false)
+	_throttle_ramp_time(2 * 1e6)
 {
-
-	updateParams();
-}
-
-RunwayTakeoff::~RunwayTakeoff()
-{
-
 }
 
 void RunwayTakeoff::init(float yaw, double current_lat, double current_lon)
@@ -271,7 +254,7 @@ float RunwayTakeoff::getMaxPitch(float max)
 /*
  * Returns the "previous" (start) WP for navigation.
  */
-math::Vector<2> RunwayTakeoff::getStartWP()
+Vector2f RunwayTakeoff::getStartWP()
 {
 	return _start_wp;
 }

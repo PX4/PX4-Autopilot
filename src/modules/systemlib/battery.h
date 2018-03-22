@@ -41,24 +41,15 @@
 
 #pragma once
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_hrt.h>
+#include <px4_module_params.h>
 
 
-class Battery : public control::SuperBlock
+class Battery : public ModuleParams
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Battery();
-
-	/**
-	 * Destructor
-	 */
-	~Battery();
 
 	/**
 	 * Reset all battery stats and report invalid/nothing.
@@ -103,23 +94,26 @@ private:
 	void determineWarning(bool connected);
 	void computeScale();
 
-	control::BlockParamFloat _v_empty;
-	control::BlockParamFloat _v_charged;
-	control::BlockParamInt _n_cells;
-	control::BlockParamFloat _capacity;
-	control::BlockParamFloat _v_load_drop;
-	control::BlockParamFloat _r_internal;
-	control::BlockParamFloat _low_thr;
-	control::BlockParamFloat _crit_thr;
-	control::BlockParamFloat _emergency_thr;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::BAT_V_EMPTY>) _v_empty,
+		(ParamFloat<px4::params::BAT_V_CHARGED>) _v_charged,
+		(ParamInt<px4::params::BAT_N_CELLS>) _n_cells,
+		(ParamFloat<px4::params::BAT_CAPACITY>) _capacity,
+		(ParamFloat<px4::params::BAT_V_LOAD_DROP>) _v_load_drop,
+		(ParamFloat<px4::params::BAT_R_INTERNAL>) _r_internal,
+		(ParamFloat<px4::params::BAT_LOW_THR>) _low_thr,
+		(ParamFloat<px4::params::BAT_CRIT_THR>) _crit_thr,
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _emergency_thr
+	)
 
-	float _voltage_filtered_v;
-	float _current_filtered_a;
-	float _discharged_mah;
-	float _discharged_mah_loop;
-	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
-	float _remaining;			///< normalized battery charge level, selected based on config param
-	float _scale;
+	bool _battery_initialized = false;
+	float _voltage_filtered_v = -1.f;
+	float _current_filtered_a = -1.f;
+	float _discharged_mah = 0.f;
+	float _discharged_mah_loop = 0.f;
+	float _remaining_voltage = -1.f;		///< normalized battery charge level remaining based on voltage
+	float _remaining = -1.f;			///< normalized battery charge level, selected based on config param
+	float _scale = 1.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
 };

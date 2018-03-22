@@ -98,6 +98,7 @@
 #  define XYZ_DATA_CFG_FS_8G       (2 << XYZ_DATA_CFG_FS_SHIFTS)
 
 #define FXOS8701CQ_WHOAMI          0x0d
+#  define FXOS8700CQ_WHOAMI_VAL    0xC7
 #  define FXOS8701CQ_WHOAMI_VAL    0xCA
 
 #define FXOS8701CQ_CTRL_REG1       0x2a
@@ -506,10 +507,8 @@ FXOS8701CQ::FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation
 	_last_raw_mag_z(0),
 	_checked_next(0)
 {
-
-
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_FXOS8701C;
 
@@ -672,10 +671,11 @@ int
 FXOS8701CQ::probe()
 {
 	/* verify that the device is attached and functioning */
-	bool success = (read_reg(FXOS8701CQ_WHOAMI) == FXOS8701CQ_WHOAMI_VAL);
+	uint8_t whoami = read_reg(FXOS8701CQ_WHOAMI);
+	bool success = (whoami == FXOS8700CQ_WHOAMI_VAL) || (whoami == FXOS8701CQ_WHOAMI_VAL);
 
 	if (success) {
-		_checked_values[0] = FXOS8701CQ_WHOAMI_VAL;
+		_checked_values[0] = whoami;
 		return OK;
 	}
 
@@ -1393,9 +1393,7 @@ FXOS8701CQ::measure()
 	 * one device to the next
 	 */
 
-	write_checked_reg(FXOS8701CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_A | M_CTRL_REG1_OS(7));
 	_last_temperature = (read_reg(FXOS8701CQ_TEMP)) * 0.96f;
-	write_checked_reg(FXOS8701CQ_M_CTRL_REG1, M_CTRL_REG1_HMS_AM | M_CTRL_REG1_OS(7));
 
 	accel_report.temperature = _last_temperature;
 
@@ -1462,8 +1460,8 @@ FXOS8701CQ::measure()
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
-	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
-	math::Vector<3> aval_integrated;
+	matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
+	matrix::Vector3f aval_integrated;
 
 	bool accel_notify = _accel_int.put(accel_report.timestamp, aval, aval_integrated, accel_report.integral_dt);
 	accel_report.x_integral = aval_integrated(0);
@@ -1698,6 +1696,7 @@ void	start(bool external_bus, enum Rotation rotation, unsigned range);
 void	test();
 void	reset();
 void	info();
+void	stop();
 void	regdump();
 void	usage();
 void	test_error();
@@ -1941,6 +1940,20 @@ info()
 	exit(0);
 }
 
+void
+stop()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running\n");
+		exit(1);
+	}
+
+	delete g_dev;
+	g_dev = nullptr;
+
+	exit(0);
+}
+
 /**
  * dump registers from device
  */
@@ -1977,7 +1990,7 @@ test_error()
 void
 usage()
 {
-	PX4_INFO("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
+	PX4_INFO("missing command: try 'start', 'info', 'stop', 'test', 'reset', 'testerror' or 'regdump'");
 	PX4_INFO("options:");
 	PX4_INFO("    -X    (external bus)");
 	PX4_INFO("    -R rotation");
@@ -2034,6 +2047,10 @@ fxos8701cq_main(int argc, char *argv[])
 		fxos8701cq::test();
 	}
 
+	if (!strcmp(verb, "stop")) {
+		fxos8701cq::stop();
+	}
+
 	/*
 	 * Reset the driver.
 	 */
@@ -2062,5 +2079,5 @@ fxos8701cq_main(int argc, char *argv[])
 		fxos8701cq::test_error();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
+	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset', 'info', 'testerror' or 'regdump'");
 }

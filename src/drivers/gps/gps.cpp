@@ -530,8 +530,8 @@ int GPS::setBaudrate(unsigned baud)
 	//
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
-	/* no parity, one stop bit */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+	/* no parity, one stop bit, disable flow control */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
 
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {

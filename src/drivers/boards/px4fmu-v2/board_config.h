@@ -222,13 +222,6 @@
 #define PX4_I2C_BUS_ONBOARD	2
 #define PX4_I2C_BUS_LED		PX4_I2C_BUS_ONBOARD
 
-/* Devices on the onboard bus.
- *
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_LED	0x55
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-
 /*----------------------------------------------------------*/
 /*           FMUv3 Cube SPI chip selects and DRDY           */
 /*----------------------------------------------------------*/

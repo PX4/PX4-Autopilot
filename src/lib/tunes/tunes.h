@@ -39,8 +39,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/tune_control.h>
-// TODO: find better way to include the number of tunes, maybe include them in the lib directly?
-#include <drivers/drv_tone_alarm.h>
+#include "tune_definition.h"
 
 #define TUNE_MAX_UPDATE_INTERVAL_US 100000
 

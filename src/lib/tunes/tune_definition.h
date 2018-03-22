@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,47 +31,23 @@
  *
  ****************************************************************************/
 
-/**
- * @file tailsitter_recovery.h
- *
- * Tailsitter optimal rate controller (underactuated pitch axis)
- *
- * This function can be used to compute desired body rates of a tailsitter
- * suffering from an underactuated pitch axis. Tailsitters which produce a pitching moment
- * from airflow over control surfaces mostly suffer from an underactuated pitch axis.
- * This functions captures the solution of an optimal control problem which minimises
- * the vehicle's tilt error and which penalises the desired rates of the underactuated
- * pitch axis.
- * Publication:
- * Robin Ritz and Raffaello D'Andrea. A Global Strategy for Tailsitter Hover Control.
- *
- * @author Roman Bapst <bapstroman@gmail.com>
-*/
-
 #pragma once
 
-#include <lib/mathlib/mathlib.h>
-
-#define SigmoidFunction(val) 1/(1 + expf(-val))
-
-class TailsitterRecovery
-{
-public:
-	TailsitterRecovery();
-	~TailsitterRecovery();
-
-	// Calculate the optimal rates:
-	// If the vehicle is not in need of a recovery, this function will do normal
-	// attitude control based on attitude error. If a recovery situation is detected
-	// then the rates are computed in an optimal way as described above.
-	void calcOptimalRates(math::Quaternion &q, math::Quaternion &q_sp, float yaw_move_rate, math::Vector<3> &rates_opt);
-
-	// Set the gains of the controller attitude loop.
-	void setAttGains(math::Vector<3> &att_p, float yaw_ff);
-
-private:
-	bool _in_recovery_mode;	// indicates that the tailsitter is performing a recovery to hover
-
-	math::Vector<3> _att_p;	// gains for attitude loop
-	float _yaw_ff;			// yaw feed forward gain
+enum class TuneID {
+	CUSTOM = 0,
+	STARTUP,
+	ERROR_TUNE,
+	NOTIFY_POSITIVE,
+	NOTIFY_NEUTRAL,
+	NOTIFY_NEGATIVE,
+	ARMING_WARNING,
+	BATTERY_WARNING_SLOW,
+	BATTERY_WARNING_FAST,
+	GPS_WARNING,
+	ARMING_FAILURE,
+	PARACHUTE_RELEASE,
+	EKF_WARNING,
+	BARO_WARNING,
+	SINGLE_BEEP,
+	HOME_SET
 };

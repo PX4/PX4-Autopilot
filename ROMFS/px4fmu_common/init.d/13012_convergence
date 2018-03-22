@@ -23,7 +23,7 @@ if [ $AUTOCNF == yes ]
 then
     param set VT_MOT_COUNT 3
     param set VT_FW_MOT_OFFID 3
-    param set VT_IDLE_PWM_MC 1080
+    param set VT_IDLE_PWM_MC 1200
     param set VT_TYPE 1
 
     param set VT_B_TRANS_DUR  1.0

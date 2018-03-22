@@ -1032,8 +1032,8 @@ L3GD20::measure()
 	report.y = _gyro_filter_y.apply(yin);
 	report.z = _gyro_filter_z.apply(zin);
 
-	math::Vector<3> gval(xin, yin, zin);
-	math::Vector<3> gval_integrated;
+	matrix::Vector3f gval(xin, yin, zin);
+	matrix::Vector3f gval_integrated;
 
 	bool gyro_notify = _gyro_int.put(report.timestamp, gval, gval_integrated, report.integral_dt);
 	report.x_integral = gval_integrated(0);

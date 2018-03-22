@@ -228,7 +228,6 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t alt_mode;
-		param_t opt_recover;
 		param_t rc_flt_smp_rate;
 		param_t rc_flt_cutoff;
 		param_t acc_max_flow_xy;
@@ -255,8 +254,6 @@ private:
 		float slow_land_alt1;
 		float slow_land_alt2;
 		int32_t alt_mode;
-
-		bool opt_recover;
 
 		float rc_flt_smp_rate;
 		float rc_flt_cutoff;
@@ -669,12 +666,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
-		if (_vehicle_status.is_vtol) {
-			int32_t i = 0;
-			param_get(_params_handles.opt_recover, &i);
-			_params.opt_recover = (i == 1);
-		}
-
 		/* mc attitude control parameters*/
 		/* manual control scale */
 		param_get(_params_handles.man_tilt_max, &_params.man_tilt_max);
@@ -742,7 +733,6 @@ MulticopterPositionControl::poll_subscriptions()
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
 
-				_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 				parameters_update(true);
 
 			} else {
@@ -2951,7 +2941,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		_att_sp.yaw_body += euler_sp(2);
 
 		/* only if we're a VTOL and optimal recovery is not used, modify roll/pitch */
-		if (_vehicle_status.is_vtol && !_params.opt_recover) {
+		if (_vehicle_status.is_vtol) {
 			// construct attitude setpoint rotation matrix. modify the setpoints for roll
 			// and pitch such that they reflect the user's intention even if a yaw error
 			// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
@@ -3234,13 +3224,11 @@ MulticopterPositionControl::task_main()
 		 * in this case the attitude setpoint is published by the mavlink app.
 		 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
 		 * attitude setpoints for the transition).
-		 * - if not armed
 		 */
-		if (_control_mode.flag_armed &&
-		    (!(_control_mode.flag_control_offboard_enabled &&
-		       !(_control_mode.flag_control_position_enabled ||
-			 _control_mode.flag_control_velocity_enabled ||
-			 _control_mode.flag_control_acceleration_enabled)))) {
+		if (!(_control_mode.flag_control_offboard_enabled &&
+		      !(_control_mode.flag_control_position_enabled ||
+			_control_mode.flag_control_velocity_enabled ||
+			_control_mode.flag_control_acceleration_enabled))) {
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);

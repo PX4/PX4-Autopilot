@@ -204,6 +204,13 @@ public:
 	 */
 	virtual unsigned set_trim(float trim) = 0;
 
+	/**
+	 * @brief Get trim offset for this mixer
+	 *
+	 * @return the number of outputs this mixer feeds to
+	 */
+	virtual unsigned get_trim(float *trim) = 0;
+
 	/*
 	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
 	 *
@@ -382,6 +389,13 @@ public:
 		return 0;
 	}
 
+	unsigned get_trims(int16_t *values);
+
+	unsigned get_trim(float *trim)
+	{
+		return 0;
+	}
+
 	/**
 	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
 	 *
@@ -428,6 +442,11 @@ public:
 	virtual void			groups_required(uint32_t &groups);
 	virtual void 			set_offset(float trim) {}
 	unsigned set_trim(float trim)
+	{
+		return 0;
+	}
+
+	unsigned get_trim(float *trim)
 	{
 		return 0;
 	}
@@ -506,6 +525,8 @@ public:
 	int				check();
 
 	unsigned set_trim(float trim);
+
+	unsigned get_trim(float *trim);
 
 protected:
 
@@ -613,6 +634,11 @@ public:
 	virtual void 			set_max_delta_out_once(float delta_out_max) { _delta_out_max = delta_out_max; }
 
 	unsigned set_trim(float trim)
+	{
+		return _rotor_count;
+	}
+
+	unsigned get_trim(float *trim)
 	{
 		return _rotor_count;
 	}
@@ -730,6 +756,11 @@ public:
 	unsigned set_trim(float trim)
 	{
 		return 4;
+	}
+
+	unsigned get_trim(float *trim)
+	{
+		return 0;
 	}
 
 private:

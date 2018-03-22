@@ -50,7 +50,6 @@ import os
 import px4tools
 import sys
 from mavros import mavlink
-from mavros.mission import QGroundControlWP
 from mavros_msgs.msg import Mavlink, Waypoint, WaypointReached
 from mavros_test_common import MavrosTestCommon
 from pymavlink import mavutil
@@ -71,26 +70,12 @@ def get_last_log():
 def read_mission(mission_filename):
     wps = []
     with open(mission_filename, 'r') as f:
-        mission_filename_ext = os.path.splitext(mission_filename)[1]
-        if mission_filename_ext == '.plan':
-            for waypoint in read_plan_file(f):
-                wps.append(waypoint)
-                rospy.logdebug(waypoint)
-        elif mission_filename_ext == '.mission':
-            for waypoint in read_mission_file(f):
-                wps.append(waypoint)
-                rospy.logdebug(waypoint)
-        elif mission_filename_ext == '.txt':
-            mission = QGroundControlWP()
-            for waypoint in mission.read(f):
-                wps.append(waypoint)
-                rospy.logdebug(waypoint)
-        else:
-            raise IOError("unknown mission file extension",
-                          mission_filename_ext)
+        for waypoint in read_plan_file(f):
+            wps.append(waypoint)
+            rospy.logdebug(waypoint)
 
     # set first item to current
-    if wps[0]:
+    if wps:
         wps[0].is_current = True
 
     return wps
@@ -121,27 +106,6 @@ def read_plan_file(f):
                 autocontinue=bool(wp['autoContinue']))
     else:
         raise IOError("no mission items")
-
-
-def read_mission_file(f):
-    d = json.load(f)
-    if 'items' in d:
-        for wp in d['items']:
-            yield Waypoint(
-                is_current=False,
-                frame=int(wp['frame']),
-                command=int(wp['command']),
-                param1=float(wp['param1']),
-                param2=float(wp['param2']),
-                param3=float(wp['param3']),
-                param4=float(wp['param4']),
-                x_lat=float(wp['coordinate'][0]),
-                y_long=float(wp['coordinate'][1]),
-                z_alt=float(wp['coordinate'][2]),
-                autocontinue=bool(wp['autoContinue']))
-    else:
-        raise IOError("no mission items")
-
 
 class MavrosMissionTest(MavrosTestCommon):
     """
@@ -233,11 +197,9 @@ class MavrosMissionTest(MavrosTestCommon):
             reached = (
                 # advanced to next wp
                 (index < self.mission_wp.current_seq)
-                # end of mission, reset to first wp
-                or (mission_length > 1 and index == (mission_length - 1)
-                    and self.mission_wp.current_seq == 0)
-                # end of mission with only 1 wp
-                or (mission_length == 1 and self.mission_item_reached == 0))
+                # end of mission
+                or (index == (mission_length - 1)
+                    and self.mission_item_reached == index))
 
             if reached:
                 rospy.loginfo(
@@ -272,7 +234,7 @@ class MavrosMissionTest(MavrosTestCommon):
 
         self.mission_name = sys.argv[1]
         mission_file = os.path.dirname(
-            os.path.realpath(__file__)) + "/" + sys.argv[1]
+            os.path.realpath(__file__)) + "/missions/" + sys.argv[1]
 
         rospy.loginfo("reading mission {0}".format(mission_file))
         try:

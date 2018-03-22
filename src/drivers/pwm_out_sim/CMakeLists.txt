@@ -33,12 +33,6 @@
 px4_add_module(
 	MODULE drivers__pwm_out_sim
 	MAIN pwm_out_sim
-	STACK_MAIN 1200
-	STACK_MAX 1200
-	COMPILE_FLAGS
 	SRCS
-		pwm_out_sim.cpp
-	DEPENDS
-		platforms__common
+		PWMSim.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

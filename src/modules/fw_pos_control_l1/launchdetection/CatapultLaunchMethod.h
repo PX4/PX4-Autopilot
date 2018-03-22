@@ -44,16 +44,15 @@
 #include "LaunchMethod.h"
 
 #include <drivers/drv_hrt.h>
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include <px4_module_params.h>
 
 namespace launchdetection
 {
 
-class CatapultLaunchMethod : public LaunchMethod, public control::SuperBlock
+class CatapultLaunchMethod : public LaunchMethod, public ModuleParams
 {
 public:
-	CatapultLaunchMethod(SuperBlock *parent);
+	CatapultLaunchMethod(ModuleParams *parent);
 	~CatapultLaunchMethod() override = default;
 
 	void update(float accel_x) override;
@@ -62,18 +61,20 @@ public:
 	float getPitchMax(float pitchMaxDefault) override;
 
 private:
-	hrt_abstime last_timestamp{0};
-	float integrator{0.0f};
-	float motorDelayCounter{0.0f};
+	hrt_abstime _last_timestamp{0};
+	float _integrator{0.0f};
+	float _motorDelayCounter{0.0f};
 
 	LaunchDetectionResult state{LAUNCHDETECTION_RES_NONE};
 
-	control::BlockParamFloat thresholdAccel;
-	control::BlockParamFloat thresholdTime;
-	control::BlockParamFloat motorDelay;
-	control::BlockParamFloat pitchMaxPreThrottle; /**< Upper pitch limit before throttle is turned on.
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::LAUN_CAT_A>) _thresholdAccel,
+		(ParamFloat<px4::params::LAUN_CAT_T>) _thresholdTime,
+		(ParamFloat<px4::params::LAUN_CAT_MDEL>) _motorDelay,
+		(ParamFloat<px4::params::LAUN_CAT_PMAX>) _pitchMaxPreThrottle /**< Upper pitch limit before throttle is turned on.
 						       Can be used to make sure that the AC does not climb
 						       too much while attached to a bungee */
+	)
 
 };
 

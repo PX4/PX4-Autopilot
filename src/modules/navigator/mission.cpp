@@ -59,13 +59,9 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
-Mission::Mission(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_dist_1wp(this, "MIS_DIST_1WP", false),
-	_param_dist_between_wps(this, "MIS_DIST_WPS", false),
-	_param_altmode(this, "MIS_ALTMODE", false),
-	_param_yawmode(this, "MIS_YAWMODE", false),
-	_param_mnt_yaw_ctl(this, "MIS_MNT_YAW_CTL", false)
+Mission::Mission(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
 }
 
@@ -1060,6 +1056,14 @@ Mission::heading_sp_update()
 				/* always keep the back of the rotary wing pointing towards home */
 				if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
 					_mission_item.yaw = _wrap_pi(yaw + M_PI_F);
+					pos_sp_triplet->current.yaw = _mission_item.yaw;
+
+				} else if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT
+					   && _navigator->get_vroi().mode == vehicle_roi_s::ROI_WPNEXT && !_param_mnt_yaw_ctl.get()) {
+					/* if yaw control for the mount is disabled and we have a valid ROI that points to the next
+					 * waypoint, we add the gimbal's yaw offset to the vehicle's yaw */
+					yaw += _navigator->get_vroi().yaw_offset;
+					_mission_item.yaw = yaw;
 					pos_sp_triplet->current.yaw = _mission_item.yaw;
 
 				} else {

@@ -450,10 +450,8 @@ FXAS21002C::FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation
 	_checked_values{},
 	_checked_next(0)
 {
-
-
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_FXAS2100C;
 
@@ -1064,8 +1062,8 @@ FXAS21002C::measure()
 	gyro_report.y = _gyro_filter_y.apply(y_in_new);
 	gyro_report.z = _gyro_filter_z.apply(z_in_new);
 
-	math::Vector<3> gval(x_in_new, y_in_new, z_in_new);
-	math::Vector<3> gval_integrated;
+	matrix::Vector3f gval(x_in_new, y_in_new, z_in_new);
+	matrix::Vector3f gval_integrated;
 
 	bool gyro_notify = _gyro_int.put(gyro_report.timestamp, gval, gval_integrated, gyro_report.integral_dt);
 	gyro_report.x_integral = gval_integrated(0);

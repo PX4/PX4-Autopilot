@@ -58,7 +58,6 @@
 #define PX4_I2C_BUS_EXPANSION	3
 #define PX4_I2C_BUS_LED		3
 #define PX4_NUMBER_I2C_BUSES 3
-#define PX4_I2C_OBDEV_LED	0x55
 
 #include <system_config.h>
 #include "../common/board_common.h"

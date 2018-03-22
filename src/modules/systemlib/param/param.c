@@ -824,6 +824,11 @@ param_used(param_t param)
 	       (1 << param_index % bits_per_allocation_unit);
 }
 
+void param_set_used(param_t param)
+{
+	param_set_used_internal(param);
+}
+
 void param_set_used_internal(param_t param)
 {
 	int param_index = param_get_index(param);
@@ -1275,8 +1280,8 @@ param_import_internal(int fd, bool mark_saved)
 	int result = -1;
 
 	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
-		PX4_ERR("decoder init failed");
-		goto out;
+		PX4_WARN("decoder init failed");
+		return -ENODATA;
 	}
 
 	state.mark_saved = mark_saved;
@@ -1286,12 +1291,6 @@ param_import_internal(int fd, bool mark_saved)
 		usleep(1);
 
 	} while (result > 0);
-
-out:
-
-	if (result < 0) {
-		PX4_ERR("BSON error decoding parameters");
-	}
 
 	return result;
 }

@@ -70,7 +70,7 @@ void VtolLandDetector::_update_topics()
 bool VtolLandDetector::_get_maybe_landed_state()
 {
 	// Only trigger in RW mode
-	if (!_vehicle_status.is_rotary_wing) {
+	if ((_vehicle_status.timestamp != 0) && !_vehicle_status.is_rotary_wing) {
 		return false;
 	}
 
@@ -80,7 +80,7 @@ bool VtolLandDetector::_get_maybe_landed_state()
 bool VtolLandDetector::_get_landed_state()
 {
 	// Only trigger in RW mode
-	if (!_vehicle_status.is_rotary_wing) {
+	if ((_vehicle_status.timestamp != 0) && !_vehicle_status.is_rotary_wing) {
 		return false;
 	}
 

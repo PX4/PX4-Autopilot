@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,13 +35,15 @@
  * @file mc_att_control_main.cpp
  * Multicopter attitude controller.
  *
- * Publication for the desired attitude tracking:
- * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
- * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011.
+ * Publication documenting this type of Quaternion Attitude Control:
+ * Nonlinear Quadrocopter Attitude Control (2013)
+ * by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
+ * Institute for Dynamic Systems and Control (IDSC), ETH Zurich
  *
  * @author Lorenz Meier		<lorenz@px4.io>
  * @author Anton Babushkin	<anton.babushkin@me.com>
  * @author Sander Smeets	<sander@droneslab.com>
+ * @author Matthias Grob	<maetugr@gmail.com>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
@@ -52,8 +54,6 @@
  * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
  * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
-
-#include "tailsitter_recovery/tailsitter_recovery.h"
 
 #include <conversion/rotation.h>
 #include <drivers/drv_hrt.h>
@@ -92,7 +92,6 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MIN_TAKEOFF_THRUST    0.2f
 #define TPA_RATE_LOWER_LIMIT 0.05f
-#define ATTITUDE_TC_DEFAULT 0.2f
 
 #define AXIS_INDEX_ROLL 0
 #define AXIS_INDEX_PITCH 1
@@ -100,6 +99,8 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define AXIS_COUNT 3
 
 #define MAX_GYRO_COUNT 3
+
+using namespace matrix;
 
 class MulticopterAttitudeControl
 {
@@ -179,8 +180,6 @@ private:
 	float			_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
-	math::Matrix<3, 3>  _I;				/**< identity matrix */
-
 	math::Matrix<3, 3>	_board_rotation = {};	/**< rotation matrix for the orientation that the board is mounted */
 
 	struct {
@@ -222,11 +221,6 @@ private:
 		param_t acro_superexpo;
 		param_t rattitude_thres;
 
-		param_t roll_tc;
-		param_t pitch_tc;
-
-		param_t vtol_type;
-		param_t vtol_opt_recovery_enabled;
 		param_t vtol_wv_yaw_rate_scale;
 
 		param_t bat_scale_en;
@@ -238,7 +232,7 @@ private:
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
-		math::Vector<3> att_p;					/**< P gain for angular error */
+		Vector3f attitude_p;					/**< P gain for attitude control */
 		math::Vector<3> rate_p;				/**< P gain for angular rate error */
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_int_lim;			/**< integrator state limit for rate loop */
@@ -266,8 +260,6 @@ private:
 		float acro_superexpo;				/**< function parameter for superexpo stick curve shape */
 		float rattitude_thres;
 
-		int32_t vtol_type;					/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
-		bool vtol_opt_recovery_enabled;
 		float vtol_wv_yaw_rate_scale;			/**< Scale value [0, 1] for yaw rate setpoint  */
 
 		int32_t bat_scale_en;
@@ -277,8 +269,6 @@ private:
 		float board_offset[3];
 
 	}		_params;
-
-	TailsitterRecovery *_ts_opt_recovery{nullptr};	/**< Computes optimal rates for tailsitter recovery */
 
 	/**
 	 * Update our local parameter cache.
@@ -391,7 +381,10 @@ _loop_update_rate_hz(initial_update_rate_hz)
 
 	_vehicle_status.is_rotary_wing = true;
 
-	_params.att_p.zero();
+	/* initialize quaternions in messages to be valid */
+	_v_att.q[0] = 1.f;
+	_v_att_sp.q_d[0] = 1.f;
+
 	_params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_int_lim.zero();
@@ -421,7 +414,6 @@ _loop_update_rate_hz(initial_update_rate_hz)
 	_thrust_sp = 0.0f;
 	_att_control.zero();
 
-	_I.identity();
 	_board_rotation.identity();
 
 	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
@@ -468,9 +460,6 @@ _loop_update_rate_hz(initial_update_rate_hz)
 
 	_params_handles.rattitude_thres 	= 	param_find("MC_RATT_TH");
 
-	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
-	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
-
 	_params_handles.bat_scale_en		=	param_find("MC_BAT_SCALE_EN");
 
 	/* rotations */
@@ -514,8 +503,6 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 		} while (_control_task != -1);
 	}
 
-	delete _ts_opt_recovery;
-
 	mc_att_control::g_control = nullptr;
 }
 
@@ -524,36 +511,31 @@ MulticopterAttitudeControl::parameters_update()
 {
 	float v;
 
-	float roll_tc, pitch_tc;
-
-	param_get(_params_handles.roll_tc, &roll_tc);
-	param_get(_params_handles.pitch_tc, &pitch_tc);
-
 	/* roll gains */
 	param_get(_params_handles.roll_p, &v);
-	_params.att_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
+	_params.attitude_p(0) = v;
 	param_get(_params_handles.roll_rate_p, &v);
-	_params.rate_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
+	_params.rate_p(0) = v;
 	param_get(_params_handles.roll_rate_i, &v);
 	_params.rate_i(0) = v;
 	param_get(_params_handles.roll_rate_integ_lim, &v);
 	_params.rate_int_lim(0) = v;
 	param_get(_params_handles.roll_rate_d, &v);
-	_params.rate_d(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
+	_params.rate_d(0) = v;
 	param_get(_params_handles.roll_rate_ff, &v);
 	_params.rate_ff(0) = v;
 
 	/* pitch gains */
 	param_get(_params_handles.pitch_p, &v);
-	_params.att_p(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
+	_params.attitude_p(1) = v;
 	param_get(_params_handles.pitch_rate_p, &v);
-	_params.rate_p(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
+	_params.rate_p(1) = v;
 	param_get(_params_handles.pitch_rate_i, &v);
 	_params.rate_i(1) = v;
 	param_get(_params_handles.pitch_rate_integ_lim, &v);
 	_params.rate_int_lim(1) = v;
 	param_get(_params_handles.pitch_rate_d, &v);
-	_params.rate_d(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
+	_params.rate_d(1) = v;
 	param_get(_params_handles.pitch_rate_ff, &v);
 	_params.rate_ff(1) = v;
 
@@ -577,7 +559,7 @@ MulticopterAttitudeControl::parameters_update()
 
 	/* yaw gains */
 	param_get(_params_handles.yaw_p, &v);
-	_params.att_p(2) = v;
+	_params.attitude_p(2) = v;
 	param_get(_params_handles.yaw_rate_p, &v);
 	_params.rate_p(2) = v;
 	param_get(_params_handles.yaw_rate_i, &v);
@@ -621,16 +603,9 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.rattitude_thres, &_params.rattitude_thres);
 
 	if (_vehicle_status.is_vtol) {
-		param_get(_params_handles.vtol_type, &_params.vtol_type);
-
-		int32_t tmp;
-		param_get(_params_handles.vtol_opt_recovery_enabled, &tmp);
-		_params.vtol_opt_recovery_enabled = (tmp == 1);
-
 		param_get(_params_handles.vtol_wv_yaw_rate_scale, &_params.vtol_wv_yaw_rate_scale);
 
 	} else {
-		_params.vtol_opt_recovery_enabled = false;
 		_params.vtol_wv_yaw_rate_scale = 0.f;
 	}
 
@@ -738,16 +713,9 @@ MulticopterAttitudeControl::vehicle_status_poll()
 				_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
 
-				_params_handles.vtol_type = param_find("VT_TYPE");
-				_params_handles.vtol_opt_recovery_enabled = param_find("VT_OPT_RECOV_EN");
 				_params_handles.vtol_wv_yaw_rate_scale = param_find("VT_WV_YAWR_SCL");
 
 				parameters_update();
-
-				if (_params.vtol_type == 0 && _params.vtol_opt_recovery_enabled) {
-					// the vehicle is a tailsitter, use optimal recovery control strategy
-					_ts_opt_recovery = new TailsitterRecovery();
-				}
 
 			} else {
 				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
@@ -835,98 +803,65 @@ void
 MulticopterAttitudeControl::control_attitude(float dt)
 {
 	vehicle_attitude_setpoint_poll();
-
 	_thrust_sp = _v_att_sp.thrust;
 
-	/* construct attitude setpoint rotation matrix */
-	math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
-	math::Matrix<3, 3> R_sp = q_sp.to_dcm();
+	/* prepare yaw weight from the ratio between roll/pitch and yaw gains */
+	Vector3f attitude_gain = _params.attitude_p;
+	const float roll_pitch_gain = (attitude_gain(0) + attitude_gain(1)) / 2.f;
+	const float yaw_w = math::constrain(attitude_gain(2) / roll_pitch_gain, 0.f, 1.f);
+	attitude_gain(2) = roll_pitch_gain;
 
-	/* get current rotation matrix from control state quaternions */
-	math::Quaternion q_att(_v_att.q[0], _v_att.q[1], _v_att.q[2], _v_att.q[3]);
-	math::Matrix<3, 3> R = q_att.to_dcm();
+	/* get estimated and desired vehicle attitude */
+	Quatf q(_v_att.q);
+	Quatf qd(_v_att_sp.q_d);
 
-	/* all input data is ready, run controller itself */
+	/* ensure input quaternions are exactly normalized because acosf(1.00001) == NaN */
+	q.normalize();
+	qd.normalize();
 
-	/* try to move thrust vector shortest way, because yaw response is slower than roll/pitch */
-	math::Vector<3> R_z(R(0, 2), R(1, 2), R(2, 2));
-	math::Vector<3> R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+	/* calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch */
+	Vector3f e_z = q.dcm_z();
+	Vector3f e_z_d = qd.dcm_z();
+	Quatf qd_red(e_z, e_z_d);
 
-	/* axis and sin(angle) of desired rotation (indexes: 0=pitch, 1=roll, 2=yaw).
-	 * This is for roll/pitch only (tilt), e_R(2) is 0 */
-	math::Vector<3> e_R = R.transposed() * (R_z % R_sp_z);
-
-	/* calculate angle error */
-	float e_R_z_sin = e_R.length(); // == sin(tilt angle error)
-	float e_R_z_cos = R_z * R_sp_z; // == cos(tilt angle error) == (R.transposed() * R_sp)(2, 2)
-
-	/* calculate rotation matrix after roll/pitch only rotation */
-	math::Matrix<3, 3> R_rp;
-
-	if (e_R_z_sin > 0.0f) {
-		/* get axis-angle representation */
-		float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
-		math::Vector<3> e_R_z_axis = e_R / e_R_z_sin;
-
-		e_R = e_R_z_axis * e_R_z_angle;
-
-		/* cross product matrix for e_R_axis */
-		math::Matrix<3, 3> e_R_cp;
-		e_R_cp.zero();
-		e_R_cp(0, 1) = -e_R_z_axis(2);
-		e_R_cp(0, 2) = e_R_z_axis(1);
-		e_R_cp(1, 0) = e_R_z_axis(2);
-		e_R_cp(1, 2) = -e_R_z_axis(0);
-		e_R_cp(2, 0) = -e_R_z_axis(1);
-		e_R_cp(2, 1) = e_R_z_axis(0);
-
-		/* rotation matrix for roll/pitch only rotation */
-		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
+	if (abs(qd_red(1)) > (1.f - 1e-5f) || abs(qd_red(2)) > (1.f - 1e-5f)) {
+		/* In the infinitesimal corner case where the vehicle and thrust have the completely opposite direction,
+		 * full attitude control anyways generates no yaw input and directly takes the combination of
+		 * roll and pitch leading to the correct desired yaw. Ignoring this case would still be totally safe and stable. */
+		qd_red = qd;
 
 	} else {
-		/* zero roll/pitch rotation */
-		R_rp = R;
+		/* transform rotation from current to desired thrust vector for into a reduced world frame attitude */
+		qd_red *= q;
 	}
 
-	/* R_rp and R_sp have the same Z axis, calculate yaw error */
-	math::Vector<3> R_sp_x(R_sp(0, 0), R_sp(1, 0), R_sp(2, 0));
-	math::Vector<3> R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
+	/* mix full and reduced desired attitude */
+	Quatf q_mix = qd_red.inversed() * qd;
+	q_mix *= math::signNoZero(q_mix(0));
+	/* catch numerical problems with the domain of acosf and asinf */
+	q_mix(0) = math::constrain(q_mix(0), -1.f, 1.f);
+	q_mix(3) = math::constrain(q_mix(3), -1.f, 1.f);
+	qd = qd_red * Quatf(cosf(yaw_w * acosf(q_mix(0))), 0, 0, sinf(yaw_w * asinf(q_mix(3))));
 
-	/* calculate the weight for yaw control
-	 * Make the weight depend on the tilt angle error: the higher the error of roll and/or pitch, the lower
-	 * the weight that we use to control the yaw. This gives precedence to roll & pitch correction.
-	 * The weight is 1 if there is no tilt error.
-	 */
-	float yaw_w = e_R_z_cos * e_R_z_cos;
+	/* quaternion attitude control law, qe is rotation from q to qd */
+	Quatf qe = q.inversed() * qd;
 
-	/* calculate the angle between R_rp_x and R_sp_x (yaw angle error), and apply the yaw weight */
-	e_R(2) = atan2f((R_rp_x % R_sp_x) * R_sp_z, R_rp_x * R_sp_x) * yaw_w;
-
-	if (e_R_z_cos < 0.0f) {
-		/* for large thrust vector rotations use another rotation method:
-		 * calculate angle and axis for R -> R_sp rotation directly */
-		math::Quaternion q_error;
-		q_error.from_dcm(R.transposed() * R_sp);
-		math::Vector<3> e_R_d = q_error(0) >= 0.0f ? q_error.imag()  * 2.0f : -q_error.imag() * 2.0f;
-
-		/* use fusion of Z axis based rotation and direct rotation */
-		float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
-		e_R = e_R * (1.0f - direct_w) + e_R_d * direct_w;
-	}
+	/* using sin(alpha/2) scaled rotation axis as attitude error (see quaternion definition by axis angle)
+	 * also taking care of the antipodal unit quaternion ambiguity */
+	Vector3f eq = 2.f * math::signNoZero(qe(0)) * qe.imag();
 
 	/* calculate angular rates setpoint */
-	_rates_sp = _params.att_p.emult(e_R);
+	eq = eq.emult(attitude_gain);
+	_rates_sp = math::Vector<3>(eq.data());
 
-
-	/* Feed forward the yaw setpoint rate. We need to transform the yaw from world into body frame.
-	 * The following is a simplification of:
-	 * R.transposed() * math::Vector<3>(0.f, 0.f, _v_att_sp.yaw_sp_move_rate * _params.yaw_ff)
-	 */
-	math::Vector<3> yaw_feedforward_rate(R(2, 0), R(2, 1), R(2, 2));
+	/* Feed forward the yaw setpoint rate. We need to apply the yaw rate in the body frame.
+	 * We infer the body z axis by taking the last column of R.transposed (== q.inversed)
+	 * because it's the rotation axis for body yaw and multiply it by the rate and gain. */
+	Vector3f yaw_feedforward_rate = q.inversed().dcm_z();
 	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _params.yaw_ff;
 
 	yaw_feedforward_rate(2) *= yaw_w;
-	_rates_sp += yaw_feedforward_rate;
+	_rates_sp += math::Vector<3>(yaw_feedforward_rate.data());
 
 
 	/* limit rates */
@@ -1194,24 +1129,7 @@ MulticopterAttitudeControl::task_main()
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 
-				if (_ts_opt_recovery == nullptr) {
-					// the  tailsitter recovery instance has not been created, thus, the vehicle
-					// is not a tailsitter, do normal attitude control
-					control_attitude(dt);
-
-				} else {
-					vehicle_attitude_setpoint_poll();
-					_thrust_sp = _v_att_sp.thrust;
-					math::Quaternion q(_v_att.q[0], _v_att.q[1], _v_att.q[2], _v_att.q[3]);
-					math::Quaternion q_sp(&_v_att_sp.q_d[0]);
-					_ts_opt_recovery->setAttGains(_params.att_p, _params.yaw_ff);
-					_ts_opt_recovery->calcOptimalRates(q, q_sp, _v_att_sp.yaw_sp_move_rate, _rates_sp);
-
-					/* limit rates */
-					for (int i = 0; i < 3; i++) {
-						_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
-					}
-				}
+				control_attitude(dt);
 
 				/* publish attitude rates setpoint */
 				_v_rates_sp.roll = _rates_sp(0);

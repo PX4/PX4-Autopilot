@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,43 +32,67 @@
  ****************************************************************************/
 
 /**
- * @file Limits.cpp
+ * @file px4_module_params.h
  *
- * Limiting / constrain helper functions
+ * C++ base class for modules/classes using configuration parameters
  */
 
+#pragma once
 
-#include <math.h>
-#include <stdint.h>
+#include <containers/List.hpp>
 
-#include "Limits.hpp"
+#include "px4_param.h"
 
-
-namespace math
+class ModuleParams : public ListNode<ModuleParams *>
 {
+public:
 
-#if !defined(CONFIG_ARCH_ARM) && !defined(__PX4_POSIX)
-#define M_PI_F 3.14159265358979323846f
-#endif
+	ModuleParams(ModuleParams *parent)
+	{
+		setParent(parent);
+	}
 
-float __EXPORT radians(float degrees)
-{
-	return (degrees / 180.0f) * M_PI_F;
-}
+	/**
+	 * Set the parent module. This is typically not required, only in cases where
+	 * the parent cannot be set via constructor.
+	 */
+	void setParent(ModuleParams *parent)
+	{
+		if (parent) {
+			parent->_children.add(this);
+		}
+	}
 
-double __EXPORT radians(double degrees)
-{
-	return (degrees / 180.0) * M_PI;
-}
+	virtual ~ModuleParams() = default;
 
-float __EXPORT degrees(float radians)
-{
-	return (radians / M_PI_F) * 180.0f;
-}
+	// no copy, assignment, move, move assignment
+	ModuleParams(const ModuleParams &) = delete;
+	ModuleParams &operator=(const ModuleParams &) = delete;
+	ModuleParams(ModuleParams &&) = delete;
+	ModuleParams &operator=(ModuleParams &&) = delete;
 
-double __EXPORT degrees(double radians)
-{
-	return (radians / M_PI) * 180.0;
-}
+protected:
+	/**
+	 * Call this whenever the module gets a parameter change notification. It will automatically
+	 * call updateParams() for all children, which then call updateParamsImpl().
+	 */
+	void updateParams()
+	{
+		ModuleParams *child = _children.getHead();
 
-}
+		while (child) {
+			child->updateParams();
+			child = child->getSibling();
+		}
+
+		updateParamsImpl();
+	}
+
+	/**
+	 * The implementation for this is generated with the macro DEFINE_PARAMETERS()
+	 */
+	virtual void updateParamsImpl() {}
+
+private:
+	List<ModuleParams *> _children;
+};

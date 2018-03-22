@@ -91,31 +91,23 @@ int Tunes::set_control(const tune_control_s &tune_control)
 
 	if (tune_control.tune_id < _default_tunes_size) {
 		switch (tune_control.tune_id) {
-		case tune_control_s::TUNE_ID_CUSTOM:
+		case static_cast<int>(TuneID::CUSTOM):
 			_frequency = (unsigned)tune_control.frequency;
 			_duration = (unsigned)tune_control.duration;
 			_silence = (unsigned)tune_control.silence;
 			_using_custom_msg = true;
 			break;
 
-		case tune_control_s::TUNE_ID_STARTUP:
-		case tune_control_s::TUNE_ID_ERROR:
-		case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
-		case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
-		case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
+		// tunes that have a high priority
+		case static_cast<int>(TuneID::STARTUP):
+		case static_cast<int>(TuneID::ERROR_TUNE):
+		case static_cast<int>(TuneID::NOTIFY_POSITIVE):
+		case static_cast<int>(TuneID::NOTIFY_NEUTRAL):
+		case static_cast<int>(TuneID::NOTIFY_NEGATIVE):
 			reset_playing_tune = true;
 			config_tone(false);
 
 		/* FALLTHROUGH */
-		case tune_control_s::TUNE_ID_ARMING_WARNING:
-		case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
-		case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
-		case tune_control_s::TUNE_ID_GPS_WARNING:
-		case tune_control_s::TUNE_ID_PARACHUTE_RELEASE:
-		case tune_control_s::TUNE_ID_EKF_WARNING:
-		case tune_control_s::TUNE_ID_BARO_WARNING:
-		case tune_control_s::TUNE_ID_SINGLE_BEEP:
-		case tune_control_s::TUNE_ID_HOME_SET:
 		default:
 
 			// TODO: come up with a better strategy

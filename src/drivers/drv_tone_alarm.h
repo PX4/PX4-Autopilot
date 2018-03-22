@@ -61,74 +61,15 @@
 #define DRV_TONE_ALARM_H_
 
 #include <sys/ioctl.h>
+#include <lib/tunes/tune_definition.h>
+#include <uORB/topics/tune_control.h>
 
 #define TONEALARM0_DEVICE_PATH "/dev/tone_alarm0"
 
 #define _TONE_ALARM_BASE	0x7400
 #define TONE_SET_ALARM		_PX4_IOC(_TONE_ALARM_BASE, 1)
 
-/* structure describing one note in a tone pattern */
-struct tone_note {
-	uint8_t		pitch;
-	uint8_t		duration;	/* duration in multiples of 10ms */
-#define DURATION_END		0	/* ends the pattern */
-#define DURATION_REPEAT		255	/* resets the note counter to zero */
-};
-
-enum tone_pitch {
-	TONE_NOTE_E4,   /* E4 */
-	TONE_NOTE_F4,   /* F4 */
-	TONE_NOTE_F4S,  /* F#4/Gb4 */
-	TONE_NOTE_G4,   /* G4 */
-	TONE_NOTE_G4S,  /* G#4/Ab4 */
-	TONE_NOTE_A4,   /* A4 */
-	TONE_NOTE_A4S,  /* A#4/Bb4 */
-	TONE_NOTE_B4,   /* B4 */
-	TONE_NOTE_C5,   /* C5 */
-	TONE_NOTE_C5S,  /* C#5/Db5 */
-	TONE_NOTE_D5,   /* D5 */
-	TONE_NOTE_D5S,  /* D#5/Eb5 */
-	TONE_NOTE_E5,   /* E5 */
-	TONE_NOTE_F5,   /* F5 */
-	TONE_NOTE_F5S,  /* F#5/Gb5 */
-	TONE_NOTE_G5,   /* G5 */
-	TONE_NOTE_G5S,  /* G#5/Ab5 */
-	TONE_NOTE_A5,   /* A5 */
-	TONE_NOTE_A5S,  /* A#5/Bb5 */
-	TONE_NOTE_B5,   /* B5 */
-	TONE_NOTE_C6,   /* C6 */
-	TONE_NOTE_C6S,  /* C#6/Db6 */
-	TONE_NOTE_D6,   /* D6 */
-	TONE_NOTE_D6S,  /* D#6/Eb6 */
-	TONE_NOTE_E6,   /* E6 */
-	TONE_NOTE_F6,   /* F6 */
-	TONE_NOTE_F6S,  /* F#6/Gb6 */
-	TONE_NOTE_G6,   /* G6 */
-	TONE_NOTE_G6S,  /* G#6/Ab6 */
-	TONE_NOTE_A6,   /* A6 */
-	TONE_NOTE_A6S,  /* A#6/Bb6 */
-	TONE_NOTE_B6,   /* B6 */
-	TONE_NOTE_C7,   /* C7 */
-	TONE_NOTE_C7S,  /* C#7/Db7 */
-	TONE_NOTE_D7,   /* D7 */
-	TONE_NOTE_D7S,  /* D#7/Eb7 */
-	TONE_NOTE_E7,   /* E7 */
-	TONE_NOTE_F7,   /* F7 */
-	TONE_NOTE_F7S,  /* F#7/Gb7 */
-	TONE_NOTE_G7,   /* G7 */
-	TONE_NOTE_G7S,  /* G#7/Ab7 */
-	TONE_NOTE_A7,   /* A7 */
-	TONE_NOTE_A7S,  /* A#7/Bb7 */
-	TONE_NOTE_B7,   /* B7 */
-	TONE_NOTE_C8,   /* C8 */
-	TONE_NOTE_C8S,  /* C#8/Db8 */
-	TONE_NOTE_D8,   /* D8 */
-	TONE_NOTE_D8S,  /* D#8/Eb8 */
-
-	TONE_NOTE_SILENCE,
-	TONE_NOTE_MAX
-};
-
+// TODO: remove this once the tone_alarm driver is changed to the new tunelib
 enum {
 	TONE_STOP_TUNE = 0,
 	TONE_STARTUP_TUNE,

@@ -162,8 +162,7 @@ Module *Module::instantiate(int argc, char *argv[])
 }
 
 Module::Module(int example_param, bool example_flag)
-	: SuperBlock(nullptr, "MOD"),
-	_sys_autostart(this, "SYS_AUTOSTART", false)
+	: ModuleParams(nullptr)
 {
 }
 

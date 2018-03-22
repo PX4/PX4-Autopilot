@@ -504,7 +504,7 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			if pwm_out_sim mode_pwm16
+			if pwm_out_sim start
 			then
 			else
 				tune_control play -m ${TUNE_ERR}
@@ -651,8 +651,24 @@ then
 	fi
 	if param compare SYS_COMPANION 419200
 	then
-		iridiumsbd start -d /dev/ttyS2
+		iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE}
 		mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
+	fi
+	if param compare SYS_COMPANION 519200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 538400
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 557600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 5115200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -m minimal -r 1000
 	fi
 	if param compare SYS_COMPANION 1921600
 	then
@@ -670,10 +686,16 @@ then
 	#
 	if param greater UAVCAN_ENABLE 0
 	then
+		# Start core UAVCAN module
 		if uavcan start
 		then
-			set LOGGER_BUF 6
-			uavcan start fw
+			if param greater UAVCAN_ENABLE 1
+			then
+				# Reduce logger buffer to free up some RAM for UAVCAN servers
+				set LOGGER_BUF 6
+				# Start UAVCAN firmware update server and dynamic node ID allocation server
+				uavcan start fw
+			fi
 		else
 			tone_alarm ${TUNE_ERR}
 		fi

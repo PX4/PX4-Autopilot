@@ -71,25 +71,7 @@
 namespace land_detector
 {
 
-MulticopterLandDetector::MulticopterLandDetector() :
-	_paramHandle(),
-	_params(),
-	_vehicleLocalPositionSub(-1),
-	_vehicleLocalPositionSetpointSub(-1),
-	_actuatorsSub(-1),
-	_attitudeSub(-1),
-	_sensor_bias_sub(-1),
-	_vehicle_control_mode_sub(-1),
-	_battery_sub(-1),
-	_vehicleLocalPosition{},
-	_vehicleLocalPositionSetpoint{},
-	_actuators{},
-	_vehicleAttitude{},
-	_sensors{},
-	_control_mode{},
-	_battery{},
-	_min_trust_start(0),
-	_landed_time(0)
+MulticopterLandDetector::MulticopterLandDetector()
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
@@ -334,7 +316,7 @@ bool MulticopterLandDetector::_has_low_thrust()
 	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.3f;
 
 	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuators.control[3] <= sys_min_throttle;
+	return _actuators.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
 }
 
 bool MulticopterLandDetector::_has_minimal_thrust()
@@ -348,7 +330,7 @@ bool MulticopterLandDetector::_has_minimal_thrust()
 	}
 
 	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuators.control[3] <= sys_min_throttle;
+	return _actuators.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
 }
 
 } // namespace land_detector

@@ -131,14 +131,6 @@
 #define PX4_I2C_BUS_EXPANSION	2
 #define PX4_I2C_BUS_LED		PX4_I2C_BUS_EXPANSION
 
-/* Devices on the onboard bus.
- *
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-#define PX4_I2C_OBDEV_LED	0x55
-// #define PX4_I2C_OBDEV_MPU6050	0x68
-
 /*
  * ADC channels
  *

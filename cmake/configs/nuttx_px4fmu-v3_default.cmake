@@ -19,21 +19,22 @@ set(config_module_list
 	drivers/magnetometer
 	drivers/telemetry
 
-	drivers/imu/adis16448
 	drivers/airspeed
 	drivers/batt_smbus
 	drivers/blinkm
-	drivers/imu/bmi160
 	drivers/boards
 	drivers/camera_trigger
 	drivers/device
 	drivers/gps
-	drivers/irlock
+	drivers/imu/adis16448
+	drivers/imu/bmi160
 	drivers/imu/l3gd20
-	drivers/led
-	drivers/mkblctrl
+	drivers/imu/lsm303d
 	drivers/imu/mpu6000
 	drivers/imu/mpu9250
+	drivers/irlock
+	drivers/led
+	drivers/mkblctrl
 	drivers/oreoled
 	drivers/protocol_splitter
 	drivers/pwm_input
@@ -107,6 +108,7 @@ set(config_module_list
 	modules/landing_target_estimator
 	modules/local_position_estimator
 	modules/position_estimator_inav
+	modules/wind_estimator
 
 	#
 	# Vehicle Control

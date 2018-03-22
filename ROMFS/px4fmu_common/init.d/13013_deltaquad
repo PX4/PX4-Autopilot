@@ -23,7 +23,7 @@ if [ $AUTOCNF == yes ]
 then
 	param set VT_TYPE 2
 	param set VT_MOT_COUNT 4
-	param set VT_TRANS_THR 1
+	param set VT_F_TRANS_THR 1
 	param set VT_DWN_PITCH_MAX 8
 	param set VT_FW_QC_P 55
 	param set VT_FW_QC_R 55
