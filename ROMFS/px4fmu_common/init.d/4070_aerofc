@@ -68,10 +68,14 @@ then
 	param set SYS_LOGGER 1
 fi
 
-tap_esc start -d /dev/ttyS0 -n 4
-usleep 300000
+if param compare SYS_HITL 0
+then
+  tap_esc start -d /dev/ttyS0 -n 4
+  usleep 300000
 
-set OUTPUT_MODE tap_esc
+  set OUTPUT_MODE tap_esc
+fi
+
 set MIXER quad_x
 set USE_IO no
 
