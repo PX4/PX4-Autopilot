@@ -48,13 +48,20 @@ public:
 
 	virtual ~FlightTaskManualAltitude() = default;
 
+	void updateOutput(ControlSetpoint &setpoint);
+
+	void initialiseOutputs(ControlSetpoint &setpoint);
+
 protected:
 	control::BlockParamFloat _vel_max_down; /**< maximum speed allowed to go up */
 	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */
 	control::BlockParamFloat _vel_hold_thr_z; /**< velocity threshold to switch back into vertical position hold */
 
-	void _updateAltitudeLock(); /**< checks for position lock */
-	void _updateSetpoints() override; /**< updates all setpoints */
-	void _scaleSticks() override; /**< scales sticks to velocity in z */
+	float calcClimbRateSetpoint();
+	float calcAltSetpoint(float climb_rate_setpoint);
+	void calcYawAndThrustXY(ControlSetpoint &setpoint);
+
+private:
+	float _last_altitude_setpoint = NAN;
 
 };

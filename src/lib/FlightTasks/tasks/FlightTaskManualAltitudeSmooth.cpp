@@ -44,14 +44,16 @@ FlightTaskManualAltitudeSmooth::FlightTaskManualAltitudeSmooth(control::SuperBlo
 	_smoothing(_velocity(2), _sticks(2))
 {}
 
-void FlightTaskManualAltitudeSmooth::_updateSetpoints()
+
+void FlightTaskManualAltitudeSmooth::updateOutput(ControlSetpoint &setpoint)
 {
-	/* Get yaw, thrust */
-	FlightTaskManualAltitude::_updateSetpoints();
+	calcYawAndThrustXY(setpoint);
+
+	float climb_rate_setpoint = calcClimbRateSetpoint();
 
 	/* Smooth velocity in z*/
-	_smoothing.smoothVelFromSticks(_velocity_setpoint(2), _deltatime);
+	_smoothing.smoothVelFromSticks(climb_rate_setpoint, _deltatime);
 
-	/* Check for altitude lock*/
-	_updateAltitudeLock();
+	setpoint.velocity_setpoint(2) = climb_rate_setpoint;
+	setpoint.position_setpoint(2) = calcAltSetpoint(climb_rate_setpoint);
 }

@@ -47,8 +47,8 @@
 #include "tasks/FlightTaskManualPosition.hpp"
 #include "tasks/FlightTaskManualPositionSmooth.hpp"
 #include "tasks/FlightTaskManualStabilized.hpp"
-#include "tasks/FlightTaskOrbit.hpp"
-#include "tasks/FlightTaskSport.hpp"
+//#include "tasks/FlightTaskOrbit.hpp"
+//#include "tasks/FlightTaskSport.hpp"
 
 #include "SubscriptionArray.hpp"
 
@@ -134,8 +134,8 @@ private:
 		FlightTaskManualAltitudeSmooth altitude_smooth;
 		FlightTaskManualPosition position;
 		FlightTaskManualPositionSmooth position_smooth;
-		FlightTaskOrbit orbit;
-		FlightTaskSport sport;
+		// FlightTaskOrbit orbit;
+		// FlightTaskSport sport;
 	} _task_union; /**< storage for the currently active task */
 
 	FlightTask *_current_task = nullptr;
