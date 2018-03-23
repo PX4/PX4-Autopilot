@@ -3016,19 +3016,17 @@ void MulticopterPositionControl::yaw_from_mode_auto()
 	switch (_yaw_mode.get()) {
 	case 0: {
 			// Heading is set by waypoint.
-			// Don't have anything to do because
-			// it is already taken care by a valid triplet yaw.
 			break;
 		}
 
 	case 1: {
-			// Heading is always towards the current waypoint.
+			// Heading points towards the current waypoint.
 			v = matrix::Vector2f(&_curr_pos_sp(0)) - matrix::Vector2f(&_pos(0));
 			break;
 		}
 
 	case 2: {
-			// Heading towards home
+			// Heading points towards home.
 			if (_home_pos.valid_hpos) {
 				v = matrix::Vector2f(_home_pos.x, _home_pos.y) -  matrix::Vector2f(&_pos(0));
 			}
@@ -3037,7 +3035,7 @@ void MulticopterPositionControl::yaw_from_mode_auto()
 		}
 
 	case 3: {
-			// Heading away from home
+			// Heading points away from home.
 			if (_home_pos.valid_hpos) {
 				v = matrix::Vector2f(&_pos(0)) -  matrix::Vector2f(_home_pos.x, _home_pos.y);
 			}
@@ -3046,7 +3044,7 @@ void MulticopterPositionControl::yaw_from_mode_auto()
 		}
 	}
 
-	// We only adjust yaw if outside of acceptance radius.
+	// We only adjust yaw if vehicle is outside of acceptance radius.
 	// This prevents excessive yawing.
 	if (v.length() > _nav_rad.get()) {
 		v.normalize();
@@ -3064,7 +3062,7 @@ void MulticopterPositionControl::yaw_from_mode_manual()
 
 	switch (_yaw_mode.get()) {
 	case 0: {
-			// Heading is not changing.
+			// Heading is not changing and equals vehicle yaw when sitched to case 0.
 			break;
 		}
 
@@ -3094,13 +3092,13 @@ void MulticopterPositionControl::yaw_from_mode_manual()
 
 	case 2:
 
-		// Heading towards home
+		// Heading points towards home.
 		if (_home_pos.valid_hpos) {
 			v = matrix::Vector2f(_home_pos.x, _home_pos.y) - matrix::Vector2f(&_pos(0));
 		}
 
 	case 3: {
-			// Heading away from home
+			// Heading points away from home.
 			if (_home_pos.valid_hpos && v.length() < FLT_EPSILON) {
 				v = matrix::Vector2f(&_pos(0)) - matrix::Vector2f(_home_pos.x, _home_pos.y);
 			}
@@ -3121,8 +3119,7 @@ void MulticopterPositionControl::yaw_from_mode_manual()
 	}
 }
 
-void
-MulticopterPositionControl::task_main()
+void MulticopterPositionControl::task_main()
 {
 	/*
 	 * do subscriptions
