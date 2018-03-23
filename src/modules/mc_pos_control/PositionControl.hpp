@@ -54,6 +54,9 @@ namespace Controller
 {
 struct Constraints {
 	float tilt_max;
+	float vel_max_z_up;
+	float vel_max_z_down;
+	float vel_max_xy;
 };
 }
 
