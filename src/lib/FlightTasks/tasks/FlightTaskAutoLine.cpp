@@ -303,7 +303,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		float speed_threshold = _mc_cruise_speed;
 		const float threshold_max = target_threshold;
 
-		if (target_threshold < 0.5f * prev_to_dest.length()) {
+		if (target_threshold > 0.5f * prev_to_dest.length()) {
 			/* Target threshold cannot be more than distance from previous to target */
 			target_threshold = 0.5f * prev_to_dest.length();
 		}
