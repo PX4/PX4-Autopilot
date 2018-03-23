@@ -1,9 +1,19 @@
 
 message(STATUS "ROMFS: ${config_romfs_root}")
 
-#set(romfs_bin_dir ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root})
-set(romfs_temp_dir ${PX4_BINARY_DIR}/ROMFS/genromfs)
+set(config_romfs_files_list)
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
+set(romfs_temp_dir ${PX4_BINARY_DIR}/genromfs)
+
+function(px4_add_romfs_files)
+	foreach(arg IN LISTS ARGN)
+		list(APPEND config_romfs_files_list
+			${CMAKE_CURRENT_SOURCE_DIR}/${arg}
+			)
+	endforeach()
+
+	set(config_romfs_files_list ${config_romfs_files_list} CACHE INTERNAL "ROMFS file list")
+endfunction()
 
 # get list of all ROMFS files
 add_subdirectory(${romfs_src_dir})

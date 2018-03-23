@@ -31,9 +31,5 @@
 #
 ############################################################################
 
-set(config_romfs_files_list)
-
 add_subdirectory(init.d)
 add_subdirectory(mixers)
-
-set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)
