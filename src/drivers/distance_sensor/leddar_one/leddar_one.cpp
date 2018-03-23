@@ -231,16 +231,7 @@ int leddar_one_main(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		bool valid = false;
-
-		if (report.current_distance > report.min_distance
-		    && report.current_distance < report.max_distance) {
-			valid = true;
-		}
-
-		warnx("valid: %u\n", valid);
-		warnx("distance: %0.3fm\n", (double)report.current_distance);
-		warnx("time: %llu\n", report.timestamp);
+		print_message(report);
 
 	} else {
 		help();

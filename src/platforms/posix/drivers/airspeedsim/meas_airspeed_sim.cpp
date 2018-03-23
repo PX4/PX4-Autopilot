@@ -395,8 +395,7 @@ test()
 		return 1;
 	}
 
-	PX4_WARN("single read");
-	PX4_WARN("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
+	print_message(report);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -423,9 +422,7 @@ test()
 			PX4_WARN("periodic read failed");
 		}
 
-		PX4_WARN("periodic read %u", i);
-		PX4_WARN("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
-		PX4_WARN("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
+		print_message(report);
 	}
 
 	/* reset the sensor polling to its default rate */

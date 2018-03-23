@@ -317,10 +317,7 @@ BATT_SMBUS::test()
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				PX4_INFO("V=%4.2f C=%4.2f AveC=%4.2f DismAh=%f Cap:%hu TempC:%4.2f Remaining:%3.2f\n RunTimeToEmpty:%hu AveTimeToEmpty:%hu CycleCount:%hu SerialNum:%04x",
-					 (double)status.voltage_v, (double)status.current_a, (double)status.average_current_a, (double)status.discharged_mah,
-					 (uint16_t)status.capacity, (double)status.temperature, (double)status.remaining, (uint16_t)status.run_time_to_empty,
-					 (uint16_t)status.average_time_to_empty, (uint16_t)status.cycle_count, (uint16_t)status.serial_number);
+				print_message(status);
 			}
 		}
 
