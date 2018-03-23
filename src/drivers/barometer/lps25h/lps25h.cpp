@@ -799,9 +799,7 @@ LPS25H::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("pressure    %.2f\n", (double)_last_report.pressure);
-	printf("altitude:    %.2f\n", (double)_last_report.altitude);
-	printf("temperature %.2f\n", (double)_last_report.temperature);
+	print_message(_last_report);
 
 	_reports->print_info("report queue");
 }
@@ -959,11 +957,7 @@ test(enum LPS25H_BUS busid)
 		err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("pressure:    %10.4f", (double)report.pressure);
-	warnx("altitude:    %11.4f", (double)report.altitude);
-	warnx("temperature: %8.4f", (double)report.temperature);
-	warnx("time:        %lld", report.timestamp);
+	print_message(report);
 
 	/* set the queue depth to 10 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
@@ -995,11 +989,7 @@ test(enum LPS25H_BUS busid)
 			err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("pressure:    %10.4f", (double)report.pressure);
-		warnx("altitude:    %11.4f", (double)report.altitude);
-		warnx("temperature K: %8.4f", (double)report.temperature);
-		warnx("time:        %lld", report.timestamp);
+		print_message(report);
 	}
 
 	close(fd);

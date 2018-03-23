@@ -801,10 +801,7 @@ test()
 		err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement: %0.2f of sonar %d,id=%d", (double)report.distance_vector[report.just_updated], report.just_updated,
-	      report.id[report.just_updated]);
-	warnx("time:        %lld", report.timestamp);
+	print_message(report);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -831,14 +828,7 @@ test()
 			err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-
-		/* Print the sonar rangefinder report sonar distance vector */
-		for (uint8_t count = 0; count < SRF02_MAX_RANGEFINDERS; count++) {
-			warnx("measurement: %0.3f of sonar %u, id=%d", (double)report.distance_vector[count], count + 1, report.id[count]);
-		}
-
-		warnx("time:        %lld", report.timestamp);
+		print_message(report);
 	}
 
 	/* reset the sensor polling to default rate */

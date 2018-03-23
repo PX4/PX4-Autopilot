@@ -845,9 +845,7 @@ test()
 		err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.current_distance);
-	warnx("time:        %llu", report.timestamp);
+	print_message(report);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -874,9 +872,7 @@ test()
 			err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("measurement: %0.3f", (double)report.current_distance);
-		warnx("time:        %llu", report.timestamp);
+		print_message(report);
 	}
 
 	/* reset the sensor polling to default rate */

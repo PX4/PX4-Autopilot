@@ -123,7 +123,8 @@ void LidarLitePWM::print_info()
 	perf_print_counter(_read_errors);
 	perf_print_counter(_sensor_zero_resets);
 	warnx("poll interval:  %u ticks", getMeasureTicks());
-	warnx("distance: %.3fm", (double)_range.current_distance);
+
+	print_message(_range);
 }
 
 void LidarLitePWM::print_registers()
