@@ -133,3 +133,7 @@ for constant in spec.constants:
 @[for multi_topic in topics]@
 ORB_DECLARE(@multi_topic);
 @[end for]
+
+#ifdef __cplusplus
+void print_message(const @uorb_struct& message);
+#endif

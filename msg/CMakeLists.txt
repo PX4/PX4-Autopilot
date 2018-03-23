@@ -165,7 +165,7 @@ add_custom_command(OUTPUT ${uorb_headers}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
 		-q
-	DEPENDS ${msg_files}
+	DEPENDS ${msg_files} templates/uorb/msg.h.template
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
@@ -182,7 +182,7 @@ add_custom_command(OUTPUT ${uorb_sources}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
 		-q
-	DEPENDS ${msg_files}
+	DEPENDS ${msg_files} templates/uorb/msg.cpp.template
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
