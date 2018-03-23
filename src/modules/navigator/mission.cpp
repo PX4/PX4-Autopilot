@@ -54,7 +54,6 @@
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <lib/ecl/geo/geo.h>
-#include <lib/mathlib/mathlib.h>
 #include <navigator/navigation.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -1227,7 +1226,7 @@ Mission::heading_sp_update()
 				  point_from_latlon[1], point_to_latlon[0], point_to_latlon[1]);
 
 		if (d_current > _navigator->get_acceptance_radius()) {
-			float yaw = _wrap_pi(
+			float yaw = wrap_pi(
 					    get_bearing_to_next_waypoint(point_from_latlon[0],
 							    point_from_latlon[1], point_to_latlon[0],
 							    point_to_latlon[1]) + yaw_offset);
