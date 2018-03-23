@@ -111,6 +111,13 @@ bool FlightTaskAuto::_evaluateTriplets()
 	target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
 
 
+	_yaw_wp = _sub_triplet_setpoint->get().current.yaw;
+
+	if (!PX4_ISFINITE(_yaw_wp)) {
+		_yaw_wp = _yaw;
+
+	}
+
 	/* Check if anything has changed. We do that by comparing the target
 	 * setpoint to the previous target.
 	 * TODO This is a hack and it would be much
@@ -119,7 +126,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	/* Dont't do any updates if the current target has not changed */
 	if (!(fabsf(target(0) - _target(0)) > 0.001f || fabsf(target(1) - _target(1)) > 0.001f
-	      || fabsf(target(2) - _target(2)) > 0.001f  || fabsf(_sub_triplet_setpoint->get().current.yaw - _yaw_wp) > 0.001f)) {
+	      || fabsf(target(2) - _target(2)) > 0.001f)) {
 		/* Nothing has changed: just keep old waypoints */
 		return true;
 	}
@@ -135,13 +142,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	if (!PX4_ISFINITE(_target(2))) {
 		_target(2) = _position(2);
-	}
-
-	_yaw_wp = _sub_triplet_setpoint->get().current.yaw;
-
-	if (!PX4_ISFINITE(_yaw_wp)) {
-		_yaw_wp = _yaw;
-
 	}
 
 	_prev_prev_wp = _prev_wp; // previous -1 is set to previous
