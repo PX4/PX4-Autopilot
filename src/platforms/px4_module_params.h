@@ -49,6 +49,15 @@ public:
 
 	ModuleParams(ModuleParams *parent)
 	{
+		setParent(parent);
+	}
+
+	/**
+	 * Set the parent module. This is typically not required, only in cases where
+	 * the parent cannot be set via constructor.
+	 */
+	void setParent(ModuleParams *parent)
+	{
 		if (parent) {
 			parent->_children.add(this);
 		}

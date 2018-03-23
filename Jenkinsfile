@@ -23,6 +23,11 @@ pipeline {
                       sh "ccache -z"
                       sh "git fetch --tags"
                       sh "make nuttx_${node_name}_default"
+                      // bloaty output and compare with last successful master
+                      sh "bloaty -n 100 -d symbols -s file build/nuttx_${node_name}_default/nuttx_${node_name}_default.elf"
+                      sh "bloaty -n 100 -d compileunits -s file build/nuttx_${node_name}_default/nuttx_${node_name}_default.elf"
+                      sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_${node_name}_default.elf"
+                      sh "bloaty -d symbols -C full -s file build/nuttx_${node_name}_default/nuttx_${node_name}_default.elf -- nuttx_${node_name}_default.elf"
                       sh "make nuttx_${node_name}_rtps"
                       sh "make sizes"
                       sh "ccache -s"
@@ -49,6 +54,11 @@ pipeline {
                     sh "git fetch --tags"
                     sh "make px4io-v2_default"
                     sh "make nuttx_px4fmu-v2_default"
+                    // bloaty output and compare with last successful master
+                    sh "bloaty -n 100 -d symbols -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf"
+                    sh "bloaty -n 100 -d compileunits -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf"
+                    sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v2_default.elf"
+                    sh "bloaty -d symbols -C full -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf -- nuttx_px4fmu-v2_default.elf"
                     sh "make nuttx_px4fmu-v2_lpe"
                     sh "make nuttx_px4fmu-v3_default"
                     sh "make nuttx_px4fmu-v3_rtps"

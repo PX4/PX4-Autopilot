@@ -19,6 +19,7 @@ set(config_module_list
 	drivers/imu/mpu9250
 	drivers/px4fmu
 	drivers/stm32
+	drivers/pwm_out_sim
 	drivers/tap_esc
 	modules/sensors
 

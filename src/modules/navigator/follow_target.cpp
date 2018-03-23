@@ -97,7 +97,6 @@ void FollowTarget::on_activation()
 void FollowTarget::on_active()
 {
 	struct map_projection_reference_s target_ref;
-	math::Vector<3> target_reported_velocity(0, 0, 0);
 	follow_target_s target_motion_with_offset = {};
 	uint64_t current_time = hrt_absolute_time();
 	bool _radius_entered = false;
@@ -127,9 +126,6 @@ void FollowTarget::on_active()
 						     1 - _responsiveness);
 		_current_target_motion.lon = (_current_target_motion.lon * (double)_responsiveness) + target_motion.lon * (double)(
 						     1 - _responsiveness);
-
-		target_reported_velocity(0) = _current_target_motion.vx;
-		target_reported_velocity(1) = _current_target_motion.vy;
 
 	} else if (((current_time - _current_target_motion.timestamp) / 1000) > TARGET_TIMEOUT_MS && target_velocity_valid()) {
 		reset_target_validity();

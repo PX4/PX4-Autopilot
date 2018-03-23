@@ -43,22 +43,9 @@
 #include <mathlib/mathlib.h>
 
 Battery::Battery() :
-	SuperBlock(nullptr, "BAT"),
-	_v_empty(this, "V_EMPTY"),
-	_v_charged(this, "V_CHARGED"),
-	_n_cells(this, "N_CELLS"),
-	_capacity(this, "CAPACITY"),
-	_v_load_drop(this, "V_LOAD_DROP"),
-	_r_internal(this, "R_INTERNAL"),
-	_low_thr(this, "LOW_THR"),
-	_crit_thr(this, "CRIT_THR"),
-	_emergency_thr(this, "EMERGEN_THR"),
+	ModuleParams(nullptr),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
-{
-}
-
-Battery::~Battery()
 {
 }
 

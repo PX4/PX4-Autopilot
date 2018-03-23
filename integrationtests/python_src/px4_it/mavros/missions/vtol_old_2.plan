@@ -1,9 +1,6 @@
 {
     "fileType": "Plan",
     "geoFence": {
-        "polygon": [
-        ],
-        "version": 1
     },
     "groundStation": "QGroundControl",
     "mission": {
@@ -12,18 +9,21 @@
         "hoverSpeed": 5,
         "items": [
             {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 12,
+                "AltitudeMode": 0,
                 "autoContinue": true,
                 "command": 22,
                 "doJumpId": 1,
                 "frame": 3,
                 "params": [
-                    15.0,
+                    15,
                     0,
                     0,
                     null,
-                    47.397740722711738,
-                    8.5455944102696719,
-                    12.0
+                    47.39774072271174,
+                    8.545594410269672,
+                    12
                 ],
                 "type": "SimpleItem"
             },
@@ -37,13 +37,16 @@
                     0,
                     0,
                     0,
-                    47.397732380000001,
-                    8.5458224099999995,
-                    12.0
+                    47.39773238,
+                    8.54582241,
+                    12
                 ],
                 "type": "SimpleItem"
             },
             {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 12,
+                "AltitudeMode": 0,
                 "autoContinue": true,
                 "command": 16,
                 "doJumpId": 3,
@@ -53,13 +56,16 @@
                     0,
                     0,
                     0,
-                    47.397749067235559,
-                    8.5429755110031351,
-                    12.0
+                    47.39693448800759,
+                    8.540991562303702,
+                    12
                 ],
                 "type": "SimpleItem"
             },
             {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 12,
+                "AltitudeMode": 0,
                 "autoContinue": true,
                 "command": 16,
                 "doJumpId": 4,
@@ -69,9 +75,9 @@
                     0,
                     0,
                     null,
-                    47.399213119631852,
-                    8.5430124879018479,
-                    12.0
+                    47.39921311963185,
+                    8.543012487901848,
+                    12
                 ],
                 "type": "SimpleItem"
             },
@@ -85,35 +91,38 @@
                     0,
                     0,
                     0,
-                    47.399158900000003,
-                    8.5429077299999996,
-                    12.0
+                    47.3991589,
+                    8.54290773,
+                    12
                 ],
                 "type": "SimpleItem"
             },
             {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 12,
+                "AltitudeMode": 0,
                 "autoContinue": true,
                 "command": 21,
                 "doJumpId": 6,
                 "frame": 3,
                 "params": [
-                    25.0,
+                    25,
                     0,
                     0,
                     null,
-                    47.399211883544922,
-                    8.5430123448444419,
-                    12.0
+                    47.39921188354492,
+                    8.543012344844442,
+                    12
                 ],
                 "type": "SimpleItem"
             }
         ],
         "plannedHomePosition": [
-            47.397742,
-            8.545594,
-            12.0
+            47.3977419,
+            8.5455943,
+            489
         ],
-        "vehicleType": 19,
+        "vehicleType": 20,
         "version": 2
     },
     "rallyPoints": {

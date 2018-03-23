@@ -198,14 +198,6 @@ PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
 PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 
 /**
- * Optimal recovery strategy for pitch-weak tailsitters
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
-
-/**
  * Front transition timeout
  *
  * Time in seconds after which transition will be cancelled. Disabled if set to 0.
