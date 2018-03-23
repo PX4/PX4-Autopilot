@@ -5,6 +5,25 @@ set(config_romfs_files_list)
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
 set(romfs_temp_dir ${PX4_BINARY_DIR}/genromfs/${config_romfs_root})
 
+#=============================================================================
+#
+#	px4_add_romfs_files
+#
+#	This function builds a list of files to be included in the ROMFS.
+#
+#	Usage:
+#		px4_add_romfs_files(<list of files in current directory to be added to the project>)
+#
+#	Output:
+#		list config_romfs_files_list populated with a list of ROMFS src files including their full file path.
+#
+#	Example:
+#		px4_add_module(
+#			<ROMFS_file_1>
+#			<ROMFS_file_2>
+#			<ROMFS_file_3>
+#			)
+#
 function(px4_add_romfs_files)
 	foreach(arg IN LISTS ARGN)
 		list(APPEND config_romfs_files_list
