@@ -31,10 +31,8 @@
 #
 ############################################################################
 
-list(APPEND config_romfs_files_list
-	${CMAKE_CURRENT_LIST_DIR}/test_238.data
-	${CMAKE_CURRENT_LIST_DIR}/test_239.data
-	${CMAKE_CURRENT_LIST_DIR}/test_240.data
+px4_add_romfs_files(
+	test_238.data
+	test_239.data
+	test_240.data
 	)
-
-set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

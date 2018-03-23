@@ -31,11 +31,9 @@
 #
 ############################################################################
 
-list(APPEND config_romfs_files_list
-	${CMAKE_CURRENT_LIST_DIR}/gear.mix
-	${CMAKE_CURRENT_LIST_DIR}/hexa_x.main.mix
-	${CMAKE_CURRENT_LIST_DIR}/hexa_x.main.mix
-	${CMAKE_CURRENT_LIST_DIR}/quad_x.main.mix
-	)
-
-set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)
+px4_add_romfs_files(
+	gear.mix
+	hexa_x.main.mix
+	hexa_x.main.mix
+	quad_x.main.mix
+)

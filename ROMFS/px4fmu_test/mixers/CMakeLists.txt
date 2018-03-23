@@ -31,13 +31,11 @@
 #
 ############################################################################
 
-list(APPEND config_romfs_files_list	
-	${CMAKE_CURRENT_LIST_DIR}/complex_test.mix
-	${CMAKE_CURRENT_LIST_DIR}/IO_pass.mix
-	${CMAKE_CURRENT_LIST_DIR}/quad_test.mix
-	${CMAKE_CURRENT_LIST_DIR}/uuv_quad_x.mix
-	${CMAKE_CURRENT_LIST_DIR}/vtol1_test.mix
-	${CMAKE_CURRENT_LIST_DIR}/vtol2_test.mix
+px4_add_romfs_files(
+	complex_test.mix
+	IO_pass.mix
+	quad_test.mix
+	uuv_quad_x.mix
+	vtol1_test.mix
+	vtol2_test.mix
 	)
-
-set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

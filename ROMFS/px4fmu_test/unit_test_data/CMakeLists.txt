@@ -32,5 +32,3 @@
 ############################################################################
 
 add_subdirectory(mavlink_tests)
-
-set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

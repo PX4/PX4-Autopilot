@@ -31,10 +31,8 @@
 #
 ############################################################################
 
-list(APPEND config_romfs_files_list
-	${CMAKE_CURRENT_LIST_DIR}/rcS
-	${CMAKE_CURRENT_LIST_DIR}/rc.sensors
-	${CMAKE_CURRENT_LIST_DIR}/rc.standalone	
+px4_add_romfs_files(
+	rcS
+	rc.sensors
+	rc.standalone
 	)
-
-set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)

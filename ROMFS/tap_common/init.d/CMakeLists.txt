@@ -31,18 +31,16 @@
 #
 ############################################################################
 
-list(APPEND config_romfs_files_list
-	${CMAKE_CURRENT_LIST_DIR}/4001_quad_x
-	${CMAKE_CURRENT_LIST_DIR}/6001_hexa_x
-	${CMAKE_CURRENT_LIST_DIR}/rc.fw_apps
-	${CMAKE_CURRENT_LIST_DIR}/rc.fw_defaults
-	${CMAKE_CURRENT_LIST_DIR}/rc.interface
-	${CMAKE_CURRENT_LIST_DIR}/rc.mc_apps
-	${CMAKE_CURRENT_LIST_DIR}/rc.mc_defaults
-	${CMAKE_CURRENT_LIST_DIR}/rcS
-	${CMAKE_CURRENT_LIST_DIR}/rc.sensors
-	${CMAKE_CURRENT_LIST_DIR}/rc.vtol_apps
-	${CMAKE_CURRENT_LIST_DIR}/rc.vtol_defaults	
+px4_add_romfs_files(
+	4001_quad_x
+	6001_hexa_x
+	rc.fw_apps
+	rc.fw_defaults
+	rc.interface
+	rc.mc_apps
+	rc.mc_defaults
+	rcS
+	rc.sensors
+	rc.vtol_apps
+	rc.vtol_defaults
 	)
-
-set(config_romfs_files_list ${config_romfs_files_list} PARENT_SCOPE)
