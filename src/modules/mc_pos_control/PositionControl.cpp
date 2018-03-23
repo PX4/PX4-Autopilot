@@ -188,7 +188,7 @@ void PositionControl::_positionController()
 			     _VelMaxXY);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ.up, _VelMaxZ.down);
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.vel_max_z_up, _VelMaxZ.down);
 }
 
 void PositionControl::_velocityController(const float &dt)
