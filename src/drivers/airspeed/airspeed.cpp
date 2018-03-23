@@ -89,6 +89,8 @@ Airspeed::~Airspeed()
 		unregister_class_devname(AIRSPEED_BASE_DEVICE_PATH, _class_instance);
 	}
 
+	orb_unadvertise(_airspeed_pub);
+
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
