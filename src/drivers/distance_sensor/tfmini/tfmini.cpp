@@ -828,9 +828,7 @@ test()
 		err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement:  %0.2f m", (double)report.current_distance);
-	warnx("time: %llu", report.timestamp);
+	print_message(report);
 
 	/* start the sensor polling at 2 Hz rate */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -859,11 +857,7 @@ test()
 			break;
 		}
 
-		warnx("read #%u", i);
-		warnx("valid %u", (float)report.current_distance > report.min_distance
-		      && (float)report.current_distance < report.max_distance ? 1 : 0);
-		warnx("measurement:  %0.3f m", (double)report.current_distance);
-		warnx("time: %llu", report.timestamp);
+		print_message(report);
 	}
 
 	/* reset the sensor polling to the default rate */

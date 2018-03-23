@@ -732,10 +732,10 @@ MPL3115A2::print_info()
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
-	printf("device:         mpl3115a2\n");
-	printf("P:              %.3f\n", (double)_P);
-	printf("T:              %.3f\n", (double)_T);
-	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
+
+	sensor_baro_s brp = {};
+	_reports->get(&brp);
+	print_message(brp);
 }
 
 /**
@@ -899,11 +899,7 @@ test(enum MPL3115A2_BUS busid)
 		err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("pressure:    %10.4f", (double)report.pressure);
-	warnx("altitude:    %11.4f", (double)report.altitude);
-	warnx("temperature: %8.4f", (double)report.temperature);
-	warnx("time:        %lld", report.timestamp);
+	print_message(report);
 
 	/* set the queue depth to 10 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
@@ -935,11 +931,7 @@ test(enum MPL3115A2_BUS busid)
 			err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("pressure:    %10.4f", (double)report.pressure);
-		warnx("altitude:    %11.4f", (double)report.altitude);
-		warnx("temperature: %8.4f", (double)report.temperature);
-		warnx("time:        %lld", report.timestamp);
+		print_message(report);
 	}
 
 	close(fd);

@@ -225,19 +225,7 @@ test(bool external_bus, enum sensor_type sensor)
 			err(1, "immediate accel read failed");
 		}
 
-		warnx("single read");
-		warnx("time:     %lld", a_report.timestamp);
-		warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
-		warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
-		warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-		warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
-		warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
-		warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
-		warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-		      (double)(a_report.range_m_s2 / BMI055_ONE_G));
-		warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
-		warnx("temp:  \t%d\traw 0x%0x", (short)g_report.temperature_raw, (unsigned short)a_report.temperature_raw);
-
+		print_message(a_report);
 
 		/* reset to default polling */
 		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
@@ -261,7 +249,6 @@ test(bool external_bus, enum sensor_type sensor)
 			err(1, "gyro reset to manual polling");
 		}
 
-
 		/* do a simple demand read */
 		sz = read(fd_gyr, &g_report, sizeof(g_report));
 
@@ -270,15 +257,7 @@ test(bool external_bus, enum sensor_type sensor)
 			err(1, "immediate gyro read failed");
 		}
 
-		warnx("gyr x: \t% 9.5f\trad/s", (double)g_report.x);
-		warnx("gyr y: \t% 9.5f\trad/s", (double)g_report.y);
-		warnx("gyr z: \t% 9.5f\trad/s", (double)g_report.z);
-		warnx("gyr x: \t%d\traw", (int)g_report.x_raw);
-		warnx("gyr y: \t%d\traw", (int)g_report.y_raw);
-		warnx("gyr z: \t%d\traw", (int)g_report.z_raw);
-		warnx("gyr range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
-		      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
-
+		print_message(g_report);
 
 		/* reset to default polling */
 		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
@@ -286,7 +265,6 @@ test(bool external_bus, enum sensor_type sensor)
 		}
 
 		close(fd_gyr);
-
 	}
 
 	if ((sensor == BMI055_ACCEL) || (sensor == BMI055_GYRO)) {
@@ -295,7 +273,6 @@ test(bool external_bus, enum sensor_type sensor)
 	}
 
 	errx(0, "PASS");
-
 }
 
 /**

@@ -1214,7 +1214,7 @@ UavcanNode::print_info()
 	printf("ESC mixer: %s\n", (_mixers == nullptr) ? "NONE" : "OK");
 
 	if (_outputs.noutputs != 0) {
-		printf("ESC output: ");
+		PX4_INFO("ESC output: ");
 
 		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
 			printf("%d ", (int)(_outputs.output[i] * 1000));
@@ -1224,28 +1224,11 @@ UavcanNode::print_info()
 
 		// ESC status
 		int esc_sub = orb_subscribe(ORB_ID(esc_status));
-		struct esc_status_s esc;
-		memset(&esc, 0, sizeof(esc));
+		esc_status_s esc = {};
 		orb_copy(ORB_ID(esc_status), esc_sub, &esc);
-
-		printf("ESC Status:\n");
-		printf("Addr\tV\tA\tTemp\tSetpt\tRPM\tErr\n");
-
-		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
-			const float temp_celsius = (esc.esc[i].esc_temperature > 0) ?
-						   (esc.esc[i].esc_temperature - 273.15F) : 0.0F;
-
-			printf("%d\t",    esc.esc[i].esc_address);
-			printf("%3.2f\t", (double)esc.esc[i].esc_voltage);
-			printf("%3.2f\t", (double)esc.esc[i].esc_current);
-			printf("%3.2f\t", (double)temp_celsius);
-			printf("%3.2f\t", (double)esc.esc[i].esc_setpoint);
-			printf("%d\t",    esc.esc[i].esc_rpm);
-			printf("%d",      esc.esc[i].esc_errorcount);
-			printf("\n");
-		}
-
 		orb_unsubscribe(esc_sub);
+
+		print_message(esc);
 	}
 
 	// Sensor bridges

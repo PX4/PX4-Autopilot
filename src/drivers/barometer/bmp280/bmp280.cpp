@@ -595,11 +595,10 @@ BMP280::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u us \n", _report_ticks * USEC_PER_TICK);
-	_reports->print_info("report queue");
-	printf("P Pa:              %.3f\n", (double)_P);
-	printf("T:              %.3f\n", (double)_T);
-	printf("MSL pressure Pa:   %u\n", _msl_pressure);
 
+	sensor_baro_s brp = {};
+	_reports->get(&brp);
+	print_message(brp);
 }
 
 /**
@@ -778,11 +777,7 @@ test(enum BMP280_BUS busid)
 		exit(1);
 	}
 
-	PX4_WARN("single read");
-	PX4_WARN("pressure:    %10.4f", (double)report.pressure);
-	PX4_WARN("altitude:    %11.4f", (double)report.altitude);
-	PX4_WARN("temperature: %8.4f", (double)report.temperature);
-	PX4_WARN("time:        %lld", report.timestamp);
+	print_message(report);
 
 	/* set the queue depth to 10 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
@@ -818,11 +813,7 @@ test(enum BMP280_BUS busid)
 			exit(1);
 		}
 
-		PX4_WARN("periodic read %u", i);
-		PX4_WARN("pressure:    %10.4f", (double)report.pressure);
-		PX4_WARN("altitude:    %11.4f", (double)report.altitude);
-		PX4_WARN("temperature K: %8.4f", (double)report.temperature);
-		PX4_WARN("time:        %lld", report.timestamp);
+		print_message(report);
 	}
 
 	close(fd);

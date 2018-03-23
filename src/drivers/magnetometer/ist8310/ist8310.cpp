@@ -1253,12 +1253,7 @@ IST8310::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
-	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
-	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f\n",
-	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
-	       (double)(1.0f / _range_scale));
-	printf("temperature %.2f\n", (double)_last_report.temperature);
+	print_message(_last_report);
 	_reports->print_info("report queue");
 }
 
@@ -1412,16 +1407,12 @@ test(enum IST8310_BUS busid)
 		err(1, "immediate read failed");
 	}
 
-	PX4_INFO("single read");
-	PX4_INFO("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-	PX4_INFO("time:        %lld", report.timestamp);
+	print_message(report);
 
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0) {
 		errx(1, "failed to get if mag is onboard or external");
 	}
-
-	PX4_INFO("device active: %s", ret ? "external" : "onboard");
 
 	/* set the queue depth to 5 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
@@ -1453,9 +1444,7 @@ test(enum IST8310_BUS busid)
 			err(1, "periodic read failed");
 		}
 
-		PX4_INFO("periodic read %u", i);
-		PX4_INFO("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-		PX4_INFO("time:        %lld", report.timestamp);
+		print_message(report);
 	}
 
 	PX4_INFO("PASS");
