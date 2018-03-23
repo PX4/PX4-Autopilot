@@ -68,6 +68,7 @@ topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), fiel
 #include <cstdio>
 #include <px4_defines.h>
 #include <uORB/topics/@(topic_name).h>
+#include <drivers/drv_hrt.h>
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
 @# This is used for the logger
@@ -80,7 +81,7 @@ ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), _
 void print_message(const @uorb_struct& message)
 {
     printf(" @(uorb_struct)\n");
-	printf("\ttimestamp: %" PRIu64 "\n", message.timestamp);
+	printf("\ttimestamp: %" PRIu64 " (%.6f seconds ago)\n", message.timestamp, hrt_elapsed_time(&message.timestamp) / 1e6);
 @[for field in sorted_fields]@
 	@( px4_printf(field) )
 @[end for]
