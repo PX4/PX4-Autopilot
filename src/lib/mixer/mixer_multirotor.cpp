@@ -84,6 +84,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
 	_delta_out_max(0.0f),
 	_thrust_factor(0.0f),
+	_airmode(false),
 	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
 	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
 	_outputs_prev(new float[_rotor_count])
@@ -179,10 +180,6 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	// clean out class variable used to capture saturation
 	_saturation_status.value = 0;
 
-	// thrust boost parameters
-	float thrust_increase_factor = 1.5f;
-	float thrust_decrease_factor = 0.6f;
-
 	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		float out = roll * _rotors[i].roll_scale +
@@ -203,48 +200,38 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 
 	float boost = 0.0f;		// value added to demanded thrust (can also be negative)
 	float roll_pitch_scale = 1.0f;	// scale for demanded roll and pitch
+	float delta_out_max = max_out - min_out; // distance between the two extrema
 
-	// Note: thrust boost is computed assuming thrust_gain==1 for all motors.
-	// On asymmetric platforms, some motors have thrust_gain<1,
+	// If the difference between the to extrema is smaller than 1.0, the boost can safely unsaturate a motor if needed
+	// without saturating another one.
+	// Otherwise, a scaler is computed to make the distance between the two extrema exacly 1.0 and the boost
+	// value is computed to maximize the roll-pitch control.
+	//
+	// Note: thrust boost is computed assuming thrust_scale==1 for all motors.
+	// On asymmetric platforms, some motors have thrust_scale<1,
 	// which may result in motor saturation after thrust boost is applied
 	// TODO: revise the saturation/boosting strategy
-
-	if (min_out < 0.0f && max_out < 1.0f && -min_out <= 1.0f - max_out) {
-		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
-
-		if (max_thrust_diff >= -min_out) {
+	if (delta_out_max <= 1.0f) {
+		if (min_out < 0.0f) {
 			boost = -min_out;
 
-		} else {
-			boost = max_thrust_diff;
-			roll_pitch_scale = (thrust + boost) / (thrust - min_out);
-		}
-
-	} else if (max_out > 1.0f && min_out > 0.0f && min_out >= max_out - 1.0f) {
-		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
-
-		if (max_thrust_diff >= max_out - 1.0f) {
+		} else if (max_out > 1.0f) {
 			boost = -(max_out - 1.0f);
-
-		} else {
-			boost = -max_thrust_diff;
-			roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
 		}
 
-	} else if (min_out < 0.0f && max_out < 1.0f && -min_out > 1.0f - max_out) {
-		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
-		boost = math::constrain(-min_out - (1.0f - max_out) / 2.0f, 0.0f, max_thrust_diff);
-		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
+	} else {
+		roll_pitch_scale = 1.0f / (delta_out_max);
+		boost = 1.0f - ((max_out - thrust) * roll_pitch_scale + thrust);
+	}
 
-	} else if (max_out > 1.0f && min_out > 0.0f && min_out < max_out - 1.0f) {
-		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
-		boost = math::constrain(-(max_out - 1.0f - min_out) / 2.0f, -max_thrust_diff, 0.0f);
-		roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
-
-	} else if (min_out < 0.0f && max_out > 1.0f) {
-		boost = math::constrain(-(max_out - 1.0f + min_out) / 2.0f, thrust_decrease_factor * thrust - thrust,
-					thrust_increase_factor * thrust - thrust);
-		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
+	if (!_airmode) {
+		// disable positive boosting if not in air-mode
+		// boosting can only be positive when min_out < 0.0
+		// roll_pitch_scale is reduced accordingly
+		if (boost > 0.0f) {
+			roll_pitch_scale = thrust / (thrust - min_out);
+			boost = 0.0f;
+		}
 	}
 
 	// capture saturation
@@ -445,6 +432,12 @@ MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bo
 	}
 
 	_saturation_status.flags.valid = true;
+}
+
+void
+MultirotorMixer::set_airmode(bool airmode)
+{
+	_airmode = airmode;
 }
 
 void
