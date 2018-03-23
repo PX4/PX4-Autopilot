@@ -126,10 +126,10 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
  *
  * @min 0
  * @max 3
- * @value 0 Heading as set by waypoint
- * @value 1 Heading towards waypoint
- * @value 2 Heading towards home
- * @value 3 Heading away from home
+ * @value 0 Auto: set by waypoint; Manual: set by heading when switched to 0
+ * @value 1 Auto: towards waypoint; Manual
+ * @value 2 Auto/Manual: towards home
+ * @value 3 Auto/Manual: away from home
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);

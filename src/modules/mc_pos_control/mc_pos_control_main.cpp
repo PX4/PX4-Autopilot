@@ -393,9 +393,9 @@ private:
 
 	bool manual_wants_takeoff();
 
-	void yaw_from_mode_auto(); /**< MIS_YAWMODE defined the heading of the vehicle */
+	void yaw_from_mode_auto(); /**< MIS_YAWMODE defines the heading of the  in auto mode */
 
-
+	void yaw_from_mode_manual(); /**< MIS_YAWMODE defines the heading of the vehicle in manual mode */
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -2874,25 +2874,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 
 	} else if (!_vehicle_land_detected.landed &&
 		   !(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
-
-		/* do not move yaw while sitting on the ground */
-
-		/* we want to know the real constraint, and global overrides manual */
-		const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
-					   _params.global_yaw_max;
-		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
-
-		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
-		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
-		float yaw_offs = _wrap_pi(yaw_target - _yaw);
-
-		// If the yaw offset became too big for the system to track stop
-		// shifting it, only allow if it would make the offset smaller again.
-		if (fabsf(yaw_offs) < yaw_offset_max ||
-		    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
-		    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
-			_att_sp.yaw_body = yaw_target;
-		}
+		yaw_from_mode_manual();
 	}
 
 	/* control throttle directly if no climb rate controller is active */
@@ -3073,8 +3055,69 @@ void MulticopterPositionControl::yaw_from_mode_auto()
 		// Dot product: (x(0)*v(0)+(x(1)*v(1)) = v(0)
 		// Cross product: x(0)*v(1) - v(0)*x(1) = v(1)
 		_att_sp.yaw_body = math::sign(v(1)) * _wrap_pi(acosf(v(0)));
-		//PX4_INFO("sp: %.5f, yaw: %.5f",(double)_att_sp.yaw_body, (double)_yaw);
+	}
+}
 
+void MulticopterPositionControl::yaw_from_mode_manual()
+{
+	matrix::Vector2f v; // Vector that points towards desired location
+
+	switch (_yaw_mode.get()) {
+	case 0: {
+			// Heading is not changing.
+			break;
+		}
+
+	case 1: {
+			// Heading is set by manual setpoint.
+			// maximum yaw rate
+			const float yaw_rate_max =
+				(_params.man_yaw_max < _params.global_yaw_max) ?
+				_params.man_yaw_max : _params.global_yaw_max;
+			const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+
+			_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
+			float yaw_target = _wrap_pi(
+						   _att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
+			float yaw_offs = _wrap_pi(yaw_target - _yaw);
+
+			// If the yaw offset became too big for the system to track stop
+			// shifting it, only allow if it would make the offset smaller again.
+			if (fabsf(yaw_offs) < yaw_offset_max
+			    || (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0)
+			    || (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
+				_att_sp.yaw_body = yaw_target;
+			}
+
+			break;
+		}
+
+	case 2:
+
+		// Heading towards home
+		if (_home_pos.valid_hpos) {
+			v = matrix::Vector2f(_home_pos.x, _home_pos.y) - matrix::Vector2f(&_pos(0));
+		}
+
+	case 3: {
+			// Heading away from home
+			if (_home_pos.valid_hpos && v.length() < FLT_EPSILON) {
+				v = matrix::Vector2f(&_pos(0)) - matrix::Vector2f(_home_pos.x, _home_pos.y);
+			}
+
+			// We only adjust yaw if outside of acceptance radius.
+			// This prevents excessive yawing.
+			if (v.length() > _nav_rad.get()) {
+				v.normalize();
+				// To find yaw: take dot product of x = (1,0) and v
+				// and multiply by the sign given of cross product of x and v.
+				// Dot product: (x(0)*v(0)+(x(1)*v(1)) = v(0)
+				// Cross product: x(0)*v(1) - v(0)*x(1) = v(1)
+				_att_sp.yaw_body = math::sign(v(1)) * _wrap_pi(acosf(v(0)));
+			}
+
+			break;
+		}
 	}
 }
 
