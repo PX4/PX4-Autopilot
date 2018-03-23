@@ -220,13 +220,13 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		}
 
 	} else {
-		roll_pitch_scale = 1 / (delta_out_max);
+		roll_pitch_scale = 1.0f / (delta_out_max);
 		boost = 1.0f - ((max_out - thrust) * roll_pitch_scale + thrust);
 	}
 
 	if (!_airmode) {
 		// disable positive boosting if not in air-mode
-		// boosting is positive when min_out < 0.0
+		// boosting can only be positive when min_out < 0.0
 		// roll_pitch_scale is reduced accordingly
 		if (boost > 0.0f) {
 			roll_pitch_scale = thrust / (thrust - min_out);

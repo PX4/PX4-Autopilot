@@ -221,7 +221,7 @@ public:
 	/**
 	 * @brief Set airmode. Airmode allows the mixer to increase the total thrust in order to unsaturate the motors.
 	 *
-	 * @param[in]  airmode   Dis/-activate airmode by setting it to false/true
+	 * @param[in]  airmode   De/-activate airmode by setting it to false/true
 	 */
 	virtual void set_airmode(bool airmode) {};
 
