@@ -3,7 +3,7 @@ message(STATUS "ROMFS: ${config_romfs_root}")
 
 set(config_romfs_files_list)
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
-set(romfs_temp_dir ${PX4_BINARY_DIR}/genromfs)
+set(romfs_temp_dir ${PX4_BINARY_DIR}/genromfs/${config_romfs_root})
 
 function(px4_add_romfs_files)
 	foreach(arg IN LISTS ARGN)
