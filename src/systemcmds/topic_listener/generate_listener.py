@@ -18,6 +18,11 @@ messages = []
 topics = []
 message_elements = []
 
+# large and not worth printing (find better solution)
+raw_messes = [raw_messages.remove(x) for x in raw_messages if 'qshell_req' in x]
+raw_messes = [raw_messages.remove(x) for x in raw_messages if 'ulog_stream' in x]
+raw_messes = [raw_messages.remove(x) for x in raw_messages if 'gps_inject_data' in x]
+raw_messes = [raw_messages.remove(x) for x in raw_messages if 'gps_dump' in x]
 
 for index,m in enumerate(raw_messages):
 	temp_list_floats = []
@@ -196,79 +201,19 @@ for index, (m, t) in enumerate(zip(messages, topics)):
 	print("void listen_%s(unsigned num_msgs, unsigned topic_instance) {" % t)
 	print("\tint sub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % t)
 	print("\torb_id_t ID = ORB_ID(%s);" % t)
-	print("\tstruct %s_s container;" % m)
-	print("\tmemset(&container, 0, sizeof(container));")
-	print("\tbool updated;")
+	print("\t%s_s container = {};" % m)
+	print("\tbool updated = false;")
 	print("\tunsigned i = 0;")
 	print("\thrt_abstime start_time = hrt_absolute_time();")
 	print("\twhile(i < num_msgs) {")
-	print("\t\torb_check(sub,&updated);")
+	print("\t\torb_check(sub, &updated);")
 	print("\t\tif (i == 0) { updated = true; } else { usleep(500); }")
 	print("\t\tif (updated) {")
-	print("\t\tstart_time = hrt_absolute_time();")
-	print("\t\ti++;")
+	print("\t\t\tstart_time = hrt_absolute_time();")
+	print("\t\t\ti++;")
 	print("\t\tprintf(\"\\nTOPIC: %s instance %%d #%%d\\n\", topic_instance, i);" % t)
-	print("\t\torb_copy(ID,sub,&container);")
-	print("\t\tprintf(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);")
-	for item in message_elements[index]:
-		if item[0] == "float":
-			print("\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
-		elif item[0] == "float_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "double":
-			print("\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
-		elif item[0] == "double_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "uint64":
-			print("\t\tprintf(\"%s: %%\" PRIu64 \"\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint64_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%\" PRIu64 \" \",container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "uint16_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%u \",container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "int32_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%d \",container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "int16_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%d \",container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "int64":
-			print("\t\tprintf(\"%s: %%\" PRId64 \"\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "int32":
-			print("\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint32":
-			print("\t\tprintf(\"%s: %%u\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "int16":
-			print("\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint16":
-			print("\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
-		elif item[0] == "int8":
-			print("\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint8":
-			print("\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
-		elif item[0] == "bool":
-			print("\t\tprintf(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");" % (item[1], item[1]))
+	print("\t\torb_copy(ID, sub, &container);")
+	print("\t\tprint_message(container);")
 	print("\t\t} else {")
 	print("\t\t\tif (check_timeout(start_time)) {")
 	print("\t\t\t\tbreak;")
