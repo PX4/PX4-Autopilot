@@ -3155,18 +3155,26 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
+			// We adjust thrust setpoint based on landdetector only if the
+			// vehicle is NOT in pure Manual mode.
 			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				if (_vehicle_land_detected.ground_contact) {
-					/* Set thrust in xy to zero */
+					// Set thrust in xy to zero
 					thr_sp(0) = 0.0f;
 					thr_sp(1) = 0.0f;
+					// Reset integral in xy is required because PID-controller does
+					// know about the overwrite and would therefore increase the intragral term
+					_control.resetIntegralXY();
 				}
 
 				if (_vehicle_land_detected.maybe_landed) {
-					/* we set thrust to zero
-					 * this will help to decide if we are actually landed or not
-					 */
+					// we set thrust to zero
+					// this will help to decide if we are actually landed or not
 					thr_sp.zero();
+					// We need to reset all integral terms otherwise the PID-controller
+					// will end up with wrong integral sums
+					_control.resetIntegralXY();
+					_control.resetIntegralZ();
 				}
 			}
 
