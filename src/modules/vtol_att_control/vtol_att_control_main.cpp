@@ -512,7 +512,7 @@ VtolAttitudeControl::parameters_update()
 	// did not use the interface of the VtolType class to disable motors we will have users flying  around with a wrong
 	// parameter value. Therefore, explicitly set it here such that all motors will be disabled as expected.
 	if (_params.vtol_type == vtol_type::STANDARD) {
-		_params.fw_motors_off = 0xff;
+		_params.fw_motors_off = 12345678;
 	}
 
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
