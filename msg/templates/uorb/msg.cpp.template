@@ -64,6 +64,9 @@ struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
 topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
 }@
 
+#include <cinttypes>
+#include <cstdio>
+#include <px4_defines.h>
 #include <uORB/topics/@(topic_name).h>
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
@@ -73,3 +76,12 @@ constexpr char __orb_@(topic_name)_fields[] = "@( ";".join(topic_fields) );";
 @[for multi_topic in topics]@
 ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(topic_name)_fields);
 @[end for]
+
+void print_message(const @uorb_struct& message)
+{
+    printf(" @(uorb_struct)\n");
+	printf("\ttimestamp: %" PRIu64 "\n", message.timestamp);
+@[for field in sorted_fields]@
+	@( px4_printf(field) )
+@[end for]
+}
