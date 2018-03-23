@@ -68,6 +68,8 @@ public:
 	void updateSetpoint(struct vehicle_local_position_setpoint_s setpoint);
 	void updateConstraints(const Controller::Constraints &constraints);
 	void generateThrustYawSetpoint(const float &dt);
+	void resetIntegralXY() {_thr_int(0) = _thr_int(1) = 0.0f;};
+	void resetIntegralZ() {_thr_int(2) = 0.0f;};
 
 	matrix::Vector3f getThrustSetpoint() {return _thr_sp;}
 	float getYawSetpoint() { return _yaw_sp;}
