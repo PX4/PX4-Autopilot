@@ -135,6 +135,18 @@ PWMSim::subscribe()
 	}
 }
 
+void PWMSim::update_params()
+{
+	// multicopter air-mode
+	param_t param_handle = param_find("MC_AIRMODE");
+
+	if (param_handle != PARAM_INVALID) {
+		int32_t val;
+		param_get(param_handle, &val);
+		_airmode = val > 0;
+	}
+}
+
 void
 PWMSim::run()
 {
@@ -145,6 +157,9 @@ PWMSim::run()
 
 	/* advertise the mixed control outputs, insist on the first group output */
 	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
+
+	update_params();
+	int params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* loop until killed */
 	while (!should_exit()) {
@@ -170,6 +185,10 @@ PWMSim::run()
 
 			// up_pwm_servo_set_rate(_update_rate);
 			_current_update_rate = _update_rate;
+		}
+
+		if (_mixers) {
+			_mixers->set_airmode(_airmode);
 		}
 
 		/* this can happen during boot, but after the sleep its likely resolved */
@@ -283,6 +302,16 @@ PWMSim::run()
 				_lockdown = aa.manual_lockdown;
 			}
 		}
+
+		/* check for parameter updates */
+		bool param_updated = false;
+		orb_check(params_sub, &param_updated);
+
+		if (param_updated) {
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			update_params();
+		}
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -292,6 +321,7 @@ PWMSim::run()
 	}
 
 	orb_unsubscribe(_armed_sub);
+	orb_unsubscribe(params_sub);
 }
 
 int

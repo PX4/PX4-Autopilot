@@ -178,6 +178,7 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_SCALE_PITCH] = 10000,
 	[PX4IO_P_SETUP_SCALE_YAW] = 10000,
 	[PX4IO_P_SETUP_MOTOR_SLEW_MAX] = 0,
+	[PX4IO_P_SETUP_AIRMODE] = 0,
 	[PX4IO_P_SETUP_THR_MDL_FAC] = 0,
 	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE
 };
@@ -702,6 +703,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_SBUS_RATE:
 			r_page_setup[offset] = value;
 			sbus1_set_output_rate_hz(value);
+			break;
+
+		case PX4IO_P_SETUP_AIRMODE:
+			r_page_setup[PX4IO_P_SETUP_AIRMODE] = value;
 			break;
 
 		case PX4IO_P_SETUP_THR_MDL_FAC:
