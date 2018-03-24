@@ -183,6 +183,10 @@ private:
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+	differential_pressure_s	_diff_pres {};
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+
 	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
 
 	Parameters		_parameters{};			/**< local copies of interesting parameters */
@@ -480,7 +484,7 @@ Sensors::adc_poll()
 				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
-					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
+					const float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
@@ -489,17 +493,16 @@ Sensors::adc_poll()
 					 */
 					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
-						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+						const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
 
-						differential_pressure_s diff_pres;
-						diff_pres.timestamp = t;
-						diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						diff_pres.differential_pressure_filtered_pa = (diff_pres.differential_pressure_filtered_pa * 0.9f) +
+						_diff_pres.timestamp = t;
+						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
+						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
 								(diff_pres_pa_raw * 0.1f);
-						diff_pres.temperature = -1000.0f;
+						_diff_pres.temperature = -1000.0f;
 
 						int instance;
-						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &diff_pres, &instance, ORB_PRIO_DEFAULT);
+						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &_diff_pres, &instance, ORB_PRIO_DEFAULT);
 					}
 
 				} else
