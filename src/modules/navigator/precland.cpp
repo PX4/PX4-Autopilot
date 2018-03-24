@@ -61,18 +61,7 @@
 
 PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
-	ModuleParams(navigator),
-	_targetPoseSub(0),
-	_target_pose_valid(false),
-	_state_start_time(0),
-	_search_cnt(0),
-	_approach_alt(0)
-
-{
-}
-
-void
-PrecLand::on_inactive()
+	ModuleParams(navigator)
 {
 }
 
@@ -127,7 +116,7 @@ PrecLand::on_active()
 		_target_pose_valid = true;
 	}
 
-	if (hrt_absolute_time() - _target_pose.timestamp > (uint64_t)(_param_timeout.get()*SEC2USEC)) {
+	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e-6f) > _param_timeout.get()) {
 		_target_pose_valid = false;
 	}
 
@@ -278,7 +267,6 @@ PrecLand::run_state_horizontal_approach()
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 	_navigator->set_position_setpoint_triplet_updated();
-
 }
 
 void
@@ -316,7 +304,6 @@ PrecLand::run_state_descend_above_target()
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 
 	_navigator->set_position_setpoint_triplet_updated();
-
 }
 
 void
