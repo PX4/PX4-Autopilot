@@ -355,7 +355,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			for (unsigned i = 0; i < pwm->channel_count; i++) {
 
-				if (i <= MAX_ACTUATORS) {
+				if (i < MAX_ACTUATORS) {
 					_pwm_min[i] = pwm->values[i];
 				}
 			}
