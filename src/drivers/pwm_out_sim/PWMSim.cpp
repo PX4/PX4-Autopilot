@@ -367,8 +367,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < pwm->channel_count; i++) {
-
-				if (i <= MAX_ACTUATORS) {
+				if (i < MAX_ACTUATORS) {
 					_pwm_max[i] = pwm->values[i];
 				}
 			}
