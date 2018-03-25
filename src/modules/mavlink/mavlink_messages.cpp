@@ -3827,16 +3827,11 @@ public:
 
 private:
 	MavlinkOrbSubscription *_global_pos_sub;
-	uint64_t _global_pos_time;
-
 	MavlinkOrbSubscription *_local_pos_sub;
-	uint64_t _local_pos_time;
-
 	MavlinkOrbSubscription *_home_sub;
-	uint64_t _home_time;
-
 	MavlinkOrbSubscription *_sensor_sub;
-	uint64_t _sensor_time;
+
+	uint64_t _local_pos_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamAltitude(MavlinkStreamAltitude &);
@@ -3845,86 +3840,70 @@ private:
 protected:
 	explicit MavlinkStreamAltitude(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
-		_global_pos_time(0),
 		_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
-		_local_pos_time(0),
 		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position))),
-		_home_time(0),
-		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
-		_sensor_time(0)
+		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined)))
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		mavlink_altitude_t msg = {};
+		mavlink_altitude_t msg;
+
+		msg.altitude_monotonic = NAN;
+		msg.altitude_amsl = NAN;
+		msg.altitude_local = NAN;
+		msg.altitude_relative = NAN;
+		msg.altitude_terrain = NAN;
+		msg.bottom_clearance = NAN;
+
 		bool updated = false;
-		float global_alt = 0.0f;
 
-		{
-			struct vehicle_global_position_s global_pos;
-			updated |= _global_pos_sub->update(&_global_pos_time, &global_pos);
+		// always update monotonic altitude
+		sensor_combined_s sensor = {};
+		uint64_t sensor_time = 0;
+		_sensor_sub->update(&sensor_time, &sensor);
 
-			if (_global_pos_time != 0) {
-				msg.altitude_amsl = global_pos.alt;
-				global_alt = global_pos.alt;
+		if ((sensor.timestamp > 0) && (sensor_time > 0)) {
+			msg.altitude_monotonic = sensor.baro_alt_meter;
 
-			} else {
-				msg.altitude_amsl = NAN;
-			}
-
-			if (_global_pos_time != 0 && global_pos.terrain_alt_valid) {
-				msg.altitude_terrain = global_pos.terrain_alt;
-				msg.bottom_clearance = global_pos.alt - global_pos.terrain_alt;
-
-			} else {
-				msg.altitude_terrain = NAN;
-				msg.bottom_clearance = NAN;
-			}
+			updated = true;
 		}
 
-		{
-			struct vehicle_local_position_s local_pos;
-			updated |= _local_pos_sub->update(&_local_pos_time, &local_pos);
-			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN;
+		vehicle_local_position_s local_pos = {};
 
-			// publish this data if global isn't publishing
-			if (_global_pos_time == 0) {
-				if (local_pos.dist_bottom_valid) {
-					msg.bottom_clearance = local_pos.dist_bottom;
-					msg.altitude_terrain = msg.altitude_local - msg.bottom_clearance;
+		if (_local_pos_sub->update(&_local_pos_time, &local_pos)) {
+
+			if (local_pos.z_valid) {
+				if (local_pos.z_global) {
+					msg.altitude_amsl = -local_pos.z + local_pos.ref_alt;
 
 				} else {
-					msg.bottom_clearance = NAN;
-					msg.altitude_terrain = NAN;
+					msg.altitude_amsl = msg.altitude_monotonic;
+				}
+
+				msg.altitude_local = -local_pos.z;
+
+				home_position_s home;
+				_home_sub->update(&home);
+
+				if (home.valid_alt) {
+					msg.altitude_relative = -(local_pos.z - home.z);
+
+				} else {
+					msg.altitude_relative = -local_pos.z;
+				}
+
+				if (local_pos.dist_bottom_valid) {
+					msg.altitude_terrain = -local_pos.z - local_pos.dist_bottom;
+					msg.bottom_clearance = local_pos.dist_bottom;
 				}
 			}
-		}
 
-		{
-			struct home_position_s home = {};
-			updated |= _home_sub->update(&_home_time, &home);
-
-			if (_global_pos_time > 0 && _home_time > 0 && home.valid_alt) {
-				msg.altitude_relative = global_alt - home.alt;
-
-			} else if (_local_pos_time > 0 && _home_time > 0 && home.valid_alt) {
-				msg.altitude_relative = msg.altitude_local;
-
-			} else {
-				msg.altitude_relative = NAN;
-			}
+			updated = true;
 		}
 
 		if (updated) {
-
 			msg.time_usec = hrt_absolute_time();
-
-			{
-				struct sensor_combined_s sensor = {};
-				(void)_sensor_sub->update(&_sensor_time, &sensor);
-				msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter : NAN;
-			}
-
 			mavlink_msg_altitude_send_struct(_mavlink->get_channel(), &msg);
 		}
 
