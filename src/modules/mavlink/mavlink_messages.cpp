@@ -1678,11 +1678,10 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_pos_sub;
-	uint64_t _pos_time;
-
+	MavlinkOrbSubscription *_gpos_sub;
+	MavlinkOrbSubscription *_lpos_sub;
 	MavlinkOrbSubscription *_home_sub;
-	uint64_t _home_time;
+	MavlinkOrbSubscription *_sensor_sub;
 
 	/* do not allow top copying this class */
 	MavlinkStreamGlobalPositionInt(MavlinkStreamGlobalPositionInt &);
@@ -1690,36 +1689,61 @@ private:
 
 protected:
 	explicit MavlinkStreamGlobalPositionInt(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
-		_pos_time(0),
+		_gpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
+		_lpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
 		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position))),
-		_home_time(0)
+		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined)))
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		struct vehicle_global_position_s pos = {};
-		struct home_position_s home = {};
+		vehicle_global_position_s gpos = {};
+		vehicle_local_position_s lpos = {};
+		home_position_s home = {};
+		sensor_combined_s sensor = {};
 
-		bool updated = _pos_sub->update(&_pos_time, &pos);
-		updated |= _home_sub->update(&_home_time, &home);
+		bool updated = false;
+		updated |= _gpos_sub->update(&gpos);
+		updated |= _lpos_sub->update(&lpos);
+		updated |= _home_sub->update(&home);
+		updated |= _sensor_sub->update(&sensor);
 
 		if (updated) {
 			mavlink_global_position_int_t msg = {};
 
-			if (!home.valid_alt) {
-				home.alt = 0.0f;
+			if (lpos.z_valid && lpos.z_global) {
+				msg.alt = (-lpos.z + lpos.ref_alt) * 1000.0f;
+
+			} else {
+				// fall back to baro altitude
+				if (sensor.timestamp > 0) {
+					msg.alt = sensor.baro_alt_meter * 1000.0f;
+				}
 			}
 
-			msg.time_boot_ms = pos.timestamp / 1000;
-			msg.lat = pos.lat * 1e7;
-			msg.lon = pos.lon * 1e7;
-			msg.alt = pos.alt * 1000.0f;
-			msg.relative_alt = (pos.alt - home.alt) * 1000.0f;
-			msg.vx = pos.vel_n * 100.0f;
-			msg.vy = pos.vel_e * 100.0f;
-			msg.vz = pos.vel_d * 100.0f;
-			msg.hdg = _wrap_2pi(pos.yaw) * M_RAD_TO_DEG_F * 100.0f;
+			if (home.valid_alt) {
+				if (lpos.z_valid) {
+					msg.relative_alt = -(lpos.z - home.z) * 1000.0f;
+
+				} else {
+					msg.relative_alt = msg.alt - (home.alt * 1000.0f);
+				}
+
+			} else {
+				if (lpos.z_valid) {
+					msg.relative_alt = -lpos.z * 1000.0f;
+				}
+			}
+
+			msg.time_boot_ms = gpos.timestamp / 1000;
+			msg.lat = gpos.lat * 1e7;
+			msg.lon = gpos.lon * 1e7;
+
+			msg.vx = lpos.vx * 100.0f;
+			msg.vy = lpos.vy * 100.0f;
+			msg.vz = lpos.vz * 100.0f;
+
+			msg.hdg = _wrap_2pi(lpos.yaw) * M_RAD_TO_DEG_F * 100.0f;
 
 			mavlink_msg_global_position_int_send_struct(_mavlink->get_channel(), &msg);
 		}
