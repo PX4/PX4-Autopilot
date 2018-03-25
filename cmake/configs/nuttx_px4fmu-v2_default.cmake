@@ -30,12 +30,12 @@ set(config_module_list
 	#drivers/mb12xx
 	#drivers/mkblctrl
 	drivers/imu/mpu6000
-	drivers/imu/mpu9250
+	#drivers/imu/mpu9250
 	#drivers/oreoled
 	#drivers/protocol_splitter
 	drivers/pwm_input
-	#drivers/pwm_out_sim
-	drivers/px4flow
+	drivers/pwm_out_sim
+	#drivers/px4flow
 	drivers/px4fmu
 	drivers/px4io
 	drivers/rgbled
@@ -44,6 +44,7 @@ set(config_module_list
 	drivers/stm32/tone_alarm
 	#drivers/tap_esc
 	drivers/vmount
+	drivers/ssd1306
 
 	# distance sensors
 	drivers/distance_sensor/ll40ls

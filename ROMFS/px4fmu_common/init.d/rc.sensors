@@ -37,6 +37,9 @@ else
 	# Blacksheep telemetry
 	bst start
 
+	# SSD1306 OLED display
+	ssd1306 start
+
 	adc start
 fi
 

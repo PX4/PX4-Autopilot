@@ -13,6 +13,7 @@ set(config_module_list
 	drivers/linux_gpio
 	drivers/pwm_out_sim
 	drivers/vmount
+	#drivers/ssd1306
 
 	modules/sensors
 
