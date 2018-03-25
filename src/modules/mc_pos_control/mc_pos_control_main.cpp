@@ -488,7 +488,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_ref_pos = {};
 
 	/* set trigger time for manual direction change detection */
-	_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TRIGGER_TIME_US);
+	_manual_direction_change_hysteresis.set_time_from_false(DIRECTION_CHANGE_TRIGGER_TIME_US);
 
 	_params.pos_p.zero();
 	_params.vel_p.zero();
@@ -1210,8 +1210,7 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 			bool stick_vel_aligned = (vel_xy_norm * stick_xy_norm > 0.0f);
 
 			/* update manual direction change hysteresis */
-			_manual_direction_change_hysteresis.set_state_and_update(!stick_vel_aligned);
-
+			_manual_direction_change_hysteresis.update(!stick_vel_aligned);
 
 			/* exit direction change if one of the condition is met */
 			if (intention == brake) {

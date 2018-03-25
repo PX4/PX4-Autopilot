@@ -1668,7 +1668,7 @@ Commander::run()
 			// After that it will be set in the main state
 			// machine based on the arming state.
 			if (param_init_forced) {
-				auto_disarm_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)disarm_when_landed * 1000000);
+				auto_disarm_hysteresis.set_time_from_false((hrt_abstime)disarm_when_landed * 1000000);
 			}
 
 			param_get(_param_low_bat_act, &low_bat_action);
@@ -2086,13 +2086,13 @@ Commander::run()
 			timeout_time *= 5;
 		}
 
-		auto_disarm_hysteresis.set_hysteresis_time_from(false, timeout_time);
+		auto_disarm_hysteresis.set_time_from_false(timeout_time);
 
 		// Check for auto-disarm
 		if (armed.armed && land_detector.landed && disarm_when_landed > 0) {
-			auto_disarm_hysteresis.set_state_and_update(true);
+			auto_disarm_hysteresis.update(true);
 		} else {
-			auto_disarm_hysteresis.set_state_and_update(false);
+			auto_disarm_hysteresis.update(false);
 		}
 
 		if (auto_disarm_hysteresis.get_state()) {
