@@ -999,25 +999,12 @@ public:
 
 private:
 	MavlinkOrbSubscription *_att_sub;
-	uint64_t _att_time;
-
 	MavlinkOrbSubscription *_pos_sub;
-	uint64_t _pos_time;
-
 	MavlinkOrbSubscription *_armed_sub;
-	uint64_t _armed_time;
-
 	MavlinkOrbSubscription *_act0_sub;
-	uint64_t _act0_time;
-
 	MavlinkOrbSubscription *_act1_sub;
-	uint64_t _act1_time;
-
 	MavlinkOrbSubscription *_airspeed_sub;
-	uint64_t _airspeed_time;
-
 	MavlinkOrbSubscription *_sensor_sub;
-	uint64_t _sensor_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamVFRHUD(MavlinkStreamVFRHUD &);
@@ -1026,69 +1013,68 @@ private:
 protected:
 	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
-		_att_time(0),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
-		_pos_time(0),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
 		_armed_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_armed))),
-		_armed_time(0),
 		_act0_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
-		_act0_time(0),
 		_act1_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_1))),
-		_act1_time(0),
 		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
-		_airspeed_time(0),
-		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
-		_sensor_time(0)
+		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined)))
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		struct vehicle_attitude_s att = {};
-		struct vehicle_global_position_s pos = {};
-		struct actuator_armed_s armed = {};
-		struct airspeed_s airspeed = {};
-		struct actuator_controls_s act0 = {};
-		struct actuator_controls_s act1 = {};
+		vehicle_attitude_s att = {};
+		vehicle_local_position_s pos = {};
+		actuator_armed_s armed = {};
+		airspeed_s airspeed = {};
+		sensor_combined_s sensor = {};
 
-		bool updated = _att_sub->update(&_att_time, &att);
-		updated |= _pos_sub->update(&_pos_time, &pos);
-		updated |= _armed_sub->update(&_armed_time, &armed);
-		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
-		updated |= _act0_sub->update(&_act0_time, &act0);
-		updated |= _act1_sub->update(&_act1_time, &act1);
+		bool updated = _att_sub->update(&att);
+		updated |= _pos_sub->update(&pos);
+		updated |= _armed_sub->update(&armed);
+		updated |= _airspeed_sub->update(&airspeed);
+		updated |= _sensor_sub->update(&sensor);
 
 		if (updated) {
 			mavlink_vfr_hud_t msg = {};
 			matrix::Eulerf euler = matrix::Quatf(att.q);
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
-			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
+			msg.groundspeed = sqrtf(pos.vx * pos.vx + pos.vy * pos.vy);
 			msg.heading = _wrap_2pi(euler.psi()) * M_RAD_TO_DEG_F;
 
 			if (armed.armed) {
+				actuator_controls_s act0 = {};
+				actuator_controls_s act1 = {};
+				_act0_sub->update(&act0);
+				_act1_sub->update(&act1);
+
 				// VFR_HUD throttle should only be used for operator feedback.
 				// VTOLs switch between actuator_controls_0 and actuator_controls_1. During transition there isn't a
 				// a single throttle value, but this should still be a useful heuristic for operator awareness.
 				//
 				// Use ACTUATOR_CONTROL_TARGET if accurate states are needed.
-				msg.throttle = 100 * math::max(act0.control[actuator_controls_s::INDEX_THROTTLE],
-							       act1.control[actuator_controls_s::INDEX_THROTTLE]);
+				msg.throttle = 100 * math::max(
+						       act0.control[actuator_controls_s::INDEX_THROTTLE],
+						       act1.control[actuator_controls_s::INDEX_THROTTLE]);
 
 			} else {
 				msg.throttle = 0.0f;
 			}
 
-			if (_pos_time > 0) {
-				/* use global estimate */
-				msg.alt = pos.alt;
+			if (pos.z_valid && pos.z_global) {
+				/* use local position estimate */
+				msg.alt = -pos.z + pos.ref_alt;
 
 			} else {
 				/* fall back to baro altitude */
-				sensor_combined_s sensor;
-				(void)_sensor_sub->update(&_sensor_time, &sensor);
-				msg.alt = sensor.baro_alt_meter;
+				if (sensor.timestamp > 0) {
+					msg.alt = sensor.baro_alt_meter;
+				}
 			}
 
-			msg.climb = -pos.vel_d;
+			if (pos.v_z_valid) {
+				msg.climb = -pos.vz;
+			}
 
 			mavlink_msg_vfr_hud_send_struct(_mavlink->get_channel(), &msg);
 
