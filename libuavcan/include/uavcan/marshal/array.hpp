@@ -809,13 +809,13 @@ public:
      * This operator can only be used with string-like arrays; otherwise it will fail to compile.
      * @ref c_str()
      */
-    bool operator==(const char* ch) const
+    bool operator==(const char* chr) const
     {
-        if (ch == UAVCAN_NULLPTR)
+        if (chr == UAVCAN_NULLPTR)
         {
             return false;
         }
-        return std::strncmp(Base::c_str(), ch, MaxSize) == 0;
+        return std::strncmp(Base::c_str(), chr, MaxSize) == 0;
     }
 
     /**
@@ -827,18 +827,18 @@ public:
      * This operator can only be used with string-like arrays; otherwise it will fail to compile.
      * @ref c_str()
      */
-    SelfType& operator=(const char* ch)
+    SelfType& operator=(const char* chr)
     {
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
         Base::clear();
-        if (ch == UAVCAN_NULLPTR)
+        if (chr == UAVCAN_NULLPTR)
         {
             handleFatalError("Array::operator=(const char*)");
         }
-        while (*ch)
+        while (*chr)
         {
-            push_back(ValueType(*ch++));  // Value type is likely to be unsigned char, so conversion may be required.
+            push_back(ValueType(*chr++));  // Value type is likely to be unsigned char, so conversion may be required.
         }
         return *this;
     }
@@ -847,17 +847,17 @@ public:
      * This operator can only be used with string-like arrays; otherwise it will fail to compile.
      * @ref c_str()
      */
-    SelfType& operator+=(const char* ch)
+    SelfType& operator+=(const char* chr)
     {
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
-        if (ch == UAVCAN_NULLPTR)
+        if (chr == UAVCAN_NULLPTR)
         {
             handleFatalError("Array::operator+=(const char*)");
         }
-        while (*ch)
+        while (*chr)
         {
-            push_back(ValueType(*ch++));
+            push_back(ValueType(*chr++));
         }
         return *this;
     }
