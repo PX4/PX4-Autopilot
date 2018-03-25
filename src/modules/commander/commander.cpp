@@ -2816,7 +2816,7 @@ Commander::run()
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
 
-		// automaticcally set or update home position
+		// automatically set or update home position
 		if (!_home.manual_home) {
 			if (armed.armed) {
 				if ((!was_armed || (was_landed && !land_detector.landed)) &&
@@ -2831,10 +2831,11 @@ Commander::run()
 						/* distance from home */
 						float home_dist_xy = -1.0f;
 						float home_dist_z = -1.0f;
-						mavlink_wpm_distance_to_point_local(_home.x, _home.y, _home.z, local_position.x, local_position.y,
-										   local_position.z, &home_dist_xy, &home_dist_z);
+						mavlink_wpm_distance_to_point_local(_home.x, _home.y, _home.z,
+								local_position.x, local_position.y, local_position.z,
+								&home_dist_xy, &home_dist_z);
 
-						if (home_dist_xy > local_position.epv * 2 || home_dist_z > local_position.eph * 2) {
+						if ((home_dist_xy > local_position.eph * 2) || (home_dist_z > local_position.epv * 2)) {
 
 							/* update when disarmed, landed and moved away from current home position */
 							set_home_position(home_pub, _home, local_position, global_position, false);
