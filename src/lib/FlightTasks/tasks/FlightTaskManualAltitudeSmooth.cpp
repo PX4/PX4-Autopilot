@@ -39,8 +39,8 @@
 
 using namespace matrix;
 
-	_smoothing(_velocity(2), _sticks(2))
 FlightTaskManualAltitudeSmooth::FlightTaskManualAltitudeSmooth() :
+	_smoothing(this, _velocity(2), _sticks(2))
 {}
 
 void FlightTaskManualAltitudeSmooth::_updateSetpoints()

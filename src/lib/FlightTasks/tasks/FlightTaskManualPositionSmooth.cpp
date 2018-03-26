@@ -40,8 +40,8 @@
 using namespace matrix;
 
 FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth() :
-	_smoothingXY(matrix::Vector2f(&_velocity(0))),
-	_smoothingZ(_velocity(2), _sticks(2))
+	_smoothingXY(this, matrix::Vector2f(&_velocity(0))),
+	_smoothingZ(this, _velocity(2), _sticks(2))
 {}
 
 void FlightTaskManualPositionSmooth::_updateSetpoints()
