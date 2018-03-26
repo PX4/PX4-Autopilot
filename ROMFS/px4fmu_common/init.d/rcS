@@ -44,10 +44,15 @@ set FEXTRAS				/fs/microsd/etc/extras.txt
 set FRC					/fs/microsd/etc/rc.txt
 set GPS_STARTUP_ARGS 			""
 set LOG_FILE				/fs/microsd/bootlog.txt
+set MAVLINK_DEVICE_0 			/dev/ttyS0
+set MAVLINK_DEVICE_0_ARGS		"-r 800000 -m config -x"
+set MAVLINK_DEVICE_0_BAUD 		"57600"
 set MAVLINK_DEVICE_1 			/dev/ttyS1
-set MAVLINK_DEVICE_1_ARGS		"-b 57600 -r 1200 -f"
+set MAVLINK_DEVICE_1_ARGS		"-r 1200 -f"
+set MAVLINK_DEVICE_1_BAUD		"57600"
 set MAVLINK_DEVICE_2			none
 set MAVLINK_DEVICE_2_ARGS		none
+set MAVLINK_DEVICE_2_BAUD		none
 set MAV_TYPE				none
 set MIXER				none
 set MIXER_AUX				none
