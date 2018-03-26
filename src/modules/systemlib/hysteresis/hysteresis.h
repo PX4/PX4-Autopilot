@@ -49,43 +49,31 @@ namespace systemlib
 class Hysteresis
 {
 public:
-	Hysteresis(bool init_state) :
+	explicit Hysteresis(bool init_state) :
 		_state(init_state),
-		_requested_state(init_state),
-		_hysteresis_time_from_true_us(0),
-		_hysteresis_time_from_false_us(0),
-		_last_time_to_change_state(0)
+		_requested_state(init_state)
 	{}
 
-	~Hysteresis()
-	{}
+	Hysteresis() = delete;
+	~Hysteresis() = default;
 
-	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us)
-	{
-		if (from_state == true) {
-			_hysteresis_time_from_true_us = new_hysteresis_time_us;
+	void set_time_from_true(const uint32_t new_hysteresis_time_us);
+	void set_time_from_false(const uint32_t new_hysteresis_time_us);
 
-		} else {
-			_hysteresis_time_from_false_us = new_hysteresis_time_us;
-		}
-	}
-
-	bool get_state() const
-	{
-		return _state;
-	}
-
-	void set_state_and_update(const bool new_state);
+	bool get_state() const;
 
 	void update();
+	void update(const bool new_state);
 
 private:
 
 	bool _state;
 	bool _requested_state;
-	hrt_abstime _hysteresis_time_from_true_us;
-	hrt_abstime _hysteresis_time_from_false_us;
-	hrt_abstime _last_time_to_change_state;
+
+	uint32_t _hysteresis_time_from_true_us{0};
+	uint32_t _hysteresis_time_from_false_us{0};
+
+	hrt_abstime _last_time_to_change_state{0};
 };
 
 } // namespace systemlib
