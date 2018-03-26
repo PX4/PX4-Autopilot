@@ -769,6 +769,7 @@ ADIS16448::probe()
 		DEVICE_DEBUG("ADIS16448 is detected ID: 0x%02x, Serial: 0x%02x", _product, serial_number);
 		modify_reg16(ADIS16448_GPIO_CTRL, 0x0200, 0x0002);			/* Turn on ADIS16448 adaptor board led */
 		_set_factory_default();										/* Restore factory calibration 		   */
+		up_udelay(100000);											/* Settling time 					   */
 		return OK;
 	}
 
