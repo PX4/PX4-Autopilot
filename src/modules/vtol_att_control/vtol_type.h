@@ -98,6 +98,14 @@ enum motor_state {
 	VALUE 				// motor max pwm will be set to a specific value provided, see set_motor_state()
 };
 
+/**
+ * @brief      Used to specify if min or max pwm values should be altered
+ */
+enum pwm_limit_type {
+	TYPE_MINIMUM = 0,
+	TYPE_MAXIMUM
+};
+
 class VtolAttitudeControl;
 
 class VtolType
@@ -247,7 +255,15 @@ private:
 	struct pwm_output_values _max_mc_pwm_values {};
 	struct pwm_output_values _disarmed_pwm_values {};
 
-
+	/**
+	 * @brief      Adjust minimum/maximum pwm values for the output channels.
+	 *
+	 * @param      pwm_output_values  Struct containing the limit values for each channel
+	 * @param[in]  type               Specifies if min or max limits are adjusted.
+	 *
+	 * @return     True on success.
+	 */
+	bool apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_type type);
 
 	/**
 	 * @brief      Determines if this channel is one selected by VT_FW_MOT_OFFID
