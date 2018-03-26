@@ -49,6 +49,8 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <systemlib/circuit_breaker.h>
+#include <mathlib/math/Limits.hpp>
+#include <mathlib/math/Functions.hpp>
 
 #define MIN_TAKEOFF_THRUST    0.2f
 #define TPA_RATE_LOWER_LIMIT 0.05f
@@ -189,13 +191,13 @@ MulticopterAttitudeControl::parameters_updated()
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
 	/* get transformation matrix from sensor/board to body frame */
-	get_rot_matrix((enum Rotation)_board_rotation_param.get(), &_board_rotation);
+	_board_rotation = get_rot_matrix((enum Rotation)_board_rotation_param.get());
 
 	/* fine tune the rotation */
-	math::Matrix<3, 3> board_rotation_offset;
-	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _board_offset_x.get(),
-					 M_DEG_TO_RAD_F * _board_offset_y.get(),
-					 M_DEG_TO_RAD_F * _board_offset_z.get());
+	Dcmf board_rotation_offset(Eulerf(
+			M_DEG_TO_RAD_F * _board_offset_x.get(),
+			M_DEG_TO_RAD_F * _board_offset_y.get(),
+			M_DEG_TO_RAD_F * _board_offset_z.get()));
 	_board_rotation = board_rotation_offset * _board_rotation;
 }
 
@@ -415,17 +417,15 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	Vector3f eq = 2.f * math::signNoZero(qe(0)) * qe.imag();
 
 	/* calculate angular rates setpoint */
-	eq = eq.emult(attitude_gain);
-	_rates_sp = math::Vector<3>(eq.data());
+	_rates_sp = eq.emult(attitude_gain);
 
 	/* Feed forward the yaw setpoint rate. We need to apply the yaw rate in the body frame.
 	 * We infer the body z axis by taking the last column of R.transposed (== q.inversed)
 	 * because it's the rotation axis for body yaw and multiply it by the rate and gain. */
 	Vector3f yaw_feedforward_rate = q.inversed().dcm_z();
 	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _yaw_ff.get();
-
 	yaw_feedforward_rate(2) *= yaw_w;
-	_rates_sp += math::Vector<3>(yaw_feedforward_rate.data());
+	_rates_sp += yaw_feedforward_rate;
 
 
 	/* limit rates */
@@ -458,14 +458,14 @@ MulticopterAttitudeControl::control_attitude(float dt)
  * Input: 'tpa_breakpoint', 'tpa_rate', '_thrust_sp'
  * Output: 'pidAttenuationPerAxis' vector
  */
-math::Vector<3>
+Vector3f
 MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rate)
 {
 	/* throttle pid attenuation factor */
 	float tpa = 1.0f - tpa_rate * (fabsf(_v_rates_sp.thrust) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
 	tpa = fmaxf(TPA_RATE_LOWER_LIMIT, fminf(1.0f, tpa));
 
-	math::Vector<3> pidAttenuationPerAxis;
+	Vector3f pidAttenuationPerAxis;
 	pidAttenuationPerAxis(AXIS_INDEX_ROLL) = tpa;
 	pidAttenuationPerAxis(AXIS_INDEX_PITCH) = tpa;
 	pidAttenuationPerAxis(AXIS_INDEX_YAW) = 1.0;
@@ -487,7 +487,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	}
 
 	// get the raw gyro data and correct for thermal errors
-	math::Vector<3> rates;
+	Vector3f rates;
 
 	if (_selected_gyro == 0) {
 		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_0[0]) * _sensor_correction.gyro_scale_0[0];
@@ -518,15 +518,15 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	rates(1) -= _sensor_bias.gyro_y_bias;
 	rates(2) -= _sensor_bias.gyro_z_bias;
 
-	math::Vector<3> rates_p_scaled = _rate_p.emult(pid_attenuations(_tpa_breakpoint_p.get(), _tpa_rate_p.get()));
-	//math::Vector<3> rates_i_scaled = _rate_i.emult(pid_attenuations(_tpa_breakpoint_i.get(), _tpa_rate_i.get()));
-	math::Vector<3> rates_d_scaled = _rate_d.emult(pid_attenuations(_tpa_breakpoint_d.get(), _tpa_rate_d.get()));
+	Vector3f rates_p_scaled = _rate_p.emult(pid_attenuations(_tpa_breakpoint_p.get(), _tpa_rate_p.get()));
+	//Vector3f rates_i_scaled = _rate_i.emult(pid_attenuations(_tpa_breakpoint_i.get(), _tpa_rate_i.get()));
+	Vector3f rates_d_scaled = _rate_d.emult(pid_attenuations(_tpa_breakpoint_d.get(), _tpa_rate_d.get()));
 
 	/* angular rates error */
-	math::Vector<3> rates_err = _rates_sp - rates;
+	Vector3f rates_err = _rates_sp - rates;
 
 	/* apply low-pass filtering to the rates for D-term */
-	math::Vector<3> rates_filtered(
+	Vector3f rates_filtered(
 		_lp_filters_d[0].apply(rates(0)),
 		_lp_filters_d[1].apply(rates(1)),
 		_lp_filters_d[2].apply(rates(2)));
@@ -566,7 +566,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 			}
 
-			// Perform the integration using a first order method and do not propaate the result if out of range or invalid
+			// Perform the integration using a first order method and do not propagate the result if out of range or invalid
 			float rate_i = _rates_int(i) + _rate_i(i) * rates_err(i) * dt;
 
 			if (PX4_ISFINITE(rate_i) && rate_i > -_rate_int_lim(i) && rate_i < _rate_int_lim(i)) {
@@ -704,12 +704,11 @@ MulticopterAttitudeControl::run()
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
-					matrix::Vector3f man_rate_sp;
-					man_rate_sp(0) = math::superexpo(_manual_control_sp.y, _acro_expo.get(), _acro_superexpo.get());
-					man_rate_sp(1) = math::superexpo(-_manual_control_sp.x, _acro_expo.get(), _acro_superexpo.get());
-					man_rate_sp(2) = math::superexpo(_manual_control_sp.r, _acro_expo.get(), _acro_superexpo.get());
-					man_rate_sp = man_rate_sp.emult(_acro_rate_max);
-					_rates_sp = math::Vector<3>(man_rate_sp.data());
+					Vector3f man_rate_sp(
+							math::superexpo(_manual_control_sp.y, _acro_expo.get(), _acro_superexpo.get()),
+							math::superexpo(-_manual_control_sp.x, _acro_expo.get(), _acro_superexpo.get()),
+							math::superexpo(_manual_control_sp.r, _acro_expo.get(), _acro_superexpo.get()));
+					_rates_sp = man_rate_sp.emult(_acro_rate_max);
 					_thrust_sp = _manual_control_sp.z;
 
 					/* publish attitude rates setpoint */
