@@ -36,6 +36,7 @@ Checks:          '*
 		,-google-explicit-constructor
 		,-google-global-names-in-headers
 		,-google-readability-casting
+		,-google-readability-function-size
 		,-google-readability-namespace-comments
 		,-google-readability-todo
 		,-google-runtime-int
