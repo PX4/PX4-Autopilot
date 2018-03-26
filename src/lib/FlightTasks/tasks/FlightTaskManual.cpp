@@ -40,14 +40,6 @@
 
 using namespace matrix;
 
-FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name) :
-	FlightTask(parent, name),
-	_stick_dz(parent, "MPC_HOLD_DZ", false),
-	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
-	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false)
-{
-}
-
 bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!FlightTask::initializeSubscriptions(subscription_array)) {

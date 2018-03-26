@@ -41,13 +41,6 @@
 
 using namespace matrix;
 
-FlightTaskManualPosition::FlightTaskManualPosition(control::SuperBlock *parent, const char *name) :
-	FlightTaskManualAltitude(parent, name),
-	_vel_xy_manual_max(parent, "MPC_VEL_MANUAL", false),
-	_acc_xy_max(parent, "MPC_ACC_HOR_MAX", false),
-	_vel_hold_thr_xy(parent,  "MPC_HOLD_MAX_XY", false)
-{}
-
 void FlightTaskManualPosition::_scaleSticks()
 {
 	/* Use same scaling as for FlightTaskManualAltitude */
