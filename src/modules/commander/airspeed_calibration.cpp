@@ -225,8 +225,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 					break;
 				} else {
 					/* do not allow negative values */
-					calibration_log_info(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
-					calibration_log_info(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
+					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
 
 					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
 					diff_pres_offset = 0.0f;
