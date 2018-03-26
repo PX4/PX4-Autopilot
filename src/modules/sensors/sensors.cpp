@@ -372,8 +372,10 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
-		int instance;
-		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &airspeed, &instance, ORB_PRIO_DEFAULT);
+		if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && PX4_ISFINITE(airspeed.true_airspeed_m_s)) {
+			int instance;
+			orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &airspeed, &instance, ORB_PRIO_DEFAULT);
+		}
 	}
 }
 
