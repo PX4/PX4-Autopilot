@@ -723,7 +723,7 @@ then
 		if [ $MIXER == none ]
 		then
 			# Set default mixer for fixed wing if not defined
-			set MIXER AERT
+			set MIXER AETRFG
 		fi
 
 		if [ $MAV_TYPE == none ]

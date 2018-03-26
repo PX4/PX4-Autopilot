@@ -2558,10 +2558,11 @@ protected:
 			mavlink_hil_controls_t msg = {};
 
 			msg.time_usec = hrt_absolute_time();
+			// HIL FW mixer AETRFG
 			msg.roll_ailerons = out[0];
 			msg.pitch_elevator = out[1];
-			msg.yaw_rudder = out[2];
-			msg.throttle = out[3];
+			msg.yaw_rudder = out[3];
+			msg.throttle = out[2];
 			msg.aux1 = out[4];
 			msg.aux2 = out[5];
 			msg.aux3 = out[6];

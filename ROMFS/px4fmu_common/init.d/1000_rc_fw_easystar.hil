@@ -45,4 +45,4 @@ then
 fi
 
 param set SYS_HITL 1
-set MIXER AERT
+set MIXER AETRFG
