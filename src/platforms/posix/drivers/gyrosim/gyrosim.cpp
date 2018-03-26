@@ -506,8 +506,11 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 
 		// FIXME - not sure what interrupt status should be
 		recv[1] = 0;
+
 		// skip cmd and status bytes
-		sim->getMPUReport(&recv[2], len - 2);
+		if (len > 2) {
+			sim->getMPUReport(&recv[2], len - 2);
+		}
 
 	} else if (cmd & DIR_READ) {
 		PX4_DEBUG("Reading %u bytes from register %u", len - 1, reg);
