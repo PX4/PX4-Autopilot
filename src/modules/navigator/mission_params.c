@@ -120,24 +120,9 @@ PARAM_DEFINE_FLOAT(MIS_DIST_WPS, 900);
 PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 
 /**
- * Multirotor only. Yaw setpoint mode.
- *
- * The values are defined in the enum mission_altitude_mode
- *
- * @min 0
- * @max 3
- * @value 0 Auto: set by waypoint; Manual: set by heading when switched to 0
- * @value 1 Auto: towards waypoint; Manual
- * @value 2 Auto/Manual: towards home
- * @value 3 Auto/Manual: away from home
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
-
-/**
 * Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
 *
-* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading mode as specified by MIS_YAWMODE.
+* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading mode as specified by MPC_YAWMODE.
 * If disabled, the vehicle will yaw towards the ROI.
 *
 * @value 0 Disable

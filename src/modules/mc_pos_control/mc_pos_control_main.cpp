@@ -393,9 +393,9 @@ private:
 
 	bool manual_wants_takeoff();
 
-	void yaw_from_mode_auto(); /**< MIS_YAWMODE defines the heading of the  in auto mode */
+	void yaw_from_mode_auto(); /**< MPC_YAWMODE defines the heading of the  in auto mode */
 
-	void yaw_from_mode_manual(); /**< MIS_YAWMODE defines the heading of the vehicle in manual mode */
+	void yaw_from_mode_manual(); /**< MPC_YAWMODE defines the heading of the vehicle in manual mode */
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -459,7 +459,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_jerk_hor_max(this, "JERK_MAX", true),
 	_jerk_hor_min(this, "JERK_MIN", true),
 	_mis_yaw_error(this, "MIS_YAW_ERR", false),
-	_yaw_mode(this, "MIS_YAWMODE", false),
+	_yaw_mode(this, "MPC_YAWMODE", false),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
