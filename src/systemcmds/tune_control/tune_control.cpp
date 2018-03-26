@@ -207,7 +207,11 @@ tune_control_main(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(argv[myoptind], "libtest")) {
-		tunes.set_control(tune_control);
+		int ret = tunes.set_control(tune_control);
+
+		if (ret == -EINVAL) {
+			PX4_WARN("Tune ID not recognized.");
+		}
 
 		while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
 			PX4_INFO("frequency: %d, duration %d, silence %d, strength%d",
