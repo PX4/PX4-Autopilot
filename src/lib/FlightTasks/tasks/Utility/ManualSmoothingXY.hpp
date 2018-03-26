@@ -39,16 +39,17 @@
 
 #pragma once
 
-#include <systemlib/param/param.h>
+#include <px4_module_params.h>
 #include <matrix/matrix/math.hpp>
 
-class ManualSmoothingXY
+class ManualSmoothingXY : public ModuleParams
 {
 public:
-	ManualSmoothingXY(const matrix::Vector2f &vel);
-	~ManualSmoothingXY() {};
+	ManualSmoothingXY(ModuleParams *parent, const matrix::Vector2f &vel);
+	~ManualSmoothingXY() = default;
 
-	/* Smoothing of velocity setpoint horizontally based
+	/**
+	 * Smoothing of velocity setpoint horizontally based
 	 * on flight direction.
 	 * @param vel_sp: velocity setpoint in xy
 	 * @param dt: time delta in seconds
@@ -70,13 +71,22 @@ public:
 	/* Overwrite methods:
 	 * Needed if different parameter values than default required.
 	 */
-	void overwriteHoverAcceleration(float acc) {_acc_hover = acc;};
-	void overwriteMaxAcceleration(float acc) {_acc_xy_max = acc;};
-	void overwriteDecelerationMin(float dec) {_dec_xy_min = dec;};
-	void overwriteJerkMax(float jerk) {_jerk_max = jerk;};
-	void overwriteJerkMin(float jerk) {_jerk_min = jerk;};
+	void overwriteHoverAcceleration(float acc) { _acc_hover.set(acc); }
+	void overwriteMaxAcceleration(float acc) { _acc_xy_max.set(acc); }
+	void overwriteDecelerationMin(float dec) { _dec_xy_min.set(dec); }
+	void overwriteJerkMax(float jerk) { _jerk_max.set(jerk); }
+	void overwriteJerkMin(float jerk) { _jerk_min.set(jerk); }
 
 private:
+	void _updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+				 const float &yawrate_sp, const float dt);
+	Intention _getIntention(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+				const float &yawrate_sp);
+	void _getStateAcceleration(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const Intention &intention,
+				   const float dt);
+	void _velocitySlewRate(matrix::Vector2f &vel_sp, const float dt);
+	matrix::Vector2f _getWorldToHeadingFrame(const matrix::Vector2f &vec, const float &yaw);
+	matrix::Vector2f _getHeadingToWorldFrame(const matrix::Vector2f &vec, const float &yaw);
 
 	/* User intention: brake or acceleration */
 	Intention _intention{Intention::acceleration};
@@ -90,32 +100,13 @@ private:
 	/* Previous setpoints */
 	matrix::Vector2f _vel_sp_prev{}; // previous velocity setpoint
 
-	/* Params */
-	param_t _acc_hover_h{PARAM_INVALID};
-	param_t _acc_xy_max_h{PARAM_INVALID};
-	param_t _dec_xy_min_h{PARAM_INVALID};
-	param_t _jerk_max_h{PARAM_INVALID};
-	param_t _jerk_min_h{PARAM_INVALID};
-	param_t _vel_manual_h{PARAM_INVALID};
-	float _acc_hover{50.0f}; // acceleration in hover
-	float _acc_xy_max{10.0f}; // acceleration in flight
-	float _dec_xy_min{1.0f}; // deceleration in flight
-	float _jerk_max{15.0f}; // jerk max during brake
-	float _jerk_min{1.0f}; // jerk min during brake
-	float _vel_manual{}; //maximum velocity in manual controlled mode
-	int _parameter_sub{-1};
-
-	/* Helper methods */
-	void _setParams();
-	void _updateParams();
-	void _updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
-				 const float &yawrate_sp, const float dt);
-	Intention _getIntention(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
-				const float &yawrate_sp);
-	void _getStateAcceleration(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const Intention &intention,
-				   const float dt);
-	void _velocitySlewRate(matrix::Vector2f &vel_sp, const float dt);
-	matrix::Vector2f _getWorldToHeadingFrame(const matrix::Vector2f &vec, const float &yaw) ;
-	matrix::Vector2f _getHeadingToWorldFrame(const matrix::Vector2f &vec, const float &yaw);
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_hover, ///< acceleration in hover
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _acc_xy_max, ///< acceleration in flight
+		(ParamFloat<px4::params::MPC_DEC_HOR_SLOW>) _dec_xy_min, ///< deceleration in flight
+		(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, ///< jerk min during brake
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max, ///< jerk max during brake
+		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _vel_manual ///< maximum velocity in manual controlled mode
+	)
 
 };

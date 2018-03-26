@@ -34,7 +34,7 @@ bool SmoothZTest::brakeUpward()
 	float acc_max_up = 5.0f;
 	float acc_max_down = 2.0f;
 
-	ManualSmoothingZ smooth(vel, stick_current);
+	ManualSmoothingZ smooth(nullptr, vel, stick_current);
 
 	/* overwrite parameters since they might change depending on configuration */
 	smooth.overwriteAccelerationDown(acc_max_down); // downward max acceleration of 2m/ss
@@ -86,7 +86,7 @@ bool SmoothZTest::brakeDownward()
 	float acc_max_up = 5.0f;
 	float acc_max_down = 2.0f;
 
-	ManualSmoothingZ smooth(vel, stick_current);
+	ManualSmoothingZ smooth(nullptr, vel, stick_current);
 
 	/* overwrite parameters since they might change depending on configuration */
 	smooth.overwriteAccelerationDown(acc_max_down); // downward max acceleration of 2m/ss
@@ -143,7 +143,7 @@ bool SmoothZTest::accelerateUpwardFromBrake()
 	float acc_max_up = 5.0f;
 	float acc_max_down = 2.0f;
 
-	ManualSmoothingZ smooth(vel, stick_current);
+	ManualSmoothingZ smooth(nullptr, vel, stick_current);
 
 	/* overwrite parameters since they might change depending on configuration */
 	smooth.overwriteAccelerationDown(acc_max_down); // downward max acceleration of 2m/ss
@@ -192,7 +192,7 @@ bool SmoothZTest::accelerateDownwardFromBrake()
 	float acc_max_up = 5.0f;
 	float acc_max_down = 2.0f;
 
-	ManualSmoothingZ smooth(vel, stick_current);
+	ManualSmoothingZ smooth(nullptr, vel, stick_current);
 
 	/* overwrite parameters since they might change depending on configuration */
 	smooth.overwriteAccelerationDown(acc_max_down); // downward max acceleration of 2m/ss

@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <systemlib/param/param.h>
+#include <px4_module_params.h>
 
 /* User intention: brake or acceleration */
 enum class ManualIntentionZ {
@@ -47,13 +47,14 @@ enum class ManualIntentionZ {
 	acceleration,
 };
 
-class ManualSmoothingZ
+class ManualSmoothingZ : public ModuleParams
 {
 public:
-	ManualSmoothingZ(const float &vel, const float &stick);
-	~ManualSmoothingZ() {};
+	ManualSmoothingZ(ModuleParams *parent, const float &vel, const float &stick);
+	~ManualSmoothingZ() = default;
 
-	/* Smooths velocity setpoint based
+	/**
+	 * Smooths velocity setpoint based
 	 * on flight direction.
 	 * @param vel_sp[2] array: vel_sp[0] = current velocity set-point;
 	 * 					 	   vel_sp[1] = previous velocity set-point
@@ -70,11 +71,14 @@ public:
 	/* Overwrite methods:
 	 * Needed if different parameter values than default required.
 	 */
-	void overwriteAccelerationUp(float acc_max_up) {_acc_max_up = acc_max_up;};
-	void overwriteAccelerationDown(float acc_max_down) {_acc_max_down = acc_max_down;};
-	void overwriteJerkMax(float jerk_max) {_jerk_max = jerk_max;};
+	void overwriteAccelerationUp(float acc_max_up) { _acc_max_up.set(acc_max_up); }
+	void overwriteAccelerationDown(float acc_max_down)  {_acc_max_down.set(acc_max_down); }
+	void overwriteJerkMax(float jerk_max)  {_jerk_max.set(jerk_max); }
 
 private:
+	void velocitySlewRate(float &vel_sp, const float dt);
+	void updateAcceleration(float &vel_sp, const float dt);
+	void setMaxAcceleration();
 
 	/* User intention: brake or acceleration */
 	ManualIntentionZ _intention{ManualIntentionZ::acceleration};
@@ -90,22 +94,11 @@ private:
 	 */
 	float _acc_state_dependent{0.0f};
 	float _vel_sp_prev;
-	float _max_acceleration;
+	float _max_acceleration{0.f};
 
-	/* Params */
-	param_t _acc_max_up_h{PARAM_INVALID};
-	param_t _acc_max_down_h{PARAM_INVALID};
-	param_t _jerk_max_h{PARAM_INVALID};
-	float _acc_max_up{0.0f};
-	float _acc_max_down{0.0f};
-	float _jerk_max{10000.0f};
-	int _parameter_sub{-1};
-
-	/* Helper methods */
-	void velocitySlewRate(float &vel_sp, const float dt);
-	void setParams();
-	void updateParams();
-	void updateAcceleration(float &vel_sp, const float dt);
-	void setMaxAcceleration();
-
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acc_max_up,
+		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acc_max_down,
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max
+	)
 };
