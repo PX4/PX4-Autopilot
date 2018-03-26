@@ -64,12 +64,12 @@ then
 
 	if ver hwcmp PX4FMU_V4
 	then
-		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
-		set MAVLINK_DEVICE_1_ARGS "-r 1200"
-
 		# Setup MAVLink on Wifi (ESP8266 port)
 		set MAVLINK_DEVICE_0_ARGS "-r 20000"
 		set MAVLINK_DEVICE_0_BAUD "921600"
+
+		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
+		set MAVLINK_DEVICE_1_ARGS "-r 1200"
 	fi
 fi
 
