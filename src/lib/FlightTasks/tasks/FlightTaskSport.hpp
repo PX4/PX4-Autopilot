@@ -48,10 +48,7 @@ using namespace matrix;
 class FlightTaskSport : public FlightTaskManualPosition
 {
 public:
-	FlightTaskSport(control::SuperBlock *parent, const char *name) :
-		FlightTaskManualPosition(parent, name),
-		_vel_xy_max(parent, "MPC_XY_VEL_MAX", false)
-	{ }
+	FlightTaskSport() = default;
 
 	virtual ~FlightTaskSport() = default;
 
@@ -70,6 +67,9 @@ protected:
 	}
 
 private:
-	control::BlockParamFloat _vel_xy_max; /**< maximal allowed horizontal speed, in sport mode full stick input*/
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
+					(ParamFloat<px4::params::MPC_XY_VEL_MAX>)
+					_vel_xy_max /**< maximal allowed horizontal speed, in sport mode full stick input*/
+				       )
 
 };

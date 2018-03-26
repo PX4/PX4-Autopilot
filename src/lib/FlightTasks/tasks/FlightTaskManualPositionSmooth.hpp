@@ -45,13 +45,15 @@
 class FlightTaskManualPositionSmooth : public FlightTaskManualPosition
 {
 public:
-	FlightTaskManualPositionSmooth(control::SuperBlock *parent, const char *name);
+	FlightTaskManualPositionSmooth();
 
 	virtual ~FlightTaskManualPositionSmooth() = default;
 
 protected:
 
 	virtual void _updateSetpoints() override;
+
+private:
 	ManualSmoothingXY _smoothingXY; /**< smoothing for velocity setpoints in xy */
 	ManualSmoothingZ _smoothingZ; /**< smoothing for velocity in z */
 };

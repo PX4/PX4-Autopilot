@@ -67,12 +67,10 @@ enum class FlightTaskIndex : int {
 	Count // number of tasks
 };
 
-class FlightTasks : control::SuperBlock
+class FlightTasks
 {
 public:
-	FlightTasks() :
-		SuperBlock(nullptr, "TSK")
-	{}
+	FlightTasks() = default;
 
 	~FlightTasks()
 	{
@@ -118,6 +116,11 @@ public:
 	 * @return true if a task is active, false if not
 	 */
 	bool isAnyTaskActive() const { return _current_task; }
+
+	/**
+	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
+	 */
+	void handleParameterUpdate();
 
 private:
 

@@ -45,7 +45,7 @@
 class FlightTaskManualStabilized : public FlightTaskManual
 {
 public:
-	FlightTaskManualStabilized(control::SuperBlock *parent, const char *name);
+	FlightTaskManualStabilized() = default;
 
 	virtual ~FlightTaskManualStabilized() = default;
 
@@ -60,15 +60,17 @@ protected:
 
 private:
 
-	float _throttle{}; /** mapped from stick z */
-
 	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	void _updateThrustSetpoints(); /**< sets thrust setpoint */
 	float _throttleCurve(); /**< piecewise linear mapping from stick to throttle */
 
-	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
-	control::BlockParamFloat _tilt_max_man; /**< maximum tilt allowed for manual flight */
-	control::BlockParamFloat _throttle_min; /**< minimum throttle that always has to be satisfied in flight*/
-	control::BlockParamFloat _throttle_max; /**< maximum throttle that always has to be satisfied in flight*/
-	control::BlockParamFloat _throttle_hover; /**< throttle value at which vehicle is at hover equilibrium */
+	float _throttle{}; /** mapped from stick z */
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManual,
+					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _yaw_rate_scaling, /**< scaling factor from stick to yaw rate */
+					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _tilt_max_man, /**< maximum tilt allowed for manual flight */
+					(ParamFloat<px4::params::MPC_THR_MIN>) _throttle_min, /**< minimum throttle that always has to be satisfied in flight*/
+					(ParamFloat<px4::params::MPC_THR_MAX>) _throttle_max, /**< maximum throttle that always has to be satisfied in flight*/
+					(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover /**< throttle value at which vehicle is at hover equilibrium */
+				       )
 };
