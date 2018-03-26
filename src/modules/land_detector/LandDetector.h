@@ -169,8 +169,6 @@ private:
 
 	void _check_params(bool force = false);
 
-	void _update_state();
-
 	param_t _p_total_flight_time_high{PARAM_INVALID};
 	param_t _p_total_flight_time_low{PARAM_INVALID};
 	uint64_t _total_flight_time{0}; ///< in microseconds
