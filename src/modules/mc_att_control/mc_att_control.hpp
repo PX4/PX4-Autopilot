@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-#include <lib/mathlib/mathlib.h>
 #include <lib/mixer/mixer.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <matrix/matrix/math.hpp>
 #include <systemlib/perf_counter.h>
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -121,7 +121,7 @@ private:
 	/**
 	 * Throttle PID attenuation.
 	 */
-	math::Vector<3> pid_attenuations(float tpa_breakpoint, float tpa_rate);
+	matrix::Vector3f pid_attenuations(float tpa_breakpoint, float tpa_rate);
 
 
 	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
@@ -170,14 +170,14 @@ private:
 	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
 	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
-	math::Vector<3>		_rates_prev;		/**< angular rates on previous step */
-	math::Vector<3>		_rates_prev_filtered;	/**< angular rates on previous step (low-pass filtered) */
-	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
-	math::Vector<3>		_rates_int;		/**< angular rates integral error */
-	float			_thrust_sp;		/**< thrust setpoint */
-	math::Vector<3>		_att_control;	/**< attitude control vector */
+	matrix::Vector3f _rates_prev;			/**< angular rates on previous step */
+	matrix::Vector3f _rates_prev_filtered;		/**< angular rates on previous step (low-pass filtered) */
+	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
+	matrix::Vector3f _rates_int;			/**< angular rates integral error */
+	float _thrust_sp;				/**< thrust setpoint */
+	matrix::Vector3f _att_control;			/**< attitude control vector */
 
-	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
+	matrix::Dcmf _board_rotation;			/**< rotation matrix for the orientation that the board is mounted */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLL_P>) _roll_p,
@@ -236,16 +236,16 @@ private:
 		(ParamFloat<px4::params::VT_WV_YAWR_SCL>) _vtol_wv_yaw_rate_scale		/**< Scale value [0, 1] for yaw rate setpoint  */
 	)
 
-	matrix::Vector3f _attitude_p;				/**< P gain for attitude control */
-	math::Vector<3> _rate_p;				/**< P gain for angular rate error */
-	math::Vector<3> _rate_i;				/**< I gain for angular rate error */
-	math::Vector<3> _rate_int_lim;				/**< integrator state limit for rate loop */
-	math::Vector<3> _rate_d;				/**< D gain for angular rate error */
-	math::Vector<3>	_rate_ff;				/**< Feedforward gain for desired rates */
+	matrix::Vector3f _attitude_p;		/**< P gain for attitude control */
+	matrix::Vector3f _rate_p;		/**< P gain for angular rate error */
+	matrix::Vector3f _rate_i;		/**< I gain for angular rate error */
+	matrix::Vector3f _rate_int_lim;		/**< integrator state limit for rate loop */
+	matrix::Vector3f _rate_d;		/**< D gain for angular rate error */
+	matrix::Vector3f _rate_ff;		/**< Feedforward gain for desired rates */
 
-	math::Vector<3> _mc_rate_max;				/**< attitude rate limits in stabilized modes */
-	math::Vector<3> _auto_rate_max;				/**< attitude rate limits in auto modes */
-	matrix::Vector3f _acro_rate_max;			/**< max attitude rates in acro mode */
+	matrix::Vector3f _mc_rate_max;		/**< attitude rate limits in stabilized modes */
+	matrix::Vector3f _auto_rate_max;	/**< attitude rate limits in auto modes */
+	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
 
 };
 
