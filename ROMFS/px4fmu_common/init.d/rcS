@@ -45,7 +45,7 @@ set FRC					/fs/microsd/etc/rc.txt
 set GPS_STARTUP_ARGS 			""
 set LOG_FILE				/fs/microsd/bootlog.txt
 set MAVLINK_DEVICE_0 			/dev/ttyS0
-set MAVLINK_DEVICE_0_ARGS		"-r 800000 -m config -x"
+set MAVLINK_DEVICE_0_ARGS		"-r 800000 -m config -x -f"
 set MAVLINK_DEVICE_0_BAUD 		"57600"
 set MAVLINK_DEVICE_1 			/dev/ttyS1
 set MAVLINK_DEVICE_1_ARGS		"-r 1200 -f"
