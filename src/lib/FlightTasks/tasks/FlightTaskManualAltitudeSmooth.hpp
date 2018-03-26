@@ -44,7 +44,7 @@
 class FlightTaskManualAltitudeSmooth : public FlightTaskManualAltitude
 {
 public:
-	FlightTaskManualAltitudeSmooth(control::SuperBlock *parent, const char *name);
+	FlightTaskManualAltitudeSmooth();
 	virtual ~FlightTaskManualAltitudeSmooth() = default;
 
 protected:

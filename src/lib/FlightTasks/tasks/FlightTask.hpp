@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <controllib/blocks.hpp>
+#include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_local_position.h>
@@ -51,11 +51,11 @@
 #include "../SubscriptionArray.hpp"
 
 
-class FlightTask : public control::Block
+class FlightTask : public ModuleParams
 {
 public:
-	FlightTask(control::SuperBlock *parent, const char *name) :
-		Block(parent, name)
+	FlightTask() :
+		ModuleParams(nullptr)
 	{ _resetSetpoints(); }
 
 	virtual ~FlightTask() = default;
@@ -97,6 +97,14 @@ public:
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
 	static const vehicle_local_position_setpoint_s empty_setpoint;
+
+	/**
+	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
+	 */
+	void handleParameterUpdate()
+	{
+		updateParams();
+	}
 
 protected:
 	/* Time abstraction */

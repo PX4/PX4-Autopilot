@@ -40,8 +40,7 @@
 
 using namespace matrix;
 
-FlightTaskOrbit::FlightTaskOrbit(control::SuperBlock *parent, const char *name) :
-	FlightTaskManual(parent, name)
+FlightTaskOrbit::FlightTaskOrbit()
 {
 	_sticks_data_required = false;
 }
