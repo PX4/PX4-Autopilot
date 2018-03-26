@@ -73,9 +73,6 @@ public:
 	 */
 	Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_note_length, NoteMode default_mode);
 
-	/**
-	 * Default destructor
-	 */
 	~Tunes() = default;
 
 	/**

@@ -89,7 +89,6 @@ int Tunes::set_control(const tune_control_s &tune_control)
 {
 	// Sanity check
 	if (tune_control.tune_id >= _default_tunes_size) {
-		PX4_WARN("Tune ID not recognized.");
 		return -EINVAL;
 	}
 
