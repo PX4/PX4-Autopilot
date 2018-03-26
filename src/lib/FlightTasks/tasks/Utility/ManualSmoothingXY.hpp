@@ -65,8 +65,7 @@ public:
 	};
 
 	/* Getter methods */
-	//float getMaxAcceleration();
-	Intention getIntention() {return _intention;};
+	Intention getIntention() { return _intention; }
 
 	/* Overwrite methods:
 	 * Needed if different parameter values than default required.

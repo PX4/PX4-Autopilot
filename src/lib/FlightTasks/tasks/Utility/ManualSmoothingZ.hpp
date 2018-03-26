@@ -64,8 +64,8 @@ public:
 
 
 	/* Getter methods */
-	float getMaxAcceleration() {return _max_acceleration;};
-	ManualIntentionZ getIntention() {return _intention;};
+	float getMaxAcceleration() { return _max_acceleration; }
+	ManualIntentionZ getIntention() { return _intention; }
 
 	/* Overwrite methods:
 	 * Needed if different parameter values than default required.
