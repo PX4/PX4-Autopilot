@@ -39,8 +39,7 @@
 
 using namespace matrix;
 
-FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth(control::SuperBlock *parent, const char *name) :
-	FlightTaskManualPosition(parent, name),
+FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth() :
 	_smoothingXY(matrix::Vector2f(&_velocity(0))),
 	_smoothingZ(_velocity(2), _sticks(2))
 {}

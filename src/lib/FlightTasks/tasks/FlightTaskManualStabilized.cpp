@@ -40,15 +40,6 @@
 
 using namespace matrix;
 
-FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *parent, const char *name) :
-	FlightTaskManual(parent, name),
-	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false),
-	_tilt_max_man(parent, "MPC_MAN_TILT_MAX", false),
-	_throttle_min(parent, "MPC_THR_MIN", false),
-	_throttle_max(parent, "MPC_THR_MAX", false),
-	_throttle_hover(parent, "MPC_THR_HOVER", false)
-{}
-
 bool FlightTaskManualStabilized::activate()
 {
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
@@ -68,7 +59,7 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 	/* Yaw-lock depends on stick input. If not locked,
 	 * yaw_sp is set to NAN.
 	 * TODO: add yawspeed to get threshold.*/
-	const bool stick_yaw_zero = fabsf(_sticks(3)) <= _stick_dz.get();
+	const bool stick_yaw_zero = fabsf(_sticks(3)) <= stickDeadzone();
 
 	if (stick_yaw_zero && !PX4_ISFINITE(_yaw_setpoint)) {
 		_yaw_setpoint = _yaw;
