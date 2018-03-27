@@ -459,8 +459,7 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		current_status_flags.condition_auto_mission_available = true;
 
 		// Attempt transition
-		transition_result_t result = main_state_transition(&current_vehicle_status, test->to_state, main_state_prev,
-									&current_status_flags, &current_commander_state);
+		transition_result_t result = main_state_transition(current_vehicle_status, test->to_state, main_state_prev, current_status_flags, &current_commander_state);
 
 		// Validate result of transition
 		ut_compare(test->assertMsg, test->expected_transition_result, result);
