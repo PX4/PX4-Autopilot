@@ -330,7 +330,7 @@ TERARANGER::init()
 		_min_distance = TREVO_60M_MIN_DISTANCE;
 		_max_distance = TREVO_60M_MAX_DISTANCE;
 		break;
-	
+
 	case 4: /* TREvo600Hz */
 		set_device_address(TREVO_BASEADDR);
 
