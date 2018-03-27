@@ -60,8 +60,6 @@
 
 #include "tap_esc_common.h"
 
-#define NAN_VALUE	(0.0f/0.0f)
-
 #ifndef B250000
 #define B250000 250000
 #endif
@@ -844,7 +842,7 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* set the throttle to an invalid value */
-			input = NAN_VALUE;
+			input = NAN;
 		}
 	}
 
