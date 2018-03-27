@@ -99,14 +99,14 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe,
 		     orb_advert_t *mavlink_log_pub, const char *reason);
 
-bool set_nav_state(struct vehicle_status_s *status,
-		   struct actuator_armed_s *armed,
-		   struct commander_state_s *internal_state,
+bool set_nav_state(vehicle_status_s *status,
+		   actuator_armed_s *armed,
+		   commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub,
 		   const link_loss_actions_t data_link_loss_act,
 		   const bool mission_finished,
 		   const bool stay_in_failsafe,
-		   vehicle_status_flags_s *status_flags,
+		   const vehicle_status_flags_s& status_flags,
 		   bool landed,
 		   const link_loss_actions_t rc_loss_act,
 		   const int offb_loss_act,
@@ -117,20 +117,14 @@ bool set_nav_state(struct vehicle_status_s *status,
  * Checks the validty of position data aaainst the requirements of the current navigation
  * mode and switches mode if position data required is not available.
  */
-bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
+bool check_invalid_pos_nav_state(vehicle_status_s *status,
 			       bool old_failsafe,
 			       orb_advert_t *mavlink_log_pub,
-			       vehicle_status_flags_s *status_flags,
+			       const vehicle_status_flags_s& status_flags,
 			       const bool use_rc, // true if a mode using RC control can be used as a fallback
 			       const bool using_global_pos); // true when the current mode requires a global position estimate
 
-void set_rc_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, vehicle_status_flags_s *status_flags,
-						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
-
-void set_data_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, vehicle_status_flags_s *status_flags,
-						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
-
-int prearm_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
+int prearm_check(vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
 		    bool force_report, vehicle_status_flags_s *status_flags, battery_status_s *battery,
 		    uint8_t arm_requirements, hrt_abstime time_since_boot);
 
