@@ -43,6 +43,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <systemlib/px4_macros.h>
 #include <drivers/device/device.h>
+#include <px4_module_params.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -51,11 +52,11 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/multirotor_motor_limits.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <lib/mixer/mixer.h>
-#include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 
 #include "tap_esc_common.h"
@@ -79,7 +80,7 @@
  */
 
 static int _uart_fd = -1; //todo:refactor in to class
-class TAP_ESC : public device::CDev
+class TAP_ESC : public device::CDev, public ModuleParams
 {
 public:
 	enum Mode {
@@ -113,6 +114,7 @@ private:
 	// subscriptions
 	int	_armed_sub;
 	int _test_motor_sub;
+	int _params_sub;
 	orb_advert_t        	_outputs_pub;
 	actuator_outputs_s      _outputs;
 	actuator_armed_s		_armed;
@@ -140,6 +142,12 @@ private:
 	unsigned	_current_update_rate;
 	ESC_UART_BUF uartbuf;
 	EscPacket  		_packet;
+
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::MC_AIRMODE>) _airmode   ///< multicopter air-mode
+	)
+
 	void		subscribe();
 
 	void		work_start();
@@ -167,11 +175,13 @@ TAP_ESC	*tap_esc = nullptr;
 
 TAP_ESC::TAP_ESC(int channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
+	ModuleParams(nullptr),
 	_is_armed(false),
 	_poll_fds_num(0),
 	_mode(MODE_4PWM), //FIXME: what is this mode used for???
 	_armed_sub(-1),
 	_test_motor_sub(-1),
+	_params_sub(-1),
 	_outputs_pub(nullptr),
 	_armed{},
 	_esc_feedback_pub(nullptr),
@@ -574,6 +584,7 @@ TAP_ESC::cycle()
 		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
+		_params_sub = orb_subscribe(ORB_ID(parameter_update));
 		_initialized = true;
 	}
 
@@ -611,6 +622,9 @@ TAP_ESC::cycle()
 		_current_update_rate = max_rate;
 	}
 
+	if (_mixers) {
+		_mixers->set_airmode(_airmode.get());
+	}
 
 
 	/* check if anything updated */
@@ -785,6 +799,16 @@ TAP_ESC::cycle()
 
 	}
 
+	/* check for parameter updates */
+	bool param_updated = false;
+	orb_check(_params_sub, &param_updated);
+
+	if (param_updated) {
+		struct parameter_update_s update;
+		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+		updateParams();
+	}
+
 
 }
 
@@ -801,6 +825,7 @@ void TAP_ESC::work_stop()
 	_armed_sub = -1;
 	orb_unsubscribe(_test_motor_sub);
 	_test_motor_sub = -1;
+	orb_unsubscribe(_params_sub);
 
 	DEVICE_LOG("stopping");
 	_initialized = false;
