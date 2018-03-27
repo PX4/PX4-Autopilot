@@ -80,9 +80,14 @@ ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), _
 
 void print_message(const @uorb_struct& message)
 {
-    printf(" @(uorb_struct)\n");
-	printf("\ttimestamp: %" PRIu64 " (%.6f seconds ago)\n", message.timestamp, hrt_elapsed_time(&message.timestamp) / 1e6);
+	printf(" @(uorb_struct)\n");
+	printf("\ttimestamp: %" PRIu64, message.timestamp);
+	if (message.timestamp != 0) {
+		printf(" (%.6f seconds ago)\n", hrt_elapsed_time(&message.timestamp) / 1e6);
+	} else {
+		printf("\n");
+	}
 @[for field in sorted_fields]@
-	@( print_field(field) )
-@[end for]
+	@( print_field(field) )@
+@[end for]@
 }

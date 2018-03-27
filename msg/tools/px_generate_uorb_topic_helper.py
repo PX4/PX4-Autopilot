@@ -205,7 +205,7 @@ def print_field(field):
 
         else:
             for i in range(array_length):
-                print("printf(\"   " + field.type + " " + field.name + "[" + str(i) + "]\");")
+                print("printf(\"\\t" + field.type + " " + field.name + "[" + str(i) + "]\");")
                 print(" print_message(message." + field.name + "[" + str(i) + "]);")
             return
 
@@ -236,11 +236,11 @@ def print_field(field):
                 field_name = "(double)" + field_name
 
         else:
-            print("printf(\"  " + field.name + "\");")
+            print("printf(\"\\n\\t" + field.name + "\");")
             print("\tprint_message(message."+ field.name + ");")
             return
 
-    print("printf(\"\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");" )
+    print("printf(\"\\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");" )
 
 
 def print_field_def(field):
