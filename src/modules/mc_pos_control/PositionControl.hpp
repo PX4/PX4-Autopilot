@@ -55,8 +55,6 @@ namespace Controller
 struct Constraints {
 	float tilt_max;
 	float vel_max_z_up;
-	float vel_max_z_down;
-	float vel_max_xy;
 };
 }
 
@@ -136,6 +134,7 @@ private:
 	float _ThrHover{0.5f};
 	float _ThrMinPosition{0.0f}; // minimum throttle for any position controlled mode
 	float _ThrMinStab{0.0f}; // minimum throttle for stabilized
+	float _tilt_max{1.5f}; /**< maximum tilt */
 	bool _skipController{false};
 
 	/* Helper methods */
