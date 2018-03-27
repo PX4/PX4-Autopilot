@@ -185,7 +185,7 @@ def print_field(field):
     """
 
     # skip padding
-    if ("_padding" in field.name):
+    if field.name.startswith('_padding'):
         return
 
     bare_type = field.type
