@@ -51,3 +51,5 @@ float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoi
 
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
 float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint)
+
+float32 time_inside	# time needed to hover/loiter at a certain waypoint
