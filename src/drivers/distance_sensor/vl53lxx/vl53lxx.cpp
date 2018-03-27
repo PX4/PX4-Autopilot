@@ -92,7 +92,7 @@
 #define GLOBAL_CONFIG_REF_EN_START_SELECT_REG				0xB6
 #define GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG				0xB0
 #define SYSTEM_INTERRUPT_CONFIG_GPIO_REG					0x0A
-#define SYSTEM_SEQUENCE_CONFIG_REG							0x01 
+#define SYSTEM_SEQUENCE_CONFIG_REG							0x01
 #define SYSRANGE_START_REG									0x00
 #define RESULT_INTERRUPT_STATUS_REG							0x13
 #define SYSTEM_INTERRUPT_CLEAR_REG							0x0B
@@ -115,7 +115,7 @@ class VL53LXX : public device::I2C
 {
 public:
 	VL53LXX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
-		   int bus = VL53LXX_BUS, int address = VL53LXX_BASEADDR);
+		int bus = VL53LXX_BUS, int address = VL53LXX_BASEADDR);
 
 	virtual ~VL53LXX();
 
@@ -141,7 +141,7 @@ private:
 
 	int							_class_instance;
 	int							_orb_class_instance;
-	
+
 	orb_advert_t				_distance_sensor_topic;
 
 	perf_counter_t				_sample_perf;
@@ -166,7 +166,7 @@ private:
 	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
-	*/	
+	*/
 	void						cycle();
 	int							measure();
 	int							collect();
@@ -174,7 +174,7 @@ private:
 	int 						readRegister(uint8_t reg_address, uint8_t &value);
 	int 						writeRegister(uint8_t reg_address, uint8_t value);
 
-	int 						writeRegisterMulti(uint8_t reg_address, uint8_t* value, uint8_t length);
+	int 						writeRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length);
 	int 						readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length);
 
 	int 						sensorInit();
@@ -243,7 +243,7 @@ VL53LXX::~VL53LXX()
 }
 
 
-int 
+int
 VL53LXX::sensorInit()
 {
 	uint8_t val = 0;
@@ -255,7 +255,7 @@ VL53LXX::sensorInit()
 	readRegister(VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG, val);
 	writeRegister(VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG, val | 0x01);
 
-	// set I2C to standard mode 
+	// set I2C to standard mode
 	writeRegister(0x88, 0x00);
 
 	writeRegister(0x80, 0x01);
@@ -342,52 +342,53 @@ VL53LXX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-				case 0:
-					return -EINVAL;
+			case 0:
+				return -EINVAL;
 
-				case SENSOR_POLLRATE_DEFAULT: {
-						/* do we need to start internal polling? */
-						bool want_start = (_measure_ticks == 0);
+			case SENSOR_POLLRATE_DEFAULT: {
+					/* do we need to start internal polling? */
+					bool want_start = (_measure_ticks == 0);
 
-						/* set interval for next measurement to minimum legal value */
-						_measure_ticks = USEC2TICK(VL53LXX_CONVERSION_INTERVAL);
+					/* set interval for next measurement to minimum legal value */
+					_measure_ticks = USEC2TICK(VL53LXX_CONVERSION_INTERVAL);
 
-						/* if we need to start the poll state machine, do it */
-						if (want_start) {
-						 	start();
-						}
+					/* if we need to start the poll state machine, do it */
+					if (want_start) {
 						start();
-
-						return OK;
-				}
-
-				case SENSOR_POLLRATE_MANUAL: {
-						
-						stop();
-						_measure_ticks = 0;
-						return OK;
-				}
-
-				/* adjust to a legal polling interval in Hz */
-				default: {
-						/* do we need to start internal polling? */
-						bool want_start = (_measure_ticks == 0);
-
-						/* convert hz to tick interval via microseconds */
-						unsigned ticks = USEC2TICK(1000000 / arg);
-
-						/* update interval for next measurement */
-						_measure_ticks = ticks;
-
-						/* if we need to start the poll state machine, do it */
-						if (want_start) {
-							start();
-						}
-
-						return OK;
 					}
+
+					start();
+
+					return OK;
+				}
+
+			case SENSOR_POLLRATE_MANUAL: {
+
+					stop();
+					_measure_ticks = 0;
+					return OK;
+				}
+
+			/* adjust to a legal polling interval in Hz */
+			default: {
+					/* do we need to start internal polling? */
+					bool want_start = (_measure_ticks == 0);
+
+					/* convert hz to tick interval via microseconds */
+					unsigned ticks = USEC2TICK(1000000 / arg);
+
+					/* update interval for next measurement */
+					_measure_ticks = ticks;
+
+					/* if we need to start the poll state machine, do it */
+					if (want_start) {
+						start();
+					}
+
+					return OK;
 				}
 			}
+		}
 
 	default:
 		/* give it to the superclass */
@@ -454,7 +455,7 @@ VL53LXX::read(device::file_t *filp, char *buffer, size_t buflen)
 }
 
 
-int 
+int
 VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 {
 	int ret;
@@ -469,7 +470,7 @@ VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 	}
 
 	/* wait for it to complete */
-	usleep(VL53LXX_CONVERSION_INTERVAL);		
+	usleep(VL53LXX_CONVERSION_INTERVAL);
 
 	/* read from the sensor */
 	ret = transfer(nullptr, 0, &val, 1);
@@ -488,11 +489,11 @@ VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 }
 
 
-int 
+int
 VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 {
 	int ret;
-	uint8_t val[6] = {0, 0, 0, 0, 0, 0}; 
+	uint8_t val[6] = {0, 0, 0, 0, 0, 0};
 	ret = transfer(&reg_address, 1, nullptr, 0);
 
 	if (OK != ret) {
@@ -515,13 +516,13 @@ VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 	memcpy(&value[0], &val[0], length);
 
 	ret = OK;
-	
+
 	return ret;
 
 }
 
 
-int 
+int
 VL53LXX::writeRegister(uint8_t reg_address, uint8_t value)
 {
 	int ret;
@@ -545,17 +546,19 @@ VL53LXX::writeRegister(uint8_t reg_address, uint8_t value)
 }
 
 
-int 
-VL53LXX::writeRegisterMulti(uint8_t reg_address, uint8_t* value, uint8_t length) //	bytes are send in order as they are in the array
-{																				 // be careful for uint16_t to send first higher byte
+int
+VL53LXX::writeRegisterMulti(uint8_t reg_address, uint8_t *value,
+			    uint8_t length) //	bytes are send in order as they are in the array
+{
+	// be careful for uint16_t to send first higher byte
 	int ret;
 	uint8_t cmd[6] = {0, 0, 0, 0, 0, 0};
 
 	cmd[0] = reg_address;
 
 	memcpy(&cmd[1], &value[0], length);
-	
-	ret = transfer(&cmd[0], length+1, nullptr, 0);
+
+	ret = transfer(&cmd[0], length + 1, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -582,7 +585,7 @@ VL53LXX::measure()
 	 */
 	const uint8_t cmd = RESULT_RANGE_STATUS_REG + 10;
 
-	if(_new_measurement) {
+	if (_new_measurement) {
 
 		_new_measurement = false;
 
@@ -595,11 +598,11 @@ VL53LXX::measure()
 		writeRegister(0x80, 0x00);
 
 		writeRegister(SYSRANGE_START_REG, 0x01);		// maybe could be removed by putting sensor
-														// in continuous mode
+		// in continuous mode
 
 		readRegister(SYSRANGE_START_REG, system_start);
 
-		while((system_start & 0x01) == 1) {
+		while ((system_start & 0x01) == 1) {
 			readRegister(SYSRANGE_START_REG, system_start);
 		}
 
@@ -607,8 +610,9 @@ VL53LXX::measure()
 
 	readRegister(RESULT_INTERRUPT_STATUS_REG, wait_for_measurement);
 
-	if((wait_for_measurement & 0x07) == 0){
-		work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, 1000);		// reschedule every 1 ms until measurement is ready
+	if ((wait_for_measurement & 0x07) == 0) {
+		work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
+			   1000);		// reschedule every 1 ms until measurement is ready
 		ret = OK;
 		return ret;
 	}
@@ -654,12 +658,13 @@ VL53LXX::collect()
 	float distance_m = float(distance_mm) *  1e-3f;
 	struct distance_sensor_s report;
 
-	report.timestamp = hrt_absolute_time(); 
+	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = _rotation;
 
-	if(distance_m > 2.0f){
+	if (distance_m > 2.0f) {
 		report.current_distance = 2.0f;
+
 	} else {
 		report.current_distance = distance_m;
 	}
@@ -708,8 +713,9 @@ VL53LXX::start()
 	static orb_advert_t pub = nullptr;
 
 	if (pub != nullptr) {
-		
+
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
+
 	} else {
 
 		pub = orb_advertise(ORB_ID(subsystem_info), &info);
@@ -736,20 +742,20 @@ VL53LXX::cycle_trampoline(void *arg)
 void
 VL53LXX::cycle()
 {
-	measure();											
+	measure();
 
-	if(_collect_phase) {
-		
-		_collect_phase = false;	
+	if (_collect_phase) {
+
+		_collect_phase = false;
 		_new_measurement = true;
 
 		collect();
 
 		work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&VL53LXX::cycle_trampoline,
-		   this,
-		   USEC2TICK(VL53LXX_SAMPLE_RATE));
+			   &_work,
+			   (worker_t)&VL53LXX::cycle_trampoline,
+			   this,
+			   USEC2TICK(VL53LXX_SAMPLE_RATE));
 	}
 
 }
@@ -765,209 +771,204 @@ VL53LXX::print_info()
 }
 
 
-bool 
+bool
 VL53LXX::spadCalculations()
 {
- 	uint8_t val;
+	uint8_t val;
 
-  	uint8_t spad_count;
-  	bool spad_type_is_aperture;
+	uint8_t spad_count;
+	bool spad_type_is_aperture;
 
-  	uint8_t ref_spad_map[6];
+	uint8_t ref_spad_map[6];
 
-  	writeRegister(0x80, 0x01);
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x00, 0x00);
-  	writeRegister(0xFF, 0x06);
+	writeRegister(0x80, 0x01);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x00, 0x00);
+	writeRegister(0xFF, 0x06);
 
-  	readRegister(0x83, val);
-  	writeRegister(0x83, val | 0x04);
+	readRegister(0x83, val);
+	writeRegister(0x83, val | 0x04);
 
-  	writeRegister(0xFF, 0x07);
-  	writeRegister(0x81, 0x01);
-  	writeRegister(0x80, 0x01);
-  	writeRegister(0x94, 0x6b);
-  	writeRegister(0x83, 0x00);
+	writeRegister(0xFF, 0x07);
+	writeRegister(0x81, 0x01);
+	writeRegister(0x80, 0x01);
+	writeRegister(0x94, 0x6b);
+	writeRegister(0x83, 0x00);
 
-  	readRegister(0x83, val);
+	readRegister(0x83, val);
 
-  	while (val == 0x00) {
-  		readRegister(0x83, val);
-  	}
+	while (val == 0x00) {
+		readRegister(0x83, val);
+	}
 
-  	writeRegister(0x83, 0x01);
+	writeRegister(0x83, 0x01);
 
-  	readRegister(0x92, val);
+	readRegister(0x92, val);
 
-  	spad_count = val & 0x7f;
-  	spad_type_is_aperture = (val >> 7) & 0x01;
+	spad_count = val & 0x7f;
+	spad_type_is_aperture = (val >> 7) & 0x01;
 
-  	writeRegister(0x81, 0x00);
-  	writeRegister(0xFF, 0x06);
+	writeRegister(0x81, 0x00);
+	writeRegister(0xFF, 0x06);
 
-  	readRegister(0x83, val);
-  	writeRegister(0x83, val  & ~0x04);
+	readRegister(0x83, val);
+	writeRegister(0x83, val  & ~0x04);
 
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x00, 0x01);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(0x80, 0x00);
-  
-  	readRegisterMulti(GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG, &ref_spad_map[0], 6);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x00, 0x01);
+	writeRegister(0xFF, 0x00);
+	writeRegister(0x80, 0x00);
 
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(DYNAMIC_SPAD_REF_EN_START_OFFSET_REG, 0x00);
-  	writeRegister(DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD_REG, 0x2C);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(GLOBAL_CONFIG_REF_EN_START_SELECT_REG, 0xB4);
+	readRegisterMulti(GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG, &ref_spad_map[0], 6);
 
-  	uint8_t first_spad_to_enable = spad_type_is_aperture ? 12 : 0;
-  	uint8_t spads_enabled = 0;
+	writeRegister(0xFF, 0x01);
+	writeRegister(DYNAMIC_SPAD_REF_EN_START_OFFSET_REG, 0x00);
+	writeRegister(DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD_REG, 0x2C);
+	writeRegister(0xFF, 0x00);
+	writeRegister(GLOBAL_CONFIG_REF_EN_START_SELECT_REG, 0xB4);
 
-  	for (uint8_t i = 0; i < 48; i++)
-  	{
-    	if (i < first_spad_to_enable || spads_enabled == spad_count)
-    	{
-      		ref_spad_map[i / 8] &= ~(1 << (i % 8));
-    	}
-    	else if ((ref_spad_map[i / 8] >> (i % 8)) & 0x1)
-    	{
-      		spads_enabled++;
-    	}
-  	}
+	uint8_t first_spad_to_enable = spad_type_is_aperture ? 12 : 0;
+	uint8_t spads_enabled = 0;
 
-  	writeRegisterMulti(GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG, &ref_spad_map[0], 6);
+	for (uint8_t i = 0; i < 48; i++) {
+		if (i < first_spad_to_enable || spads_enabled == spad_count) {
+			ref_spad_map[i / 8] &= ~(1 << (i % 8));
 
-  	sensorTuning();
+		} else if ((ref_spad_map[i / 8] >> (i % 8)) & 0x1) {
+			spads_enabled++;
+		}
+	}
 
-  	writeRegister(SYSTEM_INTERRUPT_CONFIG_GPIO_REG, 4); 		// 4: GPIO interrupt on new data 	
+	writeRegisterMulti(GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG, &ref_spad_map[0], 6);
 
-  	readRegister(GPIO_HV_MUX_ACTIVE_HIGH_REG, val);
-  	writeRegister(GPIO_HV_MUX_ACTIVE_HIGH_REG, val & ~0x10);  	// active low
+	sensorTuning();
 
-  	writeRegister(SYSTEM_INTERRUPT_CLEAR_REG, 0x01);
-  
-  	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0xE8);
+	writeRegister(SYSTEM_INTERRUPT_CONFIG_GPIO_REG, 4); 		// 4: GPIO interrupt on new data
 
-  	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0x01);
-  	singleRefCalibration(0x40);
-  
-  	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0x02);
-  	singleRefCalibration(0x00);
+	readRegister(GPIO_HV_MUX_ACTIVE_HIGH_REG, val);
+	writeRegister(GPIO_HV_MUX_ACTIVE_HIGH_REG, val & ~0x10);  	// active low
 
-  	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0xE8); 			// restore config
+	writeRegister(SYSTEM_INTERRUPT_CLEAR_REG, 0x01);
 
-  	return true;
+	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0xE8);
+
+	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0x01);
+	singleRefCalibration(0x40);
+
+	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0x02);
+	singleRefCalibration(0x00);
+
+	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0xE8); 			// restore config
+
+	return true;
 
 }
 
 
-bool 
+bool
 VL53LXX::sensorTuning()
 {
 
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x00, 0x00);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(0x09, 0x00);
-  	writeRegister(0x10, 0x00);
-  	writeRegister(0x11, 0x00);
-  	writeRegister(0x24, 0x01);
-  	writeRegister(0x25, 0xFF);
-  	writeRegister(0x75, 0x00);
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x4E, 0x2C);
-  	writeRegister(0x48, 0x00);
-  	writeRegister(0x30, 0x20);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(0x30, 0x09);
-  	writeRegister(0x54, 0x00);
-  	writeRegister(0x31, 0x04);
-  	writeRegister(0x32, 0x03);
-  	writeRegister(0x40, 0x83);
-  	writeRegister(0x46, 0x25);
-  	writeRegister(0x60, 0x00);
-  	writeRegister(0x27, 0x00);
-  	writeRegister(0x50, 0x06);
-  	writeRegister(0x51, 0x00);
-  	writeRegister(0x52, 0x96);
-  	writeRegister(0x56, 0x08);
-  	writeRegister(0x57, 0x30);
-  	writeRegister(0x61, 0x00);
-  	writeRegister(0x62, 0x00);
-  	writeRegister(0x64, 0x00);
-  	writeRegister(0x65, 0x00);
-  	writeRegister(0x66, 0xA0);
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x22, 0x32);
-  	writeRegister(0x47, 0x14);
-  	writeRegister(0x49, 0xFF);
-  	writeRegister(0x4A, 0x00);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(0x7A, 0x0A);
-  	writeRegister(0x7B, 0x00);
-  	writeRegister(0x78, 0x21);
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x23, 0x34);
-  	writeRegister(0x42, 0x00);
-  	writeRegister(0x44, 0xFF);
-  	writeRegister(0x45, 0x26);
-  	writeRegister(0x46, 0x05);
-  	writeRegister(0x40, 0x40);
-  	writeRegister(0x0E, 0x06);
-  	writeRegister(0x20, 0x1A);
-  	writeRegister(0x43, 0x40);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(0x34, 0x03);
-  	writeRegister(0x35, 0x44);
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x31, 0x04);
-  	writeRegister(0x4B, 0x09);
-  	writeRegister(0x4C, 0x05);
-  	writeRegister(0x4D, 0x04);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(0x44, 0x00);
-  	writeRegister(0x45, 0x20);
-  	writeRegister(0x47, 0x08);
-  	writeRegister(0x48, 0x28);
-  	writeRegister(0x67, 0x00);
-  	writeRegister(0x70, 0x04);
-  	writeRegister(0x71, 0x01);
-  	writeRegister(0x72, 0xFE);
-  	writeRegister(0x76, 0x00);
-  	writeRegister(0x77, 0x00);
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x0D, 0x01);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(0x80, 0x01);
-  	writeRegister(0x01, 0xF8);
-  	writeRegister(0xFF, 0x01);
-  	writeRegister(0x8E, 0x01);
-  	writeRegister(0x00, 0x01);
-  	writeRegister(0xFF, 0x00);
-  	writeRegister(0x80, 0x00);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x00, 0x00);
+	writeRegister(0xFF, 0x00);
+	writeRegister(0x09, 0x00);
+	writeRegister(0x10, 0x00);
+	writeRegister(0x11, 0x00);
+	writeRegister(0x24, 0x01);
+	writeRegister(0x25, 0xFF);
+	writeRegister(0x75, 0x00);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x4E, 0x2C);
+	writeRegister(0x48, 0x00);
+	writeRegister(0x30, 0x20);
+	writeRegister(0xFF, 0x00);
+	writeRegister(0x30, 0x09);
+	writeRegister(0x54, 0x00);
+	writeRegister(0x31, 0x04);
+	writeRegister(0x32, 0x03);
+	writeRegister(0x40, 0x83);
+	writeRegister(0x46, 0x25);
+	writeRegister(0x60, 0x00);
+	writeRegister(0x27, 0x00);
+	writeRegister(0x50, 0x06);
+	writeRegister(0x51, 0x00);
+	writeRegister(0x52, 0x96);
+	writeRegister(0x56, 0x08);
+	writeRegister(0x57, 0x30);
+	writeRegister(0x61, 0x00);
+	writeRegister(0x62, 0x00);
+	writeRegister(0x64, 0x00);
+	writeRegister(0x65, 0x00);
+	writeRegister(0x66, 0xA0);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x22, 0x32);
+	writeRegister(0x47, 0x14);
+	writeRegister(0x49, 0xFF);
+	writeRegister(0x4A, 0x00);
+	writeRegister(0xFF, 0x00);
+	writeRegister(0x7A, 0x0A);
+	writeRegister(0x7B, 0x00);
+	writeRegister(0x78, 0x21);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x23, 0x34);
+	writeRegister(0x42, 0x00);
+	writeRegister(0x44, 0xFF);
+	writeRegister(0x45, 0x26);
+	writeRegister(0x46, 0x05);
+	writeRegister(0x40, 0x40);
+	writeRegister(0x0E, 0x06);
+	writeRegister(0x20, 0x1A);
+	writeRegister(0x43, 0x40);
+	writeRegister(0xFF, 0x00);
+	writeRegister(0x34, 0x03);
+	writeRegister(0x35, 0x44);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x31, 0x04);
+	writeRegister(0x4B, 0x09);
+	writeRegister(0x4C, 0x05);
+	writeRegister(0x4D, 0x04);
+	writeRegister(0xFF, 0x00);
+	writeRegister(0x44, 0x00);
+	writeRegister(0x45, 0x20);
+	writeRegister(0x47, 0x08);
+	writeRegister(0x48, 0x28);
+	writeRegister(0x67, 0x00);
+	writeRegister(0x70, 0x04);
+	writeRegister(0x71, 0x01);
+	writeRegister(0x72, 0xFE);
+	writeRegister(0x76, 0x00);
+	writeRegister(0x77, 0x00);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x0D, 0x01);
+	writeRegister(0xFF, 0x00);
+	writeRegister(0x80, 0x01);
+	writeRegister(0x01, 0xF8);
+	writeRegister(0xFF, 0x01);
+	writeRegister(0x8E, 0x01);
+	writeRegister(0x00, 0x01);
+	writeRegister(0xFF, 0x00);
+	writeRegister(0x80, 0x00);
 
-  	return true;
+	return true;
 }
 
 
 bool
 VL53LXX::singleRefCalibration(uint8_t byte)
 {
-  	uint8_t val;
+	uint8_t val;
 
-  	writeRegister(SYSRANGE_START_REG, byte | 0x01); 		// VL53L0X_REG_SYSRANGE_MODE_START_STOP	
+	writeRegister(SYSRANGE_START_REG, byte | 0x01); 		// VL53L0X_REG_SYSRANGE_MODE_START_STOP
 
-  	do 
-  	{
-  		readRegister(RESULT_INTERRUPT_STATUS_REG, val);
-  	} 
-  	while ((val & 0x07) == 0);
+	do {
+		readRegister(RESULT_INTERRUPT_STATUS_REG, val);
+	} while ((val & 0x07) == 0);
 
-  	writeRegister(SYSTEM_INTERRUPT_CLEAR_REG, 0x01);
-  	writeRegister(SYSRANGE_START_REG, 0x00);
+	writeRegister(SYSTEM_INTERRUPT_CLEAR_REG, 0x01);
+	writeRegister(SYSRANGE_START_REG, 0x00);
 
-  	return true;
+	return true;
 }
 
 

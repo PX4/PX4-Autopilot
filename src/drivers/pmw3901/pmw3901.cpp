@@ -166,10 +166,10 @@ private:
 	// int					collect();
 
 	int 				readRegister(unsigned reg, uint8_t *data, unsigned count);
-  	int         		writeRegister(unsigned reg, uint8_t data);
+	int         		writeRegister(unsigned reg, uint8_t data);
 
 	int 				sensorInit();
-  	int        			readMotionCount(int16_t &deltaX, int16_t &deltaY);
+	int        			readMotionCount(int16_t &deltaX, int16_t &deltaY);
 
 	/**
 	* Static trampoline from the workq context; because we don't have a
@@ -246,7 +246,7 @@ PMW3901::sensorInit()
 	usleep(5000);
 
 	// Test the SPI communication, checking chipId and inverse chipId
-	if (data[0] != 0x49 && data[1] != 0xB8) return false;
+	if (data[0] != 0x49 && data[1] != 0xB8) { return false; }
 
 	// Reading the motion registers one time
 	readRegister(0x02, &data[0], 1);
@@ -259,85 +259,85 @@ PMW3901::sensorInit()
 
 	// set performance optimization registers
 	writeRegister(0x7F, 0x00);
- 	writeRegister(0x61, 0xAD);
-  	writeRegister(0x7F, 0x03);
-  	writeRegister(0x40, 0x00);
-  	writeRegister(0x7F, 0x05);
-  	writeRegister(0x41, 0xB3);
-  	writeRegister(0x43, 0xF1);
-  	writeRegister(0x45, 0x14);
-  	writeRegister(0x5B, 0x32);
-  	writeRegister(0x5F, 0x34);
-  	writeRegister(0x7B, 0x08);
-  	writeRegister(0x7F, 0x06);
-  	writeRegister(0x44, 0x1B);
-  	writeRegister(0x40, 0xBF);
-  	writeRegister(0x4E, 0x3F);
-  	writeRegister(0x7F, 0x08);
-  	writeRegister(0x65, 0x20);
-  	writeRegister(0x6A, 0x18);
-  	writeRegister(0x7F, 0x09);
-  	writeRegister(0x4F, 0xAF);
-  	writeRegister(0x5F, 0x40);
-  	writeRegister(0x48, 0x80);
-  	writeRegister(0x49, 0x80);
-  	writeRegister(0x57, 0x77);
-  	writeRegister(0x60, 0x78);
-  	writeRegister(0x61, 0x78);
-  	writeRegister(0x62, 0x08);
-  	writeRegister(0x63, 0x50);
-  	writeRegister(0x7F, 0x0A);
-  	writeRegister(0x45, 0x60);
-  	writeRegister(0x7F, 0x00);
-  	writeRegister(0x4D, 0x11);
-  	writeRegister(0x55, 0x80);
-  	writeRegister(0x74, 0x1F);
-  	writeRegister(0x75, 0x1F);
-  	writeRegister(0x4A, 0x78);
-  	writeRegister(0x4B, 0x78);
-  	writeRegister(0x44, 0x08);
-  	writeRegister(0x45, 0x50);
-  	writeRegister(0x64, 0xFF);
-  	writeRegister(0x65, 0x1F);
-  	writeRegister(0x7F, 0x14);
-  	writeRegister(0x65, 0x60);
-  	writeRegister(0x66, 0x08);
-  	writeRegister(0x63, 0x78);
-  	writeRegister(0x7F, 0x15);
-  	writeRegister(0x48, 0x58);
-  	writeRegister(0x7F, 0x07);
-  	writeRegister(0x41, 0x0D);
-  	writeRegister(0x43, 0x14);
-  	writeRegister(0x4B, 0x0E);
-  	writeRegister(0x45, 0x0F);
-  	writeRegister(0x44, 0x42);
-  	writeRegister(0x4C, 0x80);
-  	writeRegister(0x7F, 0x10);
-  	writeRegister(0x5B, 0x02);
-  	writeRegister(0x7F, 0x07);
-  	writeRegister(0x40, 0x41);
-  	writeRegister(0x70, 0x00);
+	writeRegister(0x61, 0xAD);
+	writeRegister(0x7F, 0x03);
+	writeRegister(0x40, 0x00);
+	writeRegister(0x7F, 0x05);
+	writeRegister(0x41, 0xB3);
+	writeRegister(0x43, 0xF1);
+	writeRegister(0x45, 0x14);
+	writeRegister(0x5B, 0x32);
+	writeRegister(0x5F, 0x34);
+	writeRegister(0x7B, 0x08);
+	writeRegister(0x7F, 0x06);
+	writeRegister(0x44, 0x1B);
+	writeRegister(0x40, 0xBF);
+	writeRegister(0x4E, 0x3F);
+	writeRegister(0x7F, 0x08);
+	writeRegister(0x65, 0x20);
+	writeRegister(0x6A, 0x18);
+	writeRegister(0x7F, 0x09);
+	writeRegister(0x4F, 0xAF);
+	writeRegister(0x5F, 0x40);
+	writeRegister(0x48, 0x80);
+	writeRegister(0x49, 0x80);
+	writeRegister(0x57, 0x77);
+	writeRegister(0x60, 0x78);
+	writeRegister(0x61, 0x78);
+	writeRegister(0x62, 0x08);
+	writeRegister(0x63, 0x50);
+	writeRegister(0x7F, 0x0A);
+	writeRegister(0x45, 0x60);
+	writeRegister(0x7F, 0x00);
+	writeRegister(0x4D, 0x11);
+	writeRegister(0x55, 0x80);
+	writeRegister(0x74, 0x1F);
+	writeRegister(0x75, 0x1F);
+	writeRegister(0x4A, 0x78);
+	writeRegister(0x4B, 0x78);
+	writeRegister(0x44, 0x08);
+	writeRegister(0x45, 0x50);
+	writeRegister(0x64, 0xFF);
+	writeRegister(0x65, 0x1F);
+	writeRegister(0x7F, 0x14);
+	writeRegister(0x65, 0x60);
+	writeRegister(0x66, 0x08);
+	writeRegister(0x63, 0x78);
+	writeRegister(0x7F, 0x15);
+	writeRegister(0x48, 0x58);
+	writeRegister(0x7F, 0x07);
+	writeRegister(0x41, 0x0D);
+	writeRegister(0x43, 0x14);
+	writeRegister(0x4B, 0x0E);
+	writeRegister(0x45, 0x0F);
+	writeRegister(0x44, 0x42);
+	writeRegister(0x4C, 0x80);
+	writeRegister(0x7F, 0x10);
+	writeRegister(0x5B, 0x02);
+	writeRegister(0x7F, 0x07);
+	writeRegister(0x40, 0x41);
+	writeRegister(0x70, 0x00);
 
-  	usleep(10000);
+	usleep(10000);
 
-  	writeRegister(0x32, 0x44);
-  	writeRegister(0x7F, 0x07);
-  	writeRegister(0x40, 0x40);
-  	writeRegister(0x7F, 0x06);
-  	writeRegister(0x62, 0xf0);
-  	writeRegister(0x63, 0x00);
-  	writeRegister(0x7F, 0x0D);
-  	writeRegister(0x48, 0xC0);
-  	writeRegister(0x6F, 0xd5);
-  	writeRegister(0x7F, 0x00);
-  	writeRegister(0x5B, 0xa0);
-  	writeRegister(0x4E, 0xA8);
-  	writeRegister(0x5A, 0x50);
-  	writeRegister(0x40, 0x80);
+	writeRegister(0x32, 0x44);
+	writeRegister(0x7F, 0x07);
+	writeRegister(0x40, 0x40);
+	writeRegister(0x7F, 0x06);
+	writeRegister(0x62, 0xf0);
+	writeRegister(0x63, 0x00);
+	writeRegister(0x7F, 0x0D);
+	writeRegister(0x48, 0xC0);
+	writeRegister(0x6F, 0xd5);
+	writeRegister(0x7F, 0x00);
+	writeRegister(0x5B, 0xa0);
+	writeRegister(0x4E, 0xA8);
+	writeRegister(0x5A, 0x50);
+	writeRegister(0x40, 0x80);
 
-  	ret = OK;
+	ret = OK;
 
-  	return ret;
+	return ret;
 
 }
 
@@ -351,7 +351,7 @@ PMW3901::init()
 		goto out;
 	}
 
-  	set_frequency(PMW3901_SPI_BUS_SPEED);
+	set_frequency(PMW3901_SPI_BUS_SPEED);
 
 	sensorInit();
 
@@ -365,17 +365,17 @@ PMW3901::init()
 	//_class_instance = register_class_devname(PMW3901_DEVICE_PATH);
 
 	//if (_class_instance == CLASS_DEVICE_PRIMARY) {               // change to optical flow topic
-		/* get a publish handle on the range finder topic */
-		// struct distance_sensor_s ds_report;
+	/* get a publish handle on the range finder topic */
+	// struct distance_sensor_s ds_report;
 
-		// _reports->get(&ds_report);
+	// _reports->get(&ds_report);
 
-		// _distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-		// 			 &_orb_class_instance, ORB_PRIO_LOW);
+	// _distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+	// 			 &_orb_class_instance, ORB_PRIO_LOW);
 
-		// if (_distance_sensor_topic == nullptr) {
-		// 	DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
-		// }
+	// if (_distance_sensor_topic == nullptr) {
+	// 	DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+	// }
 
 	//}
 
@@ -394,64 +394,64 @@ PMW3901::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-		case SENSORIOCSPOLLRATE: {
-				switch (arg) {
+	case SENSORIOCSPOLLRATE: {
+			switch (arg) {
 
-					case 0:
-						return -EINVAL;
+			case 0:
+				return -EINVAL;
 
-					case SENSOR_POLLRATE_DEFAULT: {
+			case SENSOR_POLLRATE_DEFAULT: {
 
-							/* do we need to start internal polling? */
-							bool want_start = (_measure_ticks == 0);
+					/* do we need to start internal polling? */
+					bool want_start = (_measure_ticks == 0);
 
-							/* set interval for next measurement to minimum legal value */
-							_measure_ticks = USEC2TICK(PMW3901_CONVERSION_INTERVAL);
+					/* set interval for next measurement to minimum legal value */
+					_measure_ticks = USEC2TICK(PMW3901_CONVERSION_INTERVAL);
 
-							/* if we need to start the poll state machine, do it */
-							if (want_start) {
-								start();
-							}
-
-							return OK;
+					/* if we need to start the poll state machine, do it */
+					if (want_start) {
+						start();
 					}
 
-					case SENSOR_POLLRATE_MANUAL: {
-						
-						stop();
-						_measure_ticks = 0;
-						return OK;
-					}
-
-					/* adjust to a legal polling interval in Hz */
-					default: {
-							/* do we need to start internal polling? */
-							bool want_start = (_measure_ticks == 0);
-
-							/* convert hz to tick interval via microseconds */
-							unsigned ticks = USEC2TICK(1000000 / arg);
-
-							/* check against maximum rate */
-							if (ticks < USEC2TICK(PMW3901_CONVERSION_INTERVAL)) {
-								return -EINVAL;
-							}
-
-							/* update interval for next measurement */
-							_measure_ticks = ticks;
-
-							/* if we need to start the poll state machine, do it */
-							if (want_start) {
-								start();
-							}
-
-							return OK;
-					}
+					return OK;
 				}
+
+			case SENSOR_POLLRATE_MANUAL: {
+
+					stop();
+					_measure_ticks = 0;
+					return OK;
+				}
+
+			/* adjust to a legal polling interval in Hz */
+			default: {
+					/* do we need to start internal polling? */
+					bool want_start = (_measure_ticks == 0);
+
+					/* convert hz to tick interval via microseconds */
+					unsigned ticks = USEC2TICK(1000000 / arg);
+
+					/* check against maximum rate */
+					if (ticks < USEC2TICK(PMW3901_CONVERSION_INTERVAL)) {
+						return -EINVAL;
+					}
+
+					/* update interval for next measurement */
+					_measure_ticks = ticks;
+
+					/* if we need to start the poll state machine, do it */
+					if (want_start) {
+						start();
+					}
+
+					return OK;
+				}
+			}
 		}
 
-		default:
-			/* give it to the superclass */
-			return SPI::ioctl(filp, cmd, arg);
+	default:
+		/* give it to the superclass */
+		return SPI::ioctl(filp, cmd, arg);
 	}
 }
 
@@ -515,7 +515,7 @@ PMW3901::readRegister(unsigned reg, uint8_t *data, unsigned count)
 
 	cmd[0] = DIR_READ(reg);
 
-	ret = transfer(&cmd[0], &cmd[0], count+1);
+	ret = transfer(&cmd[0], &cmd[0], count + 1);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -563,7 +563,7 @@ PMW3901::collect()
 	int16_t delta_x_raw, delta_y_raw;
 	float delta_x, delta_y;
 
-  	perf_begin(_sample_perf);
+	perf_begin(_sample_perf);
 
 	uint64_t timestamp = hrt_absolute_time();
 	uint64_t dt_flow = timestamp - _previous_collect_timestamp;
@@ -590,6 +590,7 @@ PMW3901::collect()
 	if (_optical_flow_pub == nullptr) {
 
 		_optical_flow_pub = orb_advertise(ORB_ID(optical_flow), &report);
+
 	} else {
 
 		orb_publish(ORB_ID(optical_flow), _optical_flow_pub, &report);
@@ -601,21 +602,22 @@ PMW3901::collect()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-  	ret = OK;
+	ret = OK;
 
 	perf_end(_sample_perf);
-  	return ret;
+	return ret;
 
 }
 
 
-int 
+int
 PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
 {
 	int ret;
 
-	uint8_t data[10] = { DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0, 
-						DIR_READ(0x05), 0, DIR_READ(0x06), 0 };
+	uint8_t data[10] = { DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0,
+			     DIR_READ(0x05), 0, DIR_READ(0x06), 0
+			   };
 
 	ret = transfer(&data[0], &data[0], 10);
 
@@ -815,7 +817,7 @@ test()
 	// 	errx(1, "failed to set 2Hz poll rate");
 	// }
 
-	for(int i = 0; i < 10000; i++){
+	for (int i = 0; i < 10000; i++) {
 		g_dev->collect();
 		usleep(10000);
 	}
