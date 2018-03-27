@@ -333,8 +333,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s",
-					     arming_state_names[status->arming_state], arming_state_names[new_arming_state]);
+			mavlink_log_critical(mavlink_log_pub, "DENIED: %s to %s", arming_state_names[status->arming_state], arming_state_names[new_arming_state]);
 		}
 	}
 
