@@ -2854,7 +2854,7 @@ Commander::run()
 											   (link_loss_actions_t)datalink_loss_act,
 											   _mission_result_sub.get().finished,
 											   _mission_result_sub.get().stay_in_failsafe,
-											   &status_flags,
+											   status_flags,
 											   land_detector.landed,
 											   (link_loss_actions_t)rc_loss_act,
 											   offboard_loss_act,
