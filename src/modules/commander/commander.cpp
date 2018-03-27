@@ -44,18 +44,16 @@
 
 #include "Commander.hpp"
 
-#include <cmath>	// NAN
-
 /* commander module headers */
 #include "accelerometer_calibration.h"
 #include "airspeed_calibration.h"
+#include "arm_auth.h"
 #include "baro_calibration.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "mag_calibration.h"
-#include "arm_auth.h"
 #include "PreflightCheck.h"
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"
@@ -68,35 +66,29 @@
 #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <navigator/navigation.h>
-#include <px4_defines.h>
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_shutdown.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/err.h>
+#include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
-#include <float.h>
-#include <systemlib/hysteresis/hysteresis.h>
 
-#include <board_config.h>
+#include <cmath>
+#include <cfloat>
+#include <cstring>
 
-#include <sys/stat.h>
-#include <string.h>
-#include <math.h>
-#include <poll.h>
-#include <float.h>
-#include <matrix/math.hpp>
-
-#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -104,8 +96,8 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/power_button_state.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/power_button_state.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
@@ -117,7 +109,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/estimator_status.h>
+#include <uORB/uORB.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
