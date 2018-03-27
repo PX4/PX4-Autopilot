@@ -68,19 +68,19 @@
 using namespace DriverFramework;
 #endif
 
-static const char reason_no_rc[] = "no RC";
-static const char reason_no_offboard[] = "no offboard";
-static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
-static const char reason_no_local_position[] = "no local position";
-static const char reason_no_global_position[] = "no global position";
-static const char reason_no_datalink[] = "no datalink";
+static constexpr const char reason_no_rc[] = "no RC";
+static constexpr const char reason_no_offboard[] = "no offboard";
+static constexpr const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
+static constexpr const char reason_no_local_position[] = "no local position";
+static constexpr const char reason_no_global_position[] = "no global position";
+static constexpr const char reason_no_datalink[] = "no datalink";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current state you can index into the array which
 // will be true for a valid transition or false for a invalid transition. In some cases even
 // though the transition is marked as true additional checks must be made. See arming_state_transition
 // code for those checks.
-static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX] = {
+static constexpr const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX] = {
 	//                                                    INIT,  STANDBY, ARMED, ARMED_ERROR, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
 	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, false,       true,          false,  false },
 	{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  true,        false,         false,  false },
