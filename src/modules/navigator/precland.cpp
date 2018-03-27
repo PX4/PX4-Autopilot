@@ -116,7 +116,7 @@ PrecLand::on_active()
 		_target_pose_valid = true;
 	}
 
-	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e-6f) > _param_timeout.get()) {
+	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e6f) > _param_timeout.get()) {
 		_target_pose_valid = false;
 	}
 
