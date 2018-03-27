@@ -100,8 +100,8 @@ private:
 
 	landing_target_pose_s _target_pose{}; /**< precision landing target position */
 
-	int _targetPoseSub{-1};
-	bool _target_pose_valid{false}; /**< wether we have received a landing target position message */
+	int _target_pose_sub{-1};
+	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
 
 	struct map_projection_reference_s _map_ref {}; /**< reference for local/global projections */
 
