@@ -69,7 +69,7 @@ void
 PrecLand::on_activation()
 {
 	// We need to subscribe here and not in the constructor because constructor is called before the navigator task is spawned
-	if (!_target_pose_sub) {
+	if (_target_pose_sub < 0) {
 		_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
 	}
 
