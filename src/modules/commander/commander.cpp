@@ -410,10 +410,10 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "check")) {
 		int checkres = 0;
-		checkres = prearm_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery, ARM_REQ_GPS_BIT, hrt_elapsed_time(&commander_boot_timestamp));
+		checkres = prearm_check(&mavlink_log_pub, false, true, &status_flags, battery, ARM_REQ_GPS_BIT, hrt_elapsed_time(&commander_boot_timestamp));
 		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
 
-		checkres = prearm_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+		checkres = prearm_check(&mavlink_log_pub, true, true, &status_flags, battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 
 		return 0;
@@ -622,8 +622,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 	// Transition the armed state. By passing mavlink_log_pub to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
 	arming_res = arming_state_transition(&status,
-					     &battery,
-					     &safety,
+					     battery,
+					     safety,
 					     arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY,
 					     &armed,
 					     true /* fRunPreArmChecks */,
@@ -1854,17 +1854,10 @@ Commander::run()
 					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
 
-					if (TRANSITION_CHANGED == arming_state_transition(&status,
-											  &battery,
-											  &safety,
-											  new_arming_state,
-											  &armed,
-											  true /* fRunPreArmChecks */,
-											  &mavlink_log_pub,
-											  &status_flags,
-											  avionics_power_rail_voltage,
-											  arm_requirements,
-											  hrt_elapsed_time(&commander_boot_timestamp))) {
+					if (TRANSITION_CHANGED == arming_state_transition(&status, battery, safety, new_arming_state, &armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
+															&status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))
+					) {
+						status_changed = true;
 					}
 				}
 
@@ -2223,17 +2216,10 @@ Commander::run()
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
-			arming_ret = arming_state_transition(&status,
-							     &battery,
-							     &safety,
-							     vehicle_status_s::ARMING_STATE_STANDBY,
-							     &armed,
-							     true /* fRunPreArmChecks */,
-							     &mavlink_log_pub,
-							     &status_flags,
-							     avionics_power_rail_voltage,
-							     arm_requirements,
-							     hrt_elapsed_time(&commander_boot_timestamp));
+
+			arming_ret = arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+									true /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags, avionics_power_rail_voltage,
+									arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 			if (arming_ret == TRANSITION_DENIED) {
 				/* do not complain if not allowed into standby */
@@ -2453,17 +2439,8 @@ Commander::run()
 					print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
 
 				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
-					arming_ret = arming_state_transition(&status,
-									     &battery,
-									     &safety,
-									     vehicle_status_s::ARMING_STATE_STANDBY,
-									     &armed,
-									     true /* fRunPreArmChecks */,
-									     &mavlink_log_pub,
-									     &status_flags,
-									     avionics_power_rail_voltage,
-									     arm_requirements,
-									     hrt_elapsed_time(&commander_boot_timestamp));
+					arming_ret = arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
+													&mavlink_log_pub, &status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 				}
 				stick_off_counter++;
 			/* do not reset the counter when holding the arm button longer than needed */
@@ -2503,17 +2480,8 @@ Commander::run()
 						print_reject_arm("NOT ARMING: Geofence RTL requires valid home");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-						arming_ret = arming_state_transition(&status,
-										     &battery,
-										     &safety,
-										     vehicle_status_s::ARMING_STATE_ARMED,
-										     &armed,
-										     true /* fRunPreArmChecks */,
-										     &mavlink_log_pub,
-										     &status_flags,
-										     avionics_power_rail_voltage,
-										     arm_requirements,
-										     hrt_elapsed_time(&commander_boot_timestamp));
+						arming_ret = arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed, true /* fRunPreArmChecks */,
+												&mavlink_log_pub, &status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 						if (arming_ret != TRANSITION_CHANGED) {
 							usleep(100000);
@@ -4010,17 +3978,9 @@ void *commander_low_prio_loop(void *arg)
 					int calib_ret = PX4_ERROR;
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (TRANSITION_DENIED == arming_state_transition(&status,
-											 &battery,
-											 &safety,
-											 vehicle_status_s::ARMING_STATE_INIT,
-											 &armed,
-											 false /* fRunPreArmChecks */,
-											 &mavlink_log_pub,
-											 &status_flags,
-											 avionics_power_rail_voltage,
-											 arm_requirements,
-											 hrt_elapsed_time(&commander_boot_timestamp))) {
+					if (TRANSITION_DENIED == arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_INIT, &armed,
+													false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags, avionics_power_rail_voltage,
+													arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))) {
 
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
 						break;
@@ -4117,17 +4077,8 @@ void *commander_low_prio_loop(void *arg)
 							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), arm_requirements & ARM_REQ_GPS_BIT,
 							true, is_vtol(&status), hotplug_timeout, false, hrt_elapsed_time(&commander_boot_timestamp));
 
-						arming_state_transition(&status,
-									&battery,
-									&safety,
-									vehicle_status_s::ARMING_STATE_STANDBY,
-									&armed,
-									false /* fRunPreArmChecks */,
-									&mavlink_log_pub,
-									&status_flags,
-									avionics_power_rail_voltage,
-									arm_requirements,
-									hrt_elapsed_time(&commander_boot_timestamp));
+						arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, false /* fRunPreArmChecks */,
+								&mavlink_log_pub, &status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 					} else {
 						tune_negative(true);

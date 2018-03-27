@@ -261,7 +261,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
         armed.ready_to_arm = test->current_state.ready_to_arm;
 
         // Attempt transition
-        transition_result_t result = arming_state_transition(&status, &battery, &safety, test->requested_state, &armed,
+        transition_result_t result = arming_state_transition(&status, battery, safety, test->requested_state, &armed,
 				false /* no pre-arm checks */,
 				nullptr /* no mavlink_log_pub */,
 				&status_flags,

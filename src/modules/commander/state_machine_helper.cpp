@@ -96,16 +96,16 @@ void set_link_loss_nav_state(vehicle_status_s *status,
 void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, const link_loss_actions_t link_loss_act);
 
 transition_result_t arming_state_transition(vehicle_status_s *status,
-                                            battery_status_s *battery,
-                                            const struct safety_s *safety,
-                                            arming_state_t new_arming_state,
+                                            const battery_status_s& battery,
+                                            const safety_s& safety,
+                                            const arming_state_t new_arming_state,
                                             actuator_armed_s *armed,
-                                            bool fRunPreArmChecks,
+                                            const bool fRunPreArmChecks,
                                             orb_advert_t *mavlink_log_pub,	///< uORB handle for mavlink log
                                             vehicle_status_flags_s *status_flags,
-                                            float avionics_power_rail_voltage,
-                                            uint8_t arm_requirements,
-                                            hrt_abstime time_since_boot)
+                                            const float avionics_power_rail_voltage,
+                                            const uint8_t arm_requirements,
+                                            const hrt_abstime& time_since_boot)
 {
 	// Double check that our static arrays are still valid
 	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
@@ -146,9 +146,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 			    arm_requirements & ARM_REQ_GPS_BIT, true, status->is_vtol, true, true, time_since_boot);
 
 
-			prearm_ret = prearm_check(status, mavlink_log_pub, true /* pre-arm */, false /* force_report */,
-						     status_flags, battery, arm_requirements,
-						     time_since_boot);
+			prearm_ret = prearm_check(mavlink_log_pub, true /* pre-arm */, false /* force_report */,
+						     status_flags, battery, arm_requirements, time_since_boot);
 
 			if (!preflight_check) {
 				prearm_ret = false;
@@ -219,7 +218,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 
 						// Fail transition if we need safety switch press
 
-					} else if (safety->safety_switch_available && !safety->safety_off) {
+					} else if (safety.safety_switch_available && !safety.safety_off) {
 
 						mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
@@ -1045,9 +1044,9 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 	}
 }
 
-int prearm_check(vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report,
-		    vehicle_status_flags_s *status_flags, battery_status_s *battery, uint8_t arm_requirements,
-		    hrt_abstime time_since_boot)
+int prearm_check(orb_advert_t *mavlink_log_pub, const bool prearm, const bool force_report,
+		    vehicle_status_flags_s *status_flags, const battery_status_s& battery, const uint8_t arm_requirements,
+		    const hrt_abstime& time_since_boot)
 {
 	bool reportFailures = force_report || (!status_flags->condition_system_prearm_error_reported &&
 					       status_flags->condition_system_hotplug_timeout);
@@ -1061,7 +1060,7 @@ int prearm_check(vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool p
 		}
 	}
 
-	if (!status_flags->circuit_breaker_engaged_power_check && battery->warning >= battery_status_s::BATTERY_WARNING_LOW) {
+	if (!status_flags->circuit_breaker_engaged_power_check && battery.warning >= battery_status_s::BATTERY_WARNING_LOW) {
 		prearm_ok = false;
 
 		if (reportFailures) {
