@@ -1843,10 +1843,7 @@ Commander::run()
 				if (armed.armed && (status.hil_state == vehicle_status_s::HIL_STATE_OFF)
 					&& safety.safety_switch_available && !safety.safety_off) {
 
-					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
-									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
-
-					if (TRANSITION_CHANGED == arming_state_transition(&status, battery, safety, new_arming_state, &armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
+					if (TRANSITION_CHANGED == arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
 															&status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))
 					) {
 						status_changed = true;
