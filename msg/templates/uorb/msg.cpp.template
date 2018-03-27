@@ -83,6 +83,6 @@ void print_message(const @uorb_struct& message)
     printf(" @(uorb_struct)\n");
 	printf("\ttimestamp: %" PRIu64 " (%.6f seconds ago)\n", message.timestamp, hrt_elapsed_time(&message.timestamp) / 1e6);
 @[for field in sorted_fields]@
-	@( px4_printf(field) )
+	@( print_field(field) )
 @[end for]
 }
