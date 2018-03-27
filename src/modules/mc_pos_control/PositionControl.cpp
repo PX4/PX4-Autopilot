@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,13 +33,6 @@
 
 /**
  * @file PositionControl.cpp
- *
- * This file implements a P-position-control cascaded with a
- * PID-velocity-controller.
- *
- * Inputs: vehicle states (pos, vel, q)
- *         desired setpoints (pos, vel, thrust, yaw)
- * Outputs: thrust and yaw setpoint
  */
 
 #include "PositionControl.hpp"
@@ -69,7 +62,7 @@ PositionControl::PositionControl()
 	_ThrMinStab_h = param_find("MPC_MANTHR_MIN");
 	_parameter_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	/* Set parameter the very first time. */
+	// set parameter the very first time
 	_setParams();
 };
 
@@ -91,9 +84,8 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 	_yawspeed_sp = setpoint.yawspeed;
 	_interfaceMapping();
 
-	/* If full manual is required (thrust already generated), don't run position/velocity
-	 * controller and just return thrust.
-	 */
+	// If full manual is required (thrust already generated), don't run position/velocity
+	// controller and just return thrust.
 	_skipController = false;
 	_ThrustLimit.min = _ThrMinPosition;
 
@@ -109,9 +101,8 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 void PositionControl::generateThrustYawSetpoint(const float &dt)
 {
 
-	/* Only run position/velocity controller
-	 * if thrust needs to be generated
-	 */
+	// Only run position/velocity controller
+	// if thrust needs to be generated.
 	if (!_skipController) {
 		_positionController();
 		_velocityController(dt);
@@ -120,44 +111,40 @@ void PositionControl::generateThrustYawSetpoint(const float &dt)
 
 void PositionControl::_interfaceMapping()
 {
-	/* Respects FlightTask interface, where
-	 * NAN-setpoints are of no interest and
-	 * do not require control.
-	 */
-
-	/* Loop through x,y and z components of all setpoints. */
+	// Respects FlightTask interface, where NAN-set-points are of no interest
+	// and do not require control. A valide position and velocity setpoint will
+	// be mapped to a desired position setpoint with a feed-forward term.
 	for (int i = 0; i <= 2; i++) {
 
 		if (PX4_ISFINITE(_pos_sp(i))) {
-
-			/* Position control is required */
+			// Position control is required
 
 			if (!PX4_ISFINITE(_vel_sp(i))) {
-				/* Velocity is not used as feedforward term. */
+				// Velocity is not used as feedforward term.
 				_vel_sp(i) = 0.0f;
 			}
 
-			/* thrust setpoint is not supported
-			 * in position control
-			 */
+			// thrust setpoint is not supported in position control
 			_thr_sp(i) = 0.0f;
 
 		} else if (PX4_ISFINITE(_vel_sp(i))) {
 
-			/* Velocity controller is active without
-			 * position control.
-			 */
+			// Velocity controller is active without position control.
+			// Set the desired position set-point equal to current position
+			// such that error is zero.
 			_pos_sp(i) = _pos(i);
+			// thrust setpoint is not supported in position control
 			_thr_sp(i) = 0.0f;
 
 		} else if (PX4_ISFINITE(_thr_sp(i))) {
 
-			/* Thrust setpoint was generated from
-			 * stick directly.
-			 */
+			// Thrust setpoint was generated from sticks directly.
+			// Set all other set-points equal MC states.
 			_pos_sp(i) = _pos(i);
 			_vel_sp(i) = _vel(i);
+			// Reset the Integral term.
 			_thr_int(i) = 0.0f;
+			// Don't require velocity derivative.
 			_vel_dot(i) = 0.0f;
 
 		} else {
@@ -166,67 +153,71 @@ void PositionControl::_interfaceMapping()
 	}
 
 	if (!PX4_ISFINITE(_yawspeed_sp)) {
+		// Set the yawspeed to 0 since not used.
 		_yawspeed_sp = 0.0f;
 	}
 
 	if (!PX4_ISFINITE(_yaw_sp)) {
+		// Set the yaw-sp eaual the current yaw.
+		// That is the best we can do and it also
+		// agrees with FlightTask-interface definition.
 		_yaw_sp = _yaw;
 	}
 }
 
 void PositionControl::_positionController()
 {
-	/* Generate desired velocity setpoint */
-
-	/* P-controller */
+	// P-position controller
 	Vector3f vel_sp_position = (_pos_sp - _pos).emult(Pp);
 	_vel_sp = vel_sp_position + _vel_sp;
 
-
+	// Constrain horizontal velocity by prioritizing the velocity component along the
+	// the desired position setpoint over the feed-forward term.
 	Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(&vel_sp_position(0)), Vector2f(&(_vel_sp - vel_sp_position)(0)),
 			     _VelMaxXY);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
+	// Constrain velocity in z-directio.
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ.up, _VelMaxZ.down);
 }
 
 void PositionControl::_velocityController(const float &dt)
 {
-	/* Generate desired thrust setpoint */
-	/* PID
-	 * u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral)
-	 * Umin <= u_des <= Umax
-	 *
-	 * Anti-Windup:
-	 * u_des = _thr_sp; r = _vel_sp; y = _vel
-	 * u_des >= Umax and r - y >= 0 => Saturation = true
-	 * u_des >= Umax and r - y <= 0 => Saturation = false
-	 * u_des <= Umin and r - y <= 0 => Saturation = true
-	 * u_des <= Umin and r - y >= 0 => Saturation = false
-	 *
-	 *	Notes:
-	 * - PID implementation is in NED-frame
-	 * - control output in D-direction has priority over NE-direction
-	 * - the equilibrium point for the PID is at hover-thrust
-	 * - the maximum tilt cannot exceed 90 degrees. This means that it is
-	 * 	 not possible to have a desired thrust direction pointing in the positive
-	 * 	 D-direction (= downward)
-	 * - the desired thrust in D-direction is limited by the thrust limits
-	 * - the desired thrust in NE-direction is limited by the thrust excess after
-	 * 	 consideration of the desired thrust in D-direction. In addition, the thrust in
-	 * 	 NE-direction is also limited by the maximum tilt.
-	 */
+
+	// Generate desired thrust setpoint.
+	// PID
+	// u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral)
+	// Umin <= u_des <= Umax
+	//
+	// Anti-Windup:
+	// u_des = _thr_sp; r = _vel_sp; y = _vel
+	// u_des >= Umax and r - y >= 0 => Saturation = true
+	// u_des >= Umax and r - y <= 0 => Saturation = false
+	// u_des <= Umin and r - y <= 0 => Saturation = true
+	// u_des <= Umin and r - y >= 0 => Saturation = false
+	//
+	// 	Notes:
+	// - PID implementation is in NED-frame
+	// - control output in D-direction has priority over NE-direction
+	// - the equilibrium point for the PID is at hover-thrust
+	// - the maximum tilt cannot exceed 90 degrees. This means that it is
+	// 	 not possible to have a desired thrust direction pointing in the positive
+	// 	 D-direction (= downward)
+	// - the desired thrust in D-direction is limited by the thrust limits
+	// - the desired thrust in NE-direction is limited by the thrust excess after
+	// 	 consideration of the desired thrust in D-direction. In addition, the thrust in
+	// 	 NE-direction is also limited by the maximum tilt.
 
 	Vector3f vel_err = _vel_sp - _vel;
 
-	/* Consider thrust in D-direction */
+	// Consider thrust in D-direction.
 	float thrust_desired_D = Pv(2) * vel_err(2) + Dv(2) * _vel_dot(2) + _thr_int(2) - _ThrHover;
 
-	/* The Thrust limits are negated and swapped due to NED-frame */
+	// The Thrust limits are negated and swapped due to NED-frame.
 	float uMax = -_ThrustLimit.min;
 	float uMin = -_ThrustLimit.max;
 
-	/* Apply Anti-Windup in D-direction */
+	// Apply Anti-Windup in D-direction.
 	bool stop_integral_D = (thrust_desired_D >= uMax && vel_err(2) >= 0.0f) ||
 			       (thrust_desired_D <= uMin && vel_err(2) <= 0.0f);
 
@@ -235,35 +226,31 @@ void PositionControl::_velocityController(const float &dt)
 
 	}
 
-	/* Saturate thrust setpoint in D-direction */
+	// Saturate thrust setpoint in D-direction.
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
 	if (fabsf(_thr_sp(0)) + fabsf(_thr_sp(1))  > FLT_EPSILON) {
-
-		/* Thrust setpoints in NE-direction is already provided. Only
-		 * scaling is required.
-		 */
-
+		// Thrust set-point in NE-direction is already provided. Only
+		// scaling by the maximum tilt is required.
 		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(_tilt_max);
 		_thr_sp(0) *= thr_xy_max;
 		_thr_sp(1) *= thr_xy_max;
 
 	} else {
-
-		/* PID for NE-direction */
+		// PID-velocity controller for NE-direction.
 		Vector2f thrust_desired_NE;
 		thrust_desired_NE(0) = Pv(0) * vel_err(0) + Dv(0) * _vel_dot(0) + _thr_int(0);
 		thrust_desired_NE(1) = Pv(1) * vel_err(1) + Dv(1) * _vel_dot(1) + _thr_int(1);
 
-		/* Get maximum allowed thrust in NE based on tilt and excess thrust */
+		// Get maximum allowed thrust in NE based on tilt and excess thrust.
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_tilt_max);
 		float thrust_max_NE = sqrtf(_ThrustLimit.max * _ThrustLimit.max - _thr_sp(2) * _thr_sp(2));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
-		/* Get the direction of (r-y) in NE-direction */
+		// Get the direction of (r-y) in NE-direction.
 		float direction_NE = Vector2f(&vel_err(0)) * Vector2f(&_vel_sp(0));
 
-		/* Apply Anti-Windup in NE-direction */
+		// Apply Anti-Windup in NE-direction.
 		bool stop_integral_NE = (thrust_desired_NE * thrust_desired_NE >= thrust_max_NE * thrust_max_NE &&
 					 direction_NE >= 0.0f);
 
@@ -272,7 +259,7 @@ void PositionControl::_velocityController(const float &dt)
 			_thr_int(1) += vel_err(1) * Iv(1) * dt;
 		}
 
-		/* Saturate thrust in NE-direction */
+		// Saturate thrust in NE-direction.
 		_thr_sp(0) = thrust_desired_NE(0);
 		_thr_sp(1) = thrust_desired_NE(1);
 
@@ -289,10 +276,18 @@ void PositionControl::updateConstraints(const Controller::Constraints &constrain
 {
 	// update all parameters since they might have changed
 	_updateParams();
+
 	// maximum tilt cannot exceed 90 degrees
-	_tilt_max = math::min(constraints.tilt_max, M_PI_2_F);
+	_tilt_max = M_PI_2_F;
+
+	if (PX4_ISFINITE(constraints.tilt_max)) {
+		_tilt_max = math::min(constraints.tilt_max, _tilt_max);
+	}
+
 	// maximum velocity upwards cannot exceed global limit
-	_VelMaxZ.up = math::min(constraints.vel_max_z_up, _VelMaxZ.up);
+	if (PX4_ISFINITE(constraints.vel_max_z_up)) {
+		_VelMaxZ.up = math::min(constraints.vel_max_z_up, _VelMaxZ.up);
+	}
 }
 
 void PositionControl::_updateParams()
