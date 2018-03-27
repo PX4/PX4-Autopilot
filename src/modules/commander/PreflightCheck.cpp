@@ -570,7 +570,7 @@ out:
 }
 
 bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool checkAirspeed, bool checkRC, bool checkGNSS,
-		    bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, hrt_abstime time_since_boot)
+		    bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, const hrt_abstime& time_since_boot)
 {
 
 	if (time_since_boot < 2000000) {
