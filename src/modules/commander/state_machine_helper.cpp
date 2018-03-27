@@ -64,14 +64,13 @@ static constexpr const char reason_no_datalink[] = "no datalink";
 // though the transition is marked as true additional checks must be made. See arming_state_transition
 // code for those checks.
 static constexpr const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX] = {
-	//                                                    INIT,  STANDBY, ARMED, ARMED_ERROR, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
-	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, false,       true,          false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  true,        false,         false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,       false,         false,  true },
-	{ /* vehicle_status_s::ARMING_STATE_ARMED_ERROR */    false, false,   true,  true,        false,         false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    true,  true,        true,          false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_REBOOT */         true,  true,    false, false,       true,          true,   true },
-	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,       false,         false,  false }, // NYI
+	//                                                    INIT,  STANDBY, ARMED, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
+	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, true,          false,  false },
+	{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  false,         false,  false },
+	{ /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,         false,  true },
+	{ /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    true,  true,          false,  false },
+	{ /* vehicle_status_s::ARMING_STATE_REBOOT */         true,  true,    false, true,          true,   true },
+	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,         false,  false }, // NYI
 };
 
 // You can index into the array with an arming_state_t in order to get its textual representation
@@ -79,7 +78,6 @@ const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_INIT",
 	"ARMING_STATE_STANDBY",
 	"ARMING_STATE_ARMED",
-	"ARMING_STATE_ARMED_ERROR",
 	"ARMING_STATE_STANDBY_ERROR",
 	"ARMING_STATE_REBOOT",
 	"ARMING_STATE_IN_AIR_RESTORE",
@@ -258,10 +256,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 						}
 					}
 				}
-
-			} else if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY
-				   && status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) {
-				new_arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
 			}
 		}
 
@@ -325,8 +319,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 
 		// Finish up the state transition
 		if (valid_transition) {
-			armed->armed = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
-				       || new_arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR;
+			armed->armed = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			armed->ready_to_arm = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
 					      || new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY;
 			ret = TRANSITION_CHANGED;
@@ -592,8 +585,7 @@ bool set_nav_state(vehicle_status_s *status,
 	const bool rc_loss_act_configured = rc_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_lost = rc_loss_act_configured && (status->rc_signal_lost);
 
-	bool is_armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED
-			 || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+	bool is_armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 	bool old_failsafe = status->failsafe;
 	status->failsafe = false;
 
