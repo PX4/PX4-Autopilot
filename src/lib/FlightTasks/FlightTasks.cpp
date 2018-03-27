@@ -45,31 +45,31 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		return 0;
 
 	case FlightTaskIndex::Stabilized:
-		_current_task = new (&_task_union.stabilized) FlightTaskManualStabilized(this, "MANSTAB");
+		_current_task = new (&_task_union.stabilized) FlightTaskManualStabilized();
 		break;
 
 	case FlightTaskIndex::Altitude:
-		_current_task = new (&_task_union.altitude) FlightTaskManualAltitude(this, "MANALT");
+		_current_task = new (&_task_union.altitude) FlightTaskManualAltitude();
 		break;
 
 	case FlightTaskIndex::AltitudeSmooth:
-		_current_task = new (&_task_union.altitude_smooth) FlightTaskManualAltitudeSmooth(this, "MANALTSM");
+		_current_task = new (&_task_union.altitude_smooth) FlightTaskManualAltitudeSmooth();
 		break;
 
 	case FlightTaskIndex::Position:
-		_current_task = new (&_task_union.position) FlightTaskManualPosition(this, "MANPOS");
+		_current_task = new (&_task_union.position) FlightTaskManualPosition();
 		break;
 
 	case FlightTaskIndex::PositionSmooth:
-		_current_task = new (&_task_union.position_smooth) FlightTaskManualPositionSmooth(this, "MANPOSSM");
+		_current_task = new (&_task_union.position_smooth) FlightTaskManualPositionSmooth();
 		break;
 
 	case FlightTaskIndex::Orbit:
-		_current_task = new (&_task_union.orbit) FlightTaskOrbit(this, "ORB");
+		_current_task = new (&_task_union.orbit) FlightTaskOrbit();
 		break;
 
 	case FlightTaskIndex::Sport:
-		_current_task = new (&_task_union.sport) FlightTaskSport(this, "SPO");
+		_current_task = new (&_task_union.sport) FlightTaskSport();
 		break;
 
 	default:
@@ -109,6 +109,13 @@ int FlightTasks::switchTask(int new_task_index)
 
 	switchTask(FlightTaskIndex::None);
 	return -1;
+}
+
+void FlightTasks::handleParameterUpdate()
+{
+	if (_current_task) {
+		_current_task->handleParameterUpdate();
+	}
 }
 
 void FlightTasks::_updateCommand()
