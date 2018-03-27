@@ -507,6 +507,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
+	sp->time_inside = item.time_inside;
 
 	switch (item.nav_cmd) {
 	case NAV_CMD_IDLE:
