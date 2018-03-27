@@ -644,7 +644,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 }
 
 bool
-Commander::handle_command(vehicle_status_s *status_local, const safety_s& safety_local,
+Commander::handle_command(vehicle_status_s *status_local,
 		    const vehicle_command_s& cmd, actuator_armed_s *armed_local,
 		    home_position_s *home, const vehicle_global_position_s& global_pos,
 		    const vehicle_local_position_s& local_pos, orb_advert_t *home_pub,
@@ -2728,7 +2728,7 @@ Commander::run()
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			if (handle_command(&status, safety, cmd, &armed, &_home, global_position, local_position, &home_pub, &command_ack_pub, &status_changed)) {
+			if (handle_command(&status, cmd, &armed, &_home, global_position, local_position, &home_pub, &command_ack_pub, &status_changed)) {
 				status_changed = true;
 			}
 		}
