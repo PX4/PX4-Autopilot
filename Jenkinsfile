@@ -88,6 +88,34 @@ pipeline {
           builds["eagle (linux)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'posix_eagle_default')
           builds["eagle (qurt)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'qurt_eagle_default')
 
+          // MAC OS posix_sitl_default
+          builds["sitl (OSX)"] = {
+            node('mac') {
+              stage("sitl (OSX)") {
+                checkout scm
+                sh "export"
+                sh "make distclean"
+                sh "ccache -z"
+                sh "make posix_sitl_default"
+                sh "ccache -s"
+              }
+            }
+          }
+
+          // MAC OS nuttx_px4fmu-v4pro_default
+          builds["px4fmu-v4pro (OSX)"] = {
+            node('mac') {
+              stage("px4fmu-v4pro (OSX)") {
+                checkout scm
+                sh "export"
+                sh "make distclean"
+                sh "ccache -z"
+                sh "make nuttx_px4fmu-v4pro_default"
+                sh "ccache -s"
+              }
+            }
+          }
+
           parallel builds
         } // script
       } // steps
