@@ -27,12 +27,13 @@ addons:
     - cmake
     - g++
     - gcc
+    - lcov
 
 install:
   - if [ "${CMAKE_BUILD_TYPE}" = "Coverage" ]; then pip install --user cpp-coveralls; fi
 
 script:
-  - cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DTESTING=ON -DFORMAT=${FORMAT} .
+  - cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DSUPPORT_STDIOSTREAM=ON -DTESTING=ON -DFORMAT=${FORMAT} .
   - make check
 
 after_success:

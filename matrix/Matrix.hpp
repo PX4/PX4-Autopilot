@@ -297,7 +297,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                if (fabs(self(i, j) - other(i, j) > eps) ) {
+                if (fabs(self(i, j) - other(i, j)) > eps) {
                     return false;
                 }
             }

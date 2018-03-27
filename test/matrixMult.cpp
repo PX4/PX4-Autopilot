@@ -7,6 +7,14 @@ int main()
 {
     float data[9] = {1, 0, 0, 0, 1, 0, 1, 0, 1};
     Matrix3f A(data);
+
+    const Matrix3f Const(data);
+    const float * raw_data = Const.data();
+    const float eps = 1e-4f;
+    for (int i=0; i<9; i++) {
+        TEST(fabs(raw_data[i] - data[i]) < eps);
+    }
+
     float data_check[9] = {1, 0, 0, 0, 1, 0, -1, 0, 1};
     Matrix3f A_I(data_check);
     Matrix3f I;
@@ -18,7 +26,8 @@ int main()
     R2 *= A_I;
     TEST(isEqual(R2, I));
 
-
+    TEST(R2==I);
+    TEST(A!=A_I);
     Matrix3f A2 = eye<float, 3>()*2;
     Matrix3f B = A2.emult(A2);
     Matrix3f B_check = eye<float, 3>()*4;

@@ -1,11 +1,28 @@
 #include "test_macros.hpp"
 #include <matrix/math.hpp>
+#include <iostream>
 
 using namespace matrix;
 
+namespace matrix {
+
+// manually instantiated all files we intend to test
+// so that coverage works correctly
+// doesn't matter what test this is in
+template class Matrix<float, 3, 3>;
+template class Vector3<float>;
+template class Vector2<float>;
+template class Vector<float, 4>;
+template class Quaternion<float>;
+template class AxisAngle<float>;
+template class Scalar<float>;
+template class SquareMatrix<float, 4>;
+
+}
+
 int main()
 {
-    double eps = 1e-6;
+
 
     // check data
     Eulerf euler_check(0.1f, 0.2f, 0.3f);
@@ -34,6 +51,7 @@ int main()
     // quaternion ctor
     Quatf q0(1, 2, 3, 4);
     Quatf q(q0);
+    double eps = 1e-6;
     TEST(fabs(q(0) - 1) < eps);
     TEST(fabs(q(1) - 2) < eps);
     TEST(fabs(q(2) - 3) < eps);
@@ -63,7 +81,6 @@ int main()
     v1 = Vector3f(1.f, 1.f, 1.f);
     quat_v = Quatf(v1, -v1);
     TEST(isEqual(quat_v.conjugate(v1), -v1));
-
 
     // quat normalization
     q.normalize();
@@ -130,18 +147,18 @@ int main()
     double rad2deg = 180.0 / M_PI;
 
     // euler dcm round trip check
-    for (int roll = -90; roll <= 90; roll += 90) {
-        for (int pitch = -90; pitch <= 90; pitch += 90) {
-            for (int yaw = -179; yaw <= 180; yaw += 90) {
+    for (double roll = -90; roll <= 90; roll += 90) {
+        for (double pitch = -90; pitch <= 90; pitch += 90) {
+            for (double yaw = -179; yaw <= 180; yaw += 90) {
                 // note if theta = pi/2, then roll is set to zero
-                int roll_expected = roll;
-                int yaw_expected = yaw;
+                double roll_expected = roll;
+                double yaw_expected = yaw;
 
-                if (pitch == 90) {
+                if (fabs(pitch -90) < eps) {
                     roll_expected = 0;
                     yaw_expected = yaw - roll;
 
-                } else if (pitch == -90) {
+                } else if (fabs(pitch + 90) < eps) {
                     roll_expected = 0;
                     yaw_expected = yaw + roll;
                 }
@@ -156,13 +173,13 @@ int main()
 
                 //printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
                 Euler<double> euler_expected(
-                    deg2rad * double(roll_expected),
-                    deg2rad * double(pitch),
-                    deg2rad * double(yaw_expected));
+                    deg2rad * roll_expected,
+                    deg2rad * pitch,
+                    deg2rad * yaw_expected);
                 Euler<double> euler(
-                    deg2rad * double(roll),
-                    deg2rad * double(pitch),
-                    deg2rad * double(yaw));
+                    deg2rad * roll,
+                    deg2rad * pitch,
+                    deg2rad * yaw);
                 Dcm<double> dcm_from_euler(euler);
                 //dcm_from_euler.print();
                 Euler<double> euler_out(dcm_from_euler);
@@ -289,6 +306,13 @@ int main()
     q_true = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
     TEST(isEqual(q, q_true));
 
+    // from axis angle, with length of vector the rotation
+    float n = float(sqrt(4*M_PI*M_PI/3));
+    q.from_axis_angle(Vector3f(n, n, n));
+    TEST(isEqual(q, Quatf(-1, 0, 0, 0)));
+    q.from_axis_angle(Vector3f(0, 0, 0));
+    TEST(isEqual(q, Quatf(1, 0, 0, 0)));
+
     // Quaternion initialisation per array
     float q_array[] = {0.9833f, -0.0343f, -0.1060f, -0.1436f};
     Quaternion<float>q_from_array(q_array);
@@ -340,6 +364,7 @@ int main()
     TEST(isEqual(Quatf((AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), 0.0f))),
                  Quatf(1.0f, 0.0f, 0.0f, 0.0f)));
 
+
     // check consistentcy of quaternion and dcm product
     Dcmf dcm3(Eulerf(1, 2, 3));
     Dcmf dcm4(Eulerf(4, 5, 6));
@@ -357,6 +382,9 @@ int main()
     R = Dcmf(q);
     TEST(isEqual(q, Quatf(R)));
 
+#if defined(SUPPORT_STDIOSTREAM)
+    std::cout << "q:" << q;
+#endif
     return 0;
 }
 
