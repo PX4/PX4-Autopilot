@@ -482,31 +482,31 @@ bool StateMachineHelperTest::isSafeTest()
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = false;
-	ut_compare("is safe: not armed", is_safe(&safety, &armed), true);
+	ut_compare("is safe: not armed", is_safe(safety, armed), true);
 
 	armed.armed = false;
 	armed.lockdown = true;
 	safety.safety_switch_available = true;
 	safety.safety_off = true;
-	ut_compare("is safe: software lockdown", is_safe(&safety, &armed), true);
+	ut_compare("is safe: software lockdown", is_safe(safety, armed), true);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = true;
-	ut_compare("not safe: safety off", is_safe(&safety, &armed), false);
+	ut_compare("not safe: safety off", is_safe(safety, armed), false);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = false;
-	ut_compare("is safe: safety off", is_safe(&safety, &armed), true);
+	ut_compare("is safe: safety off", is_safe(safety, armed), true);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = false;
 	safety.safety_off = false;
-	ut_compare("not safe: no safety switch", is_safe(&safety, &armed), false);
+	ut_compare("not safe: no safety switch", is_safe(safety, armed), false);
 
 	return true;
 }

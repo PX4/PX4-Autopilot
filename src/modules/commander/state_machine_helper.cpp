@@ -379,15 +379,15 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 	return ret;
 }
 
-bool is_safe(const struct safety_s *safety, const struct actuator_armed_s *armed)
+bool is_safe(const safety_s& safety, const actuator_armed_s& armed)
 {
 	// System is safe if:
 	// 1) Not armed
 	// 2) Armed, but in software lockdown (HIL)
 	// 3) Safety switch is present AND engaged -> actuators locked
-	const bool lockdown = (armed->lockdown || armed->manual_lockdown);
+	const bool lockdown = (armed.lockdown || armed.manual_lockdown);
 
-	return !armed->armed || (armed->armed && lockdown) || (safety->safety_switch_available && !safety->safety_off);
+	return !armed.armed || (armed.armed && lockdown) || (safety.safety_switch_available && !safety.safety_off);
 }
 
 transition_result_t
