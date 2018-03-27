@@ -108,7 +108,6 @@ void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s se
 
 void PositionControl::generateThrustYawSetpoint(const float &dt)
 {
-	_updateParams();
 
 	/* Only run position/velocity controller
 	 * if thrust needs to be generated
@@ -188,7 +187,7 @@ void PositionControl::_positionController()
 			     _VelMaxXY);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.vel_max_z_up, _VelMaxZ.down);
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_VelMaxZ.up, _VelMaxZ.down);
 }
 
 void PositionControl::_velocityController(const float &dt)
@@ -218,13 +217,6 @@ void PositionControl::_velocityController(const float &dt)
 	 * 	 NE-direction is also limited by the maximum tilt.
 	 */
 
-	/* Get maximum tilt */
-	float tilt_max = M_PI_2_F;
-
-	if (PX4_ISFINITE(_constraints.tilt_max) && _constraints.tilt_max <= tilt_max) {
-		tilt_max = _constraints.tilt_max;
-	}
-
 	Vector3f vel_err = _vel_sp - _vel;
 
 	/* Consider thrust in D-direction */
@@ -252,7 +244,7 @@ void PositionControl::_velocityController(const float &dt)
 		 * scaling is required.
 		 */
 
-		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(tilt_max);
+		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(_tilt_max);
 		_thr_sp(0) *= thr_xy_max;
 		_thr_sp(1) *= thr_xy_max;
 
@@ -264,7 +256,7 @@ void PositionControl::_velocityController(const float &dt)
 		thrust_desired_NE(1) = Pv(1) * vel_err(1) + Dv(1) * _vel_dot(1) + _thr_int(1);
 
 		/* Get maximum allowed thrust in NE based on tilt and excess thrust */
-		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(tilt_max);
+		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_tilt_max);
 		float thrust_max_NE = sqrtf(_ThrustLimit.max * _ThrustLimit.max - _thr_sp(2) * _thr_sp(2));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
@@ -295,7 +287,12 @@ void PositionControl::_velocityController(const float &dt)
 
 void PositionControl::updateConstraints(const Controller::Constraints &constraints)
 {
-	_constraints = constraints;
+	// update all parameters since they might have changed
+	_updateParams();
+	// maximum tilt cannot exceed 90 degrees
+	_tilt_max = math::min(constraints.tilt_max, M_PI_2_F);
+	// maximum velocity upwards cannot exceed global limit
+	_VelMaxZ.up = math::min(constraints.vel_max_z_up, _VelMaxZ.up);
 }
 
 void PositionControl::_updateParams()
@@ -336,4 +333,5 @@ void PositionControl::_setParams()
 	param_get(_ThrMax_h, &_ThrustLimit.max);
 	param_get(_ThrMinPosition_h, &_ThrMinPosition);
 	param_get(_ThrMinStab_h, &_ThrMinStab);
+
 }
