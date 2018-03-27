@@ -40,33 +40,16 @@
  * @author Sander Smeets	<sander@droneslab.com>
  */
 #include <px4_config.h>
-
-#include <math.h>
-
-#include <px4_posix.h>
-#include <px4_shutdown.h>
-
-#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_controls.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
-#include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_device.h>
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 #include "PreflightCheck.h"
 #include "arm_auth.h"
-
-#ifndef __PX4_NUTTX
-#include "DevMgr.hpp"
-using namespace DriverFramework;
-#endif
 
 static constexpr const char reason_no_rc[] = "no RC";
 static constexpr const char reason_no_offboard[] = "no offboard";
