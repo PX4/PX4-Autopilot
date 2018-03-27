@@ -69,8 +69,8 @@ void
 PrecLand::on_activation()
 {
 	// We need to subscribe here and not in the constructor because constructor is called before the navigator task is spawned
-	if (!_targetPoseSub) {
-		_targetPoseSub = orb_subscribe(ORB_ID(landing_target_pose));
+	if (!_target_pose_sub) {
+		_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
 	}
 
 	_state = PrecLandState::Start;
@@ -109,10 +109,10 @@ PrecLand::on_active()
 {
 	// get new target measurement
 	bool updated = false;
-	orb_check(_targetPoseSub, &updated);
+	orb_check(_target_pose_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(landing_target_pose), _targetPoseSub, &_target_pose);
+		orb_copy(ORB_ID(landing_target_pose), _target_pose_sub, &_target_pose);
 		_target_pose_valid = true;
 	}
 
@@ -212,7 +212,7 @@ PrecLand::run_state_horizontal_approach()
 
 	// check if target visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
-		PX4_WARN("Lost landing target while landig (horizontal approach).");
+		PX4_WARN("Lost landing target while landing (horizontal approach).");
 
 		// Stay at current position for searching for the landing target
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
