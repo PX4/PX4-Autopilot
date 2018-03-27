@@ -132,6 +132,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_land_detector_pub(nullptr),
 	_time_offset_pub(nullptr),
 	_follow_target_pub(nullptr),
+	_landing_target_pose_pub(nullptr),
 	_transponder_report_pub(nullptr),
 	_collision_report_pub(nullptr),
 	_debug_key_value_pub(nullptr),
@@ -292,6 +293,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_FOLLOW_TARGET:
 		handle_message_follow_target(msg);
+		break;
+
+	case MAVLINK_MSG_ID_LANDING_TARGET:
+		handle_message_landing_target(msg);
 		break;
 
 	case MAVLINK_MSG_ID_ADSB_VEHICLE:
@@ -2056,6 +2061,29 @@ void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(follow_target), _follow_target_pub, &follow_target_topic);
+	}
+}
+
+void MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
+{
+	mavlink_landing_target_t landing_target;
+
+	mavlink_msg_landing_target_decode(msg, &landing_target);
+
+	if (landing_target.position_valid && landing_target.frame == MAV_FRAME_LOCAL_NED) {
+		landing_target_pose_s landing_target_pose = {};
+		landing_target_pose.timestamp = sync_stamp(landing_target.time_usec);
+		landing_target_pose.abs_pos_valid = true;
+		landing_target_pose.x_abs = landing_target.x;
+		landing_target_pose.y_abs = landing_target.y;
+		landing_target_pose.z_abs = landing_target.z;
+
+		if (_landing_target_pose_pub == nullptr) {
+			_landing_target_pose_pub = orb_advertise(ORB_ID(landing_target_pose), &landing_target_pose);
+
+		} else {
+			orb_publish(ORB_ID(landing_target_pose), _landing_target_pose_pub, &landing_target_pose);
+		}
 	}
 }
 

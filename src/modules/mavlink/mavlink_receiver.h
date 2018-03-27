@@ -74,6 +74,7 @@
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
+#include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/collision_report.h>
@@ -149,6 +150,7 @@ private:
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
+	void handle_message_landing_target(mavlink_message_t *msg);
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
 	void handle_message_collision(mavlink_message_t *msg);
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
@@ -242,6 +244,7 @@ private:
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _time_offset_pub;
 	orb_advert_t _follow_target_pub;
+	orb_advert_t _landing_target_pose_pub;
 	orb_advert_t _transponder_report_pub;
 	orb_advert_t _collision_report_pub;
 	orb_advert_t _debug_key_value_pub;

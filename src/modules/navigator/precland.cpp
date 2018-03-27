@@ -108,10 +108,9 @@ void
 PrecLand::on_active()
 {
 	// get new target measurement
-	bool updated = false;
-	orb_check(_target_pose_sub, &updated);
+	orb_check(_target_pose_sub, &_target_pose_updated);
 
-	if (updated) {
+	if (_target_pose_updated) {
 		orb_copy(ORB_ID(landing_target_pose), _target_pose_sub, &_target_pose);
 		_target_pose_valid = true;
 	}
@@ -466,7 +465,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
 		if (_state == PrecLandState::HorizontalApproach) {
 			if (fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
-			    && fabsf(_target_pose.y_rel - vehicle_local_position->y) < _param_hacc_rad.get()) {
+			    && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get()) {
 				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
 				return _target_pose_valid && _target_pose.abs_pos_valid;
 
@@ -478,7 +477,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		}
 
 		// If we're trying to switch to this state, the target needs to be visible
-		return _target_pose_valid && _target_pose.abs_pos_valid;
+		return _target_pose_updated && _target_pose.abs_pos_valid;
 
 	case PrecLandState::DescendAboveTarget:
 
@@ -494,12 +493,14 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 		} else {
 			// if not already in this state, need to be above target to enter it
-			return _target_pose_valid && _target_pose.abs_pos_valid
-			       && fabsf(_target_pose.x_rel) < _param_hacc_rad.get() && fabsf(_target_pose.y_rel) < _param_hacc_rad.get();
+			return _target_pose_updated && _target_pose.abs_pos_valid
+			       && fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
+			       && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get();
 		}
 
 	case PrecLandState::FinalApproach:
-		return _target_pose_valid && _target_pose.rel_pos_valid && _target_pose.z_rel < _param_final_approach_alt.get();
+		return _target_pose_valid && _target_pose.abs_pos_valid
+		       && (_target_pose.z_abs - vehicle_local_position->z) < _param_final_approach_alt.get();
 
 	case PrecLandState::Search:
 		return true;

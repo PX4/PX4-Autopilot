@@ -102,6 +102,7 @@ private:
 
 	int _target_pose_sub{-1};
 	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
+	bool _target_pose_updated{false}; /**< wether the landing target position message is updated */
 
 	struct map_projection_reference_s _map_ref {}; /**< reference for local/global projections */
 
