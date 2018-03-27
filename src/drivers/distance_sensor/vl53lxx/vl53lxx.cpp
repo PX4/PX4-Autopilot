@@ -72,8 +72,6 @@
 
 #include <board_config.h>
 
-#define NAN_F 0.0F/0.0F
-
 /* Configuration Constants */
 #ifdef PX4_I2C_BUS_EXPANSION3
 #define VL53LXX_BUS 				PX4_I2C_BUS_EXPANSION3		// I2C port (I2C4) on fmu-v5
@@ -659,7 +657,13 @@ VL53LXX::collect()
 	report.timestamp = hrt_absolute_time(); 
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = _rotation;
-	report.current_distance = distance_m;
+
+	if(distance_m > 2.0f){
+		report.current_distance = 2.0f;
+	} else {
+		report.current_distance = distance_m;
+	}
+
 	report.min_distance = VL53LXX_MIN_RANGING_DISTANCE;
 	report.max_distance = VL53LXX_MAX_RANGING_DISTANCE;
 	report.covariance = 0.0f;
