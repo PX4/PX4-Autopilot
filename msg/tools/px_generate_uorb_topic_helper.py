@@ -179,7 +179,7 @@ def convert_type(spec_type):
     return c_type
 
 
-def px4_printf(field):
+def print_field(field):
     """
     Echo printf line
     """
