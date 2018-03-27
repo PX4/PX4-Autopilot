@@ -957,9 +957,7 @@ void Logger::run()
 		if (ret == 0 && vehicle_status_updated) {
 			vehicle_status_s vehicle_status;
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-				     (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ||
-				     _arm_override;
+			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _arm_override;
 
 			if (_was_armed != armed && !_log_until_shutdown) {
 				_was_armed = armed;

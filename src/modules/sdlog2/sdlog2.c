@@ -2250,7 +2250,7 @@ void handle_command(struct vehicle_command_s *cmd)
 void handle_status(struct vehicle_status_s *status)
 {
 	// TODO use flag from actuator_armed here?
-	bool armed = status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR;
+	bool armed = status->arming_state == ARMING_STATE_ARMED;
 
 	if (armed != flag_system_armed) {
 		flag_system_armed = armed;
