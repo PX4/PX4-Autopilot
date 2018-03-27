@@ -404,7 +404,7 @@ private:
 	/**
 	 * Temporary method for flight control compuation
 	 */
-	void updateConstraints(Controller::Constraints &constrains);
+	void updateTiltConstraints(Controller::Constraints &constrains);
 
 	void publish_attitude();
 
@@ -3077,17 +3077,16 @@ MulticopterPositionControl::task_main()
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
 
-
 		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
 
+			// get all flight-task setpoints
 			_flight_tasks.update();
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
 
-			// Get _contstraints depending on flight mode
-			// TODO: define where constraints are supposed to be set.
-			// All constraints could be set in flighttask and passed to the position controller.
+			// structure that replaces global constraints such as tilt,
+			// maximum velocity in z-direction ...
 			Controller::Constraints constraints;
-			constraints.vel_max_z_up = _params.vel_max_up;
+			constraints.vel_max_z_up = NAN; // NAN for not used
 
 			// Check for smooth takeoff
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && _control_mode.flag_armed) {
@@ -3095,9 +3094,9 @@ MulticopterPositionControl::task_main()
 				// Adjust for different takeoff cases.
 				// The minimum takeoff altitude needs to be at least 20cm above current position
 				if ((PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2) - 0.2f) ||
-				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < -_params.tko_speed)) {
+				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < math::min(-_params.tko_speed, -0.6f))) {
 					// There is a position setpoint above current position or velocity setpoint larger than
-					// 1m/s. Enable smooth takeoff.
+					// takeoff speed. Enable smooth takeoff.
 					_in_smooth_takeoff = true;
 					_takeoff_speed = -0.5f;
 
@@ -3111,18 +3110,19 @@ MulticopterPositionControl::task_main()
 			// If in smooth takeoff, adjust setpoints based on what is valid:
 			// 1. position setpoint is valid -> go with takeoffspeed to specific altitude
 			// 2. position setpoint not valid but velocity setpoint valid: ramp up velocity
-			if (_in_smooth_takeoff && (PX4_ISFINITE(setpoint.z) || PX4_ISFINITE(setpoint.vz))) {
-
+			if (_in_smooth_takeoff) {
 				float desired_tko_speed = -setpoint.vz;
 
+				// If there is a valid position setpoint, then set the desired speed to the takeoff speed.
 				if (PX4_ISFINITE(setpoint.z)) {
 					desired_tko_speed =  _params.tko_speed;
 				}
 
+				// Ramp up takeoff speed.
 				_takeoff_speed += desired_tko_speed * _dt / _takeoff_ramp_time.get();
 				_takeoff_speed = math::min(_takeoff_speed,  desired_tko_speed);
+				// Limit the velocity setpoint from the position controller
 				constraints.vel_max_z_up = _takeoff_speed;
-
 
 			} else {
 				_in_smooth_takeoff = false;
@@ -3137,17 +3137,22 @@ MulticopterPositionControl::task_main()
 				setpoint.yaw = _yaw;
 			}
 
-			updateConstraints(constraints);
+			// Update tilt constraints. For now it still requires to know about control mode
+			// TODO: check if it makes sense to have a tilt constraint for landing.
+			updateTiltConstraints(constraints);
+
+			// Update states, setpoints and constraints.
+			_control.updateConstraints(constraints);
 			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
 			_control.updateSetpoint(setpoint);
-			_control.updateConstraints(constraints);
+
+			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
-
-
 			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
 
+			// Check if vehicle is still in smooth takeoff.
 			if (_in_smooth_takeoff) {
-				// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached or
+				// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
 				if (PX4_ISFINITE(setpoint.z)) {
 					_in_smooth_takeoff = _pos(2) + 0.2f > setpoint.z;
 
@@ -3156,7 +3161,7 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			// We adjust thrust setpoint based on landdetector only if the
+			// Adjust thrust setpoint based on landdetector only if the
 			// vehicle is NOT in pure Manual mode.
 			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				if (_vehicle_land_detected.ground_contact) {
@@ -3179,7 +3184,7 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* fill local position, velocity and thrust setpoint */
+			// Fill local position, velocity and thrust setpoint.
 			_local_pos_sp.timestamp = hrt_absolute_time();
 			_local_pos_sp.x = _control.getPosSp()(0);
 			_local_pos_sp.y = _control.getPosSp()(1);
@@ -3192,6 +3197,7 @@ MulticopterPositionControl::task_main()
 			_local_pos_sp.vz = _control.getVelSp()(2);
 			thr_sp.copyTo(_local_pos_sp.thrust);
 
+			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
 			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
 			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 			_att_sp.fw_control_yaw = false;
@@ -3199,8 +3205,13 @@ MulticopterPositionControl::task_main()
 			_att_sp.apply_flaps = false;
 			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
+			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
 			publish_local_pos_sp();
 			publish_attitude();
+
+			/*
+			 * ****************** FLIGHTTASK-LOGIC END *****************************************
+			 * */
 
 		} else {
 			if (_control_mode.flag_control_altitude_enabled ||
@@ -3374,7 +3385,7 @@ MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_
 }
 
 void
-MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
+MulticopterPositionControl::updateTiltConstraints(Controller::Constraints &constraints)
 {
 	/* _contstraints */
 	constraints.tilt_max = NAN; // Default no maximum tilt
