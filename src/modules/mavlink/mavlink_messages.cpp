@@ -131,8 +131,7 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 	}
 
 	/* arming state */
-	if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED
-	    || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) {
+	if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
@@ -258,9 +257,6 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 
 	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		*mavlink_state = MAV_STATE_ACTIVE;
-
-	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) {
-		*mavlink_state = MAV_STATE_CRITICAL;
 
 	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 		*mavlink_state = MAV_STATE_STANDBY;
@@ -3439,8 +3435,7 @@ protected:
 			msg.param2 = 0;
 			msg.param3 = 0;
 			/* set camera capture ON/OFF depending on arming state */
-			msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED
-				      || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ? 1 : 0;
+			msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1 : 0;
 			msg.param5 = 0;
 			msg.param6 = 0;
 			msg.param7 = 0;

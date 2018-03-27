@@ -2428,7 +2428,7 @@ Commander::run()
 
 			status.rc_signal_lost = false;
 
-			const bool in_armed_state = status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR;
+			const bool in_armed_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			const bool arm_button_pressed = arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
 
 			/* DISARM
@@ -2453,13 +2453,10 @@ Commander::run()
 					print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
 
 				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
-					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
-					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
-									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
 					arming_ret = arming_state_transition(&status,
 									     &battery,
 									     &safety,
-									     new_arming_state,
+									     vehicle_status_s::ARMING_STATE_STANDBY,
 									     &armed,
 									     true /* fRunPreArmChecks */,
 									     &mavlink_log_pub,
@@ -3087,8 +3084,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
-		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR ||
-				(!status_flags.condition_system_sensors_initialized && hotplug_timeout)) {
+		} else if (!status_flags.condition_system_sensors_initialized && hotplug_timeout) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
