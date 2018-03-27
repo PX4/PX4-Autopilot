@@ -116,6 +116,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 	arming_state_t current_arming_state = status->arming_state;
 	bool feedback_provided = false;
 
+	const bool hil_enabled = (status->hil_state == vehicle_status_s::HIL_STATE_ON);
+
 	/* only check transition if the new state is actually different from the current one */
 	if (new_arming_state == current_arming_state) {
 		ret = TRANSITION_NOT_CHANGED;
@@ -127,7 +129,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 		 */
 		int prearm_ret = OK;
 		bool checkAirspeed = false;
-		bool sensor_checks = (status->hil_state == vehicle_status_s::HIL_STATE_OFF);
+		bool sensor_checks = !hil_enabled;
 
 		/* Perform airspeed check only if circuit breaker is not
 		 * engaged and it's not a rotary wing */
@@ -137,7 +139,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 
 		/* only perform the pre-arm check if we have to */
 		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
-		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+		    && !hil_enabled) {
 
 			bool preflight_check = Preflight::preflightCheck(mavlink_log_pub, sensor_checks,
 			    checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
@@ -158,7 +160,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 		if (!status_flags->condition_system_sensors_initialized
 		    && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
 			|| new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+		    && !hil_enabled) {
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
 
@@ -183,7 +185,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 #endif
 
 		/* enforce lockdown in HIL */
-		if (status->hil_state == vehicle_status_s::HIL_STATE_ON) {
+		if (hil_enabled) {
 			armed->lockdown = true;
 			prearm_ret = OK;
 			status_flags->condition_system_sensors_initialized = true;
@@ -207,7 +209,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if vehicle_status_s::HIL_STATE_ON
 				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE &&
-				    status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+				    !hil_enabled) {
 
 					// Fail transition if pre-arm check fails
 					if (prearm_ret) {
@@ -260,7 +262,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 		}
 
 		// HIL can always go to standby
-		if (status->hil_state == vehicle_status_s::HIL_STATE_ON && new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+		if (hil_enabled && new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 			valid_transition = true;
 		}
 
@@ -290,7 +292,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 
 			// Sensors need to be initialized for STANDBY state, except for HIL
 
-		} else if ((status->hil_state != vehicle_status_s::HIL_STATE_ON) &&
+		} else if (!hil_enabled &&
 			   (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 			   (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
 
