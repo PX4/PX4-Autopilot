@@ -18,11 +18,8 @@ messages = []
 topics = []
 message_elements = []
 
-# large and not worth printing (find better solution)
-raw_messes = [raw_messages.remove(x) for x in raw_messages if 'qshell_req' in x]
-raw_messes = [raw_messages.remove(x) for x in raw_messages if 'ulog_stream' in x]
-raw_messes = [raw_messages.remove(x) for x in raw_messages if 'gps_inject_data' in x]
-raw_messes = [raw_messages.remove(x) for x in raw_messages if 'gps_dump' in x]
+# large and not worth printing
+raw_messages = [x for x in raw_messages if not any(exception in x for exception in ['qshell_req', 'ulog_stream', 'gps_inject_data', 'gps_dump'])]
 
 for index,m in enumerate(raw_messages):
 	topic_list = []
