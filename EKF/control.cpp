@@ -523,8 +523,16 @@ void Ekf::controlGpsFusion()
 
 			// calculate observation process noise
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
-			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-			_posObsNoiseNE = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
+			if (_control_status.flags.opt_flow || _control_status.flags.ev_pos) {
+				// if we are using other sources of aiding, then relax the upper observation
+				// noise limit which prevents bad GPS perturbing the position estimate
+				_posObsNoiseNE = fmaxf(_gps_sample_delayed.hacc, lower_limit);
+			} else {
+				// if we are not using another source of aiding, then we are reliant on the GPS
+				// observations to constrain attitude errors and must limit the observation noise value.
+				float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
+				_posObsNoiseNE = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
+			}
 			_velObsVarNE(1) = _velObsVarNE(0) = sq(fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise));
 
 			// calculate innovations
