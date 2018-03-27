@@ -448,8 +448,6 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		struct commander_state_s current_commander_state = {};
 		struct vehicle_status_flags_s current_status_flags = {};
 
-		uint8_t main_state_prev = 0;
-
 		current_commander_state.main_state = test->from_state;
 		current_vehicle_status.is_rotary_wing = test->condition_bits & MTT_ROTARY_WING;
 		current_status_flags.condition_local_altitude_valid = test->condition_bits & MTT_LOC_ALT_VALID;
@@ -459,7 +457,7 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		current_status_flags.condition_auto_mission_available = true;
 
 		// Attempt transition
-		transition_result_t result = main_state_transition(current_vehicle_status, test->to_state, main_state_prev, current_status_flags, &current_commander_state);
+		transition_result_t result = main_state_transition(current_vehicle_status, test->to_state, current_status_flags, &current_commander_state);
 
 		// Validate result of transition
 		ut_compare(test->assertMsg, test->expected_transition_result, result);
