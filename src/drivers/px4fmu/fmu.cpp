@@ -1144,7 +1144,9 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 
 void PX4FMU::rc_io_invert(bool invert)
 {
+#ifdef INVERT_RC_INPUT
 	INVERT_RC_INPUT(invert);
+#endif
 }
 #endif
 

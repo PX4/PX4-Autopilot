@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file board_dma_alloc.c
+ * @file usb.c
  *
- * Provide the board dma allocator interface.
+ * Board-specific USB functions.
  */
 
 /************************************************************************************
@@ -42,13 +42,18 @@
  ************************************************************************************/
 
 #include <px4_config.h>
-#include "board_config.h"
 
+#include <sys/types.h>
 #include <stdint.h>
-#include <errno.h>
-#include <nuttx/mm/gran.h>
+#include <stdbool.h>
+#include <debug.h>
 
-#include <perf/perf_counter.h>
+#include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/usbdev_trace.h>
+
+#include <up_arch.h>
+#include <stm32.h>
+#include "board_config.h"
 
 /************************************************************************************
  * Definitions
@@ -63,94 +68,41 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: board_dma_alloc_init
+ * Name: stm32_usbinitialize
  *
  * Description:
- *   All boards may optionally provide this API to instantiate a pool of
- *   memory for uses with FAST FS DMA operations.
+ *   Called to setup USB-related GPIO pins for the omnibusf4sd board.
  *
  ************************************************************************************/
-#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
 
-#  if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
-#    error microSD DMA support requires CONFIG_GRAN and CONFIG_FAT_DMAMEMORY
-#  endif
+__EXPORT void stm32_usbinitialize(void)
+{
+	/* The OTG FS has an internal soft pull-up */
 
-static GRAN_HANDLE dma_allocator;
+	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
-/*
- * The DMA heap size constrains the total number of things that can be
- * ready to do DMA at a time.
+#ifdef CONFIG_STM32_OTGFS
+	stm32_configgpio(GPIO_OTGFS_VBUS);
+	/* XXX We only support device mode
+	stm32_configgpio(GPIO_OTGFS_PWRON);
+	stm32_configgpio(GPIO_OTGFS_OVER);
+	*/
+#endif
+}
+
+/************************************************************************************
+ * Name:  stm32_usbsuspend
  *
- * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file.
+ * Description:
+ *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver is
+ *   used.  This function is called whenever the USB enters or leaves suspend mode.
+ *   This is an opportunity for the board logic to shutdown clocks, power, etc.
+ *   while the USB is suspended.
  *
- * We use a fundamental alignment / granule size of 64B; this is sufficient
- * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
- */
-static uint8_t g_dma_heap[BOARD_DMA_ALLOC_POOL_SIZE] __attribute__((aligned(64)));
-static perf_counter_t g_dma_perf;
-static uint16_t dma_heap_inuse;
-static uint16_t dma_heap_peak_use;
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-__EXPORT int board_dma_alloc_init(void)
+ ************************************************************************************/
+
+__EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
-	dma_allocator = gran_initialize(g_dma_heap,
-					sizeof(g_dma_heap),
-					7,  /* 128B granule - must be > alignment (XXX bug?) */
-					6); /* 64B alignment */
-
-	if (dma_allocator == NULL) {
-		return -ENOMEM;
-
-	} else {
-		dma_heap_inuse = 0;
-		dma_heap_peak_use = 0;
-		g_dma_perf = perf_alloc(PC_COUNT, "dma_alloc");
-	}
-
-	return OK;
+	uinfo("resume: %d\n", resume);
 }
 
-__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used)
-{
-	*dma_total = sizeof(g_dma_heap);
-	*dma_used = dma_heap_inuse;
-	*dma_peak_used = dma_heap_peak_use;
-
-	return OK;
-}
-/*
- * DMA-aware allocator stubs for the FAT filesystem.
- */
-
-__EXPORT void *fat_dma_alloc(size_t size);
-__EXPORT void fat_dma_free(FAR void *memory, size_t size);
-
-void *
-fat_dma_alloc(size_t size)
-{
-	void *rv = NULL;
-	perf_count(g_dma_perf);
-	rv = gran_alloc(dma_allocator, size);
-
-	if (rv != NULL) {
-		dma_heap_inuse += size;
-
-		if (dma_heap_inuse > dma_heap_peak_use) {
-			dma_heap_peak_use = dma_heap_inuse;
-		}
-	}
-
-	return rv;
-}
-
-void
-fat_dma_free(FAR void *memory, size_t size)
-{
-	gran_free(dma_allocator, memory, size);
-	dma_heap_inuse -= size;
-}
-#endif /* defined(BOARD_DMA_ALLOC_POOL_SIZE) */
