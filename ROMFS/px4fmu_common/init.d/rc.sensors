@@ -3,7 +3,7 @@
 # Standard startup script for sensor drivers.
 #
 
-if ver hwcmp AEROFC_V1
+if ver hwcmp AEROFC_V1 OMNIBUS_F4SD
 then
 	# Aero FC uses separate driver
 else
@@ -265,6 +265,16 @@ then
 	ist8310 -C -b 1 -R 4 start
 	aerofc_adc start
 	ll40ls start i2c
+fi
+
+if ver hwcmp OMNIBUS_F4SD
+then
+	mpu6000 -R 12 -s start
+
+	# Possible external compasses
+	hmc5883 -X start
+
+	bmp280 start
 fi
 
 if ver hwcmp PX4FMU_V4PRO
