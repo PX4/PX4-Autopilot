@@ -192,7 +192,7 @@ then
 	then
 		# hmc5883 internal SPI bus is rotated 90 deg yaw
 	else
-		if lis3mdl -R 2 start
+		if lis3mdl start
 		then
 			# lis3mdl internal SPI bus is rotated 90 deg yaw
 		else
