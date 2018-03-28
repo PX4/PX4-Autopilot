@@ -45,6 +45,7 @@
 #include <lib/ecl/geo_lookup/geo_mag_declination.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
