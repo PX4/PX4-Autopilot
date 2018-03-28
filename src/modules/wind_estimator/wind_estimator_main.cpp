@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 #include <drivers/drv_hrt.h>
+#include <matrix/math.hpp>
 #include <ecl/airdata/WindEstimator.hpp>
-#include <matrix/matrix/math.hpp>
 #include <px4_module.h>
 #include <px4_module_params.h>
 #include <px4_workqueue.h>

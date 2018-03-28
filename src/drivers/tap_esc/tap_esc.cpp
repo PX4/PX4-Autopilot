@@ -41,6 +41,7 @@
 #include <errno.h>
 
 #include <cmath>	// NAN
+#include <cstring>
 
 #include <lib/mathlib/mathlib.h>
 #include <drivers/device/device.h>
