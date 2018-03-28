@@ -39,6 +39,7 @@
 #pragma once
 
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 class WindEstimator
 {
