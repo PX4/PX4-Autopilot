@@ -42,6 +42,7 @@
 #include <systemlib/err.h>
 #include <unit_test.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 extern "C" __EXPORT int mc_pos_control_tests_main(int argc, char *argv[]);
 

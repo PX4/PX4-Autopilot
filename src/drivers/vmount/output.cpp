@@ -49,6 +49,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 namespace vmount
 {
