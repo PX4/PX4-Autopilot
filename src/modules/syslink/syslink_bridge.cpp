@@ -110,7 +110,7 @@ SyslinkBridge::read(struct file *filp, char *buffer, size_t buflen)
 ssize_t
 SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 {
-/*	crtp_message_t msg;
+	/*crtp_message_t msg;
 	msg.header = 0;
 	//printf("buflen=%d\n", buflen );
 
@@ -150,8 +150,8 @@ SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 				printf("ack_count in write before=%d \n", ack_count);
 			}
 		
-	}*/
-
+	}
+*/
 static bool init=1;
 
 if (init) {
@@ -168,11 +168,11 @@ static int last_index = 0;
 int buflen_rem = buflen;
 
 
-    printf("buflen=%d ", buflen);
+  /*  printf("buflen=%d ", buflen);
      for (size_t i = 0; i < buflen; i++) {
          printf("%d ", (int)buffer[i]);}
     printf("\n");
-
+*/
 
 while(buflen_rem>0){
 
@@ -185,13 +185,22 @@ while(buflen_rem>0){
 	msg_rem-=datasize;
 	buflen_rem-=datasize;
 
+	//if (msg_rem<0){
+	//	printf("msg_rem negative!!!! \n");
+	//}
+
 	if(msg_rem==0){
 
 
-		printf("pushing msg datasize=%d ", _msg_to_send.size);
+		/*printf("pushing msg datasize=%d ", _msg_to_send.size);
 		for (int i = 0; i < last_index; i++) {
          printf("%d ", (int)_msg_to_send.data[i]);}
-    	printf("\n");
+    	printf("\n");*/
+
+    	/*//printf("pushing msg datasize=%d ", _msg_to_send.size);
+		for (int i = 0; i < last_index; i++) {
+         printf("%d ", (int)_msg_to_send.data[i]);}
+    	printf("\n");*/
 
 		if(_link->_writebuffer.force(&_msg_to_send, sizeof(crtp_message_t))){
 			printf("write buffer overflow!!! \n");
@@ -229,38 +238,39 @@ void
 SyslinkBridge::pipe_message(crtp_message_t *msg)
 {
 	//static int cmd_count=0;
-	static int bytes_received=0;
-	static int bytes_received_with_header=0;
-	static int prev_seq=0; 
+	//static int bytes_received=0;
+	//static int bytes_received_with_header=0;
+	//static int prev_seq=0; 
 
-         if(msg->data[4]-prev_seq > 1)
+       /* if(msg->data[4]-prev_seq > 1)
          {
          	printf("msgs lost!!! msg lost=%d msg_seq_lost=%d bytes_received=%d bytes_received_with_header=%d \n", msg->data[4]-prev_seq-1, msg->data[4], bytes_received, bytes_received_with_header);
          	 bytes_received=0;
          	 bytes_received_with_header=0;
-         }
+         }*/
 
 
 	
-/*	if(msg->data[7]==76)
+	/*if(msg->data[7]==76)
 			{cmd_count++;
 				
 				printf(" cmd_count after=%d, arm_disarm_cmd_12=%d arm_disarm_cmd_13=%d\n", cmd_count, msg->data[12], msg->data[13]);
 
-			} //sizeof(msg->data)=31
-*/
+			} //sizeof(msg->data)=31*/
 
-		printf("syslink_bridge msg->size=%d ", msg->size);
+/*	static int count=0;
+	count++;
+		//printf("syslink_bridge msg->size=%d ", msg->size);
 		for (int i = 0; i < msg->size-1; i++) {
-         printf("%d ",msg->data[i]);
+         printf("%d ", msg->data[i]);
         }
-         printf("\n");
+         //printf("\n");
+        printf("msg_count_received=%d \n",count);*/
          
-         bytes_received+=msg->size-1;
+     /*    bytes_received+=msg->size-1;
          bytes_received_with_header+=msg->size;
          prev_seq=msg->data[4];
-
-
+*/
 	
 	_readbuffer.force(msg, sizeof(msg->size) + msg->size);
 	poll_notify(POLLIN);

@@ -214,10 +214,12 @@ Syslink::send_queued_raw_message()
 
 
 	//send_message(&msg);
-	usleep(100000);
+	//usleep(100000);
 	
-	
-	return send_message(&msg);
+	send_message(&msg);
+	//usleep(5000);
+	return 0;
+
 }
 
 
@@ -412,8 +414,10 @@ Syslink::task_main()
 		 		}
 
 		 		for (int i = 0; i < nread; i++) {
+		 			//printf("%d ", buf[i]);
 		 			//if (buf[i]==76) {printf("notify!!!!! cmd about to parse at byte=%d \n", i);}
 		 			if (syslink_parse_char(&state, buf[i], &msg)) {
+		 				//printf("main\n");
 		 				handle_message(&msg);
 		 			}
 		 		}
@@ -438,18 +442,18 @@ Syslink::task_main()
 void
 Syslink::handle_message(syslink_message_t *msg)
 {	
-	static bool cmd_received=false;
-	static int cmd_count=0;
+	//static bool cmd_received=false;
+	//static int cmd_count=0;
 
-	if(cmd_received && msg->type == SYSLINK_RADIO_RAW ) {
+	/*if(msg->type == SYSLINK_RADIO_RAW) { //cmd_received &&
          	printf("syslink_main cmd_msg_received->length=%d ", msg->length);
  		for (int i = 0; i < msg->length; i++) {
          printf("%d ",msg->data[i]);}
          printf("\n");
-         cmd_received=false;
-         }
+         //cmd_received=false;
+         }*/
 
-	if(msg->length > 8) {
+	/*if(msg->length > 8) {
 		if(msg->data[8]==76)
 			{cmd_count++;
 			printf(" cmd_count before=%d, arm_disarm_cmd_12=%d arm_disarm_cmd_13=%d \n", cmd_count, msg->data[13], msg->data[14]);
@@ -459,8 +463,8 @@ Syslink::handle_message(syslink_message_t *msg)
          printf("\n");
          cmd_received=true;
          } //barza
-
-     }
+*/
+     
 	
 
 
@@ -787,8 +791,9 @@ Syslink::send_bytes(const void *data, size_t len)
 {
 	// TODO: This could be way more efficient
 	//       Using interrupts/DMA/polling would be much better
-
-	printf(" start ");
+	
+	//static int count=0;
+	//printf(" start ");
 	for (size_t i = 0; i < len; i++) {
 		// Block until we can send a byte
 		while (px4_arch_gpioread(GPIO_NRF_TXEN)) ;
@@ -797,18 +802,23 @@ Syslink::send_bytes(const void *data, size_t len)
 
 		if(numbytesWritten<0){
 			printf("\n Error Writing in syslink!!! \n");
-		} else{
-			printf("%d ", ((const char *)data)[i]);
+		}/* else{
+			if (((const char *)data)[0]==128 && i!=0){
+				printf("%d ", ((const char *)data)[i]);
+			}
 
-		}
+		}*/
 
 		fsync(_fd);
 
 	}
 
 
-	printf(" len= %d \n", len);
-
+	//printf(" len= %d \n", len);
+	/*if (((const char *)data)[0]==128){
+		count++;
+		printf("count=%d \n",count);
+	}*/
 
 	return 0;
 }
@@ -821,12 +831,12 @@ Syslink::send_message(syslink_message_t *msg)
 	send_bytes(syslink_magic, 2);
 	send_bytes(&msg->type, sizeof(msg->type));
 	send_bytes(&msg->length, sizeof(msg->length));
-	static int ack_count=0;
-		if(msg->data[8]==77)
+	//static int ack_count=0;
+		/*if(msg->data[8]==77)
 			{ack_count++;
 				printf("Sending Ack msgid after msg length=%d, count=%d \n", msg->length, ack_count);} //barza
 	
-
+*/
 	/*printf("msg->length=%d ", msg->length);
      for (int i = 0; i < msg->length; i++) {
          printf("%d ", msg->data[i]);}
