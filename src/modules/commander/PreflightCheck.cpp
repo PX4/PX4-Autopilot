@@ -67,6 +67,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/system_power.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
 #include "PreflightCheck.h"
@@ -108,6 +109,7 @@ static int check_calibration(DevHandle &h, const char *param_template, int &devi
 				break;
 			}
 		}
+
 		instance++;
 	}
 
@@ -139,6 +141,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bo
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAG #%u UNCALIBRATED", instance);
 		}
+
 		success = false;
 		goto out;
 	}
@@ -149,6 +152,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bo
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAG #%u SELFTEST FAILED", instance);
 		}
+
 		success = false;
 		goto out;
 	}
@@ -174,6 +178,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool report_statu
 	// Use the difference between IMU's to detect a bad calibration.
 	// If a single IMU is fitted, the value being checked will be zero so this check will always pass.
 	param_get(param_find("COM_ARM_IMU_ACC"), &test_limit);
+
 	if (sensors.accel_inconsistency_m_s_s > test_limit) {
 		if (report_status) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCELS INCONSISTENT - CHECK CAL");
@@ -190,10 +195,12 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool report_statu
 
 	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
 	param_get(param_find("COM_ARM_IMU_GYR"), &test_limit);
+
 	if (sensors.gyro_inconsistency_rad_s > test_limit) {
 		if (report_status) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYROS INCONSISTENT - CHECK CAL");
 		}
+
 		success = false;
 		goto out;
 
@@ -214,20 +221,24 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, bool report_statu
 	// get the sensor preflight data
 	int sensors_sub = orb_subscribe(ORB_ID(sensor_preflight));
 	struct sensor_preflight_s sensors = {};
+
 	if (orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors) != 0) {
 		// can happen if not advertised (yet)
 		return true;
 	}
+
 	orb_unsubscribe(sensors_sub);
 
 	// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
 	// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
 	float test_limit;
 	param_get(param_find("COM_ARM_MAG"), &test_limit);
+
 	if (sensors.mag_inconsistency_ga > test_limit) {
 		if (report_status) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAG SENSORS INCONSISTENT");
 		}
+
 		return false;
 	}
 
@@ -259,6 +270,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance,
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL #%u UNCALIBRATED", instance);
 		}
+
 		success = false;
 		goto out;
 	}
@@ -269,11 +281,13 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance,
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL #%u TEST FAILED: %d", instance, ret);
 		}
+
 		success = false;
 		goto out;
 	}
 
 #ifdef __PX4_NUTTX
+
 	if (dynamic) {
 		/* check measurement result range */
 		struct accel_report acc;
@@ -287,19 +301,23 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance,
 				if (report_fail) {
 					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL RANGE, hold still on arming");
 				}
+
 				/* this is frickin' fatal */
 				success = false;
 				goto out;
 			}
+
 		} else {
 			if (report_fail) {
 				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL READ");
 			}
+
 			/* this is frickin' fatal */
 			success = false;
 			goto out;
 		}
 	}
+
 #endif
 
 out:
@@ -332,6 +350,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool opt
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO #%u UNCALIBRATED", instance);
 		}
+
 		success = false;
 		goto out;
 	}
@@ -342,6 +361,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool opt
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO #%u SELFTEST FAILED", instance);
 		}
+
 		success = false;
 		goto out;
 	}
@@ -402,6 +422,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
 		}
+
 		success = false;
 		goto out;
 	}
@@ -411,40 +432,87 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
 		}
+
 		success = false;
 		goto out;
 	}
 
-	/*
-	 * Check if voter thinks the confidence is low. High-end sensors might have virtually zero noise
-	 * on the bench and trigger false positives of the voter. Therefore only fail this
-	 * for a pre-arm check, as then the cover is off and the natural airflow in the field
-	 * will ensure there is not zero noise.
-	 */
-	if (prearm && fabsf(airspeed.confidence) < 0.95f) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR STUCK");
-		}
-		success = false;
-		goto out;
-	}
+	if (prearm) {
+		/*
+		 * Check if voter thinks the confidence is low. High-end sensors might have virtually zero noise
+		 * on the bench and trigger false positives of the voter. Therefore only fail this
+		 * for a pre-arm check, as then the cover is off and the natural airflow in the field
+		 * will ensure there is not zero noise.
+		 */
+		if (fabsf(airspeed.confidence) < 0.95f) {
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR STUCK");
+			}
 
-	/**
-	 * Check if differential pressure is off by more than 15Pa which equals ~5m/s when measuring no airspeed.
-	 * Negative and positive offsets are considered. Do not check anymore while arming because pitot cover
-	 * might have been removed.
-	 */
-	if (fabsf(differential_pressure.differential_pressure_filtered_pa) > 15.0f && !prearm) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: CHECK AIRSPEED CAL OR PITOT");
+			success = false;
+			goto out;
 		}
-		success = false;
-		goto out;
+
+	} else {
+		/**
+		 * Check if differential pressure is off by more than 15Pa which equals ~5m/s when measuring no airspeed.
+		 * Negative and positive offsets are considered. Do not check anymore while arming because pitot cover
+		 * might have been removed.
+		 */
+		if (fabsf(differential_pressure.differential_pressure_filtered_pa) > 15.0f) {
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: CHECK AIRSPEED CAL OR PITOT");
+			}
+
+			success = false;
+			goto out;
+		}
 	}
 
 out:
 	orb_unsubscribe(fd_airspeed);
 	orb_unsubscribe(fd_diffpres);
+	return success;
+}
+
+static bool powerCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool prearm)
+{
+	bool success = true; // start with a pass and change to a fail if any test fails
+
+	if (prearm) {
+		int system_power_sub = orb_subscribe(ORB_ID(system_power));
+
+		system_power_s system_power = {};
+
+		if (orb_copy(ORB_ID(system_power), system_power_sub, &system_power) == PX4_OK) {
+
+			/* copy avionics voltage */
+			int avionics_power_rail_voltage = system_power.voltage5V_v;
+
+			// avionics rail
+			// Check avionics rail voltages
+			if (avionics_power_rail_voltage < 4.5f) {
+				success = false;
+
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+				}
+
+			} else if (avionics_power_rail_voltage < 4.9f) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+				}
+
+			} else if (avionics_power_rail_voltage > 5.4f) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power high: %6.2f Volt", (double)avionics_power_rail_voltage);
+				}
+			}
+		}
+
+		orb_unsubscribe(system_power_sub);
+	}
+
 	return success;
 }
 
@@ -461,71 +529,84 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 		goto out;
 	}
 
-	// Check if preflight check perfomred by estimator has failed
+	// Check if preflight check performed by estimator has failed
 	if (status.pre_flt_fail) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF INTERNAL CHECKS");
 		}
+
 		success = false;
 		goto out;
 	}
 
 	// check vertical position innovation test ratio
 	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
+
 	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HGT ERROR");
 		}
+
 		success = false;
 		goto out;
 	}
 
 	// check velocity innovation test ratio
 	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
+
 	if (status.vel_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VEL ERROR");
 		}
+
 		success = false;
 		goto out;
 	}
 
 	// check horizontal position innovation test ratio
 	param_get(param_find("COM_ARM_EKF_POS"), &test_limit);
+
 	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS ERROR");
 		}
+
 		success = false;
 		goto out;
 	}
 
 	// check magnetometer innovation test ratio
 	param_get(param_find("COM_ARM_EKF_YAW"), &test_limit);
+
 	if (status.mag_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW ERROR");
 		}
+
 		success = false;
 		goto out;
 	}
 
 	// check accelerometer delta velocity bias estimates
 	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
+
 	if (fabsf(status.states[13]) > test_limit || fabsf(status.states[14]) > test_limit || fabsf(status.states[15]) > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS");
 		}
+
 		success = false;
 		goto out;
 	}
 
 	// check gyro delta angle bias estimates
 	param_get(param_find("COM_ARM_EKF_GB"), &test_limit);
+
 	if (fabsf(status.states[10]) > test_limit || fabsf(status.states[11]) > test_limit || fabsf(status.states[12]) > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS");
 		}
+
 		success = false;
 		goto out;
 	}
@@ -534,19 +615,23 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	if (enforce_gps_required) {
 		bool ekf_gps_fusion = status.control_mode_flags & (1 << 2);
 		bool ekf_gps_check_fail = status.gps_check_fail_flags > 0;
+
 		if (!ekf_gps_fusion) {
 			// The EKF is not using GPS
 			if (report_fail) {
 				if (ekf_gps_check_fail) {
 					// Poor GPS qulaity is the likely cause
 					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
+
 				} else {
 					// Likely cause unknown
 					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
 				}
 			}
+
 			success = false;
 			goto out;
+
 		} else {
 			// The EKF is using GPS so check for bad quality on key performance indicators
 			bool gps_quality_fail = ((status.gps_check_fail_flags & ((1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)
@@ -558,6 +643,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 				if (report_fail) {
 					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
 				}
+
 				success = false;
 				goto out;
 			}
@@ -570,12 +656,12 @@ out:
 }
 
 bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool checkAirspeed, bool checkRC, bool checkGNSS,
-		    bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, const hrt_abstime& time_since_boot)
+		    bool checkDynamic, bool checkPower, bool isVTOL, bool reportFailures, bool prearm, const hrt_abstime &time_since_boot)
 {
-
 	if (time_since_boot < 2000000) {
 		// the airspeed driver filter doesn't deliver the actual value yet
-		return true;
+		//  test, but don't report failures to the user
+		reportFailures = false;
 	}
 
 #ifdef __PX4_QURT
@@ -607,7 +693,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 			bool required = (i < max_mandatory_mag_count);
 			int device_id = -1;
 
-			if (!magnometerCheck(mavlink_log_pub, i, !required, device_id, reportFailures) && required) {
+			if (!magnometerCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !failed)) && required) {
 				failed = true;
 			}
 
@@ -618,17 +704,17 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
-			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "Warning: Primary compass not found");
+			if ((reportFailures && !failed)) {
+				mavlink_log_critical(mavlink_log_pub, "Primary compass not found");
 			}
+
 			failed = true;
 		}
 
 		/* fail if mag sensors are inconsistent */
-		if (!magConsistencyCheck(mavlink_log_pub, reportFailures)) {
+		if (!magConsistencyCheck(mavlink_log_pub, (reportFailures && !failed))) {
 			failed = true;
 		}
-
 	}
 
 	/* ---- ACCEL ---- */
@@ -642,7 +728,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 			bool required = (i < max_mandatory_accel_count);
 			int device_id = -1;
 
-			if (!accelerometerCheck(mavlink_log_pub, i, !required, checkDynamic, device_id, reportFailures) && required) {
+			if (!accelerometerCheck(mavlink_log_pub, i, !required, checkDynamic, device_id, (reportFailures && !failed)) && required) {
 				failed = true;
 			}
 
@@ -653,9 +739,10 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
-			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "Warning: Primary accelerometer not found");
+			if ((reportFailures && !failed)) {
+				mavlink_log_critical(mavlink_log_pub, "Primary accelerometer not found");
 			}
+
 			failed = true;
 		}
 	}
@@ -671,7 +758,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 			bool required = (i < max_mandatory_gyro_count);
 			int device_id = -1;
 
-			if (!gyroCheck(mavlink_log_pub, i, !required, device_id, reportFailures) && required) {
+			if (!gyroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !failed)) && required) {
 				failed = true;
 			}
 
@@ -682,9 +769,10 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
-			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "Warning: Primary gyro not found");
+			if ((reportFailures && !failed)) {
+				mavlink_log_critical(mavlink_log_pub, "Primary gyro not found");
 			}
+
 			failed = true;
 		}
 	}
@@ -700,7 +788,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 			bool required = (i < max_mandatory_baro_count);
 			int device_id = -1;
 
-			if (!baroCheck(mavlink_log_pub, i, !required, device_id, reportFailures) && required) {
+			if (!baroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !failed)) && required) {
 				failed = true;
 			}
 
@@ -712,9 +800,10 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		// TODO there is no logic in place to calibrate the primary baro yet
 		// // check if the primary device is present
 		if (!prime_found && prime_id != 0) {
-			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "warning: primary barometer not operational");
+			if ((reportFailures && !failed)) {
+				mavlink_log_critical(mavlink_log_pub, "Primary barometer not operational");
 			}
+
 			failed = true;
 		}
 	}
@@ -728,17 +817,25 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 	/* ---- AIRSPEED ---- */
 	if (checkAirspeed) {
-		if (!airspeedCheck(mavlink_log_pub, true, reportFailures, prearm)) {
+		if (!airspeedCheck(mavlink_log_pub, true, (reportFailures && !failed), prearm)) {
 			failed = true;
 		}
 	}
 
 	/* ---- RC CALIBRATION ---- */
 	if (checkRC) {
-		if (rc_calibration_check(mavlink_log_pub, reportFailures, isVTOL) != OK) {
-			if (reportFailures) {
+		if (rc_calibration_check(mavlink_log_pub, (reportFailures && !failed), isVTOL) != OK) {
+			if ((reportFailures && !failed)) {
 				mavlink_log_critical(mavlink_log_pub, "RC calibration check failed");
 			}
+
+			failed = true;
+		}
+	}
+
+	/* ---- SYSTEM POWER ---- */
+	if (checkPower) {
+		if (!powerCheck(mavlink_log_pub, (reportFailures && !failed), prearm)) {
 			failed = true;
 		}
 	}
@@ -747,11 +844,12 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
 	int32_t estimator_type;
 	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+
 	if (estimator_type == 2) {
 		// don't report ekf failures for the first 10 seconds to allow time for the filter to start
 		bool report_ekf_fail = (time_since_boot > 10 * 1000000);
 
-		if (!ekf2Check(mavlink_log_pub, true, reportFailures && report_ekf_fail && !failed, checkGNSS)) {
+		if (!ekf2Check(mavlink_log_pub, true, (reportFailures && report_ekf_fail && !failed), checkGNSS)) {
 			failed = true;
 		}
 	}

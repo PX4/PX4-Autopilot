@@ -80,16 +80,14 @@ extern const char *const arming_state_names[];
 bool is_safe(const safety_s &safety, const actuator_armed_s &armed);
 
 transition_result_t arming_state_transition(vehicle_status_s *status, const battery_status_s &battery,
-		const safety_s &safety, const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
-		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const float avionics_power_rail_voltage,
-		const uint8_t arm_requirements, const hrt_abstime &time_since_boot);
+					const safety_s &safety, const arming_state_t new_arming_state, actuator_armed_s *armed, orb_advert_t *mavlink_log_pub,
+					const vehicle_status_flags_s &status_flags, const uint8_t arm_requirements, const hrt_abstime &time_since_boot);
 
-transition_result_t
-main_state_transition(const vehicle_status_s &status, const main_state_t new_main_state,
-		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state);
+transition_result_t main_state_transition(const vehicle_status_s &status, const main_state_t new_main_state,
+					const vehicle_status_flags_s &status_flags, commander_state_s *internal_state);
 
 transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub,
-		vehicle_status_s *current_status, orb_advert_t *mavlink_log_pub);
+					vehicle_status_s *current_status, orb_advert_t *mavlink_log_pub);
 
 void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason);
 
@@ -106,7 +104,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
 				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos);
 
-bool prearm_check(orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const battery_status_s &battery,
+bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
+		  const battery_status_s &battery,
 		  const uint8_t arm_requirements, const hrt_abstime &time_since_boot);
 
 #endif /* STATE_MACHINE_HELPER_H_ */
