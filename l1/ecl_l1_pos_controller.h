@@ -61,6 +61,7 @@
 #define ECL_L1_POS_CONTROLLER_H
 
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <geo/geo.h>
 #include <ecl/ecl.h>
 
