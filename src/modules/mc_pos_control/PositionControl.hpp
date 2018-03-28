@@ -51,8 +51,8 @@ namespace Controller
  * 	than the global limits.
  * 	tilt_max: Cannot exceed PI/2
  * 	vel_max_z_up: Cannot exceed maximum global velocity upwards
- * @see _tilt_max
- * @see _VelMaxZ
+ * @see MPC_TILTMAX_AIR
+ * @see MPC_Z_VEL_MAX_DN
  */
 struct Constraints {
 	float tilt_max; /**< maximum tilt always below Pi/2 */
@@ -161,22 +161,26 @@ public:
 	matrix::Vector3f getPosSp() {return _pos_sp;}
 
 private:
+	void _interfaceMapping(); /** maps set-points to internal member set-points */
+	void _positionController(); /** applies the P-position-controller */
+	void _velocityController(const float &dt); /** applies the PID-velocity-controller */
+	void _updateParams(); /** updates parameters */
+	void _setParams(); /** sets parameters to internal member */
 
 	matrix::Vector3f _pos{}; /**< MC position */
 	matrix::Vector3f _vel{}; /**< MC velocity */
 	matrix::Vector3f _vel_dot{}; /**< MC velocity derivative */
 	matrix::Vector3f _acc{}; /**< MC acceleration */
 	float _yaw{0.0f}; /**< MC yaw */
-
 	matrix::Vector3f _pos_sp{}; /**< desired position */
 	matrix::Vector3f _vel_sp{}; /**< desired velocity */
 	matrix::Vector3f _acc_sp{}; /**< desired acceleration: not supported yet */
 	matrix::Vector3f _thr_sp{}; /**< desired thrust */
 	float _yaw_sp{}; /**< desired yaw */
 	float _yawspeed_sp{}; /** desired yaw-speed */
-
 	matrix::Vector3f _thr_int{}; /**< thrust integral term */
 	Controller::Constraints _constraints{}; /**< variable constraints */
+	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
 
 	/**
 	 * Position Gains.
@@ -185,49 +189,35 @@ private:
 	 * Iv: I-controller gain for velocity-controller
 	 * Dv: D-controller gain for velocity-controller
 	 */
-	matrix::Vector3f Pp, Pv, Iv, Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
+	matrix::Vector3f _Pp, _Pv, _Iv, _Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
 
-	float _VelMaxXY{}; /**< maximum global limit for velocity in the horizontal direction */
-
-	struct DirectionD {
-		float up;
-		float down;
-	};
-	DirectionD _VelMaxZ; /**< struct for velocity limits in the z-direction */
-
-	struct Limits {
-		float max;
-		float min;
-	};
-	Limits _ThrustLimit; /**< struct for thrust-limits */
-
-	float _ThrHover{0.5f}; /** equilibrium point for the velocity controller */
-	float _ThrMinPosition{0.0f}; /**< minimum throttle for any position controlled mode */
-	float _ThrMinStab{0.0f}; /**< minimum throttle for stabilized mode */
-	float _tilt_max{1.5f}; /**< maximum tilt for any velocity controlled mode. */
-	bool _skipController{false}; /**< skips position/velocity controller. true for stabilized mode */
-
-	void _interfaceMapping(); /** maps setpoints to internal member setpoints */
-	void _positionController(); /** applies the P-position-controller */
-	void _velocityController(const float &dt); /** applies the PID-velocity-controller */
-	void _updateParams(); /** updates parameters */
-	void _setParams(); /** sets parameters to internal member */
+	float MPC_THR_MAX{1.0f}; /**< maximum thrust */
+	float MPC_THR_HOVER{0.5f}; /** equilibrium point for the velocity controller */
+	float MPC_THR_MIN{0.0f}; /**< minimum throttle for any position controlled mode */
+	float MPC_MANTHR_MIN{0.0f}; /**< minimum throttle for stabilized mode */
+	float MPC_XY_VEL_MAX{1.0f}; /**< maximum speed in the horizontal direction */
+	float MPC_Z_VEL_MAX_DN{1.0f}; /**< maximum speed in downwards direction */
+	float MPC_Z_VEL_MAX_UP{1.0f}; /**< maximum speed in upwards direction */
+	float MPC_TILTMAX_AIR{1.5}; /**< maximum tilt for any position/velocity controlled mode */
+	float MPC_MAN_TILT_MAX{3.1}; /**< maximum tilt for manual/altitude mode */
 
 	// Parameter handles
 	int _parameter_sub { -1 };
-	param_t _Pz_h { PARAM_INVALID };
-	param_t _Pvz_h { PARAM_INVALID };
-	param_t _Ivz_h { PARAM_INVALID };
-	param_t _Dvz_h { PARAM_INVALID };
-	param_t _Pxy_h { PARAM_INVALID };
-	param_t _Pvxy_h { PARAM_INVALID };
-	param_t _Ivxy_h { PARAM_INVALID };
-	param_t _Dvxy_h { PARAM_INVALID };
-	param_t _VelMaxXY_h { PARAM_INVALID };
-	param_t _VelMaxZdown_h { PARAM_INVALID };
-	param_t _VelMaxZup_h { PARAM_INVALID };
-	param_t _ThrHover_h { PARAM_INVALID };
-	param_t _ThrMax_h { PARAM_INVALID };
-	param_t _ThrMinPosition_h { PARAM_INVALID };
-	param_t _ThrMinStab_h { PARAM_INVALID };
+	param_t MPC_Z_P_h { PARAM_INVALID };
+	param_t MPC_Z_VEL_P_h { PARAM_INVALID };
+	param_t MPC_Z_VEL_I_h { PARAM_INVALID };
+	param_t MPC_Z_VEL_D_h { PARAM_INVALID };
+	param_t MPC_XY_P_h { PARAM_INVALID };
+	param_t MPC_XY_VEL_P_h { PARAM_INVALID };
+	param_t MPC_XY_VEL_I_h { PARAM_INVALID };
+	param_t MPC_XY_VEL_D_h { PARAM_INVALID };
+	param_t MPC_XY_VEL_MAX_h { PARAM_INVALID };
+	param_t MPC_Z_VEL_MAX_DN_h { PARAM_INVALID };
+	param_t MPC_Z_VEL_MAX_UP_h { PARAM_INVALID };
+	param_t MPC_THR_HOVER_h { PARAM_INVALID };
+	param_t MPC_THR_MAX_h { PARAM_INVALID };
+	param_t MPC_THR_MIN_h { PARAM_INVALID };
+	param_t MPC_MANTHR_MIN_h { PARAM_INVALID };
+	param_t MPC_TILTMAX_AIR_h { PARAM_INVALID };
+	param_t MPC_MAN_TILT_MAX_h { PARAM_INVALID };
 };
