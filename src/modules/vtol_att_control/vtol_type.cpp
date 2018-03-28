@@ -302,6 +302,8 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 		ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
 	}
 
+	px4_close(fd);
+
 
 	if (ret != OK) {
 		PX4_ERR("failed setting max values");
