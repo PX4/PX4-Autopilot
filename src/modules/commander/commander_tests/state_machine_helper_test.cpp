@@ -164,13 +164,6 @@ bool StateMachineHelperTest::armingStateTransitionTest()
             vehicle_status_s::ARMING_STATE_REBOOT,
             { vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED },
 
-        // hil on tests, standby error to standby not normally allowed
-
-        { "transition: standby error to standby, hil on",
-            { vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-            vehicle_status_s::ARMING_STATE_STANDBY,
-            { vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED },
-
         // Safety switch arming tests
 
         { "transition: standby to armed, no safety switch",
@@ -255,6 +248,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
         status.hil_state = test->hil_state;
         // The power status of the test unit is not relevant for the unit test
         status_flags.circuit_breaker_engaged_power_check = true;
+        status_flags.circuit_breaker_engaged_airspd_check = true;
+
         safety.safety_switch_available = test->safety_switch_available;
         safety.safety_off = test->safety_off;
         armed.armed = test->current_state.armed;
@@ -262,10 +257,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 
         // Attempt transition
         transition_result_t result = arming_state_transition(&status, battery, safety, test->requested_state, &armed,
-				false /* no pre-arm checks */,
 				nullptr /* no mavlink_log_pub */,
-				&status_flags,
-				5.0f, /* avionics rail voltage */
+				status_flags,
 				(check_gps ? ARM_REQ_GPS_BIT : 0),
 				2e6 /* 2 seconds after boot, everything should be checked */
 				);
