@@ -7,8 +7,7 @@ set(config_module_list
 	# Board support modules
 	#
 	#drivers/barometer
-	#drivers/differential_pressure
-	#drivers/distance_sensor
+	drivers/differential_pressure
 	#drivers/magnetometer
 	#drivers/telemetry
 
@@ -22,9 +21,6 @@ set(config_module_list
 	#drivers/bst
 	drivers/camera_trigger
 	drivers/device
-	drivers/differential_pressure/ms4525
-	drivers/differential_pressure/ms5525
-	drivers/differential_pressure/sdp3x
 	#drivers/frsky_telemetry
 	drivers/gps
 	#drivers/hott
@@ -55,7 +51,7 @@ set(config_module_list
 
 	# distance sensors
 	drivers/distance_sensor/ll40ls
-	#drivers/distance_sensor/mb12xx
+	drivers/distance_sensor/mb12xx
 	drivers/distance_sensor/sf0x
 	drivers/distance_sensor/sf1xx
 	drivers/distance_sensor/srf02
