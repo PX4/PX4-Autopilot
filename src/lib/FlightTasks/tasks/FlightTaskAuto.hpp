@@ -35,7 +35,6 @@
  * @file FlightTaskAuto.hpp
  *
  * Map from global triplet to local quadruple.
- *
  */
 
 #pragma once
@@ -45,9 +44,11 @@
 #include <uORB/topics/position_setpoint.h>
 #include <lib/geo/geo.h>
 
-/* This enum has to agree with position_setpoint_s type definition
+/**
+ * This enum has to agree with position_setpoint_s type definition
  * The only reason for not using the struct position_setpoint is because
- * of the size */
+ * of the size
+ */
 enum class WaypointType : int {
 	position = 0,
 	velocity,
@@ -63,11 +64,8 @@ public:
 	FlightTaskAuto(control::SuperBlock *parent, const char *name);
 
 	virtual ~FlightTaskAuto() = default;
-
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-
 	bool activate() override;
-
 	bool updateInitialize() override;
 
 protected:

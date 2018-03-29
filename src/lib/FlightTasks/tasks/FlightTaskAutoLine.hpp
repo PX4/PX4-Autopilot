@@ -46,11 +46,8 @@ class FlightTaskAutoLine : public FlightTaskAuto
 {
 public:
 	FlightTaskAutoLine(control::SuperBlock *parent, const char *name);
-
 	virtual ~FlightTaskAutoLine() = default;
-
 	bool activate() override;
-
 	bool update() override;
 
 protected:

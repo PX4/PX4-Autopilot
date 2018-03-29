@@ -74,21 +74,20 @@ bool FlightTaskAuto::updateInitialize()
 
 bool FlightTaskAuto::_evaluateTriplets()
 {
-	/* TODO: fix the issues mentioned below */
-	/* We add here some conditions that are only required because
-	 * 1. navigator continuously sends triplet during mission due to yaw setpoint. This
-	 * should be removed in the navigator and only update once the current setpoint actually has changed.
-	 *
-	 * 2. navigator should be responsible to send always three valid setpoints. If there is only one setpoint,
-	 * then previous will be set to current vehicle position and next will be set equal to setpoint.
-	 *
-	 * 3. navigator originally only supports gps guided maneuvers. However, it now also supports some flow-specific features
-	 * such as land and takeoff. The navigator should use for auto takeoff/land with flow the position in xy at the moment the
-	 * takeoff/land was initiated. Until then we do this kind of logic here.
-	 */
+	// TODO: fix the issues mentioned below
+	// We add here some conditions that are only required because:
+	// 1. navigator continuously sends triplet during mission due to yaw setpoint. This
+	// should be removed in the navigator and only updates if the current setpoint actually has changed.
+	//
+	// 2. navigator should be responsible to send always three valid setpoints. If there is only one setpoint,
+	// then previous will be set to current vehicle position and next will be set equal to setpoint.
+	//
+	// 3. navigator originally only supports gps guided maneuvers. However, it now also supports some flow-specific features
+	// such as land and takeoff. The navigator should use for auto takeoff/land with flow the position in xy at the moment the
+	// takeoff/land was initiated. Until then we do this kind of logic here.
 
 	if (!_sub_triplet_setpoint->get().current.valid) {
-		/* Best we can do is to just set all waypoints to current state */
+		// best we can do is to just set all waypoints to current state
 		_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
 		_yaw_wp = _yaw;
 		_type = WaypointType::position;
@@ -96,15 +95,15 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
-	/* Always update cruise speed since that can change without waypoint changes */
+	// always update cruise speed since that can change without waypoint changes
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
 
 	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
-		/* Use default */
+		// use default
 		_mc_cruise_speed = _mc_cruise_default.get();
 	}
 
-	/* Get target waypoint. */
+	// get target waypoint.
 	matrix::Vector3f target;
 	map_projection_project(&_reference_position,
 			       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &target(0), &target(1));
@@ -118,24 +117,22 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	}
 
-	/* Check if anything has changed. We do that by comparing the target
-	 * setpoint to the previous target.
-	 * TODO This is a hack and it would be much
-	 * better if the navigator only sends out a waypoints once tthey have changed.
-	 */
+	// Check if anything has changed. We do that by comparing the target
+	// setpoint to the previous target.
+	// TODO This is a hack and it would be much better if the navigator only sends out a waypoints once tthey have changed.
 
-	/* Dont't do any updates if the current target has not changed */
+	// dont't do any updates if the current target has not changed
 	if (!(fabsf(target(0) - _target(0)) > 0.001f || fabsf(target(1) - _target(1)) > 0.001f
 	      || fabsf(target(2) - _target(2)) > 0.001f)) {
-		/* Nothing has changed: just keep old waypoints */
+		// nothing has changed: just keep old waypoints
 		return true;
 	}
 
-	/* Update all waypoints */
+	// update all waypoints
 	_target = target;
 
 	if (!PX4_ISFINITE(_target(0)) || !PX4_ISFINITE(_target(1))) {
-		/* Horizontal target is not finite. */
+		// Horizontal target is not finite. */
 		_target(0) = _position(0);
 		_target(1) = _position(1);
 	}
@@ -144,7 +141,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_target(2) = _position(2);
 	}
 
-	_prev_prev_wp = _prev_wp; // previous -1 is set to previous
+	_prev_prev_wp = _prev_wp;
 
 	if (_isFinite(_sub_triplet_setpoint->get().previous) && _sub_triplet_setpoint->get().previous.valid) {
 		map_projection_project(&_reference_position, _sub_triplet_setpoint->get().previous.lat,
@@ -179,7 +176,7 @@ void FlightTaskAuto::_evaluateVehicleGlobalPosition()
 {
 	FlightTask::_evaluateVehicleLocalPosition();
 
-	/* Check if reference has changed and update. */
+	// check if reference has changed and update.
 	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference) {
 		PX4_INFO("inside");
 		map_projection_init(&_reference_position,
