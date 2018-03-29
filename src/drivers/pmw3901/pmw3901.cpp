@@ -77,17 +77,8 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#ifdef PX4_SPI_BUS_EXT1
-#define PMW3901_BUS 							PX4_SPI_BUS_EXT1 			// fmu-v4pro 
-#else
-#define PMW3901_BUS 							PX4_SPI_BUS_EXTERNAL1		// fmu-v5 
-#endif
-
-#ifdef PX4_SPIDEV_EXT0
-#define PMW3901_SPIDEV 							PX4_SPIDEV_EXT0 			// fmu-v4pro
-#else
-#define PMW3901_SPIDEV 							PX4_SPIDEV_EXTERNAL1_1		// fmu-v5 
-#endif
+#define PMW3901_BUS 							PX4_SPI_BUS_EXPANSION				/* fmu-v4pro: PX4_SPI_BUS_EXT1 | fmu-v5: PX4_SPI_BUS_EXTERNAL1  */
+#define PMW3901_SPIDEV 							PX4_SPIDEV_EXPANSION_2				/* fmu-v4pro: PX4_SPIDEV_EXT0  | fmu-v5: PX4_SPIDEV_EXTERNAL1_1 */
 
 #define PMW3901_SPI_BUS_SPEED    				(2000000L)      			// 2MHz
 
@@ -571,8 +562,8 @@ PMW3901::collect()
 
 	readMotionCount(delta_x_raw, delta_y_raw);
 
-	delta_x = (float)delta_x_raw / 500.0f;								// proportional factor + convert from pixels to radians
-	delta_y = (float)delta_y_raw / 500.0f;								// proportional factor + convert from pixels to radians
+	delta_x = (float)delta_x_raw / 500.0f;				// proportional factor + convert from pixels to radians
+	delta_y = (float)delta_y_raw / 500.0f;				// proportional factor + convert from pixels to radians
 
 	struct optical_flow_s report;
 
