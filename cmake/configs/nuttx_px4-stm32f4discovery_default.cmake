@@ -38,7 +38,6 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/geo
 	lib/mathlib
 	lib/mixer
 	lib/version

@@ -217,9 +217,7 @@ test()
 		return;
 	}
 
-	PX4_INFO("single read");
-	PX4_INFO("measurement: %0.2f m", (double)report.current_distance);
-	PX4_INFO("time:        %lld", report.timestamp);
+	print_message(report);
 
 	/* start the sensor polling at 2Hz */
 	if (PX4_OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -249,11 +247,7 @@ test()
 			return;
 		}
 
-		PX4_INFO("periodic read %u", i);
-		PX4_INFO("valid %u", (float)report.current_distance > report.min_distance
-			 && (float)report.current_distance < report.max_distance ? 1 : 0);
-		PX4_INFO("measurement: %0.3f m", (double)report.current_distance);
-		PX4_INFO("time:        %lld", report.timestamp);
+		print_message(report);
 	}
 
 	/* reset the sensor polling to default rate */

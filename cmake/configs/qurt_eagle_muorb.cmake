@@ -38,8 +38,6 @@ set(config_module_list
 	# Libraries
 	#
 	lib/mathlib
-	lib/geo
-	lib/geo_lookup
 	lib/conversion
 	lib/version
 	lib/DriverFramework/framework

@@ -57,7 +57,7 @@
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <systemlib/param/param.h>
 

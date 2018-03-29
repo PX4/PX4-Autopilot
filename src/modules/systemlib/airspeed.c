@@ -40,10 +40,10 @@
  *
  */
 
-#include <stdio.h>
-#include <math.h>
-#include <geo/geo.h>
 #include "airspeed.h"
+
+#include <px4_defines.h>
+#include <lib/ecl/geo/geo.h>
 
 /**
  * Calculate indicated airspeed.
@@ -121,7 +121,7 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
 					// check if the tube diameter and dp is nonzero to avoid division by 0
 					if ((tube_dia_mm > 0.0f) && (dp > 0.0f)) {
 						const float d_tubePow4 = powf(tube_dia_mm * 1e-3f, 4);
-						const float denominator = (float)M_PI * d_tubePow4 * rho_air * dp;
+						const float denominator = M_PI_F * d_tubePow4 * rho_air * dp;
 
 						// avoid division by 0
 						float eps = 0.0f;

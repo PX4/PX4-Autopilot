@@ -41,7 +41,7 @@
 #pragma once
 
 #include <matrix/math.hpp>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <px4_module_params.h>
 #include <uORB/topics/landing_target_pose.h>
 
@@ -100,8 +100,9 @@ private:
 
 	landing_target_pose_s _target_pose{}; /**< precision landing target position */
 
-	int _targetPoseSub{-1};
-	bool _target_pose_valid{false}; /**< wether we have received a landing target position message */
+	int _target_pose_sub{-1};
+	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
+	bool _target_pose_updated{false}; /**< wether the landing target position message is updated */
 
 	struct map_projection_reference_s _map_ref {}; /**< reference for local/global projections */
 

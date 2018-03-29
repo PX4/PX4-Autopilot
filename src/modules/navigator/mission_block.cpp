@@ -46,7 +46,7 @@
 #include <math.h>
 #include <float.h>
 
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <uORB/uORB.h>

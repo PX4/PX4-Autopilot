@@ -38,7 +38,7 @@
  */
 
 #include "blocks.hpp"
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 
 namespace control
 {

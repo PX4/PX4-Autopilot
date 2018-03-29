@@ -18,8 +18,6 @@ set(config_module_list
 	lib/mathlib
 	lib/conversion
 	lib/ecl
-	lib/geo
-	lib/geo_lookup
 	lib/version
 	lib/DriverFramework/framework
 	lib/micro-CDR
