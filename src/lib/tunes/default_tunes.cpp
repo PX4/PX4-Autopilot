@@ -38,7 +38,7 @@
 #include "tunes.h"
 
 // initialise default tunes
-const char *Tunes::_default_tunes[] = {
+const char *const Tunes::_default_tunes[] = {
 	"", // empty to align with the index
 	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc", // startup tune
 	"MBT200a8a8a8PaaaP", // ERROR tone

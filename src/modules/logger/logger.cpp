@@ -402,7 +402,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_sdlog_profile_handle = param_find("SDLOG_PROFILE");
 
 	if (poll_topic_name) {
-		const orb_metadata **topics = orb_get_topics();
+		const orb_metadata *const*topics = orb_get_topics();
 
 		for (size_t i = 0; i < orb_topics_count(); i++) {
 			if (strcmp(poll_topic_name, topics[i]->o_name) == 0) {
@@ -478,7 +478,7 @@ LoggerSubscription* Logger::add_topic(const orb_metadata *topic)
 
 bool Logger::add_topic(const char *name, unsigned interval)
 {
-	const orb_metadata **topics = orb_get_topics();
+	const orb_metadata *const*topics = orb_get_topics();
 	LoggerSubscription *subscription = nullptr;
 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
@@ -957,9 +957,7 @@ void Logger::run()
 		if (ret == 0 && vehicle_status_updated) {
 			vehicle_status_s vehicle_status;
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-				     (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ||
-				     _arm_override;
+			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _arm_override;
 
 			if (_was_armed != armed && !_log_until_shutdown) {
 				_was_armed = armed;
@@ -1625,7 +1623,7 @@ void Logger::write_formats()
 {
 	_writer.lock();
 	ulog_message_format_s msg = {};
-	const orb_metadata **topics = orb_get_topics();
+	const orb_metadata *const*topics = orb_get_topics();
 
 	//write all known formats
 	for (size_t i = 0; i < orb_topics_count(); i++) {

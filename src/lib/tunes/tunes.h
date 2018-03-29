@@ -126,7 +126,7 @@ public:
 	unsigned int get_maximum_update_interval() {return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US;}
 
 private:
-	static const char *_default_tunes[];
+	static const char *const _default_tunes[];
 	static const uint8_t _note_tab[];
 	static const unsigned int _default_tunes_size;
 	bool _repeat = false;	     ///< if true, tune restarts at end
