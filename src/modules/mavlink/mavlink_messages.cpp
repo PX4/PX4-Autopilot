@@ -4448,7 +4448,7 @@ protected:
 
 	void update_airspeed(float update_rate)
 	{
-		struct airspeed_s airspeed = {};
+		airspeed_s airspeed = {};
 
 		if (_airspeed_sub->update(&airspeed)) {
 			_airspeed.add_value(airspeed.indicated_airspeed_m_s, update_rate);
@@ -4458,7 +4458,7 @@ protected:
 
 	void update_tecs_status(float update_rate)
 	{
-		struct tecs_status_s tecs_status = {};
+		tecs_status_s tecs_status = {};
 
 		if (_tecs_status_sub->update(&tecs_status)) {
 			_airspeed_sp.add_value(tecs_status.airspeedSp, update_rate);
@@ -4467,7 +4467,7 @@ protected:
 
 	void update_battery_status(float update_rate)
 	{
-		struct battery_status_s battery = {};
+		battery_status_s battery = {};
 
 		if (_battery_sub->update(&battery)) {
 			_battery.add_value(battery.remaining, update_rate);
@@ -4476,7 +4476,7 @@ protected:
 
 	void update_global_position(float update_rate)
 	{
-		struct vehicle_global_position_s global_pos = {};
+		vehicle_global_position_s global_pos = {};
 
 		if (_global_pos_sub->update(&global_pos)) {
 			_climb_rate.add_value(fabsf(global_pos.vel_d), update_rate);
@@ -4486,7 +4486,7 @@ protected:
 
 	void update_gps(float update_rate)
 	{
-		struct vehicle_gps_position_s gps = {};
+		vehicle_gps_position_s gps = {};
 
 		if (_gps_sub->update(&gps)) {
 			_eph.add_value(gps.eph, update_rate);
@@ -4496,7 +4496,7 @@ protected:
 
 	void update_vehicle_status(float update_rate)
 	{
-		struct vehicle_status_s status = {};
+		vehicle_status_s status = {};
 
 		if (_status_sub->update(&status)) {
 			if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
@@ -4521,7 +4521,7 @@ protected:
 
 	void update_wind_estimate(float update_rate)
 	{
-		struct wind_estimate_s wind = {};
+		wind_estimate_s wind = {};
 
 		if (_wind_sub->update(&wind)) {
 			_windspeed.add_value(sqrtf(wind.windspeed_north * wind.windspeed_north + wind.windspeed_east * wind.windspeed_east),
