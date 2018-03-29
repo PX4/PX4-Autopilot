@@ -289,15 +289,17 @@ Mission::set_closest_item_as_current()
 }
 
 void
-Mission::set_execution_mode(const mission_execution_mode mode)
+Mission::set_execution_mode(const uint8_t mode)
 {
 	if (_mission_execution_mode != mode) {
 		_execution_mode_changed = true;
+		_navigator->get_mission_result()->execution_mode = mode;
+
 
 		switch (_mission_execution_mode) {
-		case EXECUTION_NORMAL:
-		case EXECUTION_FAST_FORWARD:
-			if (mode == EXECUTION_REVERSE) {
+		case mission_result_s::MISSION_EXECUTION_MODE_NORMAL:
+		case mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD:
+			if (mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
 				// command a transition if in vtol mc mode
 				if (_navigator->get_vstatus()->is_rotary_wing &&
 				    _navigator->get_vstatus()->is_vtol &&
@@ -328,9 +330,9 @@ Mission::set_execution_mode(const mission_execution_mode mode)
 
 			break;
 
-		case EXECUTION_REVERSE:
-			if ((mode == EXECUTION_NORMAL) ||
-			    (mode == EXECUTION_FAST_FORWARD)) {
+		case mission_result_s::MISSION_EXECUTION_MODE_REVERSE:
+			if ((mode == mission_result_s::MISSION_EXECUTION_MODE_NORMAL) ||
+			    (mode == mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD)) {
 				// handle switch from reverse to forward mission
 				if (_current_offboard_mission_index < 0) {
 					_current_offboard_mission_index = 0;
@@ -495,13 +497,13 @@ Mission::advance_mission()
 	switch (_mission_type) {
 	case MISSION_TYPE_OFFBOARD:
 		switch (_mission_execution_mode) {
-		case EXECUTION_NORMAL:
-		case EXECUTION_FAST_FORWARD: {
+		case mission_result_s::MISSION_EXECUTION_MODE_NORMAL:
+		case mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD: {
 				_current_offboard_mission_index++;
 				break;
 			}
 
-		case EXECUTION_REVERSE: {
+		case mission_result_s::MISSION_EXECUTION_MODE_REVERSE: {
 				// find next position item in reverse order
 				dm_item_t dm_current = (dm_item_t)(_offboard_mission.dataman_id);
 
@@ -557,7 +559,8 @@ Mission::set_mission_items()
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_log_pub(),
-					 _mission_execution_mode == EXECUTION_REVERSE ? "Executing Reverse Mission" : "Executing Mission");
+					 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Executing Reverse Mission" :
+					 "Executing Mission");
 			user_feedback_done = true;
 		}
 
@@ -569,12 +572,14 @@ Mission::set_mission_items()
 
 			if (_navigator->get_land_detected()->landed) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(),
-						 _mission_execution_mode == EXECUTION_REVERSE ? "Reverse Mission finished, landed" : "Mission finished, landed.");
+						 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Reverse Mission finished, landed" :
+						 "Mission finished, landed.");
 
 			} else {
 				/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
 				mavlink_log_info(_navigator->get_mavlink_log_pub(),
-						 _mission_execution_mode == EXECUTION_REVERSE ? "Reverse Mission finished, loitering" : "Mission finished, loitering.");
+						 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Reverse Mission finished, loitering" :
+						 "Mission finished, loitering.");
 
 				/* use last setpoint for loiter */
 				_navigator->set_can_loiter_at_sp(true);
@@ -629,8 +634,8 @@ Mission::set_mission_items()
 
 	if (item_contains_position(_mission_item)) {
 		switch (_mission_execution_mode) {
-		case EXECUTION_NORMAL:
-		case EXECUTION_FAST_FORWARD: {
+		case mission_result_s::MISSION_EXECUTION_MODE_NORMAL:
+		case mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD: {
 				/* force vtol land */
 				if (_navigator->force_vtol() && _mission_item.nav_cmd == NAV_CMD_LAND) {
 					_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
@@ -863,7 +868,7 @@ Mission::set_mission_items()
 
 				// for fast forward convert certain types to simple waypoint
 				// XXX: add other types which should be ignored in fast forward
-				if (_mission_execution_mode == EXECUTION_FAST_FORWARD &&
+				if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD &&
 				    ((_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) ||
 				     (_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT) ||
 				     (_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT))) {
@@ -875,7 +880,7 @@ Mission::set_mission_items()
 				break;
 			}
 
-		case EXECUTION_REVERSE: {
+		case mission_result_s::MISSION_EXECUTION_MODE_REVERSE: {
 				if (item_contains_position(_mission_item)) {
 					position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
@@ -898,8 +903,8 @@ Mission::set_mission_items()
 	} else {
 		/* handle non-position mission items such as commands */
 		switch (_mission_execution_mode) {
-		case EXECUTION_NORMAL:
-		case EXECUTION_FAST_FORWARD: {
+		case mission_result_s::MISSION_EXECUTION_MODE_NORMAL:
+		case mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD: {
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 				/* turn towards next waypoint before MC to FW transition */
@@ -955,7 +960,7 @@ Mission::set_mission_items()
 				}
 
 				// ignore certain commands in mission fast forward
-				if ((_mission_execution_mode == EXECUTION_FAST_FORWARD) &&
+				if ((_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD) &&
 				    (_mission_item.nav_cmd == NAV_CMD_DELAY)) {
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
@@ -964,7 +969,7 @@ Mission::set_mission_items()
 				break;
 			}
 
-		case EXECUTION_REVERSE: {
+		case mission_result_s::MISSION_EXECUTION_MODE_REVERSE: {
 				// nothing to do, all commands are ignored
 				break;
 			}
@@ -1404,7 +1409,7 @@ Mission::prepare_mission_items(mission_item_s *mission_item,
 	bool first_res = false;
 	int offset = 1;
 
-	if (_mission_execution_mode == EXECUTION_REVERSE) {
+	if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
 		offset = -1;
 	}
 
@@ -1420,7 +1425,7 @@ Mission::prepare_mission_items(mission_item_s *mission_item,
 				break;
 			}
 
-			if (_mission_execution_mode == EXECUTION_REVERSE) {
+			if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
 				offset--;
 
 			} else {
@@ -1476,7 +1481,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 
 		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
 		if (mission_item_tmp.nav_cmd == NAV_CMD_DO_JUMP) {
-			const bool execute_jumps = _mission_execution_mode == EXECUTION_NORMAL;
+			const bool execute_jumps = _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_NORMAL;
 
 			/* do DO_JUMP as many times as requested if not in reverse mode */
 			if ((mission_item_tmp.do_jump_current_count < mission_item_tmp.do_jump_repeat_count) && execute_jumps) {
@@ -1506,7 +1511,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 				}
 
 				/* no more DO_JUMPS, therefore just try to continue with next mission item */
-				if (_mission_execution_mode == EXECUTION_REVERSE) {
+				if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
 					(*mission_index_ptr)--;
 
 				} else {
@@ -1749,7 +1754,7 @@ Mission::index_closest_mission_item() const
 	}
 
 	// for mission reverse also consider the home position
-	if (_mission_execution_mode == EXECUTION_REVERSE) {
+	if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
 		float dist = get_distance_to_point_global_wgs84(
 				     _navigator->get_home_position()->lat,
 				     _navigator->get_home_position()->lon,

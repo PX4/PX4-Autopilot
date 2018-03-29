@@ -88,12 +88,6 @@ public:
 		MISSION_YAWMODE_MAX = 4
 	};
 
-	enum mission_execution_mode {
-		EXECUTION_NORMAL,		/**< Execute the mission according to the planned items */
-		EXECUTION_REVERSE,		/**< Execute the mission in reverse order, ignoring commands and converting all waypoints to normal ones */
-		EXECUTION_FAST_FORWARD,	/**< Execute the mission as fast as possible, for example converting loiter waypoints to normal ones*/
-	};
-
 	bool set_current_offboard_mission_index(uint16_t index);
 
 	bool land_start();
@@ -105,7 +99,12 @@ public:
 
 	void set_closest_item_as_current();
 
-	void set_execution_mode(const mission_execution_mode mode);
+	/**
+	 * Set a new mission mode and handle the switching between the different modes
+	 *
+	 * For a list of the different modes refer to mission_result.msg
+	 */
+	void set_execution_mode(const uint8_t mode);
 private:
 
 	/**
@@ -284,6 +283,6 @@ private:
 		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
 
-	mission_execution_mode _mission_execution_mode{EXECUTION_NORMAL};	/**< the current mode of how the mission is executed */
+	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
 	bool _execution_mode_changed{false};
 };

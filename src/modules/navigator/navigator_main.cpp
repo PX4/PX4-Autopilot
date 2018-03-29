@@ -559,7 +559,7 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
 
-			_mission.set_execution_mode(Mission::EXECUTION_NORMAL);
+			_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_NORMAL);
 			navigation_mode_new = &_mission;
 
 			break;
@@ -587,7 +587,7 @@ Navigator::run()
 
 					// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION to fly there directly
 					if (on_mission_landing() && !get_land_detected()->landed) {
-						_mission.set_execution_mode(Mission::EXECUTION_FAST_FORWARD);
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
 						navigation_mode_new = &_mission;
 
 					} else {
@@ -616,12 +616,12 @@ Navigator::run()
 							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
 						}
 
-						_mission.set_execution_mode(Mission::EXECUTION_FAST_FORWARD);
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
 						navigation_mode_new = &_mission;
 
 					} else {
 						// fly the mission in reverse if switching from a non-manual mode
-						_mission.set_execution_mode(Mission::EXECUTION_REVERSE);
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_REVERSE);
 
 						if ((_navigation_mode != nullptr) &&
 						    (! _mission.get_mission_finished()) &&
