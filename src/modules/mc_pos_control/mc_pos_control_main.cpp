@@ -1984,9 +1984,11 @@ void MulticopterPositionControl::control_auto()
 
 			/* check if we just want to stay at current position */
 			matrix::Vector2f pos_sp_diff((_curr_pos_sp(0) - _pos_sp(0)), (_curr_pos_sp(1) - _pos_sp(1)));
-			bool stay_at_current_pos = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
-						    || !next_setpoint_valid)
-						   && ((pos_sp_diff.length()) < SIGMA_NORM);
+
+			bool decelerate_towards_target = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+							  || !next_setpoint_valid || _pos_sp_triplet.current.time_inside > 0.0f);
+
+			bool stay_at_current_pos = decelerate_towards_target && ((pos_sp_diff.length()) < SIGMA_NORM);
 
 			/* only follow line if previous to current has a minimum distance */
 			if ((vec_prev_to_current.length()  > _nav_rad.get()) && !stay_at_current_pos) {
@@ -2077,7 +2079,7 @@ void MulticopterPositionControl::control_auto()
 						float acceptance_radius = 0.0f;
 
 						/* we want to pass and need to compute the desired velocity close to current setpoint */
-						if (next_setpoint_valid &&  !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+						if (!decelerate_towards_target) {
 							/* get velocity close to current that depends on angle between prev-current and current-next line */
 							vel_close = get_vel_close(unit_prev_to_current, unit_current_to_next);
 							acceptance_radius = _nav_rad.get();
@@ -2119,8 +2121,7 @@ void MulticopterPositionControl::control_auto()
 					/* check if altidue is within acceptance radius */
 					bool reached_altitude = (dist_to_current_z < _nav_rad.get()) ? true : false;
 
-					if (reached_altitude && next_setpoint_valid
-					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+					if (reached_altitude && !decelerate_towards_target) {
 						/* since we have a next setpoint use the angle prev-current-next to compute velocity setpoint limit */
 
 						/* get velocity close to current that depends on angle between prev-current and current-next line */
