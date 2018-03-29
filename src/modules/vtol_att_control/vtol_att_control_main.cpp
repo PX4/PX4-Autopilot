@@ -686,6 +686,7 @@ void VtolAttitudeControl::task_main()
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
+			_vtol_vehicle_status.in_transition_to_fw = false;
 
 			// got data from mc attitude controller
 			_vtol_type->update_mc_state();
@@ -698,6 +699,7 @@ void VtolAttitudeControl::task_main()
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
+			_vtol_vehicle_status.in_transition_to_fw = false;
 
 			_vtol_type->update_fw_state();
 			fill_fw_att_rates_sp();
