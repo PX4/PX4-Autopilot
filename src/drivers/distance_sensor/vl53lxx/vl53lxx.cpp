@@ -200,7 +200,7 @@ private:
 extern "C" __EXPORT int vl53lxx_main(int argc, char *argv[]);
 
 VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
-	I2C("VL53LXX", VL53LXX_DEVICE_PATH, bus, address, 100000),
+	I2C("VL53LXX", VL53LXX_DEVICE_PATH, bus, address, 400000),		// 400 kHz only for Crazyflie (other boards use max 100 kHz)
 	_rotation(rotation),
 	_reports(nullptr),
 	_sensor_ok(false),
