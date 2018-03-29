@@ -56,7 +56,7 @@ msgs_count_all = len(msg_names_all)
 @[end for]
 
 const size_t _uorb_topics_count = @(msgs_count_all);
-const struct orb_metadata* _uorb_topics_list[_uorb_topics_count] = { 
+const constexpr struct orb_metadata* const _uorb_topics_list[_uorb_topics_count] = {
 @[for idx, msg_name in enumerate(msg_names_all, 1)]@
     ORB_ID(@(msg_name))@[if idx != msgs_count_all],@[end if]
 @[end for]
@@ -67,7 +67,7 @@ size_t orb_topics_count()
 	return _uorb_topics_count;
 }
 
-const struct orb_metadata **orb_get_topics()
+const struct orb_metadata *const*orb_get_topics()
 {
 	return _uorb_topics_list;
 }
