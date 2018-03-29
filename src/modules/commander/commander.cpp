@@ -4154,7 +4154,7 @@ void Commander::poll_telemetry_status(bool checkAirspeed, bool *hotplug_timeout)
 				_telemetry_high_latency[i] = false;
 			}
 
-			if (telemetry.heartbeat_time > 0) {
+			if (telemetry.heartbeat_time > 0 && (_telemetry_last_heartbeat[i] < telemetry.heartbeat_time)) {
 				_telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
 			}
 		}
@@ -4273,6 +4273,13 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			vehicle_cmd.from_external = false;
 			vehicle_cmd.target_system = status.system_id;
 			vehicle_cmd.target_component = 0;
+
+			// set heartbeat to current time for high latency so that the first message can be transmitted
+			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				if (_telemetry_high_latency[i]) {
+					_telemetry_last_heartbeat[i] = hrt_absolute_time();
+				}
+			}
 
 			if (_vehicle_cmd_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &vehicle_cmd);
