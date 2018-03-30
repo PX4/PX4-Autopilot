@@ -102,6 +102,7 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -389,7 +390,7 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "check")) {
-		bool checkres = prearm_check(&mavlink_log_pub, true, &status_flags, battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+		bool checkres = prearm_check(&mavlink_log_pub, status_flags, battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 		PX4_INFO("Prearm check: %s", checkres ? "OK" : "FAILED");
 
 		return 0;
@@ -1049,10 +1050,10 @@ Commander::handle_command(vehicle_status_s *status_local,
 	}
 	break;
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
-			// only send the acknowledge from the commander, the command actually is handled by each mavlink instance
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-		}
-		break;
+		// only send the acknowledge from the commander, the command actually is handled by each mavlink instance
+		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+	}
+	break;
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
