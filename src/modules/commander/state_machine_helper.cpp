@@ -94,8 +94,8 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 
 transition_result_t arming_state_transition(vehicle_status_s *status, const battery_status_s &battery,
 		const safety_s &safety, const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
-		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const float avionics_power_rail_voltage,
-		const uint8_t arm_requirements, const hrt_abstime &time_since_boot)
+		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const uint8_t arm_requirements,
+		const hrt_abstime &time_since_boot)
 {
 	// Double check that our static arrays are still valid
 	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
@@ -120,8 +120,14 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 		bool preflight_check_ret = false;
 		bool prearm_check_ret = false;
 
+		const bool checkSensors = !hil_enabled;
+		const bool checkRC = (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
+		const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
+		const bool checkDynamic = !hil_enabled;
+		const bool checkPower = (status_flags->condition_power_input_valid
+					 && !status_flags->circuit_breaker_engaged_power_check);
+
 		bool checkAirspeed = false;
-		bool sensor_checks = !hil_enabled;
 
 		/* Perform airspeed check only if circuit breaker is not
 		 * engaged and it's not a rotary wing */
@@ -133,9 +139,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
 		    && !hil_enabled) {
 
-			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, sensor_checks, checkAirspeed,
-					      (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT, true,
-					      status->is_vtol, true, true, time_since_boot);
+			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, checkSensors, checkAirspeed, checkRC, checkGNSS,
+					      checkDynamic, checkPower, status->is_vtol, true, true, time_since_boot);
 
 			if (preflight_check_ret) {
 				status_flags->condition_system_sensors_initialized = true;
@@ -155,10 +160,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
 
-				status_flags->condition_system_sensors_initialized = Preflight::preflightCheck(mavlink_log_pub, sensor_checks,
-						checkAirspeed,
-						(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT, true,
-						status->is_vtol, false, false, time_since_boot);
+				status_flags->condition_system_sensors_initialized = Preflight::preflightCheck(mavlink_log_pub, checkSensors,
+						checkAirspeed, checkRC, checkGNSS, checkDynamic, checkPower, status->is_vtol, false, false, time_since_boot);
 
 				last_preflight_check = hrt_absolute_time();
 			}
@@ -211,31 +214,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 						mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
 						valid_transition = false;
-					}
-
-					// Perform power checks only if circuit breaker is not
-					// engaged for these checks
-					if (!status_flags->circuit_breaker_engaged_power_check) {
-
-						// Fail transition if power levels on the avionics rail
-						// are measured but are insufficient
-						if (status_flags->condition_power_input_valid && (avionics_power_rail_voltage > 0.0f)) {
-							// Check avionics rail voltages
-							if (avionics_power_rail_voltage < 4.5f) {
-								mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Avionics power low: %6.2f Volt",
-										     (double)avionics_power_rail_voltage);
-								feedback_provided = true;
-								valid_transition = false;
-
-							} else if (avionics_power_rail_voltage < 4.9f) {
-								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
-								feedback_provided = true;
-
-							} else if (avionics_power_rail_voltage > 5.4f) {
-								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power high: %6.2f Volt", (double)avionics_power_rail_voltage);
-								feedback_provided = true;
-							}
-						}
 					}
 				}
 			}

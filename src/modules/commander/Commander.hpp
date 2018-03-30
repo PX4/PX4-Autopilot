@@ -83,6 +83,9 @@ public:
 
 	void enable_hil();
 
+	// TODO: only temporarily static until low priority thread is removed
+	static bool preflight_check(bool report);
+
 private:
 	bool handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed_local, home_position_s *home, const vehicle_global_position_s &global_pos,
