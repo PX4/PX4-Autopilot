@@ -136,7 +136,11 @@ fi
 if [ -f $FRC ]
 then
 	sh $FRC
-else
+	set MODE custom
+fi
+
+if [ $MODE == autostart ]
+then
 	#
 	# Start the ORB (first app to start)
 	#
