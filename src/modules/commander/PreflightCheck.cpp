@@ -575,7 +575,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 	if (time_since_boot < 2000000) {
 		// the airspeed driver filter doesn't deliver the actual value yet
-		return true;
+		reportFailures = false;
 	}
 
 #ifdef __PX4_QURT
