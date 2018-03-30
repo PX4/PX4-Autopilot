@@ -832,7 +832,6 @@ Commander::handle_command(vehicle_status_s *status_local,
 				transition_result_t arming_res = arm_disarm(cmd_arms, &mavlink_log_pub, "arm/disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
-					mavlink_log_critical(&mavlink_log_pub, "Arming not possible in this state");
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 				} else {
