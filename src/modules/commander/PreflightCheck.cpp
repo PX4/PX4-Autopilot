@@ -602,13 +602,16 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		int32_t prime_id = 0;
 		param_get(param_find("CAL_MAG_PRIME"), &prime_id);
 
+		bool mag_fail_reported = false;
+
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_mag_count; i++) {
 			bool required = (i < max_mandatory_mag_count);
 			int device_id = -1;
 
-			if (!magnometerCheck(mavlink_log_pub, i, !required, device_id, reportFailures) && required) {
+			if (!magnometerCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !mag_fail_reported)) && required) {
 				failed = true;
+				mag_fail_reported = true;
 			}
 
 			if (device_id == prime_id) {
@@ -618,14 +621,14 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
-			if (reportFailures) {
+			if ((reportFailures && !failed)) {
 				mavlink_log_critical(mavlink_log_pub, "Warning: Primary compass not found");
 			}
 			failed = true;
 		}
 
 		/* fail if mag sensors are inconsistent */
-		if (!magConsistencyCheck(mavlink_log_pub, reportFailures)) {
+		if (!magConsistencyCheck(mavlink_log_pub, (reportFailures && !failed))) {
 			failed = true;
 		}
 
@@ -637,13 +640,16 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		int32_t prime_id = 0;
 		param_get(param_find("CAL_ACC_PRIME"), &prime_id);
 
+		bool accel_fail_reported = false;
+
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_accel_count; i++) {
 			bool required = (i < max_mandatory_accel_count);
 			int device_id = -1;
 
-			if (!accelerometerCheck(mavlink_log_pub, i, !required, checkDynamic, device_id, reportFailures) && required) {
+			if (!accelerometerCheck(mavlink_log_pub, i, !required, checkDynamic, device_id, (reportFailures && !accel_fail_reported)) && required) {
 				failed = true;
+				accel_fail_reported = true;
 			}
 
 			if (device_id == prime_id) {
@@ -653,7 +659,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
-			if (reportFailures) {
+			if ((reportFailures && !failed)) {
 				mavlink_log_critical(mavlink_log_pub, "Warning: Primary accelerometer not found");
 			}
 			failed = true;
@@ -666,13 +672,16 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		int32_t prime_id = 0;
 		param_get(param_find("CAL_GYRO_PRIME"), &prime_id);
 
+		bool gyro_fail_reported = false;
+
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
 			bool required = (i < max_mandatory_gyro_count);
 			int device_id = -1;
 
-			if (!gyroCheck(mavlink_log_pub, i, !required, device_id, reportFailures) && required) {
+			if (!gyroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !gyro_fail_reported)) && required) {
 				failed = true;
+				gyro_fail_reported = true;
 			}
 
 			if (device_id == prime_id) {
@@ -682,7 +691,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 		/* check if the primary device is present */
 		if (!prime_found && prime_id != 0) {
-			if (reportFailures) {
+			if ((reportFailures && !failed)) {
 				mavlink_log_critical(mavlink_log_pub, "Warning: Primary gyro not found");
 			}
 			failed = true;
@@ -695,13 +704,16 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		int32_t prime_id = 0;
 		param_get(param_find("CAL_BARO_PRIME"), &prime_id);
 
+		bool baro_fail_reported = false;
+
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
 			bool required = (i < max_mandatory_baro_count);
 			int device_id = -1;
 
-			if (!baroCheck(mavlink_log_pub, i, !required, device_id, reportFailures) && required) {
+			if (!baroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !baro_fail_reported)) && required) {
 				failed = true;
+				baro_fail_reported = true;
 			}
 
 			if (device_id == prime_id) {
@@ -712,7 +724,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		// TODO there is no logic in place to calibrate the primary baro yet
 		// // check if the primary device is present
 		if (!prime_found && prime_id != 0) {
-			if (reportFailures) {
+			if (reportFailures && !failed) {
 				mavlink_log_critical(mavlink_log_pub, "warning: primary barometer not operational");
 			}
 			failed = true;
@@ -751,7 +763,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		// don't report ekf failures for the first 10 seconds to allow time for the filter to start
 		bool report_ekf_fail = (time_since_boot > 10 * 1000000);
 
-		if (!ekf2Check(mavlink_log_pub, true, reportFailures && report_ekf_fail && !failed, checkGNSS)) {
+		if (!ekf2Check(mavlink_log_pub, true, (reportFailures && report_ekf_fail && !failed), checkGNSS)) {
 			failed = true;
 		}
 	}
