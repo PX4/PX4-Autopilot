@@ -107,6 +107,7 @@ bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, or
 				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos);
 
 bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-		  const battery_status_s &battery, const uint8_t arm_requirements, const hrt_abstime &time_since_boot);
+		  const battery_status_s &battery, const safety_s &safety, const uint8_t arm_requirements,
+		  const hrt_abstime &time_since_boot);
 
 #endif /* STATE_MACHINE_HELPER_H_ */
