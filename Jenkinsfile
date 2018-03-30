@@ -4,7 +4,7 @@ pipeline {
 
     stage('Style Check') {
       agent {
-        docker { image 'px4io/px4-dev-base:2017-12-30' }
+        docker { image 'px4io/px4-dev-base:2018-03-30' }
       }
 
       steps {
@@ -26,7 +26,7 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2018-03-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "export"
@@ -56,7 +56,7 @@ pipeline {
           builds["px4fmu-v2"] = {
             node {
               stage("Build Test ${node_name}") {
-                docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                docker.image('px4io/px4-dev-nuttx:2018-03-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                   stage("${node_name}") {
                     checkout scm
                     sh "export"
@@ -91,7 +91,7 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2018-03-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "export"
@@ -118,7 +118,7 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-nuttx:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                  docker.image('px4io/px4-dev-nuttx:2018-03-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "export"
@@ -142,7 +142,7 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-base:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                  docker.image('px4io/px4-dev-base:2018-03-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "export"
@@ -165,7 +165,7 @@ pipeline {
             builds["${node_name}"] = {
               node {
                 stage("Build Test ${node_name}") {
-                  docker.image('px4io/px4-dev-raspi:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                  docker.image('px4io/px4-dev-raspi:2018-03-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "export"
@@ -236,7 +236,7 @@ pipeline {
             builds["${node_name} (GCC7)"] = {
               node {
                 stage("Build Test ${node_name} (GCC7)") {
-                  docker.image('px4io/px4-dev-base-archlinux:2017-12-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                  docker.image('px4io/px4-dev-base-archlinux:2018-03-30').inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                     stage("${node_name}") {
                       checkout scm
                       sh "export"
@@ -262,7 +262,7 @@ pipeline {
         stage('clang analyzer') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2017-12-30'
+              image 'px4io/px4-dev-clang:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -293,7 +293,7 @@ pipeline {
         stage('clang tidy') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2017-12-30'
+              image 'px4io/px4-dev-clang:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -338,7 +338,7 @@ pipeline {
         stage('tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2017-12-30'
+              image 'px4io/px4-dev-base:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -353,7 +353,7 @@ pipeline {
         stage('ROS vtol mission new 1') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -380,7 +380,7 @@ pipeline {
         stage('ROS vtol mission new 2') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -407,7 +407,7 @@ pipeline {
         stage('ROS vtol mission old 1') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -434,7 +434,7 @@ pipeline {
         stage('ROS vtol mission old 2') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -461,7 +461,7 @@ pipeline {
         stage('ROS vtol mission old 3') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -488,7 +488,7 @@ pipeline {
         stage('ROS MC mission box') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -515,7 +515,7 @@ pipeline {
         stage('ROS offboard att') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -542,7 +542,7 @@ pipeline {
         stage('ROS offboard pos') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2017-12-31'
+              image 'px4io/px4-dev-ros:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -575,7 +575,7 @@ pipeline {
 
         stage('airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base:2017-12-30' }
+            docker { image 'px4io/px4-dev-base:2018-03-30' }
           }
           steps {
             sh 'make distclean'
@@ -586,7 +586,7 @@ pipeline {
 
         stage('parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base:2017-12-30' }
+            docker { image 'px4io/px4-dev-base:2018-03-30' }
           }
           steps {
             sh 'make distclean'
@@ -597,7 +597,7 @@ pipeline {
 
         stage('module') {
           agent {
-            docker { image 'px4io/px4-dev-base:2017-12-30' }
+            docker { image 'px4io/px4-dev-base:2018-03-30' }
           }
           steps {
             sh 'make distclean'
@@ -609,7 +609,7 @@ pipeline {
         stage('uorb graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2017-12-30'
+              image 'px4io/px4-dev-nuttx:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -625,7 +625,7 @@ pipeline {
 
     stage('S3 Upload') {
       agent {
-        docker { image 'px4io/px4-dev-base:2017-12-30' }
+        docker { image 'px4io/px4-dev-base:2018-03-30' }
       }
 
       when {
