@@ -216,13 +216,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 					// Perform power checks only if circuit breaker is not
 					// engaged for these checks
 					if (!status_flags->circuit_breaker_engaged_power_check) {
-						// Fail transition if power is not good
-						if (!status_flags->condition_power_input_valid) {
-
-							mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Connect power module.");
-							feedback_provided = true;
-							valid_transition = false;
-						}
 
 						// Fail transition if power levels on the avionics rail
 						// are measured but are insufficient
@@ -1016,6 +1009,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 	bool reportFailures = true;
 	bool prearm_ok = true;
 
+	// USB not connected
 	if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {
 		prearm_ok = false;
 
@@ -1024,11 +1018,25 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		}
 	}
 
-	if (!status_flags.circuit_breaker_engaged_power_check && battery.warning >= battery_status_s::BATTERY_WARNING_LOW) {
-		prearm_ok = false;
+	// battery and system power status
+	if (!status_flags.circuit_breaker_engaged_power_check) {
 
-		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: LOW BATTERY");
+		// Fail transition if power is not good
+		if (!status_flags.condition_power_input_valid) {
+			prearm_ok = false;
+
+			if (reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Connect power module");
+			}
+		}
+
+		// main battery level
+		if (battery.warning >= battery_status_s::BATTERY_WARNING_LOW) {
+			prearm_ok = false;
+
+			if (reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: LOW BATTERY");
+			}
 		}
 	}
 
