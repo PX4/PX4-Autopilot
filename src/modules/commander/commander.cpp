@@ -389,7 +389,7 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "check")) {
-		bool checkres = prearm_check(&mavlink_log_pub, true, true, &status_flags, battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+		bool checkres = prearm_check(&mavlink_log_pub, true, &status_flags, battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 		PX4_INFO("Prearm check: %s", checkres ? "OK" : "FAILED");
 
 		return 0;
