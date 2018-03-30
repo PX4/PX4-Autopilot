@@ -289,14 +289,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 			}
 		}
 
-		if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT) && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-		    && valid_transition) {
-			if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
-				feedback_provided = true;
-				valid_transition = false;
-			}
-		}
-
 		// Finish up the state transition
 		if (valid_transition) {
 			armed->armed = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED);
@@ -1048,6 +1040,14 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		if (reportFailures) {
 			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
+		}
+	}
+
+	// arm authorization check
+	if (arm_requirements & ARM_REQ_ARM_AUTH_BIT) {
+		if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
+			// feedback provided in arm_auth_check
+			prearm_ok = false;
 		}
 	}
 
