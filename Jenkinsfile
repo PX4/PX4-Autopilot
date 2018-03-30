@@ -2,6 +2,17 @@ pipeline {
   agent none
   stages {
 
+    stage('Style Check') {
+      agent {
+        docker { image 'px4io/px4-dev-base:2017-12-30' }
+      }
+
+      steps {
+        sh 'make submodulesclean'
+        sh 'make check_format'
+      }
+    }
+
     stage('Build') {
       steps {
         script {
@@ -247,19 +258,6 @@ pipeline {
 
     stage('Test') {
       parallel {
-
-        stage('check style') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-base:2017-12-30'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'make check_format'
-          }
-        }
 
         stage('clang analyzer') {
           agent {
