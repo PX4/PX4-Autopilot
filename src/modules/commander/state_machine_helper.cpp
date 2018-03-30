@@ -167,26 +167,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 			}
 		}
 
-		/*
-		 * Perform an atomic state update
-		 */
-#ifdef __PX4_NUTTX
-		irqstate_t flags = px4_enter_critical_section();
-#endif
-
-		/* enforce lockdown in HIL */
-		if (hil_enabled) {
-			armed->lockdown = true;
-			status_flags->condition_system_sensors_initialized = true;
-
-			/* recover from a prearm fail */
-			if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
-				status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
-			}
-
-		} else {
-			armed->lockdown = false;
-		}
 
 		// Check that we have a valid state transition
 		bool valid_transition = arming_transitions[new_arming_state][status->arming_state];
@@ -217,9 +197,20 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 			}
 		}
 
-		// HIL can always go to standby
-		if (hil_enabled && new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-			valid_transition = true;
+		if (hil_enabled) {
+			/* enforce lockdown in HIL */
+			armed->lockdown = true;
+			status_flags->condition_system_sensors_initialized = true;
+
+			/* recover from a prearm fail */
+			if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+				status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
+			}
+
+			// HIL can always go to standby
+			if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+				valid_transition = true;
+			}
 		}
 
 		if (!hil_enabled &&
@@ -227,7 +218,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 			   (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
 
 			// Sensors need to be initialized for STANDBY state, except for HIL
-
 			if (!status_flags->condition_system_sensors_initialized) {
 				feedback_provided = true;
 				valid_transition = false;
@@ -237,8 +227,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 		// Finish up the state transition
 		if (valid_transition) {
 			armed->armed = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			armed->ready_to_arm = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
-					      || new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY;
+			armed->ready_to_arm = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
 			ret = TRANSITION_CHANGED;
 			status->arming_state = new_arming_state;
 
@@ -249,11 +238,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 				armed->armed_time_ms = 0;
 			}
 		}
-
-		/* end of atomic state update */
-#ifdef __PX4_NUTTX
-		px4_leave_critical_section(flags);
-#endif
 	}
 
 	if (ret == TRANSITION_DENIED) {
