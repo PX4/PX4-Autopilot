@@ -168,7 +168,6 @@ static orb_advert_t power_button_state_pub = nullptr;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 
-static bool _usb_telemetry_active = false;
 static hrt_abstime commander_boot_timestamp = 0;
 
 static unsigned int leds_counter;
@@ -1268,7 +1267,6 @@ Commander::run()
 	status.data_link_lost = true;
 	status_flags.offboard_control_loss_timeout = false;
 
-	status_flags.condition_system_prearm_error_reported = false;
 	status_flags.condition_system_hotplug_timeout = false;
 
 	status.timestamp = hrt_absolute_time();
@@ -1734,9 +1732,6 @@ Commander::run()
 					usleep(400000);
 					px4_shutdown_request(true, false);
 				}
-
-				/* finally judge the USB connected state based on software detection */
-				status_flags.usb_connected = _usb_telemetry_active;
 			}
 		}
 
