@@ -117,8 +117,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 		/*
 		 * Get sensing state if necessary
 		 */
-		bool preflight_check_ret = false;
-		bool prearm_check_ret = false;
+		bool preflight_check_ret = true;
+		bool prearm_check_ret = true;
 
 		const bool checkSensors = !hil_enabled;
 		const bool checkRC = (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
@@ -177,8 +177,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 		/* enforce lockdown in HIL */
 		if (hil_enabled) {
 			armed->lockdown = true;
-			preflight_check_ret = true;
-			prearm_check_ret = true;
 			status_flags->condition_system_sensors_initialized = true;
 
 			/* recover from a prearm fail */
