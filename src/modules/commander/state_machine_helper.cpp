@@ -222,35 +222,11 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 			valid_transition = true;
 		}
 
-		// Check if we are trying to arm, checks look good but we are in STANDBY_ERROR
-		if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
-
-			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-
-				if (status_flags->condition_system_sensors_initialized) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
-
-				} else {
-					mavlink_log_critical(mavlink_log_pub, "Preflight check failed, refusing to arm");
-				}
-
-				feedback_provided = true;
-
-			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-				   status_flags->condition_system_sensors_initialized) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
-				feedback_provided = true;
-
-			} else {
-				// Silent ignore
-				feedback_provided = true;
-			}
-
-			// Sensors need to be initialized for STANDBY state, except for HIL
-
-		} else if (!hil_enabled &&
+		if (!hil_enabled &&
 			   (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 			   (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
+
+			// Sensors need to be initialized for STANDBY state, except for HIL
 
 			if (!status_flags->condition_system_sensors_initialized) {
 				feedback_provided = true;
