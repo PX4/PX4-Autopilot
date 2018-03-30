@@ -284,14 +284,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 			   (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
 
 			if (!status_flags->condition_system_sensors_initialized) {
-
-				if (status_flags->condition_system_hotplug_timeout) {
-					if (!status_flags->condition_system_prearm_error_reported) {
-						mavlink_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not set up correctly");
-						status_flags->condition_system_prearm_error_reported = true;
-					}
-				}
-
 				feedback_provided = true;
 				valid_transition = false;
 			}
@@ -319,13 +311,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 			} else {
 				armed->armed_time_ms = 0;
 			}
-		}
-
-		/* reset feedback state */
-		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
-		    status->arming_state != vehicle_status_s::ARMING_STATE_INIT &&
-		    valid_transition) {
-			status_flags->condition_system_prearm_error_reported = false;
 		}
 
 		/* end of atomic state update */
