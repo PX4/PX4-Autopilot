@@ -940,11 +940,11 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 	// USB not connected
 	if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {
-		prearm_ok = false;
-
 		if (reportFailures) {
 			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
 		}
+
+		prearm_ok = false;
 	}
 
 	// battery and system power status
@@ -952,50 +952,50 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		// Fail transition if power is not good
 		if (!status_flags.condition_power_input_valid) {
-			prearm_ok = false;
-
 			if (reportFailures) {
 				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Connect power module");
 			}
+
+			prearm_ok = false;
 		}
 
 		// main battery level
 		if (battery.warning >= battery_status_s::BATTERY_WARNING_LOW) {
-			prearm_ok = false;
-
-			if (reportFailures) {
+			if (prearm_ok && reportFailures) {
 				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: LOW BATTERY");
 			}
+
+			prearm_ok = false;
 		}
 	}
 
 	// Arm Requirements: mission
-	if (arm_requirements & ARM_REQ_MISSION_BIT) {
+	if (prearm_ok && (arm_requirements & ARM_REQ_MISSION_BIT)) {
 
 		if (!status_flags.condition_auto_mission_available) {
-			prearm_ok = false;
-
-			if (reportFailures) {
+			if (prearm_ok && reportFailures) {
 				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
 			}
+
+			prearm_ok = false;
 		}
 
 		if (!status_flags.condition_global_position_valid) {
-			prearm_ok = false;
-
-			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: global position required");
+			if (prearm_ok && reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: mission requires global position");
 			}
+
+			prearm_ok = false;
 		}
 	}
 
 	// Arm Requirements: global position
 	if ((arm_requirements & ARM_REQ_GPS_BIT) && (!status_flags.condition_global_position_valid)) {
-		prearm_ok = false;
-
-		if (reportFailures) {
+		if (prearm_ok && reportFailures) {
 			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: global position required");
 		}
+
+		prearm_ok = false;
 	}
 
 	// Arm Requirements: authorization
@@ -1007,13 +1007,13 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 	}
 
 	// safety button (check last)
-	if (safety.safety_switch_available && !safety.safety_off) {
-		prearm_ok = false;
-
+	if (prearm_ok && safety.safety_switch_available && !safety.safety_off) {
 		// Fail transition if we need safety switch press
-		if (reportFailures) {
+		if (prearm_ok && reportFailures) {
 			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Press safety switch first");
 		}
+
+		prearm_ok = false;
 	}
 
 	return prearm_ok;
