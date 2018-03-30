@@ -106,7 +106,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
 				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos);
 
-int prearm_check(orb_advert_t *mavlink_log_pub, const bool prearm, const bool force_report,
+bool prearm_check(orb_advert_t *mavlink_log_pub, const bool prearm, const bool force_report,
 		 vehicle_status_flags_s *status_flags, const battery_status_s &battery, const uint8_t arm_requirements,
 		 const hrt_abstime &time_since_boot);
 
