@@ -1018,18 +1018,36 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		}
 	}
 
-	// mission required
-	if ((arm_requirements & ARM_REQ_MISSION_BIT)
-	    && (!status_flags.condition_auto_mission_available || !status_flags.condition_global_position_valid)) {
+	// Arm Requirements: mission
+	if (arm_requirements & ARM_REQ_MISSION_BIT) {
 
-		prearm_ok = false;
+		if (!status_flags.condition_auto_mission_available) {
+			prearm_ok = false;
 
-		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
+			if (reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
+			}
+		}
+
+		if (!status_flags.condition_global_position_valid) {
+			prearm_ok = false;
+
+			if (reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: global position required");
+			}
 		}
 	}
 
-	// arm authorization check
+	// Arm Requirements: global position
+	if ((arm_requirements & ARM_REQ_GPS_BIT) && (!status_flags.condition_global_position_valid)) {
+		prearm_ok = false;
+
+		if (reportFailures) {
+			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: global position required");
+		}
+	}
+
+	// Arm Requirements: authorization
 	if (arm_requirements & ARM_REQ_ARM_AUTH_BIT) {
 		if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
 			// feedback provided in arm_auth_check
