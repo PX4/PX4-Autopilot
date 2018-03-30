@@ -390,7 +390,7 @@ int commander_main(int argc, char *argv[])
 		bool preflight_check_res = Commander::preflight_check(true);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
-		bool prearm_check_res = prearm_check(&mavlink_log_pub, status_flags, battery, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+		bool prearm_check_res = prearm_check(&mavlink_log_pub, status_flags, battery, safety, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
 		return 0;
