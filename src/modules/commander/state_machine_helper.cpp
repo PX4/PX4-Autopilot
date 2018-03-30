@@ -136,7 +136,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 					       (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT, true,
 					       status->is_vtol, true, true, time_since_boot);
 
-			prearm_check_ret = prearm_check(mavlink_log_pub, true /* pre-arm */, false /* force_report */, status_flags, battery,
+			prearm_check_ret = prearm_check(mavlink_log_pub, false /* force_report */, status_flags, battery,
 						  arm_requirements, time_since_boot);
 
 			if (!preflight_check) {
@@ -1031,7 +1031,7 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 	}
 }
 
-bool prearm_check(orb_advert_t *mavlink_log_pub, const bool prearm, const bool force_report,
+bool prearm_check(orb_advert_t *mavlink_log_pub, const bool force_report,
 		 vehicle_status_flags_s *status_flags, const battery_status_s &battery, const uint8_t arm_requirements,
 		 const hrt_abstime &time_since_boot)
 {
@@ -1039,7 +1039,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const bool prearm, const bool f
 					       status_flags->condition_system_hotplug_timeout);
 	bool prearm_ok = true;
 
-	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected && prearm) {
+	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected) {
 		prearm_ok = false;
 
 		if (reportFailures) {
