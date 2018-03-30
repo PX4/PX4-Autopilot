@@ -81,7 +81,7 @@ bool is_safe(const safety_s &safety, const actuator_armed_s &armed);
 
 transition_result_t arming_state_transition(vehicle_status_s *status, const battery_status_s &battery,
 		const safety_s &safety, const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
-		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const float avionics_power_rail_voltage,
+		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags,
 		const uint8_t arm_requirements, const hrt_abstime &time_since_boot);
 
 transition_result_t
