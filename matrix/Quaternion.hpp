@@ -346,9 +346,9 @@ public:
      *
      * @return inverted quaternion
      */
-    Quaternion inversed()
+    Quaternion inversed() const
     {
-        Quaternion &q = *this;
+        const Quaternion &q = *this;
         Type normSq = q.dot(q);
         return Quaternion(
                    q(0)/normSq,
@@ -393,7 +393,8 @@ public:
      * @param vec vector to rotate in frame 2 (typically reference frame)
      * @return rotated vector in frame 1 (typically body frame)
      */
-    Vector3f conjugate_inversed(const Vector3f &vec) {
+    Vector3f conjugate_inversed(const Vector3f &vec) const
+    {
         Quaternion q = *this;
         Quaternion v(0, vec(0), vec(1), vec(2));
         Quaternion res = q.inversed()*v*q;
@@ -459,9 +460,9 @@ public:
      *
      * @return vector, direction representing rotation axis and norm representing angle
      */
-    Vector<Type, 3> to_axis_angle()
+    Vector<Type, 3> to_axis_angle() const
     {
-        Quaternion &q = *this;
+        const Quaternion &q = *this;
         Type axis_magnitude = Type(sqrt(q(1) * q(1) + q(2) * q(2) + q(3) * q(3)));
         Vector<Type, 3> vec;
         vec(0) = q(1);
@@ -479,9 +480,9 @@ public:
     /**
      * Imaginary components of quaternion
      */
-    Vector3<Type> imag()
+    Vector3<Type> imag() const
     {
-        Quaternion &q = *this;
+        const Quaternion &q = *this;
         return Vector3<Type>(q(1), q(2), q(3));
     }
 
@@ -492,9 +493,9 @@ public:
      * == last column of the equivalent rotation matrix
      * but calculated more efficiently than a full conversion
      */
-    Vector3<Type> dcm_z()
+    Vector3<Type> dcm_z() const
     {
-        Quaternion &q = *this;
+        const Quaternion &q = *this;
         Vector3<Type> R_z;
         const Type a = q(0);
         const Type b = q(1);
