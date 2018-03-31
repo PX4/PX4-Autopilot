@@ -13,6 +13,7 @@
         <arg name="vehicle" value="$(arg vehicle)"/>
         <arg name="est" value="$(arg est)"/>
         <arg name="respawn_gazebo" value="$(arg respawn_gazebo)"/>
+        <arg name="respawn_mavros" value="true"/>
     </include>
     <!-- ROStest -->
     <test test-name="$(arg mission)" pkg="px4" type="mission_test.py" time-limit="300.0" args="$(arg mission).plan"/>
