@@ -36,64 +36,11 @@ pipeline {
                     sh "make distclean"
                     sh "ccache -z"
                     sh "git fetch --tags"
-                    sh "make px4io-v2_default"
                     sh "make nuttx_px4fmu-v2_default"
-                    // bloaty output and compare with last successful master
-                    sh "bloaty -n 100 -d symbols -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf"
-                    sh "bloaty -n 100 -d compileunits -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf"
-                    sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v2_default.elf"
-                    sh "bloaty -d symbols -C full -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf -- nuttx_px4fmu-v2_default.elf"
-                    sh "make nuttx_px4fmu-v2_lpe"
-                    sh "make nuttx_px4fmu-v3_default"
-                    sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v3_default.elf"
-                    sh "bloaty -d symbols -C full -s file build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf -- nuttx_px4fmu-v3_default.elf"
-                    sh "make nuttx_px4fmu-v3_rtps"
                     sh "make sizes"
                     sh "ccache -s"
                     archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
                     sh "make distclean"
-                  }
-                }
-              }
-            }
-          }
-
-          // nuttx default targets that are archived and uploaded to s3
-          for (def option in ["px4fmu-v4", "px4fmu-v4pro", "px4fmu-v5", "aerofc-v1", "aerocore2", "auav-x21", "crazyflie", "mindpx-v2", "nxphlite-v3", "tap-v1"]) {
-            def node_name = "${option}"
-            builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
-          }
-
-          // other nuttx default targets
-          for (def option in ["px4-same70xplained-v1", "px4-stm32f4discovery", "px4cannode-v1", "px4esc-v1", "px4nucleoF767ZI-v1", "s2740vc-v1"]) {
-            def node_name = "${option}"
-            builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
-          }
-
-          builds["sitl"] = createBuildNode(docker_base, "posix_sitl_default")
-          builds["sitl_rtps"] = createBuildNode(docker_base, "posix_sitl_rtps")
-          builds["sitl (GCC 7)"] = createBuildNode(docker_arch, "posix_sitl_default")
-
-          builds["rpi"] = createBuildNode(docker_rpi, "posix_rpi_cross")
-          builds["bebop"] = createBuildNode(docker_rpi, "posix_bebop_default")
-
-          builds["ocpoc"] = createBuildNode(docker_armhf, "posix_ocpoc_ubuntu")
-
-          // snapdragon eagle (posix + qurt)
-          builds["eagle"] = {
-            node {
-              stage("Build Test eagle_default") {
-                docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {
-                  docker.image("lorenzmeier/px4-dev-snapdragon:2017-12-29").inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
-                    stage("eagle_default") {
-                      checkout scm
-                      sh "export"
-                      sh "make distclean"
-                      sh "ccache -z"
-                      sh "make eagle_default"
-                      sh "ccache -s"
-                      sh "make distclean"
-                    }
                   }
                 }
               }
@@ -233,11 +180,15 @@ pipeline {
 
               // ROS offboard pos: test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
               builds[6] = createSITLTest("ROS offboard pos", "mavros_posix_tests_offboard_posctl.test", "", "")
-
-              parallel builds
             }
           }
         } // ROS Mission Tests
+
+
+        }
+
+
+
 
 
       } // parallel
@@ -368,7 +319,6 @@ def createSITLTest(String name, String test, String mission, String model) {
           sh('make sizes')
         }
         post {
-
           always {
             sh './Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
             sh './Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
