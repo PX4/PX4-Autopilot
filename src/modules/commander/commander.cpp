@@ -187,17 +187,6 @@ static hrt_abstime last_lvel_fail_time_us = 0;	// Last time that the local veloc
 
 static hrt_abstime gpos_last_update_time_us = 0; // last time a global position update was received (usec)
 
-/* pre-flight EKF checks */
-static float max_ekf_pos_ratio = 0.5f;
-static float max_ekf_vel_ratio = 0.5f;
-static float max_ekf_hgt_ratio = 0.5f;
-static float max_ekf_yaw_ratio = 0.5f;
-static float max_ekf_dvel_bias = 2.0e-3f;
-static float max_ekf_dang_bias = 3.5e-4f;
-
-/* pre-flight IMU consistency checks */
-static float max_imu_acc_diff = 0.7f;
-static float max_imu_gyr_diff = 0.09f;
 static float min_stick_change = 0.25f;
 
 static struct vehicle_status_s status = {};
@@ -1218,18 +1207,6 @@ Commander::run()
 	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
 	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
 
-	/* pre-flight EKF checks */
-	param_t _param_max_ekf_pos_ratio = param_find("COM_ARM_EKF_POS");
-	param_t _param_max_ekf_vel_ratio = param_find("COM_ARM_EKF_VEL");
-	param_t _param_max_ekf_hgt_ratio = param_find("COM_ARM_EKF_HGT");
-	param_t _param_max_ekf_yaw_ratio = param_find("COM_ARM_EKF_YAW");
-	param_t _param_max_ekf_dvel_bias = param_find("COM_ARM_EKF_AB");
-	param_t _param_max_ekf_dang_bias = param_find("COM_ARM_EKF_GB");
-
-	/* pre-flight IMU consistency checks */
-	param_t _param_max_imu_acc_diff = param_find("COM_ARM_IMU_ACC");
-	param_t _param_max_imu_gyr_diff = param_find("COM_ARM_IMU_GYR");
-
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
@@ -1661,18 +1638,6 @@ Commander::run()
 			param_get(_param_fmode_4, &_flight_mode_slots[3]);
 			param_get(_param_fmode_5, &_flight_mode_slots[4]);
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
-
-			/* pre-flight EKF checks */
-			param_get(_param_max_ekf_pos_ratio, &max_ekf_pos_ratio);
-			param_get(_param_max_ekf_vel_ratio, &max_ekf_vel_ratio);
-			param_get(_param_max_ekf_hgt_ratio, &max_ekf_hgt_ratio);
-			param_get(_param_max_ekf_yaw_ratio, &max_ekf_yaw_ratio);
-			param_get(_param_max_ekf_dvel_bias, &max_ekf_dvel_bias);
-			param_get(_param_max_ekf_dang_bias, &max_ekf_dang_bias);
-
-			/* pre-flight IMU consistency checks */
-			param_get(_param_max_imu_acc_diff, &max_imu_acc_diff);
-			param_get(_param_max_imu_gyr_diff, &max_imu_gyr_diff);
 
 			/* failsafe response to loss of navigation accuracy */
 			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
