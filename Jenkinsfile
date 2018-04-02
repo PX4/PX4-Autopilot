@@ -19,9 +19,12 @@ pipeline {
 
           def docker_base = "px4io/px4-dev-base:2018-03-30"
           def docker_nuttx = "px4io/px4-dev-nuttx:2018-03-30"
+          def docker_ros = "px4io/px4-dev-ros:2018-03-30"
           def docker_rpi = "px4io/px4-dev-raspi:2018-03-30"
           def docker_armhf = "px4io/px4-dev-armhf:2017-12-30"
           def docker_arch = "px4io/px4-dev-base-archlinux:2018-03-30"
+          def docker_snapdragon = "lorenzmeier/px4-dev-snapdragon:2017-12-29"
+          def docker_clang = "px4io/px4-dev-clang:2018-03-30"
 
           // fmu-v2_{default, lpe} and fmu-v3_{default, rtps}
           // bloaty compare to last successful master build
@@ -69,35 +72,18 @@ pipeline {
             builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
           }
 
-          builds["sitl"] = createBuildNode(docker_base, "posix_sitl_default")
-          builds["sitl_rtps"] = createBuildNode(docker_base, "posix_sitl_rtps")
-          builds["sitl (GCC 7)"] = createBuildNode(docker_arch, "posix_sitl_default")
+          builds["sitl"] = createBuildNode(docker_base, 'posix_sitl_default')
+          builds["sitl_rtps"] = createBuildNode(docker_base, 'posix_sitl_rtps')
+          builds["sitl (GCC 7)"] = createBuildNode(docker_arch, 'posix_sitl_default')
 
-          builds["rpi"] = createBuildNode(docker_rpi, "posix_rpi_cross")
-          builds["bebop"] = createBuildNode(docker_rpi, "posix_bebop_default")
+          builds["rpi"] = createBuildNode(docker_rpi, 'posix_rpi_cross')
+          builds["bebop"] = createBuildNode(docker_rpi, 'posix_bebop_default')
 
-          builds["ocpoc"] = createBuildNode(docker_armhf, "posix_ocpoc_ubuntu")
+          builds["ocpoc"] = createBuildNode(docker_armhf, 'posix_ocpoc_ubuntu')
 
-          // snapdragon eagle (posix + qurt)
-          builds["eagle"] = {
-            node {
-              stage("Build Test eagle_default") {
-                docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {
-                  docker.image("lorenzmeier/px4-dev-snapdragon:2017-12-29").inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
-                    stage("eagle_default") {
-                      checkout scm
-                      sh "export"
-                      sh "make distclean"
-                      sh "ccache -z"
-                      sh "make eagle_default"
-                      sh "ccache -s"
-                      sh "make distclean"
-                    }
-                  }
-                }
-              }
-            }
-          }
+          // snapdragon (eagle_default)
+          builds["eagle (linux)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'posix_eagle_default')
+          builds["eagle (qurt)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'qurt_eagle_default')
 
           parallel builds
         } // script
@@ -524,6 +510,29 @@ def createBuildNode(String docker_repo, String target) {
           sh('make sizes')
           archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
           sh('make distclean')
+        }
+      }
+    }
+  }
+}
+
+def createBuildNodeDockerLogin(String docker_repo, String docker_credentials, String target) {
+  return {
+    node {
+      docker.withRegistry('https://registry.hub.docker.com', docker_credentials) {
+        docker.image(docker_repo).inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+          stage(target) {
+            sh('export')
+            checkout scm
+            sh('make distclean')
+            sh('git fetch --tags')
+            sh('ccache -z')
+            sh('make ' + target)
+            sh('ccache -s')
+            sh('make sizes')
+            archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
+            sh('make distclean')
+          }
         }
       }
     }
