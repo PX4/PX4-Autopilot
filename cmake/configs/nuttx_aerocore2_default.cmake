@@ -11,7 +11,7 @@ set(config_module_list
 	drivers/differential_pressure
 	drivers/distance_sensor
 	#drivers/magnetometer
-	drivers/telemetry
+	#drivers/telemetry
 
 	drivers/device
 	drivers/stm32
@@ -83,10 +83,10 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	modules/fw_att_control
-	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
+	#modules/fw_att_control
+	#modules/fw_pos_control_l1
+	#modules/gnd_att_control
+	#modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
