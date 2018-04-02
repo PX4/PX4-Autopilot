@@ -36,7 +36,7 @@
 	branch = master
 [submodule "cmake/cmake_hexagon"]
 	path = cmake/cmake_hexagon
-	url = https://github.com/ATLFlight/cmake_hexagon
+	url = https://github.com/ATLFlight/cmake_hexagon.git
 	branch = master
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
