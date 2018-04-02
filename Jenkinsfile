@@ -8,7 +8,6 @@ pipeline {
       }
 
       steps {
-        sh 'make submodulesclean'
         sh 'make check_format'
       }
     }
