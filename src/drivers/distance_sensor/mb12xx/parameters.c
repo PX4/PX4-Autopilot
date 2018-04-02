@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Maxbotix Soanr (mb12xx)
+ * Maxbotix Sonar (mb12xx)
  *
  * @reboot_required true
  *
