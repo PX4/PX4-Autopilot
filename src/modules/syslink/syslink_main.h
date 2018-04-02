@@ -42,9 +42,6 @@
 
 #include <uORB/uORB.h>
 
-
-
-
 #include "syslink.h"
 #include "crtp.h"
 
@@ -127,9 +124,6 @@ private:
 	SyslinkBridge *_bridge;
 	SyslinkMemory *_memory;
 
-
-	
-
 	int _params_sub;
 
 	// Current parameter values
@@ -187,8 +181,7 @@ private:
 	// Stores data that was received from syslink but not yet read by another driver
 	ringbuffer::RingBuffer _readbuffer;
 
-	crtp_message_t _msg_to_send; //buz
-
+	crtp_message_t _msg_to_send;
 
 };
 

@@ -68,7 +68,7 @@
 #include "syslink_main.h"
 #include "drv_deck.h"
 
-#include <stdlib.h> 
+
 
 __BEGIN_DECLS
 extern void led_init(void);
@@ -174,52 +174,8 @@ Syslink::send_queued_raw_message()
 	_count_out++;
 
 	_writebuffer.get(&msg.length, sizeof(crtp_message_t));
-	//printf("buflen=%d\n", msg.length);
 
-
-	/*//for (int i=0; i<1000; i++){
-    static int i=0;
-		msg.length = 31;// rand() % 27 + 5;//31;
-		//if (msg.length>31){
-		//	msg.length=31;
-		//}
-
-		for (int j=0; j< msg.length; j++){
-			msg.data[j]=3;
-		}
-
-		msg.data[0]=128;
-		msg.data[4]=i;
-		i++;
-
-		send_message(&msg);
-
-		//usleep(10000);
-	//}
-*/
-
-		
-/*
-		for (int j=msg.length; j< 30; j++){
-			msg.data[j]=0;
-		}
-
-		msg.data[30]=msg.length-1;
-		
-		//usleep(10000);
-	
-
-		msg.length = 31;*/
-	
-
-
-	//send_message(&msg);
-	//usleep(100000);
-	
-	send_message(&msg);
-	//usleep(5000);
-	return 0;
-
+	return send_message(&msg);
 }
 
 
@@ -299,12 +255,10 @@ Syslink::open_serial(const char *dev)
 
 	// clear ONLCR flag (which appends a CR for every LF)
 	config.c_oflag &= 0;
-
-	config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG); // beat
+	config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
 	// Disable hardware flow control
 	config.c_cflag &= ~CRTSCTS;
-	//config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);  //beat
 
 
 	/* Set baud rate */
@@ -374,7 +328,7 @@ Syslink::task_main()
 
 	int error_counter = 0;
 
-	char buf[64]; //char buf[64];
+	char buf[64];
 	int nread;
 
 	syslink_parse_state state;
@@ -386,52 +340,41 @@ Syslink::task_main()
 	update_params(true);
 
 	while (_task_running) {
-		int poll_ret = px4_poll(fds, 2, 2);
+		int poll_ret = px4_poll(fds, 2, 500);
 
-		
+		/* handle the poll result */
+		if (poll_ret == 0) {
+			/* timeout: this means none of our providers is giving us data */
 
+		} else if (poll_ret < 0) {
+			/* this is seriously bad - should be an emergency */
+			if (error_counter < 10 || error_counter % 50 == 0) {
+				/* use a counter to prevent flooding (and slowing us down) */
+				PX4_ERR("[syslink] ERROR return value from poll(): %d"
+					, poll_ret);
+			}
 
-		 // handle the poll result
-		 if (poll_ret == 0) {
-		 	//timeout: this means none of our providers is giving us data 
-		 	//printf("timeout!!\n"); //barza
-		 	send_queued_raw_message(); //buz
+			error_counter++;
 
-		 } else if (poll_ret < 0) {
-		 	// this is seriously bad - should be an emergency 
-		 	if (error_counter < 10 || error_counter % 50 == 0) {
-		 		/* use a counter to prevent flooding (and slowing us down) */
-		 		PX4_ERR("[syslink] ERROR return value from poll(): %d"
-		 			, poll_ret);
-		 	}
+		} else {
+			if (fds[0].revents & POLLIN) {
+				if ((nread = read(_fd, buf, sizeof(buf))) < 0) {
+					continue;
+				}
 
-		 	error_counter++;
-		 } else {
-		 	if (fds[0].revents & POLLIN) {
-		 		if ((nread = read(_fd, buf, sizeof(buf))) < 0) {
-		 			printf("\n Reading gave error!!!!!!\n");
-		 			continue;
-		 		}
+				for (int i = 0; i < nread; i++) {
+					if (syslink_parse_char(&state, buf[i], &msg)) {
+						handle_message(&msg);
+					}
+				}
+			}
 
-		 		for (int i = 0; i < nread; i++) {
-		 			//printf("%d ", buf[i]);
-		 			//if (buf[i]==76) {printf("notify!!!!! cmd about to parse at byte=%d \n", i);}
-		 			if (syslink_parse_char(&state, buf[i], &msg)) {
-		 				//printf("main\n");
-		 				handle_message(&msg);
-		 			}
-		 		}
-		 	}
-
-		 	if (fds[1].revents & POLLIN) {
-		 		struct parameter_update_s update;
-		 		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
-		 		update_params(false);
-		 	}
-		 }
-
-		
-	//send_queued_raw_message(); //buz
+			if (fds[1].revents & POLLIN) {
+				struct parameter_update_s update;
+				orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+				update_params(false);
+			}
+		}
 
 	}
 
@@ -441,33 +384,7 @@ Syslink::task_main()
 
 void
 Syslink::handle_message(syslink_message_t *msg)
-{	
-	//static bool cmd_received=false;
-	//static int cmd_count=0;
-
-	/*if(msg->type == SYSLINK_RADIO_RAW) { //cmd_received &&
-         	printf("syslink_main cmd_msg_received->length=%d ", msg->length);
- 		for (int i = 0; i < msg->length; i++) {
-         printf("%d ",msg->data[i]);}
-         printf("\n");
-         //cmd_received=false;
-         }*/
-
-	/*if(msg->length > 8) {
-		if(msg->data[8]==76)
-			{cmd_count++;
-			printf(" cmd_count before=%d, arm_disarm_cmd_12=%d arm_disarm_cmd_13=%d \n", cmd_count, msg->data[13], msg->data[14]);
-		printf("syslink_main cmd_msg_received->length=%d ", msg->length);
- 		for (int i = 0; i < msg->length; i++) {
-         printf("%d ",msg->data[i]);}
-         printf("\n");
-         cmd_received=true;
-         } //barza
-*/
-     
-	
-
-
+{
 	hrt_abstime t = hrt_absolute_time();
 
 	if (t - _lasttime > 1000000) {
@@ -531,7 +448,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		_rssi = 140 - rssi * 100 / (100 - 40);
 
 	} else if (msg->type == SYSLINK_RADIO_RAW) {
-		handle_raw(msg); //barza
+		handle_raw(msg);
 		_lastrxtime = t;
 
 	} else if ((msg->type & SYSLINK_GROUP) == SYSLINK_RADIO) {
@@ -545,7 +462,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		PX4_INFO("GOT %d", msg->type);
 	}
 
-	 //Send queued messages //buz
+	//Send queued messages
 	if (!_queue.empty()) {
 		_queue.get(msg, sizeof(syslink_message_t));
 		send_message(msg);
@@ -585,7 +502,7 @@ Syslink::handle_message(syslink_message_t *msg)
 	}
 
 
-	// resend parameters if they haven't been acknowledged //buz
+	// resend parameters if they haven't been acknowledged
 	if (_params_ack[0] == 0 && t - _params_update[0] > 10000) {
 		set_channel(_channel);
 
@@ -668,7 +585,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 		_bridge->pipe_message(c);
 
 	} else {
-		handle_raw_other(sys); //buz
+		handle_raw_other(sys);
 	}
 
 	// Block all non-requested messaged in bootloader mode
@@ -677,7 +594,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 	}
 
 	// Allow one raw message to be sent from the queue
-	send_queued_raw_message(); //buz
+	send_queued_raw_message();
 }
 
 void
@@ -791,34 +708,12 @@ Syslink::send_bytes(const void *data, size_t len)
 {
 	// TODO: This could be way more efficient
 	//       Using interrupts/DMA/polling would be much better
-	
-	//static int count=0;
-	//printf(" start ");
 	for (size_t i = 0; i < len; i++) {
 		// Block until we can send a byte
 		while (px4_arch_gpioread(GPIO_NRF_TXEN)) ;
 
-		ssize_t numbytesWritten = write(_fd, ((const char *)data) + i, 1);
-
-		if(numbytesWritten<0){
-			printf("\n Error Writing in syslink!!! \n");
-		}/* else{
-			if (((const char *)data)[0]==128 && i!=0){
-				printf("%d ", ((const char *)data)[i]);
-			}
-
-		}*/
-
-		fsync(_fd);
-
+		write(_fd, ((const char *)data) + i, 1);
 	}
-
-
-	//printf(" len= %d \n", len);
-	/*if (((const char *)data)[0]==128){
-		count++;
-		printf("count=%d \n",count);
-	}*/
 
 	return 0;
 }
@@ -826,25 +721,10 @@ Syslink::send_bytes(const void *data, size_t len)
 int
 Syslink::send_message(syslink_message_t *msg)
 {
-
 	syslink_compute_cksum(msg);
 	send_bytes(syslink_magic, 2);
 	send_bytes(&msg->type, sizeof(msg->type));
 	send_bytes(&msg->length, sizeof(msg->length));
-	//static int ack_count=0;
-		/*if(msg->data[8]==77)
-			{ack_count++;
-				printf("Sending Ack msgid after msg length=%d, count=%d \n", msg->length, ack_count);} //barza
-	
-*/
-	/*printf("msg->length=%d ", msg->length);
-     for (int i = 0; i < msg->length; i++) {
-         printf("%d ", msg->data[i]);}
-         printf(" cksum1=%d, cksum2=%d ", msg->cksum[1], msg->cksum[2]);
-    printf("\n");
-*/
-
-
 	send_bytes(&msg->data, msg->length);
 	send_bytes(&msg->cksum, sizeof(msg->cksum));
 	return 0;
