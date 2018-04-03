@@ -62,7 +62,7 @@ enum AEROFC_ADC_BUS {
 	AEROFC_ADC_BUS_I2C_EXTERNAL
 };
 
-static struct aerofc_adc_bus_option {
+static constexpr struct aerofc_adc_bus_option {
 	enum AEROFC_ADC_BUS busid;
 	uint8_t busnum;
 } bus_options[] = {
