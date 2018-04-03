@@ -56,9 +56,9 @@ public:
 		get_name(name),
 		get_id(id) {}
 
-	~StreamListItem() {}
 };
 
-extern const StreamListItem *streams_list[];
+const char *get_stream_name(const uint16_t msg_id);
+MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink);
 
 #endif /* MAVLINK_MESSAGES_H_ */
