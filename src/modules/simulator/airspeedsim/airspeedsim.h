@@ -69,7 +69,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/subsystem_info.h>
 
 /* Default I2C bus */
 #define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
@@ -117,20 +116,13 @@ protected:
 	virtual int	transfer(const uint8_t *send, unsigned send_len,
 				 uint8_t *recv, unsigned recv_len);
 
-	/**
-	 * Update the subsystem status
-	 */
-	void update_status();
-
 	struct work_s			_work;
 	bool			_sensor_ok;
-	bool			_last_published_sensor_ok;
 	unsigned			_measure_ticks;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 
 	orb_advert_t		_airspeed_pub;
-	orb_advert_t		_subsys_pub;
 
 	int			_class_instance;
 

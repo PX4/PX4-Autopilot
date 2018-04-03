@@ -71,7 +71,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
 
 #include "airspeedsim.h"

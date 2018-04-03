@@ -73,7 +73,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/pwm_input.h>
-#include <uORB/topics/subsystem_info.h>
 
 #include <drivers/drv_device.h>
 #include <drivers/device/device.h>

@@ -58,6 +58,7 @@
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/subsystem_info.h>
 
 #include <DevMgr.hpp>
 
