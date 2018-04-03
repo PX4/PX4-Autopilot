@@ -81,8 +81,6 @@ typedef enum {
 	SATCOM_STATE_TEST,
 } satcom_state;
 
-const char *satcom_state_string[4] = {"STANDBY", "SIGNAL CHECK", "SBD SESSION", "TEST"};
-
 extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 
 #define SATCOM_TX_BUF_LEN				50		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
