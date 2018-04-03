@@ -114,7 +114,7 @@ typedef struct dm_operations_t {
 	int (*wait)(px4_sem_t *sem);
 } dm_operations_t;
 
-static dm_operations_t dm_file_operations = {
+static constexpr dm_operations_t dm_file_operations = {
 	.write   = _file_write,
 	.read    = _file_read,
 	.clear   = _file_clear,
@@ -124,7 +124,7 @@ static dm_operations_t dm_file_operations = {
 	.wait = px4_sem_wait,
 };
 
-static dm_operations_t dm_ram_operations = {
+static constexpr dm_operations_t dm_ram_operations = {
 	.write   = _ram_write,
 	.read    = _ram_read,
 	.clear   = _ram_clear,
@@ -135,7 +135,7 @@ static dm_operations_t dm_ram_operations = {
 };
 
 #if defined(FLASH_BASED_DATAMAN)
-static dm_operations_t dm_ram_flash_operations = {
+static constexpr dm_operations_t dm_ram_flash_operations = {
 	.write   = _ram_flash_write,
 	.read    = _ram_flash_read,
 	.clear   = _ram_flash_clear,
@@ -146,7 +146,7 @@ static dm_operations_t dm_ram_flash_operations = {
 };
 #endif
 
-static dm_operations_t *g_dm_ops;
+static const dm_operations_t *g_dm_ops;
 
 static struct {
 	union {
