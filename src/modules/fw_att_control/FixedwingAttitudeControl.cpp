@@ -439,6 +439,7 @@ void FixedwingAttitudeControl::run()
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+	_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 
 	parameters_update();
 
@@ -808,10 +809,18 @@ void FixedwingAttitudeControl::run()
 					}
 
 				} else {
-					// pure rate control
-					_roll_ctrl.set_bodyrate_setpoint(_rates_sp.roll);
+					vehicle_rates_setpoint_poll();
+
+					if (_parameters.vtol_type == vtol_type::TAILSITTER) {
+						_roll_ctrl.set_bodyrate_setpoint(-_rates_sp.yaw);
+						_yaw_ctrl.set_bodyrate_setpoint(_rates_sp.roll);
+
+					} else {
+						_roll_ctrl.set_bodyrate_setpoint(_rates_sp.roll);
+						_yaw_ctrl.set_bodyrate_setpoint(_rates_sp.yaw);
+					}
+
 					_pitch_ctrl.set_bodyrate_setpoint(_rates_sp.pitch);
-					_yaw_ctrl.set_bodyrate_setpoint(_rates_sp.yaw);
 
 					float roll_u = _roll_ctrl.control_bodyrate(control_input);
 					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
