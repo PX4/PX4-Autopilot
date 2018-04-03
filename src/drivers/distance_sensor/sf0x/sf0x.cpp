@@ -66,7 +66,6 @@
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
 #include "sf0x_parser.h"
@@ -645,20 +644,7 @@ SF0X::start()
 	work_queue(HPWORK, &_work, (worker_t)&SF0X::cycle_trampoline, this, 1);
 
 	// /* notify about state change */
-	// struct subsystem_info_s info = {
-	// 	true,
-	// 	true,
-	// 	true,
-	// 	SUBSYSTEM_TYPE_RANGEFINDER
-	// };
-	// static orb_advert_t pub = -1;
-
-	// if (pub > 0) {
-	// 	orb_publish(ORB_ID(subsystem_info), pub, &info);
-
-	// } else {
-	// 	pub = orb_advertise(ORB_ID(subsystem_info), &info);
-	// }
+	// publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_SENSORPROXIMITY, true, true, true);
 }
 
 void

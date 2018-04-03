@@ -58,6 +58,7 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
+#include <systemlib/subsystem_info_pub.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
@@ -73,7 +74,6 @@
 /* Configuration Constants */
 #define SR04_DEVICE_PATH	"/dev/hc_sr04"
 
-#define SUBSYSTEM_TYPE_RANGEFINDER 131072
 /* Device limits */
 #define SR04_MIN_DISTANCE 	(0.10f)
 #define SR04_MAX_DISTANCE 	(4.00f)
@@ -626,22 +626,7 @@ HC_SR04::start()
 
 
 	/* notify about state change */
-	struct subsystem_info_s info = {};
-	info.present = true;
-	info.enabled = true;
-	info.ok = true;
-	info.subsystem_type = SUBSYSTEM_TYPE_RANGEFINDER;
-
-	static orb_advert_t pub = nullptr;
-
-	if (pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
-
-
-	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-
-	}
+	publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_SENSORPROXIMITY, true, true, true);
 }
 
 void
