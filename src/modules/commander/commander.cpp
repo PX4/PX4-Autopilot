@@ -79,6 +79,7 @@
 #include <parameters/param.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
+#include <systemlib/subsystem_info_pub.h>
 
 #include <cmath>
 #include <cfloat>
@@ -1256,6 +1257,7 @@ Commander::run()
 
 	status_flags.condition_power_input_valid = true;
 	status_flags.usb_connected = false;
+	status_flags.rc_calibration_valid = true;
 
 	// CIRCUIT BREAKERS
 	status_flags.circuit_breaker_engaged_power_check = false;
@@ -1269,6 +1271,11 @@ Commander::run()
 	status_flags.condition_local_position_valid = false;
 	status_flags.condition_local_velocity_valid = false;
 	status_flags.condition_local_altitude_valid = false;
+
+	bool status_changed = true;
+
+	/* initialize the vehicle status flag helper functions. This also initializes the sensor health flags*/
+	publish_subsystem_info_init(&status, &status_changed);
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -1310,7 +1317,6 @@ Commander::run()
 	bool emergency_battery_voltage_actions_done = false;
 	bool dangerous_battery_level_requests_poweroff = false;
 
-	bool status_changed = true;
 	bool param_init_forced = true;
 
 	bool updated = false;
@@ -1825,6 +1831,12 @@ Commander::run()
 			}
 		}
 
+		if((_last_condition_global_position_valid != status_flags.condition_global_position_valid) && status_flags.condition_global_position_valid) {
+			// If global position state changed and is now valid, set respective health flags to true. For now also assume GPS is OK if global pos is OK, but not vice versa.
+			publish_subsystem_info_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true);
+			publish_subsystem_info_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true);
+		}
+
 		check_valid(_local_position_sub.get().timestamp, _failsafe_pos_delay.get() * 1_s, _local_position_sub.get().z_valid, &(status_flags.condition_local_altitude_valid), &status_changed);
 
 		/* Update land detector */
@@ -1991,41 +2003,6 @@ Commander::run()
 
 				/* End battery voltage check */
 			}
-		}
-
-		/* update subsystem */
-		orb_check(subsys_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
-
-			//warnx("subsystem changed: %d\n", (int)info.subsystem_type);
-
-			/* mark / unmark as present */
-			if (info.present) {
-				status.onboard_control_sensors_present |= info.subsystem_type;
-
-			} else {
-				status.onboard_control_sensors_present &= ~info.subsystem_type;
-			}
-
-			/* mark / unmark as enabled */
-			if (info.enabled) {
-				status.onboard_control_sensors_enabled |= info.subsystem_type;
-
-			} else {
-				status.onboard_control_sensors_enabled &= ~info.subsystem_type;
-			}
-
-			/* mark / unmark as ok */
-			if (info.ok) {
-				status.onboard_control_sensors_health |= info.subsystem_type;
-
-			} else {
-				status.onboard_control_sensors_health &= ~info.subsystem_type;
-			}
-
-			status_changed = true;
 		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
@@ -2223,11 +2200,13 @@ Commander::run()
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
 				status_flags.rc_signal_found_once = true;
+				publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid);
 				status_changed = true;
 
 			} else {
 				if (status.rc_signal_lost) {
 					mavlink_log_info(&mavlink_log_pub, "MANUAL CONTROL REGAINED after %llums", hrt_elapsed_time(&rc_signal_lost_timestamp) / 1000);
+					publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid);
 					status_changed = true;
 				}
 			}
@@ -2375,6 +2354,7 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
+				publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false);
 				status_changed = true;
 			}
 		}
@@ -4096,6 +4076,9 @@ void Commander::poll_telemetry_status()
 				    (mission_result.instance_count > 0) && !mission_result.valid) {
 
 					mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
+					//publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, false); // TODO
+				} else {
+					//publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, true); // TODO
 				}
 			}
 

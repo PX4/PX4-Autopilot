@@ -54,7 +54,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/subsystem_info.h>
 #include <drivers/airspeed/airspeed.h>
 
 /* I2C bus address */

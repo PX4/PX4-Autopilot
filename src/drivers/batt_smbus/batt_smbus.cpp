@@ -53,7 +53,6 @@
 #include <px4_workqueue.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/uORB.h>
 
 #define BATT_SMBUS_ADDR_MIN             0x00	///< lowest possible address

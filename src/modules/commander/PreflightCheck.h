@@ -43,6 +43,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
+#include <uORB/topics/vehicle_status_flags.h>
+
 #pragma once
 
 namespace Preflight
@@ -73,7 +75,7 @@ namespace Preflight
 *   true if the system power should be checked
 **/
 bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
-		    const vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
+		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
 		    const hrt_abstime &time_since_boot);
 
 static constexpr unsigned max_mandatory_gyro_count = 1;

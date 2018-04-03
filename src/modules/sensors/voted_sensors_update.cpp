@@ -40,6 +40,7 @@
 #include "voted_sensors_update.h"
 
 #include <systemlib/mavlink_log.h>
+#include <systemlib/subsystem_info_pub.h>
 
 #include <conversion/rotation.h>
 #include <ecl/geo/geo.h>
@@ -897,18 +898,15 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 	if (sensor.last_failover_count != sensor.voter.failover_count()) {
 
 		uint32_t flags = sensor.voter.failover_state();
+		int failover_index = sensor.voter.failover_index();
 
 		if (flags == DataValidator::ERROR_FLAG_NO_ERROR) {
-			int failover_index = sensor.voter.failover_index();
-
 			if (failover_index != -1) {
 				//we switched due to a non-critical reason. No need to panic.
 				PX4_INFO("%s sensor switch from #%i", sensor_name, failover_index);
 			}
 
 		} else {
-			int failover_index = sensor.voter.failover_index();
-
 			if (failover_index != -1) {
 				mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
 						      sensor_name,
@@ -921,6 +919,40 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 
 				// reduce priority of failed sensor to the minimum
 				sensor.priority[failover_index] = 1;
+
+				// Update the subsystem_info uORB given that a sensor failed
+				int ctr_valid = 0;
+
+				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
+					if (sensor.priority[i] > 1) { ctr_valid++; }
+
+					PX4_WARN("FAILOVER event (idx=%u)! Sensor %s: Nr. %u Priority: %u", failover_index, sensor_name, i, sensor.priority[i]);
+				}
+
+				PX4_INFO("%s sensor switch from #%i", sensor_name, failover_index);
+
+				if (ctr_valid < 2) { // subsystem_info only contains flags for the first two sensors
+					uint64_t subsystem_type = 0;
+
+					if (ctr_valid == 0) { // There are no valid sensors left!
+						if (strcmp(sensor_name, "Gyro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO; }
+
+						if (strcmp(sensor_name, "Accel") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC; }
+
+						if (strcmp(sensor_name, "Mag") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG; }
+
+						if (strcmp(sensor_name, "Baro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE; }
+
+					} else if (ctr_valid == 1) { // A single valid sensor remains, set secondary sensor health to false
+						if (strcmp(sensor_name, "Gyro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
+
+						if (strcmp(sensor_name, "Accel") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
+
+						if (strcmp(sensor_name, "Mag") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
+					}
+
+					publish_subsystem_info_healthy(subsystem_type, false);
+				}
 			}
 		}
 
@@ -950,6 +982,30 @@ void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, Sens
 				if (!sensor_data.voter.add_new_validator()) {
 					PX4_ERR("failed to add validator for sensor %s %i", meta->o_name, i);
 				}
+			}
+
+			// Update the subsystem_info uORB to indicate the amount of valid sensors
+			if (i < 2) { // subsystem_info only contains flags for the first two sensors
+				uint64_t subsystem_type = 0;
+
+				if (i == 0) { // First sensor valid
+					if (strcmp(meta->o_name, "sensor_gyro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO; }
+
+					if (strcmp(meta->o_name, "sensor_accel") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC; }
+
+					if (strcmp(meta->o_name, "sensor_mag") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG; }
+
+					if (strcmp(meta->o_name, "sensor_baro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE; }
+
+				} else if (i == 1) { // We also have a second sensor
+					if (strcmp(meta->o_name, "sensor_gyro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
+
+					if (strcmp(meta->o_name, "sensor_accel") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
+
+					if (strcmp(meta->o_name, "sensor_mag") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
+				}
+
+				publish_subsystem_info(subsystem_type, true, true, true);
 			}
 		}
 	}
