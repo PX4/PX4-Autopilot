@@ -218,7 +218,7 @@ check_rtps: \
 	check_posix_sitl_rtps \
 	sizes
 
-.PHONY: sizes check quick_check check_rtps uorb_graphs
+.PHONY: sizes check quick_check check_rtps
 
 sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
@@ -235,21 +235,13 @@ check_%:
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
-uorb_graphs:
-	@./Tools/uorb_graph/create_from_startupscript.sh
-	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --file Tools/uorb_graph/graph_full
-	@$(MAKE) --no-print-directory px4fmu-v2_default uorb_graph
-	@$(MAKE) --no-print-directory px4fmu-v4_default uorb_graph
-	@$(MAKE) --no-print-directory posix_sitl_default uorb_graph
-
-
 .PHONY: coverity_scan
 
 coverity_scan: posix_sitl_default
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata
+.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata uorb_graphs doxygen doxygen_setup
 
 parameters_metadata:
 	@python $(SRC_DIR)/src/modules/systemlib/param/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/modules/systemlib/param/parameters_injected.xml --markdown
@@ -263,6 +255,20 @@ module_documentation:
 	@python $(SRC_DIR)/Tools/px_process_module_doc.py -v --markdown $(SRC_DIR)/modules --src-path $(SRC_DIR)/src
 
 px4_metadata: parameters_metadata airframe_metadata module_documentation
+
+uorb_graphs:
+	@./Tools/uorb_graph/create_from_startupscript.sh
+	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --file Tools/uorb_graph/graph_full
+	@$(MAKE) --no-print-directory px4fmu-v2_default uorb_graph
+	@$(MAKE) --no-print-directory px4fmu-v4_default uorb_graph
+	@$(MAKE) --no-print-directory posix_sitl_default uorb_graph
+
+doxygen: posix_sitl_default
+	@doxygen Documentation/Doxyfile
+
+
+doxygen_setup:
+	@doxywizard Documentation/Doxyfile
 
 # Astyle
 # --------------------------------------------------------------------
