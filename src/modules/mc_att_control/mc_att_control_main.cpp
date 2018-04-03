@@ -692,7 +692,7 @@ MulticopterAttitudeControl::run()
 				}
 			}
 
-			if (_v_control_mode.flag_control_attitude_enabled) {
+			if (_v_control_mode.flag_control_attitude_enabled && _vehicle_status.is_rotary_wing) {
 
 				control_attitude(dt);
 
@@ -714,7 +714,7 @@ MulticopterAttitudeControl::run()
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
-				if (_v_control_mode.flag_control_manual_enabled) {
+				if (_v_control_mode.flag_control_manual_enabled && _vehicle_status.is_rotary_wing) {
 					/* manual rates control - ACRO mode */
 					Vector3f man_rate_sp(
 							math::superexpo(_manual_control_sp.y, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
