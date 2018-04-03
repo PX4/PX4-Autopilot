@@ -111,6 +111,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.rattitude_thres = param_find("FW_RATT_TH");
 
 	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
+	_parameter_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 
 	// initialize to invalid VTOL type
 	_parameters.vtol_type = -1;
@@ -130,6 +131,7 @@ int
 FixedwingAttitudeControl::parameters_update()
 {
 
+	int32_t tmp = 0;
 	param_get(_parameter_handles.p_tc, &(_parameters.p_tc));
 	param_get(_parameter_handles.p_p, &(_parameters.p_p));
 	param_get(_parameter_handles.p_i, &(_parameters.p_i));
@@ -153,9 +155,8 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 	param_get(_parameter_handles.roll_to_yaw_ff, &(_parameters.roll_to_yaw_ff));
 
-	int32_t wheel_enabled = 0;
-	param_get(_parameter_handles.w_en, &wheel_enabled);
-	_parameters.w_en = (wheel_enabled == 1);
+	param_get(_parameter_handles.w_en, &tmp);
+	_parameters.w_en = (tmp == 1);
 
 	param_get(_parameter_handles.w_p, &(_parameters.w_p));
 	param_get(_parameter_handles.w_i, &(_parameters.w_i));
@@ -209,6 +210,9 @@ FixedwingAttitudeControl::parameters_update()
 	}
 
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
+
+	param_get(_parameter_handles.airspeed_mode, &tmp);
+	_parameters.airspeed_disabled = (tmp == 1);
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.p_tc);
@@ -565,13 +569,16 @@ void FixedwingAttitudeControl::run()
 				const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
 							    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1e6);
 
-				if (airspeed_valid) {
+				if (!_parameters.airspeed_disabled && airspeed_valid) {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 					airspeed = math::max(0.5f, _airspeed_sub.get().indicated_airspeed_m_s);
 
 				} else {
 					airspeed = _parameters.airspeed_trim;
-					perf_count(_nonfinite_input_perf);
+
+					if (!airspeed_valid) {
+						perf_count(_nonfinite_input_perf);
+					}
 				}
 
 				/*
