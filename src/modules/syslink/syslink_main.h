@@ -182,6 +182,7 @@ private:
 	ringbuffer::RingBuffer _readbuffer;
 
 	crtp_message_t _msg_to_send;
+	int _msg_to_send_size_remaining;
 
 };
 

@@ -48,8 +48,10 @@ SyslinkBridge::SyslinkBridge(Syslink *link) :
 	_link(link),
 	_readbuffer(16, sizeof(crtp_message_t))
 {
-
-
+	_msg_to_send.header = 0;
+	_msg_to_send.size = sizeof(_msg_to_send.header);
+	_msg_to_send.port = CRTP_PORT_MAVLINK;
+	_msg_to_send_size_remaining = CRTP_MAX_DATA_SIZE - 1;
 }
 
 SyslinkBridge::~SyslinkBridge()
@@ -111,44 +113,27 @@ SyslinkBridge::read(struct file *filp, char *buffer, size_t buflen)
 ssize_t
 SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 {
-
-	static bool init = 1;
-
-	if (init) {
-		_msg_to_send.header = 0;
-		_msg_to_send.size = sizeof(_msg_to_send.header);
-		_msg_to_send.port = CRTP_PORT_MAVLINK;
-		init = 0;
-	}
-
-	static int msg_rem = CRTP_MAX_DATA_SIZE -
-			     1; //30 bytes data, so size of crtp message being sent will be = 30 bytes data + 1 byte header + 1 extra byte not filled
-
-	static int last_index = 0;
-
 	int buflen_rem = buflen;
 
 	while (buflen_rem > 0) {
 
-		int datasize = MIN(msg_rem, buflen_rem);
+		int datasize = MIN(_msg_to_send_size_remaining, buflen_rem);
 		_msg_to_send.size += datasize;
-		memcpy(&_msg_to_send.data[last_index], buffer, datasize);
+		memcpy(&_msg_to_send.data[CRTP_MAX_DATA_SIZE - 1 - _msg_to_send_size_remaining], buffer, datasize);
 
-		last_index += datasize;
 		buffer += datasize;
-		msg_rem -= datasize;
+		_msg_to_send_size_remaining -= datasize;
 		buflen_rem -= datasize;
 
 
-		if (msg_rem == 0) {
+		if (_msg_to_send_size_remaining == 0) {
 
 			if (_link->_writebuffer.force(&_msg_to_send, sizeof(crtp_message_t))) {
-				printf("write buffer overflow!!! \n");
+				PX4_WARN("write buffer overflow");
 			}
 
-			last_index = 0;
 			_msg_to_send.size = sizeof(_msg_to_send.header);
-			msg_rem = CRTP_MAX_DATA_SIZE - 1;
+			_msg_to_send_size_remaining = CRTP_MAX_DATA_SIZE - 1;
 		}
 	}
 
