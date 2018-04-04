@@ -171,10 +171,7 @@ private:
 	orb_id_t _attitude_setpoint_id{nullptr};
 
 	manual_control_setpoint_s	_manual {};			///< r/c channel data */
-	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items */
-	vehicle_attitude_s	_att {};			///< vehicle attitude setpoint */
 	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint */
-	vehicle_command_s		_vehicle_command {};		///< vehicle commands */
 	vehicle_control_mode_s		_control_mode {};		///< control mode */
 	vehicle_global_position_s	_global_pos {};			///< global vehicle position */
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position */
@@ -194,8 +191,7 @@ private:
 	float	_althold_epv{0.0f};				///< the position estimate accuracy when engaging alt hold */
 	bool	_was_in_deadband{false};			///< wether the last stick input was in althold deadband */
 
-	position_setpoint_s _hdg_hold_prev_wp {};		///< position where heading hold started */
-	position_setpoint_s _hdg_hold_curr_wp {};		///< position to which heading hold flies */
+	position_setpoint_triplet_s _pos_sp_triplet{};
 
 	hrt_abstime _control_position_last_called{0};		///< last call of control_position  */
 
@@ -240,9 +236,12 @@ private:
 	float _groundspeed_undershoot{0.0f};			///< ground speed error to min. speed in m/s
 
 	Dcmf _R_nb;				///< current attitude
+
 	float _roll{0.0f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
+
+	float _yawspeed{0.0f};
 
 	bool _reinitialize_tecs{true};				///< indicates if the TECS states should be reinitialized (used for VTOL)
 	bool _is_tecs_running{false};
@@ -370,6 +369,9 @@ private:
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min
+	)
 
 	// Update our local parameter cache.
 	int		parameters_update();
@@ -429,8 +431,10 @@ private:
 
 	bool		control_position(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+
 	void		control_takeoff(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
+
 	void		control_landing(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
 
@@ -445,10 +449,10 @@ private:
 	/**
 	 * Handle incoming vehicle commands
 	 */
-	void		handle_command();
+	void		handle_command(const vehicle_command_s &vcmd);
 
 	void		reset_takeoff_state();
-	void		reset_landing_state();
+	void		reset_landing_state(const uint8_t pos_sp_type);
 
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation

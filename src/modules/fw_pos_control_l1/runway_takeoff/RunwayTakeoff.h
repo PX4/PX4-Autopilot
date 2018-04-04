@@ -85,7 +85,7 @@ public:
 	float getYaw(float navigatorYaw);
 	float getThrottle(float tecsThrottle);
 	bool resetIntegrators();
-	float getMinPitch(float sp_min, float climbout_min, float min);
+	float getMinPitch(float climbout_min, float min);
 	float getMaxPitch(float max);
 	matrix::Vector2f getStartWP();
 
