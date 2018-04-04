@@ -1318,7 +1318,7 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 					   _parameters.throttle_max, // XXX should we also set runway_takeoff_throttle here?
 					   _parameters.throttle_cruise,
 					   _runway_takeoff.climbout(),
-					   radians(_runway_takeoff.getMinPitch(pos_sp_curr.pitch_min, 10.0f, _parameters.pitch_limit_min)),
+					   radians(_runway_takeoff.getMinPitch(_takeoff_pitch_min.get(), _parameters.pitch_limit_min)),
 					   tecs_status_s::TECS_MODE_TAKEOFF);
 
 		// assign values
@@ -1389,7 +1389,7 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 							   takeoff_throttle,
 							   _parameters.throttle_cruise,
 							   true,
-							   max(radians(pos_sp_curr.pitch_min), radians(10.0f)),
+							   radians(_takeoff_pitch_min.get()),
 							   tecs_status_s::TECS_MODE_TAKEOFF);
 
 				/* limit roll motion to ensure enough lift */
@@ -1416,7 +1416,7 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 
 			/* Set default roll and pitch setpoints during detection phase */
 			_att_sp.roll_body = 0.0f;
-			_att_sp.pitch_body = max(radians(pos_sp_curr.pitch_min), radians(10.0f));
+			_att_sp.pitch_body = radians(_takeoff_pitch_min.get());
 		}
 	}
 }

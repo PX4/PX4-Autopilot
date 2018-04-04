@@ -370,6 +370,9 @@ private:
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min
+	)
 
 	// Update our local parameter cache.
 	int		parameters_update();
