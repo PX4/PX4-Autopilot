@@ -4037,6 +4037,9 @@ private:
 	SimpleAnalyzer _windspeed;
 
 	hrt_abstime _last_reset_time = 0;
+	hrt_abstime _last_update_time = 0;
+	float _update_rate_filtered = 0.0f;
+
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighLatency2(MavlinkStreamHighLatency2 &);
@@ -4173,7 +4176,7 @@ protected:
 			// reset the analysers every 60 seconds if nothing should be transmitted
 			if ((t - _last_reset_time) > 60000000) {
 				reset_analysers(t);
-				PX4_INFO("Resetting HIGH_LATENCY2 analysers");
+				PX4_DEBUG("Resetting HIGH_LATENCY2 analysers");
 			}
 
 			return false;
@@ -4429,21 +4432,27 @@ protected:
 
 	void update_data()
 	{
-		const float update_rate = 1.0f / (_mavlink->get_main_loop_delay() * 1e-6f);
+		const hrt_abstime t = hrt_absolute_time();
 
-		update_airspeed(update_rate);
+		if (t > _last_update_time) {
+			// first order low pass filter for the update rate
+			_update_rate_filtered = 0.97f * _update_rate_filtered + 0.03f / ((t - _last_update_time) * 1e-6f);
+			_last_update_time = t;
+		}
 
-		update_tecs_status(update_rate);
+		update_airspeed(_update_rate_filtered);
 
-		update_battery_status(update_rate);
+		update_tecs_status(_update_rate_filtered);
 
-		update_global_position(update_rate);
+		update_battery_status(_update_rate_filtered);
 
-		update_gps(update_rate);
+		update_global_position(_update_rate_filtered);
 
-		update_vehicle_status(update_rate);
+		update_gps(_update_rate_filtered);
 
-		update_wind_estimate(update_rate);
+		update_vehicle_status(_update_rate_filtered);
+
+		update_wind_estimate(_update_rate_filtered);
 	}
 
 	void update_airspeed(float update_rate)
