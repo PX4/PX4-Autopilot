@@ -915,9 +915,22 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			mission_throttle = pos_sp_curr.cruising_throttle;
 		}
 
+
 		uint8_t position_sp_type = pos_sp_curr.type;
 
-		// achieve position setpoint altitude via loiter
+		// TAKEOFF: handle like a regular POSITION setpoint if already flying
+		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+
+			const bool airspeed_min = (_airspeed >= _parameters.airspeed_min);
+
+			if (!in_takeoff_situation() && airspeed_min) {
+
+				// SETPOINT_TYPE_TAKEOFF -> SETPOINT_TYPE_POSITION
+				position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+			}
+		}
+
+		// POSITION: achieve position setpoint altitude via loiter
 		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 
 			float dist_xy = -1.0f;
@@ -937,6 +950,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 			}
 		}
+
 
 		if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.thrust = 0.0f;
