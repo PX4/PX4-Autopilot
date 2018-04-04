@@ -76,9 +76,5 @@ private:
 	 */
 	void set_loiter_position();
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MIS_YAWMODE>) _param_yawmode
-	)
-
 	bool _loiter_pos_set{false};
 };
