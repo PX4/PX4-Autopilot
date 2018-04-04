@@ -223,13 +223,12 @@ bool RunwayTakeoff::resetIntegrators()
  * the climbtout minimum pitch (parameter).
  * Otherwise use the minimum that is enforced generally (parameter).
  */
-float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)
+float RunwayTakeoff::getMinPitch(float climbout_min, float min)
 {
 	if (_state < RunwayTakeoffState::FLY) {
-		return math::max(sp_min, climbout_min);
-	}
+		return climbout_min;
 
-	else {
+	} else {
 		return min;
 	}
 }
