@@ -1801,6 +1801,11 @@ void Logger::write_version()
 	}
 
 	write_info("ver_hw", px4_board_name());
+	const char *board_sub_type = px4_board_sub_type();
+
+	if (board_sub_type && board_sub_type[0]) {
+		write_info("ver_hw_subtype", board_sub_type);
+	}
 	write_info("sys_name", "PX4");
 	write_info("sys_os_name", px4_os_name());
 	const char *os_version = px4_os_version_string();
