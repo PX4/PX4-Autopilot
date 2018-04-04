@@ -417,7 +417,9 @@ private:
 		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
 
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
+
+		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min
 
 	)
 
