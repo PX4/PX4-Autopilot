@@ -450,6 +450,12 @@ void FixedwingAttitudeControl::run()
 	vehicle_status_poll();
 	vehicle_land_detected_poll();
 
+	// set initial maximum body rate setpoints
+	_roll_ctrl.set_max_rate(_parameters.acro_max_x_rate_rad);
+	_pitch_ctrl.set_max_rate_pos(_parameters.acro_max_y_rate_rad);
+	_pitch_ctrl.set_max_rate_neg(_parameters.acro_max_y_rate_rad);
+	_yaw_ctrl.set_max_rate(_parameters.acro_max_z_rate_rad);
+
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
 
@@ -667,7 +673,7 @@ void FixedwingAttitudeControl::run()
 
 				/* reset body angular rate limits on mode change */
 				if ((_vcontrol_mode.flag_control_attitude_enabled != _flag_control_attitude_enabled_last) || params_updated) {
-					if (_vcontrol_mode.flag_control_attitude_enabled) {
+					if (_vcontrol_mode.flag_control_attitude_enabled || _vehicle_status.is_rotary_wing) {
 						_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
 						_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
 						_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
