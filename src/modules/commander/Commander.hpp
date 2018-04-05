@@ -127,12 +127,14 @@ private:
 			int32_t datalink_loss_timeout, int32_t datalink_regain_timeout, bool *status_changed);
 
 	// telemetry variables
-	int _telemetry_subs[ORB_MULTI_MAX_INSTANCES] = {};
-	uint64_t _telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES] = {};
-	uint64_t _telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES] = {};
-	bool _telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES] = {};
-	bool _telemetry_lost[ORB_MULTI_MAX_INSTANCES] = {};
-	bool _telemetry_high_latency[ORB_MULTI_MAX_INSTANCES] = {};
+	struct telemetry_data {
+		int subscriber = -1;
+		uint64_t last_heartbeat = 0u;
+		uint64_t last_dl_loss = 0u;
+		bool preflight_checks_reported = false;
+		bool lost = true;
+		bool high_latency = false;
+	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
 	// publisher
 	orb_advert_t _vehicle_cmd_pub = nullptr;
