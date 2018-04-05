@@ -51,7 +51,8 @@ SyslinkBridge::SyslinkBridge(Syslink *link) :
 	_msg_to_send.header = 0;
 	_msg_to_send.size = sizeof(_msg_to_send.header);
 	_msg_to_send.port = CRTP_PORT_MAVLINK;
-	_msg_to_send_size_remaining = CRTP_MAX_DATA_SIZE - 1;
+	_msg_to_send_size_remaining = CRTP_MAX_DATA_SIZE - 1; // to send 30 bytes of data
+	//ideally _msg_to_send.data size should be CRTP_MAX_DATA_SIZE but cfbridge does not receive 31 bytes of data due to a bug somewhere
 }
 
 SyslinkBridge::~SyslinkBridge()
