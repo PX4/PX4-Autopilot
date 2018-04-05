@@ -178,7 +178,7 @@ void PositionControl::_interfaceMapping()
 void PositionControl::_positionController()
 {
 	// P-position controller
-	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_Pv);
+	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_Pp);
 	_vel_sp = vel_sp_position + _vel_sp;
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
