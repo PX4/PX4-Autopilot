@@ -984,8 +984,6 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 			prearm_ok = false;
 		}
-
-
 	}
 
 	// safety button
