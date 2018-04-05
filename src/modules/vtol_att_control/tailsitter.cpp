@@ -48,10 +48,7 @@
 #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
 Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
-	VtolType(attc),
-	_thrust_transition_start(0.0f),
-	_yaw_transition(0.0f),
-	_pitch_transition_start(0.0f)
+	VtolType(attc)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
