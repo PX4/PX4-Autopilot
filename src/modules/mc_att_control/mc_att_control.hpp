@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <controllib/BlockGyroCorrected.hpp>
 #include <lib/mixer/mixer.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <matrix/matrix/math.hpp>
@@ -47,9 +48,6 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
-#include <uORB/topics/sensor_bias.h>
-#include <uORB/topics/sensor_correction.h>
-#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -69,7 +67,7 @@ class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>
 public:
 	MulticopterAttitudeControl();
 
-	virtual ~MulticopterAttitudeControl() = default;
+	virtual ~MulticopterAttitudeControl();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -98,8 +96,6 @@ private:
 	 */
 	void		battery_status_poll();
 	void		parameter_update_poll();
-	void		sensor_bias_poll();
-	void		sensor_correction_poll();
 	void		vehicle_attitude_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_control_mode_poll();
@@ -123,7 +119,6 @@ private:
 	 */
 	matrix::Vector3f pid_attenuations(float tpa_breakpoint, float tpa_rate);
 
-
 	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
 	int		_v_att_sp_sub{-1};		/**< vehicle attitude setpoint subscription */
 	int		_v_rates_sp_sub{-1};		/**< vehicle rates setpoint subscription */
@@ -133,12 +128,8 @@ private:
 	int		_vehicle_status_sub{-1};	/**< vehicle status subscription */
 	int		_motor_limits_sub{-1};		/**< motor limits subscription */
 	int		_battery_status_sub{-1};	/**< battery status subscription */
-	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
-	int		_sensor_correction_sub{-1};	/**< sensor thermal correction subscription */
-	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
 
-	unsigned _gyro_count{1};
-	int _selected_gyro{0};
+	control::BlockGyroCorrected	_gyro_corrected;
 
 	orb_advert_t	_v_rates_sp_pub{nullptr};		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
@@ -157,9 +148,6 @@ private:
 	struct actuator_controls_s		_actuators {};		/**< actuator controls */
 	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 	struct battery_status_s			_battery_status {};	/**< battery status */
-	struct sensor_gyro_s			_sensor_gyro {};	/**< gyro data before thermal correctons and ekf bias estimates are applied */
-	struct sensor_correction_s		_sensor_correction {};	/**< sensor thermal corrections */
-	struct sensor_bias_s			_sensor_bias {};	/**< sensor in-run bias corrections */
 
 	MultirotorMixer::saturation_status _saturation_status{};
 
@@ -175,8 +163,6 @@ private:
 	matrix::Vector3f _rates_int;			/**< angular rates integral error */
 	float _thrust_sp;				/**< thrust setpoint */
 	matrix::Vector3f _att_control;			/**< attitude control vector */
-
-	matrix::Dcmf _board_rotation;			/**< rotation matrix for the orientation that the board is mounted */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLL_P>) _roll_p,
@@ -227,12 +213,6 @@ private:
 		(ParamFloat<px4::params::MC_RATT_TH>) _rattitude_thres,
 
 		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _bat_scale_en,
-
-		(ParamInt<px4::params::SENS_BOARD_ROT>) _board_rotation_param,
-
-		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _board_offset_x,
-		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _board_offset_y,
-		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _board_offset_z,
 
 		(ParamFloat<px4::params::VT_WV_YAWR_SCL>) _vtol_wv_yaw_rate_scale		/**< Scale value [0, 1] for yaw rate setpoint  */
 	)

@@ -146,14 +146,6 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
 	parameter_handles.battery_source = param_find("BAT_SOURCE");
 
-	/* rotations */
-	parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
-
-	/* rotation offsets */
-	parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
-	parameter_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
-	parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
-
 	/* Barometer QNH */
 	parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
 
@@ -424,12 +416,6 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	}
 
 	param_get(parameter_handles.battery_source, &(parameters.battery_source));
-
-	param_get(parameter_handles.board_rotation, &(parameters.board_rotation));
-
-	param_get(parameter_handles.board_offset[0], &(parameters.board_offset[0]));
-	param_get(parameter_handles.board_offset[1], &(parameters.board_offset[1]));
-	param_get(parameter_handles.board_offset[2], &(parameters.board_offset[2]));
 
 	param_get(parameter_handles.baro_qnh, &(parameters.baro_qnh));
 

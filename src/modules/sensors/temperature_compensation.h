@@ -250,9 +250,7 @@ private:
 	*/
 	bool calc_thermal_offsets_3D(const SensorCalData3D &coef, float measured_temp, float offset[]);
 
-
 	Parameters _parameters;
-
 
 	struct PerSensorData {
 		PerSensorData()
