@@ -410,9 +410,13 @@ private:
 	/**
 	 * trajctory generation
 	 */
+	void execute_avoidance_position_waypoint();
+
 	void execute_avoidance_velocity_waypoint();
 
 	bool use_obstacle_avoidance();
+
+	bool use_pos_wp_avoidance();
 
 	bool use_vel_wp_avoidance();
 
@@ -2396,6 +2400,10 @@ MulticopterPositionControl::control_position()
 void
 MulticopterPositionControl::calculate_velocity_setpoint()
 {
+	if (use_pos_wp_avoidance()) {
+		execute_avoidance_position_waypoint();
+	}
+
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
 
@@ -3373,6 +3381,14 @@ MulticopterPositionControl::set_idle_state()
 }
 
 void
+MulticopterPositionControl::execute_avoidance_position_waypoint()
+{
+	_pos_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::X];
+	_pos_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Y];
+	_pos_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Z];
+}
+
+void
 MulticopterPositionControl::execute_avoidance_velocity_waypoint()
 {
 	_vel_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VX];
@@ -3390,6 +3406,14 @@ MulticopterPositionControl::use_obstacle_avoidance()
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
 	return (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
 		TRAJECTORY_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
+}
+
+bool
+MulticopterPositionControl::use_pos_wp_avoidance()
+{
+	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::X]) &&
+	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::Y])
+	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::Z]);
 }
 
 bool
