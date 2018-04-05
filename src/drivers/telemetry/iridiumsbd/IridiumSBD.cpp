@@ -479,7 +479,6 @@ void IridiumSBD::sbdsession_loop(void)
 		_tx_buf_write_idx = 0;
 
 		publish_telemetry_status();
-
 		break;
 
 	case 1:
@@ -497,7 +496,6 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: NO NETWORK SIGNAL");
 
 		_signal_quality = 0;
-
 		break;
 
 	default:
@@ -806,7 +804,6 @@ satcom_result_code IridiumSBD::read_at(uint8_t *rx_buf, int *rx_len, int16_t tim
 	int rx_buf_pos = 0;
 	*rx_len = 0;
 
-
 	while (1) {
 		if (::poll(&fds[0], 1, timeout) > 0) {
 			if (::read(uart_fd, &buf, 1) > 0) {
@@ -959,8 +956,6 @@ int	IridiumSBD::close_last(struct file *filep)
 	_cdev_used = false;
 	return CDev::close_last(filep);
 }
-
-
 
 int iridiumsbd_main(int argc, char *argv[])
 {

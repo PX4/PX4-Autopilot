@@ -4040,7 +4040,6 @@ private:
 	hrt_abstime _last_update_time = 0;
 	float _update_rate_filtered = 0.0f;
 
-
 	/* do not allow top copying this class */
 	MavlinkStreamHighLatency2(MavlinkStreamHighLatency2 &);
 	MavlinkStreamHighLatency2 &operator = (const MavlinkStreamHighLatency2 &);

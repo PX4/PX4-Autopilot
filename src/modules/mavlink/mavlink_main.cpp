@@ -990,7 +990,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 		return;
 	}
 
-
 	_last_write_try_time = hrt_absolute_time();
 
 	if (_mavlink_start_time == 0) {
