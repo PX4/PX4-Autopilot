@@ -285,6 +285,7 @@ private:
 	matrix::Vector3f _vel_prev;			/**< velocity on previous step */
 	matrix::Vector3f _vel_sp_prev;
 	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
+	matrix::Vector3f _vel_sp_desired; /**< the desired velocity can be overwritten by obstacle avoidance */
 	matrix::Vector3f _curr_pos_sp;  /**< current setpoint of the triplets */
 	matrix::Vector3f _prev_pos_sp; /**< previous setpoint of the triples */
 	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
@@ -519,6 +520,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_prev.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
+	_vel_sp_desired.zero();
 	_curr_pos_sp.zero();
 	_prev_pos_sp.zero();
 	_stick_input_xy_prev.zero();
@@ -2529,11 +2531,20 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		set_takeoff_velocity(_vel_sp(2));
 	}
 
+	/* constrain velocity: this is desired velocity before any obstacle avoidance */
 	constrain_velocity_setpoint();
+	_vel_sp_desired = matrix::Vector3f(_vel_sp(0), _vel_sp(1), _vel_sp(2));
+
 	/* check obstacle avoidance */
 	if (use_vel_wp_avoidance() && !_in_smooth_takeoff) {
 
 		execute_avoidance_velocity_waypoint();
+
+		/* If obstacle avoidanc is active, the previous velocity
+		 * setpoint will be set to desired setpoint to ensure that setpoint
+		 * increases linearly with acceleration.
+		 */
+		_vel_sp_prev = _vel_sp_desired;
 
 	} else {
 		_vel_sp_prev = _vel_sp;
