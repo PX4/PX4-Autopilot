@@ -115,6 +115,8 @@ private:
 
 	/** Time in us that direction change condition has to be true for direction change state */
 	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
+	/** Timeout in us for trajectory data to get considered invalid */
+	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
 
 	bool		_task_should_exit = false;			/**<true if task should exit */
 	bool		_gear_state_initialized = false;		/**<true if the gear state has been initialized */
@@ -404,6 +406,15 @@ private:
 	void landdetection_thrust_limit(matrix::Vector3f &thrust_sp);
 
 	void set_idle_state();
+
+	/**
+	 * trajctory generation
+	 */
+	void execute_avoidance_velocity_waypoint();
+
+	bool use_obstacle_avoidance();
+
+	bool use_vel_wp_avoidance();
 
 	/**
 	 * Temporary method for flight control compuation
@@ -2480,13 +2491,21 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	}
 
 	constrain_velocity_setpoint();
+	/* check obstacle avoidance */
+	if (use_vel_wp_avoidance() && !_in_smooth_takeoff) {
+
+		execute_avoidance_velocity_waypoint();
+
+	} else {
+		_vel_sp_prev = _vel_sp;
+	}
+
 	/* make sure velocity setpoint is constrained in all directions (xyz) */
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 
 	/* check if the velocity demand is significant */
 	_vel_sp_significant =  vel_norm_xy > 0.5f * _vel_max_xy;
 
-	_vel_sp_prev = _vel_sp;
 }
 
 void
@@ -3351,6 +3370,34 @@ MulticopterPositionControl::set_idle_state()
 	q_sp.copyTo(_att_sp.q_d);
 	_att_sp.q_d_valid = true; //TODO: check if this flag is used anywhere
 	_att_sp.thrust = 0.0f;
+}
+
+void
+MulticopterPositionControl::execute_avoidance_velocity_waypoint()
+{
+	_vel_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VX];
+	_vel_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VY];
+	_vel_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ];
+
+	/* we always constrain velocity since we do not know what the avoidance module sends out */
+	constrain_velocity_setpoint();
+}
+
+bool
+MulticopterPositionControl::use_obstacle_avoidance()
+{
+
+	/* check that external obstacle avoidance is sending data and that the first point is valid */
+	return (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
+		TRAJECTORY_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
+}
+
+bool
+MulticopterPositionControl::use_vel_wp_avoidance()
+{
+	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
+	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])
+	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ]);
 }
 
 void
