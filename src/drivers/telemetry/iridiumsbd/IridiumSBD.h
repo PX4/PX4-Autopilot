@@ -90,7 +90,6 @@ extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 #define SATCOM_SIGNAL_REFRESH_DELAY		20000000 // update signal quality every 20s
 #define MAVLINK_PACKAGE_START		254 // The value of the first byte of the mavlink header
 
-
 /**
  * The driver for the Rockblock 9602 and 9603 RockBlock module for satellite communication over the Iridium satellite system
  *

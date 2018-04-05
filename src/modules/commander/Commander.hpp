@@ -141,7 +141,6 @@ private:
 
 	// subscriptions
 	Subscription<mission_result_s> _mission_result_sub;
-
 };
 
 #endif /* COMMANDER_HPP_ */
