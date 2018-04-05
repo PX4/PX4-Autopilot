@@ -1833,13 +1833,44 @@ void MulticopterPositionControl::control_auto()
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
-		/* update yaw setpoint if needed */
-		if (_pos_sp_triplet.current.yawspeed_valid
-		    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
-			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * _dt;
+		const bool follow_me_target_on = _pos_sp_triplet.current.yawspeed_valid
+						 && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 
-		} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
-			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+		/* update yaw setpoint if needed */
+		if ((use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED]))
+		    || follow_me_target_on) {
+
+			/* default is triplet yaw-speed */
+			float yaw_speed = _pos_sp_triplet.current.yawspeed;
+
+			if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED])) {
+				yaw_speed = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED];
+			}
+
+			/* we want to know the real constraint, and global overrides manual */
+			const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
+						   _params.global_yaw_max;
+			const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+
+			float yaw_target = _wrap_pi(_att_sp.yaw_body + yaw_speed * _dt);
+			float yaw_offs = _wrap_pi(yaw_target - _yaw);
+
+			// If the yaw offset became too big for the system to track stop
+			// shifting it, only allow if it would make the offset smaller again.
+			if (fabsf(yaw_offs) < yaw_offset_max ||
+			    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
+			    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
+				_att_sp.yaw_body = yaw_target;
+			}
+
+		} else {
+
+			if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW])) {
+				_att_sp.yaw_body = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW];
+
+			} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
+				_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+			}
 		}
 
 		float yaw_diff = wrap_pi(_att_sp.yaw_body - _yaw);
@@ -2815,8 +2846,14 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
-		float yaw_target = wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
-		float yaw_offs = wrap_pi(yaw_target - _yaw);
+
+		/* check if obstacle avoidance is on */
+		if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED])) {
+			_att_sp.yaw_sp_move_rate = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED];
+		}
+
+		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
+		float yaw_offs = _wrap_pi(yaw_target - _yaw);
 
 		// If the yaw offset became too big for the system to track stop
 		// shifting it, only allow if it would make the offset smaller again.
