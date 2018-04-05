@@ -245,8 +245,7 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, bool report_statu
 	return true;
 }
 
-static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool optional, bool dynamic,
-			       int &device_id, bool report_fail)
+static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool optional, bool dynamic, int &device_id, bool report_fail)
 {
 	bool success = true;
 
@@ -688,7 +687,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 		checkAirspeed = true;
 	}
 
-	reportFailures = (reportFailures && status_flags.condition_system_hotplug_timeout);
+	reportFailures = (reportFailures && status_flags.condition_system_hotplug_timeout && !status_flags.condition_calibration_enabled);
 
 #ifdef __PX4_QURT
 	// WARNING: Preflight checks are important and should be added back when
@@ -721,7 +720,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 			bool required = (i < max_mandatory_mag_count);
 			int device_id = -1;
 
-			if (!magnometerCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !mag_fail_reported)) && required) {
+			if (!magnometerCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !failed && !mag_fail_reported)) && required) {
 				failed = true;
 				mag_fail_reported = true;
 			}
@@ -744,7 +743,6 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 		if (!magConsistencyCheck(mavlink_log_pub, (reportFailures && !failed))) {
 			failed = true;
 		}
-
 	}
 
 	/* ---- ACCEL ---- */
@@ -760,8 +758,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 			bool required = (i < max_mandatory_accel_count);
 			int device_id = -1;
 
-			if (!accelerometerCheck(mavlink_log_pub, i, !required, checkDynamic, device_id, (reportFailures
-						&& !accel_fail_reported)) && required) {
+			if (!accelerometerCheck(mavlink_log_pub, i, !required, checkDynamic, device_id, (reportFailures && !failed && !accel_fail_reported)) && required) {
 				failed = true;
 				accel_fail_reported = true;
 			}
@@ -794,7 +791,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 			bool required = (i < max_mandatory_gyro_count);
 			int device_id = -1;
 
-			if (!gyroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !gyro_fail_reported)) && required) {
+			if (!gyroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !failed && !gyro_fail_reported)) && required) {
 				failed = true;
 				gyro_fail_reported = true;
 			}
@@ -827,7 +824,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 			bool required = (i < max_mandatory_baro_count);
 			int device_id = -1;
 
-			if (!baroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !baro_fail_reported)) && required) {
+			if (!baroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !failed && !baro_fail_reported)) && required) {
 				failed = true;
 				baro_fail_reported = true;
 			}
@@ -857,14 +854,14 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 
 	/* ---- AIRSPEED ---- */
 	if (checkAirspeed) {
-		if (!airspeedCheck(mavlink_log_pub, true, reportFailures, prearm)) {
+		if (!airspeedCheck(mavlink_log_pub, true, reportFailures && !failed, prearm)) {
 			failed = true;
 		}
 	}
 
 	/* ---- RC CALIBRATION ---- */
 	if (checkRC) {
-		if (rc_calibration_check(mavlink_log_pub, reportFailures, status.is_vtol) != OK) {
+		if (rc_calibration_check(mavlink_log_pub, reportFailures && !failed, status.is_vtol) != OK) {
 			if (reportFailures) {
 				mavlink_log_critical(mavlink_log_pub, "RC calibration check failed");
 			}
