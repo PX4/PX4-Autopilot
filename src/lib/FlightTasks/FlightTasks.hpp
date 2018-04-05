@@ -51,6 +51,7 @@
 #include "tasks/FlightTaskAutoFollowMe.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 #include "tasks/FlightTaskSport.hpp"
+#include "tasks/FlightTaskOffboard.hpp"
 
 #include "SubscriptionArray.hpp"
 
@@ -67,6 +68,7 @@ enum class FlightTaskIndex : int {
 	Sport,
 	AutoLine,
 	AutoFollowMe,
+	Offboard,
 
 	Count // number of tasks
 };
@@ -151,6 +153,7 @@ private:
 		FlightTaskSport sport;
 		FlightTaskAutoLine autoLine;
 		FlightTaskAutoFollowMe autoFollowMe;
+		FlightTaskOffboard offboard;
 	} _task_union; /**< storage for the currently active task */
 
 	FlightTask *_current_task = nullptr;
