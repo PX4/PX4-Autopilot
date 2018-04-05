@@ -90,6 +90,10 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		_current_task = new (&_task_union.autoFollowMe) FlightTaskAutoFollowMe();
 		break;
 
+	case FlightTaskIndex::Offboard:
+		_current_task = new (&_task_union.offboard) FlightTaskOffboard();
+		break;
+
 	default:
 		/* invalid task */
 		return -1;
