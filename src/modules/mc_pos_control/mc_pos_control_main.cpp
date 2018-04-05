@@ -155,6 +155,7 @@ private:
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
+	orb_advert_t 	_traj_wp_avoidance_desired_pub; 	/**< trajectory waypoint desired publication */
 
 	orb_id_t _attitude_setpoint_id;
 
@@ -169,6 +170,8 @@ private:
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct home_position_s				_home_pos; 				/**< home position */
 	struct trajectory_waypoint_s			_traj_wp_avoidance; /**< trajectory waypoint */
+	struct trajectory_waypoint_s
+		_traj_wp_avoidance_desired; /**< desired waypoints, inputs to an obstacle avoidance module */
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MPC_FLT_TSK>) _test_flight_tasks, /**< temporary flag for the transition to flight tasks */
@@ -421,6 +424,12 @@ private:
 
 	bool use_vel_wp_avoidance();
 
+	void update_avoidance_waypoints_desired(const int point_number, const float x, const float y, const float z,
+						const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
+						const float yaw_speed);
+
+	void reset_wp_avoidance_desired();
+
 	/**
 	 * Temporary method for flight control compuation
 	 */
@@ -466,6 +475,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* publications */
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
+	_traj_wp_avoidance_desired_pub(nullptr),
 	_attitude_setpoint_id(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
@@ -478,6 +488,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sp{},
 	_home_pos{},
 	_traj_wp_avoidance{},
+	_traj_wp_avoidance_desired{},
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -3289,6 +3300,34 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vy = _vel_sp(1);
 				_local_pos_sp.vz = _vel_sp(2);
 
+				/* desired waypoints for obstacle avoidance */
+				if (_pos_sp_triplet.current.valid) {
+
+					/* point_0 containes the current position with the desired velocity */
+					update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
+									   _vel_sp_desired(1),
+									   _vel_sp_desired(1),
+									   NAN, NAN, NAN, _yaw, NAN);
+
+					if (_pos_sp_triplet.current.valid) {
+						update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_1, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
+										   _pos_sp_triplet.current.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.current.yaw, NAN);
+					}
+
+					if (_pos_sp_triplet.next.valid) {
+						update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_2, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y,
+										   _pos_sp_triplet.next.z,
+										   NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.next.yaw, NAN);
+					}
+
+				} else {
+
+					update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
+									   _vel_sp_desired(1),
+									   _vel_sp_desired(2),
+									   NAN, NAN, NAN, _yaw, NAN);
+				}
+
 				/* publish local position setpoint */
 				if (_local_pos_sp_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
@@ -3296,6 +3335,16 @@ MulticopterPositionControl::task_main()
 				} else {
 					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 				}
+
+				/* publish desired waypoint*/
+				if (_traj_wp_avoidance_desired_pub != nullptr) {
+					orb_publish(ORB_ID(trajectory_waypoint_desired), _traj_wp_avoidance_desired_pub, &_traj_wp_avoidance_desired);
+
+				} else {
+					_traj_wp_avoidance_desired_pub = orb_advertise(ORB_ID(trajectory_waypoint_desired), &_traj_wp_avoidance_desired);
+				}
+
+				reset_wp_avoidance_desired();
 
 			} else {
 				/* position controller disabled, reset setpoints */
@@ -3470,6 +3519,88 @@ MulticopterPositionControl::use_vel_wp_avoidance()
 	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
 	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])
 	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ]);
+}
+
+void MulticopterPositionControl::update_avoidance_waypoints_desired(const int point_number, const float x,
+		const float y,
+		const float z,
+		const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
+		const float yaw_speed)
+{
+	_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
+	_traj_wp_avoidance_desired.type = trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
+
+
+	float *array = nullptr;
+
+	switch (point_number) {
+	case trajectory_waypoint_s::POINT_0: {
+			array = &_traj_wp_avoidance_desired.point_0[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	case trajectory_waypoint_s::POINT_1: {
+			array = &_traj_wp_avoidance_desired.point_1[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	case trajectory_waypoint_s::POINT_2: {
+			array = &_traj_wp_avoidance_desired.point_2[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	case trajectory_waypoint_s::POINT_3: {
+			array = &_traj_wp_avoidance_desired.point_3[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	case trajectory_waypoint_s::POINT_4: {
+			array = &_traj_wp_avoidance_desired.point_4[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	default :
+		_traj_wp_avoidance_desired.point_valid[trajectory_waypoint_s::POINT_0] = false;
+		return;
+
+	}
+
+	array[0] = x;
+	array[1] = y;
+	array[2] = z;
+	array[3] = vx;
+	array[4] = vy;
+	array[5] = vz;
+	array[6] = ax;
+	array[7] = ay;
+	array[8] = az;
+	array[9] = yaw;
+	array[10] = yaw_speed;
+}
+
+void
+MulticopterPositionControl::reset_wp_avoidance_desired()
+{
+	const int point_size = 11;
+
+	for (int i = 0; i < point_size; ++i) {
+		_traj_wp_avoidance_desired.point_0[i] = NAN;
+		_traj_wp_avoidance_desired.point_1[i] = NAN;
+		_traj_wp_avoidance_desired.point_2[i] = NAN;
+		_traj_wp_avoidance_desired.point_3[i] = NAN;
+		_traj_wp_avoidance_desired.point_4[i] = NAN;
+	}
+
+	const int number_points = 5;
+
+	for (int i = 0; i < number_points; ++i) {
+		_traj_wp_avoidance_desired.point_valid[i] = 0;
+	}
 }
 
 void
