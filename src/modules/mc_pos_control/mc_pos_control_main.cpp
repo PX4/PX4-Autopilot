@@ -381,6 +381,8 @@ private:
 
 	float get_vel_close(const matrix::Vector2f &unit_prev_to_current, const matrix::Vector2f &unit_current_to_next);
 
+	void constrain_velocity_setpoint();
+
 	void set_manual_acceleration_xy(matrix::Vector2f &stick_input_xy_NED);
 
 	void set_manual_acceleration_z(float &max_acc_z, const float stick_input_z_NED);
@@ -962,6 +964,22 @@ MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_c
 
 	/* vel_close needs to be in between max and min */
 	return math::constrain(vel_close, min_cruise_speed, get_cruising_speed_xy());
+
+}
+
+void
+MulticopterPositionControl::constrain_velocity_setpoint()
+{
+
+	/* make sure velocity setpoint is constrained in all directions (xyz) */
+	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
+
+	if (vel_norm_xy > _vel_max_xy) {
+		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
+		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
+	}
+
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_vel_max_up.get(), _vel_max_down.get());
 
 }
 
@@ -2461,18 +2479,12 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		set_takeoff_velocity(_vel_sp(2));
 	}
 
+	constrain_velocity_setpoint();
 	/* make sure velocity setpoint is constrained in all directions (xyz) */
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 
 	/* check if the velocity demand is significant */
 	_vel_sp_significant =  vel_norm_xy > 0.5f * _vel_max_xy;
-
-	if (vel_norm_xy > _vel_max_xy) {
-		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
-	}
-
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_vel_max_up.get(), _vel_max_down.get());
 
 	_vel_sp_prev = _vel_sp;
 }
