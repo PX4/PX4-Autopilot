@@ -4032,26 +4032,9 @@ void Commander::mission_init()
 
 bool Commander::preflight_check(bool report)
 {
-	const bool hil_enabled = (status.hil_state == vehicle_status_s::HIL_STATE_ON);
-
-	const bool checkSensors = !hil_enabled;
-	const bool checkRC = (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
 	const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
-	const bool checkDynamic = !hil_enabled;
-	const bool checkPower = (status_flags.condition_power_input_valid && !status_flags.circuit_breaker_engaged_power_check);
 
-	const bool reportFailures = (report && status_flags.condition_system_hotplug_timeout);
-
-	bool checkAirspeed = false;
-
-	/* Perform airspeed check only if circuit breaker is not
-	 * engaged and it's not a rotary wing */
-	if (!status_flags.circuit_breaker_engaged_airspd_check && (!status.is_rotary_wing || status.is_vtol)) {
-		checkAirspeed = true;
-	}
-
-	bool success = Preflight::preflightCheck(&mavlink_log_pub, checkSensors, checkAirspeed, checkRC, checkGNSS, checkDynamic, checkPower,
-						status.is_vtol, reportFailures, false, hrt_elapsed_time(&commander_boot_timestamp));
+	bool success = Preflight::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false, hrt_elapsed_time(&commander_boot_timestamp));
 
 	status_flags.condition_system_sensors_initialized = success;
 

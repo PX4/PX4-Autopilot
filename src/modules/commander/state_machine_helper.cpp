@@ -75,7 +75,7 @@ static constexpr const bool arming_transitions[vehicle_status_s::ARMING_STATE_MA
 };
 
 // You can index into the array with an arming_state_t in order to get its textual representation
-const char * const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
+const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"INIT",
 	"STANDBY",
 	"ARMED",
@@ -120,27 +120,13 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 		bool preflight_check_ret = true;
 		bool prearm_check_ret = true;
 
-		const bool checkSensors = !hil_enabled;
-		const bool checkRC = (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
 		const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
-		const bool checkDynamic = !hil_enabled;
-		const bool checkPower = (status_flags->condition_power_input_valid
-					 && !status_flags->circuit_breaker_engaged_power_check);
-
-		bool checkAirspeed = false;
-
-		/* Perform airspeed check only if circuit breaker is not
-		 * engaged and it's not a rotary wing */
-		if (!status_flags->circuit_breaker_engaged_airspd_check && (!status->is_rotary_wing || status->is_vtol)) {
-			checkAirspeed = true;
-		}
 
 		/* only perform the pre-arm check if we have to */
 		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 		    && !hil_enabled) {
 
-			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, checkSensors, checkAirspeed, checkRC, checkGNSS,
-					      checkDynamic, checkPower, status->is_vtol, true, true, time_since_boot);
+			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, true, true, time_since_boot);
 
 			if (preflight_check_ret) {
 				status_flags->condition_system_sensors_initialized = true;
@@ -156,8 +142,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
-				status_flags->condition_system_sensors_initialized = Preflight::preflightCheck(mavlink_log_pub, checkSensors,
-						checkAirspeed, checkRC, checkGNSS, checkDynamic, checkPower, status->is_vtol, false, false, time_since_boot);
+				status_flags->condition_system_sensors_initialized = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, false, false, time_since_boot);
 
 				last_preflight_check = hrt_absolute_time();
 			}
