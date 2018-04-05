@@ -627,14 +627,6 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_mission_result_sub(ORB_ID(mission_result))
 {
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		_telemetry_subs[i] = -1;
-		_telemetry_last_heartbeat[i] = 0;
-		_telemetry_last_dl_loss[i] = 0;
-		_telemetry_lost[i] = true;
-		_telemetry_preflight_checks_reported[i] = false;
-		_telemetry_high_latency[i] = false;
-	}
 }
 
 bool
@@ -4095,20 +4087,20 @@ void Commander::poll_telemetry_status(bool checkAirspeed, bool *hotplug_timeout)
 	bool updated = false;
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 
-		if (_telemetry_subs[i] < 0) {
-			_telemetry_subs[i] = orb_subscribe_multi(ORB_ID(telemetry_status), i);
+		if (_telemetry[i].subscriber < 0) {
+			_telemetry[i].subscriber = orb_subscribe_multi(ORB_ID(telemetry_status), i);
 		}
 
-		orb_check(_telemetry_subs[i], &updated);
+		orb_check(_telemetry[i].subscriber, &updated);
 
 		if (updated) {
 			telemetry_status_s telemetry = {};
-			orb_copy(ORB_ID(telemetry_status), _telemetry_subs[i], &telemetry);
+			orb_copy(ORB_ID(telemetry_status), _telemetry[i].subscriber, &telemetry);
 
 			/* perform system checks when new telemetry link connected */
 			if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
-			    (_telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&_telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)
-			        || !_telemetry_preflight_checks_reported[i]) &&
+			    (_telemetry[i].last_heartbeat == 0 || (hrt_elapsed_time(&_telemetry[i].last_heartbeat) > 3 * 1000 * 1000)
+			        || !_telemetry[i].preflight_checks_reported) &&
 			    /* and this link has a communication partner */
 			    (telemetry.heartbeat_time > 0) &&
 			    /* and it is still connected */
@@ -4118,7 +4110,7 @@ void Commander::poll_telemetry_status(bool checkAirspeed, bool *hotplug_timeout)
 
 				*hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 				/* flag the checks as reported for this link when we actually report them */
-				_telemetry_preflight_checks_reported[i] = *hotplug_timeout;
+				_telemetry[i].preflight_checks_reported = *hotplug_timeout;
 
 				/* provide RC and sensor status feedback to the user */
 				if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
@@ -4149,13 +4141,13 @@ void Commander::poll_telemetry_status(bool checkAirspeed, bool *hotplug_timeout)
 
 			/* set latency type of the telemetry connection */
 			if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM) {
-				_telemetry_high_latency[i] = true;
+				_telemetry[i].high_latency = true;
 			} else {
-				_telemetry_high_latency[i] = false;
+				_telemetry[i].high_latency = false;
 			}
 
-			if (telemetry.heartbeat_time > 0 && (_telemetry_last_heartbeat[i] < telemetry.heartbeat_time)) {
-				_telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
+			if (telemetry.heartbeat_time > 0 && (_telemetry[i].last_heartbeat < telemetry.heartbeat_time)) {
+				_telemetry[i].last_heartbeat = telemetry.heartbeat_time;
 			}
 		}
 	}
@@ -4172,7 +4164,7 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 	int32_t dl_regain_timeout_local = 0;
 
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		if (_telemetry_high_latency[i]) {
+		if (_telemetry[i].high_latency) {
 			high_latency_link_exists = true;
 			if (status.high_latency_data_link_active) {
 				dl_loss_timeout_local = highlatencydatalink_loss_timeout;
@@ -4187,18 +4179,18 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			dl_regain_timeout_local = datalink_regain_timeout;
 		}
 
-		if (_telemetry_last_heartbeat[i] != 0 &&
-			hrt_elapsed_time(&_telemetry_last_heartbeat[i]) < dl_loss_timeout_local * 1e6) {
+		if (_telemetry[i].last_heartbeat != 0 &&
+			hrt_elapsed_time(&_telemetry[i].last_heartbeat) < dl_loss_timeout_local * 1e6) {
 			/* handle the case where data link was gained first time or regained,
 			 * accept datalink as healthy only after datalink_regain_timeout seconds
 			 * */
-			if (_telemetry_lost[i] &&
-				hrt_elapsed_time(&_telemetry_last_dl_loss[i]) > dl_regain_timeout_local * 1e6) {
+			if (_telemetry[i].lost &&
+				hrt_elapsed_time(&_telemetry[i].last_dl_loss) > dl_regain_timeout_local * 1e6) {
 
 				/* report a regain */
-				if (_telemetry_last_dl_loss[i] > 0) {
+				if (_telemetry[i].last_dl_loss > 0) {
 					mavlink_and_console_log_info(&mavlink_log_pub, "data link #%i regained", i);
-				} else if (_telemetry_last_dl_loss[i] == 0) {
+				} else if (_telemetry[i].last_dl_loss == 0) {
 					/* new link */
 				}
 
@@ -4206,29 +4198,29 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 				status_flags.condition_system_prearm_error_reported = false;
 				*status_changed = true;
 
-				_telemetry_lost[i] = false;
+				_telemetry[i].lost = false;
 				have_link = true;
-				if (!_telemetry_high_latency[i]) {
+				if (!_telemetry[i].high_latency) {
 					have_low_latency_link = true;
 				}
 
-			} else if (!_telemetry_lost[i]) {
+			} else if (!_telemetry[i].lost) {
 				/* telemetry was healthy also in last iteration
 				 * we don't have to check a timeout */
 				have_link = true;
-				if (!_telemetry_high_latency[i]) {
+				if (!_telemetry[i].high_latency) {
 					have_low_latency_link = true;
 				}
 			}
 
 		} else {
 
-			if (!_telemetry_lost[i]) {
+			if (!_telemetry[i].lost) {
 				/* only reset the timestamp to a different time on state change */
-				_telemetry_last_dl_loss[i]  = hrt_absolute_time();
+				_telemetry[i].last_dl_loss  = hrt_absolute_time();
 
 				mavlink_and_console_log_info(&mavlink_log_pub, "data link #%i lost", i);
-				_telemetry_lost[i] = true;
+				_telemetry[i].lost = true;
 			}
 		}
 	}
@@ -4276,8 +4268,8 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 
 			// set heartbeat to current time for high latency so that the first message can be transmitted
 			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-				if (_telemetry_high_latency[i]) {
-					_telemetry_last_heartbeat[i] = hrt_absolute_time();
+				if (_telemetry[i].high_latency) {
+					_telemetry[i].last_heartbeat = hrt_absolute_time();
 				}
 			}
 
