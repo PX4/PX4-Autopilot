@@ -3172,6 +3172,10 @@ MulticopterPositionControl::task_main()
 				_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 				break;
 
+			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+				_flight_tasks.switchTask(FlightTaskIndex::Offboard);
+				break;
+
 			default:
 				/* not supported yet */
 				_flight_tasks.switchTask(FlightTaskIndex::None);

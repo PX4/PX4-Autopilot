@@ -43,6 +43,7 @@ px4_add_module(
 		tasks/FlightTaskManualPositionSmooth.cpp
 		tasks/FlightTaskAuto.cpp
 		tasks/FlightTaskAutoLine.cpp
+		tasks/FlightTaskOffboard.cpp
 		tasks/Utility/ManualSmoothingZ.cpp
 		tasks/Utility/ManualSmoothingXY.cpp
 		SubscriptionArray.cpp
