@@ -3579,9 +3579,8 @@ void MulticopterPositionControl::update_avoidance_waypoint_desired(const int poi
 void
 MulticopterPositionControl::reset_avoidance_waypoint_desired()
 {
-	const int point_size = 11;
 
-	for (int i = 0; i < point_size; ++i) {
+	for (int i = 0; i < trajectory_waypoint_s::POINT_SIZE; ++i) {
 		_traj_wp_avoidance_desired.point_0[i] = NAN;
 		_traj_wp_avoidance_desired.point_1[i] = NAN;
 		_traj_wp_avoidance_desired.point_2[i] = NAN;
@@ -3589,9 +3588,7 @@ MulticopterPositionControl::reset_avoidance_waypoint_desired()
 		_traj_wp_avoidance_desired.point_4[i] = NAN;
 	}
 
-	const int number_points = 5;
-
-	for (int i = 0; i < number_points; ++i) {
+	for (int i = 0; i < trajectory_waypoint_s::NUMBER_POINTS; ++i) {
 		_traj_wp_avoidance_desired.point_valid[i] = 0;
 	}
 }
