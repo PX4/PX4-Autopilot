@@ -178,7 +178,6 @@ void FlightTaskAuto::_evaluateVehicleGlobalPosition()
 
 	// check if reference has changed and update.
 	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference) {
-		PX4_INFO("inside");
 		map_projection_init(&_reference_position,
 				    _sub_vehicle_local_position->get().ref_lat,
 				    _sub_vehicle_local_position->get().ref_lon);
