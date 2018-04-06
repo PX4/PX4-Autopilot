@@ -627,20 +627,42 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 
 	pthread_mutex_lock(&_tx_buf_mutex);
 
-	// check if there is enough space for the incoming mavlink message
-	if (buflen == 6) {
-		if (*buffer == MAVLINK_PACKAGE_START) {
-			if (SATCOM_TX_BUF_LEN - _tx_buf_write_idx - (*(buffer + 1) + 8) < 0) {
-				_tx_buf_write_idx = 0;
-				publish_telemetry_status();
+	// parsing the size of the message to write
+	if (!_writing_mavlink_packet) {
+		if (buflen < 3) {
+			_packet_length = buflen;
+
+		} else if ((unsigned char)buffer[0] == 253 && (buflen == 10)) { // mavlink 2
+			const uint8_t payload_len = buffer[1];
+			const uint8_t incompat_flags = buffer[2];
+			_packet_length = payload_len + 12;
+			_writing_mavlink_packet = true;
+
+			if (incompat_flags & 0x1) { //signing
+				_packet_length += 13;
 			}
+
+		} else if ((unsigned char)buffer[0] == 254 && (buflen == 6)) { // mavlink 1
+			const uint8_t payload_len = buffer[1];
+			_packet_length = payload_len + 8;
+			_writing_mavlink_packet = true;
+
+		} else {
+			_packet_length = buflen;
 		}
 	}
 
-	// check if there is enough space for the incoming non mavlink message
-	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN - _tx_buf_write_idx) {
+	// check if there is enough space to write the message
+	if (SATCOM_TX_BUF_LEN - _tx_buf_write_idx - _packet_length < 0) {
 		_tx_buf_write_idx = 0;
 		publish_telemetry_status();
+	}
+
+	// keep track of the remaining packet length and if the full message is written
+	_packet_length -= buflen;
+
+	if (_packet_length == 0) {
+		_writing_mavlink_packet = false;
 	}
 
 	VERBOSE_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, _tx_buf_write_idx);
