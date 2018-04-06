@@ -412,7 +412,7 @@ private:
 	void set_idle_state();
 
 	/**
-	 * trajctory generation
+	 * trajectory generation
 	 */
 	void execute_avoidance_position_waypoint();
 
@@ -422,7 +422,7 @@ private:
 
 	bool use_pos_wp_avoidance();
 
-	bool use_vel_wp_avoidance();
+	bool use_avoidance_velocity_waypoint();
 
 	void update_avoidance_waypoints_desired(const int point_number, const float x, const float y, const float z,
 						const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
@@ -2547,7 +2547,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	_vel_sp_desired = matrix::Vector3f(_vel_sp(0), _vel_sp(1), _vel_sp(2));
 
 	/* check obstacle avoidance */
-	if (use_vel_wp_avoidance() && !_in_smooth_takeoff) {
+	if (use_avoidance_velocity_waypoint() && !_in_smooth_takeoff) {
 
 		execute_avoidance_velocity_waypoint();
 
@@ -3514,7 +3514,7 @@ MulticopterPositionControl::use_pos_wp_avoidance()
 }
 
 bool
-MulticopterPositionControl::use_vel_wp_avoidance()
+MulticopterPositionControl::use_avoidance_velocity_waypoint()
 {
 	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
 	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])
