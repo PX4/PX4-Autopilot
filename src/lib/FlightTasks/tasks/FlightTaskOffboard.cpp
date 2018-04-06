@@ -67,17 +67,47 @@ bool FlightTaskOffboard::update()
 	// reset setpoint for every loop
 	_resetSetpoints();
 
-	// XY-direction
-	PX4_INFO("position valid: %d", _sub_triplet_setpoint->get().current.position_valid);
+	// Possible inputs:
+	// 1. position setpoint
+	// 2. position setpoint + velocity setpoint (velocity used as feedforward)
+	// 3. velocity setpoint
+	// 4. acceleration setpoint -> this will be mapped to normalized thrust setpoint because acceleration is not supported
 
-	if (_sub_triplet_setpoint->get().current.position_valid && _sub_vehicle_local_position->get().xy_valid) {
-		// offboard position control is on
-		_position_setpoint(0) = _sub_triplet_setpoint->get().current.x;
-		_position_setpoint(1) = _sub_triplet_setpoint->get().current.y;
+	const bool position_ctrl_xy = _sub_triplet_setpoint->get().current.position_valid
+				      && _sub_vehicle_local_position->get().xy_valid;
+	const bool position_ctrl_z = _sub_triplet_setpoint->get().current.alt_valid
+				     && _sub_vehicle_local_position->get().z_valid;
+	const bool velocity_ctrl_xy = _sub_triplet_setpoint->get().current.velocity_valid
+				      && _sub_vehicle_local_position->get().v_xy_valid;
+	const bool velocity_ctrl_z = _sub_triplet_setpoint->get().current.velocity_valid
+				     && _sub_vehicle_local_position->get().v_z_valid;
+	const bool feedforward_ctrl_xy = position_ctrl_xy && velocity_ctrl_xy;
+	const bool feedforward_ctrl_z = position_ctrl_z && velocity_ctrl_z;
+	const bool acceleration_ctrl = _sub_triplet_setpoint->get().current.acceleration_valid;
+
+	// if nothing is valid in xy, then exit offboard
+	if (!(position_ctrl_xy || velocity_ctrl_xy || acceleration_ctrl)) {
+		return false;
 	}
 
-	if (_sub_triplet_setpoint->get().current.velocity_valid && _sub_vehicle_local_position->get().v_xy_valid) {
-		// offboard velocity control is on
+	// if nothing is valid in z, then exit offboard
+	if (!(position_ctrl_z || velocity_ctrl_z || acceleration_ctrl)) {
+		return false;
+	}
+
+	// XY-direction
+	if (feedforward_ctrl_xy) {
+		_position_setpoint(0) = _sub_triplet_setpoint->get().current.x;
+		_position_setpoint(1) = _sub_triplet_setpoint->get().current.y;
+		_velocity_setpoint(0) = _sub_triplet_setpoint->get().current.vx;
+		_velocity_setpoint(1) = _sub_triplet_setpoint->get().current.vy;
+
+	} else if (position_ctrl_xy) {
+		_position_setpoint(0) = _sub_triplet_setpoint->get().current.x;
+		_position_setpoint(1) = _sub_triplet_setpoint->get().current.y;
+
+	} else if (velocity_ctrl_xy) {
+
 		if (_sub_triplet_setpoint->get().current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_LOCAL_NED) {
 			// in local frame: don't require any transformation
 			_velocity_setpoint(0) = _sub_triplet_setpoint->get().current.vx;
@@ -92,31 +122,41 @@ bool FlightTaskOffboard::update()
 							_yaw) * _sub_triplet_setpoint->get().current.vy;
 
 		} else {
-			// no valid frame. send zero velocity
-			_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
+			// no valid frame
+			return false;
 		}
 	}
 
 	// Z-direction
 
-	if (_sub_triplet_setpoint->get().current.alt_valid && _sub_vehicle_local_position->get().z_valid) {
-		// altitude control is required
+	if (feedforward_ctrl_z) {
 		_position_setpoint(2) = _sub_triplet_setpoint->get().current.z;
-	}
+		_velocity_setpoint(2) = _sub_triplet_setpoint->get().current.vz;
 
-	if (_sub_triplet_setpoint->get().current.velocity_valid && _sub_vehicle_local_position->get().v_z_valid) {
-		// climb rate control required
+	} else if (position_ctrl_z) {
+		_position_setpoint(2) = _sub_triplet_setpoint->get().current.z;
+
+	} else if (velocity_ctrl_z) {
 		_velocity_setpoint(2) = _sub_triplet_setpoint->get().current.vz;
 	}
 
 	// Yaw / Yaw-speed
+
 	if (_sub_triplet_setpoint->get().current.yaw_valid) {
 		// yaw control required
 		_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
-	}
 
-	if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
+		if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
+			// yawspeed is used as feedforward
+			_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
+		}
+
+	} else if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
+		// only yawspeed required
 		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
+		// set yaw setpoint to NAN since not used
+		_yaw_setpoint = NAN;
+
 	}
 
 	// Acceleration
@@ -127,8 +167,6 @@ bool FlightTaskOffboard::update()
 		_thrust_setpoint(1) = _sub_triplet_setpoint->get().current.a_y;
 		_thrust_setpoint(2) = _sub_triplet_setpoint->get().current.a_z;
 	}
-
-	_position_setpoint.print();
 
 	return true;
 
