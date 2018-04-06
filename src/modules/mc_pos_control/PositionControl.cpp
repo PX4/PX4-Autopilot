@@ -61,6 +61,7 @@ PositionControl::PositionControl()
 	MPC_THR_MIN_h = param_find("MPC_THR_MIN");
 	MPC_THR_MIN_h = param_find("MPC_MANTHR_MIN");
 	MPC_TILTMAX_AIR_h = param_find("MPC_TILTMAX_AIR");
+	MPC_MAN_TILT_MAX_h = param_find("MPC_MAN_TILT_MAX");
 	_parameter_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	// set parameter the very first time
@@ -334,5 +335,8 @@ void PositionControl::_setParams()
 	param_get(MPC_THR_MIN_h, &MPC_THR_MIN);
 	param_get(MPC_MANTHR_MIN_h, &MPC_MANTHR_MIN);
 	param_get(MPC_TILTMAX_AIR_h, &MPC_TILTMAX_AIR);
+	MPC_TILTMAX_AIR = math::radians(MPC_TILTMAX_AIR);
 	param_get(MPC_MAN_TILT_MAX_h, &MPC_MAN_TILT_MAX);
+	MPC_MAN_TILT_MAX = math::radians(MPC_MAN_TILT_MAX);
+
 }
