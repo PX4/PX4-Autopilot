@@ -2021,6 +2021,10 @@ void MulticopterPositionControl::control_auto()
 				/* current velocity along track */
 				float vel_sp_along_track_prev = matrix::Vector2f(_vel_sp(0), _vel_sp(1)) * unit_prev_to_current;
 
+				if (use_obstacle_avoidance()) {
+					vel_sp_along_track_prev = matrix::Vector2f(&_vel_sp_desired(0)) * unit_prev_to_current;
+				}
+
 				/* distance to target when brake should occur */
 				float target_threshold_xy = 1.5f * get_cruising_speed_xy();
 
