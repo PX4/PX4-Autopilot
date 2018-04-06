@@ -424,11 +424,11 @@ private:
 
 	bool use_avoidance_velocity_waypoint();
 
-	void update_avoidance_waypoints_desired(const int point_number, const float x, const float y, const float z,
-						const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
-						const float yaw_speed);
+	void update_avoidance_waypoint_desired(const int point_number, const float x, const float y, const float z,
+					       const float vx, const float vy, const float vz, const float ax, const float ay, const float az,
+					       const float yaw, const float yaw_speed);
 
-	void reset_wp_avoidance_desired();
+	void reset_avoidance_waypoint_desired();
 
 	/**
 	 * Temporary method for flight control compuation
@@ -3304,28 +3304,23 @@ MulticopterPositionControl::task_main()
 				if (_pos_sp_triplet.current.valid) {
 
 					/* point_0 containes the current position with the desired velocity */
-					update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
-									   _vel_sp_desired(1),
-									   _vel_sp_desired(1),
-									   NAN, NAN, NAN, _yaw, NAN);
+					update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
+									  _vel_sp_desired(1), _vel_sp_desired(2), NAN, NAN, NAN, _yaw, NAN);
 
 					if (_pos_sp_triplet.current.valid) {
-						update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_1, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
-										   _pos_sp_triplet.current.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.current.yaw, NAN);
+						update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_1, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
+										  _pos_sp_triplet.current.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.current.yaw, NAN);
 					}
 
 					if (_pos_sp_triplet.next.valid) {
-						update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_2, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y,
-										   _pos_sp_triplet.next.z,
-										   NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.next.yaw, NAN);
+						update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_2, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y,
+										  _pos_sp_triplet.next.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.next.yaw, NAN);
 					}
 
 				} else {
 
-					update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
-									   _vel_sp_desired(1),
-									   _vel_sp_desired(2),
-									   NAN, NAN, NAN, _yaw, NAN);
+					update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
+									  _vel_sp_desired(1), _vel_sp_desired(2), NAN, NAN, NAN, _yaw, NAN);
 				}
 
 				/* publish local position setpoint */
@@ -3344,7 +3339,7 @@ MulticopterPositionControl::task_main()
 					_traj_wp_avoidance_desired_pub = orb_advertise(ORB_ID(trajectory_waypoint_desired), &_traj_wp_avoidance_desired);
 				}
 
-				reset_wp_avoidance_desired();
+				reset_avoidance_waypoint_desired();
 
 			} else {
 				/* position controller disabled, reset setpoints */
@@ -3521,11 +3516,9 @@ MulticopterPositionControl::use_avoidance_velocity_waypoint()
 	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ]);
 }
 
-void MulticopterPositionControl::update_avoidance_waypoints_desired(const int point_number, const float x,
-		const float y,
-		const float z,
-		const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
-		const float yaw_speed)
+void MulticopterPositionControl::update_avoidance_waypoint_desired(const int point_number, const float x,
+		const float y, const float z, const float vx, const float vy, const float vz, const float ax,
+		const float ay, const float az, const float yaw, const float yaw_speed)
 {
 	_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
 	_traj_wp_avoidance_desired.type = trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
