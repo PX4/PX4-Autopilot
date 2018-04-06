@@ -297,6 +297,7 @@ private:
 
 	hrt_abstime _last_signal_check = 0;
 	uint8_t _signal_quality = 0;
+	uint16_t _failed_sbd_sessions = 0;
 
 	orb_advert_t _telemetry_status_pub = nullptr;
 
