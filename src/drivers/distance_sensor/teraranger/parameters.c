@@ -41,6 +41,7 @@
  * @value 0 Disabled
  * @value 1 Autodetect
  * @value 2 TROne
- * @value 3 TREvo
+ * @value 3 TREvo60m
+ * @value 4 TREvo600Hz
  */
 PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);

@@ -92,6 +92,7 @@ set(config_module_list
 	lib/rc
 	lib/terrain_estimation
 	lib/version
+	lib/FlightTasks
 
 	#
 	# sources for muorb over fastrpc

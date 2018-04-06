@@ -41,6 +41,7 @@
 #include <uORB/uORB.h>
 #include <containers/List.hpp>
 #include <systemlib/err.h>
+#include <px4_defines.h>
 
 namespace uORB
 {
@@ -83,8 +84,13 @@ public:
 
 	int getHandle() const { return _handle; }
 
+	const orb_metadata *getMeta() const { return _meta; }
+
+	unsigned getInstance() const { return _instance; }
+
 protected:
 	const struct orb_metadata *_meta;
+	unsigned _instance;
 	int _handle;
 };
 
@@ -121,13 +127,18 @@ public:
 	 */
 	virtual bool update() = 0;
 
+	/**
+	 * Like update(), but does not check first if there is data available
+	 */
+	virtual bool forcedUpdate() = 0;
+
 };
 
 /**
  * Subscription wrapper class
  */
 template<class T>
-class __EXPORT Subscription final : public SubscriptionNode
+class __EXPORT Subscription : public SubscriptionNode
 {
 public:
 	/**
@@ -146,7 +157,7 @@ public:
 		_data() // initialize data structure to zero
 	{}
 
-	~Subscription() override final = default;
+	~Subscription() override = default;
 
 	// no copy, assignment, move, move assignment
 	Subscription(const Subscription &) = delete;
@@ -157,9 +168,14 @@ public:
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
-	bool update() override final
+	bool update() override
 	{
 		return SubscriptionBase::update((void *)(&_data));
+	}
+
+	bool forcedUpdate() override
+	{
+		return orb_copy(_meta, _handle, &_data) == PX4_OK;
 	}
 
 	/*

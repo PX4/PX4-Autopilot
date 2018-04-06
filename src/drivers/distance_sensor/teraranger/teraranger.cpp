@@ -87,8 +87,10 @@
 /* Device limits */
 #define TRONE_MIN_DISTANCE (0.20f)
 #define TRONE_MAX_DISTANCE (14.00f)
-#define TREVO_MIN_DISTANCE (0.50f)
-#define TREVO_MAX_DISTANCE (60.0f)
+#define TREVO_60M_MIN_DISTANCE (0.50f)
+#define TREVO_60M_MAX_DISTANCE (60.0f)
+#define TREVO_600HZ_MIN_DISTANCE (0.75f)
+#define TREVO_600HZ_MAX_DISTANCE (8.0f)
 
 #define TERARANGER_CONVERSION_INTERVAL 50000 /* 50ms */
 
@@ -295,8 +297,8 @@ TERARANGER::init()
 				goto out;
 
 			} else {
-				_min_distance = TREVO_MIN_DISTANCE;
-				_max_distance = TREVO_MAX_DISTANCE;
+				_min_distance = TREVO_60M_MIN_DISTANCE;
+				_max_distance = TREVO_60M_MAX_DISTANCE;
 			}
 
 		} else {
@@ -317,7 +319,7 @@ TERARANGER::init()
 		_max_distance = TRONE_MAX_DISTANCE;
 		break;
 
-	case 3: /* TREvo */
+	case 3: /* TREvo60m */
 		set_device_address(TREVO_BASEADDR);
 
 		/* do I2C init (and probe) first */
@@ -325,8 +327,20 @@ TERARANGER::init()
 			goto out;
 		}
 
-		_min_distance = TREVO_MIN_DISTANCE;
-		_max_distance = TREVO_MAX_DISTANCE;
+		_min_distance = TREVO_60M_MIN_DISTANCE;
+		_max_distance = TREVO_60M_MAX_DISTANCE;
+		break;
+
+	case 4: /* TREvo600Hz */
+		set_device_address(TREVO_BASEADDR);
+
+		/* do I2C init (and probe) first */
+		if (I2C::init() != OK) {
+			goto out;
+		}
+
+		_min_distance = TREVO_600HZ_MIN_DISTANCE;
+		_max_distance = TREVO_600HZ_MAX_DISTANCE;
 		break;
 
 	default:

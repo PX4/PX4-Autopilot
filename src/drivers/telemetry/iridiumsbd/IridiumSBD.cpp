@@ -50,6 +50,8 @@
 
 #include "drivers/drv_iridiumsbd.h"
 
+static constexpr const char *satcom_state_string[4] = {"STANDBY", "SIGNAL CHECK", "SBD SESSION", "TEST"};
+
 IridiumSBD *IridiumSBD::instance;
 int IridiumSBD::task_handle;
 
