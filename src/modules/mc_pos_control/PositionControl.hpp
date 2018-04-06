@@ -49,7 +49,7 @@ namespace Controller
 {
 /** Constraints that depends on mode and are lower
  * 	than the global limits.
- * 	tilt_max: Cannot exceed PI/2
+ * 	tilt_max: Cannot exceed PI/2 radians
  * 	vel_max_z_up: Cannot exceed maximum global velocity upwards
  * @see MPC_TILTMAX_AIR
  * @see MPC_Z_VEL_MAX_DN
@@ -198,8 +198,8 @@ private:
 	float MPC_XY_VEL_MAX{1.0f}; /**< maximum speed in the horizontal direction */
 	float MPC_Z_VEL_MAX_DN{1.0f}; /**< maximum speed in downwards direction */
 	float MPC_Z_VEL_MAX_UP{1.0f}; /**< maximum speed in upwards direction */
-	float MPC_TILTMAX_AIR{1.5}; /**< maximum tilt for any position/velocity controlled mode */
-	float MPC_MAN_TILT_MAX{3.1}; /**< maximum tilt for manual/altitude mode */
+	float MPC_TILTMAX_AIR{1.5}; /**< maximum tilt for any position/velocity controlled mode in radians */
+	float MPC_MAN_TILT_MAX{3.1}; /**< maximum tilt for manual/altitude mode in radians */
 
 	// Parameter handles
 	int _parameter_sub { -1 };
