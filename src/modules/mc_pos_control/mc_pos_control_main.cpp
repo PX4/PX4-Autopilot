@@ -395,6 +395,8 @@ private:
 
 	bool manual_wants_takeoff();
 
+	void update_smooth_takeoff();
+
 	void set_takeoff_velocity(float &vel_sp_z);
 
 	void landdetection_thrust_limit(matrix::Vector3f &thrust_sp);
@@ -3058,11 +3060,11 @@ MulticopterPositionControl::task_main()
 				_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
 				break;
 
-			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_TAKEOFF:
-			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_LOITER:
-			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_MISSION:
-			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL:
-			case _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_LAND:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 
 				/*TODO: clean up navigation state and commander state, which both share too many equal states */
 				_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
@@ -3080,7 +3082,6 @@ MulticopterPositionControl::task_main()
 
 		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
 
-			// get all flight-task setpoints
 			_flight_tasks.update();
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
 
@@ -3210,10 +3211,6 @@ MulticopterPositionControl::task_main()
 			publish_local_pos_sp();
 			publish_attitude();
 
-			/*
-			 * ****************** FLIGHTTASK-LOGIC END *****************************************
-			 * */
-
 		} else {
 			if (_control_mode.flag_control_altitude_enabled ||
 			    _control_mode.flag_control_position_enabled ||
@@ -3307,6 +3304,24 @@ MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
 }
 
 void
+MulticopterPositionControl:: update_smooth_takeoff()
+{
+	if (!_in_smooth_takeoff && _vehicle_land_detected.landed
+	    && _control_mode.flag_armed
+	    && (in_auto_takeoff() || manual_wants_takeoff())) {
+		_in_smooth_takeoff = true;
+		// This ramp starts negative and goes to positive later because we want to
+		// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
+		_takeoff_vel_limit = -0.5f;
+	}
+
+	else if (!_control_mode.flag_armed) {
+		// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
+		_in_smooth_takeoff = false;
+	}
+}
+
+void
 MulticopterPositionControl::publish_attitude()
 {
 	/* publish attitude setpoint
@@ -3360,10 +3375,8 @@ MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_
 			/* if still or already on ground command zero xy thrust_sp in body
 			 * frame to consider uneven ground */
 
-			/* Temporary until replacement to matrix lib */
-			matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&_R(0, 0));
 			/* thrust setpoint in body frame*/
-			matrix::Vector3f thrust_sp_body = R.transpose() * thrust_sp;
+			matrix::Vector3f thrust_sp_body = _R.transpose() * thrust_sp;
 
 			/* we dont want to make any correction in body x and y*/
 			thrust_sp_body(0) = 0.0f;
@@ -3373,7 +3386,7 @@ MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_
 			thrust_sp_body(2) = thrust_sp(2) > 0.0f ? thrust_sp(2) : 0.0f;
 
 			/* convert back to local frame (NED) */
-			thrust_sp = R * thrust_sp_body;
+			thrust_sp = _R * thrust_sp_body;
 		}
 
 		if (_vehicle_land_detected.maybe_landed) {
@@ -3403,37 +3416,6 @@ MulticopterPositionControl::updateTiltConstraints(Controller::Constraints &const
 	} else {
 		/* Velocity/acceleration control tilt */
 		constraints.tilt_max = _tilt_max_air;
-	}
-}
-
-void
-MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_sp)
-{
-	if (!in_auto_takeoff() && !manual_wants_takeoff()) {
-		if (_vehicle_land_detected.ground_contact) {
-			/* if still or already on ground command zero xy thrust_sp in body
-			 * frame to consider uneven ground */
-
-			/* thrust setpoint in body frame*/
-			matrix::Vector3f thrust_sp_body = _R.transpose() * thrust_sp;
-
-			/* we dont want to make any correction in body x and y*/
-			thrust_sp_body(0) = 0.0f;
-			thrust_sp_body(1) = 0.0f;
-
-			/* make sure z component of thrust_sp_body is larger than 0 (positive thrust is downward) */
-			thrust_sp_body(2) = thrust_sp(2) > 0.0f ? thrust_sp(2) : 0.0f;
-
-			/* convert back to local frame (NED) */
-			thrust_sp = _R * thrust_sp_body;
-		}
-
-		if (_vehicle_land_detected.maybe_landed) {
-			/* we set thrust to zero
-			 * this will help to decide if we are actually landed or not
-			 */
-			thrust_sp.zero();
-		}
 	}
 }
 

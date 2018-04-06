@@ -42,7 +42,7 @@
 #include "FlightTask.hpp"
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 
 /**
  * This enum has to agree with position_setpoint_s type definition
