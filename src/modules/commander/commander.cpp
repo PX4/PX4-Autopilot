@@ -1049,6 +1049,11 @@ Commander::handle_command(vehicle_status_s *status_local,
 		}
 	}
 	break;
+	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
+			// only send the acknowledge from the commander, the command actually is handled by each mavlink instance
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		}
+		break;
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
@@ -1080,7 +1085,6 @@ Commander::handle_command(vehicle_status_s *status_local,
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
-	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
