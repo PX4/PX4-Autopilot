@@ -47,7 +47,6 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
-#include <systemlib/mavlink_log.h>
 
 #include "drivers/drv_iridiumsbd.h"
 
@@ -414,9 +413,10 @@ void IridiumSBD::sbdsession_loop(void)
 			> (uint64_t)_param_session_timeout_s * 1000000)) {
 
 			PX4_WARN("SBD SESSION: TIMEOUT!");
+			++_failed_sbd_sessions;
 			_new_state = SATCOM_STATE_STANDBY;
+			publish_telemetry_status();
 			pthread_mutex_unlock(&_tx_buf_mutex);
-
 		}
 
 		return;
@@ -425,7 +425,9 @@ void IridiumSBD::sbdsession_loop(void)
 	if (res != SATCOM_RESULT_OK) {
 		VERBOSE_INFO("SBD SESSION: ERROR. RESULT: %d", res);
 
+		++_failed_sbd_sessions;
 		_new_state = SATCOM_STATE_STANDBY;
+		publish_telemetry_status();
 		pthread_mutex_unlock(&_tx_buf_mutex);
 		return;
 	}
@@ -435,6 +437,8 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: WRONG ANSWER: %s", _rx_command_buf);
 
 		_new_state = SATCOM_STATE_STANDBY;
+		++_failed_sbd_sessions;
+		publish_telemetry_status();
 		pthread_mutex_unlock(&_tx_buf_mutex);
 		return;
 	}
@@ -477,14 +481,11 @@ void IridiumSBD::sbdsession_loop(void)
 
 		// after a successful session reset the tx buffer
 		_tx_buf_write_idx = 0;
-
-		publish_telemetry_status();
 		break;
 
 	case 1:
 		VERBOSE_INFO("SBD SESSION: MO SUCCESS, MT FAIL");
 		_last_heartbeat = hrt_absolute_time();
-		publish_telemetry_status();
 
 		// after a successful session reset the tx buffer
 		_tx_buf_write_idx = 0;
@@ -495,13 +496,16 @@ void IridiumSBD::sbdsession_loop(void)
 	case 32:
 		VERBOSE_INFO("SBD SESSION: NO NETWORK SIGNAL");
 
+		++_failed_sbd_sessions;
 		_signal_quality = 0;
 		break;
 
 	default:
+		++_failed_sbd_sessions;
 		VERBOSE_INFO("SBD SESSION: FAILED (%d)", mo_status);
 	}
 
+	publish_telemetry_status();
 	_new_state = SATCOM_STATE_STANDBY;
 	pthread_mutex_unlock(&_tx_buf_mutex);
 }
@@ -628,7 +632,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 		if (*buffer == MAVLINK_PACKAGE_START) {
 			if (SATCOM_TX_BUF_LEN - _tx_buf_write_idx - (*(buffer + 1) + 8) < 0) {
 				_tx_buf_write_idx = 0;
-				mavlink_log_critical(&_mavlink_log_pub, "Deleting full TX buffer before writing new message");
+				publish_telemetry_status();
 			}
 		}
 	}
@@ -636,7 +640,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	// check if there is enough space for the incoming non mavlink message
 	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN - _tx_buf_write_idx) {
 		_tx_buf_write_idx = 0;
-		mavlink_log_critical(&_mavlink_log_pub, "Deleting full TX buffer");
+		publish_telemetry_status();
 	}
 
 	VERBOSE_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, _tx_buf_write_idx);
@@ -646,6 +650,8 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	_tx_buf_write_idx += buflen;
 	_last_write_time = hrt_absolute_time();
 	_tx_buf_write_pending = true;
+
+	publish_telemetry_status();
 
 	pthread_mutex_unlock(&_tx_buf_mutex);
 
@@ -933,8 +939,9 @@ void IridiumSBD::publish_telemetry_status()
 	tstatus.telem_time = tstatus.timestamp;
 	tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
 	tstatus.rssi = _signal_quality;
-	tstatus.txbuf = _tx_buf_write_idx;
+	tstatus.txbuf = ceil(100.0f * (float)_tx_buf_write_idx / SATCOM_TX_BUF_LEN);
 	tstatus.heartbeat_time = _last_heartbeat;
+	tstatus.rxerrors = _failed_sbd_sessions;
 
 	if (_telemetry_status_pub == nullptr) {
 		int multi_instance;
