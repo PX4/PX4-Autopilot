@@ -91,12 +91,12 @@ extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 #define MAVLINK_PACKAGE_START		254 // The value of the first byte of the mavlink header
 
 /**
- * The driver for the Rockblock 9602 and 9603 RockBlock module for satellite communication over the Iridium satellite system
+ * The driver for the Rockblock 9602 and 9603 RockBlock module for satellite communication over the Iridium satellite system.
+ * The MavLink 1 protocol should be used to ensure that the status message is 50 bytes (RockBlock bills every 50 bytes per transmission).
  *
  * TODO:
  * 	- Improve TX buffer handling:
  * 		- Do not reset the full TX buffer but delete the oldest HIGH_LATENCY2 message if one is in the buffer or delete the oldest message in general
- * 	- Keep CDev active even if the driver is stopped to avoid a hard fault caused by MavLink.
  */
 class IridiumSBD : public device::CDev
 {
@@ -299,6 +299,9 @@ private:
 	uint8_t _signal_quality = 0;
 	uint16_t _failed_sbd_sessions = 0;
 
+	bool _writing_mavlink_packet = false;
+	uint16_t _packet_length = 0;
+
 	orb_advert_t _telemetry_status_pub = nullptr;
 
 	bool _test_pending = false;
@@ -333,6 +336,4 @@ private:
 
 	pthread_mutex_t _tx_buf_mutex = pthread_mutex_t();
 	bool _verbose = false;
-
-	orb_advert_t _mavlink_log_pub{nullptr};
 };
