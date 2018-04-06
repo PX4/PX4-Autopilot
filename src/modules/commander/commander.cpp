@@ -729,6 +729,9 @@ Commander::handle_command(vehicle_status_s *status_local,
 						case PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET:
 							main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET, status_flags, &internal_state);
 							break;
+						case PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND:
+							main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_PRECLAND, status_flags, &internal_state);
+							break;
 
 						default:
 							main_ret = TRANSITION_DENIED;
