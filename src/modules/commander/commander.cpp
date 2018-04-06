@@ -2483,13 +2483,15 @@ Commander::run()
 				/* set lockdown flag */
 				if (!armed.manual_lockdown) {
 					mavlink_log_emergency(&mavlink_log_pub, "MANUAL KILL SWITCH ENGAGED");
+					status_changed = true;
+					armed.manual_lockdown = true;
 				}
-				armed.manual_lockdown = true;
 			} else if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 				if (armed.manual_lockdown) {
 					mavlink_log_emergency(&mavlink_log_pub, "MANUAL KILL SWITCH OFF");
+					status_changed = true;
+					armed.manual_lockdown = false;
 				}
-				armed.manual_lockdown = false;
 			}
 			/* no else case: do not change lockdown flag in unconfigured case */
 		} else {
