@@ -66,6 +66,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/ping.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/debug_vect.h>
@@ -224,6 +225,7 @@ private:
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _vision_attitude_pub;
 	orb_advert_t _telemetry_status_pub;
+	orb_advert_t _ping_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _obstacle_distance_pub;

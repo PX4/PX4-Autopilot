@@ -4063,6 +4063,71 @@ protected:
 	}
 };
 
+class MavlinkStreamPing : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamPing::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "PING";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_PING;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamPing(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_PING_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+	bool const_rate()
+	{
+		return true;
+	}
+
+private:
+	uint32_t _sequence;
+
+	/* do not allow top copying this class */
+	MavlinkStreamPing(MavlinkStreamPing &);
+	MavlinkStreamPing &operator = (const MavlinkStreamPing &);
+
+protected:
+	explicit MavlinkStreamPing(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_sequence(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		mavlink_ping_t msg = {};
+
+		msg.time_usec = hrt_absolute_time();
+		msg.seq = _sequence++;
+		msg.target_system = 0; // All systems
+		msg.target_component = 0; // All components
+
+		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &msg);
+
+		return true;
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -4113,7 +4178,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
 	StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
 	StreamListItem(&MavlinkStreamHighLatency2::new_instance, &MavlinkStreamHighLatency2::get_name_static, &MavlinkStreamHighLatency2::get_id_static),
-	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static)
+	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
+	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)
