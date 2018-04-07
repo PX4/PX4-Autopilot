@@ -599,6 +599,8 @@ Navigator::run()
 				case RTL::RTL_MISSION:
 					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
 						// the mission contains a landing spot
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+
 						if (_navigation_mode != &_mission) {
 							if (_navigation_mode == nullptr) {
 								// switching from an manual mode, go to landing if not already landing
@@ -616,23 +618,26 @@ Navigator::run()
 							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
 						}
 
-						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
 						navigation_mode_new = &_mission;
 
 					} else {
 						// fly the mission in reverse if switching from a non-manual mode
 						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_REVERSE);
 
-						if ((_navigation_mode != nullptr) &&
+						if ((_navigation_mode != nullptr && (_navigation_mode != &_rtl || _mission.get_mission_changed())) &&
 						    (! _mission.get_mission_finished()) &&
 						    (!get_land_detected()->landed)) {
-							// reset the current offboard index if we switch a non mission mode and a non-commanded mission mode
-							if (_navigation_mode != &_mission) {
+							// determine the closest mission item if switching from a non-mission mode, and we are either not already
+							// mission mode or the mission waypoints changed.
+							// The seconds condition is required so that when no mission was uploaded and one is available the closest
+							// mission item is determined and also that if the user changes the active mission index while rtl is active
+							// always that waypoint is tracked first.
+							if ((_navigation_mode != &_mission) && (rtl_activated || _mission.get_mission_waypoints_changed())) {
 								_mission.set_closest_item_as_current();
 							}
 
 							if (rtl_activated) {
-								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission reverse mission");
+								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse");
 							}
 
 							navigation_mode_new = &_mission;

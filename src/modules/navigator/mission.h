@@ -96,6 +96,8 @@ public:
 	uint16_t get_land_start_index() const { return _land_start_index; }
 	bool get_land_start_available() const { return _land_start_available; }
 	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
+	bool get_mission_changed() const { return _mission_changed ; }
+	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
 
 	void set_closest_item_as_current();
 
@@ -237,7 +239,9 @@ private:
 	/**
 	 * Return the index of the closest offboard mission item to the current global position.
 	 */
-	uint16_t index_closest_mission_item() const;
+	int32_t index_closest_mission_item() const;
+
+	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_dist_1wp,
@@ -266,6 +270,7 @@ private:
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
 	bool _mission_waypoints_changed{false};
+	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
 	float _min_current_sp_distance_xy{FLT_MAX}; /**< minimum distance which was achieved to the current waypoint  */
 

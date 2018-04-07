@@ -184,6 +184,8 @@ Mission::on_active()
 		offboard_updated = true;
 	}
 
+	_mission_changed = false;
+
 	/* reset mission items if needed */
 	if (offboard_updated || _mission_waypoints_changed) {
 		if (_mission_waypoints_changed) {
@@ -418,6 +420,7 @@ Mission::landing()
 void
 Mission::update_offboard_mission()
 {
+
 	bool failed = true;
 
 	/* reset triplets */
@@ -457,13 +460,13 @@ Mission::update_offboard_mission()
 
 			/* reset work item if new mission has been accepted */
 			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+			_mission_changed = true;
 		}
 
-		/* check if the mission changed and log it if the mission mode is active
-		 * TODO add a flag to mission_s which actually tracks the number of waypoints */
-		if (((_offboard_mission.count != old_offboard_mission.count) ||
-		     (_offboard_mission.dataman_id != old_offboard_mission.dataman_id)) &&
-		    _navigator->is_planned_mission()) {
+		/* check if the mission waypoints changed
+		 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
+		if ((_offboard_mission.count != old_offboard_mission.count) ||
+		    (_offboard_mission.dataman_id != old_offboard_mission.dataman_id)) {
 			_mission_waypoints_changed = true;
 		}
 
@@ -632,6 +635,8 @@ Mission::set_mission_items()
 
 	/* handle mission items depending on the mode */
 
+	const position_setpoint_s current_setpoint_copy = _navigator->get_position_setpoint_triplet()->current;
+
 	if (item_contains_position(_mission_item)) {
 		switch (_mission_execution_mode) {
 		case mission_result_s::MISSION_EXECUTION_MODE_NORMAL:
@@ -642,11 +647,6 @@ Mission::set_mission_items()
 				}
 
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-				/* we have a new position item so set previous position setpoint to current */
-				if (_work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) {
-					pos_sp_triplet->previous = pos_sp_triplet->current;
-				}
 
 				/* do takeoff before going to setpoint if needed and not already in takeoff */
 				/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
@@ -870,8 +870,7 @@ Mission::set_mission_items()
 				// XXX: add other types which should be ignored in fast forward
 				if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD &&
 				    ((_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) ||
-				     (_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT) ||
-				     (_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT))) {
+				     (_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT))) {
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
@@ -882,15 +881,10 @@ Mission::set_mission_items()
 
 		case mission_result_s::MISSION_EXECUTION_MODE_REVERSE: {
 				if (item_contains_position(_mission_item)) {
-					position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
 					// convert mission item to a simple waypoint
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
-
-					/* we have a new position item so set previous position setpoint to current */
-					pos_sp_triplet->previous = pos_sp_triplet->current;
 
 				} else {
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "MissionReverse: Got a non-position mission item, ignoring it");
@@ -984,6 +978,12 @@ Mission::set_mission_items()
 	if (new_work_item_type != WORK_ITEM_TYPE_PRECISION_LAND) {
 		mission_apply_limitation(_mission_item);
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	}
+
+	/* only set the previous position item if the current one really changed */
+	if ((_work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) &&
+	    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+		pos_sp_triplet->previous = current_setpoint_copy;
 	}
 
 	/* issue command if ready (will do nothing for position mission items) */
@@ -1456,7 +1456,6 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 	/* Repeat this several times in case there are several DO JUMPS that we need to follow along, however, after
 	 * 10 iterations we have to assume that the DO JUMPS are probably cycling and give up. */
 	for (int i = 0; i < 10; i++) {
-
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)_offboard_mission.count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if ((*mission_index_ptr != (int)_offboard_mission.count) && (*mission_index_ptr != -1)) {
@@ -1715,10 +1714,10 @@ Mission::generate_waypoint_from_heading(struct position_setpoint_s *setpoint, fl
 	setpoint->yaw = yaw;
 }
 
-uint16_t
+int32_t
 Mission::index_closest_mission_item() const
 {
-	uint16_t min_dist_index(0);
+	int32_t min_dist_index(0);
 	float min_dist(FLT_MAX), dist_xy(FLT_MAX), dist_z(FLT_MAX);
 
 	dm_item_t dm_current = (dm_item_t)(_offboard_mission.dataman_id);
@@ -1771,4 +1770,39 @@ Mission::index_closest_mission_item() const
 	}
 
 	return min_dist_index;
+}
+
+bool Mission::position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const
+{
+	return ((p1->valid == p2->valid) &&
+		(p1->type == p2->type) &&
+		(fabsf(p1->x - p2->x) < FLT_EPSILON) &&
+		(fabsf(p1->y - p2->y) < FLT_EPSILON) &&
+		(fabsf(p1->z - p2->z) < FLT_EPSILON) &&
+		(p1->position_valid == p2->position_valid) &&
+		(fabsf(p1->vx - p2->vx) < FLT_EPSILON) &&
+		(fabsf(p1->vy - p2->vy) < FLT_EPSILON) &&
+		(fabsf(p1->vz - p2->vz) < FLT_EPSILON) &&
+		(p1->velocity_valid == p2->velocity_valid) &&
+		(p1->velocity_frame == p2->velocity_frame) &&
+		(p1->alt_valid == p2->alt_valid) &&
+		(fabs(p1->lat - p2->lat) < DBL_EPSILON) &&
+		(fabs(p1->lon - p2->lon) < DBL_EPSILON) &&
+		(fabsf(p1->alt - p2->alt) < FLT_EPSILON) &&
+		((fabsf(p1->yaw - p2->yaw) < FLT_EPSILON) || (!PX4_ISFINITE(p1->yaw) && !PX4_ISFINITE(p2->yaw))) &&
+		(p1->yaw_valid == p2->yaw_valid) &&
+		(fabsf(p1->yawspeed - p2->yawspeed) < FLT_EPSILON) &&
+		(p1->yawspeed_valid == p2->yawspeed_valid) &&
+		(fabsf(p1->loiter_radius - p2->loiter_radius) < FLT_EPSILON) &&
+		(p1->loiter_direction == p2->loiter_direction) &&
+		(fabsf(p1->pitch_min - p2->pitch_min) < FLT_EPSILON) &&
+		(fabsf(p1->a_x - p2->a_x) < FLT_EPSILON) &&
+		(fabsf(p1->a_y - p2->a_y) < FLT_EPSILON) &&
+		(fabsf(p1->a_z - p2->a_z) < FLT_EPSILON) &&
+		(p1->acceleration_valid == p2->acceleration_valid) &&
+		(p1->acceleration_is_force == p2->acceleration_is_force) &&
+		(fabsf(p1->acceptance_radius - p2->acceptance_radius) < FLT_EPSILON) &&
+		(fabsf(p1->cruising_speed - p2->cruising_speed) < FLT_EPSILON) &&
+		(fabsf(p1->cruising_throttle - p2->cruising_throttle) < FLT_EPSILON));
+
 }
