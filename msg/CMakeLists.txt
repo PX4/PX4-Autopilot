@@ -77,6 +77,7 @@ set(msg_files
 	offboard_control_mode.msg
 	optical_flow.msg
 	parameter_update.msg
+	ping.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
