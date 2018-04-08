@@ -91,8 +91,8 @@ enum MS5611_BUS {
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
 
-/* helper macro for arithmetic - returns the square of the argument */
-#define POW2(_x)		((_x) * (_x))
+static constexpr int64_t pow2(uint8_t x) { return 2 << (x - 1); }
+static constexpr int64_t sq(int64_t x) { return x * x; }
 
 /*
  * MS5611/MS5607 internal constants and data structures.
@@ -130,7 +130,8 @@ enum MS5611_BUS {
 class MS5611 : public device::CDev
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path, enum MS56XX_DEVICE_TYPES device_type);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path, enum MS56XX_DEVICE_TYPES device_type,
+	       bool temp_comp);
 	~MS5611();
 
 	virtual int		init();
@@ -156,20 +157,33 @@ protected:
 	bool			_collect_phase;
 	unsigned		_measure_phase;
 
-	/* intermediate temperature values per MS5611/MS5607 datasheet */
-	int32_t			_TEMP;
-	int64_t			_OFF;
-	int64_t			_SENS;
-	float			_P;
-	float			_T;
+	bool			_temp_compensation{true};
 
-	orb_advert_t		_baro_topic;
+	// intermediate temperature values per MS5611/MS5607 datasheet
+
+	int64_t			_Tref{0};		// reference temperature
+	int64_t			_dT{0};			// Difference between actual and reference temperature
+	int32_t			_TEMP{0};		// Actual temperature (-40…85°C with 0.01°C resolution)
+
+	int64_t			_OFF_T1{0};
+	int64_t			_OFF{0};		// Offset at actual temperature
+	int64_t			_OFF_raw{0};	// TODO: TEMPORARY FOR TESTING
+
+	int64_t			_SENS_T1{0};
+	int64_t			_SENS{0};		// Sensitivity at actual temperature
+	int64_t			_SENS_raw{0};	// TODO: TEMPORARY FOR TESTING
+
+	orb_advert_t		_baro_topic{nullptr};
+	orb_advert_t		_baro_topic_raw{nullptr}; // TODO: TEMPORARY FOR TESTING
+
 	int			_orb_class_instance;
 	int			_class_instance;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
+
+	struct baro_report	_report_raw {};
 
 	/**
 	 * Initialize the automatic measurement state machine and start it.
@@ -228,7 +242,7 @@ protected:
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path,
-	       enum MS56XX_DEVICE_TYPES device_type) :
+	       enum MS56XX_DEVICE_TYPES device_type, bool temp_comp) :
 	CDev("MS5611", path),
 	_interface(interface),
 	_prom(prom_buf.s),
@@ -237,9 +251,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *
 	_device_type(device_type),
 	_collect_phase(false),
 	_measure_phase(0),
-	_TEMP(0),
-	_OFF(0),
-	_SENS(0),
+	_temp_compensation(temp_comp),
 	_baro_topic(nullptr),
 	_orb_class_instance(-1),
 	_class_instance(-1),
@@ -307,6 +319,7 @@ MS5611::init()
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
 	struct baro_report brp;
+	struct baro_report brp2;
 	/* do a first measurement cycle to populate reports with valid data */
 	_measure_phase = 0;
 	_reports->flush();
@@ -317,7 +330,28 @@ MS5611::init()
 		_device_type = MS5611_DEVICE;
 	}
 
+	// the same for both MS5611 & MS5607
+	_Tref = _prom.C5 * pow2(8);
+
 	while (true) {
+
+		switch (_device_type) {
+		default:
+
+		// FALLTHROUGH
+		case MS5611_DEVICE:
+			_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5611;
+			_OFF_T1 = _prom.C2 * pow2(16);
+			_SENS_T1 = _prom.C1 * pow2(15);
+			break;
+
+		case MS5607_DEVICE:
+			_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5607;
+			_OFF_T1 = _prom.C2 * pow2(17);
+			_SENS_T1 = _prom.C1 * pow2(16);
+			break;
+		}
+
 		/* do temperature first */
 		if (OK != measure()) {
 			ret = -EIO;
@@ -366,19 +400,6 @@ MS5611::init()
 			}
 		}
 
-		switch (_device_type) {
-		default:
-
-		/* fall through */
-		case MS5611_DEVICE:
-			_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5611;
-			break;
-
-		case MS5607_DEVICE:
-			_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5607;
-			break;
-		}
-
 		/* ensure correct devid */
 		brp.device_id = _device_id.devid;
 
@@ -388,7 +409,14 @@ MS5611::init()
 						  &_orb_class_instance, _interface->external() ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 		if (_baro_topic == nullptr) {
-			warnx("failed to create sensor_baro publication");
+			PX4_ERR("failed to create sensor_baro publication");
+		}
+
+		int instance2;
+		_baro_topic_raw = orb_advertise_multi(ORB_ID(sensor_baro), &brp2, &instance2, ORB_PRIO_VERY_LOW);
+
+		if (_baro_topic_raw == nullptr) {
+			PX4_ERR("failed to create sensor_baro publication");
 		}
 
 		break;
@@ -717,6 +745,10 @@ MS5611::collect()
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 
+	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
+	_report_raw.timestamp = hrt_absolute_time();
+	_report_raw.error_count = perf_event_count(_comms_errors);
+
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
 	ret = _interface->read(0, (void *)&raw, 0);
 
@@ -729,89 +761,107 @@ MS5611::collect()
 	/* handle a measurement */
 	if (_measure_phase == 0) {
 
-		/* temperature offset (in ADC units) */
-		int32_t dT = (int32_t)raw - ((int32_t)_prom.c5_reference_temp << 8);
+		// Read digital temperature data
+		const uint32_t D2 = raw;
 
-		/* absolute temperature in centidegrees - note intermediate value is outside 32-bit range */
-		_TEMP = 2000 + (int32_t)(((int64_t)dT * _prom.c6_temp_coeff_temp) >> 23);
+		// Difference between actual and reference temperature
+		_dT = (int64_t)D2 - _Tref;
 
-		/* base sensor scale/offset values */
-		if (_device_type == MS5611_DEVICE) {
+		// Actual temperature (-40…85°C with 0.01°C resolution)
+		_TEMP = 2000 + ((int64_t)(_dT * _prom.C6) / pow2(23));
 
-			/* Perform MS5611 Caculation */
+		if (_temp_compensation) {
+			if (_device_type == MS5611_DEVICE) {
+				// MS5611 Calculation
 
-			_OFF  = ((int64_t)_prom.c2_pressure_offset << 16) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
-			_SENS = ((int64_t)_prom.c1_pressure_sens << 15) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
+				// Offset at actual temperature
+				_OFF = _OFF_T1 + ((int64_t)(_prom.C4 * _dT) / pow2(7));
 
-			/* MS5611 temperature compensation */
+				// Sensitivity at actual temperature
+				_SENS = _SENS_T1 + ((int64_t)(_prom.C3 * _dT) / pow2(8));
 
-			if (_TEMP < 2000) {
+				// SECOND ORDER TEMPERATURE COMPENSATION
+				if (_TEMP < 2000) {
+					// Low temperature
+					int64_t T2 = sq(_dT) / pow2(31);
+					int64_t OFF2 = 5 * sq(_TEMP - 2000) / pow2(1);
+					int64_t SENS2 = 5 * sq(_TEMP - 2000) / pow2(2);
 
-				int32_t T2 = POW2(dT) >> 31;
+					// Very low temperature
+					if (_TEMP < -1500) {
+						OFF2 += 7 * sq(_TEMP + 1500);
+						SENS2 += 11 * sq(_TEMP + 1500) / pow2(1);
+					}
 
-				int64_t f = POW2((int64_t)_TEMP - 2000);
-				int64_t OFF2 = 5 * f >> 1;
-				int64_t SENS2 = 5 * f >> 2;
-
-				if (_TEMP < -1500) {
-
-					int64_t f2 = POW2(_TEMP + 1500);
-					OFF2 += 7 * f2;
-					SENS2 += 11 * f2 >> 1;
+					_TEMP -= T2;
+					_OFF  -= OFF2;
+					_SENS -= SENS2;
 				}
 
-				_TEMP -= T2;
-				_OFF  -= OFF2;
-				_SENS -= SENS2;
-			}
+			} else if (_device_type == MS5607_DEVICE) {
+				// MS5607 Calculation
 
-		} else if (_device_type == MS5607_DEVICE) {
+				// Offset at actual temperature
+				_OFF = _OFF_T1 + ((int64_t)(_prom.C4 * _dT) / pow2(6));
 
-			/* Perform MS5607 Caculation */
+				//Sensitivity at actual temperature
+				_SENS = _SENS_T1 + ((int64_t)(_prom.C3 * _dT) / pow2(7));
 
-			_OFF  = ((int64_t)_prom.c2_pressure_offset << 17) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 6);
-			_SENS = ((int64_t)_prom.c1_pressure_sens << 16) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 7);
+				// SECOND ORDER TEMPERATURE COMPENSATION
+				if (_TEMP < 2000) {
+					// Low temperature
+					int64_t T2 = sq(_dT) / pow2(31);
+					int64_t OFF2 = 61 * sq(_TEMP - 2000) / pow2(4);
+					int64_t SENS2 = 2 * sq(_TEMP - 2000);
 
-			/* MS5607 temperature compensation */
+					// Very low temperature
+					if (_TEMP < -1500) {
+						OFF2 += 15 * sq(_TEMP + 1500);
+						SENS2 += 8 * sq(_TEMP + 1500);
+					}
 
-			if (_TEMP < 2000) {
-
-				int32_t T2 = POW2(dT) >> 31;
-
-				int64_t f = POW2((int64_t)_TEMP - 2000);
-				int64_t OFF2 = 61 * f >> 4;
-				int64_t SENS2 = 2 * f;
-
-				if (_TEMP < -1500) {
-					int64_t f2 = POW2(_TEMP + 1500);
-					OFF2 += 15 * f2;
-					SENS2 += 8 * f2;
+					_TEMP -= T2;
+					_OFF  -= OFF2;
+					_SENS -= SENS2;
 				}
-
-				_TEMP -= T2;
-				_OFF  -= OFF2;
-				_SENS -= SENS2;
 			}
+
+		} else {
+			// skip manufacturer temperature compensation
+			_dT = 0;
+			_OFF = _OFF_T1;
+			_SENS = _SENS_T1;
 		}
+
+		// TODO: TEMPORARY FOR TESTING
+		_OFF_raw = _OFF_T1;
+		_SENS_raw = _SENS_T1;
 
 	} else {
 
-		/* pressure calculation, result in Pa */
-		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
-		_P = P * 0.01f;
-		_T = _TEMP * 0.01f;
+		// Pressure measurement phase
+		const uint32_t D1 = raw;
+
+		// Temperature compensated pressure (10…1200mbar with 0.01mbar resolution)
+		const int64_t P = ((D1 * _SENS) / pow2(21) - _OFF) / pow2(15);
 
 		/* generate a new report */
 		report.temperature = _TEMP / 100.0f;
-		report.pressure = P / 100.0f;		/* convert to millibar */
+		report.pressure = P / 100.0f; // pressure in millibar
 
 		/* return device ID */
 		report.device_id = _device_id.devid;
+
+		const int64_t P_raw = ((D1 * _SENS_raw) / pow2(21) - _OFF_raw) / pow2(15);
+		_report_raw.temperature = _TEMP / 100.0f;
+		_report_raw.pressure = P_raw / 100.0f; // pressure in millibar
+		_report_raw.device_id = _device_id.devid + 10; // BOGUS
 
 		/* publish it */
 		if (!(_pub_blocked) && _baro_topic != nullptr) {
 			/* publish it */
 			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
+			orb_publish(ORB_ID(sensor_baro), _baro_topic_raw, &_report_raw);
 		}
 
 		_reports->force(&report);
@@ -833,13 +883,43 @@ MS5611::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	PX4_INFO("poll interval:  %u ticks", _measure_ticks);
 	_reports->print_info("report queue");
-	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
+	PX4_INFO("device:         %s", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
+
+	if (_temp_compensation) {
+		PX4_INFO("Manufacturer second order temperature compensation enabled");
+	}
+
+	PX4_INFO("factory_setup  %u", _prom.factory_setup);
+	PX4_INFO("serial_and_crc %u", _prom.serial_and_crc);
+
+	PX4_INFO("");
+
+	PX4_INFO("C1 %u", _prom.C1);
+	PX4_INFO("C2 %u", _prom.C2);
+	PX4_INFO("C3 %u", _prom.C3);
+	PX4_INFO("C4 %u", _prom.C4);
+	PX4_INFO("C5 %u", _prom.C5);
+	PX4_INFO("C6 %u", _prom.C6);
+
+	PX4_INFO("");
+
+	PX4_INFO("Tref:    %lld", _Tref);
+	PX4_INFO("dT:      %lld", _dT);
+	PX4_INFO("TEMP:    %d", _TEMP);
+
+	PX4_INFO("");
+	PX4_INFO("OFF_T1:  %lld", _OFF_T1);
+	PX4_INFO("OFF:     %lld", _OFF);
+	PX4_INFO("SENS_T1: %lld", _SENS_T1);
+	PX4_INFO("SENS:    %lld", _SENS);
 
 	sensor_baro_s brp = {};
 	_reports->get(&brp);
 	print_message(brp);
+
+	print_message(_report_raw);
 }
 
 /**
@@ -873,9 +953,9 @@ struct ms5611_bus_option {
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-bool	start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type);
+bool	start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type, bool temp_comp);
 struct ms5611_bus_option &find_bus(enum MS5611_BUS busid);
-void	start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type);
+void	start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type, bool temp_comp);
 void	test(enum MS5611_BUS busid);
 void	reset(enum MS5611_BUS busid);
 void	info();
@@ -932,7 +1012,7 @@ crc4(uint16_t *n_prom)
  * Start the driver.
  */
 bool
-start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
+start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type, bool temp_comp)
 {
 	if (bus.dev != nullptr) {
 		errx(1, "bus option already started");
@@ -947,7 +1027,7 @@ start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
 		return false;
 	}
 
-	bus.dev = new MS5611(interface, prom_buf, bus.devpath, device_type);
+	bus.dev = new MS5611(interface, prom_buf, bus.devpath, device_type, temp_comp);
 
 	if (bus.dev != nullptr && OK != bus.dev->init()) {
 		delete bus.dev;
@@ -979,7 +1059,7 @@ start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
  * is either successfully up and running or failed to start.
  */
 void
-start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type)
+start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type, bool temp_comp)
 {
 	uint8_t i;
 	bool started = false;
@@ -995,7 +1075,7 @@ start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type)
 			continue;
 		}
 
-		started = started | start_bus(bus_options[i], device_type);
+		started = started | start_bus(bus_options[i], device_type, temp_comp);
 	}
 
 	if (!started) {
@@ -1136,15 +1216,15 @@ info()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset'");
-	warnx("options:");
-	warnx("    -X    (external I2C bus)");
-	warnx("    -I    (intternal I2C bus)");
-	warnx("    -S    (external SPI bus)");
-	warnx("    -s    (internal SPI bus)");
-	warnx("    -T    5611|5607 (default 5611)");
-	warnx("    -T    0 (autodetect version)");
-
+	PX4_INFO("missing command: try 'start', 'info', 'test', 'test2', 'reset'");
+	PX4_INFO("options:");
+	PX4_INFO("    -X    (external I2C bus)");
+	PX4_INFO("    -I    (intternal I2C bus)");
+	PX4_INFO("    -S    (external SPI bus)");
+	PX4_INFO("    -s    (internal SPI bus)");
+	PX4_INFO("    -T    5611|5607 (default 5611)");
+	PX4_INFO("    -T    0 (autodetect version)");
+	PX4_INFO("    -C    disable manufacturer temperature compensation");
 }
 
 } // namespace
@@ -1158,8 +1238,10 @@ ms5611_main(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = NULL;
 
+	bool temp_comp = true;
+
 	/* jump over start/off/etc and look at options first */
-	while ((ch = px4_getopt(argc, argv, "T:XISs", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "T:XISsC", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MS5611_BUS_I2C_EXTERNAL;
@@ -1175,6 +1257,10 @@ ms5611_main(int argc, char *argv[])
 
 		case 's':
 			busid = MS5611_BUS_SPI_INTERNAL;
+			break;
+
+		case 'C':
+			temp_comp = false;
 			break;
 
 		case 'T': {
@@ -1208,7 +1294,7 @@ ms5611_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		ms5611::start(busid, device_type);
+		ms5611::start(busid, device_type, temp_comp);
 	}
 
 	/*

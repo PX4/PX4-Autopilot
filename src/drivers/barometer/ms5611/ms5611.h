@@ -53,12 +53,12 @@ namespace ms5611
 #pragma pack(push,1)
 struct prom_s {
 	uint16_t factory_setup;
-	uint16_t c1_pressure_sens;
-	uint16_t c2_pressure_offset;
-	uint16_t c3_temp_coeff_pres_sens;
-	uint16_t c4_temp_coeff_pres_offset;
-	uint16_t c5_reference_temp;
-	uint16_t c6_temp_coeff_temp;
+	uint16_t C1;
+	uint16_t C2;
+	uint16_t C3;
+	uint16_t C4;
+	uint16_t C5;
+	uint16_t C6;
 	uint16_t serial_and_crc;
 };
 
