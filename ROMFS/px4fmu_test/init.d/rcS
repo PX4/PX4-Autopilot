@@ -2,6 +2,7 @@
 #
 # PX4FMU startup script for test hackery.
 #
+set +e
 set unit_test_failure 0
 
 uorb start

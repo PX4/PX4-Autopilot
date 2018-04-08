@@ -46,6 +46,7 @@ pipeline {
                     sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v2_default.elf"
                     sh "bloaty -d symbols -n 100 -C full -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf -- nuttx_px4fmu-v2_default.elf"
                     sh "make nuttx_px4fmu-v2_lpe"
+                    sh "make nuttx_px4fmu-v2_test"
                     sh "make nuttx_px4fmu-v3_default"
                     sh "bloaty -d symbols -n 100 -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf"
                     sh "bloaty -d compileunits -n 100 -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf"
