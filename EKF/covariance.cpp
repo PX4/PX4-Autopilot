@@ -148,6 +148,7 @@ void Ekf::predictCovariance()
 	float dvz_b = _state.accel_bias(2);
 
 	float dt = math::constrain(_imu_sample_delayed.delta_ang_dt, 0.0005f * FILTER_UPDATE_PERIOD_MS, 0.002f * FILTER_UPDATE_PERIOD_MS);
+	float dt_inv = 1.0f / dt;
 
 	// compute noise variance for stationary processes
 	float process_noise[_k_num_states] = {};
@@ -160,10 +161,11 @@ void Ekf::predictCovariance()
 
 	// inhibit learning of imu acccel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
 	float alpha = 1.0f - math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
-	_ang_rate_mag_filt = fmaxf(_imu_sample_delayed.delta_ang.norm(), alpha * _ang_rate_mag_filt);
-	_accel_mag_filt = fmaxf(_imu_sample_delayed.delta_vel.norm(), alpha * _accel_mag_filt);
-	if (_ang_rate_mag_filt > dt * _params.acc_bias_learn_gyr_lim
-			|| _accel_mag_filt > dt * _params.acc_bias_learn_acc_lim
+	_ang_rate_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_ang.norm(), alpha * _ang_rate_mag_filt);
+	_accel_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_vel.norm(), alpha * _accel_mag_filt);
+
+	if (_ang_rate_mag_filt > _params.acc_bias_learn_gyr_lim
+			|| _accel_mag_filt > _params.acc_bias_learn_acc_lim
 			|| _bad_vert_accel_detected) {
 		// store the bias state variances to be reinstated later
 		if (!_accel_bias_inhibit) {

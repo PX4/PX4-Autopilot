@@ -109,6 +109,9 @@ void Ekf::runTerrainEstimator()
 			_terrain_vpos = _params.rng_gnd_clearance + _state.pos(2);
 		}
 	}
+
+	// Update terrain validity
+	update_terrain_valid();
 }
 
 void Ekf::fuseHagl()
@@ -134,21 +137,29 @@ void Ekf::fuseHagl()
 		float gate_size = fmaxf(_params.range_innov_gate, 1.0f);
 		_terr_test_ratio = sq(_hagl_innov) / (sq(gate_size) * _hagl_innov_var);
 
-		if (_terr_test_ratio <= 1.0f) {
-			// calculate the Kalman gain
-			float gain = _terrain_var / _hagl_innov_var;
-			// correct the state
-			_terrain_vpos -= gain * _hagl_innov;
-			// correct the variance
-			_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
-			// record last successful fusion event
-			_time_last_hagl_fuse = _time_last_imu;
-			_innov_check_fail_status.flags.reject_hagl = false;
+		if (!_inhibit_gndobs_use) {
+			if (_terr_test_ratio <= 1.0f) {
+				// calculate the Kalman gain
+				float gain = _terrain_var / _hagl_innov_var;
+				// correct the state
+				_terrain_vpos -= gain * _hagl_innov;
+				// correct the variance
+				_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
+				// record last successful fusion event
+				_time_last_hagl_fuse = _time_last_imu;
+				_innov_check_fail_status.flags.reject_hagl = false;
 
-		} else {
-			_innov_check_fail_status.flags.reject_hagl = true;
-
+			} else {
+				// If we have been rejecting range data for too long, reset to measurement
+				if (_time_last_imu - _time_last_hagl_fuse > (uint64_t)10E6) {
+					_terrain_vpos = _state.pos(2) + meas_hagl;
+					_terrain_var = obs_variance;
+				} else {
+					_innov_check_fail_status.flags.reject_hagl = true;
+				}
+			}
 		}
+
 
 	} else {
 		_innov_check_fail_status.flags.reject_hagl = true;
@@ -156,15 +167,20 @@ void Ekf::fuseHagl()
 	}
 }
 
-// return true if the terrain estimate is valid
+// return true if the terrain height estimate is valid
 bool Ekf::get_terrain_valid()
+{
+		return _hagl_valid;
+}
+
+// determine terrain validity
+void Ekf::update_terrain_valid()
 {
 	if (_terrain_initialised && _range_data_continuous && !_control_status.flags.rng_stuck &&
 		  (_time_last_imu - _time_last_hagl_fuse < (uint64_t)5e6)) {
-		return true;
-
+		_hagl_valid = true;
 	} else {
-		return false;
+		_hagl_valid = false;
 	}
 }
 
