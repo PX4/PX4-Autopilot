@@ -93,7 +93,9 @@ const struct {
 	/* external tests */
 	{"commander",		commander_tests_main,	0},
 	{"controllib",		controllib_test_main,	0},
+#ifndef __PX4_NUTTX
 	{"mavlink",		mavlink_tests_main,	0},
+#endif
 	{"mc_pos_control",	mc_pos_control_tests_main,	0},
 	{"sf0x",		sf0x_tests_main,	0},
 	{"uorb",		uorb_tests_main,	0},
