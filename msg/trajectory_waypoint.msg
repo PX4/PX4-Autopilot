@@ -25,11 +25,11 @@ uint8 MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS = 0
 
 uint8 type # Type from MAV_TRAJECTORY_REPRESENTATION enum.
 
-float32[11] point_0    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
-float32[11] point_1    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
-float32[11] point_2    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
-float32[11] point_3    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
-float32[11] point_4    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
+float32[11] point_0    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
+float32[11] point_1    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
+float32[11] point_2    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
+float32[11] point_3    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
+float32[11] point_4    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
 
 bool[5] point_valid   # States if respective point is valid
 
