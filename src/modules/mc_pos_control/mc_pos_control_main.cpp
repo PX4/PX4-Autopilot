@@ -3293,9 +3293,9 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vz = _vel_sp(2);
 
 				/* desired waypoints for obstacle avoidance:
-				 * point_0 containes the current position with the desired velocity
-				 * point_1 containes _pos_sp_triplet.current if valid
-				 * point_2 containes _pos_sp_triplet.next if valid */
+				 * point_0 contains the current position with the desired velocity
+				 * point_1 contains _pos_sp_triplet.current if valid
+				 * point_2 contains _pos_sp_triplet.next if valid */
 
 				update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
 								  _vel_sp_desired(1), _vel_sp_desired(2), NAN, NAN, NAN, _yaw, NAN);
