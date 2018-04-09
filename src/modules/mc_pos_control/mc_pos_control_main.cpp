@@ -81,6 +81,10 @@
 
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
+
+/* temporary solution to enable and disable obstacle avoidance */
+#define ENABLE_OBSTACLE_AVOIDANCE false
+
 /**
  * Multicopter position control app start / stop handling function
  *
@@ -3488,8 +3492,8 @@ MulticopterPositionControl::use_obstacle_avoidance()
 {
 
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	return (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
-		TRAJECTORY_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
+	return (ENABLE_OBSTACLE_AVOIDANCE && (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
+					      TRAJECTORY_STREAM_TIMEOUT_US) && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
 }
 
 bool
