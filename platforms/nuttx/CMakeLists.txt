@@ -186,29 +186,12 @@ configure_file(gdbinit.in .gdbinit)
 add_custom_target(debug
 	COMMAND ${GDB} $<TARGET_FILE:${FW_NAME}>
 	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	USES_TERMINAL
+	)
+	
+add_custom_target(profile
+	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
+	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh
+	USES_TERMINAL
 	)
 
-add_custom_target(debug_tui
-	COMMAND ${GDBTUI} $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_ddd
-	COMMAND ${DDD} --debugger ${GDB} $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io
-	COMMAND ${GDB} ${fw_io_path}
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io_tui
-	COMMAND ${GDBTUI} ${fw_io_path}
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io_ddd
-	COMMAND ${DDD} --debugger ${GDB} ${fw_io_path}}
-	DEPENDS ${fw_io} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
