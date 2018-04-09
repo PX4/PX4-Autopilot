@@ -290,6 +290,7 @@ private:
 	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
 	matrix::Vector3f _vel_sp_desired; /**< the desired velocity can be overwritten by obstacle avoidance */
 	matrix::Vector3f _curr_pos_sp;  /**< current setpoint of the triplets */
+	matrix::Vector3f _next_pos_sp; /**< next setpoint of the triplets */
 	matrix::Vector3f _prev_pos_sp; /**< previous setpoint of the triples */
 	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
 
@@ -426,9 +427,8 @@ private:
 
 	bool use_avoidance_velocity_waypoint();
 
-	void update_avoidance_waypoint_desired(const int point_number, const float x, const float y, const float z,
-					       const float vx, const float vy, const float vz, const float ax, const float ay, const float az,
-					       const float yaw, const float yaw_speed);
+	void update_avoidance_waypoint_desired(const int point_number, const matrix::Vector3f &position_wp,
+					       const matrix::Vector3f &velocity_wp, const matrix::Vector3f &acceleration_wp, const float yaw, const float yaw_speed);
 
 	void reset_avoidance_waypoint_desired();
 
@@ -535,6 +535,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_err_d.zero();
 	_vel_sp_desired.zero();
 	_curr_pos_sp.zero();
+	_next_pos_sp.zero();
 	_prev_pos_sp.zero();
 	_stick_input_xy_prev.zero();
 
@@ -1813,6 +1814,9 @@ void MulticopterPositionControl::control_auto()
 		previous_setpoint_valid = true; /* currrently not necessary to set to true since not used*/
 	}
 
+	// reset next_pos_sp
+	_next_pos_sp = matrix::Vector3f(NAN, NAN, NAN);
+
 	if (_pos_sp_triplet.next.valid) {
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
@@ -1823,6 +1827,7 @@ void MulticopterPositionControl::control_auto()
 		if (PX4_ISFINITE(next_sp(0)) &&
 		    PX4_ISFINITE(next_sp(1)) &&
 		    PX4_ISFINITE(next_sp(2))) {
+			_next_pos_sp = next_sp;
 			next_setpoint_valid = true;
 		}
 	}
@@ -3297,17 +3302,17 @@ MulticopterPositionControl::task_main()
 				 * point_1 contains _pos_sp_triplet.current if valid
 				 * point_2 contains _pos_sp_triplet.next if valid */
 
-				update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
-								  _vel_sp_desired(1), _vel_sp_desired(2), NAN, NAN, NAN, _yaw, NAN);
+				update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_0, _pos, _vel_sp_desired, matrix::Vector3f(NAN, NAN,
+								  NAN), _yaw, NAN);
 
 				if (_pos_sp_triplet.current.valid) {
-					update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_1, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
-									  _pos_sp_triplet.current.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.current.yaw, NAN);
+					update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_1, _curr_pos_sp, matrix::Vector3f(NAN, NAN, NAN),
+									  matrix::Vector3f(NAN, NAN, NAN), _pos_sp_triplet.current.yaw, NAN);
 				}
 
 				if (_pos_sp_triplet.next.valid) {
-					update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_2, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y,
-									  _pos_sp_triplet.next.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.next.yaw, NAN);
+					update_avoidance_waypoint_desired(trajectory_waypoint_s::POINT_2, _next_pos_sp, matrix::Vector3f(NAN, NAN, NAN),
+									  matrix::Vector3f(NAN, NAN, NAN), _pos_sp_triplet.next.yaw, NAN);
 				}
 
 				/* publish local position setpoint */
@@ -3503,9 +3508,9 @@ MulticopterPositionControl::use_avoidance_velocity_waypoint()
 	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ]);
 }
 
-void MulticopterPositionControl::update_avoidance_waypoint_desired(const int point_number, const float x,
-		const float y, const float z, const float vx, const float vy, const float vz, const float ax,
-		const float ay, const float az, const float yaw, const float yaw_speed)
+void MulticopterPositionControl::update_avoidance_waypoint_desired(const int point_number,
+		const matrix::Vector3f &position_wp, const matrix::Vector3f &velocity_wp, const matrix::Vector3f &acceleration_wp,
+		const float yaw, const float yaw_speed)
 {
 	_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
 	_traj_wp_avoidance_desired.type = trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
@@ -3550,15 +3555,15 @@ void MulticopterPositionControl::update_avoidance_waypoint_desired(const int poi
 
 	}
 
-	array[0] = x;
-	array[1] = y;
-	array[2] = z;
-	array[3] = vx;
-	array[4] = vy;
-	array[5] = vz;
-	array[6] = ax;
-	array[7] = ay;
-	array[8] = az;
+	array[0] = position_wp(0);
+	array[1] = position_wp(1);
+	array[2] = position_wp(2);
+	array[3] = velocity_wp(0);
+	array[4] = velocity_wp(1);
+	array[5] = velocity_wp(2);
+	array[6] = acceleration_wp(0);
+	array[7] = acceleration_wp(1);
+	array[8] = acceleration_wp(2);
 	array[9] = yaw;
 	array[10] = yaw_speed;
 }
