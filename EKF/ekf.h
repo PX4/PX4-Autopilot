@@ -179,6 +179,9 @@ public:
 	// return true if the terrain estimate is valid
 	bool get_terrain_valid();
 
+	// update terrain validity status
+	void update_terrain_valid();
+
 	// get the estimated terrain vertical position relative to the NED origin
 	void get_terrain_vert_pos(float *ret);
 
@@ -298,7 +301,6 @@ private:
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
 	uint64_t _time_last_rng_ready{0};	///< time the last range finder measurement was ready (uSec)
 	Vector2f _last_known_posNE;		///< last known local NE position vector (m)
-	float _last_disarmed_posD{0.0f};	///< vertical position recorded at arming (m)
 	float _imu_collection_time_adj{0.0f};	///< the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
@@ -346,6 +348,9 @@ private:
 	Vector3f _flow_gyro_bias;	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector3f _imu_del_ang_of;	///< bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates (rad)
 	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
+	uint64_t _time_bad_motion_us{0};	///< last system time that on-ground motion exceeded limits (uSec)
+	uint64_t _time_good_motion_us{0};	///< last system time that on-ground motion was within limits (uSec)
+	bool _inhibit_gndobs_use{false};	///< true when use of ground observations (optical flow and range finder) is being temporarily inhibited due to excessive on-ground motion
 
 	float _mag_declination{0.0f};	///< magnetic declination used by reset and fusion functions (rad)
 
@@ -410,6 +415,7 @@ private:
 	float _R_rng_to_earth_2_2{0.0f};	///< 2,2 element of the rotation matrix from sensor frame to earth frame
 	bool _range_data_continuous{false};	///< true when we are receiving range finder data faster than a 2Hz average
 	float _dt_last_range_update_filt_us{0.0f};	///< filtered value of the delta time elapsed since the last range measurement came into the filter (uSec)
+	bool _hagl_valid{false};		///< true when the height above ground estimate is valid
 
 	// height sensor fault status
 	bool _baro_hgt_faulty{false};		///< true if valid baro data is unavailable for use
