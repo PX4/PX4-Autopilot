@@ -32,10 +32,22 @@
 ############################################################################
 
 px4_add_romfs_files(
+	AAERTWF.main.mix
+	AAVVTWFF.main.mix
+	AERT.main.mix
+	AETRFG.main.mix
 	complex_test.mix
+	hexa_x.main.mix
 	IO_pass.mix
+	octo_x.main.mix
+	pass.aux.mix
+	quad_+.main.mix
 	quad_test.mix
-	uuv_quad_x.mix
+	quad_+_vtol.main.mix
+	ugv_generic.main.mix
 	vtol1_test.mix
 	vtol2_test.mix
+	vtol_AAERT.aux.mix
+	vtol_AAVVT.aux.mix
+	vtol_convergence.main.mix
 	)
