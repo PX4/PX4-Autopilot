@@ -131,27 +131,25 @@ int map_projection_project(const struct map_projection_reference_s *ref, double 
 		return -1;
 	}
 
-	double lat_rad = math::radians(lat);
-	double lon_rad = math::radians(lon);
+	const double lat_rad = math::radians(lat);
+	const double lon_rad = math::radians(lon);
 
-	double sin_lat = sin(lat_rad);
-	double cos_lat = cos(lat_rad);
-	double cos_d_lon = cos(lon_rad - ref->lon_rad);
+	const double sin_lat = sin(lat_rad);
+	const double cos_lat = cos(lat_rad);
 
-	double arg = ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon;
+	const double cos_d_lon = cos(lon_rad - ref->lon_rad);
 
-	if (arg > 1.0) {
-		arg = 1.0;
+	const double arg = math::constrain(ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon, -1.0,  1.0);
+	const double c = acos(arg);
 
-	} else if (arg < -1.0) {
-		arg = -1.0;
+	double k = 1.0;
+
+	if (fabs(c) >= DBL_EPSILON) {
+		k = (c / sin(c));
 	}
 
-	double c = acos(arg);
-	double k = (fabs(c) < DBL_EPSILON) ? 1.0 : (c / sin(c));
-
-	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
-	*y = k * cos_lat * sin(lon_rad - ref->lon_rad) * CONSTANTS_RADIUS_OF_EARTH;
+	*x = static_cast<float>(k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH);
+	*y = static_cast<float>(k * cos_lat * sin(lon_rad - ref->lon_rad) * CONSTANTS_RADIUS_OF_EARTH);
 
 	return 0;
 }
@@ -167,26 +165,24 @@ int map_projection_reproject(const struct map_projection_reference_s *ref, float
 		return -1;
 	}
 
-	double x_rad = (double)x / CONSTANTS_RADIUS_OF_EARTH;
-	double y_rad = (double)y / CONSTANTS_RADIUS_OF_EARTH;
-	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
-	double sin_c = sin(c);
-	double cos_c = cos(c);
-
-	double lat_rad;
-	double lon_rad;
+	const double x_rad = (double)x / CONSTANTS_RADIUS_OF_EARTH;
+	const double y_rad = (double)y / CONSTANTS_RADIUS_OF_EARTH;
+	const double c = sqrt(x_rad * x_rad + y_rad * y_rad);
 
 	if (fabs(c) > DBL_EPSILON) {
-		lat_rad = asin(cos_c * ref->sin_lat + (x_rad * sin_c * ref->cos_lat) / c);
-		lon_rad = (ref->lon_rad + atan2(y_rad * sin_c, c * ref->cos_lat * cos_c - x_rad * ref->sin_lat * sin_c));
+		const double sin_c = sin(c);
+		const double cos_c = cos(c);
+
+		const double lat_rad = asin(cos_c * ref->sin_lat + (x_rad * sin_c * ref->cos_lat) / c);
+		const double lon_rad = (ref->lon_rad + atan2(y_rad * sin_c, c * ref->cos_lat * cos_c - x_rad * ref->sin_lat * sin_c));
+
+		*lat = math::degrees(lat_rad);
+		*lon = math::degrees(lon_rad);
 
 	} else {
-		lat_rad = ref->lat_rad;
-		lon_rad = ref->lon_rad;
+		*lat = math::degrees(ref->lat_rad);
+		*lon = math::degrees(ref->lon_rad);
 	}
-
-	*lat = lat_rad * 180.0 / M_PI;
-	*lon = lon_rad * 180.0 / M_PI;
 
 	return 0;
 }
@@ -212,14 +208,13 @@ int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t 
 {
 	gl_ref.alt = alt_0;
 
-	if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
+	if (map_projection_global_init(lat_0, lon_0, timestamp) != 0) {
 		gl_ref.init_done = true;
 		return 0;
-
-	} else {
-		gl_ref.init_done = false;
-		return -1;
 	}
+
+	gl_ref.init_done = false;
+	return -1;
 }
 
 bool globallocalconverter_initialized()
@@ -253,7 +248,7 @@ int globallocalconverter_toglobal(float x, float y, float z,  double *lat, doubl
 
 int globallocalconverter_getref(double *lat_0, double *lon_0, float *alt_0)
 {
-	if (!map_projection_global_initialized()) {
+	if (map_projection_global_initialized() != 0) {
 		return -1;
 	}
 
@@ -270,24 +265,21 @@ int globallocalconverter_getref(double *lat_0, double *lon_0, float *alt_0)
 
 float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
-	double lat_now_rad = lat_now / (double)180.0 * M_PI;
-	double lon_now_rad = lon_now / (double)180.0 * M_PI;
-	double lat_next_rad = lat_next / (double)180.0 * M_PI;
-	double lon_next_rad = lon_next / (double)180.0 * M_PI;
+	const double lat_now_rad = math::radians(lat_now);
+	const double lat_next_rad = math::radians(lat_next);
 
+	const double d_lat = lat_next_rad - lat_now_rad;
+	const double d_lon = math::radians(lon_next) - math::radians(lon_now);
 
-	double d_lat = lat_next_rad - lat_now_rad;
-	double d_lon = lon_next_rad - lon_now_rad;
+	const double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(lat_now_rad) * cos(lat_next_rad);
 
-	double a = sin(d_lat / (double)2.0) * sin(d_lat / (double)2.0) + sin(d_lon / (double)2.0) * sin(d_lon /
-			(double)2.0) * cos(lat_now_rad) * cos(lat_next_rad);
-	double c = (double)2.0 * atan2(sqrt(a), sqrt((double)1.0 - a));
+	const double c = atan2(sqrt(a), sqrt(1.0 - a));
 
-	return CONSTANTS_RADIUS_OF_EARTH * c;
+	return static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * 2.0 * c);
 }
 
 void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist,
-		double *lat_target, double *lon_target)
+					double *lat_target, double *lon_target)
 {
 	if (fabsf(dist) < FLT_EPSILON) {
 		*lat_target = lat_A;
@@ -305,10 +297,10 @@ void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B
 }
 
 void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
-		double *lat_target, double *lon_target)
+					double *lat_target, double *lon_target)
 {
 	bearing = _wrap_2pi(bearing);
-	double radius_ratio = fabs((double)dist) / CONSTANTS_RADIUS_OF_EARTH;
+	double radius_ratio = (double)fabs((double)dist) / CONSTANTS_RADIUS_OF_EARTH;
 
 	double lat_start_rad = math::radians(lat_start);
 	double lon_start_rad = math::radians(lon_start);
@@ -331,28 +323,23 @@ float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_ne
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	float theta = atan2f(sin(d_lon) * cos(lat_next_rad),
-			     cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
-	theta = _wrap_pi(theta);
+	const float y = static_cast<float>(sin(d_lon) * cos(lat_next_rad));
+	const float x = static_cast<float>(cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
-	return theta;
+	return _wrap_pi(atan2f(y, x));
 }
 
 void
 get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e)
 {
-	double lat_now_rad = math::radians(lat_now);
-	double lon_now_rad = math::radians(lon_now);
-	double lat_next_rad = math::radians(lat_next);
-	double lon_next_rad = math::radians(lon_next);
-
-	double d_lon = lon_next_rad - lon_now_rad;
+	const double lat_now_rad = math::radians(lat_now);
+	const double lat_next_rad = math::radians(lat_next);
+	const double d_lon = math::radians(lon_next) - math::radians(lon_now);
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	*v_n = CONSTANTS_RADIUS_OF_EARTH * (cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(
-			d_lon));
-	*v_e = CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad);
+	*v_n = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * (cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon)));
+	*v_e = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad));
 }
 
 void
@@ -367,8 +354,8 @@ get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	*v_n = CONSTANTS_RADIUS_OF_EARTH * d_lat;
-	*v_e = CONSTANTS_RADIUS_OF_EARTH * d_lon * cos(lat_now_rad);
+	*v_n = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * d_lat);
+	*v_e = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * d_lon * cos(lat_now_rad));
 }
 
 void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res)
@@ -383,7 +370,7 @@ void add_vector_to_global_position(double lat_now, double lon_now, float v_n, fl
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
 
 int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-				  double lat_start, double lon_start, double lat_end, double lon_end)
+			 double lat_start, double lon_start, double lat_end, double lon_end)
 {
 	// This function returns the distance to the nearest point on the track line.  Distance is positive if current
 	// position is right of the track and negative if left of the track as seen from a point on the track line
@@ -427,8 +414,8 @@ int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat
 }
 
 int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-				 double lat_center, double lon_center,
-				 float radius, float arc_start_bearing, float arc_sweep)
+			double lat_center, double lon_center,
+			float radius, float arc_start_bearing, float arc_sweep)
 {
 	// This function returns the distance to the nearest point on the track arc.  Distance is positive if current
 	// position is right of the arc and negative if left of the arc as seen from the closest point on the arc and
@@ -436,10 +423,9 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 
 	// Determine if the current position is inside or outside the sector between the line from the center
 	// to the arc start and the line from the center to the arc end
-	float bearing_sector_start;
-	float bearing_sector_end;
+	float bearing_sector_start = 0.0f;
+	float bearing_sector_end = 0.0f;
 	float bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
-	bool in_sector;
 
 	int return_value = -1;		// Set error flag, cleared when valid result calculated.
 	crosstrack_error->past_end = false;
@@ -464,7 +450,7 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 		if (bearing_sector_start < 0.0f) { bearing_sector_start += (2 * M_PI_F); }
 	}
 
-	in_sector = false;
+	bool in_sector = false;
 
 	// Case where sector does not span zero
 	if (bearing_sector_end >= bearing_sector_start && bearing_now >= bearing_sector_start
@@ -505,15 +491,14 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 
 		double start_disp_x = (double)radius * sin((double)arc_start_bearing);
 		double start_disp_y = (double)radius * cos((double)arc_start_bearing);
-		double end_disp_x = (double)radius * sin((double)_wrap_pi((double)(arc_start_bearing + arc_sweep)));
-		double end_disp_y = (double)radius * cos((double)_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double end_disp_x = (double)radius * sin((double)_wrap_pi(arc_start_bearing + arc_sweep));
+		double end_disp_y = (double)radius * cos((double)_wrap_pi(arc_start_bearing + arc_sweep));
 		double lon_start = lon_now + start_disp_x / 111111.0;
 		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
 		double lon_end = lon_now + end_disp_x / 111111.0;
 		double lat_end = lat_now + end_disp_y * cos(lat_now) / 111111.0;
 		double dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
 		double dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
-
 
 		if (dist_to_start < dist_to_end) {
 			crosstrack_error->distance = dist_to_start;
@@ -526,7 +511,7 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 		}
 	}
 
-	crosstrack_error->bearing = _wrap_pi((double)crosstrack_error->bearing);
+	crosstrack_error->bearing = _wrap_pi(crosstrack_error->bearing);
 	return_value = 0;
 	return return_value;
 }
@@ -546,8 +531,8 @@ float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float a
 	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(current_x_rad) * cos(x_rad);
 	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
-	float dxy = CONSTANTS_RADIUS_OF_EARTH * c;
-	float dz = alt_now - alt_next;
+	const float dxy = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * c);
+	const float dz = static_cast<float>(alt_now - alt_next);
 
 	*dist_xy = fabsf(dxy);
 	*dist_z = fabsf(dz);

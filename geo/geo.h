@@ -48,11 +48,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
-#define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C		1.225f			/* kg/m^3		*/
-#define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
-#define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
-#define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
+static constexpr float CONSTANTS_ONE_G = 9.80665f;						// m/s^2
+
+static constexpr float CONSTANTS_STD_PRESSURE_PA = 101325.0f;					// pascals (Pa)
+static constexpr float CONSTANTS_STD_PRESSURE_KPA = CONSTANTS_STD_PRESSURE_PA / 1000.0f;	// kilopascals (kPa)
+static constexpr float CONSTANTS_STD_PRESSURE_MBAR = CONSTANTS_STD_PRESSURE_PA / 100.0f;	// Millibar (mbar) (1 mbar = 100 Pa)
+
+static constexpr float CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C = 1.225f;				// kg/m^3
+static constexpr float CONSTANTS_AIR_GAS_CONST = 287.1f;					// J/(kg * K)
+static constexpr float CONSTANTS_ABSOLUTE_NULL_CELSIUS = -273.15f;				// °C
+
+static constexpr double CONSTANTS_RADIUS_OF_EARTH = 6371000;					// meters (m)
+static constexpr float  CONSTANTS_RADIUS_OF_EARTH_F = CONSTANTS_RADIUS_OF_EARTH;		// meters (m)
+
 
 // XXX remove
 struct crosstrack_error_s {

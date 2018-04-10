@@ -228,7 +228,7 @@ struct parameters {
 	float gyro_bias_p_noise{1.0e-3f};	///< process noise for IMU rate gyro bias prediction (rad/sec**2)
 	float accel_bias_p_noise{6.0e-3f};	///< process noise for IMU accelerometer bias prediction (m/sec**3)
 	float mage_p_noise{1.0e-3f};		///< process noise for earth magnetic field prediction (Gauss/sec)
-	float magb_p_noise{1.0e-4};		///< process noise for body magnetic field prediction (Gauss/sec)
+	float magb_p_noise{1.0e-4f};		///< process noise for body magnetic field prediction (Gauss/sec)
 	float wind_vel_p_noise{1.0e-1f};	///< process noise for wind velocity prediction (m/sec**2)
 	float terrain_p_noise{5.0f};		///< process noise for terrain offset (m/sec)
 	float terrain_gradient{0.5f};		///< gradient of terrain used to estimate process noise due to changing position (m/m)
