@@ -103,8 +103,6 @@ using namespace DriverFramework;
 
 #define GYROSIM_GYRO_DEFAULT_RATE	400
 
-#define GYROSIM_ONE_G			9.80665f
-
 #ifdef PX4_SPI_BUS_EXT
 #define EXTERNAL_BUS PX4_SPI_BUS_EXT
 #else
@@ -819,7 +817,7 @@ GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		return set_accel_range(arg);
 
 	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / GYROSIM_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
@@ -920,8 +918,8 @@ GYROSIM::set_accel_range(unsigned max_g_in)
 	switch (_product) {
 	case GYROSIMES_REV_C4:
 		write_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
-		_accel_range_scale = (GYROSIM_ONE_G / 4096.0f);
-		_accel_range_m_s2 = 8.0f * GYROSIM_ONE_G;
+		_accel_range_scale = (CONSTANTS_ONE_G / 4096.0f);
+		_accel_range_m_s2 = 8.0f * CONSTANTS_ONE_G;
 		return OK;
 	}
 
@@ -951,8 +949,8 @@ GYROSIM::set_accel_range(unsigned max_g_in)
 	}
 
 	write_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
-	_accel_range_scale = (GYROSIM_ONE_G / lsb_per_g);
-	_accel_range_m_s2 = max_accel_g * GYROSIM_ONE_G;
+	_accel_range_scale = (CONSTANTS_ONE_G / lsb_per_g);
+	_accel_range_m_s2 = max_accel_g * CONSTANTS_ONE_G;
 
 	return OK;
 }
@@ -1334,7 +1332,7 @@ test()
 	PX4_INFO("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
 	PX4_INFO("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	PX4_INFO("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-		 (double)(a_report.range_m_s2 / GYROSIM_ONE_G));
+		 (double)(a_report.range_m_s2 / CONSTANTS_ONE_G));
 
 	/* do a simple demand read */
 	sz = h_gyro.read(&g_report, sizeof(g_report));

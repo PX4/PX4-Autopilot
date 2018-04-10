@@ -38,6 +38,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <ecl/geo/geo.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -575,7 +576,7 @@ BMA180::set_range(unsigned max_g)
 	}
 
 	/* set new range scaling factor */
-	_accel_range_m_s2 = _current_range * 9.80665f;
+	_accel_range_m_s2 = _current_range * CONSTANTS_ONE_G;
 	_accel_range_scale = _accel_range_m_s2 / 8192.0f;
 
 	/* enable writing to chip config */

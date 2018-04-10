@@ -52,11 +52,6 @@ extern "C" __EXPORT hrt_abstime hrt_reset(void);
 #define SEND_INTERVAL 	20
 #define UDP_PORT 	14560
 
-#define PRESS_GROUND 101325.0f
-#define DENSITY 1.2041f
-
-static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
-
 #ifdef ENABLE_UART_RC_INPUT
 #ifndef B460800
 #define B460800 460800
@@ -632,12 +627,12 @@ void Simulator::initializeSensorData()
 {
 	// write sensor data to memory so that drivers can copy data from there
 	RawMPUData mpu = {};
-	mpu.accel_z = 9.81f;
+	mpu.accel_z = CONSTANTS_ONE_G;
 
 	write_MPU_data(&mpu);
 
 	RawAccelData accel = {};
-	accel.z = 9.81f;
+	accel.z = CONSTANTS_ONE_G;
 
 	write_accel_data(&accel);
 
@@ -1036,9 +1031,9 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
-		accel.x_raw = imu->xacc / mg2ms2;
-		accel.y_raw = imu->yacc / mg2ms2;
-		accel.z_raw = imu->zacc / mg2ms2;
+		accel.x_raw = imu->xacc / (CONSTANTS_ONE_G / 1000.0f);
+		accel.y_raw = imu->yacc / (CONSTANTS_ONE_G / 1000.0f);
+		accel.z_raw = imu->zacc / (CONSTANTS_ONE_G / 1000.0f);
 		accel.x = imu->xacc;
 		accel.y = imu->yacc;
 		accel.z = imu->zacc;

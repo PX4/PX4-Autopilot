@@ -236,7 +236,7 @@ float calc_true_airspeed(float total_pressure, float static_pressure, float temp
 {
 	float density = get_air_density(static_pressure, temperature_celsius);
 
-	if (density < 0.0001f || !isfinite(density)) {
+	if (density < 0.0001f || !PX4_ISFINITE(density)) {
 		density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
 	}
 
