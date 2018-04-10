@@ -39,6 +39,7 @@
 
 #include <limits>
 #include <dirent.h>
+#include <string.h>
 
 #include <px4_config.h>
 #include <lib/mixer/mixer.h>
