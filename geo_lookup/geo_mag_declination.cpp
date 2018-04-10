@@ -124,7 +124,7 @@ get_lookup_table_index(float *val, float min, float max)
 		*val = max - SAMPLING_RES;
 	}
 
-	return (-(min) + *val)  / SAMPLING_RES;
+	return static_cast<unsigned>((-(min) + *val) / SAMPLING_RES);
 }
 
 static float
