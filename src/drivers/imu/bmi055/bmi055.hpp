@@ -239,8 +239,6 @@
 
 #define BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ  50
 
-#define BMI055_ONE_G                       9.80665f
-
 #define BMI055_BUS_SPEED				10*1000*1000
 
 #define BMI055_TIMER_REDUCTION				200

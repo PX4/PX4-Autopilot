@@ -44,6 +44,7 @@
 #include <float.h>
 #include <stdio.h>
 #include <string.h>
+#include <ecl/geo/geo.h>
 
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
@@ -555,7 +556,7 @@ BATT_SMBUS::cycle()
 
 		// read battery temperature and covert to Celsius
 		if (read_reg(BATT_SMBUS_TEMP, tmp) == OK) {
-			new_report.temperature = (float)(((float)tmp / 10.0f) - 273.15f);
+			new_report.temperature = (float)(((float)tmp / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS);
 		}
 
 		//Check if remaining % is out of range
