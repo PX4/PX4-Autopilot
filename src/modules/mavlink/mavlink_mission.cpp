@@ -479,11 +479,6 @@ MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 void
 MavlinkMissionManager::send(const hrt_abstime now)
 {
-	// do not send anything over high latency communication
-	if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_IRIDIUM) {
-		return;
-	}
-
 	bool updated = false;
 	orb_check(_mission_result_sub, &updated);
 

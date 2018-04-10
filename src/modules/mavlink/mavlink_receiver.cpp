@@ -94,7 +94,7 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
-	_mission_manager(parent),
+	_mission_manager(nullptr),
 	_parameters_manager(parent),
 	_mavlink_ftp(parent),
 	_mavlink_log_handler(parent),
@@ -158,12 +158,20 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
 	_p_bat_low_thr(param_find("BAT_LOW_THR"))
 {
+	if (_mavlink->get_mode() != Mavlink::MAVLINK_MODE_IRIDIUM) {
+		_mission_manager = new MavlinkMissionManager(parent);
+	}
 }
 
 MavlinkReceiver::~MavlinkReceiver()
 {
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_actuator_armed_sub);
+
+	if (_mission_manager != nullptr) {
+		delete _mission_manager;
+		_mission_manager = nullptr;
+	}
 }
 
 void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result)
@@ -2527,7 +2535,9 @@ MavlinkReceiver::receive_thread(void *arg)
 						handle_message(&msg);
 
 						/* handle packet with mission manager */
-						_mission_manager.handle_message(&msg);
+						if (_mission_manager != nullptr) {
+							_mission_manager->handle_message(&msg);
+						}
 
 						/* handle packet with parameter component */
 						_parameters_manager.handle_message(&msg);
@@ -2555,8 +2565,11 @@ MavlinkReceiver::receive_thread(void *arg)
 		hrt_abstime t = hrt_absolute_time();
 
 		if (t - last_send_update > timeout * 1000) {
-			_mission_manager.check_active_mission();
-			_mission_manager.send(t);
+			if (_mission_manager != nullptr) {
+				_mission_manager->check_active_mission();
+				_mission_manager->send(t);
+			}
+
 			_parameters_manager.send(t);
 
 			if (_mavlink->ftp_enabled()) {
