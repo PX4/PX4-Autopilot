@@ -3368,8 +3368,6 @@ MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_
 int
 MulticopterPositionControl::start()
 {
-	ASSERT(_control_task == -1);
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("mc_pos_control",
 					   SCHED_DEFAULT,

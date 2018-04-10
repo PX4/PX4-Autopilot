@@ -328,7 +328,6 @@ void TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
 int TemperatureCalibration::start()
 {
 
-	ASSERT(_control_task == -1);
 	_control_task = px4_task_spawn_cmd("temperature_calib",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
