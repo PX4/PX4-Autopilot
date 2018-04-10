@@ -47,6 +47,7 @@
 #include "mavlink_main.h"
 #include "mavlink_messages.h"
 #include "mavlink_command_sender.h"
+#include "mavlink_simple_analyzer.h"
 
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
@@ -105,9 +106,9 @@
 #include <uORB/uORB.h>
 
 static uint16_t cm_uint16_from_m_float(float m);
-static void get_mavlink_custom_mode(struct vehicle_status_s *status, uint8_t *mavlink_base_mode,
-				    union px4_custom_mode *custom_mode);
-static void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
+static void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, uint8_t *mavlink_base_mode,
+					union px4_custom_mode *custom_mode);
+static void get_mavlink_mode_state(const struct vehicle_status_s *const status, uint8_t *mavlink_state,
 				   uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
 
 uint16_t
@@ -123,8 +124,8 @@ cm_uint16_from_m_float(float m)
 	return (uint16_t)(m * 100.0f);
 }
 
-void get_mavlink_custom_mode(struct vehicle_status_s *status, uint8_t *mavlink_base_mode,
-			     union px4_custom_mode *custom_mode)
+void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, uint8_t *mavlink_base_mode,
+				 union px4_custom_mode *custom_mode)
 {
 	custom_mode->data = 0;
 	*mavlink_base_mode = 0;
@@ -249,7 +250,7 @@ void get_mavlink_custom_mode(struct vehicle_status_s *status, uint8_t *mavlink_b
 	}
 }
 
-void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
+void get_mavlink_mode_state(const struct vehicle_status_s *const status, uint8_t *mavlink_state,
 			    uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
 {
 	*mavlink_state = 0;
@@ -257,7 +258,7 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 	*mavlink_custom_mode = 0;
 
 	union px4_custom_mode custom_mode;
-	get_mavlink_custom_mode(status, mavlink_base_mode, &custom_mode);
+	get_mavlink_navigation_mode(status, mavlink_base_mode, &custom_mode);
 	*mavlink_custom_mode = custom_mode.data;
 
 	/* set system state */
@@ -4389,7 +4390,7 @@ protected:
 			// flight mode
 			union px4_custom_mode custom_mode;
 			uint8_t mavlink_base_mode;
-			get_mavlink_custom_mode(&status, &mavlink_base_mode, &custom_mode);
+			get_mavlink_navigation_mode(&status, &mavlink_base_mode, &custom_mode);
 			msg->custom_mode = custom_mode.custom_mode_hl;
 		}
 
@@ -4742,111 +4743,4 @@ MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink)
 	}
 
 	return nullptr;
-}
-
-SimpleAnalyzer::SimpleAnalyzer(Mode mode, float window) :
-	_window(window),
-	_mode(mode)
-{
-	reset();
-}
-
-SimpleAnalyzer::~SimpleAnalyzer()
-{
-}
-
-void SimpleAnalyzer::reset()
-{
-	_n = 0;
-
-	switch (_mode) {
-	case AVERAGE:
-		_result = 0.0f;
-
-		break;
-
-	case MIN:
-		_result = FLT_MAX;
-
-		break;
-
-	case MAX:
-		_result = FLT_MIN;
-
-		break;
-
-	default:
-		PX4_ERR("SimpleAnalyzer: Unknown mode.");
-	}
-}
-
-void SimpleAnalyzer::add_value(float val, float update_rate)
-{
-	switch (_mode) {
-	case AVERAGE:
-		_result = (_result * _n + val) / (_n + 1u);
-
-		break;
-
-	case MIN:
-		if (val < _result) {
-			_result = val;
-		}
-
-		break;
-
-	case MAX:
-		if (val > _result) {
-			_result = val;
-		}
-
-		break;
-	}
-
-	// if we get more measurements than n_max so the exponential moving average
-	// is computed
-	if ((_n < update_rate * _window) && (update_rate > 1.0f)) {
-		_n++;
-	}
-
-	// value sanity checks
-	if (!PX4_ISFINITE(_result)) {
-		PX4_ERR("SimpleAnalyzer: Result is not finite, reset the analyzer.");
-		reset();
-	}
-}
-
-bool SimpleAnalyzer::valid() const
-{
-	return _n > 0u;
-}
-
-float SimpleAnalyzer::get() const
-{
-	return _result;
-}
-
-float SimpleAnalyzer::get_scaled(float scalingfactor) const
-{
-	return get() * scalingfactor;
-}
-
-void SimpleAnalyzer::check_limits(float &x, float min, float max) const
-{
-	if (x > max) {
-		x = max;
-
-	} else if (x < min) {
-		x = min;
-	}
-}
-
-void SimpleAnalyzer::int_round(float &x) const
-{
-	if (x < 0) {
-		x -= 0.5f;
-
-	} else {
-		x += 0.5f;
-	}
 }

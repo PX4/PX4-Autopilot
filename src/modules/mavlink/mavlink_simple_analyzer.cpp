@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,33 +32,117 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_messages.h
- * MAVLink 1.0 message formatters definition.
+ * @file mavlink_simple_analyzer.cpp
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Achermann Florian <acfloria@ethz.ch>
  */
 
-#ifndef MAVLINK_MESSAGES_H_
-#define MAVLINK_MESSAGES_H_
+#include "mavlink_simple_analyzer.h"
 
-#include "mavlink_stream.h"
+#include <float.h>
 
-class StreamListItem
+#include <px4_log.h>
+#include <px4_defines.h>
+
+SimpleAnalyzer::SimpleAnalyzer(Mode mode, float window) :
+	_window(window),
+	_mode(mode)
 {
+	reset();
+}
 
-public:
-	MavlinkStream *(*new_instance)(Mavlink *mavlink);
-	const char *(*get_name)();
-	uint16_t (*get_id)();
+void SimpleAnalyzer::reset()
+{
+	_n = 0;
 
-	StreamListItem(MavlinkStream * (*inst)(Mavlink *mavlink), const char *(*name)(), uint16_t (*id)()) :
-		new_instance(inst),
-		get_name(name),
-		get_id(id) {}
+	switch (_mode) {
+	case AVERAGE:
+		_result = 0.0f;
 
-};
+		break;
 
-const char *get_stream_name(const uint16_t msg_id);
-MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink);
+	case MIN:
+		_result = FLT_MAX;
 
-#endif /* MAVLINK_MESSAGES_H_ */
+		break;
+
+	case MAX:
+		_result = FLT_MIN;
+
+		break;
+
+	default:
+		PX4_ERR("SimpleAnalyzer: Unknown mode.");
+	}
+}
+
+void SimpleAnalyzer::add_value(float val, float update_rate)
+{
+	switch (_mode) {
+	case AVERAGE:
+		_result = (_result * _n + val) / (_n + 1u);
+
+		break;
+
+	case MIN:
+		if (val < _result) {
+			_result = val;
+		}
+
+		break;
+
+	case MAX:
+		if (val > _result) {
+			_result = val;
+		}
+
+		break;
+	}
+
+	// if we get more measurements than n_max so the exponential moving average
+	// is computed
+	if ((_n < update_rate * _window) && (update_rate > 1.0f)) {
+		_n++;
+	}
+
+	// value sanity checks
+	if (!PX4_ISFINITE(_result)) {
+		PX4_DEBUG("SimpleAnalyzer: Result is not finite, reset the analyzer.");
+		reset();
+	}
+}
+
+bool SimpleAnalyzer::valid() const
+{
+	return _n > 0u;
+}
+
+float SimpleAnalyzer::get() const
+{
+	return _result;
+}
+
+float SimpleAnalyzer::get_scaled(float scalingfactor) const
+{
+	return get() * scalingfactor;
+}
+
+void SimpleAnalyzer::check_limits(float &x, float min, float max) const
+{
+	if (x > max) {
+		x = max;
+
+	} else if (x < min) {
+		x = min;
+	}
+}
+
+void SimpleAnalyzer::int_round(float &x) const
+{
+	if (x < 0) {
+		x -= 0.5f;
+
+	} else {
+		x += 0.5f;
+	}
+}
