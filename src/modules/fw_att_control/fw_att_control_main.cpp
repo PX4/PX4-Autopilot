@@ -210,7 +210,7 @@ private:
 
 		float rattitude_thres;
 
-                int32_t vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor, 2 = standard, 3 = kitepower */
+		int32_t vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 

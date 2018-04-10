@@ -100,13 +100,13 @@ void Kitepower::update_vtol_state()
 		case FW_MODE:
 			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
 			_vtol_schedule.transition_start = hrt_absolute_time();
-                        _flag_enable_mc_motors = true;
+                        //_flag_enable_mc_motors = true;
                         break;
 
                 case TRANSITION_FRONT:
 			// failsafe into multicopter mode
 			_vtol_schedule.flight_mode = MC_MODE;
-                        _flag_enable_mc_motors = true;
+                        //_flag_enable_mc_motors = true;
 			break;
 
 
@@ -114,7 +114,7 @@ void Kitepower::update_vtol_state()
 
                 //Kitepower: direct switch for the moment for transition
                         _vtol_schedule.flight_mode = MC_MODE;
-                        _flag_enable_mc_motors = true;
+                        //_flag_enable_mc_motors = true;
                         break;
 		}
 
@@ -125,23 +125,23 @@ void Kitepower::update_vtol_state()
                         // initialise a front transition
                         _vtol_schedule.flight_mode 	= TRANSITION_FRONT;
 			_vtol_schedule.transition_start = hrt_absolute_time();
-                        _flag_enable_mc_motors = false;
+                        //_flag_enable_mc_motors = false;
 			break;
 
 		case FW_MODE:
-                        _flag_enable_mc_motors = false;
+                        //_flag_enable_mc_motors = false;
                         break;
 
                 case TRANSITION_FRONT:
                         //Kitpower: direct switch for the moment for front transition
                         _vtol_schedule.flight_mode = FW_MODE;
-                        _flag_enable_mc_motors = false;
+                        //_flag_enable_mc_motors = false;
 			break;
 
 		case TRANSITION_BACK:
 			// failsafe into fixed wing mode
 			_vtol_schedule.flight_mode = FW_MODE;
-                        _flag_enable_mc_motors = false;
+                        //_flag_enable_mc_motors = false;
 
             break;
 		}
@@ -155,13 +155,13 @@ void Kitepower::update_external_VTOL_state()
 	case MC_MODE:
 		_vtol_mode = ROTARY_WING;
 		_vtol_vehicle_status->vtol_in_trans_mode = false;
-		_flag_was_in_trans_mode = false;
+                _flag_was_in_trans_mode = false;
 		break;
 
 	case FW_MODE:
 		_vtol_mode = FIXED_WING;
 		_vtol_vehicle_status->vtol_in_trans_mode = false;
-		_flag_was_in_trans_mode = false;
+                _flag_was_in_trans_mode = false;
 		break;
 
         case TRANSITION_FRONT:
@@ -286,10 +286,11 @@ void Kitepower::update_mc_state()
         _mc_yaw_weight = 1.0f;
         _mc_throttle_weight = 1.0f;
 
+        /*for the moment let the motor spin during fixed wing, nice for simulation
         if (_flag_enable_mc_motors) {
                 set_max_mc(1940);
                 _flag_enable_mc_motors = false;
-        }
+        }*/
 
 }
 
@@ -301,10 +302,11 @@ void Kitepower::update_fw_state()
         _mc_yaw_weight = 0.0f;
         _mc_throttle_weight = 0.0f;
 
+        /*for the moment let the motor spin during fixed wing, nice for simulation
         if (!_flag_enable_mc_motors) {
                 set_max_mc(940);
                 _flag_enable_mc_motors = true;
-        }
+        }*/
 
 
 }
@@ -339,9 +341,11 @@ void Kitepower::fill_actuator_outputs()
 
 }
 
+
 /**
 * Disable all multirotor motors when in fw mode.
 */
+/*for the moment let the motor spin during fixed wing, nice for simulation
 void
 Kitepower::set_max_mc(unsigned pwm_value)
 {
@@ -370,4 +374,4 @@ Kitepower::set_max_mc(unsigned pwm_value)
         }
 
         px4_close(fd);
-}
+}*/
