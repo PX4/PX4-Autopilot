@@ -99,7 +99,7 @@ set(config_module_list
 	modules/land_detector
 	modules/load_mon
 	modules/mavlink
-	#modules/navigator
+	modules/navigator
 	#modules/uavcan
 
 	#
@@ -119,9 +119,9 @@ set(config_module_list
 	#modules/fw_pos_control_l1
 	#modules/gnd_att_control
 	#modules/gnd_pos_control
-	#modules/mc_att_control
+	modules/mc_att_control
 	modules/mc_pos_control
-	#modules/vtol_att_control
+	modules/vtol_att_control
 
 	#
 	# Logging
