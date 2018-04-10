@@ -104,7 +104,10 @@ protected:
 #endif
 
 	/**
-	 * Function to collect/update data for the streams when update() is called.
+	 * Function to collect/update data for the streams at a high rate independant of
+	 * actual stream rate.
+	 *
+	 * This function is called at every iteration of the mavlink module.
 	 */
 	virtual void update_data() { }
 
