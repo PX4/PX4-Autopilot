@@ -165,8 +165,8 @@ void VotedSensorsUpdate::parameters_update()
 				int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance);
 
 				if (temp < 0) {
-					PX4_ERR("gyro temp compensation init: failed to find device ID %u for instance %i",
-						report.device_id, topic_instance);
+					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
+						"gyro", report.device_id, topic_instance);
 					_corrections.gyro_mapping[topic_instance] = 0;
 
 				} else {
@@ -189,8 +189,8 @@ void VotedSensorsUpdate::parameters_update()
 				int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance);
 
 				if (temp < 0) {
-					PX4_ERR("accel temp compensation init: failed to find device ID %u for instance %i",
-						report.device_id, topic_instance);
+					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
+						"accel", report.device_id, topic_instance);
 					_corrections.accel_mapping[topic_instance] = 0;
 
 				} else {
@@ -212,8 +212,8 @@ void VotedSensorsUpdate::parameters_update()
 				int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance);
 
 				if (temp < 0) {
-					PX4_ERR("baro temp compensation init: failed to find device ID %u for instance %i",
-						report.device_id, topic_instance);
+					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
+						"baro", report.device_id, topic_instance);
 					_corrections.baro_mapping[topic_instance] = 0;
 
 				} else {
