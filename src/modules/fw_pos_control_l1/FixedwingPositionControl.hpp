@@ -103,8 +103,6 @@ static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
 	0.85f; ///< a throttle / pitch input above this value leads to the system switching to climbout mode
 static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
-static constexpr float MSL_PRESSURE_MILLIBAR = 1013.25f; ///< standard atmospheric pressure in millibar
-
 using math::constrain;
 using math::max;
 using math::min;
