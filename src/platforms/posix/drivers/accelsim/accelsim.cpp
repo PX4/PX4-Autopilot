@@ -71,7 +71,6 @@
 
 #define ACCELSIM_ACCEL_DEFAULT_RATE			250
 #define ACCELSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
-#define ACCELSIM_ONE_G					9.80665f
 
 #define DIR_READ				(1<<7)
 #define DIR_WRITE				(0<<7)
@@ -595,7 +594,7 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
-		return (unsigned long)((_accel_range_m_s2) / ACCELSIM_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
@@ -732,7 +731,7 @@ ACCELSIM::accel_set_range(unsigned max_g)
 {
 	float new_scale_g_digit = 0.732e-3f;
 
-	_accel_range_scale = new_scale_g_digit * ACCELSIM_ONE_G;
+	_accel_range_scale = new_scale_g_digit * CONSTANTS_ONE_G;
 
 	return OK;
 }

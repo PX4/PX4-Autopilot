@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN ekf2
 	COMPILE_FLAGS
 		-Wno-sign-compare # TODO: fix all sign-compare
-		-Wfloat-conversion
 		-Wdouble-promotion
 	STACK_MAIN 2500
 	STACK_MAX 4000

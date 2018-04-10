@@ -39,6 +39,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <ecl/geo/geo.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -137,7 +138,6 @@
 
 #define FXOS8701C_MAG_DEFAULT_RANGE_GA               12 /* It is fixed at 12 G */
 #define FXOS8701C_MAG_DEFAULT_RATE                   100
-#define FXOS8701C_ONE_G                              9.80665f
 
 /*
   we set the timer interrupt to run a bit faster than the desired
@@ -877,7 +877,7 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
-		return (unsigned long)((_accel_range_m_s2) / FXOS8701C_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
@@ -1135,8 +1135,8 @@ FXOS8701CQ::accel_set_range(unsigned max_g)
 		max_accel_g = 2;
 	}
 
-	_accel_range_scale = (FXOS8701C_ONE_G / lsb_per_g);
-	_accel_range_m_s2 = max_accel_g * FXOS8701C_ONE_G;
+	_accel_range_scale = (CONSTANTS_ONE_G / lsb_per_g);
+	_accel_range_m_s2 = max_accel_g * CONSTANTS_ONE_G;
 
 
 	modify_reg(FXOS8701CQ_XYZ_DATA_CFG, XYZ_DATA_CFG_FS_MASK, setbits);
