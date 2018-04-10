@@ -1016,8 +1016,7 @@ Mission::heading_sp_update()
 		case vehicle_roi_s::ROI_WPINDEX:
 		case vehicle_roi_s::ROI_TARGET:
 		case vehicle_roi_s::ROI_ENUM_END:
-		default: {
-			}
+			break;
 		}
 
 		// Get desired heading and update it.
