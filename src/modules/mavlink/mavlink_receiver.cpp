@@ -854,9 +854,10 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 	    values_finite) {
 
 		/* convert mavlink type (local, NED) to uORB offboard control struct */
-		offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x7);
-		offboard_control_mode.ignore_alt_hold = (bool)(set_position_target_local_ned.type_mask & 0x4);
-		offboard_control_mode.ignore_velocity = (bool)(set_position_target_local_ned.type_mask & 0x38);
+		offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x3);
+		offboard_control_mode.ignore_altitude = (bool)(set_position_target_local_ned.type_mask & 0x4);
+		offboard_control_mode.ignore_climb_rate = (bool)(set_position_target_local_ned.type_mask & 0x18);
+		offboard_control_mode.ignore_velocity = (bool)(set_position_target_local_ned.type_mask & 0x20);
 		offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_local_ned.type_mask & 0x1C0);
 		bool is_force_sp = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
 		/* yaw ignore flag mapps to ignore_attitude */
@@ -946,7 +947,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 						pos_sp_triplet.current.velocity_valid = false;
 					}
 
-					if (!offboard_control_mode.ignore_alt_hold) {
+					if (!offboard_control_mode.ignore_altitude) {
 						pos_sp_triplet.current.alt_valid = true;
 						pos_sp_triplet.current.z = set_position_target_local_ned.z;
 

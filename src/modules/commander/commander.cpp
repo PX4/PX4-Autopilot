@@ -3737,12 +3737,16 @@ set_control_mode()
 		control_mode.flag_control_rates_enabled = !offboard_control_mode.ignore_bodyrate ||
 			!offboard_control_mode.ignore_attitude ||
 			!offboard_control_mode.ignore_position ||
+			!offboard_control_mode.ignore_altitude ||
 			!offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_climb_rate ||
 			!offboard_control_mode.ignore_acceleration_force;
 
 		control_mode.flag_control_attitude_enabled = !offboard_control_mode.ignore_attitude ||
 			!offboard_control_mode.ignore_position ||
+			!offboard_control_mode.ignore_altitude ||
 			!offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_climb_rate ||
 			!offboard_control_mode.ignore_acceleration_force;
 
 		control_mode.flag_control_rattitude_enabled = false;
@@ -3751,17 +3755,18 @@ set_control_mode()
 		  !status.in_transition_mode;
 
 		control_mode.flag_control_velocity_enabled = (!offboard_control_mode.ignore_velocity ||
-			!offboard_control_mode.ignore_position) && !status.in_transition_mode &&
+			!offboard_control_mode.ignore_altitude) && !status.in_transition_mode &&
 			!control_mode.flag_control_acceleration_enabled;
-
-		control_mode.flag_control_climb_rate_enabled = (!offboard_control_mode.ignore_velocity ||
-			!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
 
 		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !status.in_transition_mode &&
 		  !control_mode.flag_control_acceleration_enabled;
 
-		control_mode.flag_control_altitude_enabled = (!offboard_control_mode.ignore_velocity ||
-			!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
+
+		control_mode.flag_control_climb_rate_enabled = (!offboard_control_mode.ignore_climb_rate || !offboard_control_mode.ignore_altitude) &&
+			!control_mode.flag_control_acceleration_enabled;
+
+		control_mode.flag_control_altitude_enabled = (!offboard_control_mode.ignore_altitude) &&
+			!control_mode.flag_control_acceleration_enabled;
 
 		break;
 
