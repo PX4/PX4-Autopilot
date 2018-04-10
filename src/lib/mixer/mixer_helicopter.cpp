@@ -36,48 +36,23 @@
  *
  * Helicopter mixers.
  */
-#include <px4_config.h>
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <math.h>
 
 #include "mixer.h"
+
+#include <mathlib/mathlib.h>
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
 //#define debug(fmt, args...)	lowsyslog(fmt "\n", ##args)
 
-
-namespace
-{
-
-float constrain(float val, float min, float max)
-{
-	return (val < min) ? min : ((val > max) ? max : val);
-}
-
-} // anonymous namespace
+using math::constrain;
 
 HelicopterMixer::HelicopterMixer(ControlCallback control_cb,
 				 uintptr_t cb_handle,
 				 mixer_heli_s *mixer_info) :
 	Mixer(control_cb, cb_handle),
 	_mixer_info(*mixer_info)
-{
-
-}
-
-HelicopterMixer::~HelicopterMixer()
 {
 }
 
