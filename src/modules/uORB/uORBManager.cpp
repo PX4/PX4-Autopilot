@@ -319,7 +319,6 @@ int uORB::Manager::orb_set_interval(int handle, unsigned interval)
 
 int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
 {
-	ASSERT(interval);
 	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (unsigned long)interval);
 	*interval /= 1000;
 	return ret;
