@@ -120,10 +120,10 @@ MavlinkStream::update(const hrt_abstime t)
 
 		// If the interval is non-zero and dt is smaller than 1.5 times the interval
 		// do not use the actual time but increment at a fixed rate, so that processing delays do not
-		// distort the average rate. The check of the maximum interval is done to ensure that after a long time
-		// not sending anything multiple messages in a short time are sent.
+		// distort the average rate. The check of the maximum interval is done to ensure that after a
+		// long time not sending anything, sending multiple messages in a short time is avoided.
 		if (sent) {
-			_last_sent = ((interval > 0) && ((int64_t)(1.5 * interval) > dt)) ? _last_sent + interval : t;
+			_last_sent = ((interval > 0) && ((int64_t)(1.5f * interval) > dt)) ? _last_sent + interval : t;
 			return 0;
 
 		} else {
