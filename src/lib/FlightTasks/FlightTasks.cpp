@@ -73,7 +73,7 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		break;
 
 	case FlightTaskIndex::AutoLine:
-		_current_task = new (&_task_union.autoLine) FlightTaskAutoLine(this, "ALN");
+		_current_task = new (&_task_union.autoLine) FlightTaskAutoLine();
 		break;
 
 	default:
