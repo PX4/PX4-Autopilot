@@ -37,8 +37,7 @@
  * @author Achermann Florian <acfloria@ethz.ch>
  */
 
-#ifndef MAVLINK_SIMPLE_ANALYZER_H_
-#define MAVLINK_SIMPLE_ANALYZER_H_
+#pragma once
 
 #include <limits>
 
@@ -137,17 +136,15 @@ private:
 };
 
 template<typename Tin, typename Tout>
-void convert_limit_safe(Tin in, Tout *out)
+void convert_limit_safe(Tin in, Tout &out)
 {
 	if (in > std::numeric_limits<Tout>::max()) {
-		*out = std::numeric_limits<Tout>::max();
+		out = std::numeric_limits<Tout>::max();
 
 	} else if (in < std::numeric_limits<Tout>::min()) {
-		*out = std::numeric_limits<Tout>::min();
+		out = std::numeric_limits<Tout>::min();
 
 	} else {
-		*out = static_cast<Tout>(in);
+		out = static_cast<Tout>(in);
 	}
 }
-
-#endif /* MAVLINK_SIMPLE_ANALYZER_H_ */

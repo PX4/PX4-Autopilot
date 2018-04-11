@@ -37,13 +37,12 @@
  * @author Achermann Florian <acfloria@ethz.ch>
  */
 
+#pragma once
+
 #include "mavlink_main.h"
 #include "mavlink_messages.h"
 #include "mavlink_simple_analyzer.h"
 #include "mavlink_stream.h"
-
-#ifndef MAVLINK_HIGH_LATENCY2_H_
-#define MAVLINK_HIGH_LATENCY2_H_
 
 class MavlinkStreamHighLatency2 : public MavlinkStream
 {
@@ -197,5 +196,3 @@ protected:
 
 	void set_default_values(mavlink_high_latency2_t &msg) const;
 };
-
-#endif /* MAVLINK_HIGH_LATENCY2_H_ */
