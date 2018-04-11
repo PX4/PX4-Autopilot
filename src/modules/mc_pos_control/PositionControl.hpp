@@ -192,22 +192,23 @@ private:
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
 
 	DEFINE_PARAMETERS(
-	        (ParamFloat<px4::params::MPC_THR_MAX>) MPC_THR_MAX,
-			(ParamFloat<px4::params::MPC_THR_HOVER>) MPC_THR_HOVER,
-			(ParamFloat<px4::params::MPC_THR_MIN>) MPC_THR_MIN,
-			(ParamFloat<px4::params::MPC_MANTHR_MIN>) MPC_MANTHR_MIN,
-			(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
-			(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
-			(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
-			(ParamFloat<px4::params::MPC_TILTMAX_AIR>) MPC_TILTMAX_AIR,
-			(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX,
-			(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P,
-			(ParamFloat<px4::params::MPC_Z_VEL_P>) MPC_Z_VEL_P,
-			(ParamFloat<px4::params::MPC_Z_VEL_I>) MPC_Z_VEL_I,
-			(ParamFloat<px4::params::MPC_Z_VEL_D>) MPC_Z_VEL_D,
-			(ParamFloat<px4::params::MPC_XY_P>) MPC_XY_P,
-			(ParamFloat<px4::params::MPC_XY_VEL_P>) MPC_XY_VEL_P,
-			(ParamFloat<px4::params::MPC_XY_VEL_I>) MPC_XY_VEL_I,
-			(ParamFloat<px4::params::MPC_XY_VEL_D>) MPC_XY_VEL_D
+		(ParamFloat<px4::params::MPC_THR_MAX>) MPC_THR_MAX,
+		(ParamFloat<px4::params::MPC_THR_HOVER>) MPC_THR_HOVER,
+		(ParamFloat<px4::params::MPC_THR_MIN>) MPC_THR_MIN,
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>) MPC_MANTHR_MIN,
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
+		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)
+		MPC_TILTMAX_AIR_rad, // maximum tilt for any position controlled mode in radians
+		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX_rad, // maximum til for stabilized/altitude mode in radians
+		(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P,
+		(ParamFloat<px4::params::MPC_Z_VEL_P>) MPC_Z_VEL_P,
+		(ParamFloat<px4::params::MPC_Z_VEL_I>) MPC_Z_VEL_I,
+		(ParamFloat<px4::params::MPC_Z_VEL_D>) MPC_Z_VEL_D,
+		(ParamFloat<px4::params::MPC_XY_P>) MPC_XY_P,
+		(ParamFloat<px4::params::MPC_XY_VEL_P>) MPC_XY_VEL_P,
+		(ParamFloat<px4::params::MPC_XY_VEL_I>) MPC_XY_VEL_I,
+		(ParamFloat<px4::params::MPC_XY_VEL_D>) MPC_XY_VEL_D
 	)
 };
