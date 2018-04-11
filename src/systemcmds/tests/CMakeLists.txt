@@ -87,8 +87,10 @@ px4_add_module(
 		-Wno-missing-declarations
 		-Wno-double-promotion
 		-Wno-unknown-warning-option
-	SRCS ${srcs}
+	SRCS
+		${srcs}
 	DEPENDS
-		platforms__common
+		modules__mc_pos_control__mc_pos_control_tests
+		git_ecl
+		ecl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

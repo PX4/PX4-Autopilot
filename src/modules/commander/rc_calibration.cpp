@@ -48,7 +48,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
 
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)

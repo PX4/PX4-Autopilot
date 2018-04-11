@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <drivers/drv_hrt.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 namespace px4
 {

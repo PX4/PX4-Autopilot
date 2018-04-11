@@ -39,5 +39,4 @@ px4_add_module(
 		SF0XTest.cpp
 		../sf0x_parser.cpp
 	DEPENDS
-		platforms__common
 	)

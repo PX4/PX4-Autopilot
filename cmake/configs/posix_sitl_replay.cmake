@@ -2,25 +2,14 @@
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
-	drivers/device
 	drivers/boards/sitl
 	systemcmds/param
 	systemcmds/ver
 	systemcmds/perf
-	modules/uORB
-	modules/systemlib/param
-	modules/systemlib
 	modules/ekf2
 	modules/ekf2_replay
 	modules/sdlog2
 	modules/logger
-	lib/controllib
-	lib/mathlib
-	lib/conversion
-	lib/ecl
-	lib/version
-	lib/DriverFramework/framework
-	lib/micro-CDR
 	)
 
 set(config_extra_builtin_cmds

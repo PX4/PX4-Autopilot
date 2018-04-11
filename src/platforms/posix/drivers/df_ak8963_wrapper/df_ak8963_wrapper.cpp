@@ -49,7 +49,7 @@
 #include <px4_getopt.h>
 #include <errno.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>

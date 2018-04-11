@@ -63,7 +63,7 @@
 
 #include "systemlib/px4_macros.h"
 #include "systemlib/systemlib.h"
-#include "systemlib/param/param.h"
+#include <parameters/param.h>
 
 #include <board_config.h>
 

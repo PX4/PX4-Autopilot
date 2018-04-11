@@ -34,12 +34,12 @@
 # skip for px4_layer support on an IO board
 if (NOT ${BOARD} MATCHES "px4io")
 
-	px4_add_module(
-		MODULE platform_px4_layer
-		SRCS
-			px4_nuttx_tasks.c
-			px4_nuttx_impl.cpp
-		DEPENDS
-			prebuild_targets
-		)
+	add_library(px4_layer
+		px4_nuttx_tasks.c
+		px4_nuttx_impl.cpp
+	)
+	target_link_libraries(px4_layer PRIVATE nuttx_sched drivers_boards_common_arch)
+else()
+	add_library(px4_layer ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 endif()
+add_dependencies(px4_layer prebuild_targets)

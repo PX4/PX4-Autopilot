@@ -42,7 +42,7 @@
 #include <string>
 #include <px4_config.h>
 #include <systemlib/err.h>
-#include <systemlib/battery.h>
+#include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 
 #include <ltc2946/LTC2946.hpp>

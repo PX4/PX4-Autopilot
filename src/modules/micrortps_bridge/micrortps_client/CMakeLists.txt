@@ -85,21 +85,19 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 	)
 	add_custom_target(topic_bridge_files DEPENDS ${topic_bridge_files_out})
 
-	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-	include_directories(${CMAKE_CURRENT_BINARY_DIR}/micrortps_client)
-
 	px4_add_module(
 		MODULE modules__micrortps_bridge__micrortps_client
 		MAIN micrortps_client
 		STACK_MAIN 4096
+		INCLUDES
+			${CMAKE_CURRENT_SOURCE_DIR}
+			${CMAKE_CURRENT_BINARY_DIR}/micrortps_client
 		SRCS
 			microRTPS_client_main.cpp
 			${msg_out_path}/micrortps_client/microRTPS_client.cpp
 			${msg_out_path}/micrortps_client/microRTPS_transport.cpp
 		DEPENDS
-			platforms__common
 			topic_bridge_files
-			uorb_headers_microcdr
 	)
 	target_link_libraries(modules__micrortps_bridge__micrortps_client PRIVATE uorb_msgs_microcdr)
 endif()

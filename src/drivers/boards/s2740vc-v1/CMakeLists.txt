@@ -39,3 +39,9 @@ px4_add_library(drivers_board
 	can.c
 	init.c
 )
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		drivers_arch
+)

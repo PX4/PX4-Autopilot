@@ -6,9 +6,7 @@ add_definitions(
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh)
 
-#
 # UAVCAN boot loadable Module ID
-
 set(uavcanblid_sw_version_major 0)
 set(uavcanblid_sw_version_minor 1)
 add_definitions(
@@ -16,9 +14,7 @@ add_definitions(
 	-DAPP_VERSION_MINOR=${uavcanblid_sw_version_minor}
 	)
 
-#
 # Bring in common uavcan hardware identity definitions
-#
 include(common/px4_git)
 px4_add_git_submodule(TARGET git_uavcan_board_ident PATH "cmake/configs/uavcan_board_ident")
 include(configs/uavcan_board_ident/s2740vc-v1)
@@ -33,14 +29,11 @@ include(configs/uavcan_board_ident/s2740vc-v1)
 # SW_MINOR ${uavcanblid_sw_version_minor})
 
 set(config_module_list
-
 	#
 	# Board support modules
 	#
-
+	drivers/bootloaders
 	drivers/stm32
-	drivers/led
-	drivers/boards
 
 	#
 	# System commands
@@ -49,15 +42,4 @@ set(config_module_list
 	systemcmds/top
 	systemcmds/config
 	systemcmds/ver
-
-	#
-	# General system control
-	#
-
-	#
-	# Library modules
-	#
-	modules/systemlib/param
-	modules/systemlib
-	lib/version
 )

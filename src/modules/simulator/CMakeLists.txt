@@ -53,6 +53,8 @@ if (NOT ${OS} STREQUAL "qurt")
 		simulator_mavlink.cpp)
 endif()
 
+add_subdirectory(ledsim)
+
 px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
@@ -63,5 +65,14 @@ px4_add_module(
 		${SIMULATOR_SRCS}
 	DEPENDS
 		git_mavlink_v2
-		platforms__common
+		battery
+		conversion
+		drivers__ledsim
 	)
+target_include_directories(modules__simulator INTERFACE ${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+
+add_subdirectory(accelsim)
+add_subdirectory(airspeedsim)
+add_subdirectory(barosim)
+add_subdirectory(gpssim)
+add_subdirectory(gyrosim)

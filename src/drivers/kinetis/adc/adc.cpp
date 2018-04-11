@@ -67,7 +67,7 @@
 #include <chip/kinetis_sim.h>
 #include <chip/kinetis_adc.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/adc_report.h>

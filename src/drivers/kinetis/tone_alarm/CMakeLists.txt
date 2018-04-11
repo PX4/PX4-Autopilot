@@ -30,13 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__kinetis__tone_alarm
+	MODULE drivers__tone_alarm
 	MAIN tone_alarm
-	COMPILE_FLAGS
 	SRCS
 		tone_alarm.cpp
 	DEPENDS
-		platforms__common
+		tunes
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

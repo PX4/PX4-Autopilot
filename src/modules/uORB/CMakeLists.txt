@@ -47,5 +47,5 @@ px4_add_module(
 		uORBManager.cpp
 		uORBUtils.cpp
 	DEPENDS
-		platforms__common
+		uorb_msgs
 	)

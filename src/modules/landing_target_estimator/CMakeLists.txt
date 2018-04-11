@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
 	MODULE modules__landing_target_estimator
 	MAIN landing_target_estimator
@@ -40,6 +41,5 @@ px4_add_module(
 		LandingTargetEstimator.cpp
 		KalmanFilter.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

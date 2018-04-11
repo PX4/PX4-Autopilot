@@ -195,10 +195,22 @@ function(px4_add_module)
 		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
 		OPTIONS EXTERNAL
-		REQUIRED MODULE
+		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
 
-	px4_add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+
+	# all modules can potentially use parameters and uORB
+	add_dependencies(${MODULE} uorb_headers)
+	target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface platforms__common px4_layer systemlib)
+
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+
+	px4_add_optimization_flags_for_target(${MODULE})
+
+	# Pass variable to the parent px4_add_module.
+	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
 
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
@@ -240,7 +252,16 @@ function(px4_add_module)
 	endif()
 
 	if(DEPENDS)
-		add_dependencies(${MODULE} ${DEPENDS})
+		# using target_link_libraries for dependencies provides linking
+		#  as well as interface include and libraries
+		foreach(dep ${DEPENDS})
+			get_target_property(dep_type ${dep} TYPE)
+			if (${dep_type} STREQUAL "STATIC_LIBRARY")
+				target_link_libraries(${MODULE} PRIVATE ${dep})
+			else()
+				add_dependencies(${MODULE} ${dep})
+			endif()
+		endforeach()
 	endif()
 
 	# join list variables to get ready to send to compiler
@@ -425,6 +446,10 @@ function(px4_add_common_flags)
 				-fdiagnostics-color=always
 			)
 		endif()
+
+		list(APPEND cxx_warnings
+			-Wno-format-truncation # TODO: fix
+		)
 	endif()
 
 	set(visibility_flags
@@ -450,10 +475,13 @@ function(px4_add_common_flags)
 		${_optimization_flags}
 		)
 
-	set(added_include_dirs
+	include_directories(
 		${PX4_BINARY_DIR}
 		${PX4_BINARY_DIR}/src
+		${PX4_BINARY_DIR}/src/lib
 		${PX4_BINARY_DIR}/src/modules
+
+
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
 		${PX4_SOURCE_DIR}/src/include
@@ -464,13 +492,10 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/platforms
 		)
 
-	set(added_link_dirs) # none used currently
-	set(added_exe_linker_flags)
-
 	string(TOUPPER ${BOARD} board_upper)
 	string(REPLACE "-" "_" board_config ${board_upper})
 
-	set(added_definitions
+	add_definitions(
 		-DCONFIG_ARCH_BOARD_${board_config}
 		-D__STDC_FORMAT_MACROS
 		)
@@ -548,13 +573,25 @@ endfunction()
 #
 function(px4_add_library target)
 	add_library(${target} ${ARGN})
-	add_dependencies(${target} prebuild_targets)
+
+	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
+
+	# all PX4 libraries have access to parameters and uORB
+	add_dependencies(${target} uorb_headers)
+	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface uorb_msgs)
+
+	# TODO: move to platform layer
+	if ("${OS}" MATCHES "nuttx")
+		target_link_libraries(${target} PRIVATE m nuttx_c)
+	endif()
+
 	px4_add_optimization_flags_for_target(${target})
 
 	# Pass variable to the parent px4_add_module.
 	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
 
 	set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES ${target})
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
 
 #=============================================================================
@@ -596,4 +633,3 @@ function(px4_find_python_module module)
 	#endif()
 endfunction(px4_find_python_module)
 
-# vim: set noet fenc=utf-8 ff=unix nowrap:

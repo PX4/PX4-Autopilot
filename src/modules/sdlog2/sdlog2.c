@@ -103,8 +103,8 @@
 #include <uORB/topics/task_stack_info.h>
 
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <systemlib/printload.h>
 #include <systemlib/mavlink_log.h>
 #include <version/version.h>

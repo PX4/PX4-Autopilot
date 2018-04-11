@@ -65,7 +65,7 @@
 #include <px4_module_params.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>

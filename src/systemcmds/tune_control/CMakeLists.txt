@@ -38,6 +38,5 @@ px4_add_module(
 	SRCS
 		tune_control.cpp
 	DEPENDS
-		platforms__common
+		tunes
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

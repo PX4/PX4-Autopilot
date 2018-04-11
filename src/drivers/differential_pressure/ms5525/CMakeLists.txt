@@ -39,6 +39,5 @@ px4_add_module(
 		MS5525.cpp
 		MS5525_main.cpp
 	DEPENDS
-		platforms__common
+		drivers__airspeed
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
