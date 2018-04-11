@@ -88,7 +88,6 @@ extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 #define SATCOM_RX_MSG_BUF_LEN			270		// RX buffer size for MT messages
 #define SATCOM_RX_COMMAND_BUF_LEN		50		// RX buffer size for other commands
 #define SATCOM_SIGNAL_REFRESH_DELAY		20000000 // update signal quality every 20s
-#define MAVLINK_PACKAGE_START		254 // The value of the first byte of the mavlink header
 
 /**
  * The driver for the Rockblock 9602 and 9603 RockBlock module for satellite communication over the Iridium satellite system.
@@ -308,14 +307,14 @@ private:
 	char _test_command[32];
 	hrt_abstime _test_timer = 0;
 
-	uint8_t _rx_command_buf[SATCOM_RX_COMMAND_BUF_LEN] = {0};
+	uint8_t _rx_command_buf[SATCOM_RX_COMMAND_BUF_LEN] = {};
 	int _rx_command_len = 0;
 
-	uint8_t _rx_msg_buf[SATCOM_RX_MSG_BUF_LEN] = {0};
+	uint8_t _rx_msg_buf[SATCOM_RX_MSG_BUF_LEN] = {};
 	int _rx_msg_end_idx = 0;
 	int _rx_msg_read_idx = 0;
 
-	uint8_t _tx_buf[SATCOM_TX_BUF_LEN] = {0};
+	uint8_t _tx_buf[SATCOM_TX_BUF_LEN] = {};
 	int _tx_buf_write_idx = 0;
 
 	bool _tx_buf_write_pending = false;
