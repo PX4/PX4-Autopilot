@@ -37,6 +37,4 @@ px4_add_module(
 	SRCS
 		leddar_one.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

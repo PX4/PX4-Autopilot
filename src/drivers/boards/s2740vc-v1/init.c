@@ -69,7 +69,7 @@
 #include <drivers/drv_board_led.h>
 
 #include <systemlib/cpuload.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 #include <systemlib/systemlib.h>

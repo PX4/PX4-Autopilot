@@ -52,7 +52,7 @@
 #include <errno.h>
 
 #include <systemlib/err.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/mavlink_log.h>
 
 #include <drivers/drv_hrt.h>

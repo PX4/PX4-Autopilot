@@ -51,7 +51,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_config.h>
 #include <px4_workqueue.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/uORB.h>

@@ -39,7 +39,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
 #include <version/version.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/printload.h>
 #include <px4_module.h>
 

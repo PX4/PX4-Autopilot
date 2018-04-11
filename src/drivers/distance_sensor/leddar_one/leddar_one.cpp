@@ -45,7 +45,7 @@
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <uORB/topics/distance_sensor.h>
 

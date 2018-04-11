@@ -42,7 +42,7 @@
 #include "px4_log.h"
 #include "uORB/topics/sensor_combined.h"
 #include "uORB.h"
-#include "systemlib/param/param.h"
+#include <parameters/param.h>
 #include <shmem.h>
 
 __BEGIN_DECLS

@@ -39,17 +39,11 @@ if (NOT "${OS}" MATCHES "qurt")
 		)
 endif()
 
-px4_add_module(
-	MODULE platforms__common
-	SRCS
-		module.cpp
-		px4_getopt.c
-		shutdown.cpp
-		${SRCS}
-	DEPENDS
-		prebuild_targets
-		uorb_headers
-		uorb_msgs
+px4_add_library(platforms__common
+	module.cpp
+	px4_getopt.c
+	shutdown.cpp
+	${SRCS}
 	)
 	
 add_subdirectory(work_queue)

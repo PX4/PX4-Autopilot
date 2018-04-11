@@ -66,7 +66,7 @@
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/mtd/mtd.h>
 
-#include "systemlib/perf_counter.h"
+#include <perf/perf_counter.h>
 
 /************************************************************************************
  * Pre-processor Definitions

@@ -52,8 +52,8 @@
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/systemlib.h>
 #include <uORB/topics/actuator_controls.h>

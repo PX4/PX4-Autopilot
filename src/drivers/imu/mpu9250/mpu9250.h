@@ -33,7 +33,7 @@
 
 #include <stdint.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/conversions.h>
 
 #include <nuttx/wqueue.h>

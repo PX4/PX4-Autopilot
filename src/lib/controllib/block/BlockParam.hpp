@@ -43,7 +43,7 @@
 
 #include <containers/List.hpp>
 #include <px4_defines.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 namespace control
 {

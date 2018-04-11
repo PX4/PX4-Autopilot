@@ -58,10 +58,7 @@
 #include <arch/board/board.h>
 
 #include "systemlib/systemlib.h"
-#include "systemlib/param/param.h"
-#if defined(FLASH_BASED_PARAMS)
-# include "systemlib/flashparams/flashparams.h"
-#endif
+#include <parameters/param.h>
 #include "systemlib/err.h"
 
 __BEGIN_DECLS

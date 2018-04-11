@@ -53,7 +53,7 @@
 
 #include <systemlib/systemlib.h>
 #include <systemlib/cpuload.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/cpuload.h>

@@ -30,23 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__flight_tasks
-	SRCS
-		tasks/FlightTask.cpp
-		tasks/FlightTaskManual.cpp
-		tasks/FlightTaskManualStabilized.cpp
-		tasks/FlightTaskOrbit.cpp
-		tasks/FlightTaskManualAltitude.cpp
-		tasks/FlightTaskManualAltitudeSmooth.cpp
-		tasks/FlightTaskManualPosition.cpp
-		tasks/FlightTaskManualPositionSmooth.cpp
-		tasks/Utility/ManualSmoothingZ.cpp
-		tasks/Utility/ManualSmoothingXY.cpp
-		SubscriptionArray.cpp
-		FlightTasks.cpp
-	DEPENDS
-		platforms__common
-		modules__uORB
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+px4_add_library(flight_tasks
+	tasks/FlightTask.cpp
+	tasks/FlightTaskManual.cpp
+	tasks/FlightTaskManualStabilized.cpp
+	tasks/FlightTaskOrbit.cpp
+	tasks/FlightTaskManualAltitude.cpp
+	tasks/FlightTaskManualAltitudeSmooth.cpp
+	tasks/FlightTaskManualPosition.cpp
+	tasks/FlightTaskManualPositionSmooth.cpp
+	tasks/Utility/ManualSmoothingZ.cpp
+	tasks/Utility/ManualSmoothingXY.cpp
+	SubscriptionArray.cpp
+	FlightTasks.cpp
+)

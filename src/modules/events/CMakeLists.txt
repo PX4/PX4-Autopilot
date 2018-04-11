@@ -47,7 +47,6 @@ px4_add_module(
 		status_display.cpp
 		set_leds.cpp
 	DEPENDS
-		platforms__common
 		modules__uORB
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

@@ -42,7 +42,7 @@
  */
 
 #include <px4_config.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 /**
  * Roll trim

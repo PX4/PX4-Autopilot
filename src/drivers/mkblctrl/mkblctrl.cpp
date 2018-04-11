@@ -44,7 +44,7 @@
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <drivers/device/i2c.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include <sys/types.h>
 #include <stdint.h>

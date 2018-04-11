@@ -7,13 +7,9 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/airspeed
-	drivers/boards
-	drivers/device
 	drivers/barometer
 	drivers/differential_pressure
 	drivers/gps
-	drivers/led
 	drivers/magnetometer/hmc5883
 	drivers/imu/mpu6000
 	drivers/px4fmu
@@ -77,24 +73,5 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
-	lib/FlightTasks
 )

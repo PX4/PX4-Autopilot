@@ -33,9 +33,7 @@
 
 set(SRCS
 	airspeed.cpp
-	battery.cpp
 	board_serial.c
-	bson/tinybson.c
 	circuit_breaker.cpp
 	conversions.c
 	cpuload.c
@@ -43,7 +41,6 @@ set(SRCS
 	hysteresis/hysteresis.cpp
 	mavlink_log.c
 	otp.c
-	perf_counter.c
 	pid/pid.c
 	pwm_limit/pwm_limit.c
 	rc_check.c
@@ -53,8 +50,6 @@ if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		err.c
 		printload.c
-		flashparams/flashparams.c
-		flashparams/flashfs.c
 		)
 elseif ("${CONFIG_SHMEM}" STREQUAL "1")
 	list(APPEND SRCS
@@ -66,18 +61,11 @@ else()
 		)
 endif()
 
-if(NOT ${OS} STREQUAL "qurt")
-	list(APPEND SRCS
-		hx_stream.c
-		)
+# TODO: find a better way to do this
+if (NOT "${CONFIG}" MATCHES "px4io")
+	px4_add_library(systemlib ${SRCS})
+	target_compile_options(systemlib PRIVATE -Wno-sign-compare)
+else()
+	add_library(systemlib ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+	add_dependencies(systemlib prebuild_targets)
 endif()
-
-px4_add_module(
-	MODULE modules__systemlib
-	COMPILE_FLAGS
-		-Wno-sign-compare
-	SRCS ${SRCS}
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

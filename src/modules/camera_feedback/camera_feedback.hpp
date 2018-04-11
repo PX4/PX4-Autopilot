@@ -47,7 +47,7 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include <px4_config.h>
 #include <px4_defines.h>

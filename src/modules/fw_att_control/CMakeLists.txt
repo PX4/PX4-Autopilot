@@ -36,7 +36,6 @@ px4_add_module(
 	SRCS
 		FixedwingAttitudeControl.cpp
 	DEPENDS
-		platforms__common
 		git_ecl
 		ecl
 	)

@@ -39,6 +39,5 @@ px4_add_module(
 		tfmini.cpp
 		tfmini_parser.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

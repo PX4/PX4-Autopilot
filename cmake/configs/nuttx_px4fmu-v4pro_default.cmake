@@ -13,18 +13,14 @@ set(config_module_list
 	drivers/magnetometer
 	drivers/telemetry
 
-	drivers/airspeed
 	drivers/batt_smbus
 	drivers/blinkm
 	drivers/imu/bma180
 	drivers/imu/bmi160
-	drivers/boards
 	drivers/camera_trigger
-	drivers/device
 	drivers/gps
 	drivers/irlock
 	drivers/imu/l3gd20
-	drivers/led
 	drivers/mkblctrl
 	drivers/imu/mpu6000
 	drivers/imu/mpu9250
@@ -122,24 +118,6 @@ set(config_module_list
 	# Library modules
 	#
 	modules/dataman
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
-	lib/FlightTasks
 
 	#
 	# OBC challenge

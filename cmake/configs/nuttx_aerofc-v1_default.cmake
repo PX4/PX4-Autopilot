@@ -8,11 +8,8 @@ set(config_module_list
 	# Board support modules
 	#
 	drivers/aerofc_adc
-	drivers/boards
-	drivers/device
 	drivers/distance_sensor
 	drivers/gps
-	drivers/led
 	drivers/barometer/ms5611
 	drivers/magnetometer/hmc5883
 	drivers/magnetometer/ist8310
@@ -70,21 +67,5 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/version
-	lib/FlightTasks
 )

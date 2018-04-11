@@ -30,13 +30,10 @@ endif()
 set(CONFIG_SHMEM "1")
 
 set(config_module_list
-	drivers/device
 	drivers/blinkm
 	drivers/linux_sbus
 	drivers/pwm_out_sim
 	drivers/rgbled
-	drivers/led
-	drivers/boards
 	drivers/qshell/posix
 
 	systemcmds/param
@@ -57,9 +54,6 @@ set(config_module_list
 	modules/mc_pos_control
 	modules/mc_att_control
 
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/muorb/krait
 	modules/sensors
 	modules/dataman
@@ -68,16 +62,4 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 	modules/navigator
-
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
-	lib/FlightTasks
 )

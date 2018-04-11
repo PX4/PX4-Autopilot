@@ -41,6 +41,5 @@ px4_add_module(
 		position_estimator_inav_main.cpp
 		inertial_filter.cpp
 	DEPENDS
-		platforms__common
+		terrain_estimation
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

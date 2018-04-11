@@ -39,6 +39,4 @@ px4_add_module(
 		test_controlmath.cpp
 		../Utility/ControlMath.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

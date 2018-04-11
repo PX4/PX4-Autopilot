@@ -35,7 +35,7 @@
 
 #include "drivers/device/ringbuffer.h"	// ringbuffer::RingBuffer
 #include "drivers/drv_mag.h"		// mag_calibration_s
-#include "systemlib/perf_counter.h"	// perf_counter_t
+#include <perf/perf_counter.h>
 
 /* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
 
