@@ -44,7 +44,7 @@
 
 #include <px4_workqueue.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>

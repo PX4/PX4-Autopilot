@@ -42,7 +42,7 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/hardpoint/Command.hpp>
 #include <uavcan/equipment/hardpoint/Status.hpp>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 /**
  * @brief The UavcanHardpointController class

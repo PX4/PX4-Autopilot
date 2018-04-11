@@ -83,20 +83,14 @@ add_custom_command(
 	)
 add_custom_target(mixer_gen_6dof DEPENDS mixer_multirotor_6dof.generated.h)
 
+add_library(mixer
+	mixer.cpp
+	mixer_group.cpp
+	mixer_helicopter.cpp
+	mixer_load.c
+	mixer_multirotor.cpp
+	mixer_simple.cpp
+)
+target_include_directories(mixer PRIVATE ${PX4_BINARY_DIR}/src/lib/mixer)
 
-px4_add_module(
-	MODULE lib__mixer
-	INCLUDES
-		${CMAKE_CURRENT_BINARY_DIR}
-	SRCS
-		mixer.cpp
-		mixer_group.cpp
-		mixer_helicopter.cpp
-		mixer_load.c
-		mixer_multirotor.cpp
-		mixer_simple.cpp
-	DEPENDS
-		mixer_gen
-		mixer_gen_6dof
-		platforms__common
-	)
+add_dependencies(mixer mixer_gen mixer_gen_6dof prebuild_targets)

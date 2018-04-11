@@ -162,7 +162,7 @@ function(px4_os_add_flags)
 		DEFINITIONS ${DEFINITIONS})
 
 	set(DSPAL_ROOT src/lib/DriverFramework/dspal)
-	set(added_include_dirs
+	include_directories(
 		${DSPAL_ROOT}/include
 		${DSPAL_ROOT}/mpu_spi/inc
 		${DSPAL_ROOT}/sys
@@ -173,7 +173,7 @@ function(px4_os_add_flags)
 		platforms/qurt/include
 		)
 
-	set(added_definitions
+	add_definitions(
 		-D__DF_QURT # For DriverFramework
 		-D__PX4_POSIX
 		-D__PX4_QURT
@@ -195,8 +195,8 @@ function(px4_os_add_flags)
 		)
 
 	# Clear -rdynamic flag which fails for hexagon
-	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
-	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
+	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
 
 	set(DF_TARGET "qurt" PARENT_SCOPE)
 
@@ -238,8 +238,6 @@ function(px4_os_prebuild_targets)
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
 
-	add_custom_target(${OUT} DEPENDS git_driverframework uorb_headers)
-
+	add_library(${OUT} INTERFACE)
+	add_dependencies(${OUT} DEPENDS uorb_headers)
 endfunction()
-
-# vim: set noet fenc=utf-8 ff=unix nowrap:

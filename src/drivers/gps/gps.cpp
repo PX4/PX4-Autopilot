@@ -72,7 +72,7 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>

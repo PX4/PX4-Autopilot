@@ -34,7 +34,7 @@
 #include <px4_config.h>
 #include <px4_posix.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include "tests_main.h"
 

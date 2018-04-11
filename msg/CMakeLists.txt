@@ -196,5 +196,5 @@ add_custom_command(OUTPUT ${uorb_sources}
 	VERBATIM
 	)
 
-px4_add_library(uorb_msgs ${uorb_sources})
-add_dependencies(uorb_msgs uorb_headers)
+add_library(uorb_msgs ${uorb_sources})
+add_dependencies(uorb_msgs prebuild_targets uorb_headers)

@@ -37,6 +37,5 @@ px4_add_module(
 	SRCS
 		snapdragon_pwm_out.cpp
 	DEPENDS
-		platforms__common
 		mixer_gen
 	)

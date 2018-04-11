@@ -69,14 +69,14 @@
 #include <drivers/drv_board_led.h>
 
 #include <systemlib/cpuload.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 #include <systemlib/systemlib.h>
 #endif
 
-#if defined(FLASH_BASED_PARAMS)
-# include <systemlib/flashparams/flashfs.h>
+# if defined(FLASH_BASED_PARAMS)
+#  include <parameters/flashparams/flashfs.h>
 #endif
 
 #include "board_config.h"

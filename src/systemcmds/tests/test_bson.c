@@ -47,7 +47,7 @@
 #include <math.h>
 
 #include <systemlib/err.h>
-#include <systemlib/bson/tinybson.h>
+#include <parameters/tinybson/tinybson.h>
 
 #include "tests_main.h"
 

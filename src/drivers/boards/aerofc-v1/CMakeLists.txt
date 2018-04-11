@@ -38,3 +38,10 @@ px4_add_library(drivers_board
 	spi.c
 	timer_config.c
 )
+target_link_libraries(drivers_board
+	PRIVATE
+		drivers__led # drv_led_start
+		nuttx_apps # up_cxxinitialize
+		parameters # param_init
+		modules__dataman # dm_flash_sector_description_set
+)

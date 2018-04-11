@@ -3,7 +3,7 @@ add_subdirectory(src)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 px4_posix_generate_builtin_commands(
 	OUT apps
@@ -46,23 +46,19 @@ else()
 		apps.cpp
 		)
 
-	if (APPLE)
-		target_link_libraries(px4
+	target_link_libraries(px4
+		PRIVATE
 			${module_libraries}
 			df_driver_framework
 			${df_driver_libs}
 			pthread m
-		)
-	else()
-		target_link_libraries(px4
-			-Wl,--start-group
-				${module_libraries}
-				df_driver_framework
-				${df_driver_libs}
-				pthread m rt
-			-Wl,--end-group
-		)
+	)
+
+	if (NOT APPLE)
+		target_link_libraries(px4 PRIVATE rt)
 	endif()
+
+	target_link_libraries(px4 PRIVATE modules__uORB)
 endif()
 
 if ("${BOARD}" STREQUAL "rpi")
@@ -99,5 +95,3 @@ endif()
 install(TARGETS px4 DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
-
-

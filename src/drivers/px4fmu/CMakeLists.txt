@@ -38,6 +38,5 @@ px4_add_module(
 	SRCS
 		fmu.cpp
 	DEPENDS
-		platforms__common
+		rc
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

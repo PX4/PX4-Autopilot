@@ -46,7 +46,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include "hrt_work.h"
 #include <drivers/drv_hrt.h>
 #include "px4_time.h"

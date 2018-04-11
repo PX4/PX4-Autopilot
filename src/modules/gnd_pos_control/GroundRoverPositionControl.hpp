@@ -52,7 +52,7 @@
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/pid/pid.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/fw_pos_ctrl_status.h>

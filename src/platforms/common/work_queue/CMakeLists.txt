@@ -33,25 +33,23 @@
 
 # nuttx uses internal work queue currently
 if (NOT "${OS}" MATCHES "nuttx")
-	px4_add_module(
-		MODULE platforms__posix__work_queue
-		COMPILE_FLAGS
-		SRCS
-			hrt_thread.c
-			hrt_queue.c
-			hrt_work_cancel.c
-			work_thread.c
-			work_lock.c
-			work_queue.c
-			work_cancel.c
-			queue.c
-			dq_addlast.c
-			dq_remfirst.c
-			sq_addlast.c
-			sq_remfirst.c
-			sq_addafter.c
-			dq_rem.c
-		DEPENDS
-			platforms__common
-		)
+
+	add_library(work_queue
+		dq_addlast.c
+		dq_rem.c
+		dq_remfirst.c
+		hrt_queue.c
+		hrt_thread.c
+		hrt_work_cancel.c
+		queue.c
+		sq_addafter.c
+		sq_addlast.c
+		sq_remfirst.c
+		work_cancel.c
+		work_lock.c
+		work_queue.c
+		work_thread.c
+	)
+	add_dependencies(work_queue prebuild_targets)
+
 endif()

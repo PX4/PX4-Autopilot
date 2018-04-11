@@ -51,7 +51,7 @@
 #include <lib/mixer/mixer.h>
 #include <lib/mixer/mixer_load.h>
 #include <lib/mixer/mixer_multirotor_normalized.generated.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_pwm.h>
 

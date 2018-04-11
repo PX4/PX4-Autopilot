@@ -35,7 +35,7 @@
 
 #include <stdint.h>
 
-#include <systemlib/battery.h>
+#include <battery/battery.h>
 
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>

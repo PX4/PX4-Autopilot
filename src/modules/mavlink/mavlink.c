@@ -44,7 +44,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "mavlink_bridge_header.h"
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 mavlink_system_t mavlink_system = {
 	1,

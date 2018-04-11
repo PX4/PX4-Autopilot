@@ -89,5 +89,3 @@ px4_add_module(
 		uavcan
 		uavcan_stm32_driver
 	)
-
-target_link_libraries(modules__uavcan uavcan uavcan_stm32_driver)

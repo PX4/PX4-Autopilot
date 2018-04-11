@@ -252,8 +252,8 @@ coverity_scan: posix_sitl_default
 .PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata
 
 parameters_metadata:
-	@python $(SRC_DIR)/src/modules/systemlib/param/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/modules/systemlib/param/parameters_injected.xml --markdown
-	@python $(SRC_DIR)/src/modules/systemlib/param/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/modules/systemlib/param/parameters_injected.xml --xml
+	@python $(SRC_DIR)/src/lib/parameters/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/lib/parameters/parameters_injected.xml --markdown
+	@python $(SRC_DIR)/src/lib/parameters/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/lib/parameters/parameters_injected.xml --xml
 
 airframe_metadata:
 	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --markdown

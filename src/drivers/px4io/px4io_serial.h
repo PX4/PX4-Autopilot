@@ -54,7 +54,7 @@
 #include <stdio.h>
 
 #include <arch/board/board.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <board_config.h>
 

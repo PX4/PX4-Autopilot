@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 struct position_estimator_inav_params {
 	float w_z_baro;

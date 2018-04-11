@@ -70,7 +70,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <platforms/px4_getopt.h>
 

@@ -54,6 +54,5 @@ px4_add_module(
 		mpu9x50_main.cpp
 		mpu9x50_params.c
 	DEPENDS
-		platforms__common
 	)
 target_link_libraries(platforms__qurt__fc_addon__mpu_spi PRIVATE mpu9x50)

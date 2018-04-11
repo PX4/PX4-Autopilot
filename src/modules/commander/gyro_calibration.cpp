@@ -57,7 +57,7 @@
 #include <uORB/topics/sensor_correction.h>
 #include <drivers/drv_gyro.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
 
 static const char *sensor_name = "gyro";

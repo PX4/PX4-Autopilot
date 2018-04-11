@@ -59,8 +59,8 @@
 #include <systemlib/board_serial.h>
 #include <systemlib/circuit_breaker.h>
 #include <lib/mixer/mixer.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>

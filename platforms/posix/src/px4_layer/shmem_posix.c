@@ -48,7 +48,7 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include "systemlib/param/param.h"
+#include <parameters/param.h>
 
 #include <shmem.h>
 #include "px4muorb.h"

@@ -44,7 +44,5 @@ px4_add_module(
 		log_writer_file.cpp
 		log_writer_mavlink.cpp
 	DEPENDS
-		platforms__common
-		modules__uORB
+		version
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

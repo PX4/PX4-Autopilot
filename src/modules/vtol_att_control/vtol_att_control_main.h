@@ -59,7 +59,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
