@@ -70,29 +70,29 @@ bool ControlMathTest::testPrioritizeVector()
 	matrix::Vector2f v0(max, 0);
 	matrix::Vector2f v1(v0(1), -v0(0));
 	matrix::Vector2f v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(fabsf(v_r(0)) - max < EPS && v_r(0) > 0.0f);
-	ut_assert_true(fabsf(v_r(1) - 0.0f) < EPS);
+	ut_assert_true(fabsf(v_r(0)) - max < FLT_EPSILON && v_r(0) > 0.0f);
+	ut_assert_true(fabsf(v_r(1) - 0.0f) < FLT_EPSILON);
 
 	// v1 exceeds max but v0 is zero
 	v0.zero();
 	v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(fabsf(v_r(1)) - max < EPS && v_r(1) < 0.0f);
-	ut_assert_true(fabsf(v_r(0) - 0.0f) < EPS);
+	ut_assert_true(fabsf(v_r(1)) - max < FLT_EPSILON && v_r(1) < 0.0f);
+	ut_assert_true(fabsf(v_r(0) - 0.0f) < FLT_EPSILON);
 
 	// v0 and v1 are below max
 	v0 = matrix::Vector2f(0.5f, 0.5f);
 	v1 = matrix::Vector2f(v0(1), -v0(0));
 	v_r = ControlMath::constrainXY(v0, v1, max);
 	float diff = matrix::Vector2f(v_r - (v0 + v1)).length();
-	ut_assert_true(diff < EPS);
+	ut_assert_true(diff < FLT_EPSILON);
 
 	// v0 and v1 exceed max and are perpendicular
 	v0 = matrix::Vector2f(4.0f, 0.0f);
 	v1 = matrix::Vector2f(0.0f, -4.0f);
 	v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(v_r(0) - v0(0) < EPS && v_r(0) > 0.0f);
+	ut_assert_true(v_r(0) - v0(0) < FLT_EPSILON && v_r(0) > 0.0f);
 	float remaining = sqrtf(max * max - (v0(0) * v0(0)));
-	ut_assert_true(fabsf(v_r(1)) - remaining  < EPS && v_r(1) < EPS);
+	ut_assert_true(fabsf(v_r(1)) - remaining  < FLT_EPSILON && v_r(1) < FLT_EPSILON);
 
 	//TODO: add more tests with vectors not perpendicular
 
