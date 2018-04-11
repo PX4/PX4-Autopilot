@@ -43,20 +43,6 @@ using namespace matrix;
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
 
-FlightTaskAutoLine::FlightTaskAutoLine(control::SuperBlock *parent, const char *name) :
-	FlightTaskAuto(parent, name),
-	_land_speed(parent, "MPC_LAND_SPEED", false),
-	_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
-	_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
-	_acc_max_xy(parent, "MPC_ACC_HOR_MAX", false),
-	_acc_xy(parent, "MPC_ACC_HOR", false),
-	_acc_max_up(parent, "MPC_ACC_UP_MAX", false),
-	_acc_max_down(parent, "MPC_ACC_DOWN_MAX", false),
-	_cruise_speed_90(parent, "MPC_CRUISE_90", false),
-	_nav_rad(parent, "NAV_ACC_RAD", false),
-	_mis_yaw_error(parent, "MIS_YAW_ERR", false)
-{}
-
 bool FlightTaskAutoLine::activate()
 {
 	bool ret = FlightTaskAuto::activate();
