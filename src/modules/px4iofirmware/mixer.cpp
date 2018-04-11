@@ -492,7 +492,7 @@ mixer_callback(uintptr_t handle,
  * not loaded faithfully.
  */
 
-static char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
+static char mixer_text[PX4IO_MAX_MIXER_LENGTH];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 static bool mixer_update_pending = false;
 

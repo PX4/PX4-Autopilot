@@ -1,8 +1,7 @@
 #include <unit_test.h>
 #include "../Utility/ControlMath.hpp"
 #include <mathlib/mathlib.h>
-
-static const float EPS = 0.00000001f;
+#include <cfloat>
 
 class ControlMathTest : public UnitTest
 {
@@ -29,20 +28,20 @@ bool ControlMathTest::testThrAttMapping()
 	matrix::Vector3f thr{0.0f, 0.0f, -1.0f};
 	float yaw = 0.0f;
 	vehicle_attitude_setpoint_s att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_compare("", att.roll_body, EPS);
-	ut_assert_true(att.pitch_body < EPS);
-	ut_assert_true(att.yaw_body < EPS);
-	ut_assert_true(att.thrust - 1.0f < EPS);
+	ut_assert_true(att.roll_body < FLT_EPSILON);
+	ut_assert_true(att.pitch_body < FLT_EPSILON);
+	ut_assert_true(att.yaw_body < FLT_EPSILON);
+	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
 
 	/* expected: same as before but with 90 yaw
 	 * reason: only yaw changed
 	 */
 	yaw = M_PI_2_F;
 	att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_assert_true(att.roll_body < EPS);
-	ut_assert_true(att.pitch_body < EPS);
-	ut_assert_true(att.yaw_body - M_PI_2_F < EPS);
-	ut_assert_true(att.thrust - 1.0f < EPS);
+	ut_assert_true(att.roll_body < FLT_EPSILON);
+	ut_assert_true(att.pitch_body < FLT_EPSILON);
+	ut_assert_true(att.yaw_body - M_PI_2_F < FLT_EPSILON);
+	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
 
 	/* expected: same as before but roll 180
 	 * reason: thrust points straight down and order Euler
@@ -50,10 +49,10 @@ bool ControlMathTest::testThrAttMapping()
 	 */
 	thr = matrix::Vector3f(0.0f, 0.0f, 1.0f);
 	att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_assert_true(fabsf(att.roll_body) - M_PI_F < EPS);
-	ut_assert_true(fabsf(att.pitch_body) < EPS);
-	ut_assert_true(att.yaw_body - M_PI_2_F < EPS);
-	ut_assert_true(att.thrust - 1.0f < EPS);
+	ut_assert_true(fabsf(att.roll_body) - M_PI_F < FLT_EPSILON);
+	ut_assert_true(fabsf(att.pitch_body) < FLT_EPSILON);
+	ut_assert_true(att.yaw_body - M_PI_2_F < FLT_EPSILON);
+	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
 
 	/* TODO: find a good way to test it */
 
