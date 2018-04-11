@@ -4244,6 +4244,7 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			mavlink_log_critical(&mavlink_log_pub, "LOW LATENCY DATA LINKS REGAINED, DEACTIVATING HIGH LATENCY LINK");
 
 			vehicle_command_s vehicle_cmd;
+			vehicle_cmd.timestamp = hrt_absolute_time();
 			vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
 			vehicle_cmd.param1 = 0.0f;
 			vehicle_cmd.from_external = false;
@@ -4264,6 +4265,7 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			*status_changed = true;
 
 			vehicle_command_s vehicle_cmd;
+			vehicle_cmd.timestamp = hrt_absolute_time();
 			vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
 			vehicle_cmd.param1 = 1.0f;
 			vehicle_cmd.from_external = false;
