@@ -358,6 +358,14 @@ FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 
 	if (rates_sp_updated) {
 		orb_copy(ORB_ID(vehicle_rates_setpoint), _rates_sp_sub, &_rates_sp);
+
+		if (_parameters.vtol_type == vtol_type::TAILSITTER) {
+			float tmp = _rates_sp.roll;
+			_rates_sp.roll = -_rates_sp.yaw;
+			_rates_sp.yaw = tmp;
+		}
+
+
 	}
 }
 
@@ -821,15 +829,8 @@ void FixedwingAttitudeControl::run()
 				} else {
 					vehicle_rates_setpoint_poll();
 
-					if (_parameters.vtol_type == vtol_type::TAILSITTER) {
-						_roll_ctrl.set_bodyrate_setpoint(-_rates_sp.yaw);
-						_yaw_ctrl.set_bodyrate_setpoint(_rates_sp.roll);
-
-					} else {
-						_roll_ctrl.set_bodyrate_setpoint(_rates_sp.roll);
-						_yaw_ctrl.set_bodyrate_setpoint(_rates_sp.yaw);
-					}
-
+					_roll_ctrl.set_bodyrate_setpoint(_rates_sp.roll);
+					_yaw_ctrl.set_bodyrate_setpoint(_rates_sp.yaw);
 					_pitch_ctrl.set_bodyrate_setpoint(_rates_sp.pitch);
 
 					float roll_u = _roll_ctrl.control_bodyrate(control_input);
