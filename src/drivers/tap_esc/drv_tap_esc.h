@@ -41,6 +41,8 @@
 #define TAP_ESC_MAX_PACKET_LEN 20
 #define TAP_ESC_MAX_MOTOR_NUM 8
 
+#define PACKET_HEAD 0xfe
+
 /* ESC_POS maps the values stored in the channelMapTable to reorder the ESC's
  * id so that that match the mux setting, so that the ressonder's data
  * will be read.
