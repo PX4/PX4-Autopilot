@@ -41,7 +41,7 @@
 
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <systemlib/param/param.h>
+#include <px4_module_params.h>
 
 #pragma once
 
@@ -77,12 +77,20 @@ struct Constraints {
  *
  * 	A setpoint that is NAN is considered as not set.
  */
-class PositionControl
+class PositionControl : public ModuleParams
 {
 public:
 
-	PositionControl();
-	~PositionControl() {};
+	PositionControl(ModuleParams *parent);
+	~PositionControl() = default;
+
+	/**
+	 *	Overwrites certain parameters.
+	 *	Overwrites are required for unit-conversion.
+	 *	This method should only be called if parameters
+	 *	have been updated.
+	 */
+	void overwriteParams();
 
 	/**
 	 * Update the current vehicle state.
@@ -164,8 +172,6 @@ private:
 	void _interfaceMapping(); /** maps set-points to internal member set-points */
 	void _positionController(); /** applies the P-position-controller */
 	void _velocityController(const float &dt); /** applies the PID-velocity-controller */
-	void _updateParams(); /** updates parameters */
-	void _setParams(); /** sets parameters to internal member */
 
 	matrix::Vector3f _pos{}; /**< MC position */
 	matrix::Vector3f _vel{}; /**< MC velocity */
@@ -182,42 +188,23 @@ private:
 	Controller::Constraints _constraints{}; /**< variable constraints */
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
 
-	/**
-	 * Position Gains.
-	 * Pp: P-controller gain for position-controller
-	 * Pv: P-controller gain for velocity-controller
-	 * Iv: I-controller gain for velocity-controller
-	 * Dv: D-controller gain for velocity-controller
-	 */
-	matrix::Vector3f _Pp, _Pv, _Iv, _Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
-
-	float MPC_THR_MAX{1.0f}; /**< maximum thrust */
-	float MPC_THR_HOVER{0.5f}; /** equilibrium point for the velocity controller */
-	float MPC_THR_MIN{0.0f}; /**< minimum throttle for any position controlled mode */
-	float MPC_MANTHR_MIN{0.0f}; /**< minimum throttle for stabilized mode */
-	float MPC_XY_VEL_MAX{1.0f}; /**< maximum speed in the horizontal direction */
-	float MPC_Z_VEL_MAX_DN{1.0f}; /**< maximum speed in downwards direction */
-	float MPC_Z_VEL_MAX_UP{1.0f}; /**< maximum speed in upwards direction */
-	float MPC_TILTMAX_AIR{1.5}; /**< maximum tilt for any position/velocity controlled mode in radians */
-	float MPC_MAN_TILT_MAX{3.1}; /**< maximum tilt for manual/altitude mode in radians */
-
-	// Parameter handles
-	int _parameter_sub { -1 };
-	param_t MPC_Z_P_h { PARAM_INVALID };
-	param_t MPC_Z_VEL_P_h { PARAM_INVALID };
-	param_t MPC_Z_VEL_I_h { PARAM_INVALID };
-	param_t MPC_Z_VEL_D_h { PARAM_INVALID };
-	param_t MPC_XY_P_h { PARAM_INVALID };
-	param_t MPC_XY_VEL_P_h { PARAM_INVALID };
-	param_t MPC_XY_VEL_I_h { PARAM_INVALID };
-	param_t MPC_XY_VEL_D_h { PARAM_INVALID };
-	param_t MPC_XY_VEL_MAX_h { PARAM_INVALID };
-	param_t MPC_Z_VEL_MAX_DN_h { PARAM_INVALID };
-	param_t MPC_Z_VEL_MAX_UP_h { PARAM_INVALID };
-	param_t MPC_THR_HOVER_h { PARAM_INVALID };
-	param_t MPC_THR_MAX_h { PARAM_INVALID };
-	param_t MPC_THR_MIN_h { PARAM_INVALID };
-	param_t MPC_MANTHR_MIN_h { PARAM_INVALID };
-	param_t MPC_TILTMAX_AIR_h { PARAM_INVALID };
-	param_t MPC_MAN_TILT_MAX_h { PARAM_INVALID };
+	DEFINE_PARAMETERS(
+	        (ParamFloat<px4::params::MPC_THR_MAX>) MPC_THR_MAX,
+			(ParamFloat<px4::params::MPC_THR_HOVER>) MPC_THR_HOVER,
+			(ParamFloat<px4::params::MPC_THR_MIN>) MPC_THR_MIN,
+			(ParamFloat<px4::params::MPC_MANTHR_MIN>) MPC_MANTHR_MIN,
+			(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
+			(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
+			(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
+			(ParamFloat<px4::params::MPC_TILTMAX_AIR>) MPC_TILTMAX_AIR,
+			(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX,
+			(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P,
+			(ParamFloat<px4::params::MPC_Z_VEL_P>) MPC_Z_VEL_P,
+			(ParamFloat<px4::params::MPC_Z_VEL_I>) MPC_Z_VEL_I,
+			(ParamFloat<px4::params::MPC_Z_VEL_D>) MPC_Z_VEL_D,
+			(ParamFloat<px4::params::MPC_XY_P>) MPC_XY_P,
+			(ParamFloat<px4::params::MPC_XY_VEL_P>) MPC_XY_VEL_P,
+			(ParamFloat<px4::params::MPC_XY_VEL_I>) MPC_XY_VEL_I,
+			(ParamFloat<px4::params::MPC_XY_VEL_D>) MPC_XY_VEL_D
+	)
 };
