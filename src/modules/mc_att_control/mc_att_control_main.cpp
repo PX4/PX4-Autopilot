@@ -117,12 +117,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_att.q[0] = 1.f;
 	_v_att_sp.q_d[0] = 1.f;
 
-	_rates_prev.zero();
-	_rates_prev_filtered.zero();
-	_rates_sp.zero();
-	_rates_int.zero();
 	_thrust_sp = 0.0f;
-	_att_control.zero();
 
 	/* initialize thermal corrections as we might not immediately get a topic update (only non-zero values) */
 	for (unsigned i = 0; i < 3; i++) {
