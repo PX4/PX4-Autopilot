@@ -302,7 +302,7 @@ TAP_ESC::init()
 
 			tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
 
-			if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet)) {
+			if (!tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet)) {
 				valid = (_packet.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC
 					 && _packet.d.rspConfigInfoBasic.channelID == cid
 					 && 0 == memcmp(&_packet.d.rspConfigInfoBasic.resp, &config, sizeof(ConfigInfoBasicRequest)));
@@ -600,7 +600,7 @@ TAP_ESC::cycle()
 		send_esc_outputs(motor_out, esc_count);
 		tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
 
-		if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet) == true) {
+		if (!tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet)) {
 			if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
 				RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
 
