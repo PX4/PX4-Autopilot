@@ -65,17 +65,17 @@ protected:
 	State _current_state{State::none};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
-			(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
-			(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
-			(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
-			(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_max_xy,
-			(ParamFloat<px4::params::MPC_ACC_HOR>) _acc_xy,
-			(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acc_max_up,
-			(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acc_max_down,
-			(ParamFloat<px4::params::MPC_CRUISE_90>) _cruise_speed_90,
-			(ParamFloat<px4::params::NAV_ACC_RAD>) _nav_rad,
-			(ParamFloat<px4::params::MIS_YAW_ERR>) _mis_yaw_error
-			)
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
+					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_max_xy,
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _acc_xy,
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acc_max_up,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acc_max_down,
+					(ParamFloat<px4::params::MPC_CRUISE_90>) _cruise_speed_90,
+					(ParamFloat<px4::params::NAV_ACC_RAD>) _nav_rad,
+					(ParamFloat<px4::params::MIS_YAW_ERR>) _mis_yaw_error
+				       )
 
 	void _generateIdleSetpoints();
 	void _generateLandSetpoints();

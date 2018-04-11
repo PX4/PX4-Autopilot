@@ -43,7 +43,7 @@
 using namespace matrix;
 
 PositionControl::PositionControl(ModuleParams *parent) :
-ModuleParams(parent)
+	ModuleParams(parent)
 {}
 
 void PositionControl::updateState(const struct vehicle_local_position_s state, const Vector3f &vel_dot)
@@ -200,7 +200,8 @@ void PositionControl::_velocityController(const float &dt)
 	Vector3f vel_err = _vel_sp - _vel;
 
 	// Consider thrust in D-direction.
-	float thrust_desired_D = MPC_Z_VEL_P.get() * vel_err(2) +  MPC_Z_VEL_D.get() * _vel_dot(2) + _thr_int(2) - MPC_THR_HOVER.get();
+	float thrust_desired_D = MPC_Z_VEL_P.get() * vel_err(2) +  MPC_Z_VEL_D.get() * _vel_dot(2) + _thr_int(
+					 2) - MPC_THR_HOVER.get();
 
 	// The Thrust limits are negated and swapped due to NED-frame.
 	float uMax = -MPC_THR_MIN.get();
@@ -221,7 +222,7 @@ void PositionControl::_velocityController(const float &dt)
 	if (fabsf(_thr_sp(0)) + fabsf(_thr_sp(1))  > FLT_EPSILON) {
 		// Thrust set-point in NE-direction is already provided. Only
 		// scaling by the maximum tilt is required.
-		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(MPC_MAN_TILT_MAX.get());
+		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(MPC_MAN_TILT_MAX_rad.get());
 		_thr_sp(0) *= thr_xy_max;
 		_thr_sp(1) *= thr_xy_max;
 
@@ -268,8 +269,8 @@ void PositionControl::updateConstraints(const Controller::Constraints &constrain
 	// Check if adjustable constraints are below global constraints. If they are not stricter than global
 	// constraints, then just use global constraints for the limits.
 
-	if (!PX4_ISFINITE(constraints.tilt_max) || !(constraints.tilt_max < MPC_TILTMAX_AIR.get())) {
-		_constraints.tilt_max = MPC_TILTMAX_AIR.get();
+	if (!PX4_ISFINITE(constraints.tilt_max) || !(constraints.tilt_max < MPC_TILTMAX_AIR_rad.get())) {
+		_constraints.tilt_max = MPC_TILTMAX_AIR_rad.get();
 	}
 
 	if (!PX4_ISFINITE(constraints.vel_max_z_up) || !(constraints.vel_max_z_up < MPC_Z_VEL_MAX_UP.get())) {
