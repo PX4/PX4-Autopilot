@@ -534,8 +534,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	_att_control = rates_p_scaled.emult(rates_err) +
 		       _rates_int -
 		       rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt +
-		       _rate_ff.emult(_rates_sp);
+		       _rate_ff.emult(_rates_sp - _rates_sp_prev) / dt;
 
+	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
 	_rates_prev_filtered = rates_filtered;
 
