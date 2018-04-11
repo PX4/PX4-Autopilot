@@ -1,4 +1,6 @@
 # Waypoints Trajectory description. See also Mavlink TRAJECTORY msg
+# The topic trajectory_waypoint_desired is used to send the user desired waypoints from the position controller to the companion computer / avoidance module.
+# The topic trajectory_waypoint is used to send the adjusted waypoints from the companion computer / avoidance module to the position controller.
 
 uint8 POINT_0 = 0
 uint8 POINT_1 = 1
