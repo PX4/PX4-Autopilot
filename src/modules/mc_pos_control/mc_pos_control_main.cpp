@@ -238,7 +238,7 @@ private:
 
 
 	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
-	PositionControl _control{}; /**< class handling the core PID position controller */
+	PositionControl _control; /**< class handling the core PID position controller */
 
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
 
@@ -461,6 +461,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_control(this),
 	_manual_direction_change_hysteresis(false),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
@@ -566,6 +567,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		SuperBlock::updateParams();
 
 		_flight_tasks.handleParameterUpdate();
+
+		_control.overwriteParams();
 
 		/* initialize vectors from params and enforce constraints */
 
