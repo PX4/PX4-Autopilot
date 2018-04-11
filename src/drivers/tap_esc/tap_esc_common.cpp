@@ -54,14 +54,6 @@ namespace tap_esc_common
 static uint8_t crc8_esc(uint8_t *p, uint8_t len);
 static uint8_t crc_packet(EscPacket &p);
 
-/****************************************************************************
- * Name: select_responder
- *
- * Description:
- *   Select tap esc responder for serial interface (device 74hct151).
- *   GPIOs to be defined in board_config.h
- *
- ****************************************************************************/
 void select_responder(uint8_t sel)
 {
 #if defined(GPIO_S0)
@@ -108,12 +100,18 @@ int initialise_uart(const char *const device, int &uart_fd)
 		PX4_WARN("hardware flow disable failed");
 	}
 
-	return uart_fd;
+	return 0;
 }
 
 int deinitialise_uart(int &uart_fd)
 {
-	return close(uart_fd);
+	int ret = close(uart_fd);
+
+	if (ret == 0) {
+		uart_fd = -1;
+	}
+
+	return ret;
 }
 
 int enable_flow_control(int uart_fd, bool enabled)
@@ -153,7 +151,7 @@ int send_packet(int uart_fd, EscPacket &packet, int responder)
 	return ret;
 }
 
-void read_data_from_uart(int uart_fd, ESC_UART_BUF *const uart_buf)
+int read_data_from_uart(int uart_fd, ESC_UART_BUF *const uart_buf)
 {
 	uint8_t tmp_serial_buf[UART_BUFFER_SIZE];
 
@@ -168,10 +166,15 @@ void read_data_from_uart(int uart_fd, ESC_UART_BUF *const uart_buf)
 				uart_buf->tail = 0;
 			}
 		}
+
+	} else if (len < 0) {
+		return len;
 	}
+
+	return 0;
 }
 
-bool parse_tap_esc_feedback(ESC_UART_BUF *const serial_buf, EscPacket *const packetdata)
+int parse_tap_esc_feedback(ESC_UART_BUF *const serial_buf, EscPacket *const packetdata)
 {
 	static PARSR_ESC_STATE state = HEAD;
 	static uint8_t data_index = 0;
@@ -183,8 +186,8 @@ bool parse_tap_esc_feedback(ESC_UART_BUF *const serial_buf, EscPacket *const pac
 		for (int i = 0; i < count; i++) {
 			switch (state) {
 			case HEAD:
-				if (serial_buf->esc_feedback_buf[serial_buf->head] == 0xFE) {
-					packetdata->head = 0xFE; //just_keep the format
+				if (serial_buf->esc_feedback_buf[serial_buf->head] == PACKET_HEAD) {
+					packetdata->head = PACKET_HEAD; //just_keep the format
 					state = LEN;
 				}
 
@@ -234,7 +237,7 @@ bool parse_tap_esc_feedback(ESC_UART_BUF *const serial_buf, EscPacket *const pac
 
 					serial_buf->dat_cnt--;
 					state = HEAD;
-					return true;
+					return 0;
 				}
 
 				state = HEAD;
@@ -251,13 +254,10 @@ bool parse_tap_esc_feedback(ESC_UART_BUF *const serial_buf, EscPacket *const pac
 			}
 
 			serial_buf->dat_cnt--;
-
 		}
-
-
 	}
 
-	return false;
+	return -1;
 }
 
 static uint8_t crc8_esc(uint8_t *p, uint8_t len)
