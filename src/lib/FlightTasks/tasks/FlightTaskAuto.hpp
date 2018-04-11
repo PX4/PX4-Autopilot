@@ -80,7 +80,8 @@ protected:
 private:
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask, (ParamFloat<px4::params::MPC_XY_CRUISE>) _mc_cruise_default); /**< Default mc cruise speed.*/
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_XY_CRUISE>) _mc_cruise_default); /**< Default mc cruise speed.*/
 
 	map_projection_reference_s _reference; /**< Reference frame from global to local. */
 
