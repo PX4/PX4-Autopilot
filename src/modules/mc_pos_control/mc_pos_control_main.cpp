@@ -568,8 +568,6 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		_flight_tasks.handleParameterUpdate();
 
-		_control.overwriteParams();
-
 		/* initialize vectors from params and enforce constraints */
 
 		_pos_p(0) = _xy_p.get();
