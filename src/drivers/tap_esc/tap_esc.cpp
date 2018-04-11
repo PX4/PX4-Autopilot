@@ -61,10 +61,6 @@
 
 #include "tap_esc_common.h"
 
-#ifndef B250000
-#define B250000 250000
-#endif
-
 #include "drv_tap_esc.h"
 
 #if !defined(BOARD_TAP_ESC_NO_VERIFY_CONFIG)
@@ -153,11 +149,7 @@ private:
 	void		work_start();
 	void		work_stop();
 	void send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm);
-	uint8_t crc8_esc(uint8_t *p, uint8_t len);
-	uint8_t crc_packet(EscPacket &p);
-	int send_packet(EscPacket &p, int responder);
-	void read_data_from_uart();
-	bool parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packetdata);
+
 	static int control_callback_trampoline(uintptr_t handle,
 					       uint8_t control_group, uint8_t control_index, float &input);
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
@@ -277,7 +269,7 @@ TAP_ESC::init()
 	config.maxChannelValue = RPMMAX;
 	config.minChannelValue = RPMMIN;
 
-	ret = send_packet(packet, 0);
+	ret = tap_esc_common::send_packet(_uart_fd, packet, 0);
 
 	if (ret < 0) {
 		return ret;
@@ -295,7 +287,7 @@ TAP_ESC::init()
 		info_req.channelID = cid;
 		info_req.requestInfoType = REQEST_INFO_BASIC;
 
-		ret = send_packet(packet_info, cid);
+		ret = tap_esc_common::send_packet(_uart_fd, packet_info, cid);
 
 		if (ret < 0) {
 			return ret;
@@ -308,9 +300,9 @@ TAP_ESC::init()
 
 		while (retries--) {
 
-			read_data_from_uart();
+			tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
 
-			if (parse_tap_esc_feedback(&uartbuf, &_packet)) {
+			if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet)) {
 				valid = (_packet.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC
 					 && _packet.d.rspConfigInfoBasic.channelID == cid
 					 && 0 == memcmp(&_packet.d.rspConfigInfoBasic.resp, &config, sizeof(ConfigInfoBasicRequest)));
@@ -344,7 +336,7 @@ TAP_ESC::init()
 
 	while (unlock_times--) {
 
-		send_packet(unlock_packet, -1);
+		tap_esc_common::send_packet(_uart_fd, unlock_packet, -1);
 
 		/* Min Packet to Packet time is 1 Ms so use 2 */
 
@@ -354,27 +346,6 @@ TAP_ESC::init()
 	/* do regular cdev init */
 
 	ret = CDev::init();
-
-	return ret;
-}
-
-int TAP_ESC::send_packet(EscPacket &packet, int responder)
-{
-	if (responder >= 0) {
-
-		if (responder > _channels_count) {
-			return -EINVAL;
-		}
-
-		tap_esc_common::select_responder(responder);
-	}
-
-	int packet_len = crc_packet(packet);
-	int ret = ::write(_uart_fd, &packet.head, packet_len);
-
-	if (ret != packet_len) {
-		PX4_WARN("TX ERROR: ret: %d, errno: %d", ret, errno);
-	}
 
 	return ret;
 }
@@ -407,24 +378,6 @@ TAP_ESC::subscribe()
 	}
 }
 
-uint8_t TAP_ESC::crc8_esc(uint8_t *p, uint8_t len)
-{
-	uint8_t crc = 0;
-
-	for (uint8_t i = 0; i < len; i++) {
-		crc = tap_esc_common::crc_table[crc^*p++];
-	}
-
-	return crc;
-}
-
-uint8_t TAP_ESC::crc_packet(EscPacket &p)
-{
-	/* Calculate the crc over Len,ID,data */
-	p.d.bytes[p.len] = crc8_esc(&p.len, p.len + 2);
-	return p.len + offsetof(EscPacket, d) + 1;
-}
-
 void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 {
 
@@ -454,7 +407,7 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 		packet.d.reqRun.rpm_flags[i] = rpm[i];
 	}
 
-	int ret = send_packet(packet, which_to_respone);
+	int ret = tap_esc_common::send_packet(_uart_fd, packet, which_to_respone);
 
 	if (++which_to_respone == _channels_count) {
 		which_to_respone = 0;
@@ -463,113 +416,6 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 	if (ret < 1) {
 		PX4_WARN("TX ERROR: ret: %d, errno: %d", ret, errno);
 	}
-}
-
-void TAP_ESC::read_data_from_uart()
-{
-	uint8_t tmp_serial_buf[UART_BUFFER_SIZE];
-
-	int len =::read(_uart_fd, tmp_serial_buf, arraySize(tmp_serial_buf));
-
-	if (len > 0 && (uartbuf.dat_cnt + len < UART_BUFFER_SIZE)) {
-		for (int i = 0; i < len; i++) {
-			uartbuf.esc_feedback_buf[uartbuf.tail++] = tmp_serial_buf[i];
-			uartbuf.dat_cnt++;
-
-			if (uartbuf.tail >= UART_BUFFER_SIZE) {
-				uartbuf.tail = 0;
-			}
-		}
-	}
-}
-
-bool TAP_ESC::parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packetdata)
-{
-	static PARSR_ESC_STATE state = HEAD;
-	static uint8_t data_index = 0;
-	static uint8_t crc_data_cal;
-
-	if (serial_buf->dat_cnt > 0) {
-		int count = serial_buf->dat_cnt;
-
-		for (int i = 0; i < count; i++) {
-			switch (state) {
-			case HEAD:
-				if (serial_buf->esc_feedback_buf[serial_buf->head] == 0xFE) {
-					packetdata->head = 0xFE; //just_keep the format
-					state = LEN;
-				}
-
-				break;
-
-			case LEN:
-				if (serial_buf->esc_feedback_buf[serial_buf->head] < sizeof(packetdata->d)) {
-					packetdata->len = serial_buf->esc_feedback_buf[serial_buf->head];
-					state = ID;
-
-				} else {
-					state = HEAD;
-				}
-
-				break;
-
-			case ID:
-				if (serial_buf->esc_feedback_buf[serial_buf->head] < ESCBUS_MSG_ID_MAX_NUM) {
-					packetdata->msg_id = serial_buf->esc_feedback_buf[serial_buf->head];
-					data_index = 0;
-					state = DATA;
-
-				} else {
-					state = HEAD;
-				}
-
-				break;
-
-			case DATA:
-				packetdata->d.bytes[data_index++] = serial_buf->esc_feedback_buf[serial_buf->head];
-
-				if (data_index >= packetdata->len) {
-
-					crc_data_cal = crc8_esc((uint8_t *)(&packetdata->len), packetdata->len + 2);
-					state = CRC;
-				}
-
-				break;
-
-			case CRC:
-				if (crc_data_cal == serial_buf->esc_feedback_buf[serial_buf->head]) {
-					packetdata->crc_data = serial_buf->esc_feedback_buf[serial_buf->head];
-
-					if (++serial_buf->head >= UART_BUFFER_SIZE) {
-						serial_buf->head = 0;
-					}
-
-					serial_buf->dat_cnt--;
-					state = HEAD;
-					return true;
-				}
-
-				state = HEAD;
-				break;
-
-			default:
-				state = HEAD;
-				break;
-
-			}
-
-			if (++serial_buf->head >= UART_BUFFER_SIZE) {
-				serial_buf->head = 0;
-			}
-
-			serial_buf->dat_cnt--;
-
-		}
-
-
-	}
-
-	return false;
 }
 
 void
@@ -752,9 +598,9 @@ TAP_ESC::cycle()
 		}
 
 		send_esc_outputs(motor_out, esc_count);
-		read_data_from_uart();
+		tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
 
-		if (parse_tap_esc_feedback(&uartbuf, &_packet) == true) {
+		if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet) == true) {
 			if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
 				RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
 
@@ -935,16 +781,12 @@ TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 namespace tap_esc_drv
 {
-
-
 volatile bool _task_should_exit = false; // flag indicating if tap_esc task should exit
 static int _uart_fd = -1;
 static char _device[32] = {};
 static bool _is_running = false;         // flag indicating if tap_esc app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 static int _supported_channel_count = 0;
-
-static bool _flow_control_enabled = false;
 
 void usage();
 
@@ -956,12 +798,6 @@ int tap_esc_stop(void);
 void task_main_trampoline(int argc, char *argv[]);
 
 void task_main(int argc, char *argv[]);
-
-int initialise_uart();
-
-int deinitialize_uart();
-
-int enable_flow_control(bool enabled);
 
 int tap_esc_start(void)
 {
@@ -1001,79 +837,13 @@ int tap_esc_stop(void)
 	return ret;
 }
 
-int initialise_uart()
-{
-	// open uart
-	_uart_fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
-	int termios_state = -1;
-
-	if (_uart_fd < 0) {
-		PX4_ERR("failed to open uart device!");
-		return -1;
-	}
-
-	// set baud rate
-	int speed = B250000;
-	struct termios uart_config;
-	tcgetattr(_uart_fd, &uart_config);
-
-	// clear ONLCR flag (which appends a CR for every LF)
-	uart_config.c_oflag &= ~ONLCR;
-
-	// set baud rate
-	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		PX4_ERR("failed to set baudrate for %s: %d\n", _device, termios_state);
-		close(_uart_fd);
-		return -1;
-	}
-
-	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_ERR("tcsetattr failed for %s\n", _device);
-		close(_uart_fd);
-		return -1;
-	}
-
-	// setup output flow control
-	if (enable_flow_control(false)) {
-		PX4_WARN("hardware flow disable failed");
-	}
-
-	return _uart_fd;
-}
-
-int enable_flow_control(bool enabled)
-{
-	struct termios uart_config;
-
-	int ret = tcgetattr(_uart_fd, &uart_config);
-
-	if (enabled) {
-		uart_config.c_cflag |= CRTSCTS;
-
-	} else {
-		uart_config.c_cflag &= ~CRTSCTS;
-	}
-
-	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
-
-	if (!ret) {
-		_flow_control_enabled = enabled;
-	}
-
-	return ret;
-}
-
-int deinitialize_uart()
-{
-	return close(_uart_fd);
-}
 
 void task_main(int argc, char *argv[])
 {
 
 	_is_running = true;
 
-	if (initialise_uart() < 0) {
+	if (tap_esc_common::initialise_uart(_device, _uart_fd) < 0) {
 		PX4_ERR("Failed to initialize UART.");
 
 		while (_task_should_exit == false) {
@@ -1138,7 +908,7 @@ void stop()
 	}
 
 	tap_esc_stop();
-	deinitialize_uart();
+	tap_esc_common::deinitialise_uart(_uart_fd);
 	_task_handle = -1;
 }
 
