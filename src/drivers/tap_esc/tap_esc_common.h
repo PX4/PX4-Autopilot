@@ -40,6 +40,9 @@
 
 #include <stdint.h>
 
+#include "drv_tap_esc.h"
+
+
 namespace tap_esc_common
 {
 /****************************************************************************
@@ -50,6 +53,18 @@ namespace tap_esc_common
  *
  ****************************************************************************/
 void select_responder(uint8_t sel);
+
+int initialise_uart(const char *const device, int &uart_fd);
+
+int deinitialise_uart(int &uart_fd);
+
+int enable_flow_control(int uart_fd, bool enabled);
+
+int send_packet(int uart_fd, EscPacket &packet, int responder);
+
+void read_data_from_uart(int uart_fd, ESC_UART_BUF *const uart_buf);
+
+bool parse_tap_esc_feedback(ESC_UART_BUF *const serial_buf, EscPacket *const packetdata);
 
 extern const uint8_t crc_table[];
 } /* tap_esc_common */
