@@ -3096,7 +3096,7 @@ MulticopterPositionControl::task_main()
 				// Adjust for different takeoff cases.
 				// The minimum takeoff altitude needs to be at least 20cm above current position
 				if ((PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2) - 0.2f) ||
-				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < math::min(-_params.tko_speed, -0.6f))) {
+				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < math::min(-_tko_speed.get(), -0.6f))) {
 					// There is a position setpoint above current position or velocity setpoint larger than
 					// takeoff speed. Enable smooth takeoff.
 					_in_smooth_takeoff = true;
@@ -3117,7 +3117,7 @@ MulticopterPositionControl::task_main()
 
 				// If there is a valid position setpoint, then set the desired speed to the takeoff speed.
 				if (PX4_ISFINITE(setpoint.z)) {
-					desired_tko_speed =  _params.tko_speed;
+					desired_tko_speed =  _tko_speed.get();
 				}
 
 				// Ramp up takeoff speed.
