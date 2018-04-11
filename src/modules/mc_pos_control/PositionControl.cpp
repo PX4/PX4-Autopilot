@@ -277,9 +277,11 @@ void PositionControl::updateConstraints(const Controller::Constraints &constrain
 	}
 }
 
-void PositionControl::overwriteParams()
+void PositionControl::updateParams()
 {
+	ModuleParams::updateParams();
+
 	// Tilt needs to be in radians
-	MPC_TILTMAX_AIR.set(math::radians(MPC_TILTMAX_AIR.get()));
-	MPC_MAN_TILT_MAX.set(math::radians(MPC_MAN_TILT_MAX.get()));
+	MPC_TILTMAX_AIR_rad.set(math::radians(MPC_TILTMAX_AIR_rad.get()));
+	MPC_MAN_TILT_MAX_rad.set(math::radians(MPC_MAN_TILT_MAX_rad.get()));
 }
