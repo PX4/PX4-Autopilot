@@ -134,7 +134,10 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 		updated |= write_wind_estimate(&msg);
 
 		if (updated) {
-			convert_limit_safe(t / 1000, &msg.timestamp);
+			uint32_t timestamp;
+			convert_limit_safe(t / 1000, timestamp);
+			msg.timestamp = timestamp;
+
 			msg.type = _mavlink->get_system_type();
 			msg.autopilot = MAV_AUTOPILOT_PX4;
 
@@ -280,7 +283,9 @@ bool MavlinkStreamHighLatency2::write_fw_ctrl_status(mavlink_high_latency2_t *ms
 	const bool updated = _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status_time, &fw_pos_ctrl_status);
 
 	if (_fw_pos_ctrl_status_time > 0) {
-		convert_limit_safe(fw_pos_ctrl_status.wp_dist * 0.1f, &msg->target_distance);
+		uint16_t target_distance;
+		convert_limit_safe(fw_pos_ctrl_status.wp_dist * 0.1f, target_distance);
+		msg->target_distance = target_distance;
 	}
 
 	return updated;
@@ -308,15 +313,22 @@ bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *m
 	const bool updated = _global_pos_sub->update(&_global_pos_time, &global_pos);
 
 	if (_global_pos_time > 0) {
-		convert_limit_safe(global_pos.lat * 1e7, &msg->latitude);
-		convert_limit_safe(global_pos.lon * 1e7, &msg->longitude);
+		int32_t latitude, longitude;
+		convert_limit_safe(global_pos.lat * 1e7, latitude);
+		convert_limit_safe(global_pos.lon * 1e7, longitude);
+		msg->latitude = latitude;
+		msg->longitude = longitude;
+
+		int16_t altitude;
 
 		if (global_pos.alt > 0) {
-			convert_limit_safe(global_pos.alt + 0.5f, &msg->altitude);
+			convert_limit_safe(global_pos.alt + 0.5f, altitude);
 
 		} else {
-			convert_limit_safe(global_pos.alt - 0.5f, &msg->altitude);
+			convert_limit_safe(global_pos.alt - 0.5f, altitude);
 		}
+
+		msg->altitude = altitude;
 
 		msg->heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(global_pos.yaw)) * 0.5f);
 	}
@@ -344,7 +356,9 @@ bool MavlinkStreamHighLatency2::write_tecs_status(mavlink_high_latency2_t *msg)
 	const bool updated = _tecs_status_sub->update(&_tecs_time, &tecs_status);
 
 	if (_tecs_time > 0) {
-		convert_limit_safe(tecs_status.altitudeSp, &msg->target_altitude);
+		int16_t target_altitude;
+		convert_limit_safe(tecs_status.altitudeSp, target_altitude);
+		msg->target_altitude = target_altitude;
 	}
 
 	return updated;
