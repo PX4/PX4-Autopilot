@@ -79,7 +79,6 @@
  * This driver connects to TAP ESCs via serial.
  */
 
-static int _uart_fd = -1; //todo:refactor in to class
 class TAP_ESC : public device::CDev, public ModuleParams
 {
 public:
@@ -96,13 +95,14 @@ public:
 		MODE_5CAP,
 		MODE_6CAP,
 	};
-	TAP_ESC(int channels_count);
+	TAP_ESC(int channels_count, int uart_fd);
 	virtual ~TAP_ESC();
 	virtual int	init();
 	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 	void cycle();
 
 private:
+	int _uart_fd;
 
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
@@ -173,9 +173,10 @@ TAP_ESC	*tap_esc = nullptr;
 
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
 
-TAP_ESC::TAP_ESC(int channels_count):
+TAP_ESC::TAP_ESC(int channels_count, int uart_fd):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	ModuleParams(nullptr),
+	_uart_fd(uart_fd),
 	_is_armed(false),
 	_poll_fds_num(0),
 	_mode(MODE_4PWM), //FIXME: what is this mode used for???
@@ -937,6 +938,7 @@ namespace tap_esc_drv
 
 
 volatile bool _task_should_exit = false; // flag indicating if tap_esc task should exit
+static int _uart_fd = -1;
 static char _device[32] = {};
 static bool _is_running = false;         // flag indicating if tap_esc app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
@@ -967,7 +969,7 @@ int tap_esc_start(void)
 
 	if (tap_esc == nullptr) {
 
-		tap_esc = new TAP_ESC(_supported_channel_count);
+		tap_esc = new TAP_ESC(_supported_channel_count, _uart_fd);
 
 		if (tap_esc == nullptr) {
 			ret = -ENOMEM;
