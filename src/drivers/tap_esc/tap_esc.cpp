@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,19 +84,6 @@
 class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>, public ModuleParams
 {
 public:
-	enum Mode {
-		MODE_NONE,
-		MODE_2PWM,
-		MODE_2PWM2CAP,
-		MODE_3PWM,
-		MODE_3PWM1CAP,
-		MODE_4PWM,
-		MODE_6PWM,
-		MODE_8PWM,
-		MODE_4CAP,
-		MODE_5CAP,
-		MODE_6CAP,
-	};
 	TAP_ESC();
 	virtual ~TAP_ESC();
 
@@ -128,7 +115,6 @@ private:
 	bool _is_armed;
 
 	unsigned	_poll_fds_num;
-	Mode		_mode;
 	// subscriptions
 	int	_armed_sub;
 	int _test_motor_sub;
@@ -188,7 +174,6 @@ TAP_ESC::TAP_ESC():
 	_uart_fd(-1),
 	_is_armed(false),
 	_poll_fds_num(0),
-	_mode(MODE_4PWM), //FIXME: what is this mode used for???
 	_armed_sub(-1),
 	_test_motor_sub(-1),
 	_params_sub(-1),
@@ -815,8 +800,8 @@ TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 void TAP_ESC::run()
 {
 	// Main loop
-	while (!should_exit()) {
-		cycle();
+		while (!should_exit()) {
+			cycle();
 	}
 }
 
