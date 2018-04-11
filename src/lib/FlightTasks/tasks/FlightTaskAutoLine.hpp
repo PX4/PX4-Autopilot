@@ -45,7 +45,7 @@
 class FlightTaskAutoLine : public FlightTaskAuto
 {
 public:
-	FlightTaskAutoLine(control::SuperBlock *parent, const char *name);
+	FlightTaskAutoLine() = default;
 	virtual ~FlightTaskAutoLine() = default;
 	bool activate() override;
 	bool update() override;
@@ -64,18 +64,18 @@ protected:
 	};
 	State _current_state{State::none};
 
-	control::BlockParamFloat _land_speed; /**< Downward speed during landing. */
-	control::BlockParamFloat _vel_max_up; /**< Maximum upward velocity. */
-	control::BlockParamFloat _vel_max_down; /**< Maximum downward velocity. */
-	control::BlockParamFloat _acc_max_xy; /**< Maximum acceleration in hover. */
-	control::BlockParamFloat _acc_xy; /**< Maximum acceleration from hover to fast forward flight. */
-	control::BlockParamFloat _acc_max_up; /**< Max acceleration up. */
-	control::BlockParamFloat _acc_max_down; /**< Max acceleration down. */
-	control::BlockParamFloat _cruise_speed_90; /**< Speed when angle is 90 degrees between prev-current/current-next. */
-
-	/* None-position control params */
-	control::BlockParamFloat _nav_rad; /**< Radius that is used by navigator that defines when to update triplets */
-	control::BlockParamFloat _mis_yaw_error; /**< Yaw threshold during mission to consider yaw as accepted */
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
+			(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
+			(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
+			(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
+			(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_max_xy,
+			(ParamFloat<px4::params::MPC_ACC_HOR>) _acc_xy,
+			(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acc_max_up,
+			(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acc_max_down,
+			(ParamFloat<px4::params::MPC_CRUISE_90>) _cruise_speed_90,
+			(ParamFloat<px4::params::NAV_ACC_RAD>) _nav_rad,
+			(ParamFloat<px4::params::MIS_YAW_ERR>) _mis_yaw_error
+			)
 
 	void _generateIdleSetpoints();
 	void _generateLandSetpoints();

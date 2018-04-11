@@ -61,7 +61,7 @@ enum class WaypointType : int {
 class FlightTaskAuto : public FlightTask
 {
 public:
-	FlightTaskAuto(control::SuperBlock *parent, const char *name);
+	FlightTaskAuto() = default;
 
 	virtual ~FlightTaskAuto() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
@@ -78,9 +78,12 @@ protected:
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 private:
-	control::BlockParamFloat _mc_cruise_default; /**< Default mc cruise speed.*/
-	map_projection_reference_s _reference; /**< Reference frame from global to local. */
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask, (ParamFloat<px4::params::MPC_XY_CRUISE>) _mc_cruise_default); /**< Default mc cruise speed.*/
+
+	map_projection_reference_s _reference; /**< Reference frame from global to local. */
+
 	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
 	float _reference_altitude = 0.0f;  /**< Altitude relative to ground. */
 	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update occured. */

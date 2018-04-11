@@ -40,11 +40,6 @@
 
 using namespace matrix;
 
-FlightTaskAuto::FlightTaskAuto(control::SuperBlock *parent, const char *name) :
-	FlightTask(parent, name),
-	_mc_cruise_default(this, "MPC_XY_CRUISE", false)
-{}
-
 bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!FlightTask::initializeSubscriptions(subscription_array)) {
