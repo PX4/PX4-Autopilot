@@ -167,6 +167,10 @@ public:
 	 */
 	matrix::Vector3f getPosSp() {return _pos_sp;}
 
+protected:
+
+	void updateParams() override;
+
 private:
 	void _interfaceMapping(); /** maps set-points to internal member set-points */
 	void _positionController(); /** applies the P-position-controller */
