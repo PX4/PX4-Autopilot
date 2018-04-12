@@ -274,7 +274,7 @@ void Tailsitter::fill_actuator_outputs()
 			_mc_yaw_weight;
 
 
-	if (_vtol_schedule.flight_mode == TRANSITION_BACK || _vtol_schedule.flight_mode == FW_MODE) {
+	if (_vtol_schedule.flight_mode == FW_MODE) {
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 
