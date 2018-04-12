@@ -117,12 +117,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_att.q[0] = 1.f;
 	_v_att_sp.q_d[0] = 1.f;
 
-	_rates_prev.zero();
-	_rates_prev_filtered.zero();
-	_rates_sp.zero();
-	_rates_int.zero();
 	_thrust_sp = 0.0f;
-	_att_control.zero();
 
 	/* initialize thermal corrections as we might not immediately get a topic update (only non-zero values) */
 	for (unsigned i = 0; i < 3; i++) {
@@ -534,8 +529,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	_att_control = rates_p_scaled.emult(rates_err) +
 		       _rates_int -
 		       rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt +
-		       _rate_ff.emult(_rates_sp);
+		       _rate_ff.emult(_rates_sp - _rates_sp_prev) / dt;
 
+	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
 	_rates_prev_filtered = rates_filtered;
 
