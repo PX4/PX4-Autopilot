@@ -39,11 +39,10 @@
 #include <px4_getopt.h>
 #include <px4_posix.h>
 #include <errno.h>
-#include <termios.h>
+
 #include <cmath>	// NAN
 
 #include <lib/mathlib/mathlib.h>
-#include <systemlib/px4_macros.h>
 #include <drivers/device/device.h>
 #include <px4_module_params.h>
 #include <uORB/uORB.h>
