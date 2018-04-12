@@ -219,6 +219,21 @@ pipeline {
           }
         }
 
+        stage('check stack') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2018-03-30'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make px4fmu-v2_default stack_check'
+            sh 'make distclean'
+          }
+        }
+
         stage('ROS vtol mission new 1') {
           agent {
             docker {
