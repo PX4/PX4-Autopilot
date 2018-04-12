@@ -64,10 +64,6 @@
 
 #include "drv_tap_esc.h"
 
-#if !defined(BOARD_TAP_ESC_NO_VERIFY_CONFIG)
-#  define BOARD_TAP_ESC_NO_VERIFY_CONFIG 0
-#endif
-
 #if !defined(BOARD_TAP_ESC_MODE)
 #  define BOARD_TAP_ESC_MODE 0
 #endif
@@ -309,55 +305,6 @@ TAP_ESC::init()
 	if (ret < 0) {
 		return ret;
 	}
-
-#if !BOARD_TAP_ESC_NO_VERIFY_CONFIG
-
-	/* Verify All ESC got the config */
-
-	for (uint8_t cid = 0; cid < _channels_count; cid++) {
-
-		/* Send the InfoRequest querying  CONFIG_BASIC */
-		EscPacket packet_info = {0xfe, sizeof(InfoRequest), ESCBUS_MSG_ID_REQUEST_INFO};
-		InfoRequest &info_req = packet_info.d.reqInfo;
-		info_req.channelID = cid;
-		info_req.requestInfoType = REQEST_INFO_BASIC;
-
-		ret = tap_esc_common::send_packet(_uart_fd, packet_info, cid);
-
-		if (ret < 0) {
-			return ret;
-		}
-
-		/* Get a response */
-
-		int retries = 10;
-		bool valid = false;
-
-		while (retries--) {
-
-			tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
-
-			if (!tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet)) {
-				valid = (_packet.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC
-					 && _packet.d.rspConfigInfoBasic.channelID == cid
-					 && 0 == memcmp(&_packet.d.rspConfigInfoBasic.resp, &config, sizeof(ConfigInfoBasicRequest)));
-				break;
-
-			} else {
-
-				/* Give it time to come in */
-
-				usleep(1000);
-			}
-		}
-
-		if (!valid) {
-			return -EIO;
-		}
-
-	}
-
-#endif
 
 	/* To Unlock the ESC from the Power up state we need to issue 10
 	 * ESCBUS_MSG_ID_RUN request with all the values 0;
