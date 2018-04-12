@@ -477,7 +477,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		}
 
 		// If we're trying to switch to this state, the target needs to be visible
-		return _target_pose_updated && _target_pose.abs_pos_valid;
+		return _target_pose_updated && _target_pose_valid && _target_pose.abs_pos_valid;
 
 	case PrecLandState::DescendAboveTarget:
 
