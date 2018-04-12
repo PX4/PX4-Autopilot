@@ -640,11 +640,8 @@ void Logger::add_default_topics()
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("multirotor_motor_limits");
 	add_topic("offboard_control_mode");
-	add_topic("parameter_update");
 	add_topic("time_offset");
-	add_topic("tune_control");
 	add_topic("vehicle_attitude_groundtruth", 10);
-	add_topic("vehicle_command_ack");
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 	add_topic("vehicle_roi");
