@@ -66,8 +66,6 @@ private:
 		float tilt_transition;			/**< actuator value corresponding to transition tilt (e.g 45 degrees) */
 		float tilt_fw;					/**< actuator value corresponding to fw tilt */
 		float front_trans_dur_p2;
-		int32_t diff_thrust;
-		float diff_thrust_scale;
 	} _params_tiltrotor;
 
 	struct {
@@ -75,8 +73,6 @@ private:
 		param_t tilt_transition;
 		param_t tilt_fw;
 		param_t front_trans_dur_p2;
-		param_t diff_thrust;
-		param_t diff_thrust_scale;
 	} _params_handles_tiltrotor;
 
 	enum vtol_mode {

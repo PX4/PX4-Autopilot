@@ -253,6 +253,12 @@ void Tailsitter::update_mc_state()
 void Tailsitter::update_fw_state()
 {
 	VtolType::update_fw_state();
+
+	// allow fw yawrate control via multirotor roll actuation. this is useful for vehicles
+	// which don't have a rudder to coordinate turns
+	if (_params->diff_thrust == 1) {
+		_mc_roll_weight = 1.0f;
+	}
 }
 
 /**

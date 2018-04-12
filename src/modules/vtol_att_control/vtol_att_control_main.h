@@ -198,6 +198,8 @@ private:
 		param_t front_trans_timeout;
 		param_t mpc_xy_cruise;
 		param_t fw_motors_off;
+		param_t diff_thrust;
+		param_t diff_thrust_scale;
 	} _params_handles{};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines

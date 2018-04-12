@@ -86,6 +86,8 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
+	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
+	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 
 
 	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
@@ -501,6 +503,10 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.front_trans_timeout, &_params.front_trans_timeout);
 	param_get(_params_handles.mpc_xy_cruise, &_params.mpc_xy_cruise);
 	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
+	param_get(_params_handles.diff_thrust, &_params.diff_thrust);
+
+	param_get(_params_handles.diff_thrust_scale, &v);
+	_params.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 
 	// standard vtol always needs to turn all mc motors off when going into fixed wing mode
 	// normally the parameter fw_motors_off can be used to specify this, however, since historically standard vtol code
