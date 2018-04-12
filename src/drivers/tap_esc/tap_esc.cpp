@@ -136,7 +136,6 @@ private:
 	MixerGroup	*_mixers;
 	uint32_t	_groups_required;
 	uint32_t	_groups_subscribed;
-	volatile bool	_initialized;
 	unsigned	_pwm_default_rate;
 	unsigned	_current_update_rate;
 	ESC_UART_BUF uartbuf;
@@ -180,7 +179,6 @@ TAP_ESC::TAP_ESC():
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
-	_initialized(false),
 	_pwm_default_rate(400),
 	_current_update_rate(0)
 
@@ -209,29 +207,26 @@ TAP_ESC::TAP_ESC():
 
 TAP_ESC::~TAP_ESC()
 {
-	if (_initialized) {
-		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_control_subs[i] >= 0) {
-				orb_unsubscribe(_control_subs[i]);
-				_control_subs[i] = -1;
-			}
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		if (_control_subs[i] >= 0) {
+			orb_unsubscribe(_control_subs[i]);
+			_control_subs[i] = -1;
 		}
-
-		orb_unsubscribe(_armed_sub);
-		_armed_sub = -1;
-		orb_unsubscribe(_test_motor_sub);
-		_test_motor_sub = -1;
-		orb_unsubscribe(_params_sub);
-
-		orb_unadvertise(_outputs_pub);
-		orb_unadvertise(_esc_feedback_pub);
-		orb_unadvertise(_to_mixer_status);
-
-		tap_esc_common::deinitialise_uart(_uart_fd);
-
-		DEVICE_LOG("stopping");
-		_initialized = false;
 	}
+
+	orb_unsubscribe(_armed_sub);
+	_armed_sub = -1;
+	orb_unsubscribe(_test_motor_sub);
+	_test_motor_sub = -1;
+	orb_unsubscribe(_params_sub);
+
+	orb_unadvertise(_outputs_pub);
+	orb_unadvertise(_esc_feedback_pub);
+	orb_unadvertise(_to_mixer_status);
+
+	tap_esc_common::deinitialise_uart(_uart_fd);
+
+	DEVICE_LOG("stopping");
 }
 
 /** @see ModuleBase */
@@ -261,8 +256,6 @@ int
 TAP_ESC::init()
 {
 	int ret;
-
-	ASSERT(!_initialized);
 
 	ret = tap_esc_common::initialise_uart(_device, _uart_fd);
 
@@ -328,6 +321,16 @@ TAP_ESC::init()
 	/* do regular cdev init */
 
 	ret = CDev::init();
+
+	/* advertise the mixed control outputs, insist on the first group output */
+	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
+	_esc_feedback_pub = orb_advertise(ORB_ID(esc_status), &_esc_feedback);
+	multirotor_motor_limits_s multirotor_motor_limits = {};
+	_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
+
+	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	return ret;
 }
@@ -403,20 +406,6 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 void
 TAP_ESC::cycle()
 {
-
-	if (!_initialized) {
-		_current_update_rate = 0;
-		/* advertise the mixed control outputs, insist on the first group output */
-		_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-		_esc_feedback_pub = orb_advertise(ORB_ID(esc_status), &_esc_feedback);
-		multirotor_motor_limits_s multirotor_motor_limits = {};
-		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
-		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-		_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
-		_params_sub = orb_subscribe(ORB_ID(parameter_update));
-		_initialized = true;
-	}
-
 	if (_groups_subscribed != _groups_required) {
 		subscribe();
 		_groups_subscribed = _groups_required;
