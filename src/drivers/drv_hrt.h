@@ -194,3 +194,33 @@ __EXPORT extern void	hrt_stop_delay_delta(hrt_abstime delta);
 #endif
 
 __END_DECLS
+
+
+
+#ifdef	__cplusplus
+
+namespace time_literals
+{
+
+// User-defined integer literals for different time units.
+// The base unit is hrt_abstime in microseconds
+
+constexpr hrt_abstime operator "" _s(unsigned long long seconds)
+{
+	return hrt_abstime(seconds * 1000000ULL);
+}
+
+constexpr hrt_abstime operator "" _ms(unsigned long long seconds)
+{
+	return hrt_abstime(seconds * 1000ULL);
+}
+
+constexpr hrt_abstime operator "" _us(unsigned long long seconds)
+{
+	return hrt_abstime(seconds);
+}
+
+} /* namespace time_literals */
+
+
+#endif /* __cplusplus */
