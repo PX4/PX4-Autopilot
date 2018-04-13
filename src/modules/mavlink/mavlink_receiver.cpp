@@ -1638,6 +1638,114 @@ MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
 	}
 }
 
+void
+MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
+{
+	mavlink_odometry_t odom;
+	mavlink_msg_odometry_decode(msg, &odom);
+
+	static orb_advert_t *mavlink_log_pub;
+
+	struct vehicle_attitude_s odom_attitude = {};
+
+	odom_attitude.timestamp = sync_stamp(odom.time_usec);
+	odom_attitude.q[0] = odom.q[0];
+	odom_attitude.q[1] = odom.q[1];
+	odom_attitude.q[2] = odom.q[2];
+	odom_attitude.q[3] = odom.q[3];
+	odom_attitude.rollspeed = odom.rollspeed;
+	odom_attitude.pitchspeed = odom.pitchspeed;
+	odom_attitude.yawspeed = odom.yawspeed;
+
+	struct vehicle_local_position_s odom_position = {};
+
+	odom_position.timestamp = sync_stamp(odom.time_usec);
+
+	odom_position.x = odom.x;
+	odom_position.y = odom.y;
+	odom_position.z = odom.z;
+
+	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
+		float yaw = matrix::Eulerf(matrix::Quatf(odom_attitude.q)).psi();
+		odom_position.vx = cosf(yaw) * odom.vx - sinf(yaw) * odom.vy;
+		odom_position.vy = sinf(yaw) * odom.vx + cosf(yaw) * odom.vy;
+		odom_position.vz = odom.vz;
+
+	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
+		bool updated;
+		orb_check(_vehicle_attitude_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+
+			/* get current yaw from vehicle_attitude quaterion */
+			float yaw = matrix::Eulerf(matrix::Quatf(_att.q)).psi();
+			odom_position.vx = cosf(yaw) * odom.vx - sinf(yaw) * odom.vy;
+			odom_position.vy = sinf(yaw) * odom.vx + cosf(yaw) * odom.vy;
+			odom_position.vz = odom.vz;
+		}
+
+	} else {
+		mavlink_log_critical(mavlink_log_pub, "Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
+	}
+
+	// TODO : full covariance matrix
+	odom_position.eph = sqrtf(fmaxf(odom.pose_covariance[0], odom.pose_covariance[6]));
+	odom_position.epv = sqrtf(odom.pose_covariance[11]);
+	odom_position.evh = sqrtf(fmaxf(odom.twist_covariance[0], odom.twist_covariance[6]));
+	odom_position.evv = sqrtf(odom.twist_covariance[11]);
+
+	// set position/velocity invalid if standard deviation is bigger than ev_max_std_dev
+	const float ev_max_std_dev = 100.0f;
+
+	if (odom_position.eph > ev_max_std_dev) {
+		odom_position.xy_valid = false;
+
+	} else {
+		odom_position.xy_valid = true;
+	}
+
+	if (odom_position.evh > ev_max_std_dev) {
+		odom_position.v_xy_valid = false;
+
+	} else {
+		odom_position.v_xy_valid = true;
+	}
+
+	if (odom_position.epv > ev_max_std_dev) {
+		odom_position.z_valid = false;
+
+	} else {
+		odom_position.z_valid = true;
+	}
+
+	if (odom_position.evv > ev_max_std_dev) {
+		odom_position.v_z_valid = false;
+
+	} else {
+		odom_position.v_z_valid = true;
+	}
+
+	odom_position.dist_bottom_valid = false;
+
+	int instance_id = 0;
+
+	if (odom.frame_id == MAV_FRAME_VISION_NED) {
+		orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &odom_position, &instance_id, ORB_PRIO_HIGH);
+		orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &odom_attitude, &instance_id, ORB_PRIO_HIGH);
+
+	} else if (odom.frame_id == MAV_FRAME_MOCAP_NED) {
+		orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_mocap_position_pub, &odom_position, &instance_id,
+				 ORB_PRIO_DEFAULT);
+		orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_mocap_attitude_pub, &odom_attitude, &instance_id,
+				 ORB_PRIO_DEFAULT);
+
+	} else {
+		mavlink_log_critical(mavlink_log_pub, "Local frame %u not supported. Unable to publish pose and velocity",
+				     odom.frame_id);
+	}
+}
+
 switch_pos_t
 MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
 {
