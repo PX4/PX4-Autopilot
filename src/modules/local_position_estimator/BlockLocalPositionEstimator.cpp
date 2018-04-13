@@ -775,7 +775,7 @@ void BlockLocalPositionEstimator::predict()
 	Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 	// note, bias is removed in dynamics function
 	_u = _R_att * a;
-	_u(U_az) += 9.81f;	// add g
+	_u(U_az) += CONSTANTS_ONE_G;	// add g
 
 	// update state space based on new states
 	updateSSStates();

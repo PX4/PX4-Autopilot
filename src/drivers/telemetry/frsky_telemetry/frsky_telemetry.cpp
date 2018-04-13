@@ -79,8 +79,8 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config, s
 static int set_uart_speed(int uart, struct termios *uart_config, speed_t speed);
 static void usage(void);
 static int frsky_telemetry_thread_main(int argc, char *argv[]);
-__EXPORT int frsky_telemetry_main(int argc, char *argv[]);
 
+extern "C" __EXPORT int frsky_telemetry_main(int argc, char *argv[]);
 
 uint16_t get_telemetry_flight_mode(int px4_flight_mode)
 {
