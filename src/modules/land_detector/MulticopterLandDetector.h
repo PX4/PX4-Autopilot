@@ -44,6 +44,7 @@
 
 #include "LandDetector.h"
 
+#include <drivers/drv_hrt.h>
 #include <systemlib/param/param.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -56,6 +57,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
+
+using namespace time_literals;
 
 namespace land_detector
 {
@@ -79,16 +82,16 @@ protected:
 private:
 
 	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 300000;
+	static constexpr hrt_abstime LAND_DETECTOR_TRIGGER_TIME_US = 300_ms;
 
 	/** Time in us that almost landing conditions have to hold before triggering almost landed . */
-	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 250000;
+	static constexpr hrt_abstime MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 250_ms;
 
 	/** Time in us that ground contact condition have to hold before triggering contact ground */
-	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 350000;
+	static constexpr hrt_abstime GROUND_CONTACT_TRIGGER_TIME_US = 350_ms;
 
 	/** Time interval in us in which wider acceptance thresholds are used after landed. */
-	static constexpr uint64_t LAND_DETECTOR_LAND_PHASE_TIME_US = 2000000;
+	static constexpr hrt_abstime LAND_DETECTOR_LAND_PHASE_TIME_US = 2_s;
 
 	/**
 	* @brief Handles for interesting parameters
@@ -137,8 +140,8 @@ private:
 	vehicle_control_mode_s				_control_mode {};
 	battery_status_s						_battery {};
 
-	uint64_t _min_trust_start{0};		///< timestamp when minimum trust was applied first
-	uint64_t _landed_time{0};
+	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
+	hrt_abstime _landed_time{0};
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();
