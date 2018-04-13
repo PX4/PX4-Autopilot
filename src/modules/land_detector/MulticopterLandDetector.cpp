@@ -62,7 +62,6 @@
  */
 
 #include <cmath>
-#include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 
 #include "MulticopterLandDetector.h"
@@ -204,7 +203,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 bool MulticopterLandDetector::_get_maybe_landed_state()
 {
 	// Time base for this function
-	const uint64_t now = hrt_absolute_time();
+	const hrt_abstime now = hrt_absolute_time();
 
 	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
@@ -240,7 +239,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		// if this persists for 8 seconds AND the drone is not
 		// falling consider it to be landed. This should even sustain
 		// quite acrobatic flight.
-		return (_min_trust_start > 0) && (hrt_elapsed_time(&_min_trust_start) > 8000000);
+		return (_min_trust_start > 0) && (hrt_elapsed_time(&_min_trust_start) > 8_s);
 	}
 
 	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating) {
@@ -293,7 +292,7 @@ float MulticopterLandDetector::_get_max_altitude()
 bool MulticopterLandDetector::_has_altitude_lock()
 {
 	return _vehicleLocalPosition.timestamp != 0 &&
-	       hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500000 &&
+	       hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500_ms &&
 	       _vehicleLocalPosition.z_valid;
 }
 
@@ -305,7 +304,7 @@ bool MulticopterLandDetector::_has_position_lock()
 bool MulticopterLandDetector::_is_climb_rate_enabled()
 {
 	bool has_updated = (_vehicleLocalPositionSetpoint.timestamp != 0)
-			   && (hrt_elapsed_time(&_vehicleLocalPositionSetpoint.timestamp) < 500000);
+			   && (hrt_elapsed_time(&_vehicleLocalPositionSetpoint.timestamp) < 500_ms);
 
 	return (_control_mode.flag_control_climb_rate_enabled && has_updated && PX4_ISFINITE(_vehicleLocalPositionSetpoint.vz));
 }
