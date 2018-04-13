@@ -194,6 +194,8 @@
 #define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 8) /* If set, the system will always output the failsafe values */
 #define PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE	(1 << 9) /* If set, the system will never return from a failsafe, but remain in failsafe once triggered. */
 #define PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE	(1 << 10) /* If set then on FMU failure override is immediate. Othewise it waits for the mode switch to go past the override thrshold */
+#define PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_ON	(1 << 11) // disable use of safety button for safety off->on
+#define PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_OFF	(1 << 12) // disable use of safety button for safety on->off
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
@@ -248,6 +250,7 @@ enum {							/* DSM bind states */
 #define PX4IO_HEATER_MAX			100
 #define PX4IO_P_SETUP_HEATER_DUTY_CYCLE		21	/**< control the heater pin, setting duty cycle */
 #define PX4IO_P_SETUP_PWM_ALTCLOCK			22  /* alt channel PWM clock in MHz */
+#define PX4IO_P_SETUP_SAFETY_OPTIONS		23  // setup safety switch option flags
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */

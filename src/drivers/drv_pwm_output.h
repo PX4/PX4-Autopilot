@@ -275,6 +275,11 @@ struct pwm_output_rc_config {
 /** set default servo update rate */
 #define PWM_SERVO_SET_DEFAULT_UPDATE_RATE _PX4_IOC(_PWM_SERVO_BASE, 37)
 
+/** setup safety switch options. Bit 0 is disable of button for safety off->on. Bit 1 is for on->off */
+#define PWM_SERVO_SET_SAFETY_OPTION_DISABLE_BUTTON_ON  (1U<<0)
+#define PWM_SERVO_SET_SAFETY_OPTION_DISABLE_BUTTON_OFF (1U<<1)
+#define PWM_SERVO_SET_SAFETY_OPTIONS		_PX4_IOC(_PWM_SERVO_BASE, 38)
+
 /*
  *
  *

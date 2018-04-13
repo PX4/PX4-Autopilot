@@ -2336,7 +2336,9 @@ PX4IO::print_status(bool extended_status)
 	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) ? " TERM_FAILSAFE" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) ? " OVERRIDE_IMMEDIATE" : "")
+	       ((arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) ? " OVERRIDE_IMMEDIATE" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_ON) ? " SAFETY_DIS_ON" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_OFF) ? " SAFETY_DIS_OFF" : "")
 	      );
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
@@ -2591,6 +2593,23 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
 		break;
 
+	case PWM_SERVO_SET_SAFETY_OPTIONS: {
+		// control safety switch options
+		uint32_t bits_to_set=0, bits_to_clear=0;
+		if (arg & PWM_SERVO_SET_SAFETY_OPTION_DISABLE_BUTTON_ON) {
+			bits_to_set |= PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_ON;
+		} else {
+			bits_to_clear |= PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_ON;
+		}
+		if (arg & PWM_SERVO_SET_SAFETY_OPTION_DISABLE_BUTTON_OFF) {
+			bits_to_set |= PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_OFF;
+		} else {
+			bits_to_clear |= PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_OFF;
+		}
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, bits_to_clear, bits_to_set);
+		break;
+	}
+		
 	case PWM_SERVO_SET_FORCE_FAILSAFE:
 
 		/* force failsafe mode instantly */

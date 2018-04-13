@@ -112,7 +112,9 @@ safety_check_button(void *arg)
 	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
 	    (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)) {
 
-		if (counter < ARM_COUNTER_THRESHOLD) {
+        if ((r_setup_arming & PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_OFF) != 0) {
+            // do nothing
+        } else if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
@@ -123,7 +125,9 @@ safety_check_button(void *arg)
 
 	} else if (safety_button_pressed && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
 
-		if (counter < ARM_COUNTER_THRESHOLD) {
+        if ((r_setup_arming & PX4IO_P_SETUP_ARMING_SAFETY_DISABLE_ON) != 0) {
+            // do nothing
+		} else if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
