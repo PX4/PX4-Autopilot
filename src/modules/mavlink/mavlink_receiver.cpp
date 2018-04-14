@@ -267,10 +267,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_attitude_quaternion_cov(msg);
 		break;
 
-	case MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV:
-		handle_message_local_position_ned_cov(msg);
-		break;
-
 	case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
 		handle_message_gps_global_origin(msg);
 		break;
