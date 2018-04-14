@@ -90,28 +90,34 @@ pipeline {
 
           // MAC OS posix_sitl_default
           builds["sitl (OSX)"] = {
-            node('mac') {
-              stage("sitl (OSX)") {
-                checkout scm
-                sh "export"
-                sh "make distclean"
-                sh "ccache -z"
-                sh "make posix_sitl_default"
-                sh "ccache -s"
+            node("mac") {
+              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
+                stage("sitl (OSX)") {
+                  checkout scm
+                  sh "export"
+                  sh "make distclean"
+                  sh "ccache -z"
+                  sh "make posix_sitl_default"
+                  sh "ccache -s"
+                  sh "make distclean"
+                }
               }
             }
           }
 
           // MAC OS nuttx_px4fmu-v4pro_default
           builds["px4fmu-v4pro (OSX)"] = {
-            node('mac') {
-              stage("px4fmu-v4pro (OSX)") {
-                checkout scm
-                sh "export"
-                sh "make distclean"
-                sh "ccache -z"
-                sh "make nuttx_px4fmu-v4pro_default"
-                sh "ccache -s"
+            node("mac") {
+              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
+                stage("px4fmu-v4pro (OSX)") {
+                  checkout scm
+                  sh "export"
+                  sh "make distclean"
+                  sh "ccache -z"
+                  sh "make nuttx_px4fmu-v4pro_default"
+                  sh "ccache -s"
+                  sh "make distclean"
+                }
               }
             }
           }
