@@ -2164,11 +2164,6 @@ protected:
 			pos_cov.covariance[30] = est.covariances[5];
 			pos_cov.covariance[35] = est.covariances[6];
 
-			// Accel bias covariance
-			pos_cov.covariance[39] = est.covariances[13];
-			pos_cov.covariance[42] = est.covariances[14];
-			pos_cov.covariance[44] = est.covariances[15];
-
 			mavlink_msg_local_position_ned_cov_send_struct(_mavlink->get_channel(), &pos_cov);
 		}
 
