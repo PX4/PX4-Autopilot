@@ -1978,7 +1978,16 @@ protected:
 			odom.pose_covariance[6] = est.covariances[8];
 			odom.pose_covariance[11] = est.covariances[9];
 
-			//TODO: convert from quaternion to euler angles covariance
+			matrix::Eulerf euler = matrix::Quatf(
+						       est.covariances[0],
+						       est.covariances[1],
+						       est.covariances[2],
+						       est.covariances[3]);
+
+			// Attitude covariance
+			odom.pose_covariance[15] = euler.phi();
+			odom.pose_covariance[18] = euler.theta();
+			odom.pose_covariance[20] = euler.psi();
 
 			// Linear velocity covariance
 			odom.twist_covariance[0] = est.covariances[4];
