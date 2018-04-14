@@ -1914,13 +1914,14 @@ public:
 	}
 
 private:
+	MavlinkOrbSubscription *_pos_sub;
+	uint64_t _pos_time;
+
 	MavlinkOrbSubscription *_est_sub;
 	uint64_t _est_time;
 
 	MavlinkOrbSubscription *_att_sub;
 	uint64_t _att_time;
-
-	int32_t estimator_type = param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
 
 	/* do not allow top copying this class */
 	MavlinkStreamOdometry(MavlinkStreamOdometry &);
@@ -1928,6 +1929,8 @@ private:
 
 protected:
 	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_pos_time(0),
 		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
 		_est_time(0),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
@@ -1936,51 +1939,56 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
+		vehicle_local_position_s pos = {};
 		estimator_status_s est = {};
 		vehicle_attitude_s att = {};
 
+		bool pos_updated = _pos_sub->update(&_pos_time, &pos);
 		bool est_updated = _est_sub->update(&_est_time, &est);
 		bool att_updated = _att_sub->update(&_att_time, &att);
 
 		mavlink_odometry_t odom = {};
 
-		if (est_updated || att_updated) {
+		if (pos_updated || est_updated || att_updated) {
 			odom.time_usec = est.timestamp;
 
-			odom.x = est.states[0];
-			odom.y = est.states[1];
-			odom.z = est.states[2];
+			// Current position
+			odom.x = pos.x;
+			odom.y = pos.y;
+			odom.z = pos.z;
 
-			odom.vx = est.states[3];
-			odom.vy = est.states[4];
-			odom.vz = est.states[5];
+			// Current orientation
+			odom.q[0] = att.q[0];
+			odom.q[1] = att.q[1];
+			odom.q[2] = att.q[2];
+			odom.q[3] = att.q[3];
 
-			odom.pose_covariance[0] = est.covariances[0];
-			odom.pose_covariance[6] = est.covariances[1];
-			odom.pose_covariance[11] = est.covariances[2];
+			// Current linear velocity
+			odom.vx = pos.vx;
+			odom.vy = pos.vy;
+			odom.vz = pos.vz;
 
-			odom.twist_covariance[0] = est.covariances[0];
-			odom.twist_covariance[6] = est.covariances[1];
-			odom.twist_covariance[11] = est.covariances[2];
+			// Current body rates
+			odom.rollspeed = att.rollspeed;
+			odom.pitchspeed = att.pitchspeed;
+			odom.yawspeed = att.yawspeed;
 
-			if (estimator_type == 1) {
-				odom.q[0] = att.q[0];
-				odom.q[0] = att.q[1];
-				odom.q[0] = att.q[2];
-				odom.q[0] = att.q[3];
+			// Position covariance
+			odom.pose_covariance[0] = est.covariances[7];
+			odom.pose_covariance[6] = est.covariances[8];
+			odom.pose_covariance[11] = est.covariances[9];
 
-				odom.rollspeed = att.rollspeed;
-				odom.pitchspeed = att.pitchspeed;
-				odom.yawspeed = att.yawspeed;
+			//TODO: convert from quaternion to euler angles covariance
 
-			} else if (estimator_type == 2) {
-				// TODO: add covariance and states for quaternion and attitude rates
-			}
+			// Linear velocity covariance
+			odom.twist_covariance[0] = est.covariances[4];
+			odom.twist_covariance[6] = est.covariances[5];
+			odom.twist_covariance[11] = est.covariances[6];
 
 			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &odom);
 		}
 
-		return (est_updated || att_updated);
+		return (pos_updated || est_updated || att_updated);
 
 	}
 };
@@ -2091,6 +2099,9 @@ public:
 	}
 
 private:
+	MavlinkOrbSubscription *_pos_sub;
+	uint64_t _pos_time;
+
 	MavlinkOrbSubscription *_est_sub;
 	uint64_t _est_time;
 
@@ -2100,42 +2111,60 @@ private:
 
 protected:
 	explicit MavlinkStreamLocalPositionNEDCOV(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_pos_time(0),
 		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
 		_est_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		struct estimator_status_s est = {};
+		vehicle_local_position_s pos = {};
+		estimator_status_s est = {};
 
-		if (_est_sub->update(&_est_time, &est)) {
-			mavlink_local_position_ned_cov_t msg = {};
+		bool pos_updated = _pos_sub->update(&_pos_time, &pos);
+		bool est_updated = _est_sub->update(&_est_time, &est);
 
-			msg.time_usec = est.timestamp;
-			msg.x = est.states[0];
-			msg.y = est.states[1];
-			msg.z = est.states[2];
-			msg.vx = est.states[3];
-			msg.vy = est.states[4];
-			msg.vz = est.states[5];
-			msg.ax = est.states[6];
-			msg.ay = est.states[7];
-			msg.az = est.states[8];
+		mavlink_local_position_ned_cov_t pos_cov = {};
 
-			for (int i = 0; i < 9; i++) {
-				msg.covariance[i] = est.covariances[i];
-			}
+		if (pos_updated || est_updated) {
+			pos_cov.time_usec = est.timestamp;
 
-			msg.covariance[9] = est.nan_flags;
-			msg.covariance[10] = est.health_flags;
-			msg.covariance[11] = est.timeout_flags;
+			// Current position
+			pos_cov.x = pos.x;
+			pos_cov.y = pos.y;
+			pos_cov.z = pos.z;
 
-			mavlink_msg_local_position_ned_cov_send_struct(_mavlink->get_channel(), &msg);
+			// Current linear velocity
+			pos_cov.vx = pos.vx;
+			pos_cov.vy = pos.vy;
+			pos_cov.vz = pos.vz;
 
-			return true;
+			// Current acceleration
+			pos_cov.ax = pos.ax;
+			pos_cov.ay = pos.ay;
+			pos_cov.az = pos.az;
+
+			// Position covariance
+			pos_cov.covariance[0] = est.covariances[7];
+			pos_cov.covariance[9] = est.covariances[8];
+			pos_cov.covariance[17] = est.covariances[9];
+
+			// Linear velocity covariance
+			pos_cov.covariance[24] = est.covariances[4];
+			pos_cov.covariance[30] = est.covariances[5];
+			pos_cov.covariance[35] = est.covariances[6];
+
+			// Accel bias covariance
+			pos_cov.covariance[39] = est.covariances[13];
+			pos_cov.covariance[42] = est.covariances[14];
+			pos_cov.covariance[44] = est.covariances[15];
+
+			mavlink_msg_local_position_ned_cov_send_struct(_mavlink->get_channel(), &pos_cov);
 		}
 
-		return false;
+		return (pos_updated || est_updated);
+
 	}
 };
 
