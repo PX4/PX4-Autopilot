@@ -1880,6 +1880,111 @@ protected:
 	}
 };
 
+class MavlinkStreamOdometry : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamOdometry::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ODOMETRY";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ODOMETRY;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamOdometry(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_est_sub;
+	uint64_t _est_time;
+
+	MavlinkOrbSubscription *_att_sub;
+	uint64_t _att_time;
+
+	int32_t estimator_type = param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+
+	/* do not allow top copying this class */
+	MavlinkStreamOdometry(MavlinkStreamOdometry &);
+	MavlinkStreamOdometry &operator = (const MavlinkStreamOdometry &);
+
+protected:
+	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
+		_est_time(0),
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_att_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		estimator_status_s est = {};
+		vehicle_attitude_s att = {};
+
+		bool est_updated = _est_sub->update(&_est_time, &est);
+		bool att_updated = _att_sub->update(&_att_time, &att);
+
+		mavlink_odometry_t odom = {};
+
+		if (est_updated || att_updated) {
+			odom.time_usec = est.timestamp;
+
+			odom.x = est.states[0];
+			odom.y = est.states[1];
+			odom.z = est.states[2];
+
+			odom.vx = est.states[3];
+			odom.vy = est.states[4];
+			odom.vz = est.states[5];
+
+			odom.pose_covariance[0] = est.covariances[0];
+			odom.pose_covariance[6] = est.covariances[1];
+			odom.pose_covariance[11] = est.covariances[2];
+
+			odom.twist_covariance[0] = est.covariances[0];
+			odom.twist_covariance[6] = est.covariances[1];
+			odom.twist_covariance[11] = est.covariances[2];
+
+			if (estimator_type == 1) {
+				odom.q[0] = att.q[0];
+				odom.q[0] = att.q[1];
+				odom.q[0] = att.q[2];
+				odom.q[0] = att.q[3];
+
+				odom.rollspeed = att.rollspeed;
+				odom.pitchspeed = att.pitchspeed;
+				odom.yawspeed = att.yawspeed;
+
+			} else if (estimator_type == 2) {
+				// TODO: add covariance and states for quaternion and attitude rates
+			}
+
+			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &odom);
+		}
+
+		return (est_updated || att_updated);
+
+	}
+};
+
 class MavlinkStreamLocalPositionNED : public MavlinkStream
 {
 public:
@@ -4155,6 +4260,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static, &MavlinkStreamGlobalPositionInt::get_id_static),
 	StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static, &MavlinkStreamLocalPositionNED::get_id_static),
 	StreamListItem(&MavlinkStreamVisionPositionEstimate::new_instance, &MavlinkStreamVisionPositionEstimate::get_name_static, &MavlinkStreamVisionPositionEstimate::get_id_static),
+	StreamListItem(&MavlinkStreamOdometry::new_instance, &MavlinkStreamOdometry::get_name_static, &MavlinkStreamOdometry::get_id_static),
 	StreamListItem(&MavlinkStreamLocalPositionNEDCOV::new_instance, &MavlinkStreamLocalPositionNEDCOV::get_name_static, &MavlinkStreamLocalPositionNEDCOV::get_id_static),
 	StreamListItem(&MavlinkStreamEstimatorStatus::new_instance, &MavlinkStreamEstimatorStatus::get_name_static, &MavlinkStreamEstimatorStatus::get_id_static),
 	StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static, &MavlinkStreamAttPosMocap::get_id_static),
