@@ -26,16 +26,16 @@ float32 z_deriv				# Down position time derivative in NED earth-fixed frame, (me
 # Velocity reset delta
 float32[2] delta_vxy
 uint8 vxy_reset_counter
-
 float32 delta_vz
 uint8 vz_reset_counter
+
 # Acceleration in NED frame
-float32 ax        # North velocity derivative in NED earth-fixed frame, (metres/sec^2)
-float32 ay        # East velocity derivative in NED earth-fixed frame, (metres/sec^2)
-float32 az        # Down velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 ax        			# North velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 ay        			# East velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 az        			# Down velocity derivative in NED earth-fixed frame, (metres/sec^2)
 
 # Heading
-float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians) 
+float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians)
 
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
 bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)

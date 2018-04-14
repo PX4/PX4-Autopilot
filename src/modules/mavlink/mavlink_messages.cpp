@@ -58,7 +58,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/camera_capture.h>
@@ -2150,8 +2149,11 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_mocap_sub;
-	uint64_t _mocap_time;
+	MavlinkOrbSubscription *_mocap_pos_sub;
+	uint64_t _mocap_pos_time;
+
+	MavlinkOrbSubscription *_mocap_att_sub;
+	uint64_t _mocap_att_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttPosMocap(MavlinkStreamAttPosMocap &) = delete;
@@ -2159,32 +2161,38 @@ private:
 
 protected:
 	explicit MavlinkStreamAttPosMocap(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_mocap_sub(_mavlink->add_orb_subscription(ORB_ID(att_pos_mocap))),
-		_mocap_time(0)
+		_mocap_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_groundtruth))),
+		_mocap_pos_time(0),
+		_mocap_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_groundtruth))),
+		_mocap_att_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		att_pos_mocap_s mocap;
+		vehicle_local_position_s mocap_pos = {};
+		vehicle_attitude_s mocap_att = {};
 
-		if (_mocap_sub->update(&_mocap_time, &mocap)) {
+		bool pos_updated = _mocap_pos_sub->update(&_mocap_pos_time, &mocap_pos);
+		bool att_updated = _mocap_att_sub->update(&_mocap_att_time, &mocap_att);
+
+		if (pos_updated || att_updated) {
 			mavlink_att_pos_mocap_t msg = {};
 
-			msg.time_usec = mocap.timestamp;
-			msg.q[0] = mocap.q[0];
-			msg.q[1] = mocap.q[1];
-			msg.q[2] = mocap.q[2];
-			msg.q[3] = mocap.q[3];
-			msg.x = mocap.x;
-			msg.y = mocap.y;
-			msg.z = mocap.z;
+			msg.time_usec = mocap_pos.timestamp;
+
+			msg.x = mocap_pos.x;
+			msg.y = mocap_pos.y;
+			msg.z = mocap_pos.z;
+
+			msg.q[0] = mocap_att.q[0];
+			msg.q[1] = mocap_att.q[1];
+			msg.q[2] = mocap_att.q[2];
+			msg.q[3] = mocap_att.q[3];
 
 			mavlink_msg_att_pos_mocap_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
 		}
 
-		return false;
+		return (pos_updated || att_updated);
 	}
 };
 

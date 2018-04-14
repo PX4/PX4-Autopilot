@@ -322,7 +322,7 @@ struct log_PWR_s {
 	uint8_t high_power_rail_overcurrent;
 };
 
-/* --- MOCP - MOCAP ATTITUDE AND POSITION --- */
+/* --- MOCP - MOCAP POSE --- */
 #define LOG_MOCP_MSG 25
 struct log_MOCP_s {
 	float qw;

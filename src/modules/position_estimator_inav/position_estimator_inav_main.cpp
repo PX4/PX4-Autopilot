@@ -60,7 +60,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -362,7 +361,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&flow, 0, sizeof(flow));
 	struct vehicle_local_position_s vision;
 	memset(&vision, 0, sizeof(vision));
-	struct att_pos_mocap_s mocap;
+	struct vehicle_local_position_s mocap;
 	memset(&mocap, 0, sizeof(mocap));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
@@ -382,7 +381,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	int vision_position_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
-	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
+	int mocap_position_sub = orb_subscribe(ORB_ID(vehicle_local_position_groundtruth));
 	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	int vehicle_air_data_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	// because we can have several distance sensor instances with different orientations
@@ -842,10 +841,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			/* vehicle mocap position */
-			orb_check(att_pos_mocap_sub, &updated);
+			orb_check(mocap_position_sub, &updated);
 
 			if (updated) {
-				orb_copy(ORB_ID(att_pos_mocap), att_pos_mocap_sub, &mocap);
+				orb_copy(ORB_ID(vehicle_local_position_groundtruth), mocap_position_sub, &mocap);
 
 				if (!params.disable_mocap) {
 					/* reset position estimate on first mocap update */
@@ -1042,10 +1041,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_gps_xy = ref_inited && gps_valid && params.w_xy_gps_p > MIN_VALID_W;
 		bool use_gps_z = ref_inited && gps_valid && params.w_z_gps_p > MIN_VALID_W;
 		/* use VISION if it's valid and has a valid weight parameter */
-		bool use_vision_xy = vision_valid && params.w_xy_vision_p > MIN_VALID_W;
-		bool use_vision_z = vision_valid && params.w_z_vision_p > MIN_VALID_W;
+		bool use_vision_xy = vision_valid && vision.xy_valid && params.w_xy_vision_p > MIN_VALID_W;
+		bool use_vision_z = vision_valid && vision.z_valid && params.w_z_vision_p > MIN_VALID_W;
 		/* use MOCAP if it's valid and has a valid weight parameter */
-		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W
+		bool use_mocap = mocap_valid && mocap.xy_valid && mocap.z_valid && params.w_mocap_p > MIN_VALID_W
 				 && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
 
 		if (params.disable_mocap) { //disable mocap if fake gps is used

@@ -129,7 +129,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att_sp_pub(nullptr),
 	_rates_sp_pub(nullptr),
 	_pos_sp_triplet_pub(nullptr),
-	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
 	_vision_attitude_pub(nullptr),
 	_telemetry_status_pub(nullptr),
@@ -851,29 +850,68 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mavlink_att_pos_mocap_t mocap;
 	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
-	struct att_pos_mocap_s att_pos_mocap = {};
+	struct vehicle_local_position_s mocap_pos = {};
 
-	// Use the component ID to identify the mocap system
-	att_pos_mocap.id = msg->compid;
+	mocap_pos.timestamp = sync_stamp(mocap.time_usec);
 
-	att_pos_mocap.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
-	att_pos_mocap.timestamp_received = hrt_absolute_time();
+	mocap_pos.x = mocap.x;
+	mocap_pos.y = mocap.y;
+	mocap_pos.z = mocap.z;
 
-	att_pos_mocap.q[0] = mocap.q[0];
-	att_pos_mocap.q[1] = mocap.q[1];
-	att_pos_mocap.q[2] = mocap.q[2];
-	att_pos_mocap.q[3] = mocap.q[3];
+	// TODO : full covariance matrix
+	mocap_pos.eph = sqrtf(fmaxf(mocap.covariance[0], mocap.covariance[6]));
+	mocap_pos.epv = sqrtf(mocap.covariance[11]);
 
-	att_pos_mocap.x = mocap.x;
-	att_pos_mocap.y = mocap.y;
-	att_pos_mocap.z = mocap.z;
+	// set position invalid if standard deviation is bigger than ep_max_std_dev
+	const float ep_max_std_dev = 100.0f;
 
-	if (_att_pos_mocap_pub == nullptr) {
-		_att_pos_mocap_pub = orb_advertise(ORB_ID(att_pos_mocap), &att_pos_mocap);
+	if (mocap_pos.eph > ep_max_std_dev) {
+		mocap_pos.xy_valid = false;
 
 	} else {
-		orb_publish(ORB_ID(att_pos_mocap), _att_pos_mocap_pub, &att_pos_mocap);
+		mocap_pos.xy_valid = true;
 	}
+
+	if (mocap_pos.epv > ep_max_std_dev) {
+		mocap_pos.z_valid = false;
+
+	} else {
+		mocap_pos.z_valid = true;
+	}
+
+	mocap_pos.v_xy_valid = false;
+	mocap_pos.v_z_valid = false;
+
+	struct vehicle_attitude_s mocap_att = {};
+
+	mocap_att.timestamp = sync_stamp(mocap.time_usec);
+
+	mocap_att.q[0] = mocap.q[0];
+	mocap_att.q[1] = mocap.q[1];
+	mocap_att.q[2] = mocap.q[2];
+	mocap_att.q[3] = mocap.q[3];
+
+	// TODO : full covariance matrix
+	mocap_att.att_std_dev = sqrtf(fmaxf(mocap.covariance[15], fmaxf(mocap.covariance[18], mocap.covariance[20])));
+
+	// set orientation angle/angle rate invalid if standard deviation
+	// is bigger than eo_max_std_dev
+	const float eo_max_std_dev = 100.0f;
+
+	if (mocap_att.att_std_dev > eo_max_std_dev) {
+		mocap_att.att_valid = false;
+
+	} else {
+		mocap_att.att_valid = true;
+	}
+
+	mocap_att.att_rate_valid = false;
+
+	int instance_id = 0;
+
+	orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_mocap_position_pub, &mocap_pos, &instance_id,
+			 ORB_PRIO_HIGH);
+	orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_mocap_attitude_pub, &mocap_att, &instance_id, ORB_PRIO_HIGH);
 }
 
 void

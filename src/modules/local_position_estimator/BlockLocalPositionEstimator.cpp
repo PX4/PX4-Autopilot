@@ -37,7 +37,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// vision 50 hz
 	_sub_vision_pos(ORB_ID(vehicle_vision_position), 1000 / 50, 0, &getSubscriptions()),
 	// mocap 50 hz
-	_sub_mocap(ORB_ID(att_pos_mocap), 1000 / 50, 0, &getSubscriptions()),
+	_sub_mocap(ORB_ID(vehicle_local_position_groundtruth), 1000 / 50, 0, &getSubscriptions()),
 	// all distance sensors, 10 hz
 	_sub_dist0(ORB_ID(distance_sensor), 1000 / 10, 0, &getSubscriptions()),
 	_sub_dist1(ORB_ID(distance_sensor), 1000 / 10, 1, &getSubscriptions()),

@@ -224,7 +224,6 @@ private:
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
-	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _vision_attitude_pub;
 	orb_advert_t _telemetry_status_pub;

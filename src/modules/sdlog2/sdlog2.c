@@ -78,7 +78,6 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -1170,8 +1169,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
-		struct att_pos_mocap_s att_pos_mocap;
+		struct vehicle_local_position_s mocap_pos;
 		struct vehicle_local_position_s vision_pos;
+		struct vehicle_attitude_s mocap_att;
 		struct vehicle_attitude_s vision_att;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
@@ -1277,8 +1277,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int triplet_sub;
 		int gps_pos_sub[2];
 		int sat_info_sub;
-		int att_pos_mocap_sub;
+		int mocap_pos_sub;
 		int vision_pos_sub;
+		int mocap_att_sub;
 		int vision_att_sub;
 		int flow_sub;
 		int rc_sub;
@@ -1320,8 +1321,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.local_pos_sp_sub = -1;
 	subs.global_pos_sub = -1;
 	subs.triplet_sub = -1;
-	subs.att_pos_mocap_sub = -1;
+	subs.mocap_pos_sub = -1;
 	subs.vision_pos_sub = -1;
+	subs.mocap_att_sub = -1;
 	subs.vision_att_sub = -1;
 	subs.flow_sub = -1;
 	subs.rc_sub = -1;
@@ -1814,16 +1816,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 				}
 			}
 
-			/* --- MOCAP ATTITUDE AND POSITION --- */
-			if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.att_pos_mocap_sub, &buf.att_pos_mocap)) {
+			/* --- MOCAP POSE --- */
+			if (copy_if_updated(ORB_ID(vehicle_local_position_groundtruth), &subs.mocap_pos_sub, &buf.mocap_pos) ||
+			    copy_if_updated(ORB_ID(vehicle_attitude_groundtruth), &subs.mocap_att_sub, &buf.mocap_att)) {
 				log_msg.msg_type = LOG_MOCP_MSG;
-				log_msg.body.log_MOCP.qw = buf.att_pos_mocap.q[0];
-				log_msg.body.log_MOCP.qx = buf.att_pos_mocap.q[1];
-				log_msg.body.log_MOCP.qy = buf.att_pos_mocap.q[2];
-				log_msg.body.log_MOCP.qz = buf.att_pos_mocap.q[3];
-				log_msg.body.log_MOCP.x = buf.att_pos_mocap.x;
-				log_msg.body.log_MOCP.y = buf.att_pos_mocap.y;
-				log_msg.body.log_MOCP.z = buf.att_pos_mocap.z;
+				log_msg.body.log_MOCP.x = buf.mocap_pos.x;
+				log_msg.body.log_MOCP.y = buf.mocap_pos.y;
+				log_msg.body.log_MOCP.z = buf.mocap_pos.z;
+				log_msg.body.log_MOCP.qw = buf.mocap_att.q[0];
+				log_msg.body.log_MOCP.qx = buf.mocap_att.q[1];
+				log_msg.body.log_MOCP.qy = buf.mocap_att.q[2];
+				log_msg.body.log_MOCP.qz = buf.mocap_att.q[3];
 				LOGBUFFER_WRITE_AND_COUNT(MOCP);
 			}
 
