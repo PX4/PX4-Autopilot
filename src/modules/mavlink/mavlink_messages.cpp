@@ -1950,7 +1950,10 @@ protected:
 		mavlink_odometry_t odom = {};
 
 		if (pos_updated || est_updated || att_updated) {
-			odom.time_usec = est.timestamp;
+			odom.time_usec = pos.timestamp;
+
+			odom.frame_id = MAV_FRAME_ESTIM_NED;
+			odom.child_frame_id = MAV_FRAME_ESTIM_NED; // TODO: probably convert back to body frame here
 
 			// Current position
 			odom.x = pos.x;
