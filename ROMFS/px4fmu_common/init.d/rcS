@@ -376,6 +376,13 @@ else
 		camera_feedback start
 	fi
 
+	# Camera capture driver
+	if camera_capture start
+	then
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+	fi
+
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
