@@ -129,3 +129,24 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_YSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_ZSCALE, 1.0f);
+
+/**
+ * Magnetometer X-axis off diagonal factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_XODIAG, 0.0f);
+
+/**
+ * Magnetometer Y-axis off diagonal factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_YODIAG, 0.0f);
+
+/**
+ * Magnetometer Z-axis off diagonal factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_ZODIAG, 0.0f);

@@ -479,6 +479,12 @@ void VotedSensorsUpdate::parameters_update()
 				failed = failed || (OK != param_get(param_find(str), &mscale.y_scale));
 				(void)sprintf(str, "CAL_MAG%u_ZSCALE", i);
 				failed = failed || (OK != param_get(param_find(str), &mscale.z_scale));
+				(void)sprintf(str, "CAL_MAG%u_XODIAG", i);
+				failed = failed || (OK != param_get(param_find(str), &mscale.x_offdiag));
+				(void)sprintf(str, "CAL_MAG%u_YODIAG", i);
+				failed = failed || (OK != param_get(param_find(str), &mscale.y_offdiag));
+				(void)sprintf(str, "CAL_MAG%u_ZODIAG", i);
+				failed = failed || (OK != param_get(param_find(str), &mscale.z_offdiag));
 
 				(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
