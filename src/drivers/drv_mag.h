@@ -56,10 +56,13 @@
 struct mag_calibration_s {
 	float	x_offset;
 	float	x_scale;
+	float	x_offdiag;
 	float	y_offset;
 	float	y_scale;
+	float	y_offdiag;
 	float	z_offset;
 	float	z_scale;
+	float	z_offdiag;
 };
 
 /*
