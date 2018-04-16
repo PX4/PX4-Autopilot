@@ -48,9 +48,15 @@ UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;     // <-- Why?
 
-	_scale.x_scale = 1.0F;
-	_scale.y_scale = 1.0F;
-	_scale.z_scale = 1.0F;
+	_scale.x_offset = 0.0F;
+	_scale.x_scale  = 1.0F;
+	_scale.x_offdiag  = 0.0F;
+	_scale.y_offset = 0.0F;
+	_scale.y_scale  = 1.0F;
+	_scale.y_offdiag  = 0.0F;
+	_scale.z_offset = 0.0F;
+	_scale.z_scale  = 1.0F;
+	_scale.z_offdiag  = 0.0F;
 }
 
 int UavcanMagnetometerBridge::init()
@@ -160,6 +166,20 @@ void UavcanMagnetometerBridge::mag_sub_cb(const
 	_report.x = (msg.magnetic_field_ga[0] - _scale.x_offset) * _scale.x_scale;
 	_report.y = (msg.magnetic_field_ga[1] - _scale.y_offset) * _scale.y_scale;
 	_report.z = (msg.magnetic_field_ga[2] - _scale.z_offset) * _scale.z_scale;
+
+	_report.x = (msg.magnetic_field_ga[0] - _scale.x_offset) * _scale.x_scale;
+	_report.x += (msg.magnetic_field_ga[1] - _scale.y_offset) * _scale.x_offdiag;
+	_report.x += (msg.magnetic_field_ga[2] - _scale.z_offset) * _scale.y_offdiag;
+
+	_report.y = (msg.magnetic_field_ga[1] - _scale.y_offset) * _scale.y_scale;
+	_report.y += (msg.magnetic_field_ga[0] - _scale.x_offset) * _scale.x_offdiag;
+	_report.y += (msg.magnetic_field_ga[2] - _scale.z_offset) * _scale.z_offdiag;
+
+	_report.z = (msg.magnetic_field_ga[2] - _scale.z_offset) * _scale.z_scale;
+	_report.z += (msg.magnetic_field_ga[0] - _scale.x_offset) * _scale.y_offdiag;
+	_report.z += (msg.magnetic_field_ga[1] - _scale.y_offset) * _scale.z_offdiag;
+
+
 	unlock();
 
 	publish(msg.getSrcNodeID().get(), &_report);
