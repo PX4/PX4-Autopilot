@@ -360,11 +360,14 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 
 	// default scaling
 	_scale.x_offset = 0;
-	_scale.x_scale = 1.0f;
+	_scale.x_scale  = 1.0f;
+	_scale.x_offdiag  = 0.0f;
 	_scale.y_offset = 0;
-	_scale.y_scale = 1.0f;
+	_scale.y_scale  = 1.0f;
+	_scale.y_offdiag  = 0.0f;
 	_scale.z_offset = 0;
-	_scale.z_scale = 1.0f;
+	_scale.z_scale  = 1.0f;
+	_scale.z_offdiag  = 0.0f;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -959,10 +962,17 @@ LIS3MDL::collect()
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
 	new_report.x = ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	new_report.x += ((yraw_f * _range_scale) - _scale.y_offset) * _scale.x_offdiag;
+	new_report.x += ((zraw_f * _range_scale) - _scale.z_offset) * _scale.y_offdiag;
+
 	/* flip axes and negate value for y */
 	new_report.y = ((yraw_f * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	new_report.y += ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_offdiag;
+	new_report.y += ((zraw_f * _range_scale) - _scale.z_offset) * _scale.z_offdiag;
 	/* z remains z */
 	new_report.z = ((zraw_f * _range_scale) - _scale.z_offset) * _scale.z_scale;
+	new_report.z += ((xraw_f * _range_scale) - _scale.x_offset) * _scale.y_offdiag;
+	new_report.z += ((yraw_f * _range_scale) - _scale.y_offset) * _scale.z_offdiag;
 
 	if (!(_pub_blocked)) {
 
