@@ -584,12 +584,15 @@ LSM303D::LSM303D(int bus, const char *path, uint32_t device, enum Rotation rotat
 	_accel_scale.z_offset = 0.0f;
 	_accel_scale.z_scale  = 1.0f;
 
-	_mag_scale.x_offset = 0.0f;
-	_mag_scale.x_scale = 1.0f;
-	_mag_scale.y_offset = 0.0f;
-	_mag_scale.y_scale = 1.0f;
-	_mag_scale.z_offset = 0.0f;
-	_mag_scale.z_scale = 1.0f;
+	_mag_scale.x_offset = 0;
+	_mag_scale.x_scale  = 1.0f;
+	_mag_scale.x_offdiag  = 0.0f;
+	_mag_scale.y_offset = 0;
+	_mag_scale.y_scale  = 1.0f;
+	_mag_scale.y_offdiag  = 0.0f;
+	_mag_scale.z_offset = 0;
+	_mag_scale.z_scale  = 1.0f;
+	_mag_scale.z_offdiag  = 0.0f;
 }
 
 LSM303D::~LSM303D()
@@ -1656,8 +1659,17 @@ LSM303D::mag_measure()
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
 	mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	mag_report.x += ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.x_offdiag;
+	mag_report.x += ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.y_offdiag;
+
 	mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	mag_report.y += ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_offdiag;
+	mag_report.y += ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_offdiag;
+
 	mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+	mag_report.z += ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.y_offdiag;
+	mag_report.z += ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.z_offdiag;
+
 	mag_report.scaling = _mag_range_scale;
 	mag_report.range_ga = (float)_mag_range_ga;
 	mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
