@@ -102,12 +102,19 @@ then
     do
         if [[ "$taskname" = "" ]]
         then
-            arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" -ex bt \
+            arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" \
+                                           -ex "target extended /dev/ttyACM0" \
+                                           -ex "monitor swdp_scan" \
+                                           -ex "attach 1" \
+                                           -ex bt \
                 2> $gdberrfile \
                 | sed -n 's/\(#.*\)/\1/p' \
                 >> $stacksfile
         else
             arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" \
+                                           -ex "target extended /dev/ttyACM0" \
+                                           -ex "monitor swdp_scan" \
+                                           -ex "attach 1" \
                                            -ex "source $root/platforms/nuttx/Debug/Nuttx.py" \
                                            -ex "show mybt $taskname" \
                 2> $gdberrfile \

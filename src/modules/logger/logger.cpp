@@ -640,11 +640,8 @@ void Logger::add_default_topics()
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("multirotor_motor_limits");
 	add_topic("offboard_control_mode");
-	add_topic("parameter_update");
 	add_topic("time_offset");
-	add_topic("tune_control");
 	add_topic("vehicle_attitude_groundtruth", 10);
-	add_topic("vehicle_command_ack");
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 	add_topic("vehicle_roi");
@@ -680,11 +677,12 @@ void Logger::add_estimator_replay_topics()
 	add_topic("airspeed");
 	add_topic("distance_sensor");
 	add_topic("optical_flow");
-	add_topic("sensor_baro");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
+	add_topic("vehicle_air_data");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
+	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");

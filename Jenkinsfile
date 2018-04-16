@@ -46,6 +46,7 @@ pipeline {
                     sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v2_default.elf"
                     sh "bloaty -d symbols -n 100 -C full -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf -- nuttx_px4fmu-v2_default.elf"
                     sh "make nuttx_px4fmu-v2_lpe"
+                    sh "make nuttx_px4fmu-v2_test"
                     sh "make nuttx_px4fmu-v3_default"
                     sh "bloaty -d symbols -n 100 -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf"
                     sh "bloaty -d compileunits -n 100 -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf"
@@ -86,6 +87,40 @@ pipeline {
           // snapdragon (eagle_default)
           builds["eagle (linux)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'posix_eagle_default')
           builds["eagle (qurt)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'qurt_eagle_default')
+
+          // MAC OS posix_sitl_default
+          builds["sitl (OSX)"] = {
+            node("mac") {
+              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
+                stage("sitl (OSX)") {
+                  checkout scm
+                  sh "export"
+                  sh "make distclean"
+                  sh "ccache -z"
+                  sh "make posix_sitl_default"
+                  sh "ccache -s"
+                  sh "make distclean"
+                }
+              }
+            }
+          }
+
+          // MAC OS nuttx_px4fmu-v4pro_default
+          builds["px4fmu-v4pro (OSX)"] = {
+            node("mac") {
+              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
+                stage("px4fmu-v4pro (OSX)") {
+                  checkout scm
+                  sh "export"
+                  sh "make distclean"
+                  sh "ccache -z"
+                  sh "make nuttx_px4fmu-v4pro_default"
+                  sh "ccache -s"
+                  sh "make distclean"
+                }
+              }
+            }
+          }
 
           parallel builds
         } // script
@@ -186,6 +221,21 @@ pipeline {
             sh 'make distclean'
             sh 'make posix_sitl_default test_results_junit'
             junit 'build/posix_sitl_default/JUnitTestResults.xml'
+            sh 'make distclean'
+          }
+        }
+
+        stage('check stack') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2018-03-30'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make px4fmu-v2_default stack_check'
             sh 'make distclean'
           }
         }

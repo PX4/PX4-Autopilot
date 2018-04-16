@@ -40,15 +40,10 @@
 #include <mathlib/mathlib.h>
 #include <float.h>
 
-ManualSmoothingZ::ManualSmoothingZ(const float &vel, const float &stick) :
+ManualSmoothingZ::ManualSmoothingZ(ModuleParams *parent, const float &vel, const float &stick) :
+	ModuleParams(parent),
 	_vel(vel), _stick(stick), _vel_sp_prev(vel)
 {
-	_acc_max_up_h = param_find("MPC_ACC_UP_MAX");
-	_acc_max_down_h = param_find("MPC_ACC_DOWN_MAX");
-	_jerk_max_h = param_find("MPC_JERK_MAX");
-
-	/* Load the params the very first time */
-	setParams();
 }
 
 /* in manual altitude control apply acceleration limit based on stick input
@@ -59,31 +54,9 @@ ManualSmoothingZ::ManualSmoothingZ(const float &vel, const float &stick) :
 void
 ManualSmoothingZ::smoothVelFromSticks(float &vel_sp, const float dt)
 {
-	updateParams();
 	updateAcceleration(vel_sp, dt);
 	velocitySlewRate(vel_sp, dt);
 	_vel_sp_prev = vel_sp;
-}
-
-void
-ManualSmoothingZ::updateParams()
-{
-	bool updated;
-	parameter_update_s param_update;
-	orb_check(_parameter_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), _parameter_sub, &param_update);
-		setParams();
-	}
-}
-
-void
-ManualSmoothingZ::setParams()
-{
-	param_get(_acc_max_up_h, &_acc_max_up);
-	param_get(_acc_max_down_h, &_acc_max_down);
-	param_get(_jerk_max_h, &_jerk_max);
 }
 
 void
@@ -109,7 +82,7 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 	if ((_intention != ManualIntentionZ::brake) && (intention == ManualIntentionZ::brake)) {
 
 		/* we start with lowest acceleration */
-		_acc_state_dependent = _acc_max_down;
+		_acc_state_dependent = _acc_max_down.get();
 
 		/* reset slew-rate: this ensures that there
 		 * is no delay present when user demands to brake
@@ -123,13 +96,13 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 	case ManualIntentionZ::brake: {
 
 			/* limit jerk when braking to zero */
-			float jerk = (_acc_max_up - _acc_state_dependent) / dt;
+			float jerk = (_acc_max_up.get() - _acc_state_dependent) / dt;
 
-			if (jerk > _jerk_max) {
-				_acc_state_dependent = _jerk_max * dt + _acc_state_dependent;
+			if (jerk > _jerk_max.get()) {
+				_acc_state_dependent = _jerk_max.get() * dt + _acc_state_dependent;
 
 			} else {
-				_acc_state_dependent = _acc_max_up;
+				_acc_state_dependent = _acc_max_up.get();
 			}
 
 			break;
@@ -137,8 +110,8 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 
 	case ManualIntentionZ::acceleration: {
 
-			_acc_state_dependent = (getMaxAcceleration() - _acc_max_down)
-					       * fabsf(_stick) + _acc_max_down;
+			_acc_state_dependent = (getMaxAcceleration() - _acc_max_down.get())
+					       * fabsf(_stick) + _acc_max_down.get();
 			break;
 		}
 	}
@@ -153,11 +126,11 @@ ManualSmoothingZ::setMaxAcceleration()
 
 	if (_stick < -FLT_EPSILON) {
 		/* accelerating upward */
-		_max_acceleration =  _acc_max_up;
+		_max_acceleration =  _acc_max_up.get();
 
 	} else if (_stick > FLT_EPSILON) {
 		/* accelerating downward */
-		_max_acceleration = _acc_max_down;
+		_max_acceleration = _acc_max_down.get();
 
 	} else {
 
@@ -165,15 +138,15 @@ ManualSmoothingZ::setMaxAcceleration()
 
 		if (fabsf(_vel_sp_prev) < FLT_EPSILON) {
 			/* at rest */
-			_max_acceleration = _acc_max_up;
+			_max_acceleration = _acc_max_up.get();
 
 		} else if (_vel_sp_prev < 0.0f) {
 			/* braking downward */
-			_max_acceleration = _acc_max_down;
+			_max_acceleration = _acc_max_down.get();
 
 		} else {
 			/* braking upward */
-			_max_acceleration = _acc_max_up;
+			_max_acceleration = _acc_max_up.get();
 		}
 	}
 }

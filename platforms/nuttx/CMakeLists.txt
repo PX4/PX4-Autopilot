@@ -171,12 +171,30 @@ add_custom_target(size
 	COMMAND size ${FW_NAME}
 	DEPENDS ${FW_NAME}
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
 	)
 
 # print weak symbols
-add_custom_target(check_weak
-	COMMAND ${NM} ${FW_NAME} | ${GREP} " w " | cat
+add_custom_target(weak_symbols
+	COMMAND ${CMAKE_NM} $<TARGET_FILE:${FW_NAME}> | ${GREP} " w " | cat
 	DEPENDS ${FW_NAME}
+	VERBATIM
+	USES_TERMINAL
+	)
+
+add_custom_target(stack_check
+	COMMAND ${CMAKE_COMMAND} -E make_directory stack_usage && ${CMAKE_OBJDUMP} -d $<TARGET_FILE:${FW_NAME}> | ${PX4_SOURCE_DIR}/Tools/stack_usage/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo "Top 50:"
+	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
+	COMMAND head -n 50 stack_usage/checkstack_output.txt | c++filt
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo "Symbols with 'run', 'task', 'thread', 'main', 'update':"
+	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
+    COMMAND cat stack_usage/checkstack_output.txt | c++filt | grep -E 'run|task|thread|main|update'
+	DEPENDS ${FW_NAME}
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	VERBATIM
 	)
 
@@ -186,29 +204,12 @@ configure_file(gdbinit.in .gdbinit)
 add_custom_target(debug
 	COMMAND ${GDB} $<TARGET_FILE:${FW_NAME}>
 	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	USES_TERMINAL
+	)
+	
+add_custom_target(profile
+	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
+	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh
+	USES_TERMINAL
 	)
 
-add_custom_target(debug_tui
-	COMMAND ${GDBTUI} $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_ddd
-	COMMAND ${DDD} --debugger ${GDB} $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io
-	COMMAND ${GDB} ${fw_io_path}
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io_tui
-	COMMAND ${GDBTUI} ${fw_io_path}
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io_ddd
-	COMMAND ${DDD} --debugger ${GDB} ${fw_io_path}}
-	DEPENDS ${fw_io} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)

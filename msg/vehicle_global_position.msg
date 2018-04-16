@@ -25,8 +25,6 @@ float32 epv			# Standard deviation of vertical position error, (metres)
 float32 terrain_alt		# Terrain altitude WGS84, (metres)
 bool terrain_alt_valid		# Terrain altitude estimate is valid
 
-float32 pressure_alt		# Pressure altitude AMSL, (metres)
-
 bool dead_reckoning		# True if this position is estimated through dead-reckoning
 
 # TOPICS vehicle_global_position vehicle_global_position_groundtruth

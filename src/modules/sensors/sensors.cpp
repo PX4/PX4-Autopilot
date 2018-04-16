@@ -85,6 +85,8 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 
 #include <DevMgr.hpp>
 
@@ -169,6 +171,8 @@ private:
 	int 		_params_sub{-1};			/**< notification of parameter updates */
 
 	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
+	orb_advert_t	_airdata_pub{nullptr};			/**< combined sensor data topic */
+	orb_advert_t	_magnetometer_pub{nullptr};			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
 
 #if BOARD_NUMBER_BRICKS > 1
@@ -212,7 +216,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		diff_pres_poll(struct sensor_combined_s &raw);
+	void		diff_pres_poll(const vehicle_air_data_s &airdata);
 
 	/**
 	 * Check for changes in vehicle control mode.
@@ -267,30 +271,6 @@ Sensors::parameters_update()
 	_rc_update.update_rc_functions();
 	_voted_sensors_update.parameters_update();
 
-	/* update barometer qnh setting */
-	DevHandle h_baro;
-	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
-
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP) && !defined(__PX4_POSIX_OCPOC)
-
-	// TODO: this needs fixing for QURT and Raspberry Pi
-	if (!h_baro.isValid()) {
-		if (!_hil_enabled) { // in HIL we don't have a baro
-			PX4_ERR("no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-			ret = PX4_ERROR;
-		}
-
-	} else {
-		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
-
-		if (baroret) {
-			PX4_ERR("qnh for baro could not be set");
-			ret = PX4_ERROR;
-		}
-	}
-
-#endif
-
 	return ret;
 }
 
@@ -309,7 +289,7 @@ Sensors::adc_init()
 }
 
 void
-Sensors::diff_pres_poll(struct sensor_combined_s &raw)
+Sensors::diff_pres_poll(const vehicle_air_data_s &raw)
 {
 	bool updated;
 	orb_check(_diff_pres_sub, &updated);
@@ -359,16 +339,15 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		airspeed.indicated_airspeed_m_s = math::max(0.0f,
 						  calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
 								  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-								  diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
+								  diff_pres.differential_pressure_filtered_pa, raw.baro_pressure_pa,
 								  air_temperature_celsius));
 
 		airspeed.true_airspeed_m_s = math::max(0.0f,
-						       calc_true_airspeed_from_indicated(airspeed.indicated_airspeed_m_s,
-								       _voted_sensors_update.baro_pressure(), air_temperature_celsius));
+						       calc_true_airspeed_from_indicated(airspeed.indicated_airspeed_m_s, raw.baro_pressure_pa, air_temperature_celsius));
 
 		airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-							calc_true_airspeed(diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
-									_voted_sensors_update.baro_pressure(), air_temperature_celsius));
+							calc_true_airspeed(diff_pres.differential_pressure_raw_pa + raw.baro_pressure_pa, raw.baro_pressure_pa,
+									air_temperature_celsius));
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
@@ -594,7 +573,9 @@ Sensors::run()
 #endif
 	}
 
-	struct sensor_combined_s raw = {};
+	sensor_combined_s raw = {};
+	vehicle_air_data_s airdata = {};
+	vehicle_magnetometer_s magnetometer = {};
 
 	struct sensor_preflight_s preflt = {};
 
@@ -617,14 +598,16 @@ Sensors::run()
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
 	/* get a set of initial values */
-	_voted_sensors_update.sensors_poll(raw);
+	_voted_sensors_update.sensors_poll(raw, airdata, magnetometer);
 
-	diff_pres_poll(raw);
+	diff_pres_poll(airdata);
 
 	_rc_update.rc_parameter_map_poll(_parameter_handles, true /* forced */);
 
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
+	_airdata_pub = orb_advertise(ORB_ID(vehicle_air_data), &airdata);
+	_magnetometer_pub = orb_advertise(ORB_ID(vehicle_magnetometer), &magnetometer);
 
 	/* advertise the sensor_preflight topic and make the initial publication */
 	preflt.accel_inconsistency_m_s_s = 0.0f;
@@ -674,18 +657,29 @@ Sensors::run()
 
 		/* the timestamp of the raw struct is updated by the gyro_poll() method (this makes the gyro
 		 * a mandatory sensor) */
-		_voted_sensors_update.sensors_poll(raw);
+		const uint64_t airdata_prev_timestamp = airdata.timestamp;
+		const uint64_t magnetometer_prev_timestamp = magnetometer.timestamp;
+
+		_voted_sensors_update.sensors_poll(raw, airdata, magnetometer);
 
 		/* check battery voltage */
 		adc_poll();
 
-		diff_pres_poll(raw);
+		diff_pres_poll(airdata);
 
 		if (raw.timestamp > 0) {
 
 			_voted_sensors_update.set_relative_timestamps(raw);
 
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
+
+			if (airdata.timestamp != airdata_prev_timestamp) {
+				orb_publish(ORB_ID(vehicle_air_data), _airdata_pub, &airdata);
+			}
+
+			if (magnetometer.timestamp != magnetometer_prev_timestamp) {
+				orb_publish(ORB_ID(vehicle_magnetometer), _magnetometer_pub, &magnetometer);
+			}
 
 			_voted_sensors_update.check_failover();
 
@@ -698,7 +692,6 @@ Sensors::run()
 				_voted_sensors_update.calc_gyro_inconsistency(preflt);
 				_voted_sensors_update.calc_mag_inconsistency(preflt);
 				orb_publish(ORB_ID(sensor_preflight), _sensor_preflight, &preflt);
-
 			}
 		}
 
@@ -729,6 +722,8 @@ Sensors::run()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_actuator_ctrl_0_sub);
 	orb_unadvertise(_sensor_pub);
+	orb_unadvertise(_airdata_pub);
+	orb_unadvertise(_magnetometer_pub);
 
 	_rc_update.deinit();
 	_voted_sensors_update.deinit();

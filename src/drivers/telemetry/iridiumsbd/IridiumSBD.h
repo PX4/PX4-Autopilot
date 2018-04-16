@@ -83,54 +83,23 @@ typedef enum {
 
 extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 
-#define SATCOM_TX_BUF_LEN				50		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
-#define SATCOM_RX_MSG_BUF_LEN			300		// RX buffer size for MT messages
+#define SATCOM_TX_BUF_LEN			340		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
+#define SATCOM_MAX_MESSAGE_LENGTH		50		// Maximum length of the expected messages sent over this link
+#define SATCOM_RX_MSG_BUF_LEN			270		// RX buffer size for MT messages
 #define SATCOM_RX_COMMAND_BUF_LEN		50		// RX buffer size for other commands
-#define SATCOM_TX_STACKING_TIME			3000000	// time to wait for additional mavlink messages, TODO make this a param
-#define SATCOM_SIGNAL_REFRESH_DELAY		5000000 // update signal quality every 5s
+#define SATCOM_SIGNAL_REFRESH_DELAY		20000000 // update signal quality every 20s
 
+/**
+ * The driver for the Rockblock 9602 and 9603 RockBlock module for satellite communication over the Iridium satellite system.
+ * The MavLink 1 protocol should be used to ensure that the status message is 50 bytes (RockBlock bills every 50 bytes per transmission).
+ *
+ * TODO:
+ * 	- Improve TX buffer handling:
+ * 		- Do not reset the full TX buffer but delete the oldest HIGH_LATENCY2 message if one is in the buffer or delete the oldest message in general
+ */
 class IridiumSBD : public device::CDev
 {
 public:
-	static IridiumSBD *instance;
-	static int task_handle;
-	bool task_should_exit = false;
-	int uart_fd = -1;
-
-	int32_t param_read_interval_s;
-
-	hrt_abstime last_signal_check = 0;
-	uint8_t signal_quality = 0;
-
-	orb_advert_t telemetry_status_pub = nullptr;
-
-	bool test_pending = false;
-	char test_command[32];
-	hrt_abstime test_timer = 0;
-
-	uint8_t rx_command_buf[SATCOM_RX_COMMAND_BUF_LEN] = {0};
-	int rx_command_len = 0;
-
-	uint8_t rx_msg_buf[SATCOM_RX_MSG_BUF_LEN] = {0};
-	int rx_msg_end_idx = 0;
-	int rx_msg_read_idx = 0;
-
-	uint8_t tx_buf[SATCOM_TX_BUF_LEN] = {0};
-	int tx_buf_write_idx = 0;
-
-	bool ring_pending = false;
-	bool rx_session_pending = false;
-	bool rx_read_pending = false;
-	bool tx_session_pending = false;
-
-	hrt_abstime last_write_time = 0;
-	hrt_abstime last_read_time = 0;
-
-	satcom_state state = SATCOM_STATE_STANDBY;
-	satcom_state new_state = SATCOM_STATE_STANDBY;
-
-	pthread_mutex_t tx_buf_mutex = pthread_mutex_t();
-
 	/*
 	 * Constructor
 	 */
@@ -152,10 +121,19 @@ public:
 	static void status();
 
 	/*
-	 * Run a basic driver test
+	 * Run a driver test based on the input
+	 *  - `s`: Send a test string
+	 *  - `read`: Start a sbd read session
+	 *  - else: Is assumed to be a valid AT command and written to the modem
 	 */
 	static void test(int argc, char *argv[]);
 
+	/*
+	 * Passes everything to CDev
+	 */
+	int ioctl(struct file *filp, int cmd, unsigned long arg);
+
+private:
 	/*
 	 * Entry point of the task, has to be a static function
 	 */
@@ -165,6 +143,51 @@ public:
 	 * Main driver loop
 	 */
 	void main_loop(int argc, char *argv[]);
+
+	/*
+	 * Loop executed while in SATCOM_STATE_STANDBY
+	 *
+	 * Changes to SATCOM_STATE_TEST, SATCOM_STATE_SBDSESSION if required.
+	 * Periodically changes to SATCOM_STATE_CSQ for a signal quality check.
+	 */
+	void standby_loop(void);
+
+	/*
+	 * Loop executed while in SATCOM_STATE_CSQ
+	 *
+	 * Changes to SATCOM_STATE_STANDBY after finished signal quality check.
+	 */
+	void csq_loop(void);
+
+	/*
+	 * Loop executed while in SATCOM_STATE_SBDSESSION
+	 *
+	 * Changes to SATCOM_STATE_STANDBY after finished sbd session.
+	 */
+	void sbdsession_loop(void);
+
+	/*
+	 * Loop executed while in SATCOM_STATE_TEST
+	 *
+	 * Changes to SATCOM_STATE_STANDBY after finished test.
+	 */
+	void test_loop(void);
+
+	/*
+	 * Get the network signal strength
+	 */
+	void start_csq(void);
+
+	/*
+	 * Start a sbd session
+	 */
+	void start_sbd_session(void);
+
+	/*
+	 * Check if the test command is valid. If that is the case
+	 * change to SATCOM_STATE_TEST
+	 */
+	void start_test(void);
 
 	/*
 	 * Use to send mavlink messages directly
@@ -177,14 +200,44 @@ public:
 	ssize_t read(struct file *filp, char *buffer, size_t buflen);
 
 	/*
-	 * Passes everything to CDev
+	 * Write the tx buffer to the modem
 	 */
-	int ioctl(struct file *filp, int cmd, unsigned long arg);
+	void write_tx_buf();
 
 	/*
-	 * Get the poll state
+	 * Read binary data from the modem
 	 */
-	pollevent_t poll_state(struct file *filp);
+	void read_rx_buf();
+
+	/*
+	 * Send a AT command to the modem
+	 */
+	void write_at(const char *command);
+
+	/*
+	 * Read return from modem and store it in rx_command_buf
+	 */
+	satcom_result_code read_at_command(int16_t timeout = 100);
+
+	/*
+	 * Read return from modem and store it in rx_msg_buf
+	 */
+	satcom_result_code read_at_msg(int16_t timeout = 100);
+
+	/*
+	 * Read the return from the modem
+	 */
+	satcom_result_code read_at(uint8_t *rx_buf, int *rx_len, int16_t timeout = 100);
+
+	/*
+	 * Schedule a test (set test_pending to true)
+	 */
+	void schedule_test(void);
+
+	/*
+	 * Clear the MO message buffer
+	 */
+	bool clear_mo_buffer();
 
 	/*
 	 * Open and configure the given UART port
@@ -192,89 +245,94 @@ public:
 	satcom_uart_status open_uart(char *uart_name);
 
 	/*
-	 *
-	 */
-	void write_tx_buf();
-
-	/*
-	 *
-	 */
-	void read_rx_buf();
-
-	/*
-	 *
-	 */
-	bool clear_mo_buffer();
-
-	/*
-	 * Perform a SBD session, sending the message from the MO buffer (if previously written)
-	 * and retrieving a MT message from the Iridium system (if there is one waiting)
-	 * This will also update the registration needed for SBD RING
-	 */
-	int sbd_session(void);
-
-	/*
-	 * Get the network signal strength
-	 */
-	void start_csq(void);
-
-	/*
-	 *
-	 */
-	satcom_result_code read_at_command();
-
-	/*
-	 *
-	 */
-	satcom_result_code read_at_msg();
-
-	/*
-	 *
-	 */
-	satcom_result_code read_at(uint8_t *rx_buf, int *rx_len);
-
-	/*
-	 *
-	 */
-	void schedule_test(void);
-
-	/*
-	 *
-	 */
-	void standby_loop(void);
-
-	/*
-	 *
-	 */
-	void csq_loop(void);
-
-	/*
-	 *
-	 */
-	void sbdsession_loop(void);
-
-	/*
-	 *
-	 */
-	void test_loop(void);
-
-	/*
-	 * TEST
-	 */
-	void start_test(void);
-
-	/*
-	 *
-	 */
-	void start_sbd_session(void);
-
-	/*
 	 * Checks if the modem responds to the "AT" command
 	 */
 	bool is_modem_ready(void);
 
 	/*
-	 * Send a AT command to the modem
+	 * Get the poll state
 	 */
-	void write_at(const char *command);
+	pollevent_t poll_state(struct file *filp);
+
+	/*
+	 * Publish the up to date telemetry status
+	 */
+	void publish_telemetry_status(void);
+
+	/**
+	 * Notification of the first open of CDev.
+	 *
+	 * This function is called when the device open count transitions from zero
+	 * to one.  The driver lock is held for the duration of the call.
+	 *
+	 * Notes that CDev is used and blocks stopping the driver.
+	 *
+	 * @param filep		Pointer to the NuttX file structure.
+	 * @return		OK if the open should proceed, -errno otherwise.
+	 */
+	virtual int	open_first(struct file *filep) override;
+
+	/**
+	 * Notification of the last close of CDev.
+	 *
+	 * This function is called when the device open count transitions from
+	 * one to zero.  The driver lock is held for the duration of the call.
+	 *
+	 * Notes that CDev is not used anymore and allows stopping the driver.
+	 *
+	 * @param filep		Pointer to the NuttX file structure.
+	 * @return		OK if the open should return OK, -errno otherwise.
+	 */
+	virtual int	close_last(struct file *filep) override;
+
+	static IridiumSBD *instance;
+	static int task_handle;
+	bool _task_should_exit = false;
+	int uart_fd = -1;
+
+	int32_t _param_read_interval_s = -1;
+	int32_t _param_session_timeout_s = -1;
+	int32_t _param_stacking_time_ms = -1;
+
+	hrt_abstime _last_signal_check = 0;
+	uint8_t _signal_quality = 0;
+	uint16_t _failed_sbd_sessions = 0;
+
+	bool _writing_mavlink_packet = false;
+	uint16_t _packet_length = 0;
+
+	orb_advert_t _telemetry_status_pub = nullptr;
+
+	bool _test_pending = false;
+	char _test_command[32];
+	hrt_abstime _test_timer = 0;
+
+	uint8_t _rx_command_buf[SATCOM_RX_COMMAND_BUF_LEN] = {};
+	int _rx_command_len = 0;
+
+	uint8_t _rx_msg_buf[SATCOM_RX_MSG_BUF_LEN] = {};
+	int _rx_msg_end_idx = 0;
+	int _rx_msg_read_idx = 0;
+
+	uint8_t _tx_buf[SATCOM_TX_BUF_LEN] = {};
+	int _tx_buf_write_idx = 0;
+
+	bool _tx_buf_write_pending = false;
+	bool _ring_pending = false;
+	bool _rx_session_pending = false;
+	bool _rx_read_pending = false;
+	bool _tx_session_pending = false;
+
+	bool _cdev_used = false;
+
+	hrt_abstime _last_write_time = 0;
+	hrt_abstime _last_read_time = 0;
+	hrt_abstime _last_heartbeat = 0;
+	hrt_abstime _session_start_time = 0;
+
+	satcom_state _state = SATCOM_STATE_STANDBY;
+	satcom_state _new_state = SATCOM_STATE_STANDBY;
+
+	pthread_mutex_t _tx_buf_mutex = pthread_mutex_t();
+	bool _verbose = false;
 };

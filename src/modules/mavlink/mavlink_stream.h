@@ -57,7 +57,7 @@ public:
 	/**
 	 * Get the interval
 	 *
-	 * @param interval the inveral in microseconds (us) between messages
+	 * @param interval the interval in microseconds (us) between messages
 	 */
 	void set_interval(const int interval);
 
@@ -102,6 +102,14 @@ protected:
 #ifndef __PX4_QURT
 	virtual bool send(const hrt_abstime t) = 0;
 #endif
+
+	/**
+	 * Function to collect/update data for the streams at a high rate independant of
+	 * actual stream rate.
+	 *
+	 * This function is called at every iteration of the mavlink module.
+	 */
+	virtual void update_data() { }
 
 private:
 	hrt_abstime _last_sent;

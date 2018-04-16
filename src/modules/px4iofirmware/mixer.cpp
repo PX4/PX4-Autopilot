@@ -66,7 +66,6 @@ extern "C" {
  * Maximum interval in us before FMU signal is considered lost
  */
 #define FMU_INPUT_DROP_LIMIT_US		500000
-#define NAN_VALUE	(0.0f/0.0f)
 
 /* current servo arm/disarm state */
 static volatile bool mixer_servos_armed = false;
@@ -479,7 +478,7 @@ mixer_callback(uintptr_t handle,
 		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* mark the throttle as invalid */
-			control = NAN_VALUE;
+			control = NAN;
 		}
 	}
 
@@ -492,7 +491,7 @@ mixer_callback(uintptr_t handle,
  * not loaded faithfully.
  */
 
-static char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
+static char mixer_text[PX4IO_MAX_MIXER_LENGTH];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 static bool mixer_update_pending = false;
 

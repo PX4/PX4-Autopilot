@@ -113,21 +113,21 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	if (gpsMeasure(y_global) != OK) { return; }
 
 	// gps measurement in local frame
-	double  lat = y_global(0);
-	double  lon = y_global(1);
-	float  alt = y_global(2);
+	double  lat = y_global(Y_gps_x);
+	double  lon = y_global(Y_gps_y);
+	float  alt = y_global(Y_gps_z);
 	float px = 0;
 	float py = 0;
 	float pz = -(alt - _gpsAltOrigin);
 	map_projection_project(&_map_ref, lat, lon, &px, &py);
-	Vector<float, 6> y;
+	Vector<float, n_y_gps> y;
 	y.setZero();
-	y(0) = px;
-	y(1) = py;
-	y(2) = pz;
-	y(3) = y_global(3);
-	y(4) = y_global(4);
-	y(5) = y_global(5);
+	y(Y_gps_x) = px;
+	y(Y_gps_y) = py;
+	y(Y_gps_z) = pz;
+	y(Y_gps_vx) = y_global(Y_gps_vx);
+	y(Y_gps_vy) = y_global(Y_gps_vy);
+	y(Y_gps_vz) = y_global(Y_gps_vz);
 
 	// gps measurement matrix, measures position and velocity
 	Matrix<float, n_y_gps, n_x> C;

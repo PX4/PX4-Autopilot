@@ -40,14 +40,6 @@
 
 using namespace matrix;
 
-FlightTaskManualAltitude::FlightTaskManualAltitude(control::SuperBlock *parent, const char *name) :
-	FlightTaskManualStabilized(parent, name),
-	_vel_max_down(parent, "MPC_Z_VEL_MAX_DN", false),
-	_vel_max_up(parent, "MPC_Z_VEL_MAX_UP", false),
-	_vel_hold_thr_z(parent, "MPC_HOLD_MAX_Z", false)
-
-{}
-
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	/* Reuse same scaling as for stabilized */

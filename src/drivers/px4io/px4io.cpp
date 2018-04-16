@@ -590,8 +590,6 @@ PX4IO::init()
 	param_t sys_restart_param;
 	int32_t sys_restart_val = DM_INIT_REASON_VOLATILE;
 
-	ASSERT(_task == -1);
-
 	sys_restart_param = param_find("SYS_RESTART_TYPE");
 
 	if (sys_restart_param != PARAM_INVALID) {

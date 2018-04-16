@@ -39,9 +39,8 @@
 
 using namespace matrix;
 
-FlightTaskManualAltitudeSmooth::FlightTaskManualAltitudeSmooth(control::SuperBlock *parent, const char *name) :
-	FlightTaskManualAltitude(parent, name),
-	_smoothing(_velocity(2), _sticks(2))
+FlightTaskManualAltitudeSmooth::FlightTaskManualAltitudeSmooth() :
+	_smoothing(this, _velocity(2), _sticks(2))
 {}
 
 void FlightTaskManualAltitudeSmooth::_updateSetpoints()

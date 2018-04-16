@@ -361,7 +361,10 @@ function(px4_add_common_flags)
 	set(_optimization_flags
 		-fno-strict-aliasing
 		-fomit-frame-pointer
+
+		-fno-math-errno
 		-funsafe-math-optimizations
+
 		-ffunction-sections
 		-fdata-sections
 		)

@@ -263,42 +263,24 @@ private:
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER};		///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
 	struct {
-		float l1_period;
-		float l1_damping;
-
-		float time_const;
-		float time_const_throt;
-		float min_sink_rate;
-		float max_sink_rate;
-		float max_climb_rate;
 		float climbout_diff;
-		float heightrate_p;
-		float heightrate_ff;
-		float speedrate_p;
-		float throttle_damp;
-		float integrator_gain;
-		float vertical_accel_limit;
-		float height_comp_filter_omega;
-		float speed_comp_filter_omega;
-		float roll_throttle_compensation;
+
+		float max_climb_rate;
+		float max_sink_rate;
 		float speed_weight;
-		float pitch_damping;
 
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
-		float airspeed_trans;
 		int32_t airspeed_disabled;
 
 		float pitch_limit_min;
 		float pitch_limit_max;
-		float roll_limit;
 
 		float throttle_min;
 		float throttle_max;
 		float throttle_idle;
 		float throttle_cruise;
-		float throttle_slew_max;
 		float throttle_alt_scale;
 
 		float man_roll_max_rad;
@@ -308,29 +290,29 @@ private:
 
 		float throttle_land_max;
 
-		float land_slope_angle;
-		float land_H1_virt;
-		float land_flare_alt_relative;
-		float land_thrust_lim_alt_relative;
 		float land_heading_hold_horizontal_distance;
 		float land_flare_pitch_min_deg;
 		float land_flare_pitch_max_deg;
 		int32_t land_use_terrain_estimate;
 		float land_airspeed_scale;
 
+		// VTOL
+		float airspeed_trans;
 		int32_t vtol_type;
 	} _parameters{};					///< local copies of interesting parameters */
 
 	struct {
+		param_t climbout_diff;
+
 		param_t l1_period;
 		param_t l1_damping;
+		param_t roll_limit;
 
 		param_t time_const;
 		param_t time_const_throt;
 		param_t min_sink_rate;
 		param_t max_sink_rate;
 		param_t max_climb_rate;
-		param_t climbout_diff;
 		param_t heightrate_p;
 		param_t heightrate_ff;
 		param_t speedrate_p;
@@ -351,7 +333,6 @@ private:
 
 		param_t pitch_limit_min;
 		param_t pitch_limit_max;
-		param_t roll_limit;
 
 		param_t throttle_min;
 		param_t throttle_max;

@@ -397,7 +397,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		qd_red = qd;
 
 	} else {
-		/* transform rotation from current to desired thrust vector for into a reduced world frame attitude */
+		/* transform rotation from current to desired thrust vector into a world frame reduced desired attitude */
 		qd_red *= q;
 	}
 
