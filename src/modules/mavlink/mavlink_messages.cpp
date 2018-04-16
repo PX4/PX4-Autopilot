@@ -666,6 +666,7 @@ private:
 	uint64_t _gyro_timestamp;
 	uint64_t _mag_timestamp;
 	uint64_t _baro_timestamp;
+	uint64_t _dpres_timestamp;
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighresIMU(MavlinkStreamHighresIMU &);
@@ -682,7 +683,8 @@ protected:
 		_accel_timestamp(0),
 		_gyro_timestamp(0),
 		_mag_timestamp(0),
-		_baro_timestamp(0)
+		_baro_timestamp(0),
+		_dpres_timestamp(0)
 	{}
 
 	bool send(const hrt_abstime t)
@@ -717,7 +719,7 @@ protected:
 			_air_data_sub->update(&air_data);
 
 			if (_baro_timestamp != air_data.timestamp) {
-				/* mark last group dimensions as changed */
+				/* mark fourth group (baro fields) dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
 				_baro_timestamp = air_data.timestamp;
 			}
@@ -727,6 +729,12 @@ protected:
 
 			differential_pressure_s differential_pressure = {};
 			_differential_pressure_sub->update(&differential_pressure);
+
+			if (_dpres_timestamp != differential_pressure.timestamp) {
+				/* mark fourth group (dpres field) dimensions as changed */
+				fields_updated |= (1 << 10);
+				_dpres_timestamp = differential_pressure.timestamp;
+			}
 
 			mavlink_highres_imu_t msg = {};
 
