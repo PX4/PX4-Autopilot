@@ -93,12 +93,15 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, const char 
 	_last_mag_data{}
 {
 	// default mag scale factors
-	_mag_scale.x_offset = 0;
+	_mag_scale.x_offset = 0.0f;
 	_mag_scale.x_scale  = 1.0f;
-	_mag_scale.y_offset = 0;
+	_mag_scale.x_offdiag  = 0.0f;
+	_mag_scale.y_offset = 0.0f;
 	_mag_scale.y_scale  = 1.0f;
-	_mag_scale.z_offset = 0;
+	_mag_scale.y_offdiag  = 0.0f;
+	_mag_scale.z_offset = 0.0f;
 	_mag_scale.z_scale  = 1.0f;
+	_mag_scale.z_offdiag  = 0.0f;
 
 	_mag_range_scale = MPU9250_MAG_RANGE_GA;
 }
@@ -223,8 +226,17 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	rotate_3f(_parent->_rotation, xraw_f, yraw_f, zraw_f);
 
 	mrb.x = ((xraw_f * _mag_range_scale * _mag_asa_x) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	mrb.x += ((yraw_f * _mag_range_scale * _mag_asa_y) - _mag_scale.y_offset) * _mag_scale.x_offdiag;
+	mrb.x += ((zraw_f * _mag_range_scale * _mag_asa_z) - _mag_scale.z_offset) * _mag_scale.y_offdiag;
+
 	mrb.y = ((yraw_f * _mag_range_scale * _mag_asa_y) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	mrb.y += ((xraw_f * _mag_range_scale * _mag_asa_x) - _mag_scale.x_offset) * _mag_scale.x_offdiag;
+	mrb.y += ((zraw_f * _mag_range_scale * _mag_asa_z) - _mag_scale.z_offset) * _mag_scale.z_offdiag;
+
 	mrb.z = ((zraw_f * _mag_range_scale * _mag_asa_z) - _mag_scale.z_offset) * _mag_scale.z_scale;
+	mrb.z += ((xraw_f * _mag_range_scale * _mag_asa_x) - _mag_scale.x_offset) * _mag_scale.y_offdiag;
+	mrb.z += ((yraw_f * _mag_range_scale * _mag_asa_y) - _mag_scale.y_offset) * _mag_scale.z_offdiag;
+
 	mrb.range_ga = 48.0f;
 	mrb.scaling = _mag_range_scale;
 	mrb.temperature = _parent->_last_temperature;
