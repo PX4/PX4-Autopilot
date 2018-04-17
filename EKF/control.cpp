@@ -352,8 +352,13 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 	} else {
-		_time_bad_motion_us = 0;
-		_time_good_motion_us = _imu_sample_delayed.time_us;
+		// inhibit flow use if GPS quality is good and we are not using range aiding
+		// this enables use of optical flow to improve station keeping when low and slow
+		if (_control_status.flags.gps && (_time_last_imu - _last_gps_fail_us > (uint64_t)5e6) && !_in_range_aid_mode) {
+			_time_bad_motion_us = _imu_sample_delayed.time_us;
+		} else {
+			_time_good_motion_us = _imu_sample_delayed.time_us;
+		}
 	}
 
 	// Inhibit flow use if on ground and motion is excessive
