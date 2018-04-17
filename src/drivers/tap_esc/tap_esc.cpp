@@ -84,7 +84,7 @@
 class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>, public ModuleParams
 {
 public:
-	TAP_ESC();
+	TAP_ESC(char const *const device, uint8_t channels_count);
 	virtual ~TAP_ESC();
 
 	/** @see ModuleBase */
@@ -107,7 +107,7 @@ public:
 	void cycle();
 
 private:
-	static char 		_device[DEVICE_ARGUMENT_MAX_LENGTH];
+	char 			_device[DEVICE_ARGUMENT_MAX_LENGTH];
 	int 			_uart_fd = -1;
 	static const uint8_t 	device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t 	device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
@@ -132,7 +132,8 @@ private:
 	orb_advert_t      _esc_feedback_pub = nullptr;
 	orb_advert_t      _to_mixer_status  = nullptr; 	///< mixer status flags
 	esc_status_s      _esc_feedback = {};
-	static uint8_t    _channels_count; // The number of ESC channels
+	uint8_t    	  _channels_count = 0; 		///< nnumber of ESC channels
+	uint8_t 	  _responding_esc = 0;
 
 	MixerGroup	*_mixers = nullptr;
 	uint32_t	_groups_required = 0;
@@ -153,13 +154,15 @@ private:
 
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
-char TAP_ESC::_device[DEVICE_ARGUMENT_MAX_LENGTH] = {};
-uint8_t TAP_ESC::_channels_count = 0;
 
-TAP_ESC::TAP_ESC():
+TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	_channels_count(channels_count)
 {
+	strncpy(_device, device, sizeof(_device));
+	_device[sizeof(_device) - 1] = '\0';  // Fix in case of overflow
+
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
@@ -203,7 +206,48 @@ TAP_ESC::~TAP_ESC()
 /** @see ModuleBase */
 TAP_ESC *TAP_ESC::instantiate(int argc, char *argv[])
 {
-	TAP_ESC *tap_esc = new TAP_ESC();
+	/* Parse arguments */
+	const char *device = nullptr;
+	uint8_t channels_count = 0;
+
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+
+	if (argc < 2) {
+		print_usage("not enough arguments");
+		return nullptr;
+	}
+
+	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device = myoptarg;
+			break;
+
+		case 'n':
+			channels_count = atoi(myoptarg);
+			break;
+		}
+	}
+
+	/* Sanity check on arguments */
+	if (channels_count == 0) {
+		print_usage("Channel count is invalid (0)");
+		return nullptr;
+	}
+
+	if (device == nullptr || strlen(device) == 0) {
+		print_usage("no device specified");
+		return nullptr;
+	}
+
+	TAP_ESC *tap_esc = new TAP_ESC(device, channels_count);
+
+	if (tap_esc == nullptr) {
+		PX4_ERR("failed to instantiate module");
+		return nullptr;
+	}
 
 	if (tap_esc->init() != 0) {
 		PX4_ERR("failed to initialize module");
@@ -329,7 +373,6 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 {
 	uint16_t rpm[TAP_ESC_MAX_MOTOR_NUM];
 	memset(rpm, 0, sizeof(rpm));
-	static uint8_t responder = 0;
 
 	for (uint8_t i = 0; i < motor_cnt; i++) {
 		rpm[i] = pwm[i];
@@ -342,7 +385,7 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 		}
 	}
 
-	rpm[responder] |= (RUN_FEEDBACK_ENABLE_MASK | RUN_BLUE_LED_ON_MASK);
+	rpm[_responding_esc] |= (RUN_FEEDBACK_ENABLE_MASK | RUN_BLUE_LED_ON_MASK);
 
 	EscPacket packet = {PACKET_HEAD, _channels_count, ESCBUS_MSG_ID_RUN};
 	packet.len *= sizeof(packet.d.reqRun.rpm_flags[0]);
@@ -351,10 +394,10 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 		packet.d.reqRun.rpm_flags[i] = rpm[i];
 	}
 
-	int ret = tap_esc_common::send_packet(_uart_fd, packet, responder);
+	int ret = tap_esc_common::send_packet(_uart_fd, packet, _responding_esc);
 
-	if (++responder == _channels_count) {
-		responder = 0;
+	if (++_responding_esc == _channels_count) {
+		_responding_esc = 0;
 	}
 
 	if (ret < 1) {
@@ -677,57 +720,13 @@ void TAP_ESC::run()
 /** @see ModuleBase */
 int TAP_ESC::task_spawn(int argc, char *argv[])
 {
-	/* Parse arguments */
-	const char *device = nullptr;
-	bool error_flag = false;
-
-	int ch;
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-
-	if (argc < 2) {
-		print_usage("not enough arguments");
-		error_flag = true;
-	}
-
-	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'd':
-			device = myoptarg;
-			strncpy(_device, device, sizeof(_device));
-
-			// Fix in case of overflow
-			_device[sizeof(_device) - 1] = '\0';
-			break;
-
-		case 'n':
-			_channels_count = atoi(myoptarg);
-			break;
-		}
-	}
-
-	if (error_flag) {
-		return -1;
-	}
-
-	/* Sanity check on arguments */
-	if (_channels_count == 0) {
-		print_usage("Channel count is invalid (0)");
-		return PX4_ERROR;
-	}
-
-	if (device == nullptr || strlen(device) == 0) {
-		print_usage("no device psecified");
-		return PX4_ERROR;
-	}
-
 	/* start the task */
 	_task_id = px4_task_spawn_cmd("tap_esc",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 				      1100,
 				      (px4_main_t)&run_trampoline,
-				      nullptr);
+				      argv);
 
 	if (_task_id < 0) {
 		PX4_ERR("task start failed");
