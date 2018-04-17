@@ -8,7 +8,7 @@ echo "Executing rc.mc_apps"
 
 
 ###############################################################################
-#                       Begin Estimator Group Selction                        #
+#                       Begin Estimator Group Selection                       #
 ###############################################################################
 # INAV (deprecated)
 if param compare SYS_MC_EST_GROUP 0
@@ -41,7 +41,7 @@ then
 	ekf2 start
 fi
 ###############################################################################
-#                        End Estimator Group Selction                         #
+#                        End Estimator Group Selection                        #
 ###############################################################################
 
 #
