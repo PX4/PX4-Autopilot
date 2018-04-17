@@ -42,6 +42,7 @@
 #include "FlightTask.hpp"
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
+#include <uORB/topics/home_position.h>
 #include <lib/ecl/geo/geo.h>
 
 /**
@@ -76,6 +77,8 @@ protected:
 	float _yaw_wp{0.0f}; /**< Triplet yaw waypoint. Currently it is not a yaw-waypoint, but rather a yaw setpoint at each time stamp. */
 	float _mc_cruise_speed{0.0f}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
+
+	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 
 private:
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
