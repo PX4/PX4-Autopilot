@@ -237,8 +237,8 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 /**
  * Adaptive QuadChute
  *
- * Maximum negative altitude error, when in fixed wing the altitude drops below this copared to the altitude setpoint
- * the vehicle will transition back to MC mode and enter failsafe RTL
+ * Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude setpoint
+ * the vehicle will transition back to MC mode and enter failsafe RTL.
  * @min 0.0
  * @max 200.0
  * @group VTOL Attitude Control
