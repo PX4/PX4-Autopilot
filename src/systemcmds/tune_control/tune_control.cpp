@@ -187,7 +187,11 @@ int tune_control_main(int argc, char *argv[])
 				tune_control.strength = strength;
 
 				publish_tune_control(tune_control);
+
+				// @TODO - This usleep blocks the startup script by a very long duration.
+				//         More work is required to examine if this usleep() is appropriate.
 				// usleep(duration + silence);
+
 				exit_counter++;
 
 				// exit if the loop is doing too many iterations
