@@ -55,6 +55,14 @@ bool FlightTaskAutoLine::update()
 	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
 	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position;
 
+	// Altitude above ground from home or if not present
+	// the negation of the current position
+	_alt_above_ground = -_position(2);
+
+	if (_sub_home_position->get().valid_alt) {
+		_alt_above_ground = -_position(2) + _sub_home_position->get().z;
+	}
+
 	// 1st time that vehicle starts to follow line. Reset all setpoints to current vehicle state.
 	if (follow_line && !follow_line_prev) {
 		_reset();
@@ -380,9 +388,16 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		// check sign
 		const bool flying_upward = _destination(2) < _position(2);
 
+
+		// limit vertical downwards speed (positive z) close to ground
+		// for now we use the altitude above home and assume that we want to land at same height as we took off
+		float vel_limit = math::gradual(_alt_above_ground,
+						_slow_land_alt2.get(), _slow_land_alt1.get(),
+						_land_speed.get(), _vel_max_down.get());
+
 		// Speed at threshold is by default maximum speed. Threshold defines
 		// the point in z at which vehicle slows down to reach target altitude.
-		float speed_sp = (flying_upward) ? _vel_max_up.get() : _vel_max_down.get();
+		float speed_sp = (flying_upward) ? _vel_max_up.get() : vel_limit;
 
 		// Target threshold defines the distance to target(2) at which
 		// the vehicle starts to slow down to approach the target smoothly.
@@ -492,4 +507,12 @@ float FlightTaskAutoLine::_getVelocityFromAngle(const float angle)
 
 	// speed_close needs to be in between max and min
 	return math::constrain(speed_close, min_cruise_speed, _mc_cruise_speed);
+}
+
+void FlightTaskAutoLine::updateParams()
+{
+	FlightTaskAuto::updateParams();
+
+	// make sure that alt1 is above alt2
+	_slow_land_alt1.set(math::max(_slow_land_alt1.get(), _slow_land_alt2.get()));
 }
