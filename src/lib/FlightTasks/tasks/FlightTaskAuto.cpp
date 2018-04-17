@@ -50,6 +50,10 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 		return false;
 	}
 
+	if (!subscription_array.get(ORB_ID(home_position), _sub_home_position)) {
+		return false;
+	}
+
 	return true;
 }
 
