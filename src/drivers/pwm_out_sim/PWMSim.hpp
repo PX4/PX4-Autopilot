@@ -118,8 +118,8 @@ private:
 	unsigned 	_pwm_min[MAX_ACTUATORS] {};
 	unsigned 	_pwm_max[MAX_ACTUATORS] {};
 
-	uint32_t	_groups_required{0};
-	uint32_t	_groups_subscribed{0};
+	uint8_t	_groups_required{0};
+	uint8_t	_groups_subscribed{0};
 
 	bool	_armed{false};
 	bool	_lockdown{false};

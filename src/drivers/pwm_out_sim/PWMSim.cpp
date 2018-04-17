@@ -232,7 +232,6 @@ PWMSim::run()
 			/* do mixing */
 			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
 			_actuator_outputs.noutputs = num_outputs;
-			_actuator_outputs.timestamp = hrt_absolute_time();
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = 0; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
@@ -283,7 +282,19 @@ PWMSim::run()
 				}
 			}
 
+			// copy first valid timestamp_sample into actuator_outputs for measuring latency
+			for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+				const bool required = _groups_required & (1 << i);
+				const hrt_abstime &ts = _controls[i].timestamp_sample;
+
+				if (required && (ts > 0)) {
+					_actuator_outputs.timestamp_sample = ts;
+					break;
+				}
+			}
+
 			/* and publish for anyone that cares to see */
+			_actuator_outputs.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_actuator_outputs);
 		}
 

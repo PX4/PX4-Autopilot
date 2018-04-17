@@ -252,7 +252,7 @@ HelicopterMixer::mix(float *outputs, unsigned space)
 }
 
 void
-HelicopterMixer::groups_required(uint32_t &groups)
+HelicopterMixer::groups_required(uint8_t &groups)
 {
 	/* XXX for now, hardcoded to indexes 0-3 in control group zero */
 	groups |= (1 << 0);

@@ -834,23 +834,23 @@ void FixedwingAttitudeControl::run()
 			// FIXME: this should use _vcontrol_mode.landing_gear_pos in the future
 			_actuators.control[7] = _manual.aux3;
 
-			/* lazily publish the setpoint only once available */
-			_actuators.timestamp = hrt_absolute_time();
-			_actuators.timestamp_sample = _att.timestamp;
-			_actuators_airframe.timestamp = hrt_absolute_time();
-			_actuators_airframe.timestamp_sample = _att.timestamp;
-
 			/* Only publish if any of the proper modes are enabled */
 			if (_vcontrol_mode.flag_control_rates_enabled ||
 			    _vcontrol_mode.flag_control_attitude_enabled ||
 			    _vcontrol_mode.flag_control_manual_enabled) {
-				/* publish the actuator controls */
+
+				_actuators.timestamp = hrt_absolute_time();
+				_actuators.timestamp_sample = _att.timestamp_sample;
+
 				if (_actuators_0_pub != nullptr) {
 					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 
 				} else if (_actuators_id) {
 					_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 				}
+
+
+				_actuators_airframe.timestamp = hrt_absolute_time();
 
 				if (_actuators_2_pub != nullptr) {
 					/* publish the actuator controls*/

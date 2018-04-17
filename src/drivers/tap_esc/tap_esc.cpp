@@ -135,8 +135,10 @@ private:
 	uint8_t           _channels_count; // The number of ESC channels
 
 	MixerGroup	*_mixers;
-	uint32_t	_groups_required;
-	uint32_t	_groups_subscribed;
+
+	uint8_t	_groups_required{0};
+	uint8_t	_groups_subscribed{0};
+
 	volatile bool	_initialized;
 	unsigned	_pwm_default_rate;
 	unsigned	_current_update_rate;
@@ -659,7 +661,6 @@ TAP_ESC::cycle()
 			/* do mixing */
 			num_outputs = _mixers->mix(&_outputs.output[0], num_outputs);
 			_outputs.noutputs = num_outputs;
-			_outputs.timestamp = hrt_absolute_time();
 
 			/* publish mixer status */
 			multirotor_motor_limits_s multirotor_motor_limits = {};
@@ -776,9 +777,20 @@ TAP_ESC::cycle()
 			}
 		}
 
-		/* and publish for anyone that cares to see */
-		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
+		// copy first valid timestamp_sample into actuator_outputs for measuring latency
+		for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &ts = _controls[i].timestamp_sample;
 
+			if (required && (ts > 0)) {
+				_outputs.timestamp_sample = ts;
+				break;
+			}
+		}
+
+		/* and publish for anyone that cares to see */
+		_outputs.timestamp = hrt_absolute_time();
+		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 	}
 
 	bool updated;

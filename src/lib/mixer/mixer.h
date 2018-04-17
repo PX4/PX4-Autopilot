@@ -185,9 +185,9 @@ public:
 	 * Analyses the mix configuration and updates a bitmask of groups
 	 * that are required.
 	 *
-	 * @param groups		A bitmask of groups (0-31) that the mixer requires.
+	 * @param groups		A bitmask of groups (0-7) that the mixer requires.
 	 */
-	virtual void			groups_required(uint32_t &groups) = 0;
+	virtual void			groups_required(uint8_t &groups) = 0;
 
 	/**
 	 * @brief      Empty method, only implemented for MultirotorMixer and MixerGroup class.
@@ -298,7 +298,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	virtual void			groups_required(uint8_t &groups);
 
 	/**
 	 * Add a mixer to the group.
@@ -448,7 +448,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	virtual void			groups_required(uint8_t &groups);
 	virtual void 			set_offset(float trim) {}
 	unsigned set_trim(float trim)
 	{
@@ -521,7 +521,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	virtual void			groups_required(uint8_t &groups);
 
 	/**
 	 * Check that the mixer configuration as loaded is sensible.
@@ -628,7 +628,7 @@ public:
 
 	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	virtual void			groups_required(uint8_t &groups);
 
 	/**
 	 * @brief      Update slew rate parameter. This tells the multicopter mixer
@@ -763,7 +763,7 @@ public:
 			unsigned &buflen);
 
 	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual void			groups_required(uint32_t &groups);
+	virtual void			groups_required(uint8_t &groups);
 
 	virtual uint16_t		get_saturation_status(void) { return 0; }
 

@@ -421,8 +421,6 @@ void task_main(int argc, char *argv[])
 			continue;
 		}
 
-		_outputs.timestamp = hrt_absolute_time();
-
 		/* do  mixing for virtual control group */
 		_outputs.noutputs = _mixer->mix(_outputs.output, _outputs.NUM_ACTUATOR_OUTPUTS);
 
@@ -439,7 +437,6 @@ void task_main(int argc, char *argv[])
 			max_pwm[i] = _pwm_max;
 		}
 
-
 		// TODO FIXME: pre-armed seems broken -> copied and pasted from pwm_out_rc_in: needs to be tested
 		pwm_limit_calc(_armed.armed,
 			       false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask, disarmed_pwm,
@@ -452,6 +449,19 @@ void task_main(int argc, char *argv[])
 		} else {
 			send_outputs_pwm(pwm);
 		}
+
+		// copy first valid timestamp_sample into actuator_outputs for measuring latency
+		for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &ts = _controls[i].timestamp_sample;
+
+			if (required && (ts > 0)) {
+				actuator_outputs.timestamp_sample = ts;
+				break;
+			}
+		}
+
+		_outputs.timestamp = hrt_absolute_time();
 
 		if (_outputs_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
