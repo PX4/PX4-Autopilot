@@ -35,6 +35,8 @@
 
 #include <board_config.h>
 
+#include <stdint.h>
+
 /* At the moment the only known use is with a current sensor */
 #define ESC_HAVE_CURRENT_SENSOR
 
@@ -119,18 +121,18 @@ typedef  struct {
 	ConfigInfoBasicRequest resp;
 } ConfigInfoBasicResponse;
 
-#define ESC_CHANNEL_MAP_CHANNEL           0x0f
-#define ESC_CHANNEL_MAP_RUNNING_DIRECTION 0xf0
+#define ESC_MASK_MAP_CHANNEL           0x0f
+#define ESC_MASK_MAP_RUNNING_DIRECTION 0xf0
 /****** ConFigInfoBasicResponse ***********/
 
 /****** InfoRequest  ***********/
 typedef enum {
-	REQEST_INFO_BASIC = 0,
-	REQEST_INFO_FUll,
-	REQEST_INFO_RUN,
-	REQEST_INFO_STUDY,
-	REQEST_INFO_COMM,
-	REQEST_INFO_DEVICE,
+	REQUEST_INFO_BASIC = 0,
+	REQUEST_INFO_FUll,
+	REQUEST_INFO_RUN,
+	REQUEST_INFO_STUDY,
+	REQUEST_INFO_COMM,
+	REQUEST_INFO_DEVICE,
 } InfoTypes;
 
 typedef  struct {
