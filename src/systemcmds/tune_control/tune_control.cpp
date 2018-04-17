@@ -51,7 +51,7 @@
 
 #define MAX_NOTE_ITERATION 50
 
-static void	usage();
+static void usage();
 
 static orb_advert_t tune_control_pub = nullptr;
 
@@ -59,8 +59,7 @@ extern "C" {
 	__EXPORT int tune_control_main(int argc, char *argv[]);
 }
 
-static void
-usage()
+static void usage()
 {
 	PX4_INFO(
 		"External tune control for testing. Usage:\n"
@@ -88,24 +87,23 @@ static void publish_tune_control(tune_control_s &tune_control)
 	}
 }
 
-int
-tune_control_main(int argc, char *argv[])
+int tune_control_main(int argc, char *argv[])
 {
 	Tunes tunes;
 	bool string_input = false;
 	const char *tune_string  = nullptr;
-	int myoptind = 1;
+	int opt_ind = 1;
 	int ch;
-	const char *myoptarg = nullptr;
+	const char *opt_arg = nullptr;
 	unsigned int value;
 	tune_control_s tune_control = {};
 	tune_control.tune_id = 0;
 	tune_control.strength = tune_control_s::STRENGTH_NORMAL;
 
-	while ((ch = px4_getopt(argc, argv, "f:d:t:m:s:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "f:d:t:m:s:", &opt_ind, &opt_arg)) != EOF) {
 		switch (ch) {
 		case 'f':
-			value = (uint16_t)(strtol(myoptarg, nullptr, 0));
+			value = (uint16_t)(strtol(opt_arg, nullptr, 0));
 
 			if (value > 0 && value < 22000) {
 				tune_control.frequency = value;
@@ -118,11 +116,11 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 'd':
-			tune_control.duration = (uint32_t)(strtol(myoptarg, nullptr, 0));
+			tune_control.duration = (uint32_t)(strtol(opt_arg, nullptr, 0));
 			break;
 
 		case 't':
-			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
+			value = (uint8_t)(strtol(opt_arg, nullptr, 0));
 
 			if (value > 0 && value < tunes.get_default_tunes_size()) {
 				tune_control.tune_id = value;
@@ -136,7 +134,7 @@ tune_control_main(int argc, char *argv[])
 
 		case 'm':
 			string_input = true;
-			tune_string  = myoptarg;
+			tune_string  = opt_arg;
 
 			// check if string is a valid melody string
 			if (tune_string[0] != 'M') {
@@ -147,7 +145,7 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 's':
-			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
+			value = (uint8_t)(strtol(opt_arg, nullptr, 0));
 
 			if (value > 0 && value < 100) {
 				tune_control.strength = value;
@@ -165,28 +163,31 @@ tune_control_main(int argc, char *argv[])
 		}
 	}
 
-	if (myoptind >= argc) {
+	if (opt_ind >= argc) {
 		usage();
 		return 1;
 	}
 
-	unsigned frequency, duration, silence;
-	uint8_t strength;
+	uint16_t frequency = 0;
+	uint32_t duration = 0;
+	uint32_t silence = 0;
+	uint8_t strength = 0;
 	int exit_counter = 0;
 
-	if (!strcmp(argv[myoptind], "play")) {
+	if (!strcmp(argv[opt_ind], "play")) {
 		if (string_input) {
 			PX4_INFO("Start playback...");
 			tunes.set_string(tune_string, tune_control.strength);
 
 			while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
 				tune_control.tune_id = 0;
-				tune_control.frequency = (uint16_t)frequency;
-				tune_control.duration = (uint32_t)duration;
-				tune_control.silence = (uint32_t)silence;
-				tune_control.strength = (uint8_t)strength;
+				tune_control.frequency = frequency;
+				tune_control.duration = duration;
+				tune_control.silence = silence;
+				tune_control.strength = strength;
+
 				publish_tune_control(tune_control);
-				usleep(duration + silence);
+				// usleep(duration + silence);
 				exit_counter++;
 
 				// exit if the loop is doing too many iterations
@@ -206,7 +207,7 @@ tune_control_main(int argc, char *argv[])
 			publish_tune_control(tune_control);
 		}
 
-	} else if (!strcmp(argv[myoptind], "libtest")) {
+	} else if (!strcmp(argv[opt_ind], "libtest")) {
 		int ret = tunes.set_control(tune_control);
 
 		if (ret == -EINVAL) {
@@ -225,7 +226,7 @@ tune_control_main(int argc, char *argv[])
 			}
 		}
 
-	} else if (!strcmp(argv[myoptind], "stop")) {
+	} else if (!strcmp(argv[opt_ind], "stop")) {
 		PX4_INFO("Stopping playback...");
 		tune_control.tune_id = 0;
 		tune_control.frequency = 0;

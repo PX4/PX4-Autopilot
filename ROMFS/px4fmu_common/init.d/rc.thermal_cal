@@ -11,10 +11,12 @@
 # NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
 
+echo "Executing rc.thermal_cal"
+
 #
 # Declare local script variables and initialize default values
 #
-set TEMP_CALIB_ARGS	""
+set TEMP_CALIB_ARGS     none
 
 #
 # Check if we should start a thermal calibration
@@ -24,11 +26,13 @@ then
 	set TEMP_CALIB_ARGS "-g"
 	param set SYS_CAL_GYRO 0
 fi
+
 if param compare SYS_CAL_ACCEL 1
 then
 	set TEMP_CALIB_ARGS "-a"
 	param set SYS_CAL_ACCEL 0
 fi
+
 if param compare SYS_CAL_BARO 1
 then
 	set TEMP_CALIB_ARGS "-b"
@@ -43,7 +47,7 @@ send_event start
 #
 # Begin the thermal calibration.
 #
-if [ "x$TEMP_CALIB_ARGS" != "x" ]
+if [ "x$TEMP_CALIB_ARGS" != xnone ]
 then
 	send_event temperature_calibration ${TEMP_CALIB_ARGS}
 fi

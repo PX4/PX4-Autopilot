@@ -15,62 +15,65 @@ set +e
 #
 # UART mapping on FMUv2/3/4:
 #
-# UART1			/dev/ttyS0		IO debug (except v4, there ttyS0 is the wifi)
-# USART2		/dev/ttyS1		TELEM1 (flow control)
-# USART3		/dev/ttyS2		TELEM2 (flow control)
+# UART1                 /dev/ttyS0              IO debug (except v4, there ttyS0 is the wifi)
+# USART2                /dev/ttyS1              TELEM1 (flow control)
+# USART3                /dev/ttyS2              TELEM2 (flow control)
 # UART4
-# UART7							CONSOLE
-# UART8							SERIAL4
+# UART7                                                 CONSOLE
+# UART8                                                 SERIAL4
 #
 #
 # UART mapping on FMUv5:
 #
-# UART1			/dev/ttyS0		GPS
-# USART2		/dev/ttyS1		TELEM1 (flow control)
-# USART3		/dev/ttyS2		TELEM2 (flow control)
-# UART4			/dev/ttyS3		TELEM4
-# USART6		/dev/ttyS4		TELEM3 (flow control)
-# UART7			/dev/ttyS5		?
-# UART8			/dev/ttyS6		CONSOLE
+# UART1                 /dev/ttyS0              GPS
+# USART2                /dev/ttyS1              TELEM1 (flow control)
+# USART3                /dev/ttyS2              TELEM2 (flow control)
+# UART4                 /dev/ttyS3              TELEM4
+# USART6                /dev/ttyS4              TELEM3 (flow control)
+# UART7                 /dev/ttyS5              ?
+# UART8                 /dev/ttyS6              CONSOLE
 
 
 #
 # Declare global script variables and initialize default values
 #
-set AUTOCNF				no
-set DATAMAN_OPT 			""
-set FCONFIG				/fs/microsd/etc/config.txt
-set FEXTRAS				/fs/microsd/etc/extras.txt
-set FRC					/fs/microsd/etc/rc.txt
-set GPS_STARTUP_ARGS 			""
-set LOG_FILE				/fs/microsd/bootlog.txt
-set MAVLINK_DEVICE_0 			/dev/ttyACM0
-set MAVLINK_DEVICE_0_ARGS		"-r 800000 -m config -x -f"
-set MAVLINK_DEVICE_0_BAUD 		"57600"
-set MAVLINK_DEVICE_1 			/dev/ttyS1
-set MAVLINK_DEVICE_1_ARGS		"-r 1200 -f"
-set MAVLINK_DEVICE_1_BAUD		"57600"
-set MAVLINK_DEVICE_2			none
-set MAVLINK_DEVICE_2_ARGS		none
-set MAVLINK_DEVICE_2_BAUD		none
-set MAV_TYPE				none
-set MIXER				none
-set MIXER_AUX				none
-set OUTPUT_MODE				none
-set PARAM_FILE				/fs/microsd/params
-set PWM_AUX_DISARMED			p:PWM_AUX_DISARMED
-set PWM_AUX_MAX				p:PWM_AUX_MAX
-set PWM_AUX_MIN 			p:PWM_AUX_MIN
-set PWM_AUX_OUT				none
-set PWM_AUX_RATE			none
-set PWM_DISARMED			p:PWM_DISARMED
-set PWM_MAX				p:PWM_MAX
-set PWM_MIN				p:PWM_MIN
-set PWM_OUT				none
-set PWM_RATE				p:PWM_RATE
-set TUNE_ERR				"ML<<CP4CP4CP4CP4CP4"
-set VEHICLE_TYPE			none
+set AUTOCNF                  no
+set DATAMAN_OPT              ""
+set FCONFIG                  /fs/microsd/etc/config.txt
+set FEXTRAS                  /fs/microsd/etc/extras.txt
+set FRC                      /fs/microsd/etc/rc.txt
+set GPS_STARTUP_ARGS         ""
+set LOG_FILE                 /fs/microsd/bootlog.txt
+set MAVLINK_DEVICE_0         /dev/ttyACM0
+set MAVLINK_DEVICE_0_ARGS    "-r 800000 -m config -x -f"
+set MAVLINK_DEVICE_0_BAUD    "57600"
+set MAVLINK_DEVICE_1         /dev/ttyS1
+set MAVLINK_DEVICE_1_ARGS    "-r 1200 -f"
+set MAVLINK_DEVICE_1_BAUD    "57600"
+set MAVLINK_DEVICE_2         none
+set MAVLINK_DEVICE_2_ARGS    none
+set MAVLINK_DEVICE_2_BAUD    none
+set MAV_TYPE                 none
+set MIXER                    none
+set MIXER_AUX                none
+set MODE                     autostart
+set OUTPUT_MODE              none
+set PARAM_FILE               /fs/microsd/params
+set PWM_AUX_DISARMED         p:PWM_AUX_DISARMED
+set PWM_AUX_MAX              p:PWM_AUX_MAX
+set PWM_AUX_MIN              p:PWM_AUX_MIN
+set PWM_AUX_OUT              none
+set PWM_AUX_RATE             none
+set PWM_DISARMED             p:PWM_DISARMED
+set PWM_MAX                  p:PWM_MAX
+set PWM_MIN                  p:PWM_MIN
+set PWM_OUT                  none
+set PWM_RATE                 p:PWM_RATE
+set VEHICLE_TYPE             none
 
+
+# print full system version
+ver all
 
 #
 # Mount the procfs.
@@ -82,8 +85,24 @@ mount -t procfs /proc
 #
 sercon
 
-# print full system version
-ver all
+#
+# Start the ORB (first app to start)
+#
+if uorb start
+then
+	echo "uorb started"
+fi
+
+#
+# Start tone driver
+#
+if tone_alarm start
+then
+	echo "tone_alarm driver started"
+
+	# Play the startup tone
+	tune_control play -t STARTUP
+fi
 
 #
 # Try to mount the microSD card.
@@ -97,7 +116,8 @@ else
 	then
 		if hardfault_log check
 		then
-			tone_alarm error
+			tune_control play -t ERROR_TUNE
+
 			if hardfault_log commit
 			then
 				hardfault_log reset
@@ -105,7 +125,9 @@ else
 			fi
 		fi
 	else
-		tone_alarm MBAGP
+		#tune_control play -t NOTIFY_NEUTRAL
+		tune_control play -m "MBAGP"
+
 		if mkfatfs /dev/mmcsd0
 		then
 			if mount -t vfat /dev/mmcsd0 /fs/microsd
@@ -113,7 +135,8 @@ else
 				echo "INFO  [init] card formatted"
 			else
 				echo "ERROR [init] format failed"
-				tone_alarm MNBG
+				#tune_control play -t ERROR_TUNE
+				tune_control play -m "MNBG"
 				set LOG_FILE /dev/null
 			fi
 		else
@@ -121,11 +144,12 @@ else
 		fi
 	fi
 
+
 	# Run no SD alarm
 	if [ $LOG_FILE == /dev/null ]
 	then
 		# Play SOS
-		tone_alarm error
+		tune_control play -t ERROR_TUNE
 	fi
 fi
 
@@ -141,21 +165,6 @@ fi
 
 if [ $MODE == autostart ]
 then
-	#
-	# Start the ORB (first app to start)
-	#
-	uorb start
-
-	#
-	# Start tone driver
-	#
-	tone_alarm start
-
-	#
-	# Play the startup tone
-	#
-	tune_control play -t 1
-
 	#
 	# Start the memory technology device driver
 	#
@@ -177,6 +186,7 @@ then
 	else
 		if param reset
 		then
+			echo "Parameters reset"
 		fi
 	fi
 
@@ -185,15 +195,22 @@ then
 	#
 	if rgbled start
 	then
+		echo "rgbled started"
 	else
 		if blinkm start
 		then
+			echo "blinkm started"
 			blinkm systemstate
 		fi
 	fi
 
 	# FMUv5 may have both PWM I2C RGB LED support
-	rgbled_pwm start
+	if rgbled_pwm start
+	then
+		echo "rgbled_pwm started"
+	else
+		echo "rgbled_pwm failed to start"
+	fi
 
 	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts
@@ -321,7 +338,7 @@ then
 				uavcan start fw
 			fi
 		else
-			tone_alarm ${TUNE_ERR}
+			tune_control play -t ERROR_TUNE
 		fi
 	fi
 
@@ -331,20 +348,15 @@ then
 	#
 	if dataman start ${DATAMAN_OPT}
 	then
+		echo "dataman started"
 	fi
 
 	#
 	# Start the cpu load monitor
 	#
-	load_mon start
-
-	# vmount to control mounts such as gimbals, disabled by default.
-	if param compare MNT_MODE_IN -1
+	if load_mon start
 	then
-	else
-		if vmount start
-		then
-		fi
+		echo "dataman started"
 	fi
 
 	#
@@ -359,36 +371,18 @@ then
 	sh /etc/init.d/rc.vehicle_setup
 
 	#
-	# Start the navigator
-	#
-	navigator start
-
-	#
-	# Start the camera trigger
-	#
-	if param greater TRIG_MODE 0
-	then
-		camera_trigger start
-
-		param set CAM_FBACK_MODE 1
-
-		camera_feedback start
-	fi
-
-	#
-	# Start any custom addons
-	#
-	if [ -f $FEXTRAS ]
-	then
-		echo "Addons script: ${FEXTRAS}"
-		sh $FEXTRAS
-	fi
-
-	#
 	# Start Thermal Calibration
 	# TODO move further up and don't start unnecessary services if we are calibrating
 	#
 	sh /etc/init.d/rc.thermal_cal
+
+	#
+	# Start the navigator
+	#
+	if navigator start
+	then
+		echo "navigator started"
+	fi
 
 	#
 	# Start the logger
@@ -400,8 +394,47 @@ then
 	#
 	if ver hwcmp MINDPX_V2 PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
 	then
-		# Check for optical flow sensor.  Launch it last because it is a background task.
-		px4flow start &
+		if px4flow start
+		then
+			echo "px4flow started"
+		fi
+	fi
+
+	# vmount to control mounts such as gimbals, disabled by default.
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		if vmount start
+		then
+			echo "vmount started"
+		fi
+	fi
+
+	#
+	# Start the camera trigger
+	#
+	if param greater TRIG_MODE 0
+	then
+		param set CAM_FBACK_MODE 1
+
+		if camera_trigger start
+		then
+			echo "camera_trigger started"
+		fi
+
+		if camera_feedback start
+		then
+			echo "camera_feedback started"
+		fi
+	fi
+
+	#
+	# Start any custom addons
+	#
+	if [ -f $FEXTRAS ]
+	then
+		echo "Addons script: ${FEXTRAS}"
+		sh $FEXTRAS
 	fi
 
 # End of autostart
@@ -409,6 +442,7 @@ fi
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
+echo "Boot has completed"
 
 #
 # Unset all declared script variables to free RAM

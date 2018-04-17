@@ -4,10 +4,12 @@
 # att & pos estimator, att & pos control.
 #
 
+echo "Executing rc.mc_apps"
 
-#---------------------------------------
-# Estimator group selction
-#
+
+###############################################################################
+#                       Begin Estimator Group Selction                        #
+###############################################################################
 # INAV (deprecated)
 if param compare SYS_MC_EST_GROUP 0
 then
@@ -23,6 +25,7 @@ then
 	# Unfortunately we do not build it on px4fmu-v2 due to a limited flash.
 	if attitude_estimator_q start
 	then
+		echo "Starting LPE state estimator."
 		local_position_estimator start
 	else
 		echo "ERROR [init] Estimator LPE not available. Using EKF2"
@@ -31,18 +34,30 @@ then
 	fi
 fi
 
-# EKF
+# EKF2
 if param compare SYS_MC_EST_GROUP 2
 then
+	echo "Starting EKF2 state estimator."
 	ekf2 start
 fi
-#---------------------------------------
+###############################################################################
+#                        End Estimator Group Selction                         #
+###############################################################################
 
+#
+# Start Multicopter Attitude Controller
+#
+echo "Starting mc_att_control."
 mc_att_control start
 
+#
+# Start Multicopter Position Controller
+#
+echo "Starting mc_pos_control."
 mc_pos_control start
 
 #
-# Start Land Detector
+# Start Multicopter Land Detector
 #
+echo "Starting multicopter land_detector."
 land_detector start multicopter

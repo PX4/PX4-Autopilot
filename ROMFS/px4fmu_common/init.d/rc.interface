@@ -9,19 +9,21 @@
 #  Otherwise, the variable name goes to the end of the argument.
 #
 
+echo "Executing rc.interface"
+
 #
 # Declare local script variables and initialize default values
 #
-set AUX_MODE				pwm
-set FAILSAFE				none
-set FAILSAFE_AUX			none
-set FMU_ARGS				""
-set FMU_MODE				pwm
-set IO_FILE				/etc/extras/
-set IO_PRESENT				no
-set MKBLCTRL_ARGS			""
-set SDCARD_MIXERS_PATH 			/fs/microsd/etc/mixers
-set USE_IO				no
+set AUX_MODE                            pwm
+set FAILSAFE                            none
+set FAILSAFE_AUX                        none
+set FMU_ARGS                            ""
+set FMU_MODE                            pwm
+set IO_FILE                             /etc/extras/
+set IO_PRESENT                          no
+set MKBLCTRL_ARGS                       ""
+set SDCARD_MIXERS_PATH                  /fs/microsd/etc/mixers
+set USE_IO                              no
 
 #
 # Set script parameters for board specific configurations here
@@ -110,7 +112,7 @@ then
 		then
 			set IO_PRESENT yes
 		else
-			tone_alarm MLL32CP8MB
+			tune_control play -m "MLL32CP8MB"
 
 			if px4io start
 			then
@@ -130,16 +132,16 @@ then
 				if px4io checkcrc ${IO_FILE}
 				then
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
-					tone_alarm MLL8CDE
+					tune_control play -m "MLL8CDE"
 
 					set IO_PRESENT yes
 				else
 					echo "PX4IO update failed" >> $LOG_FILE
-					tone_alarm ${TUNE_ERR}
+					tune_control play -t ERROR_TUNE
 				fi
 			else
 				echo "PX4IO update failed" >> $LOG_FILE
-				tune_control play -m ${TUNE_ERR}
+				tune_control play -t ERROR_TUNE
 			fi
 		fi
 	fi
@@ -147,7 +149,7 @@ then
 	if [ $IO_PRESENT == no ]
 	then
 		echo "PX4IO not found" >> $LOG_FILE
-		tune_control play -m ${TUNE_ERR}
+		tune_control play -t ERROR_TUNE
 	fi
 fi
 
@@ -161,7 +163,7 @@ then
 		if [ $IO_PRESENT == yes ]
 		then
 			set OUTPUT_MODE io
-		else				
+		else
 			# If we weed IO for output but none is present, disable output
 			set OUTPUT_MODE none
 		fi
@@ -179,7 +181,7 @@ then
 		then
 		else
 			echo "FMU start failed" >> $LOG_FILE
-			tune_control play -m ${TUNE_ERR}
+			tune_control play -t ERROR_TUNE
 		fi
 	fi
 
@@ -188,7 +190,7 @@ then
 		if pwm_out_sim start
 		then
 		else
-			tune_control play -m ${TUNE_ERR}
+			tune_control play -t ERROR_TUNE
 		fi
 	fi
 	
@@ -198,6 +200,7 @@ then
 		then
 			set MKBLCTRL_ARGS "-mkmode x"
 		fi
+
 		if [ $MKBLCTRL_MODE == + ]
 		then
 			set MKBLCTRL_ARGS "-mkmode +"
@@ -206,7 +209,7 @@ then
 		if mkblctrl $MKBLCTRL_ARGS
 		then
 		else
-			tune_control play -m ${TUNE_ERR}
+			tune_control play -t ERROR_TUNE
 		fi
 	fi
 
@@ -230,7 +233,7 @@ then
 			sh /etc/init.d/rc.io
 		else
 			echo "PX4IO start failed" >> $LOG_FILE
-			tune_control play -m  ${TUNE_ERR}
+			tune_control play -t ERROR_TUNE
 		fi
 	fi
 
@@ -244,7 +247,7 @@ then
 			sh /etc/init.d/rc.io
 		else
 			echo "PX4IO start failed" >> $LOG_FILE
-			tune_control play -m ${TUNE_ERR}
+			tune_control play -t ERROR_TUNE
 		fi
 	fi
 	else
@@ -254,7 +257,7 @@ then
 			then
 			else
 				echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
-				tune_control play -m ${TUNE_ERR}
+				tune_control play -t ERROR_TUNE
 			fi
 		fi
 	fi
@@ -308,14 +311,14 @@ then
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		tune_control play -t ERROR_TUNE
 	fi
 else
 	if [ $MIXER != skip ]
 	then
 		echo "ERROR  [init] Mixer undefined"
 		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		tune_control play -t ERROR_TUNE
 	fi
 fi
 
@@ -418,7 +421,7 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
-			tone_alarm ${TUNE_ERR}
+			tune_control play -t ERROR_TUNE
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi

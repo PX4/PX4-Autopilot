@@ -2,6 +2,12 @@
 # Init PX4IO interface
 #
 
+echo "Executing rc.io"
+
+#
+# Declare local script variables and initialize default values
+#
+
 #
 # Allow PX4IO to recover from midair restarts.
 #

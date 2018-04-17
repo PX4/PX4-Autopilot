@@ -11,10 +11,12 @@
 # NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
 
+echo "Executing rc.sensors"
+
 #
 # Declare local script variables and initialize default values
 #
-set BOARD_FMUV3 	false
+set BOARD_FMUV3    false
 
 
 #

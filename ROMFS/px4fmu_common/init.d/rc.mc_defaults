@@ -1,5 +1,7 @@
 #!nsh
 
+echo "Executing rc.mc_defaults"
+
 set VEHICLE_TYPE mc
 
 if [ $AUTOCNF == yes ]

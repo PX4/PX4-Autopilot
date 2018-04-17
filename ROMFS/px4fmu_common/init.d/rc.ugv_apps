@@ -3,6 +3,8 @@
 # Standard apps for unmanned ground vehicles (UGV)
 #
 
+echo "Executing rc.ugv_apps"
+
 #
 # Start the attitude and position estimator
 #

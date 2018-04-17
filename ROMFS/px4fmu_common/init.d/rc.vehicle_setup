@@ -11,6 +11,8 @@
 # NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
 
+echo "Executing rc.vehicle_setup"
+
 #
 # Declare local script variables and initialize default values
 #
@@ -60,41 +62,49 @@ then
 	if [ $MAV_TYPE == none ]
 	then
 		# Use mixer to detect vehicle type
-		if [ $MIXER == quad_x -o $MIXER == quad_+ ]
-		then
-			set MAV_TYPE 2
-		fi
 		if [ $MIXER == quad_w -o $MIXER == quad_dc ]
 		then
 			set MAV_TYPE 2
 		fi
+
+		if [ $MIXER == quad_x -o $MIXER == quad_+ ]
+		then
+			set MAV_TYPE 2
+		fi
+
 		if [ $MIXER == quad_h ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
+
+		if [ $MIXER == coax ]
 		then
-			set MAV_TYPE 15
+			set MAV_TYPE 3
 		fi
+
 		if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
 		then
 			set MAV_TYPE 13
 		fi
+
 		if [ $MIXER == hexa_cox ]
 		then
 			set MAV_TYPE 13
 		fi
+
 		if [ $MIXER == octo_x -o $MIXER == octo_+ ]
 		then
 			set MAV_TYPE 14
 		fi
+
 		if [ $MIXER == octo_cox -o $MIXER == octo_cox_w ]
 		then
 			set MAV_TYPE 14
 		fi
-		if [ $MIXER == coax ]
+
+		if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 		then
-			set MAV_TYPE 3
+			set MAV_TYPE 15
 		fi
 	fi
 
@@ -156,10 +166,12 @@ then
 		then
 			set MAV_TYPE 19
 		fi
+
 		if [ $MIXER == firefly6 ]
 		then
 			set MAV_TYPE 21
 		fi
+
 		if [ $MIXER == quad_x_pusher_vtol ]
 		then
 			set MAV_TYPE 22

@@ -4,12 +4,13 @@
 # Standard startup script for logging
 #
 
+echo "Executing rc.logging"
 
 #
 # Declare local script variables and initialize default values
 #
-set LOGGER_ARGS 			""
-set LOGGER_BUF				14
+set LOGGER_ARGS                         ""
+set LOGGER_BUF                          14
 
 #
 # Setup for board specific configurations

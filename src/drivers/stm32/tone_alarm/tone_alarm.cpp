@@ -321,7 +321,7 @@ private:
 
 	Tunes _tunes;
 
-	unsigned _silence_length; // if nonzero, silence before next note
+	uint32_t _silence_length; // if nonzero, silence before next note
 
 	int _cbrk; ///< if true, no audio output
 	int _tune_control_sub;
@@ -534,7 +534,8 @@ void ToneAlarm::next_note()
 		}
 	}
 
-	unsigned frequency = 0, duration = 0;
+	uint16_t frequency = 0;
+	uint32_t duration = 0;
 
 	if (_play_tone) {
 		_play_tone = false;

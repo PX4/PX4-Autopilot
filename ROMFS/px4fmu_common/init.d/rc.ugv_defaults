@@ -1,5 +1,7 @@
 #!nsh
 
+echo "Executing rc.ugv_defaults"
+
 set VEHICLE_TYPE ugv
 
 if [ $AUTOCNF == yes ]

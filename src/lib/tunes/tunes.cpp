@@ -152,8 +152,8 @@ void Tunes::set_string(const char *const string, uint8_t strength)
 	}
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
-			 unsigned &silence, uint8_t &strength)
+int Tunes::get_next_tune(uint16_t &frequency, uint32_t &duration,
+			 uint32_t &silence, uint8_t &strength)
 {
 	int ret = get_next_tune(frequency, duration, silence);
 
@@ -168,8 +168,8 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
 	return ret;
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
-			 unsigned &silence)
+int Tunes::get_next_tune(uint16_t &frequency, uint32_t &duration,
+			 uint32_t &silence)
 {
 	// Return the vaules for frequency and duration if the custom msg was received
 	if (_using_custom_msg) {
