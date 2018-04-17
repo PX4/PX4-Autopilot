@@ -109,11 +109,9 @@ public:
 private:
 	char 			_device[DEVICE_ARGUMENT_MAX_LENGTH];
 	int 			_uart_fd = -1;
-	static const uint8_t 	device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
-	static const uint8_t 	device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
-	bool _is_armed = false;
-
-	// subscriptions
+	static const uint8_t 	_device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
+	static const uint8_t 	_device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
+	bool 			_is_armed = false;
 	int			_armed_sub = -1;
 	int 			_test_motor_sub = -1;
 	int 			_params_sub = -1;
@@ -121,8 +119,6 @@ private:
 	actuator_outputs_s      _outputs = {};
 	actuator_armed_s	_armed = {};
 
-	//todo:refactor dynamic based on _channels_count
-	// It needs to support the number of ESC
 	int			_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	actuator_controls_s 	_controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	orb_id_t		_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -130,7 +126,7 @@ private:
 	unsigned		_poll_fds_num = 0;
 
 	orb_advert_t      _esc_feedback_pub = nullptr;
-	orb_advert_t      _to_mixer_status  = nullptr; 	///< mixer status flags
+	orb_advert_t      _to_mixer_status = nullptr; 	///< mixer status flags
 	esc_status_s      _esc_feedback = {};
 	uint8_t    	  _channels_count = 0; 		///< nnumber of ESC channels
 	uint8_t 	  _responding_esc = 0;
@@ -152,8 +148,8 @@ private:
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 };
 
-const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
-const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
+const uint8_t TAP_ESC::_device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
+const uint8_t TAP_ESC::_device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
@@ -276,7 +272,6 @@ int TAP_ESC::init()
 	}
 
 	/* Respect boot time required by the ESC FW */
-
 	hrt_abstime uptime_us = hrt_absolute_time();
 
 	if (uptime_us < MAX_BOOT_TIME_MS * 1000) {
@@ -284,7 +279,6 @@ int TAP_ESC::init()
 	}
 
 	/* Issue Basic Config */
-
 	EscPacket packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest), ESCBUS_MSG_ID_CONFIG_BASIC};
 	ConfigInfoBasicRequest   &config = packet.d.reqConfigInfoBasic;
 	memset(&config, 0, sizeof(ConfigInfoBasicRequest));
@@ -294,10 +288,10 @@ int TAP_ESC::init()
 
 	/* Asign the id's to the ESCs to match the mux */
 	for (uint8_t phy_chan_index = 0; phy_chan_index < _channels_count; phy_chan_index++) {
-		config.channelMapTable[phy_chan_index] = device_mux_map[phy_chan_index] &
-				ESC_CHANNEL_MAP_CHANNEL;
-		config.channelMapTable[phy_chan_index] |= (device_dir_map[phy_chan_index] << 4) &
-				ESC_CHANNEL_MAP_RUNNING_DIRECTION;
+		config.channelMapTable[phy_chan_index] = _device_mux_map[phy_chan_index] &
+				ESC_MASK_MAP_CHANNEL;
+		config.channelMapTable[phy_chan_index] |= (_device_dir_map[phy_chan_index] << 4) &
+				ESC_MASK_MAP_RUNNING_DIRECTION;
 	}
 
 	config.maxChannelValue = RPMMAX;
@@ -776,8 +770,7 @@ tap_esc start -d /dev/ttyS2 -n <1-8>
 
 extern "C" __EXPORT int tap_esc_main(int argc, char *argv[]);
 
-int
-tap_esc_main(int argc, char *argv[])
+int tap_esc_main(int argc, char *argv[])
 {
 	return TAP_ESC::main(argc, argv);
 }
