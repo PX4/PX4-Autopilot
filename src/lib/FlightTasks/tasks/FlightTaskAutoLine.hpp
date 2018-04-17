@@ -55,6 +55,7 @@ protected:
 	matrix::Vector3f _destination{}; /**< Current target. Is not necessarily the same as triplet target. */
 	matrix::Vector3f _origin{}; /**< Previous waypoint. Is not necessarily the same as triplet previous. */
 	float _speed_at_target = 0.0f; /**< Desired velocity at target. */
+	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
 
 	enum class State {
 		offtrack, /**< Vehicle is more than cruise speed away from track */
@@ -74,7 +75,9 @@ protected:
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acc_max_down,
 					(ParamFloat<px4::params::MPC_CRUISE_90>) _cruise_speed_90,
 					(ParamFloat<px4::params::NAV_ACC_RAD>) _nav_rad,
-					(ParamFloat<px4::params::MIS_YAW_ERR>) _mis_yaw_error
+					(ParamFloat<px4::params::MIS_YAW_ERR>) _mis_yaw_error,
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) _slow_land_alt1,
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) _slow_land_alt2
 				       )
 
 	void _generateIdleSetpoints();
@@ -85,6 +88,7 @@ protected:
 	void _generateSetpoints(); /**< Generate velocity and position setpoint for following line. */
 	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
 	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
+	void updateParams() override; /**< See ModuleParam class */
 
 private:
 	float _getVelocityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
