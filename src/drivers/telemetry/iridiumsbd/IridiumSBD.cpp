@@ -303,8 +303,10 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 		if (_new_state != _state) {
 			VERBOSE_INFO("SWITCHING STATE FROM %s TO %s", satcom_state_string[_state], satcom_state_string[_new_state]);
 			_state = _new_state;
+			publish_iridium_status();
 
 		} else {
+			publish_iridium_status();
 			usleep(100000);	// 100ms
 		}
 	}
@@ -474,6 +476,8 @@ void IridiumSBD::sbdsession_loop(void)
 		_tx_session_pending = false;
 		_last_read_time = hrt_absolute_time();
 		_last_heartbeat = _last_read_time;
+		++_successful_sbd_sessions;
+
 
 		if (mt_len > 0) {
 			_rx_read_pending = true;
@@ -489,6 +493,7 @@ void IridiumSBD::sbdsession_loop(void)
 
 		// after a successful session reset the tx buffer
 		_tx_buf_write_idx = 0;
+		++_successful_sbd_sessions;
 
 		_tx_session_pending = false;
 		break;
@@ -655,6 +660,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	// check if there is enough space to write the message
 	if (SATCOM_TX_BUF_LEN - _tx_buf_write_idx - _packet_length < 0) {
 		_tx_buf_write_idx = 0;
+		++_num_tx_buf_reset;
 		publish_telemetry_status();
 	}
 
@@ -972,6 +978,94 @@ void IridiumSBD::publish_telemetry_status()
 	} else {
 		orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 	}
+}
+
+void IridiumSBD::publish_iridium_status()
+{
+	bool need_to_publish = false;
+
+	if (_status.last_heartbeat != _last_heartbeat) {
+		need_to_publish = true;
+		_status.last_heartbeat = _last_heartbeat;
+	}
+
+	if (_status.tx_buf_write_index != _tx_buf_write_idx) {
+		need_to_publish = true;
+		_status.tx_buf_write_index = _tx_buf_write_idx;
+	}
+
+	if (_status.rx_buf_read_index != _rx_msg_read_idx) {
+		need_to_publish = true;
+		_status.rx_buf_read_index = _rx_msg_read_idx;
+	}
+
+	if (_status.rx_buf_end_index != _rx_msg_end_idx) {
+		need_to_publish = true;
+		_status.rx_buf_end_index = _rx_msg_end_idx;
+	}
+
+	if (_status.failed_sbd_sessions != _failed_sbd_sessions) {
+		need_to_publish = true;
+		_status.failed_sbd_sessions = _failed_sbd_sessions;
+	}
+
+	if (_status.successful_sbd_sessions != _successful_sbd_sessions) {
+		need_to_publish = true;
+		_status.successful_sbd_sessions = _successful_sbd_sessions;
+	}
+
+	if (_status.num_tx_buf_reset != _num_tx_buf_reset) {
+		need_to_publish = true;
+		_status.num_tx_buf_reset = _num_tx_buf_reset;
+	}
+
+	if (_status.signal_quality != _signal_quality) {
+		need_to_publish = true;
+		_status.signal_quality = _signal_quality;
+	}
+
+	if (_status.state != _state) {
+		need_to_publish = true;
+		_status.state = _state;
+	}
+
+	if (_status.ring_pending != _ring_pending) {
+		need_to_publish = true;
+		_status.ring_pending = _ring_pending;
+	}
+
+	if (_status.tx_buf_write_pending != _tx_buf_write_pending) {
+		need_to_publish = true;
+		_status.tx_buf_write_pending = _tx_buf_write_pending;
+	}
+
+	if (_status.tx_session_pending != _tx_session_pending) {
+		need_to_publish = true;
+		_status.tx_session_pending = _tx_session_pending;
+	}
+
+	if (_status.rx_read_pending != _rx_read_pending) {
+		need_to_publish = true;
+		_status.rx_read_pending = _rx_read_pending;
+	}
+
+	if (_status.rx_session_pending != _rx_session_pending) {
+		need_to_publish = true;
+		_status.rx_session_pending = _rx_session_pending;
+	}
+
+	_status.timestamp = hrt_absolute_time();
+
+	// publish the status if it changed
+	if (need_to_publish) {
+		if (_iridiumsbd_status_pub == nullptr) {
+			_iridiumsbd_status_pub = orb_advertise(ORB_ID(iridiumsbd_status), &_status);
+
+		} else {
+			orb_publish(ORB_ID(iridiumsbd_status), _iridiumsbd_status_pub, &_status);
+		}
+	}
+
 }
 
 int	IridiumSBD::open_first(struct file *filep)
