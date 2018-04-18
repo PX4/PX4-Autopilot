@@ -54,10 +54,7 @@ protected:
 	void _scaleSticks() override; /**< scales sticks to velocity in z */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down, /**< maximum speed allowed to go up */
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up, /**< maximum speed allowed to go down */
-					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>)
-					_vel_hold_thr_z /**< velocity threshold to switch back into vertical position hold */
+					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z
 				       )
 
 };
