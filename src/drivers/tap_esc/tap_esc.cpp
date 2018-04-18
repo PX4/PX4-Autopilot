@@ -76,8 +76,6 @@
 #  define PWM_DEFAULT_UPDATE_RATE 400
 #endif
 
-#define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
-
 /*
  * This driver connects to TAP ESCs via serial.
  */
