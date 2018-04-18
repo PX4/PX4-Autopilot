@@ -73,7 +73,7 @@ void Ekf::fuseAirspeed()
 	// Perform fusion of True Airspeed measurement
 	if (v_tas_pred > 1.0f) {
 		// determine if we need the sideslip fusion to correct states other than wind
-		bool update_wind_only = !_is_dead_reckoning;
+		bool update_wind_only = !_is_wind_dead_reckoning;
 
 		// Calculate the observation jacobian
 		// intermediate variable from algebraic optimisation

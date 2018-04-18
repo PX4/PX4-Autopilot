@@ -452,8 +452,9 @@ protected:
 	float _drag_test_ratio[2] {};	// drag innovation cinsistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
-	bool _is_dead_reckoning{false};	// true if we are no longer fusing measurements that constrain horizontal velocity drift
+	bool _is_dead_reckoning{false};		// true if we are no longer fusing measurements that constrain horizontal velocity drift
 	bool _deadreckon_time_exceeded{false};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
+	bool _is_wind_dead_reckoning{false};	// true if we are navigating reliant on wind relative measurements
 
 	// IMU vibration monitoring
 	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement
