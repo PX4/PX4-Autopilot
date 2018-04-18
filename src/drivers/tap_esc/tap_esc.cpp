@@ -388,7 +388,7 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 
 	int ret = tap_esc_common::send_packet(_uart_fd, packet, _responding_esc);
 
-	if (++_responding_esc == _channels_count) {
+	if (++_responding_esc >= _channels_count) {
 		_responding_esc = 0;
 	}
 
