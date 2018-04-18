@@ -867,7 +867,7 @@ void Ekf2::run()
 		if (airspeed_updated) {
 			airspeed_s airspeed;
 
-			if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed)) {
+			if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
 				// only set airspeed data if condition for airspeed fusion are met
 				if ((_arspFusionThreshold.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _arspFusionThreshold.get())) {
 
