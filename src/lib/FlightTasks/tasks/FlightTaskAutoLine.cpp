@@ -55,11 +55,15 @@ bool FlightTaskAutoLine::update()
 	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
 	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position;
 
-	// Altitude above ground from home or if not present
-	// the negation of the current position
+	// Altitude above ground is by default just the negation of the current local position in D-direction.
 	_alt_above_ground = -_position(2);
 
-	if (_sub_home_position->get().valid_alt) {
+	if (PX4_ISFINITE(_dist_to_bottom)) {
+		// We have a valid distance to ground measurement
+		_alt_above_ground = _dist_to_bottom;
+
+	} else if (_sub_home_position->get().valid_alt) {
+		// if home position is set, then altitude above ground is relative to the home position
 		_alt_above_ground = -_position(2) + _sub_home_position->get().z;
 	}
 
@@ -387,7 +391,6 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 
 		// check sign
 		const bool flying_upward = _destination(2) < _position(2);
-
 
 		// limit vertical downwards speed (positive z) close to ground
 		// for now we use the altitude above home and assume that we want to land at same height as we took off
