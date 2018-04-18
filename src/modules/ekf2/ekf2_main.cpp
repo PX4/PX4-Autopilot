@@ -1117,9 +1117,8 @@ void Ekf2::run()
 
 			lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
 
-			bool dead_reckoning;
-			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
-			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv, &dead_reckoning);
+			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
+			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
 
 			// get state reset information of position and velocity
 			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
@@ -1161,7 +1160,9 @@ void Ekf2::run()
 
 				global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
 
-				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
+				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
+
+				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning();
 
 				global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
 
