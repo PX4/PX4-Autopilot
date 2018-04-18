@@ -403,7 +403,7 @@ __EXPORT void PRINT_MODULE_DESCRIPTION(const char *description);
 /**
  * Print the command name
  * @param executable_name: command name used in scripts & CLI
- * @param category one of: driver, estimator, controller, system, communication, command
+ * @param category one of: driver, estimator, controller, system, communication, command, template
  */
 __EXPORT void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category);
 
