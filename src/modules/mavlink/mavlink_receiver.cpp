@@ -1590,29 +1590,37 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	static orb_advert_t *mavlink_log_pub;
 
 	struct vehicle_attitude_s odom_attitude = {};
+	struct vehicle_local_position_s odom_position = {};
 
 	odom_attitude.timestamp = sync_stamp(odom.time_usec);
+	odom_position.timestamp = sync_stamp(odom.time_usec);
+
+	/** The quaternion of the ODOMETRY msg is a rotation from NED earth/local
+	 * frame to XYZ body frame
+	 */
 	odom_attitude.q[0] = odom.q[0];
 	odom_attitude.q[1] = odom.q[1];
 	odom_attitude.q[2] = odom.q[2];
 	odom_attitude.q[3] = odom.q[3];
-	odom_attitude.rollspeed = odom.rollspeed;
-	odom_attitude.pitchspeed = odom.pitchspeed;
-	odom_attitude.yawspeed = odom.yawspeed;
 
-	struct vehicle_local_position_s odom_position = {};
-
-	odom_position.timestamp = sync_stamp(odom.time_usec);
-
+	/* The position is in the local NED frame */
 	odom_position.x = odom.x;
 	odom_position.y = odom.y;
 	odom_position.z = odom.z;
 
 	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
-		float yaw = matrix::Eulerf(matrix::Quatf(odom_attitude.q)).psi();
-		odom_position.vx = cosf(yaw) * odom.vx - sinf(yaw) * odom.vy;
-		odom_position.vy = sinf(yaw) * odom.vx + cosf(yaw) * odom.vy;
+		matrix::Eulerf euler(matrix::Quatf(odom_attitude.q));
+
+		odom_position.vx = cosf(euler.psi()) * odom.vx - sinf(euler.psi()) * odom.vy;
+		odom_position.vy = sinf(euler.psi()) * odom.vx + cosf(euler.psi()) * odom.vy;
 		odom_position.vz = odom.vz;
+
+		odom_attitude.rollspeed = odom.rollspeed * sinf(euler.phi()) * sinf(euler.theta())
+					  + odom.pitchspeed * cosf(euler.phi());
+		odom_attitude.pitchspeed = odom.rollspeed * cosf(euler.phi()) * sinf(euler.theta())
+					   - odom.pitchspeed * sinf(euler.phi());
+		odom_attitude.yawspeed = odom.rollspeed * cosf(euler.theta())
+					 + odom.yawspeed;
 
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
 		bool updated;
@@ -1622,11 +1630,28 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
 
 			/* get current yaw from vehicle_attitude quaterion */
-			float yaw = matrix::Eulerf(matrix::Quatf(_att.q)).psi();
-			odom_position.vx = cosf(yaw) * odom.vx - sinf(yaw) * odom.vy;
-			odom_position.vy = sinf(yaw) * odom.vx + cosf(yaw) * odom.vy;
+			matrix::Eulerf euler(matrix::Quatf(_att.q));
+
+			odom_position.vx = cosf(euler.psi()) * odom.vx - sinf(euler.psi()) * odom.vy;
+			odom_position.vy = sinf(euler.psi()) * odom.vx + cosf(euler.psi()) * odom.vy;
 			odom_position.vz = odom.vz;
+
+			odom_attitude.rollspeed = odom.rollspeed * sinf(euler.phi()) * sinf(euler.theta())
+						  + odom.pitchspeed * cosf(euler.phi());
+			odom_attitude.pitchspeed = odom.rollspeed * cosf(euler.phi()) * sinf(euler.theta())
+						   - odom.pitchspeed * sinf(euler.phi());
+			odom_attitude.yawspeed = odom.rollspeed * cosf(euler.theta()) + odom.yawspeed;
 		}
+
+	} else if (odom.child_frame_id == MAV_FRAME_VISION_NED || /* WRT to vehicle local NED frame */
+		   odom.child_frame_id == MAV_FRAME_MOCAP_NED) {
+		odom_position.vx = odom.vx;
+		odom_position.vy = odom.vy;
+		odom_position.vz = odom.vz;
+
+		odom_attitude.rollspeed = odom.rollspeed;
+		odom_attitude.pitchspeed = odom.pitchspeed;
+		odom_attitude.yawspeed = odom.yawspeed;
 
 	} else {
 		mavlink_log_critical(mavlink_log_pub, "Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
