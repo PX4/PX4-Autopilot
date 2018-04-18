@@ -69,6 +69,7 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 		return true;
 
 	} else {
+		_resetSetpoints();
 		_velocity.zero(); /* default velocity is all zero */
 		return false;
 	}
