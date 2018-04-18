@@ -1021,7 +1021,10 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	break;
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
 			// only send the acknowledge from the commander, the command actually is handled by each mavlink instance
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			// only send the acknowledge if the command is received from an external source
+			if (cmd.from_external) {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			}
 		}
 		break;
 
