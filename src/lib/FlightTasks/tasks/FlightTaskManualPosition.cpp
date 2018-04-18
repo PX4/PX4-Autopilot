@@ -55,8 +55,8 @@ void FlightTaskManualPosition::_scaleSticks()
 		stick_xy = stick_xy.normalized() * mag;
 	}
 
-	/* Scale to velocity.*/
-	Vector2f vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
+	// scale velocity to its maximum lmits
+	Vector2f vel_sp_xy = stick_xy * _limits.speed_NE_max;
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
@@ -69,7 +69,7 @@ void FlightTaskManualPosition::_updateXYlock()
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
 	const bool apply_brake = Vector2f(&_velocity_setpoint(0)).length() < FLT_EPSILON;
-	const bool stopped = (_vel_hold_thr_xy.get() < FLT_EPSILON || vel_xy_norm < _vel_hold_thr_xy.get());
+	const bool stopped = (MPC_HOLD_MAX_XY.get() < FLT_EPSILON || vel_xy_norm < MPC_HOLD_MAX_XY.get());
 
 	if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(0))) {
 		_position_setpoint(0) = _position(0);
@@ -87,4 +87,13 @@ void FlightTaskManualPosition::_updateSetpoints()
 	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
 	_thrust_setpoint *= NAN; // don't require any thrust setpoints
 	_updateXYlock(); // check for position lock
+}
+
+void FlightTaskManualPosition::_updateSetpointLimits()
+{
+	FlightTaskManualAltitude::_updateSetpointLimits();
+
+	if (_limits.speed_NE_max >= MPC_VEL_MANUAL.get()) {
+		_limits.speed_NE_max = MPC_VEL_MANUAL.get();
+	}
 }

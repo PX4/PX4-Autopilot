@@ -53,14 +53,12 @@ protected:
 	void _updateXYlock(); /**< applies positon lock based on stick and velocity */
 	void _updateSetpoints() override;
 	void _scaleSticks() override;
+	void _updateSetpointLimits() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
-					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _vel_xy_manual_max, /**< maximum speed allowed horizontally */
-					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>)
-					_acc_xy_max, /**< maximum acceleration horizontally. Only used to compute lock time */
-					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>)
-					_vel_hold_thr_xy /**< velocity threshold to switch back into horizontal position hold */
+					(ParamFloat<px4::params::MPC_VEL_MANUAL>) MPC_VEL_MANUAL,
+					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) MPC_ACC_HOR_MAX,
+					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY
 				       )
-private:
 
 };

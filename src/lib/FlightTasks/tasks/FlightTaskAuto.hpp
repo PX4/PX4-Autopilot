@@ -70,6 +70,8 @@ public:
 	bool updateInitialize() override;
 
 protected:
+	void _updateSetpointLimits() override;
+
 	matrix::Vector3f _prev_prev_wp{}; /**< Pre-previous waypoint (local frame). This will be used for smoothing trajectories -> not used yet. */
 	matrix::Vector3f _prev_wp{}; /**< Previous waypoint  (local frame). If no previous triplet is available, the prev_wp is set to current position. */
 	matrix::Vector3f _target{}; /**< Target waypoint  (local frame).*/
@@ -84,7 +86,7 @@ private:
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_XY_CRUISE>) _mc_cruise_default); /**< Default mc cruise speed.*/
+					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE); /**< Default mc cruise speed.*/
 
 	map_projection_reference_s _reference; /**< Reference frame from global to local. */
 

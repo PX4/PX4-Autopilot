@@ -17,6 +17,7 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 bool FlightTask::activate()
 {
 	_resetSetpoints();
+	_updateSetpointLimits();
 	_time_stamp_activate = hrt_absolute_time();
 	return true;
 }
@@ -71,4 +72,11 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 		_velocity.zero(); /* default velocity is all zero */
 		return false;
 	}
+}
+
+void FlightTask::_updateSetpointLimits()
+{
+	_limits.speed_NE_max = MPC_XY_VEL_MAX.get();
+	_limits.speed_up_max = MPC_Z_VEL_MAX_UP.get();
+	_limits.speed_dn_max = MPC_Z_VEL_MAX_DN.get();
 }

@@ -46,7 +46,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 	FlightTaskManualStabilized::_scaleSticks();
 
 	/* Scale horizontal velocity with expo curve stick input*/
-	const float vel_max_z = (_sticks(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get();
+	const float vel_max_z = (_sticks(2) > 0.0f) ? _limits.speed_dn_max : _limits.speed_up_max;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
 }
 
@@ -58,7 +58,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	/* handle position and altitude hold */
 	const bool apply_brake_z = fabsf(_velocity_setpoint(2)) <= FLT_EPSILON;
-	const bool stopped_z = (_vel_hold_thr_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _vel_hold_thr_z.get());
+	const bool stopped_z = (MPC_HOLD_MAX_Z.get() < FLT_EPSILON || fabsf(_velocity(2)) < MPC_HOLD_MAX_Z.get());
 
 	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_position_setpoint(2))) {
 		_position_setpoint(2) = _position(2);

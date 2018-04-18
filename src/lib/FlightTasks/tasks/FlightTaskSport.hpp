@@ -53,23 +53,11 @@ public:
 	virtual ~FlightTaskSport() = default;
 
 protected:
-	void _updateSetpoints() override
+	void _updateSetpointLimits() override
 	{
-		FlightTaskManualPosition::_updateSetpoints(); // get all setpoints from position task
+		FlightTaskManualPosition::_updateSetpointLimits();
 
-		/* Scale horizontal velocity setpoint by maximum allowed velocity. */
-		if (PX4_ISFINITE(_velocity_setpoint(0)) && Vector2f(&_velocity_setpoint(0)).length() > 0.0f) {
-			Vector2f vel_sp_xy = Vector2f(&_velocity_setpoint(0));
-			vel_sp_xy = vel_sp_xy.normalized() * _vel_xy_max.get() / _vel_xy_manual_max.get() * vel_sp_xy.length();
-			_velocity_setpoint(0) = vel_sp_xy(0);
-			_velocity_setpoint(1) = vel_sp_xy(1);
-		}
+		// for sport mode we just increase horizontal speed to maximum speed
+		_limits.speed_NE_max = MPC_XY_VEL_MAX.get();
 	}
-
-private:
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
-					(ParamFloat<px4::params::MPC_XY_VEL_MAX>)
-					_vel_xy_max /**< maximal allowed horizontal speed, in sport mode full stick input*/
-				       )
-
 };
