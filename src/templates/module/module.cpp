@@ -63,7 +63,7 @@ $ module start -f -p 42
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("module", "system");
+	PRINT_MODULE_USAGE_NAME("module", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1000, "Optional example parameter", true);
