@@ -63,6 +63,12 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_position_setpoint(2))) {
 		_position_setpoint(2) = _position(2);
 
+		if ((PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < SENS_FLOW_MINRNG.get())) {
+			// if vehicle wants to keep altitude but is below minimum flow distance,
+			// increase altitude to minimum flow distance
+			_position_setpoint(2) = _position(2) - (SENS_FLOW_MINRNG.get() - _dist_to_bottom);
+		}
+
 	} else if (!apply_brake_z) {
 		_position_setpoint(2) = NAN;
 	}
