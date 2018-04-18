@@ -412,6 +412,13 @@ FixedwingPositionControl::vehicle_attitude_poll()
 	/* set rotation matrix and euler angles */
 	_R_nb = Quatf(_att.q);
 
+	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
+	// between multirotor and fixed wing flight
+	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+		Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
+		_R_nb = _R_nb * R_offset;
+	}
+
 	Eulerf euler_angles(_R_nb);
 	_roll    = euler_angles(0);
 	_pitch   = euler_angles(1);
@@ -1877,14 +1884,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	/* Using tecs library */
 	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
-
-	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
-	// between multirotor and fixed wing flight
-	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
-		Eulerf euler = Eulerf(_R_nb * R_offset);
-		pitch_for_tecs = euler(1);
-	}
 
 	/* filter speed and altitude for controller */
 	Vector3f accel_body(_sub_sensors.get().accel_x, _sub_sensors.get().accel_y, _sub_sensors.get().accel_z);
