@@ -54,7 +54,8 @@ protected:
 	void _scaleSticks() override; /**< scales sticks to velocity in z */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
-					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z
+					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
+					(ParamFloat<px4::params::SENS_FLOW_MINRNG>) SENS_FLOW_MINRNG
 				       )
 
 };
