@@ -66,18 +66,15 @@ protected:
 	State _current_state{State::none};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
-					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_max_xy,
-					(ParamFloat<px4::params::MPC_ACC_HOR>) _acc_xy,
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acc_max_up,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acc_max_down,
-					(ParamFloat<px4::params::MPC_CRUISE_90>) _cruise_speed_90,
-					(ParamFloat<px4::params::NAV_ACC_RAD>) _nav_rad,
-					(ParamFloat<px4::params::MIS_YAW_ERR>) _mis_yaw_error,
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) _slow_land_alt1,
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) _slow_land_alt2
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
+					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees
+					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated
+					(ParamFloat<px4::params::MIS_YAW_ERR>) MIS_YAW_ERR, // yaw-error threshold
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX,
+					(ParamFloat<px4::params::MPC_ACC_HOR>) MPC_ACC_HOR // acceleration in flight
 				       )
 
 	void _generateIdleSetpoints();

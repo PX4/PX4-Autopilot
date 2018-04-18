@@ -94,12 +94,13 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
+
 	// always update cruise speed since that can change without waypoint changes
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
 
-	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
-		// use default
-		_mc_cruise_speed = _mc_cruise_default.get();
+	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f) || (_mc_cruise_speed > _limits.speed_NE_max)) {
+		// use default limit
+		_mc_cruise_speed = _limits.speed_NE_max;
 	}
 
 	// get target waypoint.
@@ -183,4 +184,15 @@ void FlightTaskAuto::_evaluateVehicleGlobalPosition()
 		_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
 		_time_stamp_reference = _sub_vehicle_local_position->get().ref_timestamp;
 	}
+}
+
+void FlightTaskAuto::_updateSetpointLimits()
+{
+	FlightTask::_updateSetpointLimits();
+
+	// only adjust limits if the new limit is lower
+	if (_limits.speed_NE_max >= MPC_XY_CRUISE.get()) {
+		_limits.speed_NE_max = MPC_XY_CRUISE.get();
+	}
+
 }

@@ -105,6 +105,35 @@ public:
 	}
 
 protected:
+
+
+	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
+
+	/**
+	 * Reset all setpoints to NAN
+	 */
+	void _resetSetpoints();
+
+	/**
+	 * Update Flighttask limits
+	 */
+	void virtual _updateSetpointLimits();
+
+	/*
+	 * Check and update local position
+	 */
+	bool _evaluateVehicleLocalPosition();
+
+	/**
+	 * @brief Setpoint limits
+	 */
+	struct Limits {
+		float speed_NE_max = 1.0f; /**< maximum speed in NE-direction */
+		float speed_up_max = 1.0f; /**< maximum speed upwards */
+		float speed_dn_max = 1.0f; /**< maximum speed downwards */
+	};
+	Limits _limits;
+
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
 	float _time = 0; /**< passed time in seconds since the task was activated */
@@ -128,11 +157,9 @@ protected:
 	float _yawspeed_setpoint;
 	float _dist_to_bottom;
 
-	/**
-	 * Get the output data
-	 */
-	void _resetSetpoints();
-
-	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-	bool _evaluateVehicleLocalPosition();
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP
+				       );
 };

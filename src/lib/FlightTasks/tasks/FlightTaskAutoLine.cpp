@@ -126,7 +126,7 @@ void FlightTaskAutoLine::_generateLandSetpoints()
 {
 	// Keep xy-position and go down with landspeed. */
 	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
-	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, _land_speed.get()));
+	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, MPC_LAND_SPEED.get()));
 }
 
 void FlightTaskAutoLine::_generateTakeoffSetpoints()
@@ -183,7 +183,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 			// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
 
 			if (Vector2f(&(_destination - _next_wp)(0)).length() > 0.001f &&
-			    (Vector2f(&(_destination - _origin)(0)).length() > _nav_rad.get())) {
+			    (Vector2f(&(_destination - _origin)(0)).length() > NAV_ACC_RAD.get())) {
 
 				angle = Vector2f(&(_destination - _origin)(0)).unit_or_zero()
 					* Vector2f(&(_destination - _next_wp)(0)).unit_or_zero()
@@ -206,7 +206,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 			// angle = cos(x) + 1.0
 			// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
 			if (Vector2f(&(_destination - _next_wp)(0)).length() > 0.001f &&
-			    (Vector2f(&(_destination - _origin)(0)).length() > _nav_rad.get())) {
+			    (Vector2f(&(_destination - _origin)(0)).length() > NAV_ACC_RAD.get())) {
 
 				angle = Vector2f(&(_destination - _origin)(0)).unit_or_zero()
 					* Vector2f(&(_destination - _next_wp)(0)).unit_or_zero()
@@ -230,7 +230,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 			// angle = cos(x) + 1.0
 			// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
 			if (Vector2f(&(_destination - _next_wp)(0)).length() > 0.001f &&
-			    (Vector2f(&(_destination - _origin)(0)).length() > _nav_rad.get())) {
+			    (Vector2f(&(_destination - _origin)(0)).length() > NAV_ACC_RAD.get())) {
 
 				angle = Vector2f(&(_destination - _origin)(0)).unit_or_zero()
 					* Vector2f(&(_destination - _next_wp)(0)).unit_or_zero()
@@ -254,7 +254,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 			// angle = cos(x) + 1.0
 			// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
 			if (Vector2f(&(_destination - _next_wp)(0)).length() > 0.001f &&
-			    (Vector2f(&(_destination - _origin)(0)).length() > _nav_rad.get())) {
+			    (Vector2f(&(_destination - _origin)(0)).length() > NAV_ACC_RAD.get())) {
 
 				angle =
 					Vector2f(&(_destination - _origin)(0)).unit_or_zero()
@@ -269,10 +269,10 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
 	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
-	const bool has_reached_altitude = fabsf(_destination(2) - _position(2)) < _nav_rad.get();
+	const bool has_reached_altitude = fabsf(_destination(2) - _position(2)) < NAV_ACC_RAD.get();
 
-	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _nav_rad.get()) ||
-	    (!has_reached_altitude && pos_sp_to_dest.length() < _nav_rad.get())) {
+	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < NAV_ACC_RAD.get()) ||
+	    (!has_reached_altitude && pos_sp_to_dest.length() < NAV_ACC_RAD.get())) {
 
 		// Vehicle reached target in xy and no passing required. Lock position */
 		_position_setpoint(0) = _destination(0);
@@ -302,9 +302,9 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		}
 
 		// Compute maximum speed at target threshold */
-		if (threshold_max > _nav_rad.get()) {
-			float m = (_mc_cruise_speed - _speed_at_target) / (threshold_max - _nav_rad.get());
-			speed_threshold = m * (target_threshold - _nav_rad.get()) + _speed_at_target; // speed at transition
+		if (threshold_max > NAV_ACC_RAD.get()) {
+			float m = (_mc_cruise_speed - _speed_at_target) / (threshold_max - NAV_ACC_RAD.get());
+			speed_threshold = m * (target_threshold - NAV_ACC_RAD.get()) + _speed_at_target; // speed at transition
 		}
 
 		// Either accelerate or decelerate
@@ -317,7 +317,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 				_speed_at_target = 0.0f;
 			}
 
-			float acceptance_radius = _nav_rad.get();
+			float acceptance_radius = NAV_ACC_RAD.get();
 
 			if (_speed_at_target < 0.01f) {
 				// If vehicle wants to stop at the target, then set acceptance radius to zero as well.
@@ -355,7 +355,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 			}
 
 			// If yaw offset is large, only accelerate with 0.5 m/s^2.
-			float acc_max = (fabsf(yaw_diff) > math::radians(_mis_yaw_error.get())) ? 0.5f : _acc_xy.get();
+			float acc_max = (fabsf(yaw_diff) > math::radians(MIS_YAW_ERR.get())) ? 0.5f : MPC_ACC_HOR.get();
 
 			if (acc_track > acc_max) {
 				// accelerate towards target
@@ -392,12 +392,12 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		// limit vertical downwards speed (positive z) close to ground
 		// for now we use the altitude above home and assume that we want to land at same height as we took off
 		float vel_limit = math::gradual(_alt_above_ground,
-						_slow_land_alt2.get(), _slow_land_alt1.get(),
-						_land_speed.get(), _vel_max_down.get());
+						MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
+						MPC_LAND_SPEED.get(), _limits.speed_dn_max);
 
 		// Speed at threshold is by default maximum speed. Threshold defines
 		// the point in z at which vehicle slows down to reach target altitude.
-		float speed_sp = (flying_upward) ? _vel_max_up.get() : vel_limit;
+		float speed_sp = (flying_upward) ? _limits.speed_up_max : vel_limit;
 
 		// Target threshold defines the distance to target(2) at which
 		// the vehicle starts to slow down to approach the target smoothly.
@@ -426,7 +426,7 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 			// we want to accelerate
 
 			const float acc = (speed_sp - fabsf(_velocity_setpoint(2))) / _deltatime;
-			const float acc_max = (flying_upward) ? (_acc_max_up.get() * 0.5f) : (_acc_max_down.get() * 0.5f);
+			const float acc_max = (flying_upward) ? (MPC_ACC_UP_MAX.get() * 0.5f) : (MPC_ACC_DOWN_MAX.get() * 0.5f);
 
 			if (acc > acc_max) {
 				speed_sp = acc_max * _deltatime + fabsf(_velocity_setpoint(2));
@@ -463,7 +463,7 @@ float FlightTaskAutoLine::_getVelocityFromAngle(const float angle)
 
 	// Middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle of 90degrees.
 	// It needs to be always larger than minimum cruise speed.
-	float middle_cruise_speed = _cruise_speed_90.get();
+	float middle_cruise_speed = MPC_CRUISE_90.get();
 
 	if ((middle_cruise_speed - min_cruise_speed) < SIGMA_NORM) {
 		middle_cruise_speed = min_cruise_speed + SIGMA_NORM;
@@ -514,5 +514,5 @@ void FlightTaskAutoLine::updateParams()
 	FlightTaskAuto::updateParams();
 
 	// make sure that alt1 is above alt2
-	_slow_land_alt1.set(math::max(_slow_land_alt1.get(), _slow_land_alt2.get()));
+	MPC_LAND_ALT1.set(math::max(MPC_LAND_ALT1.get(), MPC_LAND_ALT2.get()));
 }
