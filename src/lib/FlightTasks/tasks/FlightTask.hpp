@@ -147,8 +147,14 @@ protected:
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f;
 
-	/* Setpoints the position controller needs to execute
-	 * NAN values mean the state does not get controlled */
+	/**
+	 * Setpoints which the position controller has to execute.
+	 * Setpoints that are set to NAN are not controlled. Not all setpoints can be set at the same time.
+	 * If more than one type of setpoint is set, then order of control is a as follow: position, velocity,
+	 * acceleration, thrust. The exception is _position_setpoint together with _velocity_setpoint, where the
+	 * _velocity_setpoint is used as feedforward.
+	 * _acceleration_setpoint is currently not supported.
+	 */
 	matrix::Vector3f _position_setpoint;
 	matrix::Vector3f _velocity_setpoint;
 	matrix::Vector3f _acceleration_setpoint;
