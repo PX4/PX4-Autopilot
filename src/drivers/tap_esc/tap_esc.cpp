@@ -72,8 +72,9 @@
 #  define DEVICE_ARGUMENT_MAX_LENGTH 32
 #endif
 
-#if !defined(PWM_DEFAULT_UPDATE_RATE)
-#  define PWM_DEFAULT_UPDATE_RATE 400
+// uorb update rate for control groups in miliseconds
+#if !defined(TAP_ESC_CTRL_UORB_UPDATE_INTERVAL)
+#  define TAP_ESC_CTRL_UORB_UPDATE_INTERVAL 2  // [ms] min: 2, max: 100
 #endif
 
 /*
@@ -404,22 +405,10 @@ void TAP_ESC::cycle()
 		_groups_subscribed = _groups_required;
 
 		/* Set uorb update rate */
-		int update_rate_in_ms = int(1000 / PWM_DEFAULT_UPDATE_RATE);
-
-		if (update_rate_in_ms < 2) {
-			/* reject faster than 500 Hz updates */
-			update_rate_in_ms = 2;
-
-		} else if (update_rate_in_ms > 100) {
-			/* reject slower than 10 Hz updates */
-			update_rate_in_ms = 100;
-		}
-
-		DEVICE_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
-
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] >= 0) {
-				orb_set_interval(_control_subs[i], update_rate_in_ms);
+				orb_set_interval(_control_subs[i], TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
+				DEVICE_DEBUG("New actuator update interval: %ums", TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
 			}
 		}
 	}
