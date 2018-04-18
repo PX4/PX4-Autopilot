@@ -126,6 +126,7 @@ protected:
 	matrix::Vector3f _thrust_setpoint;
 	float _yaw_setpoint;
 	float _yawspeed_setpoint;
+	float _dist_to_bottom;
 
 	/**
 	 * Get the output data

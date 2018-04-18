@@ -59,6 +59,12 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 		_position = matrix::Vector3f(&_sub_vehicle_local_position->get().x);
 		_velocity = matrix::Vector3f(&_sub_vehicle_local_position->get().vx);
 		_yaw = _sub_vehicle_local_position->get().yaw;
+		_dist_to_bottom = NAN;
+
+		if (_sub_vehicle_local_position->get().dist_bottom_valid) {
+			_dist_to_bottom =  _sub_vehicle_local_position->get().dist_bottom;
+		}
+
 		return true;
 
 	} else {
