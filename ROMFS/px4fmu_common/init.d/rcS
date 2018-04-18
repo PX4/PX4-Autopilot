@@ -101,7 +101,7 @@ then
 	echo "tone_alarm driver started"
 
 	# Play the startup tone
-	tune_control play -t STARTUP
+	tune_control play -t 1
 fi
 
 #
@@ -116,7 +116,7 @@ else
 	then
 		if hardfault_log check
 		then
-			tune_control play -t ERROR_TUNE
+			tune_control play -t 2
 
 			if hardfault_log commit
 			then
@@ -125,7 +125,7 @@ else
 			fi
 		fi
 	else
-		#tune_control play -t NOTIFY_NEUTRAL
+		#tune_control play -t 4
 		tune_control play -m "MBAGP"
 
 		if mkfatfs /dev/mmcsd0
@@ -135,7 +135,7 @@ else
 				echo "INFO  [init] card formatted"
 			else
 				echo "ERROR [init] format failed"
-				#tune_control play -t ERROR_TUNE
+				#tune_control play -t 2
 				tune_control play -m "MNBG"
 				set LOG_FILE /dev/null
 			fi
@@ -149,7 +149,7 @@ else
 	if [ $LOG_FILE == /dev/null ]
 	then
 		# Play SOS
-		tune_control play -t ERROR_TUNE
+		tune_control play -t 2
 	fi
 fi
 
@@ -338,7 +338,7 @@ then
 				uavcan start fw
 			fi
 		else
-			tune_control play -t ERROR_TUNE
+			tune_control play -t 2
 		fi
 	fi
 
