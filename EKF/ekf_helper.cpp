@@ -988,12 +988,8 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_recko
 	// TODO - allow for baro drift in vertical position error
 	float hpos_err;
 	float vpos_err;
-	bool vel_pos_aiding = (_control_status.flags.gps ||
-			       _control_status.flags.opt_flow ||
-			       _control_status.flags.ev_pos ||
-			       (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd));
 
-	if (vel_pos_aiding && _NED_origin_initialised) {
+	if (global_position_is_valid()) {
 		hpos_err = sqrtf(P[7][7] + P[8][8] + sq(_gps_origin_eph));
 		vpos_err = sqrtf(P[9][9] + sq(_gps_origin_epv));
 
