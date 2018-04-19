@@ -389,10 +389,10 @@ then
 	fi
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
-	if dataman start $DATAMAN_OPT
-	then
-	fi
-	unset DATAMAN_OPT
+	#if dataman start $DATAMAN_OPT
+	#then
+	#fi
+	#unset DATAMAN_OPT
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
@@ -966,6 +966,11 @@ then
 	fi
 
 	sh /etc/init.d/rc.logging
+
+	if dataman start $DATAMAN_OPT
+	then
+	fi
+	unset DATAMAN_OPT
 
 # End of autostart
 fi

@@ -43,7 +43,7 @@ fi
 if ver hwcmp NXPHLITE_V3
 then
 	# External I2C bus
-	hmc5883 -C -X start
+	hmc5883 -C -T -X start
 
 	# Internal I2C (baro)
 	mpl3115a2 -I start
