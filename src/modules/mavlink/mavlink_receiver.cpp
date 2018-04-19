@@ -1608,19 +1608,29 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odom_position.y = odom.y;
 	odom_position.z = odom.z;
 
+	matrix::Vector3<float> linvel_cov;
+	matrix::Vector3<float> angvel_cov;
+
 	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
-		matrix::Eulerf euler(matrix::Quatf(odom_attitude.q));
+		matrix::Dcm<float> Rbl(matrix::Quatf(odom_attitude.q));
+		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
+		matrix::Vector3<float> angvel_local(Rbl * matrix::Vector3<float>(odom.rollspeed, odom.pitchspeed, odom.yawspeed));
+		linvel_cov = matrix::Vector3<float>(Rbl * matrix::Vector3<float>(
+				odom.twist_covariance[0],
+				odom.twist_covariance[6],
+				odom.twist_covariance[11]));
+		angvel_cov = matrix::Vector3<float>(Rbl * matrix::Vector3<float>(
+				odom.twist_covariance[15],
+				odom.twist_covariance[18],
+				odom.twist_covariance[20]));
 
-		odom_position.vx = cosf(euler.psi()) * odom.vx - sinf(euler.psi()) * odom.vy;
-		odom_position.vy = sinf(euler.psi()) * odom.vx + cosf(euler.psi()) * odom.vy;
-		odom_position.vz = odom.vz;
+		odom_position.vx = linvel_local(0);
+		odom_position.vy = linvel_local(1);
+		odom_position.vz = linvel_local(2);
 
-		odom_attitude.rollspeed = odom.rollspeed * sinf(euler.phi()) * sinf(euler.theta())
-					  + odom.pitchspeed * cosf(euler.phi());
-		odom_attitude.pitchspeed = odom.rollspeed * cosf(euler.phi()) * sinf(euler.theta())
-					   - odom.pitchspeed * sinf(euler.phi());
-		odom_attitude.yawspeed = odom.rollspeed * cosf(euler.theta())
-					 + odom.yawspeed;
+		odom_attitude.rollspeed = angvel_local(0);
+		odom_attitude.pitchspeed = angvel_local(1);
+		odom_attitude.yawspeed = angvel_local(2);
 
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
 		bool updated;
@@ -1629,18 +1639,26 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
 
-			/* get current yaw from vehicle_attitude quaterion */
-			matrix::Eulerf euler(matrix::Quatf(_att.q));
+			/* get quaternion from vehicle_attitude quaterion and buil DCM matrix from it */
+			matrix::Dcm<float> Rbl(matrix::Quatf(_att.q));
+			matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
+			matrix::Vector3<float> angvel_local(Rbl * matrix::Vector3<float>(odom.rollspeed, odom.pitchspeed, odom.yawspeed));
+			linvel_cov = matrix::Vector3<float>(Rbl * matrix::Vector3<float>(
+					odom.twist_covariance[0],
+					odom.twist_covariance[6],
+					odom.twist_covariance[11]));
+			angvel_cov = matrix::Vector3<float>(Rbl * matrix::Vector3<float>(
+					odom.twist_covariance[15],
+					odom.twist_covariance[18],
+					odom.twist_covariance[20]));
 
-			odom_position.vx = cosf(euler.psi()) * odom.vx - sinf(euler.psi()) * odom.vy;
-			odom_position.vy = sinf(euler.psi()) * odom.vx + cosf(euler.psi()) * odom.vy;
-			odom_position.vz = odom.vz;
+			odom_position.vx = linvel_local(0);
+			odom_position.vy = linvel_local(1);
+			odom_position.vz = linvel_local(2);
 
-			odom_attitude.rollspeed = odom.rollspeed * sinf(euler.phi()) * sinf(euler.theta())
-						  + odom.pitchspeed * cosf(euler.phi());
-			odom_attitude.pitchspeed = odom.rollspeed * cosf(euler.phi()) * sinf(euler.theta())
-						   - odom.pitchspeed * sinf(euler.phi());
-			odom_attitude.yawspeed = odom.rollspeed * cosf(euler.theta()) + odom.yawspeed;
+			odom_attitude.rollspeed = angvel_local(0);
+			odom_attitude.pitchspeed = angvel_local(1);
+			odom_attitude.yawspeed = angvel_local(2);
 		}
 
 	} else if (odom.child_frame_id == MAV_FRAME_VISION_NED || /* WRT to vehicle local NED frame */
@@ -1660,8 +1678,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	// TODO : full covariance matrix
 	odom_position.eph = sqrtf(fmaxf(odom.pose_covariance[0], odom.pose_covariance[6]));
 	odom_position.epv = sqrtf(odom.pose_covariance[11]);
-	odom_position.evh = sqrtf(fmaxf(odom.twist_covariance[0], odom.twist_covariance[6]));
-	odom_position.evv = sqrtf(odom.twist_covariance[11]);
+	odom_position.evh = sqrtf(fmaxf(linvel_cov(0), linvel_cov(1)));
+	odom_position.evv = sqrtf(linvel_cov(2));
 
 	// set position/velocity invalid if standard deviation is bigger than ev_max_std_dev
 	const float ev_max_std_dev = 100.0f;

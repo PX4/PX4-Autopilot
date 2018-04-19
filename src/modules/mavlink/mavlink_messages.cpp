@@ -1953,7 +1953,7 @@ protected:
 			odom.time_usec = pos.timestamp;
 
 			odom.frame_id = MAV_FRAME_ESTIM_NED;
-			odom.child_frame_id = MAV_FRAME_ESTIM_NED; // TODO: probably convert back to body frame here
+			odom.child_frame_id = MAV_FRAME_BODY_NED;
 
 			// Current position
 			odom.x = pos.x;
@@ -1966,10 +1966,16 @@ protected:
 			odom.q[2] = att.q[2];
 			odom.q[3] = att.q[3];
 
+			// Local NED to body-NED Dcm matrix
+			matrix::Dcm<float> Rlb(matrix::Dcm<float>(matrix::Quatf(att.q)).I());
+
+			// Rotate linear velocity from local NED to body-NED frame
+			matrix::Vector3<float> vel_body(Rlb * matrix::Vector3<float>(pos.x, pos.y, pos.z));
+
 			// Current linear velocity
-			odom.vx = pos.vx;
-			odom.vy = pos.vy;
-			odom.vz = pos.vz;
+			odom.vx = vel_body(0);
+			odom.vy = vel_body(1);
+			odom.vz = vel_body(2);
 
 			// Current body rates
 			odom.rollspeed = att.rollspeed;
@@ -1981,21 +1987,27 @@ protected:
 			odom.pose_covariance[6] = est.covariances[8];
 			odom.pose_covariance[11] = est.covariances[9];
 
-			matrix::Eulerf euler = matrix::Quatf(
-						       est.covariances[0],
-						       est.covariances[1],
-						       est.covariances[2],
-						       est.covariances[3]);
+			matrix::Eulerf att_cov = matrix::Quatf(
+							 est.covariances[0],
+							 est.covariances[1],
+							 est.covariances[2],
+							 est.covariances[3]);
+
+			// Rotate linear velocity covariance to body-NED frame
+			matrix::Vector3<float> linvel_body(Rlb * matrix::Vector3<float>(
+					est.covariances[4],
+					est.covariances[5],
+					est.covariances[6]));
 
 			// Attitude covariance
-			odom.pose_covariance[15] = euler.phi();
-			odom.pose_covariance[18] = euler.theta();
-			odom.pose_covariance[20] = euler.psi();
+			odom.pose_covariance[15] = att_cov.phi();
+			odom.pose_covariance[18] = att_cov.theta();
+			odom.pose_covariance[20] = att_cov.psi();
 
 			// Linear velocity covariance
-			odom.twist_covariance[0] = est.covariances[4];
-			odom.twist_covariance[6] = est.covariances[5];
-			odom.twist_covariance[11] = est.covariances[6];
+			odom.twist_covariance[0] = linvel_body(0);
+			odom.twist_covariance[6] = linvel_body(1);
+			odom.twist_covariance[11] = linvel_body(2);
 
 			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &odom);
 		}
