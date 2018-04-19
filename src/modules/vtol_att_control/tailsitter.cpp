@@ -48,19 +48,9 @@
 #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
 Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
-	VtolType(attc),
-	_thrust_transition_start(0.0f),
-	_yaw_transition(0.0f),
-	_pitch_transition_start(0.0f)
+	VtolType(attc)
 {
-	_vtol_schedule.flight_mode = MC_MODE;
-	_vtol_schedule.transition_start = 0;
-
-	_mc_roll_weight = 1.0f;
-	_mc_pitch_weight = 1.0f;
-	_mc_yaw_weight = 1.0f;
-
-	_flag_was_in_trans_mode = false;
+	_flight_mode = MC_MODE;
 
 	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 }
@@ -89,30 +79,32 @@ void Tailsitter::update_vtol_state()
 	 * For the backtransition the pitch is controlled in MC mode again and switches to full MC control reaching the sufficient pitch angle.
 	*/
 
+	VtolType::update_vtol_state();
+
 	matrix::Eulerf euler = matrix::Quatf(_v_att->q);
 	float pitch = euler.theta();
 
 	if (!_attc->is_fixed_wing_requested()) {
 
-		switch (_vtol_schedule.flight_mode) { // user switchig to MC mode
+		switch (_flight_mode) { // user switchig to MC mode
 		case MC_MODE:
 			break;
 
 		case FW_MODE:
-			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			_flight_mode 	= TRANSITION_BACK;
+			_transition_start_time = hrt_absolute_time();
 			break;
 
 		case TRANSITION_FRONT_P1:
 			// failsafe into multicopter mode
-			_vtol_schedule.flight_mode = MC_MODE;
+			_flight_mode = MC_MODE;
 			break;
 
 		case TRANSITION_BACK:
 
 			// check if we have reached pitch angle to switch to MC mode
 			if (pitch >= PITCH_TRANSITION_BACK) {
-				_vtol_schedule.flight_mode = MC_MODE;
+				_flight_mode = MC_MODE;
 			}
 
 			break;
@@ -120,11 +112,11 @@ void Tailsitter::update_vtol_state()
 
 	} else {  // user switchig to FW mode
 
-		switch (_vtol_schedule.flight_mode) {
+		switch (_flight_mode) {
 		case MC_MODE:
 			// initialise a front transition
-			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			_flight_mode 	= TRANSITION_FRONT_P1;
+			_transition_start_time = hrt_absolute_time();
 			break;
 
 		case FW_MODE:
@@ -137,7 +129,7 @@ void Tailsitter::update_vtol_state()
 
 				// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
 				if ((airspeed_condition_satisfied && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
-					_vtol_schedule.flight_mode = FW_MODE;
+					_flight_mode = FW_MODE;
 				}
 
 				break;
@@ -145,13 +137,13 @@ void Tailsitter::update_vtol_state()
 
 		case TRANSITION_BACK:
 			// failsafe into fixed wing mode
-			_vtol_schedule.flight_mode = FW_MODE;
+			_flight_mode = FW_MODE;
 			break;
 		}
 	}
 
 	// map tailsitter specific control phases to simple control modes
-	switch (_vtol_schedule.flight_mode) {
+	switch (_flight_mode) {
 	case MC_MODE:
 		_vtol_mode = ROTARY_WING;
 		_vtol_vehicle_status->vtol_in_trans_mode = false;
@@ -178,7 +170,7 @@ void Tailsitter::update_vtol_state()
 
 void Tailsitter::update_transition_state()
 {
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	VtolType::update_transition_state();
 
 	if (!_flag_was_in_trans_mode) {
 		// save desired heading for transition and last thrust value
@@ -190,11 +182,11 @@ void Tailsitter::update_transition_state()
 		_flag_was_in_trans_mode = true;
 	}
 
-	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
+	if (_flight_mode == TRANSITION_FRONT_P1) {
 
 		// create time dependant pitch angle set point + 0.2 rad overlap over the switch value
 		_v_att_sp->pitch_body = _pitch_transition_start	- fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
-					time_since_trans_start / _params->front_trans_duration;
+					get_time_since_trans_start() / _params->front_trans_duration;
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1 - 0.2f,
 							_pitch_transition_start);
 
@@ -209,7 +201,7 @@ void Tailsitter::update_transition_state()
 		_mc_roll_weight = 1.0f;
 		_mc_pitch_weight = 1.0f;
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
+	} else if (_flight_mode == TRANSITION_BACK) {
 
 		if (!flag_idle_mc) {
 			flag_idle_mc = set_idle_mc();
@@ -217,14 +209,14 @@ void Tailsitter::update_transition_state()
 
 		// create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value
 		_v_att_sp->pitch_body = M_PI_2_F + _pitch_transition_start + fabsf(PITCH_TRANSITION_BACK + 1.57f) *
-					time_since_trans_start / _params->back_trans_duration;
+					get_time_since_trans_start() / _params->back_trans_duration;
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, -2.0f, PITCH_TRANSITION_BACK + 0.2f);
 
 		// keep yaw disabled
 		_mc_yaw_weight = 0.0f;
 
 		// smoothly move control weight to MC
-		_mc_roll_weight = _mc_pitch_weight = time_since_trans_start / _params->back_trans_duration;
+		_mc_roll_weight = _mc_pitch_weight = get_time_since_trans_start() / _params->back_trans_duration;
 
 	}
 

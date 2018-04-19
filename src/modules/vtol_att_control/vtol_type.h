@@ -170,6 +170,14 @@ public:
 
 	virtual void parameters_update() = 0;
 
+
+	/**
+	 * @brief      Gets the time in seconds since the start of a transition.
+	 *
+	 * @return     The time in second since a transition started. Returns 0 is not in a transition.
+	 */
+	float get_time_since_trans_start() {return _time_since_trans_start;}
+
 protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
@@ -206,6 +214,8 @@ protected:
 	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
+	float _time_since_trans_start = 0.0f;
+
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
 
 	hrt_abstime _trans_finished_ts = 0;
@@ -215,7 +225,7 @@ protected:
 
 	motor_state _motor_state = motor_state::DISABLED;
 
-
+	hrt_abstime _transition_start_time = 0.0f;	/**< absoulte time at which front transition started */
 
 	/**
 	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
@@ -273,6 +283,11 @@ private:
 	 * @return     True if motor off channel, False otherwise.
 	 */
 	bool is_motor_off_channel(const int channel);
+
+	/**
+	 * @brief      Abort front transition if timeout value is exceeded.
+	 */
+	void check_front_trans_timeout();
 
 };
 

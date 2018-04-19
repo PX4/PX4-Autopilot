@@ -93,14 +93,13 @@ private:
 		FW_MODE
 	};
 
-	struct {
-		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
-		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
-	} _vtol_schedule;
 
-	float _pusher_throttle;
-	float _reverse_output;
-	float _airspeed_trans_blend_margin;
+	vtol_mode _flight_mode;			// indicates in which mode the vehicle is in
+
+
+	float _pusher_throttle = 0.0f;
+	float _reverse_output = 0.0f;
+	float _airspeed_trans_blend_margin = 0.0f;
 
 	virtual void parameters_update();
 };

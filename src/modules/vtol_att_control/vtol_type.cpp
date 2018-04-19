@@ -113,6 +113,16 @@ bool VtolType::init()
 
 }
 
+void VtolType::update_vtol_state()
+{
+	if (_vtol_mode == TRANSITION_TO_FW || _vtol_mode == TRANSITION_TO_MC) {
+		_time_since_trans_start = (float)(hrt_absolute_time() - _transition_start_time) * 1e-6f;
+
+	} else {
+		_time_since_trans_start = 0.0f;
+	}
+}
+
 void VtolType::update_mc_state()
 {
 	if (!flag_idle_mc) {
@@ -188,6 +198,10 @@ void VtolType::update_fw_state()
 void VtolType::update_transition_state()
 {
 	check_quadchute_condition();
+
+	if (_vtol_mode == TRANSITION_TO_FW) {
+		check_front_trans_timeout();
+	}
 }
 
 bool VtolType::can_transition_on_ground()
@@ -250,6 +264,17 @@ void VtolType::check_quadchute_condition()
 			if (fabsf(euler.phi()) > fabsf(math::radians(_params->fw_qc_max_roll))) {
 				_attc->abort_front_transition("Maximum roll angle exceeded");
 			}
+		}
+	}
+}
+
+void VtolType::check_front_trans_timeout()
+{
+	// check front transition timeout
+	if (_params->front_trans_timeout > FLT_EPSILON) {
+		if (_time_since_trans_start > _params->front_trans_timeout) {
+			// transition timeout occured, abort transition
+			_attc->abort_front_transition("Transition timeout");
 		}
 	}
 }
