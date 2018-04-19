@@ -1356,39 +1356,45 @@ void Ekf::controlVelPosFusion()
 	if (!_control_status.flags.gps &&
 			!_control_status.flags.opt_flow &&
 			!_control_status.flags.ev_pos &&
-			!(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta) &&
-			((_time_last_imu - _time_last_fake_gps > (uint64_t)2e5) || _fuse_height))
-	{
-		// Reset position and velocity states if we re-commence this aiding method
-		if ((_time_last_imu - _time_last_fake_gps) > (uint64_t)4e5) {
-			resetPosition();
-			resetVelocity();
-			_fuse_hpos_as_odom = false;
-			if (_time_last_fake_gps != 0) {
-				ECL_WARN("EKF stopping navigation");
+			!(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta)) {
+		// We now need to use a synthetic positon observation to prevent unconstrained drift of the INS states.
+		_using_synthetic_position = true;
+
+		// Fuse synthetic position observations every 200msec
+		if ((_time_last_imu - _time_last_fake_gps > (uint64_t)2e5) || _fuse_height) {
+			// Reset position and velocity states if we re-commence this aiding method
+			if ((_time_last_imu - _time_last_fake_gps) > (uint64_t)4e5) {
+				resetPosition();
+				resetVelocity();
+				_fuse_hpos_as_odom = false;
+				if (_time_last_fake_gps != 0) {
+					ECL_WARN("EKF stopping navigation");
+				}
+
 			}
 
+			_fuse_pos = true;
+			_fuse_hor_vel = false;
+			_fuse_vert_vel = false;
+			_time_last_fake_gps = _time_last_imu;
+
+			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
+				_posObsNoiseNE = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
+			} else {
+				_posObsNoiseNE = 0.5f;
+			}
+			_vel_pos_innov[0] = 0.0f;
+			_vel_pos_innov[1] = 0.0f;
+			_vel_pos_innov[2] = 0.0f;
+			_vel_pos_innov[3] = _state.pos(0) - _last_known_posNE(0);
+			_vel_pos_innov[4] = _state.pos(1) - _last_known_posNE(1);
+
+			// glitch protection is not required so set gate to a large value
+			_posInnovGateNE = 100.0f;
+
 		}
-
-		_fuse_pos = true;
-		_fuse_hor_vel = false;
-		_fuse_vert_vel = false;
-		_time_last_fake_gps = _time_last_imu;
-
-		if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-			_posObsNoiseNE = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
-		} else {
-			_posObsNoiseNE = 0.5f;
-		}
-		_vel_pos_innov[0] = 0.0f;
-		_vel_pos_innov[1] = 0.0f;
-		_vel_pos_innov[2] = 0.0f;
-		_vel_pos_innov[3] = _state.pos(0) - _last_known_posNE(0);
-		_vel_pos_innov[4] = _state.pos(1) - _last_known_posNE(1);
-
-		// glitch protection is not required so set gate to a large value
-		_posInnovGateNE = 100.0f;
-
+	} else {
+		_using_synthetic_position = false;
 	}
 
 	// Fuse available NED velocity and position data into the main filter
