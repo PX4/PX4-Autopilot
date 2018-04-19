@@ -337,8 +337,9 @@ void Ekf::controlExternalVisionFusion()
 
 void Ekf::controlOpticalFlowFusion()
 {
-	// Detect if the vehicle is on the ground and is being excessively tilted, shaken or rotated.
+	// Check if motion is un-suitable for use of optical flow
 	if (!_control_status.flags.in_air) {
+		// Detect if the vehicle is on the ground and is being excessively tilted, shaken or rotated.
 		bool motion_is_excessive = ((_accel_mag_filt > 10.8f)
 					    || (_accel_mag_filt < 8.8f)
 					    || (_ang_rate_mag_filt > 0.5f)
@@ -352,16 +353,16 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 	} else {
-		// inhibit flow use if GPS quality is good and we are not using range aiding
-		// this enables use of optical flow to improve station keeping when low and slow
 		if (_control_status.flags.gps && (_time_last_imu - _last_gps_fail_us > (uint64_t)5e6) && !_in_range_aid_mode) {
+			// Detect the special case where we are in flight, are using good quality GPS and speed and range has exceeded
+			// limits for use of range finder for height
 			_time_bad_motion_us = _imu_sample_delayed.time_us;
 		} else {
 			_time_good_motion_us = _imu_sample_delayed.time_us;
 		}
 	}
 
-	// Inhibit flow use if on ground and motion is excessive
+	// Inhibit flow use if motion is un-suitable
 	// Apply a time based hysteresis to prevent rapid mode switching
 	if (!_inhibit_gndobs_use) {
 		if ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5) {
