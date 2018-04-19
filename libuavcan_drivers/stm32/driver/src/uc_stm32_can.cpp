@@ -551,7 +551,11 @@ bool CanIface::waitMsrINakBitStateChange(bool target_state)
         ::usleep(1000);
 #endif
 #if UAVCAN_STM32_CHIBIOS
+#ifdef MS2ST
         ::chThdSleep(MS2ST(1));
+#else
+        ::chThdSleep(TIME_MS2I(1));
+#endif
 #endif
 #if UAVCAN_STM32_FREERTOS
         ::osDelay(1);
