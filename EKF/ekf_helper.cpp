@@ -1291,8 +1291,9 @@ void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first,
 
 bool Ekf::global_position_is_valid()
 {
-	// return true if we are not doing unconstrained free inertial navigation and the origin is set
-	return (_NED_origin_initialised && !_deadreckon_time_exceeded);
+	// return true if the origin is set we are not doing unconstrained free inertial navigation
+	// and have not started using synthetic position observations to constrain drift
+	return (_NED_origin_initialised && !_deadreckon_time_exceeded && !_using_synthetic_position);
 }
 
 // return true if we are totally reliant on inertial dead-reckoning for position
