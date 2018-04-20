@@ -1608,68 +1608,95 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odom_position.y = odom.y;
 	odom_position.z = odom.z;
 
+	/* Linear and angular covariances principal diagonals */
 	matrix::Vector3<float> linvel_cov;
 	matrix::Vector3<float> angvel_cov;
 
-	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
-		matrix::Dcm<float> Rbl(matrix::Quatf(odom_attitude.q));
-		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
-		matrix::Vector3<float> angvel_local(Rbl * matrix::Vector3<float>(odom.rollspeed, odom.pitchspeed, odom.yawspeed));
-		linvel_cov = matrix::Vector3<float>(Rbl * matrix::Vector3<float>(
-				odom.twist_covariance[0],
-				odom.twist_covariance[6],
-				odom.twist_covariance[11]));
-		angvel_cov = matrix::Vector3<float>(Rbl * matrix::Vector3<float>(
-				odom.twist_covariance[15],
-				odom.twist_covariance[18],
-				odom.twist_covariance[20]));
+	/* Dcm rotation matrix from body frame to local NED frame */
+	matrix::Dcm<float> Rbl;
 
+	bool updated;
+	orb_check(_vehicle_attitude_sub, &updated);
+
+	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
+		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
+		Rbl = matrix::Dcm<float>(matrix::Quatf(odom_attitude.q)).I();
+
+		/* the linear velocities need to be transformed to the local NED frame */
+		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 		odom_position.vx = linvel_local(0);
 		odom_position.vy = linvel_local(1);
 		odom_position.vz = linvel_local(2);
 
-		odom_attitude.rollspeed = angvel_local(0);
-		odom_attitude.pitchspeed = angvel_local(1);
-		odom_attitude.yawspeed = angvel_local(2);
+		odom_attitude.rollspeed = odom.rollspeed;
+		odom_attitude.pitchspeed = odom.pitchspeed;
+		odom_attitude.yawspeed = odom.yawspeed;
+
+		linvel_cov = Rbl * matrix::Vector3<float>(
+				     odom.twist_covariance[0],
+				     odom.twist_covariance[6],
+				     odom.twist_covariance[11]);
+		angvel_cov = matrix::Vector3<float>(
+				     odom.twist_covariance[15],
+				     odom.twist_covariance[18],
+				     odom.twist_covariance[20]);
 
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
-		bool updated;
-		orb_check(_vehicle_attitude_sub, &updated);
-
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
 
-			/* get quaternion from vehicle_attitude quaterion and buil DCM matrix from it */
-			matrix::Dcm<float> Rbl(matrix::Quatf(_att.q));
-			matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
-			matrix::Vector3<float> angvel_local(Rbl * matrix::Vector3<float>(odom.rollspeed, odom.pitchspeed, odom.yawspeed));
-			linvel_cov = matrix::Vector3<float>(Rbl * matrix::Vector3<float>(
-					odom.twist_covariance[0],
-					odom.twist_covariance[6],
-					odom.twist_covariance[11]));
-			angvel_cov = matrix::Vector3<float>(Rbl * matrix::Vector3<float>(
-					odom.twist_covariance[15],
-					odom.twist_covariance[18],
-					odom.twist_covariance[20]));
+			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
+			Rbl = matrix::Dcm<float>(matrix::Quatf(_att.q)).I();
 
+			/* the linear velocities need to be transformed to the local NED frame */
+			matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 			odom_position.vx = linvel_local(0);
 			odom_position.vy = linvel_local(1);
 			odom_position.vz = linvel_local(2);
 
-			odom_attitude.rollspeed = angvel_local(0);
-			odom_attitude.pitchspeed = angvel_local(1);
-			odom_attitude.yawspeed = angvel_local(2);
+			odom_attitude.rollspeed = odom.rollspeed;
+			odom_attitude.pitchspeed = odom.pitchspeed;
+			odom_attitude.yawspeed = odom.yawspeed;
+
+			linvel_cov = Rbl * matrix::Vector3<float>(
+					     odom.twist_covariance[0],
+					     odom.twist_covariance[6],
+					     odom.twist_covariance[11]);
+			angvel_cov = matrix::Vector3<float>(
+					     odom.twist_covariance[15],
+					     odom.twist_covariance[18],
+					     odom.twist_covariance[20]);
+
 		}
 
 	} else if (odom.child_frame_id == MAV_FRAME_VISION_NED || /* WRT to vehicle local NED frame */
 		   odom.child_frame_id == MAV_FRAME_MOCAP_NED) {
-		odom_position.vx = odom.vx;
-		odom_position.vy = odom.vy;
-		odom_position.vz = odom.vz;
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
 
-		odom_attitude.rollspeed = odom.rollspeed;
-		odom_attitude.pitchspeed = odom.pitchspeed;
-		odom_attitude.yawspeed = odom.yawspeed;
+			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
+			matrix::Dcm<float> Rlb = matrix::Quatf(_att.q);
+
+			odom_position.vx = odom.vx;
+			odom_position.vy = odom.vy;
+			odom_position.vz = odom.vz;
+
+			/* the angular rates need to be transformed to the body frame */
+			matrix::Vector3<float> angvel_local(Rlb * matrix::Vector3<float>(odom.rollspeed, odom.pitchspeed, odom.yawspeed));
+			odom_attitude.rollspeed = angvel_local(0);
+			odom_attitude.pitchspeed = angvel_local(1);
+			odom_attitude.yawspeed = angvel_local(2);
+
+			linvel_cov = matrix::Vector3<float>(
+					     odom.twist_covariance[0],
+					     odom.twist_covariance[6],
+					     odom.twist_covariance[11]);
+			angvel_cov = Rlb * matrix::Vector3<float>(
+					     odom.twist_covariance[15],
+					     odom.twist_covariance[18],
+					     odom.twist_covariance[20]);
+
+		}
 
 	} else {
 		mavlink_log_critical(mavlink_log_pub, "Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);

@@ -1967,15 +1967,15 @@ protected:
 			odom.q[3] = att.q[3];
 
 			// Local NED to body-NED Dcm matrix
-			matrix::Dcm<float> Rlb(matrix::Dcm<float>(matrix::Quatf(att.q)).I());
+			matrix::Dcm<float> Rlb(matrix::Quatf(att.q));
 
-			// Rotate linear velocity from local NED to body-NED frame
-			matrix::Vector3<float> vel_body(Rlb * matrix::Vector3<float>(pos.x, pos.y, pos.z));
+			// Rotate linear and angular velocity from local NED to body-NED frame
+			matrix::Vector3<float> linvel_body(Rlb * matrix::Vector3<float>(pos.vx, pos.vy, pos.vz));
 
 			// Current linear velocity
-			odom.vx = vel_body(0);
-			odom.vy = vel_body(1);
-			odom.vz = vel_body(2);
+			odom.vx = linvel_body(0);
+			odom.vy = linvel_body(1);
+			odom.vz = linvel_body(2);
 
 			// Current body rates
 			odom.rollspeed = att.rollspeed;
@@ -1993,21 +1993,21 @@ protected:
 							 est.covariances[2],
 							 est.covariances[3]);
 
-			// Rotate linear velocity covariance to body-NED frame
-			matrix::Vector3<float> linvel_body(Rlb * matrix::Vector3<float>(
-					est.covariances[4],
-					est.covariances[5],
-					est.covariances[6]));
-
 			// Attitude covariance
 			odom.pose_covariance[15] = att_cov.phi();
 			odom.pose_covariance[18] = att_cov.theta();
 			odom.pose_covariance[20] = att_cov.psi();
 
+			// Rotate linear velocity covariance to body-NED frame
+			matrix::Vector3<float> linvel_cov_body(Rlb * matrix::Vector3<float>(
+					est.covariances[4],
+					est.covariances[5],
+					est.covariances[6]));
+
 			// Linear velocity covariance
-			odom.twist_covariance[0] = linvel_body(0);
-			odom.twist_covariance[6] = linvel_body(1);
-			odom.twist_covariance[11] = linvel_body(2);
+			odom.twist_covariance[0] = linvel_cov_body(0);
+			odom.twist_covariance[6] = linvel_cov_body(1);
+			odom.twist_covariance[11] = linvel_cov_body(2);
 
 			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &odom);
 		}
