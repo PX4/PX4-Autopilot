@@ -19,7 +19,6 @@ mixer load /dev/pwm_output0 ROMFS/px4fmu_test/mixers/uuv_quad_x.mix
 gyrosim start
 accelsim start
 barosim start
-adcsim start
 gpssim start
 
 sleep 1
