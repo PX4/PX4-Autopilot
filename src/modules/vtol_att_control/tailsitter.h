@@ -43,7 +43,7 @@
 #define TAILSITTER_H
 
 #include "vtol_type.h"
-#include <systemlib/perf_counter.h>  /** is it necsacery? **/
+#include <systemlib/perf_counter.h>
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 
@@ -63,14 +63,6 @@ public:
 
 private:
 
-	struct {
-		float front_trans_dur_p2;
-	} _params_tailsitter;
-
-	struct {
-		param_t front_trans_dur_p2;
-	} _params_handles_tailsitter;
-
 	enum vtol_mode {
 		MC_MODE = 0,			/**< vtol is in multicopter mode */
 		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
@@ -78,11 +70,11 @@ private:
 		FW_MODE					/**< vtol is in fixed wing mode */
 	};
 
-	vtol_mode _flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
+	vtol_mode _flight_mode = MC_MODE;			/**< vtol flight mode, defined by enum vtol_mode */
 
-	float _thrust_transition_start; // throttle value when we start the front transition
-	float _yaw_transition;	// yaw angle in which transition will take place
-	float _pitch_transition_start;  // pitch angle at the start of transition (tailsitter)
+	float _thrust_transition_start = 0.0f; // throttle value when we start the front transition
+	float _yaw_transition = 0.0f;	// yaw angle in which transition will take place
+	float _pitch_transition_start = 0.0f;  // pitch angle at the start of transition (tailsitter)
 
 	/**
 	 * Update parameters.

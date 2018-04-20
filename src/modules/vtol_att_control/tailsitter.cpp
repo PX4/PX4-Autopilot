@@ -50,9 +50,7 @@
 Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
-	_flight_mode = MC_MODE;
 
-	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 }
 
 Tailsitter::~Tailsitter()
@@ -63,11 +61,7 @@ Tailsitter::~Tailsitter()
 void
 Tailsitter::parameters_update()
 {
-	float v;
 
-	/* vtol front transition phase 2 duration */
-	param_get(_params_handles_tailsitter.front_trans_dur_p2, &v);
-	_params_tailsitter.front_trans_dur_p2 = v;
 }
 
 void Tailsitter::update_vtol_state()
