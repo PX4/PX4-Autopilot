@@ -49,7 +49,6 @@ tone_alarm start
 gyrosim start
 accelsim start
 barosim start
-adcsim start
 gpssim start
 measairspeedsim start
 pwm_out_sim start
