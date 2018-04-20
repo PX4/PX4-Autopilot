@@ -32,7 +32,7 @@
 ############################################################################
 
 set(SRCS
-	airspeed.c
+	airspeed.cpp
 	battery.cpp
 	board_serial.c
 	bson/tinybson.c

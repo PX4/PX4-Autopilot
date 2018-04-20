@@ -90,8 +90,6 @@
 #include "mavlink_main.h"
 #include "mavlink_command_sender.h"
 
-static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
-
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
 	_mission_manager(nullptr),
@@ -1922,9 +1920,9 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
-		accel.x_raw = imu.xacc / mg2ms2;
-		accel.y_raw = imu.yacc / mg2ms2;
-		accel.z_raw = imu.zacc / mg2ms2;
+		accel.x_raw = imu.xacc / (CONSTANTS_ONE_G / 1000.0f);
+		accel.y_raw = imu.yacc / (CONSTANTS_ONE_G / 1000.0f);
+		accel.z_raw = imu.zacc / (CONSTANTS_ONE_G / 1000.0f);
 		accel.x = imu.xacc;
 		accel.y = imu.yacc;
 		accel.z = imu.zacc;
