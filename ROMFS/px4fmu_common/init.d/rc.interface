@@ -137,11 +137,11 @@ then
 					set IO_PRESENT yes
 				else
 					echo "PX4IO update failed" >> $LOG_FILE
-					tune_control play -t ERROR_TUNE
+					tune_control play -t 2
 				fi
 			else
 				echo "PX4IO update failed" >> $LOG_FILE
-				tune_control play -t ERROR_TUNE
+				tune_control play -t 2
 			fi
 		fi
 	fi
@@ -149,7 +149,7 @@ then
 	if [ $IO_PRESENT == no ]
 	then
 		echo "PX4IO not found" >> $LOG_FILE
-		tune_control play -t ERROR_TUNE
+		tune_control play -t 2
 	fi
 fi
 
@@ -181,7 +181,7 @@ then
 		then
 		else
 			echo "FMU start failed" >> $LOG_FILE
-			tune_control play -t ERROR_TUNE
+			tune_control play -t 2
 		fi
 	fi
 
@@ -190,7 +190,7 @@ then
 		if pwm_out_sim start
 		then
 		else
-			tune_control play -t ERROR_TUNE
+			tune_control play -t 2
 		fi
 	fi
 	
@@ -209,7 +209,7 @@ then
 		if mkblctrl $MKBLCTRL_ARGS
 		then
 		else
-			tune_control play -t ERROR_TUNE
+			tune_control play -t 2
 		fi
 	fi
 
@@ -233,7 +233,7 @@ then
 			sh /etc/init.d/rc.io
 		else
 			echo "PX4IO start failed" >> $LOG_FILE
-			tune_control play -t ERROR_TUNE
+			tune_control play -t 2
 		fi
 	fi
 
@@ -247,7 +247,7 @@ then
 			sh /etc/init.d/rc.io
 		else
 			echo "PX4IO start failed" >> $LOG_FILE
-			tune_control play -t ERROR_TUNE
+			tune_control play -t 2
 		fi
 	fi
 	else
@@ -257,7 +257,7 @@ then
 			then
 			else
 				echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
-				tune_control play -t ERROR_TUNE
+				tune_control play -t 2
 			fi
 		fi
 	fi
@@ -311,14 +311,14 @@ then
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tune_control play -t ERROR_TUNE
+		tune_control play -t 2
 	fi
 else
 	if [ $MIXER != skip ]
 	then
 		echo "ERROR  [init] Mixer undefined"
 		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
-		tune_control play -t ERROR_TUNE
+		tune_control play -t 2
 	fi
 fi
 
@@ -421,7 +421,7 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
-			tune_control play -t ERROR_TUNE
+			tune_control play -t 2
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi
