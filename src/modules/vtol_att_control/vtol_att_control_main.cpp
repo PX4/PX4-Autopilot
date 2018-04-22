@@ -49,6 +49,8 @@
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
 
+using namespace time_literals;
+
 namespace VTOL_att_control
 {
 VtolAttitudeControl *g_control;
@@ -59,7 +61,7 @@ VtolAttitudeControl *g_control;
 */
 VtolAttitudeControl::VtolAttitudeControl()
 {
-	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
+	_vtol_vehicle_status.vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_count = 0;
@@ -153,21 +155,6 @@ void VtolAttitudeControl::vehicle_control_mode_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
-	}
-}
-
-/**
-* Check for changes in manual inputs.
-*/
-void VtolAttitudeControl::vehicle_manual_poll()
-{
-	bool updated;
-
-	/* get pilots inputs */
-	orb_check(_manual_control_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sp_sub, &_manual_control_sp);
 	}
 }
 
@@ -359,6 +346,12 @@ VtolAttitudeControl::handle_command()
 	if (_vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
 		_transition_command = int(_vehicle_cmd.param1 + 0.5f);
 
+		if (_vtol_vehicle_status.vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW) {
+			if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
+				abort_front_transition("manually");
+			}
+		}
+
 		// Report that we have received the command no matter what we actually do with it.
 		// This might not be optimal but is better than no response at all.
 
@@ -393,16 +386,8 @@ VtolAttitudeControl::handle_command()
 bool
 VtolAttitudeControl::is_fixed_wing_requested()
 {
-	bool to_fw = false;
-
-	if (_manual_control_sp.transition_switch != manual_control_setpoint_s::SWITCH_POS_NONE &&
-	    _v_control_mode.flag_control_manual_enabled) {
-		to_fw = (_manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON);
-
-	} else {
-		// listen to transition commands if not in manual or mode switch is not mapped
-		to_fw = (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	}
+	// listen to transition commands if not in manual or mode switch is not mapped
+	bool to_fw = (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 
 	// handle abort request
 	if (_abort_front_transition) {
@@ -410,7 +395,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 			to_fw = false;
 
 		} else {
-			// the state changed to mc mode, reset the abort request
+			// the state changed to MC mode, reset the abort request
 			_abort_front_transition = false;
 			_vtol_vehicle_status.vtol_transition_failsafe = false;
 		}
@@ -580,9 +565,6 @@ VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 
 void VtolAttitudeControl::task_main()
 {
-	fflush(stdout);
-
-	/* do subscriptions */
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
 	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
@@ -591,7 +573,6 @@ void VtolAttitudeControl::task_main()
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
 	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
-	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_local_pos_sub         = orb_subscribe(ORB_ID(vehicle_local_position));
 	_local_pos_sp_sub         = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
@@ -656,7 +637,6 @@ void VtolAttitudeControl::task_main()
 		}
 
 		vehicle_control_mode_poll();
-		vehicle_manual_poll();
 		vehicle_attitude_poll();
 		vehicle_local_pos_poll();
 		vehicle_local_pos_sp_poll();
@@ -671,105 +651,74 @@ void VtolAttitudeControl::task_main()
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
 
-		// reset transition command if not auto control
-		if (_v_control_mode.flag_control_manual_enabled) {
-			if (_vtol_type->get_mode() == ROTARY_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-
-			} else if (_vtol_type->get_mode() == FIXED_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-
-			} else if (_vtol_type->get_mode() == TRANSITION_TO_MC) {
-				/* We want to make sure that a mode change (manual>auto) during the back transition
-				 * doesn't result in an unsafe state. This prevents the instant fall back to
-				 * fixed-wing on the switch from manual to auto */
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			}
-		}
-
 		// check in which mode we are in and call mode specific functions
 		if (_vtol_type->get_mode() == ROTARY_WING) {
-
 			mc_virtual_att_sp_poll();
-
-			// vehicle is in rotary wing mode
-			_vtol_vehicle_status.vtol_in_rw_mode = true;
-			_vtol_vehicle_status.vtol_in_trans_mode = false;
-			_vtol_vehicle_status.in_transition_to_fw = false;
-
-			// got data from mc attitude controller
 			_vtol_type->update_mc_state();
 			fill_mc_att_rates_sp();
 
 		} else if (_vtol_type->get_mode() == FIXED_WING) {
-
 			fw_virtual_att_sp_poll();
-
-			// vehicle is in fw mode
-			_vtol_vehicle_status.vtol_in_rw_mode = false;
-			_vtol_vehicle_status.vtol_in_trans_mode = false;
-			_vtol_vehicle_status.in_transition_to_fw = false;
-
 			_vtol_type->update_fw_state();
 			fill_fw_att_rates_sp();
 
 		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
-
 			mc_virtual_att_sp_poll();
 			fw_virtual_att_sp_poll();
-
-			// vehicle is doing a transition
-			_vtol_vehicle_status.vtol_in_trans_mode = true;
-			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
-			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == TRANSITION_TO_FW);
-
 			_vtol_type->update_transition_state();
 			fill_mc_att_rates_sp();
 		}
 
 		_vtol_type->fill_actuator_outputs();
 
-		/* Only publish if the proper mode(s) are enabled */
-		if (_v_control_mode.flag_control_attitude_enabled ||
-		    _v_control_mode.flag_control_rates_enabled ||
-		    _v_control_mode.flag_control_manual_enabled) {
-
-			if (_v_att_sp_pub != nullptr) {
-				/* publish the attitude setpoint */
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_pub, &_v_att_sp);
-
-			} else {
-				/* advertise and publish */
-				_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
-			}
-
-			if (_actuators_0_pub != nullptr) {
-				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
-
-			} else {
-				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
-			}
-
-			if (_actuators_1_pub != nullptr) {
-				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
-
-			} else {
-				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
-			}
-		}
-
-		/*Advertise/Publish vtol vehicle status*/
-		_vtol_vehicle_status.timestamp = hrt_absolute_time();
-
-		if (_vtol_vehicle_status_pub != nullptr) {
-			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
+		if (_v_att_sp_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_pub, &_v_att_sp);
 
 		} else {
-			_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status);
+			_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
+		}
+
+		if (_actuators_0_pub != nullptr) {
+			orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
+
+		} else {
+			_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
+		}
+
+		if (_actuators_1_pub != nullptr) {
+			orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
+
+		} else {
+			_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
+		}
+
+		bool publish_status = false;
+
+		if (hrt_elapsed_time(&_vtol_vehicle_status.timestamp) > 1_s) {
+			publish_status = true;
+		}
+
+		if (_vtol_vehicle_status.vtol_state != _vtol_type->get_mode()) {
+			publish_status = true;
+		}
+
+		if (_vtol_vehicle_status.vtol_transition_failsafe != _abort_front_transition) {
+			publish_status = true;
+		}
+
+		if (publish_status) {
+			_vtol_vehicle_status.timestamp = hrt_absolute_time();
+			_vtol_vehicle_status.vtol_state = _vtol_type->get_mode();
+
+			if (_vtol_vehicle_status_pub != nullptr) {
+				orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
+
+			} else {
+				_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status);
+			}
 		}
 	}
 
-	PX4_WARN("exit");
 	_control_task = -1;
 }
 

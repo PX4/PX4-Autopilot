@@ -116,26 +116,23 @@ void Standard::update_vtol_state()
 		// the transition to fw mode switch is off
 		if (_flight_mode == MC_MODE) {
 			// in mc mode
-			_flight_mode = MC_MODE;
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
 
 		} else if (_flight_mode == FW_MODE) {
 			// transition to mc mode
-			if (_vtol_vehicle_status->vtol_transition_failsafe == true) {
+			if (_vtol_vehicle_status->vtol_transition_failsafe) {
 				// Failsafe event, engage mc motors immediately
 				_flight_mode = MC_MODE;
 				_pusher_throttle = 0.0f;
 				_reverse_output = 0.0f;
-
 
 			} else {
 				// Regular backtransition
 				_flight_mode = TRANSITION_TO_MC;
 				_transition_start_time = hrt_absolute_time();
 				_reverse_output = _params_standard.reverse_output;
-
 			}
 
 		} else if (_flight_mode == TRANSITION_TO_FW) {
