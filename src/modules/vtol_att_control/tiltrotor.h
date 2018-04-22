@@ -50,7 +50,7 @@ class Tiltrotor : public VtolType
 public:
 
 	Tiltrotor(VtolAttitudeControl *_att_controller);
-	~Tiltrotor();
+	~Tiltrotor() = default;
 
 	virtual void update_vtol_state();
 	virtual void update_transition_state();
@@ -90,7 +90,7 @@ private:
 
 	vtol_mode _flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
 
-	float _tilt_control = 0.0f;		/**< actuator value for the tilt servo */
+	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 
 	/**
 	 * Update parameters.

@@ -33,6 +33,8 @@
 
 #include "FixedwingPositionControl.hpp"
 
+using namespace time_literals;
+
 extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
 
 FixedwingPositionControl::FixedwingPositionControl() :
@@ -329,16 +331,18 @@ FixedwingPositionControl::vehicle_status_poll()
 
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (_attitude_setpoint_id == nullptr) {
-			if (_vehicle_status.is_vtol) {
-				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
+			if (hrt_elapsed_time(&_vehicle_status.timestamp) < 1_s) {
+				if (_vehicle_status.is_vtol) {
+					_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 
-				_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
-				_parameter_handles.vtol_type = param_find("VT_TYPE");
+					_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
+					_parameter_handles.vtol_type = param_find("VT_TYPE");
 
-				parameters_update();
+					parameters_update();
 
-			} else {
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				} else {
+					_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				}
 			}
 		}
 	}

@@ -60,10 +60,6 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
 }
 
-Standard::~Standard()
-{
-}
-
 void
 Standard::parameters_update()
 {
@@ -122,7 +118,7 @@ void Standard::update_vtol_state()
 
 		} else if (_flight_mode == FW_MODE) {
 			// transition to mc mode
-			if (_vtol_vehicle_status->vtol_transition_failsafe) {
+			if (_vtol_vehicle_status.vtol_transition_failsafe) {
 				// Failsafe event, engage mc motors immediately
 				_flight_mode = MC_MODE;
 				_pusher_throttle = 0.0f;
@@ -153,9 +149,9 @@ void Standard::update_vtol_state()
 
 			if (get_time_since_trans_start() > _params->back_trans_duration ||
 			    (_local_pos->v_xy_valid && x_vel <= _params->mpc_xy_cruise)) {
+
 				_flight_mode = MC_MODE;
 			}
-
 		}
 
 	} else {
@@ -303,7 +299,7 @@ void Standard::update_mc_state()
 
 	// Do not engage pusher assist during a failsafe event
 	// There could be a problem with the fixed wing drive
-	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
+	if (_attc->get_vtol_vehicle_status().vtol_transition_failsafe) {
 		return;
 	}
 
@@ -364,11 +360,6 @@ void Standard::update_mc_state()
 
 	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
 
-}
-
-void Standard::update_fw_state()
-{
-	VtolType::update_fw_state();
 }
 
 /**

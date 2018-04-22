@@ -33,6 +33,8 @@
 
 #include "FixedwingAttitudeControl.hpp"
 
+using namespace time_literals;
+
 /**
  * Fixedwing attitude control app start / stop handling function
  *
@@ -372,19 +374,21 @@ FixedwingAttitudeControl::vehicle_status_poll()
 
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_rates_sp_id) {
-			if (_vehicle_status.is_vtol) {
-				_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
-				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
-				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
+			if (hrt_elapsed_time(&_vehicle_status.timestamp) < 1_s) {
+				if (_vehicle_status.is_vtol) {
+					_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
+					_actuators_id = ORB_ID(actuator_controls_virtual_fw);
+					_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 
-				_parameter_handles.vtol_type = param_find("VT_TYPE");
+					_parameter_handles.vtol_type = param_find("VT_TYPE");
 
-				parameters_update();
+					parameters_update();
 
-			} else {
-				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
-				_actuators_id = ORB_ID(actuator_controls_0);
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				} else {
+					_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
+					_actuators_id = ORB_ID(actuator_controls_0);
+					_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				}
 			}
 		}
 	}
