@@ -654,12 +654,18 @@ void VtolAttitudeControl::run()
 
 		_vtol_type->fill_actuator_outputs();
 
+		// attitude setpoint publish
+		_v_att_sp.timestamp = hrt_absolute_time();
+
 		if (_v_att_sp_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_pub, &_v_att_sp);
 
 		} else {
 			_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
 		}
+
+		// actuators 0 publish
+		_actuators_out_0.timestamp = hrt_absolute_time();
 
 		if (_actuators_0_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
@@ -668,6 +674,9 @@ void VtolAttitudeControl::run()
 			_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 		}
 
+		// actuators 1 publish
+		_actuators_out_1.timestamp = hrt_absolute_time();
+
 		if (_actuators_1_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
 
@@ -675,6 +684,7 @@ void VtolAttitudeControl::run()
 			_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
 		}
 
+		// vtol vehicle status publish
 		bool publish_status = false;
 
 		if (hrt_elapsed_time(&_vtol_vehicle_status.timestamp) > 1_s) {

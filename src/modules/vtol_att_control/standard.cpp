@@ -369,7 +369,7 @@ void Standard::update_mc_state()
 void Standard::fill_actuator_outputs()
 {
 	// multirotor controls
-	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
+	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 
 	// roll
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
@@ -386,7 +386,7 @@ void Standard::fill_actuator_outputs()
 
 
 	// fixed wing controls
-	_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
+	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
 	if (_flight_mode != MC_MODE) {
 		// roll
