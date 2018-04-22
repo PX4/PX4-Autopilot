@@ -1713,7 +1713,6 @@ Commander::run()
 
 				status.is_rotary_wing = true;
 				status.in_transition_mode = false;
-				status.in_transition_to_fw = false;
 
 				switch (vtol_status.vtol_state) {
 				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW:
@@ -1722,7 +1721,6 @@ Commander::run()
 					break;
 				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW:
 					status.is_rotary_wing = false;
-					status.in_transition_to_fw = true;
 					break;
 				default:
 					break;

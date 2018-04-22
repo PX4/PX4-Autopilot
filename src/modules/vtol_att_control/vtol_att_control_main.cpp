@@ -65,7 +65,9 @@ VtolAttitudeControl::VtolAttitudeControl()
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_count = 0;
+	_params.vtol_type = -1;
 
+	// parameter handles
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
 	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
@@ -89,13 +91,11 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 
-
 	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
 	_params_handles.wv_land = param_find("VT_WV_LND_EN");
 	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
 
-	/* fetch initial parameter values */
-	parameters_update();
+	parameters_update();  // initialize parameter cache
 
 	if (_params.vtol_type == vtol_type::TAILSITTER) {
 		_vtol_type = new Tailsitter(this);
@@ -107,40 +107,55 @@ VtolAttitudeControl::VtolAttitudeControl()
 		_vtol_type = new Standard(this);
 
 	} else {
-		_task_should_exit = true;
+		request_stop();
+	}
+
+	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
+	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_vehicle_cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	// MC virtual subscriptions
+	_actuator_inputs_mc = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
+	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
+	_mc_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
+
+	// FW virtual subscriptions
+	_actuator_inputs_fw = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
+	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
+	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
+
+	if (!_vtol_type->init()) {
+		request_stop();
 	}
 }
 
-/**
-* Destructor
-*/
 VtolAttitudeControl::~VtolAttitudeControl()
 {
-	if (_control_task != -1) {
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_control_task);
-				break;
-			}
-		} while (_control_task != -1);
-	}
-
-	// free memory used by instances of base class VtolType
-	if (_vtol_type != nullptr) {
-		delete _vtol_type;
-	}
-
-	VTOL_att_control::g_control = nullptr;
+	orb_unsubscribe(_actuator_inputs_fw);
+	orb_unsubscribe(_actuator_inputs_mc);
+	orb_unsubscribe(_airspeed_sub);
+	orb_unsubscribe(_fw_virtual_att_sp_sub);
+	orb_unsubscribe(_fw_virtual_v_rates_sp_sub);
+	orb_unsubscribe(_land_detected_sub);
+	orb_unsubscribe(_local_pos_sp_sub);
+	orb_unsubscribe(_local_pos_sub);
+	orb_unsubscribe(_mc_virtual_att_sp_sub);
+	orb_unsubscribe(_mc_virtual_v_rates_sp_sub);
+	orb_unsubscribe(_params_sub);
+	orb_unsubscribe(_pos_sp_triplet_sub);
+	orb_unsubscribe(_tecs_status_sub);
+	orb_unsubscribe(_v_att_sp_sub);
+	orb_unsubscribe(_v_att_sub);
+	orb_unsubscribe(_v_control_mode_sub);
+	orb_unsubscribe(_vehicle_cmd_sub);
 }
 
 /**
@@ -392,6 +407,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 	// handle abort request
 	if (_vtol_vehicle_status.vtol_transition_failsafe) {
 		to_fw = false;
+		_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 		if (_vtol_vehicle_status.vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
 			// the state changed to MC mode, reset the abort request
@@ -554,43 +570,14 @@ void VtolAttitudeControl::fill_fw_att_rates_sp()
 	}
 }
 
-void
-VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
+void VtolAttitudeControl::run()
 {
-	VTOL_att_control::g_control->task_main();
-}
-
-void VtolAttitudeControl::task_main()
-{
-	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
-	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
-	_mc_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
-	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
-	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
-	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
-	_local_pos_sub         = orb_subscribe(ORB_ID(vehicle_local_position));
-	_local_pos_sp_sub         = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
-	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
-	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
-	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-
-	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
-	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
-
-	parameters_update();  // initialize parameter cache
-
-	_task_should_exit = !_vtol_type->init();
-
 	/* wakeup source*/
 	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd     = _actuator_inputs_mc;
 	fds[0].events = POLLIN;
 
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 		/* only update parameters if they changed */
 		bool params_updated = false;
 		orb_check(_params_sub, &params_updated);
@@ -620,7 +607,6 @@ void VtolAttitudeControl::task_main()
 		/* wait for up to 100ms for data */
 		int pret = px4_poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
 
-		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
 			continue;
 		}
@@ -711,83 +697,67 @@ void VtolAttitudeControl::task_main()
 			}
 		}
 	}
-
-	_control_task = -1;
 }
 
-int
-VtolAttitudeControl::start()
+VtolAttitudeControl *VtolAttitudeControl::instantiate(int argc, char *argv[])
 {
-	/* start the task */
-	_control_task = px4_task_spawn_cmd("vtol_att_control",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_ATTITUDE_CONTROL + 1,
-					   1230,
-					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
-					   nullptr);
+	return new VtolAttitudeControl();
+}
 
-	if (_control_task < 0) {
-		PX4_WARN("task start failed");
+int VtolAttitudeControl::task_spawn(int argc, char *argv[])
+{
+	_task_id = px4_task_spawn_cmd("vtol_att_controol",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+				      1300,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
+
+	if (_task_id < 0) {
+		_task_id = -1;
 		return -errno;
 	}
 
-	return OK;
+	return 0;
 }
 
+int VtolAttitudeControl::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int VtolAttitudeControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+vtol_att_control is the VTOL attitude controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_COMMAND("start");
+
+	PRINT_MODULE_USAGE_NAME("vtol_att_control", "controller");
+
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int VtolAttitudeControl::print_status()
+{
+	PX4_INFO("Running");
+
+	print_message(get_vtol_vehicle_status());
+
+	return 0;
+}
 
 int vtol_att_control_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		PX4_WARN("usage: vtol_att_control {start|stop|status}");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (VTOL_att_control::g_control != nullptr) {
-			PX4_WARN("already running");
-			return 0;
-		}
-
-		VTOL_att_control::g_control = new VtolAttitudeControl;
-
-		if (VTOL_att_control::g_control == nullptr) {
-			PX4_WARN("alloc failed");
-			return 1;
-		}
-
-		if (OK != VTOL_att_control::g_control->start()) {
-			delete VTOL_att_control::g_control;
-			VTOL_att_control::g_control = nullptr;
-			PX4_WARN("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (VTOL_att_control::g_control == nullptr) {
-			PX4_WARN("not running");
-			return 0;
-		}
-
-		delete VTOL_att_control::g_control;
-		VTOL_att_control::g_control = nullptr;
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (VTOL_att_control::g_control) {
-			PX4_WARN("running");
-
-		} else {
-			PX4_WARN("not running");
-		}
-
-		return 0;
-	}
-
-	PX4_WARN("unrecognized command");
-	return 1;
+	return VtolAttitudeControl::main(argc, argv);
 }

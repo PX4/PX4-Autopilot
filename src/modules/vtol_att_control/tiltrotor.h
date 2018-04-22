@@ -50,7 +50,7 @@ class Tiltrotor : public VtolType
 public:
 
 	Tiltrotor(VtolAttitudeControl *_att_controller);
-	~Tiltrotor();
+	~Tiltrotor() = default;
 
 	virtual void update_vtol_state();
 	virtual void update_transition_state();
@@ -93,13 +93,12 @@ private:
 	 * they need to idle otherwise they need too much time to spin up for mc mode.
 	 */
 
-
 	struct {
 		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
-		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
+		hrt_abstime transition_start;	/**< absolute time at which front transition started */
 	} _vtol_schedule;
 
-	float _tilt_control;		/**< actuator value for the tilt servo */
+	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 
 	/**
 	 * Update parameters.

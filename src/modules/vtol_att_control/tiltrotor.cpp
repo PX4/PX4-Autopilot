@@ -45,8 +45,7 @@
 #define ARSP_YAW_CTRL_DISABLE 7.0f	// airspeed at which we stop controlling yaw during a front transition
 
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
-	VtolType(attc),
-	_tilt_control(0.0f)
+	VtolType(attc)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
@@ -63,11 +62,6 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 	_params_handles_tiltrotor.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles_tiltrotor.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
-}
-
-Tiltrotor::~Tiltrotor()
-{
-
 }
 
 void
