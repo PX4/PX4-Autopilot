@@ -63,7 +63,6 @@
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -131,7 +130,6 @@ private:
 	int	_land_detected_sub{-1};
 	int	_local_pos_sp_sub{-1};			// setpoint subscription
 	int	_local_pos_sub{-1};			// sensor subscription
-	int	_manual_control_sp_sub{-1};	//manual control setpoint subscription
 	int	_mc_virtual_att_sp_sub{-1};
 	int	_mc_virtual_v_rates_sp_sub{-1};		//vehicle rates setpoint subscription
 	int	_params_sub{-1};			//parameter updates subscription
@@ -163,7 +161,6 @@ private:
 	actuator_controls_s			_actuators_out_1{};	//actuator controls going to the fw mixer (used for elevons)
 
 	airspeed_s 				_airspeed{};			// airspeed
-	manual_control_setpoint_s		_manual_control_sp{}; //manual control setpoint
 	position_setpoint_triplet_s		_pos_sp_triplet{};
 	tecs_status_s				_tecs_status{};
 	vehicle_attitude_s			_v_att{};				//vehicle attitude
@@ -221,7 +218,6 @@ private:
 	void		vehicle_attitude_poll();  //Check for attitude updates.
 	void		vehicle_cmd_poll();
 	void		vehicle_control_mode_poll();	//Check for changes in vehicle control mode.
-	void		vehicle_manual_poll();			//Check for changes in manual inputs.
 	void 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
 	void 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
 	void 		fw_virtual_att_sp_poll();

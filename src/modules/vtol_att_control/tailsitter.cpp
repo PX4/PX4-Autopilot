@@ -154,24 +154,20 @@ void Tailsitter::update_vtol_state()
 	switch (_vtol_schedule.flight_mode) {
 	case MC_MODE:
 		_vtol_mode = ROTARY_WING;
-		_vtol_vehicle_status->vtol_in_trans_mode = false;
 		_flag_was_in_trans_mode = false;
 		break;
 
 	case FW_MODE:
 		_vtol_mode = FIXED_WING;
-		_vtol_vehicle_status->vtol_in_trans_mode = false;
 		_flag_was_in_trans_mode = false;
 		break;
 
 	case TRANSITION_FRONT_P1:
 		_vtol_mode = TRANSITION_TO_FW;
-		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
 
 	case TRANSITION_BACK:
 		_vtol_mode = TRANSITION_TO_MC;
-		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
 	}
 }

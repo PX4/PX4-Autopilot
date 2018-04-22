@@ -46,6 +46,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
@@ -75,10 +76,10 @@ struct Params {
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
 enum mode {
-	TRANSITION_TO_FW = 1,
-	TRANSITION_TO_MC = 2,
-	ROTARY_WING = 3,
-	FIXED_WING = 4
+	TRANSITION_TO_FW = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW,
+	TRANSITION_TO_MC = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC,
+	ROTARY_WING = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC,
+	FIXED_WING = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW,
 };
 
 enum vtol_type {
@@ -214,8 +215,6 @@ protected:
 	hrt_abstime _tecs_running_ts = 0;
 
 	motor_state _motor_state = motor_state::DISABLED;
-
-
 
 	/**
 	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
