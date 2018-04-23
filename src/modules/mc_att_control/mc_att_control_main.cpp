@@ -424,7 +424,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	 * because it's the rotation axis for body yaw and multiply it by the rate and gain. */
 	Vector3f yaw_feedforward_rate = q.inversed().dcm_z();
 	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _yaw_ff.get();
-	yaw_feedforward_rate(2) *= yaw_w;
 	_rates_sp += yaw_feedforward_rate;
 
 
