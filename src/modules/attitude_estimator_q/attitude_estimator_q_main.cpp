@@ -192,9 +192,6 @@ AttitudeEstimatorQ::AttitudeEstimatorQ()
 	_q.zero();
 	_rates.zero();
 	_gyro_bias.zero();
-
-	_vel_prev.zero();
-	_pos_acc.zero();
 }
 
 /**
