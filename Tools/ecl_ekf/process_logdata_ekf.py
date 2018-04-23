@@ -75,12 +75,12 @@ if ('accel_inconsistency_m_s_s' in sensor_preflight.keys()) and ('gyro_inconsist
     pp.savefig()
     plt.close(0)
 
-# vertical velocity and position innovations
-plt.figure(1,figsize=(20,13))
-
 # generate max, min and 1-std metadata
 innov_time = 1e-6*ekf2_innovations['timestamp']
 status_time = 1e-6*estimator_status['timestamp']
+
+# vertical velocity and position innovations
+plt.figure(1,figsize=(20,13))
 
 # generate metadata for velocity innovations
 innov_2_max_arg = np.argmax(ekf2_innovations['vel_pos_innov[2]'])
@@ -784,7 +784,7 @@ pp.savefig()
 plt.close(10)
 
 # innovation_check_flags summary
-plt.figure(11,figsize=(20,13))
+
 # 0 - true if velocity observations have been rejected
 # 1 - true if horizontal position observations have been rejected
 # 2 - true if true if vertical position observations have been rejected
@@ -807,6 +807,9 @@ tas_innov_fail = ((2**7 & estimator_status['innovation_check_flags']) > 0)*1
 hagl_innov_fail = ((2**8 & estimator_status['innovation_check_flags']) > 0)*1
 ofx_innov_fail = ((2**9 & estimator_status['innovation_check_flags']) > 0)*1
 ofy_innov_fail = ((2**10 & estimator_status['innovation_check_flags']) > 0)*1
+
+# plot innovation_check_flags summary
+plt.figure(11,figsize=(20,13))
 
 plt.subplot(5,1,1)
 plt.title('EKF Innovation Test Fails')
