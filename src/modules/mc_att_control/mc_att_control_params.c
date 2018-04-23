@@ -347,7 +347,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRAUTO_MAX, 45.0f);
  *
  * @unit deg/s
  * @min 0.0
- * @max 1000.0
+ * @max 1800.0
  * @decimal 1
  * @increment 5
  * @group Multicopter Attitude Control
@@ -360,7 +360,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 720.0f);
  *
  * @unit deg/s
  * @min 0.0
- * @max 1000.0
+ * @max 1800.0
  * @decimal 1
  * @increment 5
  * @group Multicopter Attitude Control
@@ -373,7 +373,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
  *
  * @unit deg/s
  * @min 0.0
- * @max 1000.0
+ * @max 1800.0
  * @decimal 1
  * @increment 5
  * @group Multicopter Attitude Control
