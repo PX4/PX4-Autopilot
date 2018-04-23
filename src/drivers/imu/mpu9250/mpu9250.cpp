@@ -93,11 +93,13 @@
 
 /* Set accel range used */
 #define ACCEL_RANGE_G  16
+
 /*
   list of registers that will be checked in check_registers(). Note
   that MPUREG_PRODUCT_ID must be first in the list.
+  Expanded to 16 bit to unify with ICM20948 16 bit registers for memory checking.
  */
-const uint8_t MPU9250::_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPUREG_WHOAMI,
+const uint16_t MPU9250::_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPUREG_WHOAMI,
 									     MPUREG_PWR_MGMT_1,
 									     MPUREG_PWR_MGMT_2,
 									     MPUREG_USER_CTRL,
@@ -111,14 +113,37 @@ const uint8_t MPU9250::_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPU
 									   };
 
 
+const uint16_t MPU9250::_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS] = {
+											ICMREG_20948_USER_CTRL,
+											ICMREG_20948_PWR_MGMT_1,
+											ICMREG_20948_PWR_MGMT_2,
+											ICMREG_20948_INT_PIN_CFG,
+											ICMREG_20948_INT_ENABLE,
+											ICMREG_20948_INT_ENABLE_1,
+											ICMREG_20948_INT_ENABLE_2,
+											ICMREG_20948_INT_ENABLE_3,
+											ICMREG_20948_GYRO_SMPLRT_DIV,
+											ICMREG_20948_GYRO_CONFIG_1,
+											ICMREG_20948_GYRO_CONFIG_2,
+											ICMREG_20948_ACCEL_SMPLRT_DIV_1,
+											ICMREG_20948_ACCEL_SMPLRT_DIV_2,
+											ICMREG_20948_ACCEL_CONFIG,
+											ICMREG_20948_ACCEL_CONFIG_2,
+											ICMREG_20948_BANK_SEL
+									   };
+
+
 MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel,
 		 const char *path_gyro, const char *path_mag,
-		 enum Rotation rotation) :
+		 enum Rotation rotation,
+		 int device_type) :
 	CDev("MPU9250", path_accel),
 	_interface(interface),
 	_gyro(new MPU9250_gyro(this, path_gyro)),
 	_mag(new MPU9250_mag(this, mag_interface, path_mag)),
 	_whoami(0),
+	_device_type(device_type),
+	_selected_bank(255),	// invalid/improbable bank value, will be set on first read/write
 #if defined(USE_I2C)
 	_work {},
 	_use_hrt(false),
@@ -161,6 +186,10 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_int(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_checked_next(0),
+	_num_checked_registers(0),
+	_checked_registers(nullptr),
+	_checked_values(nullptr),
+	_checked_bad(nullptr),
 	_last_temperature(0),
 	_last_accel_data{},
 	_got_duplicate(false)
@@ -267,6 +296,7 @@ MPU9250::init()
 		DEVICE_DEBUG("MPU9250 probe failed");
 		return ret;
 	}
+
 
 	/* do init */
 
@@ -526,22 +556,44 @@ int MPU9250::reset_mpu()
 int
 MPU9250::probe()
 {
+	int ret = -EIO;
 	/* look for device ID */
-	_whoami = read_reg(MPUREG_WHOAMI);
+	switch(_device_type) {
 
-	// verify product revision
-	switch (_whoami) {
-	case MPU_WHOAMI_9250:
-	case MPU_WHOAMI_6500:
-		memset(_checked_values, 0, sizeof(_checked_values));
-		memset(_checked_bad, 0, sizeof(_checked_bad));
-		_checked_values[0] = _whoami;
-		_checked_bad[0] = _whoami;
-		return OK;
+	case MPU_DEVICE_TYPE_MPU9250:
+		_whoami = read_reg(MPUREG_WHOAMI);
+
+		// verify product revision
+		switch (_whoami) {
+		case MPU_WHOAMI_9250:
+		case MPU_WHOAMI_6500:
+			_num_checked_registers = MPU9250_NUM_CHECKED_REGISTERS;
+			_checked_registers = _mpu9250_checked_registers;
+			ret = OK;
+		}
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20948:
+		_whoami = read_reg(ICMREG_20948_WHOAMI);
+		if (_whoami == ICM_WHOAMI_20948) {
+			_num_checked_registers = ICM20948_NUM_CHECKED_REGISTERS;
+			_checked_registers = _icm20948_checked_registers;
+			ret = OK;
+		}
+		break;
 	}
 
-	DEVICE_DEBUG("unexpected whoami 0x%02x", _whoami);
-	return -EIO;
+	_checked_values = new uint8_t[_num_checked_registers];
+	_checked_bad = new uint8_t[_num_checked_registers];
+	memset(_checked_values, 0, _num_checked_registers);
+	memset(_checked_bad, 0, _num_checked_registers);
+	_checked_values[0] = _whoami;
+	_checked_bad[0] = _whoami;
+
+	if(ret != OK) {
+		DEVICE_DEBUG("unexpected whoami 0x%02x", _whoami);
+	}
+	return ret;
 }
 
 /*
@@ -995,11 +1047,26 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
+int
+MPU9250::select_register_bank(uint8_t bank) {
+	if (bank != _selected_bank ) {
+		return _interface->write(MPU9250_SET_SPEED(ICMREG_20948_BANK_SEL, MPU9250_HIGH_BUS_SPEED), &bank, 1);
+	}
+	return PX4_OK;
+}
+
 uint8_t
 MPU9250::read_reg(unsigned reg, uint32_t speed)
 {
 	uint8_t buf;
-	_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1);
+	if(_device_type == MPU_DEVICE_TYPE_ICM20948) {
+		select_register_bank(REG_BANK(reg));
+		_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
+	}
+	else {
+		_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1);
+	}
+
 	return buf;
 }
 
@@ -1010,7 +1077,13 @@ MPU9250::read_reg16(unsigned reg)
 
 	// general register transfer at low clock speed
 
-	_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
+	if(_device_type == MPU_DEVICE_TYPE_ICM20948) {
+		select_register_bank(REG_BANK(reg));
+		_interface->read(MPU9250_LOW_SPEED_OP(REG_ADDRESS(reg)), &buf, arraySize(buf));
+	}
+	else {
+		_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
+	}
 	return (uint16_t)(buf[0] << 8) | buf[1];
 }
 
@@ -1019,7 +1092,13 @@ MPU9250::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
 
-	_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
+	if(_device_type == MPU_DEVICE_TYPE_ICM20948) {
+		select_register_bank(REG_BANK(reg));
+		_interface->write(MPU9250_LOW_SPEED_OP(REG_ADDRESS(reg)), &value, 1);
+	}
+	else {
+		_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
+	}
 }
 
 void
@@ -1049,7 +1128,7 @@ MPU9250::write_checked_reg(unsigned reg, uint8_t value)
 {
 	write_reg(reg, value);
 
-	for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
+	for (uint8_t i = 0; i < _num_checked_registers; i++) {
 		if (reg == _checked_registers[i]) {
 			_checked_values[i] = value;
 			_checked_bad[i] = value;

@@ -53,8 +53,14 @@
 #include "gyro.h"
 
 
+/* List of supported device types */
+enum MPU_DEVICE_TYPE {
+	MPU_DEVICE_TYPE_MPU9250	= 9250,
+	MPU_DEVICE_TYPE_ICM20948 = 20948
+};
 
-#if defined(PX4_I2C_OBDEV_MPU9250)
+
+#if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
 #endif
 
@@ -179,6 +185,7 @@
 
 #define MPU_WHOAMI_9250			0x71
 #define MPU_WHOAMI_6500			0x70
+#define ICM_WHOAMI_20948        0xEA
 
 #define MPU9250_ACCEL_DEFAULT_RATE	1000
 #define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
@@ -193,10 +200,61 @@
 #define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
 
 
+
+// ICM20948 registers and data
+
+/*
+ * ICM20948 I2C address LSB can be switched by the chip's AD0 pin, thus is device dependent.
+ * Noting this down for now. Here GPS uses 0x69. To support a device implementing the second
+ * address, probably an additional MPU_DEVICE_TYPE is the way to go.
+ */
+#define PX4_I2C_EXT_ICM20948_0			0x68
+#define PX4_I2C_EXT_ICM20948_1			0x69
+
+/*
+ * ICM20948 uses register banks. Register 127 (0x7F) is used to switch between 4 banks.
+ * There's room in the upper address byte below the port speed setting to code in the
+ * used bank. This is a bit more efficient, already in use for the speed setting and more
+ * in one place than a solution with a lookup table for address/bank pairs.
+ */
+
+#define BANK0	0x0000
+#define BANK1	0x0100
+#define BANK2	0x0200
+#define BANK3	0x0300
+
+#define BANK_REG_MASK	0x0300
+#define REG_BANK(r) 			((r) & BANK_REG_MASK)
+#define REG_ADDRESS(r)			((r) & ~BANK_REG_MASK)
+
+#define ICMREG_20948_BANK_SEL 0x7F
+
+#define	ICMREG_20948_WHOAMI				(0x00 | BANK0)
+#define ICMREG_20948_USER_CTRL			(0x03 | BANK0)
+#define ICMREG_20948_PWR_MGMT_1			(0x06 | BANK0)
+#define ICMREG_20948_PWR_MGMT_2			(0x07 | BANK0)
+#define ICMREG_20948_INT_PIN_CFG		(0x0F | BANK0)
+#define ICMREG_20948_INT_ENABLE			(0x10 | BANK0)
+#define ICMREG_20948_INT_ENABLE_1		(0x11 | BANK0)
+#define ICMREG_20948_INT_ENABLE_2		(0x12 | BANK0)
+#define ICMREG_20948_INT_ENABLE_3		(0x13 | BANK0)
+#define ICMREG_20948_GYRO_SMPLRT_DIV	(0x00 | BANK2)
+#define ICMREG_20948_GYRO_CONFIG_1		(0x01 | BANK2)
+#define ICMREG_20948_GYRO_CONFIG_2		(0x02 | BANK2)
+#define ICMREG_20948_ACCEL_SMPLRT_DIV_1	(0x10 | BANK2)
+#define ICMREG_20948_ACCEL_SMPLRT_DIV_2	(0x11 | BANK2)
+#define ICMREG_20948_ACCEL_CONFIG		(0x14 | BANK2)
+#define ICMREG_20948_ACCEL_CONFIG_2		(0x15 | BANK2)
+
+
+
+
+
 #pragma pack(push, 1)
 /**
  * Report conversation within the mpu, including command byte and
  * interrupt status.
+#define ADDR_ID_ICM         0x00
  */
 struct MPUReport {
 	uint8_t		cmd;
@@ -231,11 +289,11 @@ struct MPUReport {
 #  define MPU9250_LOW_SPEED_OP(r)			MPU9250_REG((r))
 
 /* interface factories */
-extern device::Device *MPU9250_SPI_interface(int bus, bool external_bus);
-extern device::Device *MPU9250_I2C_interface(int bus, bool external_bus);
+extern device::Device *MPU9250_SPI_interface(int bus, int device_type, bool external_bus);
+extern device::Device *MPU9250_I2C_interface(int bus, int device_type, bool external_bus);
 extern int MPU9250_probe(device::Device *dev, int device_type);
 
-typedef device::Device *(*MPU9250_constructor)(int, bool);
+typedef device::Device *(*MPU9250_constructor)(int, int, bool);
 
 
 
@@ -248,7 +306,8 @@ class MPU9250 : public device::CDev
 public:
 	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
 		const char *path_mag,
-		enum Rotation rotation);
+		enum Rotation rotation,
+		int device_type);
 	virtual ~MPU9250();
 
 	virtual int		init();
@@ -281,6 +340,8 @@ private:
 	MPU9250_gyro	*_gyro;
 	MPU9250_mag     *_mag;
 	uint8_t			_whoami;	/** whoami result */
+	int 			_device_type;
+	uint8_t			_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
 
 #if defined(USE_I2C)
 	/*
@@ -341,10 +402,18 @@ private:
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
 #define MPU9250_NUM_CHECKED_REGISTERS 11
-	static const uint8_t	_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_bad[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
+	static const uint16_t	_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
+
+	// same, but for ICM20948
+#define ICM20948_NUM_CHECKED_REGISTERS 16
+	static const uint16_t	_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS];
+
+	unsigned		_checked_next;
+	unsigned		_num_checked_registers;
+	const uint16_t* _checked_registers;
+	uint8_t*		_checked_values;
+	uint8_t*		_checked_bad;
+
 
 	// last temperature reading for print_info()
 	float			_last_temperature;
@@ -428,6 +497,18 @@ private:
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
 	void			measure();
+
+	/**
+	 * Select a register bank in ICM20948
+	 *
+	 * Only actually switches if the remembered bank is different from the
+	 * requested one
+	 *
+	 * @param		The index of the register bank to switch to (0-3)
+	 * @return		Error code
+	 */
+	int				select_register_bank(uint8_t bank);
+
 
 	/**
 	 * Read a register from the mpu
