@@ -105,9 +105,8 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain
 	)
 
-	static constexpr int64_t sec_to_usec = (1000 * 1000);
-	const int64_t POSVEL_PROBATION_MIN = 1 * sec_to_usec;	/**< minimum probation duration (usec) */
-	const int64_t POSVEL_PROBATION_MAX = 100 * sec_to_usec;	/**< maximum probation duration (usec) */
+	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
+	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */
 
 	hrt_abstime	_last_gpos_fail_time_us{0};	/**< Last time that the global position validity recovery check failed (usec) */
 	hrt_abstime	_last_lpos_fail_time_us{0};	/**< Last time that the local position validity recovery check failed (usec) */
