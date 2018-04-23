@@ -518,11 +518,11 @@ bool AttitudeEstimatorQ::init()
 	R.setRow(2, k);
 
 	// Convert to quaternion
-	_q.from_dcm(R);
+	_q = R;
 
 	// Compensate for magnetic declination
 	Quatf decl_rotation = Eulerf(0.0f, 0.0f, _mag_decl);
-	_q = decl_rotation * _q;
+	_q = _q * decl_rotation;
 
 	_q.normalize();
 
@@ -606,7 +606,7 @@ bool AttitudeEstimatorQ::update(float dt)
 
 	// If we are not using acceleration compensation based on GPS velocity,
 	// fuse accel data only if its norm is close to 1 g (reduces drift).
-	const float accel_norm_sq = _accel.length_squared();
+	const float accel_norm_sq = _accel.norm_squared();
 	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
 	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
 
@@ -657,7 +657,7 @@ void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 	} else {
 		// Immediately rotate current estimation to avoid gyro bias growth
 		Quatf decl_rotation = Eulerf(0.0f, 0.0f, new_declination - _mag_decl);
-		_q = decl_rotation * _q;
+		_q = _q * decl_rotation;
 		_mag_decl = new_declination;
 	}
 }
