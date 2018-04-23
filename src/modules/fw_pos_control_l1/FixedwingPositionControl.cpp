@@ -76,23 +76,23 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_use_terrain_estimate = param_find("FW_LND_USETER");
 	_parameter_handles.land_airspeed_scale = param_find("FW_LND_AIRSPD_SC");
 
-	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
-	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
-	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
-	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
-	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
-	_parameter_handles.climbout_diff =			param_find("FW_CLMBOUT_DIFF");
-	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
-	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
-	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
-	_parameter_handles.height_comp_filter_omega =		param_find("FW_T_HGT_OMEGA");
-	_parameter_handles.speed_comp_filter_omega =		param_find("FW_T_SPD_OMEGA");
-	_parameter_handles.roll_throttle_compensation = 	param_find("FW_T_RLL2THR");
-	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
-	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
-	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
-	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
-	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
+	_parameter_handles.time_const = param_find("FW_T_TIME_CONST");
+	_parameter_handles.time_const_throt = param_find("FW_T_THRO_CONST");
+	_parameter_handles.min_sink_rate = param_find("FW_T_SINK_MIN");
+	_parameter_handles.max_sink_rate = param_find("FW_T_SINK_MAX");
+	_parameter_handles.max_climb_rate = param_find("FW_T_CLMB_MAX");
+	_parameter_handles.climbout_diff = param_find("FW_CLMBOUT_DIFF");
+	_parameter_handles.throttle_damp = param_find("FW_T_THR_DAMP");
+	_parameter_handles.integrator_gain = param_find("FW_T_INTEG_GAIN");
+	_parameter_handles.vertical_accel_limit = param_find("FW_T_VERT_ACC");
+	_parameter_handles.height_comp_filter_omega = param_find("FW_T_HGT_OMEGA");
+	_parameter_handles.speed_comp_filter_omega = param_find("FW_T_SPD_OMEGA");
+	_parameter_handles.roll_throttle_compensation = param_find("FW_T_RLL2THR");
+	_parameter_handles.speed_weight = param_find("FW_T_SPDWEIGHT");
+	_parameter_handles.pitch_damping = param_find("FW_T_PTCH_DAMP");
+	_parameter_handles.heightrate_p = param_find("FW_T_HRATE_P");
+	_parameter_handles.heightrate_ff = param_find("FW_T_HRATE_FF");
+	_parameter_handles.speedrate_p = param_find("FW_T_SRATE_P");
 
 	// if vehicle is vtol these handles will be set when we get the vehicle status
 	_parameter_handles.airspeed_trans = PARAM_INVALID;
@@ -113,9 +113,7 @@ FixedwingPositionControl::~FixedwingPositionControl()
 int
 FixedwingPositionControl::parameters_update()
 {
-	/* L1 control parameters */
-	param_get(_parameter_handles.l1_damping, &(_parameters.l1_damping));
-	param_get(_parameter_handles.l1_period, &(_parameters.l1_period));
+	updateParams();
 
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
@@ -124,13 +122,11 @@ FixedwingPositionControl::parameters_update()
 
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
 	param_get(_parameter_handles.pitch_limit_max, &(_parameters.pitch_limit_max));
-	param_get(_parameter_handles.roll_limit, &(_parameters.roll_limit));
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_idle, &(_parameters.throttle_idle));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
 	param_get(_parameter_handles.throttle_alt_scale, &(_parameters.throttle_alt_scale));
-	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
 	param_get(_parameter_handles.man_roll_max_deg, &_parameters.man_roll_max_rad);
@@ -143,34 +139,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.pitchsp_offset_deg, &_parameters.pitchsp_offset_rad);
 	_parameters.pitchsp_offset_rad = radians(_parameters.pitchsp_offset_rad);
 
-	param_get(_parameter_handles.time_const, &(_parameters.time_const));
-	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
-	param_get(_parameter_handles.min_sink_rate, &(_parameters.min_sink_rate));
-	param_get(_parameter_handles.max_sink_rate, &(_parameters.max_sink_rate));
-	param_get(_parameter_handles.throttle_damp, &(_parameters.throttle_damp));
-	param_get(_parameter_handles.integrator_gain, &(_parameters.integrator_gain));
-	param_get(_parameter_handles.vertical_accel_limit, &(_parameters.vertical_accel_limit));
-	param_get(_parameter_handles.height_comp_filter_omega, &(_parameters.height_comp_filter_omega));
-	param_get(_parameter_handles.speed_comp_filter_omega, &(_parameters.speed_comp_filter_omega));
-	param_get(_parameter_handles.roll_throttle_compensation, &(_parameters.roll_throttle_compensation));
-	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
-	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
-	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
 	param_get(_parameter_handles.climbout_diff, &(_parameters.climbout_diff));
-
-	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
-	param_get(_parameter_handles.heightrate_ff, &(_parameters.heightrate_ff));
-	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
-
-	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
-	param_get(_parameter_handles.land_H1_virt, &(_parameters.land_H1_virt));
-	param_get(_parameter_handles.land_flare_alt_relative, &(_parameters.land_flare_alt_relative));
-	param_get(_parameter_handles.land_thrust_lim_alt_relative, &(_parameters.land_thrust_lim_alt_relative));
-
-	/* check if negative value for 2/3 of flare altitude is set for throttle cut */
-	if (_parameters.land_thrust_lim_alt_relative < 0.0f) {
-		_parameters.land_thrust_lim_alt_relative = 0.66f * _parameters.land_flare_alt_relative;
-	}
 
 	param_get(_parameter_handles.land_heading_hold_horizontal_distance,
 		  &(_parameters.land_heading_hold_horizontal_distance));
@@ -179,56 +148,141 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 
+	// VTOL parameter VTOL_TYPE
 	if (_parameter_handles.vtol_type != PARAM_INVALID) {
 		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 	}
 
+	// VTOL parameter VT_ARSP_TRANS
 	if (_parameter_handles.airspeed_trans != PARAM_INVALID) {
 		param_get(_parameter_handles.airspeed_trans, &_parameters.airspeed_trans);
 	}
 
-	_l1_control.set_l1_damping(_parameters.l1_damping);
-	_l1_control.set_l1_period(_parameters.l1_period);
-	_l1_control.set_l1_roll_limit(radians(_parameters.roll_limit));
 
-	_tecs.set_time_const(_parameters.time_const);
-	_tecs.set_time_const_throt(_parameters.time_const_throt);
-	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
+	float v = 0.0f;
+
+
+	// L1 control parameters
+
+	if (param_get(_parameter_handles.l1_damping, &v) == PX4_OK) {
+		_l1_control.set_l1_damping(v);
+	}
+
+	if (param_get(_parameter_handles.l1_period, &v) == PX4_OK) {
+		_l1_control.set_l1_period(v);
+	}
+
+	if (param_get(_parameter_handles.roll_limit, &v) == PX4_OK) {
+		_l1_control.set_l1_roll_limit(radians(v));
+	}
+
+
+	// TECS parameters
+
+	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
+	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
+
+	param_get(_parameter_handles.max_sink_rate, &(_parameters.max_sink_rate));
 	_tecs.set_max_sink_rate(_parameters.max_sink_rate);
-	_tecs.set_throttle_damp(_parameters.throttle_damp);
-	_tecs.set_throttle_slewrate(_parameters.throttle_slew_max);
-	_tecs.set_integrator_gain(_parameters.integrator_gain);
-	_tecs.set_vertical_accel_limit(_parameters.vertical_accel_limit);
-	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);
-	_tecs.set_speed_comp_filter_omega(_parameters.speed_comp_filter_omega);
-	_tecs.set_roll_throttle_compensation(_parameters.roll_throttle_compensation);
+
+	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
 	_tecs.set_speed_weight(_parameters.speed_weight);
-	_tecs.set_pitch_damping(_parameters.pitch_damping);
+
 	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
 	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
-	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
-	_tecs.set_heightrate_p(_parameters.heightrate_p);
-	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
-	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
-	/* Update the landing slope */
-	_landingslope.update(radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative,
-			     _parameters.land_thrust_lim_alt_relative, _parameters.land_H1_virt);
+	if (param_get(_parameter_handles.time_const, &v) == PX4_OK) {
+		_tecs.set_time_const(v);
+	}
 
-	/* Update and publish the navigation capabilities */
+	if (param_get(_parameter_handles.time_const_throt, &v) == PX4_OK) {
+		_tecs.set_time_const_throt(v);
+	}
+
+	if (param_get(_parameter_handles.min_sink_rate, &v) == PX4_OK) {
+		_tecs.set_min_sink_rate(v);
+	}
+
+	if (param_get(_parameter_handles.throttle_damp, &v) == PX4_OK) {
+		_tecs.set_throttle_damp(v);
+	}
+
+	if (param_get(_parameter_handles.integrator_gain, &v) == PX4_OK) {
+		_tecs.set_integrator_gain(v);
+	}
+
+	if (param_get(_parameter_handles.throttle_slew_max, &v) == PX4_OK) {
+		_tecs.set_throttle_slewrate(v);
+	}
+
+	if (param_get(_parameter_handles.vertical_accel_limit, &v) == PX4_OK) {
+		_tecs.set_vertical_accel_limit(v);
+	}
+
+	if (param_get(_parameter_handles.height_comp_filter_omega, &v) == PX4_OK) {
+		_tecs.set_height_comp_filter_omega(v);
+	}
+
+	if (param_get(_parameter_handles.speed_comp_filter_omega, &v) == PX4_OK) {
+		_tecs.set_speed_comp_filter_omega(v);
+	}
+
+	if (param_get(_parameter_handles.roll_throttle_compensation, &v) == PX4_OK) {
+		_tecs.set_roll_throttle_compensation(v);
+	}
+
+	if (param_get(_parameter_handles.pitch_damping, &v) == PX4_OK) {
+		_tecs.set_pitch_damping(v);
+	}
+
+	if (param_get(_parameter_handles.heightrate_p, &v) == PX4_OK) {
+		_tecs.set_heightrate_p(v);
+	}
+
+	if (param_get(_parameter_handles.heightrate_ff, &v) == PX4_OK) {
+		_tecs.set_heightrate_ff(v);
+	}
+
+	if (param_get(_parameter_handles.speedrate_p, &v) == PX4_OK) {
+		_tecs.set_speedrate_p(v);
+	}
+
+
+	// Landing slope
+
+	float land_slope_angle = 0.0f;
+	param_get(_parameter_handles.land_slope_angle, &land_slope_angle);
+
+	float land_flare_alt_relative = 0.0f;
+	param_get(_parameter_handles.land_flare_alt_relative, &land_flare_alt_relative);
+
+	float land_thrust_lim_alt_relative = 0.0f;
+	param_get(_parameter_handles.land_thrust_lim_alt_relative, &land_thrust_lim_alt_relative);
+
+	float land_H1_virt = 0.0f;
+	param_get(_parameter_handles.land_H1_virt, &land_H1_virt);
+
+	/* check if negative value for 2/3 of flare altitude is set for throttle cut */
+	if (land_thrust_lim_alt_relative < 0.0f) {
+		land_thrust_lim_alt_relative = 0.66f * land_flare_alt_relative;
+	}
+
+	_landingslope.update(radians(land_slope_angle), land_flare_alt_relative, land_thrust_lim_alt_relative, land_H1_virt);
+
+
+	// Update and publish the navigation capabilities
 	_fw_pos_ctrl_status.landing_slope_angle_rad = _landingslope.landing_slope_angle_rad();
 	_fw_pos_ctrl_status.landing_horizontal_slope_displacement = _landingslope.horizontal_slope_displacement();
 	_fw_pos_ctrl_status.landing_flare_length = _landingslope.flare_length();
 	fw_pos_ctrl_status_publish();
 
-	updateParams();
 
-	/* sanity check parameters */
-	if (_parameters.airspeed_max < _parameters.airspeed_min ||
-	    _parameters.airspeed_max < 5.0f ||
-	    _parameters.airspeed_min > 100.0f ||
-	    _parameters.airspeed_trim < _parameters.airspeed_min ||
-	    _parameters.airspeed_trim > _parameters.airspeed_max) {
+	// sanity check parameters
+	if ((_parameters.airspeed_max < _parameters.airspeed_min) ||
+	    (_parameters.airspeed_max < 5.0f) ||
+	    (_parameters.airspeed_min > 100.0f) ||
+	    (_parameters.airspeed_trim < _parameters.airspeed_min) ||
+	    (_parameters.airspeed_trim > _parameters.airspeed_max)) {
 
 		mavlink_log_critical(&_mavlink_log_pub, "Airspeed parameters invalid");
 
@@ -357,6 +411,13 @@ FixedwingPositionControl::vehicle_attitude_poll()
 
 	/* set rotation matrix and euler angles */
 	_R_nb = Quatf(_att.q);
+
+	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
+	// between multirotor and fixed wing flight
+	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+		Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
+		_R_nb = _R_nb * R_offset;
+	}
 
 	Eulerf euler_angles(_R_nb);
 	_roll    = euler_angles(0);
@@ -1253,8 +1314,13 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		_fw_pos_ctrl_status.abort_landing = false;
 	}
 
-	float bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
-	float bearing_airplane_currwp = get_bearing_to_next_waypoint(curr_pos(0), curr_pos(1), curr_wp(0), curr_wp(1));
+	const float bearing_airplane_currwp = get_bearing_to_next_waypoint(curr_pos(0), curr_pos(1), curr_wp(0), curr_wp(1));
+
+	float bearing_lastwp_currwp = bearing_airplane_currwp;
+
+	if (pos_sp_prev.valid) {
+		bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
+	}
 
 	/* Horizontal landing control */
 	/* switch to heading hold for the last meters, continue heading hold after */
@@ -1356,16 +1422,6 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		}
 	}
 
-	/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
-	float L_altitude_rel = 0.0f;
-
-	if (pos_sp_prev.valid) {
-		L_altitude_rel = pos_sp_prev.alt - terrain_alt;
-	}
-
-	float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance,
-					      bearing_lastwp_currwp, bearing_airplane_currwp);
-
 	/* Check if we should start flaring with a vertical and a
 	 * horizontal limit (with some tolerance)
 	 * The horizontal limit is only applied when we are in front of the wp
@@ -1449,11 +1505,15 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		 * if current position is below the slope continue at previous wp altitude
 		 * until the intersection with slope
 		 * */
-		float altitude_desired_rel{0.0f};
+
+		float altitude_desired = terrain_alt;
+
+		const float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance,
+				bearing_lastwp_currwp, bearing_airplane_currwp);
 
 		if (_global_pos.alt > terrain_alt + landing_slope_alt_rel_desired || _land_onslope) {
 			/* stay on slope */
-			altitude_desired_rel = landing_slope_alt_rel_desired;
+			altitude_desired = terrain_alt + landing_slope_alt_rel_desired;
 
 			if (!_land_onslope) {
 				mavlink_log_info(&_mavlink_log_pub, "Landing, on slope");
@@ -1463,16 +1523,16 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		} else {
 			/* continue horizontally */
 			if (pos_sp_prev.valid) {
-				altitude_desired_rel = L_altitude_rel;
+				altitude_desired = pos_sp_prev.alt;
 
 			} else {
-				altitude_desired_rel = _global_pos.alt - terrain_alt;
+				altitude_desired = _global_pos.alt;
 			}
 		}
 
 		const float airspeed_approach = _parameters.land_airspeed_scale * _parameters.airspeed_min;
 
-		tecs_update_pitch_throttle(terrain_alt + altitude_desired_rel,
+		tecs_update_pitch_throttle(altitude_desired,
 					   calculate_target_airspeed(airspeed_approach),
 					   radians(_parameters.pitch_limit_min),
 					   radians(_parameters.pitch_limit_max),
@@ -1824,14 +1884,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	/* Using tecs library */
 	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
 
-	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
-	// between multirotor and fixed wing flight
-	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
-		Eulerf euler = Eulerf(_R_nb * R_offset);
-		pitch_for_tecs = euler(1);
-	}
-
 	/* filter speed and altitude for controller */
 	Vector3f accel_body(_sub_sensors.get().accel_x, _sub_sensors.get().accel_y, _sub_sensors.get().accel_z);
 
@@ -1865,7 +1917,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 		if (orb_copy(ORB_ID(sensor_baro), _sensor_baro_sub, &baro) == PX4_OK) {
 			if (PX4_ISFINITE(baro.pressure) && PX4_ISFINITE(_parameters.throttle_alt_scale)) {
 				// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
-				const float eas2tas = sqrtf(MSL_PRESSURE_MILLIBAR / baro.pressure);
+				const float eas2tas = sqrtf(CONSTANTS_STD_PRESSURE_MBAR / baro.pressure);
 				const float scale = constrain((eas2tas - 1.0f) * _parameters.throttle_alt_scale + 1.0f, 1.0f, 2.0f);
 
 				throttle_max = constrain(throttle_max * scale, throttle_min, 1.0f);

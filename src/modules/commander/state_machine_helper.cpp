@@ -76,16 +76,15 @@ static constexpr const bool arming_transitions[vehicle_status_s::ARMING_STATE_MA
 
 // You can index into the array with an arming_state_t in order to get its textual representation
 const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
-	"ARMING_STATE_INIT",
-	"ARMING_STATE_STANDBY",
-	"ARMING_STATE_ARMED",
-	"ARMING_STATE_STANDBY_ERROR",
-	"ARMING_STATE_REBOOT",
-	"ARMING_STATE_IN_AIR_RESTORE",
+	"INIT",
+	"STANDBY",
+	"ARMED",
+	"STANDBY_ERROR",
+	"REBOOT",
+	"IN_AIR_RESTORE",
 };
 
 static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked immediately
-static int last_prearm_ret = 1;			///< initialize to fail
 
 void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 			     const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const link_loss_actions_t link_loss_act,
@@ -95,8 +94,8 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 
 transition_result_t arming_state_transition(vehicle_status_s *status, const battery_status_s &battery,
 		const safety_s &safety, const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
-		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const float avionics_power_rail_voltage,
-		const uint8_t arm_requirements, const hrt_abstime &time_since_boot)
+		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const uint8_t arm_requirements,
+		const hrt_abstime &time_since_boot)
 {
 	// Double check that our static arrays are still valid
 	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
@@ -118,74 +117,35 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 		/*
 		 * Get sensing state if necessary
 		 */
-		int prearm_ret = OK;
-		bool checkAirspeed = false;
-		bool sensor_checks = !hil_enabled;
+		bool preflight_check_ret = true;
+		bool prearm_check_ret = true;
 
-		/* Perform airspeed check only if circuit breaker is not
-		 * engaged and it's not a rotary wing */
-		if (!status_flags->circuit_breaker_engaged_airspd_check && (!status->is_rotary_wing || status->is_vtol)) {
-			checkAirspeed = true;
-		}
+		const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
 
 		/* only perform the pre-arm check if we have to */
-		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 		    && !hil_enabled) {
 
-			bool preflight_check = Preflight::preflightCheck(mavlink_log_pub, sensor_checks, checkAirspeed,
-					       (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT, true,
-					       status->is_vtol, true, true, time_since_boot);
+			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, true, true, time_since_boot);
 
-			prearm_ret = prearm_check(mavlink_log_pub, true /* pre-arm */, false /* force_report */, status_flags, battery,
-						  arm_requirements, time_since_boot);
-
-			if (!preflight_check) {
-				prearm_ret = false;
+			if (preflight_check_ret) {
+				status_flags->condition_system_sensors_initialized = true;
 			}
 
+			feedback_provided = true;
 		}
 
 		/* re-run the pre-flight check as long as sensors are failing */
 		if (!status_flags->condition_system_sensors_initialized
-		    && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
-			|| new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+		    && ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
 		    && !hil_enabled) {
 
-			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
+			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
-				prearm_ret = Preflight::preflightCheck(mavlink_log_pub, sensor_checks, checkAirspeed,
-								       (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), arm_requirements & ARM_REQ_GPS_BIT, true,
-								       status->is_vtol, false, false, time_since_boot);
+				status_flags->condition_system_sensors_initialized = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, false, false, time_since_boot);
 
-				status_flags->condition_system_sensors_initialized = (prearm_ret == OK);
 				last_preflight_check = hrt_absolute_time();
-				last_prearm_ret = prearm_ret;
-
-			} else {
-				prearm_ret = last_prearm_ret;
 			}
-		}
-
-		/*
-		 * Perform an atomic state update
-		 */
-#ifdef __PX4_NUTTX
-		irqstate_t flags = px4_enter_critical_section();
-#endif
-
-		/* enforce lockdown in HIL */
-		if (hil_enabled) {
-			armed->lockdown = true;
-			prearm_ret = OK;
-			status_flags->condition_system_sensors_initialized = true;
-
-			/* recover from a prearm fail */
-			if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
-				status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
-			}
-
-		} else {
-			armed->lockdown = false;
 		}
 
 		// Check that we have a valid state transition
@@ -200,108 +160,42 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE &&
 				    !hil_enabled) {
 
-					// Fail transition if pre-arm check fails
-					if (prearm_ret) {
-						/* the prearm check already prints the reject reason */
-						feedback_provided = true;
-						valid_transition = false;
-
-						// Fail transition if we need safety switch press
-
-					} else if (safety.safety_switch_available && !safety.safety_off) {
-
-						mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Press safety switch first!");
-						feedback_provided = true;
-						valid_transition = false;
+					if (preflight_check_ret) {
+						// only bother running prearm if preflight was successful
+						prearm_check_ret = prearm_check(mavlink_log_pub, *status_flags, battery, safety, arm_requirements, time_since_boot);
 					}
 
-					// Perform power checks only if circuit breaker is not
-					// engaged for these checks
-					if (!status_flags->circuit_breaker_engaged_power_check) {
-						// Fail transition if power is not good
-						if (!status_flags->condition_power_input_valid) {
-
-							mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Connect power module.");
-							feedback_provided = true;
-							valid_transition = false;
-						}
-
-						// Fail transition if power levels on the avionics rail
-						// are measured but are insufficient
-						if (status_flags->condition_power_input_valid && (avionics_power_rail_voltage > 0.0f)) {
-							// Check avionics rail voltages
-							if (avionics_power_rail_voltage < 4.5f) {
-								mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Avionics power low: %6.2f Volt",
-										     (double)avionics_power_rail_voltage);
-								feedback_provided = true;
-								valid_transition = false;
-
-							} else if (avionics_power_rail_voltage < 4.9f) {
-								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
-								feedback_provided = true;
-
-							} else if (avionics_power_rail_voltage > 5.4f) {
-								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power high: %6.2f Volt", (double)avionics_power_rail_voltage);
-								feedback_provided = true;
-							}
-						}
+					if (!(preflight_check_ret && prearm_check_ret)) {
+						// the prearm and preflight checks already print the rejection reason
+						feedback_provided = true;
+						valid_transition = false;
 					}
 				}
 			}
 		}
 
-		// HIL can always go to standby
-		if (hil_enabled && new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-			valid_transition = true;
+		if (hil_enabled) {
+			/* enforce lockdown in HIL */
+			armed->lockdown = true;
+			status_flags->condition_system_sensors_initialized = true;
+
+			/* recover from a prearm fail */
+			if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+				status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
+			}
+
+			// HIL can always go to standby
+			if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+				valid_transition = true;
+			}
 		}
 
-		// Check if we are trying to arm, checks look good but we are in STANDBY_ERROR
-		if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
-
-			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-
-				if (status_flags->condition_system_sensors_initialized) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
-
-				} else {
-					mavlink_log_critical(mavlink_log_pub, "Preflight check failed, refusing to arm");
-				}
-
-				feedback_provided = true;
-
-			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-				   status_flags->condition_system_sensors_initialized) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
-				feedback_provided = true;
-
-			} else {
-				// Silent ignore
-				feedback_provided = true;
-			}
+		if (!hil_enabled &&
+		    (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
+		    (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
 
 			// Sensors need to be initialized for STANDBY state, except for HIL
-
-		} else if (!hil_enabled &&
-			   (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-			   (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
-
 			if (!status_flags->condition_system_sensors_initialized) {
-
-				if (status_flags->condition_system_hotplug_timeout) {
-					if (!status_flags->condition_system_prearm_error_reported) {
-						mavlink_log_critical(mavlink_log_pub, "Not ready to fly: Sensors not set up correctly");
-						status_flags->condition_system_prearm_error_reported = true;
-					}
-				}
-
-				feedback_provided = true;
-				valid_transition = false;
-			}
-		}
-
-		if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT) && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-		    && valid_transition) {
-			if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
 				feedback_provided = true;
 				valid_transition = false;
 			}
@@ -310,8 +204,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 		// Finish up the state transition
 		if (valid_transition) {
 			armed->armed = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			armed->ready_to_arm = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
-					      || new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY;
+			armed->ready_to_arm = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
 			ret = TRANSITION_CHANGED;
 			status->arming_state = new_arming_state;
 
@@ -322,24 +215,12 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 				armed->armed_time_ms = 0;
 			}
 		}
-
-		/* reset feedback state */
-		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
-		    status->arming_state != vehicle_status_s::ARMING_STATE_INIT &&
-		    valid_transition) {
-			status_flags->condition_system_prearm_error_reported = false;
-		}
-
-		/* end of atomic state update */
-#ifdef __PX4_NUTTX
-		px4_leave_critical_section(flags);
-#endif
 	}
 
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s",
+			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s to %s",
 					     arming_state_names[status->arming_state], arming_state_names[new_arming_state]);
 		}
 	}
@@ -1035,45 +916,94 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 	}
 }
 
-int prearm_check(orb_advert_t *mavlink_log_pub, const bool prearm, const bool force_report,
-		 vehicle_status_flags_s *status_flags, const battery_status_s &battery, const uint8_t arm_requirements,
-		 const hrt_abstime &time_since_boot)
+bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
+		  const battery_status_s &battery, const safety_s &safety, const uint8_t arm_requirements,
+		  const hrt_abstime &time_since_boot)
 {
-	bool reportFailures = force_report || (!status_flags->condition_system_prearm_error_reported &&
-					       status_flags->condition_system_hotplug_timeout);
+	bool reportFailures = true;
 	bool prearm_ok = true;
 
-	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected && prearm) {
-		prearm_ok = false;
-
+	// USB not connected
+	if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {
 		if (reportFailures) {
 			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
 		}
+
+		prearm_ok = false;
 	}
 
-	if (!status_flags->circuit_breaker_engaged_power_check && battery.warning >= battery_status_s::BATTERY_WARNING_LOW) {
-		prearm_ok = false;
+	// battery and system power status
+	if (!status_flags.circuit_breaker_engaged_power_check) {
 
-		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: LOW BATTERY");
+		// Fail transition if power is not good
+		if (!status_flags.condition_power_input_valid) {
+			if (reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Connect power module");
+			}
+
+			prearm_ok = false;
+		}
+
+		// main battery level
+		if (battery.warning >= battery_status_s::BATTERY_WARNING_LOW) {
+			if (prearm_ok && reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: LOW BATTERY");
+			}
+
+			prearm_ok = false;
 		}
 	}
 
-	// mission required
-	if ((arm_requirements & ARM_REQ_MISSION_BIT)
-	    && (!status_flags->condition_auto_mission_available || !status_flags->condition_global_position_valid)) {
+	// Arm Requirements: mission
+	if (arm_requirements & ARM_REQ_MISSION_BIT) {
 
-		prearm_ok = false;
+		if (!status_flags.condition_auto_mission_available) {
+			if (prearm_ok && reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
+			}
 
-		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
+			prearm_ok = false;
+		}
+
+		if (!status_flags.condition_global_position_valid) {
+			if (prearm_ok && reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: mission requires global position");
+			}
+
+			prearm_ok = false;
 		}
 	}
 
-	/* report once, then set the flag */
-	if (reportFailures && !prearm_ok) {
-		status_flags->condition_system_prearm_error_reported = true;
+	// Arm Requirements: global position
+	if (arm_requirements & ARM_REQ_GPS_BIT) {
+
+		if (!status_flags.condition_global_position_valid) {
+			if (prearm_ok && reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: global position required");
+			}
+
+			prearm_ok = false;
+		}
 	}
 
-	return !prearm_ok;
+	// safety button
+	if (safety.safety_switch_available && !safety.safety_off) {
+		// Fail transition if we need safety switch press
+		if (prearm_ok && reportFailures) {
+			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Press safety switch first");
+		}
+
+		prearm_ok = false;
+	}
+
+	// Arm Requirements: authorization
+	// check last, and only if everything else has passed
+	if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT) && prearm_ok) {
+		if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
+			// feedback provided in arm_auth_check
+			prearm_ok = false;
+		}
+	}
+
+	return prearm_ok;
 }

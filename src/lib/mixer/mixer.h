@@ -740,7 +740,8 @@ public:
 	HelicopterMixer(ControlCallback control_cb,
 			uintptr_t cb_handle,
 			mixer_heli_s *mixer_info);
-	~HelicopterMixer();
+
+	~HelicopterMixer() = default;
 
 	/**
 	 * Factory method.

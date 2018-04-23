@@ -130,15 +130,18 @@ void Tailsitter::update_vtol_state()
 		case FW_MODE:
 			break;
 
-		case TRANSITION_FRONT_P1:
+		case TRANSITION_FRONT_P1: {
 
-			// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-			if ((_airspeed->indicated_airspeed_m_s >= _params->transition_airspeed
-			     && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
-				_vtol_schedule.flight_mode = FW_MODE;
+				bool airspeed_condition_satisfied = _airspeed->indicated_airspeed_m_s >= _params->transition_airspeed;
+				airspeed_condition_satisfied |= _params->airspeed_disabled;
+
+				// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
+				if ((airspeed_condition_satisfied && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
+					_vtol_schedule.flight_mode = FW_MODE;
+				}
+
+				break;
 			}
-
-			break;
 
 		case TRANSITION_BACK:
 			// failsafe into fixed wing mode
@@ -195,8 +198,6 @@ void Tailsitter::update_transition_state()
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1 - 0.2f,
 							_pitch_transition_start);
 
-		_v_att_sp->thrust = _mc_virtual_att_sp->thrust;
-
 		// disable mc yaw control once the plane has picked up speed
 		if (_airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
 			_mc_yaw_weight = 0.0f;
@@ -211,8 +212,7 @@ void Tailsitter::update_transition_state()
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
 
 		if (!flag_idle_mc) {
-			set_idle_mc();
-			flag_idle_mc = true;
+			flag_idle_mc = set_idle_mc();
 		}
 
 		// create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value
@@ -220,15 +220,19 @@ void Tailsitter::update_transition_state()
 					time_since_trans_start / _params->back_trans_duration;
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, -2.0f, PITCH_TRANSITION_BACK + 0.2f);
 
-
-		_v_att_sp->thrust = _mc_virtual_att_sp->thrust;
-
 		// keep yaw disabled
 		_mc_yaw_weight = 0.0f;
 
 		// smoothly move control weight to MC
 		_mc_roll_weight = _mc_pitch_weight = time_since_trans_start / _params->back_trans_duration;
 
+	}
+
+	if (_v_control_mode->flag_control_climb_rate_enabled) {
+		_v_att_sp->thrust = _params->front_trans_throttle;
+
+	} else {
+		_v_att_sp->thrust = _mc_virtual_att_sp->thrust;
 	}
 
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
@@ -255,22 +259,11 @@ void Tailsitter::waiting_on_tecs()
 void Tailsitter::update_mc_state()
 {
 	VtolType::update_mc_state();
-
-	// set idle speed for rotary wing mode
-	if (!flag_idle_mc) {
-		set_idle_mc();
-		flag_idle_mc = true;
-	}
 }
 
 void Tailsitter::update_fw_state()
 {
 	VtolType::update_fw_state();
-
-	if (flag_idle_mc) {
-		set_idle_fw();
-		flag_idle_mc = false;
-	}
 }
 
 /**

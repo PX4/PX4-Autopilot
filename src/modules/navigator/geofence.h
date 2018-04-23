@@ -46,9 +46,11 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <px4_defines.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_air_data.h>
 
 #define GEOFENCE_FILENAME PX4_ROOTFSDIR"/fs/microsd/etc/geofence.txt"
 
@@ -85,9 +87,8 @@ public:
 	 *
 	 * @return true: system is obeying fence, false: system is violating fence
 	 */
-	bool check(const struct vehicle_global_position_s &global_position,
-		   const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
-		   const struct home_position_s home_pos, bool home_position_set);
+	bool check(const vehicle_global_position_s &global_position,
+		   const vehicle_gps_position_s &gps_position, const home_position_s home_pos, bool home_position_set);
 
 	/**
 	 * Return whether a mission item obeys the geofence.
@@ -165,6 +166,8 @@ private:
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_max_ver_distance
 	)
 
+	uORB::Subscription<vehicle_air_data_s>	_sub_airdata;
+
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
 
@@ -193,8 +196,8 @@ private:
 	 */
 	bool checkAll(double lat, double lon, float altitude);
 
-	bool checkAll(const struct vehicle_global_position_s &global_position);
-	bool checkAll(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl);
+	bool checkAll(const vehicle_global_position_s &global_position);
+	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
 
 	/**
 	 * Check if a single point is within a polygon

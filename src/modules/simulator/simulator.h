@@ -99,7 +99,6 @@ struct RawMPUData {
 #pragma pack(push, 1)
 struct RawBaroData {
 	float pressure;
-	float altitude;
 	float temperature;
 };
 #pragma pack(pop)

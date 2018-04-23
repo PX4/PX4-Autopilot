@@ -68,6 +68,9 @@
 #define LL40LS_SW_VERSION         0x4f
 #define LL40LS_SIGNAL_STRENGTH_REG  0x5b
 
+#define LL40LS_SIG_COUNT_VAL_REG      0x02        /* Maximum acquisition count register */
+#define LL40LS_SIG_COUNT_VAL_MAX     0xFF        /* Maximum acquisition count max value */
+
 class LidarLiteI2C : public LidarLite, public device::I2C
 {
 public:

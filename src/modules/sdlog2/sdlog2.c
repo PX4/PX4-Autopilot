@@ -1357,8 +1357,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* track changes in sensor_combined topic */
 	hrt_abstime gyro_timestamp = 0;
 	hrt_abstime accelerometer_timestamp = 0;
-	hrt_abstime magnetometer_timestamp = 0;
-	hrt_abstime barometer_timestamp = 0;
+	//hrt_abstime magnetometer_timestamp = 0;
+	//hrt_abstime barometer_timestamp = 0;
 
 	/* initialize calculated mean SNR */
 	float snr_mean = 0.0f;
@@ -1526,15 +1526,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 					write_IMU = true;
 				}
 
-				if (buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative != magnetometer_timestamp) {
-					magnetometer_timestamp = buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative;
-					write_IMU = true;
-				}
+//				if (buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative != magnetometer_timestamp) {
+//					magnetometer_timestamp = buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative;
+//					write_IMU = true;
+//				}
 
-				if (buf.sensor.timestamp + buf.sensor.baro_timestamp_relative != barometer_timestamp) {
-					barometer_timestamp = buf.sensor.timestamp + buf.sensor.baro_timestamp_relative;
-					write_SENS = true;
-				}
+//				if (buf.sensor.timestamp + buf.sensor.baro_timestamp_relative != barometer_timestamp) {
+//					barometer_timestamp = buf.sensor.timestamp + buf.sensor.baro_timestamp_relative;
+//					write_SENS = true;
+//				}
 
 				if (write_IMU) {
 					log_msg.msg_type = LOG_IMU_MSG;
@@ -1545,9 +1545,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[0];
 					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[1];
 					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[2];
-					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
-					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
-					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
+//					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
+//					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
+//					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
 					log_msg.body.log_IMU.temp_gyro = 0;
 					log_msg.body.log_IMU.temp_acc = 0;
 					log_msg.body.log_IMU.temp_mag = 0;
@@ -1555,12 +1555,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 				}
 
 				if (write_SENS) {
-					log_msg.msg_type = LOG_SENS_MSG;
-
-					log_msg.body.log_SENS.baro_pres = 0;
-					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
-					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
-					LOGBUFFER_WRITE_AND_COUNT(SENS);
+//					log_msg.msg_type = LOG_SENS_MSG;
+//
+//					log_msg.body.log_SENS.baro_pres = 0;
+//					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
+//					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
+//					LOGBUFFER_WRITE_AND_COUNT(SENS);
 				}
 			}
 

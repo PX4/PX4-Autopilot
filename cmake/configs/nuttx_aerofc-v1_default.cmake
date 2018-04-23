@@ -86,4 +86,5 @@ set(config_module_list
 	lib/mixer
 	lib/rc
 	lib/version
+	lib/FlightTasks
 )

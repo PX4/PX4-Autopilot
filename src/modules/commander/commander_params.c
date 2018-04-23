@@ -122,6 +122,31 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
 
 /**
+ * High Latency Datalink loss time threshold
+ *
+ * After this amount of seconds without datalink the data link lost mode triggers
+ *
+ * @group Commander
+ * @unit s
+ * @min 60
+ * @max 3600
+ */
+PARAM_DEFINE_INT32(COM_HLDL_LOSS_T, 120);
+
+/**
+ * High Latency Datalink regain time threshold
+ *
+ * After a data link loss: after this this amount of seconds with a healthy datalink the 'datalink loss'
+ * flag is set back to false
+ *
+ * @group Commander
+ * @unit s
+ * @min 0
+ * @max 60
+ */
+PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
+
+/**
  * Engine Failure Throttle Threshold
  *
  * Engine failure triggers only above this throttle value

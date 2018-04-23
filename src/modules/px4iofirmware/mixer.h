@@ -39,4 +39,4 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 #pragma once
-#define PX4IO_MAX_MIXER_LENGHT		230
+#define PX4IO_MAX_MIXER_LENGTH		230

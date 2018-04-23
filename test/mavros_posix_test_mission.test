@@ -2,17 +2,17 @@
 <launch>
     <!-- Posix SITL MAVROS integration tests -->
     <!-- Test a mission -->
-    <arg name="gui" default="false"/>
     <arg name="est" default="ekf2"/>
+    <arg name="gui" default="false"/>
+    <arg name="vehicle" default="iris"/>
     <arg name="mission"/>
-    <arg name="vehicle"/>
-    <arg name="respawn_gazebo" default="true"/>
     <!-- MAVROS, PX4 SITL, Gazebo -->
     <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+        <arg name="est" value="$(arg est)"/>
         <arg name="gui" value="$(arg gui)"/>
         <arg name="vehicle" value="$(arg vehicle)"/>
-        <arg name="est" value="$(arg est)"/>
-        <arg name="respawn_gazebo" value="$(arg respawn_gazebo)"/>
+        <arg name="respawn_gazebo" value="true"/>
+        <arg name="respawn_mavros" value="true"/>
     </include>
     <!-- ROStest -->
     <test test-name="$(arg mission)" pkg="px4" type="mission_test.py" time-limit="300.0" args="$(arg mission).plan"/>

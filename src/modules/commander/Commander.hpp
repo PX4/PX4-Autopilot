@@ -64,11 +64,7 @@ using uORB::Subscription;
 class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
-	Commander() :
-		ModuleParams(nullptr),
-		_mission_result_sub(ORB_ID(mission_result))
-	{
-	}
+	Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -87,11 +83,10 @@ public:
 
 	void enable_hil();
 
+	// TODO: only temporarily static until low priority thread is removed
+	static bool preflight_check(bool report);
+
 private:
-
-	// Subscriptions
-	Subscription<mission_result_s> _mission_result_sub;
-
 	bool handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed_local, home_position_s *home, const vehicle_global_position_s &global_pos,
 			    const vehicle_local_position_s &local_pos, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
@@ -122,6 +117,33 @@ private:
 
 	void mission_init();
 
+	/**
+	 * Update the telemetry status and the corresponding status variables.
+	 * Perform system checks when new telemetry link connected.
+	 */
+	void poll_telemetry_status();
+
+	/**
+	 * Checks the status of all available data links and handles switching between different system telemetry states.
+	 */
+	void data_link_checks(int32_t highlatencydatalink_loss_timeout, int32_t highlatencydatalink_regain_timeout,
+			      int32_t datalink_loss_timeout, int32_t datalink_regain_timeout, bool *status_changed);
+
+	// telemetry variables
+	struct telemetry_data {
+		int subscriber = -1;
+		uint64_t last_heartbeat = 0u;
+		uint64_t last_dl_loss = 0u;
+		bool preflight_checks_reported = false;
+		bool lost = true;
+		bool high_latency = false;
+	} _telemetry[ORB_MULTI_MAX_INSTANCES];
+
+	// publisher
+	orb_advert_t _vehicle_cmd_pub = nullptr;
+
+	// subscriptions
+	Subscription<mission_result_s> _mission_result_sub;
 };
 
 #endif /* COMMANDER_HPP_ */

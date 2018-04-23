@@ -48,7 +48,6 @@
 
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
-	_flag_enable_mc_motors(true),
 	_pusher_throttle(0.0f),
 	_reverse_output(0.0f),
 	_airspeed_trans_blend_margin(0.0f)
@@ -136,7 +135,6 @@ void Standard::update_vtol_state()
 			if (_vtol_vehicle_status->vtol_transition_failsafe == true) {
 				// Failsafe event, engage mc motors immediately
 				_vtol_schedule.flight_mode = MC_MODE;
-				_flag_enable_mc_motors = true;
 				_pusher_throttle = 0.0f;
 				_reverse_output = 0.0f;
 
@@ -144,7 +142,6 @@ void Standard::update_vtol_state()
 			} else {
 				// Regular backtransition
 				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
-				_flag_enable_mc_motors = true;
 				_vtol_schedule.transition_start = hrt_absolute_time();
 				_reverse_output = _params_standard.reverse_output;
 
@@ -195,8 +192,7 @@ void Standard::update_vtol_state()
 			    can_transition_on_ground()) {
 
 				_vtol_schedule.flight_mode = FW_MODE;
-				// we can turn off the multirotor motors now
-				_flag_enable_mc_motors = false;
+
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
 			}
@@ -300,11 +296,9 @@ void Standard::update_transition_state()
 
 		}
 
-		// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again
-		if (_flag_enable_mc_motors) {
-			set_max_mc(2000);
-			set_idle_mc();
-			_flag_enable_mc_motors = false;
+		// in back transition we need to start the MC motors again
+		if (_motor_state != ENABLED) {
+			_motor_state = set_motor_state(_motor_state, ENABLED);
 		}
 	}
 
@@ -319,13 +313,6 @@ void Standard::update_transition_state()
 void Standard::update_mc_state()
 {
 	VtolType::update_mc_state();
-
-	// enable MC motors here in case we transitioned directly to MC mode
-	if (_flag_enable_mc_motors) {
-		set_max_mc(2000);
-		set_idle_mc();
-		_flag_enable_mc_motors = false;
-	}
 
 	// if the thrust scale param is zero or the drone is on manual mode,
 	// then the pusher-for-pitch strategy is disabled and we can return
@@ -402,13 +389,6 @@ void Standard::update_mc_state()
 void Standard::update_fw_state()
 {
 	VtolType::update_fw_state();
-
-	// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again
-	if (!_flag_enable_mc_motors) {
-		set_max_mc(950);
-		set_idle_fw();  // force them to stop, not just idle
-		_flag_enable_mc_motors = true;
-	}
 }
 
 /**
@@ -495,36 +475,3 @@ Standard::waiting_on_tecs()
 	// keep thrust from transition
 	_v_att_sp->thrust = _pusher_throttle;
 };
-
-/**
-* Disable all multirotor motors when in fw mode.
-*/
-void
-Standard::set_max_mc(unsigned pwm_value)
-{
-	int ret;
-	unsigned servo_count;
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int fd = px4_open(dev, 0);
-
-	if (fd < 0) {
-		PX4_WARN("can't open %s", dev);
-	}
-
-	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
-
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = pwm_value;
-		pwm_values.channel_count = _params->vtol_motor_count;
-	}
-
-	ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
-
-	if (ret != OK) {
-		PX4_WARN("failed setting max values");
-	}
-
-	px4_close(fd);
-}

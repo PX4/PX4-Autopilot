@@ -56,15 +56,15 @@
 /* PX4IO connection configuration */
 
 #define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE     "/dev/ttyS5"
-#define PX4IO_SERIAL_TX_GPIO    GPIO_UART7_TX
-#define PX4IO_SERIAL_RX_GPIO    GPIO_UART7_RX
-#define PX4IO_SERIAL_BASE       STM32_UART7_BASE	/* hardwired on the board */
-#define PX4IO_SERIAL_VECTOR     STM32_IRQ_UART7
-#define PX4IO_SERIAL_TX_DMAMAP  DMAMAP_UART7_TX
-#define PX4IO_SERIAL_RX_DMAMAP  DMAMAP_UART7_RX
+#define PX4IO_SERIAL_DEVICE     "/dev/ttyS6"
+#define PX4IO_SERIAL_TX_GPIO    GPIO_UART8_TX
+#define PX4IO_SERIAL_RX_GPIO    GPIO_UART8_RX
+#define PX4IO_SERIAL_BASE       STM32_UART8_BASE	/* hardwired on the board */
+#define PX4IO_SERIAL_VECTOR     STM32_IRQ_UART8
+#define PX4IO_SERIAL_TX_DMAMAP  DMAMAP_UART8_TX
+#define PX4IO_SERIAL_RX_DMAMAP  DMAMAP_UART8_RX
 #define PX4IO_SERIAL_RCC_REG	STM32_RCC_APB1ENR
-#define PX4IO_SERIAL_RCC_EN	RCC_APB1ENR_UART7EN
+#define PX4IO_SERIAL_RCC_EN	RCC_APB1ENR_UART8EN
 #define PX4IO_SERIAL_CLOCK      STM32_PCLK1_FREQUENCY
 #define PX4IO_SERIAL_BITRATE    1500000			/* 1.5Mbps -> max rate for IO */
 
@@ -360,9 +360,13 @@
  */
 #define GPIO_TIM2_CH1_IN     /* PA5   T22C1  FMU_CAP1 */ GPIO_TIM2_CH1IN_3
 #define GPIO_TIM2_CH2_IN     /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2IN_2
-#define GPIO_TIM2_CH4_IN     /* PB1   T22C4  FMU_CAP3 */ GPIO_TIM2_CH4IN_2
+#define GPIO_TIM2_CH4_IN     /* PB11  T22C4  FMU_CAP3 */ GPIO_TIM2_CH4IN_2
 
 #define DIRECT_PWM_CAPTURE_CHANNELS  3
+
+/* TIM5_CH4 SPARE PIN */
+#define GPIO_TIM5_CH4IN    /* PI0   T5C4  TIM5_SPARE_4 */	GPIO_TIM5_CH4IN_2
+#define GPIO_TIM5_CH4OUT   /* PI0   T5C4  TIM5_SPARE_4 */   GPIO_TIM5_CH4OUT_2
 
 /* PWM
  *
@@ -517,9 +521,21 @@
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 #define RC_UXART_BASE        STM32_USART6_BASE /* NOT FMUv5 test HW ONLY*/
-#define RC_SERIAL_PORT       "/dev/ttyS4"      /* NOT FMUv5 test HW ONLY*/
 
 #define GPS_DEFAULT_UART_PORT "/dev/ttyS0" /* UART1 on FMUv5 */
+
+/* Input Capture Channels. */
+#define INPUT_CAP1_TIMER          		  2
+#define INPUT_CAP1_CHANNEL     /* T4C1 */ 1
+#define GPIO_INPUT_CAP1        /*  PA5 */ GPIO_TIM2_CH1_IN
+
+#define INPUT_CAP2_TIMER          		  2
+#define INPUT_CAP2_CHANNEL     /* T4C2 */ 2
+#define GPIO_INPUT_CAP2        /*  PB3 */ GPIO_TIM2_CH2_IN
+
+#define INPUT_CAP3_TIMER          		  2
+#define INPUT_CAP3_CHANNEL     /* T4C4 */ 4
+#define GPIO_INPUT_CAP3        /* PB11 */ GPIO_TIM2_CH4_IN
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER          4

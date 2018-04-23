@@ -101,9 +101,6 @@ protected:
 	/* last report */
 	struct baro_report	report;
 
-	/* altitude conversion calibration */
-	unsigned		_msl_pressure;	/* in Pa */
-
 	orb_advert_t		_baro_topic;
 	int			_orb_class_instance;
 
@@ -136,14 +133,12 @@ BAROSIM::BAROSIM(const char *path) :
 	VirtDevObj("BAROSIM", path, BARO_BASE_DEVICE_PATH, BAROSIM_MEASURE_INTERVAL_US),
 	_reports(nullptr),
 	report{},
-	_msl_pressure(101325),
 	_baro_topic(nullptr),
 	_orb_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "barosim_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "barosim_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "barosim_comms_errors"))
 {
-
 }
 
 BAROSIM::~BAROSIM()
@@ -195,6 +190,9 @@ BAROSIM::init()
 		return -ENODEV;
 	}
 
+	/* fill report structures */
+	start();
+
 out:
 	return ret;
 }
@@ -202,27 +200,6 @@ out:
 int
 BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
-	//PX4_WARN("baro IOCTL %" PRIu64 , hrt_absolute_time());
-
-	switch (cmd) {
-
-	case BAROIOCSMSLPRESSURE:
-
-		/* range-check for sanity */
-		if ((arg < 80000) || (arg > 120000)) {
-			return -EINVAL;
-		}
-
-		_msl_pressure = arg;
-		return OK;
-
-	case BAROIOCGMSLPRESSURE:
-		return _msl_pressure;
-
-	default:
-		break;
-	}
-
 	/* give it to the bus-specific superclass */
 	// return bus_ioctl(filp, cmd, arg);
 	return VirtDevObj::devIOCTL(cmd, arg);
@@ -264,7 +241,6 @@ BAROSIM::collect()
 	}
 
 	report.pressure = raw_baro.pressure;
-	report.altitude = raw_baro.altitude;
 	report.temperature = raw_baro.temperature;
 
 	/* fake device ID */

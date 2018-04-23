@@ -80,6 +80,7 @@ set(config_module_list
 	lib/mixer
 	lib/terrain_estimation
 	lib/version
+	lib/FlightTasks
 )
 
 set(config_df_driver_list

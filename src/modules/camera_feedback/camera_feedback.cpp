@@ -93,8 +93,6 @@ int
 CameraFeedback::start()
 {
 
-	ASSERT(_main_task == -1);
-
 	/* start the task */
 	_main_task = px4_task_spawn_cmd("camera_feedback",
 					SCHED_DEFAULT,

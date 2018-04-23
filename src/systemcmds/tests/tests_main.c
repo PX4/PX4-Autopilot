@@ -93,7 +93,9 @@ const struct {
 	/* external tests */
 	{"commander",		commander_tests_main,	0},
 	{"controllib",		controllib_test_main,	0},
+#ifndef __PX4_NUTTX
 	{"mavlink",		mavlink_tests_main,	0},
+#endif
 	{"mc_pos_control",	mc_pos_control_tests_main,	0},
 	{"sf0x",		sf0x_tests_main,	0},
 	{"uorb",		uorb_tests_main,	0},
@@ -126,6 +128,8 @@ const struct {
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"versioning",		test_versioning,	0},
+	{"ctlmath",		test_controlmath, 0},
+	{"smoothz", 	test_smooth_z, 0},
 	{NULL,			NULL, 		0}
 };
 

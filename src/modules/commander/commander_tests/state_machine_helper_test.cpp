@@ -265,7 +265,6 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 				false /* no pre-arm checks */,
 				nullptr /* no mavlink_log_pub */,
 				&status_flags,
-				5.0f, /* avionics rail voltage */
 				(check_gps ? ARM_REQ_GPS_BIT : 0),
 				2e6 /* 2 seconds after boot, everything should be checked */
 				);

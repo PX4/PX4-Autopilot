@@ -90,11 +90,9 @@
 #include "mavlink_main.h"
 #include "mavlink_command_sender.h"
 
-static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
-
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
-	_mission_manager(parent),
+	_mission_manager(nullptr),
 	_parameters_manager(parent),
 	_mavlink_ftp(parent),
 	_mavlink_log_handler(parent),
@@ -158,12 +156,20 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
 	_p_bat_low_thr(param_find("BAT_LOW_THR"))
 {
+	if (_mavlink->get_mode() != Mavlink::MAVLINK_MODE_IRIDIUM) {
+		_mission_manager = new MavlinkMissionManager(parent);
+	}
 }
 
 MavlinkReceiver::~MavlinkReceiver()
 {
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_actuator_armed_sub);
+
+	if (_mission_manager != nullptr) {
+		delete _mission_manager;
+		_mission_manager = nullptr;
+	}
 }
 
 void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result)
@@ -1759,14 +1765,11 @@ MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 	// The interval between two messages is in microseconds.
 	// Set to -1 to disable and 0 to request default rate
 	if (msgId != 0) {
-		for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
-			const StreamListItem *item = streams_list[i];
+		const char *stream_name = get_stream_name(msgId);
 
-			if (msgId == item->get_id()) {
-				_mavlink->configure_stream_threadsafe(item->get_name(), rate);
-				found_id = true;
-				break;
-			}
+		if (stream_name != nullptr) {
+			_mavlink->configure_stream_threadsafe(stream_name, rate);
+			found_id = true;
 		}
 	}
 
@@ -1917,9 +1920,9 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
-		accel.x_raw = imu.xacc / mg2ms2;
-		accel.y_raw = imu.yacc / mg2ms2;
-		accel.z_raw = imu.zacc / mg2ms2;
+		accel.x_raw = imu.xacc / (CONSTANTS_ONE_G / 1000.0f);
+		accel.y_raw = imu.yacc / (CONSTANTS_ONE_G / 1000.0f);
+		accel.z_raw = imu.zacc / (CONSTANTS_ONE_G / 1000.0f);
 		accel.x = imu.xacc;
 		accel.y = imu.yacc;
 		accel.z = imu.zacc;
@@ -1960,7 +1963,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		baro.timestamp = timestamp;
 		baro.pressure = imu.abs_pressure;
-		baro.altitude = imu.pressure_alt;
 		baro.temperature = imu.temperature;
 
 		/* fake device ID */
@@ -2530,7 +2532,9 @@ MavlinkReceiver::receive_thread(void *arg)
 						handle_message(&msg);
 
 						/* handle packet with mission manager */
-						_mission_manager.handle_message(&msg);
+						if (_mission_manager != nullptr) {
+							_mission_manager->handle_message(&msg);
+						}
 
 						/* handle packet with parameter component */
 						_parameters_manager.handle_message(&msg);
@@ -2558,8 +2562,11 @@ MavlinkReceiver::receive_thread(void *arg)
 		hrt_abstime t = hrt_absolute_time();
 
 		if (t - last_send_update > timeout * 1000) {
-			_mission_manager.check_active_mission();
-			_mission_manager.send(t);
+			if (_mission_manager != nullptr) {
+				_mission_manager->check_active_mission();
+				_mission_manager->send(t);
+			}
+
 			_parameters_manager.send(t);
 
 			if (_mavlink->ftp_enabled()) {

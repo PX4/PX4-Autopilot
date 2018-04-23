@@ -44,7 +44,7 @@
  */
 
 #include <px4_config.h>
-
+#include <ecl/geo/geo.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -170,8 +170,6 @@
 
 #define ADIS16448_ACCEL_MAX_OUTPUT_RATE              1221
 #define ADIS16448_GYRO_MAX_OUTPUT_RATE               1221
-
-#define ADIS16448_ONE_G								9.80665f
 
 #define FW_FILTER									false
 
@@ -733,8 +731,8 @@ int ADIS16448::reset()
 	/* Set IMU sample rate */
 	_set_sample_rate(_sample_rate);
 
-	_accel_range_scale = ADIS16448_ONE_G * ACCELINITIALSENSITIVITY;
-	_accel_range_m_s2  = ADIS16448_ONE_G * ACCELDYNAMICRANGE;
+	_accel_range_scale = CONSTANTS_ONE_G * ACCELINITIALSENSITIVITY;
+	_accel_range_m_s2  = CONSTANTS_ONE_G * ACCELDYNAMICRANGE;
 	_mag_range_scale   = MAGINITIALSENSITIVITY;
 	_mag_range_mgauss  = MAGDYNAMICRANGE;
 
@@ -1140,7 +1138,7 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return -EINVAL;
 
 	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / ADIS16448_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 
 	case ACCELIOCSELFTEST:
 		return accel_self_test();

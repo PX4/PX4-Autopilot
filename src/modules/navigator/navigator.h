@@ -277,7 +277,6 @@ private:
 	int		_local_pos_sub{-1};		/**< local position subscription */
 	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
-	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
@@ -294,7 +293,6 @@ private:
 	fw_pos_ctrl_status_s				_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
-	sensor_combined_s				_sensor_combined{};	/**< sensor values */
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
@@ -366,7 +364,6 @@ private:
 	void		home_position_update(bool force = false);
 	void		local_position_update();
 	void		params_update();
-	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
 

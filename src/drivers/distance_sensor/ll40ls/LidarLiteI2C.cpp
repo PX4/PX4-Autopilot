@@ -329,17 +329,26 @@ int LidarLiteI2C::measure()
 }
 
 /*
-  reset the sensor to power on defaults
+  reset the sensor to power on defaults plus additional configurations
  */
 int LidarLiteI2C::reset_sensor()
 {
-	int ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
+	int ret;
+	ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
 
 	if (ret != OK) {
 		return ret;
 	}
 
 	// wait for sensor reset to complete
+	usleep(50000);
+	ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	// wait for register write to complete
 	usleep(1000);
 
 	return OK;

@@ -64,7 +64,7 @@ enum LL40LS_BUS {
 	LL40LS_BUS_PWM
 };
 
-static struct ll40ls_bus_option {
+static constexpr struct ll40ls_bus_option {
 	enum LL40LS_BUS busid;
 	const char *devname;
 	uint8_t busnum;
