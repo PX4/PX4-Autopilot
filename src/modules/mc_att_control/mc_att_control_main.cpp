@@ -704,9 +704,9 @@ MulticopterAttitudeControl::run()
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
 					Vector3f man_rate_sp(
-							math::superexpo(_manual_control_sp.y, _acro_expo.get(), _acro_superexpo.get()),
-							math::superexpo(-_manual_control_sp.x, _acro_expo.get(), _acro_superexpo.get()),
-							math::superexpo(_manual_control_sp.r, _acro_expo.get(), _acro_superexpo.get()));
+							math::superexpo(_manual_control_sp.y, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
+							math::superexpo(-_manual_control_sp.x, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
+							math::superexpo(_manual_control_sp.r, _acro_expo_y.get(), _acro_superexpo_y.get()));
 					_rates_sp = man_rate_sp.emult(_acro_rate_max);
 					_thrust_sp = _manual_control_sp.z;
 
