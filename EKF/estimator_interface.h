@@ -144,13 +144,13 @@ public:
 	virtual bool get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
-	virtual void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning) = 0;
+	virtual void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) = 0;
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf local position
-	virtual void get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning) = 0;
+	virtual void get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) = 0;
 
 	// get the 1-sigma horizontal and vertical velocity uncertainty
-	virtual void get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckoning) = 0;
+	virtual void get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) = 0;
 
 	/*
 	Returns the following vehicle control limits required by the estimator.
