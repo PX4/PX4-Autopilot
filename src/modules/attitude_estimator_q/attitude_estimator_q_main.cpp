@@ -39,6 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#include <cfloat>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/ecl/geo_lookup/geo_mag_declination.h>
@@ -473,6 +474,13 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 
 		param_get(_params_handles.w_acc, &_w_accel);
 		param_get(_params_handles.w_mag, &_w_mag);
+
+		if (_w_mag < FLT_EPSILON) { // if the weight is zero (=mag disabled), make sure the estimator initializes
+			_mag(0) = 1.f;
+			_mag(1) = 0.f;
+			_mag(2) = 0.f;
+		}
+
 		param_get(_params_handles.w_ext_hdg, &_w_ext_hdg);
 		param_get(_params_handles.w_gyro_bias, &_w_gyro_bias);
 
