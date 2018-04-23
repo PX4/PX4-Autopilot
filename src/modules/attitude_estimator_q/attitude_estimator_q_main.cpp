@@ -606,7 +606,16 @@ bool AttitudeEstimatorQ::update(float dt)
 		(_q(0) * _q(0) - _q(1) * _q(1) - _q(2) * _q(2) + _q(3) * _q(3))
 	);
 
-	corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
+	// If we are not using acceleration compensation based on GPS velocity,
+	// fuse accel data only if its norm is close to 1 g (reduces drift).
+	const float accel_norm_sq = _accel.length_squared();
+	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
+	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
+
+	if (_acc_comp || (accel_norm_sq > lower_accel_limit * lower_accel_limit &&
+			  accel_norm_sq < upper_accel_limit * upper_accel_limit)) {
+		corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
+	}
 
 	// Gyro bias estimation
 	if (spinRate < 0.175f) {
