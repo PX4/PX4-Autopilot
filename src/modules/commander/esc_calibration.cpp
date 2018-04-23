@@ -61,13 +61,15 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 
+using namespace time_literals;
+
 int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* armed)
 {
 	int	return_code = PX4_OK;
 	
 #if defined(__PX4_POSIX_OCPOC)
 	hrt_abstime timeout_start = 0;
-	hrt_abstime timeout_wait = 60*1000*1000;
+	hrt_abstime timeout_wait = 60_s;
 	armed->in_esc_calibration_mode = true;
 	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "begin esc");
 	timeout_start = hrt_absolute_time();
@@ -97,8 +99,8 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 	bool	batt_updated = false;
 	bool	batt_connected = true;	// for safety resons assume battery is connected, will be cleared below if not the case
 
-	hrt_abstime battery_connect_wait_timeout = 30*1000*1000;
-	hrt_abstime pwm_high_timeout = 3*1000*1000;
+	hrt_abstime battery_connect_wait_timeout = 3_s;
+	hrt_abstime pwm_high_timeout = 3_s;
 	hrt_abstime timeout_start = 0;
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
@@ -181,7 +183,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 				}
 			}
 		}
-		usleep(50*1000);
+		usleep(50_ms);
 	}
 
 Out:
