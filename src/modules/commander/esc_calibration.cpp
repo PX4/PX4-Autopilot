@@ -114,8 +114,8 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 	// Make sure battery is disconnected
 	if (orb_copy(ORB_ID(battery_status), batt_sub, &battery) == PX4_OK) {
 
-		// battery is not connected if voltage is lower than 3V and we have a recent battery measurement
-		if (battery.voltage_filtered_v < 3.0f && (hrt_absolute_time() - battery.timestamp < 500*1000)) {
+		// battery is not connected if the connected flag is not set and we have a recent battery measurement
+		if (!battery.connected && (hrt_absolute_time() - battery.timestamp < 500_ms)) {
 			batt_connected = false;
 		}
 	}
@@ -175,7 +175,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 			orb_check(batt_sub, &batt_updated);
 			if (batt_updated) {
 				orb_copy(ORB_ID(battery_status), batt_sub, &battery);
-				if (battery.voltage_filtered_v > 3.0f) {
+				if (battery.connected) {
 					// Battery is connected, signal to user and start waiting again
 					batt_connected = true;
 					timeout_start = hrt_absolute_time();
