@@ -161,7 +161,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 		// sit high.
 		hrt_abstime timeout_wait = batt_connected ? pwm_high_timeout : battery_connect_wait_timeout;
 
-		if (hrt_absolute_time() - timeout_start > timeout_wait) {
+		if (hrt_elapsed_time(&timeout_start) > timeout_wait) {
 			if (!batt_connected) {
 				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
 				goto Error;
