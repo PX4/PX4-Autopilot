@@ -584,7 +584,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 
 	if (status.mag_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW ERROR");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW ERROR. Recalibrate compass, then reboot vehicle.");
 		}
 
 		success = false;
@@ -597,7 +597,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	if (fabsf(status.states[13]) > test_limit || fabsf(status.states[14]) > test_limit
 	    || fabsf(status.states[15]) > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS. Recalibrate accelerometer, then reboot vehicle.");
 		}
 
 		success = false;
@@ -610,7 +610,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	if (fabsf(status.states[10]) > test_limit || fabsf(status.states[11]) > test_limit
 	    || fabsf(status.states[12]) > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS. Recalibrate gyroscope, then reboot vehicle.");
 		}
 
 		success = false;
