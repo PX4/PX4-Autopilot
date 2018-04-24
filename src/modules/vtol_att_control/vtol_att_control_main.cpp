@@ -110,6 +110,10 @@ VtolAttitudeControl::VtolAttitudeControl()
 		request_stop();
 	}
 
+	if (_vtol_type == nullptr || !_vtol_type->init()) {
+		request_stop();
+	}
+
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
@@ -132,9 +136,6 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
 	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
 
-	if (!_vtol_type->init()) {
-		request_stop();
-	}
 }
 
 VtolAttitudeControl::~VtolAttitudeControl()
