@@ -587,7 +587,8 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_mission_result_sub(ORB_ID(mission_result)),
 	_global_position_sub(ORB_ID(vehicle_global_position)),
-	_local_position_sub(ORB_ID(vehicle_local_position))
+	_local_position_sub(ORB_ID(vehicle_local_position)),
+	_iridiumsbd_status_sub(ORB_ID(iridiumsbd_status))
 {
 }
 
@@ -1020,10 +1021,17 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	}
 	break;
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
-			// only send the acknowledge from the commander, the command actually is handled by each mavlink instance
-			// only send the acknowledge if the command is received from an external source
-			if (cmd.from_external) {
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			bool hl_exists = false;
+			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				if (_telemetry[i].high_latency) {
+					hl_exists = true;
+				}
+			}
+
+			// if no high latency telemetry exists send a failed acknowledge
+			if (!hl_exists) {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_FAILED;
+				mavlink_log_critical(&mavlink_log_pub, "Control high latency failed, no hl telemetry available");
 			}
 		}
 		break;
@@ -4100,6 +4108,17 @@ void Commander::poll_telemetry_status()
 				_telemetry[i].last_heartbeat = telemetry.heartbeat_time;
 			}
 		}
+
+		// for iridium telemetry use the iridiumsbd_status to update the heartbeat
+		if (_telemetry[i].high_latency) {
+			if (_iridiumsbd_status_sub.update()) {
+				const hrt_abstime isbd_timestamp = _iridiumsbd_status_sub.get().last_heartbeat;
+
+				if (isbd_timestamp > _telemetry[i].last_heartbeat) {
+					_telemetry[i].last_heartbeat = isbd_timestamp;
+				}
+			}
+		}
 	}
 }
 
@@ -4193,21 +4212,6 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			status.high_latency_data_link_active = false;
 			*status_changed = true;
 			mavlink_log_critical(&mavlink_log_pub, "LOW LATENCY DATA LINKS REGAINED, DEACTIVATING HIGH LATENCY LINK");
-
-			vehicle_command_s vehicle_cmd;
-			vehicle_cmd.timestamp = hrt_absolute_time();
-			vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
-			vehicle_cmd.param1 = 0.0f;
-			vehicle_cmd.from_external = false;
-			vehicle_cmd.target_system = status.system_id;
-			vehicle_cmd.target_component = 0;
-
-			if (_vehicle_cmd_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &vehicle_cmd);
-
-			} else {
-				_vehicle_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_cmd);
-			}
 		}
 
 	} else {
@@ -4216,26 +4220,11 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			status.high_latency_data_link_active = true;
 			*status_changed = true;
 
-			vehicle_command_s vehicle_cmd;
-			vehicle_cmd.timestamp = hrt_absolute_time();
-			vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
-			vehicle_cmd.param1 = 1.0f;
-			vehicle_cmd.from_external = false;
-			vehicle_cmd.target_system = status.system_id;
-			vehicle_cmd.target_component = 0;
-
 			// set heartbeat to current time for high latency so that the first message can be transmitted
 			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 				if (_telemetry[i].high_latency) {
 					_telemetry[i].last_heartbeat = hrt_absolute_time();
 				}
-			}
-
-			if (_vehicle_cmd_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &vehicle_cmd);
-
-			} else {
-				_vehicle_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_cmd);
 			}
 
 			if (!status.data_link_lost) {

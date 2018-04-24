@@ -401,8 +401,6 @@ void IridiumSBD::csq_loop(void)
 	VERBOSE_INFO("SIGNAL QUALITY: %d", _signal_quality);
 
 	_new_state = SATCOM_STATE_STANDBY;
-
-	publish_telemetry_status();
 }
 
 void IridiumSBD::sbdsession_loop(void)
@@ -417,7 +415,6 @@ void IridiumSBD::sbdsession_loop(void)
 			PX4_WARN("SBD SESSION: TIMEOUT!");
 			++_failed_sbd_sessions;
 			_new_state = SATCOM_STATE_STANDBY;
-			publish_telemetry_status();
 			pthread_mutex_unlock(&_tx_buf_mutex);
 		}
 
@@ -429,7 +426,6 @@ void IridiumSBD::sbdsession_loop(void)
 
 		++_failed_sbd_sessions;
 		_new_state = SATCOM_STATE_STANDBY;
-		publish_telemetry_status();
 		pthread_mutex_unlock(&_tx_buf_mutex);
 		return;
 	}
@@ -440,7 +436,6 @@ void IridiumSBD::sbdsession_loop(void)
 
 		_new_state = SATCOM_STATE_STANDBY;
 		++_failed_sbd_sessions;
-		publish_telemetry_status();
 		pthread_mutex_unlock(&_tx_buf_mutex);
 		return;
 	}
@@ -510,7 +505,6 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: FAILED (%d)", mo_status);
 	}
 
-	publish_telemetry_status();
 	_new_state = SATCOM_STATE_STANDBY;
 	pthread_mutex_unlock(&_tx_buf_mutex);
 }
@@ -661,7 +655,6 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	if (SATCOM_TX_BUF_LEN - _tx_buf_write_idx - _packet_length < 0) {
 		_tx_buf_write_idx = 0;
 		++_num_tx_buf_reset;
-		publish_telemetry_status();
 	}
 
 	// keep track of the remaining packet length and if the full message is written
@@ -678,8 +671,6 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	_tx_buf_write_idx += buflen;
 	_last_write_time = hrt_absolute_time();
 	_tx_buf_write_pending = true;
-
-	publish_telemetry_status();
 
 	pthread_mutex_unlock(&_tx_buf_mutex);
 
@@ -956,28 +947,6 @@ pollevent_t IridiumSBD::poll_state(struct file *filp)
 	}
 
 	return pollstate;
-}
-
-void IridiumSBD::publish_telemetry_status()
-{
-	// publish telemetry status for logger
-	struct telemetry_status_s tstatus = {};
-
-	tstatus.timestamp = hrt_absolute_time();
-	tstatus.telem_time = tstatus.timestamp;
-	tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
-	tstatus.rssi = _signal_quality;
-	tstatus.txbuf = ceil(100.0f * (float)_tx_buf_write_idx / SATCOM_TX_BUF_LEN);
-	tstatus.heartbeat_time = _last_heartbeat;
-	tstatus.rxerrors = _failed_sbd_sessions;
-
-	if (_telemetry_status_pub == nullptr) {
-		int multi_instance;
-		_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_LOW);
-
-	} else {
-		orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
-	}
 }
 
 void IridiumSBD::publish_iridium_status()

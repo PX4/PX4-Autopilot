@@ -40,7 +40,6 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/iridiumsbd_status.h>
 
 typedef enum {
@@ -255,11 +254,6 @@ private:
 	 */
 	pollevent_t poll_state(struct file *filp);
 
-	/*
-	 * Publish the up to date telemetry status
-	 */
-	void publish_telemetry_status(void);
-
 	void publish_iridium_status(void);
 
 	/**
@@ -306,7 +300,6 @@ private:
 	bool _writing_mavlink_packet = false;
 	uint16_t _packet_length = 0;
 
-	orb_advert_t _telemetry_status_pub = nullptr;
 	orb_advert_t _iridiumsbd_status_pub = nullptr;
 
 	bool _test_pending = false;
