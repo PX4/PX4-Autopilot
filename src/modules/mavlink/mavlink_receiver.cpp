@@ -2408,6 +2408,22 @@ MavlinkReceiver::receive_thread(void *arg)
 	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
 	const int timeout = 10;
 
+	// publish the telemetry status once for the iridium telemetry
+	if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_IRIDIUM) {
+		struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
+
+		tstatus.timestamp = hrt_absolute_time();
+		tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
+
+		if (_telemetry_status_pub == nullptr) {
+			int multi_instance;
+			_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);
+
+		} else {
+			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+		}
+	}
+
 #ifdef __PX4_POSIX
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
 	uint8_t buf[1600 * 5];
