@@ -1008,6 +1008,9 @@ void Ekf2::run()
 		// run the EKF update and output
 		const bool updated = _ekf.update();
 
+		ekf_solution_status soln_status;
+		_ekf.get_ekf_soln_status(&soln_status.value);
+
 		if (updated) {
 
 			// integrate time to monitor time slippage
@@ -1058,8 +1061,8 @@ void Ekf2::run()
 			_ekf.get_position(position);
 			const float lpos_x_prev = lpos.x;
 			const float lpos_y_prev = lpos.y;
-			lpos.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
-			lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
+			lpos.x = position[0];
+			lpos.y = position[1];
 			lpos.z = position[2];
 
 			// Velocity of body origin in local NED frame (m/s)
@@ -1080,10 +1083,10 @@ void Ekf2::run()
 			lpos.az = vel_deriv[2];
 
 			// TODO: better status reporting
-			lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-			lpos.z_valid = !_preflt_vert_fail;
-			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-			lpos.v_z_valid = !_preflt_vert_fail;
+			lpos.xy_valid = soln_status.flags.pos_horiz_rel && _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+			lpos.z_valid = soln_status.flags.pos_vert_abs && !_preflt_vert_fail;
+			lpos.v_xy_valid = soln_status.flags.velocity_horiz && !_preflt_horiz_fail;
+			lpos.v_z_valid = soln_status.flags.velocity_vert && !_preflt_vert_fail;
 
 			// Position of local NED origin in GPS / WGS84 frame
 			map_projection_reference_s ekf_origin;
@@ -1096,8 +1099,8 @@ void Ekf2::run()
 
 			if (ekf_origin_valid && (origin_time > lpos.ref_timestamp)) {
 				lpos.ref_timestamp = origin_time;
-				lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
-				lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
+				lpos.ref_lat = math::degrees(ekf_origin.lat_rad); // Reference point latitude in degrees
+				lpos.ref_lon = math::degrees(ekf_origin.lon_rad); // Reference point longitude in degrees
 			}
 
 			// The rotation of the tangent plane vs. geographical north
@@ -1135,7 +1138,10 @@ void Ekf2::run()
 			}
 
 			// publish vehicle local position data
-			_vehicle_local_position_pub.update();
+			// only publish if something is valid
+			if (lpos.xy_valid || lpos.z_valid || lpos.v_xy_valid || lpos.v_z_valid) {
+				_vehicle_local_position_pub.update();
+			}
 
 			if (_ekf.global_position_is_valid() && !_preflt_fail) {
 				// generate and publish global position data
@@ -1227,7 +1233,7 @@ void Ekf2::run()
 
 		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
 		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
-		_ekf.get_ekf_soln_status(&status.solution_status_flags);
+		status.solution_status_flags = soln_status.value;
 		_ekf.get_imu_vibe_metrics(status.vibe);
 		status.time_slip = _last_time_slip_us / 1e6f;
 		status.nan_flags = 0.0f; // unused
