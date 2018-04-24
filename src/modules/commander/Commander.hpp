@@ -45,6 +45,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -168,13 +169,11 @@ private:
 		bool high_latency = false;
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
-	// publisher
-	orb_advert_t _vehicle_cmd_pub = nullptr;
-
 	// Subscriptions
 	Subscription<mission_result_s>			_mission_result_sub;
 	Subscription<vehicle_global_position_s>		_global_position_sub;
 	Subscription<vehicle_local_position_s>		_local_position_sub;
+	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub;
 };
 
 #endif /* COMMANDER_HPP_ */
