@@ -104,6 +104,8 @@ bool VtolType::init()
 		return false;
 	}
 
+	parameters_update();
+
 	return true;
 
 }
