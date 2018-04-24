@@ -2762,6 +2762,7 @@ protected:
 			msg.y = pos_sp.y;
 			msg.z = pos_sp.z;
 			msg.yaw = pos_sp.yaw;
+			msg.yaw_rate = pos_sp.yawspeed;
 			msg.vx = pos_sp.vx;
 			msg.vy = pos_sp.vy;
 			msg.vz = pos_sp.vz;

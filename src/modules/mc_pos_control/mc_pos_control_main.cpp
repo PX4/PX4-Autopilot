@@ -238,7 +238,7 @@ private:
 
 
 	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
-	PositionControl _control{}; /**< class handling the core PID position controller */
+	PositionControl _control; /**< class handling the core PID position controller */
 
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
 
@@ -301,6 +301,7 @@ private:
 
 	float _min_hagl_limit; /**< minimum continuous height above ground (m) */
 
+	float _takeoff_speed; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
 	uint8_t _z_reset_counter;
@@ -394,6 +395,8 @@ private:
 
 	bool manual_wants_takeoff();
 
+	void update_smooth_takeoff();
+
 	void set_takeoff_velocity(float &vel_sp_z);
 
 	void landdetection_thrust_limit(matrix::Vector3f &thrust_sp);
@@ -403,7 +406,7 @@ private:
 	/**
 	 * Temporary method for flight control compuation
 	 */
-	void updateConstraints(Controller::Constraints &constrains);
+	void updateTiltConstraints(Controller::Constraints &constrains);
 
 	void publish_attitude();
 
@@ -458,6 +461,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_control(this),
 	_manual_direction_change_hysteresis(false),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
@@ -631,6 +635,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
 		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
+
 
 		/* Get parameter values used to fly within optical flow sensor limits */
 		param_t handle = param_find("SENS_FLOW_MINRNG");
@@ -2130,7 +2135,7 @@ void MulticopterPositionControl::control_auto()
 					}
 
 				} else {
-					/* we are more than cruise_speed away from track */
+					/* We are more than cruise speed away from track */
 
 					/* if previous is in front just go directly to previous point */
 					if (previous_in_front) {
@@ -3020,19 +3025,6 @@ MulticopterPositionControl::task_main()
 			_vel_sp_prev = _vel;
 		}
 
-		if (!_in_smooth_takeoff && _vehicle_land_detected.landed && _control_mode.flag_armed &&
-		    (in_auto_takeoff() || manual_wants_takeoff())) {
-			_in_smooth_takeoff = true;
-			// This ramp starts negative and goes to positive later because we want to
-			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
-			_takeoff_vel_limit = -0.5f;
-		}
-
-		else if (!_control_mode.flag_armed) {
-			// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
-			_in_smooth_takeoff = false;
-		}
-
 		/* set triplets to invalid if we just landed */
 		if (_vehicle_land_detected.landed && !was_landed) {
 			_pos_sp_triplet.current.valid = false;
@@ -3068,6 +3060,16 @@ MulticopterPositionControl::task_main()
 				_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
 				break;
 
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+
+				/*TODO: clean up navigation state and commander state, which both share too many equal states */
+				_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+				break;
+
 			default:
 				/* not supported yet */
 				_flight_tasks.switchTask(FlightTaskIndex::None);
@@ -3081,77 +3083,131 @@ MulticopterPositionControl::task_main()
 		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
 
 			_flight_tasks.update();
-
-			/* Get Flighttask setpoints */
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
 
-			/* Get _contstraints depending on flight mode
-			 * This logic will be set by FlightTasks */
+			// structure that replaces global constraints such as tilt,
+			// maximum velocity in z-direction ...
 			Controller::Constraints constraints;
-			updateConstraints(constraints);
+			constraints.vel_max_z_up = NAN; // NAN for not used
 
-			/* For takeoff we adjust the velocity setpoint in the z-direction */
+			// Check for smooth takeoff
+			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && _control_mode.flag_armed) {
+				// Vehicle is still landed and no takeoff was initiated yet.
+				// Adjust for different takeoff cases.
+				// The minimum takeoff altitude needs to be at least 20cm above current position
+				if ((PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2) - 0.2f) ||
+				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < math::min(-_tko_speed.get(), -0.6f))) {
+					// There is a position setpoint above current position or velocity setpoint larger than
+					// takeoff speed. Enable smooth takeoff.
+					_in_smooth_takeoff = true;
+					_takeoff_speed = -0.5f;
+
+				} else {
+					// Default
+					_in_smooth_takeoff = false;
+				}
+			}
+
+
+			// If in smooth takeoff, adjust setpoints based on what is valid:
+			// 1. position setpoint is valid -> go with takeoffspeed to specific altitude
+			// 2. position setpoint not valid but velocity setpoint valid: ramp up velocity
 			if (_in_smooth_takeoff) {
-				/* Adjust velocity setpoint in z if we are in smooth takeoff */
-				set_takeoff_velocity(setpoint.vz);
+				float desired_tko_speed = -setpoint.vz;
+
+				// If there is a valid position setpoint, then set the desired speed to the takeoff speed.
+				if (PX4_ISFINITE(setpoint.z)) {
+					desired_tko_speed =  _tko_speed.get();
+				}
+
+				// Ramp up takeoff speed.
+				_takeoff_speed += desired_tko_speed * _dt / _takeoff_ramp_time.get();
+				_takeoff_speed = math::min(_takeoff_speed,  desired_tko_speed);
+				// Limit the velocity setpoint from the position controller
+				constraints.vel_max_z_up = _takeoff_speed;
+
+			} else {
+				_in_smooth_takeoff = false;
 			}
 
-			/* this logic is only temporary.
-			 * Mode switch related things will be handled within
-			 * Flighttask activate method
-			 */
-			if (_vehicle_status.nav_state
-			    == _vehicle_status.NAVIGATION_STATE_MANUAL) {
-				/* we set triplets to false
-				 * this ensures that when switching to auto, the position
-				 * controller will not use the old triplets but waits until triplets
-				 * have been updated */
-				_mode_auto = false;
-				_pos_sp_triplet.current.valid = false;
-				_pos_sp_triplet.previous.valid = false;
-				_hold_offboard_xy = false;
-				_hold_offboard_z = false;
-
+			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
+			// in pure manual. Otherwise just stay idle.
+			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
+				// Keep throttle low
+				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
+				setpoint.yawspeed = 0.0f;
+				setpoint.yaw = _yaw;
 			}
 
-			// We can only run the control if we're already in-air, have a takeoff setpoint,
-			// or if we're in offboard control.
-			// Otherwise, we should just bail out
-			if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
-				// Keep throttle low while still on ground.
-				set_idle_state();
+			// Update tilt constraints. For now it still requires to know about control mode
+			// TODO: check if it makes sense to have a tilt constraint for landing.
+			updateTiltConstraints(constraints);
 
-			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL ||
-				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL ||
-				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
+			// Update states, setpoints and constraints.
+			_control.updateConstraints(constraints);
+			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
+			_control.updateSetpoint(setpoint);
 
+			// Generate desired thrust and yaw.
+			_control.generateThrustYawSetpoint(_dt);
+			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
 
-				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
-				_control.updateSetpoint(setpoint);
-				_control.updateConstraints(constraints);
-				_control.generateThrustYawSetpoint(_dt);
+			// Check if vehicle is still in smooth takeoff.
+			if (_in_smooth_takeoff) {
+				// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
+				if (PX4_ISFINITE(setpoint.z)) {
+					_in_smooth_takeoff = _pos(2) + 0.2f > setpoint.z;
 
-				/* fill local position, velocity and thrust setpoint */
-				_local_pos_sp.timestamp = hrt_absolute_time();
-				_local_pos_sp.x = _control.getPosSp()(0);
-				_local_pos_sp.y = _control.getPosSp()(1);
-				_local_pos_sp.z = _control.getPosSp()(2);
-				_local_pos_sp.yaw = _control.getYawSetpoint();
-				_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
-				_local_pos_sp.vx = _control.getVelSp()(0);
-				_local_pos_sp.vy = _control.getVelSp()(1);
-				_local_pos_sp.vz = _control.getVelSp()(2);
-				_control.getThrustSetpoint().copyTo(_local_pos_sp.thrust);
-
-				/* We adjust thrust setpoint based on landdetector */
-				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
-				landdetection_thrust_limit(thr_sp); //TODO: only do that if not in pure manual
-
-				_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
-				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
-
+				} else  {
+					_in_smooth_takeoff = _takeoff_speed < -setpoint.vz;
+				}
 			}
 
+			// Adjust thrust setpoint based on landdetector only if the
+			// vehicle is NOT in pure Manual mode.
+			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
+				if (_vehicle_land_detected.ground_contact) {
+					// Set thrust in xy to zero
+					thr_sp(0) = 0.0f;
+					thr_sp(1) = 0.0f;
+					// Reset integral in xy is required because PID-controller does
+					// know about the overwrite and would therefore increase the intragral term
+					_control.resetIntegralXY();
+				}
+
+				if (_vehicle_land_detected.maybe_landed) {
+					// we set thrust to zero
+					// this will help to decide if we are actually landed or not
+					thr_sp.zero();
+					// We need to reset all integral terms otherwise the PID-controller
+					// will end up with wrong integral sums
+					_control.resetIntegralXY();
+					_control.resetIntegralZ();
+				}
+			}
+
+			// Fill local position, velocity and thrust setpoint.
+			_local_pos_sp.timestamp = hrt_absolute_time();
+			_local_pos_sp.x = _control.getPosSp()(0);
+			_local_pos_sp.y = _control.getPosSp()(1);
+			_local_pos_sp.z = _control.getPosSp()(2);
+			_local_pos_sp.yaw = _control.getYawSetpoint();
+			_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
+
+			_local_pos_sp.vx = _control.getVelSp()(0);
+			_local_pos_sp.vy = _control.getVelSp()(1);
+			_local_pos_sp.vz = _control.getVelSp()(2);
+			thr_sp.copyTo(_local_pos_sp.thrust);
+
+			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
+			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
+			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
+			_att_sp.fw_control_yaw = false;
+			_att_sp.disable_mc_yaw_control = false;
+			_att_sp.apply_flaps = false;
+			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+
+			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
 			publish_local_pos_sp();
 			publish_attitude();
 
@@ -3161,6 +3217,8 @@ MulticopterPositionControl::task_main()
 			    _control_mode.flag_control_climb_rate_enabled ||
 			    _control_mode.flag_control_velocity_enabled ||
 			    _control_mode.flag_control_acceleration_enabled) {
+
+				update_smooth_takeoff();
 
 				do_control();
 
@@ -3246,6 +3304,24 @@ MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
 }
 
 void
+MulticopterPositionControl:: update_smooth_takeoff()
+{
+	if (!_in_smooth_takeoff && _vehicle_land_detected.landed
+	    && _control_mode.flag_armed
+	    && (in_auto_takeoff() || manual_wants_takeoff())) {
+		_in_smooth_takeoff = true;
+		// This ramp starts negative and goes to positive later because we want to
+		// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
+		_takeoff_vel_limit = -0.5f;
+	}
+
+	else if (!_control_mode.flag_armed) {
+		// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
+		_in_smooth_takeoff = false;
+	}
+}
+
+void
 MulticopterPositionControl::publish_attitude()
 {
 	/* publish attitude setpoint
@@ -3292,49 +3368,6 @@ MulticopterPositionControl::publish_local_pos_sp()
 }
 
 void
-MulticopterPositionControl::set_idle_state()
-{
-	_local_pos_sp.x = _pos(0);
-	_local_pos_sp.y = _pos(1);
-	_local_pos_sp.z = _pos(2) + 1.0f; //1m into ground when idle
-	_local_pos_sp.vx = 0.0f;
-	_local_pos_sp.vy = 0.0f;
-	_local_pos_sp.vz = 1.0f; //1m/s into ground
-	_local_pos_sp.yaw = _yaw;
-	_local_pos_sp.yawspeed = 0.0f;
-
-	_att_sp.roll_body = 0.0f;
-	_att_sp.pitch_body = 0.0f;
-	_att_sp.yaw_body = _yaw;
-	_att_sp.yaw_sp_move_rate = 0.0f;
-	matrix::Quatf q_sp = matrix::Eulerf(0.0f, 0.0f, _yaw);
-	q_sp.copyTo(_att_sp.q_d);
-	_att_sp.q_d_valid = true; //TODO: check if this flag is used anywhere
-	_att_sp.thrust = 0.0f;
-}
-
-void
-MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
-{
-	/* _contstraints */
-	constraints.tilt_max = NAN; // Default no maximum tilt
-
-	/* Set maximum tilt  */
-	if (!_control_mode.flag_control_manual_enabled
-	    && _pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type
-	    == position_setpoint_s::SETPOINT_TYPE_LAND) {
-
-		/* Auto landing tilt */
-		constraints.tilt_max = _tilt_max_land;
-
-	} else {
-		/* Velocity/acceleration control tilt */
-		constraints.tilt_max = _tilt_max_air;
-	}
-}
-
-void
 MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_sp)
 {
 	if (!in_auto_takeoff() && !manual_wants_takeoff()) {
@@ -3362,6 +3395,27 @@ MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_
 			 */
 			thrust_sp.zero();
 		}
+	}
+}
+
+void
+MulticopterPositionControl::updateTiltConstraints(Controller::Constraints &constraints)
+{
+	/* _contstraints */
+	constraints.tilt_max = NAN; // Default no maximum tilt
+
+	/* Set maximum tilt  */
+	if (!_control_mode.flag_control_manual_enabled
+	    && _pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type
+	    == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+		/* Auto landing tilt */
+		constraints.tilt_max = _tilt_max_land;
+
+	} else {
+		/* Velocity/acceleration control tilt */
+		constraints.tilt_max = _tilt_max_air;
 	}
 }
 

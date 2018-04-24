@@ -47,9 +47,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
-
 #include "../SubscriptionArray.hpp"
-
 
 class FlightTask : public ModuleParams
 {
@@ -134,8 +132,6 @@ protected:
 	 */
 	void _resetSetpoints();
 
-private:
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-
-	bool _evaluateVehiclePosition();
+	bool _evaluateVehicleLocalPosition();
 };

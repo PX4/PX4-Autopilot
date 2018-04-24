@@ -72,6 +72,10 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		_current_task = new (&_task_union.sport) FlightTaskSport();
 		break;
 
+	case FlightTaskIndex::AutoLine:
+		_current_task = new (&_task_union.autoLine) FlightTaskAutoLine();
+		break;
+
 	default:
 		/* invalid task */
 		return -1;
