@@ -462,9 +462,6 @@ int MPU9250::reset_mpu()
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
 
-	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
-	// was 90 Hz, but this ruins quality and does not improve the
-	// system response
 	_set_dlpf_filter(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ);
 
 	// Gyro scale 2000 deg/s ()
@@ -830,14 +827,12 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
-					_set_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
