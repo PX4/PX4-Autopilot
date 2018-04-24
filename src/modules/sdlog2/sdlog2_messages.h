@@ -393,7 +393,6 @@ struct log_WIND_s {
 struct log_EST0_s {
 	float s[12];
 	uint8_t n_states;
-	uint8_t nan_flags;
 	uint16_t fault_flags;
 	uint8_t timeout_flags;
 };
