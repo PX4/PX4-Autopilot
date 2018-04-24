@@ -287,6 +287,8 @@ private:
 		(ParamExtInt<px4::params::EKF2_AID_MASK>)
 		_fusion_mode,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
 		(ParamExtInt<px4::params::EKF2_HGT_MODE>) _vdist_sensor_type,	///< selects the primary source for height data
+		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
+		_valid_timeout_max,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
 
 		// range finder fusion
 		(ParamExtFloat<px4::params::EKF2_RNG_NOISE>) _range_noise,	///< observation noise for range finder measurements (m)
@@ -353,7 +355,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_TAU_POS>)
 		_tau_pos,		///< time constant used by the output position complementary filter (sec)
 
-		// IMU switch on bias paameters
+		// IMU switch on bias parameters
 		(ParamExtFloat<px4::params::EKF2_GBIAS_INIT>) _gyr_bias_init,	///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
 		(ParamExtFloat<px4::params::EKF2_ABIAS_INIT>)
 		_acc_bias_init,	///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
@@ -453,6 +455,7 @@ Ekf2::Ekf2():
 	_requiredVdrift(_params->req_vdrift),
 	_fusion_mode(_params->fusion_mode),
 	_vdist_sensor_type(_params->vdist_sensor_type),
+	_valid_timeout_max(_params->valid_timeout_max),
 	_range_noise(_params->range_noise),
 	_range_noise_scaler(_params->range_noise_scaler),
 	_range_innov_gate(_params->range_innov_gate),
@@ -864,7 +867,7 @@ void Ekf2::run()
 		if (airspeed_updated) {
 			airspeed_s airspeed;
 
-			if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed)) {
+			if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
 				// only set airspeed data if condition for airspeed fusion are met
 				if ((_arspFusionThreshold.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _arspFusionThreshold.get())) {
 
@@ -1114,9 +1117,8 @@ void Ekf2::run()
 
 			lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
 
-			bool dead_reckoning;
-			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
-			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv, &dead_reckoning);
+			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
+			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
 
 			// get state reset information of position and velocity
 			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
@@ -1158,7 +1160,9 @@ void Ekf2::run()
 
 				global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
 
-				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
+				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
+
+				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning();
 
 				global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
 

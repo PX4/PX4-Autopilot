@@ -685,6 +685,8 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
  * @unit sec
  * @reboot_required true
  * @group Commander
+ * @min 1
+ * @max 100
  */
 PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
 
@@ -700,6 +702,8 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
  * @unit sec
  * @reboot_required true
  * @group Commander
+ * @min 1
+ * @max 100
  */
 PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30);
 
@@ -713,6 +717,36 @@ PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
+
+/**
+ * Horizontal position error threshold.
+ *
+ * This is the horizontal position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ *
+ * @unit m
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5);
+
+/**
+ * Vertical position error threshold.
+ *
+ * This is the vertical position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ *
+ * @unit m
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10);
+
+/**
+ * Horizontal velocity error threshold.
+ *
+ * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ *
+ * @unit m
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_VEL_FS_EVH, 1);
 
 /**
  * Next flight UUID
