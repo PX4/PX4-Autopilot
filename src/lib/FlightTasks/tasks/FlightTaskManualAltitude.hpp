@@ -49,13 +49,43 @@ public:
 	virtual ~FlightTaskManualAltitude() = default;
 
 protected:
-	void _updateAltitudeLock(); /**< checks for position lock */
+	/**
+	 *  Check and sets for position lock.
+	 *  If sticks are at center position, the vehicle
+	 *  will exit velocity control and enter position control.
+	 */
+	void _updateAltitudeLock();
+
+	void _respectMinAltitude();
+
+	/**
+	 *
+	 */
 	void _updateSetpoints() override; /**< updates all setpoints */
 	void _scaleSticks() override; /**< scales sticks to velocity in z */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
-					(ParamFloat<px4::params::SENS_FLOW_MINRNG>) SENS_FLOW_MINRNG
+					(ParamFloat<px4::params::SENS_FLOW_MINRNG>) SENS_FLOW_MINRNG,
+					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE
 				       )
+
+private:
+	/**
+	 * Distance to ground during terrain following.
+	 * If user does not demand velocity change in D-direction and the vehcile
+	 * is in terrain-following mode, then height to ground will be locked to
+	 * _dist_to_ground_lock.
+	 */
+	float _dist_to_ground_lock = NAN;
+
+	/**
+	 * Terrain following.
+	 * During terrain following, the position setpoint is adjusted
+	 * such that the distance to ground is kept constant.
+	 * @param apply_brake is true if user wants to break
+	 * @param stopped is true if vehicle has stopped moving in D-direction
+	 */
+	void _terrain_following(bool apply_brake, bool stopped);
 
 };

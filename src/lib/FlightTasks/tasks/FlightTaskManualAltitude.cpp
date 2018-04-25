@@ -56,24 +56,74 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	 * If not locked, altitude setpoint is set to NAN.
 	 */
 
-	/* handle position and altitude hold */
-	const bool apply_brake_z = fabsf(_velocity_setpoint(2)) <= FLT_EPSILON;
-	const bool stopped_z = (MPC_HOLD_MAX_Z.get() < FLT_EPSILON || fabsf(_velocity(2)) < MPC_HOLD_MAX_Z.get());
+	// check if user wants to break
+	const bool apply_brake = fabsf(_velocity_setpoint(2)) <= FLT_EPSILON;
 
-	if (apply_brake_z && stopped_z && !PX4_ISFINITE(_position_setpoint(2))) {
-		_position_setpoint(2) = _position(2);
+	// check if vehicle has stopped
+	const bool stopped = (MPC_HOLD_MAX_Z.get() < FLT_EPSILON || fabsf(_velocity(2)) < MPC_HOLD_MAX_Z.get());
 
-		if ((PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < SENS_FLOW_MINRNG.get())) {
-			// if vehicle wants to keep altitude but is below minimum flow distance,
-			// increase altitude to minimum flow distance
-			_position_setpoint(2) = _position(2) - (SENS_FLOW_MINRNG.get() - _dist_to_bottom);
+	if (MPC_ALT_MODE.get() && PX4_ISFINITE(_dist_to_bottom)) {
+		// terrain following
+		_terrain_following(apply_brake, stopped);
+
+	} else {
+		// altitude based on locale coordinate system
+		_dist_to_ground_lock = NAN; // reset boolean since not used
+
+		if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(2))) {
+			// lock position
+			_position_setpoint(2) = _position(2);
+			// ensure that minimum altitude is respected
+			_respectMinAltitude();
+
+		} else if (!apply_brake) {
+			// user demands velocity change
+			_position_setpoint(2) = NAN;
 		}
-
-	} else if (!apply_brake_z) {
-		_position_setpoint(2) = NAN;
 	}
 }
 
+void FlightTaskManualAltitude::_respectMinAltitude()
+{
+
+	const bool respectAlt = _sub_vehicle_local_position->get().limit_hagl
+				&& PX4_ISFINITE(_dist_to_bottom)
+				&& _dist_to_bottom < SENS_FLOW_MINRNG.get();
+
+	// Height above ground needs to be limited (flow / range-finder)
+	if (respectAlt) {
+		// increase altitude to minimum flow distance
+		_position_setpoint(2) = _position(2)
+					- (SENS_FLOW_MINRNG.get() - _dist_to_bottom);
+	}
+}
+
+void FlightTaskManualAltitude::_terrain_following(bool apply_brake, bool stopped)
+{
+
+	if (apply_brake && stopped && !PX4_ISFINITE(_dist_to_ground_lock)) {
+		// User wants to break and vehicle reached zero velocity. Lock height height to ground.
+
+		// lock position
+		_position_setpoint(2) = _position(2);
+		// ensure that minimum altitude is respected
+		_respectMinAltitude();
+		// lock distance to ground but adjust first for minimum altitude
+		_dist_to_ground_lock = _dist_to_bottom - (_position_setpoint(2) - _position(2));
+
+	} else if (apply_brake && PX4_ISFINITE(_dist_to_ground_lock)) {
+		// vehicle needs to follow terrain
+
+		// difference between the current distance to ground and the desired distance to ground
+		const float delta_distance_to_ground = _dist_to_ground_lock - _dist_to_bottom;
+		// adjust position setpoint for the delta (note: NED frame)
+		_position_setpoint(2) = _position(2) - delta_distance_to_ground;
+
+	} else {
+		// user demands velocity change in D-direction
+		_dist_to_ground_lock = _position_setpoint(2) = NAN;
+	}
+}
 void FlightTaskManualAltitude::_updateSetpoints()
 {
 	FlightTaskManualStabilized::_updateSetpoints(); // get yaw and thrust setpoints
