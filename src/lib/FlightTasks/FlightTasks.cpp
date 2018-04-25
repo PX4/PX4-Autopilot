@@ -25,6 +25,16 @@ const vehicle_local_position_setpoint_s FlightTasks::getPositionSetpoint()
 	}
 }
 
+const vehicle_constraints_s FlightTasks::getConstraints()
+{
+	if (isAnyTaskActive()) {
+		return _current_task->getConstraints();
+
+	} else {
+		return FlightTask::empty_constraints;
+	}
+}
+
 int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 {
 	/* switch to the running task, nothing to do */
