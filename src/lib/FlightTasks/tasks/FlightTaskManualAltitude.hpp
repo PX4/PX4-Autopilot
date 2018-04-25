@@ -49,20 +49,15 @@ public:
 	virtual ~FlightTaskManualAltitude() = default;
 
 protected:
+	void _updateSetpoints() override; /**< updates all setpoints */
+	void _scaleSticks() override; /**< scales sticks to velocity in z */
+
 	/**
 	 *  Check and sets for position lock.
 	 *  If sticks are at center position, the vehicle
 	 *  will exit velocity control and enter position control.
 	 */
 	void _updateAltitudeLock();
-
-	void _respectMinAltitude();
-
-	/**
-	 *
-	 */
-	void _updateSetpoints() override; /**< updates all setpoints */
-	void _scaleSticks() override; /**< scales sticks to velocity in z */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
@@ -88,4 +83,11 @@ private:
 	 */
 	void _terrain_following(bool apply_brake, bool stopped);
 
+	/**
+	 * Minimum Altitude during range sensor operation.
+	 * If a range sensor is used for altitude estimates, for
+	 * best operation a minimum altitude is required. The minimum
+	 * altitude is only enforced during altitude lock.
+	 */
+	void _respectMinAltitude();
 };
