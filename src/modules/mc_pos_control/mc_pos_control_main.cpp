@@ -416,6 +416,8 @@ private:
 
 	void update_takeoff_setpoint(const float &z, const float &vz);
 
+	void limit_thrust_during_landing(matrix::Vector3f &thrust_sepoint);
+
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
@@ -3125,26 +3127,7 @@ MulticopterPositionControl::task_main()
 
 			// Adjust thrust setpoint based on landdetector only if the
 			// vehicle is NOT in pure Manual mode.
-			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
-				if (_vehicle_land_detected.ground_contact) {
-					// Set thrust in xy to zero
-					thr_sp(0) = 0.0f;
-					thr_sp(1) = 0.0f;
-					// Reset integral in xy is required because PID-controller does
-					// know about the overwrite and would therefore increase the intragral term
-					_control.resetIntegralXY();
-				}
-
-				if (_vehicle_land_detected.maybe_landed) {
-					// we set thrust to zero
-					// this will help to decide if we are actually landed or not
-					thr_sp.zero();
-					// We need to reset all integral terms otherwise the PID-controller
-					// will end up with wrong integral sums
-					_control.resetIntegralXY();
-					_control.resetIntegralZ();
-				}
-			}
+			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {limit_thrust_during_landing(thr_sp);}
 
 			// Fill local position, velocity and thrust setpoint.
 			_local_pos_sp.timestamp = hrt_absolute_time();
@@ -3307,6 +3290,28 @@ MulticopterPositionControl::update_takeoff_setpoint(const float &z, const float 
 	}
 }
 
+void
+MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp)
+{
+	if (_vehicle_land_detected.ground_contact) {
+		// Set thrust in xy to zero
+		thr_sp(0) = 0.0f;
+		thr_sp(1) = 0.0f;
+		// Reset integral in xy is required because PID-controller does
+		// know about the overwrite and would therefore increase the intragral term
+		_control.resetIntegralXY();
+	}
+
+	if (_vehicle_land_detected.maybe_landed) {
+		// we set thrust to zero
+		// this will help to decide if we are actually landed or not
+		thr_sp.zero();
+		// We need to reset all integral terms otherwise the PID-controller
+		// will end up with wrong integral sums
+		_control.resetIntegralXY();
+		_control.resetIntegralZ();
+	}
+}
 
 void
 MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
