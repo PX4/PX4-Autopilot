@@ -404,13 +404,17 @@ private:
 	void set_idle_state();
 
 	/**
-	 * Temporary method for flight control compuation
+	 * New methods for flighttask
 	 */
 	void updateTiltConstraints(Controller::Constraints &constrains);
 
 	void publish_attitude();
 
 	void publish_local_pos_sp();
+
+	void check_takeoff_state(const float &z, const float &vz);
+
+	void update_takeoff_setpoint(const float &z, const float &vz);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -3091,45 +3095,11 @@ MulticopterPositionControl::task_main()
 			Controller::Constraints constraints;
 			constraints.vel_max_z_up = NAN; // NAN for not used
 
-			// Check for smooth takeoff
-			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && _control_mode.flag_armed) {
-				// Vehicle is still landed and no takeoff was initiated yet.
-				// Adjust for different takeoff cases.
-				// The minimum takeoff altitude needs to be at least 20cm above current position
-				if ((PX4_ISFINITE(setpoint.z) && setpoint.z  < _pos(2) - 0.2f) ||
-				    (PX4_ISFINITE(setpoint.vz) && setpoint.vz < math::min(-_tko_speed.get(), -0.6f))) {
-					// There is a position setpoint above current position or velocity setpoint larger than
-					// takeoff speed. Enable smooth takeoff.
-					_in_smooth_takeoff = true;
-					_takeoff_speed = -0.5f;
+			check_takeoff_state(setpoint.z, setpoint.vz);
+			update_takeoff_setpoint(setpoint.z, setpoint.vz);
 
-				} else {
-					// Default
-					_in_smooth_takeoff = false;
-				}
-			}
-
-
-			// If in smooth takeoff, adjust setpoints based on what is valid:
-			// 1. position setpoint is valid -> go with takeoffspeed to specific altitude
-			// 2. position setpoint not valid but velocity setpoint valid: ramp up velocity
-			if (_in_smooth_takeoff) {
-				float desired_tko_speed = -setpoint.vz;
-
-				// If there is a valid position setpoint, then set the desired speed to the takeoff speed.
-				if (PX4_ISFINITE(setpoint.z)) {
-					desired_tko_speed =  _tko_speed.get();
-				}
-
-				// Ramp up takeoff speed.
-				_takeoff_speed += desired_tko_speed * _dt / _takeoff_ramp_time.get();
-				_takeoff_speed = math::min(_takeoff_speed,  desired_tko_speed);
-				// Limit the velocity setpoint from the position controller
-				constraints.vel_max_z_up = _takeoff_speed;
-
-			} else {
-				_in_smooth_takeoff = false;
-			}
+			// update vlociy constraints in case of smooth takeoff
+			if (_in_smooth_takeoff) {constraints.vel_max_z_up = _takeoff_speed;};
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
 			// in pure manual. Otherwise just stay idle.
@@ -3293,6 +3263,54 @@ MulticopterPositionControl::task_main()
 
 	_control_task = -1;
 }
+
+void
+MulticopterPositionControl::check_takeoff_state(const float &z, const float &vz)
+{
+	// Check for smooth takeoff
+	if (_vehicle_land_detected.landed && !_in_smooth_takeoff
+	    && _control_mode.flag_armed) {
+		// Vehicle is still landed and no takeoff was initiated yet.
+		// Adjust for different takeoff cases.
+		// The minimum takeoff altitude needs to be at least 20cm above current position
+		if ((PX4_ISFINITE(z) && z < _pos(2) - 0.2f) ||
+		    (PX4_ISFINITE(vz) && vz < math::min(-_tko_speed.get(), -0.6f))) {
+			// There is a position setpoint above current position or velocity setpoint larger than
+			// takeoff speed. Enable smooth takeoff.
+			_in_smooth_takeoff = true;
+			_takeoff_speed = -0.5f;
+
+		} else {
+			// Default
+			_in_smooth_takeoff = false;
+		}
+	}
+}
+
+void
+MulticopterPositionControl::update_takeoff_setpoint(const float &z, const float &vz)
+{
+	// If in smooth takeoff, adjust setpoints based on what is valid:
+	// 1. position setpoint is valid -> go with takeoffspeed to specific altitude
+	// 2. position setpoint not valid but velocity setpoint valid: ramp up velocity
+	if (_in_smooth_takeoff) {
+		float desired_tko_speed = -vz;
+
+		// If there is a valid position setpoint, then set the desired speed to the takeoff speed.
+		if (PX4_ISFINITE(z)) {
+			desired_tko_speed = _tko_speed.get();
+		}
+
+		// Ramp up takeoff speed.
+		_takeoff_speed += desired_tko_speed * _dt / _takeoff_ramp_time.get();
+		_takeoff_speed = math::min(_takeoff_speed, desired_tko_speed);
+		// Limit the velocity setpoint from the position controller
+
+	} else {
+		_in_smooth_takeoff = false;
+	}
+}
+
 
 void
 MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
