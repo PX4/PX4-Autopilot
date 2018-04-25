@@ -3123,17 +3123,6 @@ MulticopterPositionControl::task_main()
 			_control.generateThrustYawSetpoint(_dt);
 			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
 
-			// Check if vehicle is still in smooth takeoff.
-			if (_in_smooth_takeoff) {
-				// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
-				if (PX4_ISFINITE(setpoint.z)) {
-					_in_smooth_takeoff = _pos(2) + 0.2f > setpoint.z;
-
-				} else  {
-					_in_smooth_takeoff = _takeoff_speed < -setpoint.vz;
-				}
-			}
-
 			// Adjust thrust setpoint based on landdetector only if the
 			// vehicle is NOT in pure Manual mode.
 			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
@@ -3304,7 +3293,14 @@ MulticopterPositionControl::update_takeoff_setpoint(const float &z, const float 
 		// Ramp up takeoff speed.
 		_takeoff_speed += desired_tko_speed * _dt / _takeoff_ramp_time.get();
 		_takeoff_speed = math::min(_takeoff_speed, desired_tko_speed);
-		// Limit the velocity setpoint from the position controller
+
+		// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
+		if (PX4_ISFINITE(z)) {
+			_in_smooth_takeoff = _pos(2) + 0.2f > z;
+
+		} else  {
+			_in_smooth_takeoff = _takeoff_speed < -vz;
+		}
 
 	} else {
 		_in_smooth_takeoff = false;
