@@ -94,6 +94,12 @@ public:
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
 	/**
+	 * Get task dependent constraints
+	 * @return setpoint constraints that has to be respected by the position controller
+	 */
+	const vehicle_constraints_s getConstraints();
+
+	/**
 	 * Switch to the next task in the available list (for testing)
 	 * @return true on success, false on error
 	 */
