@@ -177,10 +177,13 @@ bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
 
 void FlightTaskAuto::_evaluateVehicleGlobalPosition()
 {
-	FlightTask::_evaluateVehicleLocalPosition();
-
 	// check if reference has changed and update.
-	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference) {
+	// Only update if reference timestamp has changed AND no valid reference altitude
+	// is available.
+	// TODO: this needs to be revisited and needs a more clear implementation
+	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference &&
+	    (_sub_vehicle_local_position->get().z_global && !PX4_ISFINITE(_reference_altitude))) {
+
 		map_projection_init(&_reference_position,
 				    _sub_vehicle_local_position->get().ref_lat,
 				    _sub_vehicle_local_position->get().ref_lon);
