@@ -41,23 +41,10 @@
 
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_constraints.h>
 #include <px4_module_params.h>
 #pragma once
 
-namespace Controller
-{
-/** Constraints that depends on mode and are lower
- * 	than the global limits.
- * 	tilt_max: Cannot exceed PI/2 radians
- * 	vel_max_z_up: Cannot exceed maximum global velocity upwards
- * @see MPC_TILTMAX_AIR
- * @see MPC_Z_VEL_MAX_DN
- */
-struct Constraints {
-	float tilt_max; /**< maximum tilt always below Pi/2 */
-	float vel_max_z_up; /**< maximum speed upwards always smaller than MPC_VEL_Z_MAX_UP */
-};
-}
 /**
  * 	Core Position-Control for MC.
  * 	This class contains P-controller for position and
@@ -108,7 +95,7 @@ public:
 	 * Set constraints that are stricter than the global limits.
 	 * @param constraints a PositionControl structure with supported constraints
 	 */
-	void updateConstraints(const Controller::Constraints &constraints);
+	void updateConstraints(const vehicle_constraints_s &constraints);
 
 	/**
 	 * Apply P-position and PID-velocity controller that updates the member
@@ -188,7 +175,7 @@ private:
 	float _yaw_sp{}; /**< desired yaw */
 	float _yawspeed_sp{}; /** desired yaw-speed */
 	matrix::Vector3f _thr_int{}; /**< thrust integral term */
-	Controller::Constraints _constraints{}; /**< variable constraints */
+	vehicle_constraints_s _constraints{}; /**< variable constraints */
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
 
 	DEFINE_PARAMETERS(
