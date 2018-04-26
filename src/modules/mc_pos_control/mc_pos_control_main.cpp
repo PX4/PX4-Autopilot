@@ -406,8 +406,6 @@ private:
 	/**
 	 * New methods for flighttask
 	 */
-	void updateTiltConstraints(Controller::Constraints &constrains);
-
 	void publish_attitude();
 
 	void publish_local_pos_sp();
@@ -3091,17 +3089,13 @@ MulticopterPositionControl::task_main()
 
 			_flight_tasks.update();
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
-
-			// structure that replaces global constraints such as tilt,
-			// maximum velocity in z-direction ...
-			Controller::Constraints constraints;
-			constraints.vel_max_z_up = NAN; // NAN for not used
+			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 
 			check_takeoff_state(setpoint.z, setpoint.vz);
 			update_takeoff_setpoint(setpoint.z, setpoint.vz);
 
-			// update vlociy constraints in case of smooth takeoff
-			if (_in_smooth_takeoff) {constraints.vel_max_z_up = _takeoff_speed;};
+			// update vlocity constraints in case of smooth takeoff
+			if (_in_smooth_takeoff) {constraints.speed_up = _tko_speed.get();};
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
 			// in pure manual. Otherwise just stay idle.
@@ -3111,10 +3105,6 @@ MulticopterPositionControl::task_main()
 				setpoint.yawspeed = 0.0f;
 				setpoint.yaw = _yaw;
 			}
-
-			// Update tilt constraints. For now it still requires to know about control mode
-			// TODO: check if it makes sense to have a tilt constraint for landing.
-			updateTiltConstraints(constraints);
 
 			// Update states, setpoints and constraints.
 			_control.updateConstraints(constraints);
@@ -3415,27 +3405,6 @@ MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_
 			 */
 			thrust_sp.zero();
 		}
-	}
-}
-
-void
-MulticopterPositionControl::updateTiltConstraints(Controller::Constraints &constraints)
-{
-	/* _contstraints */
-	constraints.tilt_max = NAN; // Default no maximum tilt
-
-	/* Set maximum tilt  */
-	if (!_control_mode.flag_control_manual_enabled
-	    && _pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type
-	    == position_setpoint_s::SETPOINT_TYPE_LAND) {
-
-		/* Auto landing tilt */
-		constraints.tilt_max = _tilt_max_land;
-
-	} else {
-		/* Velocity/acceleration control tilt */
-		constraints.tilt_max = _tilt_max_air;
 	}
 }
 
