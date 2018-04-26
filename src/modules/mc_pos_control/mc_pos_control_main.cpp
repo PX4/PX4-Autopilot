@@ -2970,86 +2970,8 @@ MulticopterPositionControl::task_main()
 		/* set dt for control blocks */
 		setDt(dt);
 
-		/* set default max velocity in xy to vel_max
-		 * Apply estimator limits if applicable */
-		if (_local_pos.vxy_max > 0.001f) {
-			// use the minimum of the estimator and user specified limit
-			_vel_max_xy = fminf(_vel_max_xy_param.get(), _local_pos.vxy_max);
-			// Allow for a minimum of 0.3 m/s for repositioning
-			_vel_max_xy = fmaxf(_vel_max_xy, 0.3f);
-
-		} else if (_vel_sp_significant) {
-			// raise the limit at a constant rate up to the user specified value
-			if (_vel_max_xy >= _vel_max_xy_param.get()) {
-				_vel_max_xy = _vel_max_xy_param.get();
-
-			} else {
-				_vel_max_xy += dt * _acc_max_flow_xy.get();
-			}
-		}
-
-		/* reset flags when landed */
-		if (_vehicle_land_detected.landed) {
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
-			_do_reset_alt_pos_flag = true;
-			_mode_auto = false;
-			_pos_hold_engaged = false;
-			_alt_hold_engaged = false;
-			_run_pos_control = true;
-			_run_alt_control = true;
-			_reset_int_z = true;
-			_reset_int_xy = true;
-			_reset_yaw_sp = true;
-			_hold_offboard_xy = false;
-			_hold_offboard_z = false;
-			_in_landing = false;
-			_lnd_reached_ground = false;
-
-			/* also reset previous setpoints */
-			_yaw_takeoff = _yaw;
-			_vel_sp_prev.zero();
-			_vel_prev.zero();
-
-			/* make sure attitude setpoint output "disables" attitude control
-			 * TODO: we need a defined setpoint to do this properly especially when adjusting the mixer */
-			_att_sp.thrust = 0.0f;
-			_att_sp.timestamp = hrt_absolute_time();
-
-			/* reset velocity limit */
-			_vel_max_xy = _vel_max_xy_param.get();
-		}
-
-		/* reset setpoints and integrators VTOL in FW mode */
-		if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
-			_reset_alt_sp = true;
-			_reset_int_xy = true;
-			_reset_int_z = true;
-			_reset_pos_sp = true;
-			_reset_yaw_sp = true;
-			_vel_sp_prev = _vel;
-		}
-
-		/* set triplets to invalid if we just landed */
-		if (_vehicle_land_detected.landed && !was_landed) {
-			_pos_sp_triplet.current.valid = false;
-		}
-
-		was_landed = _vehicle_land_detected.landed;
-
-		update_ref();
-
 		update_velocity_derivative();
 
-		// reset the horizontal and vertical position hold flags for non-manual modes
-		// or if position / altitude is not controlled
-		if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
-			_pos_hold_engaged = false;
-		}
-
-		if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
-			_alt_hold_engaged = false;
-		}
 
 		if (_test_flight_tasks.get()) {
 			switch (_vehicle_status.nav_state) {
@@ -3145,6 +3067,88 @@ MulticopterPositionControl::task_main()
 			publish_attitude();
 
 		} else {
+
+			/* set default max velocity in xy to vel_max
+			 * Apply estimator limits if applicable */
+			if (_local_pos.vxy_max > 0.001f) {
+				// use the minimum of the estimator and user specified limit
+				_vel_max_xy = fminf(_vel_max_xy_param.get(), _local_pos.vxy_max);
+				// Allow for a minimum of 0.3 m/s for repositioning
+				_vel_max_xy = fmaxf(_vel_max_xy, 0.3f);
+
+			} else if (_vel_sp_significant) {
+				// raise the limit at a constant rate up to the user specified value
+				if (_vel_max_xy >= _vel_max_xy_param.get()) {
+					_vel_max_xy = _vel_max_xy_param.get();
+
+				} else {
+					_vel_max_xy += dt * _acc_max_flow_xy.get();
+				}
+			}
+
+			/* reset flags when landed */
+			if (_vehicle_land_detected.landed) {
+				_reset_pos_sp = true;
+				_reset_alt_sp = true;
+				_do_reset_alt_pos_flag = true;
+				_mode_auto = false;
+				_pos_hold_engaged = false;
+				_alt_hold_engaged = false;
+				_run_pos_control = true;
+				_run_alt_control = true;
+				_reset_int_z = true;
+				_reset_int_xy = true;
+				_reset_yaw_sp = true;
+				_hold_offboard_xy = false;
+				_hold_offboard_z = false;
+				_in_landing = false;
+				_lnd_reached_ground = false;
+
+				/* also reset previous setpoints */
+				_yaw_takeoff = _yaw;
+				_vel_sp_prev.zero();
+				_vel_prev.zero();
+
+				/* make sure attitude setpoint output "disables" attitude control
+				 * TODO: we need a defined setpoint to do this properly especially when adjusting the mixer */
+				_att_sp.thrust = 0.0f;
+				_att_sp.timestamp = hrt_absolute_time();
+
+				/* reset velocity limit */
+				_vel_max_xy = _vel_max_xy_param.get();
+			}
+
+			/* reset setpoints and integrators VTOL in FW mode */
+			if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
+				_reset_alt_sp = true;
+				_reset_int_xy = true;
+				_reset_int_z = true;
+				_reset_pos_sp = true;
+				_reset_yaw_sp = true;
+				_vel_sp_prev = _vel;
+			}
+
+			/* set triplets to invalid if we just landed */
+			if (_vehicle_land_detected.landed && !was_landed) {
+				_pos_sp_triplet.current.valid = false;
+			}
+
+			was_landed = _vehicle_land_detected.landed;
+
+			update_ref();
+
+			// reset the horizontal and vertical position hold flags for non-manual modes
+			// or if position / altitude is not controlled
+			if (!_control_mode.flag_control_position_enabled
+			    || !_control_mode.flag_control_manual_enabled) {
+				_pos_hold_engaged = false;
+			}
+
+			if (!_control_mode.flag_control_altitude_enabled
+			    || !_control_mode.flag_control_manual_enabled) {
+				_alt_hold_engaged = false;
+			}
+
 			if (_control_mode.flag_control_altitude_enabled ||
 			    _control_mode.flag_control_position_enabled ||
 			    _control_mode.flag_control_climb_rate_enabled ||
