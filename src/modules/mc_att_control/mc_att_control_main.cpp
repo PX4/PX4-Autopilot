@@ -61,7 +61,7 @@
 #define AXIS_COUNT 3
 
 using namespace matrix;
-
+using namespace time_literals;
 
 int MulticopterAttitudeControl::print_usage(const char *reason)
 {
@@ -279,13 +279,14 @@ MulticopterAttitudeControl::vehicle_status_poll()
 
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (_rates_sp_id == nullptr) {
-			if (_vehicle_status.is_vtol) {
-				_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
-				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
-
-			} else {
-				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
-				_actuators_id = ORB_ID(actuator_controls_0);
+			if (hrt_elapsed_time(&_vehicle_status.timestamp) < 1_s) {
+				if (_vehicle_status.is_vtol) {
+					_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
+					_actuators_id = ORB_ID(actuator_controls_virtual_mc);
+				} else {
+					_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
+					_actuators_id = ORB_ID(actuator_controls_0);
+				}
 			}
 		}
 	}

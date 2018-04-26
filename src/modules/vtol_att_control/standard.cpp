@@ -70,10 +70,6 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
 }
 
-Standard::~Standard()
-{
-}
-
 void
 Standard::parameters_update()
 {
@@ -125,26 +121,23 @@ void Standard::update_vtol_state()
 		// the transition to fw mode switch is off
 		if (_vtol_schedule.flight_mode == MC_MODE) {
 			// in mc mode
-			_vtol_schedule.flight_mode = MC_MODE;
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// transition to mc mode
-			if (_vtol_vehicle_status->vtol_transition_failsafe == true) {
+			if (_vtol_vehicle_status.vtol_transition_failsafe) {
 				// Failsafe event, engage mc motors immediately
 				_vtol_schedule.flight_mode = MC_MODE;
 				_pusher_throttle = 0.0f;
 				_reverse_output = 0.0f;
-
 
 			} else {
 				// Regular backtransition
 				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
 				_vtol_schedule.transition_start = hrt_absolute_time();
 				_reverse_output = _params_standard.reverse_output;
-
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
@@ -165,9 +158,11 @@ void Standard::update_vtol_state()
 
 			if (time_since_trans_start > _params->back_trans_duration ||
 			    (_local_pos->v_xy_valid && x_vel <= _params->mpc_xy_cruise)) {
-				_vtol_schedule.flight_mode = MC_MODE;
-			}
 
+				_vtol_schedule.flight_mode = MC_MODE;
+
+				PX4_DEBUG("Transition to MC completed in %.3f", (double)time_since_trans_start);
+			}
 		}
 
 	} else {
@@ -195,8 +190,9 @@ void Standard::update_vtol_state()
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
-			}
 
+				PX4_DEBUG("Transition to FW completed in %.3f", (double)time_since_trans_start);
+			}
 		}
 	}
 
@@ -323,7 +319,7 @@ void Standard::update_mc_state()
 
 	// Do not engage pusher assist during a failsafe event
 	// There could be a problem with the fixed wing drive
-	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
+	if (_attc->get_vtol_vehicle_status().vtol_transition_failsafe) {
 		return;
 	}
 
@@ -386,11 +382,6 @@ void Standard::update_mc_state()
 
 }
 
-void Standard::update_fw_state()
-{
-	VtolType::update_fw_state();
-}
-
 /**
  * Prepare message to acutators with data from mc and fw attitude controllers. An mc attitude weighting will determine
  * what proportion of control should be applied to each of the control groups (mc and fw).
@@ -398,7 +389,7 @@ void Standard::update_fw_state()
 void Standard::fill_actuator_outputs()
 {
 	// multirotor controls
-	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
+	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 
 	// roll
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
@@ -415,7 +406,7 @@ void Standard::fill_actuator_outputs()
 
 
 	// fixed wing controls
-	_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
+	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
 	if (_vtol_schedule.flight_mode != MC_MODE) {
 		// roll

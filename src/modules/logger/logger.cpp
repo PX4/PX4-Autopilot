@@ -626,7 +626,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_status_flags");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
-	add_topic("vtol_vehicle_status", 200);
+	add_topic("vtol_vehicle_status");
 	add_topic("wind_estimate", 200);
 
 #ifdef CONFIG_ARCH_BOARD_SITL

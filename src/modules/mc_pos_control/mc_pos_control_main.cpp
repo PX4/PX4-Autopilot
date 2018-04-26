@@ -80,6 +80,8 @@
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
 
+using namespace time_literals;
+
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
 /**
@@ -656,11 +658,13 @@ MulticopterPositionControl::poll_subscriptions()
 
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_attitude_setpoint_id) {
-			if (_vehicle_status.is_vtol) {
-				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
+			if (hrt_elapsed_time(&_vehicle_status.timestamp) < 1_s) {
+				if (_vehicle_status.is_vtol) {
+					_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
 
-			} else {
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				} else {
+					_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				}
 			}
 		}
 	}

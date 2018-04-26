@@ -436,23 +436,15 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "transition")) {
 
-		struct vehicle_command_s cmd = {
-			.timestamp = 0,
-			.param5 = NAN,
-			.param6 = NAN,
-			/* transition to the other mode */
-			.param1 = (float)((status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
-			.param2 = NAN,
-			.param3 = NAN,
-			.param4 = NAN,
-			.param7 = NAN,
-			.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
-			.target_system = status.system_id,
-			.target_component = status.component_id
-		};
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
+		vcmd.param1 = (float)((status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+		vcmd.target_system = status.system_id;
+		vcmd.target_component = status.component_id;
 
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
+		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		orb_unadvertise(h);
 
 		return 0;
 	}
@@ -1349,9 +1341,6 @@ Commander::run()
 
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
-	//struct vtol_vehicle_status_s vtol_status;
-	memset(&vtol_status, 0, sizeof(vtol_status));
-	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
 	/* subscribe to estimator status topic */
 	int estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
@@ -1488,15 +1477,6 @@ Commander::run()
 					status.system_type = (uint8_t)system_type;
 				}
 
-				/* disable manual override for all systems that rely on electronic stabilization */
-				if (is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode)) {
-					status.is_rotary_wing = true;
-
-				} else {
-					status.is_rotary_wing = false;
-				}
-
-				/* set vehicle_status.is_vtol flag */
 				status.is_vtol = is_vtol(&status);
 
 				/* check and update system / component ID */
@@ -1586,7 +1566,34 @@ Commander::run()
 		orb_check(sp_man_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
+			if (orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man) == PX4_OK) {
+
+				// VTOL transition switch
+				if ((sp_man.transition_switch != _last_sp_man.transition_switch) &&
+					(sp_man.transition_switch != manual_control_setpoint_s::SWITCH_POS_NONE) &&
+					control_mode.flag_control_manual_enabled) {
+
+					uint8_t vtol_new_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+					if (sp_man.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+						vtol_new_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+					} else if (sp_man.transition_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+						vtol_new_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+					}
+
+					if (vtol_new_state != vtol_status.vtol_state) {
+						vehicle_command_s vcmd = {};
+						vcmd.timestamp = hrt_absolute_time();
+						vcmd.param1 = vtol_new_state;
+						vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
+						vcmd.target_system = status.system_id;
+						vcmd.target_component = status.component_id;
+
+						orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+						orb_unadvertise(h);
+					}
+				}
+			}
 		}
 
 		orb_check(offboard_control_mode_sub, &updated);
@@ -1699,31 +1706,27 @@ Commander::run()
 		orb_check(vtol_vehicle_status_sub, &updated);
 
 		if (updated) {
-			/* vtol status changed */
-			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
-			status.vtol_fw_permanent_stab = vtol_status.fw_permanent_stab;
+			const uint8_t prev_vtol_state = vtol_status.vtol_state;
+			if (orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status) == PX4_OK) {
 
-			/* Make sure that this is only adjusted if vehicle really is of type vtol */
-			if (is_vtol(&status)) {
+				status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
 
-				// Check if there has been any change while updating the flags
-				if (status.is_rotary_wing != vtol_status.vtol_in_rw_mode) {
-					status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
-					status_changed = true;
+				status.is_rotary_wing = true;
+				status.in_transition_mode = false;
+
+				switch (vtol_status.vtol_state) {
+				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW:
+				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC:
+					status.in_transition_mode = true;
+					break;
+				case vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW:
+					status.is_rotary_wing = false;
+					break;
+				default:
+					break;
 				}
 
-				if (status.in_transition_mode != vtol_status.vtol_in_trans_mode) {
-					status.in_transition_mode = vtol_status.vtol_in_trans_mode;
-					status_changed = true;
-				}
-
-				if (status.in_transition_to_fw != vtol_status.in_transition_to_fw) {
-					status.in_transition_to_fw = vtol_status.in_transition_to_fw;
-					status_changed = true;
-				}
-
-				if (status_flags.vtol_transition_failure != vtol_status.vtol_transition_failsafe) {
-					status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
+				if (vtol_status.vtol_state != prev_vtol_state) {
 					status_changed = true;
 				}
 
@@ -2962,6 +2965,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		 (_last_sp_man.rattitude_switch == sp_man.rattitude_switch) &&
 		 (_last_sp_man.posctl_switch == sp_man.posctl_switch) &&
 		 (_last_sp_man.loiter_switch == sp_man.loiter_switch) &&
+		 (_last_sp_man.transition_switch == sp_man.transition_switch) &&
 		 (_last_sp_man.mode_slot == sp_man.mode_slot) &&
 		 (_last_sp_man.stab_switch == sp_man.stab_switch) &&
 		 (_last_sp_man.man_switch == sp_man.man_switch)))) {
@@ -3605,9 +3609,9 @@ bool
 stabilization_required()
 {
 	return (status.is_rotary_wing ||		// is a rotary wing, or
-		status.vtol_fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
-		(vtol_status.vtol_in_trans_mode && 	// is currently a VTOL transitioning AND
-		 !status.is_rotary_wing));	// is a fixed wing, ie: transitioning back to rotary wing mode
+		vtol_status.fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
+		(status.in_transition_mode && 		// is currently a VTOL transitioning AND
+		 !status.is_rotary_wing));		// is a fixed wing, ie: transitioning back to rotary wing mode
 }
 
 void
