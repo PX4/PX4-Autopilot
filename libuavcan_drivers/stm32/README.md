@@ -1,5 +1,5 @@
-STM32 platform drivers
-======================
+STM32 platform driver
+=====================
 
 The directory `driver` contains the STM32 platform driver for Libuavcan.
 
