@@ -104,8 +104,6 @@ then
 	param set EKF2_GPS_POS_X -0.12
 	param set EKF2_IMU_POS_X -0.12
 	param set EKF2_TAU_VEL 0.5
-
-	param set SYS_COMPANION 57600
 fi
 
 set MIXER deltaquad
@@ -122,3 +120,7 @@ set PWM_AUX_OUT 12345
 set PWM_AUX_DISARMED 950
 
 set MAV_TYPE 22
+
+set MAVLINK_DEVICE_2            "/dev/ttyS2"
+set MAVLINK_DEVICE_2_ARGS       "-m onboard -r 5000 -x -f"
+set MAVLINK_DEVICE_2_BAUD       "57600"

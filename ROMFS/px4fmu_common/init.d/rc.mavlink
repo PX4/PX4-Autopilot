@@ -15,6 +15,13 @@
 #
 # NOTE: Normal mode uses baud rate of 57600 (default) and data rate of 1000 bytes/s.
 #
+#NOTE: To utilize this startup script, set mavlink device stream settings in the
+#       respective airframe file as shown here:
+#
+#	set MAVLINK_DEVICE_2            "/dev/ttyS2"
+#	set MAVLINK_DEVICE_2_ARGS       "-m onboard -r 10000 -x -f"
+#	set MAVLINK_DEVICE_2_BAUD       "1500000"
+#
 
 echo "Executing rc.mavlink"
 
@@ -84,23 +91,6 @@ then
 	frsky_telemetry start -d ${MAVLINK_DEVICE_2}
 fi
 
-if param compare SYS_COMPANION 20
-then
-	set MAVLINK_DEVICE_2            "/dev/bridge0"
-	set MAVLINK_DEVICE_2_ARGS       "-m osd -r 40000"
-	set MAVLINK_DEVICE_2_BAUD       "57600"
-
-	syslink start
-fi
-
-# 19200 Baud Rate
-if param compare SYS_COMPANION 319200
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-r 1000 -f"
-	set MAVLINK_DEVICE_2_BAUD       "19200"
-fi
-
 if param compare SYS_COMPANION 419200
 then
 	// TODO: this should all be relocated with the airframe specific configuration file it was originally authored to service.
@@ -110,110 +100,6 @@ then
 
 	iridiumsbd start -d /dev/ttyS2
 fi
-
-if param compare SYS_COMPANION 519200
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m minimal -r 1000"
-	set MAVLINK_DEVICE_2_BAUD       "19200"
-fi
-
-# 38400 Baud Rate
-if param compare SYS_COMPANION 338400
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-r 1000 -f"
-	set MAVLINK_DEVICE_2_BAUD       "38400"
-fi
-
-if param compare SYS_COMPANION 538400
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m minimal -r 1000"
-	set MAVLINK_DEVICE_2_BAUD       "38400"
-fi
-
-# 57600 Baud Rate
-if param compare SYS_COMPANION 57600
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m onboard -r 5000 -x -f"
-	set MAVLINK_DEVICE_2_BAUD       "57600"
-fi
-
-if param compare SYS_COMPANION 157600
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m osd -r 1000"
-	set MAVLINK_DEVICE_2_BAUD       "57600"
-fi
-
-if param compare SYS_COMPANION 257600
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m magic -r 5000 -x -f"
-	set MAVLINK_DEVICE_2_BAUD       "57600"
-fi
-
-if param compare SYS_COMPANION 357600
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-r 1000 -f"
-	set MAVLINK_DEVICE_2_BAUD       "57600"
-fi
-
-if param compare SYS_COMPANION 557600
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m minimal -r 1000"
-	set MAVLINK_DEVICE_2_BAUD       "57600"
-fi
-
-if param compare SYS_COMPANION 3115200
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-r 1000 -f"
-	set MAVLINK_DEVICE_2_BAUD       "115200"
-fi
-
-if param compare SYS_COMPANION 5115200
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m minimal -r 1000"
-	set MAVLINK_DEVICE_2_BAUD       "115200"
-fi
-
-# 460800 Baud Rate
-if param compare SYS_COMPANION 460800
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m onboard -r 5000 -x -f"
-	set MAVLINK_DEVICE_2_BAUD       "460800"
-fi
-
-# 921600 Buad Rate
-if param compare SYS_COMPANION 921600
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m onboard -r 80000 -x -f"
-	set MAVLINK_DEVICE_2_BAUD       "921600"
-fi
-
-if param compare SYS_COMPANION 1921600
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-r 20000"
-	set MAVLINK_DEVICE_2_BAUD       "921600"
-fi
-
-# 1500000 Baud Rate
-if param compare SYS_COMPANION 1500000
-then
-	set MAVLINK_DEVICE_2            "/dev/ttyS2"
-	set MAVLINK_DEVICE_2_ARGS       "-m onboard -r 10000 -x -f"
-	set MAVLINK_DEVICE_2_BAUD       "1500000"
-fi
-
 
 #
 # Start Mavlink Device 0
