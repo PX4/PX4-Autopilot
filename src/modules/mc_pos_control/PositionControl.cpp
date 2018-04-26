@@ -163,11 +163,11 @@ void PositionControl::_positionController()
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
 	Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(&vel_sp_position(0)),
-			     Vector2f(&(_vel_sp - vel_sp_position)(0)), MPC_XY_VEL_MAX.get());
+			     Vector2f(&(_vel_sp - vel_sp_position)(0)), _constraints.speed_xy);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.vel_max_z_up, MPC_Z_VEL_MAX_DN.get());
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.speed_up, _constraints.speed_down);
 }
 
 void PositionControl::_velocityController(const float &dt)
@@ -222,7 +222,7 @@ void PositionControl::_velocityController(const float &dt)
 	if (fabsf(_thr_sp(0)) + fabsf(_thr_sp(1))  > FLT_EPSILON) {
 		// Thrust set-point in NE-direction is already provided. Only
 		// scaling by the maximum tilt is required.
-		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(MPC_MAN_TILT_MAX_rad.get());
+		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
 		_thr_sp(0) *= thr_xy_max;
 		_thr_sp(1) *= thr_xy_max;
 
@@ -233,7 +233,7 @@ void PositionControl::_velocityController(const float &dt)
 		thrust_desired_NE(1) = MPC_XY_VEL_P.get() * vel_err(1) + MPC_XY_VEL_D.get() * _vel_dot(1) + _thr_int(1);
 
 		// Get maximum allowed thrust in NE based on tilt and excess thrust.
-		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt_max);
+		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
 		float thrust_max_NE = sqrtf(MPC_THR_MAX.get() * MPC_THR_MAX.get() - _thr_sp(2) * _thr_sp(2));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
@@ -262,19 +262,28 @@ void PositionControl::_velocityController(const float &dt)
 	}
 }
 
-void PositionControl::updateConstraints(const Controller::Constraints &constraints)
+void PositionControl::updateConstraints(const vehicle_constraints_s &constraints)
 {
 	_constraints = constraints;
 
-	// Check if adjustable constraints are below global constraints. If they are not stricter than global
+	// For safety check if adjustable constraints are below global constraints. If they are not stricter than global
 	// constraints, then just use global constraints for the limits.
 
-	if (!PX4_ISFINITE(constraints.tilt_max) || !(constraints.tilt_max < MPC_TILTMAX_AIR_rad.get())) {
-		_constraints.tilt_max = MPC_TILTMAX_AIR_rad.get();
+	if (!PX4_ISFINITE(constraints.tilt)
+	    || !(constraints.tilt < math::max(MPC_TILTMAX_AIR_rad.get(), MPC_MAN_TILT_MAX_rad.get()))) {
+		_constraints.tilt = math::max(MPC_TILTMAX_AIR_rad.get(), MPC_MAN_TILT_MAX_rad.get());
 	}
 
-	if (!PX4_ISFINITE(constraints.vel_max_z_up) || !(constraints.vel_max_z_up < MPC_Z_VEL_MAX_UP.get())) {
-		_constraints.vel_max_z_up = MPC_Z_VEL_MAX_UP.get();
+	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < MPC_Z_VEL_MAX_UP.get())) {
+		_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
+	}
+
+	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < MPC_Z_VEL_MAX_DN.get())) {
+		_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
+	}
+
+	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < MPC_XY_VEL_MAX.get())) {
+		_constraints.speed_xy = MPC_XY_VEL_MAX.get();
 	}
 }
 
