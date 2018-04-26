@@ -49,8 +49,6 @@
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
-	_flight_mode = MC_MODE;
-
 	_params_handles_standard.pusher_ramp_dt = param_find("VT_PSHER_RMP_DT");
 	_params_handles_standard.back_trans_ramp = param_find("VT_B_TRANS_RAMP");
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");

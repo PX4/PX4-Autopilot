@@ -88,7 +88,7 @@ private:
 	};
 
 
-	vtol_mode _flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
+	vtol_mode _flight_mode = MC_MODE;		/**< vtol flight mode, defined by enum vtol_mode */
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 

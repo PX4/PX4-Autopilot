@@ -93,7 +93,7 @@ private:
 	};
 
 
-	vtol_mode _flight_mode;			// indicates in which mode the vehicle is in
+	vtol_mode _flight_mode = MC_MODE;		/**< vtol flight mode, defined by enum vtol_mode */
 
 
 	float _pusher_throttle = 0.0f;

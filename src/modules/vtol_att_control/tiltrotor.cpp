@@ -47,8 +47,6 @@
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
-	_flight_mode = MC_MODE;
-
 	_params_handles_tiltrotor.tilt_mc = param_find("VT_TILT_MC");
 	_params_handles_tiltrotor.tilt_transition = param_find("VT_TILT_TRANS");
 	_params_handles_tiltrotor.tilt_fw = param_find("VT_TILT_FW");
