@@ -52,6 +52,7 @@ void FlightTaskManualPositionSmooth::_updateSetpoints()
 	/* Smooth velocity setpoint in xy.*/
 	matrix::Vector2f vel(&_velocity(0));
 	Vector2f vel_sp_xy = Vector2f(&_velocity_setpoint(0));
+	_smoothingXY.updateMaxVelocity(_constraints.speed_xy);
 	_smoothingXY.smoothVelocity(vel_sp_xy, vel, _yaw, _yawspeed_setpoint, _deltatime);
 	_velocity_setpoint(0) = vel_sp_xy(0);
 	_velocity_setpoint(1) = vel_sp_xy(1);
