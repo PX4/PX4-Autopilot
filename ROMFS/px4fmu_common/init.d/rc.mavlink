@@ -103,8 +103,12 @@ fi
 
 if param compare SYS_COMPANION 419200
 then
+	// TODO: this should all be relocated with the airframe specific configuration file it was originally authored to service.
+	set MAVLINK_DEVICE_2            "/dev/iridium"
+	set MAVLINK_DEVICE_2_ARGS       "-m iridium -r 10"
+	set MAVLINK_DEVICE_2_BAUD       "19200"
+
 	iridiumsbd start -d /dev/ttyS2
-	mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
 fi
 
 if param compare SYS_COMPANION 519200
