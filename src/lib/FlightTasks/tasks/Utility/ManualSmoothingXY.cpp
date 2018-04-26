@@ -41,19 +41,15 @@
 #include <float.h>
 
 ManualSmoothingXY::ManualSmoothingXY(ModuleParams *parent, const matrix::Vector2f &vel) :
-	ModuleParams(parent),
-	_vel_sp_prev(vel)
-{
-}
+	ModuleParams(parent), _acc_state_dependent(_acc_xy_max.get()), _jerk_state_dependent(_jerk_max.get()), _vel_sp_prev(vel)
+{}
 
 void
 ManualSmoothingXY::smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
 				  const float &yawrate_sp, const float dt)
 {
 	_updateAcceleration(vel_sp, vel, yaw, yawrate_sp, dt);
-
 	_velocitySlewRate(vel_sp, dt);
-
 	_vel_sp_prev = vel_sp;
 }
 
