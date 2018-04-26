@@ -55,7 +55,10 @@ class FlightTask : public ModuleParams
 public:
 	FlightTask() :
 		ModuleParams(nullptr)
-	{ _resetSetpoints(); }
+	{
+		_resetSetpoints();
+		_constraints = empty_constraints;
+	}
 
 	virtual ~FlightTask() = default;
 
@@ -124,7 +127,6 @@ public:
 
 protected:
 
-
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
 
 	/**
@@ -132,25 +134,15 @@ protected:
 	 */
 	void _resetSetpoints();
 
-	/**
-	 * Update Flighttask limits
-	 */
-	void virtual _updateSetpointLimits();
-
 	/*
 	 * Check and update local position
 	 */
 	bool _evaluateVehicleLocalPosition();
 
 	/**
-	 * @brief Setpoint limits
+	 * Set constraints to default values
 	 */
-	struct Limits {
-		float speed_NE_max = 1.0f; /**< maximum speed in NE-direction */
-		float speed_up_max = 1.0f; /**< maximum speed upwards */
-		float speed_dn_max = 1.0f; /**< maximum speed downwards */
-	};
-	Limits _limits;
+	virtual void  _setDefaultConstraints();
 
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
@@ -190,6 +182,7 @@ protected:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP
-				       );
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
+					(ParamFloat<px4::params::MPC_TILTMAX_AIR>) MPC_TILTMAX_AIR
+				       )
 };

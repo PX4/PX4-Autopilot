@@ -17,7 +17,7 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 bool FlightTask::activate()
 {
 	_resetSetpoints();
-	_updateSetpointLimits();
+	_setDefaultConstraints();
 	_time_stamp_activate = hrt_absolute_time();
 	return true;
 }
@@ -75,9 +75,10 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 	}
 }
 
-void FlightTask::_updateSetpointLimits()
+void FlightTask::_setDefaultConstraints()
 {
-	_limits.speed_NE_max = MPC_XY_VEL_MAX.get();
-	_limits.speed_up_max = MPC_Z_VEL_MAX_UP.get();
-	_limits.speed_dn_max = MPC_Z_VEL_MAX_DN.get();
+	_constraints.speed_xy = MPC_XY_VEL_MAX.get();
+	_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
+	_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
+	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
 }
