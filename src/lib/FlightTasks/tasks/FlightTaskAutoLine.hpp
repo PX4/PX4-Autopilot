@@ -74,7 +74,9 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX,
-					(ParamFloat<px4::params::MPC_ACC_HOR>) MPC_ACC_HOR // acceleration in flight
+					(ParamFloat<px4::params::MPC_ACC_HOR>) MPC_ACC_HOR, // acceleration in flight
+					(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND,
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED
 				       )
 
 	void _generateIdleSetpoints();
