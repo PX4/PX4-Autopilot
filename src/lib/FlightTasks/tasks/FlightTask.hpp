@@ -47,6 +47,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_constraints.h>
 #include "../SubscriptionArray.hpp"
 
 class FlightTask : public ModuleParams
@@ -94,7 +95,24 @@ public:
 	 */
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
+	/**
+	 * Get vehicle constraints.
+	 * The constraints can vary with task.
+	 * @return constraints
+	 */
+	const vehicle_constraints_s getConstraints() {return _constraints;};
+
+	/**
+	 * Empty setpoint.
+	 * All setpoints are set to NAN.
+	 */
 	static const vehicle_local_position_setpoint_s empty_setpoint;
+
+	/**
+	 * Empty constraints.
+	 * All constraints are set to NAN.
+	 */
+	static const vehicle_constraints_s empty_constraints;
 
 	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
@@ -162,6 +180,12 @@ protected:
 	float _yaw_setpoint;
 	float _yawspeed_setpoint;
 	float _dist_to_bottom;
+
+	/**
+	 * Vehicle constraints.
+	 * The constraints can vary with tasks.
+	 */
+	vehicle_constraints_s _constraints;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
