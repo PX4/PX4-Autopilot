@@ -31,4 +31,4 @@ before_script: "mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DC
 script:
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "native" ]; then make ; fi
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "lpc11c24" ]; then cd "$TRAVIS_BUILD_DIR/libuavcan_drivers/lpc11c24/test_olimex_lpc_p11c24" && make all ; fi
-    - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "stm32" ]; then cd "$TRAVIS_BUILD_DIR/libuavcan_drivers/stm32/test_stm32f107" && git clone "https://github.com/Zubax/zubax_chibios" && cd zubax_chibios && git checkout stable_v1 && git submodule update --init --recursive && cd .. && make ; fi
+    - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "stm32" ]; then echo "TODO STM32 test environment is not configured"; fi
