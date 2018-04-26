@@ -45,8 +45,8 @@ class FlightTaskManualAltitude : public FlightTaskManualStabilized
 {
 public:
 	FlightTaskManualAltitude() = default;
-
 	virtual ~FlightTaskManualAltitude() = default;
+	bool activate() override;
 
 protected:
 	void _updateSetpoints() override; /**< updates all setpoints */
@@ -64,7 +64,6 @@ protected:
 					(ParamFloat<px4::params::SENS_FLOW_MINRNG>) SENS_FLOW_MINRNG,
 					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE
 				       )
-
 private:
 	/**
 	 * Distance to ground during terrain following.

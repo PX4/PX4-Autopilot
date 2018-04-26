@@ -40,13 +40,20 @@
 
 using namespace matrix;
 
+bool FlightTaskManualAltitude::activate()
+{
+	bool ret = FlightTaskManualStabilized::activate();
+	_setDefaultConstraints();
+	return ret;
+}
+
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	// reuse same scaling as for stabilized
 	FlightTaskManualStabilized::_scaleSticks();
 
 	// scale horizontal velocity with expo curve stick input
-	const float vel_max_z = (_sticks(2) > 0.0f) ? _limits.speed_dn_max : _limits.speed_up_max;
+	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
 }
 
