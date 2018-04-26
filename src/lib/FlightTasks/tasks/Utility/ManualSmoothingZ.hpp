@@ -92,9 +92,9 @@ private:
 	/* Acceleration that depends on vehicle state
 	 * _acc_max_down <= _acc_state_dependent <= _acc_max_up
 	 */
-	float _acc_state_dependent{0.0f};
+	float _acc_state_dependent;
+	float _max_acceleration; // can be up or down maximum accleration
 	float _vel_sp_prev;
-	float _max_acceleration{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acc_max_up,

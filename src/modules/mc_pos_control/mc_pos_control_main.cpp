@@ -2980,7 +2980,7 @@ MulticopterPositionControl::task_main()
 				break;
 
 			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-				_flight_tasks.switchTask(FlightTaskIndex::Position);
+				_flight_tasks.switchTask(FlightTaskIndex::PositionSmooth);
 				break;
 
 			case vehicle_status_s::NAVIGATION_STATE_MANUAL:

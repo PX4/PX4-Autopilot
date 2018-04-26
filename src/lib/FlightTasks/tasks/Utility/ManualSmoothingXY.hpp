@@ -103,17 +103,17 @@ private:
 	/* Acceleration that depends on vehicle state
 	 * _acc_max_down <= _acc_state_dependent <= _acc_max_up
 	 */
-	float _acc_state_dependent{0.0f};
-	float _jerk_state_dependent{0.0f};
+	float _acc_state_dependent;
+	float _jerk_state_dependent;
 
 	/**
 	 * Maximum velocity.
 	 * It is used to deduce user intention.
 	 */
-	float _vel_max{0.0f};
+	float _vel_max{10.0f};
 
 	/* Previous setpoints */
-	matrix::Vector2f _vel_sp_prev{}; // previous velocity setpoint
+	matrix::Vector2f _vel_sp_prev; // previous velocity setpoint
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_hover, ///< acceleration in hover
