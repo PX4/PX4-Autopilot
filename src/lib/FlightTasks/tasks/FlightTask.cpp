@@ -2,9 +2,9 @@
 #include <mathlib/mathlib.h>
 
 constexpr uint64_t FlightTask::_timeout;
-/* First index of empty_setpoint corresponds to time-stamp and requires a finite number. */
+// First index of empty_setpoint corresponds to time-stamp and requires a finite number.
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
-
+const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN};
 bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!subscription_array.get(ORB_ID(vehicle_local_position), _sub_vehicle_local_position)) {
