@@ -340,8 +340,8 @@ void Ekf::controlOpticalFlowFusion()
 	// Check if motion is un-suitable for use of optical flow
 	if (!_control_status.flags.in_air) {
 		// Detect if the vehicle is on the ground and is being excessively tilted, shaken or rotated.
-		bool motion_is_excessive = ((_accel_mag_filt > 10.8f)
-					    || (_accel_mag_filt < 8.8f)
+		bool motion_is_excessive = ((_accel_mag_filt > 15.0f)
+					    || (_accel_mag_filt < 5.0f)
 					    || (_ang_rate_mag_filt > 0.5f)
 					    || (_R_to_earth(2, 2) < 0.866f));
 
@@ -353,7 +353,8 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 	} else {
-		if (_control_status.flags.gps && (_time_last_imu - _last_gps_fail_us > (uint64_t)5e6) && !_in_range_aid_mode) {
+		bool good_gps_aiding = _control_status.flags.gps && ((_time_last_imu - _last_gps_fail_us) > (uint64_t)6e6);
+		if (good_gps_aiding && !_in_range_aid_mode) {
 			// Detect the special case where we are in flight, are using good quality GPS and speed and range has exceeded
 			// limits for use of range finder for height
 			_time_bad_motion_us = _imu_sample_delayed.time_us;
