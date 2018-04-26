@@ -42,8 +42,10 @@ using namespace matrix;
 
 bool FlightTaskManualStabilized::activate()
 {
+	bool ret = FlightTaskManual::activate();
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
-	return FlightTaskManual::activate();
+	_constraints.tilt = math::radians(_tilt_max_man.get());
+	return ret;
 }
 
 void FlightTaskManualStabilized::_scaleSticks()
@@ -76,7 +78,7 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 	_rotateIntoHeadingFrame(sp);
 
 	/* Ensure that maximum tilt is in [0.001, Pi] */
-	float tilt_max = math::constrain(math::radians(_tilt_max_man.get()), 0.001f, M_PI_F);
+	float tilt_max = math::constrain(_constraints.tilt, 0.001f, M_PI_F);
 
 	const float x = sp(0) * tilt_max;
 	const float y = sp(1) * tilt_max;
