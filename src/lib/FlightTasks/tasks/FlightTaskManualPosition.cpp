@@ -41,6 +41,19 @@
 
 using namespace matrix;
 
+bool FlightTaskManualPosition::activate()
+{
+
+	bool ret = FlightTaskManualAltitude::activate();
+
+	// set task specific constraint
+	if (_constraints.speed_xy >= MPC_VEL_MANUAL.get()) {
+		_constraints.speed_xy = MPC_VEL_MANUAL.get();
+	}
+
+	return ret;
+}
+
 void FlightTaskManualPosition::_scaleSticks()
 {
 	/* Use same scaling as for FlightTaskManualAltitude */
@@ -56,7 +69,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	}
 
 	// scale velocity to its maximum lmits
-	Vector2f vel_sp_xy = stick_xy * _limits.speed_NE_max;
+	Vector2f vel_sp_xy = stick_xy * _constraints.speed_xy;
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
@@ -87,13 +100,4 @@ void FlightTaskManualPosition::_updateSetpoints()
 	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
 	_thrust_setpoint *= NAN; // don't require any thrust setpoints
 	_updateXYlock(); // check for position lock
-}
-
-void FlightTaskManualPosition::_updateSetpointLimits()
-{
-	FlightTaskManualAltitude::_updateSetpointLimits();
-
-	if (_limits.speed_NE_max >= MPC_VEL_MANUAL.get()) {
-		_limits.speed_NE_max = MPC_VEL_MANUAL.get();
-	}
 }

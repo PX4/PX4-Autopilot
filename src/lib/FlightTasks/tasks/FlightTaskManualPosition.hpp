@@ -48,12 +48,12 @@ public:
 	FlightTaskManualPosition() = default;
 
 	virtual ~FlightTaskManualPosition() = default;
+	bool activate() override;
 
 protected:
-	void _updateXYlock(); /**< applies positon lock based on stick and velocity */
+	void _updateXYlock(); /**< applies position lock based on stick and velocity */
 	void _updateSetpoints() override;
 	void _scaleSticks() override;
-	void _updateSetpointLimits() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
 					(ParamFloat<px4::params::MPC_VEL_MANUAL>) MPC_VEL_MANUAL,

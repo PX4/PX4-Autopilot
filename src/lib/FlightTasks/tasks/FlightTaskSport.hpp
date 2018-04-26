@@ -52,12 +52,13 @@ public:
 
 	virtual ~FlightTaskSport() = default;
 
-protected:
-	void _updateSetpointLimits() override
+	bool activate() override
 	{
-		FlightTaskManualPosition::_updateSetpointLimits();
+		bool ret = FlightTaskManualPosition::activate();
 
-		// for sport mode we just increase horizontal speed to maximum speed
-		_limits.speed_NE_max = MPC_XY_VEL_MAX.get();
+		// default constraints already are the maximum allowed limits
+		_setDefaultConstraints();
+
+		return ret;
 	}
 };
