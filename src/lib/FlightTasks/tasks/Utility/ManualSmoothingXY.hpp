@@ -49,6 +49,15 @@ public:
 	~ManualSmoothingXY() = default;
 
 	/**
+	 * Maximum velocity is required to detect user intention.
+	 * Maximum velocity changes depending on task. Consequently,
+	 * in order to deduce user intention from velocity, the maximum
+	 * allowed velocity has to updated.
+	 * @param vel_max corresponds to vehicle constraint
+	 */
+	void updateMaxVelocity(const float &vel_max) {_vel_max = vel_max;};
+
+	/**
 	 * Smoothing of velocity setpoint horizontally based
 	 * on flight direction.
 	 * @param vel_sp: velocity setpoint in xy
@@ -97,6 +106,12 @@ private:
 	float _acc_state_dependent{0.0f};
 	float _jerk_state_dependent{0.0f};
 
+	/**
+	 * Maximum velocity.
+	 * It is used to deduce user intention.
+	 */
+	float _vel_max{0.0f};
+
 	/* Previous setpoints */
 	matrix::Vector2f _vel_sp_prev{}; // previous velocity setpoint
 
@@ -108,5 +123,4 @@ private:
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max, ///< jerk max during brake
 		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _vel_manual ///< maximum velocity in manual controlled mode
 	)
-
 };

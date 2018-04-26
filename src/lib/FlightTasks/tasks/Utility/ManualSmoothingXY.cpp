@@ -106,7 +106,7 @@ ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::V
 		 * Only use direction change if not aligned, no yawspeed demand, demand larger than 0.7 of max speed and velocity larger than 2m/s.
 		 * Only use deceleration if stick input is lower than previous setpoint, aligned and no yawspeed demand. */
 		bool yawspeed_demand =  fabsf(yawrate_sp) > 0.05f && PX4_ISFINITE(yawrate_sp);
-		bool direction_change = !is_aligned && (vel_sp.length() > 0.7f * _vel_manual.get()) && !yawspeed_demand
+		bool direction_change = !is_aligned && (vel_sp.length() > 0.7f * _vel_max) && !yawspeed_demand
 					&& (vel.length() > 2.0f);
 		bool deceleration = is_aligned && (vel_sp.length() < _vel_sp_prev.length()) && !yawspeed_demand;
 
@@ -153,7 +153,7 @@ ManualSmoothingXY::_getStateAcceleration(const matrix::Vector2f &vel_sp, const m
 				if (_jerk_max.get() > _jerk_min.get()) {
 
 					_jerk_state_dependent = math::min((_jerk_max.get() - _jerk_min.get())
-									  / _vel_manual.get() * vel.length() + _jerk_min.get(), _jerk_max.get());
+									  / _vel_max * vel.length() + _jerk_min.get(), _jerk_max.get());
 				}
 
 				/* Since user wants to brake smoothly but NOT continuing to fly
@@ -195,7 +195,7 @@ ManualSmoothingXY::_getStateAcceleration(const matrix::Vector2f &vel_sp, const m
 	case Intention::acceleration: {
 			/* Limit acceleration linearly based on velocity setpoint.*/
 			_acc_state_dependent = (_acc_xy_max.get() - _dec_xy_min.get())
-					       / _vel_manual.get() * vel_sp.length() + _dec_xy_min.get();
+					       / _vel_max * vel_sp.length() + _dec_xy_min.get();
 			break;
 		}
 
