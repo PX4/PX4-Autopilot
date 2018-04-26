@@ -52,6 +52,9 @@ bool FlightTaskAutoLine::activate()
 
 bool FlightTaskAutoLine::update()
 {
+	// always reset constraints because they might change depending on the type
+	_setDefaultConstraints();
+
 	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
 	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position;
 
@@ -131,6 +134,9 @@ void FlightTaskAutoLine::_generateLandSetpoints()
 	// Keep xy-position and go down with landspeed. */
 	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
 	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, MPC_LAND_SPEED.get()));
+	// set constraints
+	_constraints.tilt = MPC_TILTMAX_LND.get();
+	_constraints.speed_down = MPC_LAND_SPEED.get();
 }
 
 void FlightTaskAutoLine::_generateTakeoffSetpoints()
@@ -138,6 +144,9 @@ void FlightTaskAutoLine::_generateTakeoffSetpoints()
 	// Takeoff is completely defined by target position. */
 	_position_setpoint = _target;
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
+
+	// set constraints
+	_constraints.speed_up = MPC_TKO_SPEED.get();
 }
 
 void FlightTaskAutoLine::_generateVelocitySetpoints()
@@ -396,11 +405,11 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		// for now we use the altitude above home and assume that we want to land at same height as we took off
 		float vel_limit = math::gradual(_alt_above_ground,
 						MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-						MPC_LAND_SPEED.get(), _limits.speed_dn_max);
+						MPC_LAND_SPEED.get(), _constraints.speed_down);
 
 		// Speed at threshold is by default maximum speed. Threshold defines
 		// the point in z at which vehicle slows down to reach target altitude.
-		float speed_sp = (flying_upward) ? _limits.speed_up_max : vel_limit;
+		float speed_sp = (flying_upward) ? _constraints.speed_up : vel_limit;
 
 		// Target threshold defines the distance to target(2) at which
 		// the vehicle starts to slow down to approach the target smoothly.
