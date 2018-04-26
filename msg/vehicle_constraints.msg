@@ -5,4 +5,4 @@ float32 yawspeed	# in radians/sec
 float32 speed_xy	# in meters/sec
 float32 speed_up	# in meters/sec
 float32 speed_down	# in meters/sec
-float32 tilt    # in radians [-Pi, Pi]
+float32 tilt    # in radians [0, PI]
