@@ -51,6 +51,8 @@ bool FlightTaskManualPosition::activate()
 		_constraints.speed_xy = MPC_VEL_MANUAL.get();
 	}
 
+	_velocity_scale = _constraints.speed_xy;
+
 	return ret;
 }
 
@@ -68,8 +70,29 @@ void FlightTaskManualPosition::_scaleSticks()
 		stick_xy = stick_xy.normalized() * mag;
 	}
 
-	// scale velocity to its maximum lmits
-	Vector2f vel_sp_xy = stick_xy * _constraints.speed_xy;
+	// scale the stick inputs
+	if (_sub_vehicle_local_position->get().vxy_max > 0.001f) {
+		// estimator provides vehicle specific max
+
+		// use the minimum of the estimator and user specified limit
+		_velocity_scale = fminf(_constraints.speed_xy, _sub_vehicle_local_position->get().vxy_max);
+		// Allow for a minimum of 0.3 m/s for repositioning
+		_velocity_scale = fmaxf(_velocity_scale, 0.3f);
+
+	} else if (stick_xy.length() > 0.5f) {
+		// raise the limit at a constant rate up to the user specified value
+
+		if (_velocity_scale < _constraints.speed_xy) {
+			_velocity_scale += _deltatime * MPC_ACC_HOR_FLOW.get();
+
+		} else {
+			_velocity_scale = _constraints.speed_xy;
+
+		}
+	}
+
+	// scale velocity to its maximum limits
+	Vector2f vel_sp_xy = stick_xy * _velocity_scale;
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
