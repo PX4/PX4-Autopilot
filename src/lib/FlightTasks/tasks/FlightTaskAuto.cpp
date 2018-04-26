@@ -59,9 +59,12 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 
 bool FlightTaskAuto::activate()
 {
+	bool ret = FlightTask::activate();
 	_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
 	_yaw_wp = _yaw;
-	return FlightTask::activate();
+	_setDefaultConstraints();
+
+	return ret;
 }
 
 bool FlightTaskAuto::updateInitialize()
@@ -98,9 +101,9 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// always update cruise speed since that can change without waypoint changes
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
 
-	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f) || (_mc_cruise_speed > _limits.speed_NE_max)) {
+	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f) || (_mc_cruise_speed > _constraints.speed_xy)) {
 		// use default limit
-		_mc_cruise_speed = _limits.speed_NE_max;
+		_mc_cruise_speed = _constraints.speed_xy;
 	}
 
 	// get target waypoint.
@@ -186,13 +189,12 @@ void FlightTaskAuto::_evaluateVehicleGlobalPosition()
 	}
 }
 
-void FlightTaskAuto::_updateSetpointLimits()
+void FlightTaskAuto::_setDefaultConstraints()
 {
-	FlightTask::_updateSetpointLimits();
+	FlightTask::_setDefaultConstraints();
 
 	// only adjust limits if the new limit is lower
-	if (_limits.speed_NE_max >= MPC_XY_CRUISE.get()) {
-		_limits.speed_NE_max = MPC_XY_CRUISE.get();
+	if (_constraints.speed_xy >= MPC_XY_CRUISE.get()) {
+		_constraints.speed_xy = MPC_XY_CRUISE.get();
 	}
-
 }

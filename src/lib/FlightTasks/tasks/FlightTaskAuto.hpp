@@ -70,7 +70,8 @@ public:
 	bool updateInitialize() override;
 
 protected:
-	void _updateSetpointLimits() override;
+	void _setDefaultConstraints() override;
+	float _getMaxCruiseSpeed() {return MPC_XY_CRUISE.get();} /**< getter for default cruise speed */
 
 	matrix::Vector3f _prev_prev_wp{}; /**< Pre-previous waypoint (local frame). This will be used for smoothing trajectories -> not used yet. */
 	matrix::Vector3f _prev_wp{}; /**< Previous waypoint  (local frame). If no previous triplet is available, the prev_wp is set to current position. */
