@@ -346,12 +346,6 @@ private:
 	 */
 	void		reset_alt_sp();
 
-	/**
-	 * Set position setpoint using manual control
-	 */
-	void		control_manual();
-
-
 	void control_position();
 	void calculate_velocity_setpoint();
 	void calculate_thrust_setpoint();
@@ -1240,161 +1234,6 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 }
 
 void
-MulticopterPositionControl::control_manual()
-{
-	/* Entering manual control from non-manual control mode, reset alt/pos setpoints */
-	if (_mode_auto) {
-		_mode_auto = false;
-
-		/* Reset alt pos flags if resetting is enabled */
-		if (_do_reset_alt_pos_flag) {
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
-		}
-	}
-
-	/*
-	 * Map from stick input to velocity setpoint
-	 */
-
-	/* velocity setpoint commanded by user stick input */
-	matrix::Vector3f man_vel_sp;
-
-	if (_control_mode.flag_control_altitude_enabled) {
-		/* set vertical velocity setpoint with throttle stick, remapping of manual.z [0,1] to up and down command [-1,1] */
-		man_vel_sp(2) = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _hold_dz.get());
-
-		/* reset alt setpoint to current altitude if needed */
-		reset_alt_sp();
-	}
-
-	if (_control_mode.flag_control_position_enabled) {
-		/* set horizontal velocity setpoint with roll/pitch stick */
-		man_vel_sp(0) = math::expo_deadzone(_manual.x, _xy_vel_man_expo.get(), _hold_dz.get());
-		man_vel_sp(1) = math::expo_deadzone(_manual.y, _xy_vel_man_expo.get(), _hold_dz.get());
-
-		const float man_vel_hor_length = ((matrix::Vector2f)man_vel_sp.slice<2, 1>(0, 0)).length();
-
-		/* saturate such that magnitude is never larger than 1 */
-		if (man_vel_hor_length > 1.0f) {
-			man_vel_sp(0) /= man_vel_hor_length;
-			man_vel_sp(1) /= man_vel_hor_length;
-		}
-
-		/* reset position setpoint to current position if needed */
-		reset_pos_sp();
-
-	}
-
-	/* prepare yaw to rotate into NED frame */
-	float yaw_input_frame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _att_sp.yaw_body;
-
-	/* setpoint in NED frame */
-	man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_frame)) * man_vel_sp;
-
-	/* adjust acceleration based on stick input */
-	matrix::Vector2f stick_xy(man_vel_sp(0), man_vel_sp(1));
-	set_manual_acceleration_xy(stick_xy);
-	float stick_z = man_vel_sp(2);
-	float max_acc_z;
-	set_manual_acceleration_z(max_acc_z, stick_z);
-
-	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
-	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
-	matrix::Vector3f vel_cruise_scale(vel_mag, vel_mag, (man_vel_sp(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get());
-	/* Setpoint scaled to cruise speed */
-	man_vel_sp = man_vel_sp.emult(vel_cruise_scale);
-
-	/*
-	 * assisted velocity mode: user controls velocity, but if velocity is small enough, position
-	 * hold is activated for the corresponding axis
-	 */
-
-	/* want to get/stay in altitude hold if user has z stick in the middle (accounted for deadzone already) */
-	const bool alt_hold_desired = _control_mode.flag_control_altitude_enabled && (_user_intention_z == brake);
-
-	/* want to get/stay in position hold if user has xy stick in the middle (accounted for deadzone already) */
-	const bool pos_hold_desired = _control_mode.flag_control_position_enabled && (_user_intention_xy ==  brake);
-
-	/* check vertical hold engaged flag */
-	if (_alt_hold_engaged) {
-		_alt_hold_engaged = alt_hold_desired;
-
-	} else {
-
-		/* check if we switch to alt_hold_engaged */
-		bool smooth_alt_transition = alt_hold_desired && ((max_acc_z - _acceleration_state_dependent_z) < FLT_EPSILON) &&
-					     (_hold_max_z.get() < FLT_EPSILON || fabsf(_vel(2)) < _hold_max_z.get());
-
-		/* during transition predict setpoint forward */
-		if (smooth_alt_transition) {
-
-			/* time to travel from current velocity to zero velocity */
-			float delta_t = fabsf(_vel(2) / max_acc_z);
-
-			/* set desired position setpoint assuming max acceleration */
-			_pos_sp(2) = _pos(2) + _vel(2) * delta_t + 0.5f * max_acc_z * delta_t *delta_t;
-
-			_alt_hold_engaged = true;
-		}
-	}
-
-	/* check horizontal hold engaged flag */
-	if (_pos_hold_engaged) {
-
-		/* check if contition still true */
-		_pos_hold_engaged = pos_hold_desired;
-
-		/* use max acceleration */
-		if (_pos_hold_engaged) {
-			_acceleration_state_dependent_xy = _acceleration_hor_max.get();
-		}
-
-	} else {
-
-		/* check if we switch to pos_hold_engaged */
-		float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
-		bool smooth_pos_transition = pos_hold_desired
-					     && (fabsf(_acceleration_hor_max.get() - _acceleration_state_dependent_xy) < FLT_EPSILON) &&
-					     (_hold_max_xy.get() < FLT_EPSILON || vel_xy_mag < _hold_max_xy.get());
-
-		/* during transition predict setpoint forward */
-		if (smooth_pos_transition) {
-
-			/* time to travel from current velocity to zero velocity */
-			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _acceleration_hor_max.get();
-
-			/* p pos_sp in xy from max acceleration and current velocity */
-			matrix::Vector2f pos(_pos(0), _pos(1));
-			matrix::Vector2f vel(_vel(0), _vel(1));
-			matrix::Vector2f pos_sp = pos + vel * delta_t - vel.normalized() * 0.5f * _acceleration_hor_max.get() * delta_t
-						  * delta_t;
-			_pos_sp(0) = pos_sp(0);
-			_pos_sp(1) = pos_sp(1);
-
-			_pos_hold_engaged = true;
-		}
-	}
-
-	/* set requested velocity setpoints */
-	if (!_alt_hold_engaged) {
-		_pos_sp(2) = _pos(2);
-		_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
-		_vel_sp(2) = man_vel_sp(2);
-	}
-
-	if (!_pos_hold_engaged) {
-		_pos_sp(0) = _pos(0);
-		_pos_sp(1) = _pos(1);
-		_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-		_vel_sp(0) = man_vel_sp(0);
-		_vel_sp(1) = man_vel_sp(1);
-	}
-
-	control_position();
-}
-
-void
 MulticopterPositionControl::vel_sp_slewrate()
 {
 	matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
@@ -1545,7 +1384,6 @@ MulticopterPositionControl::do_control()
 
 	if (_control_mode.flag_control_manual_enabled) {
 		/* manual control */
-		control_manual();
 		_mode_auto = false;
 
 		/* we set triplets to false
