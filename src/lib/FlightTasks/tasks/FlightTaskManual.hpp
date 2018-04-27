@@ -63,9 +63,11 @@ protected:
 	matrix::Vector3f _sticks_expo; /**< modified manual sticks using expo function*/
 
 	float stickDeadzone() const { return _stick_dz.get(); }
+
 private:
 
 	bool _evaluateSticks(); /**< checks and sets stick inputs */
+	void _applyGearSwitch(uint8_t gswitch); /**< Sets gears according to switch */
 
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 

@@ -83,7 +83,7 @@ protected:
 	void _generateLandSetpoints();
 	void _generateVelocitySetpoints();
 	void _generateTakeoffSetpoints();
-	void _updateInternalWaypoints(); /* Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
+	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
 	void _generateSetpoints(); /**< Generate velocity and position setpoint for following line. */
 	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
 	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
@@ -91,8 +91,9 @@ protected:
 	void updateParams() override; /**< See ModuleParam class */
 
 private:
-	float _getVelocityFromAngle(const float angle); /** Computes the speed at target depending on angle. */
-	void _reset(); /** Resets member variables to current vehicle state */
+	float _getVelocityFromAngle(const float angle); /**< Computes the speed at target depending on angle. */
+	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+	void _reset(); /**< Resets member variables to current vehicle state */
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 
 };

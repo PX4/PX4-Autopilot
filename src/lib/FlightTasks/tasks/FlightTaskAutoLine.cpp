@@ -127,6 +127,7 @@ void FlightTaskAutoLine::_generateLandSetpoints()
 	// set constraints
 	_constraints.tilt = MPC_TILTMAX_LND.get();
 	_constraints.speed_down = MPC_LAND_SPEED.get();
+	_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
 }
 
 void FlightTaskAutoLine::_generateTakeoffSetpoints()
@@ -137,6 +138,8 @@ void FlightTaskAutoLine::_generateTakeoffSetpoints()
 
 	// set constraints
 	_constraints.speed_up = MPC_TKO_SPEED.get();
+	_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+
 }
 
 void FlightTaskAutoLine::_generateVelocitySetpoints()
@@ -153,6 +156,12 @@ void FlightTaskAutoLine::_generateSetpoints()
 	_updateInternalWaypoints();
 	_generateAltitudeSetpoints();
 	_generateXYsetpoints();
+
+	// during mission and reposition, raise the landing gears but only
+	// if altitude is high enough
+	if (_highEnoughForLandingGear()) {
+		_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
+	}
 }
 
 void FlightTaskAutoLine::_updateInternalWaypoints()
@@ -524,6 +533,12 @@ void FlightTaskAutoLine::_updateAltitudeAboveGround()
 		// if home position is set, then altitude above ground is relative to the home position
 		_alt_above_ground = -_position(2) + _sub_home_position->get().z;
 	}
+}
+
+bool FlightTaskAutoLine::_highEnoughForLandingGear()
+{
+	// return true if altitude is above two meters
+	return _alt_above_ground > 2.0f;
 }
 
 void FlightTaskAutoLine::updateParams()
