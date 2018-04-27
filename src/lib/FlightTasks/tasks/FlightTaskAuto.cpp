@@ -61,7 +61,6 @@ bool FlightTaskAuto::activate()
 {
 	bool ret = FlightTask::activate();
 	_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
-	_yaw_wp = _yaw;
 	_setDefaultConstraints();
 
 	return ret;
@@ -91,7 +90,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (!_sub_triplet_setpoint->get().current.valid) {
 		// best we can do is to just set all waypoints to current state
 		_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
-		_yaw_wp = _yaw;
 		_type = WaypointType::position;
 		return false;
 	}
@@ -112,12 +110,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 			       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &target(0), &target(1));
 	target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
 
+	if (_sub_triplet_setpoint->get().current.yaw_valid) {
+		_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
+	}
 
-	_yaw_wp = _sub_triplet_setpoint->get().current.yaw;
-
-	if (!PX4_ISFINITE(_yaw_wp)) {
-		_yaw_wp = _yaw;
-
+	if (_type == WaypointType::follow_target && _sub_triplet_setpoint->get().current.yawspeed_valid) {
+		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
 	}
 
 	// Check if anything has changed. We do that by comparing the target
@@ -199,5 +197,22 @@ void FlightTaskAuto::_setDefaultConstraints()
 	// only adjust limits if the new limit is lower
 	if (_constraints.speed_xy >= MPC_XY_CRUISE.get()) {
 		_constraints.speed_xy = MPC_XY_CRUISE.get();
+	}
+}
+
+matrix::Vector2f FlightTaskAuto::_getTargetVelocityXY()
+{
+	// guard against any bad velocity values
+	const float vx = _sub_triplet_setpoint->get().current.vx;
+	const float vy = _sub_triplet_setpoint->get().current.vy;
+	bool velocity_valid = PX4_ISFINITE(vx) && PX4_ISFINITE(vy) &&
+			      _sub_triplet_setpoint->get().current.velocity_valid;
+
+	if (velocity_valid) {
+		return matrix::Vector2f(vx, vy);
+
+	} else {
+		// just return zero speed
+		return matrix::Vector2f{};
 	}
 }

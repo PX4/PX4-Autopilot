@@ -86,6 +86,10 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		_current_task = new (&_task_union.autoLine) FlightTaskAutoLine();
 		break;
 
+	case FlightTaskIndex::AutoFollowMe:
+		_current_task = new (&_task_union.autoFollowMe) FlightTaskAutoFollowMe();
+		break;
+
 	default:
 		/* invalid task */
 		return -1;

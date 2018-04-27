@@ -2997,6 +2997,10 @@ MulticopterPositionControl::task_main()
 				_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 				break;
 
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+				_flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
+				break;
+
 			default:
 				/* not supported yet */
 				_flight_tasks.switchTask(FlightTaskIndex::None);
