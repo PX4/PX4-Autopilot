@@ -55,20 +55,10 @@ bool FlightTaskAutoLine::update()
 	// always reset constraints because they might change depending on the type
 	_setDefaultConstraints();
 
+	_updateAltitudeAboveGround();
+
 	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
 	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position;
-
-	// Altitude above ground is by default just the negation of the current local position in D-direction.
-	_alt_above_ground = -_position(2);
-
-	if (PX4_ISFINITE(_dist_to_bottom)) {
-		// We have a valid distance to ground measurement
-		_alt_above_ground = _dist_to_bottom;
-
-	} else if (_sub_home_position->get().valid_alt) {
-		// if home position is set, then altitude above ground is relative to the home position
-		_alt_above_ground = -_position(2) + _sub_home_position->get().z;
-	}
 
 	// 1st time that vehicle starts to follow line. Reset all setpoints to current vehicle state.
 	if (follow_line && !follow_line_prev) {
@@ -519,6 +509,21 @@ float FlightTaskAutoLine::_getVelocityFromAngle(const float angle)
 
 	// speed_close needs to be in between max and min
 	return math::constrain(speed_close, min_cruise_speed, _mc_cruise_speed);
+}
+
+void FlightTaskAutoLine::_updateAltitudeAboveGround()
+{
+	// Altitude above ground is by default just the negation of the current local position in D-direction.
+	_alt_above_ground = -_position(2);
+
+	if (PX4_ISFINITE(_dist_to_bottom)) {
+		// We have a valid distance to ground measurement
+		_alt_above_ground = _dist_to_bottom;
+
+	} else if (_sub_home_position->get().valid_alt) {
+		// if home position is set, then altitude above ground is relative to the home position
+		_alt_above_ground = -_position(2) + _sub_home_position->get().z;
+	}
 }
 
 void FlightTaskAutoLine::updateParams()
