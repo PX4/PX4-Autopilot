@@ -130,8 +130,10 @@ void FlightTaskAutoLine::_generateTakeoffSetpoints()
 	_position_setpoint = _target;
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
 
-	// set constraints
-	_constraints.speed_up = MPC_TKO_SPEED.get();
+	// limit vertical speed during takeoff
+	_constraints.speed_up = math::gradual(_alt_above_ground, MPC_LAND_ALT2.get(),
+					      MPC_LAND_ALT1.get(), MPC_TKO_SPEED.get(), _constraints.speed_up);
+
 	_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
 
 }

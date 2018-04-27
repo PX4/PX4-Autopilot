@@ -1434,15 +1434,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	/* limit vertical upwards speed in auto takeoff and close to ground */
 	float altitude_above_home = -_pos(2) + _home_pos.z;
 
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && !_control_mode.flag_control_manual_enabled) {
-		float vel_limit = math::gradual(altitude_above_home,
-						_slow_land_alt2.get(), _slow_land_alt1.get(),
-						_tko_speed.get(), _vel_max_up.get());
-		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
-	}
-
 	// encourage pilot to respect flow sensor minimum height limitations
 	if (_local_pos.limit_hagl && _local_pos.dist_bottom_valid && _control_mode.flag_control_manual_enabled
 	    && _control_mode.flag_control_altitude_enabled) {
@@ -2042,9 +2033,6 @@ MulticopterPositionControl::task_main()
 
 			check_takeoff_state(setpoint.z, setpoint.vz);
 			update_takeoff_setpoint(setpoint.z, setpoint.vz);
-
-			// update velocity constraints in case of smooth takeoff
-			if (_in_smooth_takeoff) {constraints.speed_up = _tko_speed.get();};
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
 			// in pure manual. Otherwise just stay idle.
