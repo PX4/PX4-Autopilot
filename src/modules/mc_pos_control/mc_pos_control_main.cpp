@@ -350,8 +350,6 @@ private:
 	void calculate_velocity_setpoint();
 	void calculate_thrust_setpoint();
 
-	void vel_sp_slewrate();
-
 	void update_velocity_derivative();
 
 	void do_control();
@@ -1233,35 +1231,6 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 	}
 }
 
-void
-MulticopterPositionControl::vel_sp_slewrate()
-{
-	matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
-	matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
-	matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / _dt;
-
-	/* limit total horizontal acceleration */
-	if (acc_xy.length() > _acceleration_state_dependent_xy) {
-		vel_sp_xy = _acceleration_state_dependent_xy * acc_xy.normalized() * _dt + vel_sp_prev_xy;
-		_vel_sp(0) = vel_sp_xy(0);
-		_vel_sp(1) = vel_sp_xy(1);
-	}
-
-	/* limit vertical acceleration */
-	float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / _dt;
-	float max_acc_z;
-
-	if (_control_mode.flag_control_manual_enabled) {
-		max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
-
-	} else {
-		max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
-	}
-
-	if (fabsf(acc_z) > fabsf(max_acc_z)) {
-		_vel_sp(2) = max_acc_z * _dt + _vel_sp_prev(2);
-	}
-}
 
 bool
 MulticopterPositionControl::cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r,
@@ -1502,11 +1471,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 					_land_speed.get(), _vel_max_down.get());
 
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
-
-	/* apply slewrate (aka acceleration limit) for smooth flying */
-	if (!_control_mode.flag_control_auto_enabled && !_in_smooth_takeoff) {
-		vel_sp_slewrate();
-	}
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_smooth_takeoff) {
