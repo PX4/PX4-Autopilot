@@ -48,6 +48,7 @@
 #include "tasks/FlightTaskManualPositionSmooth.hpp"
 #include "tasks/FlightTaskManualStabilized.hpp"
 #include "tasks/FlightTaskAutoLine.hpp"
+#include "tasks/FlightTaskAutoFollowMe.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 #include "tasks/FlightTaskSport.hpp"
 
@@ -65,6 +66,7 @@ enum class FlightTaskIndex : int {
 	Orbit,
 	Sport,
 	AutoLine,
+	AutoFollowMe,
 
 	Count // number of tasks
 };
@@ -148,6 +150,7 @@ private:
 		FlightTaskOrbit orbit;
 		FlightTaskSport sport;
 		FlightTaskAutoLine autoLine;
+		FlightTaskAutoFollowMe autoFollowMe;
 	} _task_union; /**< storage for the currently active task */
 
 	FlightTask *_current_task = nullptr;
