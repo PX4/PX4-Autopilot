@@ -381,7 +381,9 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
 
 /**
- * Acro Expo factor for Roll and Pitch.
+ * Acro mode Expo factor for Roll and Pitch.
+ *
+ * Exponential factor for tuning the input curve shape.
  *
  * 0 Purely linear input curve
  * 1 Purely cubic input curve
@@ -394,7 +396,9 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
 
 /**
- * Acro Expo factor for Yaw.
+ * Acro mode Expo factor for Yaw.
+ *
+ * Exponential factor for tuning the input curve shape.
  *
  * 0 Purely linear input curve
  * 1 Purely cubic input curve
@@ -407,7 +411,9 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
 PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
 
 /**
- * Acro SuperExpo factor for Roll and Pitch.
+ * Acro mode SuperExpo factor for Roll and Pitch.
+ *
+ * SuperExpo factor for refining the input curve shape tuned using MC_ACRO_EXPO.
  *
  * 0 Pure Expo function
  * 0.7 resonable shape enhancement for intuitive stick feel
@@ -421,7 +427,9 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
 PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.7f);
 
 /**
- * Acro SuperExpo factor for Yaw.
+ * Acro mode SuperExpo factor for Yaw.
+ *
+ * SuperExpo factor for refining the input curve shape tuned using MC_ACRO_EXPO_Y.
  *
  * 0 Pure Expo function
  * 0.7 resonable shape enhancement for intuitive stick feel
