@@ -368,9 +368,9 @@ private:
 
 
 	/**
-	 * limit altitude based on several conditions
+	 * Limit altitude based on landdetector.
 	 */
-	void limit_altitude();
+	void limit_altitude(vehicle_local_position_setpoint_s &setpoint);
 
 	void warn_rate_limited(const char *str);
 
@@ -836,7 +836,7 @@ MulticopterPositionControl::reset_alt_sp()
 }
 
 void
-MulticopterPositionControl::limit_altitude()
+MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &setpoint)
 {
 	if (_vehicle_land_detected.alt_max < 0.0f) {
 		// there is no altitude limitation present
@@ -845,23 +845,19 @@ MulticopterPositionControl::limit_altitude()
 
 	float altitude_above_home = -(_pos(2) - _home_pos.z);
 
-	if (_run_alt_control && (altitude_above_home > _vehicle_land_detected.alt_max)) {
+	if (altitude_above_home > _vehicle_land_detected.alt_max) {
 		// we are above maximum altitude
-		_pos_sp(2) = -_vehicle_land_detected.alt_max +  _home_pos.z;
+		setpoint.z = -_vehicle_land_detected.alt_max +  _home_pos.z;
+		setpoint.vz = 0.0f;
 
-	} else if (!_run_alt_control && _vel_sp(2) <= 0.0f) {
+	} else if (setpoint.vz <= 0.0f) {
 		// we want to fly upwards: check if vehicle does not exceed altitude
 
-		// time to reach zero velocity
-		float delta_t = -_vel(2) / _acceleration_z_max_down.get();
+		float delta_p = _vehicle_land_detected.alt_max - altitude_above_home;
 
-		// predict next position based on current position, velocity, max acceleration downwards and time to reach zero velocity
-		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f * _acceleration_z_max_down.get() * delta_t *delta_t;
-
-		if (-(pos_z_next - _home_pos.z) > _vehicle_land_detected.alt_max) {
-			// prevent the vehicle from exceeding maximum altitude by switching back to altitude control with maximum altitude as setpoint
-			_pos_sp(2) = -_vehicle_land_detected.alt_max + _home_pos.z;
-			_run_alt_control = true;
+		if (fabsf(setpoint.vz) * _dt > delta_p) {
+			setpoint.z = -_vehicle_land_detected.alt_max +  _home_pos.z;
+			setpoint.vz = 0.0f;
 		}
 	}
 }
@@ -1404,11 +1400,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 			warn_rate_limited("Caught invalid pos_sp in x and y");
 
 		}
-	}
-
-	/* in auto the setpoint is already limited by the navigator */
-	if (!_control_mode.flag_control_auto_enabled) {
-		limit_altitude();
 	}
 
 	if (_run_alt_control) {
@@ -2046,6 +2037,8 @@ MulticopterPositionControl::task_main()
 			_flight_tasks.update();
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
+
+			limit_altitude(setpoint);
 
 			check_takeoff_state(setpoint.z, setpoint.vz);
 			update_takeoff_setpoint(setpoint.z, setpoint.vz);
