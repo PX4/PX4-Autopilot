@@ -354,11 +354,6 @@ private:
 	void		control_non_manual();
 
 	/**
-	 * Set position setpoint using offboard control
-	 */
-	void		control_offboard();
-
-	/**
 	 * Set position setpoint for AUTO
 	 */
 	void		control_auto();
@@ -1411,7 +1406,6 @@ MulticopterPositionControl::control_non_manual()
 	/* select control source */
 	if (_control_mode.flag_control_offboard_enabled) {
 		/* offboard control */
-		control_offboard();
 		_mode_auto = false;
 
 	} else {
@@ -1488,115 +1482,6 @@ MulticopterPositionControl::control_non_manual()
 	}
 }
 
-void
-MulticopterPositionControl::control_offboard()
-{
-	if (_pos_sp_triplet.current.valid) {
-
-		if (_control_mode.flag_control_position_enabled && _pos_sp_triplet.current.position_valid) {
-			/* control position */
-			_pos_sp(0) = _pos_sp_triplet.current.x;
-			_pos_sp(1) = _pos_sp_triplet.current.y;
-			_run_pos_control = true;
-
-			_hold_offboard_xy = false;
-
-		} else if (_control_mode.flag_control_velocity_enabled && _pos_sp_triplet.current.velocity_valid) {
-			/* control velocity */
-
-			/* reset position setpoint to current position if needed */
-			reset_pos_sp();
-
-			if (fabsf(_pos_sp_triplet.current.vx) <= FLT_EPSILON &&
-			    fabsf(_pos_sp_triplet.current.vy) <= FLT_EPSILON &&
-			    _local_pos.xy_valid) {
-
-				if (!_hold_offboard_xy) {
-					_pos_sp(0) = _pos(0);
-					_pos_sp(1) = _pos(1);
-					_hold_offboard_xy = true;
-				}
-
-				_run_pos_control = true;
-
-			} else {
-
-				if (_pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_LOCAL_NED) {
-					/* set position setpoint move rate */
-					_vel_sp(0) = _pos_sp_triplet.current.vx;
-					_vel_sp(1) = _pos_sp_triplet.current.vy;
-
-				} else if (_pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
-					// Transform velocity command from body frame to NED frame
-					_vel_sp(0) = cosf(_yaw) * _pos_sp_triplet.current.vx - sinf(_yaw) * _pos_sp_triplet.current.vy;
-					_vel_sp(1) = sinf(_yaw) * _pos_sp_triplet.current.vx + cosf(_yaw) * _pos_sp_triplet.current.vy;
-
-				} else {
-					warn_rate_limited("Unknown velocity offboard coordinate frame");
-				}
-
-				_run_pos_control = false;
-
-				_hold_offboard_xy = false;
-			}
-		}
-
-		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.alt_valid) {
-			/* control altitude as it is enabled */
-			_pos_sp(2) = _pos_sp_triplet.current.z;
-			_run_alt_control = true;
-
-			_hold_offboard_z = false;
-
-		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
-
-			/* reset alt setpoint to current altitude if needed */
-			reset_alt_sp();
-
-			if (fabsf(_pos_sp_triplet.current.vz) <= FLT_EPSILON &&
-			    _local_pos.z_valid) {
-
-				if (!_hold_offboard_z) {
-					_pos_sp(2) = _pos(2);
-					_hold_offboard_z = true;
-				}
-
-				_run_alt_control = true;
-
-			} else {
-				/* set position setpoint move rate */
-				_vel_sp(2) = _pos_sp_triplet.current.vz;
-				_run_alt_control = false;
-
-				_hold_offboard_z = false;
-			}
-		}
-
-		if (_pos_sp_triplet.current.yaw_valid) {
-			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
-
-		} else if (_pos_sp_triplet.current.yawspeed_valid) {
-			float yaw_target = _wrap_pi(_att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * _dt);
-			float yaw_offs = _wrap_pi(yaw_target - _yaw);
-			const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
-			const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
-
-			// If the yaw offset became too big for the system to track stop
-			// shifting it, only allow if it would make the offset smaller again.
-			if (fabsf(yaw_offs) < yaw_offset_max ||
-			    (_pos_sp_triplet.current.yawspeed > 0 && yaw_offs < 0) ||
-			    (_pos_sp_triplet.current.yawspeed < 0 && yaw_offs > 0)) {
-				_att_sp.yaw_body = yaw_target;
-			}
-		}
-
-	} else {
-		_hold_offboard_xy = false;
-		_hold_offboard_z = false;
-		reset_pos_sp();
-		reset_alt_sp();
-	}
-}
 
 void
 MulticopterPositionControl::vel_sp_slewrate()
