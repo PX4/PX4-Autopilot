@@ -1431,16 +1431,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		_vel_sp(2) = 0.0f;
 	}
 
-	/* limit vertical upwards speed in auto takeoff and close to ground */
-	float altitude_above_home = -_pos(2) + _home_pos.z;
-
-	/* limit vertical downwards speed (positive z) close to ground
-	 * for now we use the altitude above home and assume that we want to land at same height as we took off */
-	float vel_limit = math::gradual(altitude_above_home,
-					_slow_land_alt2.get(), _slow_land_alt1.get(),
-					_land_speed.get(), _vel_max_down.get());
-
-	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_smooth_takeoff) {
