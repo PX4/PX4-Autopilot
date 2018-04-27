@@ -164,6 +164,8 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
+	_dlpf_freq_icm_gyro(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
+	_dlpf_freq_icm_accel(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_rate(1000),
 	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
@@ -187,9 +189,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_rotation(rotation),
 	_checked_next(0),
 	_num_checked_registers(0),
-	_checked_registers(nullptr),
-	_checked_values(nullptr),
-	_checked_bad(nullptr),
 	_last_temperature(0),
 	_last_accel_data{},
 	_got_duplicate(false)
@@ -308,18 +307,21 @@ MPU9250::init()
 		return ret;
 	}
 
-	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
-	ret = -ENOMEM;
+	// No gyro and accel on ICM20948 for now
+	if(_device_type != MPU_DEVICE_TYPE_ICM20948) {
+		/* allocate basic report buffers */
+		_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+		ret = -ENOMEM;
 
-	if (_accel_reports == nullptr) {
-		return ret;
-	}
+		if (_accel_reports == nullptr) {
+			return ret;
+		}
 
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+		_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
-	if (_gyro_reports == nullptr) {
-		return ret;
+		if (_gyro_reports == nullptr) {
+			return ret;
+		}
 	}
 
 	if (reset_mpu() != OK) {
@@ -478,16 +480,28 @@ int MPU9250::reset()
 
 int MPU9250::reset_mpu()
 {
-	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-	write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
-	write_checked_reg(MPUREG_PWR_MGMT_2, 0);
+	switch(_device_type) {
+	case MPU_DEVICE_TYPE_MPU9250:
+		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
+		write_checked_reg(MPUREG_PWR_MGMT_2, 0);
+		break;
+	case MPU_DEVICE_TYPE_ICM20948:
+		write_reg(ICMREG_20948_PWR_MGMT_1, BIT_H_RESET);
+		write_checked_reg(ICMREG_20948_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
+		//write_checked_reg(ICMREG_20948_PWR_MGMT_1, BIT_PWR_MGMT_2_GYRACC_ENABLE);
+		break;
+	}
+
 
 
 	usleep(1000);
 
 	// Enable I2C bus or Disable I2C bus (recommended on data sheet)
 
-	write_checked_reg(MPUREG_USER_CTRL, is_i2c() ? 0 : BIT_I2C_IF_DIS);
+
+	write_checked_reg( MPU_OR_ICM(MPUREG_USER_CTRL, ICMREG_20948_USER_CTRL), is_i2c() ? 0 : BIT_I2C_IF_DIS);
+
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
@@ -498,7 +512,14 @@ int MPU9250::reset_mpu()
 	_set_dlpf_filter(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ);
 
 	// Gyro scale 2000 deg/s ()
-	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
+	switch(_device_type) {
+	case MPU_DEVICE_TYPE_MPU9250:
+		write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
+		break;
+	case MPU_DEVICE_TYPE_ICM20948:
+		modify_checked_reg(ICMREG_20948_GYRO_CONFIG_1, ICM_BITS_GYRO_FS_SEL_MASK, ICM_BITS_GYRO_FS_SEL_2000DPS);
+	}
+
 
 	// correct gyro scale factors
 	// scale to rad/s in SI units
@@ -511,7 +532,7 @@ int MPU9250::reset_mpu()
 	set_accel_range(ACCEL_RANGE_G);
 
 	// INT CFG => Interrupt on Data Ready
-	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
+	write_checked_reg(MPU_OR_ICM(MPUREG_INT_ENABLE, ICMREG_20948_INT_ENABLE_1), BIT_RAW_RDY_EN);        // INT: Raw data ready
 
 #ifdef USE_I2C
 	bool bypass = !_mag->is_passthrough();
@@ -528,9 +549,10 @@ int MPU9250::reset_mpu()
 	 * so bypass is true if the mag has an i2c non null interfaces.
 	 */
 
-	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
+	write_checked_reg(MPU_OR_ICM(MPUREG_INT_PIN_CFG, ICMREG_20948_INT_PIN_CFG) , BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
 
-	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
+	write_checked_reg( 	MPU_OR_ICM(MPUREG_ACCEL_CONFIG2, ICMREG_20948_ACCEL_CONFIG_2),
+						MPU_OR_ICM(BITS_ACCEL_CONFIG2_41HZ, ICM_BITS_DEC3_CFG_32));
 
 	uint8_t retries = 3;
 	bool all_ok = false;
@@ -541,7 +563,7 @@ int MPU9250::reset_mpu()
 		all_ok = true;
 		uint8_t reg;
 
-		for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
+		for (uint8_t i = 0; i < MPU_OR_ICM(MPU9250_NUM_CHECKED_REGISTERS, ICM20948_NUM_CHECKED_REGISTERS); i++) {
 			if ((reg = read_reg(_checked_registers[i])) != _checked_values[i]) {
 				write_reg(_checked_registers[i], _checked_values[i]);
 				PX4_ERR("Reg %d is:%d s/b:%d Tries:%d", _checked_registers[i], reg, _checked_values[i], retries);
@@ -583,8 +605,6 @@ MPU9250::probe()
 		break;
 	}
 
-	_checked_values = new uint8_t[_num_checked_registers];
-	_checked_bad = new uint8_t[_num_checked_registers];
 	memset(_checked_values, 0, _num_checked_registers);
 	memset(_checked_bad, 0, _num_checked_registers);
 	_checked_values[0] = _whoami;
@@ -598,24 +618,45 @@ MPU9250::probe()
 
 /*
   set sample rate (approximate) - 1kHz to 5Hz, for both accel and gyro
+  For ICM20948 accel and gyro samplerates are both set to the same value.
 */
 void
 MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
+	uint8_t div=1;
+
 	if (desired_sample_rate_hz == 0 ||
 	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
 	    desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
 		desired_sample_rate_hz = MPU9250_GYRO_DEFAULT_RATE;
 	}
 
-	uint8_t div = 1000 / desired_sample_rate_hz;
+	switch(_device_type) {
+	case MPU_DEVICE_TYPE_MPU9250:
+		div = 1000 / desired_sample_rate_hz;
+		break;
+	case MPU_DEVICE_TYPE_ICM20948:
+		div = 1100 / desired_sample_rate_hz;
+		break;
+	}
 
 	if (div > 200) { div = 200; }
-
 	if (div < 1) { div = 1; }
 
-	write_checked_reg(MPUREG_SMPLRT_DIV, div - 1);
-	_sample_rate = 1000 / div;
+
+	switch(_device_type) {
+	case MPU_DEVICE_TYPE_MPU9250:
+		write_checked_reg(MPUREG_SMPLRT_DIV, div - 1);
+		_sample_rate = 1000 / div;
+		break;
+	case MPU_DEVICE_TYPE_ICM20948:
+		write_checked_reg(ICMREG_20948_GYRO_SMPLRT_DIV, div - 1);
+		// There's also an MSB for this allowing much higher dividers for the accelerometer.
+		// For 1 < div < 200 the LSB is sufficient.
+		write_checked_reg(ICMREG_20948_ACCEL_SMPLRT_DIV_2, div - 1);
+		_sample_rate = 1100 / div;
+		break;
+	}
 }
 
 /*
@@ -626,47 +667,135 @@ MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 {
 	uint8_t filter;
 
-	/*
-	   choose next highest filter frequency available
-	 */
-	if (frequency_hz == 0) {
-		_dlpf_freq = 0;
-		filter = BITS_DLPF_CFG_3600HZ;
 
-	} else if (frequency_hz <= 5) {
-		_dlpf_freq = 5;
-		filter = BITS_DLPF_CFG_5HZ;
+	switch(_device_type) {
+	case MPU_DEVICE_TYPE_MPU9250:
+		/*
+		   choose next highest filter frequency available
+		 */
+		if (frequency_hz == 0) {
+			_dlpf_freq = 0;
+			filter = BITS_DLPF_CFG_3600HZ;
 
-	} else if (frequency_hz <= 10) {
-		_dlpf_freq = 10;
-		filter = BITS_DLPF_CFG_10HZ;
+		} else if (frequency_hz <= 5) {
+			_dlpf_freq = 5;
+			filter = BITS_DLPF_CFG_5HZ;
 
-	} else if (frequency_hz <= 20) {
-		_dlpf_freq = 20;
-		filter = BITS_DLPF_CFG_20HZ;
+		} else if (frequency_hz <= 10) {
+			_dlpf_freq = 10;
+			filter = BITS_DLPF_CFG_10HZ;
 
-	} else if (frequency_hz <= 41) {
-		_dlpf_freq = 41;
-		filter = BITS_DLPF_CFG_41HZ;
+		} else if (frequency_hz <= 20) {
+			_dlpf_freq = 20;
+			filter = BITS_DLPF_CFG_20HZ;
 
-	} else if (frequency_hz <= 92) {
-		_dlpf_freq = 92;
-		filter = BITS_DLPF_CFG_92HZ;
+		} else if (frequency_hz <= 41) {
+			_dlpf_freq = 41;
+			filter = BITS_DLPF_CFG_41HZ;
 
-	} else if (frequency_hz <= 184) {
-		_dlpf_freq = 184;
-		filter = BITS_DLPF_CFG_184HZ;
+		} else if (frequency_hz <= 92) {
+			_dlpf_freq = 92;
+			filter = BITS_DLPF_CFG_92HZ;
 
-	} else if (frequency_hz <= 250) {
-		_dlpf_freq = 250;
-		filter = BITS_DLPF_CFG_250HZ;
+		} else if (frequency_hz <= 184) {
+			_dlpf_freq = 184;
+			filter = BITS_DLPF_CFG_184HZ;
 
-	} else {
-		_dlpf_freq = 0;
-		filter = BITS_DLPF_CFG_3600HZ;
+		} else if (frequency_hz <= 250) {
+			_dlpf_freq = 250;
+			filter = BITS_DLPF_CFG_250HZ;
+
+		} else {
+			_dlpf_freq = 0;
+			filter = BITS_DLPF_CFG_3600HZ;
+		}
+
+		write_checked_reg(MPUREG_CONFIG, filter);
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20948:
+		/*
+		   choose next highest filter frequency available for gyroscope
+		 */
+		if (frequency_hz == 0) {
+			_dlpf_freq_icm_gyro = 0;
+			filter = ICM_BITS_GYRO_DLPF_CFG_361HZ;
+
+		} else if (frequency_hz <= 5) {
+			_dlpf_freq_icm_gyro = 5;
+			filter = ICM_BITS_GYRO_DLPF_CFG_5HZ;
+
+		} else if (frequency_hz <= 11) {
+			_dlpf_freq_icm_gyro = 11;
+			filter = ICM_BITS_GYRO_DLPF_CFG_11HZ;
+
+		} else if (frequency_hz <= 23) {
+			_dlpf_freq_icm_gyro = 23;
+			filter = ICM_BITS_GYRO_DLPF_CFG_23HZ;
+
+		} else if (frequency_hz <= 51) {
+			_dlpf_freq_icm_gyro = 51;
+			filter = ICM_BITS_GYRO_DLPF_CFG_51HZ;
+
+		} else if (frequency_hz <= 119) {
+			_dlpf_freq_icm_gyro = 119;
+			filter = ICM_BITS_GYRO_DLPF_CFG_119HZ;
+
+		} else if (frequency_hz <= 151) {
+			_dlpf_freq_icm_gyro = 151;
+			filter = ICM_BITS_GYRO_DLPF_CFG_151HZ;
+
+		} else if (frequency_hz <= 197) {
+			_dlpf_freq_icm_gyro = 197;
+			filter = ICM_BITS_GYRO_DLPF_CFG_197HZ;
+
+		} else {
+			_dlpf_freq_icm_gyro = 0;
+			filter = ICM_BITS_GYRO_DLPF_CFG_361HZ;
+		}
+		write_checked_reg(ICMREG_20948_GYRO_CONFIG_1, filter);
+
+		/*
+		   choose next highest filter frequency available for accelerometer
+		 */
+		if (frequency_hz == 0) {
+			_dlpf_freq_icm_accel = 0;
+			filter = ICM_BITS_ACCEL_DLPF_CFG_473HZ;
+
+		} else if (frequency_hz <= 5) {
+			_dlpf_freq_icm_accel = 5;
+			filter = ICM_BITS_ACCEL_DLPF_CFG_5HZ;
+
+		} else if (frequency_hz <= 11) {
+			_dlpf_freq_icm_accel = 11;
+			filter = ICM_BITS_ACCEL_DLPF_CFG_11HZ;
+
+		} else if (frequency_hz <= 23) {
+			_dlpf_freq_icm_accel = 23;
+			filter = ICM_BITS_ACCEL_DLPF_CFG_23HZ;
+
+		} else if (frequency_hz <= 50) {
+			_dlpf_freq_icm_accel = 50;
+			filter = ICM_BITS_ACCEL_DLPF_CFG_50HZ;
+
+		} else if (frequency_hz <= 111) {
+			_dlpf_freq_icm_accel = 111;
+			filter = ICM_BITS_ACCEL_DLPF_CFG_111HZ;
+
+		} else if (frequency_hz <= 246) {
+			_dlpf_freq_icm_accel = 246;
+			filter = ICM_BITS_ACCEL_DLPF_CFG_246HZ;
+
+		} else {
+			_dlpf_freq_icm_accel = 0;
+			filter = ICM_BITS_ACCEL_DLPF_CFG_473HZ;
+		}
+
+		write_checked_reg(ICMREG_20948_ACCEL_CONFIG, filter);
+		break;
 	}
 
-	write_checked_reg(MPUREG_CONFIG, filter);
+
 }
 
 ssize_t
@@ -1049,8 +1178,13 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 int
 MPU9250::select_register_bank(uint8_t bank) {
+	uint8_t ret;
 	if (bank != _selected_bank ) {
-		return _interface->write(MPU9250_SET_SPEED(ICMREG_20948_BANK_SEL, MPU9250_HIGH_BUS_SPEED), &bank, 1);
+		ret = _interface->write(MPU9250_SET_SPEED(ICMREG_20948_BANK_SEL, MPU9250_HIGH_BUS_SPEED), &bank, 1);
+		if (ret != OK) {
+			return ret;
+		}
+		_selected_bank=bank;
 	}
 	return PX4_OK;
 }
@@ -1165,7 +1299,15 @@ MPU9250::set_accel_range(unsigned max_g_in)
 		max_accel_g = 2;
 	}
 
-	write_checked_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
+	switch(_device_type) {
+	case MPU_DEVICE_TYPE_MPU9250:
+		write_checked_reg( MPUREG_ACCEL_CONFIG, afs_sel << 3);
+		break;
+	case MPU_DEVICE_TYPE_ICM20948:
+		modify_checked_reg( ICMREG_20948_ACCEL_CONFIG, ICM_BITS_ACCEL_FS_SEL_MASK, afs_sel << 1);
+		break;
+	}
+
 	_accel_range_scale = (CONSTANTS_ONE_G / lsb_per_g);
 	_accel_range_m_s2 = max_accel_g * CONSTANTS_ONE_G;
 

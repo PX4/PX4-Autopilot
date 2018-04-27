@@ -147,7 +147,7 @@ enum MPU_DEVICE_TYPE {
 #define BITS_DLPF_CFG_20HZ		0x04
 #define BITS_DLPF_CFG_10HZ		0x05
 #define BITS_DLPF_CFG_5HZ		0x06
-#define BITS_DLPF_CFG_3600HZ		0x07
+#define BITS_DLPF_CFG_3600HZ	0x07
 #define BITS_DLPF_CFG_MASK		0x07
 
 #define BITS_ACCEL_CONFIG2_41HZ		0x03
@@ -248,13 +248,63 @@ enum MPU_DEVICE_TYPE {
 
 
 
+/*
+* ICM20948 register bits
+* Most of the regiser set values from MPU9250 have the same
+* meaning on ICM20948. The exceptions and values not already
+* defined for MPU9250 are defined below
+*/
+#define ICM_BIT_PWR_MGMT_1_ENABLE       	0x00
+#define ICM_BIT_USER_CTRL_I2C_MST_DISABLE   0x00
+
+#define ICM_BITS_GYRO_DLPF_CFG_197HZ		0x01
+#define ICM_BITS_GYRO_DLPF_CFG_151HZ		0x09
+#define ICM_BITS_GYRO_DLPF_CFG_119HZ		0x11
+#define ICM_BITS_GYRO_DLPF_CFG_51HZ			0x19
+#define ICM_BITS_GYRO_DLPF_CFG_23HZ			0x21
+#define ICM_BITS_GYRO_DLPF_CFG_11HZ			0x29
+#define ICM_BITS_GYRO_DLPF_CFG_5HZ			0x31
+#define ICM_BITS_GYRO_DLPF_CFG_361HZ		0x39
+#define ICM_BITS_GYRO_DLPF_CFG_MASK			0x39
+
+#define ICM_BITS_GYRO_FS_SEL_250DPS			0x00
+#define ICM_BITS_GYRO_FS_SEL_500DPS			0x02
+#define ICM_BITS_GYRO_FS_SEL_1000DPS		0x04
+#define ICM_BITS_GYRO_FS_SEL_2000DPS		0x06
+#define ICM_BITS_GYRO_FS_SEL_MASK			0x06
+
+#define ICM_BITS_ACCEL_DLPF_CFG_246HZ		0x09
+#define ICM_BITS_ACCEL_DLPF_CFG_111HZ		0x11
+#define ICM_BITS_ACCEL_DLPF_CFG_50HZ		0x19
+#define ICM_BITS_ACCEL_DLPF_CFG_23HZ		0x21
+#define ICM_BITS_ACCEL_DLPF_CFG_11HZ		0x29
+#define ICM_BITS_ACCEL_DLPF_CFG_5HZ			0x31
+#define ICM_BITS_ACCEL_DLPF_CFG_473HZ		0x39
+#define ICM_BITS_ACCEL_DLPF_CFG_MASK		0x39
+
+#define ICM_BITS_ACCEL_FS_SEL_250DPS		0x00
+#define ICM_BITS_ACCEL_FS_SEL_500DPS		0x02
+#define ICM_BITS_ACCEL_FS_SEL_1000DPS		0x04
+#define ICM_BITS_ACCEL_FS_SEL_2000DPS		0x06
+#define ICM_BITS_ACCEL_FS_SEL_MASK			0x06
+
+#define ICM_BITS_DEC3_CFG_4					0x00
+#define ICM_BITS_DEC3_CFG_8					0x01
+#define ICM_BITS_DEC3_CFG_16				0x10
+#define ICM_BITS_DEC3_CFG_32				0x11
+#define ICM_BITS_DEC3_CFG_MASK				0x11
+
+
+
+#define MPU_OR_ICM(m,i)					((_device_type==MPU_DEVICE_TYPE_MPU9250) ? m : i)
+
+
 
 
 #pragma pack(push, 1)
 /**
  * Report conversation within the mpu, including command byte and
  * interrupt status.
-#define ADDR_ID_ICM         0x00
  */
 struct MPUReport {
 	uint8_t		cmd;
@@ -371,6 +421,8 @@ private:
 	float			_gyro_range_rad_s;
 
 	unsigned		_dlpf_freq;
+	unsigned		_dlpf_freq_icm_gyro;
+	unsigned		_dlpf_freq_icm_accel;
 
 	unsigned		_sample_rate;
 	perf_counter_t		_accel_reads;
@@ -401,18 +453,21 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
+#ifndef MAX
+#define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
+#endif
+
 #define MPU9250_NUM_CHECKED_REGISTERS 11
 	static const uint16_t	_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
-
-	// same, but for ICM20948
 #define ICM20948_NUM_CHECKED_REGISTERS 16
 	static const uint16_t	_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS];
 
-	unsigned		_checked_next;
-	unsigned		_num_checked_registers;
-	const uint16_t* _checked_registers;
-	uint8_t*		_checked_values;
-	uint8_t*		_checked_bad;
+	const uint16_t*			_checked_registers;
+
+	uint8_t					_checked_values[MAX(MPU9250_NUM_CHECKED_REGISTERS, ICM20948_NUM_CHECKED_REGISTERS)];
+	uint8_t					_checked_bad[MAX(MPU9250_NUM_CHECKED_REGISTERS, ICM20948_NUM_CHECKED_REGISTERS)];
+	unsigned				_checked_next;
+	unsigned				_num_checked_registers;
 
 
 	// last temperature reading for print_info()
