@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,79 +32,55 @@
  ****************************************************************************/
 
 /**
- * @file LPS25H_SPI.cpp
+ * @file LPS22HB_SPI.cpp
  *
- * SPI interface for LPS25H
+ * SPI interface for LPS22HB
  */
 
-/* XXX trim includes */
+#include "LPS22HB.hpp"
+
+#include <cstring>
+
 #include <px4_config.h>
 
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <debug.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
 #include <drivers/device/spi.h>
-#include <drivers/drv_mag.h>
 #include <drivers/drv_device.h>
 
-#include "lps25h.h"
-#include <board_config.h>
-
-#ifdef PX4_SPIDEV_HMC
+#ifdef PX4_SPIDEV_LPS22HB
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
 #define DIR_WRITE			(0<<7)
 
-#define HMC_MAX_SEND_LEN		4
-#define HMC_MAX_RCV_LEN			8
+device::Device *LPS22HB_SPI_interface(int bus);
 
-device::Device *LPS25H_SPI_interface(int bus);
-
-class LPS25H_SPI : public device::SPI
+class LPS22HB_SPI : public device::SPI
 {
 public:
-	LPS25H_SPI(int bus, uint32_t device);
-	virtual ~LPS25H_SPI();
+	LPS22HB_SPI(int bus, uint32_t device);
+	virtual ~LPS22HB_SPI() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
 };
 
 device::Device *
-LPS25H_SPI_interface(int bus)
+LPS22HB_SPI_interface(int bus)
 {
-	return new LPS25H_SPI(bus, PX4_SPIDEV_HMC);
+	return new LPS22HB_SPI(bus, PX4_SPIDEV_LPS22HB);
 }
 
-LPS25H_SPI::LPS25H_SPI(int bus, uint32_t device) :
-	SPI("LPS25H_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000 /* will be rounded to 10.4 MHz */)
+LPS22HB_SPI::LPS22HB_SPI(int bus, uint32_t device) : SPI("LPS22HB_SPI", nullptr, bus, device, SPIDEV_MODE3, 10000000)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LPS25H;
-}
-
-LPS25H_SPI::~LPS25H_SPI()
-{
+	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_LPS22HB;
 }
 
 int
-LPS25H_SPI::init()
+LPS22HB_SPI::init()
 {
-	int ret;
-
-	ret = SPI::init();
+	int ret = SPI::init();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI init failed");
@@ -112,15 +88,15 @@ LPS25H_SPI::init()
 	}
 
 	// read WHO_AM_I value
-	uint8_t id;
+	uint8_t id = 0;
 
-	if (read(ADDR_ID, &id, 1)) {
+	if (read(WHO_AM_I, &id, 1)) {
 		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
-	if (id != ID_WHO_AM_I) {
-		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", ID_WHO_AM_I, id);
+	if (id != LPS22HB_ID_WHO_AM_I) {
+		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", LPS22HB_ID_WHO_AM_I, id);
 		return -EIO;
 	}
 
@@ -128,25 +104,7 @@ LPS25H_SPI::init()
 }
 
 int
-LPS25H_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
-}
-
-int
-LPS25H_SPI::write(unsigned address, void *data, unsigned count)
+LPS22HB_SPI::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -161,7 +119,7 @@ LPS25H_SPI::write(unsigned address, void *data, unsigned count)
 }
 
 int
-LPS25H_SPI::read(unsigned address, void *data, unsigned count)
+LPS22HB_SPI::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -176,4 +134,4 @@ LPS25H_SPI::read(unsigned address, void *data, unsigned count)
 	return ret;
 }
 
-#endif /* PX4_SPIDEV_HMC */
+#endif /* PX4_SPIDEV_LPS22HB */
