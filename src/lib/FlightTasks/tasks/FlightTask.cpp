@@ -81,4 +81,5 @@ void FlightTask::_setDefaultConstraints()
 	_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
 	_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
 	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
+	_constraints.landing_gear_up = false;
 }
