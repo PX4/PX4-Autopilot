@@ -1434,18 +1434,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	/* limit vertical upwards speed in auto takeoff and close to ground */
 	float altitude_above_home = -_pos(2) + _home_pos.z;
 
-	// encourage pilot to respect flow sensor minimum height limitations
-	if (_local_pos.limit_hagl && _local_pos.dist_bottom_valid && _control_mode.flag_control_manual_enabled
-	    && _control_mode.flag_control_altitude_enabled) {
-		// If distance to ground is less than limit, increment set point upwards at up to the landing descent rate
-		if (_local_pos.dist_bottom < _min_hagl_limit) {
-			float climb_rate_bias = fminf(1.5f * _pos_p(2) * (_min_hagl_limit - _local_pos.dist_bottom), _land_speed.get());
-			_vel_sp(2) -= climb_rate_bias;
-			_pos_sp(2) -= climb_rate_bias * _dt;
-
-		}
-	}
-
 	/* limit vertical downwards speed (positive z) close to ground
 	 * for now we use the altitude above home and assume that we want to land at same height as we took off */
 	float vel_limit = math::gradual(altitude_above_home,
