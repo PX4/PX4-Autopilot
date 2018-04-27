@@ -3016,7 +3016,7 @@ MulticopterPositionControl::task_main()
 			check_takeoff_state(setpoint.z, setpoint.vz);
 			update_takeoff_setpoint(setpoint.z, setpoint.vz);
 
-			// update vlocity constraints in case of smooth takeoff
+			// update velocity constraints in case of smooth takeoff
 			if (_in_smooth_takeoff) {constraints.speed_up = _tko_speed.get();};
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
@@ -3026,6 +3026,7 @@ MulticopterPositionControl::task_main()
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				setpoint.yawspeed = 0.0f;
 				setpoint.yaw = _yaw;
+				constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 			}
 
 			// Update states, setpoints and constraints.
@@ -3060,7 +3061,16 @@ MulticopterPositionControl::task_main()
 			_att_sp.fw_control_yaw = false;
 			_att_sp.disable_mc_yaw_control = false;
 			_att_sp.apply_flaps = false;
-			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+
+			if (!constraints.landing_gear) {
+				if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {
+					_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
+				}
+
+				if (constraints.landing_gear == vehicle_constraints_s::GEAR_DOWN) {
+					_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+				}
+			}
 
 			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
 			publish_local_pos_sp();
