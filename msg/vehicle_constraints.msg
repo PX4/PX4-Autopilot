@@ -7,4 +7,7 @@ float32 speed_up	# in meters/sec
 float32 speed_down	# in meters/sec
 float32 tilt    # in radians [0, PI]
 
-bool landing_gear_up # true when up, false when down
+int8 GEAR_DOWN = -1
+int8 GEAR_UP = 1
+int8 GEAR_KEEP = 0
+int8 landing_gear # Down, UP or KEEP
