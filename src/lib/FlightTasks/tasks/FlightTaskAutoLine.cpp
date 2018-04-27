@@ -89,12 +89,6 @@ bool FlightTaskAutoLine::update()
 		_generateVelocitySetpoints();
 	}
 
-	// For now yaw-setpoint comes directly form triplets.
-	// TODO: In the future, however, yaw should be set in this
-	// task based on flag: yaw along path, yaw based on gimbal, yaw
-	// same as home yaw ...
-	_yaw_setpoint = _yaw_wp;
-
 	// update previous type
 	_type_previous = _type;
 
@@ -362,8 +356,8 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 			float yaw_diff = 0.0f;
 
-			if (PX4_ISFINITE(_yaw_wp)) {
-				yaw_diff = _wrap_pi(_yaw_wp - _yaw);
+			if (PX4_ISFINITE(_yaw_setpoint)) {
+				yaw_diff = _wrap_pi(_yaw_setpoint - _yaw);
 			}
 
 			// If yaw offset is large, only accelerate with 0.5 m/s^2.
