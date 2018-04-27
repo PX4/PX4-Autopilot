@@ -49,7 +49,16 @@ public:
 	virtual ~FlightTaskOffboard() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool update() override;
+	bool activate() override;
 
 protected:
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+private:
+	matrix::Vector3f _position_lock{};
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED,
+					(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) MIS_TAKEOFF_ALT
+				       )
 };
