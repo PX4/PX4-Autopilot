@@ -110,12 +110,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 			       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &target(0), &target(1));
 	target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
 
-	if (_sub_triplet_setpoint->get().current.yaw_valid) {
-		_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
-	}
+
+	_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
 
 	if (_type == WaypointType::follow_target && _sub_triplet_setpoint->get().current.yawspeed_valid) {
 		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
+		_yaw_setpoint = NAN;
 	}
 
 	// Check if anything has changed. We do that by comparing the target
