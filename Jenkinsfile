@@ -59,7 +59,7 @@ pipeline {
           }
 
           // other nuttx default targets
-          for (def option in ["px4-same70xplained-v1", "px4-stm32f4discovery", "px4cannode-v1", "px4esc-v1", "px4nucleoF767ZI-v1", "s2740vc-v1"]) {
+          for (def option in ["av-x-v1", "px4-same70xplained-v1", "px4-stm32f4discovery", "px4cannode-v1", "px4esc-v1", "px4nucleoF767ZI-v1", "s2740vc-v1"]) {
             def node_name = "${option}"
             builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
           }

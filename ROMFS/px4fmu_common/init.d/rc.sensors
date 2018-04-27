@@ -329,6 +329,19 @@ then
 	ist8310 -C -b 5 start
 fi
 
+if ver hwcmp AV_X_V1
+then
+	adis16477 -R 8 start
+
+	#adis16497 start
+
+	lps22hb start
+
+	lsm303agr -R 4 start
+
+	#ms4525_airspeed start
+fi
+
 if ver hwcmp AEROCORE2
 then
 	l3gd20 -R 12 start
