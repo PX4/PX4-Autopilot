@@ -56,7 +56,9 @@ enum class WaypointType : int {
 	loiter,
 	takeoff,
 	land,
-	idle
+	idle,
+	offboard, // only part of this structure due to legacy reason. It is not used
+	follow_target
 };
 
 class FlightTaskAuto : public FlightTask
@@ -72,15 +74,14 @@ public:
 protected:
 	void _setDefaultConstraints() override;
 	float _getMaxCruiseSpeed() {return MPC_XY_CRUISE.get();} /**< getter for default cruise speed */
+	matrix::Vector2f _getTargetVelocityXY(); /**< only used for follow-me and only here because of legacy reason.*/
 
 	matrix::Vector3f _prev_prev_wp{}; /**< Pre-previous waypoint (local frame). This will be used for smoothing trajectories -> not used yet. */
 	matrix::Vector3f _prev_wp{}; /**< Previous waypoint  (local frame). If no previous triplet is available, the prev_wp is set to current position. */
 	matrix::Vector3f _target{}; /**< Target waypoint  (local frame).*/
 	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
-	float _yaw_wp{0.0f}; /**< Triplet yaw waypoint. Currently it is not a yaw-waypoint, but rather a yaw setpoint at each time stamp. */
 	float _mc_cruise_speed{0.0f}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
-
 	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 
 private:
