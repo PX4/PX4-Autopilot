@@ -52,6 +52,13 @@ bool FlightTaskOffboard::initializeSubscriptions(SubscriptionArray &subscription
 	return true;
 }
 
+bool FlightTaskOffboard::activate()
+{
+	bool ret = FlightTask::activate();
+	_position_lock *= NAN;
+	return ret;
+}
+
 bool FlightTaskOffboard::update()
 {
 	if (!_sub_triplet_setpoint->get().current.valid) {
@@ -62,6 +69,86 @@ bool FlightTaskOffboard::update()
 
 	// reset setpoint for every loop
 	_resetSetpoints();
+
+	// Yaw / Yaw-speed
+
+	if (_sub_triplet_setpoint->get().current.yaw_valid) {
+		// yaw control required
+		_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
+
+		if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
+			// yawspeed is used as feedforward
+			_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
+		}
+
+	} else if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
+		// only yawspeed required
+		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
+		// set yaw setpoint to NAN since not used
+		_yaw_setpoint = NAN;
+
+	}
+
+	// Loiter
+	if (_sub_triplet_setpoint->get().current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		// loiter just means that the vehicle should keep position
+		if (!PX4_ISFINITE(_position_lock(0))) {
+			_position_setpoint = _position_lock = _position;
+
+		} else {
+			_position_setpoint = _position_lock;
+		}
+
+		// don't have to continue
+		return true;
+
+	} else {
+		_position_lock *= NAN;
+	}
+
+	// Takeoff
+	if (_sub_triplet_setpoint->get().current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		// just do takeoff to default altitude
+		if (!PX4_ISFINITE(_position_lock(0))) {
+			_position_setpoint = _position_lock = _position;
+			_position_setpoint(2) = _position_lock(2) = _position(2) - MIS_TAKEOFF_ALT.get();
+
+		} else {
+			_position_setpoint = _position_lock;
+		}
+
+		// don't have to continue
+		return true;
+
+	} else {
+		_position_lock *= NAN;
+	}
+
+	// Land
+	if (_sub_triplet_setpoint->get().current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		// land with landing speed, but keep position in xy
+		if (!PX4_ISFINITE(_position_lock(0))) {
+			_position_setpoint = _position_lock = _position;
+			_position_setpoint(2) = _position_lock(2) = NAN;
+			_velocity_setpoint(2) = MPC_LAND_SPEED.get();
+
+		} else {
+			_position_setpoint = _position_lock;
+			_velocity_setpoint(2) = MPC_LAND_SPEED.get();
+		}
+
+		// don't have to continue
+		return true;
+
+	} else {
+		_position_lock *= NAN;
+	}
+
+	// IDLE
+	if (_sub_triplet_setpoint->get().current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		_thrust_setpoint.zero();
+		return true;
+	}
 
 	// Possible inputs:
 	// 1. position setpoint
@@ -134,25 +221,6 @@ bool FlightTaskOffboard::update()
 
 	} else if (velocity_ctrl_z) {
 		_velocity_setpoint(2) = _sub_triplet_setpoint->get().current.vz;
-	}
-
-	// Yaw / Yaw-speed
-
-	if (_sub_triplet_setpoint->get().current.yaw_valid) {
-		// yaw control required
-		_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
-
-		if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
-			// yawspeed is used as feedforward
-			_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
-		}
-
-	} else if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
-		// only yawspeed required
-		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
-		// set yaw setpoint to NAN since not used
-		_yaw_setpoint = NAN;
-
 	}
 
 	// Acceleration
