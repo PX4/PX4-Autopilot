@@ -351,8 +351,6 @@ private:
 	 */
 	void		control_manual();
 
-	void		control_non_manual();
-
 
 	void control_position();
 	void calculate_velocity_setpoint();
@@ -1397,49 +1395,6 @@ MulticopterPositionControl::control_manual()
 }
 
 void
-MulticopterPositionControl::control_non_manual()
-{
-	/* select control source */
-	if (_control_mode.flag_control_offboard_enabled) {
-		/* offboard control */
-		_mode_auto = false;
-
-	} else {
-		_hold_offboard_xy = false;
-		_hold_offboard_z = false;
-	}
-
-
-	/* use constant descend rate when landing, ignore altitude setpoint */
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		_vel_sp(2) = _land_speed.get();
-		_run_alt_control = false;
-	}
-
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-		/* idle state, don't run controller and set zero thrust */
-		_R_setpoint.identity();
-
-		matrix::Quatf qd = _R_setpoint;
-		qd.copyTo(_att_sp.q_d);
-		_att_sp.q_d_valid = true;
-
-		_att_sp.roll_body = 0.0f;
-		_att_sp.pitch_body = 0.0f;
-		_att_sp.yaw_body = _yaw;
-		_att_sp.thrust = 0.0f;
-
-		_att_sp.timestamp = hrt_absolute_time();
-
-	} else {
-		control_position();
-	}
-}
-
-
-void
 MulticopterPositionControl::vel_sp_slewrate()
 {
 	matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
@@ -1608,7 +1563,6 @@ MulticopterPositionControl::do_control()
 		/* reset acceleration to default */
 		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
-		control_non_manual();
 	}
 }
 
