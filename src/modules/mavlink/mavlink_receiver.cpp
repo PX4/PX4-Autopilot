@@ -131,6 +131,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_pos_sp_triplet_pub(nullptr),
 	_vision_position_pub(nullptr),
 	_vision_attitude_pub(nullptr),
+	_mocap_position_pub(nullptr),
+	_mocap_attitude_pub(nullptr),
 	_telemetry_status_pub(nullptr),
 	_ping_pub(nullptr),
 	_rc_pub(nullptr),
@@ -148,6 +150,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
+	_vehicle_attitude_sub(orb_subscribe(ORB_ID(vehicle_attitude))),
 	_global_ref_timestamp(0),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -165,12 +168,16 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	if (_mavlink->get_mode() != Mavlink::MAVLINK_MODE_IRIDIUM) {
 		_mission_manager = new MavlinkMissionManager(parent);
 	}
+
+	/* Make the attitude quaternion valid */
+	_att.q[0] = 1.0f;
 }
 
 MavlinkReceiver::~MavlinkReceiver()
 {
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_actuator_armed_sub);
+	orb_unsubscribe(_vehicle_attitude_sub);
 
 	if (_mission_manager != nullptr) {
 		delete _mission_manager;
@@ -325,6 +332,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_OBSTACLE_DISTANCE:
 		handle_message_obstacle_distance(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ODOMETRY:
+		handle_message_odometry(msg);
 		break;
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
