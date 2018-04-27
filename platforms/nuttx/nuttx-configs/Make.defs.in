@@ -68,6 +68,7 @@ CFLAGS = -Os -g2 ${CMAKE_C_FLAGS} $(ARCHINCLUDES) \
 	-Wno-bad-function-cast \
 	-Wno-cpp \
 	-Wno-float-equal \
+	-Wno-format-truncation \
 	-Wno-implicit-fallthrough \
 	-Wno-implicit-function-declaration \
 	-Wno-logical-op \
