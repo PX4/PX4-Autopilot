@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(adis16448)
-add_subdirectory(adis16477)
-add_subdirectory(bma180)
-add_subdirectory(bmi055)
-add_subdirectory(bmi160)
-add_subdirectory(fxas21002c)
-add_subdirectory(fxos8701cq)
-add_subdirectory(l3gd20)
-add_subdirectory(lsm303d)
-add_subdirectory(mpu6000)
-add_subdirectory(mpu9250)
+px4_add_module(
+	MODULE drivers__imu__adis16477
+	MAIN adis16477
+	SRCS
+		ADIS16477.cpp
+		ADIS16477_gyro.cpp
+		ADIS16477_main.cpp
+	)
