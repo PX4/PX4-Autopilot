@@ -86,6 +86,7 @@ protected:
 	void _updateInternalWaypoints(); /* Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
 	void _generateSetpoints(); /**< Generate velocity and position setpoint for following line. */
 	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
+	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
 	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
 	void updateParams() override; /**< See ModuleParam class */
 
