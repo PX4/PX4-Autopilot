@@ -2012,6 +2012,8 @@ MulticopterPositionControl::task_main()
 			check_takeoff_state(setpoint.z, setpoint.vz);
 			update_takeoff_setpoint(setpoint.z, setpoint.vz);
 
+			if (_in_smooth_takeoff) {constraints.speed_up = _takeoff_speed;}
+
 			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
 			// in pure manual. Otherwise just stay idle.
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
