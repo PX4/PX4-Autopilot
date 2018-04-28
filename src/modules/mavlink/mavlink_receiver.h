@@ -81,6 +81,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include <matrix/math.hpp>
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
 #include "mavlink_mission.h"
@@ -190,6 +191,12 @@ private:
 	void send_flight_information();
 
 	void send_storage_information(int storage_id);
+
+	/**
+	 * Fills two 3D covariance matrixes from a 6D cross covariance matrix URT
+	 */
+	void covariance_from_matrixurt_helper(float urt[21], matrix::SquareMatrix3f &matrix1,
+					      matrix::SquareMatrix3f &matrix2);
 
 	Mavlink	*_mavlink;
 

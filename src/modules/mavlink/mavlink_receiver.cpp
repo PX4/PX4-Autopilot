@@ -401,6 +401,53 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	_mavlink->set_has_received_messages(true);
 }
 
+void
+MavlinkReceiver::covariance_from_matrixurt_helper(float urt[21], matrix::SquareMatrix3f &matrix1,
+		matrix::SquareMatrix3f &matrix2)
+{
+	// check if Mavlink covariance array size matches the URT number of cells
+	/*if (Q != (2 * M * (2 * M + 1) / 2)) {
+		return;
+	}*/
+
+	size_t index = 1, count = 1;
+
+	for (size_t i = 0; i < 6; i++) {
+		for (size_t j = 0; j < 6; j++) {
+			if (i < 3 && j < 3) {
+				if (i == j) {
+					if (i == 0 && j == 0) {
+						matrix1(i, j) = urt[0];
+
+					} else {
+						index += count;
+						matrix1(i, j) = urt[6 * i + j - index];
+						count++;
+					}
+
+				} else if (i >= j) {
+					matrix1(i, j) = urt[6 * i + j - index - 1];
+				}
+
+			} else if (i >= 3 && j >= 3) {
+				if (i == j) {
+					if (i == 3 && j == 3) {
+						matrix2(i, j) = urt[15];
+
+					} else {
+						index += count;
+						matrix2(i, j) = urt[6 * i + j - index];
+						count++;
+					}
+
+				} else if (i >= j) {
+					matrix2(i, j) = urt[6 * i + j - index - 1];
+				}
+			}
+		}
+	}
+}
+
 bool
 MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
 {
@@ -1619,9 +1666,9 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odom_position.y = odom.y;
 	odom_position.z = odom.z;
 
-	/* Linear and angular covariances principal diagonals */
-	matrix::Vector3<float> linvel_cov;
-	matrix::Vector3<float> angvel_cov;
+	/* Linear and angular covariances. Init to identity */
+	matrix::SquareMatrix3f linvel_cov = matrix::eye<float, 3>();
+	matrix::SquareMatrix3f angvel_cov = matrix::eye<float, 3>();
 
 	/* Dcm rotation matrix from body frame to local NED frame */
 	matrix::Dcm<float> Rbl;
@@ -1633,7 +1680,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
 		Rbl = matrix::Dcm<float>(matrix::Quatf(odom_attitude.q)).I();
 
-		/* the linear velocities need to be transformed to the local NED frame */
+		/* the linear velocities needs to be transformed to the local NED frame */
 		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 		odom_position.vx = linvel_local(0);
 		odom_position.vy = linvel_local(1);
@@ -1643,14 +1690,11 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odom_attitude.pitchspeed = odom.pitchspeed;
 		odom_attitude.yawspeed = odom.yawspeed;
 
-		linvel_cov = Rbl * matrix::Vector3<float>(
-				     odom.twist_covariance[0],
-				     odom.twist_covariance[6],
-				     odom.twist_covariance[11]);
-		angvel_cov = matrix::Vector3<float>(
-				     odom.twist_covariance[15],
-				     odom.twist_covariance[18],
-				     odom.twist_covariance[20]);
+		/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
+		covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+
+		/* the linear velocities covariance needs to be transformed to the local NED frame */
+		linvel_cov = Rbl * linvel_cov * Rbl.transpose();
 
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
 		if (updated) {
@@ -1659,7 +1703,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
 			Rbl = matrix::Dcm<float>(matrix::Quatf(_att.q)).I();
 
-			/* the linear velocities need to be transformed to the local NED frame */
+			/* the linear velocities needs to be transformed to the local NED frame */
 			matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 			odom_position.vx = linvel_local(0);
 			odom_position.vy = linvel_local(1);
@@ -1669,14 +1713,11 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			odom_attitude.pitchspeed = odom.pitchspeed;
 			odom_attitude.yawspeed = odom.yawspeed;
 
-			linvel_cov = Rbl * matrix::Vector3<float>(
-					     odom.twist_covariance[0],
-					     odom.twist_covariance[6],
-					     odom.twist_covariance[11]);
-			angvel_cov = matrix::Vector3<float>(
-					     odom.twist_covariance[15],
-					     odom.twist_covariance[18],
-					     odom.twist_covariance[20]);
+			/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
+			covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+
+			/* the linear velocities covariance needs to be transformed to the local NED frame */
+			linvel_cov = Rbl * linvel_cov * Rbl.transpose();
 
 		}
 
@@ -1698,14 +1739,11 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			odom_attitude.pitchspeed = angvel_local(1);
 			odom_attitude.yawspeed = angvel_local(2);
 
-			linvel_cov = matrix::Vector3<float>(
-					     odom.twist_covariance[0],
-					     odom.twist_covariance[6],
-					     odom.twist_covariance[11]);
-			angvel_cov = Rlb * matrix::Vector3<float>(
-					     odom.twist_covariance[15],
-					     odom.twist_covariance[18],
-					     odom.twist_covariance[20]);
+			/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
+			covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+
+			/* the linear velocities covariance needs to be transformed to the local NED frame */
+			linvel_cov = Rlb * linvel_cov * Rlb.transpose();
 
 		}
 
@@ -1716,8 +1754,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	// TODO : full covariance matrix
 	odom_position.eph = sqrtf(fmaxf(odom.pose_covariance[0], odom.pose_covariance[6]));
 	odom_position.epv = sqrtf(odom.pose_covariance[11]);
-	odom_position.evh = sqrtf(fmaxf(linvel_cov(0), linvel_cov(1)));
-	odom_position.evv = sqrtf(linvel_cov(2));
+	odom_position.evh = sqrtf(fmaxf(linvel_cov(0, 0), linvel_cov(1, 1)));
+	odom_position.evv = sqrtf(linvel_cov(2, 2));
 
 	// set position/velocity invalid if standard deviation is bigger than ev_max_std_dev
 	const float ev_max_std_dev = 100.0f;
