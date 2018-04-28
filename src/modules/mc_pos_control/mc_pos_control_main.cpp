@@ -377,8 +377,6 @@ private:
 
 	void update_smooth_takeoff();
 
-	void landdetection_thrust_limit(matrix::Vector3f &thrust_sp);
-
 	void set_idle_state();
 
 	/**
@@ -1429,8 +1427,6 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 		thrust_sp(1) = 0.0f;
 	}
 
-	// reduce thrust in early landing detection states to check if the vehicle still moves
-	landdetection_thrust_limit(thrust_sp);
 
 	if (!_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_acceleration_enabled) {
 		thrust_sp(2) = 0.0f;
@@ -2298,37 +2294,6 @@ MulticopterPositionControl::publish_local_pos_sp()
 		_local_pos_sp_pub = orb_advertise(
 					    ORB_ID(vehicle_local_position_setpoint),
 					    &_local_pos_sp);
-	}
-}
-
-void
-MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_sp)
-{
-	if (!in_auto_takeoff() && !manual_wants_takeoff()) {
-		if (_vehicle_land_detected.ground_contact) {
-			/* if still or already on ground command zero xy thrust_sp in body
-			 * frame to consider uneven ground */
-
-			/* thrust setpoint in body frame*/
-			matrix::Vector3f thrust_sp_body = _R.transpose() * thrust_sp;
-
-			/* we dont want to make any correction in body x and y*/
-			thrust_sp_body(0) = 0.0f;
-			thrust_sp_body(1) = 0.0f;
-
-			/* make sure z component of thrust_sp_body is larger than 0 (positive thrust is downward) */
-			thrust_sp_body(2) = thrust_sp(2) > 0.0f ? thrust_sp(2) : 0.0f;
-
-			/* convert back to local frame (NED) */
-			thrust_sp = _R * thrust_sp_body;
-		}
-
-		if (_vehicle_land_detected.maybe_landed) {
-			/* we set thrust to zero
-			 * this will help to decide if we are actually landed or not
-			 */
-			thrust_sp.zero();
-		}
 	}
 }
 
