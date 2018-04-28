@@ -82,8 +82,6 @@
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
 
-/* temporary solution to enable and disable obstacle avoidance */
-#define ENABLE_OBSTACLE_AVOIDANCE false
 
 /**
  * Multicopter position control app start / stop handling function
@@ -179,6 +177,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MPC_FLT_TSK>) _test_flight_tasks, /**< temporary flag for the transition to flight tasks */
+		(ParamInt<px4::params::MPC_OBS_AVOID>) _test_obstacle_avoidance, /**< temporary flag to enable obstacle avoidance */
 		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _manual_thr_min, /**< minimal throttle output when flying in manual mode */
 		(ParamFloat<px4::params::MPC_MANTHR_MAX>) _manual_thr_max, /**< maximal throttle output when flying in manual mode */
 		(ParamFloat<px4::params::MPC_XY_MAN_EXPO>)
@@ -3492,8 +3491,8 @@ MulticopterPositionControl::use_obstacle_avoidance()
 {
 
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	return (ENABLE_OBSTACLE_AVOIDANCE && (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
-					      TRAJECTORY_STREAM_TIMEOUT_US) && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
+	return (_test_obstacle_avoidance.get() && (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
+			TRAJECTORY_STREAM_TIMEOUT_US) && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
 }
 
 bool
