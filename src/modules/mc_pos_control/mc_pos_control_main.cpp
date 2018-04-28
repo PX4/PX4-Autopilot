@@ -1447,13 +1447,6 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 	float tilt_max = _tilt_max_air;
 	float thr_max = _thr_max.get();
 
-	/* limit min lift */
-	if (-thrust_sp(2) < thr_min) {
-		thrust_sp(2) = -thr_min;
-		/* Don't freeze altitude integral if it wants to throttle up */
-		saturation_z = vel_err(2) > 0.0f ? true : saturation_z;
-	}
-
 	if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
 
 		/* limit max tilt */
