@@ -347,7 +347,6 @@ private:
 	void		reset_alt_sp();
 
 	void control_position();
-	void calculate_velocity_setpoint();
 	void calculate_thrust_setpoint();
 
 	void update_velocity_derivative();
@@ -1370,8 +1369,6 @@ MulticopterPositionControl::do_control()
 void
 MulticopterPositionControl::control_position()
 {
-	calculate_velocity_setpoint();
-
 	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
 	    _control_mode.flag_control_acceleration_enabled) {
 		calculate_thrust_setpoint();
@@ -1379,70 +1376,6 @@ MulticopterPositionControl::control_position()
 	} else {
 		_reset_int_z = true;
 	}
-}
-
-void
-MulticopterPositionControl::calculate_velocity_setpoint()
-{
-	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
-	if (_run_pos_control) {
-
-		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
-		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
-			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _pos_p(0);
-			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _pos_p(1);
-
-		} else {
-			_vel_sp(0) = 0.0f;
-			_vel_sp(1) = 0.0f;
-			warn_rate_limited("Caught invalid pos_sp in x and y");
-
-		}
-	}
-
-	if (_run_alt_control) {
-		if (PX4_ISFINITE(_pos_sp(2))) {
-			_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _pos_p(2);
-
-		} else {
-			_vel_sp(2) = 0.0f;
-			warn_rate_limited("Caught invalid pos_sp in z");
-		}
-	}
-
-	if (!_control_mode.flag_control_position_enabled) {
-		_reset_pos_sp = true;
-	}
-
-	if (!_control_mode.flag_control_altitude_enabled) {
-		_reset_alt_sp = true;
-	}
-
-	if (!_control_mode.flag_control_velocity_enabled) {
-		_vel_sp_prev(0) = _vel(0);
-		_vel_sp_prev(1) = _vel(1);
-		_vel_sp(0) = 0.0f;
-		_vel_sp(1) = 0.0f;
-	}
-
-	if (!_control_mode.flag_control_climb_rate_enabled) {
-		_vel_sp(2) = 0.0f;
-	}
-
-	/* make sure velocity setpoint is constrained in all directions (xyz) */
-	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
-
-	/* check if the velocity demand is significant */
-	_vel_sp_significant =  vel_norm_xy > 0.5f * _vel_max_xy;
-
-	if (vel_norm_xy > _vel_max_xy) {
-		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
-	}
-
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_vel_max_up.get(), _vel_max_down.get());
-
-	_vel_sp_prev = _vel_sp;
 }
 
 void
