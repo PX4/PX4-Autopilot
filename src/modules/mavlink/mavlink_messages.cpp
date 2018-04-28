@@ -1982,6 +1982,12 @@ protected:
 			odom.pitchspeed = att.pitchspeed;
 			odom.yawspeed = att.yawspeed;
 
+			// Fill the pose and twist covariance with zeros first
+			for (size_t i = 0; i < 21; i++) {
+				odom.pose_covariance[i] = 0.0f;
+				odom.twist_covariance[i] = 0.0f;
+			}
+
 			// Position covariance
 			odom.pose_covariance[0] = est.covariances[7];
 			odom.pose_covariance[6] = est.covariances[8];
@@ -1998,16 +2004,12 @@ protected:
 			odom.pose_covariance[18] = att_cov.theta();
 			odom.pose_covariance[20] = att_cov.psi();
 
-			// Rotate linear velocity covariance to body-NED frame
-			matrix::Vector3<float> linvel_cov_body(Rlb * matrix::Vector3<float>(
-					est.covariances[4],
-					est.covariances[5],
-					est.covariances[6]));
-
 			// Linear velocity covariance
-			odom.twist_covariance[0] = linvel_cov_body(0);
-			odom.twist_covariance[6] = linvel_cov_body(1);
-			odom.twist_covariance[11] = linvel_cov_body(2);
+			// Since the diagonal is kept the same, no need to rotate
+			// the linear velocity covariance to body-NED frame
+			odom.twist_covariance[0] = est.covariances[4];
+			odom.twist_covariance[6] = est.covariances[5];
+			odom.twist_covariance[11] = est.covariances[6];
 
 			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &odom);
 		}
