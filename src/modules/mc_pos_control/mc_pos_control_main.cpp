@@ -1447,21 +1447,6 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 	float tilt_max = _tilt_max_air;
 	float thr_max = _thr_max.get();
 
-	// We can only run the control if we're already in-air, have a takeoff setpoint,
-	// or if we're in offboard control.
-	// Otherwise, we should just bail out
-	if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
-		// Keep throttle low while still on ground.
-		thr_max = 0.0f;
-
-	} else if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
-		   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-
-		/* adjust limits for landing mode */
-		/* limit max tilt and min lift when landing */
-		tilt_max = _tilt_max_land;
-	}
-
 	/* limit min lift */
 	if (-thrust_sp(2) < thr_min) {
 		thrust_sp(2) = -thr_min;
