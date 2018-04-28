@@ -2628,16 +2628,16 @@ Mavlink::covariance_from_matrixurt_helper(float urt[21], matrix::SquareMatrix3f 
 			} else if (i >= 3 && j >= 3) {
 				if (i == j) {
 					if (i == 3 && j == 3) {
-						matrix2(i, j) = urt[15];
+						matrix2(i - 3, j - 3) = urt[15];
 
 					} else {
 						index += count;
-						matrix2(i, j) = urt[6 * i + j - index];
+						matrix2(i - 3, j - 3) = urt[6 * i + j - index];
 						count++;
 					}
 
 				} else if (i >= j) {
-					matrix2(i, j) = urt[6 * i + j - index - 1];
+					matrix2(i - 3, j - 3) = urt[6 * i + j - index - 1];
 				}
 			}
 		}
