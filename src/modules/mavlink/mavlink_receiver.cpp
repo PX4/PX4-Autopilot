@@ -401,53 +401,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	_mavlink->set_has_received_messages(true);
 }
 
-void
-MavlinkReceiver::covariance_from_matrixurt_helper(float urt[21], matrix::SquareMatrix3f &matrix1,
-		matrix::SquareMatrix3f &matrix2)
-{
-	// check if Mavlink covariance array size matches the URT number of cells
-	/*if (Q != (2 * M * (2 * M + 1) / 2)) {
-		return;
-	}*/
-
-	size_t index = 1, count = 1;
-
-	for (size_t i = 0; i < 6; i++) {
-		for (size_t j = 0; j < 6; j++) {
-			if (i < 3 && j < 3) {
-				if (i == j) {
-					if (i == 0 && j == 0) {
-						matrix1(i, j) = urt[0];
-
-					} else {
-						index += count;
-						matrix1(i, j) = urt[6 * i + j - index];
-						count++;
-					}
-
-				} else if (i >= j) {
-					matrix1(i, j) = urt[6 * i + j - index - 1];
-				}
-
-			} else if (i >= 3 && j >= 3) {
-				if (i == j) {
-					if (i == 3 && j == 3) {
-						matrix2(i, j) = urt[15];
-
-					} else {
-						index += count;
-						matrix2(i, j) = urt[6 * i + j - index];
-						count++;
-					}
-
-				} else if (i >= j) {
-					matrix2(i, j) = urt[6 * i + j - index - 1];
-				}
-			}
-		}
-	}
-}
-
 bool
 MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
 {
@@ -1691,7 +1644,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odom_attitude.yawspeed = odom.yawspeed;
 
 		/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
-		covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+		_mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
 
 		/* the linear velocities covariance needs to be transformed to the local NED frame */
 		linvel_cov = Rbl * linvel_cov * Rbl.transpose();
@@ -1714,7 +1667,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			odom_attitude.yawspeed = odom.yawspeed;
 
 			/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
-			covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+			_mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
 
 			/* the linear velocities covariance needs to be transformed to the local NED frame */
 			linvel_cov = Rbl * linvel_cov * Rbl.transpose();
@@ -1740,7 +1693,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			odom_attitude.yawspeed = angvel_local(2);
 
 			/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
-			covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+			_mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
 
 			/* the linear velocities covariance needs to be transformed to the local NED frame */
 			linvel_cov = Rlb * linvel_cov * Rlb.transpose();

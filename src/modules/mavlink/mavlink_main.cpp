@@ -2602,6 +2602,48 @@ void Mavlink::check_radio_config()
 	}
 }
 
+void
+Mavlink::covariance_from_matrixurt_helper(float urt[21], matrix::SquareMatrix3f &matrix1,
+		matrix::SquareMatrix3f &matrix2)
+{
+	size_t index = 1, count = 1;
+
+	for (size_t i = 0; i < 6; i++) {
+		for (size_t j = 0; j < 6; j++) {
+			if (i < 3 && j < 3) {
+				if (i == j) {
+					if (i == 0 && j == 0) {
+						matrix1(i, j) = urt[0];
+
+					} else {
+						index += count;
+						matrix1(i, j) = urt[6 * i + j - index];
+						count++;
+					}
+
+				} else if (i >= j) {
+					matrix1(i, j) = urt[6 * i + j - index - 1];
+				}
+
+			} else if (i >= 3 && j >= 3) {
+				if (i == j) {
+					if (i == 3 && j == 3) {
+						matrix2(i, j) = urt[15];
+
+					} else {
+						index += count;
+						matrix2(i, j) = urt[6 * i + j - index];
+						count++;
+					}
+
+				} else if (i >= j) {
+					matrix2(i, j) = urt[6 * i + j - index - 1];
+				}
+			}
+		}
+	}
+}
+
 int Mavlink::start_helper(int argc, char *argv[])
 {
 	/* create the instance in task context */
