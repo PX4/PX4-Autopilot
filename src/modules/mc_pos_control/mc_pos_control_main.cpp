@@ -1447,27 +1447,6 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 	float tilt_max = _tilt_max_air;
 	float thr_max = _thr_max.get();
 
-	if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
-
-		/* limit max tilt */
-		if (thr_min >= 0.0f && tilt_max < M_PI_F / 2.0f - 0.05f) {
-			/* absolute horizontal thrust */
-			float thrust_sp_xy_len = matrix::Vector2f(thrust_sp(0), thrust_sp(1)).length();
-
-			if (thrust_sp_xy_len > 0.01f) {
-				/* max horizontal thrust for given vertical thrust*/
-				float thrust_xy_max = -thrust_sp(2) * tanf(tilt_max);
-
-				if (thrust_sp_xy_len > thrust_xy_max) {
-					float k = thrust_xy_max / thrust_sp_xy_len;
-					thrust_sp(0) *= k;
-					thrust_sp(1) *= k;
-					/* Don't freeze x,y integrals if they both want to throttle down */
-					saturation_xy = ((vel_err(0) * _vel_sp(0) < 0.0f) && (vel_err(1) * _vel_sp(1) < 0.0f)) ? saturation_xy : true;
-				}
-			}
-		}
-	}
 
 	if (_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_velocity_enabled) {
 		/* thrust compensation when vertical velocity but not horizontal velocity is controlled */
