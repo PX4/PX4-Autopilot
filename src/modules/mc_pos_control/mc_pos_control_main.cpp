@@ -1449,48 +1449,6 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 
 
 
-	/* Calculate desired total thrust amount in body z direction. */
-	/* To compensate for excess thrust during attitude tracking errors we
-	 * project the desired thrust force vector F onto the real vehicle's thrust axis in NED:
-	 * body thrust axis [0,0,-1]' rotated by R is: R*[0,0,-1]' = -R_z */
-	matrix::Vector3f R_z(_R(0, 2), _R(1, 2), _R(2, 2));
-
-	/* recalculate because it might have changed */
-	float thrust_body_z = thrust_sp.dot(-R_z);
-
-	/* limit max thrust */
-	if (fabsf(thrust_body_z) > thr_max) {
-		if (thrust_sp(2) < 0.0f) {
-			if (-thrust_sp(2) > thr_max) {
-				/* thrust Z component is too large, limit it */
-				thrust_sp(0) = 0.0f;
-				thrust_sp(1) = 0.0f;
-				thrust_sp(2) = -thr_max;
-				saturation_xy = true;
-				/* Don't freeze altitude integral if it wants to throttle down */
-				saturation_z = vel_err(2) < 0.0f ? true : saturation_z;
-
-			} else {
-				/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
-				float thrust_xy_max = sqrtf(thr_max * thr_max - thrust_sp(2) * thrust_sp(2));
-				float thrust_xy_abs = matrix::Vector2f(thrust_sp(0), thrust_sp(1)).length();
-				float k = thrust_xy_max / thrust_xy_abs;
-				thrust_sp(0) *= k;
-				thrust_sp(1) *= k;
-				/* Don't freeze x,y integrals if they both want to throttle down */
-				saturation_xy = ((vel_err(0) * _vel_sp(0) < 0.0f) && (vel_err(1) * _vel_sp(1) < 0.0f)) ? saturation_xy : true;
-			}
-
-		} else {
-			/* Z component is positive, going down (Z is positive down in NED), simply limit thrust vector */
-			float k = thr_max / fabsf(thrust_body_z);
-			thrust_sp *= k;
-			saturation_xy = true;
-			saturation_z = true;
-		}
-
-		thrust_body_z = thr_max;
-	}
 
 	/* if any of the thrust setpoint is bogus, send out a warning */
 	if (!PX4_ISFINITE(thrust_sp(0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
