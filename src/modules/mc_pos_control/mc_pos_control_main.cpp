@@ -1448,26 +1448,6 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 	float thr_max = _thr_max.get();
 
 
-	if (_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_velocity_enabled) {
-		/* thrust compensation when vertical velocity but not horizontal velocity is controlled */
-		float att_comp;
-
-		const float tilt_cos_max = 0.7f;
-
-		if (_R(2, 2) > tilt_cos_max) {
-			att_comp = 1.0f / _R(2, 2);
-
-		} else if (_R(2, 2) > 0.0f) {
-			att_comp = ((1.0f / tilt_cos_max - 1.0f) / tilt_cos_max) * _R(2, 2) + 1.0f;
-			saturation_z = true;
-
-		} else {
-			att_comp = 1.0f;
-			saturation_z = true;
-		}
-
-		thrust_sp(2) *= att_comp;
-	}
 
 	/* Calculate desired total thrust amount in body z direction. */
 	/* To compensate for excess thrust during attitude tracking errors we
