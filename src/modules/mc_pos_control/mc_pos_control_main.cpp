@@ -348,8 +348,6 @@ private:
 
 	void update_velocity_derivative();
 
-	void do_control();
-
 	void generate_attitude_setpoint();
 
 	float get_cruising_speed_xy();
@@ -1330,36 +1328,6 @@ MulticopterPositionControl::update_velocity_derivative()
 }
 
 void
-MulticopterPositionControl::do_control()
-{
-	/* by default, run position/altitude controller. the control_* functions
-	 * can disable this and run velocity controllers directly in this cycle */
-	_run_pos_control = true;
-	_run_alt_control = true;
-
-	if (_control_mode.flag_control_manual_enabled) {
-		/* manual control */
-		_mode_auto = false;
-
-		/* we set triplets to false
-		 * this ensures that when switching to auto, the position
-		 * controller will not use the old triplets but waits until triplets
-		 * have been updated */
-		_pos_sp_triplet.current.valid = false;
-		_pos_sp_triplet.previous.valid = false;
-		_curr_pos_sp = matrix::Vector3f(NAN, NAN, NAN);
-
-		_hold_offboard_xy = false;
-		_hold_offboard_z = false;
-
-	} else {
-		/* reset acceleration to default */
-		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
-		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
-	}
-}
-
-void
 MulticopterPositionControl::generate_attitude_setpoint()
 {
 	// yaw setpoint is integrated over time, but we don't want to integrate the offset's
@@ -1788,8 +1756,6 @@ MulticopterPositionControl::task_main()
 			    _control_mode.flag_control_climb_rate_enabled ||
 			    _control_mode.flag_control_velocity_enabled ||
 			    _control_mode.flag_control_acceleration_enabled) {
-
-				do_control();
 
 				/* fill local position, velocity and thrust setpoint */
 				_local_pos_sp.timestamp = hrt_absolute_time();
