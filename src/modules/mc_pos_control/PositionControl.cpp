@@ -100,6 +100,8 @@ void PositionControl::generateThrustYawSetpoint(const float &dt)
 
 void PositionControl::_interfaceMapping()
 {
+	// if noting is valid, then apply failsafe landing
+	bool failsafe = false;
 	// Respects FlightTask interface, where NAN-set-points are of no interest
 	// and do not require control. A valide position and velocity setpoint will
 	// be mapped to a desired position setpoint with a feed-forward term.
@@ -137,6 +139,8 @@ void PositionControl::_interfaceMapping()
 			_vel_dot(i) = 0.0f;
 
 		} else {
+			// nothing is valid. do failsafe
+			failsafe = true;
 			PX4_WARN("TODO: add safety");
 		}
 	}
@@ -151,6 +155,15 @@ void PositionControl::_interfaceMapping()
 		// That is the best we can do and it also
 		// agrees with FlightTask-interface definition.
 		_yaw_sp = _yaw;
+	}
+
+	// check failsafe
+	if (failsafe) {
+		// point the thrust upwards
+		_thr_sp(0) = _thr_sp(1) = 0.0f;
+		// throttle down such that vehicle goes down with
+		// 30% of throttle range between min and hover
+		_thr_sp(2) = MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.3f;
 	}
 }
 
