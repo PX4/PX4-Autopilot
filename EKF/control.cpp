@@ -1042,7 +1042,8 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 	// 1) we are not further than max_range_for_dual_fusion away from the ground
 	// 2) our ground speed is not higher than max_vel_for_dual_fusion
 	// 3) Our terrain estimate is stable (needs better checks)
-	if (_params.range_aid) {
+	// 4) We are in-air
+	if (_params.range_aid && _control_status.flags.in_air) {
 		// check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		bool use_range_finder;
 
