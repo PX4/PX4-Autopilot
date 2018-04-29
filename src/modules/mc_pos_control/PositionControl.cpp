@@ -102,6 +102,7 @@ void PositionControl::_interfaceMapping()
 {
 	// if noting is valid, then apply failsafe landing
 	bool failsafe = false;
+
 	// Respects FlightTask interface, where NAN-set-points are of no interest
 	// and do not require control. A valide position and velocity setpoint will
 	// be mapped to a desired position setpoint with a feed-forward term.
