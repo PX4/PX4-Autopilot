@@ -77,8 +77,13 @@
 #include <board_config.h>
 
 /* Configuration Constants */
+#ifdef PX4_SPI_BUS_EXPANSION
 #define PMW3901_BUS 							PX4_SPI_BUS_EXPANSION				/* fmu-v4pro: PX4_SPI_BUS_EXT1 | fmu-v5: PX4_SPI_BUS_EXTERNAL1  */
+#endif
+
+#ifdef PX4_SPIDEV_EXPANSION_2
 #define PMW3901_SPIDEV 							PX4_SPIDEV_EXPANSION_2				/* fmu-v4pro: PX4_SPIDEV_EXT0  | fmu-v5: PX4_SPIDEV_EXTERNAL1_1 */
+#endif
 
 #define PMW3901_SPI_BUS_SPEED    				(2000000L)      			// 2MHz
 

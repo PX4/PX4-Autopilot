@@ -13,12 +13,15 @@
 #include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
 #include <systemlib/px4_macros.h>
+#include <nuttx/mmcsd.h>
 
 #include <up_arch.h>
 #include <chip.h>
 #include <stm32_gpio.h>
 #include "board_config.h"
 #include <systemlib/err.h>
+
+//#include "stm32.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -65,8 +68,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 {
 	/* Configure SPI-based devices */
 
-	/* Get the SPI port for the Sensors */
-
+	/* Get the external SPI port */
 	spi_expansion = stm32_spibus_initialize(PX4_SPI_BUS_EXPANSION);
 
 	if (!spi_expansion) {
@@ -74,15 +76,16 @@ __EXPORT int stm32_spi_bus_initialize(void)
 		return -ENODEV;
 	}
 
-	/* Default PX4_SPI_BUS_SENSORS to 1MHz and de-assert the known chip selects. */
+	//#ifdef CONFIG_MMCSD
+	int ret = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_expansion);
 
-	SPI_SETFREQUENCY(spi_expansion, 10000000);
-	SPI_SETBITS(spi_expansion, 8);
-	SPI_SETMODE(spi_expansion, SPIDEV_MODE3);
-
-	for (int cs = PX4_FLOW_BUS_FIRST_CS; cs <= PX4_FLOW_BUS_LAST_CS; cs++) {
-		SPI_SELECT(spi_expansion, cs, false);
+	if (ret != OK) {
+		//message("[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
+		return -ENODEV;
 	}
+
+	//#endif
+
 
 	return OK;
 
@@ -101,7 +104,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool s
 	/* SPI select is active low, so write !selected to select the device */
 
 	int sel = (int) devid;
-	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXPANSION);
+	//ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXPANSION);
 
 	/* Making sure the other peripherals are not selected */
 
