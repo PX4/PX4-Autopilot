@@ -346,8 +346,6 @@ private:
 	 */
 	void		reset_alt_sp();
 
-	void control_position();
-
 	void update_velocity_derivative();
 
 	void do_control();
@@ -1360,17 +1358,6 @@ MulticopterPositionControl::do_control()
 		/* reset acceleration to default */
 		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
-	}
-}
-
-void
-MulticopterPositionControl::control_position()
-{
-	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
-	    _control_mode.flag_control_acceleration_enabled) {
-
-	} else {
-		_reset_int_z = true;
 	}
 }
 
