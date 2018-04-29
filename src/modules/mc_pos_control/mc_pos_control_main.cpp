@@ -1555,50 +1555,44 @@ MulticopterPositionControl::task_main()
 
 		update_velocity_derivative();
 
+		switch (_vehicle_status.nav_state) {
+		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+			_flight_tasks.switchTask(FlightTaskIndex::Altitude);
+			break;
 
-		if (_test_flight_tasks.get()) {
-			switch (_vehicle_status.nav_state) {
-			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-				_flight_tasks.switchTask(FlightTaskIndex::Altitude);
-				break;
+		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+			_flight_tasks.switchTask(FlightTaskIndex::Position);
+			break;
 
-			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-				_flight_tasks.switchTask(FlightTaskIndex::Position);
-				break;
+		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+			_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
+			break;
 
-			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-				_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
-				break;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+			/*TODO: clean up navigation state and commander state, which both share too many equal states */
+			_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+			break;
 
-				/*TODO: clean up navigation state and commander state, which both share too many equal states */
-				_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
-				break;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+			_flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
+			break;
 
-			case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-				_flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
-				break;
+		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+			_flight_tasks.switchTask(FlightTaskIndex::Offboard);
+			break;
 
-			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-				_flight_tasks.switchTask(FlightTaskIndex::Offboard);
-				break;
-
-			default:
-				/* not supported yet */
-				_flight_tasks.switchTask(FlightTaskIndex::None);
-			}
-
-		} else {
-			/* make sure to disable any task when we are not testing them */
+		default:
+			/* not supported yet */
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
 
-		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
+
+		if (_flight_tasks.isAnyTaskActive()) {
 
 			_flight_tasks.update();
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
