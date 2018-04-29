@@ -1772,6 +1772,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
+		configure_stream_local("ODOMETRY", 1.0f);
 		configure_stream_local("PING", 0.1f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.5f);
@@ -1807,6 +1808,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
+		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("PING", 1.0f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 10.0f);
@@ -1870,6 +1872,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
+		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("PING", 1.0f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream_local("RC_CHANNELS", 10.0f);
