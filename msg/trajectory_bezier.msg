@@ -11,7 +11,6 @@ uint8 Y = 1
 uint8 Z = 2
 uint8 TIME_HORIZON = 3
 uint8 YAW = 4
-uint8 YAW_SPEED = 5
 
 uint8 MAV_TRAJECTORY_REPRESENTATION_BEZIER = 1
 
