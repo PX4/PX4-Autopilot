@@ -1663,6 +1663,7 @@ MavlinkReceiver::handle_message_trajectory(mavlink_message_t *msg)
 		} else {
 			orb_publish(ORB_ID(trajectory_waypoint), _trajectory_waypoint_pub, &trajectory_waypoint);
 		}
+
 	} else if (trajectory.type == trajectory_bezier_s::MAV_TRAJECTORY_REPRESENTATION_BEZIER) {
 
 		struct trajectory_bezier_s trajectory_bezier = {};
