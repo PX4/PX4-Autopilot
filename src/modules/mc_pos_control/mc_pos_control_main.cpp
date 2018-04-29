@@ -1444,18 +1444,11 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 		thr_min = 0.0f;
 	}
 
-	float tilt_max = _tilt_max_air;
-	float thr_max = _thr_max.get();
-
-
-
 
 	/* if any of the thrust setpoint is bogus, send out a warning */
 	if (!PX4_ISFINITE(thrust_sp(0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
 		warn_rate_limited("Thrust setpoint not finite");
 	}
-
-	_att_sp.thrust = math::max(thrust_body_z, thr_min);
 
 	/* update integrals */
 	if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
@@ -1467,76 +1460,8 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 		_thrust_int(2) += vel_err(2) * _vel_i(2) * _dt;
 	}
 
-	/* calculate attitude setpoint from thrust vector */
-	if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
-		/* desired body_z axis = -normalize(thrust_vector) */
-		matrix::Vector3f body_x;
-		matrix::Vector3f body_y;
-		matrix::Vector3f body_z;
 
-		if (thrust_sp.length() > SIGMA_NORM) {
-			body_z = -thrust_sp.normalized();
 
-		} else {
-			/* no thrust, set Z axis to safe value */
-			body_z = {0.0f, 0.0f, 1.0f};
-		}
-
-		/* vector of desired yaw direction in XY plane, rotated by PI/2 */
-		matrix::Vector3f y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
-
-		if (fabsf(body_z(2)) > SIGMA_SINGLE_OP) {
-			/* desired body_x axis, orthogonal to body_z */
-			body_x = y_C % body_z;
-
-			/* keep nose to front while inverted upside down */
-			if (body_z(2) < 0.0f) {
-				body_x = -body_x;
-			}
-
-			body_x.normalize();
-
-		} else {
-			/* desired thrust is in XY plane, set X downside to construct correct matrix,
-			 * but yaw component will not be used actually */
-			body_x.zero();
-			body_x(2) = 1.0f;
-		}
-
-		/* desired body_y axis */
-		body_y = body_z % body_x;
-
-		/* fill rotation matrix */
-		for (int i = 0; i < 3; i++) {
-			_R_setpoint(i, 0) = body_x(i);
-			_R_setpoint(i, 1) = body_y(i);
-			_R_setpoint(i, 2) = body_z(i);
-		}
-
-		/* copy quaternion setpoint to attitude setpoint topic */
-		matrix::Quatf q_sp = _R_setpoint;
-		q_sp.copyTo(_att_sp.q_d);
-		_att_sp.q_d_valid = true;
-
-		/* calculate euler angles, for logging only, must not be used for control */
-		matrix::Eulerf euler = _R_setpoint;
-		_att_sp.roll_body = euler(0);
-		_att_sp.pitch_body = euler(1);
-		/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
-
-	} else if (!_control_mode.flag_control_manual_enabled) {
-		/* autonomous altitude control without position control (failsafe landing),
-		 * force level attitude, don't change yaw */
-		_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
-
-		/* copy quaternion setpoint to attitude setpoint topic */
-		matrix::Quatf q_sp = _R_setpoint;
-		q_sp.copyTo(_att_sp.q_d);
-		_att_sp.q_d_valid = true;
-
-		_att_sp.roll_body = 0.0f;
-		_att_sp.pitch_body = 0.0f;
-	}
 
 	/* save thrust setpoint for logging */
 	_local_pos_sp.acc_x = thrust_sp(0) * CONSTANTS_ONE_G;
