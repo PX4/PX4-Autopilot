@@ -347,7 +347,6 @@ private:
 	void		reset_alt_sp();
 
 	void control_position();
-	void calculate_thrust_setpoint();
 
 	void update_velocity_derivative();
 
@@ -1369,106 +1368,10 @@ MulticopterPositionControl::control_position()
 {
 	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
 	    _control_mode.flag_control_acceleration_enabled) {
-		calculate_thrust_setpoint();
 
 	} else {
 		_reset_int_z = true;
 	}
-}
-
-void
-MulticopterPositionControl::calculate_thrust_setpoint()
-{
-	/* reset integrals if needed */
-	if (_control_mode.flag_control_climb_rate_enabled) {
-		if (_reset_int_z) {
-			_reset_int_z = false;
-			_thrust_int(2) = 0.0f;
-		}
-
-	} else {
-		_reset_int_z = true;
-	}
-
-	if (_control_mode.flag_control_velocity_enabled) {
-		if (_reset_int_xy) {
-			_reset_int_xy = false;
-			_thrust_int(0) = 0.0f;
-			_thrust_int(1) = 0.0f;
-		}
-
-	} else {
-		_reset_int_xy = true;
-	}
-
-	/* if any of the velocity setpoint is bogus, it's probably safest to command no velocity at all. */
-	for (int i = 0; i < 3; ++i) {
-		if (!PX4_ISFINITE(_vel_sp(i))) {
-			_vel_sp(i) = 0.0f;
-		}
-	}
-
-	/* velocity error */
-	matrix::Vector3f vel_err = _vel_sp - _vel;
-
-	/* thrust vector in NED frame */
-	matrix::Vector3f thrust_sp;
-
-	if (_control_mode.flag_control_acceleration_enabled && _pos_sp_triplet.current.acceleration_valid) {
-		thrust_sp = matrix::Vector3f(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
-
-	} else {
-		thrust_sp = vel_err.emult(_vel_p) + _vel_err_d.emult(_vel_d)
-			    + _thrust_int - matrix::Vector3f(0.0f, 0.0f, _thr_hover.get());
-	}
-
-	if (!_control_mode.flag_control_velocity_enabled && !_control_mode.flag_control_acceleration_enabled) {
-		thrust_sp(0) = 0.0f;
-		thrust_sp(1) = 0.0f;
-	}
-
-
-	if (!_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_acceleration_enabled) {
-		thrust_sp(2) = 0.0f;
-	}
-
-	/* limit thrust vector and check for saturation */
-	bool saturation_xy = false;
-	bool saturation_z = false;
-
-	/* limit min lift */
-	float thr_min = _thr_min.get();
-
-	if (!_control_mode.flag_control_velocity_enabled && thr_min < 0.0f) {
-		/* don't allow downside thrust direction in manual attitude mode */
-		thr_min = 0.0f;
-	}
-
-
-	/* if any of the thrust setpoint is bogus, send out a warning */
-	if (!PX4_ISFINITE(thrust_sp(0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
-		warn_rate_limited("Thrust setpoint not finite");
-	}
-
-	/* update integrals */
-	if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
-		_thrust_int(0) += vel_err(0) * _vel_i(0) * _dt;
-		_thrust_int(1) += vel_err(1) * _vel_i(1) * _dt;
-	}
-
-	if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
-		_thrust_int(2) += vel_err(2) * _vel_i(2) * _dt;
-	}
-
-
-
-
-	/* save thrust setpoint for logging */
-	_local_pos_sp.acc_x = thrust_sp(0) * CONSTANTS_ONE_G;
-	_local_pos_sp.acc_y = thrust_sp(1) * CONSTANTS_ONE_G;
-	_local_pos_sp.acc_z = thrust_sp(2) * CONSTANTS_ONE_G;
-
-	_att_sp.timestamp = hrt_absolute_time();
 }
 
 void
