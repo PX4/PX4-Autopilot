@@ -372,8 +372,6 @@ private:
 
 	bool manual_wants_takeoff();
 
-	void update_smooth_takeoff();
-
 	void set_idle_state();
 
 	/**
@@ -1791,8 +1789,6 @@ MulticopterPositionControl::task_main()
 			    _control_mode.flag_control_velocity_enabled ||
 			    _control_mode.flag_control_acceleration_enabled) {
 
-				update_smooth_takeoff();
-
 				do_control();
 
 				/* fill local position, velocity and thrust setpoint */
@@ -1940,24 +1936,6 @@ MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp
 		// will end up with wrong integral sums
 		_control.resetIntegralXY();
 		_control.resetIntegralZ();
-	}
-}
-
-void
-MulticopterPositionControl:: update_smooth_takeoff()
-{
-	if (!_in_smooth_takeoff && _vehicle_land_detected.landed
-	    && _control_mode.flag_armed
-	    && (in_auto_takeoff() || manual_wants_takeoff())) {
-		_in_smooth_takeoff = true;
-		// This ramp starts negative and goes to positive later because we want to
-		// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
-		_takeoff_vel_limit = -0.5f;
-	}
-
-	else if (!_control_mode.flag_armed) {
-		// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
-		_in_smooth_takeoff = false;
 	}
 }
 
