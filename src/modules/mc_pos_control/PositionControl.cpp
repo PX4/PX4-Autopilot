@@ -46,15 +46,15 @@ PositionControl::PositionControl(ModuleParams *parent) :
 	ModuleParams(parent)
 {}
 
-void PositionControl::updateState(const struct vehicle_local_position_s state, const Vector3f &vel_dot)
+void PositionControl::updateState(const PositionControlStates &states)
 {
-	_pos = Vector3f(&state.x);
-	_vel = Vector3f(&state.vx);
-	_yaw = state.yaw;
-	_vel_dot = vel_dot;
+	_pos = states.position;
+	_vel = states.velocity;
+	_yaw = states.yaw;
+	_vel_dot = states.acceleration;
 }
 
-void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s setpoint)
+void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s &setpoint)
 {
 	_pos_sp = Vector3f(&setpoint.x);
 	_vel_sp = Vector3f(&setpoint.vx);
@@ -119,6 +119,11 @@ void PositionControl::_interfaceMapping()
 			// thrust setpoint is not supported in position control
 			_thr_sp(i) = 0.0f;
 
+			// to run position control, we require valid position and velocity
+			if (!PX4_ISFINITE(_pos(i)) || !PX4_ISFINITE(_vel(i))) {
+				failsafe = true;
+			}
+
 		} else if (PX4_ISFINITE(_vel_sp(i))) {
 
 			// Velocity controller is active without position control.
@@ -127,6 +132,11 @@ void PositionControl::_interfaceMapping()
 			_pos_sp(i) = _pos(i);
 			// thrust setpoint is not supported in position control
 			_thr_sp(i) = 0.0f;
+
+			// to run velocity control, we require valid velocity
+			if (!PX4_ISFINITE(_vel(i))) {
+				failsafe = true;
+			}
 
 		} else if (PX4_ISFINITE(_thr_sp(i))) {
 
@@ -142,7 +152,6 @@ void PositionControl::_interfaceMapping()
 		} else {
 			// nothing is valid. do failsafe
 			failsafe = true;
-			PX4_WARN("TODO: add safety");
 		}
 	}
 
@@ -160,6 +169,7 @@ void PositionControl::_interfaceMapping()
 
 	// check failsafe
 	if (failsafe) {
+		_skip_controller = true;
 		// point the thrust upwards
 		_thr_sp(0) = _thr_sp(1) = 0.0f;
 		// throttle down such that vehicle goes down with

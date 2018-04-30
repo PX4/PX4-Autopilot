@@ -45,6 +45,13 @@
 #include <px4_module_params.h>
 #pragma once
 
+struct PositionControlStates {
+	matrix::Vector3f position;
+	matrix::Vector3f velocity;
+	matrix::Vector3f acceleration;
+	float yaw;
+};
+
 /**
  * 	Core Position-Control for MC.
  * 	This class contains P-controller for position and
@@ -80,16 +87,15 @@ public:
 
 	/**
 	 * Update the current vehicle state.
-	 * @param state a vehicle_local_position_s structure
-	 * @param vel_dot the derivative of the vehicle velocity
+	 * @param PositionControlStates structure
 	 */
-	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot);
+	void updateState(const PositionControlStates &states);
 
 	/**
 	 * Update the desired setpoints.
 	 * @param setpoint a vehicle_local_position_setpoint_s structure
 	 */
-	void updateSetpoint(struct vehicle_local_position_setpoint_s setpoint);
+	void updateSetpoint(struct vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Set constraints that are stricter than the global limits.
