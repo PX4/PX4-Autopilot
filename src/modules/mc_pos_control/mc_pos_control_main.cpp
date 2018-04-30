@@ -576,22 +576,6 @@ MulticopterPositionControl::update_velocity_derivative(const float &vz)
 		return;
 	}
 
-	// TODO: this logic should be in the estimator, not the controller!
-	if (PX4_ISFINITE(_local_pos.x) &&
-	    PX4_ISFINITE(_local_pos.y) &&
-	    PX4_ISFINITE(_local_pos.z)) {
-
-		_pos(0) = _local_pos.x;
-		_pos(1) = _local_pos.y;
-
-		if (_alt_mode.get() == 1 && _local_pos.dist_bottom_valid) {
-			_pos(2) = -_local_pos.dist_bottom;
-
-		} else {
-			_pos(2) = _local_pos.z;
-		}
-	}
-
 	if (PX4_ISFINITE(_local_pos.vx) &&
 	    PX4_ISFINITE(_local_pos.vy) &&
 	    PX4_ISFINITE(_local_pos.vz)) {
