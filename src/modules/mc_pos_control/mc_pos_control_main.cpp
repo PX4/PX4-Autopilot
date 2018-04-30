@@ -350,8 +350,6 @@ private:
 
 	void generate_attitude_setpoint();
 
-	float get_cruising_speed_xy();
-
 	bool in_auto_takeoff();
 
 	/**
@@ -852,16 +850,6 @@ MulticopterPositionControl::in_auto_takeoff()
 	return (_pos_sp_triplet.current.valid &&
 		_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
 	       _control_mode.flag_control_offboard_enabled;
-}
-
-float
-MulticopterPositionControl::get_cruising_speed_xy()
-{
-	/*
-	 * in mission the user can choose cruising speed different to default
-	 */
-	return ((PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && !(_pos_sp_triplet.current.cruising_speed < 0.0f)) ?
-		_pos_sp_triplet.current.cruising_speed : _vel_cruise_xy.get());
 }
 
 bool
