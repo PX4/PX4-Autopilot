@@ -342,6 +342,9 @@ PMW3901::init()
 {
 	int ret = PX4_ERROR;
 
+	/* For devices competing with NuttX SPI drivers on a bus (Crazyflie SD Card expansion board) */
+	SPI::set_lockmode(LOCK_THREADS);
+
 	/* do I2C init (and probe) first */
 	if (SPI::init() != OK) {
 		goto out;
