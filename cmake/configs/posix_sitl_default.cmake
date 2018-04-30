@@ -7,24 +7,15 @@ set(config_module_list
 	drivers/distance_sensor
 	#drivers/telemetry
 
-	drivers/airspeed
 	drivers/batt_smbus
-	drivers/boards
 	drivers/camera_trigger
-	drivers/device
 	drivers/gps
 	drivers/linux_gpio
 	drivers/pwm_out_sim
 	drivers/vmount
 
 	modules/sensors
-	platforms/posix/drivers/accelsim
-	platforms/posix/drivers/adcsim
-	platforms/posix/drivers/airspeedsim
-	platforms/posix/drivers/barosim
-	platforms/posix/drivers/gpssim
-	platforms/posix/drivers/gyrosim
-	platforms/posix/drivers/ledsim
+
 	platforms/posix/drivers/tonealrmsim
 
 	#
@@ -111,26 +102,7 @@ set(config_module_list
 	# Library modules
 	#
 	modules/dataman
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/landing_target_estimator
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/led
-	lib/mixer
-	lib/mathlib
-	lib/rc
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
-	lib/FlightTasks
 
 	#
 	# OBC challenge

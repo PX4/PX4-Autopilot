@@ -38,6 +38,5 @@ px4_add_module(
 	SRCS
 		ms4525_airspeed.cpp
 	DEPENDS
-		platforms__common
+		drivers__airspeed
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

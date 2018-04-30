@@ -110,7 +110,8 @@ function(px4_nuttx_make_uavcan_bootloadable)
 	add_custom_command(OUTPUT ${uavcan_bl_imange_name}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/make_can_boot_descriptor.py
 			-v --use-git-hash ${BIN} ${uavcan_bl_imange_name}
-		DEPENDS ${BIN})
+		DEPENDS ${BIN}
+		)
 	add_custom_target(build_uavcan_bl_${BOARD} ALL DEPENDS ${uavcan_bl_imange_name})
 endfunction()
 
@@ -188,11 +189,11 @@ function(px4_os_add_flags)
 		${PX4_BINARY_DIR}/NuttX/apps/include
 		)
 
-	#set(added_exe_linker_flags)
-	#set(added_link_dirs ${nuttx_export_dir}/libs)
-	set(added_definitions -D__PX4_NUTTX)
+	add_definitions(
+		-D__PX4_NUTTX
+		-D__DF_NUTTX
+		)
 
-	list(APPEND added_definitions -D__DF_NUTTX)
 
 	if("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
 		set(instrument_flags
@@ -240,7 +241,9 @@ function(px4_os_prebuild_targets)
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
 
-	add_custom_target(${OUT} DEPENDS nuttx_context uorb_headers)
+	add_library(${OUT} INTERFACE)
+	target_link_libraries(${OUT} INTERFACE nuttx_cxx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
+	add_dependencies(${OUT} DEPENDS nuttx_context uorb_headers)
 
 	# parse nuttx config options for cmake
 	file(STRINGS ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs/${BOARD}/nsh/defconfig ConfigContents)
@@ -323,4 +326,3 @@ function(px4_nuttx_configure)
 	endif()
 endfunction()
 
-# vim: set noet fenc=utf-8 ff=unix nowrap:

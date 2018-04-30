@@ -58,7 +58,7 @@
 #include <navigator/navigation.h>
 #include <px4_module_params.h>
 #include <px4_module.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission.h>

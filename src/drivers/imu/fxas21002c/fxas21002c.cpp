@@ -58,7 +58,7 @@
 
 #include <px4_log.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>

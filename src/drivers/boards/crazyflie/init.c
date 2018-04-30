@@ -71,7 +71,7 @@
 #include <systemlib/err.h>
 #include <systemlib/hardfault_log.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

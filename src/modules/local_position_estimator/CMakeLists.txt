@@ -50,6 +50,5 @@ px4_add_module(
 		sensors/land.cpp
 		sensors/landing_target.cpp
 	DEPENDS
-		platforms__common
+		controllib
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

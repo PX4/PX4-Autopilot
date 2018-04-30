@@ -37,8 +37,8 @@
 #include <px4_module.h>
 #include <px4_module_params.h>
 #include <px4_workqueue.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>

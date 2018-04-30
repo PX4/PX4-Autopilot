@@ -47,7 +47,7 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_outputs.h>
 

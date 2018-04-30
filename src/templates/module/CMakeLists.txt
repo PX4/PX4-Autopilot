@@ -38,7 +38,6 @@ px4_add_module(
 	SRCS
 		module.cpp
 	DEPENDS
-		platforms__common
 		modules__uORB
 	)
 

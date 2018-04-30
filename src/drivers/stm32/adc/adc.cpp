@@ -62,7 +62,7 @@
 #include <stm32_gpio.h>
 
 #include <systemlib/err.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/adc_report.h>

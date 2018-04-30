@@ -30,13 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__tunes
-	SRCS
-		tunes.cpp
-		default_tunes.cpp
-	DEPENDS
-		platforms__common
-		modules__uORB
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+px4_add_library(tunes
+	tunes.cpp
+	default_tunes.cpp
+)

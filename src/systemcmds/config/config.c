@@ -59,7 +59,7 @@
 #include <drivers/drv_device.h>
 
 #include "systemlib/systemlib.h"
-#include "systemlib/param/param.h"
+#include <parameters/param.h>
 
 __EXPORT int config_main(int argc, char *argv[]);
 

@@ -370,7 +370,7 @@ void Standard::update_mc_state()
 
 		// rotate the vector into a new frame which is rotated in z by the desired heading
 		// with respect to the earh frame.
-		float yaw_error = _wrap_pi(euler_sp(2) - euler(2));
+		float yaw_error = matrix::wrap_pi(euler_sp(2) - euler(2));
 		matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
 		tilt_new = R_yaw_correction * tilt_new;
 

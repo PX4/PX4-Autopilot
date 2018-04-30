@@ -53,8 +53,8 @@
 #include <arpa/inet.h>
 #include <drivers/device/device.h>
 #endif
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <pthread.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/device/ringbuffer.h>

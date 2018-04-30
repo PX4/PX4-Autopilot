@@ -42,7 +42,7 @@ endif()
 add_executable(${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 add_dependencies(${FW_NAME} git_nuttx nuttx_build)
 
-get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 # build NuttX
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
@@ -76,24 +76,41 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
 
-target_link_libraries(${FW_NAME}
+target_link_libraries(nuttx_arch
+	INTERFACE
+		drivers_board
+		drivers_arch
+		drivers_boards_common
+		drivers_boards_common_arch
+)
+
+target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
+target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
+
+target_link_libraries(${FW_NAME} PRIVATE
+
+	-nodefaultlibs
+	-nostdlib
+
+	-fno-exceptions
+	-fno-rtti
 
 	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
 	-Wl,-Map=${CONFIG}.map
-	-Wl,--warn-common,--gc-sections
+	-Wl,--warn-common
+	-Wl,--gc-sections
 
 	-Wl,--start-group
-		${module_libraries}
-		${nuttx_libs}
+	${nuttx_libs}
 	-Wl,--end-group
-
-	m
-	gcc
 	)
+
+target_link_libraries(${FW_NAME} PRIVATE ${module_libraries})
+target_link_libraries(${FW_NAME} PRIVATE modules__uORB)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
-	target_link_libraries(${FW_NAME} romfs)
+	target_link_libraries(${FW_NAME} PRIVATE romfs)
 endif()
 
 # create px4 file (combined firmware and metadata)
@@ -212,4 +229,3 @@ add_custom_target(profile
 	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh
 	USES_TERMINAL
 	)
-

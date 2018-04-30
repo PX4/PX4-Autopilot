@@ -40,7 +40,7 @@
  */
 
 #include "temperature_compensation.h"
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <px4_defines.h>
 #include <px4_log.h>
 

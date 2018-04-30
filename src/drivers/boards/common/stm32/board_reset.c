@@ -79,7 +79,10 @@ void board_system_reset(int status)
 #if defined(BOARD_HAS_ON_RESET)
 	board_on_reset(status);
 #endif
+
+#ifdef CONFIG_BOARDCTL_RESET
 	board_reset(status);
+#endif
 
 	while (1);
 }

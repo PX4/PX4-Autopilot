@@ -55,8 +55,8 @@
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 

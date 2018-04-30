@@ -9,7 +9,7 @@
 #ifdef __PX4_NUTTX
 
 #include <drivers/drv_hrt.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <px4_log.h>
 
 #include "camera_interface.h"

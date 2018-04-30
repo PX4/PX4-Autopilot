@@ -20,7 +20,6 @@ include(qurt_flags)
 include_directories(${HEXAGON_SDK_INCLUDES})
 
 set(config_module_list
-	drivers/device
 
 	#
 	# System commands
@@ -30,16 +29,5 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
-
-	#
-	# Libraries
-	#
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/mathlib
-	lib/mixer
 	)
 

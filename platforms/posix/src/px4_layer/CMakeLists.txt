@@ -45,17 +45,16 @@ if("${CONFIG_SHMEM}" STREQUAL "1")
 	set(EXTRA_DEPENDS generate_px4muorb_stubs)
 endif()
 
-px4_add_module(
-	MODULE platforms__posix__px4_layer
-	COMPILE_FLAGS
-	SRCS
-		px4_posix_impl.cpp
-		px4_posix_tasks.cpp
-		px4_sem.cpp
-		lib_crc32.c
-		drv_hrt.c
-		${SHMEM_SRCS}
-	DEPENDS
-		platforms__common
-		${EXTRA_DEPENDS}
-	)
+add_library(px4_layer
+	px4_posix_impl.cpp
+	px4_posix_tasks.cpp
+	px4_sem.cpp
+	lib_crc32.c
+	drv_hrt.c
+	${SHMEM_SRCS}
+)
+target_link_libraries(px4_layer PRIVATE work_queue)
+
+if (EXTRA_DEPENDS)
+	add_dependencies(px4_layer ${EXTRA_DEPENDS})
+endif()
