@@ -44,8 +44,8 @@ ManualSmoothingZ::ManualSmoothingZ(ModuleParams *parent, const float &vel, const
 	ModuleParams(parent),
 	_vel(vel), _stick(stick), _vel_sp_prev(vel)
 {
-	 _acc_state_dependent = _acc_max_up.get();
-	 _max_acceleration = _acc_max_up.get();
+	_acc_state_dependent = _acc_max_up.get();
+	_max_acceleration = _acc_max_up.get();
 }
 
 /* in manual altitude control apply acceleration limit based on stick input
