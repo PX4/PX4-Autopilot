@@ -64,4 +64,18 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
  * @return 2D vector
  */
 matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float max);
+
+/**
+ * This method was used for smoothing the corners along two lines.
+ *
+ * @param sphere_c
+ * @param sphere_r
+ * @param line_a
+ * @param line_b
+ * @param res
+ * return boolean
+ *
+ * Note: this method is not used anywhere and first requires review before usage.
+ */
+bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r, const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res);
 }
