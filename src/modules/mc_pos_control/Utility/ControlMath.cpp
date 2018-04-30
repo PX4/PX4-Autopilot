@@ -108,6 +108,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 
 	return att_sp;
 }
+
 matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float max)
 {
 	if (matrix::Vector2f(v0 + v1).norm() <= max) {
@@ -170,6 +171,54 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 		float c = v0.length() * v0.length() - max * max;
 		float s = -m + sqrtf(m * m - c);
 		return v0 + u1 * s;
+	}
+}
+
+bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r,
+		const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res)
+{
+	// project center of sphere on line  normalized AB
+	matrix::Vector3f ab_norm = line_b - line_a;
+
+	if (ab_norm.length() < 0.01f) {
+		return true;
+	}
+
+	ab_norm.normalize();
+	matrix::Vector3f d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
+	float cd_len = (sphere_c - d).length();
+
+	if (sphere_r > cd_len) {
+		// we have triangle CDX with known CD and CX = R, find DX
+		float dx_len = sqrtf(sphere_r * sphere_r - cd_len * cd_len);
+
+		if ((sphere_c - line_b) * ab_norm > 0.0f) {
+			// target waypoint is already behind us
+			res = line_b;
+
+		} else {
+			// target is in front of us
+			res = d + ab_norm * dx_len; // vector A->B on line
+		}
+
+		return true;
+
+	} else {
+
+		// have no roots, return D
+		res = d; // go directly to line
+
+		// previous waypoint is still in front of us
+		if ((sphere_c - line_a) * ab_norm < 0.0f) {
+			res = line_a;
+		}
+
+		// target waypoint is already behind us
+		if ((sphere_c - line_b) * ab_norm > 0.0f) {
+			res = line_b;
+		}
+
+		return false;
 	}
 }
 }
