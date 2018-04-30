@@ -354,8 +354,6 @@ private:
 
 	bool in_auto_takeoff();
 
-	float get_vel_close(const matrix::Vector2f &unit_prev_to_current, const matrix::Vector2f &unit_current_to_next);
-
 	/**
 	 * Limit altitude based on landdetector.
 	 */
@@ -854,79 +852,6 @@ MulticopterPositionControl::in_auto_takeoff()
 	return (_pos_sp_triplet.current.valid &&
 		_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
 	       _control_mode.flag_control_offboard_enabled;
-}
-
-float
-MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_current,
-		const matrix::Vector2f &unit_current_to_next)
-{
-
-	/* minimum cruise speed when passing waypoint */
-	float min_cruise_speed = 1.0f;
-
-	/* make sure that cruise speed is larger than minimum*/
-	if ((get_cruising_speed_xy() - min_cruise_speed) < SIGMA_NORM) {
-		return get_cruising_speed_xy();
-	}
-
-	/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle of 90degrees
-	 * it needs to be always larger than minimum cruise speed */
-	float middle_cruise_speed = _cruise_speed_90.get();
-
-	if ((middle_cruise_speed - min_cruise_speed) < SIGMA_NORM) {
-		middle_cruise_speed = min_cruise_speed + SIGMA_NORM;
-	}
-
-	if ((get_cruising_speed_xy() - middle_cruise_speed) < SIGMA_NORM) {
-		middle_cruise_speed = (get_cruising_speed_xy() + min_cruise_speed) * 0.5f;
-	}
-
-	/* if middle cruise speed is exactly in the middle, then compute
-	 * vel_close linearly
-	 */
-	bool use_linear_approach = false;
-
-	if (((get_cruising_speed_xy() + min_cruise_speed) * 0.5f) - middle_cruise_speed < SIGMA_NORM) {
-		use_linear_approach = true;
-	}
-
-	/* angle = cos(x) + 1.0
-	 * angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0 */
-	float angle = 2.0f;
-
-	if (unit_current_to_next.length() > SIGMA_NORM) {
-		angle = unit_current_to_next * (unit_prev_to_current * -1.0f) + 1.0f;
-	}
-
-	/* compute velocity target close to waypoint */
-	float vel_close;
-
-	if (use_linear_approach) {
-
-		/* velocity close to target adjusted to angle
-		 * vel_close =  m*x+q
-		 */
-		float slope = -(get_cruising_speed_xy() - min_cruise_speed) / 2.0f;
-		vel_close = slope * angle + get_cruising_speed_xy();
-
-	} else {
-
-		/* velocity close to target adjusted to angle
-		 * vel_close = a *b ^x + c; where at angle = 0 -> vel_close = vel_cruise; angle = 1 -> vel_close = middle_cruise_speed (this means that at 90degrees
-		 * the velocity at target is middle_cruise_speed);
-		 * angle = 2 -> vel_close = min_cruising_speed */
-
-		/* from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c */
-		float a = -((middle_cruise_speed -  get_cruising_speed_xy()) * (middle_cruise_speed -  get_cruising_speed_xy())) /
-			  (2.0f * middle_cruise_speed - get_cruising_speed_xy() - min_cruise_speed);
-		float c =  get_cruising_speed_xy() - a;
-		float b = (middle_cruise_speed - c) / a;
-		vel_close = a * powf(b, angle) + c;
-	}
-
-	/* vel_close needs to be in between max and min */
-	return math::constrain(vel_close, min_cruise_speed, get_cruising_speed_xy());
-
 }
 
 float
