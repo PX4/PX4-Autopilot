@@ -326,8 +326,6 @@ private:
 
 	void generate_attitude_setpoint();
 
-	bool in_auto_takeoff();
-
 	/**
 	 * Limit altitude based on landdetector.
 	 */
@@ -745,17 +743,6 @@ MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &se
 			setpoint.vz = 0.0f;
 		}
 	}
-}
-
-bool
-MulticopterPositionControl::in_auto_takeoff()
-{
-	/*
-	 * in auto mode, check if we do a takeoff
-	 */
-	return (_pos_sp_triplet.current.valid &&
-		_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
-	       _control_mode.flag_control_offboard_enabled;
 }
 
 bool
