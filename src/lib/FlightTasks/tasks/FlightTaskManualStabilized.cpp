@@ -83,6 +83,7 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 		// hold the current heading when no more rotation commanded
 		if (!PX4_ISFINITE(_yaw_setpoint)) {
 			_yaw_setpoint = _yaw;
+
 		} else {
 			// check reset counter and update yaw setpoint if necessary
 			if (_sub_attitude->get().quat_reset_counter != _heading_reset_counter) {

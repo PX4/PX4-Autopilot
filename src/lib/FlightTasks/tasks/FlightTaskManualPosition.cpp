@@ -115,7 +115,7 @@ void FlightTaskManualPosition::_updateXYlock()
 		// Position is locked but check if a reset event has happened.
 		// We will shift the setpoints.
 		if (_sub_vehicle_local_position->get().xy_reset_counter
-				!= _reset_counter) {
+		    != _reset_counter) {
 			_position_setpoint(0) = _position(0);
 			_position_setpoint(1) = _position(1);
 			_reset_counter = _sub_vehicle_local_position->get().xy_reset_counter;
