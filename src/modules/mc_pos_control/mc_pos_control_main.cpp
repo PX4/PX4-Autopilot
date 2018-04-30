@@ -1062,37 +1062,6 @@ MulticopterPositionControl::task_main()
 			    || !_control_mode.flag_control_manual_enabled) {
 			}
 
-			if (_control_mode.flag_control_altitude_enabled ||
-			    _control_mode.flag_control_position_enabled ||
-			    _control_mode.flag_control_climb_rate_enabled ||
-			    _control_mode.flag_control_velocity_enabled ||
-			    _control_mode.flag_control_acceleration_enabled) {
-
-				/* fill local position, velocity and thrust setpoint */
-				_local_pos_sp.timestamp = hrt_absolute_time();
-				_local_pos_sp.x = _pos_sp(0);
-				_local_pos_sp.y = _pos_sp(1);
-				_local_pos_sp.z = _pos_sp(2);
-				_local_pos_sp.yaw = _att_sp.yaw_body;
-				_local_pos_sp.vx = _vel_sp(0);
-				_local_pos_sp.vy = _vel_sp(1);
-				_local_pos_sp.vz = _vel_sp(2);
-
-				/* publish local position setpoint */
-				if (_local_pos_sp_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
-
-				} else {
-					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
-				}
-
-			} else {
-				/* position controller disabled, reset setpoints */
-
-				/* store last velocity in case a mode switch to position control occurs */
-				_vel_sp_prev = _vel;
-			}
-
 			/* generate attitude setpoint from manual controls */
 			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
