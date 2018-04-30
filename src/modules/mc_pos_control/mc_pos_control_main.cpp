@@ -132,7 +132,6 @@ private:
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
-	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;		/**< vehicle control mode */
@@ -163,7 +162,6 @@ private:
 	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
 
 	matrix::Dcmf _R;			/**< rotation matrix from attitude quaternions */
-	float _yaw;				/**< yaw angle (euler) */
 	float _z_derivative; /**< velocity in z that agrees with position rate */
 	float _takeoff_speed; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
@@ -236,7 +234,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_attitude_setpoint_id(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
-	_att{},
 	_att_sp{},
 	_manual{},
 	_control_mode{},
@@ -249,11 +246,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_deriv(this, "VELD"),
 	_control(this),
 	_last_warn(0),
-	_yaw(0.0f),
 	_z_derivative(0.0f)
 {
-	/* Make the attitude quaternion valid */
-	_att.q[0] = 1.0f;
 	_pos.zero();
 	_vel.zero();
 	_vel_err_d.zero();
@@ -349,16 +343,6 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
-	}
-
-	orb_check(_vehicle_attitude_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
-
-		/* get current rotation matrix and euler angles from control state quaternions */
-		_R = matrix::Quatf(_att.q);
-		_yaw = matrix::Eulerf(_R).psi();
 	}
 
 	orb_check(_control_mode_sub, &updated);
@@ -563,7 +547,7 @@ MulticopterPositionControl::task_main()
 				// Keep throttle low
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				setpoint.yawspeed = 0.0f;
-				setpoint.yaw = _yaw;
+				setpoint.yaw = _local_pos.yaw;
 				constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 			}
 
@@ -616,7 +600,7 @@ MulticopterPositionControl::task_main()
 		} else {
 			// no flighttask is active: stay idle
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
-			_att_sp.yaw_body = _yaw;
+			_att_sp.yaw_body = _local_pos.yaw;
 			_att_sp.yaw_sp_move_rate = 0.0f;
 			_att_sp.fw_control_yaw = false;
 			_att_sp.disable_mc_yaw_control = false;
