@@ -96,7 +96,6 @@ const struct {
 #ifndef __PX4_NUTTX
 	{"mavlink",		mavlink_tests_main,	0},
 #endif
-	{"mc_pos_control",	mc_pos_control_tests_main,	0},
 	{"sf0x",		sf0x_tests_main,	0},
 	{"uorb",		uorb_tests_main,	0},
 	{"hysteresis",		test_hysteresis,	0},
