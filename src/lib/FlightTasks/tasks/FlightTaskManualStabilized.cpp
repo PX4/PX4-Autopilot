@@ -41,6 +41,19 @@
 
 using namespace matrix;
 
+bool FlightTaskManualStabilized::initializeSubscriptions(SubscriptionArray &subscription_array)
+{
+	if (!FlightTaskManual::initializeSubscriptions(subscription_array)) {
+		return false;
+	}
+
+	if (!subscription_array.get(ORB_ID(vehicle_attitude), _sub_attitude)) {
+		return false;
+	}
+
+	return true;
+}
+
 bool FlightTaskManualStabilized::activate()
 {
 	bool ret = FlightTaskManual::activate();
@@ -70,6 +83,13 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 		// hold the current heading when no more rotation commanded
 		if (!PX4_ISFINITE(_yaw_setpoint)) {
 			_yaw_setpoint = _yaw;
+		} else {
+			// check reset counter and update yaw setpoint if necessary
+			if (_sub_attitude->get().quat_reset_counter != _heading_reset_counter) {
+				_yaw_setpoint += matrix::Eulerf(matrix::Quatf(_sub_attitude->get().delta_q_reset)).psi();
+				_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
+			}
+
 		}
 	}
 }

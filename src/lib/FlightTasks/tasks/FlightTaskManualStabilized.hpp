@@ -41,6 +41,7 @@
 #pragma once
 
 #include "FlightTaskManual.hpp"
+#include <uORB/topics/vehicle_attitude.h>
 
 class FlightTaskManualStabilized : public FlightTaskManual
 {
@@ -48,10 +49,10 @@ public:
 	FlightTaskManualStabilized() = default;
 
 	virtual ~FlightTaskManualStabilized() = default;
-
 	bool activate() override;
-
 	bool update() override;
+	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
+
 
 protected:
 	virtual void _updateSetpoints(); /**< updates all setpoints*/
@@ -59,6 +60,10 @@ protected:
 	void _rotateIntoHeadingFrame(matrix::Vector2f &vec); /**< rotates vector into local frame */
 
 private:
+	uint8_t _heading_reset_counter = 0; /**< estimator heading reset */
+
+	uORB::Subscription<vehicle_attitude_s> *_sub_attitude{nullptr};
+
 
 	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	void _updateThrustSetpoints(); /**< sets thrust setpoint */
