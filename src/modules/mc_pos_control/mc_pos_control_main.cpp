@@ -583,13 +583,6 @@ MulticopterPositionControl::update_velocity_derivative(const float &vz)
 		_vel(0) = _local_pos.vx;
 		_vel(1) = _local_pos.vy;
 
-		if (_alt_mode.get() == 1 && _local_pos.dist_bottom_valid) {
-			_vel(2) = -_local_pos.dist_bottom_rate;
-
-		} else {
-			_vel(2) = _local_pos.vz;
-		}
-
 		if (PX4_ISFINITE(vz) && fabsf(vz) > FLT_EPSILON) {
 			/* set velocity to the derivative of position
 			 * because it has less bias but blend it in across the landing speed range*/
