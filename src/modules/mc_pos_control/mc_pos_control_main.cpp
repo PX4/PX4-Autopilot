@@ -158,10 +158,6 @@ private:
 
 	hrt_abstime _last_warn;
 
-	matrix::Vector3f _pos;
-	matrix::Vector3f _vel;
-	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
-
 	float _takeoff_speed; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
 	/**
@@ -194,7 +190,7 @@ private:
 
 	void check_takeoff_state(const float &z, const float &vz);
 
-	void update_takeoff_setpoint(const float &z, const float &vz);
+	void update_takeoff_setpoint(const float &z_sp, const float &vz_sp);
 
 	void limit_thrust_during_landing(matrix::Vector3f &thrust_sepoint);
 
@@ -246,10 +242,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_control(this),
 	_last_warn(0)
 {
-	_pos.zero();
-	_vel.zero();
-	_vel_err_d.zero();
-
 	/* fetch initial parameter values */
 	parameters_update(true);
 }
@@ -371,12 +363,12 @@ MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &setpoint)
 {
-	if (_vehicle_land_detected.alt_max < 0.0f) {
-		// there is no altitude limitation present
+	if (_vehicle_land_detected.alt_max < 0.0f || !_home_pos.valid_alt || !_local_pos.v_z_valid) {
+		// there is no altitude limitation present or the required information not available
 		return;
 	}
 
-	float altitude_above_home = -(_pos(2) - _home_pos.z);
+	float altitude_above_home = -(_states.position(2) - _home_pos.z);
 
 	if (altitude_above_home > _vehicle_land_detected.alt_max) {
 		// we are above maximum altitude
@@ -434,8 +426,8 @@ MulticopterPositionControl::map_to_control_states(const float &vel_sp_z)
 		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
 			// A change in velocity is demanded. Set velocity to the derivative of position
 			// because it has less bias but blend it in across the landing speed range
-			//float weighting = fminf(fabsf(vel_sp_z) / _land_speed.get(), 1.0f);
-			//_states.velocity(2) = _local_pos.z_deriv * weighting + _local_pos.vz * (1.0f - weighting);
+			float weighting = fminf(fabsf(vel_sp_z) / _land_speed.get(), 1.0f);
+			_states.velocity(2) = _local_pos.z_deriv * weighting + _local_pos.vz * (1.0f - weighting);
 		}
 
 		_states.velocity(2) = _local_pos.vz;
@@ -551,13 +543,19 @@ MulticopterPositionControl::task_main()
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 
-			update_velocity_derivative(setpoint.vz);
-			limit_altitude(setpoint);
+			// check if all local states are valid and map accordingly
+			map_to_control_states(setpoint.vz);
 
-			check_takeoff_state(setpoint.z, setpoint.vz);
-			update_takeoff_setpoint(setpoint.z, setpoint.vz);
+			// limit altitude only if local position is valid
+			if (PX4_ISFINITE(_states.position(2))) {limit_altitude(setpoint);};
 
-			if (_in_smooth_takeoff) {constraints.speed_up = _takeoff_speed;}
+			// we can only do a smooth takeoff if a valid velocity or position is available
+			if (PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
+				check_takeoff_state(setpoint.z, setpoint.vz);
+				update_takeoff_setpoint(setpoint.z, setpoint.vz);
+
+				if (_in_smooth_takeoff) {constraints.speed_up = _takeoff_speed;}
+			}
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
 			// in pure manual. Otherwise just stay idle.
@@ -565,13 +563,13 @@ MulticopterPositionControl::task_main()
 				// Keep throttle low
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				setpoint.yawspeed = 0.0f;
-				setpoint.yaw = _local_pos.yaw;
+				setpoint.yaw = _states.yaw;
 				constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 			}
 
 			// Update states, setpoints and constraints.
 			_control.updateConstraints(constraints);
-			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
+			_control.updateState(_states);
 			_control.updateSetpoint(setpoint);
 
 			// Generate desired thrust and yaw.
@@ -638,7 +636,7 @@ MulticopterPositionControl::task_main()
 }
 
 void
-MulticopterPositionControl::check_takeoff_state(const float &z, const float &vz)
+MulticopterPositionControl::check_takeoff_state(const float &z_sp, const float &vz_sp)
 {
 	// Check for smooth takeoff
 	if (_vehicle_land_detected.landed && !_in_smooth_takeoff
@@ -646,8 +644,8 @@ MulticopterPositionControl::check_takeoff_state(const float &z, const float &vz)
 		// Vehicle is still landed and no takeoff was initiated yet.
 		// Adjust for different takeoff cases.
 		// The minimum takeoff altitude needs to be at least 20cm above current position
-		if ((PX4_ISFINITE(z) && z < _pos(2) - 0.2f) ||
-		    (PX4_ISFINITE(vz) && vz < math::min(-_tko_speed.get(), -0.6f))) {
+		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - 0.2f) ||
+		    (PX4_ISFINITE(vz_sp) && vz_sp < math::min(-_tko_speed.get(), -0.6f))) {
 			// There is a position setpoint above current position or velocity setpoint larger than
 			// takeoff speed. Enable smooth takeoff.
 			_in_smooth_takeoff = true;
@@ -661,16 +659,16 @@ MulticopterPositionControl::check_takeoff_state(const float &z, const float &vz)
 }
 
 void
-MulticopterPositionControl::update_takeoff_setpoint(const float &z, const float &vz)
+MulticopterPositionControl::update_takeoff_setpoint(const float &z_sp, const float &vz_sp)
 {
 	// If in smooth takeoff, adjust setpoints based on what is valid:
 	// 1. position setpoint is valid -> go with takeoffspeed to specific altitude
 	// 2. position setpoint not valid but velocity setpoint valid: ramp up velocity
 	if (_in_smooth_takeoff) {
-		float desired_tko_speed = -vz;
+		float desired_tko_speed = -vz_sp;
 
 		// If there is a valid position setpoint, then set the desired speed to the takeoff speed.
-		if (PX4_ISFINITE(z)) {
+		if (PX4_ISFINITE(z_sp)) {
 			desired_tko_speed = _tko_speed.get();
 		}
 
@@ -679,11 +677,11 @@ MulticopterPositionControl::update_takeoff_setpoint(const float &z, const float 
 		_takeoff_speed = math::min(_takeoff_speed, desired_tko_speed);
 
 		// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
-		if (PX4_ISFINITE(z)) {
-			_in_smooth_takeoff = _pos(2) + 0.2f > z;
+		if (PX4_ISFINITE(z_sp)) {
+			_in_smooth_takeoff = _states.position(2) + 0.2f > z_sp;
 
 		} else  {
-			_in_smooth_takeoff = _takeoff_speed < -vz;
+			_in_smooth_takeoff = _takeoff_speed < -vz_sp;
 		}
 
 	} else {
