@@ -150,67 +150,11 @@ private:
 	struct home_position_s				_home_pos; 				/**< home position */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _manual_thr_min, /**< minimal throttle output when flying in manual mode */
-		(ParamFloat<px4::params::MPC_MANTHR_MAX>) _manual_thr_max, /**< maximal throttle output when flying in manual mode */
-		(ParamFloat<px4::params::MPC_XY_MAN_EXPO>)
-		_xy_vel_man_expo, /**< ratio of exponential curve for stick input in xy direction pos mode */
-		(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)
-		_z_vel_man_expo, /**< ratio of exponential curve for stick input in xy direction pos mode */
-		(ParamFloat<px4::params::MPC_HOLD_DZ>)
-		_hold_dz, /**< deadzone around the center for the sticks when flying in position mode */
-		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>)
-		_acceleration_hor_max, /**<maximum velocity setpoint slewrate for auto & fast manual brake */
-		(ParamFloat<px4::params::MPC_ACC_HOR>)
-		_acceleration_hor, /**<acceleration for auto and maximum for manual in velocity control mode*/
-		(ParamFloat<px4::params::MPC_DEC_HOR_SLOW>)
-		_deceleration_hor_slow, /**< slow velocity setpoint slewrate for manual deceleration*/
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acceleration_z_max_up, /** max acceleration up */
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acceleration_z_max_down, /** max acceleration down */
-		(ParamFloat<px4::params::MPC_CRUISE_90>)
-		_cruise_speed_90, /**<speed when angle is 90 degrees between prev-current/current-next*/
-		(ParamFloat<px4::params::MPC_VEL_MANUAL>)
-		_velocity_hor_manual, /**< target velocity in manual controlled mode at full speed*/
-		(ParamFloat<px4::params::NAV_ACC_RAD>)
-		_nav_rad, /**< radius that is used by navigator that defines when to update triplets */
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time contant for smooth takeoff ramp */
-		(ParamFloat<px4::params::MPC_JERK_MAX>)
-		_jerk_hor_max, /**< maximum jerk in manual controlled mode when braking to zero */
-		(ParamFloat<px4::params::MPC_JERK_MIN>)
-		_jerk_hor_min, /**< minimum jerk in manual controlled mode when braking to zero */
-		(ParamFloat<px4::params::MIS_YAW_ERR>)
-		_mis_yaw_error, /**< yaw error threshold that is used in mission as update criteria */
-
-		(ParamFloat<px4::params::MPC_THR_MIN>) _thr_min,
-		(ParamFloat<px4::params::MPC_THR_MAX>) _thr_max,
-		(ParamFloat<px4::params::MPC_THR_HOVER>) _thr_hover,
-		(ParamFloat<px4::params::MPC_Z_P>) _z_p,
-		(ParamFloat<px4::params::MPC_Z_VEL_P>) _z_vel_p,
-		(ParamFloat<px4::params::MPC_Z_VEL_I>) _z_vel_i,
-		(ParamFloat<px4::params::MPC_Z_VEL_D>) _z_vel_d,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
-		(ParamFloat<px4::params::MPC_LAND_ALT1>) _slow_land_alt1,
-		(ParamFloat<px4::params::MPC_LAND_ALT2>) _slow_land_alt2,
-		(ParamFloat<px4::params::MPC_XY_P>) _xy_p,
-		(ParamFloat<px4::params::MPC_XY_VEL_P>) _xy_vel_p,
-		(ParamFloat<px4::params::MPC_XY_VEL_I>) _xy_vel_i,
-		(ParamFloat<px4::params::MPC_XY_VEL_D>) _xy_vel_d,
-		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _vel_max_xy_param,
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _vel_cruise_xy,
-		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _tilt_max_air_deg,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
-		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
-		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _tilt_max_land_deg,
-		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _man_tilt_max_deg,
-		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _man_yaw_max_deg,
-		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _global_yaw_max_deg,
-		(ParamFloat<px4::params::MC_YAW_P>) _mc_att_yaw_p,
-		(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _hold_max_xy,
-		(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _hold_max_z,
-		(ParamInt<px4::params::MPC_ALT_MODE>) _alt_mode,
-		(ParamFloat<px4::params::RC_FLT_CUTOFF>) _rc_flt_cutoff,
-		(ParamFloat<px4::params::RC_FLT_SMP_RATE>) _rc_flt_smp_rate,
-		(ParamFloat<px4::params::MPC_ACC_HOR_FLOW>) _acc_max_flow_xy
+		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed
 	);
 
 	control::BlockDerivative _vel_x_deriv;
@@ -223,10 +167,6 @@ private:
 	math::LowPassFilter2p _filter_manual_pitch;
 	math::LowPassFilter2p _filter_manual_roll;
 
-	matrix::Vector3f _pos_p;
-	matrix::Vector3f _vel_p;
-	matrix::Vector3f _vel_i;
-	matrix::Vector3f _vel_d;
 	hrt_abstime _last_warn;
 
 	matrix::Vector3f _pos;
@@ -598,9 +538,7 @@ MulticopterPositionControl::update_velocity_derivative(const float &vz)
 	};
 
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
-
 	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
-
 	_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 }
 
