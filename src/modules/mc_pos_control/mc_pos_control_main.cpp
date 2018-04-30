@@ -239,12 +239,6 @@ private:
 	float _z_derivative; /**< velocity in z that agrees with position rate */
 	float _takeoff_speed; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
-	// counters for reset events on position and velocity states
-	// they are used to identify a reset event
-	uint8_t _z_reset_counter;
-	uint8_t _xy_reset_counter;
-	uint8_t _heading_reset_counter;
-
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -333,10 +327,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_filter_manual_roll(50.0f, 10.0f),
 	_last_warn(0),
 	_yaw(0.0f),
-	_z_derivative(0.0f),
-	_z_reset_counter(0),
-	_xy_reset_counter(0),
-	_heading_reset_counter(0)
+	_z_derivative(0.0f)
 {
 	/* Make the attitude quaternion valid */
 	_att.q[0] = 1.0f;
@@ -445,16 +436,6 @@ MulticopterPositionControl::poll_subscriptions()
 		/* get current rotation matrix and euler angles from control state quaternions */
 		_R = matrix::Quatf(_att.q);
 		_yaw = matrix::Eulerf(_R).psi();
-
-		if (_control_mode.flag_control_manual_enabled) {
-			if (_heading_reset_counter != _att.quat_reset_counter) {
-
-				_heading_reset_counter = _att.quat_reset_counter;
-
-				// we only extract the heading change from the delta quaternion
-				_att_sp.yaw_body += matrix::Eulerf(matrix::Quatf(_att.delta_q_reset)).psi();
-			}
-		}
 	}
 
 	orb_check(_control_mode_sub, &updated);
