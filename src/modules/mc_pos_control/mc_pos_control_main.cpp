@@ -301,8 +301,6 @@ private:
 	 */
 	void		poll_subscriptions();
 
-	float		throttle_curve(float ctl, float ctr);
-
 	void update_velocity_derivative(const float &velocity_z);
 
 	/**
@@ -675,19 +673,6 @@ MulticopterPositionControl::poll_subscriptions()
 	}
 }
 
-float
-MulticopterPositionControl::throttle_curve(float ctl, float ctr)
-{
-	/* piecewise linear mapping: 0:ctr -> 0:0.5
-	 * and ctr:1 -> 0.5:1 */
-	if (ctl < 0.5f) {
-		return 2 * ctl * ctr;
-
-	} else {
-		return ctr + 2 * (ctl - 0.5f) * (1.0f - ctr);
-	}
-}
-
 int
 MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 {
@@ -1015,7 +1000,6 @@ MulticopterPositionControl::task_main()
 		}
 
 		publish_attitude();
-
 	}
 
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
