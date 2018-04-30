@@ -221,75 +221,29 @@ private:
 	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
 	PositionControl _control; /**< class handling the core PID position controller */
 
-	systemlib::Hysteresis _manual_direction_change_hysteresis;
-
 	math::LowPassFilter2p _filter_manual_pitch;
 	math::LowPassFilter2p _filter_manual_roll;
-
-	enum manual_stick_input {
-		brake,
-		direction_change,
-		acceleration,
-		deceleration
-	};
-
-	manual_stick_input _user_intention_xy; /**< defines what the user intends to do derived from the stick input */
-	manual_stick_input
-	_user_intention_z; /**< defines what the user intends to do derived from the stick input in z direciton */
 
 	matrix::Vector3f _pos_p;
 	matrix::Vector3f _vel_p;
 	matrix::Vector3f _vel_i;
 	matrix::Vector3f _vel_d;
-	float _tilt_max_air; /**< maximum tilt angle [rad] */
-	float _tilt_max_land; /**< maximum tilt angle during landing [rad] */
-	float _man_tilt_max;
-	float _man_yaw_max;
-	float _global_yaw_max;
-
-	struct map_projection_reference_s _ref_pos;
-	float _ref_alt;
-	bool _ref_alt_is_global; /** true when the reference altitude is defined in a global reference frame */
-	hrt_abstime _ref_timestamp;
 	hrt_abstime _last_warn;
 
-	matrix::Vector3f _thrust_int;
 	matrix::Vector3f _pos;
-	matrix::Vector3f _pos_sp;
 	matrix::Vector3f _vel;
-	matrix::Vector3f _vel_sp;
-	matrix::Vector3f _vel_prev;			/**< velocity on previous step */
-	matrix::Vector3f _vel_sp_prev;
 	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
-	matrix::Vector3f _curr_pos_sp;  /**< current setpoint of the triplets */
-	matrix::Vector3f _prev_pos_sp; /**< previous setpoint of the triples */
-	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
 
 	matrix::Dcmf _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
-	float _yaw_takeoff;	/**< home yaw angle present when vehicle was taking off (euler) */
-	float _man_yaw_offset; /**< current yaw offset in manual mode */
-
-	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
-	bool _vel_sp_significant; /** true when the velocity setpoint is over 50% of the _vel_max_xy limit */
-	float _acceleration_state_dependent_xy; /**< acceleration limit applied in manual mode */
-	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
-	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
-	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
 	float _z_derivative; /**< velocity in z that agrees with position rate */
-
-	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
-
-	float _min_hagl_limit; /**< minimum continuous height above ground (m) */
-
 	float _takeoff_speed; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
+
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
 	uint8_t _z_reset_counter;
 	uint8_t _xy_reset_counter;
 	uint8_t _heading_reset_counter;
-
-	matrix::Dcmf _R_setpoint;
 
 	/**
 	 * Update our local parameter cache.
@@ -375,54 +329,21 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
 	_control(this),
-	_manual_direction_change_hysteresis(false),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
-	_user_intention_xy(brake),
-	_user_intention_z(brake),
-	_ref_alt(0.0f),
-	_ref_alt_is_global(false),
-	_ref_timestamp(0),
 	_last_warn(0),
 	_yaw(0.0f),
-	_yaw_takeoff(0.0f),
-	_man_yaw_offset(0.0f),
-	_vel_max_xy(0.0f),
-	_vel_sp_significant(false),
-	_acceleration_state_dependent_xy(0.0f),
-	_acceleration_state_dependent_z(0.0f),
-	_manual_jerk_limit_xy(1.0f),
-	_manual_jerk_limit_z(1.0f),
 	_z_derivative(0.0f),
-	_takeoff_vel_limit(0.0f),
-	_min_hagl_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_heading_reset_counter(0)
 {
 	/* Make the attitude quaternion valid */
 	_att.q[0] = 1.0f;
-
-	_ref_pos = {};
-
-	/* set trigger time for manual direction change detection */
-	_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TRIGGER_TIME_US);
-
 	_pos.zero();
-	_pos_sp.zero();
 	_vel.zero();
-	_vel_sp.zero();
-	_vel_prev.zero();
-	_vel_sp_prev.zero();
 	_vel_err_d.zero();
-	_curr_pos_sp.zero();
-	_prev_pos_sp.zero();
-	_stick_input_xy_prev.zero();
-
 	_R.identity();
-	_R_setpoint.identity();
-
-	_thrust_int.zero();
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -482,81 +403,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		_flight_tasks.handleParameterUpdate();
 
 		/* initialize vectors from params and enforce constraints */
-
-		_pos_p(0) = _xy_p.get();
-		_pos_p(1) = _xy_p.get();
-		_pos_p(2) = _z_p.get();
-
-		_vel_p(0) = _xy_vel_p.get();
-		_vel_p(1) = _xy_vel_p.get();
-		_vel_p(2) = _z_vel_p.get();
-
-		_vel_i(0) = _xy_vel_i.get();
-		_vel_i(1) = _xy_vel_i.get();
-		_vel_i(2) = _z_vel_i.get();
-
-		_vel_d(0) = _xy_vel_d.get();
-		_vel_d(1) = _xy_vel_d.get();
-		_vel_d(2) = _z_vel_d.get();
-
-		_thr_hover.set(math::constrain(_thr_hover.get(), _thr_min.get(), _thr_max.get()));
-
-		_tilt_max_air = math::radians(_tilt_max_air_deg.get());
-		_tilt_max_land = math::radians(_tilt_max_land_deg.get());
-
-		_hold_max_xy.set(math::max(0.f, _hold_max_xy.get()));
-		_hold_max_z.set(math::max(0.f, _hold_max_z.get()));
-		_rc_flt_smp_rate.set(math::max(1.0f, _rc_flt_smp_rate.get()));
-		/* make sure the filter is in its stable region -> fc < fs/2 */
-		_rc_flt_cutoff.set(math::min(_rc_flt_cutoff.get(), (_rc_flt_smp_rate.get() / 2.0f) - 1.f));
-
-		/* update filters */
-		_filter_manual_pitch.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
-		_filter_manual_roll.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
-
-		/* make sure that vel_cruise_xy is always smaller than vel_max */
-		_vel_cruise_xy.set(math::min(_vel_cruise_xy.get(), _vel_max_xy_param.get()));
-
-		/* mc attitude control parameters*/
-		_slow_land_alt1.set(math::max(_slow_land_alt1.get(), _slow_land_alt2.get()));
-
-		/* manual control scale */
-		_man_tilt_max = math::radians(_man_tilt_max_deg.get());
-		_man_yaw_max = math::radians(_man_yaw_max_deg.get());
-		_global_yaw_max = math::radians(_global_yaw_max_deg.get());
-
-		/* takeoff and land velocities should not exceed maximum */
 		_tko_speed.set(math::min(_tko_speed.get(), _vel_max_up.get()));
 		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
-
-		/* default limit for acceleration and manual jerk*/
-		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
-		_manual_jerk_limit_xy = _jerk_hor_max.get();
-
-		/* acceleration up must be larger than acceleration down */
-		if (_acceleration_z_max_up.get() < _acceleration_z_max_down.get()) {
-			_acceleration_z_max_up.set(_acceleration_z_max_down.get());
-		}
-
-		/* acceleration horizontal max > deceleration hor */
-		if (_acceleration_hor_max.get() < _deceleration_hor_slow.get()) {
-			_acceleration_hor_max.set(_deceleration_hor_slow.get());
-		}
-
-		/* for z direction we use fixed jerk for now
-		 * TODO: check if other jerk value is required */
-		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
-		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
-		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
-
-
-		/* Get parameter values used to fly within optical flow sensor limits */
-		param_t handle = param_find("SENS_FLOW_MINRNG");
-
-		if (handle != PARAM_INVALID) {
-			param_get(handle, &_min_hagl_limit);
-		}
-
 	}
 
 	return OK;
@@ -800,7 +648,7 @@ MulticopterPositionControl::update_velocity_derivative(const float &vz)
 		if (PX4_ISFINITE(vz) && fabsf(vz) > FLT_EPSILON) {
 			/* set velocity to the derivative of position
 			 * because it has less bias but blend it in across the landing speed range*/
-			float weighting = fminf(fabsf(_vel_sp(2)) / _land_speed.get(), 1.0f);
+			float weighting = fminf(fabsf(vz) / _land_speed.get(), 1.0f);
 			_vel(2) = _z_derivative * weighting + _vel(2) * (1.0f - weighting);
 
 		}
