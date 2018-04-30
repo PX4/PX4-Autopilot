@@ -65,6 +65,7 @@ set(srcs
 	test_uart_send.c
 	test_versioning.cpp
 	test_smooth_z.cpp
+	test_controlmath.cpp
 	tests_main.c
 	)
 
