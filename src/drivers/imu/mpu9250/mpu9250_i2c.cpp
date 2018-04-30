@@ -61,15 +61,14 @@
 
 #ifdef USE_I2C
 
-device::Device *MPU9250_I2C_interface(int bus, bool external_bus);
+device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
 
 class MPU9250_I2C : public device::I2C
 {
 public:
-	MPU9250_I2C(int bus);
-	virtual ~MPU9250_I2C();
+	MPU9250_I2C(int bus, uint32_t address);
+	virtual ~MPU9250_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
@@ -80,34 +79,22 @@ protected:
 
 };
 
-
 device::Device *
-MPU9250_I2C_interface(int bus, bool external_bus)
+MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus)
 {
-	return new MPU9250_I2C(bus);
+	return new MPU9250_I2C(bus, address);
 }
 
-MPU9250_I2C::MPU9250_I2C(int bus) :
-	I2C("MPU9250_I2C", nullptr, bus, PX4_I2C_OBDEV_MPU9250, 400000)
+MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
+	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
 {
 	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
-}
-
-MPU9250_I2C::~MPU9250_I2C()
-{
-}
-
-int
-MPU9250_I2C::init()
-{
-	/* this will call probe() */
-	return I2C::init();
 }
 
 int
 MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
 {
-	int ret;
+	int ret = PX4_ERROR;
 
 	switch (operation) {
 
@@ -154,7 +141,6 @@ MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	uint8_t cmd = MPU9250_REG(reg_speed);
 	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count);
 }
-
 
 int
 MPU9250_I2C::probe()

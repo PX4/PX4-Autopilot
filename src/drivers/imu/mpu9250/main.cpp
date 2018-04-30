@@ -74,6 +74,11 @@
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
 #define MPU_DEVICE_PATH_GYRO		"/dev/mpu9250_gyro"
 #define MPU_DEVICE_PATH_MAG		"/dev/mpu9250_mag"
+
+#define MPU_DEVICE_PATH_ACCEL_1		"/dev/mpu9250_accel1"
+#define MPU_DEVICE_PATH_GYRO_1		"/dev/mpu9250_gyro1"
+#define MPU_DEVICE_PATH_MAG_1		"/dev/mpu9250_mag1"
+
 #define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu9250_accel_ext"
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu9250_gyro_ext"
 #define MPU_DEVICE_PATH_MAG_EXT 	"/dev/mpu9250_mag_ext"
@@ -87,6 +92,7 @@ enum MPU9250_BUS {
 	MPU9250_BUS_I2C_INTERNAL,
 	MPU9250_BUS_I2C_EXTERNAL,
 	MPU9250_BUS_SPI_INTERNAL,
+	MPU9250_BUS_SPI_INTERNAL2,
 	MPU9250_BUS_SPI_EXTERNAL
 };
 
@@ -109,21 +115,25 @@ struct mpu9250_bus_option {
 	MPU9250_constructor interface_constructor;
 	bool magpassthrough;
 	uint8_t busnum;
+	uint32_t address;
 	MPU9250	*dev;
 } bus_options[] = {
 #if defined (USE_I2C)
 #  if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, false, PX4_I2C_BUS_ONBOARD, NULL },
+	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, false, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_MPU9250, NULL },
 #  endif
 #  if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, NULL },
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_MPU9250, NULL },
 #  endif
 #endif
 #ifdef PX4_SPIDEV_MPU
-	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, NULL },
+	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU, NULL },
 #endif
-#if defined(PX4_SPI_BUS_EXT)
-	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, NULL },
+#ifdef PX4_SPIDEV_MPU2
+	{ MPU9250_BUS_SPI_INTERNAL2, MPU_DEVICE_PATH_ACCEL_1, MPU_DEVICE_PATH_GYRO_1, MPU_DEVICE_PATH_MAG_1, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU2, NULL },
+#endif
+#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
+	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, NULL },
 #endif
 };
 
@@ -169,7 +179,7 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
 		return false;
 	}
 
-	device::Device *interface = bus.interface_constructor(bus.busnum, external);
+	device::Device *interface = bus.interface_constructor(bus.busnum, bus.address, external);
 
 	if (interface == nullptr) {
 		warnx("no device on bus %u", (unsigned)bus.busid);
@@ -453,10 +463,15 @@ testerror(enum MPU9250_BUS busid)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
-	warnx("options:");
-	warnx("    -X    (external bus)");
-	warnx("    -R rotation");
+	PX4_INFO("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
+	PX4_INFO("options:");
+	PX4_INFO("    -X    (i2c external bus)");
+	PX4_INFO("    -I    (i2c internal bus)");
+	PX4_INFO("    -s    (spi internal bus)");
+	PX4_INFO("    -S    (spi external bus)");
+	PX4_INFO("    -t    (spi internal bus, 2nd instance)");
+	PX4_INFO("    -R rotation");
+
 }
 
 } // namespace
@@ -470,7 +485,7 @@ mpu9250_main(int argc, char *argv[])
 	enum Rotation rotation = ROTATION_NONE;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XISsR:")) != EOF) {
+	while ((ch = getopt(argc, argv, "XISstR:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MPU9250_BUS_I2C_EXTERNAL;
@@ -486,6 +501,10 @@ mpu9250_main(int argc, char *argv[])
 
 		case 's':
 			busid = MPU9250_BUS_SPI_INTERNAL;
+			break;
+
+		case 't':
+			busid = MPU9250_BUS_SPI_INTERNAL2;
 			break;
 
 		case 'R':
