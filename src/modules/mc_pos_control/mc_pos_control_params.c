@@ -600,15 +600,3 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
-
-/**
- * Flag to test flight tasks instead of legacy functionality
- * Temporary Parameter during the transition to flight tasks
- *
- * @min 0
- * @max 1
- * @value 0 Legacy Functionality
- * @value 1 Test flight tasks
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_INT32(MPC_FLT_TSK, 0);
