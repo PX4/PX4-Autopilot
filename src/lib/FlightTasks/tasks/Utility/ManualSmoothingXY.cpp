@@ -41,8 +41,12 @@
 #include <float.h>
 
 ManualSmoothingXY::ManualSmoothingXY(ModuleParams *parent, const matrix::Vector2f &vel) :
-	ModuleParams(parent), _acc_state_dependent(_acc_xy_max.get()), _jerk_state_dependent(_jerk_max.get()), _vel_sp_prev(vel)
-{}
+	ModuleParams(parent), 	_vel_sp_prev(vel)
+
+{
+	_acc_state_dependent = _acc_xy_max.get();
+	_jerk_state_dependent =_jerk_max.get();
+}
 
 void
 ManualSmoothingXY::smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
