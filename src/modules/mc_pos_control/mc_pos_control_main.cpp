@@ -498,7 +498,7 @@ MulticopterPositionControl::update_velocity_derivative(const float &vz)
 
 	if (PX4_ISFINITE(_local_pos.z_deriv)) {
 		_z_derivative = _local_pos.z_deriv;
-	};
+	}
 
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
 	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
