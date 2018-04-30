@@ -544,6 +544,22 @@ PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
 
 /**
+ * Manual control stick yaw rotation exponential curve
+ *
+ * The higher the value the less sensitivity the stick has around zero
+ * while still reaching the maximum value with full stick deflection.
+ *
+ * 0 Purely linear input curve (default)
+ * 1 Purely cubic input curve
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.0f);
+
+/**
  * Altitude for 1. step of slow landing (descend)
  *
  * Below this altitude descending velocity gets limited

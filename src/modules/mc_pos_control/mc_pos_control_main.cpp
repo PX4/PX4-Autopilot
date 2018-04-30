@@ -1410,7 +1410,7 @@ MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp
 		// this will help to decide if we are actually landed or not
 		thr_sp.zero();
 		// We need to reset all integral terms otherwise the PID-controller
-		// will end up with wrong integral sums
+		// will continue to integrate
 		_control.resetIntegralXY();
 		_control.resetIntegralZ();
 	}

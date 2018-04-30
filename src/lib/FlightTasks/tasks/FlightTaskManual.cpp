@@ -80,6 +80,7 @@ bool FlightTaskManual::_evaluateSticks()
 		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _stick_dz.get());
 		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _stick_dz.get());
 		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _stick_dz.get());
+		_sticks_expo(3) = math::expo_deadzone(_sticks(3), _yaw_expo.get(), _stick_dz.get());
 
 		// Only switch the landing gear up if the user switched from gear down to gear up.
 		// If the user had the switch in the gear up position and took off ignore it
