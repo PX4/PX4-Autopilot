@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Standard vtol HITL
+# @name Standard vtol HITL (gazebo standard_vtol model)
 #
 # @type Standard VTOL
 # @class VTOL
