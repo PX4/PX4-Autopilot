@@ -62,6 +62,7 @@
 #include <nuttx/analog/adc.h>
 
 #include <kinetis.h>
+#include <kinetis_uart.h>
 #include <chip/kinetis_uart.h>
 #include "board_config.h"
 
@@ -263,10 +264,7 @@ int up_rtc_getdatetime(FAR struct tm *tp)
 	return 0;
 }
 
-static void kinetis_serial_dma_poll(void)
-{
-	// todo:Stubbed
-}
+
 //FIXME: Stubs  -----v
 
 
@@ -338,6 +336,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* set up the serial DMA polling */
+#ifdef SERIAL_HAVE_DMA
 	static struct hrt_call serial_dma_call;
 	struct timespec ts;
 
@@ -353,6 +352,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       ts_to_abstime(&ts),
 		       (hrt_callout)kinetis_serial_dma_poll,
 		       NULL);
+#endif
 
 #if defined(CONFIG_KINETIS_BBSRAM)
 
