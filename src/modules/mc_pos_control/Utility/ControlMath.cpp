@@ -175,7 +175,7 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 }
 
 bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r,
-		const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res)
+		       const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res)
 {
 	// project center of sphere on line  normalized AB
 	matrix::Vector3f ab_norm = line_b - line_a;
