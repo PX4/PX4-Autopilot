@@ -951,41 +951,6 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		_att_sp.pitch_body = euler_sp(1);
 		_att_sp.yaw_body += euler_sp(2);
 
-		/* only if we're a VTOL modify roll/pitch */
-		if (_vehicle_status.is_vtol) {
-			// construct attitude setpoint rotation matrix. modify the setpoints for roll
-			// and pitch such that they reflect the user's intention even if a yaw error
-			// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
-			// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
-			// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
-			// heading of the vehicle.
-			// The effect of that can be seen with:
-			// - roll/pitch into one direction, keep it fixed (at high angle)
-			// - apply a fast yaw rotation
-			// - look at the roll and pitch angles: they should stay pretty much the same as when not yawing
-
-			// calculate our current yaw error
-			float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
-
-			// compute the vector obtained by rotating a z unit vector by the rotation
-			// given by the roll and pitch commands of the user
-			matrix::Vector3f zB = {0.0f, 0.0f, 1.0f};
-			matrix::Dcmf R_sp_roll_pitch = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, 0.0f);
-			matrix::Vector3f z_roll_pitch_sp = R_sp_roll_pitch * zB;
-
-			// transform the vector into a new frame which is rotated around the z axis
-			// by the current yaw error. this vector defines the desired tilt when we look
-			// into the direction of the desired heading
-			matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
-			z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
-
-			// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
-			// R_tilt is computed from_euler; only true if cos(roll) not equal zero
-			// -> valid if roll is not +-pi/2;
-			_att_sp.roll_body = -asinf(z_roll_pitch_sp(1));
-			_att_sp.pitch_body = atan2f(z_roll_pitch_sp(0), z_roll_pitch_sp(2));
-		}
-
 		/* copy quaternion setpoint to attitude setpoint topic */
 		matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 		q_sp.copyTo(_att_sp.q_d);
