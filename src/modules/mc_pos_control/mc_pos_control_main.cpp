@@ -128,9 +128,7 @@ private:
 	int		_vehicle_attitude_sub;		/**< control state subscription */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_params_sub;			/**< notification of parameter updates */
-	int		_manual_sub;			/**< notification of manual control updates */
 	int		_local_pos_sub;			/**< vehicle local position */
-	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_home_pos_sub; 			/**< home position */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
@@ -163,9 +161,6 @@ private:
 
 	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
 	PositionControl _control; /**< class handling the core PID position controller */
-
-	math::LowPassFilter2p _filter_manual_pitch;
-	math::LowPassFilter2p _filter_manual_roll;
 
 	hrt_abstime _last_warn;
 
@@ -239,9 +234,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vehicle_attitude_sub(-1),
 	_control_mode_sub(-1),
 	_params_sub(-1),
-	_manual_sub(-1),
 	_local_pos_sub(-1),
-	_pos_sp_triplet_sub(-1),
 	_home_pos_sub(-1),
 
 	/* publications */
@@ -262,8 +255,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
 	_control(this),
-	_filter_manual_pitch(50.0f, 10.0f),
-	_filter_manual_roll(50.0f, 10.0f),
 	_last_warn(0),
 	_yaw(0.0f),
 	_z_derivative(0.0f)
@@ -383,36 +374,10 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 
-	orb_check(_manual_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
-	}
-
 	orb_check(_local_pos_sub, &updated);
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-	}
-
-	orb_check(_pos_sp_triplet_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
-
-		/* to be a valid current triplet, altitude has to be finite */
-
-		if (!PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
-			_pos_sp_triplet.current.valid = false;
-		}
-
-		/* to be a valid previous triplet, lat/lon/alt has to be finite */
-
-		if (!PX4_ISFINITE(_pos_sp_triplet.previous.lat) ||
-		    !PX4_ISFINITE(_pos_sp_triplet.previous.lon) ||
-		    !PX4_ISFINITE(_pos_sp_triplet.previous.alt)) {
-			_pos_sp_triplet.previous.valid = false;
-		}
 	}
 
 	orb_check(_home_pos_sub, &updated);
@@ -528,9 +493,7 @@ MulticopterPositionControl::update_velocity_derivative(const float &vz)
 			 * because it has less bias but blend it in across the landing speed range*/
 			float weighting = fminf(fabsf(vz) / _land_speed.get(), 1.0f);
 			_vel(2) = _z_derivative * weighting + _vel(2) * (1.0f - weighting);
-
 		}
-
 	}
 
 	if (PX4_ISFINITE(_local_pos.z_deriv)) {
@@ -553,9 +516,7 @@ MulticopterPositionControl::task_main()
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	parameters_update(true);
