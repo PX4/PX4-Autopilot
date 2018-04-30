@@ -162,7 +162,6 @@ private:
 	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
 
 	matrix::Dcmf _R;			/**< rotation matrix from attitude quaternions */
-	float _z_derivative; /**< velocity in z that agrees with position rate */
 	float _takeoff_speed; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
 	/**
@@ -175,7 +174,7 @@ private:
 	 */
 	void		poll_subscriptions();
 
-	void update_velocity_derivative(const float &velocity_z);
+	void update_velocity_derivative(const float &vel_sp_z);
 
 	/**
 	 * Limit altitude based on landdetector.
@@ -245,8 +244,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
 	_control(this),
-	_last_warn(0),
-	_z_derivative(0.0f)
+	_last_warn(0)
 {
 	_pos.zero();
 	_vel.zero();
@@ -399,11 +397,8 @@ MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &se
 }
 
 void
-MulticopterPositionControl::update_velocity_derivative(const float &vz)
+MulticopterPositionControl::update_velocity_derivative(const float &vel_sp_z)
 {
-	/* Update velocity derivative,
-	 * independent of the current flight mode
-	 */
 	if (_local_pos.timestamp == 0) {
 		return;
 	}
@@ -414,17 +409,19 @@ MulticopterPositionControl::update_velocity_derivative(const float &vz)
 
 		_vel(0) = _local_pos.vx;
 		_vel(1) = _local_pos.vy;
-
-		if (PX4_ISFINITE(vz) && fabsf(vz) > FLT_EPSILON) {
-			/* set velocity to the derivative of position
-			 * because it has less bias but blend it in across the landing speed range*/
-			float weighting = fminf(fabsf(vz) / _land_speed.get(), 1.0f);
-			_vel(2) = _z_derivative * weighting + _vel(2) * (1.0f - weighting);
-		}
 	}
 
-	if (PX4_ISFINITE(_local_pos.z_deriv)) {
-		_z_derivative = _local_pos.z_deriv;
+	if (PX4_ISFINITE(_local_pos.vz)) {
+
+		// default velocity estimate
+		_vel(2) = _local_pos.vz;
+
+		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
+			// A change in velocity is demanded. Set velocity to the derivative of position
+			// because it has less bias but blend it in across the landing speed range
+			float weighting = fminf(fabsf(vel_sp_z) / _land_speed.get(), 1.0f);
+			_vel(2) = _local_pos.z_deriv * weighting + _vel(2) * (1.0f - weighting);
+		}
 	}
 
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
