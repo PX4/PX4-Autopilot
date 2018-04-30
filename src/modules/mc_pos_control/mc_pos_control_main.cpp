@@ -161,7 +161,6 @@ private:
 	matrix::Vector3f _vel;
 	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
 
-	matrix::Dcmf _R;			/**< rotation matrix from attitude quaternions */
 	float _takeoff_speed; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
 	/**
@@ -249,7 +248,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos.zero();
 	_vel.zero();
 	_vel_err_d.zero();
-	_R.identity();
 
 	/* fetch initial parameter values */
 	parameters_update(true);
