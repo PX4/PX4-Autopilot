@@ -111,7 +111,17 @@ void FlightTaskManualPosition::_updateXYlock()
 		_position_setpoint(0) = _position(0);
 		_position_setpoint(1) = _position(1);
 
-	} else if (!apply_brake) {
+	} else if (PX4_ISFINITE(_position_setpoint(0)) && apply_brake) {
+		// Position is locked but check if a reset event has happened.
+		// We will shift the setpoints.
+		if (_sub_vehicle_local_position->get().xy_reset_counter
+				!= _reset_counter) {
+			_position_setpoint(0) = _position(0);
+			_position_setpoint(1) = _position(1);
+			_reset_counter = _sub_vehicle_local_position->get().xy_reset_counter;
+		}
+
+	} else {
 		/* don't lock*/
 		_position_setpoint(0) = NAN;
 		_position_setpoint(1) = NAN;

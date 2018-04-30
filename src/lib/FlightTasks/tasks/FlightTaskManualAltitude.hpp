@@ -65,6 +65,8 @@ protected:
 					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE
 				       )
 private:
+	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
+
 	/**
 	 * Distance to ground during terrain following.
 	 * If user does not demand velocity change in D-direction and the vehcile

@@ -82,7 +82,15 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			// ensure that minimum altitude is respected
 			_respectMinAltitude();
 
-		} else if (!apply_brake) {
+		} else if (PX4_ISFINITE(_position_setpoint(2)) && apply_brake) {
+			// Position is locked but check if a reset event has happened.
+			// We will shift the setpoints.
+			if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counter) {
+				_position_setpoint(2) = _position(2);
+				_reset_counter = _sub_vehicle_local_position->get().z_reset_counter;
+			}
+
+		} else  {
 			// user demands velocity change
 			_position_setpoint(2) = NAN;
 		}

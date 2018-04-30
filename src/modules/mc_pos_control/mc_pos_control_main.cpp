@@ -473,25 +473,6 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-
-		// check if a reset event has happened
-		// if the vehicle is in manual mode we will shift the setpoints of the
-		// states which were reset. In auto mode we do not shift the setpoints
-		// since we want the vehicle to track the original state.
-		if (_control_mode.flag_control_manual_enabled) {
-			if (_z_reset_counter != _local_pos.z_reset_counter) {
-				_pos_sp(2) = _local_pos.z;
-			}
-
-			if (_xy_reset_counter != _local_pos.xy_reset_counter) {
-				_pos_sp(0) = _local_pos.x;
-				_pos_sp(1) = _local_pos.y;
-			}
-		}
-
-		// update the reset counters in any case
-		_z_reset_counter = _local_pos.z_reset_counter;
-		_xy_reset_counter = _local_pos.xy_reset_counter;
 	}
 
 	orb_check(_pos_sp_triplet_sub, &updated);
