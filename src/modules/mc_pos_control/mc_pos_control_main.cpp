@@ -154,6 +154,7 @@ private:
 
 	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
 	PositionControl _control; /**< class handling the core PID position controller */
+	PositionControlStates _states; /**< structure that contains required state information for position control */
 
 	hrt_abstime _last_warn;
 
@@ -173,7 +174,7 @@ private:
 	 */
 	void		poll_subscriptions();
 
-	void update_velocity_derivative(const float &vel_sp_z);
+	void map_to_control_states(const float &vel_sp_z);
 
 	/**
 	 * Limit altitude based on landdetector.
@@ -395,36 +396,58 @@ MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &se
 }
 
 void
-MulticopterPositionControl::update_velocity_derivative(const float &vel_sp_z)
+MulticopterPositionControl::map_to_control_states(const float &vel_sp_z)
 {
 	if (_local_pos.timestamp == 0) {
 		return;
 	}
 
-	if (PX4_ISFINITE(_local_pos.vx) &&
-	    PX4_ISFINITE(_local_pos.vy) &&
-	    PX4_ISFINITE(_local_pos.vz)) {
+	// only set position states if valid and finite
+	if (PX4_ISFINITE(_local_pos.x) && PX4_ISFINITE(_local_pos.y) && _local_pos.xy_valid) {
+		_states.position(0) = _local_pos.x;
+		_states.position(1) = _local_pos.y;
 
-		_vel(0) = _local_pos.vx;
-		_vel(1) = _local_pos.vy;
+	} else {
+		_states.position(0) = _states.position(1) = NAN;
+	}
+
+	if (PX4_ISFINITE(_local_pos.z) && _local_pos.z_valid) {
+		_states.position(2) = _local_pos.z;
+
+	} else {
+		_states.position(2) = NAN;
+	}
+
+	if (PX4_ISFINITE(_local_pos.vx) && PX4_ISFINITE(_local_pos.vy) && _local_pos.v_xy_valid) {
+		_states.velocity(0) = _local_pos.vx;
+		_states.velocity(1) = _local_pos.vy;
+		_states.acceleration(0) = _vel_x_deriv.update(-_states.velocity(0));
+		_states.acceleration(1) = _vel_y_deriv.update(-_states.velocity(1));
+
+	} else {
+		_states.velocity(0) = _states.velocity(1) = NAN;
+		_states.acceleration(0) = _states.acceleration(1) = NAN;
 	}
 
 	if (PX4_ISFINITE(_local_pos.vz)) {
 
-		// default velocity estimate
-		_vel(2) = _local_pos.vz;
-
 		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
 			// A change in velocity is demanded. Set velocity to the derivative of position
 			// because it has less bias but blend it in across the landing speed range
-			float weighting = fminf(fabsf(vel_sp_z) / _land_speed.get(), 1.0f);
-			_vel(2) = _local_pos.z_deriv * weighting + _vel(2) * (1.0f - weighting);
+			//float weighting = fminf(fabsf(vel_sp_z) / _land_speed.get(), 1.0f);
+			//_states.velocity(2) = _local_pos.z_deriv * weighting + _local_pos.vz * (1.0f - weighting);
 		}
+
+		_states.velocity(2) = _local_pos.vz;
+		_states.acceleration(2) = _vel_z_deriv.update(-_states.velocity(2));
+
+	} else {
+		_states.velocity(2) = _states.acceleration(2) = NAN;
 	}
 
-	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
-	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
-	_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
+	if (PX4_ISFINITE(_local_pos.yaw)) {
+		_states.yaw = _local_pos.yaw;
+	}
 }
 
 void
