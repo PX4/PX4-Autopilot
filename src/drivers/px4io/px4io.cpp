@@ -269,9 +269,6 @@ private:
 	orb_advert_t		_to_safety;		///< status of safety
 	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
 
-	actuator_outputs_s	_outputs;		///< mixed outputs
-	servorail_status_s	_servorail_status;	///< servorail status
-
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 	bool			_lockdown_override;	///< allow to override the safety lockdown
 	bool			_armed;			///< wether the system is armed
@@ -490,8 +487,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_servorail(nullptr),
 	_to_safety(nullptr),
 	_to_mixer_status(nullptr),
-	_outputs{},
-	_servorail_status{},
 	_primary_pwm_device(false),
 	_lockdown_override(false),
 	_armed(false),
@@ -508,9 +503,6 @@ PX4IO::PX4IO(device::Device *interface) :
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
-
-	_debug_enabled = false;
-	_servorail_status.rssi_v = 0;
 }
 
 PX4IO::~PX4IO()
@@ -1686,17 +1678,19 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 void
 PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 {
-	_servorail_status.timestamp = hrt_absolute_time();
+	servorail_status_s servorail_status = {};
+
+	servorail_status.timestamp = hrt_absolute_time();
 
 	/* voltage is scaled to mV */
-	_servorail_status.voltage_v = vservo * 0.001f;
-	_servorail_status.rssi_v    = vrssi * 0.001f;
+	servorail_status.voltage_v = vservo * 0.001f;
+	servorail_status.rssi_v    = vrssi * 0.001f;
 
 	if (_analog_rc_rssi_volt < 0.0f) {
-		_analog_rc_rssi_volt = _servorail_status.rssi_v;
+		_analog_rc_rssi_volt = servorail_status.rssi_v;
 	}
 
-	_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.99f + _servorail_status.rssi_v * 0.01f;
+	_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.99f + servorail_status.rssi_v * 0.01f;
 
 	if (_analog_rc_rssi_volt > 2.5f) {
 		_analog_rc_rssi_stable = true;
@@ -1704,10 +1698,10 @@ PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 
 	/* lazily publish the servorail voltages */
 	if (_to_servorail != nullptr) {
-		orb_publish(ORB_ID(servorail_status), _to_servorail, &_servorail_status);
+		orb_publish(ORB_ID(servorail_status), _to_servorail, &servorail_status);
 
 	} else {
-		_to_servorail = orb_advertise(ORB_ID(servorail_status), &_servorail_status);
+		_to_servorail = orb_advertise(ORB_ID(servorail_status), &servorail_status);
 	}
 }
 
