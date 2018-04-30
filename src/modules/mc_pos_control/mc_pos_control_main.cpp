@@ -1005,23 +1005,6 @@ MulticopterPositionControl::task_main()
 
 		} else {
 
-			/* set default max velocity in xy to vel_max
-			 * Apply estimator limits if applicable */
-			if (_local_pos.vxy_max > 0.001f) {
-				// use the minimum of the estimator and user specified limit
-				_vel_max_xy = fminf(_vel_max_xy_param.get(), _local_pos.vxy_max);
-				// Allow for a minimum of 0.3 m/s for repositioning
-				_vel_max_xy = fmaxf(_vel_max_xy, 0.3f);
-
-			} else if (_vel_sp_significant) {
-				// raise the limit at a constant rate up to the user specified value
-				if (_vel_max_xy >= _vel_max_xy_param.get()) {
-					_vel_max_xy = _vel_max_xy_param.get();
-
-				} else {
-					_vel_max_xy += dt * _acc_max_flow_xy.get();
-				}
-			}
 
 			/* reset flags when landed */
 			if (_vehicle_land_detected.landed) {
