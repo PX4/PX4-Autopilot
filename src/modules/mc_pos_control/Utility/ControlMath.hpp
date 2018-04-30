@@ -77,5 +77,6 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
  *
  * Note: this method is not used anywhere and first requires review before usage.
  */
-bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r, const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res);
+bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r, const matrix::Vector3f &line_a,
+		       const matrix::Vector3f &line_b, matrix::Vector3f &res);
 }
