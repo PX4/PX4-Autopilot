@@ -168,7 +168,6 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
-	perf_counter_t		_controller_latency_perf;
 
 	Integrator _accel_int;
 	Integrator _gyro_int;
@@ -323,7 +322,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_sample_perf(perf_alloc(PC_ELAPSED, "gyrosim_read")),
 	_good_transfers(perf_alloc(PC_COUNT, "gyrosim_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "gyrosim_reset_retries")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_accel_int(1000000 / GYROSIM_ACCEL_DEFAULT_RATE, true),
 	_gyro_int(1000000 / GYROSIM_GYRO_DEFAULT_RATE, true),
 	_rotation(rotation),
@@ -1093,8 +1091,6 @@ GYROSIM::_measure()
 
 	if (accel_notify) {
 		if (!(_pub_blocked)) {
-			/* log the time of this report */
-			perf_begin(_controller_latency_perf);
 			/* publish it */
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 		}

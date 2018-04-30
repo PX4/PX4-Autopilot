@@ -41,6 +41,7 @@
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/mixer/mixer.h>
+#include <perf/perf_counter.h>
 #include <px4_common.h>
 #include <px4_config.h>
 #include <px4_module.h>
@@ -67,7 +68,7 @@ public:
 	};
 
 	PWMSim();
-	virtual ~PWMSim() = default;
+	virtual ~PWMSim();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -131,6 +132,8 @@ private:
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 
 	bool 	_airmode{false}; 	///< multicopter air-mode
+
+	perf_counter_t	_perf_control_latency;
 
 	static int	control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
 

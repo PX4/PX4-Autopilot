@@ -468,7 +468,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_mavlink_log_pub(nullptr),
 	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
 	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
-	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io latency")),
+	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io control latency")),
 	_status(0),
 	_alarms(0),
 	_last_written_arming_s(0),

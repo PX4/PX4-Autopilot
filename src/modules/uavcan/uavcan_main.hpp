@@ -208,6 +208,8 @@ private:
 
 	actuator_outputs_s		_outputs = {};
 
+	perf_counter_t			_perf_control_latency;
+
 	bool 				_airmode = false;
 
 	// index into _poll_fds for each _control_subs handle

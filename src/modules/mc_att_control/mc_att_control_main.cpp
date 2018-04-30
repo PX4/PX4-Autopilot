@@ -100,8 +100,6 @@ To reduce control latency, the module directly polls on the gyro topic published
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-
 	_lp_filters_d{
 	{initial_update_rate_hz, 50.f},
 	{initial_update_rate_hz, 50.f},
@@ -757,7 +755,6 @@ MulticopterAttitudeControl::run()
 					if (_actuators_0_pub != nullptr) {
 
 						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-						perf_end(_controller_latency_perf);
 
 					} else if (_actuators_id) {
 						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
@@ -799,7 +796,6 @@ MulticopterAttitudeControl::run()
 						if (_actuators_0_pub != nullptr) {
 
 							orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-							perf_end(_controller_latency_perf);
 
 						} else if (_actuators_id) {
 							_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
