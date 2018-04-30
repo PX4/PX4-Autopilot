@@ -81,7 +81,6 @@ set(config_module_list
 	#lib/rc/rc_tests
 	modules/commander/commander_tests
 	modules/mavlink/mavlink_tests
-	modules/mc_pos_control/mc_pos_control_tests
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
