@@ -118,24 +118,7 @@ private:
 	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
 
 	bool		_task_should_exit = false;			/**<true if task should exit */
-	bool		_gear_state_initialized = false;		/**<true if the gear state has been initialized */
-	bool 		_reset_pos_sp = true;  				/**<true if position setpoint needs a reset */
-	bool 		_reset_alt_sp = true; 				/**<true if altitude setpoint needs a reset */
-	bool 		_do_reset_alt_pos_flag = true; 		/**< TODO: check if we need this */
-	bool		_mode_auto = false ;  				/**<true if in auot mode */
-	bool 		_pos_hold_engaged = false; 			/**<true if hold positon in xy desired */
-	bool 		_alt_hold_engaged = false; 			/**<true if hold in z desired */
-	bool 		_run_pos_control = true;  			/**< true if position controller should be used */
-	bool 		_run_alt_control = true; 			/**<true if altitude controller should be used */
-	bool 		_reset_int_z = true; 				/**<true if reset integral in z */
-	bool 		_reset_int_xy = true; 				/**<true if reset integral in xy */
-	bool		 _reset_yaw_sp = true; 				/**<true if reset yaw setpoint */
-	bool 		_hold_offboard_xy = false; 			/**<TODO : check if we need this extra hold_offboard flag */
-	bool 		_hold_offboard_z = false;
 	bool 		_in_smooth_takeoff = false; 				/**<true if takeoff ramp is applied */
-	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
-	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
-	bool 		_triplet_lat_lon_finite = true; 		/**<true if triplets current is non-finite */
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
@@ -231,11 +214,9 @@ private:
 		(ParamFloat<px4::params::MPC_ACC_HOR_FLOW>) _acc_max_flow_xy
 	);
 
-
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
-
 
 	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
 	PositionControl _control; /**< class handling the core PID position controller */
@@ -322,7 +303,7 @@ private:
 
 	float		throttle_curve(float ctl, float ctr);
 
-	void update_velocity_derivative();
+	void update_velocity_derivative(const float &velocity_z);
 
 	/**
 	 * Limit altitude based on landdetector.
@@ -792,7 +773,7 @@ MulticopterPositionControl::cross_sphere_line(const matrix::Vector3f &sphere_c, 
 }
 
 void
-MulticopterPositionControl::update_velocity_derivative()
+MulticopterPositionControl::update_velocity_derivative(const float &vz)
 {
 	/* Update velocity derivative,
 	 * independent of the current flight mode
@@ -831,7 +812,7 @@ MulticopterPositionControl::update_velocity_derivative()
 			_vel(2) = _local_pos.vz;
 		}
 
-		if (!_run_alt_control) {
+		if (PX4_ISFINITE(vz) && fabsf(vz) > FLT_EPSILON) {
 			/* set velocity to the derivative of position
 			 * because it has less bias but blend it in across the landing speed range*/
 			float weighting = fminf(fabsf(_vel_sp(2)) / _land_speed.get(), 1.0f);
@@ -915,8 +896,6 @@ MulticopterPositionControl::task_main()
 		/* set dt for control blocks */
 		setDt(dt);
 
-		update_velocity_derivative();
-
 		switch (_vehicle_status.nav_state) {
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 			_flight_tasks.switchTask(FlightTaskIndex::Altitude);
@@ -960,6 +939,7 @@ MulticopterPositionControl::task_main()
 			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 
+			update_velocity_derivative(setpoint.vz);
 			limit_altitude(setpoint);
 
 			check_takeoff_state(setpoint.z, setpoint.vz);
@@ -1046,21 +1026,6 @@ MulticopterPositionControl::task_main()
 
 			/* reset flags when landed */
 			if (_vehicle_land_detected.landed) {
-				_reset_pos_sp = true;
-				_reset_alt_sp = true;
-				_do_reset_alt_pos_flag = true;
-				_mode_auto = false;
-				_pos_hold_engaged = false;
-				_alt_hold_engaged = false;
-				_run_pos_control = true;
-				_run_alt_control = true;
-				_reset_int_z = true;
-				_reset_int_xy = true;
-				_reset_yaw_sp = true;
-				_hold_offboard_xy = false;
-				_hold_offboard_z = false;
-				_in_landing = false;
-				_lnd_reached_ground = false;
 
 				/* also reset previous setpoints */
 				_yaw_takeoff = _yaw;
@@ -1078,11 +1043,6 @@ MulticopterPositionControl::task_main()
 
 			/* reset setpoints and integrators VTOL in FW mode */
 			if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
-				_reset_alt_sp = true;
-				_reset_int_xy = true;
-				_reset_int_z = true;
-				_reset_pos_sp = true;
-				_reset_yaw_sp = true;
 				_vel_sp_prev = _vel;
 			}
 
@@ -1097,12 +1057,10 @@ MulticopterPositionControl::task_main()
 			// or if position / altitude is not controlled
 			if (!_control_mode.flag_control_position_enabled
 			    || !_control_mode.flag_control_manual_enabled) {
-				_pos_hold_engaged = false;
 			}
 
 			if (!_control_mode.flag_control_altitude_enabled
 			    || !_control_mode.flag_control_manual_enabled) {
-				_alt_hold_engaged = false;
 			}
 
 			if (_control_mode.flag_control_altitude_enabled ||
@@ -1131,12 +1089,6 @@ MulticopterPositionControl::task_main()
 
 			} else {
 				/* position controller disabled, reset setpoints */
-				_reset_pos_sp = true;
-				_reset_alt_sp = true;
-				_do_reset_alt_pos_flag = true;
-				_mode_auto = false;
-				_reset_int_z = true;
-				_reset_int_xy = true;
 
 				/* store last velocity in case a mode switch to position control occurs */
 				_vel_sp_prev = _vel;
@@ -1146,7 +1098,6 @@ MulticopterPositionControl::task_main()
 			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
 			} else {
-				_reset_yaw_sp = true;
 				_att_sp.yaw_sp_move_rate = 0.0f;
 			}
 
