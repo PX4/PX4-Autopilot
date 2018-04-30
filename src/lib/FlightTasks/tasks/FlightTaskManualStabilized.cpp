@@ -75,7 +75,7 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 	/* Yaw-lock depends on stick input. If not locked,
 	 * yaw_sp is set to NAN.
 	 * TODO: add yawspeed to get threshold.*/
-	if (_yawspeed_setpoint > FLT_EPSILON) {
+	if (fabsf(_yawspeed_setpoint) > FLT_EPSILON) {
 		// no fixed heading when rotating around yaw by stick
 		_yaw_setpoint = NAN;
 
