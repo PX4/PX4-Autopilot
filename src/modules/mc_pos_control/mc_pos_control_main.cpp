@@ -999,13 +999,23 @@ MulticopterPositionControl::task_main()
 
 			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
 			publish_local_pos_sp();
-			publish_attitude();
 
 		} else {
-
-
-
+			// no flighttask is active: stay idle
+			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
+			_att_sp.yaw_body = _yaw;
+			_att_sp.yaw_sp_move_rate = 0.0f;
+			_att_sp.fw_control_yaw = false;
+			_att_sp.disable_mc_yaw_control = false;
+			_att_sp.apply_flaps = false;
+			matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body , _att_sp.pitch_body, _att_sp.yaw_body);
+			q_sp.copyTo(_att_sp.q_d);
+			_att_sp.q_d_valid = true;
+			_att_sp.thrust = 0.0f;
 		}
+
+		publish_attitude();
+
 	}
 
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
