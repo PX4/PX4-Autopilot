@@ -857,8 +857,6 @@ MulticopterPositionControl::task_main()
 	/* We really need to know from the beginning if we're landed or in-air. */
 	orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 
-	bool was_landed = true;
-
 	hrt_abstime t_prev = 0;
 
 	// Let's be safe and have the landing gear down by default
@@ -1006,54 +1004,7 @@ MulticopterPositionControl::task_main()
 		} else {
 
 
-			/* reset flags when landed */
-			if (_vehicle_land_detected.landed) {
 
-				/* also reset previous setpoints */
-				_yaw_takeoff = _yaw;
-				_vel_sp_prev.zero();
-				_vel_prev.zero();
-
-				/* make sure attitude setpoint output "disables" attitude control
-				 * TODO: we need a defined setpoint to do this properly especially when adjusting the mixer */
-				_att_sp.thrust = 0.0f;
-				_att_sp.timestamp = hrt_absolute_time();
-
-				/* reset velocity limit */
-				_vel_max_xy = _vel_max_xy_param.get();
-			}
-
-			/* reset setpoints and integrators VTOL in FW mode */
-			if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
-				_vel_sp_prev = _vel;
-			}
-
-			/* set triplets to invalid if we just landed */
-			if (_vehicle_land_detected.landed && !was_landed) {
-				_pos_sp_triplet.current.valid = false;
-			}
-
-			was_landed = _vehicle_land_detected.landed;
-
-			// reset the horizontal and vertical position hold flags for non-manual modes
-			// or if position / altitude is not controlled
-			if (!_control_mode.flag_control_position_enabled
-			    || !_control_mode.flag_control_manual_enabled) {
-			}
-
-			if (!_control_mode.flag_control_altitude_enabled
-			    || !_control_mode.flag_control_manual_enabled) {
-			}
-
-			/* generate attitude setpoint from manual controls */
-			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
-
-			} else {
-				_att_sp.yaw_sp_move_rate = 0.0f;
-			}
-
-			/* update previous velocity for velocity controller D part */
-			_vel_prev = _vel;
 		}
 	}
 
