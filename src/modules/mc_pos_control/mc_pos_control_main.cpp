@@ -59,7 +59,6 @@
 
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -77,8 +76,6 @@
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
 
-#define SIGMA_SINGLE_OP			0.000001f
-#define SIGMA_NORM			0.001f
 /**
  * Multicopter position control app start / stop handling function
  *
@@ -108,37 +105,31 @@ public:
 
 private:
 
-	/** Time in us that direction change condition has to be true for direction change state */
-	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
-
 	bool		_task_should_exit = false;			/**<true if task should exit */
-	bool 		_in_smooth_takeoff = false; 				/**<true if takeoff ramp is applied */
+	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
 
-	int		_control_task;			/**< task handle for task */
-	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
+	orb_advert_t	_mavlink_log_pub{nullptr};		/**< mavlink log advert */
+	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
+	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
+	orb_id_t _attitude_setpoint_id{nullptr};
 
-	int		_vehicle_status_sub;		/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
-	int		_vehicle_attitude_sub;		/**< control state subscription */
-	int		_control_mode_sub;		/**< vehicle control mode subscription */
-	int		_params_sub;			/**< notification of parameter updates */
-	int		_local_pos_sub;			/**< vehicle local position */
-	int		_home_pos_sub; 			/**< home position */
+	int		_control_task{-1};			/**< task handle for task */
+	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
+	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
+	int		_control_mode_sub{-1};		/**< vehicle control mode subscription */
+	int		_params_sub{-1};			/**< notification of parameter updates */
+	int		_local_pos_sub{-1};			/**< vehicle local position */
+	int		_home_pos_sub{-1}; 			/**< home position */
 
-	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
-	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
+	float _takeoff_speed = -1.f; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
-	orb_id_t _attitude_setpoint_id;
-
-	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
-	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct vehicle_control_mode_s			_control_mode;		/**< vehicle control mode */
-	struct vehicle_local_position_s			_local_pos;		/**< vehicle local position */
-	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
-	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
-	struct home_position_s				_home_pos; 				/**< home position */
+	vehicle_status_s 			_vehicle_status{}; 	/**< vehicle status */
+	vehicle_land_detected_s 			_vehicle_land_detected{};	/**< vehicle land detected */
+	vehicle_attitude_setpoint_s		_att_sp{};		/**< vehicle attitude setpoint */
+	vehicle_control_mode_s			_control_mode{};		/**< vehicle control mode */
+	vehicle_local_position_s			_local_pos{};		/**< vehicle local position */
+	vehicle_local_position_setpoint_s	_local_pos_sp{};		/**< vehicle local position setpoint */
+	home_position_s				_home_pos{}; 				/**< home position */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time contant for smooth takeoff ramp */
@@ -148,17 +139,15 @@ private:
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed
 	);
 
-	control::BlockDerivative _vel_x_deriv;
-	control::BlockDerivative _vel_y_deriv;
-	control::BlockDerivative _vel_z_deriv;
+	control::BlockDerivative _vel_x_deriv; /**< velocity derivate in x */
+	control::BlockDerivative _vel_y_deriv; /**< velocity derivate in y */
+	control::BlockDerivative _vel_z_deriv; /**< velocity derivate in z */
 
 	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
 	PositionControl _control; /**< class handling the core PID position controller */
 	PositionControlStates _states; /**< structure that contains required state information for position control */
 
-	hrt_abstime _last_warn;
-
-	float _takeoff_speed; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
+	hrt_abstime _last_warn = 0; /**< timeer when the last warn message was sent out */
 
 	/**
 	 * Update our local parameter cache.
@@ -170,7 +159,7 @@ private:
 	 */
 	void		poll_subscriptions();
 
-	void map_to_control_states(const float &vel_sp_z);
+	void _check_vehicle_states(const float &vel_sp_z);
 
 	/**
 	 * Limit altitude based on landdetector.
@@ -178,8 +167,6 @@ private:
 	void limit_altitude(vehicle_local_position_setpoint_s &setpoint);
 
 	void warn_rate_limited(const char *str);
-
-	void set_idle_state();
 
 	/**
 	 * New methods for flighttask
@@ -213,34 +200,10 @@ MulticopterPositionControl	*g_control;
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
-	_control_task(-1),
-	_mavlink_log_pub(nullptr),
-
-	/* subscriptions */
-	_vehicle_attitude_sub(-1),
-	_control_mode_sub(-1),
-	_params_sub(-1),
-	_local_pos_sub(-1),
-	_home_pos_sub(-1),
-
-	/* publications */
-	_att_sp_pub(nullptr),
-	_local_pos_sp_pub(nullptr),
-	_attitude_setpoint_id(nullptr),
-	_vehicle_status{},
-	_vehicle_land_detected{},
-	_att_sp{},
-	_manual{},
-	_control_mode{},
-	_local_pos{},
-	_pos_sp_triplet{},
-	_local_pos_sp{},
-	_home_pos{},
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
-	_control(this),
-	_last_warn(0)
+	_control(this)
 {
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -388,7 +351,7 @@ MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &se
 }
 
 void
-MulticopterPositionControl::map_to_control_states(const float &vel_sp_z)
+MulticopterPositionControl::_check_vehicle_states(const float &vel_sp_z)
 {
 	if (_local_pos.timestamp == 0) {
 		return;
@@ -450,7 +413,6 @@ MulticopterPositionControl::task_main()
 	 */
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -544,7 +506,7 @@ MulticopterPositionControl::task_main()
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 
 			// check if all local states are valid and map accordingly
-			map_to_control_states(setpoint.vz);
+			_check_vehicle_states(setpoint.vz);
 
 			// limit altitude only if local position is valid
 			if (PX4_ISFINITE(_states.position(2))) {limit_altitude(setpoint);};
