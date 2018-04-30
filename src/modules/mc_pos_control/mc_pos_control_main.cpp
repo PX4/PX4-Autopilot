@@ -322,25 +322,6 @@ private:
 
 	float		throttle_curve(float ctl, float ctr);
 
-	/**
-	 * Reset position setpoint to current position.
-	 *
-	 * This reset will only occur if the _reset_pos_sp flag has been set.
-	 * The general logic is to first "activate" the flag in the flight
-	 * regime where a switch to a position control mode should hold the
-	 * very last position. Once switching to a position control mode
-	 * the last position is stored once.
-	 */
-	void		reset_pos_sp();
-
-	/**
-	 * Reset altitude setpoint to current altitude.
-	 *
-	 * This reset will only occur if the _reset_alt_sp flag has been set.
-	 * The general logic follows the reset_pos_sp() architecture.
-	 */
-	void		reset_alt_sp();
-
 	void update_velocity_derivative();
 
 	void generate_attitude_setpoint();
@@ -737,33 +718,6 @@ MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	pos_control::g_control->task_main();
 	return 0;
-}
-
-void
-MulticopterPositionControl::reset_pos_sp()
-{
-	if (_reset_pos_sp) {
-		_reset_pos_sp = false;
-
-		// we have logic in the main function which chooses the velocity setpoint such that the attitude setpoint is
-		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
-		// position in a special way. In position control mode the position will be reset anyway until the vehicle has reduced speed.
-		_pos_sp(0) = _pos(0);
-		_pos_sp(1) = _pos(1);
-	}
-}
-
-void
-MulticopterPositionControl::reset_alt_sp()
-{
-	if (_reset_alt_sp) {
-		_reset_alt_sp = false;
-
-		// we have logic in the main function which choosed the velocity setpoint such that the attitude setpoint is
-		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
-		// altitude in a special way
-		_pos_sp(2) = _pos(2);
-	}
 }
 
 void
