@@ -131,7 +131,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 		if (f == nullptr) {
 			warnx("Error opening file!\n");
 			delete[] timings;
-			return uORB::ERROR;
+			return PX4_ERROR;
 		}
 
 		for (unsigned i = 0; i < maxruns; i++) {
@@ -148,7 +148,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 	pubsubtest_passed = true;
 
 	if (static_cast<float>(latency_integral / maxruns) > 100.0f) {
-		pubsubtest_res = uORB::ERROR;
+		pubsubtest_res = PX4_ERROR;
 
 	} else {
 		pubsubtest_res = PX4_OK;
@@ -825,7 +825,8 @@ int uORBTest::UnitTest::test_fail(const char *fmt, ...)
 	va_end(ap);
 	fprintf(stderr, "\n");
 	fflush(stderr);
-	return uORB::ERROR;
+
+	return PX4_ERROR;
 }
 
 int uORBTest::UnitTest::test_note(const char *fmt, ...)
