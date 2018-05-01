@@ -79,12 +79,12 @@ public:
 	}
 
 	/**
-	 * Get the DeviceMaster for a given Flavor. If it does not exist,
+	 * Get the DeviceMaster. If it does not exist,
 	 * it will be created and initialized.
 	 * Note: the first call to this is not thread-safe.
 	 * @return nullptr if initialization failed (and errno will be set)
 	 */
-	uORB::DeviceMaster *get_device_master(Flavor flavor);
+	uORB::DeviceMaster *get_device_master();
 
 	// ==== uORB interface methods ====
 	/**
@@ -145,7 +145,7 @@ public:
 	 *      and handle different priorities (@see orb_priority()).
 	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
 	 *      used.
-	 * @return    ERROR on error, otherwise returns a handle
+	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
@@ -174,7 +174,7 @@ public:
 	 *      for the topic.
 	 * @handle    The handle returned from orb_advertise.
 	 * @param data    A pointer to the data to be published.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
 	int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data);
 
@@ -200,7 +200,7 @@ public:
 	 *
 	 * @param meta    The uORB metadata (usually from the ORB_ID() macro)
 	 *      for the topic.
-	 * @return    ERROR on error, otherwise returns a handle
+	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 */
 	int  orb_subscribe(const struct orb_metadata *meta);
@@ -232,7 +232,7 @@ public:
 	 * @param instance  The instance of the topic. Instance 0 matches the
 	 *      topic of the orb_subscribe() call, higher indices
 	 *      are for topics created with orb_advertise_multi().
-	 * @return    ERROR on error, otherwise returns a handle
+	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
@@ -244,7 +244,7 @@ public:
 	 * Unsubscribe from a topic.
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
 	int  orb_unsubscribe(int handle);
 
@@ -262,7 +262,7 @@ public:
 	 * @param buffer  Pointer to the buffer receiving the data, or NULL
 	 *      if the caller wants to clear the updated flag without
 	 *      using the data.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
 	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer);
 
@@ -281,7 +281,7 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param updated Set to true if the topic has been updated since the
 	 *      last time it was copied using this handle.
-	 * @return    OK if the check was successful, ERROR otherwise with
+	 * @return    OK if the check was successful, PX4_ERROR otherwise with
 	 *      errno set accordingly.
 	 */
 	int  orb_check(int handle, bool *updated);
@@ -293,7 +293,7 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param time    Returns the absolute time that the topic was updated, or zero if it has
 	 *      never been updated. Time is measured in microseconds.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
 	int  orb_stat(int handle, uint64_t *time);
 
@@ -302,7 +302,7 @@ public:
 	 *
 	 * @param meta    ORB topic metadata.
 	 * @param instance  ORB instance
-	 * @return    OK if the topic exists, ERROR otherwise.
+	 * @return    OK if the topic exists, PX4_ERROR otherwise.
 	 */
 	int  orb_exists(const struct orb_metadata *meta, int instance);
 
@@ -314,7 +314,7 @@ public:
 	 *      topics which are published by multiple publishers (e.g. mag0, mag1, etc.)
 	 *      and allows a subscriber to pick the topic with the highest priority,
 	 *      independent of the startup order of the associated publishers.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
 	int  orb_priority(int handle, int32_t *priority);
 
@@ -334,7 +334,7 @@ public:
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param interval  An interval period in milliseconds.
-	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
 	int  orb_set_interval(int handle, unsigned interval);
 
@@ -346,7 +346,7 @@ public:
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param interval  The returned interval period in milliseconds.
-	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
 	int	orb_get_interval(int handle, unsigned *interval);
 
@@ -393,25 +393,18 @@ private: // class methods
 	 * Handles creation of the object and the initial publication for
 	 * advertisers.
 	 */
-	int
-	node_open
-	(
-		Flavor f,
-		const struct orb_metadata *meta,
-		const void *data,
-		bool advertiser,
-		int *instance = nullptr,
-		int priority = ORB_PRIO_DEFAULT
-	);
+	int node_open(const struct orb_metadata *meta, const void *data, bool advertiser, int *instance = nullptr,
+		      int priority = ORB_PRIO_DEFAULT);
 
 private: // data members
 	static Manager *_Instance;
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel;
+
 	ORBSet _remote_subscriber_topics;
 	ORBSet _remote_topics;
 
-	DeviceMaster *_device_masters[Flavor_count]; ///< Allow at most one DeviceMaster per Flavor
+	DeviceMaster *_device_master{nullptr};
 
 private: //class methods
 	Manager();
