@@ -44,8 +44,7 @@
 
 #include "math.h"
 #include "conversions.h"
-
-__BEGIN_DECLS
+#include <ecl/geo/geo.h>
 
 enum AIRSPEED_SENSOR_MODEL {
 	AIRSPEED_SENSOR_MODEL_MEMBRANE = 0,
@@ -69,9 +68,9 @@ enum AIRSPEED_COMPENSATION_MODEL {
  * @param static_pressure pressure at the side of the tube/airplane
  * @return indicated airspeed in m/s
  */
-__EXPORT float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
-		enum AIRSPEED_SENSOR_MODEL smodel,
-		float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius);
+float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
+					enum AIRSPEED_SENSOR_MODEL smodel,
+					float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius);
 
 /**
  * Calculate indicated airspeed.
@@ -84,7 +83,7 @@ __EXPORT float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODE
  * @param static_pressure pressure at the side of the tube/airplane
  * @return indicated airspeed in m/s
  */
-__EXPORT float calc_indicated_airspeed(float differential_pressure);
+float calc_indicated_airspeed(float differential_pressure, float air_density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 
 /**
  * Calculate true airspeed from indicated airspeed.
@@ -96,8 +95,8 @@ __EXPORT float calc_indicated_airspeed(float differential_pressure);
  * @param temperature_celsius air temperature in degrees celcius
  * @return true airspeed in m/s
  */
-__EXPORT float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_ambient,
-		float temperature_celsius);
+float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_ambient,
+					float temperature_celsius);
 
 /**
  * Directly calculate true airspeed
@@ -109,7 +108,7 @@ __EXPORT float calc_true_airspeed_from_indicated(float speed_indicated, float pr
  * @param temperature_celsius air temperature in degrees celcius
  * @return true airspeed in m/s
  */
-__EXPORT float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius);
+float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius);
 
 /**
 * Calculates air density.
@@ -117,8 +116,7 @@ __EXPORT float calc_true_airspeed(float total_pressure, float static_pressure, f
 * @param static_pressure ambient pressure in millibar
 * @param temperature_celcius air / ambient temperature in celcius
 */
-__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
+float get_air_density(float static_pressure, float temperature_celsius);
 
-__END_DECLS
 
 #endif

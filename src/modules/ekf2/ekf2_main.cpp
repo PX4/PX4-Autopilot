@@ -789,7 +789,7 @@ void Ekf2::run()
 					// take mean across sample period
 					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
 
-					_ekf.set_air_density(airdata.rho);
+					_ekf.set_air_density(airdata.air_density);
 
 					// calculate static pressure error = Pmeas - Ptruth
 					// model position error sensitivity as a body fixed ellipse with different scale in the positive and negtive X direction
@@ -809,11 +809,11 @@ void Ekf2::run()
 					const float y_v2 = fminf(vel_body_wind(1) * vel_body_wind(1), max_airspeed_sq);
 					const float z_v2 = fminf(vel_body_wind(2) * vel_body_wind(2), max_airspeed_sq);
 
-					const float pstatic_err = 0.5f * airdata.rho *
+					const float pstatic_err = 0.5f * airdata.air_density *
 								  (K_pstatic_coef_x * x_v2) + (_K_pstatic_coef_y.get() * y_v2) + (_K_pstatic_coef_z.get() * z_v2);
 
 					// correct baro measurement using pressure error estimate and assuming sea level gravity
-					balt_data_avg += pstatic_err / (airdata.rho * CONSTANTS_ONE_G);
+					balt_data_avg += pstatic_err / (airdata.air_density * CONSTANTS_ONE_G);
 
 					// push to estimator
 					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, balt_data_avg);

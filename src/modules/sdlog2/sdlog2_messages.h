@@ -201,7 +201,6 @@ struct log_OUT_s {
 struct log_AIRS_s {
 	float indicated_airspeed_m_s;
 	float true_airspeed_m_s;
-	float true_airspeed_unfiltered_m_s;
 	float air_temperature_celsius;
 	float confidence;
 };
@@ -605,7 +604,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
 	LOG_FORMAT_S(OUT0, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT_S(OUT1, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
-	LOG_FORMAT(AIRS, "fffff",			"IAS,TAS,TASraw,Temp,Confidence"),
+	LOG_FORMAT(AIRS, "ffff",			"IAS,TAS,Temp,Confidence"),
 	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "BffffffLLHhB",	"ID,RawX,RawY,RX,RY,RZ,Dist,TSpan,DtSonar,FrmCnt,GT,Qlty"),
 	LOG_FORMAT(GPOS, "LLfffffff",		"Lat,Lon,Alt,VelN,VelE,VelD,EPH,EPV,TALT"),

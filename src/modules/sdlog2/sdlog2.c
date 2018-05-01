@@ -1878,7 +1878,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.msg_type = LOG_AIRS_MSG;
 				log_msg.body.log_AIRS.indicated_airspeed_m_s = buf.airspeed.indicated_airspeed_m_s;
 				log_msg.body.log_AIRS.true_airspeed_m_s = buf.airspeed.true_airspeed_m_s;
-				log_msg.body.log_AIRS.true_airspeed_unfiltered_m_s = buf.airspeed.true_airspeed_unfiltered_m_s;
 				log_msg.body.log_AIRS.air_temperature_celsius = buf.airspeed.air_temperature_celsius;
 				log_msg.body.log_AIRS.confidence = buf.airspeed.confidence;
 				LOGBUFFER_WRITE_AND_COUNT(AIRS);

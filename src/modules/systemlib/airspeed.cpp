@@ -58,7 +58,6 @@
 float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
 					float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius)
 {
-
 	// air density in kg/m3
 	const float rho_air = get_air_density(pressure_ambient, temperature_celsius);
 
@@ -68,12 +67,6 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
 	float dv = 0.0f;
 
 	switch (smodel) {
-
-	case AIRSPEED_SENSOR_MODEL_MEMBRANE: {
-			// do nothing
-		}
-		break;
-
 	case AIRSPEED_SENSOR_MODEL_SDP3X: {
 			// assumes a metal pitot tube with round tip as here: https://drotek.com/shop/2986-large_default/sdp3x-airspeed-sensor-kit-sdp31.jpg
 			// and tubing as provided by px4/drotek (1.5 mm diameter)
@@ -145,38 +138,22 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
 				}
 				break;
 
-			default: {
-					// do nothing
-				}
+			default:
+				// do nothing
 				break;
 			}
 
 		}
 		break;
 
-	default: {
-			// do nothing
-		}
+	default:
+		// do nothing
 		break;
 	}
 
-	// if (!PX4_ISFINITE(dp_tube)) {
-	// 	dp_tube = 0.0f;
-	// }
-
-	// if (!PX4_ISFINITE(dp_pitot)) {
-	// 	dp_pitot = 0.0f;
-	// }
-
-	// if (!PX4_ISFINITE(dv)) {
-	// 	dv = 0.0f;
-	// }
-
 	// computed airspeed without correction for inflow-speed at tip of pitot-tube
-	const float airspeed_uncorrected = sqrtf(2.0f * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
-
-	// corrected airspeed
-	const float airspeed_corrected = airspeed_uncorrected + dv;
+	// and add correction
+	const float airspeed_corrected = calc_indicated_airspeed(dp_tot, rho_air) + dv;
 
 	// return result with correct sign
 	return (differential_pressure > 0.0f) ? airspeed_corrected : -airspeed_corrected;
@@ -193,17 +170,18 @@ float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
  * @param differential_pressure total_ pressure - static pressure
  * @return indicated airspeed in m/s
  */
-float calc_indicated_airspeed(float differential_pressure)
+float calc_indicated_airspeed(float differential_pressure, float air_density)
 {
-
-
-	if (differential_pressure > 0.0f) {
-		return sqrtf((2.0f * differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
-
-	} else {
-		return -sqrtf((2.0f * fabsf(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+	if (air_density < 0.0001f || !PX4_ISFINITE(air_density)) {
+		air_density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
 	}
 
+	if (differential_pressure < 0.0f) {
+		return sqrtf((2.0f * differential_pressure) / air_density);
+
+	} else {
+		return -sqrtf((2.0f * fabsf(differential_pressure)) / air_density);
+	}
 }
 
 /**
@@ -250,7 +228,17 @@ float calc_true_airspeed(float total_pressure, float static_pressure, float temp
 	}
 }
 
-float get_air_density(float static_pressure, float temperature_celsius)
+float get_air_density(const float static_pressure, const float temperature_celsius)
 {
-	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+	float temperature = 0.0f;
+
+	if (PX4_ISFINITE(temperature_celsius)) {
+		temperature = temperature_celsius;
+
+	} else {
+		// otherwise use 20C
+		temperature = 20.0f;
+	}
+
+	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
 }
