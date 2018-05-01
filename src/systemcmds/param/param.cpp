@@ -368,7 +368,7 @@ do_load(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+		PX4_ERR("open '%s' for load failed (%i)", param_file_name, errno);
 		return 1;
 	}
 
@@ -376,7 +376,7 @@ do_load(const char *param_file_name)
 	close(fd);
 
 	if (result < 0) {
-		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
+		PX4_ERR("loading from '%s' failed (%i)", param_file_name, result);
 		return 1;
 	}
 
@@ -389,7 +389,7 @@ do_import(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+		PX4_ERR("open '%s' for import failed (%i)", param_file_name, errno);
 		return 1;
 	}
 
