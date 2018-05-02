@@ -58,6 +58,8 @@ bool FlightTaskManualStabilized::activate()
 {
 	bool ret = FlightTaskManual::activate();
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
+	_yaw_setpoint = _yaw;
+	_yawspeed_setpoint = 0.0f;
 	_constraints.tilt = math::radians(_tilt_max_man.get());
 	return ret;
 }
