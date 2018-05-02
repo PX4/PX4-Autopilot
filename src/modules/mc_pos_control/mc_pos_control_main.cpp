@@ -35,18 +35,10 @@
  * @file mc_pos_control_main.cpp
  * Multicopter position controller.
  *
- * Original publication for the desired attitude generation:
- * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
- * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011
- *
- * Also inspired by https://pixhawk.org/firmware/apps/fw_pos_control_l1
- *
  * The controller has two loops: P loop for position error and PID loop for velocity error.
- * Output of velocity controller is thrust vector that splitted to thrust direction
- * (i.e. rotation matrix for multicopter orientation) and thrust module (i.e. multicopter thrust itself).
+ * Output of velocity controller is thrust vector that is split to thrust direction
+ * (i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
  * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <px4_config.h>
@@ -132,28 +124,30 @@ private:
 	home_position_s				_home_pos{}; 				/**< home position */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time contant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed
 	);
 
-	control::BlockDerivative _vel_x_deriv; /**< velocity derivate in x */
-	control::BlockDerivative _vel_y_deriv; /**< velocity derivate in y */
-	control::BlockDerivative _vel_z_deriv; /**< velocity derivate in z */
+	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
+	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
+	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
-	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
-	PositionControl _control; /**< class handling the core PID position controller */
+	FlightTasks _flight_tasks; /**< class that generates position controller tracking setpoints*/
+	PositionControl _control; /**< class that handles the core PID position controller */
 	PositionControlStates _states; /**< structure that contains required state information for position control */
 
-	hrt_abstime _last_warn = 0; /**< timeer when the last warn message was sent out */
+	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 	static constexpr uint64_t IDLE_BOFORE_TAKEOFF_TIME_US =
-		1500000; /**< Time required to stay idle before enabling smooth takeoff */
-	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is IDLE_BOFORE_TAKEOFF_TIME_US true */
+		1500000; /**< time required to stay idle before enabling smooth takeoff */
+	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is armed for IDLE_BOFORE_TAKEOFF_TIME_US */
 
 	/**
 	 * Update our local parameter cache.
+	 * Parameter update can be forced when argument is true.
+	 * @param force forces parameter update.
 	 */
 	int		parameters_update(bool force);
 
@@ -162,26 +156,54 @@ private:
 	 */
 	void		poll_subscriptions();
 
+	/**
+	 * Check for validity of positon/velocity states.
+	 * @param vel_sp_z velocity setpoint in z-direction
+	 */
 	void _check_vehicle_states(const float &vel_sp_z);
 
 	/**
-	 * Limit altitude based on landdetector.
+	 * Limit altitude based on land-detector.
+	 * @param setpoint needed to detect vehicle intention.
 	 */
 	void limit_altitude(vehicle_local_position_setpoint_s &setpoint);
 
+	/**
+	 * Prints a warning message at a lowered rate.
+	 * @param str the message that has to be printed.
+	 */
 	void warn_rate_limited(const char *str);
 
 	/**
-	 * New methods for flighttask
+	 * Publish attitude.
 	 */
 	void publish_attitude();
 
+	/**
+	 * Publish local position setpoint.
+	 * This is only required for logging.
+	 */
 	void publish_local_pos_sp();
 
-	void check_for_smooth_takeoff(const float &z, const float &vz);
+	/**
+	 * Checks if smooth takeoff is initiated.
+	 * @param position_setpoint_z the position setpoint in the z-Direction
+	 * @param velocity setpoint_z the velocity setpoint in the z-Direction
+	 */
+	void check_for_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z);
 
-	void update_smooth_takeoff(const float &z_sp, const float &vz_sp);
+	/**
+	 * Check if smooth takeoff has ended and updates accordingly.
+	 * @param position_setpoint_z the position setpoint in the z-Direction
+	 * @param velocity setpoint_z the velocity setpoint in the z-Direction
+	 */
+	void update_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z);
 
+	/**
+	 * Adjust the thrust setpoint during landing.
+	 * Thrust is adjusted to support the land-detector during detection.
+	 * @param thrust_setpoint gets adjusted based on land-detector state
+	 */
 	void limit_thrust_during_landing(matrix::Vector3f &thrust_sepoint);
 
 	/**
@@ -208,7 +230,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_deriv(this, "VELD"),
 	_control(this)
 {
-	/* fetch initial parameter values */
+	// fetch initial parameter values
 	parameters_update(true);
 
 	// set trigger time for arm hysteresis
@@ -218,17 +240,17 @@ MulticopterPositionControl::MulticopterPositionControl() :
 MulticopterPositionControl::~MulticopterPositionControl()
 {
 	if (_control_task != -1) {
-		/* task wakes up every 100ms or so at the longest */
+		// task wakes up every 100ms or so at the longest
 		_task_should_exit = true;
 
-		/* wait for a second for the task to quit at our request */
+		// wait for a second for the task to quit at our request
 		unsigned i = 0;
 
 		do {
-			/* wait 20ms */
+			// wait 20ms
 			usleep(20000);
 
-			/* if we have given up, kill it */
+			// if we have given up, kill it
 			if (++i > 50) {
 				px4_task_delete(_control_task);
 				break;
@@ -286,7 +308,7 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
+		// set correct uORB ID, depending on if vehicle is VTOL or not
 		if (!_attitude_setpoint_id) {
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
@@ -414,9 +436,7 @@ MulticopterPositionControl::_check_vehicle_states(const float &vel_sp_z)
 void
 MulticopterPositionControl::task_main()
 {
-	/*
-	 * do subscriptions
-	 */
+	// do subscriptions
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -426,10 +446,10 @@ MulticopterPositionControl::task_main()
 
 	parameters_update(true);
 
-	/* get an initial update for all sensor and status data */
+	// get an initial update for all sensor and status data
 	poll_subscriptions();
 
-	/* We really need to know from the beginning if we're landed or in-air. */
+	// We really need to know from the beginning if we're landed or in-air.
 	orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 
 	hrt_abstime t_prev = 0;
@@ -437,22 +457,22 @@ MulticopterPositionControl::task_main()
 	// Let's be safe and have the landing gear down by default
 	_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
-	/* wakeup source */
+	// wakeup source
 	px4_pollfd_struct_t fds[1];
 
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
 
 	while (!_task_should_exit) {
-		/* wait for up to 20ms for data */
+		// wait for up to 20ms for data
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
 
-		/* timed out - periodic check for _task_should_exit */
+		// timed out - periodic check for _task_should_exit
 		if (pret == 0) {
 			// Go through the loop anyway to copy manual input at 50 Hz.
 		}
 
-		/* this is undesirable but not much we can do */
+		// this is undesirable but not much we can do
 		if (pret < 0) {
 			warn("poll error %d, %d", pret, errno);
 			continue;
@@ -466,7 +486,7 @@ MulticopterPositionControl::task_main()
 		const float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.004f;
 		t_prev = t;
 
-		/* set dt for control blocks */
+		// set dt for control blocks
 		setDt(dt);
 
 		switch (_vehicle_status.nav_state) {
@@ -488,7 +508,7 @@ MulticopterPositionControl::task_main()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 
-			/*TODO: clean up navigation state and commander state, which both share too many equal states */
+			//TODO: clean up navigation state and commander state, which both share too many equal states
 			_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 			break;
 
@@ -501,7 +521,7 @@ MulticopterPositionControl::task_main()
 			break;
 
 		default:
-			/* not supported yet */
+			// not supported yet
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
 
@@ -696,14 +716,14 @@ MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp
 void
 MulticopterPositionControl::publish_attitude()
 {
-	/* publish attitude setpoint
-	 * Do not publish if
-	 * - offboard is enabled but position/velocity/accel control is disabled,
-	 * in this case the attitude setpoint is published by the mavlink app.
-	 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
-	 * attitude setpoints for the transition).
-	 * - if not armed
-	 */
+	// publish attitude setpoint
+	// Do not publish if
+	// - offboard is enabled but position/velocity/accel control is disabled,
+	// in this case the attitude setpoint is published by the mavlink app.
+	// - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+	// attitude setpoints for the transition).
+	// - if not armed
+	//
 	if (_arm_hysteresis.get_state() &&
 	    (!(_control_mode.flag_control_offboard_enabled &&
 	       !(_control_mode.flag_control_position_enabled ||
@@ -727,7 +747,7 @@ MulticopterPositionControl::publish_local_pos_sp()
 
 	_local_pos_sp.timestamp = hrt_absolute_time();
 
-	/* publish local position setpoint */
+	// publish local position setpoint
 	if (_local_pos_sp_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_local_position_setpoint),
 			    _local_pos_sp_pub, &_local_pos_sp);
@@ -742,7 +762,7 @@ MulticopterPositionControl::publish_local_pos_sp()
 int
 MulticopterPositionControl::start()
 {
-	/* start the task */
+	// start the task
 	_control_task = px4_task_spawn_cmd("mc_pos_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_POSITION_CONTROL,
