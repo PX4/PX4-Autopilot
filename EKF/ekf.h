@@ -432,7 +432,8 @@ private:
 	bool _bad_vert_accel_detected{false};	///< true when bad vertical accelerometer data has been detected
 
 	// variables used to control range aid functionality
-	bool _in_range_aid_mode{false};		///< true when range finder is to be used as the height reference instead of the primary height sensor
+	bool _range_aid_mode_enabled{false};	///< true when range finder can be used as the height reference instead of the primary height sensor
+	bool _range_aid_mode_selected{false};	///< true when range finder is being used as the height reference instead of the primary height sensor
 
 	// variables used to check for "stuck" rng data
 	float _rng_check_min_val{0.0f};		///< minimum value for new rng measurement when being stuck
@@ -584,7 +585,8 @@ private:
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion();
 
-	bool rangeAidConditionsMet(bool in_range_aid_mode);
+	// determine if flight condition is suitable so use range finder instead of the primary height senor
+	void rangeAidConditionsMet();
 
 	// check for "stuck" range finder measurements when rng was not valid for certain period
 	void checkForStuckRange();

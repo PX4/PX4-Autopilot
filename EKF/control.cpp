@@ -354,7 +354,7 @@ void Ekf::controlOpticalFlowFusion()
 
 	} else {
 		bool good_gps_aiding = _control_status.flags.gps && ((_time_last_imu - _last_gps_fail_us) > (uint64_t)6e6);
-		if (good_gps_aiding && !_in_range_aid_mode) {
+		if (good_gps_aiding && !_range_aid_mode_enabled) {
 			// Detect the special case where we are in flight, are using good quality GPS and speed and range has exceeded
 			// limits for use of range finder for height
 			_time_bad_motion_us = _imu_sample_delayed.time_us;
@@ -861,11 +861,13 @@ void Ekf::controlHeightFusion()
 		_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
 	}
 
+	rangeAidConditionsMet();
+
+	_range_aid_mode_selected = (_params.range_aid == 1) && _range_aid_mode_enabled;
 
 	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
-		_in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
 
-		if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
+		if (_range_aid_mode_selected && _range_data_ready && !_rng_hgt_faulty) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -883,7 +885,7 @@ void Ekf::controlHeightFusion()
 		} else if (!_in_range_aid_mode && _baro_data_ready && !_baro_hgt_faulty) {
 			setControlBaroHeight();
 			_fuse_height = true;
-			_in_range_aid_mode = false;
+			_range_aid_mode_enabled = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -905,7 +907,7 @@ void Ekf::controlHeightFusion()
 		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
 			// switch to gps if there was a reset to gps
 			_fuse_height = true;
-			_in_range_aid_mode = false;
+			_range_aid_mode_enabled = false;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
@@ -951,9 +953,8 @@ void Ekf::controlHeightFusion()
 
 	// Determine if GPS should be used as the height source
 	if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
-		_in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
 
-		if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
+		if (_range_aid_mode_selected && _range_data_ready && !_rng_hgt_faulty) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -971,7 +972,7 @@ void Ekf::controlHeightFusion()
 		} else if (!_in_range_aid_mode && _gps_data_ready && !_gps_hgt_faulty) {
 			setControlGPSHeight();
 			_fuse_height = true;
-			_in_range_aid_mode = false;
+			_range_aid_mode_enabled = false;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
@@ -982,7 +983,7 @@ void Ekf::controlHeightFusion()
 		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			_fuse_height = true;
-			_in_range_aid_mode = false;
+			_range_aid_mode_enabled = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -997,7 +998,7 @@ void Ekf::controlHeightFusion()
 		if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			_fuse_height = true;
-			_in_range_aid_mode = false;
+			_range_aid_mode_enabled = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -1035,19 +1036,18 @@ void Ekf::controlHeightFusion()
 
 }
 
-bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
+void Ekf::rangeAidConditionsMet()
 {
 	// if the parameter for range aid is enabled we allow to switch from using the primary height source to using range finder as height source
 	// under the following conditions
-	// 1) we are not further than max_range_for_dual_fusion away from the ground
-	// 2) our ground speed is not higher than max_vel_for_dual_fusion
+	// 1) we are not further than max_hagl_for_range_aid away from the ground
+	// 2) our ground speed is not higher than max_vel_for_range_aid
 	// 3) Our terrain estimate is stable (needs better checks)
 	// 4) We are in-air
-	if (_params.range_aid && _control_status.flags.in_air) {
+	if (_control_status.flags.in_air) {
 		// check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		bool use_range_finder;
-
-		if (in_range_aid_mode) {
+		if (_range_aid_mode_enabled) {
 			use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && get_terrain_valid();
 
 		} else {
@@ -1062,7 +1062,7 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 		if (horz_vel_valid) {
 			float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
 
-			if (in_range_aid_mode) {
+			if (_range_aid_mode_enabled) {
 				use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
 
 			} else {
@@ -1076,7 +1076,7 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 		}
 
 		// use hysteresis to check for hagl
-		if (in_range_aid_mode) {
+		if (_range_aid_mode_enabled) {
 			use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
 
 		} else {
@@ -1085,10 +1085,10 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 			use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 0.01f);
 		}
 
-		return use_range_finder;
+		_range_aid_mode_enabled = use_range_finder;
 
 	} else {
-		return false;
+		_range_aid_mode_enabled = false;
 	}
 }
 
