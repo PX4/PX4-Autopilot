@@ -175,9 +175,9 @@ private:
 
 	void publish_local_pos_sp();
 
-	void check_takeoff_state(const float &z, const float &vz);
+	void check_for_smooth_takeoff(const float &z, const float &vz);
 
-	void update_takeoff_setpoint(const float &z_sp, const float &vz_sp);
+	void update_smooth_takeoff(const float &z_sp, const float &vz_sp);
 
 	void limit_thrust_during_landing(matrix::Vector3f &thrust_sepoint);
 
@@ -513,8 +513,8 @@ MulticopterPositionControl::task_main()
 
 			// we can only do a smooth takeoff if a valid velocity or position is available
 			if (PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
-				check_takeoff_state(setpoint.z, setpoint.vz);
-				update_takeoff_setpoint(setpoint.z, setpoint.vz);
+				check_for_smooth_takeoff(setpoint.z, setpoint.vz);
+				update_smooth_takeoff(setpoint.z, setpoint.vz);
 
 				if (_in_smooth_takeoff) {constraints.speed_up = _takeoff_speed;}
 			}
@@ -598,7 +598,7 @@ MulticopterPositionControl::task_main()
 }
 
 void
-MulticopterPositionControl::check_takeoff_state(const float &z_sp, const float &vz_sp)
+MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const float &vz_sp)
 {
 	// Check for smooth takeoff
 	if (_vehicle_land_detected.landed && !_in_smooth_takeoff
@@ -621,7 +621,7 @@ MulticopterPositionControl::check_takeoff_state(const float &z_sp, const float &
 }
 
 void
-MulticopterPositionControl::update_takeoff_setpoint(const float &z_sp, const float &vz_sp)
+MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float &vz_sp)
 {
 	// If in smooth takeoff, adjust setpoints based on what is valid:
 	// 1. position setpoint is valid -> go with takeoffspeed to specific altitude
