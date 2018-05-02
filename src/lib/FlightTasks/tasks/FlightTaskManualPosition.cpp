@@ -51,8 +51,10 @@ bool FlightTaskManualPosition::activate()
 		_constraints.speed_xy = MPC_VEL_MANUAL.get();
 	}
 
+	_position_setpoint(0) = _position(0);
+	_position_setpoint(1) = _position(1);
+	_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
 	_velocity_scale = _constraints.speed_xy;
-
 	return ret;
 }
 

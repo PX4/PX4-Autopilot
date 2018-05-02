@@ -43,6 +43,9 @@ using namespace matrix;
 bool FlightTaskManualAltitude::activate()
 {
 	bool ret = FlightTaskManualStabilized::activate();
+	_thrust_setpoint(2) = NAN; // altitude is controlled from position/velocity
+	_position_setpoint(2) = _position(2);
+	_velocity_setpoint(2) = 0.0f;
 	_setDefaultConstraints();
 	return ret;
 }
