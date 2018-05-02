@@ -48,11 +48,6 @@ ManualSmoothingZ::ManualSmoothingZ(ModuleParams *parent, const float &vel, const
 	_max_acceleration = _acc_max_up.get();
 }
 
-/* in manual altitude control apply acceleration limit based on stick input
- * we consider two states
- * 1.) brake
- * 2.) accelerate */
-
 void
 ManualSmoothingZ::smoothVelFromSticks(float &vel_sp, const float dt)
 {
@@ -64,32 +59,29 @@ ManualSmoothingZ::smoothVelFromSticks(float &vel_sp, const float dt)
 void
 ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 {
-	/* Check for max acceleration */
+	// check for max acceleration
 	setMaxAcceleration();
 
-	/* check if zero input stick */
+	// check if zero input stick
 	const bool is_current_zero = (fabsf(_stick) <= FLT_EPSILON);
 
-	/* default is acceleration */
+	// default is acceleration
 	ManualIntentionZ intention = ManualIntentionZ::acceleration;
 
-	/* check zero input stick */
+	// check zero input stick
 	if (is_current_zero) {
 		intention = ManualIntentionZ::brake;
 	}
 
-	/*
-	 * update intention
-	 */
+
+	// update intention
 	if ((_intention != ManualIntentionZ::brake) && (intention == ManualIntentionZ::brake)) {
 
-		/* we start with lowest acceleration */
+		// we start with lowest acceleration
 		_acc_state_dependent = _acc_max_down.get();
 
-		/* reset slew-rate: this ensures that there
-		 * is no delay present when user demands to brake
-		 */
-
+		// reset slew-rate: this ensures that there
+		// is no delay present when user demands to brake
 		_vel_sp_prev = _vel;
 
 	}
@@ -97,7 +89,7 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 	switch (intention) {
 	case ManualIntentionZ::brake: {
 
-			/* limit jerk when braking to zero */
+			// limit jerk when braking to zero
 			float jerk = (_acc_max_up.get() - _acc_state_dependent) / dt;
 
 			if (jerk > _jerk_max.get()) {
@@ -124,30 +116,27 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 void
 ManualSmoothingZ::setMaxAcceleration()
 {
-	/* Note: NED frame */
-
 	if (_stick < -FLT_EPSILON) {
-		/* accelerating upward */
+		// accelerating upward
 		_max_acceleration =  _acc_max_up.get();
 
 	} else if (_stick > FLT_EPSILON) {
-		/* accelerating downward */
+		// accelerating downward
 		_max_acceleration = _acc_max_down.get();
 
 	} else {
 
-		/* want to brake */
-
+		// want to brake
 		if (fabsf(_vel_sp_prev) < FLT_EPSILON) {
-			/* at rest */
+			// at rest
 			_max_acceleration = _acc_max_up.get();
 
 		} else if (_vel_sp_prev < 0.0f) {
-			/* braking downward */
+			// braking downward
 			_max_acceleration = _acc_max_down.get();
 
 		} else {
-			/* braking upward */
+			// braking upward
 			_max_acceleration = _acc_max_up.get();
 		}
 	}
@@ -156,7 +145,7 @@ ManualSmoothingZ::setMaxAcceleration()
 void
 ManualSmoothingZ::velocitySlewRate(float &vel_sp, const float dt)
 {
-	/* limit vertical acceleration */
+	// limit vertical acceleration
 	float acc = (vel_sp - _vel_sp_prev) / dt;
 	float max_acc = (acc < 0.0f) ? -_acc_state_dependent : _acc_state_dependent;
 
