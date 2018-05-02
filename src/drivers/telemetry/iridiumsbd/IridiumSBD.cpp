@@ -211,6 +211,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	CDev::init();
 
 	pthread_mutex_init(&_tx_buf_mutex, NULL);
+	pthread_mutex_init(&_rx_buf_mutex, NULL);
 
 	int arg_i = 3;
 	int arg_uart_name = 0;
@@ -350,14 +351,17 @@ void IridiumSBD::standby_loop(void)
 			if (_rx_session_pending && !_tx_session_pending) {
 				if (clear_mo_buffer()) {
 					start_sbd_session();
+					return;
 				}
 
 			} else {
 				start_sbd_session();
+				return;
 			}
 
 		} else {
 			start_csq();
+			return;
 		}
 	}
 
@@ -365,11 +369,13 @@ void IridiumSBD::standby_loop(void)
 	if (((hrt_absolute_time() - _last_signal_check) > SATCOM_SIGNAL_REFRESH_DELAY)
 	    && (_new_state == SATCOM_STATE_STANDBY)) {
 		start_csq();
+		return;
 	}
 
 	// only read the MT buffer if the higher layer (mavlink app) read the previous message
-	if (_rx_read_pending && (_rx_msg_read_idx == _rx_msg_end_idx)) {
+	if (_rx_read_pending && (_rx_msg_read_idx == _rx_msg_end_idx) && (_new_state == SATCOM_STATE_STANDBY)) {
 		read_rx_buf();
+		return;
 	}
 }
 
@@ -679,6 +685,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 
 ssize_t IridiumSBD::read(struct file *filp, char *buffer, size_t buflen)
 {
+	pthread_mutex_lock(&_rx_buf_mutex);
 	VERBOSE_INFO("READ: LEN %d, RX: %d RX END: %d", buflen, _rx_msg_read_idx, _rx_msg_end_idx);
 
 	if (_rx_msg_read_idx < _rx_msg_end_idx) {
@@ -692,9 +699,11 @@ ssize_t IridiumSBD::read(struct file *filp, char *buffer, size_t buflen)
 
 		_rx_msg_read_idx += bytes_to_copy;
 
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return bytes_to_copy;
 
 	} else {
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return -EAGAIN;
 	}
 }
@@ -767,10 +776,15 @@ void IridiumSBD::read_rx_buf(void)
 		return;
 	}
 
+	pthread_mutex_lock(&_rx_buf_mutex);
+
+
 	write_at("AT+SBDRB");
 
 	if (read_at_msg() != SATCOM_RESULT_OK) {
 		VERBOSE_INFO("READ SBD: MODEM NOT RESPONDING!");
+		_rx_msg_read_idx = _rx_msg_end_idx;
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return;
 	}
 
@@ -778,7 +792,9 @@ void IridiumSBD::read_rx_buf(void)
 
 	// rx_buf contains 2 byte length, data, 2 byte checksum and /r/n delimiter
 	if (data_len != _rx_msg_end_idx - 6) {
-		VERBOSE_INFO("READ SBD: WRONG DATA LENGTH");
+		PX4_ERR("READ SBD: WRONG DATA LENGTH");
+		_rx_msg_read_idx = _rx_msg_end_idx;
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return;
 	}
 
@@ -789,7 +805,9 @@ void IridiumSBD::read_rx_buf(void)
 	}
 
 	if ((checksum / 256 != _rx_msg_buf[_rx_msg_end_idx - 4]) || ((checksum & 255) != _rx_msg_buf[_rx_msg_end_idx - 3])) {
-		VERBOSE_INFO("READ SBD: WRONG DATA CHECKSUM");
+		PX4_ERR("READ SBD: WRONG DATA CHECKSUM");
+		_rx_msg_read_idx = _rx_msg_end_idx;
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return;
 	}
 
@@ -797,6 +815,7 @@ void IridiumSBD::read_rx_buf(void)
 	_rx_msg_end_idx -= 4;	// ignore the checksum and delimiter
 	_rx_read_pending = false;
 
+	pthread_mutex_unlock(&_rx_buf_mutex);
 	VERBOSE_INFO("READ SBD: SUCCESS, LEN: %d", data_len);
 }
 

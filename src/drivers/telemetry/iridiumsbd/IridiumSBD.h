@@ -333,6 +333,8 @@ private:
 	satcom_state _new_state = SATCOM_STATE_STANDBY;
 
 	pthread_mutex_t _tx_buf_mutex = pthread_mutex_t();
+	pthread_mutex_t _rx_buf_mutex = pthread_mutex_t();
+
 	bool _verbose = false;
 
 	iridiumsbd_status_s _status = {};
