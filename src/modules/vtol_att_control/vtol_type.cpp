@@ -113,6 +113,71 @@ bool VtolType::init()
 
 }
 
+
+void VtolType::set_weather_vane_yaw_rate()
+{
+	// TODO: do this only in automatic mode
+
+	// First we set the yaw setpoint to the yaw position in order not to have any other control action influencing yaw
+	// Get euler angles
+	matrix::Dcmf R(matrix::Quatf(_v_att->q));
+	matrix::Dcmf R_sp(matrix::Quatf(_v_att_sp->q_d));
+	matrix::Eulerf euler(R);
+	matrix::Eulerf euler_sp(R_sp);
+
+	euler_sp(2) = euler(2); // set yaw setpoint to current yaw angle
+
+	R_sp = matrix::Dcmf(euler_sp); // reconstruct rotation matrix
+
+	matrix::Quatf(R_sp).copyTo(_v_att_sp->q_d); // reconstruct quaternion and save it to q_d
+
+	// adapt yaw euler angle in uorb message
+	_v_att_sp->yaw_body = euler(2);
+
+
+	// Parameters // TODO: put into correct files
+	float wv_min_roll = math::radians(5); 
+	float wv_gain = 10;
+	float wv_yaw_rate_limit = math::radians(30);
+
+
+	// direction of desired body z axis represented in earth frame
+	// TODO: is it not the world z axis in the body frame? ask them
+	matrix::Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+
+
+	// rotate desired body z axis into new frame which is rotated in z by the current
+	// heading of the vehicle. we refer to this as the heading frame.
+	// correct because double error (atan and not body z in earth frame)
+	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -euler(2)); // pruefen ob es das macht. Coordinate system rotated by -euler(2), corresponds to a rotation of a vector of +euler(2)
+	body_z_sp = R_yaw * body_z_sp;
+	body_z_sp.normalize();
+	float roll_sp = -asinf(body_z_sp(1)); // TODO check. = atan2f(body_z_sp(1), body_z_sp(2));)
+	
+
+
+    if (fabsf(roll_sp) < wv_min_roll) {
+        // weathervane.last_output = 0; not needed anymore because we use PD controller? 
+        _wv_yaw_rate = 0;
+        return;        
+    }
+
+    if (roll_sp > 0) {
+        roll_sp -= wv_min_roll;
+    } else {
+        roll_sp += wv_min_roll;
+    }
+    
+    _wv_yaw_rate = math::constrain(roll_sp*wv_gain, -wv_yaw_rate_limit,wv_yaw_rate_limit);
+
+	_v_att_sp->yaw_sp_move_rate = _wv_yaw_rate;
+	
+
+}
+
+
+
+
 void VtolType::update_mc_state()
 {
 	if (!flag_idle_mc) {
@@ -147,6 +212,9 @@ void VtolType::update_mc_state()
 			_v_att_sp->disable_mc_yaw_control = true;
 		}
 	}
+
+	set_weather_vane_yaw_rate();
+
 }
 
 void VtolType::update_fw_state()
