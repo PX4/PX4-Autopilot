@@ -61,6 +61,12 @@ struct Params {
 	bool wv_takeoff;
 	bool wv_loiter;
 	bool wv_land;
+	bool wv_manual;
+	bool wv_auto;
+	float wv_max_yaw_rate;
+	float wv_gain;
+	float wv_min_roll;
+	float wv_strategy;
 	float front_trans_duration;
 	float back_trans_duration;
 	float transition_airspeed;
