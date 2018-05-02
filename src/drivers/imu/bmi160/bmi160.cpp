@@ -46,7 +46,6 @@ BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t 
 	_good_transfers(perf_alloc(PC_COUNT, "bmi160_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "bmi160_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "bmi160_duplicates")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
 	_accel_filter_x(BMI160_ACCEL_DEFAULT_RATE, BMI160_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -1246,8 +1245,6 @@ BMI160::measure()
 	}
 
 	if (accel_notify && !(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}

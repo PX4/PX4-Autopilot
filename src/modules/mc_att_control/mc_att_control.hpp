@@ -164,7 +164,6 @@ private:
 	MultirotorMixer::saturation_status _saturation_status{};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_controller_latency_perf;
 
 	math::LowPassFilter2p _lp_filters_d[3];                      /**< low-pass filters for D-term (roll, pitch & yaw) */
 	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */

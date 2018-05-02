@@ -271,8 +271,6 @@ private:
 
 	enum Rotation		_rotation;
 
-	perf_counter_t		_controller_latency_perf;
-
 #pragma pack(push, 1)
 	/**
 	 * Report conversation with in the ADIS16448, including command byte and interrupt status.
@@ -524,8 +522,7 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_mag_filter_z(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, false),
 	_gyro_int(1000000 / ADIS16448_GYRO_MAX_OUTPUT_RATE, true),
-	_rotation(rotation),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
+	_rotation(rotation)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -1567,8 +1564,6 @@ ADIS16448::measure()
 	_mag->parent_poll_notify();
 
 	if (accel_notify && !(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}

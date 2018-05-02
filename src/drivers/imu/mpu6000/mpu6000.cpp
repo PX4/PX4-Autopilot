@@ -208,7 +208,6 @@ private:
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
-	perf_counter_t		_controller_latency_perf;
 
 	uint8_t			_register_wait;
 	uint64_t		_reset_wait;
@@ -510,7 +509,6 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6k_good_trans")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6k_reset")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu6k_duplicates")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -2076,8 +2074,6 @@ MPU6000::measure()
 	}
 
 	if (accel_notify && !(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}

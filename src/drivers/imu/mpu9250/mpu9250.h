@@ -320,7 +320,6 @@ private:
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
-	perf_counter_t		_controller_latency_perf;
 
 	uint8_t			_register_wait;
 	uint64_t		_reset_wait;
