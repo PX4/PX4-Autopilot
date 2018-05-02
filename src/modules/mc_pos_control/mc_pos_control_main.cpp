@@ -148,6 +148,9 @@ private:
 	PositionControlStates _states; /**< structure that contains required state information for position control */
 
 	hrt_abstime _last_warn = 0; /**< timeer when the last warn message was sent out */
+	static constexpr uint64_t IDLE_BOFORE_TAKEOFF_TIME_US =
+		1500000; /**< Time required to stay idle before enabling smooth takeoff */
+	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is IDLE_BOFORE_TAKEOFF_TIME_US true */
 
 	/**
 	 * Update our local parameter cache.
@@ -207,6 +210,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 {
 	/* fetch initial parameter values */
 	parameters_update(true);
+
+	// set trigger time for arm hysteresis
+	_arm_hysteresis.set_hysteresis_time_from(false, IDLE_BOFORE_TAKEOFF_TIME_US);
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -499,6 +505,7 @@ MulticopterPositionControl::task_main()
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
 
+		// check if any task is active
 		if (_flight_tasks.isAnyTaskActive()) {
 
 			_flight_tasks.update();
@@ -507,9 +514,6 @@ MulticopterPositionControl::task_main()
 
 			// check if all local states are valid and map accordingly
 			_check_vehicle_states(setpoint.vz);
-
-			// limit altitude only if local position is valid
-			if (PX4_ISFINITE(_states.position(2))) {limit_altitude(setpoint);};
 
 			// we can only do a smooth takeoff if a valid velocity or position is available
 			if (PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
@@ -524,22 +528,34 @@ MulticopterPositionControl::task_main()
 			}
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
-			// in pure manual. Otherwise just stay idle.
-			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
+			// in pure manual and vehicle is armed for some time. Otherwise just stay idle.
+			_arm_hysteresis.set_state_and_update(_control_mode.flag_armed);
+
+			if (!_arm_hysteresis.get_state() ||
+			    (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2]))) {
+
 				// Keep throttle low
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
+				setpoint.x = setpoint.y = setpoint.z = NAN;
+				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
 				setpoint.yawspeed = 0.0f;
 				setpoint.yaw = _states.yaw;
 				constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 			}
 
+			// limit altitude only if local position is valid
+			if (PX4_ISFINITE(_states.position(2))) {limit_altitude(setpoint);};
+
 			// Update states, setpoints and constraints.
 			_control.updateConstraints(constraints);
+
 			_control.updateState(_states);
+
 			_control.updateSetpoint(setpoint);
 
 			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
+
 			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
 
 			// Adjust thrust setpoint based on landdetector only if the
@@ -605,8 +621,7 @@ void
 MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const float &vz_sp)
 {
 	// Check for smooth takeoff
-	if (_vehicle_land_detected.landed && !_in_smooth_takeoff
-	    && _control_mode.flag_armed) {
+	if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
 		// Vehicle is still landed and no takeoff was initiated yet.
 		// Adjust for different takeoff cases.
 		// The minimum takeoff altitude needs to be at least 20cm above current position
@@ -689,7 +704,7 @@ MulticopterPositionControl::publish_attitude()
 	 * attitude setpoints for the transition).
 	 * - if not armed
 	 */
-	if (_control_mode.flag_armed &&
+	if (_arm_hysteresis.get_state() &&
 	    (!(_control_mode.flag_control_offboard_enabled &&
 	       !(_control_mode.flag_control_position_enabled ||
 		 _control_mode.flag_control_velocity_enabled ||
