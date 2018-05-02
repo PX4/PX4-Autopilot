@@ -119,4 +119,25 @@ float LaunchDetector::getPitchMax(float pitchMaxDefault)
 	}
 }
 
+float LaunchDetector::getThrottleIdle(float throttleIdleDefault)
+{
+	if (!launchDetectionEnabled()) {
+		return throttleIdleDefault;
+	}
+
+	/* if a lauchdetectionmethod is active or only one exists return the idle throttle from this method,
+	 * otherwise use the default */
+	if (_activeLaunchDetectionMethodIndex < 0) {
+		if (sizeof(_launchMethods) / sizeof(LaunchMethod *) > 1) {
+			return throttleIdleDefault;
+
+		} else {
+			return _launchMethods[0]->getThrottleIdle(throttleIdleDefault);
+		}
+
+	} else {
+		return _launchMethods[_activeLaunchDetectionMethodIndex]->getThrottleIdle(throttleIdleDefault);
+	}
+}
+
 } // namespace launchdetection

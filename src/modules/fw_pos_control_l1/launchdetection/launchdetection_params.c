@@ -108,3 +108,14 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
  * @group FW Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_PMAX, 30.0f);
+
+/**
+ * Idle throttle setting during launch detection before motors enabled.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_FLOAT(LAUN_THR_IDLE, 0.0f);

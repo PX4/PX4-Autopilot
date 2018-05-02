@@ -64,6 +64,8 @@ public:
 
 	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
 	float getPitchMax(float pitchMaxDefault);
+	/* Returns an idle throttle specific to the pre- "motors enabled" launch detection phase */
+	float getThrottleIdle(float throttleIdleDefault);
 
 private:
 	/* holds an index to the launchMethod in the array _launchMethods

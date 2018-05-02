@@ -124,4 +124,11 @@ float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault)
 	}
 }
 
+float CatapultLaunchMethod::getThrottleIdle(float throttleIdleDefault)
+{
+	// use operator defined launching idle (ignore default idle)
+	return _throttleIdle.get();
+}
+
+
 } // namespace launchdetection

@@ -59,6 +59,7 @@ public:
 	LaunchDetectionResult getLaunchDetected() const override;
 	void reset() override;
 	float getPitchMax(float pitchMaxDefault) override;
+	float getThrottleIdle(float throttleIdleDefault) override;
 
 private:
 	hrt_abstime _last_timestamp{0};
@@ -71,9 +72,10 @@ private:
 		(ParamFloat<px4::params::LAUN_CAT_A>) _thresholdAccel,
 		(ParamFloat<px4::params::LAUN_CAT_T>) _thresholdTime,
 		(ParamFloat<px4::params::LAUN_CAT_MDEL>) _motorDelay,
-		(ParamFloat<px4::params::LAUN_CAT_PMAX>) _pitchMaxPreThrottle /**< Upper pitch limit before throttle is turned on.
+		(ParamFloat<px4::params::LAUN_CAT_PMAX>) _pitchMaxPreThrottle, /**< Upper pitch limit before throttle is turned on.
 						       Can be used to make sure that the AC does not climb
 						       too much while attached to a bungee */
+		(ParamFloat<px4::params::LAUN_THR_IDLE>) _throttleIdle
 	)
 
 };

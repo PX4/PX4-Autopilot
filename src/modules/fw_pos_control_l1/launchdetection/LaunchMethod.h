@@ -65,6 +65,8 @@ public:
 
 	/* Returns a upper pitch limit if required, otherwise returns pitchMaxDefault */
 	virtual float getPitchMax(float pitchMaxDefault) = 0;
+	/* Returns an idle throttle specific to the pre- "motors enabled" launch detection phase */
+	virtual float getThrottleIdle(float throttleIdleDefault) = 0;
 
 };
 
