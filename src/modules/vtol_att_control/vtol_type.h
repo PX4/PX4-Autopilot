@@ -214,7 +214,7 @@ protected:
 	hrt_abstime _tecs_running_ts = 0;
 
 	motor_state _motor_state = motor_state::DISABLED;
-
+	float _wv_yaw_rate = 0;
 
 
 	/**
@@ -246,6 +246,12 @@ protected:
 	 */
 	motor_state set_motor_state(const motor_state current_state, const motor_state next_state, const int value = 0);
 
+
+	/**
+	 * @brief      Set a yaw rate value for weather vaning based on the commanded roll angle.
+	 */
+	void set_weather_vane_yaw_rate();
+
 private:
 
 
@@ -273,6 +279,8 @@ private:
 	 * @return     True if motor off channel, False otherwise.
 	 */
 	bool is_motor_off_channel(const int channel);
+
+
 
 };
 
