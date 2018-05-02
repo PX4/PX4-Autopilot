@@ -277,7 +277,7 @@ private:
 	float _thr_mdl_fac;	// thrust to pwm modelling factor
 	bool _airmode; 		// multicopter air-mode
 
-	perf_counter_t	_ctl_latency;
+	perf_counter_t	_perf_control_latency;
 
 	static bool	arm_nothrottle()
 	{
@@ -387,7 +387,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_mot_t_max(0.0f),
 	_thr_mdl_fac(0.0f),
 	_airmode(false),
-	_ctl_latency(perf_alloc(PC_ELAPSED, "ctl_lat"))
+	_perf_control_latency(perf_alloc(PC_ELAPSED, "fmu control latency"))
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -465,7 +465,7 @@ PX4FMU::~PX4FMU()
 	/* clean up the alternate device node */
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
-	perf_free(_ctl_latency);
+	perf_free(_perf_control_latency);
 }
 
 int
@@ -1238,8 +1238,6 @@ PX4FMU::cycle()
 			//			PX4_WARN("no PWM: failsafe");
 
 		} else {
-			perf_begin(_ctl_latency);
-
 			if (_mixers != nullptr) {
 				/* get controls for required topics */
 				unsigned poll_id = 0;
@@ -1358,13 +1356,21 @@ PX4FMU::cycle()
 					motor_limits.timestamp = hrt_absolute_time();
 					motor_limits.saturation_status = saturation_status.value;
 
-					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance,
-							 ORB_PRIO_DEFAULT);
+					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance, ORB_PRIO_DEFAULT);
 				}
 
 				_mixers->set_airmode(_airmode);
 
-				perf_end(_ctl_latency);
+				// use first valid timestamp_sample for latency tracking
+				for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+					const bool required = _groups_required & (1 << i);
+					const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+					if (required && (timestamp_sample > 0)) {
+						perf_set_elapsed(_perf_control_latency, actuator_outputs.timestamp - timestamp_sample);
+						break;
+					}
+				}
 			}
 		}
 
