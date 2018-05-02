@@ -505,9 +505,13 @@ VtolAttitudeControl::parameters_update()
     param_get(_params_handles.wv_auto, &l);
     _params.wv_auto = (l == 1);
 
-	param_get(_params_handles.wv_max_yaw_rate, &_params.wv_max_yaw_rate);
+	param_get(_params_handles.wv_max_yaw_rate, &v);
+	_params.wv_max_yaw_rate = math::radians(v);
+
+    param_get(_params_handles.wv_min_roll, &v);
+    _params.wv_min_roll = math::radians(v);
+
     param_get(_params_handles.wv_gain, &_params.wv_gain);
-    param_get(_params_handles.wv_min_roll, &_params.wv_min_roll);
     param_get(_params_handles.wv_strategy, &_params.wv_strategy);
 
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
