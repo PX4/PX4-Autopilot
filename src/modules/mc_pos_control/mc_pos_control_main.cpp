@@ -516,7 +516,11 @@ MulticopterPositionControl::task_main()
 				check_for_smooth_takeoff(setpoint.z, setpoint.vz);
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
 
-				if (_in_smooth_takeoff) {constraints.speed_up = _takeoff_speed;}
+				if (_in_smooth_takeoff) {
+					constraints.speed_up = _takeoff_speed;
+					// during smooth takeoff we disable yaw command
+					setpoint.yaw = setpoint.yawspeed = NAN;
+				}
 			}
 
 			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
