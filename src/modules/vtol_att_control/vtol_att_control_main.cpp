@@ -92,10 +92,12 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
 	_params_handles.wv_loiter = param_find("VT_WV_AUTO_EN");
 	_params_handles.wv_manual = param_find("VT_WV_MANUAL_EN");
+
 	_params_handles.wv_max_yaw_rate = param_find("VT_WV_MAX_Y_RATE");
     _params_handles.wv_gain = param_find("VT_WV_GAIN");
     _params_handles.wv_min_roll = param_find("VT_WV_MIN_ROLL");
     _params_handles.wv_strategy = param_find("VT_WV_STRATEGY");
+
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -502,8 +504,8 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.wv_manual, &l);
 	_params.wv_manual = (l == 1);
 
-    param_get(_params_handles.wv_auto, &l);
-    _params.wv_auto = (l == 1);
+	param_get(_params_handles.wv_auto, &l);
+	_params.wv_auto = (l == 1);
 
 	param_get(_params_handles.wv_max_yaw_rate, &v);
 	_params.wv_max_yaw_rate = math::radians(v);
@@ -513,7 +515,6 @@ VtolAttitudeControl::parameters_update()
 
     param_get(_params_handles.wv_gain, &_params.wv_gain);
     param_get(_params_handles.wv_strategy, &_params.wv_strategy);
-
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
 	param_get(_params_handles.back_trans_duration, &_params.back_trans_duration);
 	param_get(_params_handles.transition_airspeed, &_params.transition_airspeed);
