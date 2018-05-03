@@ -836,8 +836,7 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (_baro_data_ready && !_baro_hgt_faulty &&
-			         !(_in_range_aid_mode && !_range_data_ready && !_rng_hgt_faulty)) {
+		} else if (!_in_range_aid_mode && _baro_data_ready && !_baro_hgt_faulty) {
 			setControlBaroHeight();
 			_fuse_height = true;
 			_in_range_aid_mode = false;
@@ -920,8 +919,7 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (_gps_data_ready && !_gps_hgt_faulty &&
-		           !(_in_range_aid_mode && !_range_data_ready && !_rng_hgt_faulty)) {
+		} else if (!_in_range_aid_mode && _gps_data_ready && !_gps_hgt_faulty) {
 			setControlGPSHeight();
 			_fuse_height = true;
 			_in_range_aid_mode = false;
