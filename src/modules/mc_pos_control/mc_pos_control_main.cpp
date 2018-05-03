@@ -160,7 +160,7 @@ private:
 	 * Check for validity of positon/velocity states.
 	 * @param vel_sp_z velocity setpoint in z-direction
 	 */
-	void _check_vehicle_states(const float &vel_sp_z);
+	void check_vehicle_states(const float &vel_sp_z);
 
 	/**
 	 * Limit altitude based on land-detector.
@@ -379,7 +379,7 @@ MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &se
 }
 
 void
-MulticopterPositionControl::_check_vehicle_states(const float &vel_sp_z)
+MulticopterPositionControl::check_vehicle_states(const float &vel_sp_z)
 {
 	if (_local_pos.timestamp == 0) {
 		return;
@@ -533,7 +533,7 @@ MulticopterPositionControl::task_main()
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 
 			// check if all local states are valid and map accordingly
-			_check_vehicle_states(setpoint.vz);
+			check_vehicle_states(setpoint.vz);
 
 			// we can only do a smooth takeoff if a valid velocity or position is available
 			if (PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
