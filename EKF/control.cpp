@@ -882,10 +882,9 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (!_in_range_aid_mode && _baro_data_ready && !_baro_hgt_faulty) {
+		} else if (!_range_aid_mode_selected && _baro_data_ready && !_baro_hgt_faulty) {
 			setControlBaroHeight();
 			_fuse_height = true;
-			_range_aid_mode_enabled = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -907,7 +906,6 @@ void Ekf::controlHeightFusion()
 		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
 			// switch to gps if there was a reset to gps
 			_fuse_height = true;
-			_range_aid_mode_enabled = false;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
@@ -969,10 +967,9 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (!_in_range_aid_mode && _gps_data_ready && !_gps_hgt_faulty) {
+		} else if (!_range_aid_mode_selected && _gps_data_ready && !_gps_hgt_faulty) {
 			setControlGPSHeight();
 			_fuse_height = true;
-			_range_aid_mode_enabled = false;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
@@ -983,7 +980,6 @@ void Ekf::controlHeightFusion()
 		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			_fuse_height = true;
-			_range_aid_mode_enabled = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -998,7 +994,6 @@ void Ekf::controlHeightFusion()
 		if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			_fuse_height = true;
-			_range_aid_mode_enabled = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
