@@ -43,7 +43,8 @@
 
 #include "data_validator.h"
 
-class DataValidatorGroup {
+class DataValidatorGroup
+{
 public:
 	/**
 	 * @param siblings initial number of DataValidator's. Must be > 0.
@@ -66,15 +67,14 @@ public:
 	 * @param error_count	The current error count of the sensor
 	 * @param priority	The priority of the sensor
 	 */
-	void			put(unsigned index, uint64_t timestamp,
-					float val[3], uint64_t error_count, int priority);
+	void			put(unsigned index, uint64_t timestamp, float val[3], uint64_t error_count, int priority);
 
 	/**
 	 * Get the best data triplet of the group
 	 *
 	 * @return		pointer to the array of best values
 	 */
-	float*			get_best(uint64_t timestamp, int *index);
+	float			*get_best(uint64_t timestamp, int *index);
 
 	/**
 	 * Get the RMS / vibration factor
@@ -143,6 +143,6 @@ private:
 	static constexpr float MIN_REGULAR_CONFIDENCE = 0.9f;
 
 	/* we don't want this class to be copied */
-	DataValidatorGroup(const DataValidatorGroup&);
-	DataValidatorGroup operator=(const DataValidatorGroup&);
+	DataValidatorGroup(const DataValidatorGroup &);
+	DataValidatorGroup operator=(const DataValidatorGroup &);
 };

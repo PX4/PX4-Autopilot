@@ -262,6 +262,7 @@ public:
 	void get_velocity(float *vel)
 	{
 		Vector3f vel_earth = _output_new.vel - _vel_imu_rel_body_ned;
+
 		for (unsigned i = 0; i < 3; i++) {
 			vel[i] = vel_earth(i);
 		}

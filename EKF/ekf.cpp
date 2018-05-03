@@ -139,7 +139,7 @@ bool Ekf::initialiseFilter()
 	// Keep accumulating measurements until we have a minimum of 10 samples for the required sensors
 
 	// Sum the IMU delta angle measurements
-	const imuSample& imu_init = _imu_buffer.get_newest();
+	const imuSample &imu_init = _imu_buffer.get_newest();
 	_delVel_sum += imu_init.delta_vel;
 
 	// Sum the magnetometer measurements
@@ -191,7 +191,8 @@ bool Ekf::initialiseFilter()
 
 	// accumulate enough height measurements to be confident in the qulaity of the data
 	if (_primary_hgt_source == VDIST_SENSOR_BARO || _primary_hgt_source == VDIST_SENSOR_GPS ||
-		  _primary_hgt_source == VDIST_SENSOR_RANGE || _primary_hgt_source == VDIST_SENSOR_EV) {
+	    _primary_hgt_source == VDIST_SENSOR_RANGE || _primary_hgt_source == VDIST_SENSOR_EV) {
+
 		// if the user parameter specifies use of GPS/range/EV finder for height we use baro height initially and switch to GPS/range/EV finder
 		// later when it passes checks.
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
@@ -275,14 +276,16 @@ bool Ekf::initialiseFilter()
 		_control_status.flags.yaw_align = resetMagHeading(mag_init);
 
 		// initialise the rotation from EV to EKF navigation frame if required
-		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !(_params.fusion_mode & MASK_USE_EVYAW)) {
+		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS)
+		    && !(_params.fusion_mode & MASK_USE_EVYAW)) {
+
 			resetExtVisRotMat();
 		}
 
 		if (_control_status.flags.rng_hgt) {
 			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
 			// so it can be used as a backup ad set the initial height using the range finder
-			const baroSample& baro_newest = _baro_buffer.get_newest();
+			const baroSample &baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt;
 			_state.pos(2) = -math::max(_rng_filt_state * _R_rng_to_earth_2_2, _params.rng_gnd_clearance);
 			ECL_INFO("EKF using range finder height - commencing alignment");
@@ -443,7 +446,7 @@ bool Ekf::collect_imu(imuSample &imu)
 void Ekf::calculateOutputStates()
 {
 	// Use full rate IMU data at the current time horizon
-	const imuSample& imu_new = _imu_sample_new;
+	const imuSample &imu_new = _imu_sample_new;
 
 	// correct delta angles for bias offsets
 	Vector3f delta_angle;
@@ -453,9 +456,9 @@ void Ekf::calculateOutputStates()
 	delta_angle(2) = _imu_sample_new.delta_ang(2) - _state.gyro_bias(2) * dt_scale_correction;
 
 	// calculate a yaw change about the earth frame vertical
-	float spin_del_ang_D = _R_to_earth_now(2,0) * delta_angle(0) +
-			_R_to_earth_now(2,1) * delta_angle(1) +
-			_R_to_earth_now(2,2) * delta_angle(2);
+	float spin_del_ang_D = _R_to_earth_now(2, 0) * delta_angle(0) +
+			       _R_to_earth_now(2, 1) * delta_angle(1) +
+			       _R_to_earth_now(2, 2) * delta_angle(2);
 	_yaw_delta_ef += spin_del_ang_D;
 
 	// Calculate filtered yaw rate to be used by the magnetomer fusion type selection logic
@@ -615,13 +618,14 @@ void Ekf::calculateOutputStates()
 
 			for (uint8_t counter = 0; counter < (size - 1); counter++) {
 				const uint8_t index_next = (index + 1) % size;
-				outputVert& current_state = _output_vert_buffer[index];
-				outputVert& next_state = _output_vert_buffer[index_next];
+				outputVert &current_state = _output_vert_buffer[index];
+				outputVert &next_state = _output_vert_buffer[index_next];
 
 				// correct the velocity
 				if (counter == 0) {
 					current_state.vel_d += vel_d_correction;
 				}
+
 				next_state.vel_d += vel_d_correction;
 
 				// position is propagated forward using the corrected velocity and a trapezoidal integrator

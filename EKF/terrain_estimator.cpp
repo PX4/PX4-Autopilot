@@ -46,7 +46,7 @@
 bool Ekf::initHagl()
 {
 	// get most recent range measurement from buffer
-	const rangeSample& latest_measurement = _range_buffer.get_newest();
+	const rangeSample &latest_measurement = _range_buffer.get_newest();
 
 	if ((_time_last_imu - latest_measurement.time_us) < (uint64_t)2e5 && _R_rng_to_earth_2_2 > _params.range_cos_max_tilt) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
@@ -154,6 +154,7 @@ void Ekf::fuseHagl()
 				if (_time_last_imu - _time_last_hagl_fuse > (uint64_t)10E6) {
 					_terrain_vpos = _state.pos(2) + meas_hagl;
 					_terrain_var = obs_variance;
+
 				} else {
 					_innov_check_fail_status.flags.reject_hagl = true;
 				}
@@ -170,15 +171,17 @@ void Ekf::fuseHagl()
 // return true if the terrain height estimate is valid
 bool Ekf::get_terrain_valid()
 {
-		return _hagl_valid;
+	return _hagl_valid;
 }
 
 // determine terrain validity
 void Ekf::update_terrain_valid()
 {
 	if (_terrain_initialised && _range_data_continuous && !_control_status.flags.rng_stuck &&
-		  (_time_last_imu - _time_last_hagl_fuse < (uint64_t)5e6)) {
+	    (_time_last_imu - _time_last_hagl_fuse < (uint64_t)5e6)) {
+
 		_hagl_valid = true;
+
 	} else {
 		_hagl_valid = false;
 	}

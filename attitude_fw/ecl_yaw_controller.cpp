@@ -110,8 +110,8 @@ float ECL_YawController::control_attitude_impl_openloop(const struct ECL_Control
 
 	if (!inverted) {
 		/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
-		_rate_setpoint = tanf(constrained_roll) * cosf(ctl_data.pitch) * CONSTANTS_ONE_G / (ctl_data.airspeed < ctl_data.airspeed_min ?
-				 ctl_data.airspeed_min : ctl_data.airspeed);
+		_rate_setpoint = tanf(constrained_roll) * cosf(ctl_data.pitch) * CONSTANTS_ONE_G / (ctl_data.airspeed <
+				 ctl_data.airspeed_min ? ctl_data.airspeed_min : ctl_data.airspeed);
 	}
 
 	if (!ISFINITE(_rate_setpoint)) {
