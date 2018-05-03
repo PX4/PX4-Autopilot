@@ -15,8 +15,11 @@ pipeline {
             } 
           }
           steps {
+            sh 'export'
+            sh 'ccache -z'
             sh 'make distclean'
             sh 'make'
+            sh 'ccache -s'
             sh 'make distclean'
           }
         }
@@ -34,8 +37,11 @@ pipeline {
             }
           }
           steps {
+            sh 'export'
+            sh 'ccache -z'
             sh 'make distclean'
             sh 'make'
+            sh 'ccache -s'
             sh 'make distclean'
           }
         }
@@ -48,12 +54,34 @@ pipeline {
             }
           }
           steps {
+            sh 'export'
+            sh 'ccache -z'
             sh 'make distclean'
             sh 'make'
+            sh 'ccache -s'
             //sh 'RUN_PYTEST=1 ./build.sh'
             sh 'make distclean'
           }
         }
+        
+        stage('OSX') {
+          agent {
+            node {
+              label 'mac'
+            }
+          }
+          environment {
+            CCACHE_BASEDIR = "${env.WORKSPACE}"
+          }
+          steps {
+            sh 'export'
+            sh 'ccache -z'
+            sh 'make distclean'
+            sh 'make'
+            sh 'ccache -s'
+            sh 'make distclean'
+          }
+        }    
 
       }
     }
