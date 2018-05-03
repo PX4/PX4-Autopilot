@@ -167,7 +167,11 @@ void sched_note_resume(FAR struct tcb_s *tcb)
 
 		for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 			if (system_load.tasks[i].valid && system_load.tasks[i].tcb->pid == tcb->pid) {
+				// curr_start_time is accessed from an IRQ handler (in logger), so we need
+				// to make the update atomic
+				irqstate_t irq_state = px4_enter_critical_section();
 				system_load.tasks[i].curr_start_time = new_time;
+				px4_leave_critical_section(irq_state);
 				break;
 			}
 		}

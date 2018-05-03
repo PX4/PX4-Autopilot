@@ -34,6 +34,7 @@
 #include <px4_config.h>
 #include "logger.h"
 #include "messages.h"
+#include "watchdog.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -92,6 +93,8 @@ using namespace px4::logger;
 struct timer_callback_data_s {
 	px4_sem_t semaphore;
 
+	watchdog_data_t watchdog_data;
+	volatile bool watchdog_triggered = false;
 };
 
 /* This is used to schedule work for the logger (periodic scan for updated topics) */
@@ -101,6 +104,9 @@ static void timer_callback(void *arg)
 
 	timer_callback_data_s *data = (timer_callback_data_s *)arg;
 
+	if (watchdog_update(data->watchdog_data)) {
+		data->watchdog_triggered = true;
+	}
 
 	/* check the value of the semaphore: if the logger cannot keep up with running it's main loop as fast
 	 * as the timer_callback here increases the semaphore count, the counter would increase unbounded,
@@ -951,6 +957,17 @@ void Logger::run()
 
 	} else {
 
+		if (_writer.backend() & LogWriter::BackendFile) {
+
+			const pid_t pid_self = getpid();
+			// The pthread_t ID is equal to the PID on NuttX
+			const pid_t pid_writer = _writer.thread_id_file();
+
+			// sched_note_start is already called from pthread_create and task_create,
+			// which means we can expect to find the tasks in system_load.tasks, as required in watchdog_initialize
+			watchdog_initialize(pid_self, pid_writer, timer_callback_data.watchdog_data);
+		}
+
 		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_callback_data);
 	}
 
@@ -1026,6 +1043,11 @@ void Logger::run()
 			}
 		}
 
+
+		if (timer_callback_data.watchdog_triggered) {
+			timer_callback_data.watchdog_triggered = false;
+			initialize_load_output(PrintLoadReason::Watchdog);
+		}
 
 
 		const hrt_abstime loop_time = hrt_absolute_time();
@@ -1624,6 +1646,9 @@ void Logger::initialize_load_output(PrintLoadReason reason)
 
 void Logger::write_load_output()
 {
+	if (_print_load_reason == PrintLoadReason::Watchdog) {
+		PX4_ERR("Writing watchdog data"); // this is just that we see it easily in the log
+	}
 	perf_callback_data_t callback_data = {};
 	char buffer[140];
 	callback_data.logger = this;
