@@ -40,6 +40,9 @@ using math::constrain;
 using math::max;
 using math::min;
 
+static constexpr float DT_MIN = 0.001f;	///< minimum allowed value of _dt (sec)
+static constexpr float DT_MAX = 1.0f;	///< max value of _dt allowed before a filter state reset is performed (sec)
+
 /**
  * @file tecs.cpp
  *
@@ -55,10 +58,9 @@ void TECS::update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &ro
 		const matrix::Vector3f &accel_body, bool altitude_lock, bool in_air,
 		float altitude, bool vz_valid, float vz, float az)
 {
-
 	// calculate the time lapsed since the last update
 	uint64_t now = ecl_absolute_time();
-	float dt = max((now - _state_update_timestamp), static_cast<uint64_t>(0)) * 1.0e-6f;
+	float dt = constrain((now - _state_update_timestamp) * 1.0e-6f, DT_MIN, DT_MAX);
 
 	bool reset_altitude = false;
 
@@ -148,12 +150,7 @@ void TECS::_update_speed_states(float airspeed_setpoint, float indicated_airspee
 {
 	// Calculate the time in seconds since the last update and use the default time step value if out of bounds
 	uint64_t now = ecl_absolute_time();
-	float dt = max((now - _speed_update_timestamp), UINT64_C(0)) * 1.0e-6f;
-
-	if (dt < DT_MIN || dt > DT_MAX) {
-		dt = DT_DEFAULT;
-
-	}
+	const float dt = constrain((now - _speed_update_timestamp) * 1.0e-6f, DT_MIN, DT_MAX);
 
 	// Convert equivalent airspeed quantities to true airspeed
 	_EAS_setpoint = airspeed_setpoint;
@@ -168,14 +165,12 @@ void TECS::_update_speed_states(float airspeed_setpoint, float indicated_airspee
 
 	} else {
 		_EAS = indicated_airspeed;
-
 	}
 
 	// If first time through or not flying, reset airspeed states
 	if (_speed_update_timestamp == 0 || !_in_air) {
 		_tas_rate_state = 0.0f;
 		_tas_state = (_EAS * EAS2TAS);
-
 	}
 
 	// Obtain a smoothed airspeed estimate using a second order complementary filter
@@ -579,10 +574,9 @@ void TECS::update_pitch_throttle(const matrix::Dcmf &rotMat, float pitch, float 
 				 float EAS_setpoint, float indicated_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
 				 float throttle_min, float throttle_max, float throttle_cruise, float pitch_limit_min, float pitch_limit_max)
 {
-
 	// Calculate the time since last update (seconds)
 	uint64_t now = ecl_absolute_time();
-	_dt = max((now - _pitch_update_timestamp), UINT64_C(0)) * 1.0e-6f;
+	_dt = constrain((now - _pitch_update_timestamp) * 1e-6f, DT_MIN, DT_MAX);
 
 	// Set class variables from inputs
 	_throttle_setpoint_max = throttle_max;

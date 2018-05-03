@@ -183,9 +183,12 @@ private:
 	float _rms[dimensions];			/**< root mean square error */
 	float _value[dimensions];		/**< last value */
 	float _vibe[dimensions];		/**< vibration level, in sensor unit */
-	float _value_equal_count;		/**< equal values in a row */
-	float _value_equal_count_threshold; /**< when to consider an equal count as a problem */
+
+	unsigned _value_equal_count;		/**< equal values in a row */
+	unsigned _value_equal_count_threshold;	/**< when to consider an equal count as a problem */
+
 	DataValidator *_sibling;		/**< sibling in the group */
+
 	static const constexpr unsigned NORETURN_ERRCOUNT = 10000;	/**< if the error count reaches this value, return sensor as invalid */
 	static const constexpr float ERROR_DENSITY_WINDOW = 100.0f; 	/**< window in measurement counts for errors */
 	static const constexpr unsigned VALUE_EQUAL_COUNT_DEFAULT = 100;	/**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
