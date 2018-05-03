@@ -147,12 +147,12 @@ void VtolType::set_weather_vane_yaw_rate()
 
 	float roll_exceeding_treshold = 0;
 
-	if (fabsf(roll_sp) > math::radians(_params->wv_min_roll)) {
+	if (fabsf(roll_sp) > _params->wv_min_roll) {
 		if (roll_sp > 0) {
-			roll_exceeding_treshold = roll_sp - math::radians(_params->wv_min_roll);
+			roll_exceeding_treshold = roll_sp - _params->wv_min_roll;
 
 		} else {
-			roll_exceeding_treshold = roll_sp + math::radians(_params->wv_min_roll);
+			roll_exceeding_treshold = roll_sp + _params->wv_min_roll;
 
 		}
 
