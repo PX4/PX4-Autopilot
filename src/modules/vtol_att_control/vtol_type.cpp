@@ -125,12 +125,18 @@ void VtolType::set_weather_vane_yaw_rate()
 	matrix::Eulerf euler(R);
 	matrix::Eulerf euler_sp(R_sp);
 
+	// compute the yaw error and than rotate the setpoint in a way that yaw is not compensated for
 	float yaw_error = _wrap_pi(euler_sp(2) - euler(2));
 	matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
 	matrix::Dcmf R_sp_new = R_sp * R_yaw_correction;
 
+	// save the new modified desired attitude
 	matrix::Quatf(R_sp_new).copyTo(_v_att_sp->q_d);
 
+	// adapt yaw euler angle in uorb message for backward compatibility
+	_v_att_sp->yaw_body = euler(2);
+
+	// direction of desired body z axis represented in earth frame
 	matrix::Vector3f body_z_sp(R_sp_new(0, 2), R_sp_new(1, 2), R_sp_new(2, 2));
 
 	// rotate desired body z axis into new frame which is rotated in z by the current
@@ -142,23 +148,26 @@ void VtolType::set_weather_vane_yaw_rate()
 	float roll_sp = -asinf(body_z_sp(1));
 
 
-	if(fabsf(roll_sp) > math::radians(_params->wv_min_roll))
-		if(roll_sp > 0)
-			_v_att_sp-> yaw_sp_move_rate = (roll_sp - math::radians(_params->wv_min_roll)) * _params->wv_gain;
-		else
-			_v_att_sp-> yaw_sp_move_rate = (roll_sp + math::radians(_params->wv_min_roll)) * _params->wv_gain;
-	else
+	float roll_exceeding_treshold = 0;
+
+	if (fabsf(roll_sp) > math::radians(_params->wv_min_roll)) {
+		if (roll_sp > 0) {
+			roll_exceeding_treshold = roll_sp - math::radians(_params->wv_min_roll);
+
+		} else {
+			roll_exceeding_treshold = roll_sp + math::radians(_params->wv_min_roll);
+
+		}
+
+	} else {
 		_v_att_sp-> yaw_sp_move_rate = 0;
+		return;
+	}
 
+	_v_att_sp-> yaw_sp_move_rate = math::constrain(roll_exceeding_treshold * _params->wv_gain, -_params->wv_max_yaw_rate,
+				       _params->wv_max_yaw_rate);
 
-
-	// TODO constrain
 	// TODO filter
-    //_wv_yaw_rate = math::constrain(roll_sp*_params->wv_gain, -_params->wv_yaw_rate_limit,_params->wv_yaw_rate_limit);
-
-	//_v_att_sp->yaw_sp_move_rate = _wv_yaw_rate;
-	
-
 }
 
 
