@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 ECL Development Team. All rights reserved.
+#   Copyright (c) 2015-2018 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,27 +31,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 2.8)
-
-project(ECL CXX)
-
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
-
-set(MATRIX_DIR ${CMAKE_SOURCE_DIR}/../matrix)
-if(NOT EXISTS "${MATRIX_DIR}/.git")
-	message(SEND_ERROR "The git submodules are not available. Please run git submodule update --init --recursive")
-endif()
-
-include_directories(
-	..
-	${MATRIX_DIR}
-	)
-
-set(SRCS
-	../geo/geo.cpp
-	../geo_lookup/geo_mag_declination.cpp
-	../mathlib/mathlib.cpp
+add_library(ecl_EKF
 	airspeed_fusion.cpp
 	control.cpp
 	covariance.cpp
@@ -65,28 +45,12 @@ set(SRCS
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
 	vel_pos_fusion.cpp
-	)
+)
 
-add_definitions(-DPOSIX_SHARED)
-add_compile_options(
-	-pedantic
-	-std=c++11
+add_dependencies(ecl_EKF prebuild_targets)
 
-	-Wall
-	-Werror
-
-	-Wno-deprecated-declarations
-	-Wno-enum-compare
-	-Wno-unused-local-typedefs
-	-Wno-unused-parameter
-	)
-
-# clang tolerate unknown gcc options
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	add_compile_options(-Wno-unknown-warning-option)
-endif()
-
-add_library(ecl SHARED ${SRCS})
+target_include_directories(ecl_EKF PUBLIC ${ECL_SOURCE_DIR})
+target_link_libraries(ecl_EKF PRIVATE ecl_geo_lookup)
 
 # Python bindings & tests
 # Use cmake -DPythonTests=1 ../EKF && make pytest
@@ -120,27 +84,27 @@ if(PythonTests)
   swig_link_libraries(ecl ${PYTHON_LIBRARIES} ecl)
 
   add_custom_target(pytest
-    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/tests/pytest/ekf_test --verbose
+    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ekf_test --verbose
     )
   add_dependencies(pytest ${SWIG_MODULE_ecl_REAL_NAME})
 
   add_custom_target(pytest-quick
-    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/tests/pytest/ekf_test --quick --verbose
+    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ekf_test --quick --verbose
     )
   add_dependencies(pytest-quick ${SWIG_MODULE_ecl_REAL_NAME})
 
   add_custom_target(pytest-benchmark
-    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/tests/pytest/ekf_test --benchmark
+    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ekf_test --benchmark
     )
   add_dependencies(pytest-benchmark ${SWIG_MODULE_ecl_REAL_NAME})
 
   add_custom_target(pytest-plots
-    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/tests/pytest/ekf_test --plots
+    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ekf_test --plots
     )
   add_dependencies(pytest-plots ${SWIG_MODULE_ecl_REAL_NAME})
 
   add_custom_target(pytest-lint
-    COMMAND cd  ${CMAKE_SOURCE_DIR}/tests/pytest/ && ${CMAKE_SOURCE_DIR}/tests/pytest/lint
+    COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ && ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/lint
     )
   add_dependencies(pytest-lint ${SWIG_MODULE_ecl_REAL_NAME})
 endif()

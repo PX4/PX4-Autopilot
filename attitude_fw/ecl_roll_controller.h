@@ -49,12 +49,9 @@
 #ifndef ECL_ROLL_CONTROLLER_H
 #define ECL_ROLL_CONTROLLER_H
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include "ecl_controller.h"
 
-class __EXPORT ECL_RollController :
+class ECL_RollController :
 	public ECL_Controller
 {
 public:

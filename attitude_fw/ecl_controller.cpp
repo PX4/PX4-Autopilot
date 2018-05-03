@@ -133,7 +133,7 @@ float ECL_Controller::constrain_airspeed(float airspeed, float minspeed, float m
 {
 	float airspeed_result = airspeed;
 
-	if (!PX4_ISFINITE(airspeed)) {
+	if (!ISFINITE(airspeed)) {
 		/* airspeed is NaN, +- INF or not available, pick center of band */
 		airspeed_result = 0.5f * (minspeed + maxspeed);
 

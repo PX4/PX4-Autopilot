@@ -40,8 +40,7 @@
  */
 #include "mathlib.h"
 
-#ifdef POSIX_SHARED
-
+#ifdef ECL_STANDALONE
 
 namespace math
 {
@@ -71,6 +70,6 @@ float degrees(float radians)
 	return (radians * 180.0f) / M_PI_F;
 }
 
-}
+} // namespace math
 
-#endif
+#endif /* ECL_STANDALONE */

@@ -40,7 +40,7 @@
  */
 
 #include "data_validator.h"
-#include <ecl/ecl.h>
+#include <ecl.h>
 
 DataValidator::DataValidator() :
 	_error_mask(ERROR_FLAG_NO_ERROR),
@@ -172,6 +172,6 @@ DataValidator::print()
 	for (unsigned i = 0; i < dimensions; i++) {
 		ECL_INFO("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f conf: %8.4f",
 			(double) _value[i], (double)_lp[i], (double)_mean[i],
-			(double)_rms[i], (double)confidence(hrt_absolute_time()));
+			(double)_rms[i], (double)confidence(ecl_absolute_time()));
 	}
 }
