@@ -66,7 +66,7 @@ struct Params {
 	float wv_max_yaw_rate;
 	float wv_gain;
 	float wv_min_roll;
-	float wv_strategy;
+	int32_t wv_strategy;
 	float front_trans_duration;
 	float back_trans_duration;
 	float transition_airspeed;
@@ -221,6 +221,12 @@ protected:
 
 	motor_state _motor_state = motor_state::DISABLED;
 	float _wv_yaw_rate = 0;
+
+
+	/**
+	 * @brief      Apply the good weather-vane strategy depending on parameter.
+	 */
+	void wv_do_strategy();
 
 
 	/**
