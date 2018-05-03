@@ -92,7 +92,7 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
 	_params_handles.wv_loiter = param_find("VT_WV_AUTO_EN");
 	_params_handles.wv_manual = param_find("VT_WV_MANUAL_EN");
-	_params_handles.wv_max_yaw_rate = param_find("VT_WV_MAX_YAW_RATE");
+	_params_handles.wv_max_yaw_rate = param_find("VT_WV_MAX_Y_RATE");
     _params_handles.wv_gain = param_find("VT_WV_GAIN");
     _params_handles.wv_min_roll = param_find("VT_WV_MIN_ROLL");
     _params_handles.wv_strategy = param_find("VT_WV_STRATEGY");
