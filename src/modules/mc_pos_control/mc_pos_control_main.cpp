@@ -558,7 +558,7 @@ MulticopterPositionControl::task_main()
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				setpoint.x = setpoint.y = setpoint.z = NAN;
 				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
-				setpoint.yawspeed = 0.0f;
+				setpoint.yawspeed = NAN;
 				setpoint.yaw = _states.yaw;
 				constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 			}
