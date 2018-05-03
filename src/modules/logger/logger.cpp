@@ -88,10 +88,19 @@
 
 using namespace px4::logger;
 
+
+struct timer_callback_data_s {
+	px4_sem_t semaphore;
+
+};
+
 /* This is used to schedule work for the logger (periodic scan for updated topics) */
 static void timer_callback(void *arg)
 {
-	px4_sem_t *semaphore = (px4_sem_t *)arg;
+	/* Note: we are in IRQ context here (on NuttX) */
+
+	timer_callback_data_s *data = (timer_callback_data_s *)arg;
+
 
 	/* check the value of the semaphore: if the logger cannot keep up with running it's main loop as fast
 	 * as the timer_callback here increases the semaphore count, the counter would increase unbounded,
@@ -101,11 +110,12 @@ static void timer_callback(void *arg)
 	 * multiple iterations at once, the next time it's scheduled). */
 	int semaphore_value;
 
-	if (px4_sem_getvalue(semaphore, &semaphore_value) == 0 && semaphore_value > 1) {
+	if (px4_sem_getvalue(&data->semaphore, &semaphore_value) == 0 && semaphore_value > 1) {
 		return;
 	}
 
-	px4_sem_post(semaphore);
+	px4_sem_post(&data->semaphore);
+
 }
 
 
@@ -924,12 +934,11 @@ void Logger::run()
 	}
 
 	/* init the update timer */
-	struct hrt_call timer_call;
-	memset(&timer_call, 0, sizeof(hrt_call));
-	px4_sem_t timer_semaphore;
-	px4_sem_init(&timer_semaphore, 0, 0);
+	struct hrt_call timer_call{};
+	timer_callback_data_s timer_callback_data;
+	px4_sem_init(&timer_callback_data.semaphore, 0, 0);
 	/* timer_semaphore use case is a signal */
-	px4_sem_setprotocol(&timer_semaphore, SEM_PRIO_NONE);
+	px4_sem_setprotocol(&timer_callback_data.semaphore, SEM_PRIO_NONE);
 
 	int polling_topic_sub = -1;
 
@@ -941,7 +950,8 @@ void Logger::run()
 		}
 
 	} else {
-		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);
+
+		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_callback_data);
 	}
 
 	// check for new subscription data
@@ -1202,14 +1212,14 @@ void Logger::run()
 			 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
 			 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
 			 */
-			while (px4_sem_wait(&timer_semaphore) != 0);
+			while (px4_sem_wait(&timer_callback_data.semaphore) != 0);
 		}
 	}
 
 	stop_log_file();
 
 	hrt_cancel(&timer_call);
-	px4_sem_destroy(&timer_semaphore);
+	px4_sem_destroy(&timer_callback_data.semaphore);
 
 	// stop the writer thread
 	_writer.thread_stop();
