@@ -125,52 +125,38 @@ void VtolType::set_weather_vane_yaw_rate()
 	matrix::Eulerf euler(R);
 	matrix::Eulerf euler_sp(R_sp);
 
-	euler_sp(2) = euler(2); // set yaw setpoint to current yaw angle
+	float yaw_error = _wrap_pi(euler_sp(2) - euler(2));
+	matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
+	matrix::Dcmf R_sp_new = R_sp * R_yaw_correction;
 
-	R_sp = matrix::Dcmf(euler_sp); // reconstruct rotation matrix
+	matrix::Quatf(R_sp_new).copyTo(_v_att_sp->q_d);
 
-	matrix::Quatf(R_sp).copyTo(_v_att_sp->q_d); // reconstruct quaternion and save it to q_d
-
-	// adapt yaw euler angle in uorb message
-	_v_att_sp->yaw_body = euler(2);
-
-
-	// Parameters // TODO: put into correct files
-	float wv_min_roll = math::radians(5); 
-	float wv_gain = 10;
-	float wv_yaw_rate_limit = math::radians(30);
-
-
-	// direction of desired body z axis represented in earth frame
-	// TODO: is it not the world z axis in the body frame? ask them
-	matrix::Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
-
+	matrix::Vector3f body_z_sp(R_sp_new(0, 2), R_sp_new(1, 2), R_sp_new(2, 2));
 
 	// rotate desired body z axis into new frame which is rotated in z by the current
 	// heading of the vehicle. we refer to this as the heading frame.
-	// correct because double error (atan and not body z in earth frame)
-	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -euler(2)); // pruefen ob es das macht. Coordinate system rotated by -euler(2), corresponds to a rotation of a vector of +euler(2)
+	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -euler(2));
 	body_z_sp = R_yaw * body_z_sp;
 	body_z_sp.normalize();
-	float roll_sp = -asinf(body_z_sp(1)); // TODO check. = atan2f(body_z_sp(1), body_z_sp(2));)
-	
+
+	float roll_sp = -asinf(body_z_sp(1));
 
 
-    if (fabsf(roll_sp) < wv_min_roll) {
-        // weathervane.last_output = 0; not needed anymore because we use PD controller? 
-        _wv_yaw_rate = 0;
-        return;        
-    }
+	if(fabsf(roll_sp) > math::radians(_params->wv_min_roll))
+		if(roll_sp > 0)
+			_v_att_sp-> yaw_sp_move_rate = (roll_sp - math::radians(_params->wv_min_roll)) * _params->wv_gain;
+		else
+			_v_att_sp-> yaw_sp_move_rate = (roll_sp + math::radians(_params->wv_min_roll)) * _params->wv_gain;
+	else
+		_v_att_sp-> yaw_sp_move_rate = 0;
 
-    if (roll_sp > 0) {
-        roll_sp -= wv_min_roll;
-    } else {
-        roll_sp += wv_min_roll;
-    }
-    
-    _wv_yaw_rate = math::constrain(roll_sp*wv_gain, -wv_yaw_rate_limit,wv_yaw_rate_limit);
 
-	_v_att_sp->yaw_sp_move_rate = _wv_yaw_rate;
+
+	// TODO constrain
+	// TODO filter
+    //_wv_yaw_rate = math::constrain(roll_sp*_params->wv_gain, -_params->wv_yaw_rate_limit,_params->wv_yaw_rate_limit);
+
+	//_v_att_sp->yaw_sp_move_rate = _wv_yaw_rate;
 	
 
 }
