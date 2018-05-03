@@ -978,7 +978,7 @@ void Logger::run()
 
 				} else {
 					// delayed stop: we measure the process loads and then stop
-					initialize_load_output();
+					initialize_load_output(PrintLoadReason::Postflight);
 					_should_stop_file_log = true;
 				}
 			}
@@ -1028,12 +1028,12 @@ void Logger::run()
 
 				if (_should_stop_file_log) {
 					_should_stop_file_log = false;
-					write_load_output(false);
+					write_load_output();
 					stop_log_file();
 					continue; // skip to next loop iteration
 
 				} else {
-					write_load_output(true);
+					write_load_output();
 				}
 			}
 
@@ -1484,7 +1484,7 @@ void Logger::start_log_file()
 
 	_start_time_file = hrt_absolute_time();
 
-	initialize_load_output();
+	initialize_load_output(PrintLoadReason::Preflight);
 }
 
 void Logger::stop_log_file()
@@ -1520,7 +1520,7 @@ void Logger::start_log_mavlink()
 	_writer.unselect_write_backend();
 	_writer.notify();
 
-	initialize_load_output();
+	initialize_load_output(PrintLoadReason::Preflight);
 }
 
 void Logger::stop_log_mavlink()
@@ -1578,18 +1578,26 @@ void Logger::print_load_callback(void *user)
 		return;
 	}
 
-	if (callback_data->preflight) {
-		perf_name = "perf_top_preflight";
-
-	} else {
-		perf_name = "perf_top_postflight";
+	switch (callback_data->logger->_print_load_reason) {
+		case PrintLoadReason::Preflight:
+			perf_name = "perf_top_preflight";
+			break;
+		case PrintLoadReason::Postflight:
+			perf_name = "perf_top_postflight";
+			break;
+		case PrintLoadReason::Watchdog:
+			perf_name = "perf_top_watchdog";
+			break;
+		default:
+			perf_name = "perf_top";
+			break;
 	}
 
 	callback_data->logger->write_info_multiple(perf_name, callback_data->buffer, callback_data->counter != 0);
 	++callback_data->counter;
 }
 
-void Logger::initialize_load_output()
+void Logger::initialize_load_output(PrintLoadReason reason)
 {
 	perf_callback_data_t callback_data;
 	callback_data.logger = this;
@@ -1601,16 +1609,16 @@ void Logger::initialize_load_output()
 	// this will not yet print anything
 	print_load_buffer(curr_time, buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
 	_next_load_print = curr_time + 1000000;
+	_print_load_reason = reason;
 }
 
-void Logger::write_load_output(bool preflight)
+void Logger::write_load_output()
 {
 	perf_callback_data_t callback_data = {};
 	char buffer[140];
 	callback_data.logger = this;
 	callback_data.counter = 0;
 	callback_data.buffer = buffer;
-	callback_data.preflight = preflight;
 	hrt_abstime curr_time = hrt_absolute_time();
 	_writer.set_need_reliable_transfer(true);
 	// TODO: maybe we should restrict the output to a selected backend (eg. when file logging is running
