@@ -960,12 +960,11 @@ void Logger::run()
 		if (_writer.backend() & LogWriter::BackendFile) {
 
 			const pid_t pid_self = getpid();
-			// The pthread_t ID is equal to the PID on NuttX
-			const pid_t pid_writer = _writer.thread_id_file();
+			const pthread_t writer_thread = _writer.thread_id_file();
 
 			// sched_note_start is already called from pthread_create and task_create,
 			// which means we can expect to find the tasks in system_load.tasks, as required in watchdog_initialize
-			watchdog_initialize(pid_self, pid_writer, timer_callback_data.watchdog_data);
+			watchdog_initialize(pid_self, writer_thread, timer_callback_data.watchdog_data);
 		}
 
 		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_callback_data);

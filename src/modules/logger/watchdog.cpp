@@ -133,9 +133,12 @@ bool watchdog_update(watchdog_data_t &watchdog_data)
 
 }
 
-void watchdog_initialize(const pid_t pid_logger_main, const pid_t pid_logger_writer, watchdog_data_t &watchdog_data)
+void watchdog_initialize(const pid_t pid_logger_main, const pthread_t writer_thread, watchdog_data_t &watchdog_data)
 {
 #ifdef __PX4_NUTTX
+
+	// The pthread_t ID is equal to the PID on NuttX
+	const pthread_t pid_logger_writer = writer_thread;
 
 	sched_lock(); // need to lock the tcb access
 

@@ -58,7 +58,7 @@ struct watchdog_data_t {
 /**
  * Initialize the watchdog, fill in watchdog_data.
  */
-void watchdog_initialize(const pid_t pid_logger_main, const pid_t pid_logger_writer, watchdog_data_t &watchdog_data);
+void watchdog_initialize(const pid_t pid_logger_main, const pthread_t writer_thread, watchdog_data_t &watchdog_data);
 
 /**
  * Update the watchdog and trigger it if necessary. It is triggered when the log writer task is in
