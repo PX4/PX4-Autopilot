@@ -40,6 +40,7 @@
 #include <float.h>
 
 using namespace matrix;
+uint8_t FlightTaskManualStabilized::_heading_reset_counter = 0;
 
 bool FlightTaskManualStabilized::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
@@ -92,7 +93,6 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 				_yaw_setpoint += matrix::Eulerf(matrix::Quatf(_sub_attitude->get().delta_q_reset)).psi();
 				_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
 			}
-
 		}
 	}
 }
