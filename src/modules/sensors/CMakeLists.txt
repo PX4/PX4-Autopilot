@@ -49,5 +49,5 @@ px4_add_module(
 		drivers__device
 		battery
 		git_ecl
-		ecl
+		ecl_validation
 	)

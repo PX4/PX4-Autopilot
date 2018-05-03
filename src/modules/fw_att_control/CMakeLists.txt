@@ -37,5 +37,5 @@ px4_add_module(
 		FixedwingAttitudeControl.cpp
 	DEPENDS
 		git_ecl
-		ecl
+		ecl_attitude_fw
 	)
