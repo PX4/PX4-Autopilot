@@ -31,82 +31,12 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+message(STATUS "adding EKF python tests")
 
-project(ECL CXX)
+include_directories(${ECL_SOURCE_DIR})
 
-execute_process(
-	COMMAND git describe --always --tags
-	OUTPUT_VARIABLE git_tag
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	)
+# Need SWIG to wrap ecl
+find_package(SWIG REQUIRED)
+include(${SWIG_USE_FILE})
 
-message(STATUS "PX4 ECL: Very lightweight Estimation & Control Library ${git_tag}")
-
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-set(ECL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-
-if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-	# ECL standalone build
-	add_definitions(-DECL_STANDALONE)
-
-	add_custom_target(prebuild_targets)
-
-	add_compile_options(
-		-pedantic
-	
-		-Wall
-		-Wextra
-		-Werror
-
-		-Wno-unused-parameter
-	)
-
-	# fetch latest matrix from github
-	include(ExternalProject)
-	ExternalProject_Add(matrix
-			GIT_REPOSITORY "https://github.com/PX4/Matrix.git"
-			UPDATE_COMMAND ""
-			PATCH_COMMAND ""
-			CONFIGURE_COMMAND ""
-			BUILD_COMMAND ""
-			INSTALL_COMMAND ""
-			)
-	add_dependencies(prebuild_targets matrix)
-	include_directories(${CMAKE_BINARY_DIR}/matrix-prefix/src/matrix)
-
-	add_subdirectory(mathlib)
-
-	include(CTest)
-	enable_testing()
-	
-	if(BUILD_TESTING)
-
-		add_custom_target(check
-			COMMAND env CTEST_OUTPUT_ON_FAILURE=1 ${CMAKE_CTEST_COMMAND}
-			DEPENDS ecl_EKF
-			USES_TERMINAL
-		)
-
-		option(EKF_PYTHON_TESTS "Build the EKF python tests" OFF)
-
-		if (EKF_PYTHON_TESTS)
-			# swig requires -fPIC
-			set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-		endif()
-	endif()
-
-endif()
-
-add_subdirectory(airdata)
-add_subdirectory(attitude_fw)
-add_subdirectory(EKF)
-add_subdirectory(geo)
-add_subdirectory(geo_lookup)
-add_subdirectory(l1)
-add_subdirectory(tecs)
-add_subdirectory(validation)
+add_subdirectory(python)

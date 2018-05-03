@@ -50,61 +50,14 @@ add_library(ecl_EKF
 add_dependencies(ecl_EKF prebuild_targets)
 
 target_include_directories(ecl_EKF PUBLIC ${ECL_SOURCE_DIR})
-target_link_libraries(ecl_EKF PRIVATE ecl_geo_lookup)
+target_link_libraries(ecl_EKF PRIVATE ecl_geo ecl_geo_lookup mathlib)
 
-# Python bindings & tests
-# Use cmake -DPythonTests=1 ../EKF && make pytest
-if(PythonTests)
-  # Use Python 3.5
-  set(Python_ADDITIONAL_VERSIONS 3.5)
-  find_package(PythonLibs 3 REQUIRED)
-  find_package(PythonInterp 3 REQUIRED)
+set_target_properties(ecl_EKF PROPERTIES PUBLIC_HEADER "ekf.h")
 
-  # Need SWIG to wrap ecl
-  find_package(SWIG REQUIRED)
-  include(${SWIG_USE_FILE})
+if(EKF_PYTHON_TESTS)
+	add_subdirectory(swig)
+endif()
 
-  add_definitions(-DSWIG_TYPE_TABLE=ecl)
-  set_source_files_properties(../swig/ecl.i PROPERTIES CPLUSPLUS ON)
-  set(swigged_sources ekf.h)
-
-  # Find numpy include
-  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDE_DIRS ERROR_QUIET)
-
-  include_directories(
-    ..
-    ${MATRIX_DIR}
-    ${EIGEN3_INCLUDE_DIR}
-    ${PYTHON_INCLUDE_DIRS}
-    ${NUMPY_INCLUDE_DIRS}
-    )
-
-  set(SWIG_MODULE_ecl_EXTRA_DEPS ${swigged_sources})
-  swig_add_module(ecl python ../swig/ecl.i)
-  swig_link_libraries(ecl ${PYTHON_LIBRARIES} ecl)
-
-  add_custom_target(pytest
-    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ekf_test --verbose
-    )
-  add_dependencies(pytest ${SWIG_MODULE_ecl_REAL_NAME})
-
-  add_custom_target(pytest-quick
-    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ekf_test --quick --verbose
-    )
-  add_dependencies(pytest-quick ${SWIG_MODULE_ecl_REAL_NAME})
-
-  add_custom_target(pytest-benchmark
-    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ekf_test --benchmark
-    )
-  add_dependencies(pytest-benchmark ${SWIG_MODULE_ecl_REAL_NAME})
-
-  add_custom_target(pytest-plots
-    env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ekf_test --plots
-    )
-  add_dependencies(pytest-plots ${SWIG_MODULE_ecl_REAL_NAME})
-
-  add_custom_target(pytest-lint
-    COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/ && ${CMAKE_CURRENT_SOURCE_DIR}/tests/pytest/lint
-    )
-  add_dependencies(pytest-lint ${SWIG_MODULE_ecl_REAL_NAME})
+if(BUILD_TESTING)
+	add_subdirectory(tests)
 endif()

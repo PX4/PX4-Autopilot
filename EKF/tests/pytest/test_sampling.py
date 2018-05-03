@@ -44,14 +44,14 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from test_utils import ecl
+from test_utils import ecl_EKF
 from test_utils import float_array
 
 
 @pytest.mark.parametrize("dt_usec, downsampling_factor", [
-    (ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 // 3, 3),
-    (ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 // 2, 2),
-    (ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000, 1),
+    (ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 // 3, 3),
+    (ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 // 2, 2),
+    (ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000, 1),
 ])
 @given(accel_x=st.floats(-5, 5),
        accel_y=st.floats(-5, 5),
@@ -71,7 +71,7 @@ def test_imu_input(dt_usec, downsampling_factor, accel_x, accel_y, accel_z):
                              accel_y,
                              accel_z]) * dt_usec / 1e6
 
-    ekf = ecl.Ekf()
+    ekf = ecl_EKF.Ekf()
     # Run to accumulate buffer (choose sample after downsampling)
     for _ in range(20 * downsampling_factor):
         time_usec += dt_usec
@@ -94,14 +94,14 @@ def test_imu_input(dt_usec, downsampling_factor, accel_x, accel_y, accel_z):
 
 
 @pytest.mark.parametrize("dt_usec, expected_dt_usec", [
-    (ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 // 3,
-     ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000),
-    (ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 // 2,
-     ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000),
-    (ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000,
-     ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000),
-    (ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 * 2,
-     ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 * 2),
+    (ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 // 3,
+     ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000),
+    (ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 // 2,
+     ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000),
+    (ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000,
+     ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000),
+    (ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 * 2,
+     ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000 * 2),
     (500 * 1000,
      500 * 1000)
 ])
@@ -115,7 +115,7 @@ def test_imu_sampling(dt_usec, expected_dt_usec):
     time_usec = 0
     delta_ang = float_array([0, 0, 0])
     delta_vel = float_array([0, 0, 0])
-    ekf = ecl.Ekf()
+    ekf = ecl_EKF.Ekf()
     for _ in range(100):
         time_usec += dt_usec
         ekf.set_imu_data(time_usec,
@@ -126,9 +126,9 @@ def test_imu_sampling(dt_usec, expected_dt_usec):
 
     imu_sample = ekf.get_imu_sample_delayed()
     assert imu_sample.delta_ang_dt == pytest.approx(
-        expected_dt_usec / 1e6, abs=1e-6)
+        expected_dt_usec / 1e6, abs=1e-5)
     assert imu_sample.delta_vel_dt == pytest.approx(
-        expected_dt_usec / 1e6, abs=1e-6)
+        expected_dt_usec / 1e6, abs=1e-5)
     # Make sure the timestamp of the last sample is a small positive multiple
     # of the period away from now
     assert (time_usec - imu_sample.time_us) >= 0

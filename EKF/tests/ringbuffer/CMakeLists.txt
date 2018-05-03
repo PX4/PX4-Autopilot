@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 ECL Development Team. All rights reserved.
+#   Copyright (c) 2015-2018 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__ecl__EKF__tests__ringbuffer
-	MAIN ringbuffer
-	STACK_MAIN 4096
-	COMPILE_FLAGS
-	SRCS
-		ringbuffer.cpp
-	DEPENDS
-		platforms__common
-	)
 
+add_executable(ecl_EKF_tests_ringbuffer ringbuffer.cpp)
+target_link_libraries(ecl_EKF_tests_ringbuffer ecl_EKF)
+
+add_test(NAME ecl_EKF_tests_ringbuffer
+	COMMAND ecl_EKF_tests_ringbuffer
+	)

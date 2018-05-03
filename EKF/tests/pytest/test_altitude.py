@@ -49,7 +49,7 @@ from hypothesis import given
 from hypothesis import example
 from hypothesis import strategies as st
 
-from test_utils import ecl
+from test_utils import ecl_EKF
 from test_utils import update_sensors
 from test_utils import float_array
 from test_utils import initialized_ekf
@@ -61,10 +61,10 @@ from test_utils import initialized_ekf
 def test_accel_z_bias_converges(z_bias):
     """Make sure the accelerometer bias in z-direction is estimated correctly
     """
-    ekf = ecl.Ekf()
+    ekf = ecl_EKF.Ekf()
 
     time_usec = 1000
-    dt_usec = ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000
+    dt_usec = ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000
 
     # Run for a while
     n_samples = 10000
@@ -84,7 +84,7 @@ def test_accel_z_bias_converges(z_bias):
                        dt_usec,
                        accel=float_array([0.0,
                                           0.0,
-                                          -ecl.one_g + z_bias]))
+                                          -ecl_EKF.one_g + z_bias]))
         ekf.update()
         time_usec += dt_usec
 
@@ -136,7 +136,7 @@ def test_converges_to_baro_altitude(altitude):
     # Due to hypothesis not interacting with pytest, cannot use fixture here
     ekf, time_usec = initialized_ekf()
 
-    dt_usec = ecl.Ekf.FILTER_UPDATE_PERIOD_MS * 1000
+    dt_usec = ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000
 
     # No samples, half are used for ramping up / down to the altitude
     n_samples = 200
@@ -166,9 +166,9 @@ def test_converges_to_baro_altitude(altitude):
                        dt_usec,
                        accel=float_array([0,
                                           0,
-                                          -ecl.one_g - rampup_accel
+                                          -ecl_EKF.one_g - rampup_accel
                                           if i < n_samples // 4
-                                          else -ecl.one_g + rampup_accel]),
+                                          else -ecl_EKF.one_g + rampup_accel]),
                        baro_data=current_state.alt)
         ekf.update()
 

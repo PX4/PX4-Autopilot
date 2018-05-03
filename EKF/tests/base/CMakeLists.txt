@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 ECL Development Team. All rights reserved.
+#   Copyright (c) 2015-2018 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__ecl__EKF__tests__base
-	MAIN base
-	STACK_MAIN 4096
-	COMPILE_FLAGS
-	SRCS
-		base.cpp
-	DEPENDS
-		platforms__common
-	)
 
+add_executable(ecl_EKF_tests_base base.cpp)
+target_link_libraries(ecl_EKF_tests_base ecl_EKF)
+
+add_test(NAME ecl_EKF_tests_base
+	COMMAND ecl_EKF_tests_base
+	)

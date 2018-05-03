@@ -37,21 +37,19 @@
  * Tests for the estimator base class
  */
 
+#include <EKF/ekf.h>
+
 #include <cstdio>
 #include <random>
-#include "../../estimator_base.h"
 
-extern "C" __EXPORT int base_main(int argc, char *argv[]);
-
-int base_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-	EstimatorBase *base = new EstimatorBase();
+	Ekf *base = new Ekf();
 
 	// Test1: feed in fake imu data and check if delta angles are summed correclty
 	float delta_vel[3] = { 0.002f, 0.002f, 0.002f};
 	float delta_ang[3] = { -0.1f, 0.2f, 0.3f};
 	uint32_t time_usec = 1000;
-
 
 	// simulate 400 Hz imu rate, filter should downsample to 100Hz
 	// feed in 2 seconds of data
@@ -95,7 +93,7 @@ int base_main(int argc, char *argv[])
 	time_usec = 100000;
 
 	for (int i = 0; i < 100; i++) {
-		base->setBaroData(time_usec, &baro);
+		base->setBaroData(time_usec, baro);
 		baro += 10.0f;
 		time_usec += 20000;
 	}
@@ -126,25 +124,24 @@ int base_main(int argc, char *argv[])
 		timer += (imu_sample_period + distribution(generator));
 
 		if ((timer - timer_last) > 70000) {
-			base->setAirspeedData(timer, &airspeed);
+			base->setAirspeedData(timer, airspeed, 1.0f);
 		}
 
 		gps.time_usec = timer;
-		gps.time_usec_vel = timer;
 		base->setIMUData(timer, timer - timer_last, timer - timer_last, delta_ang, delta_vel);
 		base->setMagData(timer, mag);
-		base->setBaroData(timer, &baro);
+		base->setBaroData(timer, baro);
 		base->setGpsData(timer, &gps);
-		base->print_imu_avg_time();
+		//base->print_imu_avg_time();
 
 		timer_last = timer;
 
 	}
 
-	base->printStoredIMU();
-	base->printStoredBaro();
-	base->printStoredMag();
-	base->printStoredGps();
+	//base->printStoredIMU();
+	//base->printStoredBaro();
+	//base->printStoredMag();
+	//base->printStoredGps();
 
 	return 0;
 }
