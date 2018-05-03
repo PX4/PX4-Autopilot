@@ -128,7 +128,8 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
-		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed
+		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
+		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2 // altitude at which speed limit downwards reached minimum speed
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
