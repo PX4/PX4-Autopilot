@@ -60,7 +60,7 @@ protected:
 	void _rotateIntoHeadingFrame(matrix::Vector2f &vec); /**< rotates vector into local frame */
 
 private:
-	uint8_t _heading_reset_counter = 0; /**< estimator heading reset */
+	static uint8_t _heading_reset_counter; /**< estimator heading reset */
 
 	uORB::Subscription<vehicle_attitude_s> *_sub_attitude{nullptr};
 
