@@ -44,7 +44,7 @@ import numpy as np
 import pytest
 
 try:
-    import ecl  # pylint: disable=import-error
+    import ecl_EKF  # pylint: disable=import-error
 except ImportError:
     print("ImportError: ecl library cannot be found."
           " Make sure to compile ecl with Python bindings "
@@ -62,7 +62,7 @@ def float_array(inp):
 def update_sensors(ekf,  # pylint: disable=too-many-arguments
                    time_usec,
                    dt_usec,
-                   accel=float_array([0.0, 0.0, -ecl.one_g]),
+                   accel=float_array([0.0, 0.0, -ecl_EKF.one_g]),
                    ang_vel=float_array([0.0, 0.0, 0.0]),
                    mag_data=float_array([1.0, 0.0, 0.0]),
                    baro_data=0.0):
@@ -83,7 +83,7 @@ def update_sensors(ekf,  # pylint: disable=too-many-arguments
 def initialized_ekf():
     """Provides an initialized ekf, ready to go
     """
-    ekf = ecl.Ekf()
+    ekf = ecl_EKF.Ekf()
 
     time_usec = 1000
     dt_usec = 5000

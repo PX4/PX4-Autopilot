@@ -1,5 +1,5 @@
 // SWIG Wrapper for the ecl's EKF
-%module(directors="1") ecl
+%module(directors="1") ecl_EKF
 %feature("autodoc", "3");
 
 %include "inttypes.i"
@@ -11,8 +11,8 @@
 %{
     #define SWIG_FILE_WITH_INIT
     #include <iostream>
-    #include "../EKF/ekf.h"
-    #include "../EKF/geo.h"
+    #include <EKF/ekf.h>
+    #include <geo/geo.h>
 %}
 
 %include "numpy.i"
@@ -142,16 +142,16 @@
 }
 
 // Tell swig to wrap ecl classes
-%include "../matrix/matrix/Vector3.hpp"
-%include "../matrix/matrix/Vector2.hpp"
-%include "../matrix/matrix/Quaternion.hpp"
-%include "../matrix/matrix/Dcm.hpp"
-%include "../matrix/matrix/Euler.hpp"
-%include "../matrix/matrix/SquareMatrix.hpp"
-%include "../matrix/matrix/helper_functions.hpp"
-%include "../EKF/common.h"
-%include "../EKF/estimator_interface.h"
-%include "../EKF/ekf.h"
+%include <matrix/Vector3.hpp>
+%include <matrix/Vector2.hpp>
+%include <matrix/Quaternion.hpp>
+%include <matrix/Dcm.hpp>
+%include <matrix/Euler.hpp>
+%include <matrix/SquareMatrix.hpp>
+%include <matrix/helper_functions.hpp>
+%include <EKF/common.h>
+%include <EKF/estimator_interface.h>
+%include <EKF/ekf.h>
 
 %extend Ekf {
     void set_imu_data(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt,  float delta_ang[3], float delta_vel[3]) {

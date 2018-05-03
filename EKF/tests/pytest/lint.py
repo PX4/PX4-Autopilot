@@ -45,10 +45,10 @@ from datetime import datetime
 
 CHECKERS = [
     ['pep8', '.'],
-    ['pep8', './ekf_test'],
-    ['pep8', './lint'],
-    ['pylint', './lint', '--reports=n', '--score=n'],
-    ['pylint', './ekf_test', '--reports=n', '--score=n'],
+    ['pep8', './ekf_test.py'],
+    ['pep8', './lint.py'],
+    ['pylint', './lint.py', '--reports=n', '--score=n'],
+    ['pylint', './ekf_test.py', '--reports=n', '--score=n'],
     ['pylint', './plot_utils.py', '--reports=n', '--score=n'],
     ['pylint', './test_altitude.py', '--reports=n', '--score=n'],
     ['pylint', './test_basics.py', '--reports=n', '--score=n'],

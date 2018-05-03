@@ -78,14 +78,27 @@ SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build/$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) || (rm -rf $(BUILD_DIR)); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) $(3) || (rm -rf $(BUILD_DIR)); fi
 +@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 
 all:
-	$(call cmake-build,$@,$(SRC_DIR))
+	@$(call cmake-build,$@,$(SRC_DIR))
 
+# Testing
+# --------------------------------------------------------------------
+
+.PHONY: test_build test test_EKF
+
+test_build:
+	@$(call cmake-build,$@,$(SRC_DIR), "-DEKF_PYTHON_TESTS=ON")
+
+test: test_build
+	@cmake --build $(SRC_DIR)/build/test_build --target check
+
+test_EKF: test_build
+	@cmake --build $(SRC_DIR)/build/test_build --target ecl_EKF_pytest-quick
 
 # Cleanup
 # --------------------------------------------------------------------
@@ -96,6 +109,4 @@ clean:
 	
 distclean:
 	@git clean -ff -x -d .
-	
-	
-	
+

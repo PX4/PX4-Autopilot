@@ -37,7 +37,7 @@
 In order to run the tests, make sure to compile the ecl library including the
 SWIG bindings, e.g. by running
 
-    cmake -DPythonTests=1 ../EKF && make pytest-quick
+    cmake -DEKF_PYTHON_TESTS=ON .. && make ecl_EKF_pytest-quick
 
 from your build directory.
 
