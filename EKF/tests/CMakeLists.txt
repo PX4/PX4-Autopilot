@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND ECL_STANDALONE)
 	add_subdirectory(base)
 	
 	if(EKF_PYTHON_TESTS)

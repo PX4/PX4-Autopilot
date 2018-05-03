@@ -53,18 +53,31 @@ set(ECL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	# ECL standalone build
 	add_definitions(-DECL_STANDALONE)
+	set(ECL_STANDALONE 1)
 
 	add_custom_target(prebuild_targets)
 
-	add_compile_options(
-		-pedantic
-	
-		-Wall
-		-Wextra
-		-Werror
+	if(MSVC)
+		add_compile_options(
+			/W4
+			/WX
 
-		-Wno-unused-parameter
-	)
+			/D_USE_MATH_DEFINES
+
+			/wd4100 # warning C4100: unreferenced formal parameter
+			/wd4244 # warning C4244: '=': conversion from 'double' to 'int32_t', possible loss of data
+			)
+	elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+		add_compile_options(
+			-pedantic
+		
+			-Wall
+			-Wextra
+			-Werror
+
+			-Wno-unused-parameter
+		)
+	endif()
 
 	# fetch latest matrix from github
 	include(ExternalProject)
@@ -87,7 +100,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	if(BUILD_TESTING)
 
 		add_custom_target(check
-			COMMAND env CTEST_OUTPUT_ON_FAILURE=1 ${CMAKE_CTEST_COMMAND}
+			COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C Debug
 			DEPENDS ecl_EKF
 			USES_TERMINAL
 		)

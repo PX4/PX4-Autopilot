@@ -84,13 +84,11 @@ struct globallocal_converter_reference_s {
 	bool init_done;
 };
 
-__BEGIN_DECLS
-
 /**
  * Checks if global projection was initialized
  * @return true if map was initialized before, false else
  */
-bool map_projection_global_initialized(void);
+bool map_projection_global_initialized();
 
 /**
  * Checks if projection given as argument was initialized
@@ -308,5 +306,3 @@ float _wrap_180(float bearing);
 float _wrap_360(float bearing);
 float _wrap_pi(float bearing);
 float _wrap_2pi(float bearing);
-
-__END_DECLS
