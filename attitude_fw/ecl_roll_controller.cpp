@@ -126,7 +126,7 @@ float ECL_RollController::control_euler_rate(const struct ECL_ControlData &ctl_d
 	_bodyrate_setpoint = ctl_data.roll_rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint;
 
 	set_bodyrate_setpoint(_bodyrate_setpoint);
-	
+
 	return control_bodyrate(ctl_data);
 
 }

@@ -121,6 +121,7 @@ void Ekf::fuseAirspeed()
 			for (unsigned row = 0; row <= 21; row++) {
 				Kfusion[row] = 0.0f;
 			}
+
 		} else {
 			// we have no other source of aiding, so use airspeed measurements to correct states
 			Kfusion[0] = SK_TAS[0]*(P[0][4]*SH_TAS[2] - P[0][22]*SH_TAS[2] + P[0][5]*SK_TAS[1] - P[0][23]*SK_TAS[1] + P[0][6]*vd*SH_TAS[0]);
@@ -164,6 +165,7 @@ void Ekf::fuseAirspeed()
 		if (_tas_test_ratio > 1.0f) {
 			_innov_check_fail_status.flags.reject_airspeed = true;
 			return;
+
 		} else {
 			_innov_check_fail_status.flags.reject_airspeed = false;
 		}
@@ -176,6 +178,7 @@ void Ekf::fuseAirspeed()
 		// then calculate P - KHP
 		float KHP[_k_num_states][_k_num_states];
 		float KH[5];
+
 		for (unsigned row = 0; row < _k_num_states; row++) {
 
 			KH[0] = Kfusion[row] * H_TAS[4];
@@ -198,11 +201,12 @@ void Ekf::fuseAirspeed()
 		// the covariance marix is unhealthy and must be corrected
 		bool healthy = true;
 		_fault_status.flags.bad_airspeed = false;
+
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P[i][i] < KHP[i][i]) {
 				// zero rows and columns
-				zeroRows(P,i,i);
-				zeroCols(P,i,i);
+				zeroRows(P, i, i);
+				zeroCols(P, i, i);
 
 				//flag as unhealthy
 				healthy = false;

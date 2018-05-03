@@ -45,7 +45,8 @@ template <typename data_type>
 class RingBuffer
 {
 public:
-	RingBuffer() {
+	RingBuffer()
+	{
 		if (allocate(1)) {
 			// initialize with one empty sample
 			data_type d = {};
@@ -81,17 +82,19 @@ public:
 		for (uint8_t index = 0; index < _size; index++) {
 			_buffer[index] = {};
 		}
+
 		_first_write = true;
 
 		return true;
 	}
 
-	void unallocate() {
+	void unallocate()
+	{
 		delete[] _buffer;
 		_buffer = nullptr;
 	}
 
-	void push(const data_type& sample)
+	void push(const data_type &sample)
 	{
 		uint8_t head_new = _head;
 
@@ -115,12 +118,12 @@ public:
 
 	data_type &operator[](const uint8_t index) { return _buffer[index]; }
 
-	const data_type& get_newest() { return _buffer[_head]; }
-	const data_type& get_oldest() { return _buffer[_tail]; }
+	const data_type &get_newest() { return _buffer[_head]; }
+	const data_type &get_oldest() { return _buffer[_tail]; }
 
 	uint8_t get_oldest_index() const { return _tail; }
 
-	bool pop_first_older_than(const uint64_t& timestamp, data_type *sample)
+	bool pop_first_older_than(const uint64_t &timestamp, data_type *sample)
 	{
 		// start looking from newest observation data
 		for (uint8_t i = 0; i < _size; i++) {

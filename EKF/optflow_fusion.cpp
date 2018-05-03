@@ -213,6 +213,7 @@ void Ekf::fuseOptFlow()
 			float t92 = t2*t7*t69;
 			float t77 = R_LOS+t37+t43+t50+t63+t76-t87-t92;
 			float t78;
+
 			// calculate innovation variance for X axis observation and protect against a badly conditioned calculation
 			if (t77 >= R_LOS) {
 				t78 = 1.0f / t77;
@@ -403,6 +404,7 @@ void Ekf::fuseOptFlow()
 
 	// record the innovation test pass/fail
 	bool flow_fail = false;
+
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
 		if (optflow_test_ratio[obs_index] > 1.0f) {
 			flow_fail = true;
@@ -434,6 +436,7 @@ void Ekf::fuseOptFlow()
 		// then calculate P - KHP
 		float KHP[_k_num_states][_k_num_states];
 		float KH[7];
+
 		for (unsigned row = 0; row < _k_num_states; row++) {
 
 			KH[0] = gain[row] * H_LOS[obs_index][0];
@@ -461,11 +464,12 @@ void Ekf::fuseOptFlow()
 		bool healthy = true;
 		_fault_status.flags.bad_optflow_X = false;
 		_fault_status.flags.bad_optflow_Y = false;
+
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P[i][i] < KHP[i][i]) {
 				// zero rows and columns
-				zeroRows(P,i,i);
-				zeroCols(P,i,i);
+				zeroRows(P, i, i);
+				zeroCols(P, i, i);
 
 				//flag as unhealthy
 				healthy = false;
@@ -473,6 +477,7 @@ void Ekf::fuseOptFlow()
 				// update individual measurement health status
 				if (obs_index == 0) {
 					_fault_status.flags.bad_optflow_X = true;
+
 				} else if (obs_index == 1) {
 					_fault_status.flags.bad_optflow_Y = true;
 				}

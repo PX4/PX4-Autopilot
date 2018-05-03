@@ -57,6 +57,7 @@ void Ekf::fuseDrag()
 	if (_params.bcoef_x < 1.0f || _params.bcoef_y < 1.0f) {
 		return;
 	}
+
 	float BC_inv_x = 1.0f / _params.bcoef_x;
 	float BC_inv_y = 1.0f / _params.bcoef_y;
 
@@ -149,6 +150,7 @@ void Ekf::fuseDrag()
 
 			// calculate the predicted acceleration and innovation measured along the X body axis
 			float drag_sign;
+
 			if (rel_wind(axis_index) >= 0.0f) {
 				drag_sign = 1.0f;
 
@@ -223,6 +225,7 @@ void Ekf::fuseDrag()
 
 			// calculate the predicted acceleration and innovation measured along the Y body axis
 			float drag_sign;
+
 			if (rel_wind(axis_index) >= 0.0f) {
 				drag_sign = 1.0f;
 
@@ -243,6 +246,7 @@ void Ekf::fuseDrag()
 			// then calculate P - KHP
 			float KHP[_k_num_states][_k_num_states];
 			float KH[9];
+
 			for (unsigned row = 0; row < _k_num_states; row++) {
 
 				KH[0] = Kfusion[row] * H_ACC[0];
@@ -272,12 +276,13 @@ void Ekf::fuseDrag()
 			// if the covariance correction will result in a negative variance, then
 			// the covariance marix is unhealthy and must be corrected
 			bool healthy = true;
+
 			//_fault_status.flags.bad_sideslip = false;
 			for (int i = 0; i < _k_num_states; i++) {
 				if (P[i][i] < KHP[i][i]) {
 					// zero rows and columns
-					zeroRows(P,i,i);
-					zeroCols(P,i,i);
+					zeroRows(P, i, i);
+					zeroCols(P, i, i);
 
 					//flag as unhealthy
 					healthy = false;

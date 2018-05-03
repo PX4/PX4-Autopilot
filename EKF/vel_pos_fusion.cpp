@@ -109,10 +109,12 @@ void Ekf::fuseVelPosHeight()
 			// casued by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
 			float deadzone_start = 0.25f * _params.baro_noise;
 			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
+
 			if (_control_status.flags.gnd_effect) {
 				if (innovation[5] < -deadzone_start) {
 					if (innovation[5] <= -deadzone_end) {
 						innovation[5] += deadzone_end;
+
 					} else {
 						innovation[5] = -deadzone_start;
 					}
@@ -136,11 +138,12 @@ void Ekf::fuseVelPosHeight()
 			fuse_map[5] = true;
 			// use range finder with tilt correction
 			innovation[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
-							     _params.rng_gnd_clearance)) - _hgt_sensor_offset;
+							 _params.rng_gnd_clearance)) - _hgt_sensor_offset;
 			// observation variance - user parameter defined
 			R[5] = fmaxf((sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng)) * sq(_R_rng_to_earth_2_2), 0.01f);
 			// innovation gate size
 			gate_size[5] = fmaxf(_params.range_innov_gate, 1.0f);
+
 		} else if (_control_status.flags.ev_hgt) {
 			fuse_map[5] = true;
 			// calculate the innovation assuming the external vision observaton is in local NED frame
@@ -183,31 +186,39 @@ void Ekf::fuseVelPosHeight()
 	if ((_fuse_hor_vel || _fuse_hor_vel_aux) && vel_check_pass) {
 		_time_last_vel_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_vel_NED = false;
+
 	} else if (!vel_check_pass) {
 		_innov_check_fail_status.flags.reject_vel_NED = true;
 	}
+
 	_fuse_hor_vel = _fuse_hor_vel_aux = false;
 
 	// record the successful position fusion event
 	if (pos_check_pass && _fuse_pos) {
 		if (!_fuse_hpos_as_odom) {
 			_time_last_pos_fuse = _time_last_imu;
+
 		} else {
 			_time_last_delpos_fuse = _time_last_imu;
 		}
+
 		_innov_check_fail_status.flags.reject_pos_NE = false;
+
 	} else if (!pos_check_pass) {
 		_innov_check_fail_status.flags.reject_pos_NE = true;
 	}
+
 	_fuse_pos = false;
 
 	// record the successful height fusion event
 	if (innov_check_pass_map[5] && _fuse_height) {
 		_time_last_hgt_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_pos_D = false;
+
 	} else if (!innov_check_pass_map[5]) {
 		_innov_check_fail_status.flags.reject_pos_D = true;
 	}
+
 	_fuse_height = false;
 
 	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
@@ -225,6 +236,7 @@ void Ekf::fuseVelPosHeight()
 
 		// update covarinace matrix via Pnew = (I - KH)P
 		float KHP[_k_num_states][_k_num_states];
+
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) {
 				KHP[row][column] = Kfusion[row] * P[state_index][column];
@@ -234,11 +246,12 @@ void Ekf::fuseVelPosHeight()
 		// if the covariance correction will result in a negative variance, then
 		// the covariance marix is unhealthy and must be corrected
 		bool healthy = true;
+
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P[i][i] < KHP[i][i]) {
 				// zero rows and columns
-				zeroRows(P,i,i);
-				zeroCols(P,i,i);
+				zeroRows(P, i, i);
+				zeroCols(P, i, i);
 
 				//flag as unhealthy
 				healthy = false;
@@ -246,29 +259,40 @@ void Ekf::fuseVelPosHeight()
 				// update individual measurement health status
 				if (obs_index == 0) {
 					_fault_status.flags.bad_vel_N = true;
+
 				} else if (obs_index == 1) {
 					_fault_status.flags.bad_vel_E = true;
+
 				} else if (obs_index == 2) {
 					_fault_status.flags.bad_vel_D = true;
+
 				} else if (obs_index == 3) {
 					_fault_status.flags.bad_pos_N = true;
+
 				} else if (obs_index == 4) {
 					_fault_status.flags.bad_pos_E = true;
+
 				} else if (obs_index == 5) {
 					_fault_status.flags.bad_pos_D = true;
 				}
+
 			} else {
 				// update individual measurement health status
 				if (obs_index == 0) {
 					_fault_status.flags.bad_vel_N = false;
+
 				} else if (obs_index == 1) {
 					_fault_status.flags.bad_vel_E = false;
+
 				} else if (obs_index == 2) {
 					_fault_status.flags.bad_vel_D = false;
+
 				} else if (obs_index == 3) {
 					_fault_status.flags.bad_pos_N = false;
+
 				} else if (obs_index == 4) {
 					_fault_status.flags.bad_pos_E = false;
+
 				} else if (obs_index == 5) {
 					_fault_status.flags.bad_pos_D = false;
 				}
