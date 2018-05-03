@@ -45,30 +45,41 @@
 
 #define ecl_absolute_time hrt_absolute_time
 #define ecl_elapsed_time hrt_elapsed_time
+using ecl_abstime = hrt_abstime;
+
 #define ECL_INFO PX4_INFO
 #define ECL_WARN PX4_WARN
 #define ECL_ERR	 PX4_ERR
 
 #else
 
+#include <cstdio>
+#include <cstdint>
+
 #define ecl_absolute_time() (0)
-#define ecl_elapsed_time (0)
+#define ecl_elapsed_time(t) (*t * 0UL) // TODO: add simple time functions
+
+using ecl_abstime = uint64_t;
+
 #define ECL_INFO printf
 #define ECL_WARN printf
 #define ECL_ERR printf
 
-#endif
+#endif /* PX4_POSIX || PX4_NUTTX */
 
-#ifndef __PX4_QURT
-#if defined(__cplusplus) && !defined(__PX4_NUTTX)
+
+#if defined(__PX4_QURT)
+
+// Missing math.h defines
+#define ISFINITE(x) __builtin_isfinite(x)
+
+#else /* !QuRT */
+
 #include <cmath>
+#if defined(__cplusplus) && !defined(__PX4_NUTTX)
 #define ISFINITE(x) std::isfinite(x)
 #else
 #define ISFINITE(x) isfinite(x)
 #endif
-#endif
 
-#if defined(__PX4_QURT)
-// Missing math.h defines
-#define ISFINITE(x) __builtin_isfinite(x)
 #endif

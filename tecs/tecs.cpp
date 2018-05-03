@@ -33,7 +33,7 @@
 
 #include "tecs.h"
 
-#include <ecl/ecl.h>
+#include <ecl.h>
 #include <geo/geo.h>
 
 using math::constrain;

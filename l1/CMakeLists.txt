@@ -1,7 +1,6 @@
-#!/bin/sh
 ############################################################################
 #
-#   Copyright (c) 2015-2016 ECL Development Team. All rights reserved.
+#   Copyright (c) 2018 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,24 +31,10 @@
 #
 ############################################################################
 
-# Exit on any error.
-set -e
+add_library(ecl_l1
+	ecl_l1_pos_controller.cpp
+	)
+add_dependencies(ecl_l1 prebuild_targets)
 
-if [ -z ${RUN_PYTEST} ];
-then
-    # Build EKF shared library.
-    mkdir Build -p
-    cd Build
-    cmake ../EKF
-    make
-    cd ..
-else
-    # Build EKF shared library.
-    mkdir Build -p
-    cd Build
-    cmake -DPythonTests=1 ../EKF
-    make pytest
-    make pytest-quick
-    make pytest-plots
-    cd ..
-fi
+target_include_directories(ecl_l1 PUBLIC ${ECL_SOURCE_DIR})
+target_link_libraries(ecl_l1 PRIVATE ecl_geo)

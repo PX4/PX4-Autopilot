@@ -49,12 +49,9 @@
 #ifndef ECL_HEADING_CONTROLLER_H
 #define ECL_HEADING_CONTROLLER_H
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include "ecl_controller.h"
 
-class __EXPORT ECL_WheelController :
+class ECL_WheelController :
 	public ECL_Controller
 {
 public:

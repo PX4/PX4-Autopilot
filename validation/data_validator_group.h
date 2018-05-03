@@ -43,7 +43,7 @@
 
 #include "data_validator.h"
 
-class __EXPORT DataValidatorGroup {
+class DataValidatorGroup {
 public:
 	/**
 	 * @param siblings initial number of DataValidator's. Must be > 0.

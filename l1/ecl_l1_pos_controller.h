@@ -63,12 +63,12 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <geo/geo.h>
-#include <ecl/ecl.h>
+#include <ecl.h>
 
 /**
  * L1 Nonlinear Guidance Logic
  */
-class __EXPORT ECL_L1_Pos_Controller
+class ECL_L1_Pos_Controller
 {
 public:
 	/**

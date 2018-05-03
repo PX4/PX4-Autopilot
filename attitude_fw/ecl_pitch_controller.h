@@ -49,13 +49,11 @@
 #ifndef ECL_PITCH_CONTROLLER_H
 #define ECL_PITCH_CONTROLLER_H
 
-#include <stdbool.h>
-#include <stdint.h>
 #include <mathlib/mathlib.h>
 
 #include "ecl_controller.h"
 
-class __EXPORT ECL_PitchController :
+class ECL_PitchController :
 	public ECL_Controller
 {
 public:
