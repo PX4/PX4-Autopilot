@@ -43,5 +43,5 @@ px4_add_module(
 		controllib
 		flight_tasks
 		git_ecl
-		ecl
+		ecl_geo
 	)

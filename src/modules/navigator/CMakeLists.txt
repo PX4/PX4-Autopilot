@@ -55,5 +55,5 @@ px4_add_module(
 		follow_target.cpp
 	DEPENDS
 		git_ecl
-		ecl
+		ecl_geo
 	)

@@ -40,5 +40,7 @@ px4_add_module(
 	SRCS
 		attitude_estimator_q_main.cpp
 	DEPENDS
+		git_ecl
+		ecl_geo_lookup
 	)
 
