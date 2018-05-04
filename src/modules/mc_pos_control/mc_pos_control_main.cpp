@@ -536,8 +536,13 @@ MulticopterPositionControl::task_main()
 			// check if all local states are valid and map accordingly
 			check_vehicle_states(setpoint.vz);
 
-			// we can only do a smooth takeoff if a valid velocity or position is available
-			if (PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
+			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
+			// in pure manual and vehicle is armed for some time. Otherwise just stay idle.
+			_arm_hysteresis.set_state_and_update(_control_mode.flag_armed);
+
+			// we can only do a smooth takeoff if a valid velocity or position is available and are
+			// armed long enough
+			if (_arm_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
 				check_for_smooth_takeoff(setpoint.z, setpoint.vz);
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
 
@@ -548,13 +553,7 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
-			// in pure manual and vehicle is armed for some time. Otherwise just stay idle.
-			_arm_hysteresis.set_state_and_update(_control_mode.flag_armed);
-
-			if (!_arm_hysteresis.get_state() ||
-			    (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2]))) {
-
+			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				// Keep throttle low
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				setpoint.x = setpoint.y = setpoint.z = NAN;
@@ -680,7 +679,7 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 
 		// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
 		if (PX4_ISFINITE(z_sp)) {
-			_in_smooth_takeoff = _states.position(2) + 0.2f > z_sp;
+			_in_smooth_takeoff = _states.position(2) - 0.2f > math::max(z_sp, -MPC_LAND_ALT2.get());
 
 		} else  {
 			_in_smooth_takeoff = _takeoff_speed < -vz_sp;
