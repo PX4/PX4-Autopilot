@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,26 +30,93 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifndef _uORBUtils_hpp_
-#define _uORBUtils_hpp_
 
-#include "uORBCommon.hpp"
+/**
+ * @file lps22hb_i2c.cpp
+ *
+ * I2C interface for lps22hb
+ */
 
-namespace uORB
-{
-class Utils;
-}
+#include "LPS22HB.hpp"
 
-class uORB::Utils
+#include <cstring>
+
+#include <px4_config.h>
+
+#include <drivers/device/i2c.h>
+#include <drivers/drv_device.h>
+
+#include "board_config.h"
+
+#define LPS22HB_ADDRESS		0x5D
+
+device::Device *LPS22HB_I2C_interface(int bus);
+
+class LPS22HB_I2C : public device::I2C
 {
 public:
-	static int node_mkpath(char *buf, const struct orb_metadata *meta, int *instance = nullptr);
+	LPS22HB_I2C(int bus);
+	virtual ~LPS22HB_I2C() = default;
 
-	/**
-	 * same as above except this generators the path based on the string.
-	 */
-	static int node_mkpath(char *buf, const char *orbMsgName);
+	virtual int	read(unsigned address, void *data, unsigned count);
+	virtual int	write(unsigned address, void *data, unsigned count);
+
+protected:
+	virtual int	probe();
 
 };
 
-#endif // _uORBUtils_hpp_
+device::Device *
+LPS22HB_I2C_interface(int bus)
+{
+	return new LPS22HB_I2C(bus);
+}
+
+LPS22HB_I2C::LPS22HB_I2C(int bus) :
+	I2C("LPS22HB_I2C", nullptr, bus, LPS22HB_ADDRESS, 400000)
+{
+}
+
+int
+LPS22HB_I2C::probe()
+{
+	uint8_t id;
+
+	_retries = 10;
+
+	if (read(WHO_AM_I, &id, 1)) {
+		DEVICE_DEBUG("read_reg fail");
+		return -EIO;
+	}
+
+	_retries = 2;
+
+	if (id != LPS22HB_ID_WHO_AM_I) {
+		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", LPS22HB_ID_WHO_AM_I, id);
+		return -EIO;
+	}
+
+	return OK;
+}
+
+int
+LPS22HB_I2C::write(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
+	}
+
+	buf[0] = address;
+	memcpy(&buf[1], data, count);
+
+	return transfer(&buf[0], count + 1, nullptr, 0);
+}
+
+int
+LPS22HB_I2C::read(unsigned address, void *data, unsigned count)
+{
+	uint8_t cmd = address;
+	return transfer(&cmd, 1, (uint8_t *)data, count);
+}

@@ -148,7 +148,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_good_transfers(perf_alloc(PC_COUNT, "mpu9250_good_trans")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu9250_dupe")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
 	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -1487,8 +1486,6 @@ MPU9250::measure()
 	}
 
 	if (accel_notify && !(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}

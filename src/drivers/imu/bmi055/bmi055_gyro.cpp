@@ -753,8 +753,6 @@ BMI055_gyro::measure()
 	}
 
 	if (gyro_notify && !(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &grb);
 	}

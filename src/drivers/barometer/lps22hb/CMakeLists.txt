@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__srf02_i2c
-	MAIN srf02_i2c
+	MODULE drivers__barometer__lps22hb
+	MAIN lps22hb
 	COMPILE_FLAGS
-		-Wno-sign-compare
 	SRCS
-		srf02_i2c.cpp
-	DEPENDS
+		lps22hb_main.cpp
+		LPS22HB.cpp
+		LPS22HB_I2C.cpp
+		LPS22HB_SPI.cpp
 	)
-

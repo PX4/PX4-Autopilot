@@ -44,6 +44,7 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <drivers/device/device.h>
+#include <perf/perf_counter.h>
 #include <px4_module_params.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -118,6 +119,8 @@ private:
 	actuator_outputs_s      _outputs = {};
 	actuator_armed_s	_armed = {};
 
+	perf_counter_t	_perf_control_latency;
+
 	int			_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	actuator_controls_s 	_controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	orb_id_t		_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -153,6 +156,7 @@ const uint8_t TAP_ESC::_device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	ModuleParams(nullptr),
+	_perf_control_latency(perf_alloc(PC_ELAPSED, "tap_esc control latency")),
 	_channels_count(channels_count)
 {
 	strncpy(_device, device, sizeof(_device));
@@ -196,6 +200,8 @@ TAP_ESC::~TAP_ESC()
 	tap_esc_common::deinitialise_uart(_uart_fd);
 
 	DEVICE_LOG("stopping");
+
+	perf_free(_perf_control_latency);
 }
 
 /** @see ModuleBase */
@@ -447,7 +453,6 @@ void TAP_ESC::cycle()
 			/* do mixing */
 			num_outputs = _mixers->mix(&_outputs.output[0], num_outputs);
 			_outputs.noutputs = num_outputs;
-			_outputs.timestamp = hrt_absolute_time();
 
 			/* publish mixer status */
 			multirotor_motor_limits_s multirotor_motor_limits = {};
@@ -546,6 +551,8 @@ void TAP_ESC::cycle()
 			motor_out[i] = RPMSTOPPED;
 		}
 
+		_outputs.timestamp = hrt_absolute_time();
+
 		send_esc_outputs(motor_out, num_outputs);
 		tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
@@ -570,6 +577,17 @@ void TAP_ESC::cycle()
 
 		/* and publish for anyone that cares to see */
 		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
+
+		// use first valid timestamp_sample for latency tracking
+		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+			if (required && (timestamp_sample > 0)) {
+				perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
+				break;
+			}
+		}
 
 	}
 

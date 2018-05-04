@@ -60,6 +60,7 @@ px4_add_module(
 		mavlink_simple_analyzer.cpp
 		mavlink_stream.cpp
 		mavlink_ulog.cpp
+		mavlink_timesync.cpp
 	DEPENDS
 		git_mavlink_v2
 		conversion
