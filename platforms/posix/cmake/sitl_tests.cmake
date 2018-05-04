@@ -20,7 +20,6 @@ set(tests
 	mathlib
 	matrix
 	mavlink
-	mc_pos_control
 	microbench_hrt
 	microbench_math
 	microbench_matrix
