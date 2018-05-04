@@ -231,14 +231,11 @@ struct MPUReport {
 #  define MPU9250_LOW_SPEED_OP(r)			MPU9250_REG((r))
 
 /* interface factories */
-extern device::Device *MPU9250_SPI_interface(int bus, bool external_bus);
-extern device::Device *MPU9250_I2C_interface(int bus, bool external_bus);
+extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
+extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
 extern int MPU9250_probe(device::Device *dev, int device_type);
 
-typedef device::Device *(*MPU9250_constructor)(int, bool);
-
-
-
+typedef device::Device *(*MPU9250_constructor)(int, uint32_t, bool);
 
 class MPU9250_mag;
 class MPU9250_gyro;
