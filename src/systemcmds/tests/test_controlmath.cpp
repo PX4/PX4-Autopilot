@@ -86,7 +86,7 @@ bool ControlMathTest::testPrioritizeVector()
 
 	// v0 and v1 are below max
 	v0 = matrix::Vector2f(0.5f, 0.5f);
-	v1 = matrix::Vector2f(v0(1), -v0(0));
+	v1(0) = v0(1); v1(1) = -v0(0);
 	v_r = ControlMath::constrainXY(v0, v1, max);
 	float diff = matrix::Vector2f(v_r - (v0 + v1)).length();
 	ut_assert_true(diff < FLT_EPSILON);
@@ -102,8 +102,8 @@ bool ControlMathTest::testPrioritizeVector()
 	//TODO: add more tests with vectors not perpendicular
 
 	return true;
-
 }
+
 bool ControlMathTest::crossSphereLineTest()
 {
 	matrix::Vector3f prev = matrix::Vector3f(0.0f, 0.0f, 0.0f);
