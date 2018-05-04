@@ -86,6 +86,12 @@ endef
 all:
 	@$(call cmake-build,$@,$(SRC_DIR))
 
+# Documentation
+# --------------------------------------------------------------------
+doxygen:
+	@$(call cmake-build,$@,$(SRC_DIR), "-DBUILD_DOXYGEN=ON")
+	@cmake --build $(SRC_DIR)/build/doxygen --target doxygen
+
 # Testing
 # --------------------------------------------------------------------
 
