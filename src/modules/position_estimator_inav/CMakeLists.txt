@@ -42,4 +42,6 @@ px4_add_module(
 		inertial_filter.cpp
 	DEPENDS
 		terrain_estimation
+		git_ecl
+		ecl_geo
 	)

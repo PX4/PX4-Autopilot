@@ -37,4 +37,7 @@ px4_add_module(
 		${PX4_SOURCE_DIR}/src/lib/ecl
 	SRCS
 		wind_estimator_main.cpp
+	DEPENDS
+		git_ecl
+		ecl_airdata
 )

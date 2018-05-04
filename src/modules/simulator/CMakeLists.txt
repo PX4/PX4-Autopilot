@@ -68,6 +68,8 @@ px4_add_module(
 		battery
 		conversion
 		drivers__ledsim
+		git_ecl
+		ecl_geo
 	)
 target_include_directories(modules__simulator INTERFACE ${PX4_SOURCE_DIR}/mavlink/include/mavlink)
 

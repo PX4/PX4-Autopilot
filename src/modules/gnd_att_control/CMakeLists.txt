@@ -38,6 +38,4 @@ px4_add_module(
 	SRCS
 		GroundRoverAttitudeControl.cpp
 	DEPENDS
-		git_ecl
-		ecl
 	)
