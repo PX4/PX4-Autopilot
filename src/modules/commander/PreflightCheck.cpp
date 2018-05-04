@@ -490,7 +490,7 @@ static bool powerCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool pre
 			if (hrt_elapsed_time(&system_power.timestamp) < 200000) {
 
 				/* copy avionics voltage */
-				int avionics_power_rail_voltage = system_power.voltage5V_v;
+				float avionics_power_rail_voltage = system_power.voltage5V_v;
 
 				// avionics rail
 				// Check avionics rail voltages
