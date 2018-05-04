@@ -63,7 +63,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
  * @param v1 a 2D vector that less priority given the maximum available magnitude.
  * @return 2D vector
  */
-matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float max);
+matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float &max);
 
 /**
  * This method was used for smoothing the corners along two lines.
