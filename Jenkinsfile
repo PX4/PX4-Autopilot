@@ -106,6 +106,33 @@ pipeline {
           }
         }
 
+        stage('doxygen') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-03-30'
+              args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'ccache -z'
+            sh 'make distclean'
+            //sh 'make doxygen'
+            sh 'ccache -s'
+            // publish html
+            publishHTML target: [
+              reportTitles: 'Doxygen',
+              allowMissing: true,
+              alwaysLinkToLastBuild: true,
+              keepAll: true,
+              reportDir: 'build/doxygen/Documentation',
+              reportFiles: '*',
+              reportName: 'doxygen'
+            ]
+            sh 'make distclean'
+          }
+        }
+
       } // parallel
     }
 
