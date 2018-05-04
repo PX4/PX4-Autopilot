@@ -99,6 +99,9 @@ test: test_build
 
 test_EKF: test_build
 	@cmake --build $(SRC_DIR)/build/test_build --target ecl_EKF_pytest-quick
+	
+test_EKF_plots: test_build
+	@cmake --build $(SRC_DIR)/build/test_build --target ecl_EKF_pytest-plots
 
 # Cleanup
 # --------------------------------------------------------------------

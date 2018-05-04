@@ -84,6 +84,7 @@ pipeline {
             sh 'make distclean'
             sh 'make test_EKF'
             sh 'ccache -s'
+            archiveArtifacts(artifacts: 'build/**/*.pdf')
             sh 'make distclean'
           }
         }

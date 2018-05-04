@@ -44,18 +44,26 @@ import inspect
 from contextlib import contextmanager
 
 try:
-    from matplotlib import pyplot as plt
-    import seaborn as sns
+    # matplotlib don't use Xwindows backend (must be before pyplot import)
+    import matplotlib
+    matplotlib.use('Agg')
+
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+
+    #from matplotlib import pyplot as plt
+    #from matplotlib.backends.backend_pdf import PdfPages
+    #import seaborn as sns
 except ImportError as err:
     print("Cannot import plotting libraries, "
-          "please install matplotlib and seaborn.")
+          "please install matplotlib.")
     raise err
 
 # Nice plot defaults
-sns.set_style('darkgrid')
-sns.set_palette('colorblind',
-                desat=0.6)
+#sns.set_style('darkgrid')
+#sns.set_palette('colorblind', desat=0.6)
 
+pp = PdfPages("ecl_EKF_test.pdf")
 
 def quit_figure_on_key(key, fig=None):
     """Add handler to figure (defaults to current figure) that closes it
@@ -82,10 +90,11 @@ def figure(name=None, params=None, figsize=None, subplots=None):
         # Get name of function calling the context from the stack
         name = inspect.stack()[2][3]
     fig, axes = plt.subplots(*subplots, figsize=figsize)
-    fig.canvas.set_window_title(name)
-    quit_figure_on_key('q', fig)
+    #fig.canvas.set_window_title(name)
+    #quit_figure_on_key('q', fig)
     yield fig, axes
     if params is not None:
         name += "\n" + repr(params)
     axes[0].set_title(name)
-    plt.show(True)
+    #plt.show(True)
+    pp.savefig()
