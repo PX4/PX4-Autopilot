@@ -35,6 +35,13 @@ cmake_minimum_required(VERSION 3.0)
 
 project(ECL CXX)
 
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
+    message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
+endif()
+
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage")
+
 execute_process(
 	COMMAND git describe --always --tags
 	OUTPUT_VARIABLE git_tag
@@ -47,6 +54,18 @@ message(STATUS "PX4 ECL: Very lightweight Estimation & Control Library ${git_tag
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# code coverage support
+option(COV_HTML "Display html for coverage" OFF)
+
+set(CMAKE_CXX_FLAGS_COVERAGE
+    "--coverage -fprofile-arcs -ftest-coverage -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
+    CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
+    "--coverage -ftest-coverage -lgcov"
+    CACHE STRING "Flags used for linking binaries during coverage builds" FORCE)
+mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE CMAKE_C_FLAGS_COVERAGE CMAKE_EXE_LINKER_FLAGS_COVERAGE)
+
 
 set(ECL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -79,21 +98,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 		)
 	endif()
 
-	# fetch latest matrix from github
-	include(ExternalProject)
-	ExternalProject_Add(matrix
-			GIT_REPOSITORY "https://github.com/PX4/Matrix.git"
-			UPDATE_COMMAND ""
-			PATCH_COMMAND ""
-			CONFIGURE_COMMAND ""
-			BUILD_COMMAND ""
-			INSTALL_COMMAND ""
-			)
-	add_dependencies(prebuild_targets matrix)
-	include_directories(${CMAKE_BINARY_DIR}/matrix-prefix/src/matrix)
-
-	add_subdirectory(mathlib)
-
+	# testing
 	include(CTest)
 	enable_testing()
 	
@@ -113,6 +118,22 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 		endif()
 	endif()
 
+	# fetch latest matrix from github
+	include(ExternalProject)
+	ExternalProject_Add(matrix
+			GIT_REPOSITORY "https://github.com/PX4/Matrix.git"
+			UPDATE_COMMAND ""
+			PATCH_COMMAND ""
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ""
+			INSTALL_COMMAND ""
+			)
+	add_dependencies(prebuild_targets matrix)
+	include_directories(${CMAKE_BINARY_DIR}/matrix-prefix/src/matrix)
+
+	# mathlib only needed in standalone build
+	add_subdirectory(mathlib)
+
 endif()
 
 add_subdirectory(airdata)
@@ -123,6 +144,29 @@ add_subdirectory(geo_lookup)
 add_subdirectory(l1)
 add_subdirectory(tecs)
 add_subdirectory(validation)
+
+#=============================================================================
+# Coverage
+#
+if (${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
+
+    add_custom_target(coverage
+        COMMAND ${CMAKE_CTEST_COMMAND}
+        COMMAND lcov --capture --directory . --output-file coverage.info
+        COMMAND lcov --remove coverage.info '/usr/*' --output-file coverage.info # filter out system
+        COMMAND lcov --remove coverage.info 'build/coverage_build/EKF/swig/*' --output-file coverage.info
+        COMMAND lcov --summary coverage.info
+        WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+        DEPENDS check
+        )
+
+    add_custom_target(coverage_html
+        COMMAND genhtml coverage.info --output-directory out
+        WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+        DEPENDS coverage
+        )
+
+endif()
 
 #=============================================================================
 # Doxygen

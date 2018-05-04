@@ -71,6 +71,35 @@ pipeline {
     stage('Test') {
       parallel {
 
+        stage('coverage') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ecl:2018-04-22'
+              args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'ccache -z'
+            sh 'make distclean'
+            sh 'make coverage'
+            //sh 'bash <(curl -s https://codecov.io/bash) -t ${CODECOV_TOKEN}'
+            sh 'make coverage_html'
+            // publish html
+            publishHTML target: [
+              reportTitles: 'code coverage',
+              allowMissing: false,
+              alwaysLinkToLastBuild: true,
+              keepAll: true,
+              reportDir: 'build/coverage_build/out',
+              reportFiles: '*',
+              reportName: 'Code Coverage'
+            ]
+            sh 'ccache -s'
+            sh 'make distclean'
+          }
+        }
+
         stage('EKF pytest') {
           agent {
             docker {
@@ -84,7 +113,7 @@ pipeline {
             sh 'make distclean'
             sh 'make test_EKF'
             sh 'ccache -s'
-            archiveArtifacts(artifacts: 'build/**/*.pdf')
+            archiveArtifacts(artifacts: 'build/test_build/*.pdf')
             sh 'make distclean'
           }
         }

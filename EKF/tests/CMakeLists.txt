@@ -32,6 +32,9 @@
 ############################################################################
 
 if(BUILD_TESTING AND ECL_STANDALONE)
+
+	add_definitions(-UNDEBUG) # keep assert
+
 	add_subdirectory(base)
 	
 	if(EKF_PYTHON_TESTS)

@@ -1,4 +1,5 @@
 *.DS_Store
+*.gcov
 *~
 .cache/
 .pytest_cache/
