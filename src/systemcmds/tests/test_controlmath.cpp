@@ -74,7 +74,7 @@ bool ControlMathTest::testPrioritizeVector()
 
 	// the static keywork is a workaround for an internal bug of GCC
 	// "internal compiler error: in trunc_int_for_mode, at explow.c:55"
-	static matrix::Vector2f v_r = ControlMath::constrainXY(v0, v1, max);
+	matrix::Vector2f v_r = ControlMath::constrainXY(v0, v1, max);
 	ut_assert_true(fabsf(v_r(0)) - max < FLT_EPSILON && v_r(0) > 0.0f);
 	ut_assert_true(fabsf(v_r(1) - 0.0f) < FLT_EPSILON);
 
