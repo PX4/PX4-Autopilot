@@ -137,6 +137,24 @@ pipeline {
           }
         }
 
+        stage('test (asan)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ecl:2018-04-22'
+              args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'ccache -z'
+            sh 'make distclean'
+            sh 'make test_asan'
+            sh 'ccache -s'
+            sh 'make distclean'
+          }
+        }
+
+
         stage('doxygen') {
           agent {
             docker {

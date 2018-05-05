@@ -57,6 +57,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # code coverage support
 option(COV_HTML "Display html for coverage" OFF)
+option(ECL_ASAN "Enable ECL address sanitizer" OFF)
 
 set(CMAKE_CXX_FLAGS_COVERAGE
     "--coverage -fprofile-arcs -ftest-coverage -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
@@ -135,6 +136,24 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	# mathlib only needed in standalone build
 	add_subdirectory(mathlib)
 
+endif()
+
+# santiziers (ASAN)
+if(ECL_ASAN)
+	message(STATUS "ecl address sanitizer enabled ")
+
+	# environment variables
+	#  ASAN_OPTIONS=detect_stack_use_after_return=1
+	#  ASAN_OPTIONS=check_initialization_order=1
+
+	add_compile_options(
+		-fsanitize=address
+		-g3
+		-O1
+		-fno-omit-frame-pointer
+	)
+
+	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address)
 endif()
 
 add_subdirectory(airdata)

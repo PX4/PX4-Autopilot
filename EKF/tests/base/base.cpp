@@ -143,5 +143,7 @@ int main(int argc, char *argv[])
 	//base->printStoredMag();
 	//base->printStoredGps();
 
+	delete base;
+
 	return 0;
 }
