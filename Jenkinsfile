@@ -608,11 +608,18 @@ pipeline {
           branch 'master'
           branch 'beta'
           branch 'stable'
+          branch 'pr-jenkins_deploy'
         }
       }
 
       steps {
-        sh 'echo "uploading to S3"'
+        unarchive mapping: ['build/' : '.']
+        unarchive mapping: ['*.xml' : '.']
+        sh 'ls'
+        sh 'find . -name *.px4'
+        withAWS(credentials: 'px4_aws_s3_key') {
+          s3Upload(includePathPattern: 'build/*/*.px4', bucket: 'px4-travis', path: 'Firmware/${BRANCH_NAME}')
+        }
       }
     }
   } // stages
