@@ -5,14 +5,14 @@ pipeline {
       parallel {
 
         stage('Linux GCC') {
-          environment {
-            CCACHE_BASEDIR = "${env.WORKSPACE}"
-          }
           agent {
             docker {
               image 'px4io/px4-dev-base:2017-12-30'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            } 
+            }
+          }
+          environment {
+            CCACHE_BASEDIR = "${env.WORKSPACE}"
           }
           steps {
             sh 'export'
@@ -25,16 +25,16 @@ pipeline {
         }
 
         stage('Linux Clang') {
-          environment {
-            CCACHE_BASEDIR = "${env.WORKSPACE}"
-            CC = 'clang'
-            CXX = 'clang++'
-          }
           agent {
             docker {
               image 'px4io/px4-dev-clang:2017-12-30'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
+          }
+          environment {
+            CCACHE_BASEDIR = "${env.WORKSPACE}"
+            CC = 'clang'
+            CXX = 'clang++'
           }
           steps {
             sh 'export'
@@ -113,7 +113,7 @@ pipeline {
             sh 'make distclean'
             sh 'make test_EKF'
             sh 'ccache -s'
-            archiveArtifacts(artifacts: 'build/test_build/*.pdf')
+            archiveArtifacts 'build/test_build/*.pdf'
             sh 'make distclean'
           }
         }
@@ -148,24 +148,51 @@ pipeline {
             sh 'make distclean'
             //sh 'make doxygen'
             sh 'ccache -s'
-            // publish html
-            publishHTML target: [
-              reportTitles: 'Doxygen',
-              allowMissing: true,
-              alwaysLinkToLastBuild: true,
-              keepAll: true,
-              reportDir: 'build/doxygen/Documentation',
-              reportFiles: '*',
-              reportName: 'doxygen'
-            ]
+            publishHTML([
+                          reportTitles: 'Doxygen',
+                          allowMissing: true,
+                          alwaysLinkToLastBuild: true,
+                          keepAll: true,
+                          reportDir: 'build/doxygen/Documentation',
+                          reportFiles: '*',
+                          reportName: 'doxygen'
+                          ])
             sh 'make distclean'
           }
         }
 
-      } // parallel
-    }
+        stage('PX4/Firmware build') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-03-30'
+              args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          environment {
+            PX4_FIRMWARE_TEST_BRANCH = "ecl_${env.JOB_BASE_NAME}"
+          }
+          steps {
+            sh 'export'
+            sh('git config user.email "bot@pixhawk.org"')
+            sh('git config user.name "PX4BuildBot"')
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh('git clone --branch master --origin px4 https://${GIT_USER}:${GIT_PASS}@github.com/PX4/Firmware.git')
+            }
+            sh('cd Firmware; git checkout -B ${PX4_FIRMWARE_TEST_BRANCH}')
+            sh('if [ -n "${CHANGE_FORK+set}" ]; then cd Firmware; git config --file=.gitmodules submodule."src/lib/ecl".url https://github.com/${CHANGE_FORK}/ecl.git; fi')
+            sh('cd Firmware; git submodule sync')
+            sh('cd Firmware; git submodule update --init --recursive --force src/lib/ecl')
+            sh 'cd Firmware/src/lib/ecl; git fetch --all --tags; git checkout -f ${GIT_COMMIT}'
+            sh('cd Firmware; git commit -a -m "PX4/ecl test `date` ${GIT_BRANCH} ${GIT_COMMIT}"')
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh('cd Firmware; git push --force px4 ${PX4_FIRMWARE_TEST_BRANCH}')
+            }
+          }
+        }
 
-  }
+      } // parallel
+    } // stage Test
+  } // stages
 
   environment {
     CCACHE_DIR = '/tmp/ccache'
