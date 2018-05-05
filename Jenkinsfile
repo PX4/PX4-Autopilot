@@ -83,7 +83,6 @@ pipeline {
             sh 'ccache -z'
             sh 'make distclean'
             sh 'make coverage'
-            //sh 'bash <(curl -s https://codecov.io/bash) -t ${CODECOV_TOKEN}'
             sh 'make coverage_html'
             // publish html
             publishHTML target: [
@@ -95,6 +94,9 @@ pipeline {
               reportFiles: '*',
               reportName: 'Code Coverage'
             ]
+            withCredentials([string(credentialsId: 'ECL_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s'
+            }
             sh 'ccache -s'
             sh 'make distclean'
           }
