@@ -69,15 +69,15 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
         message(FATAL_ERROR "genhtml required")
         endif()
 
-        set(coverage_info "${CMAKE_BINARY_DIR}/coverage.info")
+        set(coverage_info "${CMAKE_BINARY_DIR}/${_outputname}.info")
         set(coverage_cleaned "${coverage_info}.cleaned")
 
         separate_arguments(test_command UNIX_COMMAND "${_testrunner}")
 
         # Setup target
-        add_custom_COMMAND(OUTPUT ${coverage_info}
+        add_custom_command(OUTPUT ${coverage_info}
                 # Cleanup lcov
-                COMMAND ${LCOV_PATH} --quiet --directory . --zerocounters
+                #COMMAND ${LCOV_PATH} --quiet --directory . --zerocounters
 
                 # Run tests
                 COMMAND ${test_command} ${ARGV3}
