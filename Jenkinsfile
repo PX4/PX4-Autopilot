@@ -154,7 +154,6 @@ pipeline {
           }
         }
 
-
         stage('doxygen') {
           agent {
             docker {
@@ -189,12 +188,12 @@ pipeline {
             }
           }
           environment {
+            GIT_COMMITTER_EMAIL = "bot@pixhawk.org"
+            GIT_COMMITTER_NAME = "PX4BuildBot"
             PX4_FIRMWARE_TEST_BRANCH = "ecl_${env.JOB_BASE_NAME}"
           }
           steps {
             sh 'export'
-            sh('git config user.email "bot@pixhawk.org"')
-            sh('git config user.name "PX4BuildBot"')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh('git clone --branch master --origin px4 https://${GIT_USER}:${GIT_PASS}@github.com/PX4/Firmware.git')
             }
