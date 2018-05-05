@@ -441,8 +441,8 @@ void Ekf::controlOpticalFlowFusion()
 			}
 		}
 
-		// fuse the data if the terrain/distance to bottom is valid
-		if (_control_status.flags.opt_flow && get_terrain_valid()) {
+		// fuse the data if the terrain/distance to bottom is valid but use a more relaxed check to enable it to survive bad range finder data
+		if (_control_status.flags.opt_flow && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)10e6)) {
 			// Update optical flow bias estimates
 			calcOptFlowBias();
 
