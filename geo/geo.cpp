@@ -53,7 +53,7 @@
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-static struct map_projection_reference_s mp_ref = {};
+static struct map_projection_reference_s mp_ref;
 static struct globallocal_converter_reference_s gl_ref = {0.0f, false};
 
 bool map_projection_global_initialized()
