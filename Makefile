@@ -109,6 +109,11 @@ test_EKF: test_build
 test_EKF_plots: test_build
 	@cmake --build $(SRC_DIR)/build/test_build --target ecl_EKF_pytest-plots
 
+test_build_asan:
+	@$(call cmake-build,$@,$(SRC_DIR), "-DECL_ASAN=ON")
+
+test_asan: test_build_asan
+	@cmake --build $(SRC_DIR)/build/test_build_asan --target check
 
 # Code coverage
 # --------------------------------------------------------------------
