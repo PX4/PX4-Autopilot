@@ -279,7 +279,7 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_offboard rostest
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard rostest
 
 tests:
 	@$(MAKE) --no-print-directory posix_sitl_default test_results \
@@ -301,6 +301,13 @@ rostest: posix_sitl_default
 
 tests_mission: rostest
 	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_missions.test
+
+tests_mission_coverage:
+	@$(MAKE) clean
+	@$(MAKE) --no-print-directory posix_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(MAKE) --no-print-directory posix_sitl_default sitl_gazebo PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol
+	@$(MAKE) --no-print-directory posix_sitl_default generate_coverage
 
 tests_offboard: rostest
 	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
