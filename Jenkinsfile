@@ -283,6 +283,25 @@ pipeline {
           }
         }
 
+        stage('tests (code coverage)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros:2018-03-30'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ulimit -c unlimited; make tests_coverage'
+            sh 'ls'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s'
+            }
+            sh 'make distclean'
+          }
+        }
+
         stage('check stack') {
           agent {
             docker {
