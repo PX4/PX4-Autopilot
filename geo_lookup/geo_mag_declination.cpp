@@ -42,8 +42,13 @@
 *
 */
 
-#include <stdint.h>
 #include "geo_mag_declination.h"
+
+#include <mathlib/mathlib.h>
+
+#include <stdint.h>
+
+using math::constrain;
 
 /** set this always to the sampling in degrees for the table below */
 static constexpr float SAMPLING_RES = 10.0f;
@@ -51,8 +56,6 @@ static constexpr float SAMPLING_MIN_LAT	= -60.0f;
 static constexpr float SAMPLING_MAX_LAT	= 60.0f;
 static constexpr float SAMPLING_MIN_LON	= -180.0f;
 static constexpr float SAMPLING_MAX_LON	= 180.0f;
-
-#define constrain(val, min, max) (val < min) ? min : ((val > max) ? max : val)
 
 // declination data in degrees
 static constexpr const int8_t declination_table[13][37] = \
@@ -114,15 +117,10 @@ get_lookup_table_index(float *val, float min, float max)
 	/* for the rare case of hitting the bounds exactly
 	 * the rounding logic wouldn't fit, so enforce it.
 	 */
-	/* limit to table bounds - required for maxima even when table spans full globe range */
-	if (*val < min) {
-		*val = min;
-	}
 
+	/* limit to table bounds - required for maxima even when table spans full globe range */
 	/* limit to (table bounds - 1) because bilinear interpolation requires checking (index + 1) */
-	if (*val > max) {
-		*val = max - SAMPLING_RES;
-	}
+	*val = constrain(*val, min, max - SAMPLING_RES);
 
 	return static_cast<unsigned>((-(min) + *val) / SAMPLING_RES);
 }
@@ -141,24 +139,24 @@ get_table_data(float lat, float lon, const int8_t table[13][37])
 	}
 
 	/* round down to nearest sampling resolution */
-	float min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES;
-	float min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES;
+	float min_lat = int(lat / SAMPLING_RES) * SAMPLING_RES;
+	float min_lon = int(lon / SAMPLING_RES) * SAMPLING_RES;
 
 	/* find index of nearest low sampling point */
 	unsigned min_lat_index = get_lookup_table_index(&min_lat, SAMPLING_MIN_LAT, SAMPLING_MAX_LAT);
 	unsigned min_lon_index = get_lookup_table_index(&min_lon, SAMPLING_MIN_LON, SAMPLING_MAX_LON);
 
-	float data_sw = table[min_lat_index][min_lon_index];
-	float data_se = table[min_lat_index][min_lon_index + 1];
-	float data_ne = table[min_lat_index + 1][min_lon_index + 1];
-	float data_nw = table[min_lat_index + 1][min_lon_index];
+	const float data_sw = table[min_lat_index][min_lon_index];
+	const float data_se = table[min_lat_index][min_lon_index + 1];
+	const float data_ne = table[min_lat_index + 1][min_lon_index + 1];
+	const float data_nw = table[min_lat_index + 1][min_lon_index];
 
 	/* perform bilinear interpolation on the four grid corners */
-	float lat_scale = constrain((lat - min_lat) / SAMPLING_RES, 0.0f, 1.0f);
-	float lon_scale = constrain((lon - min_lon) / SAMPLING_RES, 0.0f, 1.0f);
+	const float lat_scale = constrain((lat - min_lat) / SAMPLING_RES, 0.0f, 1.0f);
+	const float lon_scale = constrain((lon - min_lon) / SAMPLING_RES, 0.0f, 1.0f);
 
-	float data_min = lon_scale * (data_se - data_sw) + data_sw;
-	float data_max = lon_scale * (data_ne - data_nw) + data_nw;
+	const float data_min = lon_scale * (data_se - data_sw) + data_sw;
+	const float data_max = lon_scale * (data_ne - data_nw) + data_nw;
 
 	return lat_scale * (data_max - data_min) + data_min;
 }
