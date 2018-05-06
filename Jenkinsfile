@@ -239,6 +239,9 @@ pipeline {
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s'
             }
+            withCredentials([string(credentialsId: 'ECL_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh('curl -s https://codecov.io/bash | bash -s - -B master -C `git -C src/lib/ecl rev-parse HEAD` -R src/lib/ecl -k src/lib/ecl -s .')
+            }
             sh 'make distclean'
           }
         }
