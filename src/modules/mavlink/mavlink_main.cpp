@@ -1337,13 +1337,15 @@ void Mavlink::send_protocol_version()
 
 MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance)
 {
-	/* check if already subscribed to this topic */
-	MavlinkOrbSubscription *sub;
+	if (topic != ORB_ID(vehicle_command)) {
+		/* check if already subscribed to this topic */
+		MavlinkOrbSubscription *sub;
 
-	LL_FOREACH(_subscriptions, sub) {
-		if (sub->get_topic() == topic && sub->get_instance() == instance) {
-			/* already subscribed */
-			return sub;
+		LL_FOREACH(_subscriptions, sub) {
+			if (sub->get_topic() == topic && sub->get_instance() == instance) {
+				/* already subscribed */
+				return sub;
+			}
 		}
 	}
 
