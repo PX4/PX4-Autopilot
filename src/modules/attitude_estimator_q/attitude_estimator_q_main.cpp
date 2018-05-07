@@ -91,7 +91,7 @@ public:
 	 */
 	int		start();
 
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 
 	void		task_main();
 
@@ -243,9 +243,10 @@ int AttitudeEstimatorQ::start()
 	return OK;
 }
 
-void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[])
+int AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[])
 {
 	attitude_estimator_q::instance->task_main();
+	return 0;
 }
 
 void AttitudeEstimatorQ::task_main()

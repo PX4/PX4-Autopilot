@@ -149,8 +149,9 @@ public:
 	 * @param argc start argument(s)
 	 * @param argv start argument(s)
 	 */
-	static void run_trampoline(int argc, char *argv[])
+	static int run_trampoline(int argc, char *argv[])
 	{
+		int ret = 0;
 
 #ifdef __PX4_NUTTX
 		// on NuttX task_create() adds the task name as first argument
@@ -166,9 +167,12 @@ public:
 
 		} else {
 			PX4_ERR("failed to instantiate object");
+			ret = -1;
 		}
 
 		exit_and_cleanup();
+
+		return ret;
 	}
 
 	/**

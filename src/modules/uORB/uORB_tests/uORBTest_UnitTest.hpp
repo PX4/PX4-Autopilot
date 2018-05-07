@@ -86,10 +86,10 @@ private:
 	// Disallow copy
 	UnitTest(const uORBTest::UnitTest & /*unused*/) = delete;
 
-	static int pubsubtest_threadEntry(char *const argv[]);
+	static int pubsubtest_threadEntry(int argc, char *argv[]);
 	int pubsublatency_main();
 
-	static int pub_test_multi2_entry(char *const argv[]);
+	static int pub_test_multi2_entry(int argc, char *argv[]);
 	int pub_test_multi2_main();
 
 	volatile bool _thread_should_exit;
@@ -111,7 +111,7 @@ private:
 
 	/* queuing tests */
 	int test_queue();
-	static int pub_test_queue_entry(char *const argv[]);
+	static int pub_test_queue_entry(int argc, char *argv[]);
 	int pub_test_queue_main();
 	int test_queue_poll_notify();
 	volatile int _num_messages_sent = 0;
