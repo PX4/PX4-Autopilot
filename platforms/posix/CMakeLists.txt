@@ -110,6 +110,7 @@ install(
 		${PROJECT_SOURCE_DIR}/test
 	DESTINATION
 		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}
+	USE_SOURCE_PERMISSIONS
 	)
 
 # px4 files
@@ -127,11 +128,12 @@ install(
 		${PROJECT_SOURCE_DIR}/Tools/ecl_ekf
 	DESTINATION
 		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/Tools
+	USE_SOURCE_PERMISSIONS
 	)
 
 # px4 Tools files
 install(
-	FILES
+	PROGRAMS
 		${PROJECT_SOURCE_DIR}/Tools/setup_gazebo.bash
 		${PROJECT_SOURCE_DIR}/Tools/upload_log.py
 	DESTINATION
