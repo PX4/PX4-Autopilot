@@ -168,7 +168,9 @@ bool Ekf::resetPosition()
 
 		}
 
-		setDiag(P, 7, 8, sq(_params.pos_noaid_noise));
+		// estimate is relative to initial positon in this mode, so we start with zero error.
+		zeroCols(P,7,8);
+		zeroRows(P,7,8);
 
 	} else {
 		// Used when falling back to non-aiding mode of operation
