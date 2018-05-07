@@ -101,6 +101,6 @@ bool FlightTaskOrbit::update()
 	_velocity_setpoint = Vector3f(velocity_xy(0), velocity_xy(1), 0.f);
 
 	/* make vehicle front always point towards the center */
-	_yawspeed_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 	return true;
 }
