@@ -51,8 +51,8 @@ VFile::VFile(const char *fname, mode_t mode) :
 VFile *VFile::createFile(const char *fname, mode_t mode)
 {
 	VFile *me = new VFile(fname, mode);
-	px4_file_operations_t *fops = nullptr;
-	register_driver(fname, fops, 0666, (void *)me);
+	px4_file_operations_t *file_ops = nullptr;
+	register_driver(fname, file_ops, 0666, (void *)me);
 	return me;
 }
 
