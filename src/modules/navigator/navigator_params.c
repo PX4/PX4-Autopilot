@@ -43,7 +43,7 @@
 /**
  * Loiter radius (FW only)
  *
- * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
+ * Default value of loiter radius for missions, Hold mode, Return mode, etc. (fixedwing only).
  *
  * @unit m
  * @min 25
@@ -107,9 +107,9 @@ PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 0.8f);
  * of that competition.
  *
  * @value 0 Disabled
- * @value 1 Loiter
- * @value 2 Return to Land
- * @value 3 Land at current position
+ * @value 1 Hold mode
+ * @value 2 Return mode
+ * @value 3 Land mode
  * @value 4 Data Link Auto Recovery (CASA Outback Challenge rules)
  * @value 5 Terminate
  * @value 6 Lockdown
@@ -128,9 +128,9 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  * which are only recommended to participants of that competition.
  *
  * @value 0 Disabled
- * @value 1 Loiter
- * @value 2 Return to Land
- * @value 3 Land at current position
+ * @value 1 Hold mode
+ * @value 2 Return mode
+ * @value 3 Land mode
  * @value 4 RC Auto Recovery (CASA Outback Challenge rules)
  * @value 5 Terminate
  * @value 6 Lockdown
@@ -147,8 +147,8 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  *
  * @value 0 Disabled
  * @value 1 Warn only
- * @value 2 Return to Land
- * @value 3 Land immediately
+ * @value 2 Return mode
+ * @value 3 Land mode
  *
  * @group Mission
  */
