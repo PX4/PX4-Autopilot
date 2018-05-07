@@ -134,7 +134,7 @@ public:
 	/**
 	 * task spawn trampoline for the secondary GPS
 	 */
-	static void run_trampoline_secondary(int argc, char *argv[]);
+	static int run_trampoline_secondary(int argc, char *argv[]);
 
 	/** @see ModuleBase::run() */
 	void run() override;
@@ -997,7 +997,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 	return 0;
 }
 
-void GPS::run_trampoline_secondary(int argc, char *argv[])
+int GPS::run_trampoline_secondary(int argc, char *argv[])
 {
 
 #ifdef __PX4_NUTTX
@@ -1014,6 +1014,7 @@ void GPS::run_trampoline_secondary(int argc, char *argv[])
 		_secondary_instance = nullptr;
 		delete gps;
 	}
+	return 0;
 }
 GPS *GPS::instantiate(int argc, char *argv[])
 {

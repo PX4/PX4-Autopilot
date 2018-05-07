@@ -214,7 +214,7 @@ private:
 //*****************Member functions***********************************************************************
 
 	void 		task_main();	//main task
-	static void	task_main_trampoline(int argc, char *argv[]);	//Shim for calling task_main from task_create.
+	static int	task_main_trampoline(int argc, char *argv[]);	//Shim for calling task_main from task_create.
 
 	void		land_detected_poll();
 	void		tecs_status_poll();
