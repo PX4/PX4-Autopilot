@@ -566,7 +566,9 @@ int open_perf_file(const char* str)
 
 	if (log_name_timestamp && time_ok) {
 		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &tt);
-		snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+		if (snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name)) {
+			return -1;
+		}
 
 	} else {
 		unsigned file_number = 1; // start with file log001
@@ -575,7 +577,9 @@ int open_perf_file(const char* str)
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.txt */
 			snprintf(log_file_name, sizeof(log_file_name), "perf%03u.txt", file_number);
-			snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+			if (snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name) >= sizeof(log_file_path)) {
+				return -1;
+			}
 
 			if (!file_exist(log_file_path)) {
 				break;
@@ -865,8 +869,9 @@ int write_version(int fd)
 	};
 
 	/* fill version message and write it */
-	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git));
-	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch));
+	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git)-1);
+	log_msg_VER.body.fw_git[sizeof(log_msg_VER.body.fw_git)-1] = '\0';
+	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch)-1);
 	log_msg_VER.body.arch[sizeof(log_msg_VER.body.arch) - 1] = '\0';
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
