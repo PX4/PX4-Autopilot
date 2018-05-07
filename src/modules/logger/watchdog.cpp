@@ -77,7 +77,9 @@ bool watchdog_update(watchdog_data_t &watchdog_data)
 			watchdog_data.last_state = current_state;
 
 #if 0 // for debugging
-			// test code that prints the maximum time in ready state
+			// test code that prints the maximum time in ready state.
+			// Note: we are in IRQ context, and thus are strictly speaking not allowed to use PX4_ERR -
+			// we do it anyway since it's only used for debugging.
 			static uint64_t max_time = 0;
 
 			if (now - watchdog_data.ready_to_run_timestamp > max_time) {
@@ -95,26 +97,18 @@ bool watchdog_update(watchdog_data_t &watchdog_data)
 #endif
 
 			if (now - watchdog_data.ready_to_run_timestamp > 1_s) {
-				PX4_ERR("watchdog triggered!"); // this will most likely not be logged due to dropouts
-
-				// boost the priority to make sure the logger continues to write to the log
+				// boost the priority to make sure the logger continues to write to the log.
+				// Note that we never restore the priority, to keep the logic simple and because it is
+				// an event that must not occur under normal circumstances (if it does, there's a bug
+				// somewhere)
 				sched_param param{};
 				param.sched_priority = SCHED_PRIORITY_MAX;
-				int ret;
 
 				if (system_load.tasks[watchdog_data.logger_main_task_index].valid) {
-					ret = sched_setparam(system_load.tasks[watchdog_data.logger_main_task_index].tcb->pid, &param);
-
-					if (ret < 0) {
-						PX4_ERR("sched_reprioritize failed (%i)", ret);
-					}
+					sched_setparam(system_load.tasks[watchdog_data.logger_main_task_index].tcb->pid, &param);
 				}
 
-				ret = sched_setparam(log_writer_task.tcb->pid, &param);
-
-				if (ret < 0) {
-					PX4_ERR("sched_reprioritize failed (%i)", ret);
-				}
+				sched_setparam(log_writer_task.tcb->pid, &param);
 
 				// make sure we won't trigger again
 				watchdog_data.logger_main_task_index = -1;
