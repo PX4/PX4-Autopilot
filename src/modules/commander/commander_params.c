@@ -368,7 +368,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  *
  * @value 0 Position mode
  * @value 1 Altitude mode
- * @value 2 Manual/Stabilized
+ * @value 2 Manual
  * @value 3 Return mode
  * @value 4 Land mode
  * @value 5 Hold mode
