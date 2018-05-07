@@ -53,7 +53,7 @@
  * @max 150
  * @decimal 1
  * @increment 0.5
- * @group Return mode
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
@@ -69,7 +69,7 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
  * @max 100
  * @decimal 1
  * @increment 0.5
- * @group Return mode
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 
@@ -84,7 +84,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * @max 300
  * @decimal 1
  * @increment 0.5
- * @group Return mode
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
  * @max 20
  * @decimal 1
  * @increment 0.5
- * @group Return mode
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
 
