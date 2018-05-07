@@ -946,7 +946,8 @@ bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream 
 
 		return true;
 
-	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)) {
+	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)
+		   || sub.orb_meta == ORB_ID(vehicle_gps_position)) {
 		return publishTopic(sub, data);
 	} // else: do not publish
 
@@ -965,7 +966,9 @@ void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 		_distance_sensor_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
-		_gps_msg_id = msg_id;
+		if (sub.multi_id == 0) {
+			_gps_msg_id = msg_id;
+		}
 
 	} else if (sub.orb_meta == ORB_ID(optical_flow)) {
 		_optical_flow_msg_id = msg_id;
@@ -986,7 +989,8 @@ void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	// the main loop should only handle publication of the following topics, the sensor topics are
 	// handled separately in publishEkf2Topics()
 	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status)
-		      && sub.orb_meta != ORB_ID(vehicle_land_detected);
+		      && sub.orb_meta != ORB_ID(vehicle_land_detected) &&
+		      (sub.orb_meta != ORB_ID(vehicle_gps_position) || sub.multi_id == 0);
 }
 
 bool ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file)
