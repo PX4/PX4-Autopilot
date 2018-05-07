@@ -142,13 +142,11 @@ uORB::DeviceNode::open(device::file_t *filp)
 	if (FILE_FLAGS(filp) == PX4_F_RDONLY) {
 
 		/* allocate subscriber data */
-		SubscriberData *sd = new SubscriberData;
+		SubscriberData *sd = new SubscriberData{};
 
 		if (nullptr == sd) {
 			return -ENOMEM;
 		}
-
-		memset(sd, 0, sizeof(*sd));
 
 		/* default to no pending update */
 		sd->generation = _generation;
