@@ -186,6 +186,8 @@ static bool _last_condition_global_position_valid = false;
 
 static struct vehicle_land_detected_s land_detector = {};
 
+static float _eph_threshold_adj = INFINITY;	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
+
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -1751,6 +1753,19 @@ Commander::run()
 		_local_position_sub.update();
 		_global_position_sub.update();
 
+		// Set the allowable positon uncertainty based on combination of flight and estimator state
+		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error becasue it will gradually increase throughout flight and the operator will compensate for the drift
+		bool reliant_on_opt_flow = ((estimator_status.control_mode_flags & (1 << estimator_status_s::CS_OPT_FLOW))
+					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS))
+					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_EV_POS)));
+		bool operator_controlled_position = (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL);
+		bool skip_pos_accuracy_check = reliant_on_opt_flow && operator_controlled_position;
+		if (skip_pos_accuracy_check) {
+			_eph_threshold_adj = INFINITY;
+		} else {
+			_eph_threshold_adj = _eph_threshold.get();
+		}
+
 		// Check if quality checking of position accuracy and consistency is to be performed
 		const bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
 
@@ -1818,11 +1833,11 @@ Commander::run()
 			} else {
 				// use global position message to determine validity
 				const vehicle_global_position_s&global_position = _global_position_sub.get();
-				check_posvel_validity(true, global_position.eph, _eph_threshold.get(), global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
+				check_posvel_validity(true, global_position.eph, _eph_threshold_adj, global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
 
 				// use local position message to determine validity
 				const vehicle_local_position_s &local_position = _local_position_sub.get();
-				check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold.get(), local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
+				check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold_adj, local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
 				check_posvel_validity(local_position.v_xy_valid, local_position.evh, _evh_threshold.get(), local_position.timestamp, &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
 			}
 		}
@@ -3337,8 +3352,8 @@ Commander::reset_posvel_validity(bool *changed)
 	const vehicle_global_position_s &global_position = _global_position_sub.get();
 
 	// recheck validity
-	check_posvel_validity(true, global_position.eph, _eph_threshold.get(), global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, changed);
-	check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold.get(), local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, changed);
+	check_posvel_validity(true, global_position.eph, _eph_threshold_adj, global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, changed);
+	check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold_adj, local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, changed);
 	check_posvel_validity(local_position.v_xy_valid, local_position.evh, _evh_threshold.get(), local_position.timestamp, &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, changed);
 }
 
