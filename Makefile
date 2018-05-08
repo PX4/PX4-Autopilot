@@ -126,11 +126,11 @@ define cmake-build
 +@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
-COLOR_BLUE = \033[0;34m
+COLOR_BLUE = \033[0;94m
 NO_COLOR   = \033[m
 
 define colorecho
-+@echo "${COLOR_BLUE}${1} ${NO_COLOR}"
++@echo -e "${COLOR_BLUE}${1} ${NO_COLOR}"
 endef
 
 # Get a list of all config targets cmake/configs/*.cmake
