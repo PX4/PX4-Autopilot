@@ -13,38 +13,40 @@ float32[24] covariances	# Diagonal Elements of Covariance Matrix
 
 uint16 gps_check_fail_flags     # Bitmask to indicate status of GPS checks - see definition below
 # bits are true when corresponding test has failed
-uint16 GPS_CHECK_FAIL_GPS_FIX = 0				# 0 : insufficient fix type (no 3D solution)
-uint16 GPS_CHECK_FAIL_MIN_SAT_COUNT = 1			# 1 : minimum required sat count fail
-uint16 GPS_CHECK_FAIL_MIN_GDOP = 2				# 2 : minimum required GDoP fail
-uint16 GPS_CHECK_FAIL_MAX_HORZ_ERR = 3			# 3 : maximum allowed horizontal position error fail
-uint16 GPS_CHECK_FAIL_MAX_VERT_ERR = 4			# 4 : maximum allowed vertical position error fail
-uint16 GPS_CHECK_FAIL_MAX_SPD_ERR = 5			# 5 : maximum allowed speed error fail
-uint16 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 6		# 6 : maximum allowed horizontal position drift fail - requires stationary vehicle
-uint16 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 7		# 7 : maximum allowed vertical position drift fail - requires stationary vehicle
-uint16 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8		# 8 : maximum allowed horizontal speed fail - requires stationary vehicle
-uint16 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 9		# 9 : maximum allowed vertical velocity discrepancy fail
+uint8 GPS_CHECK_FAIL_GPS_FIX = 0		# 0 : insufficient fix type (no 3D solution)
+uint8 GPS_CHECK_FAIL_MIN_SAT_COUNT = 1		# 1 : minimum required sat count fail
+uint8 GPS_CHECK_FAIL_MIN_GDOP = 2		# 2 : minimum required GDoP fail
+uint8 GPS_CHECK_FAIL_MAX_HORZ_ERR = 3		# 3 : maximum allowed horizontal position error fail
+uint8 GPS_CHECK_FAIL_MAX_VERT_ERR = 4		# 4 : maximum allowed vertical position error fail
+uint8 GPS_CHECK_FAIL_MAX_SPD_ERR = 5		# 5 : maximum allowed speed error fail
+uint8 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 6		# 6 : maximum allowed horizontal position drift fail - requires stationary vehicle
+uint8 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 7		# 7 : maximum allowed vertical position drift fail - requires stationary vehicle
+uint8 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8	# 8 : maximum allowed horizontal speed fail - requires stationary vehicle
+uint8 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 9	# 9 : maximum allowed vertical velocity discrepancy fail
 
 uint32 control_mode_flags	# Bitmask to indicate EKF logic state
-# 0 - true if the filter tilt alignment is complete
-# 1 - true if the filter yaw alignment is complete
-# 2 - true if GPS measurements are being fused
-# 3 - true if optical flow measurements are being fused
-# 4 - true if a simple magnetic yaw heading is being fused
-# 5 - true if 3-axis magnetometer measurement are being fused
-# 6 - true if synthetic magnetic declination measurements are being fused
-# 7 - true when the vehicle is airborne
-# 8 - true when wind velocity is being estimated
-# 9 - true when baro height is being fused as a primary height reference
-# 10 - true when range finder height is being fused as a primary height reference
-# 11 - true when GPS height is being fused as a primary height reference
-# 12 - true when local position data from external vision is being fused
-# 13 - true when yaw data from external vision measurements is being fused
-# 14 - true when height data from external vision measurements is being fused
-# 15 - true when synthetic sideslip measurements are being fused
-# 16 - true when only the magnetic field states are updated by the magnetometer
-# 17 - true when the vehicle is operating as a fixed wing vehicle
-# 18 - true when the magnetomer has been declared faulty and is no longer being used
-# 19 - true when airspeed measurements are being fused
+uint8 CS_TILT_ALIGN = 0		# 0 - true if the filter tilt alignment is complete
+uint8 CS_YAW_ALIGN = 1		# 1 - true if the filter yaw alignment is complete
+uint8 CS_GPS = 2		# 2 - true if GPS measurements are being fused
+uint8 CS_OPT_FLOW = 3		# 3 - true if optical flow measurements are being fused
+uint8 CS_MAG_HDG = 4		# 4 - true if a simple magnetic yaw heading is being fused
+uint8 CS_MAG_3D = 5		# 5 - true if 3-axis magnetometer measurement are being fused
+uint8 CS_MAG_DEC = 6		# 6 - true if synthetic magnetic declination measurements are being fused
+uint8 CS_IN_AIR = 7		# 7 - true when thought to be airborne
+uint8 CS_WIND = 8		# 8 - true when wind velocity is being estimated
+uint8 CS_BARO_HGT = 9		# 9 - true when baro height is being fused as a primary height reference
+uint8 CS_RNG_HGT = 10		# 10 - true when range finder height is being fused as a primary height reference
+uint8 CS_GPS_HGT = 11		# 11 - true when GPS height is being fused as a primary height reference
+uint8 CS_EV_POS = 12		# 12 - true when local position data from external vision is being fused
+uint8 CS_EV_YAW = 13		# 13 - true when yaw data from external vision measurements is being fused
+uint8 CS_EV_HGT = 14		# 14 - true when height data from external vision measurements is being fused
+uint8 CS_BETA = 15		# 15 - true when synthetic sideslip measurements are being fused
+uint8 CS_MAG_FIELD = 16		# 16 - true when only the magnetic field states are updated by the magnetometer
+uint8 CS_FIXED_WING = 17	# 17 - true when thought to be operating as a fixed wing vehicle with constrained sideslip
+uint8 CS_MAG_FAULT = 18		# 18 - true when the magnetomer has been declared faulty and is no longer being used
+uint8 CS_ASPD = 19		# 19 - true when airspeed measurements are being fused
+uint8 CS_GND_EFFECT = 20	# 20 - true when when protection from ground effect induced static pressure rise is active
+uint8 CS_RNG_STUCK = 21		# 21 - true when a stuck range finder sensor has been detected
 
 uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
