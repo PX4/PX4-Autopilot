@@ -166,6 +166,10 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			list(APPEND serial_ports
 				/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
 				)
+		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
+			list(APPEND serial_ports
+				/dev/ttyS*
+				)
 		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
 			foreach(port RANGE 32 0)
 				list(APPEND serial_ports
