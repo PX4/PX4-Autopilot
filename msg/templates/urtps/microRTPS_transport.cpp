@@ -289,8 +289,18 @@ int UART_node::init()
 		return -errno_bkp;
 	}
 
-	// Clear ONLCR flag (which appends a CR for every LF)
-	uart_config.c_oflag &= ~ONLCR;
+        //Set up the UART for non-canonical binary communication: 8 bits, 1 stop bit, no parity,
+        //no flow control, no modem control
+        uart_config.c_iflag &= !(INPCK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXANY | IXOFF);
+        uart_config.c_iflag |= IGNBRK | IGNPAR;
+
+        uart_config.c_oflag &= !(OPOST | ONLCR | OCRNL | ONOCR | ONLRET | OFILL | NLDLY | VTDLY);
+        uart_config.c_oflag |= NL0 | VT0;
+
+        uart_config.c_cflag &= !(CSIZE | CSTOPB | PARENB);
+        uart_config.c_cflag |= CS8 | CREAD | CLOCAL;
+
+        uart_config.c_lflag &= !(ISIG | ICANON | ECHO | TOSTOP | IEXTEN);
 
 	// USB serial is indicated by /dev/ttyACM0
 	if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0) {
