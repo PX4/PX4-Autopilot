@@ -152,6 +152,14 @@ Mission::on_inactivation()
 void
 Mission::on_activation()
 {
+	if (_mission_waypoints_changed) {
+		_current_offboard_mission_index = index_closest_mission_item();
+		_mission_waypoints_changed = false;
+	}
+
+	// we already reset the mission items
+	_execution_mode_changed = false;
+
 	set_mission_items();
 
 	// unpause triggering if it was paused
@@ -187,17 +195,12 @@ Mission::on_active()
 	_mission_changed = false;
 
 	/* reset mission items if needed */
-	if (offboard_updated || _mission_waypoints_changed) {
+	if (offboard_updated || _mission_waypoints_changed || _execution_mode_changed) {
 		if (_mission_waypoints_changed) {
 			_current_offboard_mission_index = index_closest_mission_item();
 			_mission_waypoints_changed = false;
 		}
 
-		set_mission_items();
-	}
-
-	/* reset the mission items if the execution mode changed */
-	if (_execution_mode_changed) {
 		_execution_mode_changed = false;
 		set_mission_items();
 	}
@@ -268,6 +271,10 @@ Mission::set_current_offboard_mission_index(uint16_t index)
 	    (index != _current_offboard_mission_index) && (index < _offboard_mission.count)) {
 
 		_current_offboard_mission_index = index;
+
+		// a mission offboard index is set manually which has the higher priority than the closest mission item
+		// as it is set by the user
+		_mission_waypoints_changed = false;
 
 		// update mission items if already in active mission
 		if (_navigator->is_planned_mission()) {
@@ -463,10 +470,11 @@ Mission::update_offboard_mission()
 			_mission_changed = true;
 		}
 
-		/* check if the mission waypoints changed
+		/* check if the mission waypoints changed while the vehicle is in air
 		 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
-		if ((_offboard_mission.count != old_offboard_mission.count) ||
-		    (_offboard_mission.dataman_id != old_offboard_mission.dataman_id)) {
+		if (((_offboard_mission.count != old_offboard_mission.count) ||
+		     (_offboard_mission.dataman_id != old_offboard_mission.dataman_id)) &&
+		    !_navigator->get_land_detected()->landed) {
 			_mission_waypoints_changed = true;
 		}
 
