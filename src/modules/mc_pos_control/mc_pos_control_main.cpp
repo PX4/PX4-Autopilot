@@ -136,6 +136,7 @@ private:
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
 	bool 		_triplet_lat_lon_finite = true; 		/**<true if triplets current is non-finite */
+	bool		_terrain_follow = false;			/**<true is the position controller is controlling height above ground */
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
@@ -2258,10 +2259,20 @@ MulticopterPositionControl::update_velocity_derivative()
 		_pos(0) = _local_pos.x;
 		_pos(1) = _local_pos.y;
 
-		if (_alt_mode.get() == 1 && _local_pos.dist_bottom_valid) {
+		if (((_alt_mode.get() == 1) || _local_pos.limit_hagl) && _local_pos.dist_bottom_valid) {
+			if (!_terrain_follow) {
+				_terrain_follow = true;
+				_reset_alt_sp = true;
+				reset_alt_sp();
+			}
 			_pos(2) = -_local_pos.dist_bottom;
 
 		} else {
+			if (_terrain_follow) {
+				_terrain_follow = false;
+				_reset_alt_sp = true;
+				reset_alt_sp();
+			}
 			_pos(2) = _local_pos.z;
 		}
 	}
@@ -2273,7 +2284,7 @@ MulticopterPositionControl::update_velocity_derivative()
 		_vel(0) = _local_pos.vx;
 		_vel(1) = _local_pos.vy;
 
-		if (_alt_mode.get() == 1 && _local_pos.dist_bottom_valid) {
+		if (_terrain_follow) {
 			_vel(2) = -_local_pos.dist_bottom_rate;
 
 		} else {
