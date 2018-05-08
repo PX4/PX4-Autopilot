@@ -229,7 +229,9 @@ private:
 		(ParamInt<px4::params::MPC_ALT_MODE>) _alt_mode,
 		(ParamFloat<px4::params::RC_FLT_CUTOFF>) _rc_flt_cutoff,
 		(ParamFloat<px4::params::RC_FLT_SMP_RATE>) _rc_flt_smp_rate,
-		(ParamFloat<px4::params::MPC_ACC_HOR_FLOW>) _acc_max_flow_xy
+		(ParamFloat<px4::params::MPC_ACC_HOR_FLOW>) _acc_max_flow_xy,
+		(ParamFloat<px4::params::MPC_MAX_FLOW_HGT>) _flow_max_hgt
+
 	);
 
 
@@ -849,18 +851,22 @@ MulticopterPositionControl::reset_alt_sp()
 void
 MulticopterPositionControl::limit_altitude()
 {
-	if (_vehicle_land_detected.alt_max < 0.0f) {
-		// there is no altitude limitation present
-		return;
-	}
-
 	float altitude_above_home = -(_pos(2) - _home_pos.z);
+	bool applying_flow_height_limit = false;
+	if (_terrain_follow && _local_pos.limit_hagl) {
+		// Don't allow the height setpoint to exceed the optical flow limits
+		if (_pos_sp(2) < -_flow_max_hgt.get()) {
+			_pos_sp(2) = -_flow_max_hgt.get();
+		}
+		applying_flow_height_limit = true;
 
-	if (_run_alt_control && (altitude_above_home > _vehicle_land_detected.alt_max)) {
+	} else if (_run_alt_control && (_vehicle_land_detected.alt_max > 0.0f) && (altitude_above_home > _vehicle_land_detected.alt_max)) {
 		// we are above maximum altitude
 		_pos_sp(2) = -_vehicle_land_detected.alt_max +  _home_pos.z;
 
-	} else if (!_run_alt_control && _vel_sp(2) <= 0.0f) {
+	}
+
+	if (!_run_alt_control && _vel_sp(2) <= 0.0f) {
 		// we want to fly upwards: check if vehicle does not exceed altitude
 
 		// time to reach zero velocity
@@ -869,9 +875,14 @@ MulticopterPositionControl::limit_altitude()
 		// predict next position based on current position, velocity, max acceleration downwards and time to reach zero velocity
 		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f * _acceleration_z_max_down.get() * delta_t *delta_t;
 
-		if (-(pos_z_next - _home_pos.z) > _vehicle_land_detected.alt_max) {
+
+		if (!applying_flow_height_limit && (-(pos_z_next - _home_pos.z) > _vehicle_land_detected.alt_max) && (_vehicle_land_detected.alt_max > 0.0f)) {
 			// prevent the vehicle from exceeding maximum altitude by switching back to altitude control with maximum altitude as setpoint
 			_pos_sp(2) = -_vehicle_land_detected.alt_max + _home_pos.z;
+			_run_alt_control = true;
+		} else if (applying_flow_height_limit && (pos_z_next < -_flow_max_hgt.get())) {
+			// prevent the vehicle from exceeding maximum altitude by switching back to altitude control with maximum altitude as setpoint
+			_pos_sp(2) = -_flow_max_hgt.get();
 			_run_alt_control = true;
 		}
 	}
