@@ -448,6 +448,19 @@ PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_FLOW, 0.5f);
 
 /**
+ * Maximum height above ground when reliant on optical flow.
+ * The height setpoint will be limited to be no greater than this value when the navigation system is completely reliant on optical flow data.
+ *
+ * @unit m
+ * @min 1.0
+ * @max 25.0
+ * @increment 0.5
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MAX_FLOW_HGT, 3.0f);
+
+/**
  * Maximum vertical acceleration in velocity controlled modes upward
  *
  * @unit m/s/s
