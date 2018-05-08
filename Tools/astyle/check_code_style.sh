@@ -5,7 +5,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 if [ -f "$FILE" ]; then
 	CHECK_FAILED=$(${DIR}/fix_code_style.sh --dry-run --formatted $FILE)
-	if [[ $CHECK_FAILED ]]; then
+	if [ -n "$CHECK_FAILED" ]; then
 		${DIR}/fix_code_style.sh --quiet < $FILE > $FILE.pretty
 
 		echo
