@@ -339,10 +339,12 @@ void Ekf::controlOpticalFlowFusion()
 {
 	// Check if motion is un-suitable for use of optical flow
 	if (!_control_status.flags.in_air) {
-		bool motion_is_excessive = ((_accel_mag_filt > 14.7f)
-					    || (_accel_mag_filt < 4.9f)
-					    || (_ang_rate_mag_filt > _params.flow_rate_max)
-					    || (_R_to_earth(2,2) < 0.866f));
+		// When on ground check if the vehicle is being shaken or moved in a way that could cause a loss of navigation
+		float accel_norm = _accel_vec_filt.norm();
+		bool motion_is_excessive = ((accel_norm > 14.7f) // accel greater than 1.5g
+					    || (accel_norm < 4.9f) // accel less than 0.5g
+					    || (_ang_rate_mag_filt > _params.flow_rate_max) // angular rate exceeds flow sensor limit
+					    || (_R_to_earth(2,2) < 0.866f)); // tilted more than 30 degrees
 		if (motion_is_excessive) {
 			_time_bad_motion_us = _imu_sample_delayed.time_us;
 
