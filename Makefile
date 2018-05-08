@@ -130,7 +130,7 @@ COLOR_BLUE = \033[0;94m
 NO_COLOR   = \033[m
 
 define colorecho
-+@echo -e "${COLOR_BLUE}${1} ${NO_COLOR}"
++@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
 # Get a list of all config targets cmake/configs/*.cmake
@@ -231,7 +231,7 @@ quick_check: check_posix_sitl_default check_px4fmu-v4pro_default tests check_for
 
 check_%:
 	@echo
-	$(call colorecho,"Building" $(subst check_,,$@))
+	$(call colorecho,'Building' $(subst check_,,$@))
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
@@ -269,12 +269,12 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation
 .PHONY: check_format format
 
 check_format:
-	$(call colorecho,"Checking formatting with astyle")
+	$(call colorecho,'Checking formatting with astyle')
 	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh
 	@cd $(SRC_DIR) && git diff --check
 
 format:
-	$(call colorecho,"Formatting with astyle")
+	$(call colorecho,'Formatting with astyle')
 	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh --fix
 
 # Testing
