@@ -78,11 +78,15 @@
 
 /* Configuration Constants */
 #ifdef PX4_SPI_BUS_EXPANSION
-#define PMW3901_BUS 							PX4_SPI_BUS_EXPANSION				/* fmu-v4pro: PX4_SPI_BUS_EXT1 | fmu-v5: PX4_SPI_BUS_EXTERNAL1  */
+#define PMW3901_BUS 							PX4_SPI_BUS_EXPANSION
+#else
+#define PMW3901_BUS 							0
 #endif
 
 #ifdef PX4_SPIDEV_EXPANSION_2
-#define PMW3901_SPIDEV 							PX4_SPIDEV_EXPANSION_2				/* fmu-v4pro: PX4_SPIDEV_EXT0  | fmu-v5: PX4_SPIDEV_EXTERNAL1_1 */
+#define PMW3901_SPIDEV 							PX4_SPIDEV_EXPANSION_2
+#else
+#define PMW3901_SPIDEV 							0
 #endif
 
 #define PMW3901_SPI_BUS_SPEED    				(2000000L)      			// 2MHz
@@ -235,7 +239,8 @@ PMW3901::sensorInit()
 	uint8_t data[5];
 
 	// initialize pmw3901 flow sensor
-	readRegister(0x00, &data[0], 1); // chip idreadRegister(0x5F, &data[1], 1); // inverse chip id
+	readRegister(0x00, &data[0], 1); // chip id
+	readRegister(0x5F, &data[1], 1); // inverse chip id
 
 	// Power on reset
 	writeRegister(0x3A, 0x5A);
@@ -330,6 +335,10 @@ PMW3901::sensorInit()
 	writeRegister(0x4E, 0xA8);
 	writeRegister(0x5A, 0x50);
 	writeRegister(0x40, 0x80);
+
+	writeRegister(0x7F, 0x00);
+	writeRegister(0x5A, 0x10);
+	writeRegister(0x54, 0x00);
 
 	ret = OK;
 
@@ -643,7 +652,7 @@ PMW3901::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, 1000);
+	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, 1000);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -682,7 +691,7 @@ PMW3901::cycle()
 	collect();
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
+	work_queue(LPWORK,
 		   &_work,
 		   (worker_t)&PMW3901::cycle_trampoline,
 		   this,

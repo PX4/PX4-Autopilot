@@ -988,10 +988,6 @@ fi
 
 	sh /etc/init.d/rc.logging
 
-	#vl53lxx start
-	#pmw3901 start
-	
-
 # End of autostart
 fi
 
