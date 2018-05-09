@@ -73,10 +73,10 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#ifdef PX4_I2C_BUS_EXPANSION3
-#define VL53LXX_BUS 				PX4_I2C_BUS_EXPANSION3		// I2C port (I2C4) on fmu-v5
+#ifdef PX4_I2C_BUS_EXPANSION
+#define VL53LXX_BUS 				PX4_I2C_BUS_EXPANSION
 #else
-#define VL53LXX_BUS 				PX4_I2C_BUS_EXPANSION 		// I2C on all others
+#define VL53LXX_BUS 				0
 #endif
 
 #define VL53LXX_BASEADDR      		0b0101001 					// 7-bit address 
@@ -101,8 +101,8 @@
 #define SYSTEM_INTERRUPT_CLEAR_REG							0x0B
 #define RESULT_RANGE_STATUS_REG								0x14
 
-#define VL53LXX_CONVERSION_INTERVAL 						1000 	/*  1ms */
-#define VL53LXX_SAMPLE_RATE									20000 	/* 20ms */
+#define VL53LXX_CONVERSION_INTERVAL 						1000 		/*  1ms */
+#define VL53LXX_SAMPLE_RATE									50000 		/* 50ms */
 
 #define VL53LXX_MAX_RANGING_DISTANCE						2.0f
 #define VL53LXX_MIN_RANGING_DISTANCE						0.0f
@@ -138,6 +138,7 @@ private:
 	int							_measure_ticks;
 	bool 						_collect_phase;
 	bool 						_new_measurement;
+	bool 						_measurement_started;
 
 	int							_class_instance;
 	int							_orb_class_instance;
@@ -200,21 +201,22 @@ private:
 extern "C" __EXPORT int vl53lxx_main(int argc, char *argv[]);
 
 VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
-	I2C("VL53LXX", VL53LXX_DEVICE_PATH, bus, address, 400000),		// 400 kHz only for Crazyflie (other boards use max 100 kHz)
+	I2C("VL53LXX", VL53LXX_DEVICE_PATH, bus, address, 400000),
 	_rotation(rotation),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
 	_new_measurement(true),
+	_measurement_started(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "tr1_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "vl53lxx_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "vl53lxx_com_err"))
 {
 	// up the retries since the device misses the first measure attempts
-	I2C::_retries = 3;
+	I2C::_retries = 2;
 
 	// enable debug() calls
 	_debug_enabled = false;
@@ -231,6 +233,10 @@ VL53LXX::~VL53LXX()
 	/* free any existing reports */
 	if (_reports != nullptr) {
 		delete _reports;
+	}
+
+	if (_distance_sensor_topic != nullptr) {
+		orb_unadvertise(_distance_sensor_topic);
 	}
 
 	if (_class_instance != -1) {
@@ -469,9 +475,6 @@ VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 		return ret;
 	}
 
-	/* wait for it to complete */
-	usleep(VL53LXX_CONVERSION_INTERVAL);
-
 	/* read from the sensor */
 	ret = transfer(nullptr, 0, &val, 1);
 
@@ -500,9 +503,6 @@ VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 		DEVICE_LOG("i2c::transfer returned %d", ret);
 		return ret;
 	}
-
-	/* wait for it to complete */
-	usleep(VL53LXX_CONVERSION_INTERVAL);
 
 	/* read from the sensor */
 	ret = transfer(nullptr, 0, &val[0], length);
@@ -597,15 +597,35 @@ VL53LXX::measure()
 		writeRegister(0xFF, 0x00);
 		writeRegister(0x80, 0x00);
 
-		writeRegister(SYSRANGE_START_REG, 0x01);		// maybe could be removed by putting sensor
-		// in continuous mode
+		writeRegister(SYSRANGE_START_REG, 0x01);
 
 		readRegister(SYSRANGE_START_REG, system_start);
 
-		while ((system_start & 0x01) == 1) {
-			readRegister(SYSRANGE_START_REG, system_start);
+		if ((system_start & 0x01) == 1) {
+			work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
+				   1000);		// reschedule every 1 ms until measurement is ready
+			ret = OK;
+			return ret;
+
+		} else {
+			_measurement_started = true;
 		}
 
+	}
+
+	if (!_collect_phase && !_measurement_started) {
+
+		readRegister(SYSRANGE_START_REG, system_start);
+
+		if ((system_start & 0x01) == 1) {
+			work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
+				   1000);		// reschedule every 1 ms until measurement is ready
+			ret = OK;
+			return ret;
+
+		} else {
+			_measurement_started = true;
+		}
 	}
 
 	readRegister(RESULT_INTERRUPT_STATUS_REG, wait_for_measurement);
@@ -662,12 +682,7 @@ VL53LXX::collect()
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = _rotation;
 
-	if (distance_m > 2.0f) {
-		report.current_distance = 2.0f;
-
-	} else {
-		report.current_distance = distance_m;
-	}
+	report.current_distance = distance_m;
 
 	report.min_distance = VL53LXX_MIN_RANGING_DISTANCE;
 	report.max_distance = VL53LXX_MAX_RANGING_DISTANCE;
