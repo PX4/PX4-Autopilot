@@ -151,9 +151,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
 		// needs to be calculated and the observations rotated into the EKF frame of reference
-		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS)
-		    && !(_params.fusion_mode & MASK_USE_EVYAW)) {
-
+		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_yaw) {
 			// rotate EV measurements into the EKF Navigation frame
 			calcExtVisRotMat();
 		}
@@ -182,7 +180,7 @@ void Ekf::controlExternalVisionFusion()
 		}
 
 		// external vision yaw aiding selection logic
-		if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
+		if (!_control_status.flags.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
 			// don't start using EV data unless daa is arriving frequently
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// reset the yaw angle to the value from the observaton quaternion
@@ -339,13 +337,14 @@ void Ekf::controlExternalVisionFusion()
 
 void Ekf::controlOpticalFlowFusion()
 {
-	// Detect if the vehicle is on the ground and is being excessively tilted, shaken or rotated.
+	// Check if motion is un-suitable for use of optical flow
 	if (!_control_status.flags.in_air) {
-		bool motion_is_excessive = ((_accel_mag_filt > 10.8f)
-					    || (_accel_mag_filt < 8.8f)
-					    || (_ang_rate_mag_filt > 0.5f)
-					    || (_R_to_earth(2, 2) < 0.866f));
-
+		// When on ground check if the vehicle is being shaken or moved in a way that could cause a loss of navigation
+		float accel_norm = _accel_vec_filt.norm();
+		bool motion_is_excessive = ((accel_norm > 14.7f) // accel greater than 1.5g
+					    || (accel_norm < 4.9f) // accel less than 0.5g
+					    || (_ang_rate_mag_filt > _params.flow_rate_max) // angular rate exceeds flow sensor limit
+					    || (_R_to_earth(2,2) < 0.866f)); // tilted more than 30 degrees
 		if (motion_is_excessive) {
 			_time_bad_motion_us = _imu_sample_delayed.time_us;
 
@@ -354,11 +353,17 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 	} else {
-		_time_bad_motion_us = 0;
-		_time_good_motion_us = _imu_sample_delayed.time_us;
+		bool good_gps_aiding = _control_status.flags.gps && ((_time_last_imu - _last_gps_fail_us) > (uint64_t)6e6);
+		if (good_gps_aiding && !_range_aid_mode_enabled) {
+			// Detect the special case where we are in flight, are using good quality GPS and speed and range has exceeded
+			// limits for use of range finder for height
+			_time_bad_motion_us = _imu_sample_delayed.time_us;
+		} else {
+			_time_good_motion_us = _imu_sample_delayed.time_us;
+		}
 	}
 
-	// Inhibit flow use if on ground and motion is excessive
+	// Inhibit flow use if motion is un-suitable
 	// Apply a time based hysteresis to prevent rapid mode switching
 	if (!_inhibit_gndobs_use) {
 		if ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5) {
@@ -438,8 +443,8 @@ void Ekf::controlOpticalFlowFusion()
 			}
 		}
 
-		// fuse the data if the terrain/distance to bottom is valid
-		if (_control_status.flags.opt_flow && get_terrain_valid()) {
+		// fuse the data if the terrain/distance to bottom is valid but use a more relaxed check to enable it to survive bad range finder data
+		if (_control_status.flags.opt_flow && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)10e6)) {
 			// Update optical flow bias estimates
 			calcOptFlowBias();
 
@@ -460,14 +465,17 @@ void Ekf::controlGpsFusion()
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
+		bool gps_checks_passing = (_time_last_imu - _last_gps_fail_us > (uint64_t)5e6);
+		bool gps_checks_failing = (_time_last_imu - _last_gps_pass_us > (uint64_t)5e6);
 		if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.flags.gps) {
-			if (_control_status.flags.tilt_align && _NED_origin_initialised
-			    && (_time_last_imu - _last_gps_fail_us > (uint64_t)5e6)) {
-
+			if (_control_status.flags.tilt_align && _NED_origin_initialised && gps_checks_passing) {
 				// If the heading is not aligned, reset the yaw and magnetic field states
-				if (!_control_status.flags.yaw_align) {
+				// Do not use external vision for yaw if using GPS because yaw needs to be
+				// defined relative to an NED reference frame
+				if (!_control_status.flags.yaw_align || _control_status.flags.ev_yaw) {
+					_control_status.flags.yaw_align = false;
+					_control_status.flags.ev_yaw = false;
 					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
-
 				}
 
 				// If the heading is valid start using gps aiding
@@ -490,7 +498,6 @@ void Ekf::controlGpsFusion()
 					if (_control_status.flags.gps) {
 						ECL_INFO("EKF commencing GPS fusion");
 						_time_last_gps = _time_last_imu;
-
 					}
 				}
 			}
@@ -498,6 +505,12 @@ void Ekf::controlGpsFusion()
 		}  else if (!(_params.fusion_mode & MASK_USE_GPS)) {
 			_control_status.flags.gps = false;
 
+		}
+
+		// Handle the case where we are using GPS and another source of aiding and GPS is failing checks
+		if (_control_status.flags.gps  && gps_checks_failing && (_control_status.flags.opt_flow || _control_status.flags.ev_pos)) {
+			_control_status.flags.gps = false;
+			ECL_WARN("EKF GPS data quality poor - stopping use");
 		}
 
 		// handle the case when we now have GPS, but have not been using it for an extended period
@@ -848,11 +861,13 @@ void Ekf::controlHeightFusion()
 		_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
 	}
 
+	rangeAidConditionsMet();
+
+	_range_aid_mode_selected = (_params.range_aid == 1) && _range_aid_mode_enabled;
 
 	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
-		_in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
 
-		if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
+		if (_range_aid_mode_selected && _range_data_ready && !_rng_hgt_faulty) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -867,10 +882,9 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (!_in_range_aid_mode && _baro_data_ready && !_baro_hgt_faulty) {
+		} else if (!_range_aid_mode_selected && _baro_data_ready && !_baro_hgt_faulty) {
 			setControlBaroHeight();
 			_fuse_height = true;
-			_in_range_aid_mode = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -892,7 +906,6 @@ void Ekf::controlHeightFusion()
 		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
 			// switch to gps if there was a reset to gps
 			_fuse_height = true;
-			_in_range_aid_mode = false;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
@@ -938,9 +951,8 @@ void Ekf::controlHeightFusion()
 
 	// Determine if GPS should be used as the height source
 	if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
-		_in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
 
-		if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
+		if (_range_aid_mode_selected && _range_data_ready && !_rng_hgt_faulty) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -955,10 +967,9 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (!_in_range_aid_mode && _gps_data_ready && !_gps_hgt_faulty) {
+		} else if (!_range_aid_mode_selected && _gps_data_ready && !_gps_hgt_faulty) {
 			setControlGPSHeight();
 			_fuse_height = true;
-			_in_range_aid_mode = false;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
@@ -969,7 +980,6 @@ void Ekf::controlHeightFusion()
 		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			_fuse_height = true;
-			_in_range_aid_mode = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -984,7 +994,6 @@ void Ekf::controlHeightFusion()
 		if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			_fuse_height = true;
-			_in_range_aid_mode = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -1022,18 +1031,18 @@ void Ekf::controlHeightFusion()
 
 }
 
-bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
+void Ekf::rangeAidConditionsMet()
 {
 	// if the parameter for range aid is enabled we allow to switch from using the primary height source to using range finder as height source
 	// under the following conditions
-	// 1) we are not further than max_range_for_dual_fusion away from the ground
-	// 2) our ground speed is not higher than max_vel_for_dual_fusion
+	// 1) we are not further than max_hagl_for_range_aid away from the ground
+	// 2) our ground speed is not higher than max_vel_for_range_aid
 	// 3) Our terrain estimate is stable (needs better checks)
-	if (_params.range_aid) {
+	// 4) We are in-air
+	if (_control_status.flags.in_air) {
 		// check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		bool use_range_finder;
-
-		if (in_range_aid_mode) {
+		if (_range_aid_mode_enabled) {
 			use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && get_terrain_valid();
 
 		} else {
@@ -1048,7 +1057,7 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 		if (horz_vel_valid) {
 			float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
 
-			if (in_range_aid_mode) {
+			if (_range_aid_mode_enabled) {
 				use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
 
 			} else {
@@ -1062,7 +1071,7 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 		}
 
 		// use hysteresis to check for hagl
-		if (in_range_aid_mode) {
+		if (_range_aid_mode_enabled) {
 			use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
 
 		} else {
@@ -1071,10 +1080,10 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 			use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 0.01f);
 		}
 
-		return use_range_finder;
+		_range_aid_mode_enabled = use_range_finder;
 
 	} else {
-		return false;
+		_range_aid_mode_enabled = false;
 	}
 }
 

@@ -372,6 +372,7 @@ private:
 	float _gps_velN_filt{0.0f};		///< GPS filtered North velocity (m/sec)
 	float _gps_velE_filt{0.0f};		///< GPS filtered East velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
+	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	uint64_t _last_gps_origin_time_us{0};	///< time the origin was last set (uSec)
@@ -401,7 +402,8 @@ private:
 
 	// variables used to inhibit accel bias learning
 	bool _accel_bias_inhibit{false};	///< true when the accel bias learning is being inhibited
-	float _accel_mag_filt{0.0f};		///< acceleration magnitude after application of a decaying envelope filter (m/sec**2)
+	Vector3f _accel_vec_filt{};		///< acceleration vector after application of a low pass filter (m/sec**2)
+	float _accel_mag_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_mag_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
 	Vector3f _prev_dvel_bias_var;		///< saved delta velocity XYZ bias variances (m/sec)**2
 
@@ -431,7 +433,8 @@ private:
 	bool _bad_vert_accel_detected{false};	///< true when bad vertical accelerometer data has been detected
 
 	// variables used to control range aid functionality
-	bool _in_range_aid_mode{false};		///< true when range finder is to be used as the height reference instead of the primary height sensor
+	bool _range_aid_mode_enabled{false};	///< true when range finder can be used as the height reference instead of the primary height sensor
+	bool _range_aid_mode_selected{false};	///< true when range finder is being used as the height reference instead of the primary height sensor
 
 	// variables used to check for "stuck" rng data
 	float _rng_check_min_val{0.0f};		///< minimum value for new rng measurement when being stuck
@@ -583,7 +586,8 @@ private:
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion();
 
-	bool rangeAidConditionsMet(bool in_range_aid_mode);
+	// determine if flight condition is suitable so use range finder instead of the primary height senor
+	void rangeAidConditionsMet();
 
 	// check for "stuck" range finder measurements when rng was not valid for certain period
 	void checkForStuckRange();

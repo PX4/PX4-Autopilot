@@ -163,9 +163,13 @@ void Ekf::predictCovariance()
 	float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
 
 	// inhibit learning of imu acccel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
-	float alpha = 1.0f - math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
-	_ang_rate_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_ang.norm(), alpha * _ang_rate_mag_filt);
-	_accel_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_vel.norm(), alpha * _accel_mag_filt);
+	float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
+	float beta = 1.0f - alpha;
+	_ang_rate_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_ang.norm(), beta * _ang_rate_mag_filt);
+	_accel_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_vel.norm(), beta * _accel_mag_filt);
+	_accel_vec_filt(0) = alpha * dt_inv * _imu_sample_delayed.delta_vel(0) + beta * _accel_vec_filt(0);
+	_accel_vec_filt(1) = alpha * dt_inv * _imu_sample_delayed.delta_vel(1) + beta * _accel_vec_filt(1);
+	_accel_vec_filt(2) = alpha * dt_inv * _imu_sample_delayed.delta_vel(2) + beta * _accel_vec_filt(2);
 
 	if (_ang_rate_mag_filt > _params.acc_bias_learn_gyr_lim
 	    || _accel_mag_filt > _params.acc_bias_learn_acc_lim
