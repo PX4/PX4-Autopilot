@@ -126,11 +126,11 @@ define cmake-build
 +@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
-COLOR_BLUE = \033[0;34m
+COLOR_BLUE = \033[0;94m
 NO_COLOR   = \033[m
 
 define colorecho
-+@echo "${COLOR_BLUE}${1} ${NO_COLOR}"
++@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
 # Get a list of all config targets cmake/configs/*.cmake
@@ -231,7 +231,7 @@ quick_check: check_posix_sitl_default check_px4fmu-v4pro_default tests check_for
 
 check_%:
 	@echo
-	$(call colorecho,"Building" $(subst check_,,$@))
+	$(call colorecho,'Building' $(subst check_,,$@))
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
@@ -269,17 +269,17 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation
 .PHONY: check_format format
 
 check_format:
-	$(call colorecho,"Checking formatting with astyle")
+	$(call colorecho,'Checking formatting with astyle')
 	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh
 	@cd $(SRC_DIR) && git diff --check
 
 format:
-	$(call colorecho,"Formatting with astyle")
+	$(call colorecho,'Formatting with astyle')
 	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh --fix
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_offboard rostest
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard rostest
 
 tests:
 	@$(MAKE) --no-print-directory posix_sitl_default test_results \
@@ -301,6 +301,13 @@ rostest: posix_sitl_default
 
 tests_mission: rostest
 	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_missions.test
+
+tests_mission_coverage:
+	@$(MAKE) clean
+	@$(MAKE) --no-print-directory posix_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(MAKE) --no-print-directory posix_sitl_default sitl_gazebo PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol
+	@$(MAKE) --no-print-directory posix_sitl_default generate_coverage
 
 tests_offboard: rostest
 	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test

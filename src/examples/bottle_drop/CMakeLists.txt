@@ -38,5 +38,7 @@ px4_add_module(
 	SRCS
 		bottle_drop.cpp
 	DEPENDS
+		git_ecl
+		ecl_geo
 	)
 

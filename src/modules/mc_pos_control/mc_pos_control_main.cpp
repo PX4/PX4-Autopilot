@@ -412,7 +412,7 @@ private:
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * Main sensor collection task.
@@ -768,10 +768,11 @@ MulticopterPositionControl::throttle_curve(float ctl, float ctr)
 	}
 }
 
-void
+int
 MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	pos_control::g_control->task_main();
+	return 0;
 }
 
 void

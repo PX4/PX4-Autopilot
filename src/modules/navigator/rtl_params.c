@@ -53,13 +53,13 @@
  * @max 150
  * @decimal 1
  * @increment 0.5
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
- * RTL loiter altitude
+ * Return mode loiter altitude
  *
  * Stay at this altitude above home position after RTL descending.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
@@ -69,14 +69,14 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
  * @max 100
  * @decimal 1
  * @increment 0.5
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 
 /**
- * RTL delay
+ * Return mode delay
  *
- * Delay after descend before landing in RTL mode.
+ * Delay after descend before landing in Return mode.
  * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
  *
  * @unit s
@@ -84,7 +84,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * @max 300
  * @decimal 1
  * @increment 0.5
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
  * @max 20
  * @decimal 1
  * @increment 0.5
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
 

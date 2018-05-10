@@ -64,15 +64,6 @@
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
-
-#if PX4_SPIDEV_MPU
-#ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
-#else
-#define EXTERNAL_BUS 0
-#endif
-
-
 /*
  * The MPU9250 can only handle high SPI bus speeds of 20Mhz on the sensor and
  * interrupt status registers. All other registers have a maximum 1MHz
@@ -86,16 +77,15 @@
 #define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
 
 
-device::Device *MPU9250_SPI_interface(int bus, bool external_bus);
+device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
 
 
 class MPU9250_SPI : public device::SPI
 {
 public:
 	MPU9250_SPI(int bus, uint32_t device);
-	virtual ~MPU9250_SPI();
+	virtual ~MPU9250_SPI() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
@@ -111,24 +101,17 @@ private:
 };
 
 device::Device *
-MPU9250_SPI_interface(int bus, bool external_bus)
+MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus)
 {
-	uint32_t cs = SPIDEV_NONE(0);
 	device::Device *interface = nullptr;
 
 	if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
-		cs =  PX4_SPIDEV_EXT_MPU;
-#else
+#if !(defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU))
 		errx(0, "External SPI not available");
 #endif
-
-	} else {
-		cs =  PX4_SPIDEV_MPU;
 	}
 
 	if (cs != SPIDEV_NONE(0)) {
-
 		interface = new MPU9250_SPI(bus, cs);
 	}
 
@@ -139,25 +122,6 @@ MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device) :
 	SPI("MPU9250", nullptr, bus, device, SPIDEV_MODE3, MPU9250_LOW_SPI_BUS_SPEED)
 {
 	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
-}
-
-MPU9250_SPI::~MPU9250_SPI()
-{
-}
-
-int
-MPU9250_SPI::init()
-{
-	int ret;
-
-	ret = SPI::init();
-
-	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
-		return -EIO;
-	}
-
-	return OK;
 }
 
 int
@@ -197,7 +161,6 @@ MPU9250_SPI::set_bus_frequency(unsigned &reg_speed)
 
 	reg_speed = MPU9250_REG(reg_speed);
 }
-
 
 int
 MPU9250_SPI::write(unsigned reg_speed, void *data, unsigned count)
@@ -287,5 +250,3 @@ MPU9250_SPI::probe()
 
 	return ret;
 }
-
-#endif // PX4_SPIDEV_MPU

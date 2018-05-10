@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,49 @@
  *
  ****************************************************************************/
 
-/**
- * @file vdev_file.cpp
- * Virtual file
- *
- * @author Mark Charlebois <charlebm@gmail.com>
- */
+#include "ADIS16477_gyro.hpp"
 
-#include "vfile.h"
-
-namespace device
-{
-
-VFile::VFile(const char *fname, mode_t mode) :
-	CDev("vfile", fname)
+ADIS16477_gyro::ADIS16477_gyro(ADIS16477 *parent, const char *path) :
+	CDev("ADIS16477_gyro", path),
+	_parent(parent),
+	_gyro_topic(nullptr),
+	_gyro_orb_class_instance(-1),
+	_gyro_class_instance(-1)
 {
 }
 
-VFile *VFile::createFile(const char *fname, mode_t mode)
+ADIS16477_gyro::~ADIS16477_gyro()
 {
-	VFile *me = new VFile(fname, mode);
-	px4_file_operations_t *file_ops = nullptr;
-	register_driver(fname, file_ops, 0666, (void *)me);
-	return me;
+	if (_gyro_class_instance != -1) {
+		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
+	}
 }
 
-ssize_t VFile::write(file_t *handlep, const char *buffer, size_t buflen)
+int
+ADIS16477_gyro::init()
 {
-	// ignore what was written, but let pollers know something was written
-	poll_notify(POLLIN);
+	int ret = CDev::init();
 
-	return buflen;
+	/* if probe/setup failed, bail now */
+	if (ret != OK) {
+		DEVICE_DEBUG("gyro init failed");
+		return ret;
+	}
+
+	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+
+	return ret;
 }
 
-} // namespace device
+int
+ADIS16477_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
+{
+	switch (cmd) {
+	case DEVIOCGDEVICEID:
+		return (int)CDev::ioctl(filp, cmd, arg);
+		break;
+
+	default:
+		return _parent->gyro_ioctl(filp, cmd, arg);
+	}
+}

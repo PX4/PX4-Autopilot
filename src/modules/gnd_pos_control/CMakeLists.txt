@@ -33,13 +33,9 @@
 px4_add_module(
 	MODULE modules__gnd_pos_control
 	MAIN gnd_pos_control
-	STACK_MAIN 1200
-	COMPILE_FLAGS
-	INCLUDES
-		${PX4_SOURCE_DIR}/src/lib/ecl
 	SRCS
 		GroundRoverPositionControl.cpp
 	DEPENDS
 		git_ecl
-		ecl
+		ecl_l1
 	)

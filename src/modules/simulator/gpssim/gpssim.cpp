@@ -136,7 +136,7 @@ private:
 	/**
 	 * Trampoline to the worker task
 	 */
-	static void			task_main_trampoline(void *arg);
+	static int			task_main_trampoline(int argc, char *argv[]);
 
 
 	/**
@@ -273,10 +273,11 @@ GPSSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 	return ret;
 }
 
-void
-GPSSIM::task_main_trampoline(void *arg)
+int
+GPSSIM::task_main_trampoline(int argc, char *argv[])
 {
 	g_dev->task_main();
+	return 0;
 }
 
 int

@@ -92,5 +92,5 @@ px4_add_module(
 	DEPENDS
 		modules__mc_pos_control__mc_pos_control_tests
 		git_ecl
-		ecl
+		ecl_geo_lookup # TODO: move this
 	)

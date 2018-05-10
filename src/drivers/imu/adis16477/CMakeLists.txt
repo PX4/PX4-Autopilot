@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,18 +29,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-#############################################################################
-set(MODULE_CFLAGS)
+############################################################################
 px4_add_module(
-	MODULE modules__attitude_estimator_q
-	MAIN attitude_estimator_q
-	COMPILE_FLAGS
-	STACK_MAIN 1200
-	STACK_MAX 1600
+	MODULE drivers__imu__adis16477
+	MAIN adis16477
 	SRCS
-		attitude_estimator_q_main.cpp
-	DEPENDS
-		git_ecl
-		ecl_geo_lookup
+		ADIS16477.cpp
+		ADIS16477_gyro.cpp
+		ADIS16477_main.cpp
 	)
-
