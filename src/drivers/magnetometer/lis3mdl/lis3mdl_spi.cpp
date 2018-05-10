@@ -37,16 +37,15 @@
  * SPI interface for LIS3MDL
  */
 
-/* XXX trim includes */
 #include <px4_config.h>
 
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
 #include <assert.h>
 #include <debug.h>
 #include <errno.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <arch/board/board.h>
@@ -55,17 +54,15 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_device.h>
 
-#include "lis3mdl.h"
 #include "board_config.h"
+#include "lis3mdl.h"
 
 #ifdef PX4_SPIDEV_LIS
 
 /* SPI protocol address bits */
-#define DIR_READ			(1<<7)
-#define DIR_WRITE			(0<<7)
-#define ADDR_INCREMENT			(1<<6)
-
-device::Device *LIS3MDL_SPI_interface(int bus);
+#define DIR_READ        (1<<7)
+#define DIR_WRITE       (0<<7)
+#define ADDR_INCREMENT  (1<<6)
 
 class LIS3MDL_SPI : public device::SPI
 {
@@ -73,11 +70,14 @@ public:
 	LIS3MDL_SPI(int bus, uint32_t device);
 	virtual ~LIS3MDL_SPI();
 
-	virtual int	init();
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	virtual int     init();
+	virtual int     ioctl(unsigned operation, unsigned &arg);
+	virtual int     read(unsigned address, void *data, unsigned count);
+	virtual int     write(unsigned address, void *data, unsigned count);
 };
+
+device::Device *
+LIS3MDL_SPI_interface(int bus);
 
 device::Device *
 LIS3MDL_SPI_interface(int bus)
@@ -149,21 +149,6 @@ LIS3MDL_SPI::ioctl(unsigned operation, unsigned &arg)
 }
 
 int
-LIS3MDL_SPI::write(unsigned address, void *data, unsigned count)
-{
-	uint8_t buf[32];
-
-	if (sizeof(buf) < (count + 1)) {
-		return -EIO;
-	}
-
-	buf[0] = address | DIR_WRITE;
-	memcpy(&buf[1], data, count);
-
-	return transfer(&buf[0], &buf[0], count + 1);
-}
-
-int
 LIS3MDL_SPI::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
@@ -177,6 +162,21 @@ LIS3MDL_SPI::read(unsigned address, void *data, unsigned count)
 	int ret = transfer(&buf[0], &buf[0], count + 1);
 	memcpy(data, &buf[1], count);
 	return ret;
+}
+
+int
+LIS3MDL_SPI::write(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
+	}
+
+	buf[0] = address | DIR_WRITE;
+	memcpy(&buf[1], data, count);
+
+	return transfer(&buf[0], &buf[0], count + 1);
 }
 
 #endif /* PX4_SPIDEV_LIS */
