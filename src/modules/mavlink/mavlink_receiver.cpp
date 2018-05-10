@@ -855,7 +855,7 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 
 	struct vehicle_local_position_s mocap_pos = {};
 
-	mocap_pos.timestamp = sync_stamp(mocap.time_usec);
+	mocap_pos.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
 
 	mocap_pos.x = mocap.x;
 	mocap_pos.y = mocap.y;
@@ -887,7 +887,7 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 
 	struct vehicle_attitude_s mocap_att = {};
 
-	mocap_att.timestamp = sync_stamp(mocap.time_usec);
+	mocap_att.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
 
 	mocap_att.q[0] = mocap.q[0];
 	mocap_att.q[1] = mocap.q[1];
@@ -1183,6 +1183,7 @@ MavlinkReceiver::handle_message_gps_global_origin(mavlink_message_t *msg)
 	}
 }
 
+void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 {
 	mavlink_vision_position_estimate_t pos;
@@ -1603,8 +1604,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	struct vehicle_attitude_s odom_attitude = {};
 	struct vehicle_local_position_s odom_position = {};
 
-	odom_attitude.timestamp = sync_stamp(odom.time_usec);
-	odom_position.timestamp = sync_stamp(odom.time_usec);
+	odom_attitude.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
+	odom_position.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
 
 	/** The quaternion of the ODOMETRY msg is a rotation from NED earth/local
 	 * frame to XYZ body frame
