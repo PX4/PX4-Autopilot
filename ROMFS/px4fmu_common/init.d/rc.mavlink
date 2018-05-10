@@ -15,6 +15,13 @@
 #
 # NOTE: Normal mode uses baud rate of 57600 (default) and data rate of 1000 bytes/s.
 #
+# NOTE: To utilize this startup script, set mavlink device stream settings in the
+#       respective airframe file as shown here:
+#
+#	set MAVLINK_DEVICE_2            "/dev/ttyS2"
+#	set MAVLINK_DEVICE_2_ARGS       "-m onboard -r 10000 -x -f"
+#	set MAVLINK_DEVICE_2_BAUD       "57600"
+#
 
 echo "Executing rc.mavlink"
 
