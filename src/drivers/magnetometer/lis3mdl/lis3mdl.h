@@ -120,9 +120,9 @@ public:
 
 	virtual int init();
 
-	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int ioctl(struct file *file_pointer, int cmd, unsigned long arg);
 
-	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	virtual int read(struct file *file_pointer, char *buffer, size_t buffer_len);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -193,7 +193,7 @@ private:
 	 *
 	 * @param enable set to 1 to enable self-test strap, 0 to disable
 	 */
-	int calibrate(struct file *filp, unsigned enable);
+	int calibrate(struct file *file_pointer, unsigned enable);
 
 	/**
 	 * Collect the result of the most recent measurement.
