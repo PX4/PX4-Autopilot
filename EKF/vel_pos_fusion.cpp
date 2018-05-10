@@ -183,7 +183,7 @@ void Ekf::fuseVelPosHeight()
 	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f) || !_control_status.flags.tilt_align;
 
 	// record the successful velocity fusion event
-	if ((_fuse_hor_vel || _fuse_hor_vel_aux) && vel_check_pass) {
+	if ((_fuse_hor_vel || _fuse_hor_vel_aux || _fuse_vert_vel) && vel_check_pass) {
 		_time_last_vel_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_vel_NED = false;
 
@@ -191,7 +191,7 @@ void Ekf::fuseVelPosHeight()
 		_innov_check_fail_status.flags.reject_vel_NED = true;
 	}
 
-	_fuse_hor_vel = _fuse_hor_vel_aux = false;
+	_fuse_hor_vel = _fuse_hor_vel_aux = _fuse_vert_vel = false;
 
 	// record the successful position fusion event
 	if (pos_check_pass && _fuse_pos) {
