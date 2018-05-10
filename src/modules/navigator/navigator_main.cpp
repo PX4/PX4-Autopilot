@@ -893,7 +893,8 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	tr.heading = traffic_heading; //-atan2(vel_e, vel_n); // Course over ground in radians
 	tr.hor_velocity	= hor_velocity; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
 	tr.ver_velocity = ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
-	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign));
+	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
+	tr.callsign[sizeof(tr.callsign) - 1] = 0;
 	tr.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
 	tr.tslc = 2; // Time since last communication in seconds
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |

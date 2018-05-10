@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,41 @@
  *
  ****************************************************************************/
 
+#ifndef DRIVERS_IMU_ADIS16477_ADIS16477_GYRO_HPP_
+#define DRIVERS_IMU_ADIS16477_ADIS16477_GYRO_HPP_
+
+#include "ADIS16477.hpp"
+
+#include <drivers/device/CDev.hpp>
+#include <drivers/drv_gyro.h>
+
 /**
- * @file vdev_file.cpp
- * Virtual file
- *
- * @author Mark Charlebois <charlebm@gmail.com>
+ * Helper class implementing the gyro driver node.
  */
-
-#include "vfile.h"
-
-namespace device
+class ADIS16477_gyro : public device::CDev
 {
+public:
+	ADIS16477_gyro(ADIS16477 *parent, const char *path);
+	virtual ~ADIS16477_gyro();
 
-VFile::VFile(const char *fname, mode_t mode) :
-	CDev("vfile", fname)
-{
-}
+	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
-VFile *VFile::createFile(const char *fname, mode_t mode)
-{
-	VFile *me = new VFile(fname, mode);
-	px4_file_operations_t *file_ops = nullptr;
-	register_driver(fname, file_ops, 0666, (void *)me);
-	return me;
-}
+	virtual int		init();
 
-ssize_t VFile::write(file_t *handlep, const char *buffer, size_t buflen)
-{
-	// ignore what was written, but let pollers know something was written
-	poll_notify(POLLIN);
+protected:
+	friend class ADIS16477;
 
-	return buflen;
-}
+private:
+	ADIS16477			*_parent{nullptr};
+	orb_advert_t		_gyro_topic{nullptr};
 
-} // namespace device
+	int					_gyro_orb_class_instance{-1};
+	int					_gyro_class_instance{-1};
+
+	/* do not allow to copy this class due to pointer data members */
+	ADIS16477_gyro(const ADIS16477_gyro &);
+	ADIS16477_gyro operator=(const ADIS16477_gyro &);
+
+};
+
+#endif /* DRIVERS_IMU_ADIS16477_ADIS16477_GYRO_HPP_ */
