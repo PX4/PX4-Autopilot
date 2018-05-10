@@ -189,41 +189,28 @@ bool Ekf::initialiseFilter()
 		_primary_hgt_source = _params.vdist_sensor_type;
 	}
 
-	// accumulate enough height measurements to be confident in the qulaity of the data
-	if (_primary_hgt_source == VDIST_SENSOR_BARO || _primary_hgt_source == VDIST_SENSOR_GPS ||
-	    _primary_hgt_source == VDIST_SENSOR_RANGE || _primary_hgt_source == VDIST_SENSOR_EV) {
+	// accumulate enough height measurements to be confident in the quality of the data
+	// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
+	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
+		if ((_hgt_counter == 0) && (_baro_sample_delayed.time_us != 0)) {
+			// initialise the counter and height fusion method when we start getting data from the buffer
+			setControlBaroHeight();
+			_hgt_counter = 1;
 
-		// if the user parameter specifies use of GPS/range/EV finder for height we use baro height initially and switch to GPS/range/EV finder
-		// later when it passes checks.
-		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-			if ((_hgt_counter == 0) && (_baro_sample_delayed.time_us != 0)) {
-				// initialise the counter and height fusion method when we start getting data from the buffer
-				_control_status.flags.baro_hgt = true;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
-				_hgt_counter = 1;
+		} else if ((_hgt_counter != 0) && (_baro_sample_delayed.time_us != 0)) {
+			// increment the sample count and apply a LPF to the measurement
+			_hgt_counter ++;
 
-			} else if ((_hgt_counter != 0) && (_baro_sample_delayed.time_us != 0)) {
-				// increment the sample count and apply a LPF to the measurement
-				_hgt_counter ++;
+			// don't start using data until we can be certain all bad initial data has been flushed
+			if (_hgt_counter == (uint8_t)(_obs_buffer_length + 1)) {
+				// initialise filter states
+				_baro_hgt_offset = _baro_sample_delayed.hgt;
 
-				// don't start using data until we can be certain all bad initial data has been flushed
-				if (_hgt_counter == (uint8_t)(_obs_buffer_length + 1)) {
-					// initialise filter states
-					_baro_hgt_offset = _baro_sample_delayed.hgt;
-
-				} else if (_hgt_counter > (uint8_t)(_obs_buffer_length + 1)) {
-					// noise filter the data
-					_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
-				}
+			} else if (_hgt_counter > (uint8_t)(_obs_buffer_length + 1)) {
+				// noise filter the data
+				_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
 			}
 		}
-
-	} else if (_primary_hgt_source == VDIST_SENSOR_EV) {
-		_hgt_counter = _ev_counter;
-
-	} else {
-		return false;
 	}
 
 	// check to see if we have enough measurements and return false if not
