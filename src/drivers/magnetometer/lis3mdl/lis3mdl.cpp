@@ -115,7 +115,7 @@ LIS3MDL::~LIS3MDL()
 }
 
 int
-LIS3MDL::calibrate(struct file *filp, unsigned enable)
+LIS3MDL::calibrate(struct file *file_pointer, unsigned enable)
 {
 	struct mag_report report;
 	ssize_t sz;
@@ -129,14 +129,14 @@ LIS3MDL::calibrate(struct file *filp, unsigned enable)
 	float sum_non_excited[3] = {0.0f, 0.0f, 0.0f};
 
 	/* start the sensor polling at 50 Hz */
-	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
+	if (ioctl(file_pointer, SENSORIOCSPOLLRATE, 50) != OK) {
 		warn("FAILED: SENSORIOCSPOLLRATE 50Hz");
 		ret = 1;
 		goto out;
 	}
 
 	/* Set to 12 Gauss */
-	if (OK != ioctl(filp, MAGIOCSRANGE, 12)) {
+	if (ioctl(file_pointer, MAGIOCSRANGE, 12) != OK) {
 		PX4_WARN("FAILED: MAGIOCSRANGE 12 Ga");
 		ret = 1;
 		goto out;
@@ -201,7 +201,7 @@ LIS3MDL::calibrate(struct file *filp, unsigned enable)
 	sum_non_excited[2] /= num_samples;
 
 	/* excite strap and take measurements */
-	if (OK != ioctl(filp, MAGIOCEXSTRAP, 1)) {
+	if (ioctl(file_pointer, MAGIOCEXSTRAP, 1) != OK) {
 		PX4_WARN("FAILED: MAGIOCEXSTRAP 1");
 		ret = 1;
 		goto out;
@@ -463,7 +463,7 @@ LIS3MDL::cycle()
 	}
 
 	/* Collect last measurement at the start of every cycle */
-	if (OK != collect()) {
+	if (collect() != OK) {
 		DEVICE_DEBUG("collection error");
 		/* restart the measurement state machine */
 		start();
@@ -471,7 +471,7 @@ LIS3MDL::cycle()
 	}
 
 
-	if (OK != measure()) {
+	if (measure() != OK) {
 		DEVICE_DEBUG("measure error");
 	}
 
@@ -521,7 +521,7 @@ LIS3MDL::init()
 }
 
 int
-LIS3MDL::ioctl(struct file *filp, int cmd, unsigned long arg)
+LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 {
 	unsigned dummy = 0;
 
@@ -598,7 +598,7 @@ LIS3MDL::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCSSAMPLERATE:
 		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(filp, SENSORIOCSPOLLRATE, arg);
+		return ioctl(file_pointer, SENSORIOCSPOLLRATE, arg);
 
 	case MAGIOCGSAMPLERATE:
 		/* same as pollrate because device is in single measurement mode*/
@@ -624,7 +624,7 @@ LIS3MDL::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 
 	case MAGIOCCALIBRATE:
-		return calibrate(filp, arg);
+		return calibrate(file_pointer, arg);
 
 	case MAGIOCEXSTRAP:
 		return set_excitement(arg);
@@ -642,7 +642,7 @@ LIS3MDL::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
+		return CDev::ioctl(file_pointer, cmd, arg);
 	}
 }
 
@@ -662,7 +662,7 @@ LIS3MDL::measure()
 	}
 
 
-	if (OK != ret) {
+	if (ret != OK) {
 		perf_count(_comms_errors);
 	}
 
@@ -699,10 +699,10 @@ LIS3MDL::reset()
 	return PX4_OK;
 }
 
-ssize_t
-LIS3MDL::read(struct file *filp, char *buffer, size_t buflen)
+int
+LIS3MDL::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 {
-	unsigned count = buflen / sizeof(struct mag_report);
+	unsigned count = buffer_len / sizeof(struct mag_report);
 	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
 	int ret = 0;
 
@@ -735,7 +735,7 @@ LIS3MDL::read(struct file *filp, char *buffer, size_t buflen)
 		_reports->flush();
 
 		/* trigger a measurement */
-		if (OK != measure()) {
+		if (measure() != OK) {
 			ret = -EIO;
 			break;
 		}
@@ -744,7 +744,7 @@ LIS3MDL::read(struct file *filp, char *buffer, size_t buflen)
 		usleep(LIS3MDL_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
-		if (OK != collect()) {
+		if (collect() != OK) {
 			ret = -EIO;
 			break;
 		}
@@ -776,7 +776,7 @@ LIS3MDL::set_excitement(unsigned enable)
 	/* arm the excitement strap */
 	ret = read_reg(ADDR_CTRL_REG1, _cntl_reg1);
 
-	if (OK != ret) {
+	if (ret != OK) {
 		perf_count(_comms_errors);
 	}
 
@@ -790,7 +790,7 @@ LIS3MDL::set_excitement(unsigned enable)
 
 	ret = write_reg(ADDR_CTRL_REG1, _cntl_reg1);
 
-	if (OK != ret) {
+	if (ret != OK) {
 		perf_count(_comms_errors);
 	}
 
@@ -833,14 +833,14 @@ LIS3MDL::set_range(unsigned range)
 	 */
 	ret = write_reg(ADDR_CTRL_REG2, (_range_bits << 5));
 
-	if (OK != ret) {
+	if (ret != OK) {
 		perf_count(_comms_errors);
 	}
 
 	uint8_t range_bits_in = 0;
 	ret = read_reg(ADDR_CTRL_REG2, range_bits_in);
 
-	if (OK != ret) {
+	if (ret != OK) {
 		perf_count(_comms_errors);
 	}
 
