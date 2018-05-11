@@ -45,7 +45,6 @@
 #include <pthread.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
-#include <uORB/topics/vehicle_local_position.h>
 
 #include <limits>
 
@@ -390,10 +389,9 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		publish_flow_topic(&flow);
 		break;
 
+	case MAVLINK_MSG_ID_ODOMETRY:
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
-		mavlink_vision_position_estimate_t ev;
-		mavlink_msg_vision_position_estimate_decode(msg, &ev);
-		publish_ev_topic(&ev);
+		publish_odometry_topic(msg);
 		break;
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
@@ -1128,32 +1126,154 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	return OK;
 }
 
-int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
+template<typename T>
+int Simulator::publish_odometry_topic(T *msg)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	struct vehicle_local_position_s vision_position = {};
+	struct vehicle_attitude_s attitude = {};
+	struct vehicle_local_position_s position = {};
 
-	vision_position.timestamp = timestamp;
-	vision_position.x = ev_mavlink->x;
-	vision_position.y = ev_mavlink->y;
-	vision_position.z = ev_mavlink->z;
+	attitude.timestamp = timestamp;
+	position.timestamp = timestamp;
 
-	vision_position.xy_valid = true;
-	vision_position.z_valid = true;
-	vision_position.v_xy_valid = true;
-	vision_position.v_z_valid = true;
+	/* set position/velocity invalid if standard deviation is bigger than ev_max_std_dev */
+	const float ev_max_std_dev = 100.0f;
 
-	struct vehicle_attitude_s vision_attitude = {};
+	if (msg->msgid == MAVLINK_MSG_ID_ODOMETRY) {
+		mavlink_odometry_t odom;
+		mavlink_msg_odometry_decode(msg, &odom);
 
-	vision_attitude.timestamp = timestamp;
+		/* The position is in the local NED frame */
+		position.x = odom.x;
+		position.y = odom.y;
+		position.z = odom.z;
 
-	matrix::Quatf q(matrix::Eulerf(ev_mavlink->roll, ev_mavlink->pitch, ev_mavlink->yaw));
-	q.copyTo(vision_attitude.q);
+		/** The quaternion of the ODOMETRY msg is a rotation from NED earth/local
+		 * frame to XYZ body frame
+		 */
+		attitude.q[0] = odom.q[0];
+		attitude.q[1] = odom.q[1];
+		attitude.q[2] = odom.q[2];
+		attitude.q[3] = odom.q[3];
 
-	int inst = 0;
-	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &inst, ORB_PRIO_HIGH);
-	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &inst, ORB_PRIO_HIGH);
+		/* Linear and angular covariances. Init to identity */
+		matrix::SquareMatrix3f linvel_cov = matrix::eye<float, 3>();
+		//matrix::SquareMatrix3f angvel_cov = matrix::eye<float, 3>();
+
+		/* Dcm rotation matrix from body frame to local NED frame */
+		matrix::Dcm<float> Rbl;
+
+		/* since odom.child_frame_id == MAV_FRAME_BODY_FRD, WRT to estimated vehicle body-fixed frame */
+		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
+		Rbl = matrix::Dcm<float>(matrix::Quatf(attitude.q)).I();
+
+		/* the linear velocities needs to be transformed to the local NED frame */
+		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
+		position.vx = linvel_local(0);
+		position.vy = linvel_local(1);
+		position.vz = linvel_local(2);
+
+		attitude.rollspeed = odom.rollspeed;
+		attitude.pitchspeed = odom.pitchspeed;
+		attitude.yawspeed = odom.yawspeed;
+
+		/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
+		//_mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+
+		/* the linear velocities covariance needs to be transformed to the local NED frame */
+		//linvel_cov = Rbl * linvel_cov * Rbl.transpose();
+
+		// TODO : full covariance matrix
+		position.eph = sqrtf(fmaxf(odom.pose_covariance[0], odom.pose_covariance[6]));
+		position.epv = sqrtf(odom.pose_covariance[11]);
+		position.evh = sqrtf(fmaxf(linvel_cov(0, 0), linvel_cov(1, 1)));
+		position.evv = sqrtf(linvel_cov(2, 2));
+
+		if (position.eph > ev_max_std_dev) {
+			position.xy_valid = false;
+
+		} else {
+			position.xy_valid = true;
+		}
+
+		if (position.evh > ev_max_std_dev) {
+			position.v_xy_valid = false;
+
+		} else {
+			position.v_xy_valid = true;
+		}
+
+		if (position.epv > ev_max_std_dev) {
+			position.z_valid = false;
+
+		} else {
+			position.z_valid = true;
+		}
+
+		if (position.evv > ev_max_std_dev) {
+			position.v_z_valid = false;
+
+		} else {
+			position.v_z_valid = true;
+		}
+
+		position.dist_bottom_valid = false;
+
+	} else if (msg->msgid == MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE) {
+		mavlink_vision_position_estimate_t ev;
+		mavlink_msg_vision_position_estimate_decode(msg, &ev);
+
+		/* The position is in the local NED frame */
+		position.x = ev.x;
+		position.y = ev.y;
+		position.z = ev.z;
+
+		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
+		q.copyTo(attitude.q);
+
+		// TODO : full covariance matrix
+		position.eph = sqrtf(fmaxf(ev.covariance[0], ev.covariance[6]));
+		position.epv = sqrtf(ev.covariance[11]);
+		position.evh = sqrtf(fmaxf(ev.covariance[15], ev.covariance[18]));
+		position.evv = sqrtf(ev.covariance[20]);
+
+		if (position.eph > ev_max_std_dev) {
+			position.xy_valid = false;
+
+		} else {
+			position.xy_valid = true;
+		}
+
+		if (position.evh > ev_max_std_dev) {
+			position.v_xy_valid = false;
+
+		} else {
+			position.v_xy_valid = true;
+		}
+
+		if (position.epv > ev_max_std_dev) {
+			position.z_valid = false;
+
+		} else {
+			position.z_valid = true;
+		}
+
+		if (position.evv > ev_max_std_dev) {
+			position.v_z_valid = false;
+
+		} else {
+			position.v_z_valid = true;
+		}
+
+		position.dist_bottom_valid = false;
+	}
+
+	int instance_id = 0;
+
+	/** @note: frame_id == MAV_FRAME_VISION_NED) */
+	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &position, &instance_id, ORB_PRIO_HIGH);
+	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &attitude, &instance_id, ORB_PRIO_HIGH);
 
 	return OK;
 }
