@@ -278,6 +278,7 @@ LIS3MDL::calibrate(struct file *file_pointer, unsigned enable)
 out:
 
 	/* set back to normal mode */
+	set_range(4);
 	set_default_register_values();
 
 	usleep(20000);
