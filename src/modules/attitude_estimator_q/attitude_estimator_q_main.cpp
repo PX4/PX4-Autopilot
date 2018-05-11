@@ -123,6 +123,7 @@ private:
 		param_t	acc_comp;
 		param_t	bias_max;
 		param_t	ext_hdg_mode;
+		param_t	has_mag;
 	} _params_handles{};		/**< handles for interesting parameters */
 
 	float		_w_accel = 0.0f;
@@ -179,6 +180,7 @@ AttitudeEstimatorQ::AttitudeEstimatorQ()
 	_params_handles.acc_comp	= param_find("ATT_ACC_COMP");
 	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
 	_params_handles.ext_hdg_mode	= param_find("ATT_EXT_HDG_M");
+	_params_handles.has_mag		= param_find("SYS_HAS_MAG");
 
 	_vel_prev.zero();
 	_pos_acc.zero();
@@ -470,6 +472,15 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 
 		param_get(_params_handles.w_acc, &_w_accel);
 		param_get(_params_handles.w_mag, &_w_mag);
+
+		// disable mag fusion if the system does not have a mag
+		if (_params_handles.has_mag != PARAM_INVALID) {
+			int32_t has_mag;
+
+			if (param_get(_params_handles.has_mag, &has_mag) == 0 && has_mag == 0) {
+				_w_mag = 0.f;
+			}
+		}
 
 		if (_w_mag < FLT_EPSILON) { // if the weight is zero (=mag disabled), make sure the estimator initializes
 			_mag(0) = 1.f;
