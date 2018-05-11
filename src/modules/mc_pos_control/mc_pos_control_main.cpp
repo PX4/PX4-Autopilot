@@ -853,14 +853,17 @@ MulticopterPositionControl::limit_altitude()
 {
 	float altitude_above_home = -(_pos(2) - _home_pos.z);
 	bool applying_flow_height_limit = false;
+
 	if (_terrain_follow && _local_pos.limit_hagl) {
 		// Don't allow the height setpoint to exceed the optical flow limits
 		if (_pos_sp(2) < -_flow_max_hgt.get()) {
 			_pos_sp(2) = -_flow_max_hgt.get();
 		}
+
 		applying_flow_height_limit = true;
 
-	} else if (_run_alt_control && (_vehicle_land_detected.alt_max > 0.0f) && (altitude_above_home > _vehicle_land_detected.alt_max)) {
+	} else if (_run_alt_control && (_vehicle_land_detected.alt_max > 0.0f)
+		   && (altitude_above_home > _vehicle_land_detected.alt_max)) {
 		// we are above maximum altitude
 		_pos_sp(2) = -_vehicle_land_detected.alt_max +  _home_pos.z;
 
@@ -876,10 +879,12 @@ MulticopterPositionControl::limit_altitude()
 		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f * _acceleration_z_max_down.get() * delta_t *delta_t;
 
 
-		if (!applying_flow_height_limit && (-(pos_z_next - _home_pos.z) > _vehicle_land_detected.alt_max) && (_vehicle_land_detected.alt_max > 0.0f)) {
+		if (!applying_flow_height_limit && (-(pos_z_next - _home_pos.z) > _vehicle_land_detected.alt_max)
+		    && (_vehicle_land_detected.alt_max > 0.0f)) {
 			// prevent the vehicle from exceeding maximum altitude by switching back to altitude control with maximum altitude as setpoint
 			_pos_sp(2) = -_vehicle_land_detected.alt_max + _home_pos.z;
 			_run_alt_control = true;
+
 		} else if (applying_flow_height_limit && (pos_z_next < -_flow_max_hgt.get())) {
 			// prevent the vehicle from exceeding maximum altitude by switching back to altitude control with maximum altitude as setpoint
 			_pos_sp(2) = -_flow_max_hgt.get();
@@ -2276,6 +2281,7 @@ MulticopterPositionControl::update_velocity_derivative()
 				_reset_alt_sp = true;
 				reset_alt_sp();
 			}
+
 			_pos(2) = -_local_pos.dist_bottom;
 
 		} else {
@@ -2284,6 +2290,7 @@ MulticopterPositionControl::update_velocity_derivative()
 				_reset_alt_sp = true;
 				reset_alt_sp();
 			}
+
 			_pos(2) = _local_pos.z;
 		}
 	}
