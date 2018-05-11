@@ -56,13 +56,18 @@ void BlockLocalPositionEstimator::visionInit()
 
 int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 {
-	y.setZero();
-	y(Y_vision_x) = _sub_vision_pos.get().x;
-	y(Y_vision_y) = _sub_vision_pos.get().y;
-	y(Y_vision_z) = _sub_vision_pos.get().z;
-	_visionStats.update(y);
-	_time_last_vision_p = _sub_vision_pos.get().timestamp;
-	return OK;
+	if (!_sub_vision_pos.get().xy_valid || !_sub_vision_pos.get().z_valid) {
+		return !OK;
+
+	} else {
+		y.setZero();
+		y(Y_vision_x) = _sub_vision_pos.get().x;
+		y(Y_vision_y) = _sub_vision_pos.get().y;
+		y(Y_vision_z) = _sub_vision_pos.get().z;
+		_visionStats.update(y);
+		_time_last_vision_p = _sub_vision_pos.get().timestamp;
+		return OK;
+	}
 }
 
 void BlockLocalPositionEstimator::visionCorrect()

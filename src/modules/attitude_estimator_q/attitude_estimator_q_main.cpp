@@ -345,7 +345,7 @@ void AttitudeEstimatorQ::task_main()
 		if (vision_updated) {
 			vehicle_attitude_s vision;
 
-			if (orb_copy(ORB_ID(vehicle_vision_attitude), _vision_sub, &vision) == PX4_OK) {
+			if (orb_copy(ORB_ID(vehicle_vision_attitude), _vision_sub, &vision) == PX4_OK && vision.q[0] != NAN) {
 				Dcmf Rvis = Quatf(vision.q);
 				Vector3f v(1.0f, 0.0f, 0.4f);
 
@@ -368,7 +368,7 @@ void AttitudeEstimatorQ::task_main()
 		if (mocap_updated) {
 			vehicle_attitude_s mocap;
 
-			if (orb_copy(ORB_ID(vehicle_attitude_groundtruth), _mocap_sub, &mocap) == PX4_OK) {
+			if (orb_copy(ORB_ID(vehicle_attitude_groundtruth), _mocap_sub, &mocap) == PX4_OK && mocap.q[0] != NAN) {
 				Dcmf Rmoc = Quatf(mocap.q);
 				Vector3f v(1.0f, 0.0f, 0.4f);
 
@@ -429,9 +429,6 @@ void AttitudeEstimatorQ::task_main()
 			vehicle_attitude_s att = {};
 
 			att.timestamp = sensors.timestamp;
-
-			att.att_valid = true;
-			att.att_rate_valid = true;
 
 			att.rollspeed = _rates(0);
 			att.pitchspeed = _rates(1);

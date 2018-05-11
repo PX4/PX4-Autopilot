@@ -784,55 +784,97 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* reset position estimate on first vision update */
 					if (!vision_valid) {
-						x_est[0] = vision.x;
-						x_est[1] = vision.vx;
-						y_est[0] = vision.y;
-						y_est[1] = vision.vy;
+						if (vision.xy_valid) {
+							x_est[0] = vision.x;
+							y_est[0] = vision.y;
+
+							last_vision_x = vision.x;
+						}
+
+						if (vision.v_xy_valid) {
+							x_est[1] = vision.vx;
+							y_est[1] = vision.vy;
+
+							last_vision_y = vision.y;
+						}
 
 						/* only reset the z estimate if the z weight parameter is not zero */
 						if (params.w_z_vision_p > MIN_VALID_W) {
-							z_est[0] = vision.z;
-							z_est[1] = vision.vz;
+							if (vision.z_valid) {
+								z_est[0] = vision.z;
+
+								last_vision_z = vision.z;
+							}
+
+							if (vision.v_z_valid) {
+								z_est[1] = vision.vz;
+							}
 						}
 
-						vision_valid = true;
+						if (!vision.xy_valid || !vision.z_valid) {
+							warnx("VISION estimate not valid");
+							mavlink_log_info(&mavlink_log_pub, "[inav] VISION estimate not valid");
 
-						last_vision_x = vision.x;
-						last_vision_y = vision.y;
-						last_vision_z = vision.z;
+						} else {
+							vision_valid = true;
 
-						warnx("VISION estimate valid");
-						mavlink_log_info(&mavlink_log_pub, "[inav] VISION estimate valid");
+							warnx("VISION estimate valid");
+							mavlink_log_info(&mavlink_log_pub, "[inav] VISION estimate valid");
+						}
 					}
 
 					/* calculate correction for position */
-					corr_vision[0][0] = vision.x - x_est[0];
-					corr_vision[1][0] = vision.y - y_est[0];
-					corr_vision[2][0] = vision.z - z_est[0];
+					if (vision.xy_valid) {
+						corr_vision[0][0] = vision.x - x_est[0];
+						corr_vision[1][0] = vision.y - y_est[0];
+					}
+
+					if (vision.z_valid) {
+						corr_vision[2][0] = vision.z - z_est[0];
+					}
 
 					static hrt_abstime last_vision_time = 0;
 
 					float vision_dt = (vision.timestamp - last_vision_time) / 1e6f;
 					last_vision_time = vision.timestamp;
 
-					if (vision_dt > 0.000001f && vision_dt < 0.2f) {
+					if (vision.v_xy_valid) {
+						/* calculate correction for XY velocity from external estimation */
+						corr_vision[0][1] = vision.vx - x_est[1];
+						corr_vision[1][1] = vision.vy - y_est[1];
+
+					} else if (vision_dt > 0.000001f && vision_dt < 0.2f && vision.xy_valid) {
 						vision.vx = (vision.x - last_vision_x) / vision_dt;
 						vision.vy = (vision.y - last_vision_y) / vision_dt;
-						vision.vz = (vision.z - last_vision_z) / vision_dt;
 
 						last_vision_x = vision.x;
 						last_vision_y = vision.y;
-						last_vision_z = vision.z;
 
-						/* calculate correction for velocity */
+						/* calculate correction for XY velocity */
 						corr_vision[0][1] = vision.vx - x_est[1];
 						corr_vision[1][1] = vision.vy - y_est[1];
+
+					} else {
+						/* assume zero motion in XY plane */
+						corr_vision[0][1] = 0.0f - x_est[1];
+						corr_vision[1][1] = 0.0f - y_est[1];
+
+					}
+
+					if (vision.v_z_valid) {
+						/* calculate correction for Z velocity from external estimation */
+						corr_vision[2][1] = vision.vz - z_est[1];
+
+					} else if (vision_dt > 0.000001f && vision_dt < 0.2f && vision.z_valid) {
+						vision.vz = (vision.z - last_vision_z) / vision_dt;
+
+						last_vision_z = vision.z;
+
+						/* calculate correction for Z velocity */
 						corr_vision[2][1] = vision.vz - z_est[1];
 
 					} else {
-						/* assume zero motion */
-						corr_vision[0][1] = 0.0f - x_est[1];
-						corr_vision[1][1] = 0.0f - y_est[1];
+						/* assume zero motion in Z plane */
 						corr_vision[2][1] = 0.0f - z_est[1];
 					}
 
@@ -849,20 +891,36 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (!params.disable_mocap) {
 					/* reset position estimate on first mocap update */
 					if (!mocap_valid) {
-						x_est[0] = mocap.x;
-						y_est[0] = mocap.y;
-						z_est[0] = mocap.z;
+						if (mocap.xy_valid) {
+							x_est[0] = mocap.x;
+							y_est[0] = mocap.y;
+						}
 
-						mocap_valid = true;
+						if (mocap.z_valid) {
+							z_est[0] = mocap.z;
+						}
 
-						warnx("MOCAP data valid");
-						mavlink_log_info(&mavlink_log_pub, "[inav] MOCAP data valid");
+						if (!mocap.xy_valid || !mocap.z_valid) {
+							warnx("MOCAP data not valid");
+							mavlink_log_info(&mavlink_log_pub, "[inav] MOCAP data not valid");;
+
+						} else {
+							mocap_valid = true;
+
+							warnx("MOCAP data valid");
+							mavlink_log_info(&mavlink_log_pub, "[inav] MOCAP data valid");
+						}
 					}
 
 					/* calculate correction for position */
-					corr_mocap[0][0] = mocap.x - x_est[0];
-					corr_mocap[1][0] = mocap.y - y_est[0];
-					corr_mocap[2][0] = mocap.z - z_est[0];
+					if (mocap.xy_valid) {
+						corr_mocap[0][0] = mocap.x - x_est[0];
+						corr_mocap[1][0] = mocap.y - y_est[0];
+					}
+
+					if (mocap.z_valid) {
+						corr_mocap[2][0] = mocap.z - z_est[0];
+					}
 
 					mocap_updates++;
 				}

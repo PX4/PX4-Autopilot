@@ -853,6 +853,11 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mavlink_att_pos_mocap_t mocap;
 	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
+	// set pose as invalid if standard deviation is bigger than max_std_dev
+	// TODO: the user should be allowed to set these values by a parameter
+	const float ep_max_std_dev = 100.0f;
+	const float eo_max_std_dev = 100.0f;
+
 	struct vehicle_local_position_s mocap_pos = {};
 
 	mocap_pos.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
@@ -864,9 +869,6 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	// TODO : full covariance matrix
 	mocap_pos.eph = sqrtf(fmaxf(mocap.covariance[0], mocap.covariance[6]));
 	mocap_pos.epv = sqrtf(mocap.covariance[11]);
-
-	// set position invalid if standard deviation is bigger than ep_max_std_dev
-	const float ep_max_std_dev = 100.0f;
 
 	if (mocap_pos.eph > ep_max_std_dev) {
 		mocap_pos.xy_valid = false;
@@ -884,31 +886,35 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 
 	mocap_pos.v_xy_valid = false;
 	mocap_pos.v_z_valid = false;
+	mocap_pos.dist_bottom_valid = false;
 
 	struct vehicle_attitude_s mocap_att = {};
 
 	mocap_att.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
 
-	mocap_att.q[0] = mocap.q[0];
-	mocap_att.q[1] = mocap.q[1];
-	mocap_att.q[2] = mocap.q[2];
-	mocap_att.q[3] = mocap.q[3];
-
 	// TODO : full covariance matrix
-	mocap_att.att_std_dev = sqrtf(fmaxf(mocap.covariance[15], fmaxf(mocap.covariance[18], mocap.covariance[20])));
+	mocap_att.att_std_dev = sqrtf(fmaxf(mocap.covariance[15],
+					    fmaxf(mocap.covariance[18], mocap.covariance[20])));
 
-	// set orientation angle/angle rate invalid if standard deviation
-	// is bigger than eo_max_std_dev
-	const float eo_max_std_dev = 100.0f;
-
+	/** The quaternion of the ATT_POS_MOCAP msg represents a rotation from
+	 * NED earth/local frame to XYZ body frame
+	 */
 	if (mocap_att.att_std_dev > eo_max_std_dev) {
-		mocap_att.att_valid = false;
+		mocap_att.q[0] = NAN;
+		mocap_att.q[1] = NAN;
+		mocap_att.q[2] = NAN;
+		mocap_att.q[3] = NAN;
 
 	} else {
-		mocap_att.att_valid = true;
+		mocap_att.q[0] = mocap.q[0];
+		mocap_att.q[1] = mocap.q[1];
+		mocap_att.q[2] = mocap.q[2];
+		mocap_att.q[3] = mocap.q[3];
 	}
 
-	mocap_att.att_rate_valid = false;
+	mocap_att.rollspeed = NAN;
+	mocap_att.pitchspeed = NAN;
+	mocap_att.yawspeed = NAN;
 
 	int instance_id = 0;
 
@@ -1189,24 +1195,64 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
+	// set pose as invalid if standard deviation is bigger than max_std_dev
+	// TODO: the user should be allowed to set these values by a parameter
+	const float ep_max_std_dev = 100.0f;
+	const float eo_max_std_dev = 100.0f;
+
 	struct vehicle_local_position_s vision_position = {};
 
 	vision_position.timestamp = _mavlink_timesync.sync_stamp(pos.usec);
+
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
 
-	vision_position.xy_valid = true;
-	vision_position.z_valid = true;
-	vision_position.v_xy_valid = true;
-	vision_position.v_z_valid = true;
+	// TODO : full covariance matrix
+	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[6]));
+	vision_position.epv = sqrtf(pos.covariance[11]);
+
+	if (vision_position.eph > ep_max_std_dev) {
+		vision_position.xy_valid = false;
+
+	} else {
+		vision_position.xy_valid = true;
+	}
+
+	if (vision_position.epv > ep_max_std_dev) {
+		vision_position.z_valid = false;
+
+	} else {
+		vision_position.z_valid = true;
+	}
+
+	vision_position.v_xy_valid = false;
+	vision_position.v_z_valid = false;
 
 	struct vehicle_attitude_s vision_attitude = {};
 
 	vision_attitude.timestamp = _mavlink_timesync.sync_stamp(pos.usec);
 
-	matrix::Quatf q(matrix::Eulerf(pos.roll, pos.pitch, pos.yaw));
-	q.copyTo(vision_attitude.q);
+	vision_attitude.att_std_dev = sqrtf(fmaxf(pos.covariance[15],
+					    fmaxf(pos.covariance[18], pos.covariance[20])));
+
+	/** The euler angles of the VISUAL_POSITION_ESTIMATE msg represent a
+	 * rotation from NED earth/local frame to XYZ body frame
+	 */
+	if (vision_attitude.att_std_dev > eo_max_std_dev) {
+		vision_attitude.q[0] = NAN;
+		vision_attitude.q[1] = NAN;
+		vision_attitude.q[2] = NAN;
+		vision_attitude.q[3] = NAN;
+
+	} else {
+		matrix::Quatf q(matrix::Eulerf(pos.roll, pos.pitch, pos.yaw));
+		q.copyTo(vision_attitude.q);
+	}
+
+	vision_attitude.rollspeed = NAN;
+	vision_attitude.pitchspeed = NAN;
+	vision_attitude.yawspeed = NAN;
 
 	int inst = 0;
 	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &inst, ORB_PRIO_DEFAULT);
@@ -1599,19 +1645,17 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	mavlink_odometry_t odom;
 	mavlink_msg_odometry_decode(msg, &odom);
 
+	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
+	// TODO: the user should be allowed to set these values by a parameter
+	const float ep_max_std_dev = 100.0f;
+	const float eo_max_std_dev = 100.0f;
+	const float ev_max_std_dev = 100.0f;
+
 	struct vehicle_attitude_s odom_attitude = {};
 	struct vehicle_local_position_s odom_position = {};
 
 	odom_attitude.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
 	odom_position.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
-
-	/** The quaternion of the ODOMETRY msg is a rotation from NED earth/local
-	 * frame to XYZ body frame
-	 */
-	odom_attitude.q[0] = odom.q[0];
-	odom_attitude.q[1] = odom.q[1];
-	odom_attitude.q[2] = odom.q[2];
-	odom_attitude.q[3] = odom.q[3];
 
 	/* The position is in the local NED frame */
 	odom_position.x = odom.x;
@@ -1708,11 +1752,12 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odom_position.epv = sqrtf(odom.pose_covariance[11]);
 	odom_position.evh = sqrtf(fmaxf(linvel_cov(0, 0), linvel_cov(1, 1)));
 	odom_position.evv = sqrtf(linvel_cov(2, 2));
+	odom_attitude.att_std_dev = sqrtf(fmaxf(odom.pose_covariance[15],
+						fmaxf(odom.pose_covariance[18], odom.pose_covariance[20])));
+	odom_attitude.att_rate_std_dev = sqrtf(fmaxf(odom.twist_covariance[15],
+					       fmaxf(odom.twist_covariance[18], odom.twist_covariance[20])));
 
-	// set position/velocity invalid if standard deviation is bigger than ev_max_std_dev
-	const float ev_max_std_dev = 100.0f;
-
-	if (odom_position.eph > ev_max_std_dev) {
+	if (odom_position.eph > ep_max_std_dev) {
 		odom_position.xy_valid = false;
 
 	} else {
@@ -1726,7 +1771,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odom_position.v_xy_valid = true;
 	}
 
-	if (odom_position.epv > ev_max_std_dev) {
+	if (odom_position.epv > ep_max_std_dev) {
 		odom_position.z_valid = false;
 
 	} else {
@@ -1738,6 +1783,28 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 	} else {
 		odom_position.v_z_valid = true;
+	}
+
+	/** The quaternion of the ODOMETRY msg represents a rotation from
+	 * NED earth/local frame to XYZ body frame
+	 */
+	if (odom_attitude.att_std_dev > eo_max_std_dev) {
+		odom_attitude.q[0] = NAN;
+		odom_attitude.q[1] = NAN;
+		odom_attitude.q[2] = NAN;
+		odom_attitude.q[3] = NAN;
+
+	} else {
+		odom_attitude.q[0] = odom.q[0];
+		odom_attitude.q[1] = odom.q[1];
+		odom_attitude.q[2] = odom.q[2];
+		odom_attitude.q[3] = odom.q[3];
+	}
+
+	if (odom_attitude.att_rate_std_dev > ev_max_std_dev) {
+		odom_attitude.rollspeed = NAN;
+		odom_attitude.pitchspeed = NAN;
+		odom_attitude.yawspeed = NAN;
 	}
 
 	odom_position.dist_bottom_valid = false;

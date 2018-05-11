@@ -42,13 +42,18 @@ void BlockLocalPositionEstimator::mocapInit()
 
 int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 {
-	y.setZero();
-	y(Y_mocap_x) = _sub_mocap.get().x;
-	y(Y_mocap_y) = _sub_mocap.get().y;
-	y(Y_mocap_z) = _sub_mocap.get().z;
-	_mocapStats.update(y);
-	_time_last_mocap = _sub_mocap.get().timestamp;
-	return OK;
+	if (!_sub_mocap.get().xy_valid || !_sub_mocap.get().z_valid) {
+		return !OK;
+
+	} else {
+		y.setZero();
+		y(Y_mocap_x) = _sub_mocap.get().x;
+		y(Y_mocap_y) = _sub_mocap.get().y;
+		y(Y_mocap_z) = _sub_mocap.get().z;
+		_mocapStats.update(y);
+		_time_last_mocap = _sub_mocap.get().timestamp;
+		return OK;
+	}
 }
 
 void BlockLocalPositionEstimator::mocapCorrect()

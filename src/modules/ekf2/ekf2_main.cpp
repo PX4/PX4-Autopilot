@@ -972,7 +972,7 @@ void Ekf2::run()
 			ev_data.angErr = _ev_ang_noise.get();
 
 			// only set data if all positions and velocities are valid
-			if (ev_pos.xy_valid && ev_pos.z_valid && ev_pos.v_xy_valid && ev_pos.v_z_valid) {
+			if (ev_pos.xy_valid && ev_pos.z_valid && ev_pos.v_xy_valid && ev_pos.v_z_valid && ev_att.q[0] != NAN) {
 				// use timestamp from external computer, clocks are synchronized when using MAVROS
 				_ekf.setExtVisionData(vision_position_updated ? ev_pos.timestamp : ev_att.timestamp, &ev_data);
 			}
