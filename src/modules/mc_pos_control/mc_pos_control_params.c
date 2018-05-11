@@ -449,7 +449,9 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_FLOW, 0.5f);
 
 /**
  * Maximum height above ground when reliant on optical flow.
- * The height setpoint will be limited to be no greater than this value when the navigation system is completely reliant on optical flow data.
+ * The height setpoint will be limited to be no greater than this value when the navigation system
+ * is completely reliant on optical flow data and the height above ground estimate is valid as indicated
+ * by the local_position.dist_bottom_valid message being true.
  *
  * @unit m
  * @min 1.0
@@ -514,7 +516,13 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
 
 /**
- * Altitude control mode, note mode 1 only tested with LPE
+ * Altitude control mode.
+ *
+ * Set to 1 to control height above ground instead of height above origin.
+ * Note: If optical flow is being used as the only source of navigation then the height above ground
+ * will be selected automatically and maximum height will be limited to the value set by MPC_MAX_FLOW_HGT.
+ * Note: The height controller will revert to using height above origin if the distance to ground estimate
+ * becomes invalid as indicated by the local_position.distance_bottom_valid message being false.
  *
  * @min 0
  * @max 1
