@@ -81,6 +81,7 @@
 #include "tiltrotor.h"
 #include "tailsitter.h"
 #include "standard.h"
+#include "kitepower.h"
 
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);

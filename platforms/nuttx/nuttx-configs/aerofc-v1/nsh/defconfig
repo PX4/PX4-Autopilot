@@ -526,6 +526,18 @@ CONFIG_STM32_USART2_SERIALDRIVER=y
 # CONFIG_STM32_USART2_1WIREDRIVER is not set
 # CONFIG_USART2_RS485 is not set
 CONFIG_USART2_RXDMA=y
+<<<<<<< HEAD:platforms/nuttx/nuttx-configs/aerofc-v1/nsh/defconfig
+||||||| merged common ancestors
+CONFIG_STM32_USART3_SERIALDRIVER=y
+# CONFIG_STM32_USART3_1WIREDRIVER is not set
+# CONFIG_USART3_RS485 is not set
+CONFIG_USART3_RXDMA=y
+=======
+# CONFIG_STM32_USART3_SERIALDRIVER is not set
+# CONFIG_STM32_USART3_1WIREDRIVER is not set
+# CONFIG_USART3_RS485 is not set
+# CONFIG_USART3_RXDMA is not set
+>>>>>>> gamma_rigid_wing:nuttx-configs/aerofc-v1/nsh/defconfig
 CONFIG_STM32_UART4_SERIALDRIVER=y
 # CONFIG_STM32_UART4_1WIREDRIVER is not set
 # CONFIG_UART4_RS485 is not set
@@ -538,6 +550,7 @@ CONFIG_STM32_USART6_SERIALDRIVER=y
 # CONFIG_STM32_USART6_1WIREDRIVER is not set
 # CONFIG_USART6_RS485 is not set
 CONFIG_USART6_RXDMA=y
+<<<<<<< HEAD:platforms/nuttx/nuttx-configs/aerofc-v1/nsh/defconfig
 CONFIG_STM32_UART7_SERIALDRIVER=y
 # CONFIG_STM32_UART7_1WIREDRIVER is not set
 # CONFIG_UART7_RS485 is not set
@@ -546,6 +559,13 @@ CONFIG_UART7_RXDMA=y
 # CONFIG_STM32_UART8_1WIREDRIVER is not set
 # CONFIG_UART8_RS485 is not set
 # CONFIG_UART8_RXDMA is not set
+||||||| merged common ancestors
+=======
+CONFIG_STM32_UART7_SERIALDRIVER=y
+# CONFIG_STM32_UART7_1WIREDRIVER is not set
+# CONFIG_UART7_RS485 is not set
+CONFIG_UART7_RXDMA=y
+>>>>>>> gamma_rigid_wing:nuttx-configs/aerofc-v1/nsh/defconfig
 
 #
 # Serial Driver Configuration
@@ -974,8 +994,13 @@ CONFIG_ARCH_HAVE_SERIAL_TERMIOS=y
 # CONFIG_UART4_SERIAL_CONSOLE is not set
 # CONFIG_UART5_SERIAL_CONSOLE is not set
 CONFIG_USART6_SERIAL_CONSOLE=y
+<<<<<<< HEAD:platforms/nuttx/nuttx-configs/aerofc-v1/nsh/defconfig
 # CONFIG_UART7_SERIAL_CONSOLE is not set
 # CONFIG_UART8_SERIAL_CONSOLE is not set
+||||||| merged common ancestors
+=======
+# CONFIG_UART7_SERIAL_CONSOLE is not set
+>>>>>>> gamma_rigid_wing:nuttx-configs/aerofc-v1/nsh/defconfig
 # CONFIG_OTHER_SERIAL_CONSOLE is not set
 # CONFIG_NO_SERIAL_CONSOLE is not set
 
@@ -1076,6 +1101,19 @@ CONFIG_UART8_2STOP=0
 # CONFIG_HAVE_USBTRACE is not set
 # CONFIG_DRIVERS_WIRELESS is not set
 # CONFIG_DRIVERS_CONTACTLESS is not set
+
+#
+# UART7 Configuration
+#
+CONFIG_UART7_RXBUFSIZE=300
+CONFIG_UART7_TXBUFSIZE=300
+CONFIG_UART7_BAUD=57600
+CONFIG_UART7_BITS=8
+CONFIG_UART7_PARITY=0
+CONFIG_UART7_2STOP=0
+# CONFIG_UART7_IFLOWCONTROL is not set
+# CONFIG_UART7_OFLOWCONTROL is not set
+# CONFIG_UART7_DMA is not set
 
 #
 # System Logging

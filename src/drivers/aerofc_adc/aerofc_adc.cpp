@@ -175,8 +175,23 @@ int aerofc_adc_main(int argc, char *argv[])
 				continue;
 			}
 
+<<<<<<< HEAD
+			instance = new AEROFC_ADC(bus_options[i].busnum);
+||||||| merged common ancestors
+		if (!instance) {
+			warn("No memory to instance AEROFC_ADC");
+			return PX4_ERROR;
+		}
+=======
 			instance = new AEROFC_ADC(bus_options[i].busnum);
 
+			if (!instance) {
+				warn("No memory to instance AEROFC_ADC");
+				return PX4_ERROR;
+			}
+>>>>>>> gamma_rigid_wing
+
+<<<<<<< HEAD
 			if (!instance) {
 				warn("No memory to instance AEROFC_ADC");
 				return PX4_ERROR;
@@ -187,6 +202,15 @@ int aerofc_adc_main(int argc, char *argv[])
 			}
 
 			warn("AEROFC_ADC not found on busnum=%u", bus_options[i].busnum);
+||||||| merged common ancestors
+		if (instance->init() != PX4_OK) {
+=======
+			if (instance->init() == PX4_OK) {
+				break;
+			}
+
+			warn("AEROFC_ADC not found on busnum=%u", bus_options[i].busnum);
+>>>>>>> gamma_rigid_wing
 			delete instance;
 			instance = nullptr;
 		}

@@ -86,7 +86,8 @@ VtolAttitudeControl::VtolAttitudeControl()
 
 	if (_params.vtol_type == vtol_type::TAILSITTER) {
 		_vtol_type = new Tailsitter(this);
-
+        } else if (_params.vtol_type ==vtol_type::KITEPOWER) {
+                _vtol_type = new Kitepower(this);
 	} else if (_params.vtol_type == vtol_type::TILTROTOR) {
 		_vtol_type = new Tiltrotor(this);
 

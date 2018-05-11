@@ -116,6 +116,7 @@ extern void led_off(int led);
 __END_DECLS
 
 /****************************************************************************
+<<<<<<< HEAD
  * Private Functions
  ****************************************************************************/
 
@@ -129,6 +130,22 @@ static int _bootloader_force_pin_callback(int irq, void *context, void *args)
 }
 
 /****************************************************************************
+||||||| merged common ancestors
+=======
+ * Private Functions
+ ****************************************************************************/
+
+static int _bootloader_force_pin_callback(int irq, void *context)
+{
+	if (stm32_gpioread(GPIO_FORCE_BOOTLOADER)) {
+		board_reset(0);
+	}
+
+	return 0;
+}
+
+/****************************************************************************
+>>>>>>> gamma_rigid_wing
  * Protected Functions
  ****************************************************************************/
 
@@ -148,8 +165,15 @@ static int _bootloader_force_pin_callback(int irq, void *context, void *args)
 
 __EXPORT void stm32_boardinitialize(void)
 {
+<<<<<<< HEAD
 	stm32_configgpio(GPIO_FORCE_BOOTLOADER);
 	_bootloader_force_pin_callback(0, NULL, NULL);
+||||||| merged common ancestors
+	/* configure LEDs */
+=======
+	stm32_configgpio(GPIO_FORCE_BOOTLOADER);
+	_bootloader_force_pin_callback(0, NULL);
+>>>>>>> gamma_rigid_wing
 
 	/* configure LEDs */
 	board_autoled_initialize();
@@ -174,9 +198,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	int result;
 
+<<<<<<< HEAD
 	/* the interruption subsystem is not initialized when stm32_boardinitialize() is called */
 	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback, NULL);
 
+||||||| merged common ancestors
+=======
+	/* the interruption subsystem is not initialized when stm32_boardinitialize() is called */
+	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback);
+
+>>>>>>> gamma_rigid_wing
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */

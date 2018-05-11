@@ -47,7 +47,13 @@ ExternalProject_Add_Step(sitl_gazebo forceconfigure
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo replay)
 set(debuggers none ide gdb lldb ddd valgrind callgrind)
+<<<<<<< HEAD:platforms/posix/cmake/sitl_target.cmake
 set(models none iris iris_opt_flow iris_rplidar iris_irlock standard_vtol plane solo tailsitter typhoon_h480 rover hippocampus)
+||||||| merged common ancestors
+set(models none iris iris_opt_flow iris_rplidar standard_vtol plane solo tailsitter typhoon_h480 rover)
+=======
+set(models none iris iris_opt_flow iris_rplidar standard_vtol plane solo tailsitter typhoon_h480 rover rigid_wing)
+>>>>>>> gamma_rigid_wing:src/firmware/posix/sitl_target.cmake
 set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})

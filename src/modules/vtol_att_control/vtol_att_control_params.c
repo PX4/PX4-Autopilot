@@ -87,13 +87,103 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
 PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
 
 /**
+<<<<<<< HEAD
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
+||||||| merged common ancestors
+ * Motor max power
+ *
+ * Indicates the maximum power the motor is able to produce. Used to calculate
+ * propeller efficiency map.
+ *
+ * @unit W
+ * @min 1
+ * @max 10000
+ * @increment 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_POWER_MAX, 120.0f);
+
+/**
+ * Propeller efficiency parameter
+ *
+ * Influences propeller efficiency at different power settings. Should be tuned beforehand.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_PROP_EFF, 0.0f);
+
+/**
+ * Total airspeed estimate low-pass filter gain
+ *
+ * Gain for tuning the low-pass filter for the total airspeed estimate
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN, 0.3f);
+
+/**
+ * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
+=======
+ * Motor max power
+ *
+ * Indicates the maximum power the motor is able to produce. Used to calculate
+ * propeller efficiency map.
+ *
+ * @unit W
+ * @min 1
+ * @max 10000
+ * @increment 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_POWER_MAX, 120.0f);
+
+/**
+ * Propeller efficiency parameter
+ *
+ * Influences propeller efficiency at different power settings. Should be tuned beforehand.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_PROP_EFF, 0.0f);
+
+/**
+ * Total airspeed estimate low-pass filter gain
+ *
+ * Gain for tuning the low-pass filter for the total airspeed estimate
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN, 0.3f);
+
+/**
+ * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2, Kitepower=3)
+>>>>>>> gamma_rigid_wing
  *
  * @value 0 Tailsitter
  * @value 1 Tiltrotor
  * @value 2 Standard
+ * @value 3 Kitepower
+
  * @min 0
- * @max 2
+ * @max 3
  * @decimal 0
  * @group VTOL Attitude Control
  */

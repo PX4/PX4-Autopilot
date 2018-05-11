@@ -2588,19 +2588,24 @@ Commander::run()
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF;
 
-			if (in_armed_state &&
+			if ((in_armed_state &&
 				status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 				(status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
-				(stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition) ) {
+				(stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition))
+				|| (in_armed_state && (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON)) // Add rule for killswitch
+				) {
 
 				if (internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL &&
 						internal_state.main_state != commander_state_s::MAIN_STATE_ACRO &&
 						internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
-						internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE &&
-						!land_detector.landed) {
+						internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE)// &&
+						//!land_detector.landed) // Remove landed condition
+				{
 					print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
 
-				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
+				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition
+					|| sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON // Add rule for killswitch
+					) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
@@ -2727,6 +2732,24 @@ Commander::run()
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
 				status_changed = true;
+				// Add disarm code
+				/* disarm for lockdown */
+				//transition_result_t arming_ret;
+				arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
+								   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
+				//arming_ret = 
+					arming_state_transition(&status,
+								     &battery,
+								     &safety,
+								     new_arming_state,
+								     &armed,
+								     true /* fRunPreArmChecks */,
+								     &mavlink_log_pub,
+								     &status_flags,
+								     avionics_power_rail_voltage,
+								     arm_without_gps,
+								     arm_mission_required,
+								     hrt_elapsed_time(&commander_boot_timestamp));
 			}
 		}
 
