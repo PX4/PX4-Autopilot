@@ -712,12 +712,14 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 		bool prime_found = false;
 		int32_t prime_id = 0;
 		param_get(param_find("CAL_MAG_PRIME"), &prime_id);
+		int32_t sys_has_mag = 1;
+		param_get(param_find("SYS_HAS_MAG"), &sys_has_mag);
 
 		bool mag_fail_reported = false;
 
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_mag_count; i++) {
-			bool required = (i < max_mandatory_mag_count);
+			bool required = (i < max_mandatory_mag_count) && sys_has_mag == 1;
 			int device_id = -1;
 
 			if (!magnometerCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !failed && !mag_fail_reported)) && required) {
@@ -816,12 +818,14 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 		bool prime_found = false;
 		int32_t prime_id = 0;
 		param_get(param_find("CAL_BARO_PRIME"), &prime_id);
+		int32_t sys_has_baro = 1;
+		param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
 
 		bool baro_fail_reported = false;
 
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
-			bool required = (i < max_mandatory_baro_count);
+			bool required = (i < max_mandatory_baro_count) && sys_has_baro == 1;
 			int device_id = -1;
 
 			if (!baroCheck(mavlink_log_pub, i, !required, device_id, (reportFailures && !failed && !baro_fail_reported)) && required) {
