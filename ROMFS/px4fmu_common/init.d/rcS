@@ -304,6 +304,17 @@ then
 			param set SYS_FMU_TASK 1
 		fi
 
+		if ver hwcmp OMNIBUS_F4SD
+		then
+			param set SYS_FMU_TASK 1
+			param set SYS_HAS_MAG 0
+			# use the Q attitude estimator, it works w/o mag or GPS
+			param set SYS_MC_EST_GROUP 1
+			param set ATT_ACC_COMP 0
+			param set ATT_W_ACC 0.4000
+			param set ATT_W_GYRO_BIAS 0.0000
+		fi
+
 		param set SYS_AUTOCONFIG 0
 	fi
 	unset AUTOCNF
