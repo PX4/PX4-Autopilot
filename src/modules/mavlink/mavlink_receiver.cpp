@@ -1599,8 +1599,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	mavlink_odometry_t odom;
 	mavlink_msg_odometry_decode(msg, &odom);
 
-	static orb_advert_t *mavlink_log_pub;
-
 	struct vehicle_attitude_s odom_attitude = {};
 	struct vehicle_local_position_s odom_position = {};
 
@@ -1702,7 +1700,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		}
 
 	} else {
-		mavlink_log_critical(mavlink_log_pub, "Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
+		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
 	}
 
 	// TODO : full covariance matrix
@@ -1757,8 +1755,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 				 ORB_PRIO_DEFAULT);
 
 	} else {
-		mavlink_log_critical(mavlink_log_pub, "Local frame %u not supported. Unable to publish pose and velocity",
-				     odom.frame_id);
+		PX4_ERR("Local frame %u not supported. Unable to publish pose and velocity", odom.frame_id);
 	}
 }
 
