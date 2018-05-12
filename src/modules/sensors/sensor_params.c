@@ -163,37 +163,6 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 
 /**
- * PX4Flow board rotation
- *
- * This parameter defines the yaw rotation of the PX4FLOW board relative to the vehicle body frame.
- * Zero rotation is defined as X on flow board pointing towards front of vehicle.
- * The recommneded installation default for the PX4FLOW board is with the Y axis forward (270 deg yaw).
- *
- * @value 0 No rotation
- * @value 1 Yaw 45°
- * @value 2 Yaw 90°
- * @value 3 Yaw 135°
- * @value 4 Yaw 180°
- * @value 5 Yaw 225°
- * @value 6 Yaw 270°
- * @value 7 Yaw 315°
- *
- * @reboot_required true
- *
- * @group Sensors
- */
-PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
-
-/**
- * Optical Flow minimum focus distance
- *
- * This parameter defines the minimum distance from ground required for the optical flow sensor to operate reliably. The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
- * *
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(SENS_FLOW_MINRNG, 0.7f);
-
-/**
  * Board rotation Y (Pitch) offset
  *
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
