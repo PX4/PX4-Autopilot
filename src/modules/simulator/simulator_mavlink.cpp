@@ -1131,14 +1131,17 @@ int Simulator::publish_odometry_topic(T *msg)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
+	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
+	// TODO: the user should be allowed to set these values by a parameter
+	const float ep_max_std_dev = 100.0f;
+	const float eo_max_std_dev = 100.0f;
+	const float ev_max_std_dev = 100.0f;
+
 	struct vehicle_attitude_s attitude = {};
 	struct vehicle_local_position_s position = {};
 
 	attitude.timestamp = timestamp;
 	position.timestamp = timestamp;
-
-	/* set position/velocity invalid if standard deviation is bigger than ev_max_std_dev */
-	const float ev_max_std_dev = 100.0f;
 
 	if (msg->msgid == MAVLINK_MSG_ID_ODOMETRY) {
 		mavlink_odometry_t odom;
@@ -1149,20 +1152,12 @@ int Simulator::publish_odometry_topic(T *msg)
 		position.y = odom.y;
 		position.z = odom.z;
 
-		/** The quaternion of the ODOMETRY msg is a rotation from NED earth/local
-		 * frame to XYZ body frame
-		 */
-		attitude.q[0] = odom.q[0];
-		attitude.q[1] = odom.q[1];
-		attitude.q[2] = odom.q[2];
-		attitude.q[3] = odom.q[3];
-
-		/* Linear and angular covariances. Init to identity */
-		matrix::SquareMatrix3f linvel_cov = matrix::eye<float, 3>();
-		//matrix::SquareMatrix3f angvel_cov = matrix::eye<float, 3>();
-
 		/* Dcm rotation matrix from body frame to local NED frame */
 		matrix::Dcm<float> Rbl;
+
+		/** @note: no need to transform the covariance matrices since
+		 * the non-diagonal values are all zero
+		 */
 
 		/* since odom.child_frame_id == MAV_FRAME_BODY_FRD, WRT to estimated vehicle body-fixed frame */
 		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
@@ -1178,19 +1173,17 @@ int Simulator::publish_odometry_topic(T *msg)
 		attitude.pitchspeed = odom.pitchspeed;
 		attitude.yawspeed = odom.yawspeed;
 
-		/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
-		//_mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
-
-		/* the linear velocities covariance needs to be transformed to the local NED frame */
-		//linvel_cov = Rbl * linvel_cov * Rbl.transpose();
-
 		// TODO : full covariance matrix
 		position.eph = sqrtf(fmaxf(odom.pose_covariance[0], odom.pose_covariance[6]));
 		position.epv = sqrtf(odom.pose_covariance[11]);
-		position.evh = sqrtf(fmaxf(linvel_cov(0, 0), linvel_cov(1, 1)));
-		position.evv = sqrtf(linvel_cov(2, 2));
+		position.evh = sqrtf(fmaxf(odom.twist_covariance[0], odom.twist_covariance[6]));
+		position.evv = sqrtf(odom.twist_covariance[11]);
+		attitude.att_std_dev = sqrtf(fmaxf(odom.pose_covariance[15],
+						   fmaxf(odom.pose_covariance[18], odom.pose_covariance[20])));
+		attitude.att_rate_std_dev = sqrtf(fmaxf(odom.twist_covariance[15],
+							fmaxf(odom.twist_covariance[18], odom.twist_covariance[20])));
 
-		if (position.eph > ev_max_std_dev) {
+		if (position.eph > ep_max_std_dev) {
 			position.xy_valid = false;
 
 		} else {
@@ -1204,7 +1197,7 @@ int Simulator::publish_odometry_topic(T *msg)
 			position.v_xy_valid = true;
 		}
 
-		if (position.epv > ev_max_std_dev) {
+		if (position.epv > ep_max_std_dev) {
 			position.z_valid = false;
 
 		} else {
@@ -1216,6 +1209,24 @@ int Simulator::publish_odometry_topic(T *msg)
 
 		} else {
 			position.v_z_valid = true;
+		}
+
+		/** The quaternion of the ODOMETRY msg represents a rotation from
+		 * NED earth/local frame to XYZ body frame
+		 */
+		if (attitude.att_std_dev > eo_max_std_dev) {
+			matrix::Quatf q(NAN, NAN, NAN, NAN);
+			q.copyTo(attitude.q);
+
+		} else {
+			matrix::Quatf q(odom.q[0], odom.q[1], odom.q[2], odom.q[3]);
+			q.copyTo(attitude.q);
+		}
+
+		if (attitude.att_rate_std_dev > ev_max_std_dev) {
+			attitude.rollspeed = NAN;
+			attitude.pitchspeed = NAN;
+			attitude.yawspeed = NAN;
 		}
 
 		position.dist_bottom_valid = false;
@@ -1229,44 +1240,47 @@ int Simulator::publish_odometry_topic(T *msg)
 		position.y = ev.y;
 		position.z = ev.z;
 
-		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
-		q.copyTo(attitude.q);
-
 		// TODO : full covariance matrix
 		position.eph = sqrtf(fmaxf(ev.covariance[0], ev.covariance[6]));
 		position.epv = sqrtf(ev.covariance[11]);
-		position.evh = sqrtf(fmaxf(ev.covariance[15], ev.covariance[18]));
-		position.evv = sqrtf(ev.covariance[20]);
+		attitude.att_std_dev = sqrtf(fmaxf(ev.covariance[15],
+						   fmaxf(ev.covariance[18], ev.covariance[20])));
 
-		if (position.eph > ev_max_std_dev) {
+		if (position.eph > ep_max_std_dev) {
 			position.xy_valid = false;
 
 		} else {
 			position.xy_valid = true;
 		}
 
-		if (position.evh > ev_max_std_dev) {
-			position.v_xy_valid = false;
-
-		} else {
-			position.v_xy_valid = true;
-		}
-
-		if (position.epv > ev_max_std_dev) {
+		if (position.epv > ep_max_std_dev) {
 			position.z_valid = false;
 
 		} else {
 			position.z_valid = true;
 		}
 
-		if (position.evv > ev_max_std_dev) {
-			position.v_z_valid = false;
+		/** The euler angles of the VISUAL_POSITION_ESTIMATE msg represent a
+		 * rotation from NED earth/local frame to XYZ body frame
+		 */
+		if (attitude.att_std_dev > eo_max_std_dev) {
+			matrix::Quatf q(NAN, NAN, NAN, NAN);
+			q.copyTo(attitude.q);
 
 		} else {
-			position.v_z_valid = true;
+			matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
+			q.copyTo(attitude.q);
 		}
 
 		position.dist_bottom_valid = false;
+
+		position.v_xy_valid = false;
+		position.v_z_valid = false;
+
+		attitude.rollspeed = NAN;
+		attitude.pitchspeed = NAN;
+		attitude.yawspeed = NAN;
+
 	}
 
 	int instance_id = 0;
