@@ -1206,8 +1206,6 @@ int Simulator::publish_odometry_topic(T *msg)
 			attitude.yawspeed = NAN;
 		}
 
-		position.dist_bottom_valid = false;
-
 	} else if (msg->msgid == MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE) {
 		mavlink_vision_position_estimate_t ev;
 		mavlink_msg_vision_position_estimate_decode(msg, &ev);
@@ -1237,8 +1235,6 @@ int Simulator::publish_odometry_topic(T *msg)
 			matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 			q.copyTo(attitude.q);
 		}
-
-		position.dist_bottom_valid = false;
 
 		position.v_xy_valid = false;
 		position.v_z_valid = false;

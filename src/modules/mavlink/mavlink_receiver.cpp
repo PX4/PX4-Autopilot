@@ -1192,8 +1192,8 @@ MavlinkReceiver::handle_message_gps_global_origin(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 {
-	mavlink_vision_position_estimate_t pos;
-	mavlink_msg_vision_position_estimate_decode(msg, &pos);
+	mavlink_vision_position_estimate_t ev;
+	mavlink_msg_vision_position_estimate_decode(msg, &ev);
 
 	// set pose as invalid if standard deviation is bigger than max_std_dev
 	// TODO: the user should be allowed to set these values by a parameter
@@ -1202,15 +1202,15 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 
 	struct vehicle_local_position_s vision_position = {};
 
-	vision_position.timestamp = _mavlink_timesync.sync_stamp(pos.usec);
+	vision_position.timestamp = _mavlink_timesync.sync_stamp(ev.usec);
 
-	vision_position.x = pos.x;
-	vision_position.y = pos.y;
-	vision_position.z = pos.z;
+	vision_position.x = ev.x;
+	vision_position.y = ev.y;
+	vision_position.z = ev.z;
 
 	// TODO : full covariance matrix
-	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[6]));
-	vision_position.epv = sqrtf(pos.covariance[11]);
+	vision_position.eph = sqrtf(fmaxf(ev.covariance[0], ev.covariance[6]));
+	vision_position.epv = sqrtf(ev.covariance[11]);
 
 	vision_position.xy_valid = (vision_position.eph > ep_max_std_dev) ? false : true;
 	vision_position.z_valid = (vision_position.epv > ep_max_std_dev) ? false : true;
@@ -1220,22 +1220,20 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 
 	struct vehicle_attitude_s vision_attitude = {};
 
-	vision_attitude.timestamp = _mavlink_timesync.sync_stamp(pos.usec);
+	vision_attitude.timestamp = _mavlink_timesync.sync_stamp(ev.usec);
 
-	vision_attitude.att_std_dev = sqrtf(fmaxf(pos.covariance[15],
-					    fmaxf(pos.covariance[18], pos.covariance[20])));
+	vision_attitude.att_std_dev = sqrtf(fmaxf(ev.covariance[15],
+					    fmaxf(ev.covariance[18], ev.covariance[20])));
 
 	/** The euler angles of the VISUAL_POSITION_ESTIMATE msg represent a
 	 * rotation from NED earth/local frame to XYZ body frame
 	 */
 	if (vision_attitude.att_std_dev > eo_max_std_dev) {
-		vision_attitude.q[0] = NAN;
-		vision_attitude.q[1] = NAN;
-		vision_attitude.q[2] = NAN;
-		vision_attitude.q[3] = NAN;
+		matrix::Quatf q(NAN, NAN, NAN, NAN);
+		q.copyTo(vision_attitude.q);
 
 	} else {
-		matrix::Quatf q(matrix::Eulerf(pos.roll, pos.pitch, pos.yaw));
+		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 		q.copyTo(vision_attitude.q);
 	}
 
@@ -1755,16 +1753,12 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	 * NED earth/local frame to XYZ body frame
 	 */
 	if (odom_attitude.att_std_dev > eo_max_std_dev) {
-		odom_attitude.q[0] = NAN;
-		odom_attitude.q[1] = NAN;
-		odom_attitude.q[2] = NAN;
-		odom_attitude.q[3] = NAN;
+		matrix::Quatf q(NAN, NAN, NAN, NAN);
+		q.copyTo(odom_attitude.q);
 
 	} else {
-		odom_attitude.q[0] = odom.q[0];
-		odom_attitude.q[1] = odom.q[1];
-		odom_attitude.q[2] = odom.q[2];
-		odom_attitude.q[3] = odom.q[3];
+		matrix::Quatf q(odom.q[0], odom.q[1], odom.q[2], odom.q[3]);
+		q.copyTo(odom_attitude.q);
 	}
 
 	if (odom_attitude.att_rate_std_dev > ev_max_std_dev) {
@@ -1772,8 +1766,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odom_attitude.pitchspeed = NAN;
 		odom_attitude.yawspeed = NAN;
 	}
-
-	odom_position.dist_bottom_valid = false;
 
 	int instance_id = 0;
 
