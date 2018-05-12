@@ -1860,9 +1860,9 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_local_position_s pos = {};
-		estimator_status_s est = {};
-		vehicle_attitude_s att = {};
+		vehicle_local_position_s pos;
+		estimator_status_s est;
+		vehicle_attitude_s att;
 
 		bool pos_updated = _pos_sub->update(&_pos_time, &pos);
 		bool est_updated = _est_sub->update(&_est_time, &est);
@@ -2066,8 +2066,8 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_local_position_s pos = {};
-		estimator_status_s est = {};
+		vehicle_local_position_s pos;
+		estimator_status_s est;
 
 		bool pos_updated = _pos_sub->update(&_pos_time, &pos);
 		bool est_updated = _est_sub->update(&_est_time, &est);
