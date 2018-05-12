@@ -230,7 +230,8 @@ private:
 		(ParamFloat<px4::params::RC_FLT_CUTOFF>) _rc_flt_cutoff,
 		(ParamFloat<px4::params::RC_FLT_SMP_RATE>) _rc_flt_smp_rate,
 		(ParamFloat<px4::params::MPC_ACC_HOR_FLOW>) _acc_max_flow_xy,
-		(ParamFloat<px4::params::MPC_MAX_FLOW_HGT>) _flow_max_hgt
+		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _flow_min_hgt,
+		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _flow_max_hgt
 
 	);
 
@@ -301,8 +302,6 @@ private:
 	float _z_derivative; /**< velocity in z that agrees with position rate */
 
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
-
-	float _min_hagl_limit; /**< minimum continuous height above ground (m) */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -481,7 +480,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_jerk_limit_z(1.0f),
 	_z_derivative(0.0f),
 	_takeoff_vel_limit(0.0f),
-	_min_hagl_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_heading_reset_counter(0)
@@ -634,13 +632,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
 		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
-
-		/* Get parameter values used to fly within optical flow sensor limits */
-		param_t handle = param_find("SENS_FLOW_MINRNG");
-
-		if (handle != PARAM_INVALID) {
-			param_get(handle, &_min_hagl_limit);
-		}
 
 	}
 
@@ -2275,7 +2266,7 @@ MulticopterPositionControl::update_velocity_derivative()
 		_pos(0) = _local_pos.x;
 		_pos(1) = _local_pos.y;
 
-		if (((_alt_mode.get() == 1) || _local_pos.limit_hagl) && _local_pos.dist_bottom_valid) {
+		if ((_alt_mode.get() == 1) && _local_pos.dist_bottom_valid) {
 			if (!_terrain_follow) {
 				_terrain_follow = true;
 				_reset_alt_sp = true;
@@ -2442,11 +2433,12 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	}
 
 	// encourage pilot to respect flow sensor minimum height limitations
-	if (_local_pos.limit_hagl && _local_pos.dist_bottom_valid && _control_mode.flag_control_manual_enabled
+	if (_terrain_follow && _local_pos.limit_hagl
+		&& _control_mode.flag_control_manual_enabled
 	    && _control_mode.flag_control_altitude_enabled) {
 		// If distance to ground is less than limit, increment set point upwards at up to the landing descent rate
-		if (_local_pos.dist_bottom < _min_hagl_limit) {
-			float climb_rate_bias = fminf(1.5f * _pos_p(2) * (_min_hagl_limit - _local_pos.dist_bottom), _land_speed.get());
+		if (_local_pos.dist_bottom < _flow_min_hgt.get()) {
+			float climb_rate_bias = fminf(1.5f * _pos_p(2) * (_flow_min_hgt.get() - _local_pos.dist_bottom), _land_speed.get());
 			_vel_sp(2) -= climb_rate_bias;
 			_pos_sp(2) -= climb_rate_bias * _dt;
 
