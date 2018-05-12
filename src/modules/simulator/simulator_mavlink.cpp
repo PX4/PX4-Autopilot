@@ -1183,33 +1183,10 @@ int Simulator::publish_odometry_topic(T *msg)
 		attitude.att_rate_std_dev = sqrtf(fmaxf(odom.twist_covariance[15],
 							fmaxf(odom.twist_covariance[18], odom.twist_covariance[20])));
 
-		if (position.eph > ep_max_std_dev) {
-			position.xy_valid = false;
-
-		} else {
-			position.xy_valid = true;
-		}
-
-		if (position.evh > ev_max_std_dev) {
-			position.v_xy_valid = false;
-
-		} else {
-			position.v_xy_valid = true;
-		}
-
-		if (position.epv > ep_max_std_dev) {
-			position.z_valid = false;
-
-		} else {
-			position.z_valid = true;
-		}
-
-		if (position.evv > ev_max_std_dev) {
-			position.v_z_valid = false;
-
-		} else {
-			position.v_z_valid = true;
-		}
+		position.xy_valid = (position.eph > ep_max_std_dev) ? false : true;
+		position.v_xy_valid = (position.evh > ev_max_std_dev) ? false : true;
+		position.z_valid = (position.epv > ep_max_std_dev) ? false : true;
+		position.v_z_valid = (position.evv > ev_max_std_dev) ? false : true;
 
 		/** The quaternion of the ODOMETRY msg represents a rotation from
 		 * NED earth/local frame to XYZ body frame
@@ -1246,19 +1223,8 @@ int Simulator::publish_odometry_topic(T *msg)
 		attitude.att_std_dev = sqrtf(fmaxf(ev.covariance[15],
 						   fmaxf(ev.covariance[18], ev.covariance[20])));
 
-		if (position.eph > ep_max_std_dev) {
-			position.xy_valid = false;
-
-		} else {
-			position.xy_valid = true;
-		}
-
-		if (position.epv > ep_max_std_dev) {
-			position.z_valid = false;
-
-		} else {
-			position.z_valid = true;
-		}
+		position.xy_valid = (position.eph > ep_max_std_dev) ? false : true;
+		position.z_valid = (position.epv > ep_max_std_dev) ? false : true;
 
 		/** The euler angles of the VISUAL_POSITION_ESTIMATE msg represent a
 		 * rotation from NED earth/local frame to XYZ body frame

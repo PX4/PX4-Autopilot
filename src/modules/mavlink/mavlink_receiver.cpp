@@ -1212,19 +1212,8 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[6]));
 	vision_position.epv = sqrtf(pos.covariance[11]);
 
-	if (vision_position.eph > ep_max_std_dev) {
-		vision_position.xy_valid = false;
-
-	} else {
-		vision_position.xy_valid = true;
-	}
-
-	if (vision_position.epv > ep_max_std_dev) {
-		vision_position.z_valid = false;
-
-	} else {
-		vision_position.z_valid = true;
-	}
+	vision_position.xy_valid = (vision_position.eph > ep_max_std_dev) ? false : true;
+	vision_position.z_valid = (vision_position.epv > ep_max_std_dev) ? false : true;
 
 	vision_position.v_xy_valid = false;
 	vision_position.v_z_valid = false;
@@ -1757,33 +1746,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odom_attitude.att_rate_std_dev = sqrtf(fmaxf(odom.twist_covariance[15],
 					       fmaxf(odom.twist_covariance[18], odom.twist_covariance[20])));
 
-	if (odom_position.eph > ep_max_std_dev) {
-		odom_position.xy_valid = false;
-
-	} else {
-		odom_position.xy_valid = true;
-	}
-
-	if (odom_position.evh > ev_max_std_dev) {
-		odom_position.v_xy_valid = false;
-
-	} else {
-		odom_position.v_xy_valid = true;
-	}
-
-	if (odom_position.epv > ep_max_std_dev) {
-		odom_position.z_valid = false;
-
-	} else {
-		odom_position.z_valid = true;
-	}
-
-	if (odom_position.evv > ev_max_std_dev) {
-		odom_position.v_z_valid = false;
-
-	} else {
-		odom_position.v_z_valid = true;
-	}
+	odom_position.xy_valid = (odom_position.eph > ep_max_std_dev) ? false : true;
+	odom_position.v_xy_valid = (odom_position.evh > ev_max_std_dev) ? false : true;
+	odom_position.z_valid = (odom_position.epv > ep_max_std_dev) ? false : true;
+	odom_position.v_z_valid = (odom_position.evv > ev_max_std_dev) ? false : true;
 
 	/** The quaternion of the ODOMETRY msg represents a rotation from
 	 * NED earth/local frame to XYZ body frame
