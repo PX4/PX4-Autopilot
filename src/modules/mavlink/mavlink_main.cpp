@@ -2609,38 +2609,54 @@ void
 Mavlink::covariance_from_matrixurt_helper(float urt[21], matrix::SquareMatrix3f &matrix1,
 		matrix::SquareMatrix3f &matrix2)
 {
-	size_t index = 1, count = 1;
+	/** example:
+	 *
+	 * 6x6 covariance matrix URT:
+	 * 0  1   2   3   4   5
+	 *    6   7   8   9  10
+	 *       11  12  13  14
+	 *           15  16  17
+	 *               18  19
+	 *                   20
+	 *
+	 * resulting position/linear vel covariance matrix:
+	 *        0  1  2
+	 *        0  6  7
+	 *        0  0 11
+	 *
+	 * resulting attitude/angular vel covariance matrix:
+	 *       15  16  17
+	 *        0  18  19
+	 *        0   0  20
+	 *
+	 */
+	size_t index = 0;
 
 	for (size_t i = 0; i < 6; i++) {
 		for (size_t j = 0; j < 6; j++) {
-			if (i < 3 && j < 3) {
+			if (i == j || j > i) {
+				// if a diagonal value, update the index
 				if (i == j) {
-					if (i == 0 && j == 0) {
-						matrix1(i, j) = urt[0];
-
-					} else {
-						index += count;
-						matrix1(i, j) = urt[6 * i + j - index];
-						count++;
-					}
-
-				} else if (i >= j) {
-					matrix1(i, j) = urt[6 * i + j - index - 1];
+					index += i;
 				}
 
-			} else if (i >= 3 && j >= 3) {
-				if (i == j) {
-					if (i == 3 && j == 3) {
-						matrix2(i - 3, j - 3) = urt[15];
+				// the value is computed based on the index and the i,j values
+				// example:
+				// i = 0, j = 1, index = 0 + 0, matrix(0,1) = urt[6*0 + 0 - 0] = urt[0]
+				// i = 0, j = 1, index = 0 + 0, matrix(0,1) = urt[6*0 + 1 - 0] = urt[1]
+				// i = 0, j = 2, index = 0 + 0, matrix(0,2) = urt[6*0 + 3 - 0] = urt[2]
+				// ...
+				// i = 0, j = 2, index = 0 + 0, matrix(0,2) = urt[6*0 + 6 - 0] = urt[5]
+				// i = 1, j = 1, index = 0 + 1, matrix(1,1) = urt[6*1 + 1 - 1] = urt[6]
+				// ...
+				// i = 2, j = 2, index = 1 + 2, matrix(2,2) = urt[6*2 + 2 - 3] = urt[11]
+				// i = 2, j = 3, index = 1 + 2, matrix(2,3) = urt[6*2 + 3 - 3] = urt[12]
+				// ...
+				if (i < 3 && j < 3) {
+					matrix1(i, j) = urt[6 * i + j - index];
 
-					} else {
-						index += count;
-						matrix2(i - 3, j - 3) = urt[6 * i + j - index];
-						count++;
-					}
-
-				} else if (i >= j) {
-					matrix2(i - 3, j - 3) = urt[6 * i + j - index - 1];
+				} else if (i >= 3 && j >= 3) {
+					matrix1(i - 3, j - 3) = urt[6 * i + j - index];
 				}
 			}
 		}
