@@ -115,7 +115,7 @@ PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
  * Maximum positive / up pitch rate.
  *
  * This limits the maximum pitch up angular rate the controller will output (in
- * degrees per second). Setting a value of zero disables the limit.
+ * degrees per second).
  *
  * @unit deg/s
  * @min 0.0
@@ -130,7 +130,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
  * Maximum negative / down pitch rate.
  *
  * This limits the maximum pitch down up angular rate the controller will
- * output (in degrees per second). Setting a value of zero disables the limit.
+ * output (in degrees per second).
  *
  * @unit deg/s
  * @min 0.0
@@ -202,7 +202,7 @@ PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
  * Maximum roll rate
  *
  * This limits the maximum roll rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
+ * second).
  *
  * @unit deg/s
  * @min 0.0
@@ -241,7 +241,7 @@ PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YR_I, 0.01f);
 
 /**
  * Yaw rate integrator limit
@@ -261,7 +261,7 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
  * Maximum yaw rate
  *
  * This limits the maximum yaw rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
+ * second).
  *
  * @unit deg/s
  * @min 0.0
@@ -270,7 +270,7 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_Y_RMAX, 50.0f);
 
 /**
  * Roll control to yaw control feedforward gain.
@@ -344,7 +344,7 @@ PARAM_DEFINE_FLOAT(FW_WR_IMAX, 1.0f);
  * Maximum wheel steering rate
  *
  * This limits the maximum wheel steering rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
+ * second).
  *
  * @unit deg/s
  * @min 0.0
@@ -353,7 +353,7 @@ PARAM_DEFINE_FLOAT(FW_WR_IMAX, 1.0f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_W_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_W_RMAX, 30.0f);
 
 /**
  * Roll rate feed forward
