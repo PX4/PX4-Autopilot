@@ -107,6 +107,9 @@
 #define VL53LXX_MAX_RANGING_DISTANCE						2.0f
 #define VL53LXX_MIN_RANGING_DISTANCE						0.0f
 
+#define VL53LXX_RA_IDENTIFICATION_MODEL_ID					0xC0
+#define VL53LXX_IDENTIFICATION_MODEL_ID 					0xEEAA
+
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -129,6 +132,9 @@ public:
 	* Diagnostics - print some basic information about the driver.
 	*/
 	void						print_info();
+
+protected:
+	virtual int					probe();
 
 private:
 	uint8_t 					_rotation;
@@ -253,24 +259,35 @@ int
 VL53LXX::sensorInit()
 {
 	uint8_t val = 0;
-	int ret;
+	int ret = OK;
 	float rate_limit;
 	uint8_t rate_limit_split[2];
 
 	// I2C at 2.8V on sensor side of level shifter
-	readRegister(VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG, val);
-	writeRegister(VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG, val | 0x01);
+	ret |= readRegister(VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG, val);
+
+	if (ret != OK) {
+		ret = PX4_ERROR;
+		return ret;
+	}
+
+	ret |= writeRegister(VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG, val | 0x01);
 
 	// set I2C to standard mode
-	writeRegister(0x88, 0x00);
+	ret |= writeRegister(0x88, 0x00);
 
-	writeRegister(0x80, 0x01);
-	writeRegister(0xFF, 0x01);
-	writeRegister(0x00, 0x00);
-	readRegister(0x91, val);
-	writeRegister(0x00, 0x01);
-	writeRegister(0xFF, 0x00);
-	writeRegister(0x80, 0x00);
+	ret |= writeRegister(0x80, 0x01);
+	ret |= writeRegister(0xFF, 0x01);
+	ret |= writeRegister(0x00, 0x00);
+	ret |= readRegister(0x91, val);
+	ret |= writeRegister(0x00, 0x01);
+	ret |= writeRegister(0xFF, 0x00);
+	ret |= writeRegister(0x80, 0x00);
+
+	if (ret != OK) {
+		ret = PX4_ERROR;
+		return ret;
+	}
 
 	stop_variable_ = val;
 
@@ -306,8 +323,6 @@ VL53LXX::init()
 		goto out;
 	}
 
-	sensorInit();
-
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
@@ -339,6 +354,16 @@ out:
 	return ret;
 }
 
+int
+VL53LXX::probe()
+{
+	if (sensorInit() == OK) {
+		return OK;
+	}
+
+	// not found on any address
+	return -EIO;
+}
 
 int
 VL53LXX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
@@ -602,7 +627,7 @@ VL53LXX::measure()
 		readRegister(SYSRANGE_START_REG, system_start);
 
 		if ((system_start & 0x01) == 1) {
-			work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
+			work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
 				   1000);		// reschedule every 1 ms until measurement is ready
 			ret = OK;
 			return ret;
@@ -618,7 +643,7 @@ VL53LXX::measure()
 		readRegister(SYSRANGE_START_REG, system_start);
 
 		if ((system_start & 0x01) == 1) {
-			work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
+			work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
 				   1000);		// reschedule every 1 ms until measurement is ready
 			ret = OK;
 			return ret;
@@ -631,7 +656,7 @@ VL53LXX::measure()
 	readRegister(RESULT_INTERRUPT_STATUS_REG, wait_for_measurement);
 
 	if ((wait_for_measurement & 0x07) == 0) {
-		work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
+		work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
 			   1000);		// reschedule every 1 ms until measurement is ready
 		ret = OK;
 		return ret;
@@ -716,7 +741,7 @@ VL53LXX::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, 1000);
+	work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, 1000);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -741,7 +766,7 @@ VL53LXX::start()
 void
 VL53LXX::stop()
 {
-	work_cancel(HPWORK, &_work);
+	work_cancel(LPWORK, &_work);
 }
 
 
@@ -766,7 +791,7 @@ VL53LXX::cycle()
 
 		collect();
 
-		work_queue(HPWORK,
+		work_queue(LPWORK,
 			   &_work,
 			   (worker_t)&VL53LXX::cycle_trampoline,
 			   this,

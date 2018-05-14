@@ -181,12 +181,11 @@
 #define MPU_WHOAMI_6500			0x70
 
 #define MPU9250_ACCEL_DEFAULT_RATE	1000
-// #ifdef CRAZYFLIE
-// #define MPU9250_ACCEL_MAX_OUTPUT_RATE			4*280
-// #else
-// #define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
-// #endif
-#define MPU9250_ACCEL_MAX_OUTPUT_RATE			280 	// remove this when using the previous #ifdef
+#ifdef CONFIG_ARCH_BOARD_CRAZYFLIE
+#define MPU9250_ACCEL_MAX_OUTPUT_RATE			1000
+#else
+#define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
+#endif
 #define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
 #define MPU9250_GYRO_DEFAULT_RATE	1000
 /* rates need to be the same between accel and gyro */
