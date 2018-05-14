@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,198 +41,7 @@
  * @author Alex Klimaj <alexklimaj@gmail.com>
  */
 
-#include <float.h>
-#include <stdio.h>
-#include <string.h>
-#include <ecl/geo/geo.h>
-
-#include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/drv_hrt.h>
-#include <px4_config.h>
-#include <px4_workqueue.h>
-#include <perf/perf_counter.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/subsystem_info.h>
-#include <uORB/uORB.h>
-
-#define BATT_SMBUS_ADDR_MIN             0x00	///< lowest possible address
-#define BATT_SMBUS_ADDR_MAX             0xFF	///< highest possible address
-
-#define BATT_SMBUS_I2C_BUS              PX4_I2C_BUS_EXPANSION
-#define BATT_SMBUS_ADDR                 0x0B	///< Default 7 bit address I2C address. 8 bit = 0x16
-#define BATT_SMBUS_TEMP                 0x08	///< temperature register
-#define BATT_SMBUS_VOLTAGE              0x09	///< voltage register
-#define BATT_SMBUS_REMAINING_CAPACITY	0x0F	///< predicted remaining battery capacity as a percentage
-#define BATT_SMBUS_FULL_CHARGE_CAPACITY 0x10    ///< capacity when fully charged
-#define BATT_SMBUS_DESIGN_CAPACITY		0x18	///< design capacity register
-#define BATT_SMBUS_DESIGN_VOLTAGE		0x19	///< design voltage register
-#define BATT_SMBUS_MANUFACTURE_DATE   	0x1B  	///< manufacture date register
-#define BATT_SMBUS_SERIAL_NUMBER      	0x1C  	///< serial number register
-#define BATT_SMBUS_MANUFACTURER_NAME	0x20	///< manufacturer name
-#define BATT_SMBUS_CURRENT              0x0A	///< current register
-#define BATT_SMBUS_AVERAGE_CURRENT      0x0B	///< current register
-#define BATT_SMBUS_MEASUREMENT_INTERVAL_US	(1000000 / 10)	///< time in microseconds, measure at 10Hz
-#define BATT_SMBUS_TIMEOUT_US			10000000	///< timeout looking for battery 10seconds after startup
-#define BATT_SMBUS_CYCLE_COUNT			0x17	///< number of cycles the battery has experienced
-#define BATT_SMBUS_RUN_TIME_TO_EMPTY	0x11	///< predicted remaining battery capacity based on the present rate of discharge in min
-#define BATT_SMBUS_AVERAGE_TIME_TO_EMPTY	0x12	///< predicted remaining battery capacity based on the present rate of discharge in min
-
-#define BATT_SMBUS_MANUFACTURER_ACCESS	0x00
-#define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS    0x44
-
-#define BATT_SMBUS_PEC_POLYNOMIAL	0x07		///< Polynomial for calculating PEC
-
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-
-class BATT_SMBUS : public device::I2C
-{
-public:
-	BATT_SMBUS(int bus = PX4_I2C_BUS_EXPANSION, uint16_t batt_smbus_addr = BATT_SMBUS_ADDR);
-	virtual ~BATT_SMBUS();
-
-	/**
-	 * Initialize device
-	 *
-	 * Calls probe() to check for device on bus.
-	 *
-	 * @return 0 on success, error code on failure
-	 */
-	virtual int		init();
-
-	/**
-	 * Test device
-	 *
-	 * @return 0 on success, error code on failure
-	 */
-	virtual int		test();
-
-	/**
-	 * Search all possible slave addresses for a smart battery
-	 */
-	int			search();
-
-	/**
-	 * Get the SBS manufacturer name of the battery device
-	 *
-	 * @param manufacturer_name pointer a buffer into which the manufacturer name is to be written
-	* @param max_length the maximum number of bytes to attempt to read from the manufacturer name register, including the null character that is appended to the end
-	 *
-	 * @return the number of bytes read
-	 */
-	uint8_t     manufacturer_name(uint8_t *man_name, uint8_t max_length);
-
-	/**
-	 * Return the SBS manufacture date of the battery device
-	 *
-	 * @return the date in the following format:
-	*  see Smart Battery Data Specification, Revision  1.1
-	*  http://sbs-forum.org/specs/sbdat110.pdf for more details
-	 *  Date as uint16_t = (year-1980) * 512 + month * 32 + day
-	 *  | Field | Bits | Format             | Allowable Values                           |
-	 *  | ----- | ---- | ------------------ | ------------------------------------------ |
-	 *  | Day     0-4    5-bit binary value   1-31 (corresponds to day)                  |
-	 *  | Month   5-8    4-bit binary value   1-12 (corresponds to month number)         |
-	 *  | Year    9-15   7-bit binary value   0-127 (corresponds to year biased by 1980) |
-	 *  otherwise, return 0 on failure
-	 */
-	uint16_t  manufacture_date();
-
-	/**
-	 * Return the SBS serial number of the battery device
-	 */
-	uint16_t     serial_number();
-
-protected:
-	/**
-	 * Check if the device can be contacted
-	 */
-	virtual int		probe();
-
-private:
-
-	/**
-	 * Start periodic reads from the battery
-	 */
-	void			start();
-
-	/**
-	 * Stop periodic reads from the battery
-	 */
-	void			stop();
-
-	/**
-	 * static function that is called by worker queue
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	/**
-	 * perform a read from the battery
-	 */
-	void			cycle();
-
-	/**
-	 * Read a word from specified register
-	 */
-	int			read_reg(uint8_t reg, uint16_t &val);
-
-	/**
-	 * Write a word to specified register
-	 */
-	int			write_reg(uint8_t reg, uint16_t val);
-
-	/**
-	 * Convert from 2's compliment to decimal
-	 * @return the absolute value of the input in decimal
-	 */
-	uint16_t	convert_twos_comp(uint16_t val);
-
-	/**
-	 * Read block from bus
-	 * @return returns number of characters read if successful, zero if unsuccessful
-	 */
-	uint8_t			read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_zero);
-
-	/**
-	 * Write block to the bus
-	 * @return the number of characters sent if successful, zero if unsuccessful
-	 */
-	uint8_t			write_block(uint8_t reg, uint8_t *data, uint8_t len);
-
-	/**
-	 * Calculate PEC for a read or write from the battery
-	 * @param buff is the data that was read or will be written
-	 */
-	uint8_t	get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len);
-
-	/**
-	 * Write a word to Manufacturer Access register (0x00)
-	 * @param cmd the word to be written to Manufacturer Access
-	 */
-	uint8_t	ManufacturerAccess(uint16_t cmd);
-
-	// internal variables
-	bool			_enabled;	///< true if we have successfully connected to battery
-	work_s			_work{};		///< work queue for scheduling reads
-
-	battery_status_s _last_report;	///< last published report, used for test()
-
-	orb_advert_t	_batt_topic;	///< uORB battery topic
-	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
-
-	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
-	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
-	uint16_t		_batt_startup_capacity;	///< battery's remaining capacity on startup
-	char           *_manufacturer_name;  ///< The name of the battery manufacturer
-	uint16_t		_cycle_count;	///< number of cycles the battery has experienced
-	uint16_t		_serial_number;		///< serial number register
-	float 			_crit_thr;	///< Critical battery threshold param
-	float 			_low_thr;	///< Low battery threshold param
-	float 			_emergency_thr;		///< Emergency battery threshold param
-};
+#include "batt_smbus.h"
 
 namespace
 {
@@ -250,6 +59,7 @@ int serial_number();
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
 	_enabled(false),
+	_last_report{},
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),
@@ -274,27 +84,57 @@ BATT_SMBUS::~BATT_SMBUS()
 	if (_manufacturer_name != nullptr) {
 		delete[] _manufacturer_name;
 	}
+
+	// Switch back to ADC battery measurement
+	PX4_ERR("Failed to start smart battery. Switching to ADC measurement.");
+	int battsource = 0;
+	param_set(param_find("BAT_SOURCE"), &battsource);
 }
 
 int
 BATT_SMBUS::init()
 {
-	int ret = ENOTTY;
+	int ret = PX4_ERROR;
 
-	// attempt to initialise I2C bus
+	// attempt to initialize I2C bus
 	ret = I2C::init();
 
 	if (ret != OK) {
-		PX4_ERR("failed to init I2C");
+		PX4_ERR("Failed to init I2C");
 		return ret;
-
-	} else {
-		//Find the battery on the bus
-		search();
-
-		// start work queue
-		start();
 	}
+
+	// Find the battery on the bus and read startup info
+	ret = search();
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	// Retry up to 10 times to read startup info
+	for (size_t i = 0; i < 10; i++) {
+		ret = GetStartupInfo();
+
+		if (ret == OK) {
+			break;
+		}
+	}
+
+	if (ret != OK) {
+		PX4_ERR("Failed to get battery startup info");
+		return ret;
+	}
+
+	int battsource = 0;
+	param_get(param_find("BAT_SOURCE"), &battsource);
+
+	if (battsource != 1) {
+		battsource = 1;
+		param_set(param_find("BAT_SOURCE"), &battsource);
+	}
+
+	// start work queue
+	start();
 
 	// init orb id
 	_batt_orb_id = ORB_ID(battery_status);
@@ -334,7 +174,7 @@ BATT_SMBUS::search()
 {
 	bool found_slave = false;
 	uint16_t tmp;
-	int16_t orig_addr = get_device_address();
+	uint8_t orig_addr = get_device_address();
 
 	// search through all valid SMBus addresses
 	for (uint8_t i = BATT_SMBUS_ADDR_MIN; i < BATT_SMBUS_ADDR_MAX; i++) {
@@ -363,6 +203,7 @@ BATT_SMBUS::search()
 
 	} else {
 		PX4_INFO("No smart batteries found.");
+		return PX4_ERROR;
 	}
 
 	return OK;
@@ -450,64 +291,21 @@ BATT_SMBUS::cycle()
 		return;
 	}
 
-	// Try and get battery SBS info
-	if (_manufacturer_name == nullptr) {
-		char man_name[21];
-		uint8_t len = manufacturer_name((uint8_t *)man_name, sizeof(man_name));
-
-		if (len > 0) {
-			_manufacturer_name = new char[len + 1];
-			strcpy(_manufacturer_name, man_name);
-		}
-	}
-
-	// read battery serial number on startup
-	if (_serial_number == 0) {
-		_serial_number = serial_number();
-	}
-
-	// temporary variable for storing SMBUS reads
-	uint16_t tmp;
-
-	// read battery capacity on startup
-	if (_batt_startup_capacity == 0) {
-		if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
-			_batt_startup_capacity = tmp;
-		}
-	}
-
-	// read battery cycle count on startup
-	if (_cycle_count == 0) {
-		if (read_reg(BATT_SMBUS_CYCLE_COUNT, tmp) == OK) {
-			_cycle_count = tmp;
-		}
-	}
-
-	// read battery design capacity on startup
-	if (_batt_capacity == 0) {
-		if (read_reg(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp) == OK) {
-			_batt_capacity = tmp;
-		}
-	}
-
-	// read battery threshold params on startup
-	if (_crit_thr < 0.01f) {
-		param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
-	}
-
-	if (_low_thr < 0.01f) {
-		param_get(param_find("BAT_LOW_THR"), &_low_thr);
-	}
-
-	if (_emergency_thr < 0.01f) {
-		param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
-	}
-
 	// read data from sensor
 	battery_status_s new_report = {};
 
+	if ((_last_report.remaining < 0.0f) || (_last_report.remaining > 1.0f)) {
+		_last_report.remaining = 0.5f;
+	}
+
 	// set time of reading
 	new_report.timestamp = now;
+
+	// Don't publish if any read fails
+	bool success = true;
+
+	// temporary variable for storing SMBUS reads
+	uint16_t tmp;
 
 	if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
 
@@ -521,21 +319,33 @@ BATT_SMBUS::cycle()
 		if (read_reg(BATT_SMBUS_CURRENT, tmp) == OK) {
 			new_report.current_a = ((float)convert_twos_comp(tmp)) / 1000.0f;
 			new_report.current_filtered_a = new_report.current_a;
+
+		} else {
+			success = false;
 		}
 
 		// read average current
 		if (read_reg(BATT_SMBUS_AVERAGE_CURRENT, tmp) == OK) {
 			new_report.average_current_a = ((float)convert_twos_comp(tmp)) / 1000.0f;
+
+		} else {
+			success = false;
 		}
 
 		// read run time to empty
 		if (read_reg(BATT_SMBUS_RUN_TIME_TO_EMPTY, tmp) == OK) {
 			new_report.run_time_to_empty = tmp;
+
+		} else {
+			success = false;
 		}
 
 		// read average time to empty
 		if (read_reg(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, tmp) == OK) {
 			new_report.average_time_to_empty = tmp;
+
+		} else {
+			success = false;
 		}
 
 		// read remaining capacity
@@ -552,37 +362,46 @@ BATT_SMBUS::cycle()
 
 			// calculate total discharged amount
 			new_report.discharged_mah = (float)((float)_batt_startup_capacity - (float)tmp);
+
+			//Check if remaining % is out of range
+			if ((new_report.remaining > 1.00f) || (new_report.remaining <= 0.00f)) {
+				new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+				PX4_INFO("Percent out of range: %4.2f", (double)new_report.remaining);
+			}
+
+			//Check if discharged amount is greater than the starting capacity
+			else if (new_report.discharged_mah > (float)_batt_startup_capacity) {
+				new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+				PX4_INFO("Discharged greater than startup capacity: %4.2f", (double)new_report.discharged_mah);
+			}
+
+			// propagate warning state
+			else {
+				if (new_report.remaining > _low_thr) {
+					new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
+
+				} else if (new_report.remaining > _crit_thr) {
+					new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
+
+				} else if (new_report.remaining > _emergency_thr) {
+					new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+
+				} else {
+					PX4_INFO("remaining else emergency: %4.2f", (double)new_report.remaining);
+					new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+				}
+			}
+
+		} else {
+			success = false;
 		}
 
 		// read battery temperature and covert to Celsius
 		if (read_reg(BATT_SMBUS_TEMP, tmp) == OK) {
 			new_report.temperature = (float)(((float)tmp / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS);
-		}
 
-		//Check if remaining % is out of range
-		if ((new_report.remaining > 1.00f) || (new_report.remaining <= 0.00f)) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
-		}
-
-		//Check if discharged amount is greater than the starting capacity
-		else if (new_report.discharged_mah > (float)_batt_startup_capacity) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
-		}
-
-		// propagate warning state
-		else {
-			if (new_report.remaining > _low_thr) {
-				new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
-
-			} else if (new_report.remaining > _crit_thr) {
-				new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
-
-			} else if (new_report.remaining > _emergency_thr) {
-				new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
-
-			} else {
-				new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
-			}
+		} else {
+			success = false;
 		}
 
 		new_report.capacity = _batt_capacity;
@@ -591,7 +410,12 @@ BATT_SMBUS::cycle()
 
 		// publish to orb
 		if (_batt_topic != nullptr) {
-			orb_publish(_batt_orb_id, _batt_topic, &new_report);
+			if (success == true) {
+				orb_publish(_batt_orb_id, _batt_topic, &new_report);
+
+				// copy report for test()
+				_last_report = new_report;
+			}
 
 		} else {
 			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
@@ -601,9 +425,6 @@ BATT_SMBUS::cycle()
 				return;
 			}
 		}
-
-		// copy report for test()
-		_last_report = new_report;
 
 		// record we are working
 		_enabled = true;
@@ -631,7 +452,7 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 
 		} else {
 			PX4_ERR("BATT_SMBUS PEC Check Failed");
-			ret = ENOTTY;
+			ret = PX4_ERROR;
 		}
 	}
 
@@ -653,7 +474,7 @@ BATT_SMBUS::write_reg(uint8_t reg, uint16_t val)
 	int ret = transfer(buff, 3, nullptr, 0);
 
 	if (ret != OK) {
-		PX4_DEBUG("Register write error");
+		PX4_DEBUG("Register write ERROR");
 	}
 
 	// return success or failure
@@ -730,7 +551,7 @@ BATT_SMBUS::write_block(uint8_t reg, uint8_t *data, uint8_t len)
 
 	// return zero on failure
 	if (ret != OK) {
-		PX4_DEBUG("Block write error");
+		PX4_DEBUG("Block write ERROR");
 		return 0;
 	}
 
@@ -806,7 +627,82 @@ BATT_SMBUS::ManufacturerAccess(uint16_t cmd)
 	int ret = write_reg(BATT_SMBUS_MANUFACTURER_ACCESS, cmd);
 
 	if (ret != OK) {
-		PX4_WARN("Manufacturer Access error");
+		PX4_WARN("Manufacturer Access ERROR");
+	}
+
+	return ret;
+}
+
+uint8_t
+BATT_SMBUS::GetStartupInfo()
+{
+	int ret = OK;
+
+	// Try and get battery SBS info
+	if (_manufacturer_name == nullptr) {
+		char man_name[21];
+		uint8_t len = manufacturer_name((uint8_t *)man_name, sizeof(man_name));
+
+		if (len > 0) {
+			_manufacturer_name = new char[len + 1];
+			strcpy(_manufacturer_name, man_name);
+		}
+	}
+
+	// temporary variable for storing SMBUS reads
+	uint16_t tmp;
+
+	// read battery serial number on startup
+	if (_serial_number == 0) {
+		if (read_reg(BATT_SMBUS_SERIAL_NUMBER, tmp) == OK) {
+			_serial_number = tmp;
+
+		} else {
+			ret = PX4_ERROR;
+		}
+	}
+
+	// read battery capacity on startup
+	if (_batt_startup_capacity == 0) {
+		if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
+			_batt_startup_capacity = tmp;
+
+		} else {
+			ret = PX4_ERROR;
+		}
+	}
+
+	// read battery cycle count on startup
+	if (_cycle_count == 0) {
+		if (read_reg(BATT_SMBUS_CYCLE_COUNT, tmp) == OK) {
+			_cycle_count = tmp;
+
+		} else {
+			ret = PX4_ERROR;
+		}
+	}
+
+	// read battery design capacity on startup
+	if (_batt_capacity == 0) {
+		if (read_reg(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp) == OK) {
+			_batt_capacity = tmp;
+
+		} else {
+			ret = PX4_ERROR;
+		}
+	}
+
+	// read battery threshold params on startup
+	if (_crit_thr < 0.01f) {
+		param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
+	}
+
+	if (_low_thr < 0.01f) {
+		param_get(param_find("BAT_LOW_THR"), &_low_thr);
+	}
+
+	if (_emergency_thr < 0.01f) {
+		param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
 	}
 
 	return ret;
