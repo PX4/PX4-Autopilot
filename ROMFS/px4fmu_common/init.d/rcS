@@ -44,15 +44,6 @@ set FEXTRAS                  /fs/microsd/etc/extras.txt
 set FRC                      /fs/microsd/etc/rc.txt
 set GPS_STARTUP_ARGS         ""
 set LOG_FILE                 /fs/microsd/bootlog.txt
-set MAVLINK_DEVICE_0         /dev/ttyACM0
-set MAVLINK_DEVICE_0_ARGS    "-r 800000 -m config -x -f"
-set MAVLINK_DEVICE_0_BAUD    "57600"
-set MAVLINK_DEVICE_1         /dev/ttyS1
-set MAVLINK_DEVICE_1_ARGS    "-r 1200 -f"
-set MAVLINK_DEVICE_1_BAUD    "57600"
-set MAVLINK_DEVICE_2         none
-set MAVLINK_DEVICE_2_ARGS    none
-set MAVLINK_DEVICE_2_BAUD    none
 set MAV_TYPE                 none
 set MIXER                    none
 set MIXER_AUX                none
@@ -69,6 +60,15 @@ set PWM_MAX                  p:PWM_MAX
 set PWM_MIN                  p:PWM_MIN
 set PWM_OUT                  none
 set PWM_RATE                 p:PWM_RATE
+set TELEMETRY_DEVICE_0       /dev/ttyACM0
+set TELEMETRY_DEVICE_0_ARGS  "-r 800000 -m config -x -f"
+set TELEMETRY_DEVICE_0_BAUD  "57600"
+set TELEMETRY_DEVICE_1       /dev/ttyS1
+set TELEMETRY_DEVICE_1_ARGS  "-r 1200 -f"
+set TELEMETRY_DEVICE_1_BAUD  "57600"
+set TELEMETRY_DEVICE_2       none
+set TELEMETRY_DEVICE_2_ARGS  none
+set TELEMETRY_DEVICE_2_BAUD  none
 set VEHICLE_TYPE             none
 
 
@@ -454,15 +454,6 @@ unset FEXTRAS
 unset FRC
 unset GPS_STARTUP_ARGS
 unset LOG_FILE
-unset MAVLINK_DEVICE_0
-unset MAVLINK_DEVICE_0_ARGS
-unset MAVLINK_DEVICE_0_BAUD
-unset MAVLINK_DEVICE_1
-unset MAVLINK_DEVICE_1_ARGS
-unset MAVLINK_DEVICE_1_BAUD
-unset MAVLINK_DEVICE_2
-unset MAVLINK_DEVICE_2_ARGS
-unset MAVLINK_DEVICE_2_BAUD
 unset MAV_TYPE
 unset MIXER
 unset MIXER_AUX
@@ -478,5 +469,13 @@ unset PWM_MAX
 unset PWM_MIN
 unset PWM_OUT
 unset PWM_RATE
-unset TUNE_ERR
+unset TELEMETRY_DEVICE_0
+unset TELEMETRY_DEVICE_0_ARGS
+unset TELEMETRY_DEVICE_0_BAUD
+unset TELEMETRY_DEVICE_1
+unset TELEMETRY_DEVICE_1_ARGS
+unset TELEMETRY_DEVICE_1_BAUD
+unset TELEMETRY_DEVICE_2
+unset TELEMETRY_DEVICE_2_ARGS
+unset TELEMETRY_DEVICE_2_BAUD
 unset VEHICLE_TYPE

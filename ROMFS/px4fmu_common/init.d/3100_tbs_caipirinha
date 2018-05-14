@@ -54,6 +54,6 @@ fi
 set MIXER caipi
 set PWM_OUT 1234
 
-set MAVLINK_DEVICE_2            "/dev/ttyS2"
-set MAVLINK_DEVICE_2_ARGS       "-m osd -r 1000"
-set MAVLINK_DEVICE_2_BAUD       "57600"
+set TELEMETRY_DEVICE_2          "/dev/ttyS2"
+set TELEMETRY_DEVICE_2_ARGS     "-m osd -r 1000"
+set TELEMETRY_DEVICE_2_BAUD     "57600"
