@@ -500,7 +500,6 @@ void Ekf::fuseOptFlow()
 			fuse(gain, _flow_innov[obs_index]);
 
 			_time_last_of_fuse = _time_last_imu;
-			_gps_check_fail_status.value = 0;
 		}
 	}
 }

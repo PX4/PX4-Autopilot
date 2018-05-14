@@ -675,7 +675,13 @@ void Ekf::fuseHeading()
 	measured_hdg = wrap_pi(measured_hdg);
 
 	// calculate the innovation
-	_heading_innov = predicted_hdg - measured_hdg;
+	if (_mag_use_inhibit) {
+		// The magnetomer cannot be trusted but we need to fuse a heading to prevent a badly
+		// conditoned covariance matrix developing over time.
+		_heading_innov = 0.0f;
+	} else {
+		_heading_innov = predicted_hdg - measured_hdg;
+	}
 
 	// wrap the innovation to the interval between +-pi
 	_heading_innov = wrap_pi(_heading_innov);

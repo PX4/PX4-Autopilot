@@ -322,6 +322,9 @@ private:
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
 	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation moaneouvre was detected
 	uint8_t _num_bad_flight_yaw_events{0};	///< number of times a bad heading has been detected in flight and required a yaw reset
+	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetomer use was inhibited
+	bool _mag_use_inhibit{false};		///< true when magnetomer use is being inhibited
+	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetomer inhibit has been active for long enough to require a yaw reset when conditons improve.
 
 	float P[_k_num_states][_k_num_states] {};	///< state covariance matrix
 

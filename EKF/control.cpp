@@ -472,10 +472,11 @@ void Ekf::controlGpsFusion()
 				// If the heading is not aligned, reset the yaw and magnetic field states
 				// Do not use external vision for yaw if using GPS because yaw needs to be
 				// defined relative to an NED reference frame
-				if (!_control_status.flags.yaw_align || _control_status.flags.ev_yaw) {
+				if (!_control_status.flags.yaw_align || _control_status.flags.ev_yaw || _mag_inhibit_yaw_reset_req) {
 					_control_status.flags.yaw_align = false;
 					_control_status.flags.ev_yaw = false;
 					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+					_mag_inhibit_yaw_reset_req = false;
 				}
 
 				// If the heading is valid start using gps aiding
@@ -1389,6 +1390,23 @@ void Ekf::controlMagFusion()
 
 		} else {
 			_control_status.flags.mag_dec = false;
+		}
+
+		// If optical flow is the only aiding source and GPS checks are failing, then assume that we are operating
+		// indoors and the magnetometer is unreliable.
+		if (_control_status.flags.opt_flow
+				&& !_control_status.flags.gps
+				&& !_control_status.flags.ev_pos
+				&& ((_last_gps_fail_us - _time_last_imu) < 5E6)) {
+			_mag_use_inhibit = true;
+		} else {
+			_mag_use_inhibit = false;
+			_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
+		}
+
+		// If magnetomer use has been inhibited continuously then a yaw reset is required for a valid heading
+		if (uint32_t(_imu_sample_delayed.time_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
+			_mag_inhibit_yaw_reset_req = true;
 		}
 
 		// fuse magnetometer data using the selected methods
