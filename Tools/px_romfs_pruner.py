@@ -95,7 +95,9 @@ def main():
                     # handle mixer files differently than startup files
                     if file_path.endswith(".mix"):
                         if line.startswith(("Z:", "M:", "R: ", "O:", "S:", "H:", "T:", "P:")):
-                            pruned_content += line
+                            # reduce multiple consecutive spaces into a single space
+                            line_reduced = re.sub(' +', ' ', line)
+                            pruned_content += line_reduced
                     else:
                         if not line.isspace() \
                                 and not line.strip().startswith("#"):
