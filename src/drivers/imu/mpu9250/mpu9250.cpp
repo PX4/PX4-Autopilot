@@ -139,12 +139,11 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
-// #ifdef CRAZYFLIE
-// 	_sample_rate(250),
-// #else
-// 	_sample_rate(1000),
-// #endif
-	_sample_rate(250),
+#ifdef CONFIG_ARCH_BOARD_CRAZYFLIE
+	_sample_rate(200),
+#else
+	_sample_rate(1000),
+#endif
 	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
@@ -161,8 +160,8 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_int(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE / 4),
-	_gyro_int(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE / 4, true),
+	_accel_int(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE),
+	_gyro_int(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_checked_next(0),
 	_last_temperature(0),
