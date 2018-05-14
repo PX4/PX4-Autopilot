@@ -81,6 +81,7 @@ add_custom_command(OUTPUT ${romfs_temp_dir}/init.d/rcS ${romfs_temp_dir}/init.d/
 		--folder ${romfs_temp_dir} --board ${BOARD}
 	DEPENDS
 		${config_romfs_files_list}
+		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d/rcS
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 	)
