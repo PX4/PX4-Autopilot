@@ -476,7 +476,14 @@ void Ekf::controlGpsFusion()
 					_control_status.flags.yaw_align = false;
 					_control_status.flags.ev_yaw = false;
 					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
-					_mag_inhibit_yaw_reset_req = false;
+					// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
+					// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
+					if (_mag_inhibit_yaw_reset_req) {
+						_mag_inhibit_yaw_reset_req = false;
+						// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
+						float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
+						setDiag(P, 12, 12, sq(_params.switch_on_gyro_bias * dt));
+					}
 				}
 
 				// If the heading is valid start using gps aiding
