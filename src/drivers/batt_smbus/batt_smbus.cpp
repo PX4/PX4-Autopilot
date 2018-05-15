@@ -367,16 +367,16 @@ BATT_SMBUS::cycle()
 			if ((new_report.remaining > 1.00f) || (new_report.remaining <= 0.00f)) {
 				new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 				PX4_INFO("Percent out of range: %4.2f", (double)new_report.remaining);
-			}
 
-			//Check if discharged amount is greater than the starting capacity
-			else if (new_report.discharged_mah > (float)_batt_startup_capacity) {
+				//Check if discharged amount is greater than the starting capacity
+
+			} else if (new_report.discharged_mah > (float)_batt_startup_capacity) {
 				new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 				PX4_INFO("Discharged greater than startup capacity: %4.2f", (double)new_report.discharged_mah);
-			}
 
-			// propagate warning state
-			else {
+				// propagate warning state
+
+			} else {
 				if (new_report.remaining > _low_thr) {
 					new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
 
