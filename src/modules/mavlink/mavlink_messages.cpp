@@ -884,6 +884,7 @@ public:
 	}
 
 private:
+	MavlinkOrbSubscription *_status_sub;
 	MavlinkOrbSubscription *_att_sub;
 	uint64_t _att_time;
 
@@ -894,6 +895,7 @@ private:
 
 protected:
 	explicit MavlinkStreamAttitude(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
 		_att_time(0)
 	{}
@@ -903,15 +905,32 @@ protected:
 		vehicle_attitude_s att;
 
 		if (_att_sub->update(&_att_time, &att)) {
+			vehicle_status_s status = {};
+			_status_sub->update(&status);
+
 			mavlink_attitude_t msg = {};
-			matrix::Eulerf euler = matrix::Quatf(att.q);
 			msg.time_boot_ms = att.timestamp / 1000;
-			msg.roll = euler.phi();
-			msg.pitch = euler.theta();
-			msg.yaw = euler.psi();
-			msg.rollspeed = att.rollspeed;
-			msg.pitchspeed = att.pitchspeed;
-			msg.yawspeed = att.yawspeed;
+
+			if (!(status.is_vtol && status.is_vtol_tailsitter && !status.is_rotary_wing)) {
+				// Normal attitude
+				matrix::Eulerf euler = matrix::Quatf(att.q);
+				msg.roll = euler.phi();
+				msg.pitch = euler.theta();
+				msg.yaw = euler.psi();
+				msg.rollspeed = att.rollspeed;
+				msg.pitchspeed = att.pitchspeed;
+				msg.yawspeed = att.yawspeed;
+
+			} else {
+				// Tailsitter VTOL in FW mode: reported attitude is rotated with 90 pitch up
+				matrix::Eulerf euler = matrix::Quatf(att.q) * matrix::Quatf(0.7071f, 0.0f, 0.7071f, 0.0f);
+				msg.roll = euler.phi();
+				msg.pitch = euler.theta();
+				msg.yaw = euler.psi();
+				msg.rollspeed = -att.yawspeed;
+				msg.pitchspeed = att.pitchspeed;
+				msg.yawspeed = att.rollspeed;
+			}
 
 			mavlink_msg_attitude_send_struct(_mavlink->get_channel(), &msg);
 
@@ -957,6 +976,7 @@ public:
 	}
 
 private:
+	MavlinkOrbSubscription *_status_sub;
 	MavlinkOrbSubscription *_att_sub;
 	uint64_t _att_time;
 
@@ -966,6 +986,7 @@ private:
 
 protected:
 	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
 		_att_time(0)
 	{}
@@ -975,16 +996,33 @@ protected:
 		vehicle_attitude_s att;
 
 		if (_att_sub->update(&_att_time, &att)) {
-			mavlink_attitude_quaternion_t msg = {};
+			vehicle_status_s status = {};
+			_status_sub->update(&status);
 
+			mavlink_attitude_quaternion_t msg = {};
 			msg.time_boot_ms = att.timestamp / 1000;
-			msg.q1 = att.q[0];
-			msg.q2 = att.q[1];
-			msg.q3 = att.q[2];
-			msg.q4 = att.q[3];
-			msg.rollspeed = att.rollspeed;
-			msg.pitchspeed = att.pitchspeed;
-			msg.yawspeed = att.yawspeed;
+
+			if (!(status.is_vtol && status.is_vtol_tailsitter && !status.is_rotary_wing)) {
+				// Normal attitude
+				msg.q1 = att.q[0];
+				msg.q2 = att.q[1];
+				msg.q3 = att.q[2];
+				msg.q4 = att.q[3];
+				msg.rollspeed = att.rollspeed;
+				msg.pitchspeed = att.pitchspeed;
+				msg.yawspeed = att.yawspeed;
+
+			} else {
+				// Tailsitter VTOL in FW mode: reported attitude is rotated with 90 pitch up
+				matrix::Quatf q_vtol = matrix::Quatf(att.q) * matrix::Quatf(0.7071f, 0.0f, 0.7071f, 0.0f);
+				msg.q1 = q_vtol(0);
+				msg.q2 = q_vtol(1);
+				msg.q3 = q_vtol(2);
+				msg.q4 = q_vtol(3);
+				msg.rollspeed = -att.yawspeed;
+				msg.pitchspeed = att.pitchspeed;
+				msg.yawspeed = att.rollspeed;
+			}
 
 			mavlink_msg_attitude_quaternion_send_struct(_mavlink->get_channel(), &msg);
 

@@ -515,6 +515,9 @@ VtolAttitudeControl::parameters_update()
 		_params.fw_motors_off = 12345678;
 	}
 
+	// Report whether the VTOL is a tailsitter
+	_vtol_vehicle_status.is_vtol_tailsitter = (_params.vtol_type == vtol_type::TAILSITTER);
+
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 

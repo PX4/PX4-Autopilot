@@ -53,6 +53,7 @@ uint8 component_id			# subsystem / component id, contains MAVLink's component ID
 
 bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
 bool is_vtol				# True if the system is VTOL capable
+bool is_vtol_tailsitter		# True if VTOL performs -90° downward pitch during transition from rotary wing to fixed wing configuration
 bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW

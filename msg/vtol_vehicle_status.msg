@@ -10,3 +10,4 @@ bool vtol_in_trans_mode
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 bool vtol_transition_failsafe	# vtol in transition failsafe mode
 bool fw_permanent_stab			# In fw mode stabilize attitude even if in manual mode
+bool is_vtol_tailsitter         # True if VTOL pitches 90 degrees down to transition from rotary wing to fixed wing configuration
