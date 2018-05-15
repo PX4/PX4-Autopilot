@@ -59,7 +59,6 @@ int serial_number();
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
 	_enabled(false),
-	_last_report{},
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),
@@ -123,14 +122,6 @@ BATT_SMBUS::init()
 	if (ret != OK) {
 		PX4_ERR("Failed to get battery startup info");
 		return ret;
-	}
-
-	int battsource = 0;
-	param_get(param_find("BAT_SOURCE"), &battsource);
-
-	if (battsource != 1) {
-		battsource = 1;
-		param_set(param_find("BAT_SOURCE"), &battsource);
 	}
 
 	// start work queue

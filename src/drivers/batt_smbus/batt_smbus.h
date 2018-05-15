@@ -224,7 +224,7 @@ private:
 	bool			_enabled;	///< true if we have successfully connected to battery
 	work_s			_work{};		///< work queue for scheduling reads
 
-	battery_status_s _last_report;	///< last published report, used for test()
+	battery_status_s _last_report{};	///< last published report, used for test()
 
 	orb_advert_t	_batt_topic;	///< uORB battery topic
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
