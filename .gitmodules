@@ -2,17 +2,14 @@
 	path = mavlink/include/mavlink/v2.0
 	url = https://github.com/mavlink/c_library_v2.git
 	branch = master
-[submodule "NuttX"]
-	path = NuttX
-	url = https://github.com/PX4/PX4NuttX.git
 [submodule "src/modules/uavcan/libuavcan"]
 	path = src/modules/uavcan/libuavcan
 	url = https://github.com/UAVCAN/libuavcan.git
 [submodule "Tools/genmsg"]
-	path = Tools/genmsg
+	path = msg/tools/genmsg
 	url = https://github.com/ros/genmsg.git
 [submodule "Tools/gencpp"]
-	path = Tools/gencpp
+	path = msg/tools/gencpp
 	url = https://github.com/ros/gencpp.git
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
@@ -20,7 +17,8 @@
 	branch = master
 [submodule "Tools/sitl_gazebo"]
 	path = Tools/sitl_gazebo
-	url  = git@192.168.11.131:rigidWing/sitl_gazebo.git
+	url = https://github.com/PX4/sitl_gazebo.git
+	branch = master
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
 	url = https://github.com/PX4/Matrix.git

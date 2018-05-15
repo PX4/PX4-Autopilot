@@ -635,56 +635,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
 	_att_sp.apply_flaps = false;		// by default we don't use flaps
 
-<<<<<<< HEAD
-||||||| merged common ancestors
-	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_ctrl_state.x_acc, _ctrl_state.y_acc, _ctrl_state.z_acc);
-
-	// tailsitters use the multicopter frame as reference, in fixed wing
-	// we need to use the fixed wing frame
-	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		float tmp = accel_body(0);
-		accel_body(0) = -accel_body(2);
-		accel_body(2) = tmp;
-	}
-
-	math::Vector<3> accel_earth{_R_nb * accel_body};
-
-	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
-	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
-				   (_control_mode.flag_control_auto_enabled ||
-				    _control_mode.flag_control_velocity_enabled ||
-				    _control_mode.flag_control_altitude_enabled));
-
-	/* update TECS filters */
-	_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
-			   accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
-
-=======
-	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_ctrl_state.x_acc, _ctrl_state.y_acc, _ctrl_state.z_acc);
-
-	// tailsitters use the multicopter frame as reference, in fixed wing
-	// we need to use the fixed wing frame
-        if ((_parameters.vtol_type == vtol_type::TAILSITTER || _parameters.vtol_type == vtol_type::KITEPOWER) && _vehicle_status.is_vtol) {
-		float tmp = accel_body(0);
-		accel_body(0) = -accel_body(2);
-		accel_body(2) = tmp;
-	}
-
-	math::Vector<3> accel_earth{_R_nb * accel_body};
-
-	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
-	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
-				   (_control_mode.flag_control_auto_enabled ||
-				    _control_mode.flag_control_velocity_enabled ||
-				    _control_mode.flag_control_altitude_enabled));
-
-	/* update TECS filters */
-	_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
-			   accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
-
->>>>>>> gamma_rigid_wing
 	calculate_gndspeed_undershoot(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 
 	// l1 navigation logic breaks down when wind speed exceeds max airspeed
@@ -1807,7 +1757,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 	// between multirotor and fixed wing flight
-        if ((_parameters.vtol_type == vtol_type::TAILSITTER || _parameters.vtol_type == vtol_type::KITEPOWER) && _vehicle_status.is_vtol) {
+	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
 		math::Matrix<3, 3> R_offset;
 		R_offset.from_euler(0, M_PI_2_F, 0);
 		math::Matrix<3, 3> R_fixed_wing = _R_nb * R_offset;

@@ -563,13 +563,7 @@ then
 			fi
 			if param greater SENS_EN_LEDDAR1 0
 			then
-<<<<<<< HEAD
 				set MAVLINK_F none				
-||||||| merged common ancestors
-				set MAVLINK_F "-r 1200 -d /dev/ttyS4"
-=======
-				set MAVLINK_F "-r 1200 -d /dev/ttyS3"
->>>>>>> gamma_rigid_wing
 			fi
 		fi
 
