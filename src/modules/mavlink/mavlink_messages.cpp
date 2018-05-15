@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1025,7 +1025,7 @@ private:
 	MavlinkOrbSubscription *_att_sub;
 	uint64_t _att_time;
 
-	MavlinkOrbSubscription *_pos_sub;
+	MavlinkOrbSubscription *_odom_sub;
 	uint64_t _pos_time;
 
 	MavlinkOrbSubscription *_armed_sub;
@@ -1047,7 +1047,7 @@ protected:
 	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
 		_att_time(0),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
 		_pos_time(0),
 		_armed_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_armed))),
 		_armed_time(0),
@@ -1068,7 +1068,7 @@ protected:
 
 		bool updated = false;
 		updated |= _att_sub->update(&_att_time, &att);
-		updated |= _pos_sub->update(&_pos_time, &pos);
+		updated |= _odom_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
 		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
 
@@ -1362,7 +1362,7 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_pos_sub;
+	MavlinkOrbSubscription *_odom_sub;
 	uint64_t _pos_time;
 
 	/* do not allow top copying this class */
@@ -1371,7 +1371,7 @@ private:
 
 protected:
 	explicit MavlinkStreamADSBVehicle(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(transponder_report))),
+		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(transponder_report))),
 		_pos_time(0)
 	{}
 
@@ -1380,7 +1380,7 @@ protected:
 		struct transponder_report_s pos;
 		bool sent = false;
 
-		while (_pos_sub->update(&_pos_time, &pos)) {
+		while (_odom_sub->update(&_pos_time, &pos)) {
 			mavlink_adsb_vehicle_t msg = {};
 
 			if (!(pos.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE)) { continue; }
@@ -1790,7 +1790,7 @@ protected:
 			msg.vy = lpos.vy * 100.0f;
 			msg.vz = lpos.vz * 100.0f;
 
-			msg.hdg = math::degrees(lpos.yaw) * 100.0f;
+			msg.hdg = math::degrees(matrix::Eulerf(matrix::Quatf(lpos.q)).psi()) * 100.0f;
 
 			mavlink_msg_global_position_int_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1835,14 +1835,11 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_pos_sub;
-	uint64_t _pos_time;
+	MavlinkOrbSubscription *_odom_sub;
+	uint64_t _odom_time;
 
 	MavlinkOrbSubscription *_est_sub;
 	uint64_t _est_time;
-
-	MavlinkOrbSubscription *_att_sub;
-	uint64_t _att_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamOdometry(MavlinkStreamOdometry &);
@@ -1850,69 +1847,66 @@ private:
 
 protected:
 	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
-		_pos_time(0),
+		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_odom_time(0),
+		//TODO: have vehicle_local_position propagate the variances instead of estimator_status
 		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
-		_est_time(0),
-		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
-		_att_time(0)
+		_est_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_local_position_s pos;
+		vehicle_local_position_s odom;
 		estimator_status_s est;
-		vehicle_attitude_s att;
 
-		bool pos_updated = _pos_sub->update(&_pos_time, &pos);
+		bool odom_updated = _odom_sub->update(&_odom_time, &odom);
 		bool est_updated = _est_sub->update(&_est_time, &est);
-		bool att_updated = _att_sub->update(&_att_time, &att);
 
-		mavlink_odometry_t odom = {};
+		mavlink_odometry_t msg = {};
 
-		if (pos_updated || est_updated || att_updated) {
-			odom.time_usec = pos.timestamp;
+		if (odom_updated || est_updated) {
+			msg.time_usec = odom.timestamp;
 
-			odom.frame_id = MAV_FRAME_ESTIM_NED;
-			odom.child_frame_id = MAV_FRAME_BODY_NED;
+			msg.frame_id = MAV_FRAME_ESTIM_NED;
+			msg.child_frame_id = MAV_FRAME_BODY_NED;
 
 			// Current position
-			odom.x = pos.x;
-			odom.y = pos.y;
-			odom.z = pos.z;
+			msg.x = odom.x;
+			msg.y = odom.y;
+			msg.z = odom.z;
 
 			// Current orientation
-			odom.q[0] = att.q[0];
-			odom.q[1] = att.q[1];
-			odom.q[2] = att.q[2];
-			odom.q[3] = att.q[3];
+			msg.q[0] = odom.q[0];
+			msg.q[1] = odom.q[1];
+			msg.q[2] = odom.q[2];
+			msg.q[3] = odom.q[3];
 
 			// Local NED to body-NED Dcm matrix
-			matrix::Dcm<float> Rlb(matrix::Quatf(att.q));
+			matrix::Dcm<float> Rlb(matrix::Quatf(odom.q));
 
 			// Rotate linear and angular velocity from local NED to body-NED frame
-			matrix::Vector3<float> linvel_body(Rlb * matrix::Vector3<float>(pos.vx, pos.vy, pos.vz));
+			matrix::Vector3<float> linvel_body(Rlb * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 
 			// Current linear velocity
-			odom.vx = linvel_body(0);
-			odom.vy = linvel_body(1);
-			odom.vz = linvel_body(2);
+			msg.vx = linvel_body(0);
+			msg.vy = linvel_body(1);
+			msg.vz = linvel_body(2);
 
 			// Current body rates
-			odom.rollspeed = att.rollspeed;
-			odom.pitchspeed = att.pitchspeed;
-			odom.yawspeed = att.yawspeed;
+			msg.rollspeed = odom.rollspeed;
+			msg.pitchspeed = odom.pitchspeed;
+			msg.yawspeed = odom.yawspeed;
 
 			// Fill the pose and twist covariance with zeros first
 			for (size_t i = 0; i < 21; i++) {
-				odom.pose_covariance[i] = 0.0f;
-				odom.twist_covariance[i] = 0.0f;
+				msg.pose_covariance[i] = 0.0f;
+				msg.twist_covariance[i] = 0.0f;
 			}
 
 			// Position covariance
-			odom.pose_covariance[0] = est.covariances[7];
-			odom.pose_covariance[6] = est.covariances[8];
-			odom.pose_covariance[11] = est.covariances[9];
+			msg.pose_covariance[0] = est.covariances[7];
+			msg.pose_covariance[6] = est.covariances[8];
+			msg.pose_covariance[11] = est.covariances[9];
 
 			matrix::Eulerf att_cov = matrix::Quatf(
 							 est.covariances[0],
@@ -1921,21 +1915,21 @@ protected:
 							 est.covariances[3]);
 
 			// Attitude covariance
-			odom.pose_covariance[15] = att_cov.phi();
-			odom.pose_covariance[18] = att_cov.theta();
-			odom.pose_covariance[20] = att_cov.psi();
+			msg.pose_covariance[15] = att_cov.phi();
+			msg.pose_covariance[18] = att_cov.theta();
+			msg.pose_covariance[20] = att_cov.psi();
 
 			// Linear velocity covariance
 			// Since the diagonal is kept the same, no need to rotate
 			// the linear velocity covariance to body-NED frame
-			odom.twist_covariance[0] = est.covariances[4];
-			odom.twist_covariance[6] = est.covariances[5];
-			odom.twist_covariance[11] = est.covariances[6];
+			msg.twist_covariance[0] = est.covariances[4];
+			msg.twist_covariance[6] = est.covariances[5];
+			msg.twist_covariance[11] = est.covariances[6];
 
-			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &odom);
+			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &msg);
 		}
 
-		return (pos_updated || est_updated || att_updated);
+		return (odom_updated || est_updated);
 
 	}
 };
@@ -1974,7 +1968,7 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_pos_sub;
+	MavlinkOrbSubscription *_odom_sub;
 	uint64_t _pos_time;
 
 	/* do not allow top copying this class */
@@ -1983,7 +1977,7 @@ private:
 
 protected:
 	explicit MavlinkStreamLocalPositionNED(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
 		_pos_time(0)
 	{}
 
@@ -1991,7 +1985,7 @@ protected:
 	{
 		vehicle_local_position_s pos;
 
-		if (_pos_sub->update(&_pos_time, &pos)) {
+		if (_odom_sub->update(&_pos_time, &pos)) {
 			mavlink_local_position_ned_t msg = {};
 
 			msg.time_boot_ms = pos.timestamp / 1000;
@@ -2046,7 +2040,7 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_pos_sub;
+	MavlinkOrbSubscription *_odom_sub;
 	uint64_t _pos_time;
 
 	MavlinkOrbSubscription *_est_sub;
@@ -2058,7 +2052,7 @@ private:
 
 protected:
 	explicit MavlinkStreamLocalPositionNEDCOV(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
 		_pos_time(0),
 		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
 		_est_time(0)
@@ -2069,7 +2063,7 @@ protected:
 		vehicle_local_position_s pos;
 		estimator_status_s est;
 
-		bool pos_updated = _pos_sub->update(&_pos_time, &pos);
+		bool pos_updated = _odom_sub->update(&_pos_time, &pos);
 		bool est_updated = _est_sub->update(&_est_time, &est);
 
 		mavlink_local_position_ned_cov_t pos_cov = {};
@@ -2225,11 +2219,8 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_mocap_pos_sub;
-	uint64_t _mocap_pos_time;
-
-	MavlinkOrbSubscription *_mocap_att_sub;
-	uint64_t _mocap_att_time;
+	MavlinkOrbSubscription *_mocap_odom_sub;
+	uint64_t _mocap_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttPosMocap(MavlinkStreamAttPosMocap &) = delete;
@@ -2237,38 +2228,38 @@ private:
 
 protected:
 	explicit MavlinkStreamAttPosMocap(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_mocap_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_groundtruth))),
-		_mocap_pos_time(0),
-		_mocap_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_groundtruth))),
-		_mocap_att_time(0)
+		_mocap_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_groundtruth))),
+		_mocap_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_local_position_s mocap_pos = {};
-		vehicle_attitude_s mocap_att = {};
+		vehicle_local_position_s mocap = {};
 
-		bool pos_updated = _mocap_pos_sub->update(&_mocap_pos_time, &mocap_pos);
-		bool att_updated = _mocap_att_sub->update(&_mocap_att_time, &mocap_att);
+		bool mocap_updated = _mocap_odom_sub->update(&_mocap_time, &mocap);
 
-		if (pos_updated || att_updated) {
+		if (mocap_updated) {
 			mavlink_att_pos_mocap_t msg = {};
 
-			msg.time_usec = mocap_pos.timestamp;
+			msg.time_usec = mocap.timestamp;
 
-			msg.x = mocap_pos.x;
-			msg.y = mocap_pos.y;
-			msg.z = mocap_pos.z;
+			msg.x = mocap.x;
+			msg.y = mocap.y;
+			msg.z = mocap.z;
 
-			msg.q[0] = mocap_att.q[0];
-			msg.q[1] = mocap_att.q[1];
-			msg.q[2] = mocap_att.q[2];
-			msg.q[3] = mocap_att.q[3];
+			msg.q[0] = mocap.q[0];
+			msg.q[1] = mocap.q[1];
+			msg.q[2] = mocap.q[2];
+			msg.q[3] = mocap.q[3];
+
+			for (size_t i = 0; i < 21; i++) {
+				msg.covariance[i] = mocap.pose_covariance[i];
+			}
 
 			mavlink_msg_att_pos_mocap_send_struct(_mavlink->get_channel(), &msg);
 		}
 
-		return (pos_updated || att_updated);
+		return (mocap_updated);
 	}
 };
 
@@ -3815,7 +3806,7 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_local_pos_sub;
+	MavlinkOrbSubscription *_local_odom_sub;
 	MavlinkOrbSubscription *_home_sub;
 	MavlinkOrbSubscription *_air_data_sub;
 
@@ -3827,7 +3818,7 @@ private:
 
 protected:
 	explicit MavlinkStreamAltitude(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_local_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
 		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position))),
 		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data)))
 	{}
@@ -3858,7 +3849,7 @@ protected:
 
 		vehicle_local_position_s local_pos;
 
-		if (_local_pos_sub->update(&_local_pos_time, &local_pos)) {
+		if (_local_odom_sub->update(&_local_pos_time, &local_pos)) {
 
 			if (local_pos.z_valid) {
 				if (local_pos.z_global) {
@@ -3941,7 +3932,7 @@ private:
 	MavlinkOrbSubscription *_wind_estimate_sub;
 	uint64_t _wind_estimate_time;
 
-	MavlinkOrbSubscription *_local_pos_sub;
+	MavlinkOrbSubscription *_local_odom_sub;
 
 	/* do not allow top copying this class */
 	MavlinkStreamWind(MavlinkStreamWind &) = delete;
@@ -3951,7 +3942,7 @@ protected:
 	explicit MavlinkStreamWind(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_wind_estimate_sub(_mavlink->add_orb_subscription(ORB_ID(wind_estimate))),
 		_wind_estimate_time(0),
-		_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position)))
+		_local_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position)))
 	{}
 
 	bool send(const hrt_abstime t)
@@ -3972,7 +3963,7 @@ protected:
 			msg.var_vert = 0.0f;
 
 			vehicle_local_position_s lpos = {};
-			_local_pos_sub->update(&lpos);
+			_local_odom_sub->update(&lpos);
 			msg.wind_alt = (lpos.z_valid && lpos.z_global) ? (-lpos.z + lpos.ref_alt) : NAN;
 
 			msg.horiz_accuracy = 0.0f;
@@ -4101,8 +4092,8 @@ private:
 
 protected:
 	explicit MavlinkStreamGroundTruth(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_groundtruth))),
-		_gpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position_groundtruth))),
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_groundtruth))),
+		_gpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_groundtruth))),
 		_att_time(0),
 		_gpos_time(0)
 	{}

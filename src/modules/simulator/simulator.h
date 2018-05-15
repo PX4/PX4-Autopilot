@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2018 PX4 Pro Dev Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -245,8 +246,7 @@ private:
 		_gyro_pub(nullptr),
 		_mag_pub(nullptr),
 		_flow_pub(nullptr),
-		_vision_position_pub(nullptr),
-		_vision_attitude_pub(nullptr),
+		_visual_odometry_pub(nullptr),
 		_dist_pub(nullptr),
 		_battery_pub(nullptr),
 		_param_sub(-1),
@@ -257,8 +257,8 @@ private:
 		,
 		_rc_channels_pub(nullptr),
 		_attitude_pub(nullptr),
-		_gpos_pub(nullptr),
-		_lpos_pub(nullptr),
+		_global_groundtruth_pub(nullptr),
+		_local_groundtruth_pub(nullptr),
 		_actuator_outputs_sub{},
 		_vehicle_attitude_sub(-1),
 		_manual_sub(-1),
@@ -331,8 +331,7 @@ private:
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _vision_position_pub;
-	orb_advert_t _vision_attitude_pub;
+	orb_advert_t _visual_odometry_pub;
 	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
 	orb_advert_t _irlock_report_pub;
@@ -362,8 +361,8 @@ private:
 	// uORB publisher handlers
 	orb_advert_t _rc_channels_pub;
 	orb_advert_t _attitude_pub;
-	orb_advert_t _gpos_pub;
-	orb_advert_t _lpos_pub;
+	orb_advert_t _global_groundtruth_pub;
+	orb_advert_t _local_groundtruth_pub;
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub[ORB_MULTI_MAX_INSTANCES];

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -646,7 +646,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if (at_current_location) {
 		item->lat = NAN; //descend at current position
 		item->lon = NAN; //descend at current position
-		item->yaw = _navigator->get_local_position()->yaw;
+		item->yaw = matrix::Eulerf(matrix::Quatf(_navigator->get_local_position()->q)).psi();
 
 	} else {
 		/* use home position */

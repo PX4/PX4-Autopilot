@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -104,17 +104,17 @@ struct log_SENS_s {
 	float baro_temp;
 };
 
-/* --- LPOS - LOCAL POSITION --- */
-#define LOG_LPOS_MSG 6
-struct log_LPOS_s {
+/* --- ODOM - ODOMETRY --- */
+#define LOG_ODOM_MSG 6
+struct log_ODOM_s {
 	float x;
 	float y;
 	float z;
-	float ground_dist;
-	float ground_dist_rate;
 	float vx;
 	float vy;
 	float vz;
+	float ground_dist;
+	float ground_dist_rate;
 	int32_t ref_lat;
 	int32_t ref_lon;
 	float ref_alt;
@@ -325,13 +325,14 @@ struct log_PWR_s {
 /* --- MOCP - MOCAP POSE --- */
 #define LOG_MOCP_MSG 25
 struct log_MOCP_s {
+	float x;
+	float y;
+	float z;
 	float qw;
 	float qx;
 	float qy;
 	float qz;
-	float x;
-	float y;
-	float z;
+	uint8_t pos_flags;
 };
 
 /* --- GS0A - GPS SNR #0, SAT GROUP A --- */
@@ -449,6 +450,13 @@ struct log_VISN_s {
 	float qx;
 	float qy;
 	float qz;
+	float rr;
+	float pr;
+	float yr;
+	float ax;
+	float ay;
+	float az;
+	uint8_t pos_flags;
 };
 
 /* --- ENCODERS - ENCODER DATA --- */
@@ -593,7 +601,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(IMU2, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(SENS, SENS, "fff",		"BaroPres,BaroAlt,BaroTemp"),
 	LOG_FORMAT_S(AIR1, SENS, "fffff",	"BaroPa,BaroAlt,BaroTmp,DiffPres,DiffPresF"),
-	LOG_FORMAT(LPOS, "ffffffffLLfBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),
+	LOG_FORMAT(ODOM, "ffffffffLLfBBff",	"X,Y,Z,VX,VY,VZ,Dist,DistR,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),
 	LOG_FORMAT(LPSP, "ffffffffff",		"X,Y,Z,Yaw,VX,VY,VZ,AX,AY,AZ"),
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(DGPS, GPS,	 "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
@@ -626,8 +634,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(EST5, "ffffffffffff", "MaxI,MayI,MazI,MaxIV,MayIV,MazIV,HeI,HeIV,AiI,AiIV,BeI,BeIV"),
 	LOG_FORMAT(EST6, "ffffff", "FxI,FyI,FxIV,FyIV,HAGLI,HAGLIV"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
-	LOG_FORMAT(MOCP, "fffffff",		"QuatW,QuatX,QuatY,QuatZ,X,Y,Z"),
-	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatW,QuatX,QuatY,QuatZ"),
+	LOG_FORMAT(MOCP, "fffffff",		"X,Y,Z,QuatW,QuatX,QuatY,QuatZ,PFlg"),
+	LOG_FORMAT(VISN, "ffffffffffffffff",	"X,Y,Z,VX,VY,VZ,QW,QX,QY,QZ,RollR,PitchR,YawR,AX,AY,AZ,PFlg"),
 	LOG_FORMAT(GS0A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS0B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),

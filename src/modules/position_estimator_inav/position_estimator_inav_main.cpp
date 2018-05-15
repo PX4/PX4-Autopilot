@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -355,12 +355,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&gps, 0, sizeof(gps));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
-	struct vehicle_local_position_s local_pos;
-	memset(&local_pos, 0, sizeof(local_pos));
+	struct vehicle_local_position_s odom;
+	memset(&odom, 0, sizeof(odom));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
-	struct vehicle_local_position_s vision;
-	memset(&vision, 0, sizeof(vision));
+	struct vehicle_local_position_s visual_odom;
+	memset(&visual_odom, 0, sizeof(visual_odom));
 	struct vehicle_local_position_s mocap;
 	memset(&mocap, 0, sizeof(mocap));
 	struct vehicle_global_position_s global_pos;
@@ -380,8 +380,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	int vision_position_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
-	int mocap_position_sub = orb_subscribe(ORB_ID(vehicle_local_position_groundtruth));
+	int visual_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
+	int mocap_position_sub = orb_subscribe(ORB_ID(vehicle_groundtruth));
 	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	int vehicle_air_data_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	// because we can have several distance sensor instances with different orientations
@@ -392,7 +392,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	/* advertise */
-	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
+	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &odom);
 	orb_advert_t vehicle_global_position_pub = nullptr;
 
 	struct position_estimator_inav_params params;
@@ -455,8 +455,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						} else {
 							wait_baro = false;
 							baro_offset /= (float) baro_init_cnt;
-							local_pos.z_valid = true;
-							local_pos.v_z_valid = true;
+							odom.z_valid = true;
+							odom.v_z_valid = true;
 						}
 					}
 				}
@@ -772,11 +772,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* check no vision circuit breaker is set */
 			if (params.no_vision != CBRK_NO_VISION_KEY) {
-				/* vehicle vision position */
-				orb_check(vision_position_sub, &updated);
+				/* vehicle visual odometry */
+				orb_check(visual_odom_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vehicle_vision_position), vision_position_sub, &vision);
+					orb_copy(ORB_ID(vehicle_visual_odometry), visual_odom_sub, &visual_odom);
 
 					static float last_vision_x = 0.0f;
 					static float last_vision_y = 0.0f;
@@ -784,34 +784,34 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* reset position estimate on first vision update */
 					if (!vision_valid) {
-						if (vision.xy_valid) {
-							x_est[0] = vision.x;
-							y_est[0] = vision.y;
+						if (visual_odom.xy_valid) {
+							x_est[0] = visual_odom.x;
+							y_est[0] = visual_odom.y;
 
-							last_vision_x = vision.x;
+							last_vision_x = visual_odom.x;
 						}
 
-						if (vision.v_xy_valid) {
-							x_est[1] = vision.vx;
-							y_est[1] = vision.vy;
+						if (visual_odom.v_xy_valid) {
+							x_est[1] = visual_odom.vx;
+							y_est[1] = visual_odom.vy;
 
-							last_vision_y = vision.y;
+							last_vision_y = visual_odom.y;
 						}
 
 						/* only reset the z estimate if the z weight parameter is not zero */
 						if (params.w_z_vision_p > MIN_VALID_W) {
-							if (vision.z_valid) {
-								z_est[0] = vision.z;
+							if (visual_odom.z_valid) {
+								z_est[0] = visual_odom.z;
 
-								last_vision_z = vision.z;
+								last_vision_z = visual_odom.z;
 							}
 
-							if (vision.v_z_valid) {
-								z_est[1] = vision.vz;
+							if (visual_odom.v_z_valid) {
+								z_est[1] = visual_odom.vz;
 							}
 						}
 
-						if (!vision.xy_valid || !vision.z_valid) {
+						if (!visual_odom.xy_valid || !visual_odom.z_valid) {
 							warnx("VISION estimate not valid");
 							mavlink_log_info(&mavlink_log_pub, "[inav] VISION estimate not valid");
 
@@ -824,35 +824,35 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					/* calculate correction for position */
-					if (vision.xy_valid) {
-						corr_vision[0][0] = vision.x - x_est[0];
-						corr_vision[1][0] = vision.y - y_est[0];
+					if (visual_odom.xy_valid) {
+						corr_vision[0][0] = visual_odom.x - x_est[0];
+						corr_vision[1][0] = visual_odom.y - y_est[0];
 					}
 
-					if (vision.z_valid) {
-						corr_vision[2][0] = vision.z - z_est[0];
+					if (visual_odom.z_valid) {
+						corr_vision[2][0] = visual_odom.z - z_est[0];
 					}
 
 					static hrt_abstime last_vision_time = 0;
 
-					float vision_dt = (vision.timestamp - last_vision_time) / 1e6f;
-					last_vision_time = vision.timestamp;
+					float vision_dt = (visual_odom.timestamp - last_vision_time) / 1e6f;
+					last_vision_time = visual_odom.timestamp;
 
-					if (vision.v_xy_valid) {
+					if (visual_odom.v_xy_valid) {
 						/* calculate correction for XY velocity from external estimation */
-						corr_vision[0][1] = vision.vx - x_est[1];
-						corr_vision[1][1] = vision.vy - y_est[1];
+						corr_vision[0][1] = visual_odom.vx - x_est[1];
+						corr_vision[1][1] = visual_odom.vy - y_est[1];
 
-					} else if (vision_dt > 0.000001f && vision_dt < 0.2f && vision.xy_valid) {
-						vision.vx = (vision.x - last_vision_x) / vision_dt;
-						vision.vy = (vision.y - last_vision_y) / vision_dt;
+					} else if (vision_dt > 0.000001f && vision_dt < 0.2f && visual_odom.xy_valid) {
+						visual_odom.vx = (visual_odom.x - last_vision_x) / vision_dt;
+						visual_odom.vy = (visual_odom.y - last_vision_y) / vision_dt;
 
-						last_vision_x = vision.x;
-						last_vision_y = vision.y;
+						last_vision_x = visual_odom.x;
+						last_vision_y = visual_odom.y;
 
 						/* calculate correction for XY velocity */
-						corr_vision[0][1] = vision.vx - x_est[1];
-						corr_vision[1][1] = vision.vy - y_est[1];
+						corr_vision[0][1] = visual_odom.vx - x_est[1];
+						corr_vision[1][1] = visual_odom.vy - y_est[1];
 
 					} else {
 						/* assume zero motion in XY plane */
@@ -861,17 +861,17 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					}
 
-					if (vision.v_z_valid) {
+					if (visual_odom.v_z_valid) {
 						/* calculate correction for Z velocity from external estimation */
-						corr_vision[2][1] = vision.vz - z_est[1];
+						corr_vision[2][1] = visual_odom.vz - z_est[1];
 
-					} else if (vision_dt > 0.000001f && vision_dt < 0.2f && vision.z_valid) {
-						vision.vz = (vision.z - last_vision_z) / vision_dt;
+					} else if (vision_dt > 0.000001f && vision_dt < 0.2f && visual_odom.z_valid) {
+						visual_odom.vz = (visual_odom.z - last_vision_z) / vision_dt;
 
-						last_vision_z = vision.z;
+						last_vision_z = visual_odom.z;
 
 						/* calculate correction for Z velocity */
-						corr_vision[2][1] = vision.vz - z_est[1];
+						corr_vision[2][1] = visual_odom.vz - z_est[1];
 
 					} else {
 						/* assume zero motion in Z plane */
@@ -886,7 +886,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_check(mocap_position_sub, &updated);
 
 			if (updated) {
-				orb_copy(ORB_ID(vehicle_local_position_groundtruth), mocap_position_sub, &mocap);
+				orb_copy(ORB_ID(vehicle_groundtruth), mocap_position_sub, &mocap);
 
 				if (!params.disable_mocap) {
 					/* reset position estimate on first mocap update */
@@ -970,10 +970,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							y_est[0] = 0.0f;
 							y_est[1] = gps.vel_e_m_s;
 
-							local_pos.ref_lat = lat;
-							local_pos.ref_lon = lon;
-							local_pos.ref_alt = alt + z_est[0];
-							local_pos.ref_timestamp = t;
+							odom.ref_lat = lat;
+							odom.ref_lon = lon;
+							odom.ref_alt = alt + z_est[0];
+							odom.ref_timestamp = t;
 
 							/* initialize projection */
 							map_projection_init(&ref, lat, lon);
@@ -1006,7 +1006,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						/* calculate correction for position */
 						corr_gps[0][0] = gps_proj[0] - est_buf[est_i][0][0];
 						corr_gps[1][0] = gps_proj[1] - est_buf[est_i][1][0];
-						corr_gps[2][0] = local_pos.ref_alt - alt - est_buf[est_i][2][0];
+						corr_gps[2][0] = odom.ref_alt - alt - est_buf[est_i][2][0];
 
 						/* calculate correction for velocity */
 						if (gps.vel_ned_valid) {
@@ -1054,7 +1054,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on vision topic */
-		if (vision_valid && (t > (vision.timestamp + vision_topic_timeout))) {
+		if (vision_valid && (t > (visual_odom.timestamp + vision_topic_timeout))) {
 			vision_valid = false;
 			warnx("VISION timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] VISION timeout");
@@ -1099,8 +1099,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_gps_xy = ref_inited && gps_valid && params.w_xy_gps_p > MIN_VALID_W;
 		bool use_gps_z = ref_inited && gps_valid && params.w_z_gps_p > MIN_VALID_W;
 		/* use VISION if it's valid and has a valid weight parameter */
-		bool use_vision_xy = vision_valid && vision.xy_valid && params.w_xy_vision_p > MIN_VALID_W;
-		bool use_vision_z = vision_valid && vision.z_valid && params.w_z_vision_p > MIN_VALID_W;
+		bool use_vision_xy = vision_valid && visual_odom.xy_valid && params.w_xy_vision_p > MIN_VALID_W;
+		bool use_vision_z = vision_valid && visual_odom.z_valid && params.w_z_vision_p > MIN_VALID_W;
 		/* use MOCAP if it's valid and has a valid weight parameter */
 		bool use_mocap = mocap_valid && mocap.xy_valid && mocap.z_valid && params.w_mocap_p > MIN_VALID_W
 				 && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
@@ -1414,22 +1414,24 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 
 			/* publish local position */
-			local_pos.xy_valid = can_estimate_xy;
-			local_pos.v_xy_valid = can_estimate_xy;
-			local_pos.xy_global = local_pos.xy_valid && use_gps_xy;
-			local_pos.z_global = local_pos.z_valid && use_gps_z;
-			local_pos.x = x_est[0];
-			local_pos.vx = x_est[1];
-			local_pos.y = y_est[0];
-			local_pos.vy = y_est[1];
-			local_pos.z = z_est[0];
-			local_pos.vz = z_est[1];
-			matrix::Eulerf euler(R);
-			local_pos.yaw = euler.psi();
-			local_pos.dist_bottom_valid = dist_bottom_valid;
-			local_pos.eph = eph;
-			local_pos.epv = epv;
-			// TODO provide calculated values for these
+			odom.xy_valid = can_estimate_xy;
+			odom.v_xy_valid = can_estimate_xy;
+			odom.xy_global = odom.xy_valid && use_gps_xy;
+			odom.z_global = odom.z_valid && use_gps_z;
+			odom.x = x_est[0];
+			odom.vx = x_est[1];
+			odom.y = y_est[0];
+			odom.vy = y_est[1];
+			odom.z = z_est[0];
+			odom.vz = z_est[1];
+			odom.ax = NAN;
+			odom.ay = NAN;
+			odom.az = NAN;
+			matrix::Quatf q(R);
+			q.copyTo(odom.q);
+			odom.dist_bottom_valid = dist_bottom_valid;
+			odom.eph = eph;
+			odom.epv = epv;
 			local_pos.evh = 0.0f;
 			local_pos.evv = 0.0f;
 			local_pos.vxy_max = INFINITY;
@@ -1438,33 +1440,33 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.hagl_max = INFINITY;
 
 			// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
-			local_pos.z_deriv = z_est[1];
+			odom.z_deriv = z_est[1];
 
-			if (local_pos.dist_bottom_valid) {
-				local_pos.dist_bottom = dist_ground;
-				local_pos.dist_bottom_rate = - z_est[1];
+			if (odom.dist_bottom_valid) {
+				odom.dist_bottom = dist_ground;
+				odom.dist_bottom_rate = - z_est[1];
 			}
 
-			local_pos.timestamp = t;
+			odom.timestamp = t;
 
-			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
+			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &odom);
 
-			if (local_pos.xy_global && local_pos.z_global) {
+			if (odom.xy_global && odom.z_global) {
 				/* publish global position */
 				global_pos.timestamp = t;
 
 				double est_lat, est_lon;
-				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
+				map_projection_reproject(&ref, odom.x, odom.y, &est_lat, &est_lon);
 
 				global_pos.lat = est_lat;
 				global_pos.lon = est_lon;
-				global_pos.alt = local_pos.ref_alt - local_pos.z;
+				global_pos.alt = odom.ref_alt - odom.z;
 
-				global_pos.vel_n = local_pos.vx;
-				global_pos.vel_e = local_pos.vy;
-				global_pos.vel_d = local_pos.vz;
+				global_pos.vel_n = odom.vx;
+				global_pos.vel_e = odom.vy;
+				global_pos.vel_d = odom.vz;
 
-				global_pos.yaw = local_pos.yaw;
+				global_pos.yaw = matrix::Eulerf(matrix::Quatf(R)).psi();
 
 				global_pos.eph = eph;
 				global_pos.epv = epv;

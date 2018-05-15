@@ -58,7 +58,7 @@ bool FlightTask::_evaluateVehiclePosition()
 	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout) {
 		_position = matrix::Vector3f(&_sub_vehicle_local_position->get().x);
 		_velocity = matrix::Vector3f(&_sub_vehicle_local_position->get().vx);
-		_yaw = _sub_vehicle_local_position->get().yaw;
+		_yaw = matrix::Eulerf(matrix::Quatf(_sub_vehicle_local_position->get().q)).psi();
 		return true;
 
 	} else {

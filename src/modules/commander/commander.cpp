@@ -1120,7 +1120,7 @@ Commander::set_home_position(orb_advert_t &homePub, home_position_s &home, bool 
 		home.y = localPosition.y;
 		home.z = localPosition.z;
 
-		home.yaw = localPosition.yaw;
+		home.yaw = matrix::Eulerf(matrix::Quatf(localPosition.q)).psi();
 
 		//Play tune first time we initialize HOME
 		if (!status_flags.condition_home_position_valid) {

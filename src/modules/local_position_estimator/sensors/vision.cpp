@@ -37,11 +37,11 @@ void BlockLocalPositionEstimator::visionInit()
 		_sensorTimeout &= ~SENSOR_VISION;
 		_sensorFault &= ~SENSOR_VISION;
 
-		if (!_map_ref.init_done && _sub_vision_pos.get().xy_global) {
+		if (!_map_ref.init_done && _sub_visual_odom.get().xy_global) {
 			// initialize global origin using the visual estimator reference
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (vision) : lat %6.2f lon %6.2f alt %5.1f m",
-						     double(_sub_vision_pos.get().ref_lat), double(_sub_vision_pos.get().ref_lon), double(_sub_vision_pos.get().ref_alt));
-			map_projection_init(&_map_ref, _sub_vision_pos.get().ref_lat, _sub_vision_pos.get().ref_lon);
+						     double(_sub_visual_odom.get().ref_lat), double(_sub_visual_odom.get().ref_lon), double(_sub_visual_odom.get().ref_alt));
+			map_projection_init(&_map_ref, _sub_visual_odom.get().ref_lat, _sub_visual_odom.get().ref_lon);
 			// set timestamp when origin was set to current time
 			_time_origin = _timeStamp;
 		}
@@ -49,23 +49,23 @@ void BlockLocalPositionEstimator::visionInit()
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
 			_altOriginGlobal = true;
-			_altOrigin = _sub_vision_pos.get().z_global ? _sub_vision_pos.get().ref_alt : 0.0f;
+			_altOrigin = _sub_visual_odom.get().z_global ? _sub_visual_odom.get().ref_alt : 0.0f;
 		}
 	}
 }
 
 int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 {
-	if (!_sub_vision_pos.get().xy_valid || !_sub_vision_pos.get().z_valid) {
+	if (!_sub_visual_odom.get().xy_valid || !_sub_visual_odom.get().z_valid) {
 		return !OK;
 
 	} else {
 		y.setZero();
-		y(Y_vision_x) = _sub_vision_pos.get().x;
-		y(Y_vision_y) = _sub_vision_pos.get().y;
-		y(Y_vision_z) = _sub_vision_pos.get().z;
+		y(Y_vision_x) = _sub_visual_odom.get().x;
+		y(Y_vision_y) = _sub_visual_odom.get().y;
+		y(Y_vision_z) = _sub_visual_odom.get().z;
 		_visionStats.update(y);
-		_time_last_vision_p = _sub_vision_pos.get().timestamp;
+		_time_last_vision_p = _sub_visual_odom.get().timestamp;
 		return OK;
 	}
 }
@@ -89,17 +89,17 @@ void BlockLocalPositionEstimator::visionCorrect()
 	R.setZero();
 
 	// use error estimates from vision topic if available
-	if (_sub_vision_pos.get().eph > _vision_xy_stddev.get()) {
-		R(Y_vision_x, Y_vision_x) = _sub_vision_pos.get().eph * _sub_vision_pos.get().eph;
-		R(Y_vision_y, Y_vision_y) = _sub_vision_pos.get().eph * _sub_vision_pos.get().eph;
+	if (_sub_visual_odom.get().eph > _vision_xy_stddev.get()) {
+		R(Y_vision_x, Y_vision_x) = _sub_visual_odom.get().eph * _sub_visual_odom.get().eph;
+		R(Y_vision_y, Y_vision_y) = _sub_visual_odom.get().eph * _sub_visual_odom.get().eph;
 
 	} else {
 		R(Y_vision_x, Y_vision_x) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
 		R(Y_vision_y, Y_vision_y) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
 	}
 
-	if (_sub_vision_pos.get().epv > _vision_z_stddev.get()) {
-		R(Y_vision_z, Y_vision_z) = _sub_vision_pos.get().epv * _sub_vision_pos.get().epv;
+	if (_sub_visual_odom.get().epv > _vision_z_stddev.get()) {
+		R(Y_vision_z, Y_vision_z) = _sub_visual_odom.get().epv * _sub_visual_odom.get().epv;
 
 	} else {
 		R(Y_vision_z, Y_vision_z) = _vision_z_stddev.get() * _vision_z_stddev.get();
@@ -108,7 +108,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// vision delayed x
 	uint8_t i_hist = 0;
 
-	float vision_delay = (_timeStamp - _sub_vision_pos.get().timestamp) * 1e-6f;	// measurement delay in seconds
+	float vision_delay = (_timeStamp - _sub_visual_odom.get().timestamp) * 1e-6f;	// measurement delay in seconds
 
 	if (vision_delay < 0.0f) { vision_delay = 0.0f; }
 

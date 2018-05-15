@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *   Author: Stefan Rado <px4@sradonia.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
-
+#include <matrix/math.hpp>
 #include <drivers/drv_hrt.h>
 
 #define frac(f) (f - (int)f)
@@ -67,7 +67,7 @@
 struct s_port_subscription_data_s {
 	int sensor_sub;
 	int global_position_sub;
-	int local_position_sub;
+	int odometry_sub;
 	int battery_status_sub;
 	int vehicle_status_sub;
 	int gps_position_sub;
@@ -75,7 +75,7 @@ struct s_port_subscription_data_s {
 
 	struct sensor_combined_s sensor_combined;
 	struct vehicle_global_position_s global_pos;
-	struct vehicle_local_position_s local_pos;
+	struct vehicle_local_position_s odometry;
 	struct battery_status_s battery_status;
 	struct vehicle_status_s vehicle_status;
 	struct vehicle_air_data_s vehicle_air_data;
@@ -98,7 +98,7 @@ bool sPort_init()
 
 	s_port_subscription_data->sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	s_port_subscription_data->global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	s_port_subscription_data->local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	s_port_subscription_data->odometry_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	s_port_subscription_data->battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 	s_port_subscription_data->vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	s_port_subscription_data->gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -112,7 +112,7 @@ void sPort_deinit()
 	if (s_port_subscription_data) {
 		orb_unsubscribe(s_port_subscription_data->sensor_sub);
 		orb_unsubscribe(s_port_subscription_data->global_position_sub);
-		orb_unsubscribe(s_port_subscription_data->local_position_sub);
+		orb_unsubscribe(s_port_subscription_data->odometry_sub);
 		orb_unsubscribe(s_port_subscription_data->battery_status_sub);
 		orb_unsubscribe(s_port_subscription_data->vehicle_status_sub);
 		orb_unsubscribe(s_port_subscription_data->gps_position_sub);
@@ -149,10 +149,10 @@ void sPort_update_topics()
 	}
 
 	/* get a local copy of the local position data */
-	orb_check(subs->local_position_sub, &updated);
+	orb_check(subs->odometry_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(vehicle_local_position), subs->local_position_sub, &subs->local_pos);
+		orb_copy(ORB_ID(vehicle_local_position), subs->odometry_sub, &subs->odometry);
 	}
 
 	/* get a local copy of the vehicle status data */
@@ -333,7 +333,7 @@ void sPort_send_GPS_CRS(int uart)
 	/* send course */
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
-	int32_t iYaw = s_port_subscription_data->local_pos.yaw * 18000.0f / M_PI_F;
+	int32_t iYaw = matrix::Eulerf(matrix::Quatf(s_port_subscription_data->odometry.q)).psi() * 18000.0f / M_PI_F;
 
 	if (iYaw < 0) { iYaw += 36000; }
 

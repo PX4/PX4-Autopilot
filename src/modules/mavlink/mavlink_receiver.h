@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -203,12 +203,11 @@ private:
 	MavlinkTimesync		_mavlink_timesync;
 
 	mavlink_status_t _status; ///< receiver status, used for mavlink_parse_char()
-	struct vehicle_local_position_s _hil_local_pos;
 	struct vehicle_land_detected_s _hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
 	struct vehicle_attitude_s _att;
 	orb_advert_t _global_pos_pub;
-	orb_advert_t _local_pos_pub;
+	orb_advert_t _odometry_pub;
 	orb_advert_t _attitude_pub;
 	orb_advert_t _gps_pub;
 	orb_advert_t _gyro_pub;
@@ -227,10 +226,8 @@ private:
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
-	orb_advert_t _vision_position_pub;
-	orb_advert_t _vision_attitude_pub;
-	orb_advert_t _mocap_position_pub;
-	orb_advert_t _mocap_attitude_pub;
+	orb_advert_t _visual_odometry_pub;
+	orb_advert_t _groundtruth_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _ping_pub;
 	orb_advert_t _rc_pub;
@@ -267,6 +264,8 @@ private:
 	param_t _p_bat_emergen_thr;
 	param_t _p_bat_crit_thr;
 	param_t _p_bat_low_thr;
+
+	const size_t URT_SIZE = 21;
 
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;

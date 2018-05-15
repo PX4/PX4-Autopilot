@@ -250,7 +250,7 @@ private:
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vehicle_local_position_s> _sub_vision_pos;
+	uORB::Subscription<vehicle_local_position_s> _sub_visual_odom;
 	uORB::Subscription<vehicle_local_position_s> _sub_mocap;
 	uORB::Subscription<distance_sensor_s> _sub_dist0;
 	uORB::Subscription<distance_sensor_s> _sub_dist1;
@@ -263,7 +263,7 @@ private:
 	uORB::Subscription<vehicle_air_data_s> _sub_airdata;
 
 	// publications
-	uORB::Publication<vehicle_local_position_s> _pub_lpos;
+	uORB::Publication<vehicle_local_position_s> _pub_odom;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<estimator_status_s> _pub_est_status;
 	uORB::Publication<ekf2_innovations_s> _pub_innov;
@@ -415,8 +415,8 @@ private:
 	Vector<float, n_u>  _u;	// input vector
 	Matrix<float, n_x, n_x>  _P;	// state covariance matrix
 
+	matrix::Quatf _q;
 	matrix::Dcm<float> _R_att;
-	Vector3f _eul;
 
 	Matrix<float, n_x, n_x>  _A;	// dynamics matrix
 	Matrix<float, n_x, n_u>  _B;	// input matrix
