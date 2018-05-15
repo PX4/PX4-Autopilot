@@ -18,6 +18,7 @@
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
@@ -2027,6 +2028,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("WIND_COV", 1.0f);
 		configure_stream("CAMERA_IMAGE_CAPTURED");
+		configure_stream("PING", 0.1f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -2063,6 +2065,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("CAMERA_TRIGGER");
 		configure_stream("CAMERA_IMAGE_CAPTURED");
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
+		configure_stream("PING", 1.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -2121,6 +2124,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("CAMERA_IMAGE_CAPTURED");
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
+		configure_stream("PING", 1.0f);
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
@@ -2657,6 +2661,15 @@ Mavlink::display_status()
 	case SERIAL:
 		printf("serial (%s @%i)\n", _device_name, _baudrate);
 		break;
+	}
+
+	if (_ping_stats.last_ping_time > 0) {
+		printf("\tping statistics:\n");
+		printf("\t last: %0.2f ms\n", (double)_ping_stats.last_rtt);
+		printf("\t mean: %0.2f ms\n", (double)_ping_stats.mean_rtt);
+		printf("\t max: %0.2f ms\n", (double)_ping_stats.max_rtt);
+		printf("\t min: %0.2f ms\n", (double)_ping_stats.min_rtt);
+		printf("\t dropped packets: %u\n", _ping_stats.dropped_packets);
 	}
 }
 
