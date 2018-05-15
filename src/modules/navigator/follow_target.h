@@ -82,31 +82,11 @@ private:
 	};
 
 	static constexpr float _follow_position_matricies[4][9] = {
-		{
-			1.0F,  -1.0F, 0.0F,
-			1.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}, // follow right
-
-		{
-			-1.0F,  0.0F, 0.0F,
-			0.0F, -1.0F, 0.0F,
-			0.0F,  0.0F, 1.0F
-		}, // follow behind
-
-		{
-			1.0F,   0.0F, 0.0F,
-			0.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}, // follow front
-
-		{
-			1.0F,   1.0F, 0.0F,
-			-1.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}
-	}; // follow left side
-
+		{ 1.0F, -1.0F, 0.0F,  1.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow right
+		{-1.0F,  0.0F, 0.0F,  0.0F, -1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow behind
+		{ 1.0F,  0.0F, 0.0F,  0.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow front
+		{ 1.0F,  1.0F, 0.0F, -1.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}  // follow left side
+	};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_MIN_FT_HT>)	_param_min_alt,
