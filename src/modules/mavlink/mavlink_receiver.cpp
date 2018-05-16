@@ -1354,8 +1354,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		tstatus.remote_noise = rstatus.remnoise;
 		tstatus.rxerrors = rstatus.rxerrors;
 		tstatus.fixed = rstatus.fixed;
-		tstatus.system_id = msg->sysid;
-		tstatus.component_id = msg->compid;
+		/* tstatus.system_id and tstatus.component_id are set by system heartbeats */
 
 		if (_telemetry_status_pub == nullptr) {
 			int multi_instance;
@@ -1699,6 +1698,12 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			 */
 			tstatus.timestamp = hrt_absolute_time();
 			tstatus.heartbeat_time = tstatus.timestamp;
+
+			/* set remote system id, component id, and type
+			 */
+			tstatus.system_id = msg->sysid;
+			tstatus.component_id = msg->compid;
+			tstatus.remote_type = hb.type;
 
 			if (_telemetry_status_pub == nullptr) {
 				int multi_instance;
