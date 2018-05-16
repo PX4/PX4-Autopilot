@@ -341,8 +341,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool lidar_valid = false;		// lidar is valid
 	bool flow_valid = false;		// flow is valid
 	bool flow_accurate = false;		// flow should be accurate (this flag not updated if flow_valid == false)
-	bool vision_valid = false;		// vision is valid
+	bool vision_xy_valid = false;		// vision XY is valid
+	bool vision_z_valid = false;		// vision Z is valid
 	bool mocap_valid = false;		// mocap is valid
+
+	/* set pose/velocity as invalid if standard deviation is bigger than max_std_dev */
+	/* TODO: the user should be allowed to set these values by a parameter */
+	static constexpr float ep_max_std_dev = 100.0f;	// position estimation max std deviation
+	static constexpr float ev_max_std_dev = 100.0f;	// velocity estimation max std deviation
 
 	/* declare and safely initialize all structs */
 	struct actuator_controls_s actuator;
@@ -782,8 +788,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					static float last_vision_y = 0.0f;
 					static float last_vision_z = 0.0f;
 
+					visual_odom.xy_valid = (!PX4_ISNAN(visual_odom.eph) && visual_odom.eph > ep_max_std_dev) ? false : true;
+					visual_odom.z_valid = (!PX4_ISNAN(visual_odom.epv) && visual_odom.epv > ep_max_std_dev) ? false : true;
+					visual_odom.v_xy_valid = (!PX4_ISNAN(visual_odom.evh) && visual_odom.evh > ev_max_std_dev) ? false : true;
+					visual_odom.v_z_valid = (!PX4_ISNAN(visual_odom.evv) && visual_odom.evv > ev_max_std_dev) ? false : true;
+
 					/* reset position estimate on first vision update */
-					if (!vision_valid) {
+					if (!vision_xy_valid && !vision_z_valid) {
 						if (visual_odom.xy_valid) {
 							x_est[0] = visual_odom.x;
 							y_est[0] = visual_odom.y;
@@ -811,15 +822,26 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							}
 						}
 
-						if (!visual_odom.xy_valid || !visual_odom.z_valid) {
-							warnx("VISION estimate not valid");
-							mavlink_log_info(&mavlink_log_pub, "[inav] VISION estimate not valid");
+						if (!visual_odom.xy_valid) {
+							warnx("VISION XY estimate not valid");
+							mavlink_log_info(&mavlink_log_pub, "[inav] VISION XY estimate not valid");
 
 						} else {
-							vision_valid = true;
+							vision_xy_valid = true;
 
-							warnx("VISION estimate valid");
-							mavlink_log_info(&mavlink_log_pub, "[inav] VISION estimate valid");
+							warnx("VISION XY estimate valid");
+							mavlink_log_info(&mavlink_log_pub, "[inav] VISION XY estimate valid");
+						}
+
+						if (!visual_odom.z_valid) {
+							warnx("VISION Z estimate not valid");
+							mavlink_log_info(&mavlink_log_pub, "[inav] VISION Z estimate not valid");
+
+						} else {
+							vision_z_valid = true;
+
+							warnx("VISION Z estimate valid");
+							mavlink_log_info(&mavlink_log_pub, "[inav] VISION Z estimate valid");
 						}
 					}
 
@@ -887,6 +909,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_groundtruth), mocap_position_sub, &mocap);
+
+				mocap.xy_valid = (!PX4_ISNAN(mocap.eph) && mocap.eph > ep_max_std_dev) ? false : true;
+				mocap.z_valid = (!PX4_ISNAN(mocap.epv) && mocap.epv > ep_max_std_dev) ? false : true;
 
 				if (!params.disable_mocap) {
 					/* reset position estimate on first mocap update */
@@ -1054,8 +1079,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on vision topic */
-		if (vision_valid && (t > (visual_odom.timestamp + vision_topic_timeout))) {
-			vision_valid = false;
+		if ((vision_xy_valid || vision_z_valid) && (t > (visual_odom.timestamp + vision_topic_timeout))) {
+			vision_xy_valid = false;
+			vision_z_valid = false;
 			warnx("VISION timeout");
 			mavlink_log_info(&mavlink_log_pub, "[inav] VISION timeout");
 		}
@@ -1099,10 +1125,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_gps_xy = ref_inited && gps_valid && params.w_xy_gps_p > MIN_VALID_W;
 		bool use_gps_z = ref_inited && gps_valid && params.w_z_gps_p > MIN_VALID_W;
 		/* use VISION if it's valid and has a valid weight parameter */
-		bool use_vision_xy = vision_valid && visual_odom.xy_valid && params.w_xy_vision_p > MIN_VALID_W;
-		bool use_vision_z = vision_valid && visual_odom.z_valid && params.w_z_vision_p > MIN_VALID_W;
+		bool use_vision_xy = vision_xy_valid && params.w_xy_vision_p > MIN_VALID_W;
+		bool use_vision_z = vision_z_valid && params.w_z_vision_p > MIN_VALID_W;
 		/* use MOCAP if it's valid and has a valid weight parameter */
-		bool use_mocap = mocap_valid && mocap.xy_valid && mocap.z_valid && params.w_mocap_p > MIN_VALID_W
+		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W
 				 && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
 
 		if (params.disable_mocap) { //disable mocap if fake gps is used

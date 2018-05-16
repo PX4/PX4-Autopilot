@@ -1134,12 +1134,6 @@ int Simulator::publish_odometry_topic(T *msg)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
-	// TODO: the user should be allowed to set these values by a parameter
-	const float ep_max_std_dev = 100.0f;
-	const float eo_max_std_dev = 100.0f;
-	const float ev_max_std_dev = 100.0f;
-
 	struct vehicle_local_position_s odom = {};
 
 	odom.timestamp = timestamp;
@@ -1148,31 +1142,56 @@ int Simulator::publish_odometry_topic(T *msg)
 		mavlink_odometry_t odom_msg;
 		mavlink_msg_odometry_decode(msg, &odom_msg);
 
-		/* The odom is in the local NED frame */
-		odom.x = odom_msg.x;
-		odom.y = odom_msg.y;
-		odom.z = odom_msg.z;
-
 		/* Dcm rotation matrix from body frame to local NED frame */
 		matrix::Dcm<float> Rbl;
 
-		/** @note: no need to transform the covariance matrices since
-		 * the non-diagonal values are all zero
-		 */
-
 		/* since odom.child_frame_id == MAV_FRAME_BODY_FRD, WRT to estimated vehicle body-fixed frame */
 		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
+		/* No need to transform the covariance matrices since the non-diagonal values are all zero */
 		Rbl = matrix::Dcm<float>(matrix::Quatf(odom_msg.q)).I();
 
 		/* the linear velocities needs to be transformed to the local NED frame */
 		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
+
+		/* The position in the local NED frame */
+		odom.x = odom_msg.x;
+		odom.y = odom_msg.y;
+		odom.z = odom_msg.z;
+		/* The quaternion of the ODOMETRY msg represents a rotation from
+		 * NED earth/local frame to XYZ body frame */
+		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
+		q.copyTo(odom.q);
+
+		/* The pose covariance URT */
+		for (size_t i = 0; i < 21; i++) {
+			odom.pose_covariance[i] = odom_msg.pose_covariance[i];
+		}
+
+		/* The velocity in the local NED frame */
 		odom.vx = linvel_local(0);
 		odom.vy = linvel_local(1);
 		odom.vz = linvel_local(2);
-
+		/* The angular velocity in the body-fixed frame */
 		odom.rollspeed = odom_msg.rollspeed;
 		odom.pitchspeed = odom_msg.pitchspeed;
 		odom.yawspeed = odom_msg.yawspeed;
+
+		/* The velocity covariance URT */
+		for (size_t i = 0; i < 21; i++) {
+			odom.velocity_covariance[i] = odom_msg.twist_covariance[i];
+		}
+
+		/* The acceleration in the local NED frame - unknown */
+		odom.ax = NAN;
+		odom.ay = NAN;
+		odom.az = NAN;
+		/* The angular acceleration in body-fixed frame - unknown */
+		odom.rollaccel = NAN;
+		odom.pitchaccel = NAN;
+		odom.yawaccel = NAN;
+
+		/* The acceleration covariance URT - unknown */
+		odom.accel_covariance[0] = NAN;
 
 		// TODO : full covariance matrix
 		odom.eph = sqrtf(fmaxf(odom_msg.pose_covariance[0], odom_msg.pose_covariance[6]));
@@ -1184,65 +1203,54 @@ int Simulator::publish_odometry_topic(T *msg)
 		odom.att_rate_std_dev = sqrtf(fmaxf(odom_msg.twist_covariance[15],
 						    fmaxf(odom_msg.twist_covariance[18], odom_msg.twist_covariance[20])));
 
-		odom.xy_valid = (odom.eph > ep_max_std_dev) ? false : true;
-		odom.v_xy_valid = (odom.evh > ev_max_std_dev) ? false : true;
-		odom.z_valid = (odom.epv > ep_max_std_dev) ? false : true;
-		odom.v_z_valid = (odom.evv > ev_max_std_dev) ? false : true;
-
-		/** The quaternion of the ODOMETRY msg represents a rotation from
-		 * NED earth/local frame to XYZ body frame
-		 */
-		if (odom.att_std_dev > eo_max_std_dev) {
-			matrix::Quatf q(NAN, NAN, NAN, NAN);
-			q.copyTo(odom.q);
-
-		} else {
-			matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
-			q.copyTo(odom.q);
-		}
-
-		if (odom.att_rate_std_dev > ev_max_std_dev) {
-			odom.rollspeed = NAN;
-			odom.pitchspeed = NAN;
-			odom.yawspeed = NAN;
-		}
-
 	} else if (msg->msgid == MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE) {
 		mavlink_vision_position_estimate_t ev;
 		mavlink_msg_vision_position_estimate_decode(msg, &ev);
-
-		/* The position is in the local NED frame */
+		/* The position in the local NED frame */
 		odom.x = ev.x;
 		odom.y = ev.y;
 		odom.z = ev.z;
+		/* The euler angles of the VISUAL_POSITION_ESTIMATE msg represent a
+		 * rotation from NED earth/local frame to XYZ body frame */
+		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
+		q.copyTo(odom.q);
+
+		/* The pose covariance URT */
+		for (size_t i = 0; i < 21; i++) {
+			odom.pose_covariance[i] = ev.covariance[i];
+		}
+
+		/* The velocity in the local NED frame - unknown */
+		odom.vx = NAN;
+		odom.vy = NAN;
+		odom.vz = NAN;
+		/* The angular velocity in body-fixed frame - unknown */
+		odom.rollspeed = NAN;
+		odom.pitchspeed = NAN;
+		odom.yawspeed = NAN;
+
+		/* The velocity covariance URT - unknown */
+		odom.velocity_covariance[0] = NAN;
+
+		/* The acceleration in the local NED frame - unknown */
+		odom.ax = NAN;
+		odom.ay = NAN;
+		odom.az = NAN;
+		/* The angular acceleration in body-fixed frame - unknown */
+		odom.rollaccel = NAN;
+		odom.pitchaccel = NAN;
+		odom.yawaccel = NAN;
+
+		/* The acceleration covariance URT - unknown */
+		odom.accel_covariance[0] = NAN;
 
 		// TODO : full covariance matrix
 		odom.eph = sqrtf(fmaxf(ev.covariance[0], ev.covariance[6]));
 		odom.epv = sqrtf(ev.covariance[11]);
+		odom.evh = NAN;
+		odom.evv = NAN;
 		odom.att_std_dev = sqrtf(fmaxf(ev.covariance[15],
 					       fmaxf(ev.covariance[18], ev.covariance[20])));
-
-		odom.xy_valid = (odom.eph > ep_max_std_dev) ? false : true;
-		odom.z_valid = (odom.epv > ep_max_std_dev) ? false : true;
-
-		/** The euler angles of the VISUAL_POSITION_ESTIMATE msg represent a
-		 * rotation from NED earth/local frame to XYZ body frame
-		 */
-		if (odom.att_std_dev > eo_max_std_dev) {
-			matrix::Quatf q(NAN, NAN, NAN, NAN);
-			q.copyTo(odom.q);
-
-		} else {
-			matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
-			q.copyTo(odom.q);
-		}
-
-		odom.v_xy_valid = false;
-		odom.v_z_valid = false;
-
-		odom.rollspeed = NAN;
-		odom.pitchspeed = NAN;
-		odom.yawspeed = NAN;
 
 	}
 

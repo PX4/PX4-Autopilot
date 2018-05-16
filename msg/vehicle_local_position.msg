@@ -63,7 +63,7 @@ uint8 z_reset_counter		# Z position reset counter
 uint8 vz_reset_counter		# Z velocity reset counter
 uint8 quat_reset_counter	# Quaternion reset counter
 
-# Standard deviations
+# Standard deviations. NAN if unknown
 float32 eph			# Standard deviation of horizontal position error, (metres)
 float32 epv			# Standard deviation of vertical position error, (metres)
 float32 evh			# Standard deviation of horizontal velocity error, (metres/sec)

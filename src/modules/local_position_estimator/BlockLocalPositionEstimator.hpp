@@ -410,6 +410,12 @@ private:
 	bool _landUpdated;
 	bool _baroUpdated;
 
+	// sensor validation flags
+	bool _vision_xy_valid;
+	bool _vision_z_valid;
+	bool _mocap_xy_valid;
+	bool _mocap_z_valid;
+
 	// state space
 	Vector<float, n_x>  _x;	// state vector
 	Vector<float, n_u>  _u;	// input vector

@@ -165,6 +165,12 @@ private:
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 
+	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
+	// TODO: the user should be allowed to set these values by a parameter
+	static constexpr float ep_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated position
+	static constexpr float eo_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated orientation
+	static constexpr float ev_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated velocity
+
 	int _airdata_sub{-1};
 	int _airspeed_sub{-1};
 	int _ev_odom_sub{-1};
@@ -959,10 +965,15 @@ void Ekf2::run()
 
 			// position measurement error from parameters. TODO : use covariances from topic
 			ev_data.posErr = fmaxf(_ev_pos_noise.get(), fmaxf(ev_odom.eph, ev_odom.epv));
-			ev_data.angErr = _ev_ang_noise.get();
+			ev_data.angErr = fmaxf(_ev_pos_noise.get(), ev_odom.att_std_dev);
 
-			// only set data if all positions and velocities are valid
-			if (ev_odom.xy_valid && ev_odom.z_valid && !PX4_ISNAN(ev_odom.q[0])) {
+			ev_odom.xy_valid = (!PX4_ISNAN(ev_odom.eph) && ev_odom.eph > ep_max_std_dev) ? false : true;
+			ev_odom.z_valid = (!PX4_ISNAN(ev_odom.epv) && ev_odom.epv > ep_max_std_dev) ? false : true;
+			ev_odom.v_xy_valid = (!PX4_ISNAN(ev_odom.evh) && ev_odom.evh > ev_max_std_dev) ? false : true;
+			ev_odom.v_z_valid = (!PX4_ISNAN(ev_odom.evv) && ev_odom.evv > ev_max_std_dev) ? false : true;
+
+			// only set data if the pose is valid
+			if (ev_odom.xy_valid && ev_odom.z_valid && (!PX4_ISNAN(ev_odom.att_std_dev) && ev_odom.att_std_dev < eo_max_std_dev)) {
 				// use timestamp from external computer, clocks are synchronized when using MAVROS
 				_ekf.setExtVisionData(visual_odometry_updated ? ev_odom.timestamp : ev_odom.timestamp, &ev_data);
 			}

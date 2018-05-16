@@ -14,6 +14,10 @@ static const uint32_t		REQ_VISION_INIT_COUNT = 1;
 // set the timeout to 0.5 seconds
 static const uint32_t		VISION_TIMEOUT = 500000;	// 0.5 s
 
+// set pose/velocity as invalid if standard deviation is bigger than EP_MAX_STD_DEV
+// TODO: the user should be allowed to set these values by a parameter
+static constexpr float 		EP_MAX_STD_DEV = 100.0f;
+
 void BlockLocalPositionEstimator::visionInit()
 {
 	// measure
@@ -56,7 +60,13 @@ void BlockLocalPositionEstimator::visionInit()
 
 int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 {
-	if (!_sub_visual_odom.get().xy_valid || !_sub_visual_odom.get().z_valid) {
+	_vision_xy_valid = (!PX4_ISNAN(_sub_visual_odom.get().eph)
+			    && _sub_visual_odom.get().eph > EP_MAX_STD_DEV) ? false : true;
+	_vision_z_valid = (!PX4_ISNAN(_sub_visual_odom.get().epv)
+			   && _sub_visual_odom.get().epv > EP_MAX_STD_DEV) ? false : true;
+
+	// TODO: use covariance from topic instead
+	if (!_vision_xy_valid || !_vision_z_valid) {
 		return !OK;
 
 	} else {

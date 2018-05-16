@@ -1189,9 +1189,10 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	visual_odom.yawaccel = NAN;
 	visual_odom.accel_covariance[0] = NAN;
 	visual_odom.eph = sqrtf(fmaxf(ev.covariance[0], ev.covariance[6]));
-	visual_odom.epv = sqrtf(ev.covariance[11]);
+	visual_odom.epv = sqrtf(ev.covariance[11]);;
 	visual_odom.att_std_dev = sqrtf(fmaxf(ev.covariance[15], fmaxf(ev.covariance[18], ev.covariance[20])));
-	visual_odom.limit_hagl = false;
+	visual_odom.evh = NAN;
+	visual_odom.evv = NAN;
 
 	int instance_id = 0;
 	orb_publish_auto(ORB_ID(vehicle_visual_odometry), &_visual_odometry_pub, &visual_odom, &instance_id, ORB_PRIO_HIGH);
@@ -1587,8 +1588,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 	/* Linear and angular covariances. Init to identity */
 	// TODO: Reformulate transform based on a 6x6 rotation matrix
-	//matrix::SquareMatrix3f linvel_cov = matrix::eye<float, 3>();
-	//matrix::SquareMatrix3f angvel_cov = matrix::eye<float, 3>();
+	// matrix::SquareMatrix3f linvel_cov = matrix::eye<float, 3>();
+	// matrix::SquareMatrix3f angvel_cov = matrix::eye<float, 3>();
 
 	/* Dcm rotation matrix from body frame to local NED frame */
 	matrix::Dcm<float> Rbl;
@@ -1598,7 +1599,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odometry.x = odom.x;
 	odometry.y = odom.y;
 	odometry.z = odom.z;
-	/* The quaternion of the ODOMETRY msg represents a rotation from NED earth/local frame to XYZ body frame */
+	/* The quaternion of the ODOMETRY msg represents a rotation from NED
+	 * earth/local frame to XYZ body frame */
 	matrix::Quatf q(odom.q[0], odom.q[1], odom.q[2], odom.q[3]);
 	q.copyTo(odometry.q);
 
@@ -1626,10 +1628,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 		//TODO: refactor rotation matrix to transform from body-fixed NED to earth-fixed NED frame
 		/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
-		//_mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+		// _mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
 
 		/* the linear velocities covariance needs to be transformed to the local NED frame */
-		//linvel_cov = Rbl * linvel_cov * Rbl.transpose();
+		// linvel_cov = Rbl * linvel_cov * Rbl.transpose();
 		for (size_t i = 0; i < URT_SIZE; i++) {
 			odometry.velocity_covariance[i] = odom.twist_covariance[i];
 		}
@@ -1653,10 +1655,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 			//TODO: refactor rotation matrix to transform from body-fixed to earth-fixed NED frame
 			/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
-			//_mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+			// _mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
 
 			/* the linear velocities covariance needs to be transformed to the local NED frame */
-			//linvel_cov = Rbl * linvel_cov * Rbl.transpose();
+			// linvel_cov = Rbl * linvel_cov * Rbl.transpose();
 
 			for (size_t i = 0; i < URT_SIZE; i++) {
 				odometry.velocity_covariance[i] = odom.twist_covariance[i];
@@ -1684,10 +1686,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 			//TODO: refactor rotation matrix to transform from earth-fixed to body-fixed NED frame
 			/* get the linear and angular velocities covariance matrices from the Twist 6d covariance matrix */
-			//_mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
+			// _mavlink->covariance_from_matrixurt_helper(odom.twist_covariance, linvel_cov, angvel_cov);
 
 			/* the linear velocities covariance needs to be transformed to the local NED frame */
-			//linvel_cov = Rlb * linvel_cov * Rlb.transpose();
+			// linvel_cov = Rlb * linvel_cov * Rlb.transpose();
 
 			for (size_t i = 0; i < URT_SIZE; i++) {
 				odometry.velocity_covariance[i] = odom.twist_covariance[i];
@@ -1699,16 +1701,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
 	}
 
-	odometry.eph = sqrtf(fmaxf(odom.pose_covariance[0], odom.pose_covariance[6]));
-	odometry.epv = sqrtf(odom.pose_covariance[11]);
-	odometry.evh = sqrtf(fmaxf(odom.twist_covariance[0], odom.twist_covariance[6]));
-	odometry.evv = sqrtf(odom.twist_covariance[11]);
-	//odometry.evh = sqrtf(fmaxf(linvel_cov(0, 0), linvel_cov(1, 1)));
-	//odometry.evv = sqrtf(linvel_cov(2, 2));
-	odometry.att_std_dev = sqrtf(fmaxf(odom.pose_covariance[15], fmaxf(odom.pose_covariance[18],
-					   odom.pose_covariance[20])));
-	odometry.att_rate_std_dev = sqrtf(fmaxf(odom.twist_covariance[15], fmaxf(odom.twist_covariance[18],
-						odom.twist_covariance[20])));
 	odometry.ax = NAN;
 	odometry.ay = NAN;
 	odometry.az = NAN;
@@ -1716,7 +1708,17 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odometry.pitchaccel = NAN;
 	odometry.yawaccel = NAN;
 	odometry.accel_covariance[0] = NAN;
-	odometry.limit_hagl = false;
+
+	odometry.eph = sqrtf(fmaxf(odom.pose_covariance[0], odom.pose_covariance[6]));
+	odometry.epv = sqrtf(odom.pose_covariance[11]);
+	odometry.evh = sqrtf(fmaxf(odom.twist_covariance[0], odom.twist_covariance[6]));
+	odometry.evv = sqrtf(odom.twist_covariance[11]);
+	// odometry.evh = sqrtf(fmaxf(linvel_cov(0, 0), linvel_cov(1, 1)));
+	// odometry.evv = sqrtf(linvel_cov(2, 2));
+	odometry.att_std_dev = sqrtf(fmaxf(odom.pose_covariance[15], fmaxf(odom.pose_covariance[18],
+					   odom.pose_covariance[20])));
+	odometry.att_rate_std_dev = sqrtf(fmaxf(odom.twist_covariance[15], fmaxf(odom.twist_covariance[18],
+						odom.twist_covariance[20])));
 
 	int instance_id = 0;
 
