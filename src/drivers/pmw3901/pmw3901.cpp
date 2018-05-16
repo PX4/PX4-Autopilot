@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@
 
 #include <conversion/rotation.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
@@ -78,27 +78,27 @@
 
 /* Configuration Constants */
 #ifdef PX4_SPI_BUS_EXPANSION
-#define PMW3901_BUS 							PX4_SPI_BUS_EXPANSION
+#define PMW3901_BUS PX4_SPI_BUS_EXPANSION
 #else
-#define PMW3901_BUS 							0
+#define PMW3901_BUS 0
 #endif
 
 #ifdef PX4_SPIDEV_EXPANSION_2
-#define PMW3901_SPIDEV 							PX4_SPIDEV_EXPANSION_2
+#define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
 #else
-#define PMW3901_SPIDEV 							0
+#define PMW3901_SPIDEV 0
 #endif
 
-#define PMW3901_SPI_BUS_SPEED    				(2000000L)      			// 2MHz
+#define PMW3901_SPI_BUS_SPEED (2000000L) // 2MHz
 
-#define DIR_WRITE(a)             				((a) | (1 << 7))
-#define DIR_READ(a)                    			((a) & 0x7f)
+#define DIR_WRITE(a) ((a) | (1 << 7))
+#define DIR_READ(a) ((a) & 0x7f)
 
-#define PMW3901_DEVICE_PATH   					"/dev/pmw3901"
+#define PMW3901_DEVICE_PATH "/dev/pmw3901"
 
 /* PMW3901 Registers addresses */
-#define PMW3901_CONVERSION_INTERVAL 			1000 						/*   1 ms */
-#define PMW3901_SAMPLE_RATE						10000 						/*  10 ms */
+#define PMW3901_MS 1000 /*   1 ms */
+#define PMW3901_SAMPLE_RATE 10000 /*  10 ms */
 
 
 #ifndef CONFIG_SCHED_WORKQUEUE
@@ -112,37 +112,34 @@ public:
 
 	virtual ~PMW3901();
 
-	virtual int 		init();
+	virtual int init();
 
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual ssize_t read(device::file_t *filp, char *buffer, size_t buflen);
 
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
-	void				print_info();
-
-	int					collect();
+	void print_info();
 
 private:
 	uint8_t _rotation;
-	work_s						_work;
-	ringbuffer::RingBuffer		*_reports;
-	bool						_sensor_ok;
-	int							_measure_ticks;
-	int							_class_instance;
-	int							_orb_class_instance;
+	work_s _work;
+	ringbuffer::RingBuffer *_reports;
+	bool _sensor_ok;
+	int _measure_ticks;
+	int _class_instance;
+	int _orb_class_instance;
 
-	orb_advert_t				_optical_flow_pub;
+	orb_advert_t _optical_flow_pub;
 
-	perf_counter_t				_sample_perf;
-	perf_counter_t				_comms_errors;
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
 
-	uint64_t					_previous_collect_timestamp;
+	uint64_t _previous_collect_timestamp;
 
-	enum Rotation 				_sensor_rotation;
-
+	enum Rotation _sensor_rotation;
 
 
 	/**
@@ -151,25 +148,25 @@ private:
 	* @note This function is called at open and error time.  It might make sense
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
-	void				start();
+	void start();
 
 	/**
 	* Stop the automatic measurement state machine.
 	*/
-	void				stop();
+	void stop();
 
 	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				cycle();
-	// int					collect();
+	void cycle();
+	int	collect();
 
-	int 				readRegister(unsigned reg, uint8_t *data, unsigned count);
-	int         		writeRegister(unsigned reg, uint8_t data);
+	int readRegister(unsigned reg, uint8_t *data, unsigned count);
+	int writeRegister(unsigned reg, uint8_t data);
 
-	int 				sensorInit();
-	int        			readMotionCount(int16_t &deltaX, int16_t &deltaY);
+	int sensorInit();
+	int readMotionCount(int16_t &deltaX, int16_t &deltaY);
 
 	/**
 	* Static trampoline from the workq context; because we don't have a
@@ -177,11 +174,10 @@ private:
 	*
 	* @param arg		Instance pointer for the driver that is polling.
 	*/
-	static void			cycle_trampoline(void *arg);
+	static void cycle_trampoline(void *arg);
 
 
 };
-
 
 
 
@@ -199,8 +195,8 @@ PMW3901::PMW3901(uint8_t rotation, int bus) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_optical_flow_pub(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "tr1_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "tr1_com_err")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "pmw3901_com_err")),
 	_previous_collect_timestamp(0),
 	_sensor_rotation((enum Rotation)rotation)
 {
@@ -221,10 +217,6 @@ PMW3901::~PMW3901()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
-
-	// if (_class_instance != -1) {
-	// 	unregister_class_devname(PMW3901_DEVICE_PATH, _class_instance);
-	// }
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -354,7 +346,7 @@ PMW3901::init()
 	/* For devices competing with NuttX SPI drivers on a bus (Crazyflie SD Card expansion board) */
 	SPI::set_lockmode(LOCK_THREADS);
 
-	/* do I2C init (and probe) first */
+	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		goto out;
 	}
@@ -369,23 +361,6 @@ PMW3901::init()
 	if (_reports == nullptr) {
 		goto out;
 	}
-
-	//_class_instance = register_class_devname(PMW3901_DEVICE_PATH);
-
-	//if (_class_instance == CLASS_DEVICE_PRIMARY) {               // change to optical flow topic
-	/* get a publish handle on the range finder topic */
-	// struct distance_sensor_s ds_report;
-
-	// _reports->get(&ds_report);
-
-	// _distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-	// 			 &_orb_class_instance, ORB_PRIO_LOW);
-
-	// if (_distance_sensor_topic == nullptr) {
-	// 	DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
-	// }
-
-	//}
 
 	ret = OK;
 	_sensor_ok = true;
@@ -414,7 +389,7 @@ PMW3901::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(PMW3901_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(PMW3901_SAMPLE_RATE);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -440,7 +415,7 @@ PMW3901::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(PMW3901_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(PMW3901_SAMPLE_RATE)) {
 						return -EINVAL;
 					}
 
@@ -567,7 +542,7 @@ PMW3901::writeRegister(unsigned reg, uint8_t data)
 int
 PMW3901::collect()
 {
-	int ret;
+	int ret = OK;
 	int16_t delta_x_raw, delta_y_raw;
 	float delta_x, delta_y;
 
@@ -610,9 +585,8 @@ PMW3901::collect()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	ret = OK;
-
 	perf_end(_sample_perf);
+
 	return ret;
 
 }
@@ -652,7 +626,7 @@ PMW3901::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, 1000);
+	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_MS));
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -796,65 +770,26 @@ void
 test()
 {
 
-	if (g_dev != nullptr) {
-		errx(1, "already started");
-	}
-
-	/* create the driver */
-	g_dev = new PMW3901(0, PMW3901_BUS);
-
-	if (g_dev == nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	if (OK != g_dev->init()) {
-		delete g_dev;
-		g_dev = nullptr;
-
-	}
+	struct optical_flow_s report;
+	ssize_t sz;
 
 	int fd = open(PMW3901_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'vl53lxx start' if the driver is not running", PMW3901_DEVICE_PATH);
+		err(1, "%s open failed (try 'pmw3901 start' if the driver is not running)", PMW3901_DEVICE_PATH);
 	}
 
-	/* start the sensor polling at 2Hz */
-	// if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-	// 	errx(1, "failed to set 2Hz poll rate");
-	// }
+	/* do a simple demand read */
+	sz = read(fd, &report, sizeof(report));
 
-	for (int i = 0; i < 10000; i++) {
-		g_dev->collect();
-		usleep(10000);
+	if (sz != sizeof(report)) {
+		PX4_ERR("ret: %d, expected: %d", sz, sizeof(report));
+		err(1, "immediate acc read failed");
 	}
+
+	print_message(report);
 
 	errx(0, "PASS");
-}
-
-
-/**
- * Reset the driver.
- */
-void
-reset()
-{
-	int fd = open(PMW3901_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
-	}
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
-	}
-
-	exit(0);
 }
 
 
@@ -880,26 +815,11 @@ info()
 int
 pmw3901_main(int argc, char *argv[])
 {
-	int ch;
 	int myoptind = 1;
-
-	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 	if (argc < 2) {
 		goto out;
-	}
-
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'R':
-			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting sensor orientation to %d", (int)rotation);
-			break;
-
-		default:
-			PX4_WARN("Unknown option!");
-		}
 	}
 
 	/*
@@ -924,21 +844,14 @@ pmw3901_main(int argc, char *argv[])
 	}
 
 	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(argv[myoptind], "reset")) {
-		pmw3901::reset();
-	}
-
-	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
 		pmw3901::info();
 	}
 
 out:
 
-	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test', or 'info'");
 	return PX4_ERROR;
 }
