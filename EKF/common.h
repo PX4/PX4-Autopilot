@@ -340,6 +340,9 @@ struct parameters {
 	// auxilliary velocity fusion
 	float auxvel_noise{0.5f};		///< minimum observation noise, uses reported noise if greater (m/s)
 	float auxvel_gate{5.0f};		///< velocity fusion innovation consistency gate size (STD)
+
+	// control of on-ground movement check
+	float is_moving_scaler{1.0f};		///< gain scaler used to adjust the threshold for the on-ground movement detection. Larger values make the test less sensitive.
 };
 
 struct stateSample {
