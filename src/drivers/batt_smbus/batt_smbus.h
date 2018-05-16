@@ -116,14 +116,14 @@ public:
 
 	/**
 	 * @brief Initializes the smart battery device. Calls probe() to check for device on bus.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure
+	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
 	virtual int init();
 
 	/**
 	 * Test device
 	 *
-	 * @return 0 on success, error code on failure
+	 * @return 0 on success, error code on failure.
 	 */
 	virtual int test();
 
@@ -161,8 +161,8 @@ public:
 	uint16_t serial_number();
 
 	/**
-	 * @brief Search all possible slave addresses for a smart battery
-	 * @return Returns PX4_OK if it finds a smart battery
+	 * @brief Search all possible slave addresses for a smart battery.
+	 * @return Returns PX4_OK if it finds a smart battery.
 	 */
 	int search_addresses();
 
@@ -208,55 +208,54 @@ private:
 	 * @param reading True if the data is from a read, false if from a write.
 	 * @param buffer The data that was read from the smbus or will be written to the smbus.
 	 * @param length Length of the data passed.
-	 * @param
 	 */
 	uint8_t get_PEC(uint8_t cmd, bool reading, const uint8_t buffer[], uint8_t length);
 
 	/**
-	 * @brief Read info from battery on startup
-	 * @return OK if everything was read successfully
+	 * @brief Read info from battery on startup.
+	 * @return OK if everything was read successfully.
 	 */
 	uint8_t get_startup_info();
 
 	/**
-	 * @brief Write a word to Manufacturer Access register (0x00)
-	 * @param cmd the word to be written to Manufacturer Access
+	 * @brief Write a word to Manufacturer Access register (0x00).
+	 * @param cmd The word to be written to Manufacturer Access.
 	 * @return Returns PX4_OK if write was successful.
 	 */
 	uint8_t manufacturer_access(uint16_t cmd);
 
 	/**
-	 * @brief Read a word from specified register
-	 * @param reg
-	 * @param val
-	 * @return Returns
+	 * @brief Read a word from specified register.
+	 * @param reg The register to be read from.
+	 * @param val Where to store the value read.
+	 * @return Returns OK if successful, PX4_ERROR if failed.
 	 */
 	int read_reg(uint8_t reg, uint16_t &val);
 
 	/**
-	 * @brief Read block from bus
-	 * @param reg
-	 * @param data
-	 * @param max_length
-	 * @param append_zero
+	 * @brief Read block from bus.
+	 * @param reg The register to be read from.
+	 * @param data Where to store the data.
+	 * @param max_length The maximum length of data.
+	 * @param append_zero Set true to append a zero to the buffer.
 	 * @return Returns number of characters read if successful, zero if unsuccessful.
 	 */
 	uint8_t read_block(uint8_t reg, uint8_t *data, uint8_t max_length, bool append_zero);
 
 	/**
 	 * @brief Writes a word to specified register.
-	 * @param reg
-	 * @param val
+	 * @param reg The register to write.
+	 * @param val Data to write.
 	 * @return Returns the number of characters written, zero if unsuccessful.
 	 */
 	int write_reg(uint8_t reg, uint16_t val);
 
 	/**
 	 * @brief Writes block to the bus.
-	 * @param reg
-	 * @param data
-	 * @param length
-	 * @return Returns the number of characters written, zero if unsuccessful..
+	 * @param reg The register to start writing.
+	 * @param data Data to write.
+	 * @param length The length of data to be written.
+	 * @return Returns the number of characters written, zero if unsuccessful.
 	 */
 	uint8_t write_block(uint8_t reg, uint8_t *data, uint8_t length);
 
@@ -281,16 +280,16 @@ private:
 	/** @param _batt_startup_capacity Battery remaining capacity in mAh on startup. */
 	uint16_t _batt_startup_capacity;
 
-	/** @param _cycle_count The number of cycles the battery has experienced */
+	/** @param _cycle_count The number of cycles the battery has experienced. */
 	uint16_t _cycle_count;
 
-	/** @param _serial_number Serial number register */
+	/** @param _serial_number Serial number register. */
 	uint16_t _serial_number;
 
 	/** @param _start_time System time we first attempt to communicate with battery. */
 	uint64_t _start_time;
 
-	/** @param _crit_thr Critical battery threshold param */
+	/** @param _crit_thr Critical battery threshold param. */
 	float _crit_thr;
 
 	/** @param _emergency_thr Emergency battery threshold param. */
