@@ -21,8 +21,6 @@
 #include "board_config.h"
 #include <systemlib/err.h>
 
-//#include "stm32.h"
-
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -76,15 +74,15 @@ __EXPORT int stm32_spi_bus_initialize(void)
 		return -ENODEV;
 	}
 
-	//#ifdef CONFIG_MMCSD
+#ifdef CONFIG_MMCSD
 	int ret = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_expansion);
 
 	if (ret != OK) {
-		//message("[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
+		PX4_ERR("[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
 		return -ENODEV;
 	}
 
-	//#endif
+#endif
 
 
 	return OK;
@@ -104,7 +102,6 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool s
 	/* SPI select is active low, so write !selected to select the device */
 
 	int sel = (int) devid;
-	//ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXPANSION);
 
 	/* Making sure the other peripherals are not selected */
 
@@ -148,17 +145,9 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI1_MISO_OFF);
 	stm32_configgpio(GPIO_SPI1_MOSI_OFF);
 
-	/* set the sensor rail off */
-	//stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
-
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
 	warnx("reset done, %d ms", ms);
-
-	/* re-enable power */
-
-	/* switch the sensor rail back on */
-	//stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);

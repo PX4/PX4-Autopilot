@@ -5,7 +5,5 @@ px4_add_module(
 		-Wno-sign-compare
 	SRCS
 		pmw3901.cpp
-	DEPENDS
-		platforms__common
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
