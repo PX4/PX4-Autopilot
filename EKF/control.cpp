@@ -1400,13 +1400,8 @@ void Ekf::controlMagFusion()
 			_control_status.flags.mag_dec = false;
 		}
 
-		// If optical flow is enabled there is no other aiding active and GPS checks are failing, then assume that we are operating
-		// indoors and the magnetometer is unreliable. Becasue the optical flow sensor is body fixed, absolute yaw
-		// wrt North is not required for navigation and it is safer not to use the magnetometer.
-		if (((_params.fusion_mode & MASK_USE_OF) || _mag_use_inhibit)
-				&& !_control_status.flags.gps
-				&& !_control_status.flags.ev_pos
-				&& ((_time_last_imu - _last_gps_pass_us > (uint64_t)5e6) || !(_params.fusion_mode & MASK_USE_GPS))) {
+		// If GPS is not being used and there is no other earth frame aiding, assume that we are operating indoors and the magnetometer is unreliable.
+		if ((!_control_status.flags.gps || !(_params.fusion_mode & MASK_USE_GPS)) && !_control_status.flags.ev_pos) {
 			_mag_use_inhibit = true;
 		} else {
 			_mag_use_inhibit = false;
