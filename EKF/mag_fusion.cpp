@@ -612,6 +612,34 @@ void Ekf::fuseHeading()
 		return;
 	}
 
+	// wrap the heading to the interval between +-pi
+	measured_hdg = wrap_pi(measured_hdg);
+
+	// calculate the innovation and define the innovaton gate
+	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
+	if (_mag_use_inhibit) {
+		// The magnetomer cannot be trusted but we need to fuse a heading to prevent a badly
+		// conditoned covariance matrix developing over time.
+		if (!_vehicle_at_rest) {
+			// Vehicle is not at rest so fuse a zero innovation and record the
+			// predicted heading to use as an observation when movement ceases.
+			_heading_innov = 0.0f;
+			_last_static_yaw = predicted_hdg;
+		} else {
+			// Vehicle is at rest so use the last moving prediciton as an observation
+			// to prevent the heading from drifting and to enable yaw gyro bias learning
+			// before takeoff.
+			_heading_innov = predicted_hdg - _last_static_yaw;
+			R_YAW = 0.01f;
+			innov_gate = 5.0f;
+		}
+	} else {
+		_heading_innov = predicted_hdg - measured_hdg;
+	}
+
+	// wrap the innovation to the interval between +-pi
+	_heading_innov = wrap_pi(_heading_innov);
+
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 3 elements in H are non zero
 	// calculate the innovaton variance
 	float PH[4];
@@ -671,23 +699,8 @@ void Ekf::fuseHeading()
 		}
 	}
 
-	// wrap the heading to the interval between +-pi
-	measured_hdg = wrap_pi(measured_hdg);
-
-	// calculate the innovation
-	if (_mag_use_inhibit) {
-		// The magnetomer cannot be trusted but we need to fuse a heading to prevent a badly
-		// conditoned covariance matrix developing over time.
-		_heading_innov = 0.0f;
-	} else {
-		_heading_innov = predicted_hdg - measured_hdg;
-	}
-
-	// wrap the innovation to the interval between +-pi
-	_heading_innov = wrap_pi(_heading_innov);
-
 	// innovation test ratio
-	_yaw_test_ratio = sq(_heading_innov) / (sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var);
+	_yaw_test_ratio = sq(_heading_innov) / (sq(innov_gate) * _heading_innov_var);
 
 	// we are no longer using 3-axis fusion so set the reported test levels to zero
 	memset(_mag_test_ratio, 0, sizeof(_mag_test_ratio));
@@ -704,7 +717,7 @@ void Ekf::fuseHeading()
 
 		} else {
 			// constrain the innovation to the maximum set by the gate
-			float gate_limit = sqrtf((sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var));
+			float gate_limit = sqrtf((sq(innov_gate) * _heading_innov_var));
 			_heading_innov = math::constrain(_heading_innov, -gate_limit, gate_limit);
 		}
 
