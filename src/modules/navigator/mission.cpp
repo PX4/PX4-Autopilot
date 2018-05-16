@@ -147,6 +147,29 @@ Mission::on_inactivation()
 void
 Mission::on_activation()
 {
+	/* check if anything has changed */
+	bool offboard_updated = false;
+	orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
+
+	if (offboard_updated) {
+		update_offboard_mission();
+	}
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "on_activation");
+
+	 /* mission item that comes after current if available */ 
+    struct mission_item_s mission_item_next_position; 
+    bool has_next_position_item = false; 
+    if(!prepare_mission_items(&_mission_item, &mission_item_next_position, &has_next_position_item)) {
+		if(_navigator->get_can_loiter_at_sp()) {
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "reset mission in loitering");
+			reset_offboard_mission(_offboard_mission);
+			update_offboard_mission();
+			_navigator->reset_cruising_speed();
+			offboard_updated = true;
+		}
+
+    }
+
 	set_mission_items();
 
 	// unpause triggering if it was paused
