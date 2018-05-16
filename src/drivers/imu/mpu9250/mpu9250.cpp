@@ -267,8 +267,8 @@ MPU9250::init()
 	*/
 	if (is_i2c()) {
 		_sample_rate = 200;
-		_accel_int.set_autoreset_interval(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE / 4);
-		_gyro_int.set_autoreset_interval(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE / 4);
+		_accel_int.set_autoreset_interval(1000000 / 1000);
+		_gyro_int.set_autoreset_interval(1000000 / 1000);
 	}
 
 	int ret = probe();
