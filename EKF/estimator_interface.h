@@ -457,13 +457,15 @@ protected:
 	bool _deadreckon_time_exceeded{false};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
 	bool _is_wind_dead_reckoning{false};	// true if we are navigating reliant on wind relative measurements
 
-	// IMU vibration monitoring
+	// IMU vibration and movement monitoring
 	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement
 	Vector3f _delta_vel_prev;	// delta velocity from the previous IMU measurement
 	float _vibe_metrics[3] {};	// IMU vibration metrics
 					// [0] Level of coning vibration in the IMU delta angles (rad^2)
 					// [1] high frequency vibraton level in the IMU delta angle data (rad)
 					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
+	bool _vehicle_at_rest{false};	// true when the vehicle is at rest
+	uint64_t _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
 
 	// data buffer instances
 	RingBuffer<imuSample> _imu_buffer;
