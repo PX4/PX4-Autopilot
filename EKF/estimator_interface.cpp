@@ -89,9 +89,9 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 
 	// detect if the vehicle is not moving when on ground
 	if (!_control_status.flags.in_air) {
-		if ((_vibe_metrics[1] * 4.0E4f > 1.0f)
-				|| (_vibe_metrics[2] * 2.1E2f > 1.0f)
-				|| ((imu_sample_new.delta_ang.norm() / dt) > 0.05f)) {
+		if ((_vibe_metrics[1] * 4.0E4f > _params.is_moving_scaler)
+				|| (_vibe_metrics[2] * 2.1E2f > _params.is_moving_scaler)
+				|| ((imu_sample_new.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
 			_time_last_move_detect_us = _imu_sample_new.time_us;
 		}
 		_vehicle_at_rest = ((_imu_sample_new.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
