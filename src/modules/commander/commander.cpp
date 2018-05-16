@@ -4054,47 +4054,51 @@ void Commander::poll_telemetry_status()
 			telemetry_status_s telemetry = {};
 			orb_copy(ORB_ID(telemetry_status), _telemetry[i].subscriber, &telemetry);
 
-			/* perform system checks when new telemetry link connected */
-			if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
-				(_telemetry[i].last_heartbeat == 0 || (hrt_elapsed_time(&_telemetry[i].last_heartbeat) > 3_s)
-				 || !_telemetry[i].preflight_checks_reported) &&
-				/* and this link has a communication partner */
-				(telemetry.heartbeat_time > 0) &&
-				/* and it is still connected */
-				(hrt_elapsed_time(&telemetry.heartbeat_time) < 2_s) &&
-				/* and the system is not already armed (and potentially flying) */
-				!armed.armed) {
+			/* this is a ground control station */
+			if (telemetry.remote_type == telemetry_status_s::TELEMETRY_STATUS_REMOTE_TYPE_GCS) {
 
-				/* flag the checks as reported for this link when we actually report them */
-				_telemetry[i].preflight_checks_reported = status_flags.condition_system_hotplug_timeout;
+				/* perform system checks when new telemetry link connected */
+				if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
+					(_telemetry[i].last_heartbeat == 0 || (hrt_elapsed_time(&_telemetry[i].last_heartbeat) > 3_s)
+					|| !_telemetry[i].preflight_checks_reported) &&
+					/* and this link has a communication partner */
+					(telemetry.heartbeat_time > 0) &&
+					/* and it is still connected */
+					(hrt_elapsed_time(&telemetry.heartbeat_time) < 2_s) &&
+					/* and the system is not already armed (and potentially flying) */
+					!armed.armed) {
 
-				preflight_check(true);
+					/* flag the checks as reported for this link when we actually report them */
+					_telemetry[i].preflight_checks_reported = status_flags.condition_system_hotplug_timeout;
 
-				// Provide feedback on mission state
-				const mission_result_s &mission_result = _mission_result_sub.get();
+					preflight_check(true);
 
-				if ((mission_result.timestamp > commander_boot_timestamp) && status_flags.condition_system_hotplug_timeout &&
-				    (mission_result.instance_count > 0) && !mission_result.valid) {
+					// Provide feedback on mission state
+					const mission_result_s &mission_result = _mission_result_sub.get();
 
-					mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
+					if ((mission_result.timestamp > commander_boot_timestamp) && status_flags.condition_system_hotplug_timeout &&
+						(mission_result.instance_count > 0) && !mission_result.valid) {
+
+						mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
+					}
 				}
-			}
 
-			/* set (and don't reset) telemetry via USB as active once a MAVLink connection is up */
-			if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB) {
-				status_flags.usb_connected = true;
-			}
+				/* set (and don't reset) telemetry via USB as active once a MAVLink connection is up */
+				if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB) {
+					status_flags.usb_connected = true;
+				}
 
-			/* set latency type of the telemetry connection */
-			if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM) {
-				_telemetry[i].high_latency = true;
+				/* set latency type of the telemetry connection */
+				if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM) {
+					_telemetry[i].high_latency = true;
 
-			} else {
-				_telemetry[i].high_latency = false;
-			}
+				} else {
+					_telemetry[i].high_latency = false;
+				}
 
-			if (telemetry.heartbeat_time > 0 && (_telemetry[i].last_heartbeat < telemetry.heartbeat_time)) {
-				_telemetry[i].last_heartbeat = telemetry.heartbeat_time;
+				if (telemetry.heartbeat_time > 0 && (_telemetry[i].last_heartbeat < telemetry.heartbeat_time)) {
+					_telemetry[i].last_heartbeat = telemetry.heartbeat_time;
+				}
 			}
 		}
 	}
