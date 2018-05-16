@@ -85,7 +85,7 @@ void print_message(const @uorb_struct& message)
 	if (message.timestamp != 0) {
 		printf(" (%.6f seconds ago)\n", hrt_elapsed_time(&message.timestamp) / 1e6);
 	} else {
-		printf("\n");
+		printf(" \n");
 	}
 @[for field in sorted_fields]@
 	@( print_field(field) )@
