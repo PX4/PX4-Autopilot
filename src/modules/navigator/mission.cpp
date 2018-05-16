@@ -156,10 +156,10 @@ Mission::on_activation()
 	}
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "on_activation");
 
-	 /* mission item that comes after current if available */ 
-    struct mission_item_s mission_item_next_position; 
-    bool has_next_position_item = false; 
-    if(!prepare_mission_items(&_mission_item, &mission_item_next_position, &has_next_position_item)) {
+	/* mission item that comes after current if available */ 
+	struct mission_item_s mission_item_next_position; 
+	bool has_next_position_item = false; 
+	if(!prepare_mission_items(&_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		if(_navigator->get_can_loiter_at_sp()) {
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "reset mission in loitering");
 			reset_offboard_mission(_offboard_mission);
@@ -167,8 +167,7 @@ Mission::on_activation()
 			_navigator->reset_cruising_speed();
 			offboard_updated = true;
 		}
-
-    }
+	}
 
 	set_mission_items();
 
