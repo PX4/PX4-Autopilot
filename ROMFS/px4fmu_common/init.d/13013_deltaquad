@@ -121,6 +121,6 @@ set PWM_AUX_DISARMED 950
 
 set MAV_TYPE 22
 
-set TELEMETRY_DEVICE_2          "/dev/ttyS2"
-set TELEMETRY_DEVICE_2_ARGS     "-m onboard -r 5000 -x -f"
-set TELEMETRY_DEVICE_2_BAUD     "57600"
+set SERIAL_DEVICE_2          "/dev/ttyS2"
+set SERIAL_DEVICE_2_ARGS     "-m onboard -r 5000 -x -f"
+set SERIAL_DEVICE_2_BAUD     "57600"

@@ -78,6 +78,6 @@ fi
 
 set MIXER quad_x
 
-set TELEMETRY_DEVICE_2          "/dev/ttyS1"
-set TELEMETRY_DEVICE_2_ARGS     "-m onboard -r 80000 -x -f"
-set TELEMETRY_DEVICE_2_BAUD     "921600"
+set SERIAL_DEVICE_2          "/dev/ttyS1"
+set SERIAL_DEVICE_2_ARGS     "-m onboard -r 80000 -x -f"
+set SERIAL_DEVICE_2_BAUD     "921600"

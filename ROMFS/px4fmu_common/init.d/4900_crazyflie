@@ -51,8 +51,8 @@ set PWM_DISARMED none
 # Will run the motors at 328.125 kHz (recommended)
 set PWM_RATE 3921
 
-set TELEMETRY_DEVICE_2          "/dev/bridge0"
-set TELEMETRY_DEVICE_2_ARGS     "-m osd -r 40000"
-set TELEMETRY_DEVICE_2_BAUD     "57600"
+set SERIAL_DEVICE_2          "/dev/bridge0"
+set SERIAL_DEVICE_2_ARGS     "-m osd -r 40000"
+set SERIAL_DEVICE_2_BAUD     "57600"
 
 syslink start

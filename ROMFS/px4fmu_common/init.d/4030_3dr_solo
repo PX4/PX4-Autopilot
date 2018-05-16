@@ -92,6 +92,6 @@ set PWM_OUT 1234
 set MIXER_AUX none
 
 # enable high-speed link on telem 1
-set TELEMETRY_DEVICE_1      /dev/ttyS1
-set TELEMETRY_DEVICE_1_ARGS "-r 80000 -m onboard -x"
-set TELEMETRY_DEVICE_1_BAUD "921600"
+set SERIAL_DEVICE_1             /dev/ttyS1
+set SERIAL_DEVICE_1_ARGS        "-r 80000 -m onboard -x"
+set SERIAL_DEVICE_1_BAUD        "921600"
