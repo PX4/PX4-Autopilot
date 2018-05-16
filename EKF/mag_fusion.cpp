@@ -624,11 +624,15 @@ void Ekf::fuseHeading()
 			// Vehicle is not at rest so fuse a zero innovation and record the
 			// predicted heading to use as an observation when movement ceases.
 			_heading_innov = 0.0f;
-			_last_static_yaw = predicted_hdg;
+			_vehicle_at_rest_prev = false;
 		} else {
 			// Vehicle is at rest so use the last moving prediciton as an observation
 			// to prevent the heading from drifting and to enable yaw gyro bias learning
 			// before takeoff.
+			if (!_vehicle_at_rest_prev) {
+				_last_static_yaw = predicted_hdg;
+				_vehicle_at_rest_prev = true;
+			}
 			_heading_innov = predicted_hdg - _last_static_yaw;
 			R_YAW = 0.01f;
 			innov_gate = 5.0f;
