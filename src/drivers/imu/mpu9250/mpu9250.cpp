@@ -139,11 +139,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
-#ifdef CONFIG_ARCH_BOARD_CRAZYFLIE
-	_sample_rate(200),
-#else
 	_sample_rate(1000),
-#endif
 	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
@@ -263,6 +259,17 @@ MPU9250::init()
 	unsigned dummy;
 	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
 #endif
+
+	/*
+	 * If the MPU is using I2C we should reduce the sample rate to 200Hz and
+	 * make the integration autoreset faster so that we integrate just one
+	 * sample since the sampling rate is already low.
+	*/
+	if (is_i2c()) {
+		_sample_rate = 200;
+		_accel_int.set_autoreset_interval(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE / 4);
+		_gyro_int.set_autoreset_interval(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE / 4);
+	}
 
 	int ret = probe();
 
