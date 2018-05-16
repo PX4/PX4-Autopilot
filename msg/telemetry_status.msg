@@ -5,9 +5,13 @@ uint8 TELEMETRY_STATUS_RADIO_TYPE_WIRE = 3
 uint8 TELEMETRY_STATUS_RADIO_TYPE_USB = 4
 uint8 TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM = 5
 
+uint8 TELEMETRY_STATUS_REMOTE_TYPE_GCS = 4                  # MAV_TYPE_GCS
+uint8 TELEMETRY_STATUS_REMOTE_TYPE_ONBOARD_CONTROLLER = 18  # MAV_TYPE_ONBOARD_CONTROLLER
+
 uint64 heartbeat_time			# Time of last received heartbeat from remote system
 uint64 telem_time			# Time of last received telemetry status packet, 0 for none
 uint8 type				# type of the radio hardware
+uint8 remote_type		# type of the remote system (defined in MAVLink MAV_TYPE ENUM)
 uint8 rssi				# local signal strength
 uint8 remote_rssi			# remote signal strength
 uint16 rxerrors				# receive errors
