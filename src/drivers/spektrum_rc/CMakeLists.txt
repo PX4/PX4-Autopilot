@@ -37,5 +37,6 @@ px4_add_module(
 	SRCS
 		spektrum_rc.cpp
 	DEPENDS
+		rc
 	)
 
