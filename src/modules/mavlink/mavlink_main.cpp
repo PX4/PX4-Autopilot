@@ -2622,6 +2622,59 @@ Mavlink::display_status()
 			break;
 		}
 
+		printf("\tremote type:\t");
+
+		switch (_rstatus.remote_type) {
+		case MAV_TYPE_GENERIC:
+		case MAV_TYPE_FIXED_WING:
+		case MAV_TYPE_QUADROTOR:
+		case MAV_TYPE_COAXIAL:
+		case MAV_TYPE_HELICOPTER:
+		case MAV_TYPE_VTOL_DUOROTOR:
+		case MAV_TYPE_VTOL_QUADROTOR:
+		case MAV_TYPE_VTOL_TILTROTOR:
+		case MAV_TYPE_VTOL_RESERVED2:
+		case MAV_TYPE_VTOL_RESERVED3:
+		case MAV_TYPE_VTOL_RESERVED4:
+		case MAV_TYPE_VTOL_RESERVED5:
+		case MAV_TYPE_DODECAROTOR:
+		case MAV_TYPE_AIRSHIP:
+		case MAV_TYPE_HEXAROTOR:
+		case MAV_TYPE_OCTOROTOR:
+		case MAV_TYPE_TRICOPTER:
+		case MAV_TYPE_FLAPPING_WING:
+		case MAV_TYPE_KITE:
+		case MAV_TYPE_FREE_BALLOON:
+		case MAV_TYPE_PARAFOIL:
+		case MAV_TYPE_ROCKET:
+		case MAV_TYPE_GROUND_ROVER:
+		case MAV_TYPE_SURFACE_BOAT:
+		case MAV_TYPE_SUBMARINE:
+			printf("MICRO AIR VEHICLE\n");
+			break;
+
+		case MAV_TYPE_GCS:
+			printf("GROUND CONTROL STATION\n");
+			break;
+
+		case MAV_TYPE_ONBOARD_CONTROLLER:
+			printf("COMPANION COMPUTER\n");
+			break;
+
+		case MAV_TYPE_ANTENNA_TRACKER:
+		case MAV_TYPE_GIMBAL:
+		case MAV_TYPE_CAMERA:
+		case MAV_TYPE_CHARGING_STATION:
+		case MAV_TYPE_ADSB:
+		case MAV_TYPE_FLARM:
+		default:
+			printf("OTHER\n");
+			break;
+		}
+
+		printf("\tremote sysid:\t%i\n", _rstatus.system_id);
+		printf("\tremote compid:\t%i\n", _rstatus.component_id);
+
 	} else {
 		printf("\tno telem status.\n");
 	}
