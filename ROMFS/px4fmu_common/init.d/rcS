@@ -71,8 +71,9 @@ set TELEMETRY_DEVICE_2_ARGS  none
 set TELEMETRY_DEVICE_2_BAUD  none
 set VEHICLE_TYPE             none
 
-
-# print full system version
+#
+# Print full system version
+#
 ver all
 
 #
@@ -101,7 +102,7 @@ then
 	echo "tone_alarm driver started"
 
 	# Play the startup tone
-	tune_control play -t 1
+	tune_control play -t 1 &
 fi
 
 #
@@ -116,7 +117,7 @@ else
 	then
 		if hardfault_log check
 		then
-			tune_control play -t 2
+			tune_control play -t 2 &
 
 			if hardfault_log commit
 			then
@@ -125,7 +126,7 @@ else
 			fi
 		fi
 	else
-		tune_control play -t 4
+		tune_control play -t 4 &
 
 		if mkfatfs /dev/mmcsd0
 		then
@@ -135,7 +136,7 @@ else
 			else
 				echo "ERROR [init] format failed"
 				# Play SOS
-				tune_control play -t 2
+				tune_control play -t 2 &
 				#tune_control play -m "MNBG"
 				set LOG_FILE /dev/null
 			fi
@@ -149,7 +150,7 @@ else
 	if [ $LOG_FILE == /dev/null ]
 	then
 		# Play SOS
-		tune_control play -t 2
+		tune_control play -t 2 &
 	fi
 fi
 
@@ -338,7 +339,7 @@ then
 				uavcan start fw
 			fi
 		else
-			tune_control play -t 2
+			tune_control play -t 2 &
 		fi
 	fi
 
@@ -356,7 +357,7 @@ then
 	#
 	if load_mon start
 	then
-		echo "dataman started"
+		echo "load_mon started"
 	fi
 
 	#
