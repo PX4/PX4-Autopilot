@@ -299,3 +299,8 @@ int px4muorb_unblock_recieve_msg(void)
 	rc = channel->unblock_get_data_method();
 	return rc;
 }
+
+extern "C" int muorb_adsp_main(int argc, char *argv[])
+{
+	return 0;
+}
