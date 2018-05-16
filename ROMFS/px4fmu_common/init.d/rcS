@@ -108,9 +108,9 @@ fi
 #
 # Try to mount the microSD card.
 #
-# NOTE: AEROCORE2 and CF2 shouldn't have an sd card
+# NOTE: AEROCORE2 shouldn't have an sd card
 #
-if ver hwcmp AEROCORE2 CRAZYFLIE
+if ver hwcmp AEROCORE2
 then
 else
 	if mount -t vfat /dev/mmcsd0 /fs/microsd
