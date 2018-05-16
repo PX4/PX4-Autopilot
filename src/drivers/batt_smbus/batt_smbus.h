@@ -161,7 +161,8 @@ public:
 	uint16_t serial_number();
 
 	/**
-	 * Search all possible slave addresses for a smart battery
+	 * @brief Search all possible slave addresses for a smart battery
+	 * @return Returns PX4_OK if it finds a smart battery
 	 */
 	int search_addresses();
 
@@ -169,7 +170,7 @@ public:
 protected:
 	/**
 	 * @brief Check if the device can be contacted.
-	 * @return Returns 1 iff the device can be contacted.
+	 * @return Returns 1 if the device can be contacted.
 	 */
 	virtual int probe();
 
@@ -203,10 +204,10 @@ private:
 
 	/**
 	 * @brief Calculates PEC (CRC) for a read or write from the battery.
-	 * @param cmd
-	 * @param reading
+	 * @param cmd I2C command passed.
+	 * @param reading True if the data is from a read, false if from a write.
 	 * @param buffer The data that was read from the smbus or will be written to the smbus.
-	 * @param length
+	 * @param length Length of the data passed.
 	 * @param
 	 */
 	uint8_t get_PEC(uint8_t cmd, bool reading, const uint8_t buffer[], uint8_t length);
@@ -220,7 +221,7 @@ private:
 	/**
 	 * @brief Write a word to Manufacturer Access register (0x00)
 	 * @param cmd the word to be written to Manufacturer Access
-	 * @return Returns
+	 * @return Returns PX4_OK if write was successful.
 	 */
 	uint8_t manufacturer_access(uint16_t cmd);
 

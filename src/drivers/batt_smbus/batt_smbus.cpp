@@ -182,13 +182,13 @@ BATT_SMBUS::cycle()
 
 			if (tmp > _batt_capacity) {
 				PX4_WARN("Remaining capacity greater than total: Capacity:%hu \tRemaining Capacity:%hu",
-					(uint16_t)_batt_capacity, (uint16_t)tmp);
+					 (uint16_t)_batt_capacity, (uint16_t)tmp);
 				_batt_capacity = (uint16_t)tmp;
 			}
 
 			// Calculate remaining capacity percent with complementary filter
 			new_report.remaining = ((float)_last_report.remaining * 0.8f) + (0.2f * (1.0f -
-						       (((float)_batt_capacity - (float)tmp) / (float)_batt_capacity)));
+					       (((float)_batt_capacity - (float)tmp) / (float)_batt_capacity)));
 
 			// Calculate total discharged amount.
 			new_report.discharged_mah = (float)_batt_startup_capacity - (float)tmp;
@@ -371,6 +371,7 @@ BATT_SMBUS::search_addresses()
 	if (found_slave) {
 		PX4_INFO("smart battery connected");
 		result = PX4_OK;
+
 	} else {
 		PX4_WARN("No smart batteries found.");
 	}
