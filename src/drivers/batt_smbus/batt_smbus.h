@@ -39,6 +39,7 @@
  *
  * @author Randy Mackay <rmackay9@yahoo.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
+ * @author Mark Sauder <mcsauder@gmail.com>
  */
 
 #include <float.h>
@@ -56,36 +57,55 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/uORB.h>
 
-#define BATT_SMBUS_ADDR_MIN						0x00				///< lowest possible address
-#define BATT_SMBUS_ADDR_MAX						0xFF				///< highest possible address
+#define BATT_SMBUS_I2C_BUS                              PX4_I2C_BUS_EXPANSION
+#define BATT_SMBUS_CURRENT                              0x0A                    ///< current register
+#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B                    ///< current register
+#define BATT_SMBUS_ADDR                                 0x0B                    ///< Default 7 bit address I2C address. 8 bit = 0x16
+#define BATT_SMBUS_ADDR_MIN                             0x00                    ///< lowest possible address
+#define BATT_SMBUS_ADDR_MAX                             0xFF                    ///< highest possible address
+#define BATT_SMBUS_PEC_POLYNOMIAL                       0x07                    ///< Polynomial for calculating PEC
+#define BATT_SMBUS_TEMP                                 0x08                    ///< temperature register
+#define BATT_SMBUS_VOLTAGE                              0x09                    ///< voltage register
+#define BATT_SMBUS_FULL_CHARGE_CAPACITY                 0x10                    ///< capacity when fully charged
+#define BATT_SMBUS_RUN_TIME_TO_EMPTY                    0x11                    ///< predicted remaining battery capacity based on the present rate of discharge in min
+#define BATT_SMBUS_AVERAGE_TIME_TO_EMPTY                0x12                    ///< predicted remaining battery capacity based on the present rate of discharge in min
+#define BATT_SMBUS_REMAINING_CAPACITY                   0x0F                    ///< predicted remaining battery capacity as a percentage
+#define BATT_SMBUS_CYCLE_COUNT                          0x17                    ///< number of cycles the battery has experienced
+#define BATT_SMBUS_DESIGN_CAPACITY                      0x18                    ///< design capacity register
+#define BATT_SMBUS_DESIGN_VOLTAGE                       0x19                    ///< design voltage register
+#define BATT_SMBUS_MANUFACTURER_NAME                    0x20                    ///< manufacturer name
+#define BATT_SMBUS_MANUFACTURE_DATE                     0x1B                    ///< manufacture date register
+#define BATT_SMBUS_SERIAL_NUMBER                        0x1C                    ///< serial number register
+#define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100000                  ///< time in microseconds, measure at 10Hz
+#define BATT_SMBUS_TIMEOUT_US                           10000000                ///< timeout looking for battery 10seconds after startup
+#define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
+#define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
 
-#define BATT_SMBUS_I2C_BUS						PX4_I2C_BUS_EXPANSION
-#define BATT_SMBUS_ADDR							0x0B				///< Default 7 bit address I2C address. 8 bit = 0x16
-#define BATT_SMBUS_TEMP							0x08				///< temperature register
-#define BATT_SMBUS_VOLTAGE						0x09				///< voltage register
-#define BATT_SMBUS_REMAINING_CAPACITY			0x0F				///< predicted remaining battery capacity as a percentage
-#define BATT_SMBUS_FULL_CHARGE_CAPACITY			0x10				///< capacity when fully charged
-#define BATT_SMBUS_DESIGN_CAPACITY				0x18				///< design capacity register
-#define BATT_SMBUS_DESIGN_VOLTAGE				0x19				///< design voltage register
-#define BATT_SMBUS_MANUFACTURE_DATE				0x1B				///< manufacture date register
-#define BATT_SMBUS_SERIAL_NUMBER				0x1C				///< serial number register
-#define BATT_SMBUS_MANUFACTURER_NAME			0x20				///< manufacturer name
-#define BATT_SMBUS_CURRENT						0x0A				///< current register
-#define BATT_SMBUS_AVERAGE_CURRENT				0x0B				///< current register
-#define BATT_SMBUS_MEASUREMENT_INTERVAL_US		(1000000 / 10)		///< time in microseconds, measure at 10Hz
-#define BATT_SMBUS_TIMEOUT_US					10000000			///< timeout looking for battery 10seconds after startup
-#define BATT_SMBUS_CYCLE_COUNT					0x17				///< number of cycles the battery has experienced
-#define BATT_SMBUS_RUN_TIME_TO_EMPTY			0x11				///< predicted remaining battery capacity based on the present rate of discharge in min
-#define BATT_SMBUS_AVERAGE_TIME_TO_EMPTY		0x12				///< predicted remaining battery capacity based on the present rate of discharge in min
-
-#define BATT_SMBUS_MANUFACTURER_ACCESS			0x00
-#define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS	0x44
-
-#define BATT_SMBUS_PEC_POLYNOMIAL				0x07				///< Polynomial for calculating PEC
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
+
+
+/**
+ * @brief Nuttshell accessible method to return the driver usage arguments.
+ */
+void batt_smbus_usage();
+
+/**
+ * @brief Nuttshell accessible method to return the battery manufacture date.
+ */
+int manufacture_date();
+
+/**
+ * @brief Nuttshell accessible method to return the battery manufacturer name.
+ */
+int manufacturer_name();
+
+/**
+ * @brief Nuttshell accessible method to return the battery serial number.
+ */
+int serial_number();
 
 
 class BATT_SMBUS : public device::I2C
@@ -95,38 +115,20 @@ public:
 	virtual ~BATT_SMBUS();
 
 	/**
-	 * Initialize device
-	 *
-	 * Calls probe() to check for device on bus.
-	 *
-	 * @return 0 on success, error code on failure
+	 * @brief Initializes the smart battery device. Calls probe() to check for device on bus.
+	 * @return Returns PX4_OK on success, PX4_ERROR on failure
 	 */
-	virtual int		init();
+	virtual int init();
 
 	/**
 	 * Test device
 	 *
 	 * @return 0 on success, error code on failure
 	 */
-	virtual int		test();
+	virtual int test();
 
 	/**
-	 * Search all possible slave addresses for a smart battery
-	 */
-	int				search();
-
-	/**
-	 * Get the SBS manufacturer name of the battery device
-	 *
-	 * @param manufacturer_name pointer a buffer into which the manufacturer name is to be written
-	* @param max_length the maximum number of bytes to attempt to read from the manufacturer name register, including the null character that is appended to the end
-	 *
-	 * @return the number of bytes read
-	 */
-	uint8_t			manufacturer_name(uint8_t *man_name, uint8_t max_length);
-
-	/**
-	 * Return the SBS manufacture date of the battery device
+	 * @brief Returns the SBS manufacture date of the battery.
 	 *
 	 * @return the date in the following format:
 	*  see Smart Battery Data Specification, Revision  1.1
@@ -139,103 +141,163 @@ public:
 	 *  | Year    9-15   7-bit binary value   0-127 (corresponds to year biased by 1980) |
 	 *  otherwise, return 0 on failure
 	 */
-	uint16_t		manufacture_date();
+	uint16_t manufacture_date();
 
 	/**
-	 * Return the SBS serial number of the battery device
+	 * @brief Gets the SBS manufacturer name of the battery device.
+	 *
+	 * @param manufacturer_name Pointer to a buffer into which the manufacturer name is to be written.
+	 * @param max_length The maximum number of bytes to attempt to read from the manufacturer name register,
+	 *                   including the null character that is appended to the end.
+	 *
+	 * @return Returns the number of bytes read.
 	 */
-	uint16_t		serial_number();
+	uint8_t manufacturer_name(uint8_t *manufacturer_name, uint8_t max_length);
+
+	/**
+	 * @brief Returns the SBS serial number of the battery device.
+	 * @return Returns the SBS serial number of the battery device.
+	 */
+	uint16_t serial_number();
+
+	/**
+	 * Search all possible slave addresses for a smart battery
+	 */
+	int search_addresses();
+
 
 protected:
 	/**
-	 * Check if the device can be contacted
+	 * @brief Check if the device can be contacted.
+	 * @return Returns 1 iff the device can be contacted.
 	 */
-	virtual int		probe();
+	virtual int probe();
 
 private:
 
 	/**
-	 * Start periodic reads from the battery
+	 * @brief Starts periodic reads from the battery.
 	 */
-	void			start();
+	void start();
 
 	/**
-	 * Stop periodic reads from the battery
+	 * @brief Stops periodic reads from the battery.
 	 */
-	void			stop();
+	void stop();
 
 	/**
-	 * static function that is called by worker queue
+	 * @brief Static function that is called by worker queue.
 	 */
-	static void		cycle_trampoline(void *arg);
+	static void cycle_trampoline(void *arg);
 
 	/**
-	 * perform a read from the battery
+	 * @brief Performs a read from the battery.
 	 */
-	void			cycle();
+	void cycle();
 
 	/**
-	 * Read a word from specified register
+	 * @brief Converts from 2's compliment to decimal.
+	 * @return Returns the absolute value of the input in decimal.
 	 */
-	int				read_reg(uint8_t reg, uint16_t &val);
+	uint16_t convert_twos_comp(uint16_t val);
 
 	/**
-	 * Write a word to specified register
+	 * @brief Calculates PEC (CRC) for a read or write from the battery.
+	 * @param cmd
+	 * @param reading
+	 * @param buffer The data that was read from the smbus or will be written to the smbus.
+	 * @param length
+	 * @param
 	 */
-	int				write_reg(uint8_t reg, uint16_t val);
+	uint8_t get_PEC(uint8_t cmd, bool reading, const uint8_t buffer[], uint8_t length);
 
 	/**
-	 * Convert from 2's compliment to decimal
-	 * @return the absolute value of the input in decimal
-	 */
-	uint16_t		convert_twos_comp(uint16_t val);
-
-	/**
-	 * Read block from bus
-	 * @return returns number of characters read if successful, zero if unsuccessful
-	 */
-	uint8_t			read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_zero);
-
-	/**
-	 * Write block to the bus
-	 * @return the number of characters sent if successful, zero if unsuccessful
-	 */
-	uint8_t			write_block(uint8_t reg, uint8_t *data, uint8_t len);
-
-	/**
-	 * Calculate PEC for a read or write from the battery
-	 * @param buff is the data that was read or will be written
-	 */
-	uint8_t			get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len);
-
-	/**
-	 * Write a word to Manufacturer Access register (0x00)
-	 * @param cmd the word to be written to Manufacturer Access
-	 */
-	uint8_t			ManufacturerAccess(uint16_t cmd);
-
-	/**
-	 * Read info from battery on startup
+	 * @brief Read info from battery on startup
 	 * @return OK if everything was read successfully
 	 */
-	uint8_t			GetStartupInfo();
+	uint8_t get_startup_info();
 
-	// internal variables
-	bool			_enabled;	///< true if we have successfully connected to battery
-	work_s			_work{};		///< work queue for scheduling reads
+	/**
+	 * @brief Write a word to Manufacturer Access register (0x00)
+	 * @param cmd the word to be written to Manufacturer Access
+	 * @return Returns
+	 */
+	uint8_t manufacturer_access(uint16_t cmd);
 
-	battery_status_s _last_report{};	///< last published report, used for test()
+	/**
+	 * @brief Read a word from specified register
+	 * @param reg
+	 * @param val
+	 * @return Returns
+	 */
+	int read_reg(uint8_t reg, uint16_t &val);
 
-	orb_advert_t	_batt_topic;	///< uORB battery topic
-	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
+	/**
+	 * @brief Read block from bus
+	 * @param reg
+	 * @param data
+	 * @param max_length
+	 * @param append_zero
+	 * @return Returns number of characters read if successful, zero if unsuccessful.
+	 */
+	uint8_t read_block(uint8_t reg, uint8_t *data, uint8_t max_length, bool append_zero);
 
-	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
-	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
-	uint16_t		_batt_startup_capacity;	///< battery's remaining capacity on startup
-	char			*_manufacturer_name;  ///< The name of the battery manufacturer
-	uint16_t		_cycle_count;	///< number of cycles the battery has experienced
-	uint16_t		_serial_number;		///< serial number register
-	float 			_crit_thr;	///< Critical battery threshold param
-	float 			_low_thr;	///< Low battery threshold param
-	float 			_emergency_thr;		///< Emergency battery threshold param
+	/**
+	 * @brief Writes a word to specified register.
+	 * @param reg
+	 * @param val
+	 * @return Returns the number of characters written, zero if unsuccessful.
+	 */
+	int write_reg(uint8_t reg, uint16_t val);
+
+	/**
+	 * @brief Writes block to the bus.
+	 * @param reg
+	 * @param data
+	 * @param length
+	 * @return Returns the number of characters written, zero if unsuccessful..
+	 */
+	uint8_t write_block(uint8_t reg, uint8_t *data, uint8_t length);
+
+	/* @param_enabled Boolean to indicate if we have successfully connected to battery. */
+	bool _enabled;
+
+	/** @struct _work Work queue for scheduling reads. */
+	work_s _work = work_s{};
+
+	/** @param _last_report Last published report, used for test(). */
+	battery_status_s _last_report = battery_status_s{};
+
+	/** @param _batt_topic uORB battery topic. */
+	orb_advert_t _batt_topic;
+
+	/** @param _batt_orb_id uORB battery topic ID. */
+	orb_id_t _batt_orb_id;
+
+	/** @param _batt_capacity Battery design capacity in mAh (0 means unknown). */
+	uint16_t _batt_capacity;
+
+	/** @param _batt_startup_capacity Battery remaining capacity in mAh on startup. */
+	uint16_t _batt_startup_capacity;
+
+	/** @param _cycle_count The number of cycles the battery has experienced */
+	uint16_t _cycle_count;
+
+	/** @param _serial_number Serial number register */
+	uint16_t _serial_number;
+
+	/** @param _start_time System time we first attempt to communicate with battery. */
+	uint64_t _start_time;
+
+	/** @param _crit_thr Critical battery threshold param */
+	float _crit_thr;
+
+	/** @param _emergency_thr Emergency battery threshold param. */
+	float _emergency_thr;
+
+	/** @param _low_thr Low battery threshold param. */
+	float _low_thr;
+
+	/** @param _manufacturer_name Name of the battery manufacturer. */
+	char *_manufacturer_name;
 };
