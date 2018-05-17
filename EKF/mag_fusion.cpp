@@ -629,7 +629,7 @@ void Ekf::fuseHeading()
 			// Vehicle is at rest so use the last moving prediciton as an observation
 			// to prevent the heading from drifting and to enable yaw gyro bias learning
 			// before takeoff.
-			if (!_vehicle_at_rest_prev) {
+			if (!_vehicle_at_rest_prev || !_mag_use_inhibit_prev) {
 				_last_static_yaw = predicted_hdg;
 				_vehicle_at_rest_prev = true;
 			}
@@ -639,7 +639,9 @@ void Ekf::fuseHeading()
 		}
 	} else {
 		_heading_innov = predicted_hdg - measured_hdg;
+		_last_static_yaw = predicted_hdg;
 	}
+	_mag_use_inhibit_prev = _mag_use_inhibit;
 
 	// wrap the innovation to the interval between +-pi
 	_heading_innov = wrap_pi(_heading_innov);
