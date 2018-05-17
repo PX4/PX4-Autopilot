@@ -100,9 +100,9 @@ public:
 	void		task_main();
 
 private:
-	static constexpr float _eo_max_std_dev = 100.0f;/**< Maximum permissible standard deviation for estimated orientation */
-	static constexpr float _dt_min = 0.00001f;
-	static constexpr float _dt_max = 0.02f;
+	const float 	_eo_max_std_dev = 100.0f;	/**< Maximum permissible standard deviation for estimated orientation */
+	const float 	_dt_min = 0.00001f;
+	const float 	_dt_max = 0.02f;
 
 	bool		_task_should_exit = false;	/**< if true, task should exit */
 	int		_control_task = -1;		/**< task handle for task */
