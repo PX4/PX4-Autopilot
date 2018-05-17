@@ -10,7 +10,7 @@ uint8 quat_reset_counter	# Quaternion reset counter
 
 float32[9] covariance		# Row-major representation of attitude covariance. If invalid/unknown, first cell is NaN
 
-float32 att_std_dev		# Standard deviation of attitude error, (radians)
-float32 att_rate_std_dev	# Standard deviation of attitude rate error, (radians/sec)
+float32 att_std_dev		# Standard deviation of attitude error, (radians). NaN if unknown
+float32 att_rate_std_dev	# Standard deviation of attitude rate error, (radians/sec). NaN if unknown
 
 # TOPICS vehicle_attitude vehicle_attitude_groundtruth vehicle_vision_attitude
