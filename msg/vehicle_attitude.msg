@@ -8,7 +8,7 @@ float32[4] q			# Quaternion rotation from NED earth frame to XYZ body frame. NaN
 float32[4] delta_q_reset 	# Amount by which quaternion has changed during last reset
 uint8 quat_reset_counter	# Quaternion reset counter
 
-float32[9] covariance		# Attitude covariance
+float32[9] covariance		# Row-major representation of attitude covariance. If invalid/unknown, first cell is NaN
 
 float32 att_std_dev		# Standard deviation of attitude error, (radians)
 float32 att_rate_std_dev	# Standard deviation of attitude rate error, (radians/sec)

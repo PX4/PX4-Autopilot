@@ -1043,6 +1043,8 @@ void Ekf2::run()
 				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
 				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
+				// TODO: Propagate attitude covariance matrix
+
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {
 					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);

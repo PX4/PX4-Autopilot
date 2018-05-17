@@ -445,6 +445,9 @@ void AttitudeEstimatorQ::task_main()
 			att.q[2] = _q(2);
 			att.q[3] = _q(3);
 
+			// covariances set to unknown
+			att.covariance[0] = NAN;
+
 			/* the instance count is not used here */
 			int att_inst;
 			orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
