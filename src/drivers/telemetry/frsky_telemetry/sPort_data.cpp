@@ -75,7 +75,7 @@ struct s_port_subscription_data_s {
 
 	struct sensor_combined_s sensor_combined;
 	struct vehicle_global_position_s global_pos;
-	struct vehicle_local_position_s attitude;
+	struct vehicle_attitude_s attitude;
 	struct battery_status_s battery_status;
 	struct vehicle_status_s vehicle_status;
 	struct vehicle_air_data_s vehicle_air_data;
@@ -152,7 +152,7 @@ void sPort_update_topics()
 	orb_check(subs->attitude_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(vehicle_local_position), subs->attitude_sub, &subs->attitude);
+		orb_copy(ORB_ID(vehicle_attitude), subs->attitude_sub, &subs->attitude);
 	}
 
 	/* get a local copy of the vehicle status data */
