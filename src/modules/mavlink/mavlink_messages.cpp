@@ -987,6 +987,83 @@ protected:
 };
 
 
+class MavlinkStreamAttitudeQuaternionCOV : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamAttitudeQuaternionCOV::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ATTITUDE_QUATERNION_COV";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION_COV;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamAttitudeQuaternionCOV(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_att_sub;
+	uint64_t _att_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamAttitudeQuaternionCOV(MavlinkStreamAttitudeQuaternionCOV &);
+	MavlinkStreamAttitudeQuaternion &operator = (const MavlinkStreamAttitudeQuaternionCOV &);
+
+protected:
+	explicit MavlinkStreamAttitudeQuaternionCOV(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_att_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		vehicle_attitude_s att;
+
+		if (_att_sub->update(&_att_time, &att)) {
+			mavlink_attitude_quaternion_cov_t msg = {};
+
+			msg.time_usec = att.timestamp;
+			msg.q[0] = att.q[0];
+			msg.q[1] = att.q[1];
+			msg.q[2] = att.q[2];
+			msg.q[3] = att.q[3];
+			msg.rollspeed = att.rollspeed;
+			msg.pitchspeed = att.pitchspeed;
+			msg.yawspeed = att.yawspeed;
+
+			for (size_t i = 0; i < 9; i++) {
+				msg.covariance[i] = att.covariance[i];
+			}
+
+			mavlink_msg_attitude_quaternion_cov_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+
 class MavlinkStreamVFRHUD : public MavlinkStream
 {
 public:
@@ -4221,6 +4298,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamScaledIMU::new_instance, &MavlinkStreamScaledIMU::get_name_static, &MavlinkStreamScaledIMU::get_id_static),
 	StreamListItem(&MavlinkStreamAttitude::new_instance, &MavlinkStreamAttitude::get_name_static, &MavlinkStreamAttitude::get_id_static),
 	StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static, &MavlinkStreamAttitudeQuaternion::get_id_static),
+	StreamListItem(&MavlinkStreamAttitudeQuaternionCOV::new_instance, &MavlinkStreamAttitudeQuaternionCOV::get_name_static, &MavlinkStreamAttitudeQuaternionCOV::get_id_static),
 	StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static, &MavlinkStreamVFRHUD::get_id_static),
 	StreamListItem(&MavlinkStreamGPSRawInt::new_instance, &MavlinkStreamGPSRawInt::get_name_static, &MavlinkStreamGPSRawInt::get_id_static),
 	StreamListItem(&MavlinkStreamSystemTime::new_instance, &MavlinkStreamSystemTime::get_name_static, &MavlinkStreamSystemTime::get_id_static),
