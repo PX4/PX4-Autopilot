@@ -1044,6 +1044,12 @@ void Ekf2::run()
 				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
 				// TODO: Propagate attitude covariance matrix
+				// For now, set to uknown
+				att.covariance[0] = NAN;
+
+				// for now, set attitude std dev to NAN
+				att.att_std_dev = NAN;
+				att.att_rate_std_dev = NAN;
 
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {
@@ -1132,6 +1138,9 @@ void Ekf2::run()
 
 			_ekf.get_ekf_lpos_accuracy(&odom.eph, &odom.epv);
 			_ekf.get_ekf_vel_accuracy(&odom.evh, &odom.evv);
+			// for now, set attitude std dev to NAN
+			odom.att_std_dev = NAN;
+			odom.att_rate_std_dev = NAN;
 
 			// get state reset information of position and velocity
 			_ekf.get_posD_reset(&odom.delta_z, &odom.z_reset_counter);
