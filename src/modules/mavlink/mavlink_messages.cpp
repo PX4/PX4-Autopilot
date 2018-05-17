@@ -1913,8 +1913,10 @@ public:
 
 private:
 	MavlinkOrbSubscription *_lpos_sub;
-	MavlinkOrbSubscription *_att_sub;
 	uint64_t _odom_time;
+
+	MavlinkOrbSubscription *_att_sub;
+	uint64_t _att_time;
 
 	MavlinkOrbSubscription *_est_sub;
 	uint64_t _est_time;
@@ -1926,8 +1928,9 @@ private:
 protected:
 	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_lpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
-		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
 		_odom_time(0),
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_att_time(0),
 		//TODO: have vehicle_local_position propagate the variances instead of estimator_status
 		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
 		_est_time(0)
@@ -1942,6 +1945,7 @@ protected:
 		// use vehicle_local_position_s timestamp
 		bool odom_updated = _lpos_sub->update(&_odom_time, &odom_pos);
 		bool est_updated = _est_sub->update(&_est_time, &est);
+		_att_sub->update(&_att_time, &odom_att);
 
 		mavlink_odometry_t msg = {};
 
