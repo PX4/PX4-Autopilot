@@ -260,7 +260,7 @@ private:
 	uint8_t write_block(uint8_t reg, uint8_t *data, uint8_t length);
 
 	/* @param_enabled Boolean to indicate if we have successfully connected to battery. */
-	bool _enabled;
+	bool _enabled = false;
 
 	/** @struct _work Work queue for scheduling reads. */
 	work_s _work = work_s{};
@@ -269,35 +269,35 @@ private:
 	battery_status_s _last_report = battery_status_s{};
 
 	/** @param _batt_topic uORB battery topic. */
-	orb_advert_t _batt_topic;
+	orb_advert_t _batt_topic = nullptr;
 
 	/** @param _batt_orb_id uORB battery topic ID. */
-	orb_id_t _batt_orb_id;
+	orb_id_t _batt_orb_id = nullptr;
 
 	/** @param _batt_capacity Battery design capacity in mAh (0 means unknown). */
-	uint16_t _batt_capacity;
+	uint16_t _batt_capacity = 0;
 
 	/** @param _batt_startup_capacity Battery remaining capacity in mAh on startup. */
-	uint16_t _batt_startup_capacity;
+	uint16_t _batt_startup_capacity = 0;
 
 	/** @param _cycle_count The number of cycles the battery has experienced. */
-	uint16_t _cycle_count;
+	uint16_t _cycle_count = 0;
 
 	/** @param _serial_number Serial number register. */
-	uint16_t _serial_number;
+	uint16_t _serial_number = 0;
 
 	/** @param _start_time System time we first attempt to communicate with battery. */
-	uint64_t _start_time;
+	uint64_t _start_time = 0;
 
 	/** @param _crit_thr Critical battery threshold param. */
-	float _crit_thr;
+	float _crit_thr = 0.0f;
 
 	/** @param _emergency_thr Emergency battery threshold param. */
-	float _emergency_thr;
+	float _emergency_thr = 0.0f;
 
 	/** @param _low_thr Low battery threshold param. */
-	float _low_thr;
+	float _low_thr = 0.0f;
 
 	/** @param _manufacturer_name Name of the battery manufacturer. */
-	char *_manufacturer_name;
+	char *_manufacturer_name = nullptr;
 };

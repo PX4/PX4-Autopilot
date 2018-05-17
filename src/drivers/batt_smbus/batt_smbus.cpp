@@ -52,19 +52,7 @@ BATT_SMBUS *g_batt_smbus;
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
-	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
-	_enabled(false),
-	_batt_topic(nullptr),
-	_batt_orb_id(nullptr),
-	_batt_capacity(0),
-	_batt_startup_capacity(0),
-	_cycle_count(0),
-	_serial_number(0),
-	_start_time(0),
-	_crit_thr(0.0f),
-	_emergency_thr(0.0f),
-	_low_thr(0.0f),
-	_manufacturer_name(nullptr)
+	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000)
 {
 	// Capture startup time.
 	_start_time = hrt_absolute_time();
