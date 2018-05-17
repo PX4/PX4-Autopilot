@@ -1086,7 +1086,7 @@ void ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
 	print_sensor_statistics(_vehicle_air_data_msg_id, "vehicle_air_data");
 	print_sensor_statistics(_vehicle_magnetometer_msg_id, "vehicle_magnetometer");
-	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_vision_position");
+	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
 
 	orb_unsubscribe(_vehicle_attitude_sub);
 	_vehicle_attitude_sub = -1;

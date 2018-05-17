@@ -659,7 +659,6 @@ void Logger::add_default_topics()
 	add_topic("multirotor_motor_limits");
 	add_topic("offboard_control_mode");
 	add_topic("time_offset");
-	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_groundtruth", 100);
 	add_topic("vehicle_groundtruth", 100);
 	add_topic("vehicle_roi");
@@ -702,8 +701,7 @@ void Logger::add_estimator_replay_topics()
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
-	add_topic("vehicle_vision_attitude");
-	add_topic("vehicle_vision_position");
+	add_topic("vehicle_visual_odometry");
 }
 
 void Logger::add_thermal_calibration_topics()
