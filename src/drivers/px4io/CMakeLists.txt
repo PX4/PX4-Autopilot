@@ -47,7 +47,7 @@ px4_add_module(
 # include the px4io binary in ROMFS
 message(STATUS "Building and including ${config_io_board}")
 
-set(fw_io_exe "${PX4_SOURCE_DIR}/build/${config_io_board}_default/nuttx_${config_io_board}_default.elf")
+set(fw_io_exe "${PX4_SOURCE_DIR}/build/nuttx_${config_io_board}_default/nuttx_${config_io_board}_default.elf")
 set(fw_io_bin "${PX4_BINARY_DIR}/genromfs/${config_romfs_root}/extras/${config_io_board}.bin")
 
 file(GLOB_RECURSE px4io_driver_files ${PX4_SOURCE_DIR}/src/drivers/boards/${config_io_board}/*)
@@ -55,7 +55,7 @@ file(GLOB_RECURSE px4io_config_files ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/con
 file(GLOB_RECURSE px4io_firmware_files ${PX4_SOURCE_DIR}/src/modules/px4iofirmware/*)
 file(GLOB_RECURSE px4io_rc_files ${PX4_SOURCE_DIR}/src/lib/rc/*)
 add_custom_command(OUTPUT ${fw_io_exe}
-	COMMAND make --no-print-directory ${config_io_board}_default
+	COMMAND make --no-print-directory nuttx_${config_io_board}_default
 	DEPENDS ${px4io_driver_files} ${px4io_config_files} ${px4io_firmware_files} ${px4io_rc_files}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	COMMENT "Building ${config_io_board}"

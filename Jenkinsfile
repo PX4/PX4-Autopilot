@@ -2,16 +2,6 @@ pipeline {
   agent none
   stages {
 
-    stage('Style Check') {
-      agent {
-        docker { image 'px4io/px4-dev-base:2018-03-30' }
-      }
-
-      steps {
-        sh 'make check_format'
-      }
-    }
-
     stage('Build') {
       steps {
         script {
@@ -38,20 +28,19 @@ pipeline {
                     sh "make distclean"
                     sh "ccache -z"
                     sh "git fetch --tags"
-                    sh "make px4io-v2_default"
+                    sh "make nuttx_px4io-v2_default"
+                    sh "make nuttx_px4io-v2_default bloaty_symbols"
+                    sh "make nuttx_px4io-v2_default bloaty_compileunits"
+                    sh "make nuttx_px4io-v2_default bloaty_compare_master"
                     sh "make nuttx_px4fmu-v2_default"
-                    // bloaty output and compare with last successful master
-                    sh "bloaty -d symbols -n 100 -s vm build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf"
-                    sh "bloaty -d compileunits -n 100 -s vm build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf"
-                    sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v2_default.elf"
-                    sh "bloaty -d symbols -n 100 -C full -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf -- nuttx_px4fmu-v2_default.elf"
+                    sh "make nuttx_px4fmu-v2_default bloaty_symbols"
+                    sh "make nuttx_px4fmu-v2_default bloaty_compileunits"
+                    sh "make nuttx_px4fmu-v2_default bloaty_inlines"
+                    sh "make nuttx_px4fmu-v2_default bloaty_templates"
+                    sh "make nuttx_px4fmu-v2_default bloaty_compare_master"
                     sh "make nuttx_px4fmu-v2_lpe"
                     sh "make nuttx_px4fmu-v2_test"
                     sh "make nuttx_px4fmu-v3_default"
-                    sh "bloaty -d symbols -n 100 -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf"
-                    sh "bloaty -d compileunits -n 100 -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf"
-                    sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v3_default.elf"
-                    sh "bloaty -d symbols -n 100 -C full -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf -- nuttx_px4fmu-v3_default.elf"
                     sh "make nuttx_px4fmu-v3_rtps"
                     sh "make sizes"
                     sh "ccache -s"
@@ -129,6 +118,16 @@ pipeline {
 
     stage('Test') {
       parallel {
+
+        stage('Style Check') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2018-03-30' }
+          }
+
+          steps {
+            sh 'make check_format'
+          }
+        }
 
         stage('clang analyzer') {
           agent {
