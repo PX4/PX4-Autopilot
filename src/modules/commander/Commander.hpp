@@ -108,7 +108,7 @@ private:
 	)
 
 	// TODO: should be set by a parameter
-	const float EO_MAX_STD_DEV = 100.0f;		/**< Maximum permissible standard deviation for estimated velocity */
+	const float EO_MAX_STD_DEV = 100.0f;		/**< Maximum permissible standard deviation for estimated attitude */
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
 	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */
