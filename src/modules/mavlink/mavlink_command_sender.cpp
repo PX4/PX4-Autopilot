@@ -57,13 +57,7 @@ void MavlinkCommandSender::initialize()
 
 MavlinkCommandSender &MavlinkCommandSender::instance()
 {
-
 	return *_instance;
-}
-
-MavlinkCommandSender::MavlinkCommandSender() :
-	_commands(3)
-{
 }
 
 MavlinkCommandSender::~MavlinkCommandSender()

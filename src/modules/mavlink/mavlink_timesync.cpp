@@ -42,17 +42,10 @@
 #include "mavlink_main.h"
 
 MavlinkTimesync::MavlinkTimesync(Mavlink *mavlink) :
-	_timesync_status_pub(nullptr),
-	_sequence(0),
-	_time_offset(0.0),
-	_time_skew(0.0),
-	_filter_alpha(ALPHA_GAIN_INITIAL),
-	_filter_beta(BETA_GAIN_INITIAL),
-	_high_deviation_count(0),
-	_high_rtt_count(0),
 	_mavlink(mavlink)
 {
 }
+
 MavlinkTimesync::~MavlinkTimesync()
 {
 	if (_timesync_status_pub) {

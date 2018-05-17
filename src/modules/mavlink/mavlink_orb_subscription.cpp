@@ -50,13 +50,8 @@
 #include <uORB/uORB.h>
 
 MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instance) :
-	next(nullptr),
 	_topic(topic),
-	_fd(-1),
-	_instance(instance),
-	_published(false),
-	_subscribe_from_beginning(false),
-	_last_pub_check(0)
+	_instance(instance)
 {
 }
 
