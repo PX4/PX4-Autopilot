@@ -107,7 +107,7 @@ void Ekf::fuseVelPosHeight()
 
 			// Compensate for positive static pressure transients (negative vertical position innovations)
 			// casued by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
-			float deadzone_start = 0.25f * _params.baro_noise;
+			float deadzone_start = 0.0f;
 			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
 
 			if (_control_status.flags.gnd_effect) {
