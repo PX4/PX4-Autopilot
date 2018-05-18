@@ -48,9 +48,7 @@ MavlinkRateLimiter::MavlinkRateLimiter(unsigned int interval) : _last_sent(0), _
 {
 }
 
-MavlinkRateLimiter::~MavlinkRateLimiter()
-{
-}
+MavlinkRateLimiter::~MavlinkRateLimiter() = default;
 
 void
 MavlinkRateLimiter::set_interval(unsigned int interval)

@@ -58,22 +58,14 @@ public:
 class McPosControlTests : public UnitTest
 {
 public:
-	McPosControlTests();
-	virtual ~McPosControlTests();
+	McPosControlTests() = default;
+	virtual ~McPosControlTests() = default;
 
 	virtual bool run_tests();
 
 private:
 	bool cross_sphere_line_test();
 };
-
-McPosControlTests::McPosControlTests()
-{
-}
-
-McPosControlTests::~McPosControlTests()
-{
-}
 
 bool McPosControlTests::cross_sphere_line_test()
 {

@@ -76,10 +76,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	}
 }
 
-VtolType::~VtolType()
-{
-
-}
+VtolType::~VtolType() = default;
 
 bool VtolType::init()
 {

@@ -65,10 +65,7 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_params_handles_tiltrotor.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 }
 
-Tiltrotor::~Tiltrotor()
-{
-
-}
+Tiltrotor::~Tiltrotor() = default;
 
 void
 Tiltrotor::parameters_update()
