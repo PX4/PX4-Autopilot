@@ -2117,7 +2117,7 @@ int Logger::check_free_space()
 
 
 		uint64_t min_free_bytes = 300ULL * 1024ULL * 1024ULL;
-		uint64_t total_bytes = statfs_buf.f_blocks * statfs_buf.f_bsize;
+		uint64_t total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
 
 		if (total_bytes / 10 < min_free_bytes) { // reduce the minimum if it's larger than 10% of the disk size
 			min_free_bytes = total_bytes / 10;
