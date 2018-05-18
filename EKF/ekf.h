@@ -358,7 +358,7 @@ private:
 	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
 	uint64_t _time_bad_motion_us{0};	///< last system time that on-ground motion exceeded limits (uSec)
 	uint64_t _time_good_motion_us{0};	///< last system time that on-ground motion was within limits (uSec)
-	bool _inhibit_gndobs_use{false};	///< true when use of ground observations (optical flow and range finder) is being temporarily inhibited due to excessive on-ground motion
+	bool _inhibit_flow_use{false};	///< true when use of optical flow and range finder is being inhibited
 
 	float _mag_declination{0.0f};	///< magnetic declination used by reset and fusion functions (rad)
 
@@ -379,6 +379,7 @@ private:
 	float _gps_velE_filt{0.0f};		///< GPS filtered East velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
+	float _gps_error_norm{1.0f};		///< normalised gps error
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	uint64_t _last_gps_origin_time_us{0};	///< time the origin was last set (uSec)

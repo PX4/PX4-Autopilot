@@ -119,26 +119,15 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	_gps_check_fail_status.flags.gdop = (gps->gdop > _params.req_gdop);
 
 	// Check the reported horizontal and vertical position accuracy
-	if (_control_status.flags.opt_flow) {
-		// optical flow is used when low and slow and often in a confined environment
-		// so tighten required GPS accuracy that affects position and altitude hold
-		// This also applies some hysteresis to the logic used to activate optical flow
-		_gps_check_fail_status.flags.hacc = (gps->eph > 0.7f * _params.req_hacc);
-		_gps_check_fail_status.flags.vacc = (gps->epv > 0.7f * _params.req_vacc);
-	} else {
-		_gps_check_fail_status.flags.hacc = (gps->eph > _params.req_hacc);
-		_gps_check_fail_status.flags.vacc = (gps->epv > _params.req_vacc);
-	}
+	_gps_check_fail_status.flags.hacc = (gps->eph > _params.req_hacc);
+	_gps_check_fail_status.flags.vacc = (gps->epv > _params.req_vacc);
 
 	// Check the reported speed accuracy
-	if (_control_status.flags.opt_flow) {
-		// Optical flow is used when low and slow and often in a confined environment
-		// so tighten required GPS accuracy that affects position hold
-		// This also applies some hysteresis to the logic used to activate optical flow
-		_gps_check_fail_status.flags.sacc = (gps->sacc > 0.7f * _params.req_sacc);
-	} else {
-		_gps_check_fail_status.flags.sacc = (gps->sacc > _params.req_sacc);
-	}
+	_gps_check_fail_status.flags.sacc = (gps->sacc > _params.req_sacc);
+
+	// check if GPS quality is degraded
+	_gps_error_norm = fmaxf((gps->eph / _params.req_hacc) , (gps->epv / _params.req_vacc));
+	_gps_error_norm = fmaxf(_gps_error_norm , (gps->sacc / _params.req_sacc));
 
 	// Calculate position movement since last measurement
 	float delta_posN = 0.0f;
