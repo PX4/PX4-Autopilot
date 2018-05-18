@@ -436,11 +436,6 @@ fi
 # LeddarOne
 if param greater SENS_EN_LEDDAR1 0
 then
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
-	then
-		# start the driver on serial 4/5
-		leddar_one -d /dev/ttyS6 start
-	fi
 	if ver hwcmp AEROFC_V1
 	then
 		# start the driver on telemetry
@@ -451,6 +446,12 @@ then
 			# start on default mavlink companion device
 			leddar_one -d /dev/ttyS2 start
 		fi
+	fi
+
+	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
+	then
+		# start the driver on serial 4/5
+		leddar_one -d /dev/ttyS6 start
 	fi
 fi
 
