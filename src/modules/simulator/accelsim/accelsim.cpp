@@ -230,8 +230,8 @@ private:
 	virtual void	_measure();
 
 	/* this class does not allow copying due to ptr data members */
-	ACCELSIM_mag(const ACCELSIM_mag &);
-	ACCELSIM_mag operator=(const ACCELSIM_mag &);
+	ACCELSIM_mag(const ACCELSIM_mag &) = delete;
+	ACCELSIM_mag operator=(const ACCELSIM_mag &) = delete;
 };
 
 
