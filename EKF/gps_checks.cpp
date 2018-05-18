@@ -118,18 +118,17 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	// Check the geometric dilution of precision
 	_gps_check_fail_status.flags.gdop = (gps->gdop > _params.req_gdop);
 
-	// Check the reported horizontal position accuracy
+	// Check the reported horizontal and vertical position accuracy
 	if (_control_status.flags.opt_flow) {
 		// optical flow is used when low and slow and often in a confined environment
-		// so tighten required GPS accuracy that affects position hold
+		// so tighten required GPS accuracy that affects position and altitude hold
 		// This also applies some hysteresis to the logic used to activate optical flow
 		_gps_check_fail_status.flags.hacc = (gps->eph > 0.7f * _params.req_hacc);
+		_gps_check_fail_status.flags.vacc = (gps->epv > 0.7f * _params.req_vacc);
 	} else {
 		_gps_check_fail_status.flags.hacc = (gps->eph > _params.req_hacc);
+		_gps_check_fail_status.flags.vacc = (gps->epv > _params.req_vacc);
 	}
-
-	// Check the reported vertical position accuracy
-	_gps_check_fail_status.flags.vacc = (gps->epv > _params.req_vacc);
 
 	// Check the reported speed accuracy
 	if (_control_status.flags.opt_flow) {
