@@ -353,6 +353,7 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 	} else {
+		_time_bad_motion_us = 0;
 		_time_good_motion_us = _imu_sample_delayed.time_us;
 	}
 
@@ -364,17 +365,19 @@ void Ekf::controlOpticalFlowFusion()
 	} else {
 		gps_err_norm_lim = 1.0f;
 	}
+	bool flow_required = !_control_status.flags.gps || (_gps_error_norm > gps_err_norm_lim);
 	if (!_inhibit_flow_use) {
-		bool movement_not_ok = (_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5;
-		bool good_gps_aiding = _control_status.flags.gps && _gps_error_norm < gps_err_norm_lim;
-		if (movement_not_ok || good_gps_aiding || !_range_aid_mode_enabled) {
+		// check if we should inhibit use of optical flow
+		bool movement_not_ok = ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5)
+				&& !_range_aid_mode_enabled;
+		if (movement_not_ok || !flow_required) {
 			_inhibit_flow_use = true;
 		}
 
 	} else {
-		bool movement_ok = (_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6;
-		bool bad_gps_aiding = !_control_status.flags.gps || _gps_error_norm > gps_err_norm_lim;
-		if (movement_ok || bad_gps_aiding) {
+		bool movement_ok = ((_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6)
+				|| _range_aid_mode_enabled;
+		if (movement_ok && flow_required) {
 			_inhibit_flow_use = false;
 		}
 	}
@@ -401,21 +404,21 @@ void Ekf::controlOpticalFlowFusion()
 
 		// optical flow fusion mode selection logic
 		if ((_params.fusion_mode & MASK_USE_OF) // optical flow has been selected by the user
-		    && !_control_status.flags.opt_flow // we are not yet using flow data
-		    && _control_status.flags.tilt_align // we know our tilt attitude
-		    && get_terrain_valid()) { // we have a valid distance to ground estimate
-
+			&& !_control_status.flags.opt_flow // we are not yet using flow data
+			&& _control_status.flags.tilt_align // we know our tilt attitude
+			&& !_inhibit_flow_use
+			&& get_terrain_valid()) // we have a valid distance to ground estimate
+		{
 			// If the heading is not aligned, reset the yaw and magnetic field states
 			if (!_control_status.flags.yaw_align) {
 				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 			}
 
 			// If the heading is valid and use is not inhibited , start using optical flow aiding
-			if (_control_status.flags.yaw_align && !_inhibit_flow_use) {
+			if (_control_status.flags.yaw_align) {
 				// set the flag and reset the fusion timeout
 				_control_status.flags.opt_flow = true;
 				_time_last_of_fuse = _time_last_imu;
-				ECL_INFO("EKF Starting Optical Flow Use");
 
 				// if we are not using GPS then the velocity and position states and covariances need to be set
 				if (!_control_status.flags.gps || !_control_status.flags.ev_pos) {
