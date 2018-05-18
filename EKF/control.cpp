@@ -353,35 +353,38 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 	} else {
-		bool good_gps_aiding = _control_status.flags.gps && ((_time_last_imu - _last_gps_fail_us) > (uint64_t)6e6);
-		if (good_gps_aiding && !_range_aid_mode_enabled) {
-			// Detect the special case where we are in flight, are using good quality GPS and speed and range has exceeded
-			// limits for use of range finder for height
-			_time_bad_motion_us = _imu_sample_delayed.time_us;
-		} else {
-			_time_good_motion_us = _imu_sample_delayed.time_us;
-		}
+		_time_good_motion_us = _imu_sample_delayed.time_us;
 	}
 
-	// Inhibit flow use if motion is un-suitable
-	// Apply a time based hysteresis to prevent rapid mode switching
-	if (!_inhibit_gndobs_use) {
-		if ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5) {
-			_inhibit_gndobs_use = true;
+	// Inhibit flow use if motion is un-suitable or we have good quality GPS
+	// Apply hysteresis to prevent rapid mode switching
+	float gps_err_norm_lim;
+	if (_control_status.flags.opt_flow) {
+		gps_err_norm_lim = 0.7f;
+	} else {
+		gps_err_norm_lim = 1.0f;
+	}
+	if (!_inhibit_flow_use) {
+		bool movement_not_ok = (_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5;
+		bool good_gps_aiding = _control_status.flags.gps && _gps_error_norm < gps_err_norm_lim;
+		if (movement_not_ok || good_gps_aiding || !_range_aid_mode_enabled) {
+			_inhibit_flow_use = true;
 		}
 
 	} else {
-		if ((_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6) {
-			_inhibit_gndobs_use = false;
+		bool movement_ok = (_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6;
+		bool bad_gps_aiding = _control_status.flags.gps && _gps_error_norm > gps_err_norm_lim;
+		if (movement_ok || bad_gps_aiding) {
+			_inhibit_flow_use = false;
 		}
 	}
 
 	// Handle cases where we are using optical flow but are no longer able to because data is old
 	// or its use has been inhibited.
 	if (_control_status.flags.opt_flow) {
-		if (_inhibit_gndobs_use) {
-			_control_status.flags.opt_flow = false;
-			_time_last_of_fuse = 0;
+	       if (_inhibit_flow_use) {
+		       _control_status.flags.opt_flow = false;
+		       _time_last_of_fuse = 0;
 
 		} else if (_time_last_imu - _flow_sample_delayed.time_us > (uint64_t)_params.no_gps_timeout_max) {
 			_control_status.flags.opt_flow = false;
@@ -407,8 +410,8 @@ void Ekf::controlOpticalFlowFusion()
 				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 			}
 
-			// If the heading is valid and use is no tinhibited , start using optical flow aiding
-			if (_control_status.flags.yaw_align && !_inhibit_gndobs_use) {
+			// If the heading is valid and use is not inhibited , start using optical flow aiding
+			if (_control_status.flags.yaw_align && !_inhibit_flow_use) {
 				// set the flag and reset the fusion timeout
 				_control_status.flags.opt_flow = true;
 				_time_last_of_fuse = _time_last_imu;
@@ -1048,15 +1051,15 @@ void Ekf::rangeAidConditionsMet()
 	// 3) Our terrain estimate is stable (needs better checks)
 	// 4) We are in-air
 	if (_control_status.flags.in_air) {
-		// check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
-		bool use_range_finder;
+		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
+		bool can_use_range_finder;
 		if (_range_aid_mode_enabled) {
-			use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && get_terrain_valid();
+			can_use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && get_terrain_valid();
 
 		} else {
 			// if we were not using range aid in the previous iteration then require the current height above terrain to be
 			// smaller than 70 % of the maximum allowed ground distance for range aid
-			use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && get_terrain_valid();
+			can_use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && get_terrain_valid();
 		}
 
 		bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow)
@@ -1066,29 +1069,29 @@ void Ekf::rangeAidConditionsMet()
 			float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
 
 			if (_range_aid_mode_enabled) {
-				use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
+				can_use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
 
 			} else {
 				// if we were not using range aid in the previous iteration then require the ground velocity to be
 				// smaller than 70 % of the maximum allowed ground velocity for range aid
-				use_range_finder &= ground_vel < 0.7f * _params.max_vel_for_range_aid;
+				can_use_range_finder &= ground_vel < 0.7f * _params.max_vel_for_range_aid;
 			}
 
 		} else {
-			use_range_finder = false;
+			can_use_range_finder = false;
 		}
 
 		// use hysteresis to check for hagl
 		if (_range_aid_mode_enabled) {
-			use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
+			can_use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
 
 		} else {
 			// if we were not using range aid in the previous iteration then use a much lower (1/100) threshold to avoid
 			// switching to range finder too soon (wait for terrain to update).
-			use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 0.01f);
+			can_use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 0.01f);
 		}
 
-		_range_aid_mode_enabled = use_range_finder;
+		_range_aid_mode_enabled = can_use_range_finder;
 
 	} else {
 		_range_aid_mode_enabled = false;
