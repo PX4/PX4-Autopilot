@@ -42,6 +42,9 @@
 #include <systemlib/hardfault_log.h>
 #endif /* __PX4_NUTTX */
 
+using namespace time_literals;
+
+
 namespace px4
 {
 namespace logger
@@ -229,6 +232,7 @@ void LogWriterFile::run()
 
 		int poll_count = 0;
 		int written = 0;
+		hrt_abstime last_fsync = hrt_absolute_time();
 
 		while (true) {
 			size_t available = 0;
@@ -263,12 +267,15 @@ void LogWriterFile::run()
 				written = ::write(_fd, read_ptr, available);
 				perf_end(_perf_write);
 
+				const hrt_abstime now = hrt_absolute_time();
+
 				/* call fsync periodically to minimize potential loss of data */
-				if (++poll_count >= 100) {
+				if (++poll_count >= 100 || now - last_fsync > 1_s) {
 					perf_begin(_perf_fsync);
 					::fsync(_fd);
 					perf_end(_perf_fsync);
 					poll_count = 0;
+					last_fsync = now;
 				}
 
 				if (written < 0) {

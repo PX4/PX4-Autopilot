@@ -51,7 +51,7 @@ BlockWaypointGuidance::BlockWaypointGuidance(SuperBlock *parent, const char *nam
 {
 }
 
-BlockWaypointGuidance::~BlockWaypointGuidance() {};
+BlockWaypointGuidance::~BlockWaypointGuidance() = default;;
 
 void BlockWaypointGuidance::update(
 	const vehicle_global_position_s &pos,

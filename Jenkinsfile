@@ -2,16 +2,6 @@ pipeline {
   agent none
   stages {
 
-    stage('Style Check') {
-      agent {
-        docker { image 'px4io/px4-dev-base:2018-03-30' }
-      }
-
-      steps {
-        sh 'make check_format'
-      }
-    }
-
     stage('Build') {
       steps {
         script {
@@ -38,20 +28,19 @@ pipeline {
                     sh "make distclean"
                     sh "ccache -z"
                     sh "git fetch --tags"
-                    sh "make px4io-v2_default"
+                    sh "make nuttx_px4io-v2_default"
+                    sh "make nuttx_px4io-v2_default bloaty_symbols"
+                    sh "make nuttx_px4io-v2_default bloaty_compileunits"
+                    sh "make nuttx_px4io-v2_default bloaty_compare_master"
                     sh "make nuttx_px4fmu-v2_default"
-                    // bloaty output and compare with last successful master
-                    sh "bloaty -d symbols -n 100 -s vm build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf"
-                    sh "bloaty -d compileunits -n 100 -s vm build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf"
-                    sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v2_default.elf"
-                    sh "bloaty -d symbols -n 100 -C full -s file build/nuttx_px4fmu-v2_default/nuttx_px4fmu-v2_default.elf -- nuttx_px4fmu-v2_default.elf"
+                    sh "make nuttx_px4fmu-v2_default bloaty_symbols"
+                    sh "make nuttx_px4fmu-v2_default bloaty_compileunits"
+                    sh "make nuttx_px4fmu-v2_default bloaty_inlines"
+                    sh "make nuttx_px4fmu-v2_default bloaty_templates"
+                    sh "make nuttx_px4fmu-v2_default bloaty_compare_master"
                     sh "make nuttx_px4fmu-v2_lpe"
                     sh "make nuttx_px4fmu-v2_test"
                     sh "make nuttx_px4fmu-v3_default"
-                    sh "bloaty -d symbols -n 100 -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf"
-                    sh "bloaty -d compileunits -n 100 -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf"
-                    sh "wget --no-verbose -N https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_px4fmu-v3_default.elf"
-                    sh "bloaty -d symbols -n 100 -C full -s vm build/nuttx_px4fmu-v3_default/nuttx_px4fmu-v3_default.elf -- nuttx_px4fmu-v3_default.elf"
                     sh "make nuttx_px4fmu-v3_rtps"
                     sh "make sizes"
                     sh "ccache -s"
@@ -129,6 +118,16 @@ pipeline {
 
     stage('Test') {
       parallel {
+
+        stage('Style Check') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2018-03-30' }
+          }
+
+          steps {
+            sh 'make check_format'
+          }
+        }
 
         stage('clang analyzer') {
           agent {
@@ -225,6 +224,37 @@ pipeline {
           }
         }
 
+        stage('test mission (address sanitizer)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros:2018-03-30'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
+            sh 'git fetch --tags'
+            sh 'PX4_ASAN=1 make posix_sitl_default'
+            sh 'make posix_sitl_default sitl_gazebo'
+            sh 'PX4_ASAN=1 ./test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol'
+            sh './Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
+          }
+          post {
+            always {
+              sh './Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '.ros/**/*.pdf'
+              archiveArtifacts '.ros/**/*.csv'
+              sh 'make distclean'
+            }
+            failure {
+              archiveArtifacts '.ros/**/*.ulg'
+              archiveArtifacts '.ros/**/rosunit-*.xml'
+              archiveArtifacts '.ros/**/rostest-*.log'
+            }
+          }
+        }
+
         stage('test mission (code coverage)') {
           agent {
             docker {
@@ -239,6 +269,25 @@ pipeline {
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s'
             }
+            sh 'make distclean'
+          }
+        }
+
+        stage('tests (address sanitizer)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-03-30'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          environment {
+              PX4_ASAN = 1
+              ASAN_OPTIONS = "color=always:check_initialization_order=1:detect_stack_use_after_return=1"
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make tests'
             sh 'make distclean'
           }
         }

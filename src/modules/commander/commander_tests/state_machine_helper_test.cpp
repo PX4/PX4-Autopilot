@@ -46,8 +46,8 @@
 class StateMachineHelperTest : public UnitTest
 {
 public:
-	StateMachineHelperTest();
-	virtual ~StateMachineHelperTest();
+	StateMachineHelperTest() = default;
+	virtual ~StateMachineHelperTest() = default;
 
 	virtual bool run_tests();
 
@@ -56,12 +56,6 @@ private:
 	bool mainStateTransitionTest();
 	bool isSafeTest();
 };
-
-StateMachineHelperTest::StateMachineHelperTest() {
-}
-
-StateMachineHelperTest::~StateMachineHelperTest() {
-}
 
 bool StateMachineHelperTest::armingStateTransitionTest()
 {

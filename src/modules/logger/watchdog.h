@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,105 +31,48 @@
  *
  ****************************************************************************/
 
-/**
- * @file led.cpp
- *
- * LED driver.
- */
+#pragma once
 
-#include <px4_config.h>
-#include <drivers/drv_board_led.h>
-#include <stdio.h>
+#include <drivers/drv_hrt.h>
 
-#include "VirtDevObj.hpp"
+#ifdef __PX4_NUTTX
+#include <sched.h>
+#include <systemlib/cpuload.h>
+#endif /* __PX4_NUTTX */
 
-using namespace DriverFramework;
-
-/*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
-__BEGIN_DECLS
-extern void led_init();
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
-__END_DECLS
-
-class LED : public VirtDevObj
+namespace px4
 {
-public:
-	LED();
-	virtual ~LED() = default;
+namespace logger
+{
 
-	virtual int		init();
-	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
-
-protected:
-	virtual void		_measure() {}
+struct watchdog_data_t {
+#ifdef __PX4_NUTTX
+	int logger_main_task_index = -1;
+	int logger_writer_task_index = -1;
+	hrt_abstime ready_to_run_timestamp = hrt_absolute_time();
+	uint8_t last_state = TSTATE_TASK_INVALID;
+#endif /* __PX4_NUTTX */
 };
 
-LED::LED() :
-	VirtDevObj("led", "/dev/ledsim", LED_BASE_DEVICE_PATH, 0)
-{
-	// force immediate init/device registration
-	init();
-}
 
-int
-LED::init()
-{
-	int ret = VirtDevObj::init();
+/**
+ * Initialize the watchdog, fill in watchdog_data.
+ */
+void watchdog_initialize(const pid_t pid_logger_main, const pthread_t writer_thread, watchdog_data_t &watchdog_data);
 
-	if (ret == 0) {
-		led_init();
-	}
+/**
+ * Update the watchdog and trigger it if necessary. It is triggered when the log writer task is in
+ * ready state for a certain period of time, but did not get scheduled. It means that most likely
+ * some other higher-prio task runs busy.
+ * When the watchdog triggers, it boosts the priority of the logger's main & writer tasks to maximum, so
+ * that they get scheduled again.
+ *
+ * Expected to be called from IRQ context.
+ *
+ * @param watchdog_data
+ * @return true if watchdog is triggered, false otherwise
+ */
+bool watchdog_update(watchdog_data_t &watchdog_data);
 
-	return ret;
-}
-
-int
-LED::devIOCTL(unsigned long cmd, unsigned long arg)
-{
-	int result = OK;
-
-	switch (cmd) {
-	case LED_ON:
-		led_on(arg);
-		break;
-
-	case LED_OFF:
-		led_off(arg);
-		break;
-
-	case LED_TOGGLE:
-		led_toggle(arg);
-		break;
-
-
-	default:
-		result = VirtDevObj::devIOCTL(cmd, arg);
-	}
-
-	return result;
-}
-
-namespace
-{
-LED	*gLED;
-}
-
-void
-drv_led_start(void)
-{
-	if (gLED == nullptr) {
-		gLED = new LED;
-
-		if (gLED != nullptr) {
-			gLED->init();
-		}
-	}
-}
+} //namespace logger
+} //namespace px4
