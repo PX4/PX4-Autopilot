@@ -83,11 +83,21 @@ extern "C" {
 		cout.flush();
 		_ExitFlag = true;
 	}
+
 	void _SigFpeHandler(int sig_num);
 	void _SigFpeHandler(int sig_num)
 	{
 		cout.flush();
 		cout << endl << "floating point exception" << endl;
+		PX4_BACKTRACE();
+		cout.flush();
+	}
+
+	void _SigSegvHandler(int sig_num);
+	void _SigSegvHandler(int sig_num)
+	{
+		cout.flush();
+		cout << endl << "segmentation fault" << endl;
 		PX4_BACKTRACE();
 		cout.flush();
 	}
@@ -299,19 +309,23 @@ int main(int argc, char **argv)
 	tcgetattr(0, &orig_term);
 	atexit(restore_term);
 
-	struct sigaction sig_int;
-	memset(&sig_int, 0, sizeof(struct sigaction));
+	// SIGINT
+	struct sigaction sig_int {};
 	sig_int.sa_handler = _SigIntHandler;
 	sig_int.sa_flags = 0;// not SA_RESTART!;
+	sigaction(SIGINT, &sig_int, nullptr);
 
-	struct sigaction sig_fpe;
-	memset(&sig_fpe, 0, sizeof(struct sigaction));
+	// SIGFPE
+	struct sigaction sig_fpe {};
 	sig_fpe.sa_handler = _SigFpeHandler;
 	sig_fpe.sa_flags = 0;// not SA_RESTART!;
-
-	sigaction(SIGINT, &sig_int, nullptr);
-	//sigaction(SIGTERM, &sig_int, NULL);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
+
+	// SIGSEGV
+	struct sigaction sig_segv {};
+	sig_segv.sa_handler = _SigSegvHandler;
+	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO;
+	sigaction(SIGSEGV, &sig_segv, nullptr);
 
 	set_cpu_scaling();
 

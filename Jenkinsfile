@@ -309,6 +309,12 @@ pipeline {
             }
             sh 'make distclean'
           }
+          post {
+            failure {
+              sh('find . -name core')
+              sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core')
+            }
+          }
         }
 
         stage('check stack') {
