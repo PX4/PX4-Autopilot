@@ -201,7 +201,7 @@ void Ekf::get_hagl_innov_var(float *hagl_innov_var)
 // check that the range finder data is continuous
 void Ekf::checkRangeDataContinuity()
 {
-	// update range data continuous flag (1Hz ie 1000 ms)
+	// update range data continuous flag (1Hz ie 2000 ms)
 	/* Timing in micro seconds */
 
 	/* Apply a 2.0 sec low pass filter to the time delta from the last range finder updates */
@@ -209,9 +209,9 @@ void Ekf::checkRangeDataContinuity()
 	_dt_last_range_update_filt_us = _dt_last_range_update_filt_us * (1.0f - alpha) + alpha *
 					(_time_last_imu - _time_last_range);
 
-	_dt_last_range_update_filt_us = fminf(_dt_last_range_update_filt_us, 2e6f);
+	_dt_last_range_update_filt_us = fminf(_dt_last_range_update_filt_us, 4e6f);
 
-	if (_dt_last_range_update_filt_us < 1e6f) {
+	if (_dt_last_range_update_filt_us < 2e6f) {
 		_range_data_continuous = true;
 
 	} else {
