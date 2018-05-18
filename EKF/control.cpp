@@ -373,7 +373,7 @@ void Ekf::controlOpticalFlowFusion()
 
 	} else {
 		bool movement_ok = (_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6;
-		bool bad_gps_aiding = _control_status.flags.gps && _gps_error_norm > gps_err_norm_lim;
+		bool bad_gps_aiding = !_control_status.flags.gps || _gps_error_norm > gps_err_norm_lim;
 		if (movement_ok || bad_gps_aiding) {
 			_inhibit_flow_use = false;
 		}
