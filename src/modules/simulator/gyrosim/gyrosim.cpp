@@ -278,7 +278,7 @@ class GYROSIM_gyro  : public VirtDevObj
 {
 public:
 	GYROSIM_gyro(GYROSIM *parent, const char *path);
-	virtual ~GYROSIM_gyro() {}
+	virtual ~GYROSIM_gyro() = default;
 
 	virtual ssize_t		devRead(void *buffer, size_t buflen);
 	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);

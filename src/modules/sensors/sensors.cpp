@@ -136,8 +136,7 @@ class Sensors : public ModuleBase<Sensors>, public ModuleParams
 {
 public:
 	Sensors(bool hil_enabled);
-
-	~Sensors() {}
+	~Sensors() = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
