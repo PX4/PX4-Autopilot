@@ -70,9 +70,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
 }
 
-Standard::~Standard()
-{
-}
+Standard::~Standard() = default;
 
 void
 Standard::parameters_update()

@@ -973,9 +973,7 @@ ACCELSIM_mag::ACCELSIM_mag(ACCELSIM *parent) :
 	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 }
 
-ACCELSIM_mag::~ACCELSIM_mag()
-{
-}
+ACCELSIM_mag::~ACCELSIM_mag() = default;
 
 ssize_t
 ACCELSIM_mag::devRead(void *buffer, size_t buflen)

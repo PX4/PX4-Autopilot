@@ -404,7 +404,7 @@ protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	~MavlinkStreamStatustext() {}
+	~MavlinkStreamStatustext() = default;
 
 
 	bool send(const hrt_abstime t)

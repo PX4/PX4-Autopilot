@@ -52,9 +52,7 @@ MavlinkStream::MavlinkStream(Mavlink *mavlink) :
 {
 }
 
-MavlinkStream::~MavlinkStream()
-{
-}
+MavlinkStream::~MavlinkStream() = default;
 
 /**
  * Set messages interval in ms
