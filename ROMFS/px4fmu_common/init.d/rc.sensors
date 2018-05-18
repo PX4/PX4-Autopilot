@@ -255,7 +255,7 @@ then
 
 	# Optical flow deck
 	vl53lxx start
-	#pmw3901 start
+	pmw3901 start
 
 fi
 

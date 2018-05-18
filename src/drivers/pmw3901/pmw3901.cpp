@@ -140,6 +140,9 @@ private:
 	uint64_t _previous_collect_timestamp;
 
 	enum Rotation _sensor_rotation;
+	int _flow_sum_x = 0;
+	int _flow_sum_y = 0;
+	uint64_t _flow_dt_sum_usec = 0;
 
 
 	/**
@@ -200,6 +203,7 @@ PMW3901::PMW3901(uint8_t rotation, int bus) :
 	_previous_collect_timestamp(0),
 	_sensor_rotation((enum Rotation)rotation)
 {
+
 
 	// enable debug() calls
 	_debug_enabled = false;
@@ -552,10 +556,20 @@ PMW3901::collect()
 	uint64_t dt_flow = timestamp - _previous_collect_timestamp;
 	_previous_collect_timestamp = timestamp;
 
+	_flow_dt_sum_usec += dt_flow;
+
 	readMotionCount(delta_x_raw, delta_y_raw);
 
-	delta_x = (float)delta_x_raw / 500.0f;				// proportional factor + convert from pixels to radians
-	delta_y = (float)delta_y_raw / 500.0f;				// proportional factor + convert from pixels to radians
+	_flow_sum_x += delta_x_raw;
+	_flow_sum_y += delta_y_raw;
+
+	if (_flow_dt_sum_usec < 45000) {
+
+		return ret;
+	}
+
+	delta_x = (float)_flow_sum_x / 500.0f;		// proportional factor + convert from pixels to radians
+	delta_y = (float)_flow_sum_y / 500.0f;		// proportional factor + convert from pixels to radians
 
 	struct optical_flow_s report;
 
@@ -564,11 +578,15 @@ PMW3901::collect()
 	report.pixel_flow_x_integral = static_cast<float>(delta_x);
 	report.pixel_flow_y_integral = static_cast<float>(delta_y);
 
-	report.frame_count_since_last_readout = dt_flow;						//microseconds
-	report.integration_timespan = dt_flow; 									//microseconds
+	report.frame_count_since_last_readout = 4;				//microseconds
+	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
 
 	report.sensor_id = 0;
 	report.quality = 255;
+
+	_flow_dt_sum_usec = 0;
+	_flow_sum_x = 0;
+	_flow_sum_y = 0;
 
 	if (_optical_flow_pub == nullptr) {
 
