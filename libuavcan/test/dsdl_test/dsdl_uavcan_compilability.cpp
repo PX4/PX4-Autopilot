@@ -22,6 +22,7 @@
 
 #include <root_ns_a/Deep.hpp>
 #include <root_ns_a/UnionTest.hpp>
+#include <root_ns_a/UnionTest4.hpp>
 
 template <typename T>
 static bool validateYaml(const T& obj, const std::string& reference)
@@ -197,6 +198,37 @@ TEST(Dsdl, Union)
     s.to<UnionTest::Tag::e>().array[3] = 3;
     EXPECT_TRUE(validateYaml(s, "e: \n  array: [0, 1, 2, 3]"));
     EXPECT_TRUE(encodeDecodeValidate(s, "10100000 11011000"));
+}
+
+
+TEST(Dsdl, UnionTagWidth)
+{
+    using root_ns_a::UnionTest4;
+
+    ASSERT_EQ(2, UnionTest4::MinBitLen);
+    ASSERT_EQ(8, UnionTest4::MaxBitLen);
+
+    UnionTest4 s;
+
+    {
+        uavcan::StaticTransferBuffer<100> buf;
+        uavcan::BitStream bs_wr(buf);
+        uavcan::ScalarCodec sc_wr(bs_wr);
+
+        ASSERT_EQ(1, UnionTest4::encode(s, sc_wr));
+        ASSERT_EQ("00000000", bs_wr.toString());
+    }
+
+    {
+        uavcan::StaticTransferBuffer<100> buf;
+        uavcan::BitStream bs_wr(buf);
+        uavcan::ScalarCodec sc_wr(bs_wr);
+
+        s.to<UnionTest4::Tag::third>() = 1U << 5U;   // 32, 0b100000
+
+        ASSERT_EQ(1, UnionTest4::encode(s, sc_wr));
+        ASSERT_EQ("10100000", bs_wr.toString());
+    }
 }
 
 

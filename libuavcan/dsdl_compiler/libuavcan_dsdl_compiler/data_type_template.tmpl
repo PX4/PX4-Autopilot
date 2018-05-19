@@ -70,7 +70,7 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
         };
     };
 
-    typedef ::uavcan::IntegerSpec< ::uavcan::IntegerBitLen< ${len(fields)} >::Result,
+    typedef ::uavcan::IntegerSpec< ::uavcan::IntegerBitLen< ${len(fields)}U - 1U >::Result,
                                    ::uavcan::SignednessUnsigned, ::uavcan::CastModeTruncate > TagType;
 
         <!--(macro expand_enum_per_field)--> #! enum_name, enum_comparator
