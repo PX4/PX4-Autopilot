@@ -11,14 +11,10 @@
 # @output MAIN2 motor 2
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
-# @output MAIN5 servo motor 1
-# @output MAIN6 servo motor 2
-# @output MAIN7 servo motor 3
-# @output MAIN8 servo motor 4
-#
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
+# @output AUX1 Outer servo motor for rotor 2 arm
+# @output AUX2 Outer servo motor for rotor 4 arm
+# @output AUX3 Inner servo motor for rotor 2 arm
+# @output AUX4 Inner servo motor for rotor 4 arm
 #
 # @maintainer Ricardo Marques <marques.ricardo17@gmail.com>
 #
@@ -26,7 +22,6 @@
 sh /etc/init.d/rc.mc_defaults
 
 #Parameters here:
-
 param set LED_RGB_MAXBRT 8
 
 
