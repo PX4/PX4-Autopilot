@@ -201,7 +201,6 @@ TEST(Dsdl, Union)
 }
 
 
-
 TEST(Dsdl, UnionTagWidth)
 {
     using root_ns_a::UnionTest4;
