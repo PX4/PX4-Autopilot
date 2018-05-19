@@ -604,8 +604,11 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		//TODO provide calculated values for these
 		_pub_lpos.get().evh = 0.0f;
 		_pub_lpos.get().evv = 0.0f;
-		_pub_lpos.get().vxy_max = 0.0f;
-		_pub_lpos.get().limit_hagl = false;
+		_pub_lpos.get().vxy_max = INFINITY;
+		_pub_lpos.get().vz_max = INFINITY;
+		_pub_lpos.get().hagl_min = INFINITY;
+		_pub_lpos.get().hagl_max = INFINITY;
+
 	}
 }
 
