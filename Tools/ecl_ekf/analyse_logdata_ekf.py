@@ -999,19 +999,19 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     # Do some automated analysis of the status data
     # find a late/early index range from 5 sec after in_air_transtion_time to 5 sec before on-ground transition time for mag and optical flow checks to avoid false positives
     # this can be used to prevent false positives for sensors adversely affected by close proximity to the ground
-    late_start_index = np.argmin(status_time[np.where(status_time > (in_air_transition_time + 5.0))])
-    early_end_index = np.argmax(status_time[np.where(status_time < (on_ground_transition_time - 5.0))])
+    late_start_index = np.amin(np.where(status_time > (in_air_transition_time + 5.0)))
+    early_end_index = np.amax(np.where(status_time < (on_ground_transition_time - 5.0)))
     num_valid_values_trimmed = (early_end_index - late_start_index + 1)
     # normal index range is defined by the flight duration
-    start_index = np.argmin(status_time[np.where(status_time > in_air_transition_time)])
-    end_index = np.argmax(status_time[np.where(status_time < on_ground_transition_time)])
+    start_index = np.amin(np.where(status_time > in_air_transition_time))
+    end_index = np.amax(np.where(status_time < on_ground_transition_time))
     num_valid_values = (end_index - start_index + 1)
     # also find the start and finish indexes for the innovation data
-    innov_late_start_index = np.argmin(innov_time[np.where(innov_time > (in_air_transition_time + 5.0))])
-    innov_early_end_index = np.argmax(innov_time[np.where(innov_time < (on_ground_transition_time - 5.0))])
+    innov_late_start_index = np.amin(np.where(innov_time > (in_air_transition_time + 5.0)))
+    innov_early_end_index = np.amax(np.where(innov_time < (on_ground_transition_time - 5.0)))
     innov_num_valid_values_trimmed = (innov_early_end_index - innov_late_start_index + 1)
-    innov_start_index = np.argmin(innov_time[np.where(innov_time > in_air_transition_time)])
-    innov_end_index = np.argmax(innov_time[np.where(innov_time < on_ground_transition_time)])
+    innov_start_index = np.amin(np.where(innov_time > in_air_transition_time))
+    innov_end_index = np.amax(np.where(innov_time < on_ground_transition_time))
     innov_num_valid_values = (innov_end_index - innov_start_index + 1)
     # define dictionary of test results and descriptions
     test_results = {
