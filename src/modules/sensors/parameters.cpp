@@ -188,9 +188,6 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	(void)param_find("SYS_CAL_TDEL");
 	(void)param_find("SYS_CAL_TMAX");
 	(void)param_find("SYS_CAL_TMIN");
-
-	(void)param_find("SYS_HAS_MAG");
-	(void)param_find("SYS_HAS_BARO");
 }
 
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters)
