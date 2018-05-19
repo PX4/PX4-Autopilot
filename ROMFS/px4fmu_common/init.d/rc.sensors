@@ -39,7 +39,7 @@ hmc5883 -X start
 ist8310 -C -b 1 -R 4 start
 
 # STMicroelectronics barometer - Internal SPI (auto detect ms5611 or ms5607).
-ms5611 -T 0 -s start
+ms5611 -s -T 0 start
 
 # STMicroelectronics barometer - External SPI.
 ms5611 -S start
@@ -123,48 +123,48 @@ fi
 
 if ver hwcmp NXPHLITE_V3
 then
-	# Internal I2C (baro)
+	# Internal I2C - barometer.
 	mpl3115a2 -I start
 
-	# Internal SPI (accel + mag)
+	# Internal SPI - accel/magnetometer.
 	fxos8701cq start -a 8 -R 0
 
-	# Internal SPI (gyro)
+	# Internal SPI - gyro.
 	fxas21002c start -R 0
 fi
 
 if ver hwcmp PX4_SAME70XPLAINED_V1
 then
-	# External I2C bus
+	# External I2C bus.
 	hmc5883 -C -T -X start
 
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw.
 	mpu9250 -R 2 start
 fi
 
 if ver hwcmp PX4FMU_V2
 then
-	# External I2C bus
+	# External I2C bus.
 	hmc5883 -C -T -X start
 	lis3mdl -X start
 
-	# Internal I2C bus
+	# Internal I2C bus.
 	hmc5883 -C -T -I -R 4 start
 
-	# Internal SPI bus ICM-20608-G
+	# Internal SPI bus ICM-20608-G.
 	mpu6000 -T 20608 start
 
-	# V3 build hwtypecmp supports V2|V2M|V30
+	# V3 build hwtypecmp supports V2|V2M|V30.
 	if ver hwtypecmp V30
 	then
-		# Check for Pixhawk 2.0 cube
-		# external MPU6K is rotated 180 degrees yaw
+		# Check for Pixhawk 2.0 cube.
+		# external MPU6K is rotated 180 degrees yaw.
 		if mpu6000 -S -R 4 start
 		then
 			set BOARD_FMUV3 20
 		else
-			# Check for Pixhawk 2.1 cube
-			# external MPU9250 is rotated 180 degrees yaw
+			# Check for Pixhawk 2.1 cube.
+			# external MPU9250 is rotated 180 degrees yaw.
 			if mpu9250 -S -R 4 start
 			then
 				set BOARD_FMUV3 21
