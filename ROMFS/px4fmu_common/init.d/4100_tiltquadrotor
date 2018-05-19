@@ -27,8 +27,6 @@ sh /etc/init.d/rc.mc_defaults
 
 #Parameters here:
 
-param set CBRK_USB_CHK 197848
-param set CBRK_IO_SAFETY 22027
 param set LED_RGB_MAXBRT 8
 
 
