@@ -361,49 +361,28 @@ fi
 # Configure all I2C buses to 100 KHz as they are all external or slow.
 fmu i2c 1 100000
 fmu i2c 2 100000
-ll40ls start i2c
 
 # ADC.
-if adc start
-then
-	echo "ADC driver successfully started."
-fi
+adc start
 
 # STMicroelectronics 9-DOF IMU/Magnetometer.
-if mpu9250 -s -R 14 start
-then
-	echo "mpu9250 driver successfully started."
-fi
+mpu9250 -s -R 14 start
 
 # Honeywell 3-axis magnetometer.
-if hmc5883 -X start
-then
-	echo "hmc5883 driver successfully started."
-fi
+hmc5883 -X start
 
 # Sentek 3-axis magnetometer.
-if ist8310 -C -b 1 -R 4 start
-then
-	echo "ist8310 driver successfully started."
-fi
+ist8310 -C -b 1 -R 4 start
 
 # STMicroelectronics barometer - Internal SPI (auto detect ms5611 or ms5607).
-if ms5611 -T 0 -s start
-then
-	echo "ms5611 internal driver successfully started."
-fi
+ms5611 -T 0 -s start
 
 # STMicroelectronics barometer - External SPI.
-if ms5611 -S start
-then
-	echo "ms5611 external driver successfully started."
-fi
+ms5611 -S start
 
 # Blacksheep telemetry.
-if bst start
-then
-	echo "bst Blacksheep Telemetry driver successfully started."
-fi
+bst start
+
 
 ###############################################################################
 #                           Begin Optional drivers.                           #
@@ -444,16 +423,17 @@ then
 	fi
 fi
 
-# Sensors on the PWM interface bank.
+# Lidar-Lite distance sensor on PWM.
 if param compare SENS_EN_LL40LS 1
 then
+	# Sensor on the PWM interface bank.
 	if pwm_input start
 	then
 		ll40ls start pwm
 	fi
 fi
 
-# Lidar-Lite on I2C.
+# Lidar-Lite distance sensor on I2C.
 if param compare SENS_EN_LL40LS 2
 then
 	ll40ls start i2c
