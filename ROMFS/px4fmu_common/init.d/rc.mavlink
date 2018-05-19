@@ -38,7 +38,7 @@ then
 	set SERIAL_DEVICE_1      "/dev/ttyS3"
 	set SERIAL_DEVICE_1_ARGS " -r 1200"
 
-	# Only start mavlink if the Benewake TFMini or LeddarOne isn't being used
+	# Only start mavlink if the Benewake TFMini or LeddarOne isn't being used.
 	if param greater SENS_EN_TFMINI 0
 	then
 		set SERIAL_DEVICE_1 none
@@ -58,7 +58,7 @@ fi
 
 if ver hwcmp CRAZYFLIE
 then
-	# Avoid using either of the two available serial devices
+	# Avoid using either of the two available serial devices.
 	set SERIAL_DEVICE_1 none
 fi
 
@@ -69,16 +69,16 @@ fi
 
 if ver hwcmp MINDPX_V2 PX4FMU_V4 PX4FMU_V4PRO
 then
-	# This is TELEM4 on Pixhawk 3 Pro
+	# This is TELEM4 on Pixhawk 3 Pro.
 	frsky_telemetry start -d /dev/ttyS6
 
 	if ver hwcmp PX4FMU_V4
 	then
-		# Setup MAVLink on Wifi (ESP8266 port)
+		# Setup MAVLink on Wifi (ESP8266 port).
 		set SERIAL_DEVICE_0_ARGS "-r 20000"
 		set SERIAL_DEVICE_0_BAUD "921600"
 
-		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
+		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug).
 		set SERIAL_DEVICE_1_ARGS "-r 1200"
 	fi
 fi
@@ -110,7 +110,7 @@ fi
 
 if param compare SYS_COMPANION 419200
 then
-	// TODO: this should all be relocated with the airframe specific configuration file it was originally authored to service.
+	# TODO: this should all be relocated with the airframe specific configuration file it was originally authored to service.
 	set SERIAL_DEVICE_2            "/dev/iridium"
 	set SERIAL_DEVICE_2_ARGS       "-m iridium -r 10"
 	set SERIAL_DEVICE_2_BAUD       "19200"
