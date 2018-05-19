@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -97,7 +97,7 @@
 #define PMW3901_DEVICE_PATH "/dev/pmw3901"
 
 /* PMW3901 Registers addresses */
-#define PMW3901_MS 1000 /*   1 ms */
+#define PMW3901_US 1000 /*   1 ms */
 #define PMW3901_SAMPLE_RATE 10000 /*  10 ms */
 
 
@@ -123,6 +123,9 @@ public:
 	*/
 	void print_info();
 
+protected:
+	virtual int probe();
+
 private:
 	uint8_t _rotation;
 	work_s _work;
@@ -133,6 +136,7 @@ private:
 	int _orb_class_instance;
 
 	orb_advert_t _optical_flow_pub;
+	orb_advert_t _subsystem_pub;
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
@@ -198,12 +202,12 @@ PMW3901::PMW3901(uint8_t rotation, int bus) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_optical_flow_pub(nullptr),
+	_subsystem_pub(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "pmw3901_com_err")),
 	_previous_collect_timestamp(0),
 	_sensor_rotation((enum Rotation)rotation)
 {
-
 
 	// enable debug() calls
 	_debug_enabled = false;
@@ -231,19 +235,11 @@ PMW3901::~PMW3901()
 int
 PMW3901::sensorInit()
 {
-	int ret;
 	uint8_t data[5];
-
-	// initialize pmw3901 flow sensor
-	readRegister(0x00, &data[0], 1); // chip id
-	readRegister(0x5F, &data[1], 1); // inverse chip id
 
 	// Power on reset
 	writeRegister(0x3A, 0x5A);
 	usleep(5000);
-
-	// Test the SPI communication, checking chipId and inverse chipId
-	if (data[0] != 0x49 && data[1] != 0xB8) { return false; }
 
 	// Reading the motion registers one time
 	readRegister(0x02, &data[0], 1);
@@ -336,9 +332,7 @@ PMW3901::sensorInit()
 	writeRegister(0x5A, 0x10);
 	writeRegister(0x54, 0x00);
 
-	ret = OK;
-
-	return ret;
+	return OK;
 
 }
 
@@ -354,8 +348,6 @@ PMW3901::init()
 	if (SPI::init() != OK) {
 		goto out;
 	}
-
-	set_frequency(PMW3901_SPI_BUS_SPEED);
 
 	sensorInit();
 
@@ -373,6 +365,23 @@ PMW3901::init()
 out:
 	return ret;
 
+}
+
+
+int
+PMW3901::probe()
+{
+	uint8_t data[2] = { 0, 0 };
+
+	readRegister(0x00, &data[0], 1); // chip id
+
+	// Test the SPI communication, checking chipId and inverse chipId
+	if (data[0] == 0x49) {
+		return OK;
+	}
+
+	// not found on any address
+	return -EIO;
 }
 
 
@@ -512,8 +521,6 @@ PMW3901::readRegister(unsigned reg, uint8_t *data, unsigned count)
 
 	memcpy(&data[0], &cmd[1], count);
 
-	ret = OK;
-
 	return ret;
 
 }
@@ -535,8 +542,6 @@ PMW3901::writeRegister(unsigned reg, uint8_t data)
 		DEVICE_LOG("spi::transfer returned %d", ret);
 		return ret;
 	}
-
-	ret = OK;
 
 	return ret;
 
@@ -644,22 +649,22 @@ PMW3901::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_MS));
+	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
+
+	info.timestamp = hrt_absolute_time();
 	info.present = true;
 	info.enabled = true;
 	info.ok = true;
 	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW;
 
-	static orb_advert_t pub = nullptr;
-
-	if (pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
+	if (_subsystem_pub != nullptr) {
+		orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
 
 	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
+		_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
 	}
 }
 

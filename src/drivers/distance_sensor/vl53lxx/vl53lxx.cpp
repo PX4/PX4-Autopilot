@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,7 +103,7 @@
 #define VL53LXX_RA_IDENTIFICATION_MODEL_ID 0xC0
 #define VL53LXX_IDENTIFICATION_MODEL_ID 0xEEAA
 
-#define VL53LXX_MS 1000 /*  1ms */
+#define VL53LXX_US 1000 /*  1ms */
 #define VL53LXX_SAMPLE_RATE 50000 /* 50ms */
 
 #define VL53LXX_MAX_RANGING_DISTANCE 2.0f
@@ -149,6 +149,7 @@ private:
 	int _orb_class_instance;
 
 	orb_advert_t _distance_sensor_topic;
+	orb_advert_t _subsystem_pub;
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
@@ -213,6 +214,7 @@ VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
+	_subsystem_pub(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "vl53lxx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "vl53lxx_com_err"))
 {
@@ -472,8 +474,8 @@ int
 VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 {
 	int ret;
-	uint8_t val = 0;
 
+	/* write register address to the sensor */
 	ret = transfer(&reg_address, sizeof(reg_address), nullptr, 0);
 
 	if (OK != ret) {
@@ -483,16 +485,13 @@ VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 	}
 
 	/* read from the sensor */
-	ret = transfer(nullptr, 0, &val, 1);
+	ret = transfer(nullptr, 0, &value, 1);
 
-	if (ret < 0) {
+	if (OK != ret) {
 		DEVICE_LOG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		return ret;
 	}
-
-	ret = OK;
-	value = val;
 
 	return ret;
 
@@ -503,7 +502,8 @@ int
 VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 {
 	int ret;
-	uint8_t val[6] = {0, 0, 0, 0, 0, 0};
+
+	/* write register address to the sensor */
 	ret = transfer(&reg_address, 1, nullptr, 0);
 
 	if (OK != ret) {
@@ -512,17 +512,13 @@ VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 	}
 
 	/* read from the sensor */
-	ret = transfer(nullptr, 0, &val[0], length);
+	ret = transfer(nullptr, 0, &value[0], length);
 
-	if (ret < 0) {
+	if (OK != ret) {
 		DEVICE_LOG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		return ret;
 	}
-
-	memcpy(&value[0], &val[0], length);
-
-	ret = OK;
 
 	return ret;
 
@@ -546,8 +542,6 @@ VL53LXX::writeRegister(uint8_t reg_address, uint8_t value)
 		return ret;
 	}
 
-	ret = OK;
-
 	return ret;
 
 }
@@ -555,11 +549,16 @@ VL53LXX::writeRegister(uint8_t reg_address, uint8_t value)
 
 int
 VL53LXX::writeRegisterMulti(uint8_t reg_address, uint8_t *value,
-			    uint8_t length) //	bytes are send in order as they are in the array
+			    uint8_t length) /* bytes are send in order as they are in the array */
 {
-	// be careful for uint16_t to send first higher byte
+	/* be careful: for uint16_t to send first higher byte */
 	int ret;
-	uint8_t cmd[6] = {0, 0, 0, 0, 0, 0};
+	uint8_t cmd[7] = {0, 0, 0, 0, 0, 0, 0};
+
+	if (length > 6 || length < 1) {
+		DEVICE_LOG("VL53LXX::writeRegisterMulti length out of range");
+		return PX4_ERROR;
+	}
 
 	cmd[0] = reg_address;
 
@@ -572,8 +571,6 @@ VL53LXX::writeRegisterMulti(uint8_t reg_address, uint8_t *value,
 		DEVICE_LOG("i2c::transfer returned %d", ret);
 		return ret;
 	}
-
-	ret = OK;
 
 	return ret;
 
@@ -610,7 +607,7 @@ VL53LXX::measure()
 
 		if ((system_start & 0x01) == 1) {
 			work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
-				   USEC2TICK(VL53LXX_MS));		// reschedule every 1 ms until measurement is ready
+				   USEC2TICK(VL53LXX_US));		// reschedule every 1 ms until measurement is ready
 			ret = OK;
 			return ret;
 
@@ -626,7 +623,7 @@ VL53LXX::measure()
 
 		if ((system_start & 0x01) == 1) {
 			work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
-				   USEC2TICK(VL53LXX_MS));		// reschedule every 1 ms until measurement is ready
+				   USEC2TICK(VL53LXX_US));		// reschedule every 1 ms until measurement is ready
 			ret = OK;
 			return ret;
 
@@ -639,7 +636,7 @@ VL53LXX::measure()
 
 	if ((wait_for_measurement & 0x07) == 0) {
 		work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
-			   USEC2TICK(VL53LXX_MS));		// reschedule every 1 ms until measurement is ready
+			   USEC2TICK(VL53LXX_US));		// reschedule every 1 ms until measurement is ready
 		ret = OK;
 		return ret;
 	}
@@ -722,22 +719,22 @@ VL53LXX::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, USEC2TICK(VL53LXX_MS));
+	work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, USEC2TICK(VL53LXX_US));
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
+
+	info.timestamp = hrt_absolute_time();
 	info.present = true;
 	info.enabled = true;
 	info.ok = true;
 	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER;
 
-	static orb_advert_t pub = nullptr;
-
-	if (pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
+	if (_subsystem_pub != nullptr) {
+		orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
 
 	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
+		_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
 	}
 }
 
@@ -879,7 +876,7 @@ VL53LXX::spadCalculations()
 
 	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0xE8); 			// restore config
 
-	return true;
+	return OK;
 
 }
 
@@ -969,7 +966,7 @@ VL53LXX::sensorTuning()
 	writeRegister(0xFF, 0x00);
 	writeRegister(0x80, 0x00);
 
-	return true;
+	return OK;
 }
 
 
@@ -987,7 +984,7 @@ VL53LXX::singleRefCalibration(uint8_t byte)
 	writeRegister(SYSTEM_INTERRUPT_CLEAR_REG, 0x01);
 	writeRegister(SYSRANGE_START_REG, 0x00);
 
-	return true;
+	return OK;
 }
 
 
