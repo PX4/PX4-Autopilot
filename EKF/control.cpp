@@ -343,7 +343,7 @@ void Ekf::controlOpticalFlowFusion()
 		float accel_norm = _accel_vec_filt.norm();
 		bool motion_is_excessive = ((accel_norm > 14.7f) // accel greater than 1.5g
 					    || (accel_norm < 4.9f) // accel less than 0.5g
-					    || (_ang_rate_mag_filt > _params.flow_rate_max) // angular rate exceeds flow sensor limit
+					    || (_ang_rate_mag_filt > _flow_max_rate) // angular rate exceeds flow sensor limit
 					    || (_R_to_earth(2,2) < 0.866f)); // tilted more than 30 degrees
 		if (motion_is_excessive) {
 			_time_bad_motion_us = _imu_sample_delayed.time_us;

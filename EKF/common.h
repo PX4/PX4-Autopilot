@@ -291,7 +291,6 @@ struct parameters {
 	float flow_noise_qual_min{0.5f};	///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
 	int32_t flow_qual_min{1};		///< minimum acceptable quality integer from  the flow sensor
 	float flow_innov_gate{3.0f};		///< optical flow fusion innovation consistency gate size (STD)
-	float flow_rate_max{2.5f};		///< maximum valid optical flow rate (rad/sec)
 
 	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
 	// good enough to set a local origin and commence aiding

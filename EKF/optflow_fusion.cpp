@@ -95,7 +95,7 @@ void Ekf::fuseOptFlow()
 	opt_flow_rate(0) = _flow_sample_delayed.flowRadXYcomp(0) / _flow_sample_delayed.dt + _flow_gyro_bias(0);
 	opt_flow_rate(1) = _flow_sample_delayed.flowRadXYcomp(1) / _flow_sample_delayed.dt + _flow_gyro_bias(1);
 
-	if (opt_flow_rate.norm() < _params.flow_rate_max) {
+	if (opt_flow_rate.norm() < _flow_max_rate) {
 		_flow_innov[0] =  vel_body(1) / range - opt_flow_rate(0); // flow around the X axis
 		_flow_innov[1] = -vel_body(0) / range - opt_flow_rate(1); // flow around the Y axis
 

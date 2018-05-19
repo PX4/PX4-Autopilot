@@ -152,12 +152,8 @@ public:
 	// get the 1-sigma horizontal and vertical velocity uncertainty
 	virtual void get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) = 0;
 
-	/*
-	Returns the following vehicle control limits required by the estimator.
-	vxy_max : Maximum ground relative horizontal speed (metres/sec). NaN when no limiting required.
-	limit_hagl : Boolean true when height above ground needs to be controlled to remain between optical flow focus and rang efinder max range limits.
-	*/
-	virtual void get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl) = 0;
+	// get the vehicle control limits required by the estimator to keep within sensor limitations
+	virtual void get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) = 0;
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
@@ -232,6 +228,21 @@ public:
 
 	// set air density used by the multi-rotor specific drag force fusion
 	void set_air_density(float air_density) {_air_density = air_density;}
+
+	// set sensor limitations reported by the rangefinder
+	void set_rangefinder_limits(float min_distance, float max_distance)
+	{
+		_rng_min_distance = min_distance;
+		_rng_max_distance = max_distance;
+	}
+
+	// set sensor limitations reported by the optical flow sensor
+	void set_optical_flow_limits(float max_flow_rate, float min_distance, float max_distance)
+	{
+		_flow_max_rate = max_flow_rate;
+		_flow_min_distance = min_distance;
+		_flow_max_distance = max_distance;
+	}
 
 	// return true if the global position estimate is valid
 	virtual bool global_position_is_valid() = 0;
@@ -419,6 +430,13 @@ protected:
 	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
 	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
+
+	// Sensor limitations
+	float _rng_min_distance{0.0f};	///< minimum distance that the rangefinder can measure (m)
+	float _rng_max_distance{0.0f};	///< maximum distance that the rangefinder can measure (m)
+	float _flow_max_rate{0.0f}; ///< maximum angular flow rate that the optical flow sensor can measure (rad/s)
+	float _flow_min_distance{0.0f};	///< minimum distance that the optical flow sensor can operate at (m)
+	float _flow_max_distance{0.0f};	///< maximum distance that the optical flow sensor can operate at (m)
 
 	// Output Predictor
 	outputSample _output_sample_delayed{};	// filter output on the delayed time horizon

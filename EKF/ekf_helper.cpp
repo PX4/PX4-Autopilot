@@ -1051,33 +1051,52 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv)
 }
 
 /*
-Returns the following vehicle control limits required by the estimator.
-vxy_max : Maximum ground relative horizontal speed (metres/sec). NaN when no limiting required.
-limit_hagl : Boolean true when height above ground needs to be controlled to remain between optical flow focus and rang efinder max range limits.
+Returns the following vehicle control limits required by the estimator to keep within sensor limitations.
+vxy_max : Maximum ground relative horizontal speed (meters/sec). NaN when limiting is not needed.
+vz_max : Maximum ground relative vertical speed (meters/sec). NaN when limiting is not needed.
+hagl_min : Minimum height above ground (meters). NaN when limiting is not needed.
+hagl_max : Maximum height above ground (meters). NaN when limiting is not needed.
 */
-void Ekf::get_ekf_ctrl_limits(float *vxy_max, bool *limit_hagl)
+void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max)
 {
-	float flow_gnd_spd_max;
-	bool flow_limit_hagl;
+	// Calculate range finder limits
+	float rangefinder_hagl_min = _rng_min_distance;
+	// Allow use of 75% of rangefinder maximum range to allow for angular motion
+	float rangefinder_hagl_max = 0.75f * _rng_max_distance;
 
-	// If relying on optical flow for navigation we need to keep within flow and range sensor limits
+	// Calculate optical flow limits
+	// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
+	float flow_vxy_max = fmaxf(0.5f * _flow_max_rate * (_terrain_vpos - _state.pos(2)), 0.0f);
+	float flow_hagl_min = _flow_min_distance;
+	float flow_hagl_max = _flow_max_distance;
+
+	// TODO : calculate visual odometry limits
+
+	bool relying_on_rangefinder = _control_status.flags.rng_hgt;
+
 	bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos);
 
-	if (relying_on_optical_flow) {
-		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-		flow_gnd_spd_max = 0.5f * _params.flow_rate_max * (_terrain_vpos - _state.pos(2));
-		flow_gnd_spd_max = fmaxf(flow_gnd_spd_max, 0.0f);
+	// Do not require limiting by default
+	*vxy_max = NAN;
+	*vz_max = NAN;
+	*hagl_min = NAN;
+	*hagl_max = NAN;
 
-		flow_limit_hagl = true;
-
-	} else {
-		flow_gnd_spd_max = NAN;
-		flow_limit_hagl = false;
-
+	// Keep within range sensor limit when using rangefinder as primary height source
+	if (relying_on_rangefinder) {
+		*vxy_max = NAN;
+		*vz_max = NAN;
+		*hagl_min = rangefinder_hagl_min;
+		*hagl_max = rangefinder_hagl_max;
 	}
 
-	memcpy(vxy_max, &flow_gnd_spd_max, sizeof(float));
-	memcpy(limit_hagl, &flow_limit_hagl, sizeof(bool));
+	// Keep within flow AND range sensor limits when exclusively using optical flow
+	if (relying_on_optical_flow) {
+		*vxy_max = flow_vxy_max;
+		*vz_max = NAN;
+		*hagl_min = fmaxf(rangefinder_hagl_min, flow_hagl_min);
+		*hagl_max = fminf(rangefinder_hagl_max, flow_hagl_max);
+	}
 
 }
 
