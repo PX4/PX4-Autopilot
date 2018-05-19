@@ -5,6 +5,9 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
+set BOARD_FMUV3 0
+
+
 ###############################################################################
 #               Begin Setup for board specific configurations.                #
 ###############################################################################
@@ -105,6 +108,20 @@ then
 
 fi
 
+if ver hwcmp MINDPX_V2
+then
+	# External I2C bus
+	hmc5883 -C -T -X start
+
+	# Internal I2C bus
+	hmc5883 -C -T -I -R 12 start
+
+	mpu6000 -s -R 8 start
+	mpu9250 -s -R 8 start
+	lsm303d -R 10 start
+	l3gd20 -R 14 start
+fi
+
 if ver hwcmp NXPHLITE_V3
 then
 	# External I2C bus
@@ -123,8 +140,21 @@ then
 	fxas21002c start -R 0
 fi
 
-# V2 build hwtypecmp is always false
-set BOARD_FMUV3 0
+if ver hwcmp OMNIBUS_F4SD
+then
+	if ! mpu6000 -R 12 -s start
+	then
+		# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
+		mpu6000 -R 12 -T 20602 -s start
+	fi
+
+	# Possible external compasses
+	hmc5883 -X start
+
+	bmp280 start
+
+	adc start
+fi
 
 if ver hwcmp PX4FMU_V2
 then
@@ -222,15 +252,6 @@ then
 	fi
 fi
 
-if ver hwcmp PX4_SAME70XPLAINED_V1
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
-fi
-
 if ver hwcmp PX4FMU_V4
 then
 	# External I2C bus
@@ -279,36 +300,6 @@ then
 	fi
 fi
 
-if ver hwcmp MINDPX_V2
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal I2C bus
-	hmc5883 -C -T -I -R 12 start
-
-	mpu6000 -s -R 8 start
-	mpu9250 -s -R 8 start
-	lsm303d -R 10 start
-	l3gd20 -R 14 start
-fi
-
-if ver hwcmp OMNIBUS_F4SD
-then
-	if ! mpu6000 -R 12 -s start
-	then
-		# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
-		mpu6000 -R 12 -T 20602 -s start
-	fi
-
-	# Possible external compasses
-	hmc5883 -X start
-
-	bmp280 start
-
-	adc start
-fi
-
 if ver hwcmp PX4FMU_V4PRO
 then
 	# Internal SPI bus ICM-20608-G
@@ -349,12 +340,20 @@ then
 	hmc5883 -C -T -X start
 
 	# Possible external compasses
-
 	ist8310 -C -b 1 start
 	ist8310 -C -b 2 start
 
 	# Possible internal compass
 	ist8310 -C -b 5 start
+fi
+
+if ver hwcmp PX4_SAME70XPLAINED_V1
+then
+	# External I2C bus
+	hmc5883 -C -T -X start
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	mpu9250 -R 2 start
 fi
 
 ###############################################################################
@@ -389,12 +388,6 @@ then
 	fi
 fi
 
-# Heater driver for temperature regulated IMUs.
-if param compare SENS_EN_THERMAL 1
-then
-	heater start
-fi
-
 # Sensors on the PWM interface bank
 if param compare SENS_EN_LL40LS 1
 then
@@ -408,6 +401,12 @@ fi
 if param compare SENS_EN_LL40LS 2
 then
 	ll40ls start i2c
+fi
+
+# mb12xx sonar sensor
+if param greater SENS_EN_MB12XX 0
+then
+	mb12xx start -a
 fi
 
 # pga460 sonar sensor
@@ -428,10 +427,10 @@ then
 	sf1xx start -a
 fi
 
-# mb12xx sonar sensor
-if param greater SENS_EN_MB12XX 0
+# Heater driver for temperature regulated IMUs.
+if param compare SENS_EN_THERMAL 1
 then
-	mb12xx start -a
+	heater start
 fi
 
 # Teraranger one tof sensor
