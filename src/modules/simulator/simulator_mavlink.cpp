@@ -525,7 +525,9 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_lpos.ref_alt = _hil_ref_alt;
 			hil_lpos.ref_timestamp = _hil_ref_timestamp;
 			hil_lpos.vxy_max = 0.0f;
-			hil_lpos.limit_hagl = false;
+			hil_lpos.vz_max = 0.0f;
+			hil_lpos.hagl_min = 0.0f;
+			hil_lpos.hagl_max = 0.0f;
 
 			// always publish ground truth attitude message
 			int hil_lpos_multi;
@@ -1098,6 +1100,18 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	flow.pixel_flow_x_integral = flow_mavlink->integrated_x;
 	flow.pixel_flow_y_integral = flow_mavlink->integrated_y;
 	flow.quality = flow_mavlink->quality;
+
+	/* fill in sensor limits */
+	float flow_rate_max;
+	param_get(param_find("SENS_FLOW_MAXR"), &flow_rate_max);
+	float flow_min_hgt;
+	param_get(param_find("SENS_FLOW_MINHGT"), &flow_min_hgt);
+	float flow_max_hgt;
+	param_get(param_find("SENS_FLOW_MAXHGT"), &flow_max_hgt);
+
+	flow.max_flow_rate = flow_rate_max;
+	flow.min_ground_distance = flow_min_hgt;
+	flow.max_ground_distance = flow_max_hgt;
 
 	/* rotate measurements according to parameter */
 	int32_t flow_rot_int;
