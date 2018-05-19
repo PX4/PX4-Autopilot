@@ -18,6 +18,35 @@ echo "Executing rc.sensors"
 #
 set BOARD_FMUV3    false
 
+#
+# Setup for generic configurations.
+#
+
+# Configure all I2C buses to 100 KHz as they are all external or slow.
+fmu i2c 1 100000
+fmu i2c 2 100000
+
+# ADC.
+adc start
+
+# STMicroelectronics 9-DOF IMU/Magnetometer.
+mpu9250 -s -R 14 start
+
+# Honeywell 3-axis magnetometer.
+hmc5883 -X start
+
+# Sentek 3-axis magnetometer.
+ist8310 -C -b 1 -R 4 start
+
+# STMicroelectronics barometer - Internal SPI (auto detect ms5611 or ms5607).
+ms5611 -T 0 -s start
+
+# STMicroelectronics barometer - External SPI.
+ms5611 -S start
+
+# Blacksheep telemetry.
+bst start
+
 
 #
 # Setup for board specific configurations
@@ -73,16 +102,16 @@ fi
 
 if ver hwcmp MINDPX_V2
 then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 12 start
 
-	# Invensense 6-dof IMU.
+	# External I2C bus
+	hmc5883 -C -T -X start
+
+	# Invensense 6-DOF IMU.
 	mpu6000 -s -R 8 start
 
-	# Invensense 9-dof IMU/magnetometer.
+	# Invensense 9-DOF IMU/magnetometer.
 	mpu9250 -s -R 8 start
 
 	# STMicroelectronics 3-axis accelerometer/3-axis magnetometer.
@@ -143,11 +172,11 @@ then
 		fi
 	fi
 
-	# Check if a Pixhack (which reports as V2M) is present
+	# Check if a Pixhack (which reports as V2M) is present.
 	if ver hwtypecmp V2M
 	then
 		# Pixhawk Mini doesn't have these sensors,
-		# so if they are found we know its a Pixhack
+		# so if they are found we know its a Pixhack.
 
 		# external MPU6K is rotated 180 degrees yaw.
 		if mpu6000 -S -R 4 start
@@ -200,7 +229,7 @@ then
 		then
 			# On the PixhawkMini the mpu9250 has been disabled due to HW errata.
 		else
-			# Invensense 9-dof IMU/magnetometer.
+			# Invensense 9-DOF IMU/magnetometer.
 			mpu9250 start
 		fi
 
@@ -246,13 +275,9 @@ then
 		if mpu6000 -R 2 -T 20608 start
 		then
 			# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw.
-			echo "mpu6000 driver successfully started."
 		else
 			# BMI055 accel internal SPI bus.
-			if bmi055 -A start
-			then
-				echo "mpu6000 driver successfully started."
-			fi
+			bmi055 -A start
 		fi
 	fi
 
@@ -262,41 +287,25 @@ then
 	if mpu9250 -R 2 start
 	then
 		# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw.
-		echo "mpu9250 driver successfully started."
 	else
 		# BMI160 6-DOF IMU - internal SPI bus.
 		bmi160 start
 	fi
 
 	# Bosch BMI055 IMU - Internal SPI bus.
-	if bmi055 -G start
-	then
-		echo "bmi055 driver successfully started."
-	fi
+	bmi055 -G start
 
 	# Bosch 3-axis magnetometer - Expansion i2c used for BMM150 rotated by 90deg.
-	if bmm150 -R 2 start
-	then
-		echo "bmm150 driver successfully started."
-	fi
+	bmm150 -R 2 start
 
 	# Honeywell 3-axis magnetometer.
-	if hmc5883 -C -T -S -R 2 start
-	then
-		echo "hmc5883 driver successfully started."
-	fi
+	hmc5883 -C -T -S -R 2 start
 
-	# ST 3-axis magnetometer - This magnetometer is highly sensitive to temperature change.
-	if lis3mdl -X start
-	then
-		echo "lis3mdl driver successfully started."
-	fi
+	# ST 3-axis magnetometer - This magnetometer is highly sensitive to temperature changes.
+	lis3mdl -X start
 
 	# Bosch barometer.
-	if bmp280 -I start
-	then
-		echo "bmp280 driver successfully started."
-	fi
+	bmp280 -I start
 fi
 
 if ver hwcmp PX4FMU_V4PRO
@@ -323,7 +332,7 @@ then
 		tfmini start -d /dev/ttyS6
 	fi
 
-	# LeddarOne.
+	# LeddarOne distance sensor.
 	if param greater SENS_EN_LEDDAR1 0
 	then
 		# Start the driver on serial 4/5.
@@ -346,42 +355,14 @@ then
 	# Internal SPI bus BMI055 gyro.
 	bmi055 -G -R 10 start
 
-	# Possible external compasses.
+	# Internal compass.
+	ist8310 -C -b 5 start
+
+	# External compasses.
 	hmc5883 -C -T -X start
-
-	# Possible external compasses.
-
 	ist8310 -C -b 1 start
 	ist8310 -C -b 2 start
-
-	# Possible internal compass.
-	ist8310 -C -b 5 start
 fi
-
-# Configure all I2C buses to 100 KHz as they are all external or slow.
-fmu i2c 1 100000
-fmu i2c 2 100000
-
-# ADC.
-adc start
-
-# STMicroelectronics 9-DOF IMU/Magnetometer.
-mpu9250 -s -R 14 start
-
-# Honeywell 3-axis magnetometer.
-hmc5883 -X start
-
-# Sentek 3-axis magnetometer.
-ist8310 -C -b 1 -R 4 start
-
-# STMicroelectronics barometer - Internal SPI (auto detect ms5611 or ms5607).
-ms5611 -T 0 -s start
-
-# STMicroelectronics barometer - External SPI.
-ms5611 -S start
-
-# Blacksheep telemetry.
-bst start
 
 
 ###############################################################################
