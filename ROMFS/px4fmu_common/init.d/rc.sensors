@@ -23,55 +23,8 @@ set BOARD_FMUV3    false
 # Setup for board specific configurations
 #
 
-
 if ver hwcmp AEROFC_V1
 then
-	# Aero FC uses separate driver
-else
-	if ver hwcmp CRAZYFLIE
-	then
-		# Crazyflie uses separate driver
-	else
-		# Configure all I2C buses to 100 KHz as they
-		# are all external or slow
-		fmu i2c 1 100000
-		fmu i2c 2 100000
-	fi
-
-	if ver hwcmp PX4FMU_V4
-	then
-		# We know there are sketchy boards out there
-		# as chinese companies produce Pixracers without
-		# fully understanding the critical parts of the
-		# schematic and BOM, leading to sensor brownouts
-		# on boot. Original Pixracers following the
-		# open hardware design do not require this.
-		fmu sensor_reset 50
-	fi
-
-	# External SPI
-	ms5611 -S start
-
-	# Internal SPI (auto detect ms5611 or ms5607)
-	ms5611 -T 0 -s start
-
-	# Blacksheep telemetry
-	bst start
-
-	# ADC
-	adc start
-
-	# 
-	ms5611 -T 0 start
-	mpu9250 -s -R 14 start
-
-	# Possible external compasses
-	hmc5883 -X start
-
-	ist8310 -C -b 1 -R 4 start
-	aerofc_adc start
-	ll40ls start i2c
-
 	# Benewake TFMini distance sensor
 	if param greater SENS_EN_TFMINI 0
 	then
@@ -126,9 +79,16 @@ then
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 12 start
 
+	# Invensense 6-dof IMU.
 	mpu6000 -s -R 8 start
+
+	# Invensense 9-dof IMU/magnetometer.
 	mpu9250 -s -R 8 start
+
+	# STMicroelectronics 3-axis accelerometer/3-axis magnetometer.
 	lsm303d -R 10 start
+	
+	# STMicroelectronics 3-axis gyro.
 	l3gd20 -R 14 start
 fi
 
@@ -189,13 +149,13 @@ then
 		# Pixhawk Mini doesn't have these sensors,
 		# so if they are found we know its a Pixhack
 
-		# external MPU6K is rotated 180 degrees yaw
+		# external MPU6K is rotated 180 degrees yaw.
 		if mpu6000 -S -R 4 start
 		then
 			set BOARD_FMUV3 20
 		else
-			# Check for Pixhack 3.1
-			# external MPU9250 is rotated 180 degrees yaw
+			# Check for Pixhack 3.1.
+			# External MPU9250 is rotated 180 degrees yaw.
 			if mpu9250 -S -R 4 start
 			then
 				set BOARD_FMUV3 21
@@ -205,145 +165,168 @@ then
 
 	if [ $BOARD_FMUV3 != 0 ]
 	then
-		# sensor heating is available, but we disable it for now
+		# Sensor heating is available, but we disable it for now.
 		param set SENS_EN_THERMAL 0
 
-		# external L3GD20H is rotated 180 degrees yaw
+		# External L3GD20H is rotated 180 degrees yaw.
 		l3gd20 -X -R 4 start
 
-		# external LSM303D is rotated 270 degrees yaw
+		# External LSM303D is rotated 270 degrees yaw.
 		lsm303d -X -R 6 start
 
 		if [ $BOARD_FMUV3 == 20 ]
 		then
-			# v2.0 internal MPU6000 is rotated 180 deg roll, 270 deg yaw
+			# v2.0 internal MPU6000 is rotated 180 deg roll, 270 deg yaw.
 			mpu6000 -R 14 start
 
-			# v2.0 Has internal hmc5883 on SPI1
+			# v2.0 Has internal hmc5883 on SPI1.
 			hmc5883 -C -T -S -R 8 start
 		fi
 
 		if [ $BOARD_FMUV3 == 21 ]
 		then
-			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
+			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw.
 			mpu9250 -R 14 start
 		fi
 
 	else
-		# $BOARD_FMUV3 == 0 -> FMUv2
-
+		# $BOARD_FMUV3 == 0 -> FMUv2.
 		mpu6000 start
 
-		# As we will use the external mag and the ICM-20608-G
-		# V2 build hwtypecmp is always false
-		# V3 build hwtypecmp supports V2|V2M|V30
+		# As we will use the external mag and the ICM-20608-G.
+		# V2 build hwtypecmp is always false.
+		# V3 build hwtypecmp supports V2|V2M|V30.
 		if ver hwtypecmp V2M
 		then
-			# On the PixhawkMini the mpu9250 has been disabled due to HW errata
+			# On the PixhawkMini the mpu9250 has been disabled due to HW errata.
 		else
+			# Invensense 9-dof IMU/magnetometer.
 			mpu9250 start
 		fi
 
+		# STMicroelectronics 3-axis gyro.
 		l3gd20 start
+
+		# STMicroelectronics 3-axis magnetometer.
 		lsm303d start
 	fi
 
-	# Benewake TFMini distance sensor
+	# Benewake TFMini distance sensor.
 	if param greater SENS_EN_TFMINI 0
 	then
-		# start the driver on serial 4/5
+		# Start the driver on serial 4/5.
 		tfmini start -d /dev/ttyS6
 	fi
 
 	# LeddarOne
 	if param greater SENS_EN_LEDDAR1 0
 	then
-		# start the driver on serial 4/5
+		# Start the driver on serial 4/5.
 		leddar_one -d /dev/ttyS6 start
 	fi
 fi
 
 if ver hwcmp PX4FMU_V4
 then
-	# External I2C bus
-	hmc5883 -C -T -X start
-	lis3mdl -X start
-	bmp280 -I start
-
-	# expansion i2c used for BMM150 rotated by 90deg
-	bmm150 -R 2 start
-
-	if hmc5883 -C -T -S -R 2 start
-	then
-		# hmc5883 internal SPI bus is rotated 90 deg yaw
-	else
-		if lis3mdl start
-		then
-			# lis3mdl internal SPI bus is rotated 90 deg yaw
-		else
-			# BMI055 gyro internal SPI bus
-			bmi055 -G start
-		fi
-	fi
+	# We know there are sketchy boards out there
+	# as chinese companies produce Pixracers without
+	# fully understanding the critical parts of the
+	# schematic and BOM, leading to sensor brownouts
+	# on boot. Original Pixracers following the
+	# open hardware design do not require this.
+	fmu sensor_reset 50
 
 	# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
-
 	if mpu6000 -R 2 -T 20602 start
 	then
-		# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
+		# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw.
 	else
 		if mpu6000 -R 2 -T 20608 start
 		then
-			# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
+			# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw.
+			echo "mpu6000 driver successfully started."
 		else
-			# BMI055 accel internal SPI bus
-			bmi055 -A start
+			# BMI055 accel internal SPI bus.
+			if bmi055 -A start
+			then
+				echo "mpu6000 driver successfully started."
+			fi
 		fi
 	fi
 
 	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
-
 	if mpu9250 -R 2 start
 	then
-		# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
+		# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw.
+		echo "mpu9250 driver successfully started."
 	else
-		# BMI160 internal SPI bus
+		# BMI160 6-DOF IMU - internal SPI bus.
 		bmi160 start
+	fi
+
+	# Bosch BMI055 IMU - Internal SPI bus.
+	if bmi055 -G start
+	then
+		echo "bmi055 driver successfully started."
+	fi
+
+	# Bosch 3-axis magnetometer - Expansion i2c used for BMM150 rotated by 90deg.
+	if bmm150 -R 2 start
+	then
+		echo "bmm150 driver successfully started."
+	fi
+
+	# Honeywell 3-axis magnetometer.
+	if hmc5883 -C -T -S -R 2 start
+	then
+		echo "hmc5883 driver successfully started."
+	fi
+
+	# ST 3-axis magnetometer - This magnetometer is highly sensitive to temperature change.
+	if lis3mdl -X start
+	then
+		echo "lis3mdl driver successfully started."
+	fi
+
+	# Bosch barometer.
+	if bmp280 -I start
+	then
+		echo "bmp280 driver successfully started."
 	fi
 fi
 
 if ver hwcmp PX4FMU_V4PRO
 then
-	# Internal SPI bus ICM-20608-G
+	# Internal SPI bus ICM-20608-G.
 	mpu6000 -R 2 -T 20608 start
 
-	# Internal SPI bus ICM-20602
+	# Internal SPI bus ICM-20602.
 	mpu6000 -R 2 -T 20602 start
 
-	# Internal SPI bus mpu9250
+	# Internal SPI bus mpu9250.
 	mpu9250 -R 2 start
 
-	# Internal SPI bus
+	# Internal SPI bus.
 	lis3mdl -R 0 start
 
-	# Possible external compasses
+	# Possible external compasses.
 	hmc5883 -C -T -X start
 
-	# Benewake TFMini distance sensor
+	# Benewake TFMini distance sensor.
 	if param greater SENS_EN_TFMINI 0
 	then
-		# start the driver on serial 4/5
+		# Start the driver on serial 4/5.
 		tfmini start -d /dev/ttyS6
 	fi
 
-	# LeddarOne
+	# LeddarOne.
 	if param greater SENS_EN_LEDDAR1 0
 	then
-		# start the driver on serial 4/5
+		# Start the driver on serial 4/5.
 		leddar_one -d /dev/ttyS6 start
 	fi
 fi
@@ -351,33 +334,80 @@ fi
 if ver hwcmp PX4FMU_V5
 then
 
-	# Internal SPI bus ICM-20602
+	# Internal SPI bus ICM-20602.
 	mpu6000 -R 8 -s -T 20602 start
 
-	# Internal SPI bus ICM-20689
+	# Internal SPI bus ICM-20689.
 	mpu6000 -R 8 -z -T 20689 start
 
-	# Internal SPI bus BMI055 accel
+	# Internal SPI bus BMI055 accel.
 	bmi055 -A -R 10 start
 
-	# Internal SPI bus BMI055 gyro
+	# Internal SPI bus BMI055 gyro.
 	bmi055 -G -R 10 start
 
-	# Possible external compasses
+	# Possible external compasses.
 	hmc5883 -C -T -X start
 
-	# Possible external compasses
+	# Possible external compasses.
 
 	ist8310 -C -b 1 start
 	ist8310 -C -b 2 start
 
-	# Possible internal compass
+	# Possible internal compass.
 	ist8310 -C -b 5 start
 fi
 
-#
-# Optional drivers
-#
+# Configure all I2C buses to 100 KHz as they are all external or slow.
+fmu i2c 1 100000
+fmu i2c 2 100000
+ll40ls start i2c
+
+# ADC.
+if adc start
+then
+	echo "ADC driver successfully started."
+fi
+
+# STMicroelectronics 9-DOF IMU/Magnetometer.
+if mpu9250 -s -R 14 start
+then
+	echo "mpu9250 driver successfully started."
+fi
+
+# Honeywell 3-axis magnetometer.
+if hmc5883 -X start
+then
+	echo "hmc5883 driver successfully started."
+fi
+
+# Sentek 3-axis magnetometer.
+if ist8310 -C -b 1 -R 4 start
+then
+	echo "ist8310 driver successfully started."
+fi
+
+# STMicroelectronics barometer - Internal SPI (auto detect ms5611 or ms5607).
+if ms5611 -T 0 -s start
+then
+	echo "ms5611 internal driver successfully started."
+fi
+
+# STMicroelectronics barometer - External SPI.
+if ms5611 -S start
+then
+	echo "ms5611 external driver successfully started."
+fi
+
+# Blacksheep telemetry.
+if bst start
+then
+	echo "bst Blacksheep Telemetry driver successfully started."
+fi
+
+###############################################################################
+#                           Begin Optional drivers.                           #
+###############################################################################
 
 if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
 then
@@ -414,7 +444,7 @@ then
 	fi
 fi
 
-# Sensors on the PWM interface bank
+# Sensors on the PWM interface bank.
 if param compare SENS_EN_LL40LS 1
 then
 	if pwm_input start
@@ -423,63 +453,70 @@ then
 	fi
 fi
 
-# Lidar-Lite on I2C
+# Lidar-Lite on I2C.
 if param compare SENS_EN_LL40LS 2
 then
 	ll40ls start i2c
 fi
 
-# lightware serial lidar sensor
+# Lightware serial lidar sensor.
 if param greater SENS_EN_SF0X 0
 then
 	sf0x start
 fi
 
-# lightware i2c lidar sensor
+# Lightware i2c lidar sensor.
 if param greater SENS_EN_SF1XX 0
 then
 	sf1xx start
 fi
 
-# mb12xx sonar sensor
+# mb12xx sonar sensor.
 if param greater SENS_EN_MB12XX 0
 then
 	mb12xx start
 fi
 
-# teraranger one TOF sensor
+# Teraranger one Time of Flight sensor.
 if param greater SENS_EN_TRANGER 0
 then
 	teraranger start
 fi
 
-# Benewake TFMini
+# Benewake TFMini.
 if param greater SENS_EN_TFMINI 0
 then
 	if param compare SYS_COMPANION 0
 	then
-		# Start on default serial device
+		# Start on default serial device.
 		tfmini start -d /dev/ttyS2
 	fi
 fi
 
-# LeddarOne
+# LeddarOne LiDAR sensor.
 if param greater SENS_EN_LEDDAR1 0
 then
 	if param compare SYS_COMPANION 0
 	then
-		# Start on default serial device
+		# Start on default serial device.
 		leddar_one -d /dev/ttyS2 start
 	fi
 fi
 
-# Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
+
+###############################################################################
+#                            End Optional drivers.                            #
+###############################################################################
+
+
+# Wait 20 ms for sensors (because we need to wait for the HRT
+# and work queue callbacks to fire).
 usleep 20000
 sensors start
 
 
 
 #
-# Unset all local script variables to free RAM
+# Unset all local script variables to free RAM.
 #
 unset BOARD_FMUV3
