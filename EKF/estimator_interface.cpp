@@ -382,7 +382,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		bool flow_magnitude_good = true;
 		if (delta_time_good) {
 			flow_rate_magnitude = flow->flowdata.norm() / delta_time;
-			flow_magnitude_good = (flow_rate_magnitude <= _params.flow_rate_max);
+			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
 		}
 
 		bool relying_on_flow =  _control_status.flags.opt_flow
