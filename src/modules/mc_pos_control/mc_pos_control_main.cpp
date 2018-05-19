@@ -229,9 +229,7 @@ private:
 		(ParamInt<px4::params::MPC_ALT_MODE>) _alt_mode,
 		(ParamFloat<px4::params::RC_FLT_CUTOFF>) _rc_flt_cutoff,
 		(ParamFloat<px4::params::RC_FLT_SMP_RATE>) _rc_flt_smp_rate,
-		(ParamFloat<px4::params::MPC_ACC_HOR_FLOW>) _acc_max_flow_xy,
-		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _flow_min_hgt,
-		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _flow_max_hgt
+		(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) _acc_max_estimator_xy
 
 	);
 
@@ -395,6 +393,8 @@ private:
 	void warn_rate_limited(const char *str);
 
 	bool manual_wants_takeoff();
+
+	bool manual_wants_landing();
 
 	void set_takeoff_velocity(float &vel_sp_z);
 
@@ -842,26 +842,29 @@ MulticopterPositionControl::reset_alt_sp()
 void
 MulticopterPositionControl::limit_altitude()
 {
-	float altitude_above_home = -(_pos(2) - _home_pos.z);
-	bool applying_flow_height_limit = false;
+	// TODO : This limit calculationshould be moved to updateConstraints in FlightTask
+	// Calculate altitude limit
+	float altitude_limit = INFINITY;
 
-	if (_terrain_follow && _local_pos.limit_hagl) {
-		// Don't allow the height setpoint to exceed the optical flow limits
-		if (_pos_sp(2) < -_flow_max_hgt.get()) {
-			_pos_sp(2) = -_flow_max_hgt.get();
-		}
+	if (_terrain_follow) {
+		altitude_limit = fmaxf(-_local_pos.hagl_max, -_vehicle_land_detected.alt_max);
 
-		applying_flow_height_limit = true;
+		//printf("terrain follow alt limit : %f\n", altitude_limit);
 
-	} else if (_run_alt_control && (_vehicle_land_detected.alt_max > 0.0f)
-		   && (altitude_above_home > _vehicle_land_detected.alt_max)) {
-		// we are above maximum altitude
-		_pos_sp(2) = -_vehicle_land_detected.alt_max +  _home_pos.z;
+	} else {
+		altitude_limit = fmaxf(-_local_pos.hagl_max + _pos(2) + _local_pos.dist_bottom,
+				       -_vehicle_land_detected.alt_max + _home_pos.z);
 
+		//printf("altitude follow alt limit : %f\n", altitude_limit);
 	}
 
+	// Don't allow the height setpoint to exceed the limits
+	if (_pos_sp(2) < altitude_limit) {
+		_pos_sp(2) = altitude_limit;
+	}
+
+	// We want to fly upwards. Check that vehicle does not exceed altitude
 	if (!_run_alt_control && _vel_sp(2) <= 0.0f) {
-		// we want to fly upwards: check if vehicle does not exceed altitude
 
 		// time to reach zero velocity
 		float delta_t = -_vel(2) / _acceleration_z_max_down.get();
@@ -869,16 +872,9 @@ MulticopterPositionControl::limit_altitude()
 		// predict next position based on current position, velocity, max acceleration downwards and time to reach zero velocity
 		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f * _acceleration_z_max_down.get() * delta_t *delta_t;
 
-
-		if (!applying_flow_height_limit && (-(pos_z_next - _home_pos.z) > _vehicle_land_detected.alt_max)
-		    && (_vehicle_land_detected.alt_max > 0.0f)) {
+		if (pos_z_next < altitude_limit) {
 			// prevent the vehicle from exceeding maximum altitude by switching back to altitude control with maximum altitude as setpoint
-			_pos_sp(2) = -_vehicle_land_detected.alt_max + _home_pos.z;
-			_run_alt_control = true;
-
-		} else if (applying_flow_height_limit && (pos_z_next < -_flow_max_hgt.get())) {
-			// prevent the vehicle from exceeding maximum altitude by switching back to altitude control with maximum altitude as setpoint
-			_pos_sp(2) = -_flow_max_hgt.get();
+			_pos_sp(2) = altitude_limit;
 			_run_alt_control = true;
 		}
 	}
@@ -2432,13 +2428,14 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
 	}
 
-	// encourage pilot to respect flow sensor minimum height limitations
-	if (_terrain_follow && _local_pos.limit_hagl
-		&& _control_mode.flag_control_manual_enabled
-	    && _control_mode.flag_control_altitude_enabled) {
-		// If distance to ground is less than limit, increment set point upwards at up to the landing descent rate
-		if (_local_pos.dist_bottom < _flow_min_hgt.get()) {
-			float climb_rate_bias = fminf(1.5f * _pos_p(2) * (_flow_min_hgt.get() - _local_pos.dist_bottom), _land_speed.get());
+	/* encourage pilot to respect estimator height limitations when in manually controlled modes and not landing */
+	if (PX4_ISFINITE(_local_pos.hagl_min)					// We need height limiting
+	    && _control_mode.flag_control_manual_enabled		// Vehicle is under manual control
+	    && _control_mode.flag_control_altitude_enabled		// Altitude controller is running
+	    && !manual_wants_landing()) {						// Operator is not trying to land
+		if (_local_pos.dist_bottom < _local_pos.hagl_min) {
+			// If distance to ground is less than limit, increment setpoint upwards at up to the landing descent rate
+			float climb_rate_bias = fminf(1.5f * _pos_p(2) * (_local_pos.hagl_min - _local_pos.dist_bottom), _land_speed.get());
 			_vel_sp(2) -= climb_rate_bias;
 			_pos_sp(2) -= climb_rate_bias * _dt;
 
@@ -2919,6 +2916,14 @@ bool MulticopterPositionControl::manual_wants_takeoff()
 	return (has_manual_control_present && (_manual.z > 0.65f || !_control_mode.flag_control_climb_rate_enabled));
 }
 
+bool MulticopterPositionControl::manual_wants_landing()
+{
+	const bool has_manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
+
+	// Operator is trying to land if the throttle stick is under 15%.
+	return (has_manual_control_present && (_manual.z < 0.15f || !_control_mode.flag_control_climb_rate_enabled));
+}
+
 void
 MulticopterPositionControl::task_main()
 {
@@ -2982,21 +2987,20 @@ MulticopterPositionControl::task_main()
 		/* set dt for control blocks */
 		setDt(dt);
 
-		/* set default max velocity in xy to vel_max
-		 * Apply estimator limits if applicable */
-		if (_local_pos.vxy_max > 0.001f) {
-			// use the minimum of the estimator and user specified limit
-			_vel_max_xy = fminf(_vel_max_xy_param.get(), _local_pos.vxy_max);
-			// Allow for a minimum of 0.3 m/s for repositioning
-			_vel_max_xy = fmaxf(_vel_max_xy, 0.3f);
+		/* Update velocity limits. Use the minimum of the estimator demanded and vehicle
+		 * limits, and allow a minimum of 0.3 m/s for repositioning */
+		if (PX4_ISFINITE(_local_pos.vxy_max)) {
+			_vel_max_xy = fmaxf(fminf(_vel_max_xy_param.get(), _local_pos.vxy_max), 0.3f);
 
-		} else if (_vel_sp_significant) {
-			// raise the limit at a constant rate up to the user specified value
-			if (_vel_max_xy >= _vel_max_xy_param.get()) {
-				_vel_max_xy = _vel_max_xy_param.get();
+		} else {
+			/* If the estimator stopped demanding a limit, release the limit gradually */
+			if (_vel_sp_significant) {
+				if (_vel_max_xy < _vel_max_xy_param.get()) {
+					_vel_max_xy += dt * _acc_max_estimator_xy.get();
 
-			} else {
-				_vel_max_xy += dt * _acc_max_flow_xy.get();
+				} else {
+					_vel_max_xy = _vel_max_xy_param.get();
+				}
 			}
 		}
 
@@ -3338,7 +3342,7 @@ MulticopterPositionControl::set_idle_state()
 void
 MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
 {
-	/* _contstraints */
+	/* _constraints */
 	constraints.tilt_max = NAN; // Default no maximum tilt
 
 	/* Set maximum tilt  */
