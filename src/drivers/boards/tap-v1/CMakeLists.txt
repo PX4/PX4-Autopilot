@@ -31,16 +31,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__tap-v1
-	SRCS
-		tap_init.c
-		tap_pwr.c
-		tap_sdio.c
-		tap_timer_config.c
-		tap_spi.c
-		tap_usb.c
-		tap_led.c
-	DEPENDS
-		platforms__common
+
+px4_add_library(drivers_board
+	init.c
+	led.c
+	pwr.c
+	sdio.c
+	spi.c
+	timer_config.c
+	usb.c
+)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		drivers__led # drv_led_start
+		parameters # param_init
 	)

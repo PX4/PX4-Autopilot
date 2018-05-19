@@ -30,16 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__px4-same70xplained-v1
-	SRCS
-		px4same70xplained_can.c
-		px4same70xplained_init.c
-		px4same70xplained_timer_config.c
-		px4same70xplained_spi.c
-		px4same70xplained_usb.c
-		px4same70xplained_led.c
-		px4same70xplained_sdram.c
-	DEPENDS
-		platforms__common
-	)
+
+px4_add_library(drivers_board
+	can.c
+	init.c
+	led.c
+	sdram.c
+	spi.c
+	timer_config.c
+	usb.c
+)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		drivers__led # drv_led_start
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		parameters # param_init
+)

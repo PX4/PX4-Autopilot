@@ -14,15 +14,11 @@ set(config_module_list
 	drivers/telemetry
 
 	drivers/imu/adis16448
-	drivers/airspeed
 	drivers/blinkm
 	drivers/imu/bma180
 	drivers/imu/bmi160
-	drivers/boards
 	drivers/camera_trigger
-	drivers/device
 	drivers/gps
-	drivers/led
 	drivers/mkblctrl
 	drivers/imu/mpu6000
 	drivers/imu/mpu9250
@@ -78,6 +74,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
 	modules/local_position_estimator
+	modules/landing_target_estimator
 	modules/ekf2
 
 	#
@@ -99,27 +96,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
 
 	#
 	# OBC challenge

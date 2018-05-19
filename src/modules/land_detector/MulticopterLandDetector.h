@@ -44,7 +44,7 @@
 
 #include "LandDetector.h"
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -57,6 +57,8 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
 
+using namespace time_literals;
+
 namespace land_detector
 {
 
@@ -66,34 +68,29 @@ public:
 	MulticopterLandDetector();
 
 protected:
-	virtual void _initialize_topics() override;
+	void _initialize_topics() override;
+	void _update_params() override;
+	void _update_topics() override;
 
-	virtual void _update_params() override;
+	bool _get_landed_state() override;
+	bool _get_ground_contact_state() override;
+	bool _get_maybe_landed_state() override;
+	bool _get_freefall_state() override;
 
-	virtual void _update_topics() override;
-
-	virtual bool _get_landed_state() override;
-
-	virtual bool _get_ground_contact_state() override;
-
-	virtual bool _get_maybe_landed_state() override;
-
-	virtual bool _get_freefall_state() override;
-
-	virtual float _get_max_altitude() override;
+	float _get_max_altitude() override;
 private:
 
 	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 300000;
+	static constexpr hrt_abstime LAND_DETECTOR_TRIGGER_TIME_US = 300_ms;
 
 	/** Time in us that almost landing conditions have to hold before triggering almost landed . */
-	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 250000;
+	static constexpr hrt_abstime MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 250_ms;
 
 	/** Time in us that ground contact condition have to hold before triggering contact ground */
-	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 350000;
+	static constexpr hrt_abstime GROUND_CONTACT_TRIGGER_TIME_US = 350_ms;
 
 	/** Time interval in us in which wider acceptance thresholds are used after landed. */
-	static constexpr uint64_t LAND_DETECTOR_LAND_PHASE_TIME_US = 2000000;
+	static constexpr hrt_abstime LAND_DETECTOR_LAND_PHASE_TIME_US = 2_s;
 
 	/**
 	* @brief Handles for interesting parameters
@@ -110,7 +107,7 @@ private:
 		param_t freefall_trigger_time;
 		param_t altitude_max;
 		param_t landSpeed;
-	} _paramHandle;
+	} _paramHandle{};
 
 	struct {
 		float maxClimbRate;
@@ -124,26 +121,26 @@ private:
 		float freefall_trigger_time;
 		float altitude_max;
 		float landSpeed;
-	} _params;
+	} _params{};
 
-	int _vehicleLocalPositionSub;
-	int _vehicleLocalPositionSetpointSub;
-	int _actuatorsSub;
-	int _attitudeSub;
-	int _sensor_bias_sub;
-	int _vehicle_control_mode_sub;
-	int _battery_sub;
+	int _vehicleLocalPositionSub{-1};
+	int _vehicleLocalPositionSetpointSub{-1};
+	int _actuatorsSub{-1};
+	int _attitudeSub{-1};
+	int _sensor_bias_sub{-1};
+	int _vehicle_control_mode_sub{-1};
+	int _battery_sub{-1};
 
-	struct vehicle_local_position_s				_vehicleLocalPosition;
-	struct vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint;
-	struct actuator_controls_s					_actuators;
-	struct vehicle_attitude_s					_vehicleAttitude;
-	struct sensor_bias_s					_sensors;
-	struct vehicle_control_mode_s				_control_mode;
-	struct battery_status_s						_battery;
+	vehicle_local_position_s				_vehicleLocalPosition {};
+	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};
+	actuator_controls_s					_actuators {};
+	vehicle_attitude_s					_vehicleAttitude {};
+	sensor_bias_s					_sensors {};
+	vehicle_control_mode_s				_control_mode {};
+	battery_status_s						_battery {};
 
-	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
-	uint64_t _landed_time;
+	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
+	hrt_abstime _landed_time{0};
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();

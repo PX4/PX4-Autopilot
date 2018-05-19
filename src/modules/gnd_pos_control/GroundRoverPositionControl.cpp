@@ -205,8 +205,8 @@ void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 }
 
 bool
-GroundRoverPositionControl::control_position(const math::Vector<2> &current_position,
-		const math::Vector<3> &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
+GroundRoverPositionControl::control_position(const matrix::Vector2f &current_position,
+		const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
 {
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
@@ -227,17 +227,17 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		bool was_circle_mode = _gnd_control.circle_mode();
 
 		/* current waypoint (the one currently heading for) */
-		math::Vector<2> curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
+		matrix::Vector2f curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
 
 		/* previous waypoint */
-		math::Vector<2> prev_wp = curr_wp;
+		matrix::Vector2f prev_wp = curr_wp;
 
 		if (pos_sp_triplet.previous.valid) {
 			prev_wp(0) = (float)pos_sp_triplet.previous.lat;
 			prev_wp(1) = (float)pos_sp_triplet.previous.lon;
 		}
 
-		math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
+		matrix::Vector2f ground_speed_2d = {ground_speed(0), ground_speed(1)};
 
 		float mission_throttle = _parameters.throttle_cruise;
 
@@ -412,8 +412,8 @@ GroundRoverPositionControl::task_main()
 			_sub_attitude.update();
 			_sub_sensors.update();
 
-			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
-			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
+			matrix::Vector3f ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
+			matrix::Vector2f current_position((float)_global_pos.lat, (float)_global_pos.lon);
 
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
@@ -460,7 +460,7 @@ GroundRoverPositionControl::task_main()
 					_gnd_pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
 					_gnd_pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
 
-					math::Vector<2> curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
+					matrix::Vector2f curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
 					_gnd_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
 								       curr_wp(1));
 
@@ -479,27 +479,27 @@ GroundRoverPositionControl::task_main()
 	_control_task = -1;
 }
 
-void
+int
 GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	gnd_control::g_control = new GroundRoverPositionControl();
 
 	if (gnd_control::g_control == nullptr) {
 		warnx("OUT OF MEM");
-		return;
+		return -1;
 	}
 
 	/* only returns on exit */
 	gnd_control::g_control->task_main();
 	delete gnd_control::g_control;
 	gnd_control::g_control = nullptr;
+	return 0;
 }
 
 int
 GroundRoverPositionControl::start()
 {
 	ASSERT(_control_task == -1);
-	warn("Starting by marco");
 
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("gnd_pos_ctrl",
@@ -508,7 +508,6 @@ GroundRoverPositionControl::start()
 					   1700,
 					   (px4_main_t)&GroundRoverPositionControl::task_main_trampoline,
 					   nullptr);
-	warn("done");
 
 	if (_control_task < 0) {
 		warn("task start failed");

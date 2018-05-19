@@ -31,14 +31,19 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__boards__px4cannode-v1
-	SRCS
-		px4cannode_can.c
-		px4cannode_buttons.c
-		px4cannode_init.c
-		px4cannode_led.c
-		px4cannode_spi.c
-	DEPENDS
-		platforms__common
+px4_add_library(drivers_board
+	buttons.c
+	can.c
+	init.c
+	led.c
+	spi.c
+)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		drivers__led # drv_led_start
+		parameters # param_init
 	)

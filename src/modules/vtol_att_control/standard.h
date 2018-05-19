@@ -46,7 +46,7 @@
 #ifndef STANDARD_H
 #define STANDARD_H
 #include "vtol_type.h"
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 
 class Standard : public VtolType
@@ -67,41 +67,23 @@ public:
 private:
 
 	struct {
-		float front_trans_dur;
-		float back_trans_dur;
+		float pusher_ramp_dt;
 		float back_trans_ramp;
-		float pusher_trans;
-		float airspeed_blend;
-		float airspeed_trans;
-		float front_trans_timeout;
-		float front_trans_time_min;
 		float down_pitch_max;
 		float forward_thrust_scale;
-		int32_t airspeed_disabled;
 		float pitch_setpoint_offset;
 		float reverse_output;
 		float reverse_delay;
-		float back_trans_throttle;
-		float mpc_xy_cruise;
 	} _params_standard;
 
 	struct {
-		param_t front_trans_dur;
-		param_t back_trans_dur;
+		param_t pusher_ramp_dt;
 		param_t back_trans_ramp;
-		param_t pusher_trans;
-		param_t airspeed_blend;
-		param_t airspeed_trans;
-		param_t front_trans_timeout;
-		param_t front_trans_time_min;
 		param_t down_pitch_max;
 		param_t forward_thrust_scale;
-		param_t airspeed_disabled;
 		param_t pitch_setpoint_offset;
 		param_t reverse_output;
 		param_t reverse_delay;
-		param_t back_trans_throttle;
-		param_t mpc_xy_cruise;
 	} _params_handles_standard;
 
 	enum vtol_mode {
@@ -116,12 +98,9 @@ private:
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
 	} _vtol_schedule;
 
-	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
 	float _reverse_output;
 	float _airspeed_trans_blend_margin;
-
-	void set_max_mc(unsigned pwm_value);
 
 	virtual void parameters_update();
 };

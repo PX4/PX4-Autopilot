@@ -40,41 +40,13 @@
  */
 
 /**
- * Roll time constant
- *
- * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
- *
- * @unit s
- * @min 0.15
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_ROLL_TC, 0.2f);
-
-/**
- * Pitch time constant
- *
- * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
- *
- * @unit s
- * @min 0.15
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_PITCH_TC, 0.2f);
-
-/**
  * Roll P gain
  *
  * Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
  *
  * @unit 1/s
  * @min 0.0
- * @max 8
+ * @max 12
  * @decimal 2
  * @increment 0.1
  * @group Multicopter Attitude Control
@@ -149,7 +121,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
  *
  * @unit 1/s
  * @min 0.0
- * @max 10
+ * @max 12
  * @decimal 2
  * @increment 0.1
  * @group Multicopter Attitude Control
@@ -375,7 +347,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRAUTO_MAX, 45.0f);
  *
  * @unit deg/s
  * @min 0.0
- * @max 1000.0
+ * @max 1800.0
  * @decimal 1
  * @increment 5
  * @group Multicopter Attitude Control
@@ -388,7 +360,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 720.0f);
  *
  * @unit deg/s
  * @min 0.0
- * @max 1000.0
+ * @max 1800.0
  * @decimal 1
  * @increment 5
  * @group Multicopter Attitude Control
@@ -401,7 +373,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
  *
  * @unit deg/s
  * @min 0.0
- * @max 1000.0
+ * @max 1800.0
  * @decimal 1
  * @increment 5
  * @group Multicopter Attitude Control
@@ -409,8 +381,9 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
 
 /**
- * Acro Expo factor
- * applied to input of all axis: roll, pitch, yaw
+ * Acro mode Expo factor for Roll and Pitch.
+ *
+ * Exponential factor for tuning the input curve shape.
  *
  * 0 Purely linear input curve
  * 1 Purely cubic input curve
@@ -423,8 +396,24 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
 
 /**
- * Acro SuperExpo factor
- * applied to input of all axis: roll, pitch, yaw
+ * Acro mode Expo factor for Yaw.
+ *
+ * Exponential factor for tuning the input curve shape.
+ *
+ * 0 Purely linear input curve
+ * 1 Purely cubic input curve
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
+
+/**
+ * Acro mode SuperExpo factor for Roll and Pitch.
+ *
+ * SuperExpo factor for refining the input curve shape tuned using MC_ACRO_EXPO.
  *
  * 0 Pure Expo function
  * 0.7 resonable shape enhancement for intuitive stick feel
@@ -436,6 +425,22 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.7f);
+
+/**
+ * Acro mode SuperExpo factor for Yaw.
+ *
+ * SuperExpo factor for refining the input curve shape tuned using MC_ACRO_EXPO_Y.
+ *
+ * 0 Pure Expo function
+ * 0.7 resonable shape enhancement for intuitive stick feel
+ * 0.95 very strong bent input curve only near maxima have effect
+ *
+ * @min 0
+ * @max 0.95
+ * @decimal 2
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPOY, 0.7f);
 
 /**
  * Threshold for Rattitude mode
@@ -554,3 +559,34 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_I, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
+
+/**
+ * Cutoff frequency for the low pass filter on the D-term in the rate controller
+ *
+ * The D-term uses the derivative of the rate and thus is the most susceptible to noise.
+ * Therefore, using a D-term filter allows to decrease the driver-level filtering, which
+ * leads to reduced control latency and permits to increase the P gains.
+ * A value of 0 disables the filter.
+ *
+ * @unit Hz
+ * @min 0
+ * @max 1000
+ * @decimal 0
+ * @increment 10
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
+
+/**
+ * Multicopter air-mode
+ *
+ * The air-mode enables the mixer to increase the total thrust of the multirotor
+ * in order to keep attitude and rate control even at low and high throttle.
+ * This function should be disabled during tuning as it will help the controller
+ * to diverge if the closed-loop is unstable.
+ *
+ * @boolean
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_INT32(MC_AIRMODE, 0);
+

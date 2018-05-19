@@ -53,6 +53,7 @@
 #include "DriverFramework.hpp"
 #include <termios.h>
 #include <sys/stat.h>
+#include <px4_tasks.h>
 
 namespace px4
 {
@@ -60,8 +61,6 @@ void init_once();
 }
 
 using namespace std;
-
-typedef int (*px4_main_t)(int argc, char *argv[]);
 
 #define CMD_BUFF_SIZE	100
 

@@ -9,6 +9,7 @@ set(tests
 	commander
 	controllib
 	conv
+	ctlmath
 	dataman
 	file2
 	float
@@ -94,7 +95,8 @@ add_custom_target(test_results
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 if (CMAKE_BUILD_TYPE STREQUAL Coverage)
-	setup_target_for_coverage(test_coverage "${CMAKE_CTEST_COMMAND} --output-on-failure -T Test" coverage.info)
+	setup_target_for_coverage(test_coverage "${CMAKE_CTEST_COMMAND} --output-on-failure -T Test" tests)
+	setup_target_for_coverage(generate_coverage "${CMAKE_COMMAND} -E echo" generic)
 endif()
 
 add_custom_target(test_results_junit

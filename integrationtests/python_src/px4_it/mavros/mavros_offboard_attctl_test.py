@@ -83,7 +83,7 @@ class MavrosOffboardAttctlTest(MavrosTestCommon):
         self.att.body_rate = Vector3()
         self.att.header = Header()
         self.att.header.frame_id = "base_footprint"
-        self.att.orientation = Quaternion(*quaternion_from_euler(0.25, 0.25,
+        self.att.orientation = Quaternion(*quaternion_from_euler(-0.25, 0.5,
                                                                  0))
         self.att.thrust = 0.7
         self.att.type_mask = 7  # ignore body rate
@@ -102,9 +102,9 @@ class MavrosOffboardAttctlTest(MavrosTestCommon):
     def test_attctl(self):
         """Test offboard attitude control"""
         # boundary to cross
-        boundary_x = 5
-        boundary_y = 5
-        boundary_z = -5
+        boundary_x = 200
+        boundary_y = 100
+        boundary_z = 50
 
         # make sure the simulation is ready to start the mission
         self.wait_for_topics(60)
@@ -119,14 +119,14 @@ class MavrosOffboardAttctlTest(MavrosTestCommon):
         rospy.loginfo("attempting to cross boundary | x: {0}, y: {1}, z: {2}".
                       format(boundary_x, boundary_y, boundary_z))
         # does it cross expected boundaries in 'timeout' seconds?
-        timeout = 12  # (int) seconds
+        timeout = 90  # (int) seconds
         loop_freq = 2  # Hz
         rate = rospy.Rate(loop_freq)
         crossed = False
         for i in xrange(timeout * loop_freq):
             if (self.local_position.pose.position.x > boundary_x and
-                    self.local_position.pose.position.z > boundary_y and
-                    self.local_position.pose.position.y < boundary_z):
+                    self.local_position.pose.position.y > boundary_y and
+                    self.local_position.pose.position.z > boundary_z):
                 rospy.loginfo("boundary crossed | seconds: {0} of {1}".format(
                     i / loop_freq, timeout))
                 crossed = True
@@ -143,6 +143,9 @@ class MavrosOffboardAttctlTest(MavrosTestCommon):
                    self.local_position.pose.position.y,
                    self.local_position.pose.position.z, timeout)))
 
+        self.set_mode("AUTO.LAND", 5)
+        self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+                                   90, 0)
         self.set_arm(False, 5)
 
 

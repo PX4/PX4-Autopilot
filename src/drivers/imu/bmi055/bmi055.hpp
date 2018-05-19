@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/conversions.h>
 
@@ -239,8 +239,6 @@
 
 #define BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ  50
 
-#define BMI055_ONE_G                       9.80665f
-
 #define BMI055_BUS_SPEED				10*1000*1000
 
 #define BMI055_TIMER_REDUCTION				200
@@ -271,7 +269,6 @@ protected:
 	perf_counter_t      _good_transfers;
 	perf_counter_t      _reset_retries;
 	perf_counter_t      _duplicates;
-	perf_counter_t      _controller_latency_perf;
 
 	uint8_t         _register_wait;
 	uint64_t        _reset_wait;

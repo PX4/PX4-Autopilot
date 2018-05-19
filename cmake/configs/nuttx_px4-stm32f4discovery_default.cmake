@@ -5,10 +5,7 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
-	drivers/led
-	drivers/boards
 
 	#
 	# System commands
@@ -22,26 +19,6 @@ set(config_module_list
 	systemcmds/config
 	systemcmds/nshterm
 	systemcmds/ver
-
-	#
-	# Library modules
-	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
-
-	#
-	# Libraries
-	#
-	#lib/mathlib/CMSIS
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/mathlib
-	lib/mixer
-	lib/version
 
 	#
 	# Demo apps

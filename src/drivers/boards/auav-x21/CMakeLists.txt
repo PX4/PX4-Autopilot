@@ -30,15 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__auav-x21
-	SRCS
-		auav_can.c
-		auav_init.c
-		auav_timer_config.c
-		auav_spi.c
-		auav_usb.c
-		auav_led.c
-	DEPENDS
-		platforms__common
-	)
+
+px4_add_library(drivers_board
+	can.c
+	init.c
+	led.c
+	spi.c
+	timer_config.c
+	usb.c
+)
+target_link_libraries(drivers_board
+	PRIVATE
+		drivers__led # drv_led_start
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		parameters # param_init
+)

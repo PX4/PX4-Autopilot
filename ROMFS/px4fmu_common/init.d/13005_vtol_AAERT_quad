@@ -24,7 +24,7 @@ if [ $AUTOCNF == yes ]
 then
 	param set VT_TYPE 2
 	param set VT_MOT_COUNT 4
-	param set VT_TRANS_THR 0.75
+	param set VT_F_TRANS_THR 0.75
 	param set VT_ARSP_TRANS 12
 	param set VT_ARSP_BLEND 6
 

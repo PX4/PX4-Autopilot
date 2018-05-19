@@ -61,7 +61,7 @@
 
 #include <board_config.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>
@@ -1413,12 +1413,7 @@ HMC5883::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
-	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
-	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f range_ga %.2f\n",
-	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
-	       (double)(1.0f / _range_scale), (double)_range_ga);
-	printf("temperature %.2f\n", (double)_last_report.temperature);
+	print_message(_last_report);
 	_reports->print_info("report queue");
 }
 
@@ -1598,9 +1593,7 @@ test(enum HMC5883_BUS busid)
 		err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-	warnx("time:        %lld", report.timestamp);
+	print_message(report);
 
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0) {
@@ -1639,9 +1632,7 @@ test(enum HMC5883_BUS busid)
 			err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-		warnx("time:        %lld", report.timestamp);
+		print_message(report);
 	}
 
 	errx(0, "PASS");

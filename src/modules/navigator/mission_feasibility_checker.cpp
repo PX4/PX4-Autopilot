@@ -46,7 +46,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <fw_pos_control_l1/Landingslope.hpp>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
 
@@ -497,7 +497,7 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission
 
 		if (dist_to_1wp < max_distance) {
 
-			if (dist_to_1wp > ((max_distance * 3) / 2)) {
+			if (dist_to_1wp > ((max_distance * 2) / 3)) {
 				/* allow at 2/3 distance, but warn */
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 						     "First waypoint far away: %d meters.", (int)dist_to_1wp);
@@ -559,7 +559,7 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 
 			if (dist_between_waypoints < max_distance) {
 
-				if (dist_between_waypoints > ((max_distance * 3) / 2)) {
+				if (dist_between_waypoints > ((max_distance * 2) / 3)) {
 					/* allow at 2/3 distance, but warn */
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 							     "Distance between waypoints very far: %d meters.", (int)dist_between_waypoints);

@@ -73,9 +73,11 @@ set(msg_files
 	mission_result.msg
 	mount_orientation.msg
 	multirotor_motor_limits.msg
+	obstacle_distance.msg
 	offboard_control_mode.msg
 	optical_flow.msg
 	parameter_update.msg
+	ping.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
@@ -102,13 +104,14 @@ set(msg_files
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
-	time_offset.msg
+	timesync_status.msg
 	transponder_report.msg
 	tune_control.msg
 	uavcan_parameter_request.msg
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	vehicle_air_data.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
@@ -119,6 +122,7 @@ set(msg_files
 	vehicle_land_detected.msg
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
+	vehicle_magnetometer.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
 	vehicle_status.msg
@@ -126,6 +130,18 @@ set(msg_files
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	)
+
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+	# Check that the msg directory and the CMakeLists.txt file exists
+	if(EXISTS ${EXTERNAL_MODULES_LOCATION}/msg/CMakeLists.txt)
+		add_subdirectory(${EXTERNAL_MODULES_LOCATION}/msg external_msg)
+
+		# Add each of the external message files to the global msg_files list
+		foreach(external_msg_file ${config_msg_list_external})
+			list(APPEND msg_files ${EXTERNAL_MODULES_LOCATION}/msg/${external_msg_file})
+		endforeach()
+	endif()
+endif()
 
 px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
 px4_add_git_submodule(TARGET git_genmsg PATH tools/genmsg)
@@ -152,7 +168,10 @@ add_custom_command(OUTPUT ${uorb_headers}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
 		-q
-	DEPENDS ${msg_files}
+	DEPENDS
+		${msg_files}
+		templates/uorb/msg.h.template
+		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
@@ -169,11 +188,14 @@ add_custom_command(OUTPUT ${uorb_sources}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
 		-q
-	DEPENDS ${msg_files}
+	DEPENDS
+		${msg_files}
+		templates/uorb/msg.cpp.template
+		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
 	)
 
-px4_add_library(uorb_msgs ${uorb_sources})
-add_dependencies(uorb_msgs uorb_headers)
+add_library(uorb_msgs ${uorb_sources})
+add_dependencies(uorb_msgs prebuild_targets uorb_headers)

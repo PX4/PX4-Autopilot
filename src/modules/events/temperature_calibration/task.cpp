@@ -83,7 +83,7 @@ public:
 	 */
 	int		start();
 
-	static void do_temperature_calibration(int argc, char *argv[]);
+	static int do_temperature_calibration(int argc, char *argv[]);
 
 	void		task_main();
 
@@ -320,15 +320,15 @@ void TemperatureCalibration::task_main()
 	PX4_INFO("Exiting temperature calibration task");
 }
 
-void TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
+int TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
 {
 	temperature_calibration::instance->task_main();
+	return 0;
 }
 
 int TemperatureCalibration::start()
 {
 
-	ASSERT(_control_task == -1);
 	_control_task = px4_task_spawn_cmd("temperature_calib",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,

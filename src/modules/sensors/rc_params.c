@@ -2214,8 +2214,9 @@ PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
  * Cutoff frequency for the low pass filter on roll, pitch, yaw and throttle
  *
  * Does not get set unless below RC_FLT_SMP_RATE/2 because of filter instability characteristics.
+ * Set to 0 to disable the filter.
  *
- * @min 0.1
+ * @min 0
  * @unit Hz
  * @group Radio Calibration
  */

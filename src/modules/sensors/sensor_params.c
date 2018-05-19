@@ -146,6 +146,15 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * @value 23 Roll 270°, Yaw 135°
  * @value 24 Pitch 90°
  * @value 25 Pitch 270°
+ * @value 26 Roll 270°, Yaw 270°
+ * @value 27 Roll 180°, Pitch 270°
+ * @value 28 Pitch 90°, Yaw 180
+ * @value 29 Pitch 90°, Roll 90°
+ * @value 30 Yaw 293°, Pitch 68°, Roll 90° (Solo)
+ * @value 31 Pitch 90°, Roll 270°
+ * @value 32 Pitch 9°, Yaw 180°
+ * @value 33 Pitch 45°
+ * @value 34 Pitch 315°
  *
  * @reboot_required true
  *
@@ -227,28 +236,28 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 
 /**
-* Driver level cut frequency for gyro
+* Driver level cutoff frequency for gyro
 *
-* The cut frequency for the 2nd order butterworth filter on the gyro driver. This features
+* The cutoff frequency for the 2nd order butterworth filter on the gyro driver. This features
 * is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
 * controllers, not the estimators. 0 disables the filter.
 *
-* @min 5
+* @min 0
 * @max 1000
 * @unit Hz
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 80.0f);
 
 /**
-* Driver level cut frequency for accel
+* Driver level cutoff frequency for accel
 *
-* The cut frequency for the 2nd order butterworth filter on the accel driver. This features
+* The cutoff frequency for the 2nd order butterworth filter on the accel driver. This features
 * is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
 * controllers, not the estimators. 0 disables the filter.
 *
-* @min 5
+* @min 0
 * @max 1000
 * @unit Hz
 * @reboot_required true

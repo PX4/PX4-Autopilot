@@ -3,11 +3,10 @@
 uint8 ARMING_STATE_INIT = 0
 uint8 ARMING_STATE_STANDBY = 1
 uint8 ARMING_STATE_ARMED = 2
-uint8 ARMING_STATE_ARMED_ERROR = 3
-uint8 ARMING_STATE_STANDBY_ERROR = 4
-uint8 ARMING_STATE_REBOOT = 5
-uint8 ARMING_STATE_IN_AIR_RESTORE = 6
-uint8 ARMING_STATE_MAX = 7
+uint8 ARMING_STATE_STANDBY_ERROR = 3
+uint8 ARMING_STATE_REBOOT = 4
+uint8 ARMING_STATE_IN_AIR_RESTORE = 5
+uint8 ARMING_STATE_MAX = 6
 
 uint8 HIL_STATE_OFF = 0
 uint8 HIL_STATE_ON = 1
@@ -62,6 +61,7 @@ bool rc_signal_lost				# true if RC reception lost
 uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.
 
 bool data_link_lost				# datalink to GCS lost
+bool high_latency_data_link_active 		# all low latency datalinks to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events
 bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish

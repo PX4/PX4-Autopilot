@@ -36,6 +36,7 @@ Checks:          '*
 		,-google-explicit-constructor
 		,-google-global-names-in-headers
 		,-google-readability-casting
+		,-google-readability-function-size
 		,-google-readability-namespace-comments
 		,-google-readability-todo
 		,-google-runtime-int
@@ -63,6 +64,7 @@ Checks:          '*
 		,-readability-avoid-const-params-in-decls
 		,-readability-braces-around-statements
 		,-readability-else-after-return
+		,-readability-function-size
 		,-readability-implicit-bool-cast
 		,-readability-inconsistent-declaration-parameter-name
 		,-readability-named-parameter

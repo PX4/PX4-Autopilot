@@ -58,7 +58,7 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_tone_alarm.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
 #include <uORB/topics/sensor_combined.h>
 
@@ -569,7 +569,15 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 	char str[30];
 
-	for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
+	// Get actual mag count and alloate only as much memory as needed
+	const unsigned orb_mag_count = orb_group_count(ORB_ID(sensor_mag));
+
+	// Warn that we will not calibrate more than max_mags magnetometers
+	if (orb_mag_count > max_mags) {
+		calibration_log_critical(mavlink_log_pub, "Detected %u mags, but will calibrate only %u", orb_mag_count, max_mags);
+	}
+
+	for (size_t cur_mag = 0; cur_mag < orb_mag_count && cur_mag < max_mags; cur_mag++) {
 		worker_data.x[cur_mag] = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
 		worker_data.y[cur_mag] = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
 		worker_data.z[cur_mag] = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
@@ -585,13 +593,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	if (result == calibrate_return_ok) {
 
 		// We should not try to subscribe if the topic doesn't actually exist and can be counted.
-		const unsigned orb_mag_count = orb_group_count(ORB_ID(sensor_mag));
-
-		// Warn that we will not calibrate more than max_mags magnetometers
-		if (orb_mag_count > max_mags) {
-			calibration_log_critical(mavlink_log_pub, "Detected %u mags, but will calibrate only %u", orb_mag_count, max_mags);
-		}
-
 		for (unsigned cur_mag = 0; cur_mag < orb_mag_count && cur_mag < max_mags; cur_mag++) {
 
 			// Lock in to correct ORB instance

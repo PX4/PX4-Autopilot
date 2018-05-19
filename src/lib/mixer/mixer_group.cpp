@@ -132,13 +132,44 @@ MixerGroup::set_trims(int16_t *values, unsigned n)
 		/* convert from integer to float */
 		float offset = (float)values[index] / 10000;
 
-		/* to be safe, clamp offset to range of [-100, 100] usec */
-		if (offset < -0.2f) { offset = -0.2f; }
+		/* to be safe, clamp offset to range of [-500, 500] usec */
+		if (offset < -1.0f) { offset = -1.0f; }
 
-		if (offset >  0.2f) { offset =  0.2f; }
+		if (offset >  1.0f) { offset =  1.0f; }
 
 		debug("set trim: %d, offset: %5.3f", values[index], (double)offset);
 		index += mixer->set_trim(offset);
+		mixer = mixer->_next;
+	}
+
+	return index;
+}
+
+/*
+ * get_trims() has no effect except for the SimpleMixer implementation for which get_trim()
+ * always returns the value one and sets the trim value.
+ * The only other existing implementation is MultirotorMixer, which ignores the trim value
+ * and returns _rotor_count.
+ */
+unsigned
+MixerGroup::get_trims(int16_t *values)
+{
+	Mixer	*mixer = _first;
+	unsigned index_mixer = 0;
+	unsigned index = 0;
+	float trim;
+
+	while (mixer != nullptr) {
+		trim = 0;
+		index_mixer += mixer->get_trim(&trim);
+
+		// MultirotorMixer returns the number of motors so we
+		// loop through index_mixer and set the same trim value for all motors
+		while (index < index_mixer) {
+			values[index] = trim * 10000;
+			index++;
+		}
+
 		mixer = mixer->_next;
 	}
 
@@ -154,7 +185,17 @@ MixerGroup::set_thrust_factor(float val)
 		mixer->set_thrust_factor(val);
 		mixer = mixer->_next;
 	}
+}
 
+void
+MixerGroup::set_airmode(bool airmode)
+{
+	Mixer	*mixer = _first;
+
+	while (mixer != nullptr) {
+		mixer->set_airmode(airmode);
+		mixer = mixer->_next;
+	}
 }
 
 uint16_t

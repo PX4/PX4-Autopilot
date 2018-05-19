@@ -50,7 +50,6 @@
 #define BOARD_NUMBER_I2C_BUSES 4
 #define BOARD_MAX_LEDS 1 // Number external of LED's this board has
 #define PX4_I2C_BUS_LED 1
-#define PX4_I2C_OBDEV_LED 0x55
 #define PX4_I2C_BUS_EXPANSION 1
 
 // Battery ADC channels

@@ -31,22 +31,17 @@
 #
 ############################################################################
 
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"DO NOT RUN THIS ON HW")
-message(WARNING-"IT IS NOT PINED OUT TO HW")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
+message(WARNING "Configuraton is incomplete")
+message(WARNING "DO NOT RUN THIS ON HW")
+message(WARNING "IT IS NOT PINED OUT TO HW")
 
-px4_add_module(
-	MODULE drivers__boards__s2740vc-v1
-	SRCS
-		s2740vc_init.c
-		s2740vc_can.c
-	DEPENDS
-		platforms__common
-	)
+px4_add_library(drivers_board
+	can.c
+	init.c
+)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		drivers_arch
+)

@@ -37,17 +37,18 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_GPSFAILURE_H
-#define NAVIGATOR_GPSFAILURE_H
+#pragma once
+
+#include <px4_module_params.h>
 
 #include "mission_block.h"
 
 class Navigator;
 
-class GpsFailure final : public MissionBlock
+class GpsFailure : public MissionBlock, public ModuleParams
 {
 public:
-	GpsFailure(Navigator *navigator, const char *name);
+	GpsFailure(Navigator *navigator);
 	~GpsFailure() = default;
 
 	void on_inactive() override;
@@ -55,11 +56,12 @@ public:
 	void on_active() override;
 
 private:
-	/* Params */
-	control::BlockParamFloat _param_loitertime;
-	control::BlockParamFloat _param_openlooploiter_roll;
-	control::BlockParamFloat _param_openlooploiter_pitch;
-	control::BlockParamFloat _param_openlooploiter_thrust;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_GPSF_LT>) _param_loitertime,
+		(ParamFloat<px4::params::NAV_GPSF_R>) _param_openlooploiter_roll,
+		(ParamFloat<px4::params::NAV_GPSF_P>) _param_openlooploiter_pitch,
+		(ParamFloat<px4::params::NAV_GPSF_TR>) _param_openlooploiter_thrust
+	)
 
 	enum GPSFState {
 		GPSF_STATE_NONE = 0,
@@ -83,4 +85,3 @@ private:
 	void		advance_gpsf();
 
 };
-#endif

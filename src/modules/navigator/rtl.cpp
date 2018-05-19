@@ -50,13 +50,9 @@ using math::min;
 
 static constexpr float DELAY_SIGMA = 0.01f;
 
-RTL::RTL(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_return_alt(this, "RTL_RETURN_ALT", false),
-	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
-	_param_land_delay(this, "RTL_LAND_DELAY", false),
-	_param_rtl_min_dist(this, "RTL_MIN_DIST", false),
-	_param_rtl_land_type(this, "RTL_LAND_TYPE", false)
+RTL::RTL(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
 }
 

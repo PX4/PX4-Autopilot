@@ -5,12 +5,15 @@
 [submodule "src/modules/uavcan/libuavcan"]
 	path = src/modules/uavcan/libuavcan
 	url = https://github.com/UAVCAN/libuavcan.git
-[submodule "Tools/genmsg"]
+	branch = master
+[submodule "msg/tools/genmsg"]
 	path = msg/tools/genmsg
 	url = https://github.com/ros/genmsg.git
-[submodule "Tools/gencpp"]
+	branch = indigo-devel
+[submodule "msg/tools/gencpp"]
 	path = msg/tools/gencpp
 	url = https://github.com/ros/gencpp.git
+	branch = indigo-devel
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
@@ -33,13 +36,13 @@
 	branch = master
 [submodule "cmake/cmake_hexagon"]
 	path = cmake/cmake_hexagon
-	url = https://github.com/ATLFlight/cmake_hexagon
+	url = https://github.com/ATLFlight/cmake_hexagon.git
 	branch = master
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
 	branch = master
-[submodule "src/lib/micro-CDR"]
+[submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
 	url = https://github.com/eProsima/micro-CDR.git
 	branch = master

@@ -115,7 +115,7 @@ PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
  * Maximum positive / up pitch rate.
  *
  * This limits the maximum pitch up angular rate the controller will output (in
- * degrees per second). Setting a value of zero disables the limit.
+ * degrees per second).
  *
  * @unit deg/s
  * @min 0.0
@@ -130,7 +130,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
  * Maximum negative / down pitch rate.
  *
  * This limits the maximum pitch down up angular rate the controller will
- * output (in degrees per second). Setting a value of zero disables the limit.
+ * output (in degrees per second).
  *
  * @unit deg/s
  * @min 0.0
@@ -202,7 +202,7 @@ PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
  * Maximum roll rate
  *
  * This limits the maximum roll rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
+ * second).
  *
  * @unit deg/s
  * @min 0.0
@@ -241,7 +241,7 @@ PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YR_I, 0.01f);
 
 /**
  * Yaw rate integrator limit
@@ -261,7 +261,7 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
  * Maximum yaw rate
  *
  * This limits the maximum yaw rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
+ * second).
  *
  * @unit deg/s
  * @min 0.0
@@ -270,7 +270,7 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_Y_RMAX, 50.0f);
 
 /**
  * Roll control to yaw control feedforward gain.
@@ -344,7 +344,7 @@ PARAM_DEFINE_FLOAT(FW_WR_IMAX, 1.0f);
  * Maximum wheel steering rate
  *
  * This limits the maximum wheel steering rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
+ * second).
  *
  * @unit deg/s
  * @min 0.0
@@ -353,7 +353,7 @@ PARAM_DEFINE_FLOAT(FW_WR_IMAX, 1.0f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_W_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_W_RMAX, 30.0f);
 
 /**
  * Roll rate feed forward
@@ -618,3 +618,107 @@ PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_RATT_TH, 0.8f);
+
+/**
+* Roll trim increment at minimum airspeed
+*
+* This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MIN.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_R_VMIN, 0.0f);
+
+/**
+* Pitch trim increment at minimum airspeed
+*
+* This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MIN.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMIN, 0.0f);
+
+/**
+* Yaw trim increment at minimum airspeed
+*
+* This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MIN.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMIN, 0.0f);
+
+/**
+* Roll trim increment at maximum airspeed
+*
+* This increment is added to TRIM_ROLL when airspeed is FW_AIRSP_MAX.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_R_VMAX, 0.0f);
+
+/**
+* Pitch trim increment at maximum airspeed
+*
+* This increment is added to TRIM_PITCH when airspeed is FW_AIRSP_MAX.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMAX, 0.0f);
+
+/**
+* Yaw trim increment at maximum airspeed
+*
+* This increment is added to TRIM_YAW when airspeed is FW_AIRSP_MAX.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMAX, 0.0f);
+
+/**
+ * Roll trim increment for flaps configuration
+ *
+ * This increment is added to TRIM_ROLL whenever flaps are fully deployed.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_R_FLPS, 0.0f);
+
+/**
+ * Pitch trim increment for flaps configuration
+ *
+ * This increment is added to the pitch trim whenever flaps are fully deployed.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_P_FLPS, 0.0f);

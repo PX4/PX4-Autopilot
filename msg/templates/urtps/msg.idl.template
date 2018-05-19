@@ -39,12 +39,6 @@
 import genmsg.msgs
 import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
-
-uorb_struct = '%s_s'%spec.short_name
-topic_name = spec.short_name
-
-sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
-struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
 }@
 @#################################################
 @# Searching for serialize function per each field
@@ -61,9 +55,9 @@ def get_idl_type_name(field_type):
 def add_msg_field(field):
     if (not field.is_header):
         if (not field.is_array):
-            print('\t' + str(get_idl_type_name(field.type)) + ' ' + field.name + ';')
+            print("    " + str(get_idl_type_name(field.type)) + ' ' + field.name + ';')
         else:
-            print('\t' + str(get_idl_type_name(field.base_type)) + ' ' + field.name + '[' +str(field.array_len)+ '];')
+            print("    " + str(get_idl_type_name(field.base_type)) + ' ' + field.name + '[' +str(field.array_len)+ '];')
 
 def add_msg_fields():
     # sort fields (using a stable sort) as in the declaration of the type
@@ -76,5 +70,6 @@ def add_msg_fields():
 @
 struct @(spec.short_name)_
 {
+    unsigned long long timestamp;
 @add_msg_fields()
 }; // struct @(spec.short_name)_

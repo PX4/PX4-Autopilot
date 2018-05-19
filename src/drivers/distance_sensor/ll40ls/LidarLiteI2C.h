@@ -44,7 +44,7 @@
 
 #include <px4_workqueue.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
@@ -67,6 +67,9 @@
 #define LL40LS_HW_VERSION         0x41
 #define LL40LS_SW_VERSION         0x4f
 #define LL40LS_SIGNAL_STRENGTH_REG  0x5b
+
+#define LL40LS_SIG_COUNT_VAL_REG      0x02        /* Maximum acquisition count register */
+#define LL40LS_SIG_COUNT_VAL_MAX     0xFF        /* Maximum acquisition count max value */
 
 class LidarLiteI2C : public LidarLite, public device::I2C
 {

@@ -67,7 +67,6 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
 	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
-	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
@@ -76,6 +75,18 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.fw_qc_max_roll = param_find("VT_FW_QC_R");
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
 	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
+
+	_params_handles.front_trans_duration = param_find("VT_F_TRANS_DUR");
+	_params_handles.back_trans_duration = param_find("VT_B_TRANS_DUR");
+	_params_handles.transition_airspeed = param_find("VT_ARSP_TRANS");
+	_params_handles.front_trans_throttle = param_find("VT_F_TRANS_THR");
+	_params_handles.back_trans_throttle = param_find("VT_B_TRANS_THR");
+	_params_handles.airspeed_blend = param_find("VT_ARSP_BLEND");
+	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
+	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
+	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
+
 
 	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
 	_params_handles.wv_land = param_find("VT_WV_LND_EN");
@@ -439,10 +450,6 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
 	_vtol_vehicle_status.fw_permanent_stab = (l == 1);
 
-	/* vtol pitch trim for fw mode */
-	param_get(_params_handles.fw_pitch_trim, &v);
-	_params.fw_pitch_trim = v;
-
 	param_get(_params_handles.vtol_type, &l);
 	_params.vtol_type = l;
 
@@ -486,6 +493,30 @@ VtolAttitudeControl::parameters_update()
 
 	param_get(_params_handles.wv_land, &l);
 	_params.wv_land = (l == 1);
+
+
+	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
+	param_get(_params_handles.back_trans_duration, &_params.back_trans_duration);
+	param_get(_params_handles.transition_airspeed, &_params.transition_airspeed);
+	param_get(_params_handles.front_trans_throttle, &_params.front_trans_throttle);
+	param_get(_params_handles.back_trans_throttle, &_params.back_trans_throttle);
+	param_get(_params_handles.airspeed_blend, &_params.airspeed_blend);
+	param_get(_params_handles.airspeed_mode, &l);
+	_params.airspeed_disabled = l != 0;
+	param_get(_params_handles.front_trans_timeout, &_params.front_trans_timeout);
+	param_get(_params_handles.mpc_xy_cruise, &_params.mpc_xy_cruise);
+	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
+
+	// standard vtol always needs to turn all mc motors off when going into fixed wing mode
+	// normally the parameter fw_motors_off can be used to specify this, however, since historically standard vtol code
+	// did not use the interface of the VtolType class to disable motors we will have users flying  around with a wrong
+	// parameter value. Therefore, explicitly set it here such that all motors will be disabled as expected.
+	if (_params.vtol_type == vtol_type::STANDARD) {
+		_params.fw_motors_off = 12345678;
+	}
+
+	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
+	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
@@ -541,10 +572,11 @@ void VtolAttitudeControl::fill_fw_att_rates_sp()
 	}
 }
 
-void
+int
 VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	VTOL_att_control::g_control->task_main();
+	return 0;
 }
 
 void VtolAttitudeControl::task_main()
@@ -574,8 +606,7 @@ void VtolAttitudeControl::task_main()
 
 	parameters_update();  // initialize parameter cache
 
-	// make sure we start with idle in mc mode
-	_vtol_type->set_idle_mc();
+	_task_should_exit = !_vtol_type->init();
 
 	/* wakeup source*/
 	px4_pollfd_struct_t fds[1] = {};
@@ -596,6 +627,19 @@ void VtolAttitudeControl::task_main()
 			parameters_update();
 		}
 
+		// run vtol_att on MC actuator publications, unless in full FW mode
+		switch (_vtol_type->get_mode()) {
+		case TRANSITION_TO_FW:
+		case TRANSITION_TO_MC:
+		case ROTARY_WING:
+			fds[0].fd = _actuator_inputs_mc;
+			break;
+
+		case FIXED_WING:
+			fds[0].fd = _actuator_inputs_fw;
+			break;
+		}
+
 		/* wait for up to 100ms for data */
 		int pret = px4_poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
 
@@ -610,19 +654,6 @@ void VtolAttitudeControl::task_main()
 			/* sleep a bit before next try */
 			usleep(100000);
 			continue;
-		}
-
-		// run vtol_att on MC actuator publications, unless in full FW mode
-		switch (_vtol_type->get_mode()) {
-		case TRANSITION_TO_FW:
-		case TRANSITION_TO_MC:
-		case ROTARY_WING:
-			fds[0].fd = _actuator_inputs_mc;
-			break;
-
-		case FIXED_WING:
-			fds[0].fd = _actuator_inputs_fw;
-			break;
 		}
 
 		vehicle_control_mode_poll();
@@ -665,6 +696,7 @@ void VtolAttitudeControl::task_main()
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
+			_vtol_vehicle_status.in_transition_to_fw = false;
 
 			// got data from mc attitude controller
 			_vtol_type->update_mc_state();
@@ -677,6 +709,7 @@ void VtolAttitudeControl::task_main()
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
+			_vtol_vehicle_status.in_transition_to_fw = false;
 
 			_vtol_type->update_fw_state();
 			fill_fw_att_rates_sp();
@@ -744,8 +777,6 @@ void VtolAttitudeControl::task_main()
 int
 VtolAttitudeControl::start()
 {
-	ASSERT(_control_task == -1);
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("vtol_att_control",
 					   SCHED_DEFAULT,
@@ -767,6 +798,7 @@ int vtol_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		PX4_WARN("usage: vtol_att_control {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {

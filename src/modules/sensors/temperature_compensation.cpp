@@ -40,7 +40,7 @@
  */
 
 #include "temperature_compensation.h"
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <px4_defines.h>
 #include <px4_log.h>
 
@@ -377,8 +377,8 @@ int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instanc
 	return -1;
 }
 
-int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Vector<3> &sensor_data, float temperature,
-		float *offsets, float *scales)
+int TemperatureCompensation::apply_corrections_gyro(int topic_instance, matrix::Vector3f &sensor_data,
+		float temperature, float *offsets, float *scales)
 {
 	if (_parameters.gyro_tc_enable != 1) {
 		return 0;
@@ -406,7 +406,7 @@ int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Ve
 	return 1;
 }
 
-int TemperatureCompensation::apply_corrections_accel(int topic_instance, math::Vector<3> &sensor_data,
+int TemperatureCompensation::apply_corrections_accel(int topic_instance, matrix::Vector3f &sensor_data,
 		float temperature, float *offsets, float *scales)
 {
 	if (_parameters.accel_tc_enable != 1) {

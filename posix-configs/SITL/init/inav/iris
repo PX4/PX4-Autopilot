@@ -49,9 +49,8 @@ tone_alarm start
 gyrosim start
 accelsim start
 barosim start
-adcsim start
 gpssim start
-pwm_out_sim mode_pwm
+pwm_out_sim start
 sensors start
 commander start
 land_detector start multicopter

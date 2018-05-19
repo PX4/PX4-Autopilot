@@ -55,17 +55,15 @@ set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
 add_subdirectory(${LIBUAVCAN_DIR} uavcannode_libuavcan)
 add_dependencies(uavcan prebuild_targets)
 
-include_directories(${LIBUAVCAN_DIR}/libuavcan/include)
-include_directories(${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated)
-include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include)
-include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include)
-
-include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders)
-
 px4_add_module(
 	MODULE modules__uavcannode
 	MAIN uavcannode
 	STACK_MAIN 1048
+	INCLUDES
+		${LIBUAVCAN_DIR}/libuavcan/include
+		${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
+		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
+		${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include
 	COMPILE_FLAGS
 		-Wframe-larger-than=1500
 		-Wno-deprecated-declarations
@@ -77,8 +75,8 @@ px4_add_module(
 		led.cpp
 		resources.cpp
 		uavcannode_params.c
-
 	DEPENDS
+		drivers_bootloaders
 		git_uavcan
 
 		# within libuavcan
@@ -87,6 +85,4 @@ px4_add_module(
 		uavcan_stm32_driver
 	)
 
-target_link_libraries(modules__uavcannode PUBLIC uavcan uavcan_stm32_driver)
-
-set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES uavcan_stm32_driver)
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES uavcan_stm32_driver)

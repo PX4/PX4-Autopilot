@@ -51,19 +51,16 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/follow_target.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/math/Limits.hpp>
 
 #include "navigator.h"
 
 constexpr float FollowTarget::_follow_position_matricies[4][9];
 
-FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_min_alt(this, "NAV_MIN_FT_HT", false),
-	_param_tracking_dist(this, "NAV_FT_DST", false),
-	_param_tracking_side(this, "NAV_FT_FS", false),
-	_param_tracking_resp(this, "NAV_FT_RS", false)
+FollowTarget::FollowTarget(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
 	_current_vel.zero();
 	_step_vel.zero();
@@ -100,7 +97,6 @@ void FollowTarget::on_activation()
 void FollowTarget::on_active()
 {
 	struct map_projection_reference_s target_ref;
-	math::Vector<3> target_reported_velocity(0, 0, 0);
 	follow_target_s target_motion_with_offset = {};
 	uint64_t current_time = hrt_absolute_time();
 	bool _radius_entered = false;
@@ -130,9 +126,6 @@ void FollowTarget::on_active()
 						     1 - _responsiveness);
 		_current_target_motion.lon = (_current_target_motion.lon * (double)_responsiveness) + target_motion.lon * (double)(
 						     1 - _responsiveness);
-
-		target_reported_velocity(0) = _current_target_motion.vx;
-		target_reported_velocity(1) = _current_target_motion.vy;
 
 	} else if (((current_time - _current_target_motion.timestamp) / 1000) > TARGET_TIMEOUT_MS && target_velocity_valid()) {
 		reset_target_validity();

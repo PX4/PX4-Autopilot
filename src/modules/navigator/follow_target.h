@@ -45,13 +45,14 @@
 #include "navigator_mode.h"
 #include "mission_block.h"
 
+#include <px4_module_params.h>
 #include <uORB/topics/follow_target.h>
 
-class FollowTarget final : public MissionBlock
+class FollowTarget : public MissionBlock, public ModuleParams
 {
 
 public:
-	FollowTarget(Navigator *navigator, const char *name);
+	FollowTarget(Navigator *navigator);
 	~FollowTarget() = default;
 
 	void on_inactive() override;
@@ -81,36 +82,18 @@ private:
 	};
 
 	static constexpr float _follow_position_matricies[4][9] = {
-		{
-			1.0F,  -1.0F, 0.0F,
-			1.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}, // follow right
+		{ 1.0F, -1.0F, 0.0F,  1.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow right
+		{-1.0F,  0.0F, 0.0F,  0.0F, -1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow behind
+		{ 1.0F,  0.0F, 0.0F,  0.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow front
+		{ 1.0F,  1.0F, 0.0F, -1.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}  // follow left side
+	};
 
-		{
-			-1.0F,  0.0F, 0.0F,
-			0.0F, -1.0F, 0.0F,
-			0.0F,  0.0F, 1.0F
-		}, // follow behind
-
-		{
-			1.0F,   0.0F, 0.0F,
-			0.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}, // follow front
-
-		{
-			1.0F,   1.0F, 0.0F,
-			-1.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}
-	}; // follow left side
-
-
-	control::BlockParamFloat	_param_min_alt;
-	control::BlockParamFloat 	_param_tracking_dist;
-	control::BlockParamInt 		_param_tracking_side;
-	control::BlockParamFloat 	_param_tracking_resp;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_MIN_FT_HT>)	_param_min_alt,
+		(ParamFloat<px4::params::NAV_FT_DST>) _param_tracking_dist,
+		(ParamInt<px4::params::NAV_FT_FS>) _param_tracking_side,
+		(ParamFloat<px4::params::NAV_FT_RS>) _param_tracking_resp
+	)
 
 	FollowTargetState _follow_target_state{SET_WAIT_FOR_TARGET_POSITION};
 	int _follow_target_position{FOLLOW_FROM_BEHIND};
@@ -122,13 +105,13 @@ private:
 	uint64_t _target_updates{0};
 	uint64_t _last_update_time{0};
 
-	math::Vector<3> _current_vel;
-	math::Vector<3> _step_vel;
-	math::Vector<3> _est_target_vel;
-	math::Vector<3> _target_distance;
-	math::Vector<3> _target_position_offset;
-	math::Vector<3> _target_position_delta;
-	math::Vector<3> _filtered_target_position_delta;
+	matrix::Vector3f _current_vel;
+	matrix::Vector3f _step_vel;
+	matrix::Vector3f _est_target_vel;
+	matrix::Vector3f _target_distance;
+	matrix::Vector3f _target_position_offset;
+	matrix::Vector3f _target_position_delta;
+	matrix::Vector3f _filtered_target_position_delta;
 
 	follow_target_s _current_target_motion{};
 	follow_target_s _previous_target_motion{};
@@ -145,7 +128,7 @@ private:
 		ATT_RATES = 3
 	};
 
-	math::Matrix<3, 3> _rot_matrix;
+	matrix::Dcmf _rot_matrix;
 
 	void track_target_position();
 	void track_target_velocity();

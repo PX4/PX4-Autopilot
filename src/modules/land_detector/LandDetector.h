@@ -45,8 +45,8 @@
 #include <px4_workqueue.h>
 #include <px4_module.h>
 #include <systemlib/hysteresis/hysteresis.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_land_detected.h>

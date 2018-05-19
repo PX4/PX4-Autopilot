@@ -74,24 +74,22 @@ PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 /**
  * Maximum thrust in auto thrust control
  *
- * Limit max allowed thrust. Setting a value of one can put
- * the system into actuator saturation as no spread between
- * the motors is possible any more. A value of 0.8 - 0.9
- * is recommended.
+ * Limit max allowed thrust
  *
  * @unit norm
  * @min 0.0
- * @max 0.95
+ * @max 1.0
  * @decimal 2
  * @increment 0.01
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
+PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);
 
 /**
  * Minimum manual thrust
  *
  * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
+ * With MC_AIRMODE set to 1, this can safely be set to 0.
  *
  * @unit norm
  * @min 0.0
@@ -105,10 +103,7 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
 /**
  * Maximum manual thrust
  *
- * Limit max allowed thrust. Setting a value of one can put
- * the system into actuator saturation as no spread between
- * the motors is possible any more. A value of 0.8 - 0.9
- * is recommended.
+ * Limit max allowed thrust for Manual mode.
  *
  * @unit norm
  * @min 0.0
@@ -117,7 +112,7 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
  * @increment 0.01
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 0.9f);
+PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 1.0f);
 
 /**
  * Proportional gain for vertical position error
@@ -589,3 +584,15 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
+
+/**
+ * Flag to test flight tasks instead of legacy functionality
+ * Temporary Parameter during the transition to flight tasks
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Legacy Functionality
+ * @value 1 Test flight tasks
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_FLT_TSK, 0);

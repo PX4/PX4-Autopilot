@@ -1,59 +1,67 @@
+px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_test IO px4io-v2)
 
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_test)
+#set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
+	#drivers/barometer
+	drivers/differential_pressure
+	#drivers/magnetometer
+	#drivers/telemetry
+
+	#drivers/imu/adis16448
+	drivers/barometer/ms5611
+	#drivers/blinkm
+	#drivers/imu/bmi160
+	#drivers/barometer/bmp280
+	#drivers/bst
+	#drivers/camera_trigger
+	#drivers/frsky_telemetry
+	drivers/gps
+	#drivers/hott
+	#drivers/iridiumsbd
+	#drivers/irlock
+	drivers/imu/l3gd20
+	drivers/imu/lsm303d
+	drivers/magnetometer/hmc5883
+	drivers/magnetometer/lis3mdl
+	#drivers/mb12xx
+	#drivers/mkblctrl
+	drivers/imu/mpu6000
+	#drivers/imu/mpu9250
+	#drivers/oreoled
+	#drivers/protocol_splitter
+	#drivers/pwm_input
+	#drivers/pwm_out_sim
+	#drivers/px4flow
+	drivers/px4fmu
+	drivers/px4io
+	drivers/rgbled
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
-	drivers/px4fmu
-	drivers/px4io
-	drivers/boards
-	drivers/rgbled
-	drivers/imu/mpu6000
-#TO FIT	drivers/imu/mpu9250
-	drivers/imu/lsm303d
-	drivers/imu/l3gd20
-	drivers/hmc5883
-	#drivers/mb12xx
-	#drivers/srf02
-	#drivers/sf0x
-	#drivers/ll40ls
-	#drivers/teraranger
-	drivers/gps
-	#drivers/pwm_out_sim
-	#drivers/hott
-	drivers/blinkm
-	drivers/airspeed
-	drivers/barometer
-	drivers/differential_pressure
-	modules/sensors
-	#drivers/mkblctrl
-	drivers/px4flow
-	#drivers/oreoled
+	#drivers/tap_esc
 	#drivers/vmount
-	drivers/pwm_input
-	drivers/camera_trigger
-	#drivers/bst
-	#drivers/lis3mdl
-	drivers/tfmini
+
+	# distance sensors
+	modules/sensors
 
 	#
 	# System commands
 	#
-	systemcmds/bl_update
-	systemcmds/config
-	systemcmds/dumpfile
+	#systemcmds/bl_update
+	#systemcmds/config
+	#systemcmds/dumpfile
 	#systemcmds/esc_calib
-#TO FIT	systemcmds/hardfault_log
+	systemcmds/hardfault_log
+	#systemcmds/led_control
 	systemcmds/mixer
-	systemcmds/motor_ramp
+	#systemcmds/motor_ramp
+	#systemcmds/motor_test
 	systemcmds/mtd
-	systemcmds/nshterm
+	#systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
@@ -61,6 +69,7 @@ set(config_module_list
 	#systemcmds/sd_bench
 	systemcmds/top
 	#systemcmds/topic_listener
+	systemcmds/tune_control
 	systemcmds/ver
 
 	#
@@ -68,38 +77,44 @@ set(config_module_list
 	#
 	drivers/distance_sensor/sf0x/sf0x_tests
 	drivers/test_ppm
+	lib/controllib/controllib_test
 	#lib/rc/rc_tests
 	modules/commander/commander_tests
-	modules/mc_pos_control/mc_pos_control_tests
-	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
+	modules/mc_pos_control/mc_pos_control_tests
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
 	#
 	# General system control
 	#
+	modules/camera_feedback
 	modules/commander
-	modules/load_mon
-	modules/navigator
-	modules/mavlink
+	modules/events
 	#modules/gpio_led
-	#modules/uavcan
 	modules/land_detector
+	modules/load_mon
+	modules/mavlink
+	modules/navigator
+	#modules/uavcan
 
 	#
 	# Estimation modules
 	#
 	#modules/attitude_estimator_q
-	#modules/position_estimator_inav
+	#modules/ekf2
 	#modules/local_position_estimator
-	modules/ekf2
+	#modules/position_estimator_inav
+	#modules/landing_target_estimator
+	#modules/wind_estimator
 
 	#
 	# Vehicle Control
 	#
-	modules/fw_pos_control_l1
-	modules/fw_att_control
+	#modules/fw_att_control
+	#modules/fw_pos_control_l1
+	#modules/gnd_att_control
+	#modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
@@ -113,26 +128,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
 
 	#
 	# OBC challenge
@@ -145,9 +141,14 @@ set(config_module_list
 	#examples/rover_steering_control
 
 	#
+	# Segway
+	#
+	#examples/segway
+
+	#
 	# Demo apps
 	#
-	#examples/math_demo
+
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
 	#examples/px4_simple_app

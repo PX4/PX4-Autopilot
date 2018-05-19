@@ -42,13 +42,13 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <unistd.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
 #include <drivers/drv_hrt.h>
@@ -59,7 +59,7 @@
 static int _battery_sub = -1;
 static int _gps_sub = -1;
 static int _home_sub = -1;
-static int _sensor_sub = -1;
+static int _airdata_sub = -1;
 static int _airspeed_sub = -1;
 static int _esc_sub = -1;
 
@@ -75,7 +75,7 @@ init_sub_messages(void)
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_home_sub = orb_subscribe(ORB_ID(home_position));
-	_sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	_airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_esc_sub = orb_subscribe(ORB_ID(esc_status));
 }
@@ -132,9 +132,8 @@ void
 build_eam_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the current sensor values */
-	struct sensor_combined_s raw;
-	memset(&raw, 0, sizeof(raw));
-	orb_copy(ORB_ID(sensor_combined), _sensor_sub, &raw);
+	vehicle_air_data_s airdata = {};
+	orb_copy(ORB_ID(vehicle_air_data), _airdata_sub, &airdata);
 
 	/* get a local copy of the battery data */
 	struct battery_status_s battery;
@@ -149,12 +148,12 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	msg.eam_sensor_id = EAM_SENSOR_ID;
 	msg.sensor_text_id = EAM_SENSOR_TEXT_ID;
 
-	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
+	msg.temperature1 = (uint8_t)(airdata.baro_temp_celcius + 20);
 	msg.temperature2 = msg.temperature1 - BOARD_TEMP_OFFSET_DEG;
 
 	msg.main_voltage_L = (uint8_t)(battery.voltage_v * 10);
 
-	uint16_t alt = (uint16_t)(raw.baro_alt_meter + 500);
+	uint16_t alt = (uint16_t)(airdata.baro_alt_meter + 500);
 	msg.altitude_L = (uint8_t)alt & 0xff;
 	msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
 
@@ -209,11 +208,6 @@ build_gam_response(uint8_t *buffer, size_t *size)
 void
 build_gps_response(uint8_t *buffer, size_t *size)
 {
-	/* get a local copy of the current sensor values */
-	struct sensor_combined_s raw;
-	memset(&raw, 0, sizeof(raw));
-	orb_copy(ORB_ID(sensor_combined), _sensor_sub, &raw);
-
 	/* get a local copy of the battery data */
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));

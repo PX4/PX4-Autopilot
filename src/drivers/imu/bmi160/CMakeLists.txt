@@ -40,6 +40,5 @@ px4_add_module(
 		bmi160_gyro.cpp
 		bmi160_main.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

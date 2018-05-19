@@ -47,7 +47,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <poll.h>
 #include <termios.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -68,6 +67,7 @@
 #include "crtp.h"
 #include "syslink_main.h"
 #include "drv_deck.h"
+
 
 
 __BEGIN_DECLS
@@ -254,7 +254,8 @@ Syslink::open_serial(const char *dev)
 	tcgetattr(fd, &config);
 
 	// clear ONLCR flag (which appends a CR for every LF)
-	config.c_oflag &= ~ONLCR;
+	config.c_oflag = 0;
+	config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
 	// Disable hardware flow control
 	config.c_cflag &= ~CRTSCTS;
@@ -335,15 +336,16 @@ Syslink::task_main()
 
 	syslink_parse_init(&state);
 
-	// setup initial parameters
+	//setup initial parameters
 	update_params(true);
 
 	while (_task_running) {
-		int poll_ret = px4_poll(fds, 2, 1000);
+		int poll_ret = px4_poll(fds, 2, 500);
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
-			/* this means none of our providers is giving us data */
+			/* timeout: this means none of our providers is giving us data */
+
 		} else if (poll_ret < 0) {
 			/* this is seriously bad - should be an emergency */
 			if (error_counter < 10 || error_counter % 50 == 0) {
@@ -373,6 +375,7 @@ Syslink::task_main()
 				update_params(false);
 			}
 		}
+
 	}
 
 	close(_fd);
@@ -459,7 +462,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		PX4_INFO("GOT %d", msg->type);
 	}
 
-	// Send queued messages
+	//Send queued messages
 	if (!_queue.empty()) {
 		_queue.get(msg, sizeof(syslink_message_t));
 		send_message(msg);
@@ -705,7 +708,6 @@ Syslink::send_bytes(const void *data, size_t len)
 {
 	// TODO: This could be way more efficient
 	//       Using interrupts/DMA/polling would be much better
-
 	for (size_t i = 0; i < len; i++) {
 		// Block until we can send a byte
 		while (px4_arch_gpioread(GPIO_NRF_TXEN)) ;

@@ -79,6 +79,7 @@ void* send(void* /*unused*/)
     uint64_t sent = 0, total_sent = 0;
     int loop = 0, read = 0;
     uint32_t length = 0;
+    uint16_t header_length = 0;
 
     /* subscribe to topics */
     int fds[@(len(send_topics))] = {};
@@ -91,7 +92,8 @@ void* send(void* /*unused*/)
 
     // microBuffer to serialized using the user defined buffer
     struct microBuffer microBufferWriter;
-    initStaticAlignedBuffer(data_buffer, BUFFER_SIZE, &microBufferWriter);
+    header_length=transport_node->get_header_length();
+    initStaticAlignedBuffer(&data_buffer[header_length], BUFFER_SIZE-header_length, &microBufferWriter);
     // microCDR structs for managing the microBuffer
     struct microCDR microCDRWriter;
     initMicroCDR(&microCDRWriter, &microBufferWriter);
@@ -110,7 +112,9 @@ void* send(void* /*unused*/)
             struct @(topic)_s data;
             // copy raw data into local buffer
             if (orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data) == 0) {
-                serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
+                /* payload is shifted by header length to make room for header*/
+                serialize_@(topic)(&data, &data_buffer[header_length], &length, &microCDRWriter);
+
                 if (0 < (read = transport_node->write((char)@(message_id(topic)), data_buffer, length)))
                 {
                     total_sent += read;

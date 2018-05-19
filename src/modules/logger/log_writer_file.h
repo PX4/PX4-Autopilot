@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <drivers/drv_hrt.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 namespace px4
 {
@@ -112,6 +112,8 @@ public:
 	{
 		return _need_reliable_transfer;
 	}
+
+	pthread_t thread_id() const { return _thread; }
 
 private:
 	static void *run_helper(void *);

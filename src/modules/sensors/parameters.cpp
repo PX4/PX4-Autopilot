@@ -368,7 +368,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	parameters.rc_flt_smp_rate = math::max(1.0f, parameters.rc_flt_smp_rate);
 	param_get(parameter_handles.rc_flt_cutoff, &(parameters.rc_flt_cutoff));
 	/* make sure the filter is in its stable region -> fc < fs/2 */
-	parameters.rc_flt_cutoff = math::constrain(parameters.rc_flt_cutoff, 0.1f, (parameters.rc_flt_smp_rate / 2) - 1.f);
+	parameters.rc_flt_cutoff = math::min(parameters.rc_flt_cutoff, (parameters.rc_flt_smp_rate / 2) - 1.f);
 
 	/* Airspeed offset */
 	param_get(parameter_handles.diff_pres_offset_pa, &(parameters.diff_pres_offset_pa));

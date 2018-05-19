@@ -30,15 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__linux_gpio
-	STACK_MAIN 1200
-	COMPILE_FLAGS
-	SRCS
-		linux_gpio.cpp
-	DEPENDS
-		platforms__common
+
+px4_add_library(drivers__linux_gpio
+	linux_gpio.cpp
 	)
 
 #add_subdirectory(test)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

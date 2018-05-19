@@ -41,8 +41,8 @@
 #include "takeoff.h"
 #include "navigator.h"
 
-Takeoff::Takeoff(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name)
+Takeoff::Takeoff(Navigator *navigator) :
+	MissionBlock(navigator)
 {
 }
 
@@ -96,9 +96,12 @@ Takeoff::set_takeoff_position()
 
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
 		if (abs_altitude < min_abs_altitude) {
+			if (abs_altitude < min_abs_altitude - 0.1f) { // don't complain if difference is smaller than 10cm
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+						     "Using minimum takeoff altitude: %.2f m", (double)_navigator->get_takeoff_min_alt());
+			}
+
 			abs_altitude = min_abs_altitude;
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-					     "Using minimum takeoff altitude: %.2f m", (double)_navigator->get_takeoff_min_alt());
 		}
 
 	} else {

@@ -58,10 +58,6 @@ from px_generate_uorb_topic_helper import * # this is in Tools/
 
 uorb_struct = '%s_s'%spec.short_name
 topic_name = spec.short_name
-
-sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
-struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
-topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
 }@
 
 #include <px4_config.h>
@@ -102,9 +98,9 @@ def add_serialize_functions(fields, scope_name):
         if (not field.is_header):
             if (field.is_builtin):
                 if (not field.is_array):
-                    print("\tserialize"+str(get_serialization_type_name(field.type))+"(input->"+scope_name+str(field.name)+", microCDRWriter);")
+                    print("    serialize"+str(get_serialization_type_name(field.type))+"(input->"+scope_name+str(field.name)+", microCDRWriter);")
                 else:
-                    print("\tserialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);")
+                    print("    serialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);")
             else:
                 name = field.name
                 children_fields = get_children_fields(field.base_type, search_path)
@@ -120,10 +116,10 @@ def add_deserialize_functions(fields, scope_name):
         if (not field.is_header):
             if (field.is_builtin):
                 if (not field.is_array):
-                    print("\tdeserialize"+str(get_serialization_type_name(field.type))+"(&output->"+scope_name+str(field.name)+", microCDRReader);")
+                    print("    deserialize"+str(get_serialization_type_name(field.type))+"(&output->"+scope_name+str(field.name)+", microCDRReader);")
                 else:
                     for i in range(field.array_len):
-                        print("\tdeserialize"+str(get_serialization_type_name(field.base_type))+"(&output->"+scope_name+str(field.name)+ str('[%d]' %i) +", microCDRReader);")
+                        print("    deserialize"+str(get_serialization_type_name(field.base_type))+"(&output->"+scope_name+str(field.name)+ str('[%d]' %i) +", microCDRReader);")
             else:
                 name = field.name
                 children_fields = get_children_fields(field.base_type, search_path)
@@ -151,6 +147,7 @@ void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, u
 
     resetStaticMicroCDRForSerialize(microCDRWriter);
 
+    serializeUnsignedLong(input->timestamp, microCDRWriter);
 @add_code_to_serialize()
 
     (*length) = microCDRWriter->m_microBuffer->m_serializedBuffer;
@@ -162,5 +159,6 @@ void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input, struc
 
     resetStaticMicroCDRForDeserialize(microCDRReader);
 
+    deserializeUnsignedLong(&output->timestamp, microCDRReader);
 @add_code_to_deserialize()
 }

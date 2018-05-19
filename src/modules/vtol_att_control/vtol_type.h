@@ -45,11 +45,11 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
 	int32_t vtol_motor_count;		// number of motors
-	float fw_pitch_trim;		// trim for neutral elevon position in fw mode
 	int32_t vtol_type;
 	bool elevons_mc_lock;		// lock elevons in multicopter mode
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
@@ -61,6 +61,16 @@ struct Params {
 	bool wv_takeoff;
 	bool wv_loiter;
 	bool wv_land;
+	float front_trans_duration;
+	float back_trans_duration;
+	float transition_airspeed;
+	float front_trans_throttle;
+	float back_trans_throttle;
+	float airspeed_blend;
+	bool airspeed_disabled;
+	float front_trans_timeout;
+	float mpc_xy_cruise;
+	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
@@ -77,6 +87,25 @@ enum vtol_type {
 	STANDARD
 };
 
+// these are states that can be applied to a selection of multirotor motors.
+// e.g. if we need to shut off some motors after transitioning to fixed wing mode
+// we can individually disable them while others might still need to be enabled to produce thrust.
+// we can select the target motors via VT_FW_MOT_OFFID
+enum motor_state {
+	ENABLED = 0,		// motor max pwm will be set to the standard max pwm value
+	DISABLED,			// motor max pwm will be set to a value that shuts the motor off
+	IDLE,				// motor max pwm will be set to VT_IDLE_PWM_MC
+	VALUE 				// motor max pwm will be set to a specific value provided, see set_motor_state()
+};
+
+/**
+ * @brief      Used to specify if min or max pwm values should be altered
+ */
+enum pwm_limit_type {
+	TYPE_MINIMUM = 0,
+	TYPE_MAXIMUM
+};
+
 class VtolAttitudeControl;
 
 class VtolType
@@ -88,6 +117,11 @@ public:
 	VtolType &operator=(const VtolType &) = delete;
 
 	virtual ~VtolType();
+
+	/**
+	 * Initialise.
+	 */
+	bool init();
 
 	/**
 	 * Update vtol state.
@@ -130,8 +164,7 @@ public:
 	 */
 	bool can_transition_on_ground();
 
-	void set_idle_mc();
-	void set_idle_fw();
+
 
 	mode get_mode() {return _vtol_mode;}
 
@@ -159,7 +192,7 @@ protected:
 
 	struct Params 					*_params;
 
-	bool flag_idle_mc = true;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
+	bool flag_idle_mc = false;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 
 	bool _pusher_active = false;
 	float _mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
@@ -174,9 +207,72 @@ protected:
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
+
 	hrt_abstime _trans_finished_ts = 0;
+
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
+
+	motor_state _motor_state = motor_state::DISABLED;
+
+
+
+	/**
+	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
+	 *             that they are spinning in mc mode.
+	 *
+	 * @return     true on success
+	 */
+	bool set_idle_mc();
+
+	/**
+	 * @brief      Sets mc motor minimum pwm to PWM_MIN which ensures that the
+	 *             motors stop spinning on zero throttle in fw mode.
+	 *
+	 * @return     true on success
+	 */
+	bool set_idle_fw();
+
+
+	/**
+	 * @brief      Sets state of a selection of motors, see struct motor_state
+	 *
+	 * @param[in]  current_state  The current motor state
+	 * @param[in]  next_state     The next state
+	 * @param[in]  value          Desired pwm value if next_state =
+	 *                            motor_state::VALUE
+	 *
+	 * @return     next_state if succesfull, otherwise current_state
+	 */
+	motor_state set_motor_state(const motor_state current_state, const motor_state next_state, const int value = 0);
+
+private:
+
+
+	/**
+	 * @brief      Stores the max pwm values given by the system.
+	 */
+	struct pwm_output_values _max_mc_pwm_values {};
+	struct pwm_output_values _disarmed_pwm_values {};
+
+	/**
+	 * @brief      Adjust minimum/maximum pwm values for the output channels.
+	 *
+	 * @param      pwm_output_values  Struct containing the limit values for each channel
+	 * @param[in]  type               Specifies if min or max limits are adjusted.
+	 *
+	 * @return     True on success.
+	 */
+	bool apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_type type);
+
+	/**
+	 * @brief      Determines if this channel is one selected by VT_FW_MOT_OFFID
+	 *
+	 * @param[in]  channel  The channel
+	 *
+	 * @return     True if motor off channel, False otherwise.
+	 */
+	bool is_motor_off_channel(const int channel);
 
 };
 

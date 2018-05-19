@@ -11,20 +11,16 @@ set(config_module_list
 	drivers/differential_pressure
 	drivers/distance_sensor
 	#drivers/magnetometer
-	drivers/telemetry
+	#drivers/telemetry
 
-	drivers/device
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/imu/lsm303d
 	drivers/imu/l3gd20
 	drivers/gps
 	drivers/pwm_out_sim
-	drivers/airspeed
 	modules/sensors
 	#drivers/pwm_input
 	#drivers/camera_trigger
@@ -83,10 +79,10 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	modules/fw_att_control
-	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
+	#modules/fw_att_control
+	#modules/fw_pos_control_l1
+	#modules/gnd_att_control
+	#modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
@@ -100,27 +96,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
 
 	#
 	# OBC challenge

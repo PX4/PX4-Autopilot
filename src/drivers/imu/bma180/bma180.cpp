@@ -38,6 +38,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <ecl/geo/geo.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -53,7 +54,7 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -575,7 +576,7 @@ BMA180::set_range(unsigned max_g)
 	}
 
 	/* set new range scaling factor */
-	_accel_range_m_s2 = _current_range * 9.80665f;
+	_accel_range_m_s2 = _current_range * CONSTANTS_ONE_G;
 	_accel_range_scale = _accel_range_m_s2 / 8192.0f;
 
 	/* enable writing to chip config */
@@ -838,18 +839,7 @@ test()
 		err(1, "immediate acc read failed");
 	}
 
-	warnx("single read");
-	warnx("time:     %lld", a_report.timestamp);
-	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
-	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
-	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-	warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
-	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
-	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
-	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-	      (double)(a_report.range_m_s2 / 9.81f));
-
-	/* XXX add poll-rate tests here too */
+	print_message(a_report);
 
 	reset();
 	errx(0, "PASS");

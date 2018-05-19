@@ -141,9 +141,9 @@
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <conversion/rotation.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_attitude.h>

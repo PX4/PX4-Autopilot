@@ -72,7 +72,7 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -134,7 +134,7 @@ public:
 	/**
 	 * task spawn trampoline for the secondary GPS
 	 */
-	static void run_trampoline_secondary(int argc, char *argv[]);
+	static int run_trampoline_secondary(int argc, char *argv[]);
 
 	/** @see ModuleBase::run() */
 	void run() override;
@@ -530,8 +530,8 @@ int GPS::setBaudrate(unsigned baud)
 	//
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
-	/* no parity, one stop bit */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+	/* no parity, one stop bit, disable flow control */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
 
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
@@ -873,19 +873,10 @@ GPS::print_status()
 	}
 
 	PX4_INFO("port: %s, baudrate: %d, status: %s", _port, _baudrate, _healthy ? "OK" : "NOT OK");
-	PX4_INFO("sat info: %s, noise: %d, jamming detected: %s",
-		 (_p_report_sat_info != nullptr) ? "enabled" : "disabled",
-		 _report_gps_pos.noise_per_ms,
-		 _report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
+	PX4_INFO("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
 
 	if (_report_gps_pos.timestamp != 0) {
-		PX4_INFO("position lock: %d, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
-			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp) / 1000.0);
-		PX4_INFO("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
-		PX4_INFO("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
-			 (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
-		PX4_INFO("hdop: %.2f, vdop: %.2f", (double)_report_gps_pos.hdop, (double)_report_gps_pos.vdop);
-		PX4_INFO("eph: %.2fm, epv: %.2fm", (double)_report_gps_pos.eph, (double)_report_gps_pos.epv);
+		print_message(_report_gps_pos);
 
 		if (_helper) {
 			PX4_INFO("rate position: \t\t%6.2f Hz", (double)_helper->getPositionUpdateRate());
@@ -1006,7 +997,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 	return 0;
 }
 
-void GPS::run_trampoline_secondary(int argc, char *argv[])
+int GPS::run_trampoline_secondary(int argc, char *argv[])
 {
 
 #ifdef __PX4_NUTTX
@@ -1023,6 +1014,7 @@ void GPS::run_trampoline_secondary(int argc, char *argv[])
 		_secondary_instance = nullptr;
 		delete gps;
 	}
+	return 0;
 }
 GPS *GPS::instantiate(int argc, char *argv[])
 {

@@ -12,13 +12,14 @@ int16 RELATIVE_TIMESTAMP_INVALID = 32767 # (0x7fff) If one of the relative times
 # *_timestamp_rel = absolute timestamp). For int16, this allows a maximum
 # difference of +-3.2s to the sensor_combined topic.
 
-
+int16 airspeed_timestamp_rel
+int16 distance_sensor_timestamp_rel
 int16 gps_timestamp_rel
 int16 optical_flow_timestamp_rel
-int16 distance_sensor_timestamp_rel
-int16 airspeed_timestamp_rel
-int16 vision_position_timestamp_rel
+int16 vehicle_air_data_timestamp_rel
+int16 vehicle_magnetometer_timestamp_rel
 int16 vision_attitude_timestamp_rel
+int16 vision_position_timestamp_rel
 
 # Note: this is a high-rate logged topic, so it needs to be as small as possible
 

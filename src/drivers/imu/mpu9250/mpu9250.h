@@ -33,7 +33,7 @@
 
 #include <stdint.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/conversions.h>
 
 #include <nuttx/wqueue.h>
@@ -188,9 +188,7 @@
 #define MPU9250_GYRO_MAX_OUTPUT_RATE			MPU9250_ACCEL_MAX_OUTPUT_RATE
 #define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
 
-#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	41
-
-#define MPU9250_ONE_G					9.80665f
+#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	92
 
 #define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
 
@@ -233,14 +231,11 @@ struct MPUReport {
 #  define MPU9250_LOW_SPEED_OP(r)			MPU9250_REG((r))
 
 /* interface factories */
-extern device::Device *MPU9250_SPI_interface(int bus, bool external_bus);
-extern device::Device *MPU9250_I2C_interface(int bus, bool external_bus);
+extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
+extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
 extern int MPU9250_probe(device::Device *dev, int device_type);
 
-typedef device::Device *(*MPU9250_constructor)(int, bool);
-
-
-
+typedef device::Device *(*MPU9250_constructor)(int, uint32_t, bool);
 
 class MPU9250_mag;
 class MPU9250_gyro;
@@ -322,7 +317,6 @@ private:
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
-	perf_counter_t		_controller_latency_perf;
 
 	uint8_t			_register_wait;
 	uint64_t		_reset_wait;

@@ -52,9 +52,7 @@ MavlinkStream::MavlinkStream(Mavlink *mavlink) :
 {
 }
 
-MavlinkStream::~MavlinkStream()
-{
-}
+MavlinkStream::~MavlinkStream() = default;
 
 /**
  * Set messages interval in ms
@@ -71,15 +69,19 @@ MavlinkStream::set_interval(const int interval)
 int
 MavlinkStream::update(const hrt_abstime t)
 {
+	update_data();
+
 	// If the message has never been sent before we want
 	// to send it immediately and can return right away
 	if (_last_sent == 0) {
 		// this will give different messages on the same run a different
 		// initial timestamp which will help spacing them out
 		// on the link scheduling
-		_last_sent = hrt_absolute_time();
 #ifndef __PX4_QURT
-		(void)send(t);
+		if (send(t)) {
+			_last_sent = hrt_absolute_time();
+		}
+
 #endif
 		return 0;
 	}
@@ -114,11 +116,12 @@ MavlinkStream::update(const hrt_abstime t)
 		sent = send(t);
 #endif
 
-		// If the interval is non-zero do not use the actual time but
-		// increment at a fixed rate, so that processing delays do not
-		// distort the average rate
+		// If the interval is non-zero and dt is smaller than 1.5 times the interval
+		// do not use the actual time but increment at a fixed rate, so that processing delays do not
+		// distort the average rate. The check of the maximum interval is done to ensure that after a
+		// long time not sending anything, sending multiple messages in a short time is avoided.
 		if (sent) {
-			_last_sent = (interval > 0) ? _last_sent + interval : t;
+			_last_sent = ((interval > 0) && ((int64_t)(1.5f * interval) > dt)) ? _last_sent + interval : t;
 			return 0;
 
 		} else {

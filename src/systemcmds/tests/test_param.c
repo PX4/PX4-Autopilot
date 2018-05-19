@@ -40,7 +40,7 @@
 #include <px4_defines.h>
 #include <stdio.h>
 #include "systemlib/err.h"
-#include "systemlib/param/param.h"
+#include <parameters/param.h>
 #include "tests_main.h"
 
 #define PARAM_MAGIC1 12345678

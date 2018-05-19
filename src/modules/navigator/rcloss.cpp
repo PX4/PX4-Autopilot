@@ -44,7 +44,7 @@
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 
 #include <uORB/uORB.h>
 #include <navigator/navigation.h>
@@ -53,9 +53,9 @@
 #include "navigator.h"
 #include "datalinkloss.h"
 
-RCLoss::RCLoss(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_loitertime(this, "LT"),
+RCLoss::RCLoss(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator),
 	_rcl_state(RCL_STATE_NONE)
 {
 }

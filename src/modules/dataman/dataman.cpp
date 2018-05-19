@@ -60,7 +60,7 @@
 #include <drivers/drv_hrt.h>
 
 #include "dataman.h"
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #if defined(FLASH_BASED_DATAMAN)
 #include <nuttx/clock.h>
@@ -114,7 +114,7 @@ typedef struct dm_operations_t {
 	int (*wait)(px4_sem_t *sem);
 } dm_operations_t;
 
-static dm_operations_t dm_file_operations = {
+static constexpr dm_operations_t dm_file_operations = {
 	.write   = _file_write,
 	.read    = _file_read,
 	.clear   = _file_clear,
@@ -124,7 +124,7 @@ static dm_operations_t dm_file_operations = {
 	.wait = px4_sem_wait,
 };
 
-static dm_operations_t dm_ram_operations = {
+static constexpr dm_operations_t dm_ram_operations = {
 	.write   = _ram_write,
 	.read    = _ram_read,
 	.clear   = _ram_clear,
@@ -135,7 +135,7 @@ static dm_operations_t dm_ram_operations = {
 };
 
 #if defined(FLASH_BASED_DATAMAN)
-static dm_operations_t dm_ram_flash_operations = {
+static constexpr dm_operations_t dm_ram_flash_operations = {
 	.write   = _ram_flash_write,
 	.read    = _ram_flash_read,
 	.clear   = _ram_flash_clear,
@@ -146,7 +146,7 @@ static dm_operations_t dm_ram_flash_operations = {
 };
 #endif
 
-static dm_operations_t *g_dm_ops;
+static const dm_operations_t *g_dm_ops;
 
 static struct {
 	union {
@@ -227,7 +227,7 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 #define DM_SECTOR_HDR_SIZE 4	/* data manager per item header overhead */
 
 /* Table of the len of each item type */
-static const unsigned g_per_item_size[DM_KEY_NUM_KEYS] = {
+static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 	sizeof(struct mission_save_point_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_fence_point_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
@@ -612,11 +612,14 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 static ssize_t
 _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 {
+	if (item >= DM_KEY_NUM_KEYS) {
+		return -1;
+	}
+
 	unsigned char buffer[g_per_item_size[item]];
-	int len, offset;
 
 	/* Get the offset for this item */
-	offset = calculate_offset(item, index);
+	int offset = calculate_offset(item, index);
 
 	/* If item type or index out of range, return error */
 	if (offset < 0) {
@@ -629,7 +632,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	}
 
 	/* Read the prefix and data */
-	len = -1;
+	int len = -1;
 
 	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) == offset) {
 		len = read(dm_operations_data.file.fd, buffer, count + DM_SECTOR_HDR_SIZE);

@@ -39,7 +39,7 @@ then
 	param set FW_RR_IMAX 0.2
 	param set FW_RR_P 0.08
 	param set FW_R_LIM 50
-	param set FW_R_RMAX 0
+	param set FW_R_RMAX 50
 	# Bottom of bay and nominal zero-pitch attitude differ
 	# the payload bay is pitched up about 7 degrees
 	param set SENS_BOARD_Y_OFF 7.0

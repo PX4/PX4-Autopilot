@@ -13,13 +13,10 @@ set(config_module_list
 	drivers/magnetometer
 	drivers/telemetry
 
-	drivers/device
 	drivers/samv7
 #WIP 	drivers/samv7/adc
 	drivers/samv7/tone_alarm
-	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/rgbled
 	drivers/imu/mpu6000
 	drivers/imu/mpu9250
@@ -28,7 +25,6 @@ set(config_module_list
 	drivers/gps
 #WIP 	drivers/pwm_out_sim
 	drivers/blinkm
-	drivers/airspeed
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
@@ -72,6 +68,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
 	modules/local_position_estimator
+	modules/landing_target_estimator
 	modules/ekf2
 
 	#
@@ -93,26 +90,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/terrain_estimation
-	lib/version
 
 	#
 	# OBC challenge

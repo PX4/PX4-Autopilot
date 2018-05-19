@@ -8,80 +8,40 @@ import re
 # This script is run from Build/<target>_default.build/$(PX4_BASE)/Firmware/src/systemcmds/topic_listener
 
 # argv[1] must be the full path of the top Firmware dir
+# argv[2] (optional) is the full path to the EXTERNAL_MODULES_LOCATION
 
 raw_messages = glob.glob(sys.argv[1]+"/msg/*.msg")
+if len(sys.argv) > 2:
+	external_raw_messages = glob.glob(sys.argv[2]+"/msg/*.msg")
+	raw_messages += external_raw_messages # Append the msgs defined in the EXTERNAL_MODULES_LOCATION to the normal msg list
 messages = []
 topics = []
 message_elements = []
 
+# large and not worth printing
+raw_messages = [x for x in raw_messages if not any(exception in x for exception in ['qshell_req', 'ulog_stream', 'gps_inject_data', 'gps_dump'])]
 
 for index,m in enumerate(raw_messages):
-	temp_list_floats = []
-	temp_list_uint64 = []
-	temp_list_bool = []
-	if("pwm_input" not in m and "position_setpoint" not in m):
-		temp_list = []
-		topic_list = []
-		f = open(m,'r')
-		for line in f.readlines():
-			items = re.split('\s+', line.strip())
+	topic_list = []
+	f = open(m,'r')
+	for line in f.readlines():
+		items = re.split('\s+', line.strip())
 
-			if ('float32[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("float_array",items[1],num_floats))
-			elif ('float64[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("double_array",items[1],num_floats))
-			elif ('uint64[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("uint64_array",items[1],num_floats))
-			elif ('uint16[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("uint16_array",items[1],num_floats))
-			elif ('int32[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("int32_array",items[1],num_floats))
-			elif ('int16[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("int16_array",items[1],num_floats))
-			elif(items[0] == "float32"):
-				temp_list.append(("float",items[1]))
-			elif(items[0] == "float64"):
-				temp_list.append(("double",items[1]))
-			elif(items[0] == "uint64") and len(line.split('=')) == 1:
-				temp_list.append(("uint64",items[1]))
-			elif(items[0] == "uint32") and len(line.split('=')) == 1:
-				temp_list.append(("uint32",items[1]))
-			elif(items[0] == "uint16") and len(line.split('=')) == 1:
-				temp_list.append(("uint16",items[1]))
-			elif(items[0] == "int64") and len(line.split('=')) == 1:
-				temp_list.append(("int64",items[1]))
-			elif(items[0] == "int32") and len(line.split('=')) == 1:
-				temp_list.append(("int32",items[1]))
-			elif(items[0] == "int16") and len(line.split('=')) == 1:
-				temp_list.append(("int16",items[1]))
-			elif (items[0] == "bool") and len(line.split('=')) == 1:
-				temp_list.append(("bool",items[1]))
-			elif (items[0] == "uint8") and len(line.split('=')) == 1:
-				temp_list.append(("uint8",items[1]))
-			elif (items[0] == "int8") and len(line.split('=')) == 1:
-				temp_list.append(("int8",items[1]))
-			elif '# TOPICS' == ' '.join(items[:2]):
-				for topic in items[2:]:
-					topic_list.append(topic)
+		if '# TOPICS' == ' '.join(items[:2]):
+			for topic in items[2:]:
+				topic_list.append(topic)
 
-		f.close()
+	f.close()
 
-		(m_head, m_tail) = os.path.split(m)
-		message = m_tail.split('.')[0]
+	(m_head, m_tail) = os.path.split(m)
+	message = m_tail.split('.')[0]
 
-		if len(topic_list) == 0:		
-			topic_list.append(message)
+	if len(topic_list) == 0:
+		topic_list.append(message)
 
-		for topic in topic_list:
-			messages.append(message)
-			topics.append(topic)
-			message_elements.append(temp_list)
+	for topic in topic_list:
+		messages.append(message)
+		topics.append(topic)
 
 num_messages = len(messages);
 
@@ -190,81 +150,22 @@ print("}\n")
 
 for index, (m, t) in enumerate(zip(messages, topics)):
 	print("void listen_%s(unsigned num_msgs, unsigned topic_instance) {" % t)
-	print("\tint sub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % t)
 	print("\torb_id_t ID = ORB_ID(%s);" % t)
-	print("\tstruct %s_s container;" % m)
-	print("\tmemset(&container, 0, sizeof(container));")
-	print("\tbool updated;")
+	print("\tif (orb_exists(ID, topic_instance) != 0) { printf(\"never published\\n\"); return; }")
+	print("\tint sub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % t)
+	print("\tbool updated = false;")
 	print("\tunsigned i = 0;")
 	print("\thrt_abstime start_time = hrt_absolute_time();")
 	print("\twhile(i < num_msgs) {")
-	print("\t\torb_check(sub,&updated);")
+	print("\t\torb_check(sub, &updated);")
 	print("\t\tif (i == 0) { updated = true; } else { usleep(500); }")
 	print("\t\tif (updated) {")
-	print("\t\tstart_time = hrt_absolute_time();")
-	print("\t\ti++;")
+	print("\t\t\tstart_time = hrt_absolute_time();")
+	print("\t\t\ti++;")
 	print("\t\tprintf(\"\\nTOPIC: %s instance %%d #%%d\\n\", topic_instance, i);" % t)
-	print("\t\torb_copy(ID,sub,&container);")
-	print("\t\tprintf(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);")
-	for item in message_elements[index]:
-		if item[0] == "float":
-			print("\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
-		elif item[0] == "float_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "double":
-			print("\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
-		elif item[0] == "double_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "uint64":
-			print("\t\tprintf(\"%s: %%\" PRIu64 \"\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint64_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%\" PRIu64 \" \",container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "uint16_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%u \",container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "int32_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%d \",container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "int16_array":
-			print("\t\tprintf(\"%s: \");" % item[1])
-			print("\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\tprintf(\"%%d \",container.%s[j]);" % item[1])
-			print("\t\t}")
-			print("\t\tprintf(\"\\n\");")
-		elif item[0] == "int64":
-			print("\t\tprintf(\"%s: %%\" PRId64 \"\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "int32":
-			print("\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint32":
-			print("\t\tprintf(\"%s: %%u\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "int16":
-			print("\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint16":
-			print("\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
-		elif item[0] == "int8":
-			print("\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint8":
-			print("\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
-		elif item[0] == "bool":
-			print("\t\tprintf(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");" % (item[1], item[1]))
+	print("\t\t%s_s container = {};" % m)
+	print("\t\torb_copy(ID, sub, &container);")
+	print("\t\tprint_message(container);")
 	print("\t\t} else {")
 	print("\t\t\tif (check_timeout(start_time)) {")
 	print("\t\t\t\tbreak;")

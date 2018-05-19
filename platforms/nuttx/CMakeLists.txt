@@ -42,7 +42,7 @@ endif()
 add_executable(${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 add_dependencies(${FW_NAME} git_nuttx nuttx_build)
 
-get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 # build NuttX
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
@@ -76,24 +76,43 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
 
-target_link_libraries(${FW_NAME}
+target_link_libraries(nuttx_arch
+	INTERFACE
+		drivers_board
+		drivers_arch
+		drivers_boards_common
+		drivers_boards_common_arch
+)
+
+target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
+target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
+
+target_link_libraries(${FW_NAME} PRIVATE
+
+	-nodefaultlibs
+	-nostdlib
+
+	-fno-exceptions
+	-fno-rtti
 
 	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
 	-Wl,-Map=${CONFIG}.map
-	-Wl,--warn-common,--gc-sections
+	-Wl,--warn-common
+	-Wl,--gc-sections
 
 	-Wl,--start-group
-		${module_libraries}
-		${nuttx_libs}
+	${nuttx_libs}
 	-Wl,--end-group
 
 	m
-	gcc
 	)
+
+target_link_libraries(${FW_NAME} PRIVATE ${module_libraries})
+target_link_libraries(${FW_NAME} PRIVATE modules__uORB)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
-	target_link_libraries(${FW_NAME} romfs)
+	target_link_libraries(${FW_NAME} PRIVATE romfs)
 endif()
 
 # create px4 file (combined firmware and metadata)
@@ -149,6 +168,10 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			list(APPEND serial_ports
 				/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
 				)
+		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
+			list(APPEND serial_ports
+				/dev/ttyS*
+				)
 		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
 			foreach(port RANGE 32 0)
 				list(APPEND serial_ports
@@ -171,14 +194,73 @@ add_custom_target(size
 	COMMAND size ${FW_NAME}
 	DEPENDS ${FW_NAME}
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
 	)
 
 # print weak symbols
-add_custom_target(check_weak
-	COMMAND ${NM} ${FW_NAME} | ${GREP} " w " | cat
+add_custom_target(weak_symbols
+	COMMAND ${CMAKE_NM} $<TARGET_FILE:${FW_NAME}> | ${GREP} " w " | cat
 	DEPENDS ${FW_NAME}
 	VERBATIM
+	USES_TERMINAL
 	)
+
+add_custom_target(stack_check
+	COMMAND ${CMAKE_COMMAND} -E make_directory stack_usage && ${CMAKE_OBJDUMP} -d $<TARGET_FILE:${FW_NAME}> | ${PX4_SOURCE_DIR}/Tools/stack_usage/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo "Top 50:"
+	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
+	COMMAND head -n 50 stack_usage/checkstack_output.txt | c++filt
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo "Symbols with 'run', 'task', 'thread', 'main', 'update':"
+	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
+    COMMAND cat stack_usage/checkstack_output.txt | c++filt | grep -E 'run|task|thread|main|update'
+	DEPENDS ${FW_NAME}
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	VERBATIM
+	)
+
+find_program(BLOATY_PROGRAM bloaty)
+if (BLOATY_PROGRAM)
+	# bloaty symbols
+	add_custom_target(bloaty_symbols
+		COMMAND ${BLOATY_PROGRAM} -d symbols -C full -n 50 -s vm $<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		USES_TERMINAL
+		)
+
+	# bloaty compilation units
+	add_custom_target(bloaty_compileunits
+		COMMAND ${BLOATY_PROGRAM} -d compileunits -C full -n 50 -s vm $<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		USES_TERMINAL
+		)
+
+	# bloaty templates
+	add_custom_target(bloaty_templates
+		COMMAND ${BLOATY_PROGRAM} -d shortsymbols,fullsymbols -n 50 $<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		USES_TERMINAL
+		)
+
+	# bloaty inlines
+	add_custom_target(bloaty_inlines
+		COMMAND ${BLOATY_PROGRAM} -d inlines -C full -n 50 $<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		USES_TERMINAL
+		)
+
+	# bloaty compare with last master build
+	add_custom_target(bloaty_compare_master
+		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${FW_NAME} -O master_${FW_NAME}
+		COMMAND ${BLOATY_PROGRAM} -d symbols -n 50 -C full -s vm $<TARGET_FILE:${FW_NAME}> -- master_${FW_NAME}
+		DEPENDS ${FW_NAME}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		VERBATIM
+		USES_TERMINAL
+		)
+endif()
 
 # debugger helpers
 configure_file(gdbinit.in .gdbinit)
@@ -186,29 +268,11 @@ configure_file(gdbinit.in .gdbinit)
 add_custom_target(debug
 	COMMAND ${GDB} $<TARGET_FILE:${FW_NAME}>
 	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	USES_TERMINAL
 	)
-
-add_custom_target(debug_tui
-	COMMAND ${GDBTUI} $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_ddd
-	COMMAND ${DDD} --debugger ${GDB} $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io
-	COMMAND ${GDB} ${fw_io_path}
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io_tui
-	COMMAND ${GDBTUI} ${fw_io_path}
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
-
-add_custom_target(debug_io_ddd
-	COMMAND ${DDD} --debugger ${GDB} ${fw_io_path}}
-	DEPENDS ${fw_io} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	
+add_custom_target(profile
+	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
+	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh
+	USES_TERMINAL
 	)

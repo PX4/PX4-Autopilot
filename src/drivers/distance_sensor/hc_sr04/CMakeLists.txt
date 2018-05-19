@@ -39,5 +39,4 @@ px4_add_module(
 	SRCS
 		hc_sr04.cpp
 	DEPENDS
-		platforms__common
 	)

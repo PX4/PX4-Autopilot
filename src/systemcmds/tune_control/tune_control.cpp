@@ -71,6 +71,8 @@ usage()
 		"\t-d <duration>\t\tDuration of the tone in us\n"
 		"\t-s <strength>\t\tStrength of the tone between 0-100\n"
 		"\t-m <melody>\t\tMelody in a string form ex: \"MFT200e8a8a\"\n"
+		"\n"
+		"tune_control stop \t\tStops playback, useful for repeated tunes\n"
 	);
 }
 
@@ -98,7 +100,7 @@ tune_control_main(int argc, char *argv[])
 	unsigned int value;
 	tune_control_s tune_control = {};
 	tune_control.tune_id = 0;
-	tune_control.strength = 40;
+	tune_control.strength = tune_control_s::STRENGTH_NORMAL;
 
 	while ((ch = px4_getopt(argc, argv, "f:d:t:m:s:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -145,13 +147,13 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 's':
-			value = (uint16_t)(strtol(myoptarg, nullptr, 0));
+			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
 
 			if (value > 0 && value < 100) {
 				tune_control.strength = value;
 
 			} else {
-				tune_control.strength = 40;
+				tune_control.strength = tune_control_s::STRENGTH_NORMAL;
 			}
 
 			break;
@@ -169,23 +171,25 @@ tune_control_main(int argc, char *argv[])
 	}
 
 	unsigned frequency, duration, silence;
+	uint8_t strength;
 	int exit_counter = 0;
 
 	if (!strcmp(argv[myoptind], "play")) {
 		if (string_input) {
 			PX4_INFO("Start playback...");
-			tunes.set_string(tune_string);
+			tunes.set_string(tune_string, tune_control.strength);
 
-			while (tunes.get_next_tune(frequency, duration, silence) > 0) {
+			while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
 				tune_control.tune_id = 0;
 				tune_control.frequency = (uint16_t)frequency;
 				tune_control.duration = (uint32_t)duration;
 				tune_control.silence = (uint32_t)silence;
+				tune_control.strength = (uint8_t)strength;
 				publish_tune_control(tune_control);
 				usleep(duration + silence);
 				exit_counter++;
 
-				// exit if the loop is doing more thatn 50 iteration
+				// exit if the loop is doing too many iterations
 				if (exit_counter > MAX_NOTE_ITERATION) {
 					break;
 				}
@@ -193,7 +197,7 @@ tune_control_main(int argc, char *argv[])
 
 			PX4_INFO("Playback finished.");
 
-		} else {
+		} else {  // tune id instead of string has been provided
 			if (tune_control.tune_id == 0) {
 				tune_control.tune_id = 1;
 			}
@@ -203,20 +207,34 @@ tune_control_main(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(argv[myoptind], "libtest")) {
-		tunes.set_control(tune_control);
+		int ret = tunes.set_control(tune_control);
 
-		while (tunes.get_next_tune(frequency, duration, silence) > 0) {
-			PX4_INFO("frequency: %d, duration %d, silence %d", frequency, duration, silence);
+		if (ret == -EINVAL) {
+			PX4_WARN("Tune ID not recognized.");
+		}
+
+		while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
+			PX4_INFO("frequency: %d, duration %d, silence %d, strength%d",
+				 frequency, duration, silence, strength);
 			usleep(500000);
 			exit_counter++;
 
-			// exit if the loop is doing more thatn 50 iteration
+			// exit if the loop is doing too many iterations
 			if (exit_counter > MAX_NOTE_ITERATION) {
 				break;
 			}
 		}
 
-	} else {
+	} else if (!strcmp(argv[myoptind], "stop")) {
+		PX4_INFO("Stopping playback...");
+		tune_control.tune_id = 0;
+		tune_control.frequency = 0;
+		tune_control.duration = 0;
+		tune_control.silence = 0;
+		tune_control.tune_override = true;
+		publish_tune_control(tune_control);
+
+	}	else {
 		usage();
 		return 1;
 	}

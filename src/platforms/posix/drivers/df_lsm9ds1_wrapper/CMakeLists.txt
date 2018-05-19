@@ -39,8 +39,7 @@ px4_add_module(
 	SRCS
 		df_lsm9ds1_wrapper.cpp
 	DEPENDS
-		platforms__common
+		git_driverframework
 		df_driver_framework
 		df_lsm9ds1
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -204,12 +204,26 @@ public:
 	 */
 	virtual unsigned set_trim(float trim) = 0;
 
+	/**
+	 * @brief Get trim offset for this mixer
+	 *
+	 * @return the number of outputs this mixer feeds to
+	 */
+	virtual unsigned get_trim(float *trim) = 0;
+
 	/*
 	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
 	 *
 	 * @param[in]  val   The value
 	 */
 	virtual void 			set_thrust_factor(float val) {}
+
+	/**
+	 * @brief Set airmode. Airmode allows the mixer to increase the total thrust in order to unsaturate the motors.
+	 *
+	 * @param[in]  airmode   De/-activate airmode by setting it to false/true
+	 */
+	virtual void set_airmode(bool airmode) {};
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -382,12 +396,21 @@ public:
 		return 0;
 	}
 
+	unsigned get_trims(int16_t *values);
+
+	unsigned get_trim(float *trim)
+	{
+		return 0;
+	}
+
 	/**
 	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
 	 *
 	 * @param[in]  val   The value
 	 */
 	virtual void	set_thrust_factor(float val);
+
+	virtual void 	set_airmode(bool airmode);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -428,6 +451,11 @@ public:
 	virtual void			groups_required(uint32_t &groups);
 	virtual void 			set_offset(float trim) {}
 	unsigned set_trim(float trim)
+	{
+		return 0;
+	}
+
+	unsigned get_trim(float *trim)
 	{
 		return 0;
 	}
@@ -506,6 +534,8 @@ public:
 	int				check();
 
 	unsigned set_trim(float trim);
+
+	unsigned get_trim(float *trim);
 
 protected:
 
@@ -617,12 +647,19 @@ public:
 		return _rotor_count;
 	}
 
+	unsigned get_trim(float *trim)
+	{
+		return _rotor_count;
+	}
+
 	/**
 	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
 	 *
 	 * @param[in]  val   The value
 	 */
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
+
+	virtual void 			set_airmode(bool airmode);
 
 	union saturation_status {
 		struct {
@@ -648,6 +685,8 @@ private:
 	float				_idle_speed;
 	float 				_delta_out_max;
 	float 				_thrust_factor;
+
+	bool                		_airmode;
 
 	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
 	saturation_status _saturation_status;
@@ -701,7 +740,8 @@ public:
 	HelicopterMixer(ControlCallback control_cb,
 			uintptr_t cb_handle,
 			mixer_heli_s *mixer_info);
-	~HelicopterMixer();
+
+	~HelicopterMixer() = default;
 
 	/**
 	 * Factory method.
@@ -730,6 +770,11 @@ public:
 	unsigned set_trim(float trim)
 	{
 		return 4;
+	}
+
+	unsigned get_trim(float *trim)
+	{
+		return 0;
 	}
 
 private:

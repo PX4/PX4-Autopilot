@@ -74,19 +74,6 @@ PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
 PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
 
 /**
- * Fixed wing pitch trim
- *
- * This parameter allows to adjust the neutral elevon position in fixed wing mode.
- *
- * @min -1.0
- * @max 1.0
- * @increment 0.01
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
-
-/**
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
  *
  * @value 0 Tailsitter
@@ -138,6 +125,36 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 
 /**
+ * Target throttle value for the transition to fixed wing flight.
+ * standard vtol: pusher
+ * tailsitter, tiltrotor: main throttle
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
+
+/**
+ * Target throttle value for the transition to hover flight.
+ * standard vtol: pusher
+ * tailsitter, tiltrotor: main throttle
+ *
+ * Note for standard vtol:
+ * For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active breaking
+ * For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a positive value to apply active breaking
+ *
+ * @min -1
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
+
+/**
  * Approximate deceleration during back transition
  *
  * The approximate deceleration during a back transition in m/s/s
@@ -181,14 +198,6 @@ PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
 PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 
 /**
- * Optimal recovery strategy for pitch-weak tailsitters
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
-
-/**
  * Front transition timeout
  *
  * Time in seconds after which transition will be cancelled. Disabled if set to 0.
@@ -209,7 +218,7 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
  *
  * @unit s
  * @min 0.0
- * @max 10.0
+ * @max 20.0
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
@@ -228,8 +237,8 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 /**
  * Adaptive QuadChute
  *
- * Maximum negative altitude error, when in fixed wing the altitude drops below this copared to the altitude setpoint
- * the vehicle will transition back to MC mode and enter failsafe RTL
+ * Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude setpoint
+ * the vehicle will transition back to MC mode and enter failsafe RTL.
  * @min 0.0
  * @max 200.0
  * @group VTOL Attitude Control
@@ -307,3 +316,14 @@ PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
+
+/**
+ * The channel number of motors that must be turned off in fixed wing mode.
+ *
+ * @min 0
+ * @max 12345678
+ * @increment 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);

@@ -30,12 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE lib__mathlib
-	COMPILE_FLAGS
-	SRCS
-		math/test/test.cpp
-		math/Limits.cpp
-		math/matrix_alg.cpp
-		math/filter/LowPassFilter2p.cpp
-	)
+
+px4_add_library(mathlib
+	math/test/test.cpp
+	math/matrix_alg.cpp
+	math/filter/LowPassFilter2p.cpp
+)

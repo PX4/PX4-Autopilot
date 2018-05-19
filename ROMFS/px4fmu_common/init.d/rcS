@@ -150,8 +150,8 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# Wipe out params except RC* and total flight time
-		param reset_nostart RC* LND_FLIGHT_T_*
+		# Wipe out params except RC*, flight modes and total flight time
+		param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_*
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
@@ -504,7 +504,7 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			if pwm_out_sim mode_pwm16
+			if pwm_out_sim start
 			then
 			else
 				tune_control play -m ${TUNE_ERR}
@@ -550,6 +550,12 @@ then
 			set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 			# Start MAVLink on Wifi (ESP8266 port)
 			mavlink start -r 20000 -b 921600 -d /dev/ttyS0
+		fi
+
+		# Use ttyS3 (TELEM4) for MAVLink on FMUv5 in addition to ttyS1 (TELEM1) and ttyS2 (TELEM2)
+		if ver hwcmp PX4FMU_V5
+		then
+			mavlink start -r 2000 -b 57600 -d /dev/ttyS3
 		fi
 
 		if ver hwcmp AEROFC_V1
@@ -651,8 +657,24 @@ then
 	fi
 	if param compare SYS_COMPANION 419200
 	then
-		iridiumsbd start -d /dev/ttyS2
+		iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE}
 		mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
+	fi
+	if param compare SYS_COMPANION 519200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 538400
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 557600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m minimal -r 1000
+	fi
+	if param compare SYS_COMPANION 5115200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -m minimal -r 1000
 	fi
 	if param compare SYS_COMPANION 1921600
 	then
@@ -670,10 +692,16 @@ then
 	#
 	if param greater UAVCAN_ENABLE 0
 	then
+		# Start core UAVCAN module
 		if uavcan start
 		then
-			set LOGGER_BUF 6
-			uavcan start fw
+			if param greater UAVCAN_ENABLE 1
+			then
+				# Reduce logger buffer to free up some RAM for UAVCAN servers
+				set LOGGER_BUF 6
+				# Start UAVCAN firmware update server and dynamic node ID allocation server
+				uavcan start fw
+			fi
 		else
 			tone_alarm ${TUNE_ERR}
 		fi
@@ -691,36 +719,6 @@ then
 	else
 		# Start MAVLink
 		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
-
-	#
-	# Logging
-	#
-	if param compare SYS_LOGGER 0
-	then
-		sdlog2 start -r 100 -a -b 9 -t
-	else
-		set LOGGER_ARGS ""
-
-		if param compare SDLOG_MODE 1
-		then
-			set LOGGER_ARGS "-e"
-		fi
-
-		if param compare SDLOG_MODE 2
-		then
-			set LOGGER_ARGS "-f"
-		fi
-
-		if ver hwcmp AEROFC_V1
-		then
-			set LOGGER_ARGS "-m mavlink"
-		fi
-
-		logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
-
-		unset LOGGER_BUF
-		unset LOGGER_ARGS
 	fi
 
 	#
@@ -966,6 +964,8 @@ then
 		then
 		fi
 	fi
+
+	sh /etc/init.d/rc.logging
 
 # End of autostart
 fi

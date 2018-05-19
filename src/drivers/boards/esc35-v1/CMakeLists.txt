@@ -31,23 +31,17 @@
 #
 ############################################################################
 
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"DO NOT RUN THIS ON HW")
-message(WARNING-"IT IS NOT PINED OUT TO HW")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
+message(WARNING "Configuraton is incomplete")
+message(WARNING "DO NOT RUN THIS ON HW")
+message(WARNING "IT IS NOT PINED OUT TO HW")
 
-px4_add_module(
-	MODULE drivers__boards__esc35-v1
-	SRCS
-		esc35_init.c
-		esc35_led.c
-		esc35_usb.c
-	DEPENDS
-		platforms__common
-	)
+px4_add_library(drivers_board
+	init.c
+	led.c
+	usb.c
+)
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		parameters # param_init
+)

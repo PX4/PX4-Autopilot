@@ -39,7 +39,6 @@ px4_add_module(
 	STACK_MAIN 1200
 	STACK_MAX 1500
 	COMPILE_FLAGS
-		-Wno-extra-semi
 		-Wno-sign-compare # TODO: fix all sign-compare
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
@@ -47,6 +46,7 @@ px4_add_module(
 		mavlink.c
 		mavlink_command_sender.cpp
 		mavlink_ftp.cpp
+		mavlink_high_latency2.cpp
 		mavlink_log_handler.cpp
 		mavlink_main.cpp
 		mavlink_messages.cpp
@@ -56,9 +56,13 @@ px4_add_module(
 		mavlink_rate_limiter.cpp
 		mavlink_receiver.cpp
 		mavlink_shell.cpp
+		mavlink_simple_analyzer.cpp
 		mavlink_stream.cpp
 		mavlink_ulog.cpp
+		mavlink_timesync.cpp
 	DEPENDS
-		platforms__common
 		git_mavlink_v2
+		conversion
+		git_ecl
+		ecl_geo
 	)

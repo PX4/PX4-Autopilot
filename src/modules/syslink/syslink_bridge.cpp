@@ -39,6 +39,7 @@
  */
 
 #include "syslink_main.h"
+#include <cstring>
 
 
 
@@ -47,8 +48,11 @@ SyslinkBridge::SyslinkBridge(Syslink *link) :
 	_link(link),
 	_readbuffer(16, sizeof(crtp_message_t))
 {
-
-
+	_msg_to_send.header = 0;
+	_msg_to_send.size = sizeof(_msg_to_send.header);
+	_msg_to_send.port = CRTP_PORT_MAVLINK;
+	_msg_to_send_size_remaining = CRTP_MAX_DATA_SIZE - 1; // to send 30 bytes of data
+	//ideally _msg_to_send.data size should be CRTP_MAX_DATA_SIZE but cfbridge does not receive 31 bytes of data due to a bug somewhere
 }
 
 SyslinkBridge::~SyslinkBridge()
@@ -110,21 +114,28 @@ SyslinkBridge::read(struct file *filp, char *buffer, size_t buflen)
 ssize_t
 SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 {
-	crtp_message_t msg;
+	int buflen_rem = buflen;
 
-	// Queue and send next time we get a RAW radio packet
-	int remaining = buflen;
+	while (buflen_rem > 0) {
 
-	while (remaining > 0) {
-		int datasize = MIN(remaining, CRTP_MAX_DATA_SIZE);
-		msg.size = datasize + sizeof(msg.header);
-		msg.port = CRTP_PORT_MAVLINK;
-		memcpy(&msg.data, buffer, datasize);
-
-		_link->_writebuffer.force(&msg, sizeof(crtp_message_t));
+		int datasize = MIN(_msg_to_send_size_remaining, buflen_rem);
+		_msg_to_send.size += datasize;
+		memcpy(&_msg_to_send.data[CRTP_MAX_DATA_SIZE - 1 - _msg_to_send_size_remaining], buffer, datasize);
 
 		buffer += datasize;
-		remaining -= datasize;
+		_msg_to_send_size_remaining -= datasize;
+		buflen_rem -= datasize;
+
+
+		if (_msg_to_send_size_remaining == 0) {
+
+			if (_link->_writebuffer.force(&_msg_to_send, sizeof(crtp_message_t))) {
+				PX4_WARN("write buffer overflow");
+			}
+
+			_msg_to_send.size = sizeof(_msg_to_send.header);
+			_msg_to_send_size_remaining = CRTP_MAX_DATA_SIZE - 1;
+		}
 	}
 
 	return buflen;

@@ -93,7 +93,6 @@
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/time_offset.h>
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/camera_trigger.h>
@@ -103,8 +102,8 @@
 #include <uORB/topics/task_stack_info.h>
 
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <systemlib/printload.h>
 #include <systemlib/mavlink_log.h>
 #include <version/version.h>
@@ -567,7 +566,9 @@ int open_perf_file(const char* str)
 
 	if (log_name_timestamp && time_ok) {
 		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &tt);
-		snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+		if (snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name)) {
+			return -1;
+		}
 
 	} else {
 		unsigned file_number = 1; // start with file log001
@@ -576,7 +577,9 @@ int open_perf_file(const char* str)
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.txt */
 			snprintf(log_file_name, sizeof(log_file_name), "perf%03u.txt", file_number);
-			snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+			if (snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name) >= sizeof(log_file_path)) {
+				return -1;
+			}
 
 			if (!file_exist(log_file_path)) {
 				break;
@@ -866,8 +869,9 @@ int write_version(int fd)
 	};
 
 	/* fill version message and write it */
-	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git));
-	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch));
+	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git)-1);
+	log_msg_VER.body.fw_git[sizeof(log_msg_VER.body.fw_git)-1] = '\0';
+	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch)-1);
 	log_msg_VER.body.arch[sizeof(log_msg_VER.body.arch) - 1] = '\0';
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
@@ -1185,7 +1189,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct satellite_info_s sat_info;
 		struct wind_estimate_s wind_estimate;
 		struct vtol_vehicle_status_s vtol_status;
-		struct time_offset_s time_offset;
 		struct rate_ctrl_status_s rate_ctrl_status;
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
@@ -1357,8 +1360,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* track changes in sensor_combined topic */
 	hrt_abstime gyro_timestamp = 0;
 	hrt_abstime accelerometer_timestamp = 0;
-	hrt_abstime magnetometer_timestamp = 0;
-	hrt_abstime barometer_timestamp = 0;
+	//hrt_abstime magnetometer_timestamp = 0;
+	//hrt_abstime barometer_timestamp = 0;
 
 	/* initialize calculated mean SNR */
 	float snr_mean = 0.0f;
@@ -1526,15 +1529,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 					write_IMU = true;
 				}
 
-				if (buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative != magnetometer_timestamp) {
-					magnetometer_timestamp = buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative;
-					write_IMU = true;
-				}
+//				if (buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative != magnetometer_timestamp) {
+//					magnetometer_timestamp = buf.sensor.timestamp + buf.sensor.magnetometer_timestamp_relative;
+//					write_IMU = true;
+//				}
 
-				if (buf.sensor.timestamp + buf.sensor.baro_timestamp_relative != barometer_timestamp) {
-					barometer_timestamp = buf.sensor.timestamp + buf.sensor.baro_timestamp_relative;
-					write_SENS = true;
-				}
+//				if (buf.sensor.timestamp + buf.sensor.baro_timestamp_relative != barometer_timestamp) {
+//					barometer_timestamp = buf.sensor.timestamp + buf.sensor.baro_timestamp_relative;
+//					write_SENS = true;
+//				}
 
 				if (write_IMU) {
 					log_msg.msg_type = LOG_IMU_MSG;
@@ -1545,9 +1548,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[0];
 					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[1];
 					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[2];
-					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
-					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
-					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
+//					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
+//					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
+//					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
 					log_msg.body.log_IMU.temp_gyro = 0;
 					log_msg.body.log_IMU.temp_acc = 0;
 					log_msg.body.log_IMU.temp_mag = 0;
@@ -1555,12 +1558,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 				}
 
 				if (write_SENS) {
-					log_msg.msg_type = LOG_SENS_MSG;
-
-					log_msg.body.log_SENS.baro_pres = 0;
-					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
-					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
-					LOGBUFFER_WRITE_AND_COUNT(SENS);
+//					log_msg.msg_type = LOG_SENS_MSG;
+//
+//					log_msg.body.log_SENS.baro_pres = 0;
+//					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
+//					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
+//					LOGBUFFER_WRITE_AND_COUNT(SENS);
 				}
 			}
 
@@ -2072,13 +2075,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(WIND);
 			}
 
-			/* --- TIMESYNC OFFSET --- */
-			if (copy_if_updated(ORB_ID(time_offset), &subs.tsync_sub, &buf.time_offset)) {
-				log_msg.msg_type = LOG_TSYN_MSG;
-				log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
-				LOGBUFFER_WRITE_AND_COUNT(TSYN);
-			}
-
 			/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
 			if (copy_if_updated(ORB_ID(rate_ctrl_status), &subs.rate_ctrl_status_sub, &buf.rate_ctrl_status)) {
 				log_msg.msg_type = LOG_MACS_MSG;
@@ -2250,7 +2246,7 @@ void handle_command(struct vehicle_command_s *cmd)
 void handle_status(struct vehicle_status_s *status)
 {
 	// TODO use flag from actuator_armed here?
-	bool armed = status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR;
+	bool armed = status->arming_state == ARMING_STATE_ARMED;
 
 	if (armed != flag_system_armed) {
 		flag_system_armed = armed;

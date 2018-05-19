@@ -44,7 +44,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/ppm_decode.h>
 #include <rc/st24.h>
 #include <rc/sumd.h>
@@ -230,24 +230,6 @@ controls_tick()
 		rssi = 0;
 	}
 
-	perf_begin(c_gather_dsm);
-	bool dsm_updated, st24_updated, sumd_updated;
-	(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
-
-	if (dsm_updated) {
-		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_DSM);
-	}
-
-	if (st24_updated) {
-		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_ST24);
-	}
-
-	if (sumd_updated) {
-		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_SUMD);
-	}
-
-	perf_end(c_gather_dsm);
-
 	perf_begin(c_gather_sbus);
 
 	bool sbus_failsafe, sbus_frame_drop;
@@ -299,6 +281,28 @@ controls_tick()
 	}
 
 	perf_end(c_gather_ppm);
+
+	bool dsm_updated = false, st24_updated = false, sumd_updated = false;
+
+	if (!((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS) || (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_PPM))) {
+		perf_begin(c_gather_dsm);
+
+		(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
+
+		if (dsm_updated) {
+			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_DSM);
+		}
+
+		if (st24_updated) {
+			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_ST24);
+		}
+
+		if (sumd_updated) {
+			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_SUMD);
+		}
+
+		perf_end(c_gather_dsm);
+	}
 
 	/* limit number of channels to allowable data size */
 	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS) {

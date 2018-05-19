@@ -38,6 +38,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <ecl/geo/geo.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -55,7 +56,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <nuttx/arch.h>
@@ -205,8 +206,6 @@
 
 #define LSM303D_MAG_DEFAULT_RANGE_GA			2
 #define LSM303D_MAG_DEFAULT_RATE			100
-
-#define LSM303D_ONE_G					9.80665f
 
 /*
   we set the timer interrupt to run a bit faster than the desired
@@ -946,7 +945,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
-		return (unsigned long)((_accel_range_m_s2) / LSM303D_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
@@ -1178,27 +1177,27 @@ LSM303D::accel_set_range(unsigned max_g)
 	}
 
 	if (max_g <= 2) {
-		_accel_range_m_s2 = 2.0f * LSM303D_ONE_G;
+		_accel_range_m_s2 = 2.0f * CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_2G_A;
 		new_scale_g_digit = 0.061e-3f;
 
 	} else if (max_g <= 4) {
-		_accel_range_m_s2 = 4.0f * LSM303D_ONE_G;
+		_accel_range_m_s2 = 4.0f * CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_4G_A;
 		new_scale_g_digit = 0.122e-3f;
 
 	} else if (max_g <= 6) {
-		_accel_range_m_s2 = 6.0f * LSM303D_ONE_G;
+		_accel_range_m_s2 = 6.0f * CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_6G_A;
 		new_scale_g_digit = 0.183e-3f;
 
 	} else if (max_g <= 8) {
-		_accel_range_m_s2 = 8.0f * LSM303D_ONE_G;
+		_accel_range_m_s2 = 8.0f * CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_8G_A;
 		new_scale_g_digit = 0.244e-3f;
 
 	} else if (max_g <= 16) {
-		_accel_range_m_s2 = 16.0f * LSM303D_ONE_G;
+		_accel_range_m_s2 = 16.0f * CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_16G_A;
 		new_scale_g_digit = 0.732e-3f;
 
@@ -1206,7 +1205,7 @@ LSM303D::accel_set_range(unsigned max_g)
 		return -EINVAL;
 	}
 
-	_accel_range_scale = new_scale_g_digit * LSM303D_ONE_G;
+	_accel_range_scale = new_scale_g_digit * CONSTANTS_ONE_G;
 
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
@@ -1569,8 +1568,8 @@ LSM303D::measure()
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
-	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
-	math::Vector<3> aval_integrated;
+	matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
+	matrix::Vector3f aval_integrated;
 
 	bool accel_notify = _accel_int.put(accel_report.timestamp, aval, aval_integrated, accel_report.integral_dt);
 	accel_report.x_integral = aval_integrated(0);
@@ -1965,15 +1964,7 @@ test()
 		err(1, "immediate read failed");
 	}
 
-
-	warnx("accel x: \t% 9.5f\tm/s^2", (double)accel_report.x);
-	warnx("accel y: \t% 9.5f\tm/s^2", (double)accel_report.y);
-	warnx("accel z: \t% 9.5f\tm/s^2", (double)accel_report.z);
-	warnx("accel x: \t%d\traw", (int)accel_report.x_raw);
-	warnx("accel y: \t%d\traw", (int)accel_report.y_raw);
-	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
-
-	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
+	print_message(accel_report);
 
 	int fd_mag = -1;
 	struct mag_report m_report;
@@ -1999,13 +1990,7 @@ test()
 		err(1, "immediate read failed");
 	}
 
-	warnx("mag x: \t% 9.5f\tga", (double)m_report.x);
-	warnx("mag y: \t% 9.5f\tga", (double)m_report.y);
-	warnx("mag z: \t% 9.5f\tga", (double)m_report.z);
-	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
-	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
-	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
-	warnx("mag range: %8.4f ga", (double)m_report.range_ga);
+	print_message(m_report);
 
 	/* reset to default polling */
 	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {

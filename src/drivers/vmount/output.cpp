@@ -46,7 +46,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/mount_orientation.h>
 #include <px4_defines.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
 
@@ -191,8 +191,8 @@ void OutputBase::_handle_position_update(bool force_update)
 		    - vehicle_global_position.yaw;
 
 	_angle_setpoints[0] = roll;
-	_angle_setpoints[1] = pitch;
-	_angle_setpoints[2] = yaw;
+	_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;
+	_angle_setpoints[2] = yaw + _cur_control_data->type_data.lonlat.yaw_angle_offset;
 }
 
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)

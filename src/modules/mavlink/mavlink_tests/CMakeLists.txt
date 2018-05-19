@@ -43,7 +43,6 @@ px4_add_module(
 		#-DMAVLINK_FTP_DEBUG
 		-DMavlinkStream=MavlinkStreamTest
 		-DMavlinkFTP=MavlinkFTPTest
-		-Wno-extra-semi
 	SRCS
 		mavlink_tests.cpp
 		mavlink_ftp_test.cpp
@@ -51,6 +50,5 @@ px4_add_module(
 		../mavlink_ftp.cpp
 		../mavlink.c
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

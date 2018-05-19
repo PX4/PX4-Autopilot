@@ -137,6 +137,13 @@ public:
 		return 0;
 	}
 
+	pthread_t thread_id_file() const
+	{
+		if (_log_writer_file) { return _log_writer_file->thread_id(); }
+
+		return (pthread_t)0;
+	}
+
 
 	/**
 	 * Indicate to the underlying backend whether future write_message() calls need a reliable

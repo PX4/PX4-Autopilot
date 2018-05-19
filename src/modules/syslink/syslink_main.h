@@ -35,7 +35,7 @@
 
 #include <stdint.h>
 
-#include <systemlib/battery.h>
+#include <battery/battery.h>
 
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
@@ -181,6 +181,8 @@ private:
 	// Stores data that was received from syslink but not yet read by another driver
 	ringbuffer::RingBuffer _readbuffer;
 
+	crtp_message_t _msg_to_send;
+	int _msg_to_send_size_remaining;
 
 };
 

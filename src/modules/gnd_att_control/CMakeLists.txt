@@ -38,8 +38,4 @@ px4_add_module(
 	SRCS
 		GroundRoverAttitudeControl.cpp
 	DEPENDS
-		platforms__common
-		git_ecl
-		lib__ecl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

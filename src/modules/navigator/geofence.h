@@ -38,26 +38,25 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef GEOFENCE_H_
-#define GEOFENCE_H_
+#pragma once
 
 #include <cfloat>
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-#include <controllib/blocks.hpp>
+#include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <px4_defines.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_air_data.h>
 
 #define GEOFENCE_FILENAME PX4_ROOTFSDIR"/fs/microsd/etc/geofence.txt"
 
 class Navigator;
 
-class Geofence : public control::SuperBlock
+class Geofence : public ModuleParams
 {
 public:
 	Geofence(Navigator *navigator);
@@ -88,9 +87,8 @@ public:
 	 *
 	 * @return true: system is obeying fence, false: system is violating fence
 	 */
-	bool check(const struct vehicle_global_position_s &global_position,
-		   const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
-		   const struct home_position_s home_pos, bool home_position_set);
+	bool check(const vehicle_global_position_s &global_position,
+		   const vehicle_gps_position_s &gps_position, const home_position_s home_pos, bool home_position_set);
 
 	/**
 	 * Return whether a mission item obeys the geofence.
@@ -159,13 +157,16 @@ private:
 
 	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
 
-	/* Params */
-	control::BlockParamInt _param_action;
-	control::BlockParamInt _param_altitude_mode;
-	control::BlockParamInt _param_source;
-	control::BlockParamInt _param_counter_threshold;
-	control::BlockParamFloat _param_max_hor_distance;
-	control::BlockParamFloat _param_max_ver_distance;
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::GF_ACTION>) _param_action,
+		(ParamInt<px4::params::GF_ALTMODE>) _param_altitude_mode,
+		(ParamInt<px4::params::GF_SOURCE>) _param_source,
+		(ParamInt<px4::params::GF_COUNT>) _param_counter_threshold,
+		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_max_hor_distance,
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_max_ver_distance
+	)
+
+	uORB::Subscription<vehicle_air_data_s>	_sub_airdata;
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
@@ -195,8 +196,8 @@ private:
 	 */
 	bool checkAll(double lat, double lon, float altitude);
 
-	bool checkAll(const struct vehicle_global_position_s &global_position);
-	bool checkAll(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl);
+	bool checkAll(const vehicle_global_position_s &global_position);
+	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
 
 	/**
 	 * Check if a single point is within a polygon
@@ -211,5 +212,3 @@ private:
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 };
-
-#endif /* GEOFENCE_H_ */

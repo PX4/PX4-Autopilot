@@ -30,15 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__aerocore2
-	SRCS
-		aerocore2_can.c
-		aerocore2_init.c
-		aerocore2_timer_config.c
-		aerocore2_spi.c
-		aerocore2_usb.c
-		aerocore2_led.c
-	DEPENDS
-		platforms__common
-	)
+
+px4_add_library(drivers_board
+	can.c
+	init.c
+	led.c
+	spi.c
+	timer_config.c
+	usb.c
+)
+target_link_libraries(drivers_board
+	PRIVATE
+		drivers__led # drv_led_start
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		parameters # param_init
+)

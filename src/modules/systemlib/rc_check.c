@@ -46,7 +46,7 @@
 
 #include <systemlib/err.h>
 #include <systemlib/rc_check.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
 
@@ -172,7 +172,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 		if (param_min < RC_INPUT_LOWEST_MIN_US) {
 			count++;
 
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC_%d_MIN < %u.", i + 1, RC_INPUT_LOWEST_MIN_US); }
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_MIN < %u.", i + 1, RC_INPUT_LOWEST_MIN_US); }
 
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
@@ -181,7 +181,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 		if (param_max > RC_INPUT_HIGHEST_MAX_US) {
 			count++;
 
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC_%d_MAX > %u.", i + 1, RC_INPUT_HIGHEST_MAX_US); }
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_MAX > %u.", i + 1, RC_INPUT_HIGHEST_MAX_US); }
 
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
@@ -190,7 +190,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 		if (param_trim < param_min) {
 			count++;
 
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC_%d_TRIM < MIN (%d/%d).", i + 1, (int)param_trim, (int)param_min); }
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_TRIM < MIN (%d/%d).", i + 1, (int)param_trim, (int)param_min); }
 
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
@@ -199,7 +199,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 		if (param_trim > param_max) {
 			count++;
 
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC_%d_TRIM > MAX (%d/%d).", i + 1, (int)param_trim, (int)param_max); }
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_TRIM > MAX (%d/%d).", i + 1, (int)param_trim, (int)param_max); }
 
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
@@ -207,7 +207,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 
 		/* assert deadzone is sane */
 		if (param_dz > RC_INPUT_MAX_DEADZONE_US) {
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC_%d_DZ > %u.", i + 1, RC_INPUT_MAX_DEADZONE_US); }
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_DZ > %u.", i + 1, RC_INPUT_MAX_DEADZONE_US); }
 
 			/* give system time to flush error message in case there are more */
 			usleep(100000);

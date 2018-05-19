@@ -55,29 +55,39 @@ namespace math
 {
 
 template<typename _Tp>
-inline constexpr const _Tp &min(const _Tp &a, const _Tp &b)
+constexpr const _Tp &min(const _Tp &a, const _Tp &b)
 {
 	return (a < b) ? a : b;
 }
 
 template<typename _Tp>
-inline constexpr const _Tp &max(const _Tp &a, const _Tp &b)
+constexpr const _Tp &max(const _Tp &a, const _Tp &b)
 {
 	return (a > b) ? a : b;
 }
 
 template<typename _Tp>
-inline constexpr const _Tp &constrain(const _Tp &val, const _Tp &min_val, const _Tp &max_val)
+constexpr const _Tp &constrain(const _Tp &val, const _Tp &min_val, const _Tp &max_val)
 {
 	return (val < min_val) ? min_val : ((val > max_val) ? max_val : val);
 }
 
-float __EXPORT radians(float degrees);
+template<typename _Tp>
+inline constexpr bool isInRange(const _Tp &val, const _Tp &min_val, const _Tp &max_val)
+{
+	return (min_val <= val) && (val <= max_val);
+}
 
-double __EXPORT radians(double degrees);
+template<typename T>
+constexpr T radians(const T degrees)
+{
+	return degrees * (static_cast<T>(M_PI) / static_cast<T>(180));
+}
 
-float __EXPORT degrees(float radians);
-
-double __EXPORT degrees(double radians);
+template<typename T>
+constexpr T degrees(const T radians)
+{
+	return radians * (static_cast<T>(180) / static_cast<T>(M_PI));
+}
 
 }

@@ -34,6 +34,7 @@
 #include <px4_config.h>
 #include "logger.h"
 #include "messages.h"
+#include "watchdog.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -88,11 +89,39 @@
 
 using namespace px4::logger;
 
+
+struct timer_callback_data_s {
+	px4_sem_t semaphore;
+
+	watchdog_data_t watchdog_data;
+	volatile bool watchdog_triggered = false;
+};
+
 /* This is used to schedule work for the logger (periodic scan for updated topics) */
 static void timer_callback(void *arg)
 {
-	px4_sem_t *semaphore = (px4_sem_t *)arg;
-	px4_sem_post(semaphore);
+	/* Note: we are in IRQ context here (on NuttX) */
+
+	timer_callback_data_s *data = (timer_callback_data_s *)arg;
+
+	if (watchdog_update(data->watchdog_data)) {
+		data->watchdog_triggered = true;
+	}
+
+	/* check the value of the semaphore: if the logger cannot keep up with running it's main loop as fast
+	 * as the timer_callback here increases the semaphore count, the counter would increase unbounded,
+	 * leading to an overflow at some point. This case we want to avoid here, so we check the current
+	 * value against a (somewhat arbitrary) threshold, and avoid calling sem_post() if it's exceeded.
+	 * (it's not a problem if the threshold is a bit too large, it just means the logger will do
+	 * multiple iterations at once, the next time it's scheduled). */
+	int semaphore_value;
+
+	if (px4_sem_getvalue(&data->semaphore, &semaphore_value) == 0 && semaphore_value > 1) {
+		return;
+	}
+
+	px4_sem_post(&data->semaphore);
+
 }
 
 
@@ -389,7 +418,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_sdlog_profile_handle = param_find("SDLOG_PROFILE");
 
 	if (poll_topic_name) {
-		const orb_metadata **topics = orb_get_topics();
+		const orb_metadata *const*topics = orb_get_topics();
 
 		for (size_t i = 0; i < orb_topics_count(); i++) {
 			if (strcmp(poll_topic_name, topics[i]->o_name) == 0) {
@@ -465,7 +494,7 @@ LoggerSubscription* Logger::add_topic(const orb_metadata *topic)
 
 bool Logger::add_topic(const char *name, unsigned interval)
 {
-	const orb_metadata **topics = orb_get_topics();
+	const orb_metadata *const*topics = orb_get_topics();
 	LoggerSubscription *subscription = nullptr;
 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
@@ -571,12 +600,6 @@ bool Logger::try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance)
 
 void Logger::add_default_topics()
 {
-#ifdef CONFIG_ARCH_BOARD_SITL
-	add_topic("vehicle_attitude_groundtruth", 10);
-	add_topic("vehicle_global_position_groundtruth", 100);
-	add_topic("vehicle_local_position_groundtruth", 100);
-#endif
-
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
@@ -598,6 +621,7 @@ void Logger::add_default_topics()
 	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("optical_flow", 50);
+	add_topic("ping");
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("rate_ctrl_status", 30);
 	add_topic("safety");
@@ -621,6 +645,25 @@ void Logger::add_default_topics()
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
+	add_topic("timesync_status");
+
+#ifdef CONFIG_ARCH_BOARD_SITL
+	add_topic("actuator_armed");
+	add_topic("actuator_controls_virtual_fw");
+	add_topic("actuator_controls_virtual_mc");
+	add_topic("commander_state");
+	add_topic("fw_pos_ctrl_status");
+	add_topic("fw_virtual_attitude_setpoint");
+	add_topic("led_control");
+	add_topic("mc_virtual_attitude_setpoint");
+	add_topic("multirotor_motor_limits");
+	add_topic("offboard_control_mode");
+	add_topic("time_offset");
+	add_topic("vehicle_attitude_groundtruth", 10);
+	add_topic("vehicle_global_position_groundtruth", 100);
+	add_topic("vehicle_local_position_groundtruth", 100);
+	add_topic("vehicle_roi");
+#endif
 }
 
 void Logger::add_high_rate_topics()
@@ -652,11 +695,12 @@ void Logger::add_estimator_replay_topics()
 	add_topic("airspeed");
 	add_topic("distance_sensor");
 	add_topic("optical_flow");
-	add_topic("sensor_baro");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
+	add_topic("vehicle_air_data");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
+	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
@@ -896,12 +940,11 @@ void Logger::run()
 	}
 
 	/* init the update timer */
-	struct hrt_call timer_call;
-	memset(&timer_call, 0, sizeof(hrt_call));
-	px4_sem_t timer_semaphore;
-	px4_sem_init(&timer_semaphore, 0, 0);
+	struct hrt_call timer_call{};
+	timer_callback_data_s timer_callback_data;
+	px4_sem_init(&timer_callback_data.semaphore, 0, 0);
 	/* timer_semaphore use case is a signal */
-	px4_sem_setprotocol(&timer_semaphore, SEM_PRIO_NONE);
+	px4_sem_setprotocol(&timer_callback_data.semaphore, SEM_PRIO_NONE);
 
 	int polling_topic_sub = -1;
 
@@ -913,7 +956,18 @@ void Logger::run()
 		}
 
 	} else {
-		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);
+
+		if (_writer.backend() & LogWriter::BackendFile) {
+
+			const pid_t pid_self = getpid();
+			const pthread_t writer_thread = _writer.thread_id_file();
+
+			// sched_note_start is already called from pthread_create and task_create,
+			// which means we can expect to find the tasks in system_load.tasks, as required in watchdog_initialize
+			watchdog_initialize(pid_self, writer_thread, timer_callback_data.watchdog_data);
+		}
+
+		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_callback_data);
 	}
 
 	// check for new subscription data
@@ -929,9 +983,7 @@ void Logger::run()
 		if (ret == 0 && vehicle_status_updated) {
 			vehicle_status_s vehicle_status;
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-				     (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ||
-				     _arm_override;
+			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _arm_override;
 
 			if (_was_armed != armed && !_log_until_shutdown) {
 				_was_armed = armed;
@@ -952,7 +1004,7 @@ void Logger::run()
 
 				} else {
 					// delayed stop: we measure the process loads and then stop
-					initialize_load_output();
+					initialize_load_output(PrintLoadReason::Postflight);
 					_should_stop_file_log = true;
 				}
 			}
@@ -991,6 +1043,11 @@ void Logger::run()
 		}
 
 
+		if (timer_callback_data.watchdog_triggered) {
+			timer_callback_data.watchdog_triggered = false;
+			initialize_load_output(PrintLoadReason::Watchdog);
+		}
+
 
 		const hrt_abstime loop_time = hrt_absolute_time();
 
@@ -1002,12 +1059,12 @@ void Logger::run()
 
 				if (_should_stop_file_log) {
 					_should_stop_file_log = false;
-					write_load_output(false);
+					write_load_output();
 					stop_log_file();
 					continue; // skip to next loop iteration
 
 				} else {
-					write_load_output(true);
+					write_load_output();
 				}
 			}
 
@@ -1176,14 +1233,14 @@ void Logger::run()
 			 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
 			 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
 			 */
-			while (px4_sem_wait(&timer_semaphore) != 0);
+			while (px4_sem_wait(&timer_callback_data.semaphore) != 0);
 		}
 	}
 
 	stop_log_file();
 
 	hrt_cancel(&timer_call);
-	px4_sem_destroy(&timer_semaphore);
+	px4_sem_destroy(&timer_callback_data.semaphore);
 
 	// stop the writer thread
 	_writer.thread_stop();
@@ -1458,7 +1515,7 @@ void Logger::start_log_file()
 
 	_start_time_file = hrt_absolute_time();
 
-	initialize_load_output();
+	initialize_load_output(PrintLoadReason::Preflight);
 }
 
 void Logger::stop_log_file()
@@ -1494,7 +1551,7 @@ void Logger::start_log_mavlink()
 	_writer.unselect_write_backend();
 	_writer.notify();
 
-	initialize_load_output();
+	initialize_load_output(PrintLoadReason::Preflight);
 }
 
 void Logger::stop_log_mavlink()
@@ -1552,18 +1609,26 @@ void Logger::print_load_callback(void *user)
 		return;
 	}
 
-	if (callback_data->preflight) {
-		perf_name = "perf_top_preflight";
-
-	} else {
-		perf_name = "perf_top_postflight";
+	switch (callback_data->logger->_print_load_reason) {
+		case PrintLoadReason::Preflight:
+			perf_name = "perf_top_preflight";
+			break;
+		case PrintLoadReason::Postflight:
+			perf_name = "perf_top_postflight";
+			break;
+		case PrintLoadReason::Watchdog:
+			perf_name = "perf_top_watchdog";
+			break;
+		default:
+			perf_name = "perf_top";
+			break;
 	}
 
 	callback_data->logger->write_info_multiple(perf_name, callback_data->buffer, callback_data->counter != 0);
 	++callback_data->counter;
 }
 
-void Logger::initialize_load_output()
+void Logger::initialize_load_output(PrintLoadReason reason)
 {
 	perf_callback_data_t callback_data;
 	callback_data.logger = this;
@@ -1575,16 +1640,19 @@ void Logger::initialize_load_output()
 	// this will not yet print anything
 	print_load_buffer(curr_time, buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
 	_next_load_print = curr_time + 1000000;
+	_print_load_reason = reason;
 }
 
-void Logger::write_load_output(bool preflight)
+void Logger::write_load_output()
 {
+	if (_print_load_reason == PrintLoadReason::Watchdog) {
+		PX4_ERR("Writing watchdog data"); // this is just that we see it easily in the log
+	}
 	perf_callback_data_t callback_data = {};
 	char buffer[140];
 	callback_data.logger = this;
 	callback_data.counter = 0;
 	callback_data.buffer = buffer;
-	callback_data.preflight = preflight;
 	hrt_abstime curr_time = hrt_absolute_time();
 	_writer.set_need_reliable_transfer(true);
 	// TODO: maybe we should restrict the output to a selected backend (eg. when file logging is running
@@ -1597,7 +1665,7 @@ void Logger::write_formats()
 {
 	_writer.lock();
 	ulog_message_format_s msg = {};
-	const orb_metadata **topics = orb_get_topics();
+	const orb_metadata *const*topics = orb_get_topics();
 
 	//write all known formats
 	for (size_t i = 0; i < orb_topics_count(); i++) {
@@ -1752,9 +1820,8 @@ void Logger::write_header()
 	write_message(&header, sizeof(header));
 
 	// write the Flags message: this MUST be written right after the ulog header
-	ulog_message_flag_bits_s flag_bits;
+	ulog_message_flag_bits_s flag_bits{};
 
-	memset(&flag_bits, 0, sizeof(flag_bits));
 	flag_bits.msg_size = sizeof(flag_bits) - ULOG_MSG_HEADER_LEN;
 	flag_bits.msg_type = static_cast<uint8_t>(ULogMessageType::FLAG_BITS);
 
@@ -1775,6 +1842,11 @@ void Logger::write_version()
 	}
 
 	write_info("ver_hw", px4_board_name());
+	const char *board_sub_type = px4_board_sub_type();
+
+	if (board_sub_type && board_sub_type[0]) {
+		write_info("ver_hw_subtype", board_sub_type);
+	}
 	write_info("sys_name", "PX4");
 	write_info("sys_os_name", px4_os_name());
 	const char *os_version = px4_os_version_string();

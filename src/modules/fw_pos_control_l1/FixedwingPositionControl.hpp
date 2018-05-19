@@ -48,39 +48,40 @@
 #ifndef FIXEDWINGPOSITIONCONTROL_HPP_
 #define FIXEDWINGPOSITIONCONTROL_HPP_
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-
-#include <cfloat>
-
 #include "Landingslope.hpp"
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
 
+#include <cfloat>
+
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <ecl/tecs/tecs.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
-#include <systemlib/perf_counter.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_module.h>
+#include <px4_module_params.h>
+#include <px4_posix.h>
+#include <px4_tasks.h>
+#include <perf/perf_counter.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
@@ -102,8 +103,6 @@ static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
 	0.85f; ///< a throttle / pitch input above this value leads to the system switching to climbout mode
 static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
-static constexpr float MSL_PRESSURE_MILLIBAR = 1013.25f; ///< standard atmospheric pressure in millibar
-
 using math::constrain;
 using math::max;
 using math::min;
@@ -120,33 +119,34 @@ using uORB::Subscription;
 using namespace launchdetection;
 using namespace runwaytakeoff;
 
-class FixedwingPositionControl
+class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams
 {
 public:
 	FixedwingPositionControl();
-	~FixedwingPositionControl();
+	~FixedwingPositionControl() override;
 	FixedwingPositionControl(const FixedwingPositionControl &) = delete;
 	FixedwingPositionControl operator=(const FixedwingPositionControl &other) = delete;
 
-	/**
-	 * Start the sensors task.
-	 *
-	 * @return	OK on success.
-	 */
-	static int	start();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Task status
-	 *
-	 * @return	true if the mainloop is running
-	 */
-	bool		task_running() { return _task_running; }
+	/** @see ModuleBase */
+	static FixedwingPositionControl *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
-
-	bool		_task_should_exit{false};		///< if true, sensor task should exit */
-	bool		_task_running{false};			///< if true, task is running in its mainloop */
 
 	int		_global_pos_sub{-1};
 	int		_local_pos_sub{-1};
@@ -234,7 +234,7 @@ private:
 
 	float _groundspeed_undershoot{0.0f};			///< ground speed error to min. speed in m/s
 
-	math::Matrix<3, 3> _R_nb;				///< current attitude
+	Dcmf _R_nb;				///< current attitude
 	float _roll{0.0f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
@@ -261,42 +261,24 @@ private:
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER};		///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
 	struct {
-		float l1_period;
-		float l1_damping;
-
-		float time_const;
-		float time_const_throt;
-		float min_sink_rate;
-		float max_sink_rate;
-		float max_climb_rate;
 		float climbout_diff;
-		float heightrate_p;
-		float heightrate_ff;
-		float speedrate_p;
-		float throttle_damp;
-		float integrator_gain;
-		float vertical_accel_limit;
-		float height_comp_filter_omega;
-		float speed_comp_filter_omega;
-		float roll_throttle_compensation;
+
+		float max_climb_rate;
+		float max_sink_rate;
 		float speed_weight;
-		float pitch_damping;
 
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
-		float airspeed_trans;
 		int32_t airspeed_disabled;
 
 		float pitch_limit_min;
 		float pitch_limit_max;
-		float roll_limit;
 
 		float throttle_min;
 		float throttle_max;
 		float throttle_idle;
 		float throttle_cruise;
-		float throttle_slew_max;
 		float throttle_alt_scale;
 
 		float man_roll_max_rad;
@@ -306,29 +288,29 @@ private:
 
 		float throttle_land_max;
 
-		float land_slope_angle;
-		float land_H1_virt;
-		float land_flare_alt_relative;
-		float land_thrust_lim_alt_relative;
 		float land_heading_hold_horizontal_distance;
 		float land_flare_pitch_min_deg;
 		float land_flare_pitch_max_deg;
 		int32_t land_use_terrain_estimate;
 		float land_airspeed_scale;
 
+		// VTOL
+		float airspeed_trans;
 		int32_t vtol_type;
 	} _parameters{};					///< local copies of interesting parameters */
 
 	struct {
+		param_t climbout_diff;
+
 		param_t l1_period;
 		param_t l1_damping;
+		param_t roll_limit;
 
 		param_t time_const;
 		param_t time_const_throt;
 		param_t min_sink_rate;
 		param_t max_sink_rate;
 		param_t max_climb_rate;
-		param_t climbout_diff;
 		param_t heightrate_p;
 		param_t heightrate_ff;
 		param_t speedrate_p;
@@ -349,7 +331,6 @@ private:
 
 		param_t pitch_limit_min;
 		param_t pitch_limit_max;
-		param_t roll_limit;
 
 		param_t throttle_min;
 		param_t throttle_max;
@@ -434,31 +415,25 @@ private:
 	 */
 	bool		update_desired_altitude(float dt);
 
-	bool		control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
-					 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	bool		control_position(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+					 const position_setpoint_s &pos_sp_curr);
+	void		control_takeoff(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+					const position_setpoint_s &pos_sp_curr);
+	void		control_landing(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+					const position_setpoint_s &pos_sp_curr);
 
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
 
 	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand);
-	void		calculate_gndspeed_undershoot(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
+	void		calculate_gndspeed_undershoot(const Vector2f &curr_pos, const Vector2f &ground_speed,
 			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * Handle incoming vehicle commands
 	 */
 	void		handle_command();
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main();
 
 	void		reset_takeoff_state();
 	void		reset_landing_state();
@@ -473,10 +448,5 @@ private:
 					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL);
 
 };
-
-namespace l1_control
-{
-extern FixedwingPositionControl *g_control;
-} // namespace l1_control
 
 #endif // FIXEDWINGPOSITIONCONTROL_HPP_

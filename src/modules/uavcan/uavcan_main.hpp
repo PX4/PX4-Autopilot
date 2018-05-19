@@ -54,7 +54,7 @@
 #include <uavcan/protocol/RestartNode.hpp>
 
 #include <drivers/device/device.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -152,6 +152,7 @@ private:
 	int		request_fw_check();
 	int		print_params(uavcan::protocol::param::GetSet::Response &resp);
 	int		get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
+	void 		update_params();
 	void		set_setget_response(uavcan::protocol::param::GetSet::Response *resp)
 	{
 		_setget_response = resp;
@@ -206,6 +207,10 @@ private:
 	actuator_direct_s		_actuator_direct = {};
 
 	actuator_outputs_s		_outputs = {};
+
+	perf_counter_t			_perf_control_latency;
+
+	bool 				_airmode = false;
 
 	// index into _poll_fds for each _control_subs handle
 	uint8_t				_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];

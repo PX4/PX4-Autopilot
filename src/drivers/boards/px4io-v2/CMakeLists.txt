@@ -30,11 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__px4io-v2
-	SRCS
-		px4io_init.c
-		px4io_timer_config.c
-	DEPENDS
-		platforms__common
-	)
+
+px4_add_library(drivers_board
+	init.c
+	timer_config.c
+)

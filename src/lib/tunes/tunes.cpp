@@ -59,14 +59,14 @@ Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_n
 	_default_mode(default_mode),
 	_default_octave(default_octave)
 {
-	config_tone(false);
+	reset(false);
 }
 
-Tunes::Tunes(): Tunes(120, 4, 4, NoteMode::NORMAL)
+Tunes::Tunes(): Tunes(TUNE_DEFAULT_TEMPO, TUNE_DEFAULT_OCTAVE, TUNE_DEFAULT_NOTE_LENGTH, NoteMode::NORMAL)
 {
 }
 
-void Tunes::config_tone(bool repeat_flag)
+void Tunes::reset(bool repeat_flag)
 {
 	// reset pointer
 	if (!repeat_flag)	{
@@ -87,66 +87,89 @@ void Tunes::config_tone(bool repeat_flag)
 
 int Tunes::set_control(const tune_control_s &tune_control)
 {
-	bool reset_playing_tune = false;
+	// Sanity check
+	if (tune_control.tune_id >= _default_tunes_size) {
+		return -EINVAL;
+	}
 
-	if (tune_control.tune_id < _default_tunes_size) {
-		switch (tune_control.tune_id) {
-		case tune_control_s::TUNE_ID_CUSTOM:
+	// Accept new tune ?
+	if (_repeat || 			   // Repeated tunes can always be interrupted
+	    _tune == nullptr ||  	   // No tune is currently being played
+	    tune_control.tune_override ||  // Override interrupts everything
+	    tune_control.tune_id == static_cast<int>(TuneID::STARTUP) ||
+	    tune_control.tune_id == static_cast<int>(TuneID::ERROR_TUNE) ||
+	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_POSITIVE) ||
+	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_NEUTRAL) ||
+	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_NEGATIVE)) {
+
+		// Reset repeat flag. Can jump to true again while tune is being parsed later
+		_repeat = false;
+
+		// Reset octave, tempo etc.
+		reset(_repeat);
+
+		// Strength will remain valid for the entire tune, unless interrupted.
+		if ((unsigned)tune_control.strength <= TUNE_MAX_STRENGTH) {
+			_strength = (unsigned)tune_control.strength;
+
+		} else {
+			_strength = TUNE_MAX_STRENGTH;
+		}
+
+		// Special treatment for custom tunes
+		if (tune_control.tune_id == static_cast<int>(TuneID::CUSTOM)) {
+			_using_custom_msg = true;
 			_frequency = (unsigned)tune_control.frequency;
 			_duration = (unsigned)tune_control.duration;
 			_silence = (unsigned)tune_control.silence;
-			_using_custom_msg = true;
-			break;
 
-		case tune_control_s::TUNE_ID_STARTUP:
-		case tune_control_s::TUNE_ID_ERROR:
-		case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
-		case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
-		case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
-			reset_playing_tune = true;
-			config_tone(false);
-
-		/* FALLTHROUGH */
-		case tune_control_s::TUNE_ID_ARMING_WARNING:
-		case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
-		case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
-		case tune_control_s::TUNE_ID_GPS_WARNING:
-		case tune_control_s::TUNE_ID_PARACHUTE_RELEASE:
-		case tune_control_s::TUNE_ID_EKF_WARNING:
-		case tune_control_s::TUNE_ID_BARO_WARNING:
-		case tune_control_s::TUNE_ID_SINGLE_BEEP:
-		case tune_control_s::TUNE_ID_HOME_SET:
-		default:
-
-			// TODO: come up with a better strategy
-			if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
-				_tune = _default_tunes[tune_control.tune_id];
-				_tune_start_ptr = _default_tunes[tune_control.tune_id];
-				_next = _tune;
-			}
-
-			break;
+		} else {
+			_using_custom_msg = false;
+			_tune = _default_tunes[tune_control.tune_id];
+			_tune_start_ptr = _default_tunes[tune_control.tune_id];
+			_next = _tune;
 		}
-
-	} else {
-		PX4_WARN("Tune ID not recognized.");
-		return -EINVAL;
 	}
 
 	return OK;
 }
 
-void Tunes::set_string(const char *string)
+void Tunes::set_string(const char *const string, uint8_t strength)
 {
-	// set tune string the first time
+	// Only play new tune if nothing is being played currently
 	if (_tune == nullptr) {
+		// set tune string the first time
 		_tune = string;
 		_tune_start_ptr = string;
 		_next = _tune;
+
+		if (strength <= TUNE_MAX_STRENGTH) {
+			_strength = strength;
+
+		} else {
+			_strength = TUNE_MAX_STRENGTH;
+		}
 	}
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence)
+int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
+			 unsigned &silence, uint8_t &strength)
+{
+	int ret = get_next_tune(frequency, duration, silence);
+
+	// Check if note should not be heard -> adjust strength to 0 to be safe
+	if (frequency == 0 || duration == 0) {
+		strength = 0;
+
+	} else {
+		strength = _strength;
+	}
+
+	return ret;
+}
+
+int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
+			 unsigned &silence)
 {
 	// Return the vaules for frequency and duration if the custom msg was received
 	if (_using_custom_msg) {
@@ -326,19 +349,18 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &sile
 
 	// compute the note frequency
 	frequency = note_to_frequency(note);
-
 	return TUNE_CONTINUE;
 
 	// tune looks bad (unexpected EOF, bad character, etc.)
 tune_error:
 	// syslog(LOG_ERR, "tune error\n");
 	_repeat = false;		// don't loop on error
-	config_tone(_repeat);
+	reset(_repeat);
 	return TUNE_ERROR;
 	// stop (and potentially restart) the tune
 tune_end:
 	// restore intial parameter
-	config_tone(_repeat);
+	reset(_repeat);
 
 	if (_repeat) {
 		return TUNE_CONTINUE;
@@ -348,13 +370,13 @@ tune_end:
 	}
 }
 
-unsigned Tunes::note_to_frequency(unsigned note)
+uint32_t Tunes::note_to_frequency(unsigned note) const
 {
 	// compute the frequency (Hz)
 	return (unsigned)(880.0f * powf(2.0f, ((int)note - 46) / 12.0f));
 }
 
-unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
+unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned dots) const
 {
 	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
 
@@ -391,7 +413,7 @@ unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned 
 	return note_period;
 }
 
-unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots)
+unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots) const
 {
 	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
 

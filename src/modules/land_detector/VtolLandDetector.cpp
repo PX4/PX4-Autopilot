@@ -70,7 +70,7 @@ void VtolLandDetector::_update_topics()
 bool VtolLandDetector::_get_maybe_landed_state()
 {
 	// Only trigger in RW mode
-	if (!_vehicle_status.is_rotary_wing) {
+	if ((_vehicle_status.timestamp != 0) && !_vehicle_status.is_rotary_wing) {
 		return false;
 	}
 
@@ -80,7 +80,7 @@ bool VtolLandDetector::_get_maybe_landed_state()
 bool VtolLandDetector::_get_landed_state()
 {
 	// Only trigger in RW mode
-	if (!_vehicle_status.is_rotary_wing) {
+	if ((_vehicle_status.timestamp != 0) && !_vehicle_status.is_rotary_wing) {
 		return false;
 	}
 
@@ -88,8 +88,10 @@ bool VtolLandDetector::_get_landed_state()
 	bool landed = MulticopterLandDetector::_get_landed_state();
 
 	// for vtol we additionally consider airspeed
-	if (hrt_elapsed_time(&_airspeed.timestamp) < 500 * 1000) {
-		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
+	if (hrt_elapsed_time(&_airspeed.timestamp) < 500 * 1000 && _airspeed.confidence > 0.99f
+	    && PX4_ISFINITE(_airspeed.indicated_airspeed_m_s)) {
+
+		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.indicated_airspeed_m_s;
 
 	} else {
 		// if airspeed does not update, set it to zero and rely on multicopter land detector
@@ -98,7 +100,7 @@ bool VtolLandDetector::_get_landed_state()
 
 	// only consider airspeed if we have been in air before to avoid false
 	// detections in the case of wind on the ground
-	if (_was_in_air && _airspeed_filtered > _params.maxAirSpeed) {
+	if (_was_in_air && (_airspeed_filtered > _params.maxAirSpeed)) {
 		landed = false;
 	}
 

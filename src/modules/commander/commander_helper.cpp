@@ -58,7 +58,7 @@
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/tune_control.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 
@@ -128,6 +128,10 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
+	tune_durations[TONE_HOME_SET] = 800000;
+	tune_durations[TONE_BATTERY_WARNING_FAST_TUNE] = 800000;
+	tune_durations[TONE_BATTERY_WARNING_SLOW_TUNE] = 800000;
+	tune_durations[TONE_SINGLE_BEEP_TUNE] = 300000;
 	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 	return PX4_OK;
 }
@@ -140,6 +144,7 @@ void buzzer_deinit()
 void set_tune_override(int tune)
 {
 	tune_control.tune_id = tune;
+	tune_control.strength = tune_control_s::STRENGTH_NORMAL;
 	tune_control.tune_override = 1;
 	tune_control.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -154,6 +159,7 @@ void set_tune(int tune)
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
 			tune_control.tune_id = tune;
+			tune_control.strength = tune_control_s::STRENGTH_NORMAL;
 			tune_control.tune_override = 0;
 			tune_control.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);

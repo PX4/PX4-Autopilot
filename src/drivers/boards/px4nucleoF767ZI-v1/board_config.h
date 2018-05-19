@@ -161,13 +161,6 @@ __BEGIN_DECLS
 #define PX4_I2C_BUS_EXPANSION	4
 #define PX4_I2C_BUS_LED			PX4_I2C_BUS_EXPANSION
 
-/* Devices on the external bus.
- *
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_LED	    0x55
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-
 /*
  * ADC channels
  *

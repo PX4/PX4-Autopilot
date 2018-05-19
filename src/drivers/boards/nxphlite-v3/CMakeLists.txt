@@ -30,18 +30,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__boards__nxphlite-v3
-	SRCS
-		nxphlite_autoleds.c
-		nxphlite_automount.c
-		nxphlite_can.c
-		nxphlite_init.c
-		nxphlite_led.c
-		nxphlite_sdhc.c
-		nxphlite_spi.c
-		nxphlite_timer_config.c
-		nxphlite_usb.c
-	DEPENDS
-		platforms__common
+
+px4_add_library(drivers_board
+	autoleds.c
+	automount.c
+	can.c
+	init.c
+	led.c
+	sdhc.c
+	spi.c
+	timer_config.c
+	usb.c
+)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		drivers__led # drv_led_start
+		parameters # param_init
 	)

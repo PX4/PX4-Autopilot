@@ -8,17 +8,15 @@ set(config_module_list
 	# Board support modules
 	#
 	drivers/aerofc_adc
-	drivers/boards
-	drivers/device
 	drivers/distance_sensor
 	drivers/gps
-	drivers/led
 	drivers/barometer/ms5611
 	drivers/magnetometer/hmc5883
 	drivers/magnetometer/ist8310
 	drivers/imu/mpu9250
 	drivers/px4fmu
 	drivers/stm32
+	drivers/pwm_out_sim
 	drivers/tap_esc
 	modules/sensors
 
@@ -51,6 +49,7 @@ set(config_module_list
 	#
 	modules/attitude_estimator_q
 	modules/local_position_estimator
+	modules/landing_target_estimator
 	modules/ekf2
 
 	#
@@ -58,6 +57,7 @@ set(config_module_list
 	#
 	modules/mc_att_control
 	modules/mc_pos_control
+	modules/vtol_att_control # FIXME: only required for params needed by Navigator
 
 	#
 	# Logging
@@ -67,22 +67,5 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/version
 )

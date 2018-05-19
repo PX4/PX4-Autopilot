@@ -61,7 +61,8 @@ const baudtype baudlist[] = {
 	[4] = {.code = B57600, .val = 57600},
 	[5] = {.code = B115200, .val = 115200},
 	[6] = {.code = B230400, .val = 230400},
-	[7] = {.code = B460800, .val = 460800}
+	[7] = {.code = B460800, .val = 460800},
+	[8] = {.code = B921600, .val = 921600}
 };
 
 baudtype getbaudrate(const char *valstr);
@@ -260,6 +261,8 @@ int micrortps_client_main(int argc, char *argv[])
 		_should_exit_task = true;
 
 		if (nullptr != transport_node) { transport_node->close(); }
+
+		_rtps_task = -1;
 
 		return 0;
 	}
