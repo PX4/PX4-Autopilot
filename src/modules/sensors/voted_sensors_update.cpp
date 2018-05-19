@@ -39,13 +39,12 @@
 
 #include "voted_sensors_update.h"
 
-#include <systemlib/mavlink_log.h>
-
 #include <conversion/rotation.h>
 #include <ecl/geo/geo.h>
+#include <commander/calibration_messages.h>
+#include <systemlib/mavlink_log.h>
 
-#define MAG_ROT_VAL_INTERNAL		-1
-#define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
+#define MAG_ROT_VAL_INTERNAL    -1
 
 using namespace sensors;
 using namespace DriverFramework;
@@ -861,8 +860,8 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 
 			// calculate altitude using the hypsometric equation
 
-			static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS;	/* temperature at base height in Kelvin */
-			static constexpr float a  = -6.5f / 1000.0f;	/* temperature gradient in degrees per metre */
+			static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS;    /* temperature at base height in Kelvin */
+			static constexpr float a  = -6.5f / 1000.0f;    /* temperature gradient in degrees per metre */
 
 			/* current pressure at MSL in kPa (QNH in hPa)*/
 			const float p1 = _parameters.baro_qnh * 0.1f;

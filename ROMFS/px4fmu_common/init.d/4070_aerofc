@@ -77,7 +77,7 @@ then
 fi
 
 set MIXER quad_x
-set USE_IO no
 
-param set SYS_COMPANION 921600
-set MAVLINK_COMPANION_DEVICE /dev/ttyS1
+set SERIAL_DEVICE_2          "/dev/ttyS1"
+set SERIAL_DEVICE_2_ARGS     "-m onboard -r 80000 -x -f"
+set SERIAL_DEVICE_2_BAUD     "921600"

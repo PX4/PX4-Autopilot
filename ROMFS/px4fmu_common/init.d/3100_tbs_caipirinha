@@ -42,7 +42,6 @@ then
 	param set FW_P_RMAX_NEG 70
 	param set FW_P_RMAX_POS 70
 	param set FW_R_RMAX 70
-	param set SYS_COMPANION 157600
 	param set PWM_MAIN_REV1 1
 	param set PWM_MAIN_REV2 1
 	param set PWM_DISARMED 0
@@ -54,3 +53,7 @@ fi
 
 set MIXER caipi
 set PWM_OUT 1234
+
+set SERIAL_DEVICE_2          "/dev/ttyS2"
+set SERIAL_DEVICE_2_ARGS     "-m osd -r 1000"
+set SERIAL_DEVICE_2_BAUD     "57600"

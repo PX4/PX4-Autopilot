@@ -39,5 +39,4 @@ then
 fi
 
 set OUTPUT_MODE bebop
-set USE_IO no
 set MIXER bebop

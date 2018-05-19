@@ -1,5 +1,7 @@
 #!nsh
 
+echo "Executing rc.vtol_defaults"
+
 set VEHICLE_TYPE vtol
 
 if [ $AUTOCNF == yes ]

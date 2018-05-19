@@ -1,5 +1,7 @@
 #!nsh
 
+echo "Executing rc.fw_defaults"
+
 set VEHICLE_TYPE fw
 
 if [ $AUTOCNF == yes ]

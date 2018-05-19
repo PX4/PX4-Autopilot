@@ -4,12 +4,32 @@
 # Standard startup script for logging
 #
 
+echo "Executing rc.logging"
+
+#
+# Declare local script variables and initialize default values
+#
+set LOGGER_ARGS                         ""
+set LOGGER_BUF                          14
+
+#
+# Setup for board specific configurations
+#
+if ver hwcmp PX4FMU_V5
+then
+	set LOGGER_BUF 64
+fi
+
+if param greater UAVCAN_ENABLE 1
+then
+	# Reduce logger buffer to free up some RAM for UAVCAN servers
+	set LOGGER_BUF 6
+fi
+
 if param compare SYS_LOGGER 0
 then
 	sdlog2 start -r 100 -a -b 9 -t
 else
-	set LOGGER_ARGS ""
-
 	if param compare SDLOG_MODE 1
 	then
 		set LOGGER_ARGS "-e"
@@ -26,8 +46,10 @@ else
 	fi
 
 	logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
-
-	unset LOGGER_ARGS
 fi
 
+#
+# Unset all local script variables to free RAM
+#
+unset LOGGER_ARGS
 unset LOGGER_BUF

@@ -3,6 +3,8 @@
 # Standard apps for fixed wing
 #
 
+echo "Executing rc.fw_apps"
+
 # LPE
 if param compare SYS_MC_EST_GROUP 1
 then

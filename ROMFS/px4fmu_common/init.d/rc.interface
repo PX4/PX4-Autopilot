@@ -9,14 +9,265 @@
 #  Otherwise, the variable name goes to the end of the argument.
 #
 
-set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
+echo "Executing rc.interface"
+
+#
+# Declare local script variables and initialize default values
+#
+set AUX_MODE                            pwm
+set FAILSAFE                            none
+set FAILSAFE_AUX                        none
+set FMU_ARGS                            ""
+set FMU_MODE                            pwm
+set IO_FILE                             /etc/extras/
+set IO_PRESENT                          no
+set MKBLCTRL_ARGS                       ""
+set SDCARD_MIXERS_PATH                  /fs/microsd/etc/mixers
+set USE_IO                              no
+
+#
+# Set script parameters for board specific configurations here
+#
+if ver hwcmp AEROFC_V1 CRAZYFLIE MINDPX_V2 NXPHLITE_V3 PX4FMU_V4
+then
+	set MIXER_AUX none
+fi
+
+#
+# If mount (gimbal) control is enabled and output mode is AUX, set the aux
+# mixer to mount (override the airframe-specific MIXER_AUX setting)
+#
+if param compare MNT_MODE_IN -1
+then
+else
+	if param compare MNT_MODE_OUT 0
+	then
+		set MIXER_AUX mount
+	fi
+fi
+
+# Sensors on the PWM interface bank
+if param compare SENS_EN_LL40LS 1
+then
+	# clear pins 5 and 6
+	set FMU_MODE pwm4
+	set AUX_MODE pwm4
+fi
+
+if param greater TRIG_MODE 0
+then
+	# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output
+	if param compare TRIG_PINS 56
+	then
+		# clear pins 5 and 6
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+	else
+		set FMU_MODE none
+		set AUX_MODE none
+	fi
+fi
+#
+# Set the FMU to run as a task for low latency instead of in the work queue at fixed rate
+#
+if param compare SYS_FMU_TASK 1
+then
+	set FMU_ARGS "-t"
+fi
+
+#
+# Check if HITL is enabled.
+#
+if param compare SYS_HITL 1
+then
+	set OUTPUT_MODE hil
+fi
+
+#
+# Check if UAVCAN is enabled, default to it for ESCs
+#
+if param greater UAVCAN_ENABLE 2
+then
+	set OUTPUT_MODE uavcan_esc
+fi
+
+#
+# Set USE_IO flag
+#
+if param compare SYS_USE_IO 1
+then
+	set USE_IO yes
+fi
+
+if [ $USE_IO == yes ]
+then
+	#
+	# Check if PX4IO present and update firmware if needed
+	#
+	if [ -f /etc/extras/px4io-v2.bin ]
+	then
+		set IO_FILE /etc/extras/px4io-v2.bin
+
+		if px4io checkcrc ${IO_FILE}
+		then
+			set IO_PRESENT yes
+		else
+			tune_control play -m "MLL32CP8MB"
+
+			if px4io start
+			then
+				# try to safe px4 io so motor outputs dont go crazy
+				if px4io safety_on
+				then
+					# success! no-op
+				else
+					# px4io did not respond to the safety command
+					px4io stop
+				fi
+			fi
+
+			if px4io forceupdate 14662 ${IO_FILE}
+			then
+				usleep 10000
+				if px4io checkcrc ${IO_FILE}
+				then
+					echo "PX4IO CRC OK after updating" >> $LOG_FILE
+					tune_control play -m "MLL8CDE"
+
+					set IO_PRESENT yes
+				else
+					echo "PX4IO update failed" >> $LOG_FILE
+					tune_control play -t 2
+				fi
+			else
+				echo "PX4IO update failed" >> $LOG_FILE
+				tune_control play -t 2
+			fi
+		fi
+	fi
+
+	if [ $IO_PRESENT == no ]
+	then
+		echo "PX4IO not found" >> $LOG_FILE
+		tune_control play -t 2
+	fi
+fi
+
+#
+# Set default output mode if not set
+#
+if [ $OUTPUT_MODE == none ]
+then
+	if [ $USE_IO == yes ]
+	then
+		if [ $IO_PRESENT == yes ]
+		then
+			set OUTPUT_MODE io
+		else
+			# If we weed IO for output but none is present, disable output
+			set OUTPUT_MODE none
+		fi
+	else
+		set OUTPUT_MODE fmu
+	fi
+fi
+
+# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
+if [ $OUTPUT_MODE != none ]
+then
+	if [ $OUTPUT_MODE == fmu ]
+	then
+		if fmu mode_$FMU_MODE $FMU_ARGS
+		then
+		else
+			echo "FMU start failed" >> $LOG_FILE
+			tune_control play -t 2
+		fi
+	fi
+
+	if [ $OUTPUT_MODE == hil ]
+	then
+		if pwm_out_sim start
+		then
+		else
+			tune_control play -t 2
+		fi
+	fi
+	
+	if [ $OUTPUT_MODE == mkblctrl ]
+	then
+		if [ $MKBLCTRL_MODE == x ]
+		then
+			set MKBLCTRL_ARGS "-mkmode x"
+		fi
+
+		if [ $MKBLCTRL_MODE == + ]
+		then
+			set MKBLCTRL_ARGS "-mkmode +"
+		fi
+
+		if mkblctrl $MKBLCTRL_ARGS
+		then
+		else
+			tune_control play -t 2
+		fi
+	fi
+
+	if [ $OUTPUT_MODE == tap_esc ]
+	then
+		set FMU_MODE rcin
+	fi
+
+	if [ $OUTPUT_MODE == uavcan_esc ]
+	then
+		if param compare UAVCAN_ENABLE 0
+		then
+			param set UAVCAN_ENABLE 3
+		fi
+	fi
+
+	if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
+	then
+		if px4io start
+		then
+			sh /etc/init.d/rc.io
+		else
+			echo "PX4IO start failed" >> $LOG_FILE
+			tune_control play -t 2
+		fi
+	fi
+
+	#
+	# Start IO or FMU for RC PPM input if needed
+	#
+	if [ $OUTPUT_MODE != io -a $IO_PRESENT == yes ]
+	then
+		if px4io start
+		then
+			sh /etc/init.d/rc.io
+		else
+			echo "PX4IO start failed" >> $LOG_FILE
+			tune_control play -t 2
+		fi
+	fi
+	else
+		if [ $OUTPUT_MODE != fmu ]
+		then
+			if fmu mode_${FMU_MODE} $FMU_ARGS
+			then
+			else
+				echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
+				tune_control play -t 2
+			fi
+		fi
+	fi
+fi
 
 if [ $MIXER != none -a $MIXER != skip ]
 then
 	#
 	# Load main mixer
 	#
-
 	if [ $MIXER_AUX == none -a $USE_IO == yes ]
 	then
 		set MIXER_AUX ${MIXER}
@@ -60,19 +311,20 @@ then
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		tune_control play -t 2
 	fi
-
-	unset MIXER_FILE
 else
 	if [ $MIXER != skip ]
 	then
 		echo "ERROR  [init] Mixer undefined"
 		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		tune_control play -t 2
 	fi
 fi
 
+#
+# Setup PWM output signals.
+#
 if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
 then
 	if [ $PWM_OUT != none ]
@@ -120,17 +372,11 @@ then
 	fi
 fi
 
-if ver hwcmp MINDPX_V2 CRAZYFLIE AEROFC_V1 PX4FMU_V4 NXPHLITE_V3
-then
-	set MIXER_AUX none
-fi
-
 if [ $MIXER_AUX != none -a $AUX_MODE != none ]
 then
 	#
 	# Load aux mixer
 	#
-
 	set MIXER_AUX_FILE none
 	set OUTPUT_AUX_DEV /dev/pwm_output1
 
@@ -175,7 +421,7 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
-			tone_alarm ${TUNE_ERR}
+			tune_control play -t 2
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi
@@ -236,17 +482,16 @@ then
 	fi
 fi
 
-unset PWM_OUT
-unset PWM_RATE
-unset PWM_ACHDIS
-unset PWM_MIN
-unset PWM_MAX
-unset PWM_AUX_OUT
-unset PWM_AUX_RATE
-unset PWM_AUX_DISARMED
-unset PWM_AUX_MIN
-unset PWM_AUX_MAX
-unset FAILSAFE_AUX
+#
+# Unset all local script variables to free RAM
+#
+unset AUX_MODE
 unset FAILSAFE
-unset OUTPUT_DEV
-unset OUTPUT_AUX_DEV
+unset FAILSAFE_AUX
+unset FMU_ARGS
+unset FMU_MODE
+unset IO_FILE
+unset IO_PRESENT
+unset MKBLCTRL_ARGS
+unset SDCARD_MIXERS_PATH
+unset USE_IO

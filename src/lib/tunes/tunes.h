@@ -102,7 +102,7 @@ public:
 	 * @param  silence   return silence duration (us)
 	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
-	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence);
+	int get_next_tune(uint16_t &frequency, uint32_t &duration, uint32_t &silence);
 
 	/**
 	 * Get next note in the current tune, which has been provided by either
@@ -113,7 +113,7 @@ public:
 	 * @param  strength  return the strength of the note (between 0-100)
 	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
-	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence,
+	int get_next_tune(uint16_t &frequency, uint32_t &duration, uint32_t &silence,
 			  uint8_t &strength);
 
 	/**
