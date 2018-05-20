@@ -50,4 +50,5 @@ px4_add_module(
 		battery
 		git_ecl
 		ecl_validation
+		conversion
 	)

@@ -383,7 +383,6 @@ function(px4_add_common_flags)
 		-fno-strict-aliasing
 		-fomit-frame-pointer
 
-		-fno-math-errno
 		-funsafe-math-optimizations
 
 		-ffunction-sections
