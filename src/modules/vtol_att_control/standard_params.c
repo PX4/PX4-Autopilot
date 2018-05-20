@@ -76,6 +76,20 @@ PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.0f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
 
 /**
+ * Front transition FW ramp up time
+ *
+ * This sets the duration after front transition during wich the fixed wing controls ramp up.
+ * This will prevent sudden agrresive behavior after the front transition completes.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 20.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_F_TRANS_RAMP, 3.0f);
+
+
+/**
  * Output on airbrakes channel during back transition
  * Used for airbrakes or with ESCs that have reverse thrust enabled on a seperate channel
  * Airbrakes need to be enables for your selected model/mixer
