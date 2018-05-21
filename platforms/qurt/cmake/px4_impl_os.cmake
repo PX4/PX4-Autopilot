@@ -192,6 +192,7 @@ function(px4_os_add_flags)
 
 	set(added_optimization_flags
 		-fPIC
+		-fmath-errno
 		)
 
 	# Clear -rdynamic flag which fails for hexagon
