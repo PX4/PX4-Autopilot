@@ -1,5 +1,0 @@
-$(info px4_developer.mk inclded)
-ifeq ($(UAVCAN_BL_OVERRIDE),y)
-$(info **************************  UAVCAN BOOT LOADERS built for In place application Debugging ***************************************)
-export EXTRADEFINES +=-DDEBUG_APPLICATION_INPLACE
-endif

@@ -1,3 +1,0 @@
-run
-pro hand -p true -s false -n false SIGCONT
-continue

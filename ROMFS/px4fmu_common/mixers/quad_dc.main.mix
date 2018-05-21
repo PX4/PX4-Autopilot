@@ -1,6 +1,0 @@
-Multirotor mixer
-===========================
-
-This file defines a single mixer for a quadrotor in DC wide arms configuration.  All controls are mixed 100%.
-
-R: 4dc 10000 10000 10000 0
