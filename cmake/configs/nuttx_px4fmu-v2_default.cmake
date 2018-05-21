@@ -156,6 +156,7 @@ set(config_module_list
 	#
 	# Demo apps
 	#
+	examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
