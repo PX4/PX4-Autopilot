@@ -53,4 +53,6 @@ px4_add_module(
 		arm_auth.cpp
 	DEPENDS
 		df_driver_framework
+		git_ecl
+		ecl_geo
 	)
