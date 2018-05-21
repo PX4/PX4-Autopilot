@@ -161,6 +161,8 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 	set(DSPAL_ROOT src/lib/DriverFramework/dspal)
 	include_directories(
 		${DSPAL_ROOT}/include
@@ -169,8 +171,8 @@ function(px4_os_add_flags)
 		${DSPAL_ROOT}/sys/sys
 		${DSPAL_ROOT}/uart_esc/inc
 
-		platforms/posix/include
 		platforms/qurt/include
+		platforms/posix/include
 		)
 
 	add_definitions(
@@ -180,19 +182,10 @@ function(px4_os_add_flags)
 		-D__QAIC_SKEL_EXPORT=__EXPORT
 		)
 
-	# Add the toolchain specific flags
-	set(added_c_flags
-		-Wno-unknown-warning-option
-		)
-
-	set(added_cxx_flags
-		-Wno-unknown-warning-option
-		-Wno-unreachable-code
-		)
-
-	set(added_optimization_flags
-		-fPIC
+	add_compile_options(
 		-fmath-errno
+		-fPIC
+		-Wno-unknown-warning-option
 		)
 
 	# Clear -rdynamic flag which fails for hexagon
@@ -205,7 +198,6 @@ function(px4_os_add_flags)
 	foreach(var ${inout_vars})
 		string(TOLOWER ${var} lower_var)
 		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-		#message(STATUS "qurt: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
 
 endfunction()

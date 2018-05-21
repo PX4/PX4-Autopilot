@@ -211,7 +211,7 @@ function(px4_os_add_flags)
 	endif()
 
 	# This block sets added_c_flags (appends to others).
-	if ("${BOARD}" STREQUAL "eagle")
+	if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 
 		if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
 			message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
@@ -227,26 +227,6 @@ function(px4_os_add_flags)
 			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib
 			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib
 			--sysroot=${HEXAGON_ARM_SYSROOT}
-			)
-	# This block sets added_c_flags (appends to others).
-	elseif ("${BOARD}" STREQUAL "excelsior")
-
-		if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
-			message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
-		else()
-			set(HEXAGON_ARM_SYSROOT $ENV{HEXAGON_ARM_SYSROOT})
-		endif()
-		
-		set(excelsior_flags --sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096 -mfloat-abi=softfp -mfpu=neon -mthumb-interwork)
-
-		# Add the toolchain specific flags
-		list(APPEND added_c_flags ${excelsior_flags})
-		list(APPEND added_cxx_flags ${excelsior_flags})
-
-		list(APPEND added_exe_linker_flags
-			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/usr/lib
-			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/lib
-			${excelsior_flags}
 			)
 
 	elseif ("${BOARD}" STREQUAL "rpi")

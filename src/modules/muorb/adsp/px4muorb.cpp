@@ -49,10 +49,10 @@ __BEGIN_DECLS
 extern int dspal_main(int argc, char *argv[]);
 extern struct shmem_info *shmem_info_p;
 extern int get_shmem_lock(const char *caller_file_name, int caller_line_number);
-extern void release_shmem_lock(const char *caller_file_name,
-			       int caller_line_number);
+extern void release_shmem_lock(const char *caller_file_name, int caller_line_number);
 extern void init_shared_memory(void);
 __END_DECLS
+
 int px4muorb_orb_initialize()
 {
 	HAP_power_request(100, 100, 1000);
@@ -60,9 +60,9 @@ int px4muorb_orb_initialize()
 
 	// The uORB Manager needs to be initialized first up, otherwise the instance is nullptr.
 	uORB::Manager::initialize();
+
 	// Register the fastrpc muorb with uORBManager.
-	uORB::Manager::get_instance()->set_uorb_communicator(
-		uORB::FastRpcChannel::GetInstance());
+	uORB::Manager::get_instance()->set_uorb_communicator(uORB::FastRpcChannel::GetInstance());
 
 	// Now continue with the usual dspal startup.
 	const char *argv[] = { "dspal", "start" };
@@ -85,8 +85,7 @@ int px4muorb_get_absolute_time(uint64_t *time_us)
 }
 
 /*update value and param's change bit in shared memory*/
-int px4muorb_param_update_to_shmem(uint32_t param, const uint8_t *value,
-				   int data_len_in_bytes)
+int px4muorb_param_update_to_shmem(uint32_t param, const uint8_t *value, int data_len_in_bytes)
 {
 	unsigned int byte_changed, bit_changed;
 	union param_value_u *param_value = (union param_value_u *) value;
@@ -131,8 +130,7 @@ int px4muorb_param_update_index_from_shmem(unsigned char *data, int data_len_in_
 	return 0;
 }
 
-int px4muorb_param_update_value_from_shmem(uint32_t param, const uint8_t *value,
-		int data_len_in_bytes)
+int px4muorb_param_update_value_from_shmem(uint32_t param, const uint8_t *value, int data_len_in_bytes)
 {
 	unsigned int byte_changed, bit_changed;
 	union param_value_u *param_value = (union param_value_u *) value;
@@ -230,16 +228,14 @@ int px4muorb_remove_subscriber(const char *name)
 	return rc;
 }
 
-int px4muorb_send_topic_data(const char *name, const uint8_t *data,
-			     int data_len_in_bytes)
+int px4muorb_send_topic_data(const char *name, const uint8_t *data, int data_len_in_bytes)
 {
 	int rc = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
 	uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
 
 	if (rxHandler != nullptr) {
-		rc = rxHandler->process_received_message(name, data_len_in_bytes,
-				(uint8_t *) data);
+		rc = rxHandler->process_received_message(name, data_len_in_bytes, (uint8_t *) data);
 
 	} else {
 		rc = -1;
@@ -250,10 +246,9 @@ int px4muorb_send_topic_data(const char *name, const uint8_t *data,
 
 int px4muorb_is_subscriber_present(const char *topic_name, int *status)
 {
-	int rc = 0;
 	int32_t local_status = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
-	rc = channel->is_subscriber_present(topic_name, &local_status);
+	int rc = channel->is_subscriber_present(topic_name, &local_status);
 
 	if (rc == 0) {
 		*status = (int) local_status;
@@ -262,31 +257,27 @@ int px4muorb_is_subscriber_present(const char *topic_name, int *status)
 	return rc;
 }
 
-int px4muorb_receive_msg(int *msg_type, char *topic_name, int topic_name_len,
-			 uint8_t *data, int data_len_in_bytes, int *bytes_returned)
+int px4muorb_receive_msg(int *msg_type, char *topic_name, int topic_name_len, uint8_t *data, int data_len_in_bytes,
+			 int *bytes_returned)
 {
-	int rc = 0;
 	int32_t local_msg_type = 0;
 	int32_t local_bytes_returned = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
 	//PX4_DEBUG( "topic_namePtr: [0x%p] dataPtr: [0x%p]", topic_name, data );
-	rc = channel->get_data(&local_msg_type, topic_name, topic_name_len, data,
-			       data_len_in_bytes, &local_bytes_returned);
+	int rc = channel->get_data(&local_msg_type, topic_name, topic_name_len, data, data_len_in_bytes, &local_bytes_returned);
 	*msg_type = (int) local_msg_type;
 	*bytes_returned = (int) local_bytes_returned;
 	return rc;
 }
 
-int px4muorb_receive_bulk_data(uint8_t *bulk_transfer_buffer,
-			       int max_size_in_bytes, int *returned_length_in_bytes, int *topic_count)
+int px4muorb_receive_bulk_data(uint8_t *bulk_transfer_buffer, int max_size_in_bytes, int *returned_length_in_bytes,
+			       int *topic_count)
 {
-	int rc = 0;
 	int32_t local_bytes_returned = 0;
 	int32_t local_topic_count = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
 	//PX4_DEBUG( "topic_namePtr: [0x%p] dataPtr: [0x%p]", topic_name, data );
-	rc = channel->get_bulk_data(bulk_transfer_buffer, max_size_in_bytes,
-				    &local_bytes_returned, &local_topic_count);
+	int rc = channel->get_bulk_data(bulk_transfer_buffer, max_size_in_bytes, &local_bytes_returned, &local_topic_count);
 	*returned_length_in_bytes = (int) local_bytes_returned;
 	*topic_count = (int) local_topic_count;
 	return rc;
@@ -294,8 +285,6 @@ int px4muorb_receive_bulk_data(uint8_t *bulk_transfer_buffer,
 
 int px4muorb_unblock_recieve_msg(void)
 {
-	int rc = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
-	rc = channel->unblock_get_data_method();
-	return rc;
+	return channel->unblock_get_data_method();
 }

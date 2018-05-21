@@ -37,20 +37,18 @@ include(hexagon_sdk)
 include_directories(${HEXAGON_8074_INCLUDES})
 
 set(QURT_LAYER_SRCS
+	${PX4_SOURCE_DIR}/platforms/posix/src/px4_layer/drv_hrt.c
+	${PX4_SOURCE_DIR}/platforms/posix/src/px4_layer/lib_crc32.c
+	main.cpp
 	px4_qurt_impl.cpp
 	px4_qurt_tasks.cpp
-	lib_crc32.c
-	../../../posix/src/px4_layer/drv_hrt.c
 	qurt_stubs.c
-	main.cpp
 	shmem_qurt.c
 	)
 
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
-	list(APPEND QURT_LAYER_SRCS
-		../stubs/stubs_posix.c
-		../stubs/stubs_qurt.c
-		)
+	add_subdirectory(stubs)
+	target_link_libraries(px4_layer PRIVATE px4_layer_stubs)
 endif()
 
 add_library(px4_layer

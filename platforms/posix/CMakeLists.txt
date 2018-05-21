@@ -7,59 +7,27 @@ get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 px4_posix_generate_builtin_commands(
 	OUT apps
-	MODULE_LIST ${module_libraries})
+	MODULE_LIST ${module_libraries}
+)
 
-if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
-	include(fastrpc)
-	include(linux_app)
-
-	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
-
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
-	LINUX_APP(
-		APP_NAME px4
-		IDL_NAME px4muorb
-		APPS_DEST "/home/linaro"
-		SOURCES
-			px4muorb_stub.c
-			src/main.cpp
-			apps.cpp
-		LINK_LIBS
-			-Wl,--start-group
-				${module_libraries}
-				${df_driver_libs}
-				${FASTRPC_ARM_LIBS}
-				pthread m rt
-			-Wl,--end-group
-		)
-
-	add_custom_target(upload
-		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload.sh $<TARGET_FILE:px4> ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config /home/linaro
-		DEPENDS px4
-		COMMENT "uploading px4"
-		USES_TERMINAL
-		)
-
-else()
-	px4_add_executable(px4
-		src/main.cpp
-		apps.cpp
-		)
-
-	target_link_libraries(px4
-		PRIVATE
-			${module_libraries}
-			df_driver_framework
-			${df_driver_libs}
-			pthread m
+px4_add_executable(px4
+	src/main.cpp
+	apps.cpp
 	)
 
-	if (NOT APPLE)
-		target_link_libraries(px4 PRIVATE rt)
-	endif()
+target_link_libraries(px4
+	PRIVATE
+		${module_libraries}
+		df_driver_framework
+		${df_driver_libs}
+		pthread m
+)
 
-	target_link_libraries(px4 PRIVATE modules__uORB)
+if (NOT APPLE)
+	target_link_libraries(px4 PRIVATE rt)
 endif()
+
+target_link_libraries(px4 PRIVATE modules__uORB)
 
 if ("${BOARD}" STREQUAL "rpi")
 	add_custom_target(upload
@@ -86,6 +54,18 @@ elseif ("${BOARD}" STREQUAL "sitl")
 		include(sitl_tests)
 	endif()
 
+elseif (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
+
+	set(APPS_TARGET_PATH /home/linaro)
+	add_custom_target(upload
+		COMMAND adb wait-for-device
+		COMMAND adb push $<TARGET_FILE:px4> ${APPS_TARGET_PATH}
+		COMMAND adb push ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config ${APPS_TARGET_PATH}
+		COMMAND adb shell sync
+		DEPENDS px4
+		COMMENT "uploading px4"
+		USES_TERMINAL
+	)
 endif()
 
 #=============================================================================

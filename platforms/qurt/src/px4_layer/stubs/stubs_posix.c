@@ -40,7 +40,6 @@ pthread_t pthread_self(void)
 	return x;
 }
 
-
 int pthread_kill(pthread_t thread, int sig)
 {
 	return 1;

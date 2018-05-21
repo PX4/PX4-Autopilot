@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * SITL internal definitions
+ * EAGLE internal definitions
  */
 
 #pragma once

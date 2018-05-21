@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,27 +31,7 @@
 #
 ############################################################################
 
-if("${CONFIG_SHMEM}" STREQUAL "1")
-	include(hexagon_sdk)
-
-	add_definitions(-DCONFIG_SHMEM)
-
-	add_library(px4_layer_shmem
-		shmem_posix.c
+add_library(px4_layer_stubs
+	stubs_posix.c
+	stubs_qurt.c
 	)
-	target_include_directories(px4_layer_shmem PRIVATE ${HEXAGON_SDK_INCLUDES})
-	target_link_libraries(px4_layer_shmem PRIVATE muorb)
-endif()
-
-add_library(px4_layer
-	px4_posix_impl.cpp
-	px4_posix_tasks.cpp
-	px4_sem.cpp
-	lib_crc32.c
-	drv_hrt.c
-)
-target_link_libraries(px4_layer PRIVATE work_queue)
-
-if("${CONFIG_SHMEM}" STREQUAL "1")
-	target_link_libraries(px4_layer PRIVATE px4_layer_shmem)
-endif()

@@ -69,7 +69,6 @@ muorb_main(int argc, char *argv[])
 		}
 
 		return OK;
-
 	}
 
 	if (!strcmp(argv[1], "stop")) {

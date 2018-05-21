@@ -175,7 +175,7 @@ public:
 
 private: // data members
 	static uORB::FastRpcChannel _Instance;
-	uORBCommunicator::IChannelRxHandler *_RxHandler;
+	uORBCommunicator::IChannelRxHandler *_RxHandler{nullptr};
 
 	/// data structure to store the messages to be retrived by Krait.
 	static const int32_t _MAX_MSG_QUEUE_SIZE = 100;
@@ -210,12 +210,12 @@ private: // data members
 
 
 	struct FastRpcDataMsg _DataMsgQueue[ _MAX_MSG_QUEUE_SIZE ];
-	int32_t _DataQInIndex;
-	int32_t _DataQOutIndex;
+	int32_t _DataQInIndex{0};
+	int32_t _DataQOutIndex{0};
 
 	struct FastRpcControlMsg _ControlMsgQueue[ _MAX_MSG_QUEUE_SIZE ];
-	int32_t _ControlQInIndex;
-	int32_t _ControlQOutIndex;
+	int32_t _ControlQInIndex{0};
+	int32_t _ControlQOutIndex{0};
 
 	std::list<std::string> _Subscribers;
 

@@ -8,8 +8,6 @@ add_subdirectory(src)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes")
-
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 px4_qurt_generate_builtin_commands(
@@ -17,46 +15,31 @@ px4_qurt_generate_builtin_commands(
 	MODULE_LIST ${module_libraries}
 )
 
-FASTRPC_STUB_GEN(px4muorb.idl)
+# Build px4 shared library that is run on the DSP
+add_library(px4 SHARED ${PX4_BINARY_DIR}/apps.cpp px4muorb_stub.c)
+target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})
+target_include_directories(px4 PRIVATE ${FASTRPC_DSP_INCLUDES})
+target_compile_options(px4 PRIVATE -Wno-missing-prototypes)
 
-# Enable build without HexagonSDK to check link dependencies
-if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
+# px4muorb_skel.so
+include(fastrpc)
+FASTRPC_STUB_GEN(${PX4_SOURCE_DIR}/src/modules/muorb/px4muorb.idl)
 
-	add_definitions(-D QURT_EXE_BUILD=1)
+add_library(px4muorb_skel SHARED px4muorb_skel.c)
+target_include_directories(px4muorb_skel PRIVATE ${FASTRPC_DSP_INCLUDES})
+target_compile_options(px4muorb_skel PRIVATE -Wno-missing-prototypes)
+add_dependencies(px4muorb_skel generate_px4muorb_stubs)
+target_link_libraries(px4muorb_skel ${CMAKE_CURRENT_BINARY_DIR}/libpx4.so)
 
-	include_directories(
-                ${CMAKE_CURRENT_BINARY_DIR}
-                ${FASTRPC_DSP_INCLUDES}
-                )
-
-	add_executable(px4
-		${PX4_BINARY_DIR}/apps.cpp
-		${PX4_BINARY_DIR}/platforms/qurt/px4muorb_skel.c
-	)
-
-	target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})
-else()
-	# Generate the DSP lib and stubs but not the apps side executable
-	# The Apps side executable is generated via the posix_eagle_xxxx target
-	QURT_LIB(LIB_NAME px4
-		IDL_NAME px4muorb
-		SOURCES
-			${PX4_BINARY_DIR}/apps.cpp
-		LINK_LIBS
-			${module_libraries}
-			${df_driver_libs}
-			m
-			modules__muorb__adsp
-		)
-
-	add_custom_target(upload
-		COMMAND
-			${PX4_SOURCE_DIR}/Tools/adb_upload.sh
-				${CMAKE_CURRENT_BINARY_DIR}/libpx4.so ${CMAKE_CURRENT_BINARY_DIR}/libpx4muorb_skel.so ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config
-				/usr/share/data/adsp
-		DEPENDS px4 px4muorb_skel
-		COMMENT "uploading px4"
-		USES_TERMINAL
-	)
-
-endif()
+# upload helper
+set(DSPLIB_TARGET_PATH "/usr/share/data/adsp/")
+add_custom_target(upload
+	COMMAND adb wait-for-device
+	COMMAND adb push $<TARGET_FILE:px4> ${DSPLIB_TARGET_PATH}
+	COMMAND adb push $<TARGET_FILE:px4muorb_skel> ${DSPLIB_TARGET_PATH}
+	COMMAND adb push ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config ${DSPLIB_TARGET_PATH}
+	COMMAND adb shell sync
+	DEPENDS px4 px4muorb_skel
+	COMMENT "uploading px4"
+	USES_TERMINAL
+)

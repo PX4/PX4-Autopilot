@@ -53,11 +53,6 @@ static unsigned long _bulk_topic_count_max = 0;
 //==============================================================================
 //==============================================================================
 uORB::FastRpcChannel::FastRpcChannel()
-	: _RxHandler(0)
-	, _DataQInIndex(0)
-	, _DataQOutIndex(0)
-	, _ControlQInIndex(0)
-	, _ControlQOutIndex(0)
 {
 	for (int32_t i = 0; i < _MAX_MSG_QUEUE_SIZE; ++ i) {
 		_DataMsgQueue[i]._MaxBufferSize = 0;
@@ -454,14 +449,8 @@ int16_t uORB::FastRpcChannel::get_data
 	return rc;
 }
 
-
-int16_t uORB::FastRpcChannel::get_bulk_data
-(
-	uint8_t *buffer,
-	int32_t  max_buffer_in_bytes,
-	int32_t *returned_bytes,
-	int32_t *topic_count
-)
+int16_t uORB::FastRpcChannel::get_bulk_data(uint8_t *buffer, int32_t  max_buffer_in_bytes, int32_t *returned_bytes,
+		int32_t *topic_count)
 {
 	int16_t rc = 0;
 	// wait for data availability
@@ -664,9 +653,9 @@ int32_t uORB::FastRpcChannel::copy_msg_to_buffer(bool isData, int32_t src_index,
 
 	if (isData && (field_data_offset + _DataMsgQueue[ src_index ]._Length) < dst_buffer_len) {
 		memmove(&(dst_buffer[field_header_offset]), (char *)(&header), sizeof(header));
+
 		// pack the data here.
-		memmove
-		(
+		memmove(
 			&(dst_buffer[field_topic_name_offset]),
 			_DataMsgQueue[ src_index ]._MsgName.c_str(),
 			_DataMsgQueue[ src_index ]._MsgName.size()
@@ -682,9 +671,9 @@ int32_t uORB::FastRpcChannel::copy_msg_to_buffer(bool isData, int32_t src_index,
 
 	} else if (field_data_offset < dst_buffer_len) { //This is a control message
 		memmove(&(dst_buffer[field_header_offset]), (char *)(&header), sizeof(header));
+
 		// pack the data here.
-		memmove
-		(
+		memmove(
 			&(dst_buffer[field_topic_name_offset]),
 			_ControlMsgQueue[ src_index ]._MsgName.c_str(),
 			_ControlMsgQueue[ src_index ]._MsgName.size()

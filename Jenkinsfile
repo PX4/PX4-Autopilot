@@ -76,27 +76,9 @@ pipeline {
           builds["eagle (linux)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'posix_eagle_default')
           builds["eagle (qurt)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'qurt_eagle_default')
 
-          // posix_sitl_default with package
-          builds["sitl"] = {
-            node {
-              stage("Build Test sitl") {
-                docker.image(docker_ros).inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE') {
-                  stage("sitl") {
-                    checkout scm
-                    sh "export"
-                    sh "make distclean"
-                    sh "ccache -z"
-                    sh "make posix_sitl_default"
-                    sh "make posix_sitl_default sitl_gazebo"
-                    sh "make posix_sitl_default package"
-                    sh "ccache -s"
-                    stash name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2"
-                    sh "make distclean"
-                  }
-                }
-              }
-            }
-          }
+          // snapdragon (excelsior_default)
+          builds["excelsior (linux)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'posix_excelsior_default')
+          builds["excelsior (qurt)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'qurt_excelsior_default')
 
           // MAC OS posix_sitl_default
           builds["sitl (OSX)"] = {
