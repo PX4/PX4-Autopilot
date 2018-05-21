@@ -144,7 +144,7 @@ int map_projection_project(const struct map_projection_reference_s *ref, double 
 
 	double k = 1.0;
 
-	if (fabs(c) >= DBL_EPSILON) {
+	if (fabs(c) > 0) {
 		k = (c / sin(c));
 	}
 
@@ -169,7 +169,7 @@ int map_projection_reproject(const struct map_projection_reference_s *ref, float
 	const double y_rad = (double)y / CONSTANTS_RADIUS_OF_EARTH;
 	const double c = sqrt(x_rad * x_rad + y_rad * y_rad);
 
-	if (fabs(c) > DBL_EPSILON) {
+	if (fabs(c) > 0) {
 		const double sin_c = sin(c);
 		const double cos_c = cos(c);
 
