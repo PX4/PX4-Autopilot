@@ -40,5 +40,6 @@ px4_add_module(
 	SRCS
 		mc_att_control_main.cpp
 	DEPENDS
+		conversion
 		mathlib
 	)
