@@ -46,6 +46,7 @@ else()
 			${module_libraries}
 			${df_driver_libs}
 			m
+			modules__muorb__adsp
 		)
 
 	add_custom_target(upload
