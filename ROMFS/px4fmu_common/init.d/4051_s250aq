@@ -40,7 +40,6 @@ then
 	param set MC_YAWRATE_P 0.2
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
-	param set MC_YAW_FF 0.5
 	param set MC_ROLLRATE_MAX 720.0
 	param set MC_PITCHRATE_MAX 720.0
 	param set MC_YAWRATE_MAX 400.0
