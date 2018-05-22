@@ -1689,7 +1689,8 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
 		/* ignore own heartbeats */
-		if (msg->sysid != mavlink_system.sysid) {
+		if (msg->sysid != mavlink_system.sysid ||
+		    (msg->sysid == mavlink_system.sysid && msg->compid != mavlink_system.compid)) {
 
 			struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
