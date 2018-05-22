@@ -44,6 +44,7 @@ using namespace matrix;
 bool FlightTaskManualPosition::activate()
 {
 
+	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate();
 
 	// set task specific constraint
@@ -55,6 +56,13 @@ bool FlightTaskManualPosition::activate()
 	_position_setpoint(1) = _position(1);
 	_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
 	_velocity_scale = _constraints.speed_xy;
+
+	// for position-controlled mode, we need a valid position and velocity state
+	// in NE-direction
+	ret = ret && PX4_ISFINITE(_position(0))
+	      && PX4_ISFINITE(_position(1))
+	      && PX4_ISFINITE(_velocity(0))
+	      && PX4_ISFINITE(_velocity(1));
 	return ret;
 }
 

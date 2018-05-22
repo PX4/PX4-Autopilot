@@ -67,6 +67,15 @@ bool FlightTaskOrbit::activate()
 	_z = _position(2);
 	_center = Vector2f(_position.data());
 	_center(0) -= _r;
+
+	// need a valid position and velocity
+	ret = ret && PX4_ISFINITE(_position(0))
+	      && PX4_ISFINITE(_position(1))
+	      && PX4_ISFINITE(_position(2))
+	      && PX4_ISFINITE(_velocity(0))
+	      && PX4_ISFINITE(_velocity(1))
+	      && PX4_ISFINITE(_velocity(2));
+
 	return ret;
 }
 
