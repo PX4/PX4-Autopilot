@@ -989,7 +989,7 @@ HMC5883::collect()
 	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
 	new_report.is_external = !sensor_is_onboard;
 
-#ifdef PX4_I2C_BUS_ONBOARD_EXP
+#ifdef CONFIG_ARCH_BOARD_NXPHLITE_V3
 	sensor_is_onboard = false;
 	new_report.is_external = true;
 #endif
@@ -1446,7 +1446,7 @@ struct hmc5883_bus_option {
 	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext2", &HMC5883_I2C_interface, PX4_I2C_BUS_EXPANSION2, NULL },
 #endif
 
-#if PX4_I2C_BUS_ONBOARD_EXP == 1
+#ifdef CONFIG_ARCH_BOARD_NXPHLITE_V3
 	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext", &HMC5883_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #elif PX4_I2C_BUS_ONBOARD
 	{ HMC5883_BUS_I2C_INTERNAL, "/dev/hmc5883_int", &HMC5883_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },

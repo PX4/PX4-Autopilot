@@ -262,7 +262,6 @@ __BEGIN_DECLS
 
 #define PX4_I2C_BUS_EXPANSION               PX4_BUS_NUMBER_TO_PX4(0)
 #define PX4_I2C_BUS_ONBOARD                 PX4_BUS_NUMBER_TO_PX4(1)
-#define PX4_I2C_BUS_ONBOARD_EXP				1
 
 #define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION
 
