@@ -102,8 +102,6 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 	matrix::Eulerf euler = R_sp;
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
-
-	// fill and publish att_sp message
 	att_sp.thrust = thr_sp.length();
 
 	return att_sp;
