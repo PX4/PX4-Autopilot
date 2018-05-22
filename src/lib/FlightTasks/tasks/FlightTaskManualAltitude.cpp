@@ -77,7 +77,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	} else {
 		// altitude based on locale coordinate system
-		_dist_to_ground_lock = NAN; // reset boolean since not used
+		_dist_to_ground_lock = NAN; // reset since not used
 
 		if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(2))) {
 			// lock position
