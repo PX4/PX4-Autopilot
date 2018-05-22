@@ -326,6 +326,7 @@ void Ekf::controlExternalVisionFusion()
 		}
 
 	} else if (_control_status.flags.ev_pos
+		   && (_time_last_imu >= _time_last_ext_vision)
 		   && (_time_last_imu - _time_last_ext_vision > (uint64_t)_params.no_gps_timeout_max)) {
 
 		// Turn off EV fusion mode if no data has been received
