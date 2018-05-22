@@ -133,5 +133,8 @@ bool FlightTaskOrbit::update()
 
 	// make vehicle front always point towards the center
 	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+	// yawspeed feed-forward because we know the necessary angular rate
+	_yawspeed_setpoint = -_v / _r;
+
 	return true;
 }
