@@ -63,6 +63,14 @@ bool FlightTaskAuto::activate()
 	_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
 	_setDefaultConstraints();
 
+	// need a valid position and velocity
+	ret = ret && PX4_ISFINITE(_position(0))
+	      && PX4_ISFINITE(_position(1))
+	      && PX4_ISFINITE(_position(2))
+	      && PX4_ISFINITE(_velocity(0))
+	      && PX4_ISFINITE(_velocity(1))
+	      && PX4_ISFINITE(_velocity(2));
+
 	return ret;
 }
 
