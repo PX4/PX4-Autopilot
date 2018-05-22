@@ -143,6 +143,13 @@ private:
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 	static constexpr uint64_t IDLE_BOFORE_TAKEOFF_TIME_US =
 		2500000; /**< time required to stay idle before enabling smooth takeoff */
+
+	/**
+	 * Hysteresis that turns true once vehicle is armed for IDLE_BOFORE_TAKEOFF_TIME_US microseconds.
+	 * A real vehicle requires some time to accelerates the propellers to IDLE speed. To ensure
+	 * that the propellers reach idle speed before initiating a takeoff, a delay of IDLE_BOFORE_TAKEOFF_TIME_US
+	 * is added.
+	 */
 	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is armed for IDLE_BOFORE_TAKEOFF_TIME_US */
 
 	/**
