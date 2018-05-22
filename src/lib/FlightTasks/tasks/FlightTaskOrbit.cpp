@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,8 +47,8 @@ FlightTaskOrbit::FlightTaskOrbit()
 
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
-	const float &r = command.param3; /**< commanded radius */
-	const float &v = command.param4; /**< commanded velocity */
+	const float &r = command.param3; // commanded radius
+	const float &v = command.param4; // commanded velocity
 
 	if (math::isInRange(r, 5.f, 50.f) && fabs(v) < 10.f) {
 		_r = r;
@@ -89,18 +89,18 @@ bool FlightTaskOrbit::update()
 
 	_position_setpoint = Vector3f(NAN, NAN, _z);
 
-	/* xy velocity to go around in a circle */
+	// xy velocity to go around in a circle
 	Vector2f center_to_position = Vector2f(_position.data()) - _center;
 	Vector2f velocity_xy = Vector2f(center_to_position(1), -center_to_position(0));
 	velocity_xy = velocity_xy.unit_or_zero();
 	velocity_xy *= _v;
 
-	/* xy velocity adjustment to stay on the radius distance */
+	// xy velocity adjustment to stay on the radius distance
 	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
 
 	_velocity_setpoint = Vector3f(velocity_xy(0), velocity_xy(1), 0.f);
 
-	/* make vehicle front always point towards the center */
+	// make vehicle front always point towards the center
 	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 	return true;
 }
