@@ -62,6 +62,10 @@ bool FlightTaskManualStabilized::activate()
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
 	_constraints.tilt = math::radians(_tilt_max_man.get());
+
+	// need a valid yaw
+	ret = ret && PX4_ISFINITE(_yaw);
+
 	return ret;
 }
 
