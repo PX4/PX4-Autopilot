@@ -140,6 +140,17 @@ void FlightTasks::handleParameterUpdate()
 	}
 }
 
+const char *FlightTasks::errorToString(const int error)
+{
+	for (auto e : _taskError) {
+		if (e.error == error) {
+			return e.msg;
+		}
+	}
+
+	return "This error is not mapped to a string or is unknown.";
+}
+
 void FlightTasks::_updateCommand()
 {
 //	TODO: port flight task mavlink command to have support for this functionality
