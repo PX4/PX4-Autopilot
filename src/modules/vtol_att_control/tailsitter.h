@@ -52,11 +52,10 @@ class Tailsitter : public VtolType
 
 public:
 	Tailsitter(VtolAttitudeControl *_att_controller);
-	~Tailsitter() = default;
+	~Tailsitter() override = default;
 
 	virtual void update_vtol_state();
 	virtual void update_transition_state();
-	virtual void update_mc_state();
 	virtual void update_fw_state();
 	virtual void fill_actuator_outputs();
 	virtual void waiting_on_tecs();
@@ -66,12 +65,12 @@ private:
 	struct {
 		float front_trans_dur_p2;
 		float fw_pitch_sp_offset;
-	} _params_tailsitter;
+	} _params_tailsitter{};
 
 	struct {
 		param_t front_trans_dur_p2;
 		param_t fw_pitch_sp_offset;
-	} _params_handles_tailsitter;
+	} _params_handles_tailsitter{};
 
 	enum vtol_mode {
 		MC_MODE = 0,			/**< vtol is in multicopter mode */

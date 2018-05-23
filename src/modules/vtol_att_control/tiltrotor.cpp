@@ -45,8 +45,7 @@
 #define ARSP_YAW_CTRL_DISABLE 7.0f	// airspeed at which we stop controlling yaw during a front transition
 
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
-	VtolType(attc),
-	_tilt_control(0.0f)
+	VtolType(attc)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
@@ -87,7 +86,6 @@ Tiltrotor::parameters_update()
 
 void Tiltrotor::update_vtol_state()
 {
-
 	/* simple logic using a two way switch to perform transitions.
 	 * after flipping the switch the vehicle will start tilting rotors, picking up
 	 * forward speed. After the vehicle has picked up enough speed the rotors are tilted

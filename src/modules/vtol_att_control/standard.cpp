@@ -49,10 +49,7 @@
 using matrix::wrap_pi;
 
 Standard::Standard(VtolAttitudeControl *attc) :
-	VtolType(attc),
-	_pusher_throttle(0.0f),
-	_reverse_output(0.0f),
-	_airspeed_trans_blend_margin(0.0f)
+	VtolType(attc)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
