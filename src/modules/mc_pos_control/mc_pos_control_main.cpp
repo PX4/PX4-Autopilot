@@ -634,7 +634,7 @@ MulticopterPositionControl::start_flight_task()
 		}
 	}
 
-	// follow me
+	// Auto-follow me
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
 
@@ -642,14 +642,9 @@ MulticopterPositionControl::start_flight_task()
 			PX4_WARN("Follow-Me failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 		}
-	}
 
-	// any of the auto relate modes
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
-	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER	 ||
-	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
-	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL     ||
-	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+	} else if (_control_mode.flag_control_auto_enabled) {
+		// Auto relate maneuvers
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 
 		if (error < 0) {
