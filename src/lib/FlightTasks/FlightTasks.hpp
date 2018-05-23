@@ -134,6 +134,11 @@ public:
 	 */
 	void handleParameterUpdate();
 
+	/**
+	 * Call this method to get the description of a task error.
+	 */
+	const char *errorToString(const int error);
+
 private:
 
 	/**
@@ -161,6 +166,21 @@ private:
 
 	SubscriptionArray _subscription_array;
 
+	struct task_error_t {
+		int error;
+		const char *msg;
+	};
+
+	static const int _numError = 4;
+	/**
+	 * Map from Error int to user friendly string.
+	 */
+	task_error_t _taskError[_numError] = {
+		{0, "No Error"},
+		{-1, "Invalid Task "},
+		{-2, "Subscription Failed"},
+		{-3, "Activation Failed"}
+	};
 	/**
 	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
 	 */
