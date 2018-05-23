@@ -68,10 +68,6 @@ struct Parameters {
 	float diff_pres_analog_scale;
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
-	int32_t board_rotation;
-
-	float board_offset[3];
-
 	int32_t rc_map_roll;
 	int32_t rc_map_pitch;
 	int32_t rc_map_yaw;
@@ -223,10 +219,6 @@ struct ParameterHandles {
 	param_t battery_v_div;
 	param_t battery_a_per_v;
 	param_t battery_source;
-
-	param_t board_rotation;
-
-	param_t board_offset[3];
 
 	param_t baro_qnh;
 

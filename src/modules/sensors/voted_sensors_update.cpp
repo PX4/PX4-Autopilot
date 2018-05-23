@@ -127,17 +127,11 @@ void VotedSensorsUpdate::deinit()
 
 void VotedSensorsUpdate::parameters_update()
 {
-	/* fine tune board offset */
-	matrix::Dcmf board_rotation_offset = matrix::Eulerf(
-			M_DEG_TO_RAD_F * _parameters.board_offset[0],
-			M_DEG_TO_RAD_F * _parameters.board_offset[1],
-			M_DEG_TO_RAD_F * _parameters.board_offset[2]);
-
-	_board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)_parameters.board_rotation);
+	_board_rotation.updateParams();
 
 	// initialze all mag rotations with the board rotation in case there is no calibration data available
 	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX; ++topic_instance) {
-		_mag_rotation[topic_instance] = _board_rotation;
+		_mag_rotation[topic_instance] = _board_rotation.get();
 	}
 
 	/* Load & apply the sensor calibrations.
@@ -509,7 +503,7 @@ void VotedSensorsUpdate::parameters_update()
 
 				} else {
 					// Set internal magnetometers to use the board rotation
-					_mag_rotation[topic_instance] = _board_rotation;
+					_mag_rotation[topic_instance] = _board_rotation.get();
 				}
 
 				if (failed) {
@@ -603,7 +597,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 			}
 
 			// rotate corrected measurements from sensor to body frame
-			accel_data = _board_rotation * accel_data;
+			accel_data = _board_rotation.get() * accel_data;
 
 			_last_sensor_data[uorb_index].accelerometer_m_s2[0] = accel_data(0);
 			_last_sensor_data[uorb_index].accelerometer_m_s2[1] = accel_data(1);
@@ -708,7 +702,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 			}
 
 			// rotate corrected measurements from sensor to body frame
-			gyro_rate = _board_rotation * gyro_rate;
+			gyro_rate = _board_rotation.get() * gyro_rate;
 
 			_last_sensor_data[uorb_index].gyro_rad[0] = gyro_rate(0);
 			_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);

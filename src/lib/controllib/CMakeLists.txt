@@ -42,4 +42,5 @@ px4_add_library(controllib
 	BlockLimitSym.cpp
 	BlockLowPass.cpp
 	BlockLowPass2.cpp
+	BlockGyroCorrected.cpp
 )

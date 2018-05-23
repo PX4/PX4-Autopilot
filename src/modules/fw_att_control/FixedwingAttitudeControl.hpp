@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <px4_module.h>
+#include <controllib/BlockGyroCorrected.hpp>
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
@@ -41,6 +41,7 @@
 #include <mathlib/mathlib.h>
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_module.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <parameters/param.h>
@@ -61,8 +62,10 @@
 #include <uORB/topics/vehicle_status.h>
 #include <vtol_att_control/vtol_type.h>
 
+using matrix::Dcmf;
 using matrix::Eulerf;
 using matrix::Quatf;
+using matrix::Vector3f;
 
 using uORB::Subscription;
 
@@ -115,14 +118,15 @@ private:
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
 	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
-	vehicle_attitude_s			_att {};		/**< vehicle attitude setpoint */
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
 	vehicle_control_mode_s			_vcontrol_mode {};	/**< vehicle control mode */
 	vehicle_global_position_s		_global_pos {};		/**< global position */
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
-	Subscription<airspeed_s>			_airspeed_sub;
+	Subscription<airspeed_s>		_airspeed_sub;
+
+	control::BlockGyroCorrected		_gyro_corrected;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -274,18 +278,20 @@ private:
 
 	} _parameter_handles{};		/**< handles for interesting parameters */
 
+	ECL_ControlData					_control_input = {};
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
-	ECL_WheelController			_wheel_ctrl;
+	ECL_WheelController				_wheel_ctrl;
 
 	void control_flaps(const float dt);
 
 	/**
 	 * Update our local parameter cache.
 	 */
-	int		parameters_update();
+	void		parameters_update();
 
+	bool		vehicle_attitude_poll();
 	void		vehicle_control_mode_poll();
 	void		vehicle_manual_poll();
 	void		vehicle_setpoint_poll();
