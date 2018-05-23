@@ -169,6 +169,5 @@ int fputc(int c, FILE *stream)
 
 int putchar(int character)
 {
-	PX4_ERR("Error: Calling unresolved symbol stub:[%s]", __FUNCTION__);
 	return character;
 }
