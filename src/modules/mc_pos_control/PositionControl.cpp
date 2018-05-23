@@ -129,7 +129,13 @@ void PositionControl::_interfaceMapping()
 			// Velocity controller is active without position control.
 			// Set the desired position set-point equal to current position
 			// such that error is zero.
-			_pos_sp(i) = _pos(i);
+			if (PX4_ISFINITE(_pos(i))) {
+				_pos_sp(i) = _pos(i);
+
+			} else {
+				_pos_sp(i) = _pos(i) = 0.0f;
+			}
+
 			// thrust setpoint is not supported in position control
 			_thr_sp(i) = 0.0f;
 
@@ -142,8 +148,20 @@ void PositionControl::_interfaceMapping()
 
 			// Thrust setpoint was generated from sticks directly.
 			// Set all other set-points equal MC states.
-			_pos_sp(i) = _pos(i);
-			_vel_sp(i) = _vel(i);
+			if (PX4_ISFINITE(_pos(i))) {
+				_pos_sp(i) = _pos(i);
+
+			} else {
+				_pos_sp(i) = _pos(i) = 0.0f;
+			}
+
+			if (PX4_ISFINITE(_vel(i))) {
+				_vel_sp(i) = _vel(i);
+
+			} else {
+				_vel_sp(i) = _vel(i) = 0.0f;
+			}
+
 			// Reset the Integral term.
 			_thr_int(i) = 0.0f;
 			// Don't require velocity derivative.
@@ -164,7 +182,12 @@ void PositionControl::_interfaceMapping()
 		// Set the yaw-sp equal the current yaw.
 		// That is the best we can do and it also
 		// agrees with FlightTask-interface definition.
-		_yaw_sp = _yaw;
+		if (PX4_ISFINITE(_yaw)) {
+			_yaw_sp = _yaw;
+
+		} else {
+			failsafe = true;
+		}
 	}
 
 	// check failsafe
