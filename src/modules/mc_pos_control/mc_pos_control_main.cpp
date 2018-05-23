@@ -215,6 +215,12 @@ private:
 	void limit_thrust_during_landing(matrix::Vector3f &thrust_sepoint);
 
 	/**
+	 * Start flightasks based on navigation state.
+	 * This methods activates a taks basedn on the navigation state.
+	 */
+	void start_flight_task();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static int	task_main_trampoline(int argc, char *argv[]);
@@ -497,40 +503,8 @@ MulticopterPositionControl::task_main()
 		// set dt for control blocks
 		setDt(dt);
 
-		switch (_vehicle_status.nav_state) {
-		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-			_flight_tasks.switchTask(FlightTaskIndex::Altitude);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-			_flight_tasks.switchTask(FlightTaskIndex::Position);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-			_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-
-			//TODO: clean up navigation state and commander state, which both share too many equal states
-			_flight_tasks.switchTask(FlightTaskIndex::AutoLine);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-			_flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-			_flight_tasks.switchTask(FlightTaskIndex::Offboard);
-			break;
-
-		default:
-			// not supported yet
-			_flight_tasks.switchTask(FlightTaskIndex::None);
+		if (_control_mode.flag_armed) {
+			start_flight_task();
 		}
 
 		// check if any task is active
@@ -624,6 +598,7 @@ MulticopterPositionControl::task_main()
 
 		} else {
 			// no flighttask is active: stay idle
+			// TODO: this is not safe an requires review
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _local_pos.yaw;
 			_att_sp.yaw_sp_move_rate = 0.0f;
@@ -642,6 +617,94 @@ MulticopterPositionControl::task_main()
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
 
 	_control_task = -1;
+}
+
+void
+MulticopterPositionControl::start_flight_task()
+{
+	bool task_failure = false;
+
+	// offboard
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
+
+		if (error < 0) {
+			PX4_WARN("Offboard failed with error: %s", _flight_tasks.errorToString(error));
+			task_failure = true;
+		}
+	}
+
+	// follow me
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
+		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
+
+		if (error < 0) {
+			PX4_WARN("Follow-Me failed with error: %s", _flight_tasks.errorToString(error));
+			task_failure = true;
+		}
+	}
+
+	// any of the auto relate modes
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER	 ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL     ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+
+		if (error < 0) {
+			PX4_WARN("Auto failed with error: %s", _flight_tasks.errorToString(error));
+			task_failure = true;
+		}
+	}
+
+	// manual position control
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
+		int error = _flight_tasks.switchTask(FlightTaskIndex::Position);
+
+		if (error < 0) {
+			PX4_WARN("Position-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
+			task_failure = true;
+
+		} else {
+			task_failure = false;
+		}
+	}
+
+	// manual altitude control
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
+		int error = _flight_tasks.switchTask(FlightTaskIndex::Altitude);
+
+		if (error < 0) {
+			PX4_WARN("Altitude-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
+			task_failure = true;
+
+		} else {
+			task_failure = false;
+		}
+	}
+
+
+	// manual stabilized control
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL || task_failure) {
+		int error = _flight_tasks.switchTask(FlightTaskIndex::Stabilized);
+
+		if (error < 0) {
+			PX4_WARN("Stabilized-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
+			task_failure = true;
+
+		} else {
+			task_failure = false;
+		}
+	}
+
+	// check task failure
+	if (task_failure) {
+		// This is a huge problem because no task was able to activate.
+		_flight_tasks.switchTask(FlightTaskIndex::None);
+		warn_rate_limited("No Flighttask is running");
+	}
+
 }
 
 void
