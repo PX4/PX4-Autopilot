@@ -727,9 +727,6 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
 
-	/* default pre-takeoff throttle setting to idle */
-	float pre_takeoff_throttle = _parameters.throttle_idle;
-
 	/* save time when airplane is in air */
 	if (!_was_in_air && !_vehicle_land_detected.landed) {
 		_was_in_air = true;
@@ -866,7 +863,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			control_landing(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			control_takeoff(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr, pre_takeoff_throttle);
+			control_takeoff(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 		}
 
 		/* reset landing state */
@@ -1063,7 +1060,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		/* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons.
 		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust = pre_takeoff_throttle;
+		_att_sp.thrust = _launchDetector.getThrottleIdle(_parameters.throttle_idle);
 
 	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
@@ -1121,7 +1118,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 void
 FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector2f &ground_speed,
-		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, float &pre_takeoff_throttle)
+		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	/* current waypoint (the one currently heading for) */
 	Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
@@ -1281,9 +1278,6 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 			/* Set default roll and pitch setpoints during detection phase */
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = max(radians(pos_sp_curr.pitch_min), radians(10.0f));
-
-			/* set pre-takeoff throttle to launch method specific idle */
-			pre_takeoff_throttle = _launchDetector.getThrottleIdle(_parameters.throttle_idle);
 		}
 	}
 }

@@ -418,7 +418,7 @@ private:
 	bool		control_position(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					 const position_setpoint_s &pos_sp_curr);
 	void		control_takeoff(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
-					const position_setpoint_s &pos_sp_curr, float &pre_takeoff_throttle);
+					const position_setpoint_s &pos_sp_curr);
 	void		control_landing(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
 
