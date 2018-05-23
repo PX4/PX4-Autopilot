@@ -78,7 +78,6 @@ Tailsitter::parameters_update()
 
 void Tailsitter::update_vtol_state()
 {
-
 	/* simple logic using a two way switch to perform transitions.
 	 * after flipping the switch the vehicle will start tilting in MC control mode, picking up
 	 * forward speed. After the vehicle has picked up enough and sufficient pitch angle the uav will go into FW mode.
@@ -252,11 +251,6 @@ void Tailsitter::waiting_on_tecs()
 {
 	// copy the last trust value from the front transition
 	_v_att_sp->thrust_x = _thrust_transition;
-}
-
-void Tailsitter::update_mc_state()
-{
-	VtolType::update_mc_state();
 }
 
 void Tailsitter::update_fw_state()

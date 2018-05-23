@@ -527,10 +527,11 @@ VtolAttitudeControl::parameters_update()
 	return OK;
 }
 
-void
+int
 VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	VTOL_att_control::g_control->task_main();
+	return 0;
 }
 
 void VtolAttitudeControl::task_main()
