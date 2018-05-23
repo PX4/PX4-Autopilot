@@ -589,6 +589,11 @@ PMW3901::collect()
 	report.sensor_id = 0;
 	report.quality = 255;
 
+	/* No gyro on this board */
+	report.gyro_x_rate_integral = NAN;
+	report.gyro_y_rate_integral = NAN;
+	report.gyro_z_rate_integral = NAN;
+
 	_flow_dt_sum_usec = 0;
 	_flow_sum_x = 0;
 	_flow_sum_y = 0;
