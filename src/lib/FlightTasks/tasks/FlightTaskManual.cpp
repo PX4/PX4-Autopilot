@@ -65,21 +65,6 @@ bool FlightTaskManual::updateInitialize()
 	return ret;
 }
 
-bool FlightTaskManual::activate()
-{
-	bool ret = FlightTask::activate();
-
-	if (_sticks_data_required) {
-		// need valid stick inputs
-		ret = ret && PX4_ISFINITE(_sticks(0))
-		      && PX4_ISFINITE(_sticks(1))
-		      && PX4_ISFINITE(_sticks(2))
-		      && PX4_ISFINITE(_sticks(3));
-	}
-
-	return ret;
-}
-
 bool FlightTaskManual::_evaluateSticks()
 {
 	/* Sticks are rescaled linearly and exponentially to [-1,1] */
@@ -111,7 +96,13 @@ bool FlightTaskManual::_evaluateSticks()
 			_applyGearSwitch(gear_switch);
 		}
 
-		return true;
+		// valid stick inputs are required
+		const bool valid_sticks =  PX4_ISFINITE(_sticks(0))
+					   && PX4_ISFINITE(_sticks(1))
+					   && PX4_ISFINITE(_sticks(2))
+					   && PX4_ISFINITE(_sticks(3));
+
+		return valid_sticks;
 
 	} else {
 		/* Timeout: set all sticks to zero */
