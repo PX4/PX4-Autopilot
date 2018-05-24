@@ -807,8 +807,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel))),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro))),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 0)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 0)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0)
 	{}
@@ -891,8 +891,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU2(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel))),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro))),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 1)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 1)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0)
 	{}
@@ -974,8 +974,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU3(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel))),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro))),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 2)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 2)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0)
 	{}
