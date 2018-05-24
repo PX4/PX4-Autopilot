@@ -57,20 +57,55 @@ void FlightTask::_resetSetpoints()
 bool FlightTask::_evaluateVehicleLocalPosition()
 {
 	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout) {
-		_position = matrix::Vector3f(&_sub_vehicle_local_position->get().x);
-		_velocity = matrix::Vector3f(&_sub_vehicle_local_position->get().vx);
+
+		// position
+		if (_sub_vehicle_local_position->get().xy_valid) {
+			_position(0) = _sub_vehicle_local_position->get().x;
+			_position(1) = _sub_vehicle_local_position->get().y;
+
+		} else {
+			_position(0) = _position(1) = NAN;
+		}
+
+		if (_sub_vehicle_local_position->get().z_valid) {
+			_position(2) = _sub_vehicle_local_position->get().z;
+
+		} else {
+			_position(2) = NAN;
+		}
+
+		// velocity
+		if (_sub_vehicle_local_position->get().v_xy_valid) {
+			_velocity(0) = _sub_vehicle_local_position->get().vx;
+			_velocity(1) = _sub_vehicle_local_position->get().vy;
+
+		} else {
+			_velocity(0) = _velocity(1) = NAN;
+		}
+
+		if (_sub_vehicle_local_position->get().v_z_valid) {
+			_velocity(2) = _sub_vehicle_local_position->get().vz;
+
+		} else {
+			_velocity(2) = NAN;
+		}
+
+		// yaw
 		_yaw = _sub_vehicle_local_position->get().yaw;
+
+		// distance to bottome
 		_dist_to_bottom = NAN;
 
 		if (_sub_vehicle_local_position->get().dist_bottom_valid) {
 			_dist_to_bottom =  _sub_vehicle_local_position->get().dist_bottom;
 		}
 
+		// We don't check here if states are valid or not.
+		// Validity checks are done in the sub-classes.
 		return true;
 
 	} else {
 		_resetSetpoints();
-		_velocity.zero(); /* default velocity is all zero */
 		return false;
 	}
 }
