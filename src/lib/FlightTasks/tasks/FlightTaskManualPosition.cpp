@@ -41,6 +41,16 @@
 
 using namespace matrix;
 
+bool FlightTaskManualPosition::updateInitialize()
+{
+	bool ret = FlightTaskManualAltitude::updateInitialize();
+	// require valid position / velocity in xy
+	return ret && PX4_ISFINITE(_position(0))
+	       && PX4_ISFINITE(_position(1))
+	       && PX4_ISFINITE(_velocity(0))
+	       && PX4_ISFINITE(_velocity(1));
+}
+
 bool FlightTaskManualPosition::activate()
 {
 
@@ -59,10 +69,6 @@ bool FlightTaskManualPosition::activate()
 
 	// for position-controlled mode, we need a valid position and velocity state
 	// in NE-direction
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1));
 	return ret;
 }
 
