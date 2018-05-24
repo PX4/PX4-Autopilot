@@ -198,7 +198,8 @@ private:
 	 * @param position_setpoint_z the position setpoint in the z-Direction
 	 * @param velocity setpoint_z the velocity setpoint in the z-Direction
 	 */
-	void check_for_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z);
+	void check_for_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z,
+				      const vehicle_constraints_s &constraints);
 
 	/**
 	 * Check if smooth takeoff has ended and updates accordingly.
@@ -551,7 +552,7 @@ MulticopterPositionControl::task_main()
 			// we can only do a smooth takeoff if a valid velocity or position is available and are
 			// armed long enough
 			if (_arm_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
-				check_for_smooth_takeoff(setpoint.z, setpoint.vz);
+				check_for_smooth_takeoff(setpoint.z, setpoint.vz, constraints);
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
 
 				if (_in_smooth_takeoff) {
@@ -729,14 +730,19 @@ MulticopterPositionControl::start_flight_task()
 }
 
 void
-MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const float &vz_sp)
+MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const float &vz_sp,
+		const vehicle_constraints_s &constraints)
 {
 	// Check for smooth takeoff
 	if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
 		// Vehicle is still landed and no takeoff was initiated yet.
 		// Adjust for different takeoff cases.
-		// The minimum takeoff altitude needs to be at least 20cm above current position
-		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - 0.2f) ||
+		// The minimum takeoff altitude needs to be at least 20cm above minimum distance or, if valid, above minimum distance
+		// above ground.
+		float min_altitude = PX4_ISFINITE(constraints.min_distance_to_ground) ? (constraints.min_distance_to_ground + 0.05f) :
+				     0.2f;
+
+		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||
 		    (PX4_ISFINITE(vz_sp) && vz_sp < math::min(-_tko_speed.get(), -0.6f))) {
 			// There is a position setpoint above current position or velocity setpoint larger than
 			// takeoff speed. Enable smooth takeoff.
