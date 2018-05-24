@@ -49,6 +49,7 @@ public:
 
 	virtual ~FlightTaskManualPosition() = default;
 	bool activate() override;
+	bool updateInitialize() override;
 
 protected:
 	void _updateXYlock(); /**< applies position lock based on stick and velocity */
