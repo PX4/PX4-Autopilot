@@ -40,6 +40,13 @@
 
 using namespace matrix;
 
+bool FlightTaskManualAltitude::updateInitialize()
+{
+	bool ret = FlightTaskManualStabilized::updateInitialize();
+	// in addition to stabilized require valid position and velocity in D-direction
+	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2));
+}
+
 bool FlightTaskManualAltitude::activate()
 {
 	bool ret = FlightTaskManualStabilized::activate();
@@ -47,9 +54,6 @@ bool FlightTaskManualAltitude::activate()
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.0f;
 	_setDefaultConstraints();
-
-	// altitude-mode requires to have a valid position and velocity state in D-direction
-	ret = ret &&  PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2));
 	return ret;
 }
 
