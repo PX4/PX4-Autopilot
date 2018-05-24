@@ -98,6 +98,5 @@ private:
 
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
 	bool _isFinite(const position_setpoint_s sp); /**< Checks if all waypoint triplets are finite. */
-	void _updateReference(); /**< Updates the local reference. */
-	void _evaluateVehicleGlobalPosition(); /**< Checks if global position is valid. */
+	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 };
