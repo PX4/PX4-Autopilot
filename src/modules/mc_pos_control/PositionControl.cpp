@@ -83,8 +83,8 @@ void PositionControl::generateThrustYawSetpoint(const float &dt)
 		if (thr_mag > MPC_THR_MAX.get()) {
 			_thr_sp = _thr_sp.normalized() * MPC_THR_MAX.get();
 
-		} else if (thr_mag < MPC_THR_MIN.get() && thr_mag > FLT_EPSILON) {
-			_thr_sp = _thr_sp.normalized() * MPC_THR_MIN.get();
+		} else if (thr_mag < MPC_MANTHR_MIN.get() && thr_mag > FLT_EPSILON) {
+			_thr_sp = _thr_sp.normalized() * MPC_MANTHR_MIN.get();
 		}
 
 		// Just set the set-points equal to the current vehicle state.
@@ -193,6 +193,7 @@ void PositionControl::_interfaceMapping()
 	// check failsafe
 	if (failsafe) {
 		_skip_controller = true;
+
 		// point the thrust upwards
 		_thr_sp(0) = _thr_sp(1) = 0.0f;
 		// throttle down such that vehicle goes down with
