@@ -52,21 +52,22 @@ bool FlightTaskOffboard::initializeSubscriptions(SubscriptionArray &subscription
 	return true;
 }
 
+bool FlightTaskOffboard::updateInitialize()
+{
+	bool ret = FlightTask::updateInitialize();
+	// require valid position / velocity in xy
+	return ret && PX4_ISFINITE(_position(0))
+	       && PX4_ISFINITE(_position(1))
+	       && PX4_ISFINITE(_velocity(0))
+	       && PX4_ISFINITE(_velocity(1));
+}
+
 bool FlightTaskOffboard::activate()
 {
 	bool ret = FlightTask::activate();
 	_position_setpoint = _position;
 	_velocity_setpoint *= 0.0f;
 	_position_lock *= NAN;
-
-	// need a valid position and velocity
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_position(2))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1))
-	      && PX4_ISFINITE(_velocity(2));
-
 	return ret;
 }
 
