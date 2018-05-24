@@ -655,7 +655,7 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
 
 		if (error < 0) {
-			PX4_WARN("Offboard failed with error: %s", _flight_tasks.errorToString(error));
+			PX4_WARN("Offboard activation failded with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 		}
 	}
@@ -665,7 +665,7 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
 
 		if (error < 0) {
-			PX4_WARN("Follow-Me failed with error: %s", _flight_tasks.errorToString(error));
+			PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 		}
 
@@ -674,7 +674,7 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 
 		if (error < 0) {
-			PX4_WARN("Auto failed with error: %s", _flight_tasks.errorToString(error));
+			PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 		}
 	}
@@ -684,7 +684,7 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Position);
 
 		if (error < 0) {
-			PX4_WARN("Position-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
+			PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 
 		} else {
@@ -697,7 +697,7 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Altitude);
 
 		if (error < 0) {
-			PX4_WARN("Altitude-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
+			PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 
 		} else {
