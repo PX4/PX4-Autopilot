@@ -54,6 +54,7 @@ bool FlightTaskManualAltitude::activate()
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.0f;
 	_setDefaultConstraints();
+	_constraints.min_distance_to_ground = SENS_FLOW_MINRNG.get();
 	return ret;
 }
 
