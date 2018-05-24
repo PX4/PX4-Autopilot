@@ -50,6 +50,7 @@ public:
 
 	virtual ~FlightTaskManualStabilized() = default;
 	bool activate() override;
+	bool updateInitialize() override;
 	bool update() override;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
