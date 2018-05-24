@@ -97,7 +97,7 @@ install(
 	TARGETS
 		px4
 	DESTINATION
-		${CMAKE_INSTALL_BINDIR}
+		${PROJECT_NAME}
 	)
 
 # px4 dirs
@@ -109,7 +109,7 @@ install(
 		${PROJECT_SOURCE_DIR}/ROMFS
 		${PROJECT_SOURCE_DIR}/test
 	DESTINATION
-		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}
+		${PROJECT_NAME}
 	USE_SOURCE_PERMISSIONS
 	)
 
@@ -119,7 +119,7 @@ install(
 		${PROJECT_SOURCE_DIR}/CMakeLists.txt
 		${PROJECT_SOURCE_DIR}/package.xml
 	DESTINATION
-		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}
+		${PROJECT_NAME}
 	)
 
 # px4 Tools dirs
@@ -127,7 +127,7 @@ install(
 	DIRECTORY
 		${PROJECT_SOURCE_DIR}/Tools/ecl_ekf
 	DESTINATION
-		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/Tools
+		${PROJECT_NAME}/Tools
 	USE_SOURCE_PERMISSIONS
 	)
 
@@ -137,7 +137,7 @@ install(
 		${PROJECT_SOURCE_DIR}/Tools/setup_gazebo.bash
 		${PROJECT_SOURCE_DIR}/Tools/upload_log.py
 	DESTINATION
-		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/Tools
+		${PROJECT_NAME}/Tools
 	)
 
 # sitl_gazebo built plugins
@@ -145,7 +145,7 @@ install(
 	DIRECTORY
 		${PROJECT_SOURCE_DIR}/build/posix_sitl_default/build_gazebo
 	DESTINATION
-		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/build/posix_sitl_default
+		${PROJECT_NAME}/build/posix_sitl_default
 	FILES_MATCHING
 		PATTERN "CMakeFiles" EXCLUDE
 		PATTERN "*.so"
@@ -157,7 +157,7 @@ install(
 		${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/models
 		${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/worlds
 	DESTINATION
-		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/Tools/sitl_gazebo
+		${PROJECT_NAME}/Tools/sitl_gazebo
 	)
 
 # sitl_gazebo files
@@ -166,5 +166,5 @@ install(
 		${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/CMakeLists.txt
 		${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/package.xml
 	DESTINATION
-		${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/Tools/sitl_gazebo
+		${PROJECT_NAME}/Tools/sitl_gazebo
 	)
