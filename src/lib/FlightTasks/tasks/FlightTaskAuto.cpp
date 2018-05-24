@@ -62,23 +62,21 @@ bool FlightTaskAuto::activate()
 	bool ret = FlightTask::activate();
 	_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
 	_setDefaultConstraints();
-
-	// need a valid position and velocity
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_position(2))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1))
-	      && PX4_ISFINITE(_velocity(2));
-
 	return ret;
 }
 
 bool FlightTaskAuto::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
-	_evaluateVehicleGlobalPosition();
-	return (ret && _evaluateTriplets());
+	// require valid reference and valid target
+	ret = ret && _evaluateGlobalReference() && _evaluateTriplets();
+	// require valid position / velocity in xy
+	ret = ret && PX4_ISFINITE(_position(0))
+	      && PX4_ISFINITE(_position(1))
+	      && PX4_ISFINITE(_velocity(0))
+	      && PX4_ISFINITE(_velocity(1));
+
+	return ret;
 }
 
 bool FlightTaskAuto::_evaluateTriplets()
@@ -95,8 +93,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// such as land and takeoff. The navigator should use for auto takeoff/land with flow the position in xy at the moment the
 	// takeoff/land was initiated. Until then we do this kind of logic here.
 
-	if (!_sub_triplet_setpoint->get().current.valid) {
-		// best we can do is to just set all waypoints to current state
+	if (!_sub_triplet_setpoint->get().current.valid && !_isFinite(_sub_triplet_setpoint->get().current)) {
+		// best we can do is to just set all waypoints to current state and return false
 		_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
 		_type = WaypointType::position;
 		return false;
@@ -118,7 +116,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &target(0), &target(1));
 	target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
 
-
+	// check if target is valid
 	_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
 
 	if (_type == WaypointType::follow_target && _sub_triplet_setpoint->get().current.yawspeed_valid) {
@@ -181,7 +179,7 @@ bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
 }
 
-void FlightTaskAuto::_evaluateVehicleGlobalPosition()
+bool FlightTaskAuto::_evaluateGlobalReference()
 {
 	// check if reference has changed and update.
 	// Only update if reference timestamp has changed AND no valid reference altitude
@@ -195,6 +193,15 @@ void FlightTaskAuto::_evaluateVehicleGlobalPosition()
 				    _sub_vehicle_local_position->get().ref_lon);
 		_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
 		_time_stamp_reference = _sub_vehicle_local_position->get().ref_timestamp;
+	}
+
+	if (PX4_ISFINITE(_reference_altitude)
+	    && PX4_ISFINITE(_sub_vehicle_local_position->get().ref_lat)
+	    && PX4_ISFINITE(_sub_vehicle_local_position->get().ref_lat)) {
+		return true;
+
+	} else {
+		return false;
 	}
 }
 
