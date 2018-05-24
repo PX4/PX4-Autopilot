@@ -508,7 +508,10 @@ MulticopterPositionControl::task_main()
 			start_flight_task();
 
 		} else {
+			// disable flighttask
 			_flight_tasks.switchTask(FlightTaskIndex::None);
+			// reset army hysteresis
+			_arm_hysteresis.set_state_and_update(false);
 		}
 
 		// check if any task is active
@@ -625,6 +628,7 @@ MulticopterPositionControl::task_main()
 			publish_local_pos_sp();
 
 		} else {
+
 			// no flighttask is active: stay idle
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _local_pos.yaw;
