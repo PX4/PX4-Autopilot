@@ -84,14 +84,20 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		_terrain_following(apply_brake, stopped);
 
 	} else {
-		// altitude based on locale coordinate system
-		_dist_to_ground_lock = NAN; // reset since not used
+		// normal mode where height is dependent on local frame
 
 		if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(2))) {
 			// lock position
 			_position_setpoint(2) = _position(2);
-			// ensure that minimum altitude is respected
-			_respectMinAltitude();
+
+			// Ensure that minimum altitude is respected if
+			// there is a distance sensor and distance to bottome is below minimum.
+			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < SENS_FLOW_MINRNG.get()) {
+				_terrain_following(apply_brake, stopped);
+
+			} else {
+				_dist_to_ground_lock = NAN;
+			}
 
 		} else if (PX4_ISFINITE(_position_setpoint(2)) && apply_brake) {
 			// Position is locked but check if a reset event has happened.
@@ -110,7 +116,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 void FlightTaskManualAltitude::_respectMinAltitude()
 {
-
 	const bool respectAlt = _sub_vehicle_local_position->get().limit_hagl
 				&& PX4_ISFINITE(_dist_to_bottom)
 				&& _dist_to_bottom < SENS_FLOW_MINRNG.get();
