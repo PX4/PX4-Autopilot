@@ -266,6 +266,14 @@ protected:
 	static const char 		*findtag(const char *buf, unsigned &buflen, char tag);
 
 	/**
+	 * Find next tag and return it (0 is returned if no tag is found)
+	 *
+	 * @param buf			The buffer to operate on.
+	 * @param buflen		length of the buffer.
+	 */
+	static char 			findnexttag(const char *buf, unsigned buflen);
+
+	/**
 	 * Skip a line
 	 *
 	 * @param buf			The buffer to operate on.
@@ -340,6 +348,7 @@ public:
 	 *   M: <control count>
 	 *   O: <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
 	 *
+	 * The second line O: can be omitted. In that case 'O: 10000 10000 0 -10000 10000' is used.
 	 * The definition continues with <control count> entries describing the control
 	 * inputs and their scaling, in the form:
 	 *
