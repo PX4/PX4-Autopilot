@@ -324,7 +324,7 @@ bool MulticopterLandDetector::_has_minimal_thrust()
 	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * _params.throttleRange;
 
 	// Determine the system min throttle based on flight mode
-	if (!_control_mode.flag_control_altitude_enabled) {
+	if (!_control_mode.flag_control_climb_rate_enabled) {
 		sys_min_throttle = (_params.minManThrottle + 0.01f);
 	}
 
