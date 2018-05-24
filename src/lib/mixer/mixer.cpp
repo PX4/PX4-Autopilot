@@ -40,6 +40,7 @@
 #include "mixer.h"
 
 #include <cstring>
+#include <ctype.h>
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
@@ -123,6 +124,21 @@ Mixer::findtag(const char *buf, unsigned &buflen, char tag)
 	}
 
 	return nullptr;
+}
+
+char
+Mixer::findnexttag(const char *buf, unsigned buflen)
+{
+	while (buflen >= 2) {
+		if (isupper(buf[0]) && buf[1] == ':') {
+			return buf[0];
+		}
+
+		buf++;
+		buflen--;
+	}
+
+	return 0;
 }
 
 const char *
