@@ -505,13 +505,40 @@ MulticopterPositionControl::task_main()
 
 		if (_control_mode.flag_armed) {
 			start_flight_task();
+
+		} else {
+			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
 
 		// check if any task is active
 		if (_flight_tasks.isAnyTaskActive()) {
 
-			_flight_tasks.update();
-			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
+			// setpoints from flighttask
+			vehicle_local_position_setpoint_s setpoint;
+
+			// update task
+			if (!_flight_tasks.update()) {
+				// Task was not able to update correctly. Do Failsafe.
+				setpoint.x = setpoint.y = setpoint.z = NAN;
+				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
+				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
+
+				if (PX4_ISFINITE(_states.velocity(2))) {
+					// We have a valid velocity in D-direction.
+					// descend downwards with landspeed.
+					setpoint.vz = _land_speed.get();
+					setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+					warn_rate_limited("Failsafe: Descend with land-speed.");
+
+				} else {
+					// Use the failsafe from the PositionController.
+					warn_rate_limited("Failsafe: Descend with just attitude control.");
+				}
+
+			} else {
+				setpoint = _flight_tasks.getPositionSetpoint();
+			}
+
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 
 			// check if all local states are valid and map accordingly
@@ -598,7 +625,6 @@ MulticopterPositionControl::task_main()
 
 		} else {
 			// no flighttask is active: stay idle
-			// TODO: this is not safe an requires review
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _local_pos.yaw;
 			_att_sp.yaw_sp_move_rate = 0.0f;
@@ -695,7 +721,7 @@ MulticopterPositionControl::start_flight_task()
 
 	// check task failure
 	if (task_failure) {
-		// This is a huge problem because no task was able to activate.
+		// No task was activated.
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 		warn_rate_limited("No Flighttask is running");
 	}
