@@ -851,7 +851,7 @@ class MavlinkStreamScaledIMU2 : public MavlinkStream
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamScaledIMU::get_name_static();
+		return MavlinkStreamScaledIMU2::get_name_static();
 	}
 
 	static const char *get_name_static()
