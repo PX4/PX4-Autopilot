@@ -47,6 +47,7 @@ public:
 	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
 	bool activate() override;
+	bool updateInitialize() override;
 
 protected:
 	void _updateSetpoints() override; /**< updates all setpoints */
