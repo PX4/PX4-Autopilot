@@ -79,7 +79,7 @@
 #include <parameters/param.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
-#include <systemlib/subsystem_info_pub.h>
+#include <lib/subsystem_info_pub/subsystem_info_pub.h>
 
 #include <cmath>
 #include <cfloat>
@@ -1272,8 +1272,6 @@ Commander::run()
 	status_flags.condition_local_velocity_valid = false;
 	status_flags.condition_local_altitude_valid = false;
 
-	bool status_changed = true;
-
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
@@ -1314,6 +1312,7 @@ Commander::run()
 	bool emergency_battery_voltage_actions_done = false;
 	bool dangerous_battery_level_requests_poweroff = false;
 
+	bool status_changed = true;
 	bool param_init_forced = true;
 
 	bool updated = false;
@@ -1830,8 +1829,8 @@ Commander::run()
 
 		if((_last_condition_global_position_valid != status_flags.condition_global_position_valid) && status_flags.condition_global_position_valid) {
 			// If global position state changed and is now valid, set respective health flags to true. For now also assume GPS is OK if global pos is OK, but not vice versa.
-			publish_subsystem_info_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true);
-			publish_subsystem_info_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true);
+			publish_subsystem_info_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, &status);
+			publish_subsystem_info_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, &status);
 		}
 
 		check_valid(_local_position_sub.get().timestamp, _failsafe_pos_delay.get() * 1_s, _local_position_sub.get().z_valid, &(status_flags.condition_local_altitude_valid), &status_changed);
@@ -2002,7 +2001,7 @@ Commander::run()
 			}
 		}
 
-		/* update subsystem */
+		/* update subsystem info which arrives from outside of commander*/
 		do {
 			orb_check(subsys_sub, &updated);
 			if (updated) {
@@ -2233,13 +2232,13 @@ Commander::run()
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
 				status_flags.rc_signal_found_once = true;
-				publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid);
+				publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid, &status);
 				status_changed = true;
 
 			} else {
 				if (status.rc_signal_lost) {
 					mavlink_log_info(&mavlink_log_pub, "MANUAL CONTROL REGAINED after %llums", hrt_elapsed_time(&rc_signal_lost_timestamp) / 1000);
-					publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid);
+					publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid, &status);
 					status_changed = true;
 				}
 			}
@@ -2387,7 +2386,7 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
-				publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false);
+				publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, &status);
 				status_changed = true;
 			}
 		}
@@ -2425,7 +2424,7 @@ Commander::run()
 						status_changed = true;
 
 						PX4_ERR("Engine Failure");
-						publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL,true,true,false);
+						publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL,true,true,false, &status);
 					}
 				}
 
@@ -4110,9 +4109,9 @@ void Commander::poll_telemetry_status()
 				    (mission_result.instance_count > 0) && !mission_result.valid) {
 
 					mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
-					//publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, false); // TODO
+					//publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, false, &status); // TODO
 				} else {
-					//publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, true); // TODO
+					//publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, true, &status); // TODO
 				}
 			}
 

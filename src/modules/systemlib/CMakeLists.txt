@@ -44,7 +44,6 @@ set(SRCS
 	pid/pid.c
 	pwm_limit/pwm_limit.c
 	rc_check.c
-	subsystem_info_pub.cpp
 	)
 
 if(${OS} STREQUAL "nuttx")
