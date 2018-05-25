@@ -71,6 +71,7 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include "PreflightCheck.h"
 
@@ -552,6 +553,9 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	bool present = true;
 	float test_limit = 1.0f; // pass limit re-used for each test
 
+	bool gps_success = true;
+	bool gps_present = true;
+
 	// Get estimator status data if available and exit with a fail recorded if not
 	int sub = orb_subscribe(ORB_ID(estimator_status));
 	estimator_status_s status = {};
@@ -652,16 +656,15 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 
 		if (!ekf_gps_fusion) {
 			// The EKF is not using GPS
-			if (report_fail) {
-				if (ekf_gps_check_fail) {
-					// Poor GPS quality is the likely cause
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
-					publish_subsystem_info_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, false);
-				} else {
-					// Likely cause unknown
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
-					publish_subsystem_info_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, false);
-				}
+			if (ekf_gps_check_fail) {
+				// Poor GPS quality is the likely cause
+				if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
+				gps_success = false;
+			} else {
+				// Likely cause unknown
+				if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
+				gps_success = false;
+				gps_present = false;
 			}
 
 			success = false;
@@ -676,11 +679,8 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 						  + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR))) > 0);
 
 			if (gps_quality_fail) {
-				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
-					publish_subsystem_info_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, false);
-				}
-
+				if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
+				gps_success = false;
 				success = false;
 				goto out;
 			}
@@ -689,6 +689,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 
 out:
 	publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, present, !optional, success && present);
+	publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_GPS, gps_present, enforce_gps_required, gps_success);
 	orb_unsubscribe(sub);
 	return success;
 }
@@ -708,6 +709,20 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 	const bool checkRC = (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
 	const bool checkDynamic = !hil_enabled;
 	const bool checkPower = (status_flags.condition_power_input_valid && !status_flags.circuit_breaker_engaged_power_check);
+
+	bool checkDistanceSensors = false;
+	int32_t distSensorEnabled[7];
+	param_get(param_find("SENS_EN_LEDDAR1"), &(distSensorEnabled[0]));
+	param_get(param_find("SENS_EN_LL40LS"), &distSensorEnabled[1]);
+	param_get(param_find("SENS_EN_MB12XX"), &distSensorEnabled[2]);
+	param_get(param_find("SENS_EN_SF0X"), &distSensorEnabled[3]);
+	param_get(param_find("SENS_EN_SF1XX"), &distSensorEnabled[4]);
+	param_get(param_find("SENS_EN_TFMINI"), &distSensorEnabled[5]);
+	param_get(param_find("SENS_EN_TRANGER"), &distSensorEnabled[6]);
+	if(distSensorEnabled[0]>0 || distSensorEnabled[1]>0 || distSensorEnabled[2]>0 || distSensorEnabled[3]>0 ||
+			distSensorEnabled[4]>0 || distSensorEnabled[5]>0 || distSensorEnabled[6]>0) {
+		checkDistanceSensors=true;
+	}
 
 	bool checkAirspeed = false;
 
@@ -921,28 +936,22 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &statu
 		}
 	}
 
-	/* ---- GPS ---- */
-	if (checkGNSS) {
-		int fd_gps = orb_subscribe(ORB_ID(vehicle_gps_position));
-		vehicle_gps_position_s gps = {};
+	/* ---- DISTANCE SENSORS ---- */
+	if (checkDistanceSensors && time_since_boot > 10 * 1000000) {
+		int fd_distance_sensor = orb_subscribe(ORB_ID(distance_sensor));
+		distance_sensor_s dist_sensor = {};
 		bool present = true;
 
-		if ((orb_copy(ORB_ID(vehicle_gps_position), fd_gps, &gps) != PX4_OK) ||
-			(hrt_elapsed_time(&gps.timestamp) > 2000000)) {
+		if ((orb_copy(ORB_ID(distance_sensor), fd_distance_sensor, &dist_sensor) != PX4_OK) ||
+			(hrt_elapsed_time(&dist_sensor.timestamp) > 2000000)) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS MODULE MISSING");
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: DISTANCE SENSOR MISSING");
 			}
 			present = false;
 		}
-
-		// Mark GPS as required (given that checkGNSS=true) and indicate whether it is present. For now also assume it is healthy
-		// if there is a lock ... EKF2 will then set the healthy=false if its more extensive GPS checks fail in the next step.
-		publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_GPS, present, true, present && gps.fix_type>=3);
+		publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_SENSORPROXIMITY, present, true, present);
+		orb_unsubscribe(fd_distance_sensor);
 	}
-
-	// TODO: Add rangefinder here. We have the SENS_EN_XXX params that tell us what we should have. This is currently completely done inside the driver.
-
-	// TODO: Add optical flow check here? This is currently completely done inside the driver.
 
 	/* ---- Navigation EKF ---- */
 	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
