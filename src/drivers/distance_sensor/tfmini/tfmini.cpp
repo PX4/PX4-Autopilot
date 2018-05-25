@@ -61,7 +61,6 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/subsystem_info_pub.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
@@ -69,7 +68,6 @@
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
@@ -608,9 +606,6 @@ TFMINI::start()
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&TFMINI::cycle_trampoline, this, 1);
-
-	/* notify about state change */
-	publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_SENSORPROXIMITY, true, true, true);
 }
 
 void

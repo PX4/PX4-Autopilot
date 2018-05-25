@@ -1274,9 +1274,6 @@ Commander::run()
 
 	bool status_changed = true;
 
-	/* initialize the vehicle status flag helper functions. This also initializes the sensor health flags*/
-	publish_subsystem_info_init(&status, &status_changed);
-
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
@@ -2005,6 +2002,42 @@ Commander::run()
 			}
 		}
 
+		/* update subsystem */
+		do {
+			orb_check(subsys_sub, &updated);
+			if (updated) {
+				orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
+
+				//warnx("subsystem changed: %d\n", (int)info.subsystem_type);
+
+				/* mark / unmark as present */
+				if (info.present) {
+					status.onboard_control_sensors_present |= info.subsystem_type;
+
+				} else {
+					status.onboard_control_sensors_present &= ~info.subsystem_type;
+				}
+
+				/* mark / unmark as enabled */
+				if (info.enabled) {
+					status.onboard_control_sensors_enabled |= info.subsystem_type;
+
+				} else {
+					status.onboard_control_sensors_enabled &= ~info.subsystem_type;
+				}
+
+				/* mark / unmark as ok */
+				if (info.ok) {
+					status.onboard_control_sensors_health |= info.subsystem_type;
+
+				} else {
+					status.onboard_control_sensors_health &= ~info.subsystem_type;
+				}
+
+				status_changed = true;
+			}
+		} while(updated);
+
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
@@ -2392,6 +2425,7 @@ Commander::run()
 						status_changed = true;
 
 						PX4_ERR("Engine Failure");
+						publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL,true,true,false);
 					}
 				}
 

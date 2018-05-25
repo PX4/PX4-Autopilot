@@ -58,14 +58,12 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/subsystem_info_pub.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
 #define SR04_MAX_RANGEFINDERS 6
@@ -623,10 +621,6 @@ HC_SR04::start()
 		   (worker_t)&HC_SR04::cycle_trampoline,
 		   this,
 		   USEC2TICK(_cycling_rate));
-
-
-	/* notify about state change */
-	publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_SENSORPROXIMITY, true, true, true);
 }
 
 void
