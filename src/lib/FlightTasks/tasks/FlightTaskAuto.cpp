@@ -70,11 +70,13 @@ bool FlightTaskAuto::updateInitialize()
 	bool ret = FlightTask::updateInitialize();
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluateTriplets();
-	// require valid position / velocity in xy
+	// require valid position
 	ret = ret && PX4_ISFINITE(_position(0))
 	      && PX4_ISFINITE(_position(1))
+	      && PX4_ISFINITE(_position(2))
 	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1));
+	      && PX4_ISFINITE(_velocity(1))
+	      && PX4_ISFINITE(_velocity(2));
 
 	return ret;
 }
