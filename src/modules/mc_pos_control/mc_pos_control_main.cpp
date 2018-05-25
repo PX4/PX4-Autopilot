@@ -510,7 +510,7 @@ MulticopterPositionControl::task_main()
 		} else {
 			// disable flighttask
 			_flight_tasks.switchTask(FlightTaskIndex::None);
-			// reset army hysteresis
+			// reset arm hysteresis
 			_arm_hysteresis.set_state_and_update(false);
 		}
 
