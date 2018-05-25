@@ -45,15 +45,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 
-void publish_subsystem_info(uint64_t subsystem_type, bool present, bool enabled, bool ok);
-
-void publish_subsystem_info_present_healthy(uint64_t subsystem_type, bool present, bool healthy);
-void publish_subsystem_info_present_enabled(uint64_t subsystem_type, bool present, bool enabled);
-void publish_subsystem_info_enabled_healthy(uint64_t subsystem_type, bool enabled, bool ok);
-void publish_subsystem_info_enabled(uint64_t subsystem_type, bool enabled);
-void publish_subsystem_info_healthy(uint64_t subsystem_type, bool ok);
-
-//// Local helper functions
-bool getPresent(uint64_t subsystem_type);
-bool getEnabled(uint64_t subsystem_type);
-bool getHealthy(uint64_t subsystem_type);
+void publish_subsystem_info(uint64_t subsystem_type, bool present, bool enabled, bool ok,
+			    vehicle_status_s *status_ptr = nullptr);
+void publish_subsystem_info_present_healthy(uint64_t subsystem_type, bool present, bool healthy,
+		vehicle_status_s *status_ptr = nullptr);
+void publish_subsystem_info_healthy(uint64_t subsystem_type, bool ok, vehicle_status_s *status_ptr = nullptr);

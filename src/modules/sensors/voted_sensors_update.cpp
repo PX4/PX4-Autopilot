@@ -40,7 +40,7 @@
 #include "voted_sensors_update.h"
 
 #include <systemlib/mavlink_log.h>
-#include <systemlib/subsystem_info_pub.h>
+#include <lib/subsystem_info_pub/subsystem_info_pub.h>
 
 #include <conversion/rotation.h>
 #include <ecl/geo/geo.h>
@@ -929,7 +929,7 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 					PX4_WARN("FAILOVER event (idx=%u)! Sensor %s: Nr. %u Priority: %u", failover_index, sensor_name, i, sensor.priority[i]);
 				}
 
-				PX4_INFO("%s sensor switch from #%i", sensor_name, failover_index);
+				PX4_ERR("%s sensor switch from #%i", sensor_name, failover_index);
 
 				if (ctr_valid < 2) { // subsystem_info only contains flags for the first two sensors
 					uint64_t subsystem_type = 0;
