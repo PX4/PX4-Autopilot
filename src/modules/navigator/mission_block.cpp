@@ -287,7 +287,7 @@ MissionBlock::is_mission_item_reached()
 			}
 
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
-			if (_mission_item.vtol_back_transition) {
+			if (_mission_item.vtol_back_transition && !_navigator->get_vstatus()->is_rotary_wing) {
 
 				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
 						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);

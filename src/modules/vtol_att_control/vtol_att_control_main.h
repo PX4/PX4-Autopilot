@@ -58,7 +58,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/ecl/geo/geo.h>
-#include <lib/mathlib/mathlib.h>
+#include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <parameters/param.h>
 
 #include <uORB/topics/actuator_controls.h>

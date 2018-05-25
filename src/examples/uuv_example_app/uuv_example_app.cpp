@@ -58,6 +58,7 @@
 #include <systemlib/circuit_breaker.h>
 // internal libraries
 #include <lib/mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <lib/ecl/geo/geo.h>
 
 // Include uORB and the required topics for this app

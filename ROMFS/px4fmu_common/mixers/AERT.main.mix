@@ -23,7 +23,6 @@ differences between the servos must be made mechanically.  To obtain the correct
 motion using a Y  cable, the servos can be positioned reversed from one another.
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
 
 CH2: Elevator mixer
@@ -36,7 +35,6 @@ factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
 M: 1
-O:       10000   10000      0 -10000  10000
 S: 0 1  -10000  -10000      0 -10000  10000
 
 CH3: Rudder mixer
@@ -49,7 +47,6 @@ factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 0 2  10000  10000      0 -10000  10000
 
 CH4: Motor speed mixer
@@ -60,7 +57,6 @@ This mixer generates a full-range output (-1 to 1) from an input in the (0 - 1)
 range.  Inputs below zero are treated as zero.
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 0 3      0  20000 -10000 -10000  10000
 
 CH5: Flaps mixer
@@ -77,5 +73,4 @@ Ch6: Landing gear mixer
 By default pass-through of gear switch
 
 M: 1
-O: 10000 10000 0 -10000 10000
 S: 3 5 10000 10000 0 -10000 10000
