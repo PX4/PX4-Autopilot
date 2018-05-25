@@ -643,8 +643,6 @@ SF0X::start()
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&SF0X::cycle_trampoline, this, 1);
 
-	// /* notify about state change */
-	// publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_SENSORPROXIMITY, true, true, true);
 }
 
 void
