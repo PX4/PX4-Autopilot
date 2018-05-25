@@ -101,8 +101,8 @@ void FlightTaskAutoLine::_reset()
 	_velocity_setpoint = _velocity;
 	_position_setpoint = _position;
 	_yaw_setpoint = _yaw;
-	_destination = _target;
-	_origin = _prev_wp;
+	_destination = _position;
+	_origin = _position;
 	_speed_at_target = 0.0f;
 }
 
@@ -277,7 +277,7 @@ void FlightTaskAutoLine::_updateInternalWaypoints()
 
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
-	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
+	Vector2f pos_sp_to_dest = Vector2f(&(_destination - _position_setpoint)(0));
 	const bool has_reached_altitude = fabsf(_destination(2) - _position(2)) < NAV_ACC_RAD.get();
 
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < NAV_ACC_RAD.get()) ||
@@ -455,7 +455,7 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 
 		// vehicle reached desired target altitude
 		_velocity_setpoint(2) = 0.0f;
-		_position_setpoint(2) = _target(2);
+		_position_setpoint(2) = _destination(2);
 	}
 }
 
