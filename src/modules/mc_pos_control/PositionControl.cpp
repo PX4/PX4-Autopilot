@@ -271,6 +271,8 @@ void PositionControl::_velocityController(const float &dt)
 	if (!stop_integral_D) {
 		_thr_int(2) += vel_err(2) * MPC_Z_VEL_I.get() * dt;
 
+		// limit thrust integral
+		_thr_int(2) = math::min(fabsf(_thr_int(2)), MPC_THR_MAX.get()) * math::sign(_thr_int(2));
 	}
 
 	// Saturate thrust setpoint in D-direction.
@@ -294,6 +296,16 @@ void PositionControl::_velocityController(const float &dt)
 		float thrust_max_NE = sqrtf(MPC_THR_MAX.get() * MPC_THR_MAX.get() - _thr_sp(2) * _thr_sp(2));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
+		// Saturate thrust in NE-direction.
+		_thr_sp(0) = thrust_desired_NE(0);
+		_thr_sp(1) = thrust_desired_NE(1);
+
+		if (thrust_desired_NE * thrust_desired_NE > thrust_max_NE * thrust_max_NE) {
+			float mag = thrust_desired_NE.length();
+			_thr_sp(0) = thrust_desired_NE(0) / mag * thrust_max_NE;
+			_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
+		}
+
 		// Get the direction of (r-y) in NE-direction.
 		float direction_NE = Vector2f(&vel_err(0)) * Vector2f(&_vel_sp(0));
 
@@ -304,17 +316,14 @@ void PositionControl::_velocityController(const float &dt)
 		if (!stop_integral_NE) {
 			_thr_int(0) += vel_err(0) * MPC_XY_VEL_I.get() * dt;
 			_thr_int(1) += vel_err(1) * MPC_XY_VEL_I.get() * dt;
-		}
 
-		// Saturate thrust in NE-direction.
-		_thr_sp(0) = thrust_desired_NE(0);
-		_thr_sp(1) = thrust_desired_NE(1);
+			// magnitude of thrust integral can never exceed maximum throttle in NE
+			float integral_mag_NE = Vector2f(&_thr_int(0)).length();
 
-		if (thrust_desired_NE * thrust_desired_NE > thrust_max_NE * thrust_max_NE) {
-			float mag = thrust_desired_NE.length();
-			_thr_sp(0) = thrust_desired_NE(0) / mag * thrust_max_NE;
-			_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
-
+			if (integral_mag_NE > 0.0f && integral_mag_NE > thrust_max_NE) {
+				_thr_int(0) = _thr_int(0) / integral_mag_NE * thrust_max_NE;
+				_thr_int(1) = _thr_int(1) / integral_mag_NE * thrust_max_NE;
+			}
 		}
 	}
 }
