@@ -74,7 +74,7 @@ namespace Preflight
 * @param checkPower
 *   true if the system power should be checked
 **/
-bool preflightCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
 		    const hrt_abstime &time_since_boot);
 

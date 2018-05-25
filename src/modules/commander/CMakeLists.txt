@@ -55,4 +55,5 @@ px4_add_module(
 		df_driver_framework
 		git_ecl
 		ecl_geo
+		subsystem_info_pub
 	)
