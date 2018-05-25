@@ -173,6 +173,15 @@ void PositionControl::_interfaceMapping()
 		}
 	}
 
+	// ensure that vel_dot is finite, otherwise set to 0
+	if (!PX4_ISFINITE(_vel_dot(0)) || !PX4_ISFINITE(_vel_dot(1))) {
+		_vel_dot(0) = _vel_dot(1) = 0.0f;
+	}
+
+	if (!PX4_ISFINITE(_vel_dot(2))) {
+		_vel_dot(2) = 0.0f;
+	}
+
 	if (!PX4_ISFINITE(_yawspeed_sp)) {
 		// Set the yawspeed to 0 since not used.
 		_yawspeed_sp = 0.0f;
