@@ -66,7 +66,6 @@
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/obstacle_distance.h>
 
@@ -149,7 +148,6 @@ private:
 	int _orb_class_instance;
 
 	orb_advert_t _distance_sensor_topic;
-	orb_advert_t _subsystem_pub;
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
@@ -214,7 +212,6 @@ VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_subsystem_pub(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "vl53lxx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "vl53lxx_com_err"))
 {
@@ -720,22 +717,6 @@ VL53LXX::start()
 
 	/* schedule a cycle to start things */
 	work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, USEC2TICK(VL53LXX_US));
-
-	/* notify about state change */
-	struct subsystem_info_s info = {};
-
-	info.timestamp = hrt_absolute_time();
-	info.present = true;
-	info.enabled = true;
-	info.ok = true;
-	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER;
-
-	if (_subsystem_pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
-
-	} else {
-		_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
-	}
 }
 
 
