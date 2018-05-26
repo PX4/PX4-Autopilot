@@ -58,6 +58,12 @@ struct lps22hb_bus_option {
 	LPS22HB	*dev;
 } bus_options[] = {
 	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext1", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext2", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION2, NULL },
+#endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ LPS22HB_BUS_I2C_INTERNAL, "/dev/lps22hb_int", &LPS22HB_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #endif

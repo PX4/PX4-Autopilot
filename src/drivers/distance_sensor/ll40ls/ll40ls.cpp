@@ -75,6 +75,9 @@ static constexpr struct ll40ls_bus_option {
 #ifdef PX4_I2C_BUS_EXPANSION1
 	{ LL40LS_BUS_I2C_EXTERNAL, "/dev/ll40ls_ext1", PX4_I2C_BUS_EXPANSION1 },
 #endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ LL40LS_BUS_I2C_EXTERNAL, "/dev/ll40ls_ext2", PX4_I2C_BUS_EXPANSION2 },
+#endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ LL40LS_BUS_I2C_INTERNAL, "/dev/ll40ls_int", PX4_I2C_BUS_ONBOARD },
 #endif

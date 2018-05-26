@@ -57,6 +57,8 @@
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu6000_gyro_ext"
 #define MPU_DEVICE_PATH_ACCEL_EXT1	"/dev/mpu6000_accel_ext1"
 #define MPU_DEVICE_PATH_GYRO_EXT1	"/dev/mpu6000_gyro_ext1"
+#define MPU_DEVICE_PATH_ACCEL_EXT2	"/dev/mpu6000_accel_ext2"
+#define MPU_DEVICE_PATH_GYRO_EXT2	"/dev/mpu6000_gyro_ext2"
 
 #define ICM20602_DEVICE_PATH_ACCEL		"/dev/icm20602_accel"
 #define ICM20602_DEVICE_PATH_GYRO		"/dev/icm20602_gyro"
