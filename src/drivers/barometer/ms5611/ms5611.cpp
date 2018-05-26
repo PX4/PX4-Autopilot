@@ -873,7 +873,7 @@ struct ms5611_bus_option {
 #ifdef PX4_I2C_BUS_EXPANSION1
 	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext1", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION1, NULL },
 #endif
-#ifdef PX4_I2C_BUS_EXPANSION
+#ifdef PX4_I2C_BUS_EXPANSION2
 	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext2", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION2, NULL },
 #endif
 };
