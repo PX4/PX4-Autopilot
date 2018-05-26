@@ -778,10 +778,10 @@ public:
 		case 0:
 			return "SCALED_IMU";
 
-		case 2:
+		case 1:
 			return "SCALED_IMU2";
 
-		case 3:
+		case 2:
 			return "SCALED_IMU3";
 
 		default:
@@ -4146,8 +4146,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamSysStatus::new_instance, &MavlinkStreamSysStatus::get_name_static, &MavlinkStreamSysStatus::get_id_static),
 	StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static, &MavlinkStreamHighresIMU::get_id_static),
 	StreamListItem(&MavlinkStreamScaledIMU<0>::new_instance, &MavlinkStreamScaledIMU<0>::get_name_static, &MavlinkStreamScaledIMU<0>::get_id_static),
+	StreamListItem(&MavlinkStreamScaledIMU<1>::new_instance, &MavlinkStreamScaledIMU<1>::get_name_static, &MavlinkStreamScaledIMU<1>::get_id_static),
 	StreamListItem(&MavlinkStreamScaledIMU<2>::new_instance, &MavlinkStreamScaledIMU<2>::get_name_static, &MavlinkStreamScaledIMU<2>::get_id_static),
-	StreamListItem(&MavlinkStreamScaledIMU<3>::new_instance, &MavlinkStreamScaledIMU<3>::get_name_static, &MavlinkStreamScaledIMU<3>::get_id_static),
 	StreamListItem(&MavlinkStreamAttitude::new_instance, &MavlinkStreamAttitude::get_name_static, &MavlinkStreamAttitude::get_id_static),
 	StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static, &MavlinkStreamAttitudeQuaternion::get_id_static),
 	StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static, &MavlinkStreamVFRHUD::get_id_static),
