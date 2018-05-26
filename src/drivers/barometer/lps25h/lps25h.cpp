@@ -789,6 +789,12 @@ struct lps25h_bus_option {
 	LPS25H	*dev;
 } bus_options[] = {
 	{ LPS25H_BUS_I2C_EXTERNAL, "/dev/lps25h_ext", &LPS25H_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ LPS25H_BUS_I2C_EXTERNAL, "/dev/lps25h_ext1", &LPS25H_I2C_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ LPS25H_BUS_I2C_EXTERNAL, "/dev/lps25h_ext2", &LPS25H_I2C_interface, PX4_I2C_BUS_EXPANSION2, NULL },
+#endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ LPS25H_BUS_I2C_INTERNAL, "/dev/lps25h_int", &LPS25H_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #endif
