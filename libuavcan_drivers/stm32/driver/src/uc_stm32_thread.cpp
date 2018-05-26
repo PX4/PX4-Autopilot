@@ -17,12 +17,13 @@ namespace uavcan_stm32
  */
 bool BusEvent::wait(uavcan::MonotonicDuration duration)
 {
-    static const uavcan::int64_t MaxDelayMSec = 0x000FFFFF;
+    // set maximum time to allow for 16 bit timers running at 1MHz
+    static const uavcan::int64_t MaxDelayUSec = 0x000FFFF;
 
-    const uavcan::int64_t msec = duration.toMSec();
+    const uavcan::int64_t usec = duration.toUSec();
     msg_t ret = msg_t();
 
-    if (msec <= 0)
+    if (usec <= 0)
     {
 # if (CH_KERNEL_MAJOR == 2)
         ret = sem_.waitTimeout(TIME_IMMEDIATE);
@@ -33,11 +34,11 @@ bool BusEvent::wait(uavcan::MonotonicDuration duration)
     else
     {
 # if (CH_KERNEL_MAJOR == 2)
-        ret = sem_.waitTimeout((msec > MaxDelayMSec) ? MS2ST(MaxDelayMSec) : MS2ST(msec));
+        ret = sem_.waitTimeout((usec > MaxDelayUSec) ? US2ST(MaxDelayUSec) : US2ST(usec));
 # elif defined(MS2ST) // ChibiOS 3+
-        ret = sem_.wait((msec > MaxDelayMSec) ? MS2ST(MaxDelayMSec) : MS2ST(msec));
+        ret = sem_.wait((usec > MaxDelayUSec) ? US2ST(MaxDelayUSec) : US2ST(usec));
 # else // ChibiOS 17+
-        ret = sem_.wait(::systime_t((msec > MaxDelayMSec) ? TIME_MS2I(MaxDelayMSec) : TIME_MS2I(msec)));
+        ret = sem_.wait(::systime_t((usec > MaxDelayUSec) ? TIME_US2I(MaxDelayUSec) : TIME_US2I(usec)));
 # endif
     }
 # if (CH_KERNEL_MAJOR == 2)
