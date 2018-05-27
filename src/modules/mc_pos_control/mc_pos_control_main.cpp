@@ -569,6 +569,9 @@ MulticopterPositionControl::task_main()
 					constraints.speed_up = _takeoff_speed;
 					// during smooth takeoff we disable yaw command
 					setpoint.yaw = setpoint.yawspeed = NAN;
+					// don't control position in xy
+					setpoint.x = setpoint.y = NAN;
+					setpoint.vx = setpoint.vy = 0.0f;
 				}
 			}
 
