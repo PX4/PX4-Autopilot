@@ -35,5 +35,5 @@ add_library(ecl_geo
 	geo.cpp
 	)
 add_dependencies(ecl_geo prebuild_targets)
-
+target_compile_definitions(ecl_geo PRIVATE -DMODULE_NAME="ecl/geo")
 target_include_directories(ecl_geo PUBLIC ${ECL_SOURCE_DIR})

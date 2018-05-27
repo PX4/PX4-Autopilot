@@ -35,5 +35,5 @@ add_library(ecl_geo_lookup
 	geo_mag_declination.cpp
 	)
 add_dependencies(ecl_geo_lookup prebuild_targets)
-
+target_compile_definitions(ecl_geo_lookup PRIVATE -DMODULE_NAME="ecl/geo_lookup")
 target_include_directories(ecl_geo_lookup PUBLIC ${ECL_SOURCE_DIR})

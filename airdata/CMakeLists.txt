@@ -35,5 +35,5 @@ add_library(ecl_airdata
 	WindEstimator.cpp
 	)
 add_dependencies(ecl_airdata prebuild_targets)
-
+target_compile_definitions(ecl_airdata PRIVATE -DMODULE_NAME="ecl/airdata")
 target_include_directories(ecl_airdata PUBLIC ${ECL_SOURCE_DIR})
