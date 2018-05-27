@@ -678,6 +678,15 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 }
 
 void
+MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode)
+{
+	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+	item->params[0] = (float) new_mode;
+	item->yaw = _navigator->get_global_position()->yaw;
+	item->autocontinue = true;
+}
+
+void
 MissionBlock::mission_apply_limitation(mission_item_s &item)
 {
 	/*
@@ -704,4 +713,15 @@ MissionBlock::mission_apply_limitation(mission_item_s &item)
 	/*
 	 * Add other limitations here
 	 */
+}
+
+float
+MissionBlock::get_absolute_altitude_for_item(struct mission_item_s &mission_item) const
+{
+	if (mission_item.altitude_is_relative) {
+		return mission_item.altitude + _navigator->get_home_position()->alt;
+
+	} else {
+		return mission_item.altitude;
+	}
 }
