@@ -111,7 +111,6 @@ Navigator::Navigator() :
 	_navigation_mode_array[8] = &_land;
 	_navigation_mode_array[9] = &_precland;
 	_navigation_mode_array[10] = &_follow_target;
-
 }
 
 void
@@ -559,7 +558,10 @@ Navigator::run()
 		switch (_vstatus.nav_state) {
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
+
+			_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_NORMAL);
 			navigation_mode_new = &_mission;
+
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
@@ -572,18 +574,96 @@ Navigator::run()
 			navigation_mode_new = &_rcLoss;
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			_pos_sp_triplet_published_invalid_once = false;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: {
+				_pos_sp_triplet_published_invalid_once = false;
 
-			// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION
-			if (mission_landing_required() && on_mission_landing()) {
-				navigation_mode_new = &_mission;
+				const bool rtl_activated = _previous_nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-			} else {
-				navigation_mode_new = &_rtl;
+				switch (rtl_type()) {
+				case RTL::RTL_LAND:
+					if (rtl_activated) {
+						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+					}
+
+					// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION to fly there directly
+					if (on_mission_landing() && !get_land_detected()->landed) {
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+						navigation_mode_new = &_mission;
+
+					} else {
+						navigation_mode_new = &_rtl;
+					}
+
+					break;
+
+				case RTL::RTL_MISSION:
+					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
+						// the mission contains a landing spot
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+
+						if (_navigation_mode != &_mission) {
+							if (_navigation_mode == nullptr) {
+								// switching from an manual mode, go to landing if not already landing
+								if (!on_mission_landing()) {
+									start_mission_landing();
+								}
+
+							} else {
+								// switching from an auto mode, continue the mission from the closest item
+								_mission.set_closest_item_as_current();
+							}
+						}
+
+						if (rtl_activated) {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
+						}
+
+						navigation_mode_new = &_mission;
+
+					} else {
+						// fly the mission in reverse if switching from a non-manual mode
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_REVERSE);
+
+						if ((_navigation_mode != nullptr && (_navigation_mode != &_rtl || _mission.get_mission_changed())) &&
+						    (! _mission.get_mission_finished()) &&
+						    (!get_land_detected()->landed)) {
+							// determine the closest mission item if switching from a non-mission mode, and we are either not already
+							// mission mode or the mission waypoints changed.
+							// The seconds condition is required so that when no mission was uploaded and one is available the closest
+							// mission item is determined and also that if the user changes the active mission index while rtl is active
+							// always that waypoint is tracked first.
+							if ((_navigation_mode != &_mission) && (rtl_activated || _mission.get_mission_waypoints_changed())) {
+								_mission.set_closest_item_as_current();
+							}
+
+							if (rtl_activated) {
+								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse");
+							}
+
+							navigation_mode_new = &_mission;
+
+						} else {
+							if (rtl_activated) {
+								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home");
+							}
+
+							navigation_mode_new = &_rtl;
+						}
+					}
+
+					break;
+
+				default:
+					if (rtl_activated) {
+						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL HOME activated");
+					}
+
+					navigation_mode_new = &_rtl;
+					break;
+				}
+
+				break;
 			}
-
-			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 			_pos_sp_triplet_published_invalid_once = false;
@@ -639,6 +719,9 @@ Navigator::run()
 			_can_loiter_at_sp = false;
 			break;
 		}
+
+		// update the vehicle status
+		_previous_nav_state = _vstatus.nav_state;
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
