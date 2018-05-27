@@ -40,7 +40,7 @@
 // initialise default tunes
 const char *const Tunes::_default_tunes[] = {
 	"", // empty to align with the index
-	"MLT255L4O3CDG", // startup tune
+	"MNT150L4O3C+P16L8C+F+C+G+", // startup tune
 	"MBT200a8a8a8PaaaP", // ERROR tone
 	"MFT200e8a8a", // Notify Positive tone
 	"MFT200e8e", // Notify Neutral tone
