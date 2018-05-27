@@ -9,27 +9,22 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
+1. Drone switched on '...'
+2. Uploaded mission '....' (attach QGC mission file)
+3. Took off '....'
 4. See error
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Log Files and Screenshots**
+Always provide the flight log file, add screenshots to help explain your problem.
+ - Download the flight log file from the vehicle ([tutorial](https://docs.px4.io/en/flight-reporting.html))
+ - Share the link to a log showing the problem on [PX4 Flight Review](http://logs.px4.io/)
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+**Drone (please complete the following information):**
+ - Description of the type of drone
+ - Photo of the IMU / autopilot setup if possible
 
 **Additional context**
 Add any other context about the problem here.
