@@ -35,6 +35,6 @@ add_library(ecl_l1
 	ecl_l1_pos_controller.cpp
 	)
 add_dependencies(ecl_l1 prebuild_targets)
-
+target_compile_definitions(ecl_l1 PRIVATE -DMODULE_NAME="ecl/l1")
 target_include_directories(ecl_l1 PUBLIC ${ECL_SOURCE_DIR})
 target_link_libraries(ecl_l1 PRIVATE ecl_geo)

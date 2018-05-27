@@ -35,5 +35,5 @@ add_library(ecl_tecs
 	tecs.cpp
 	)
 add_dependencies(ecl_tecs prebuild_targets)
-
+target_compile_definitions(ecl_tecs PRIVATE -DMODULE_NAME="ecl/tecs")
 target_include_directories(ecl_tecs PUBLIC ${ECL_SOURCE_DIR})

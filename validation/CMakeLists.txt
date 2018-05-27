@@ -36,5 +36,5 @@ add_library(ecl_validation
 	data_validator_group.cpp
 	)
 add_dependencies(ecl_validation prebuild_targets)
-
+target_compile_definitions(ecl_validation PRIVATE -DMODULE_NAME="ecl/validation")
 target_include_directories(ecl_validation PUBLIC ${ECL_SOURCE_DIR})
