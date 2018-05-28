@@ -1408,8 +1408,14 @@ void Ekf::controlMagFusion()
 			_control_status.flags.mag_dec = false;
 		}
 
-		// If GPS is not being used and there is no other earth frame aiding, assume that we are operating indoors and the magnetometer is unreliable.
-		if ((!_control_status.flags.gps || !(_params.fusion_mode & MASK_USE_GPS)) && !_control_status.flags.ev_pos) {
+		// If the user has selected auto protection against indoor magnetic field errors, only use the magnetomer
+		// if a yaw angle relative to true North is required for navigation. If no GPS or other earth frame aiding
+		// is available, assume that we are operating indoors and the magnetometer should not be used.
+		bool user_selected = (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR);
+		bool not_using_gps = !(_params.fusion_mode & MASK_USE_GPS) || !_control_status.flags.gps;
+		bool not_using_evpos = !(_params.fusion_mode & MASK_USE_EVPOS) || !_control_status.flags.ev_pos;
+		bool not_selected_evyaw =  !(_params.fusion_mode & MASK_USE_EVYAW);
+		if (user_selected && not_using_gps && not_using_evpos && not_selected_evyaw) {
 			_mag_use_inhibit = true;
 		} else {
 			_mag_use_inhibit = false;
