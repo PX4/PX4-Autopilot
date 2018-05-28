@@ -1021,10 +1021,18 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			}
 
 		} else if (_state == MAVLINK_WPM_STATE_IDLE) {
-			PX4_DEBUG("WPM: MISSION_ITEM ERROR: no transfer");
+			if (_transfer_seq == wp.seq + 1) {
+				// Assume this is a duplicate, where we already successfully got all mission items,
+				// but the GCS did not receive the last ack and sent the same item again
+				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
 
-			_mavlink->send_statustext_critical("IGN MISSION_ITEM: No transfer");
-			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+			} else {
+				PX4_DEBUG("WPM: MISSION_ITEM ERROR: no transfer");
+
+				_mavlink->send_statustext_critical("IGN MISSION_ITEM: No transfer");
+				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+			}
+
 			return;
 
 		} else {
