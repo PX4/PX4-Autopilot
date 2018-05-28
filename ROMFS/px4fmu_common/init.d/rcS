@@ -321,59 +321,56 @@ then
 
 	set IO_PRESENT no
 
-	if [ $USE_IO == yes ]
+	#
+	# Check if PX4IO present and update firmware if needed
+	#
+	if [ -f /etc/extras/px4io-v2.bin ]
 	then
-		#
-		# Check if PX4IO present and update firmware if needed
-		#
-		if [ -f /etc/extras/px4io-v2.bin ]
+		set IO_FILE /etc/extras/px4io-v2.bin
+
+		if px4io checkcrc ${IO_FILE}
 		then
-			set IO_FILE /etc/extras/px4io-v2.bin
+			set IO_PRESENT yes
+		else
+			tone_alarm MLL32CP8MB
 
-			if px4io checkcrc ${IO_FILE}
+			if px4io start
 			then
-				set IO_PRESENT yes
-			else
-				tone_alarm MLL32CP8MB
-
-				if px4io start
+				# try to safe px4 io so motor outputs dont go crazy
+				if px4io safety_on
 				then
-					# try to safe px4 io so motor outputs dont go crazy
-					if px4io safety_on
-					then
-						# success! no-op
-					else
-						# px4io did not respond to the safety command
-						px4io stop
-					fi
-				fi
-
-				if px4io forceupdate 14662 ${IO_FILE}
-				then
-					usleep 10000
-					if px4io checkcrc ${IO_FILE}
-					then
-						echo "PX4IO CRC OK after updating" >> $LOG_FILE
-						tone_alarm MLL8CDE
-
-						set IO_PRESENT yes
-					else
-						echo "PX4IO update failed" >> $LOG_FILE
-						tone_alarm ${TUNE_ERR}
-					fi
+					# success! no-op
 				else
-					echo "PX4IO update failed" >> $LOG_FILE
-					tune_control play -m ${TUNE_ERR}
+					# px4io did not respond to the safety command
+					px4io stop
 				fi
 			fi
-		fi
-		unset IO_FILE
 
-		if [ $IO_PRESENT == no ]
-		then
-			echo "PX4IO not found" >> $LOG_FILE
-			tune_control play -m ${TUNE_ERR}
+			if px4io forceupdate 14662 ${IO_FILE}
+			then
+				usleep 10000
+				if px4io checkcrc ${IO_FILE}
+				then
+					echo "PX4IO CRC OK after updating" >> $LOG_FILE
+					tone_alarm MLL8CDE
+
+					set IO_PRESENT yes
+				else
+					echo "PX4IO update failed" >> $LOG_FILE
+					tone_alarm ${TUNE_ERR}
+				fi
+			else
+				echo "PX4IO update failed" >> $LOG_FILE
+				tune_control play -m ${TUNE_ERR}
+			fi
 		fi
+	fi
+	unset IO_FILE
+
+	if [ $USE_IO == yes -a $IO_PRESENT == no ]
+	then
+		echo "PX4IO not found" >> $LOG_FILE
+		tune_control play -m ${TUNE_ERR}
 	fi
 
 	#
