@@ -22,7 +22,7 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/rgbled
 	drivers/stm32
-	#drivers/stm32/adc
+	drivers/stm32/adc
 	#drivers/stm32/tone_alarm
 	modules/sensors
 

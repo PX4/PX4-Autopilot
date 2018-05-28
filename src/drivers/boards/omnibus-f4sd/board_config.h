@@ -69,26 +69,16 @@
  *
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
  */
-// TODO: ADCs, eg. pixracer
-//#define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14)
+#define ADC_CHANNELS (1 << 0) | (1 << 11) | (1 << 12)
 
-// Placeholder
-#define ADC_BATTERY_VOLTAGE_CHANNEL	((uint8_t)(-1))
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
-
-// TODO: ADCs
-//#define ADC_BATTERY_VOLTAGE_CHANNEL  2
-//#define ADC_BATTERY_CURRENT_CHANNEL  3
-//#define ADC_5V_RAIL_SENSE            4
-//#define ADC_RC_RSSI_CHANNEL          11
+#define ADC_BATTERY_VOLTAGE_CHANNEL  12
+#define ADC_BATTERY_CURRENT_CHANNEL  11
+#define ADC_RC_RSSI_CHANNEL          0
 
 /* Define Battery 1 Voltage Divider and A per V
  */
-
-// TODO:
-//#define BOARD_BATTERY1_V_DIV         (13.653333333f)
-//#define BOARD_BATTERY1_A_PER_V       (36.367515152f)
+#define BOARD_BATTERY1_V_DIV         (11.12f)
+#define BOARD_BATTERY1_A_PER_V       (31.f)
 
 /* User GPIOs
  *
