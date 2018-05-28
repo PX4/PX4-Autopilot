@@ -316,7 +316,7 @@
 /* Define Battery 1 Voltage Divider and A per V
  */
 
-#define BOARD_BATTERY1_V_DIV         (10.133333333f)
+#define BOARD_BATTERY1_V_DIV         (18.1f) 		/* measured with the provided PM board */
 #define BOARD_BATTERY1_A_PER_V       (36.367515152f)
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
