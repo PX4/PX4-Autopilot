@@ -43,8 +43,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
-#include <uORB/topics/vehicle_status_flags.h>
-
 #pragma once
 
 namespace Preflight

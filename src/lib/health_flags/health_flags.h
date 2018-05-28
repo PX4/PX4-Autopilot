@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file subsystem_info_pub.h
+ * @file health_flags.h
  *
- * Contains helper functions to efficiently publish the subsystem_info topic from various locations inside the code.
+ * Contains helper functions to efficiently set the system health flags from commander and preflight check.
  *
  * @author Philipp Oettershagen (philipp.oettershagen@mavt.ethz.ch)
  */
@@ -42,11 +42,8 @@
 #pragma once
 
 #include <px4_log.h>
-#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 
-void publish_subsystem_info(uint64_t subsystem_type, bool present, bool enabled, bool ok,
-			    vehicle_status_s *status_ptr = nullptr);
-void publish_subsystem_info_present_healthy(uint64_t subsystem_type, bool present, bool healthy,
-		vehicle_status_s *status_ptr = nullptr);
-void publish_subsystem_info_healthy(uint64_t subsystem_type, bool ok, vehicle_status_s *status_ptr = nullptr);
+void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status);
+void set_health_flags_present_healthy(uint64_t subsystem_type, bool present, bool healthy, vehicle_status_s &status);
+void set_health_flags_healthy(uint64_t subsystem_type, bool healthy, vehicle_status_s &status);

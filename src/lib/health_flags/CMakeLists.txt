@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-px4_add_library(subsystem_info_pub subsystem_info_pub.cpp)
+px4_add_library(health_flags health_flags.cpp)
