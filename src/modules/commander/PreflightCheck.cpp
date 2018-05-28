@@ -163,8 +163,8 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 	}
 
 out:
-	if(instance==0) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, present, !optional, success, status);
-	if(instance==1) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, present, !optional, success, status);
+	if (instance==0) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, present, !optional, success, status);
+	if (instance==1) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, present, !optional, success, status);
 
 	DevMgr::releaseHandle(h);
 	return success;
@@ -336,8 +336,8 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 #endif
 
 out:
-	if(instance==0) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC, present, !optional, success, status);
-	if(instance==1) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, present, !optional, success, status);
+	if (instance==0) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC, present, !optional, success, status);
+	if (instance==1) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, present, !optional, success, status);
 
 	DevMgr::releaseHandle(h);
 	return success;
@@ -388,8 +388,8 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 	}
 
 out:
-	if(instance==0) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, present, !optional, success, status);
-	if(instance==1) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, present, !optional, success, status);
+	if (instance==0) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, present, !optional, success, status);
+	if (instance==1) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, present, !optional, success, status);
 
 	DevMgr::releaseHandle(h);
 	return success;
