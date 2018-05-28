@@ -90,7 +90,7 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
 	_params_handles.wv_land = param_find("VT_WV_LND_EN");
 	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
-	_params_handles.wv_loiter = param_find("VT_WV_AUTO_EN");
+	_params_handles.wv_auto = param_find("VT_WV_AUTO_EN");
 	_params_handles.wv_manual = param_find("VT_WV_MANUAL_EN");
 
 	_params_handles.wv_max_yaw_rate = param_find("VT_WV_MAX_Y_RATE");
