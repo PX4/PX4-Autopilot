@@ -337,7 +337,7 @@ void Ekf::controlExternalVisionFusion()
 
 void Ekf::controlOpticalFlowFusion()
 {
-	// Check if motion is un-suitable for use of optical flow
+	// Check if on ground motion is un-suitable for use of optical flow
 	if (!_control_status.flags.in_air) {
 		// When on ground check if the vehicle is being shaken or moved in a way that could cause a loss of navigation
 		float accel_norm = _accel_vec_filt.norm();
@@ -365,19 +365,21 @@ void Ekf::controlOpticalFlowFusion()
 	} else {
 		gps_err_norm_lim = 1.0f;
 	}
-	bool flow_required = !_control_status.flags.gps || (_gps_error_norm > gps_err_norm_lim);
+	// If we are in-air and doing inertial dead reckoning or are using bad GPS, then optical flow use
+	// is necessary to control position drift
+	bool flow_required = _control_status.flags.in_air &&
+			(_is_dead_reckoning || (_control_status.flags.gps && (_gps_error_norm > gps_err_norm_lim)));
 	if (!_inhibit_flow_use) {
 		// check if we should inhibit use of optical flow
-		bool movement_not_ok = ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5)
-				&& !_range_aid_mode_enabled;
+		bool movement_not_ok = ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5) // on-ground check
+				&& !_range_aid_mode_enabled; // in-air check
 		if (movement_not_ok || !flow_required) {
 			_inhibit_flow_use = true;
 		}
 
 	} else {
-		bool movement_ok = ((_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6)
-				|| _range_aid_mode_enabled;
-		if (movement_ok && flow_required) {
+		bool movement_ok = ((_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6) || _range_aid_mode_enabled;
+		if (movement_ok || flow_required) {
 			_inhibit_flow_use = false;
 		}
 	}
