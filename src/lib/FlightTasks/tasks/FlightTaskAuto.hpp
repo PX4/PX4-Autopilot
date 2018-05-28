@@ -85,6 +85,8 @@ protected:
 	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 
 private:
+	matrix::Vector2f _lock_position_xy{};
+
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
