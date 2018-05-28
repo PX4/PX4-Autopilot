@@ -1035,6 +1035,8 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                               'IMU sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
         'flow_sensor_status': ['Pass',
                                'Optical Flow sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
+        'filter_fault_status': ['Pass',
+                               'Internal Filter check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
         'mag_percentage_red': [float('NaN'),
                                'The percentage of in-flight consolidated magnetic field sensor innovation consistency test values > 1.0.'],
         'mag_percentage_amber': [float('NaN'),
@@ -1138,105 +1140,105 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     if (innov_early_end_index > (innov_late_start_index + 100)):
         # Output Observer Tracking Errors
         test_results['output_obs_ang_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index])
+            ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index + 1])
         test_results['output_obs_vel_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[1]'][innov_late_start_index:innov_early_end_index])
+            ekf2_innovations['output_tracking_error[1]'][innov_late_start_index:innov_early_end_index + 1])
         test_results['output_obs_pos_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index])
+            ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index + 1])
     # reduction of status message data
     if (early_end_index > (late_start_index + 100)):
         # IMU vibration checks
         temp = np.amax(estimator_status['vibe[0]'][late_start_index:early_end_index])
         if (temp > 0.0):
             test_results['imu_coning_peak'][0] = temp
-            test_results['imu_coning_mean'][0] = np.mean(estimator_status['vibe[0]'][late_start_index:early_end_index])
+            test_results['imu_coning_mean'][0] = np.mean(estimator_status['vibe[0]'][late_start_index:early_end_index + 1])
         temp = np.amax(estimator_status['vibe[1]'][late_start_index:early_end_index])
         if (temp > 0.0):
             test_results['imu_hfdang_peak'][0] = temp
-            test_results['imu_hfdang_mean'][0] = np.mean(estimator_status['vibe[1]'][late_start_index:early_end_index])
+            test_results['imu_hfdang_mean'][0] = np.mean(estimator_status['vibe[1]'][late_start_index:early_end_index + 1])
         temp = np.amax(estimator_status['vibe[2]'][late_start_index:early_end_index])
         if (temp > 0.0):
             test_results['imu_hfdvel_peak'][0] = temp
-            test_results['imu_hfdvel_mean'][0] = np.mean(estimator_status['vibe[2]'][late_start_index:early_end_index])
+            test_results['imu_hfdvel_mean'][0] = np.mean(estimator_status['vibe[2]'][late_start_index:early_end_index + 1])
 
         # Magnetometer Sensor Checks
         if (np.amax(yaw_aligned) > 0.5):
-            mag_num_red = (estimator_status['mag_test_ratio'][start_index:end_index] > 1.0).sum()
-            mag_num_amber = (estimator_status['mag_test_ratio'][start_index:end_index] > 0.5).sum() - mag_num_red
+            mag_num_red = (estimator_status['mag_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            mag_num_amber = (estimator_status['mag_test_ratio'][start_index:end_index + 1] > 0.5).sum() - mag_num_red
             test_results['mag_percentage_red'][0] = 100.0 * mag_num_red / num_valid_values_trimmed
             test_results['mag_percentage_amber'][0] = 100.0 * mag_num_amber / num_valid_values_trimmed
             test_results['mag_test_max'][0] = np.amax(
-                estimator_status['mag_test_ratio'][late_start_index:early_end_index])
+                estimator_status['mag_test_ratio'][late_start_index:early_end_index + 1])
             test_results['mag_test_mean'][0] = np.mean(estimator_status['mag_test_ratio'][start_index:end_index])
             test_results['magx_fail_percentage'][0] = 100.0 * (
-                    magx_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    magx_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['magy_fail_percentage'][0] = 100.0 * (
-                    magy_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    magy_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['magz_fail_percentage'][0] = 100.0 * (
-                    magz_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    magz_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['yaw_fail_percentage'][0] = 100.0 * (
-                    yaw_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    yaw_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
 
         # Velocity Sensor Checks
         if (np.amax(using_gps) > 0.5):
-            vel_num_red = (estimator_status['vel_test_ratio'][start_index:end_index] > 1.0).sum()
-            vel_num_amber = (estimator_status['vel_test_ratio'][start_index:end_index] > 0.5).sum() - vel_num_red
+            vel_num_red = (estimator_status['vel_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            vel_num_amber = (estimator_status['vel_test_ratio'][start_index:end_index + 1] > 0.5).sum() - vel_num_red
             test_results['vel_percentage_red'][0] = 100.0 * vel_num_red / num_valid_values
             test_results['vel_percentage_amber'][0] = 100.0 * vel_num_amber / num_valid_values
-            test_results['vel_test_max'][0] = np.amax(estimator_status['vel_test_ratio'][start_index:end_index])
-            test_results['vel_test_mean'][0] = np.mean(estimator_status['vel_test_ratio'][start_index:end_index])
+            test_results['vel_test_max'][0] = np.amax(estimator_status['vel_test_ratio'][start_index:end_index + 1])
+            test_results['vel_test_mean'][0] = np.mean(estimator_status['vel_test_ratio'][start_index:end_index + 1])
             test_results['vel_fail_percentage'][0] = 100.0 * (
-                    vel_innov_fail[start_index:end_index] > 0.5).sum() / num_valid_values
+                    vel_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # Position Sensor Checks
         if ((np.amax(using_gps) > 0.5) or (np.amax(using_evpos) > 0.5)):
-            pos_num_red = (estimator_status['pos_test_ratio'][start_index:end_index] > 1.0).sum()
-            pos_num_amber = (estimator_status['pos_test_ratio'][start_index:end_index] > 0.5).sum() - pos_num_red
+            pos_num_red = (estimator_status['pos_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            pos_num_amber = (estimator_status['pos_test_ratio'][start_index:end_index + 1] > 0.5).sum() - pos_num_red
             test_results['pos_percentage_red'][0] = 100.0 * pos_num_red / num_valid_values
             test_results['pos_percentage_amber'][0] = 100.0 * pos_num_amber / num_valid_values
-            test_results['pos_test_max'][0] = np.amax(estimator_status['pos_test_ratio'][start_index:end_index])
-            test_results['pos_test_mean'][0] = np.mean(estimator_status['pos_test_ratio'][start_index:end_index])
+            test_results['pos_test_max'][0] = np.amax(estimator_status['pos_test_ratio'][start_index:end_index + 1])
+            test_results['pos_test_mean'][0] = np.mean(estimator_status['pos_test_ratio'][start_index:end_index + 1])
             test_results['pos_fail_percentage'][0] = 100.0 * (
-                    posh_innov_fail[start_index:end_index] > 0.5).sum() / num_valid_values
+                    posh_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # Height Sensor Checks
-        hgt_num_red = (estimator_status['hgt_test_ratio'][late_start_index:early_end_index] > 1.0).sum()
-        hgt_num_amber = (estimator_status['hgt_test_ratio'][late_start_index:early_end_index] > 0.5).sum() - hgt_num_red
+        hgt_num_red = (estimator_status['hgt_test_ratio'][late_start_index:early_end_index + 1] > 1.0).sum()
+        hgt_num_amber = (estimator_status['hgt_test_ratio'][late_start_index:early_end_index + 1] > 0.5).sum() - hgt_num_red
         test_results['hgt_percentage_red'][0] = 100.0 * hgt_num_red / num_valid_values_trimmed
         test_results['hgt_percentage_amber'][0] = 100.0 * hgt_num_amber / num_valid_values_trimmed
-        test_results['hgt_test_max'][0] = np.amax(estimator_status['hgt_test_ratio'][late_start_index:early_end_index])
-        test_results['hgt_test_mean'][0] = np.mean(estimator_status['hgt_test_ratio'][late_start_index:early_end_index])
+        test_results['hgt_test_max'][0] = np.amax(estimator_status['hgt_test_ratio'][late_start_index:early_end_index + 1])
+        test_results['hgt_test_mean'][0] = np.mean(estimator_status['hgt_test_ratio'][late_start_index:early_end_index + 1])
         test_results['hgt_fail_percentage'][0] = 100.0 * (
-                posv_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                posv_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
 
         # Airspeed Sensor Checks
         if (tas_test_max > 0.0):
-            tas_num_red = (estimator_status['tas_test_ratio'][start_index:end_index] > 1.0).sum()
-            tas_num_amber = (estimator_status['tas_test_ratio'][start_index:end_index] > 0.5).sum() - tas_num_red
+            tas_num_red = (estimator_status['tas_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            tas_num_amber = (estimator_status['tas_test_ratio'][start_index:end_index + 1] > 0.5).sum() - tas_num_red
             test_results['tas_percentage_red'][0] = 100.0 * tas_num_red / num_valid_values
             test_results['tas_percentage_amber'][0] = 100.0 * tas_num_amber / num_valid_values
-            test_results['tas_test_max'][0] = np.amax(estimator_status['tas_test_ratio'][start_index:end_index])
-            test_results['tas_test_mean'][0] = np.mean(estimator_status['tas_test_ratio'][start_index:end_index])
+            test_results['tas_test_max'][0] = np.amax(estimator_status['tas_test_ratio'][start_index:end_index + 1])
+            test_results['tas_test_mean'][0] = np.mean(estimator_status['tas_test_ratio'][start_index:end_index + 1])
             test_results['tas_fail_percentage'][0] = 100.0 * (
-                    tas_innov_fail[start_index:end_index] > 0.5).sum() / num_valid_values
+                    tas_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # HAGL Sensor Checks
         if (hagl_test_max > 0.0):
-            hagl_num_red = (estimator_status['hagl_test_ratio'][start_index:end_index] > 1.0).sum()
-            hagl_num_amber = (estimator_status['hagl_test_ratio'][start_index:end_index] > 0.5).sum() - hagl_num_red
+            hagl_num_red = (estimator_status['hagl_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            hagl_num_amber = (estimator_status['hagl_test_ratio'][start_index:end_index + 1] > 0.5).sum() - hagl_num_red
             test_results['hagl_percentage_red'][0] = 100.0 * hagl_num_red / num_valid_values
             test_results['hagl_percentage_amber'][0] = 100.0 * hagl_num_amber / num_valid_values
-            test_results['hagl_test_max'][0] = np.amax(estimator_status['hagl_test_ratio'][start_index:end_index])
-            test_results['hagl_test_mean'][0] = np.mean(estimator_status['hagl_test_ratio'][start_index:end_index])
+            test_results['hagl_test_max'][0] = np.amax(estimator_status['hagl_test_ratio'][start_index:end_index + 1])
+            test_results['hagl_test_mean'][0] = np.mean(estimator_status['hagl_test_ratio'][start_index:end_index + 1])
             test_results['hagl_fail_percentage'][0] = 100.0 * (
-                    hagl_innov_fail[start_index:end_index] > 0.5).sum() / num_valid_values
+                    hagl_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # optical flow sensor checks
         if (np.amax(using_optflow) > 0.5):
             test_results['ofx_fail_percentage'][0] = 100.0 * (
-                    ofx_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    ofx_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['ofy_fail_percentage'][0] = 100.0 * (
-                    ofy_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    ofy_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
 
         # IMU bias checks
         test_results['imu_dang_bias_median'][0] = (np.median(estimator_status['states[10]']) ** 2 + np.median(
