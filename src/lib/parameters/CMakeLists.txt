@@ -129,6 +129,7 @@ if (NOT "${CONFIG}" MATCHES "px4io")
 	endif()
 
 	target_link_libraries(parameters PRIVATE perf tinybson)
+	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
 	target_compile_options(parameters PRIVATE -Wno-sign-compare) # TODO: fix this
 else()
 	add_library(parameters ${PX4_SOURCE_DIR}/src/platforms/empty.c)

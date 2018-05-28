@@ -283,6 +283,31 @@ pipeline {
           }
         }
 
+        stage('tests (code coverage)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros:2018-03-30'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ulimit -c unlimited; make tests_coverage'
+            sh 'ls'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s'
+            }
+            sh 'make distclean'
+          }
+          post {
+            failure {
+              sh('find . -name core')
+              sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core')
+            }
+          }
+        }
+
         stage('check stack') {
           agent {
             docker {
@@ -310,7 +335,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol'
@@ -342,7 +367,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tailsitter'
@@ -374,7 +399,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tiltrotor'
@@ -406,7 +431,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2 vehicle:=standard_vtol'
@@ -438,7 +463,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1 vehicle:=standard_vtol'
@@ -470,7 +495,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2 vehicle:=standard_vtol'
@@ -502,7 +527,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box vehicle:=iris'
@@ -534,7 +559,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test'
@@ -563,7 +588,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'rm -rf .ros; rm -rf .gazebo'
+            sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test'
