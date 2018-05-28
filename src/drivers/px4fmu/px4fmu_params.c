@@ -191,6 +191,26 @@ PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);
 PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
 
 /**
+ * Motor Ordering
+ *
+ * Determines the motor ordering. This can be used for example in combination with
+ * a 4-in-1 ESC that assumes a motor ordering which is different from PX4.
+ *
+ * ONLY supported for Quads.
+ * ONLY supported for fmu output (Pixracer or Omnibus F4).
+ *
+ * When changing this, make sure to test the motor response without props first.
+ *
+ * @value 0 PX4
+ * @value 1 Betaflight / Cleanflight
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(MOT_ORDERING, 0);
+
+/**
  * Run the FMU as a task to reduce latency
  *
  * If true, the FMU will run in a separate task instead of on the work queue.
