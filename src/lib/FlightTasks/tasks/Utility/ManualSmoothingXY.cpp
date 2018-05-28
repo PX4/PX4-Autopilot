@@ -174,8 +174,7 @@ ManualSmoothingXY::_setStateAcceleration(const matrix::Vector2f &vel_sp, const m
 			// Because previous setpoint is equal to current setpoint,
 			// slewrate will have no effect. Nonetheless, just set
 			// acceleration to maximum.
-			_acc_state_dependent = _acc_xy_max.get();
-
+			_acc_state_dependent = _acc_hover.get();
 			break;
 		}
 
