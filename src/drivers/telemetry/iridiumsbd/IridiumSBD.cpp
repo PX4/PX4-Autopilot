@@ -473,12 +473,18 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: SUCCESS (%d)", mo_status);
 
 		_ring_pending = false;
-		_rx_session_pending = false;
 		_tx_session_pending = false;
 		_last_read_time = hrt_absolute_time();
 		_last_heartbeat = _last_read_time;
 		++_successful_sbd_sessions;
 
+		if (mt_queued > 0) {
+			_rx_session_pending = true;
+
+		} else {
+			_rx_session_pending = false;
+
+		}
 
 		if (mt_len > 0) {
 			_rx_read_pending = true;
