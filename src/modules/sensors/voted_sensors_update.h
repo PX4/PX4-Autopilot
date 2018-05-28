@@ -206,7 +206,7 @@ private:
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
-	bool check_failover(SensorData &sensor, const char *sensor_name);
+	bool check_failover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
 	/**
 	 * Apply a gyro calibration.

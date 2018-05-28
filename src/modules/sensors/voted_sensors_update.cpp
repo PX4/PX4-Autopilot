@@ -893,7 +893,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 	}
 }
 
-bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_name)
+bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_name, const uint64_t type)
 {
 	if (sensor.last_failover_count != sensor.voter.failover_count()) {
 
@@ -931,22 +931,18 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 
 				PX4_ERR("%s sensor switch from #%i", sensor_name, failover_index);
 
-				if (ctr_valid < 2) { // subsystem_info only contains flags for the first two sensors
-					if (ctr_valid == 0) { // There are no valid sensors left!
-						if (strcmp(sensor_name, "Gyro") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO; }
+				if (ctr_valid < 2) {
+					if (ctr_valid == 0) {
+						// Zero valid sensors remain! Set even the primary sensor health to false
+						_info.subsystem_type = type;
 
-						if (strcmp(sensor_name, "Accel") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC; }
+					} else if (ctr_valid == 1) {
+						// One valid sensor remains, set secondary sensor health to false
+						if (type == subsystem_info_s::SUBSYSTEM_TYPE_GYRO) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
 
-						if (strcmp(sensor_name, "Mag") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG; }
+						if (type == subsystem_info_s::SUBSYSTEM_TYPE_ACC) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
 
-						if (strcmp(sensor_name, "Baro") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE; }
-
-					} else if (ctr_valid == 1) { // A single valid sensor remains, set secondary sensor health to false
-						if (strcmp(sensor_name, "Gyro") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
-
-						if (strcmp(sensor_name, "Accel") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
-
-						if (strcmp(sensor_name, "Mag") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
+						if (type == subsystem_info_s::SUBSYSTEM_TYPE_MAG) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
 					}
 
 					_info.present = true;
@@ -1095,10 +1091,10 @@ void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw, vehicle_air_data_s
 
 void VotedSensorsUpdate::check_failover()
 {
-	check_failover(_accel, "Accel");
-	check_failover(_gyro, "Gyro");
-	check_failover(_mag, "Mag");
-	check_failover(_baro, "Baro");
+	check_failover(_accel, "Accel", subsystem_info_s::SUBSYSTEM_TYPE_ACC);
+	check_failover(_gyro, "Gyro", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
+	check_failover(_mag, "Mag", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
+	check_failover(_baro, "Baro", subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE);
 }
 
 void VotedSensorsUpdate::set_relative_timestamps(sensor_combined_s &raw)
