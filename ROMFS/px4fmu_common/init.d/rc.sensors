@@ -280,6 +280,8 @@ then
 	hmc5883 -X start
 
 	bmp280 start
+
+	adc start
 fi
 
 if ver hwcmp PX4FMU_V4PRO
