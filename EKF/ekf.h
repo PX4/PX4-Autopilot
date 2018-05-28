@@ -436,7 +436,7 @@ private:
 	bool _bad_vert_accel_detected{false};	///< true when bad vertical accelerometer data has been detected
 
 	// variables used to control range aid functionality
-	bool _range_aid_mode_enabled{false};	///< true when range finder can be used as the height reference instead of the primary height sensor
+	bool _range_aid_mode_enabled{false};	///< true when range finder can be used in flight as the height reference instead of the primary height sensor
 	bool _range_aid_mode_selected{false};	///< true when range finder is being used as the height reference instead of the primary height sensor
 
 	// variables used to check for "stuck" rng data
