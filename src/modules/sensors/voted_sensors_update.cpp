@@ -40,7 +40,6 @@
 #include "voted_sensors_update.h"
 
 #include <systemlib/mavlink_log.h>
-#include <lib/subsystem_info_pub/subsystem_info_pub.h>
 
 #include <conversion/rotation.h>
 #include <ecl/geo/geo.h>
@@ -60,8 +59,9 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_en
 	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
 	memset(&_mag_diff, 0, sizeof(_mag_diff));
 
-	// initialise the corrections
+	// initialise the publication variables
 	memset(&_corrections, 0, sizeof(_corrections));
+	memset(&_info, 0, sizeof(_info));
 
 	for (unsigned i = 0; i < 3; i++) {
 		_corrections.gyro_scale_0[i] = 1.0f;
@@ -932,26 +932,33 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 				PX4_ERR("%s sensor switch from #%i", sensor_name, failover_index);
 
 				if (ctr_valid < 2) { // subsystem_info only contains flags for the first two sensors
-					uint64_t subsystem_type = 0;
-
 					if (ctr_valid == 0) { // There are no valid sensors left!
-						if (strcmp(sensor_name, "Gyro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO; }
+						if (strcmp(sensor_name, "Gyro") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO; }
 
-						if (strcmp(sensor_name, "Accel") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC; }
+						if (strcmp(sensor_name, "Accel") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC; }
 
-						if (strcmp(sensor_name, "Mag") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG; }
+						if (strcmp(sensor_name, "Mag") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG; }
 
-						if (strcmp(sensor_name, "Baro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE; }
+						if (strcmp(sensor_name, "Baro") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE; }
 
 					} else if (ctr_valid == 1) { // A single valid sensor remains, set secondary sensor health to false
-						if (strcmp(sensor_name, "Gyro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
+						if (strcmp(sensor_name, "Gyro") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
 
-						if (strcmp(sensor_name, "Accel") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
+						if (strcmp(sensor_name, "Accel") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
 
-						if (strcmp(sensor_name, "Mag") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
+						if (strcmp(sensor_name, "Mag") == 0) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
 					}
 
-					publish_subsystem_info_healthy(subsystem_type, false);
+					_info.present = true;
+					_info.enabled = true;
+					_info.ok = false;
+
+					if (_info_pub == nullptr) {
+						_info_pub = orb_advertise_queue(ORB_ID(subsystem_info), &_info, subsystem_info_s::ORB_QUEUE_LENGTH);
+
+					} else {
+						orb_publish(ORB_ID(subsystem_info), _info_pub, &_info);
+					}
 				}
 			}
 		}
@@ -982,30 +989,6 @@ void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, Sens
 				if (!sensor_data.voter.add_new_validator()) {
 					PX4_ERR("failed to add validator for sensor %s %i", meta->o_name, i);
 				}
-			}
-
-			// Update the subsystem_info uORB to indicate the amount of valid sensors
-			if (i < 2) { // subsystem_info only contains flags for the first two sensors
-				uint64_t subsystem_type = 0;
-
-				if (i == 0) { // First sensor valid
-					if (strcmp(meta->o_name, "sensor_gyro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO; }
-
-					if (strcmp(meta->o_name, "sensor_accel") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC; }
-
-					if (strcmp(meta->o_name, "sensor_mag") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG; }
-
-					if (strcmp(meta->o_name, "sensor_baro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE; }
-
-				} else if (i == 1) { // We also have a second sensor
-					if (strcmp(meta->o_name, "sensor_gyro") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
-
-					if (strcmp(meta->o_name, "sensor_accel") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
-
-					if (strcmp(meta->o_name, "sensor_mag") == 0) { subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
-				}
-
-				publish_subsystem_info(subsystem_type, true, true, true);
 			}
 		}
 	}

@@ -64,6 +64,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <lib/ecl/geo/geo.h>
+#include <lib/health_flags/health_flags.h>
 #include <mathlib/mathlib.h>
 #include <navigator/navigation.h>
 #include <px4_config.h>
@@ -79,7 +80,6 @@
 #include <parameters/param.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
-#include <lib/subsystem_info_pub/subsystem_info_pub.h>
 
 #include <cmath>
 #include <cfloat>
@@ -1829,8 +1829,8 @@ Commander::run()
 
 		if((_last_condition_global_position_valid != status_flags.condition_global_position_valid) && status_flags.condition_global_position_valid) {
 			// If global position state changed and is now valid, set respective health flags to true. For now also assume GPS is OK if global pos is OK, but not vice versa.
-			publish_subsystem_info_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, &status);
-			publish_subsystem_info_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, &status);
+			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, status);
+			set_health_flags_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, status);
 		}
 
 		check_valid(_local_position_sub.get().timestamp, _failsafe_pos_delay.get() * 1_s, _local_position_sub.get().z_valid, &(status_flags.condition_local_altitude_valid), &status_changed);
@@ -2006,33 +2006,7 @@ Commander::run()
 			orb_check(subsys_sub, &updated);
 			if (updated) {
 				orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
-
-				//warnx("subsystem changed: %d\n", (int)info.subsystem_type);
-
-				/* mark / unmark as present */
-				if (info.present) {
-					status.onboard_control_sensors_present |= info.subsystem_type;
-
-				} else {
-					status.onboard_control_sensors_present &= ~info.subsystem_type;
-				}
-
-				/* mark / unmark as enabled */
-				if (info.enabled) {
-					status.onboard_control_sensors_enabled |= info.subsystem_type;
-
-				} else {
-					status.onboard_control_sensors_enabled &= ~info.subsystem_type;
-				}
-
-				/* mark / unmark as ok */
-				if (info.ok) {
-					status.onboard_control_sensors_health |= info.subsystem_type;
-
-				} else {
-					status.onboard_control_sensors_health &= ~info.subsystem_type;
-				}
-
+				set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
 				status_changed = true;
 			}
 		} while(updated);
@@ -2232,13 +2206,13 @@ Commander::run()
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
 				status_flags.rc_signal_found_once = true;
-				publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid, &status);
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid, status);
 				status_changed = true;
 
 			} else {
 				if (status.rc_signal_lost) {
 					mavlink_log_info(&mavlink_log_pub, "MANUAL CONTROL REGAINED after %llums", hrt_elapsed_time(&rc_signal_lost_timestamp) / 1000);
-					publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid, &status);
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid, status);
 					status_changed = true;
 				}
 			}
@@ -2386,7 +2360,7 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
-				publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, &status);
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
 				status_changed = true;
 			}
 		}
@@ -2424,7 +2398,7 @@ Commander::run()
 						status_changed = true;
 
 						PX4_ERR("Engine Failure");
-						publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL,true,true,false, &status);
+						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, false, status);
 					}
 				}
 
@@ -4109,9 +4083,9 @@ void Commander::poll_telemetry_status()
 				    (mission_result.instance_count > 0) && !mission_result.valid) {
 
 					mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
-					//publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, false, &status); // TODO
+					//set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, false, status); // TODO
 				} else {
-					//publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, true, &status); // TODO
+					//set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, true, status); // TODO
 				}
 			}
 
