@@ -129,7 +129,8 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
-		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2 // altitude at which speed limit downwards reached minimum speed
+		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
+		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -586,13 +587,11 @@ MulticopterPositionControl::task_main()
 			}
 
 			// limit altitude only if local position is valid
-			if (PX4_ISFINITE(_states.position(2))) {limit_altitude(setpoint);};
+			if (PX4_ISFINITE(_states.position(2))) {limit_altitude(setpoint);}
 
 			// Update states, setpoints and constraints.
 			_control.updateConstraints(constraints);
-
 			_control.updateState(_states);
-
 			_control.updateSetpoint(setpoint);
 
 			// Generate desired thrust and yaw.
@@ -669,7 +668,7 @@ MulticopterPositionControl::start_flight_task()
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
 
-		if (error < 0) {
+		if (error != 0) {
 			PX4_WARN("Offboard activation failded with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 		}
@@ -679,7 +678,7 @@ MulticopterPositionControl::start_flight_task()
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
 
-		if (error < 0) {
+		if (error != 0) {
 			PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 		}
@@ -688,7 +687,7 @@ MulticopterPositionControl::start_flight_task()
 		// Auto relate maneuvers
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 
-		if (error < 0) {
+		if (error != 0) {
 			PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 		}
@@ -696,9 +695,28 @@ MulticopterPositionControl::start_flight_task()
 
 	// manual position control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Position);
 
-		if (error < 0) {
+		int error = 0;
+
+		switch (MPC_POS_MODE.get()) {
+		case 0:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::Position);
+			break;
+
+		case 1:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::PositionSmooth);
+			break;
+
+		case 2:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
+			break;
+
+		default:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::Position);
+			break;
+		}
+
+		if (error != 0) {
 			PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 
@@ -711,7 +729,7 @@ MulticopterPositionControl::start_flight_task()
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Altitude);
 
-		if (error < 0) {
+		if (error != 0) {
 			PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 
@@ -725,7 +743,7 @@ MulticopterPositionControl::start_flight_task()
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL || task_failure) {
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Stabilized);
 
-		if (error < 0) {
+		if (error != 0) {
 			PX4_WARN("Stabilized-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 

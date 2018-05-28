@@ -600,3 +600,23 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
+
+/**
+ * Manual-Position control sub-mode.
+ *
+ * The supported sub-modes are:
+ * 0 Default position control where sticks map to position/velocity directly. Maximum speeds
+ * 	 is MPC_VEL_MANUAL.
+ * 1 Smooth position control where setpoints are adjusted based on acceleration limits
+ * 	 and jerk limits.
+ * 2 Sport mode that is the same Default position control but with velocity limits set to
+ * 	 the maximum allowed speeds (MPC_XY_VEL_MAX)
+ *
+ * @min 0
+ * @max 2
+ * @value 0 Default position control
+ * @value 1 Smooth position control
+ * @value 2 Sport position control
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_POS_MODE, 0);
