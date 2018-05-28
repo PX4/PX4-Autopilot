@@ -126,6 +126,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		} else {
 			target(0) = _lock_position_xy(0);
 			target(1) = _lock_position_xy(1);
+			_lock_position_xy *= NAN;
 		}
 
 	} else {

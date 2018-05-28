@@ -85,7 +85,7 @@ protected:
 	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 
 private:
-	matrix::Vector2f _lock_position_xy{};
+	matrix::Vector2f _lock_position_xy{NAN, NAN};
 
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 
