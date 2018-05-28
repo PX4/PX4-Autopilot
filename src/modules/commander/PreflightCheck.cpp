@@ -710,20 +710,6 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	const bool checkDynamic = !hil_enabled;
 	const bool checkPower = (status_flags.condition_power_input_valid && !status_flags.circuit_breaker_engaged_power_check);
 
-	bool checkDistanceSensors = false;
-	int32_t distSensorEnabled[7];
-	param_get(param_find("SENS_EN_LEDDAR1"), &(distSensorEnabled[0]));
-	param_get(param_find("SENS_EN_LL40LS"), &distSensorEnabled[1]);
-	param_get(param_find("SENS_EN_MB12XX"), &distSensorEnabled[2]);
-	param_get(param_find("SENS_EN_SF0X"), &distSensorEnabled[3]);
-	param_get(param_find("SENS_EN_SF1XX"), &distSensorEnabled[4]);
-	param_get(param_find("SENS_EN_TFMINI"), &distSensorEnabled[5]);
-	param_get(param_find("SENS_EN_TRANGER"), &distSensorEnabled[6]);
-	if(distSensorEnabled[0]>0 || distSensorEnabled[1]>0 || distSensorEnabled[2]>0 || distSensorEnabled[3]>0 ||
-			distSensorEnabled[4]>0 || distSensorEnabled[5]>0 || distSensorEnabled[6]>0) {
-		checkDistanceSensors=true;
-	}
-
 	bool checkAirspeed = false;
 
 	/* Perform airspeed check only if circuit breaker is not
@@ -934,23 +920,6 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		if (!powerCheck(mavlink_log_pub, status, (reportFailures && !failed), prearm)) {
 			failed = true;
 		}
-	}
-
-	/* ---- DISTANCE SENSORS ---- */
-	if (checkDistanceSensors && time_since_boot > 10 * 1000000) {
-		int fd_distance_sensor = orb_subscribe(ORB_ID(distance_sensor));
-		distance_sensor_s dist_sensor = {};
-		bool present = true;
-
-		if ((orb_copy(ORB_ID(distance_sensor), fd_distance_sensor, &dist_sensor) != PX4_OK) ||
-			(hrt_elapsed_time(&dist_sensor.timestamp) > 2000000)) {
-			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: DISTANCE SENSOR MISSING");
-			}
-			present = false;
-		}
-		publish_subsystem_info(subsystem_info_s::SUBSYSTEM_TYPE_SENSORPROXIMITY, present, true, present, &status);
-		orb_unsubscribe(fd_distance_sensor);
 	}
 
 	/* ---- Navigation EKF ---- */
