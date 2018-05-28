@@ -61,8 +61,6 @@ void
 ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel,  const float &yaw,
 				       const float &yawrate_sp, const float dt)
 {
-
-
 	Intention intention = _getIntention(vel_sp, vel, yaw, yawrate_sp);
 
 	// Adapt acceleration and jerk based on current state and
