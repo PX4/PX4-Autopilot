@@ -95,7 +95,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// such as land and takeoff. The navigator should use for auto takeoff/land with flow the position in xy at the moment the
 	// takeoff/land was initiated. Until then we do this kind of logic here.
 
-	if (!_sub_triplet_setpoint->get().current.valid && !_isFinite(_sub_triplet_setpoint->get().current)) {
+	// Check if triplet is valid. There must be at least a valid altitude.
+	if (!_sub_triplet_setpoint->get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint->get().current.alt)) {
 		// best we can do is to just set all waypoints to current state and return false
 		_prev_prev_wp = _prev_wp = _target = _next_wp = _position;
 		_type = WaypointType::position;
@@ -114,8 +115,25 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// get target waypoint.
 	matrix::Vector3f target;
-	map_projection_project(&_reference_position,
-			       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &target(0), &target(1));
+
+	if (!PX4_ISFINITE(_sub_triplet_setpoint->get().current.lat)
+	    || !PX4_ISFINITE(_sub_triplet_setpoint->get().current.lon)) {
+		// No position provided in xy. Lock position
+		if (!PX4_ISFINITE(_lock_position_xy(0))) {
+			target(0) = _lock_position_xy(0) = _position(0);
+			target(1) = _lock_position_xy(1) = _position(1);
+
+		} else {
+			target(0) = _lock_position_xy(0);
+			target(1) = _lock_position_xy(1);
+		}
+
+	} else {
+		// Convert from global to local frame.
+		map_projection_project(&_reference_position,
+				       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &target(0), &target(1));
+	}
+
 	target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
 
 	// check if target is valid
