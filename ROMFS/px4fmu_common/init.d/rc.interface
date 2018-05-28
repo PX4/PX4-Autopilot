@@ -125,6 +125,11 @@ then
 	set MIXER_AUX none
 fi
 
+if [ $USE_IO == no ]
+then
+	set MIXER_AUX none
+fi
+
 if [ $MIXER_AUX != none -a $AUX_MODE != none ]
 then
 	#
