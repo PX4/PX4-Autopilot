@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file health_flags.cpp
+ * @file health_flag_helper.cpp
  *
  * Contains helper functions to efficiently set the system health flags from commander and preflight check.
  *
  * @author Philipp Oettershagen (philipp.oettershagen@mavt.ethz.ch)
  */
 
-#include "health_flags.h"
+#include "health_flag_helper.h"
 
 void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status)
 {

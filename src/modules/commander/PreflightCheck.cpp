@@ -55,7 +55,6 @@
 #include <parameters/param.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/mavlink_log.h>
-#include <lib/health_flags/health_flags.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mag.h>
@@ -73,6 +72,7 @@
 #include <uORB/topics/subsystem_info.h>
 
 #include "PreflightCheck.h"
+#include "health_flag_helper.h"
 
 #include "DevMgr.hpp"
 
