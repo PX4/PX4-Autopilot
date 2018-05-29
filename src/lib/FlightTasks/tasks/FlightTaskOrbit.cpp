@@ -110,9 +110,9 @@ bool FlightTaskOrbit::activate()
 
 bool FlightTaskOrbit::update()
 {
-	// stick input adjusts parameters
-	const float r = _r + _sticks_expo(0) * _deltatime;
-	const float v = _v - _sticks_expo(1) * _deltatime;
+	// stick input adjusts parameters within a fixed time frame
+	const float r = _r + _sticks_expo(0) * _deltatime * (radius_max / 8.f);
+	const float v = _v - _sticks_expo(1) * _deltatime * (velocity_max / 4.f);
 	_z += _sticks_expo(2) * _deltatime;
 
 	setRadius(r);
