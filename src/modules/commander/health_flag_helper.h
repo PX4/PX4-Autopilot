@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file health_flags.h
+ * @file health_flag_helper.h
  *
  * Contains helper functions to efficiently set the system health flags from commander and preflight check.
  *
