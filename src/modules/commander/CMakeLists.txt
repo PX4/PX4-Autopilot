@@ -51,9 +51,9 @@ px4_add_module(
 		esc_calibration.cpp
 		PreflightCheck.cpp
 		arm_auth.cpp
+		health_flag_helper.cpp
 	DEPENDS
 		df_driver_framework
 		git_ecl
 		ecl_geo
-		health_flags
 	)

@@ -920,16 +920,16 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 				// reduce priority of failed sensor to the minimum
 				sensor.priority[failover_index] = 1;
 
-				// Update the subsystem_info uORB given that a sensor failed
+				PX4_ERR("Sensor %s #%i failed. Reconfiguring sensor priorities.", sensor_name, failover_index);
+
 				int ctr_valid = 0;
 
 				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
 					if (sensor.priority[i] > 1) { ctr_valid++; }
 
-					PX4_WARN("FAILOVER event (idx=%u)! Sensor %s: Nr. %u Priority: %u", failover_index, sensor_name, i, sensor.priority[i]);
+					PX4_WARN("Remaining sensors after failover event %u: %s #%u priority: %u", failover_index, sensor_name, i,
+						 sensor.priority[i]);
 				}
-
-				PX4_ERR("%s sensor switch from #%i", sensor_name, failover_index);
 
 				if (ctr_valid < 2) {
 					if (ctr_valid == 0) {

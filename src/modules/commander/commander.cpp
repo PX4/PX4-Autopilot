@@ -58,13 +58,13 @@
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"
 #include "state_machine_helper.h"
+#include "health_flag_helper.h"
 
 /* PX4 headers */
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <lib/ecl/geo/geo.h>
-#include <lib/health_flags/health_flags.h>
 #include <mathlib/mathlib.h>
 #include <navigator/navigation.h>
 #include <px4_config.h>
