@@ -264,49 +264,51 @@ pipeline {
           }
         }
 
-        stage('tests (address sanitizer)') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-base:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          environment {
-              PX4_ASAN = 1
-              ASAN_OPTIONS = "color=always:check_initialization_order=1:detect_stack_use_after_return=1"
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'make tests'
-            sh 'make distclean'
-          }
-        }
+        // TODO: PX4 requires clean shutdown first
+        // stage('tests (address sanitizer)') {
+        //   agent {
+        //     docker {
+        //       image 'px4io/px4-dev-base:2018-03-30'
+        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+        //     }
+        //   }
+        //   environment {
+        //       PX4_ASAN = 1
+        //       ASAN_OPTIONS = "color=always:check_initialization_order=1:detect_stack_use_after_return=1"
+        //   }
+        //   steps {
+        //     sh 'export'
+        //     sh 'make distclean'
+        //     sh 'make tests'
+        //     sh 'make distclean'
+        //   }
+        // }
 
-        stage('tests (code coverage)') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'ulimit -c unlimited; make tests_coverage'
-            sh 'ls'
-            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
-              sh 'curl -s https://codecov.io/bash | bash -s'
-            }
-            sh 'make distclean'
-          }
-          post {
-            failure {
-              sh('find . -name core')
-              sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core')
-            }
-          }
-        }
+        // TODO: test and re-enable once GDB is available in px4-dev-ros
+        // stage('tests (code coverage)') {
+        //   agent {
+        //     docker {
+        //       image 'px4io/px4-dev-ros:2018-03-30'
+        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+        //     }
+        //   }
+        //   steps {
+        //     sh 'export'
+        //     sh 'make distclean'
+        //     sh 'ulimit -c unlimited; make tests_coverage'
+        //     sh 'ls'
+        //     withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+        //       sh 'curl -s https://codecov.io/bash | bash -s'
+        //     }
+        //     sh 'make distclean'
+        //   }
+        //   post {
+        //     failure {
+        //       sh('find . -name core')
+        //       sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core')
+        //     }
+        //   }
+        // }
 
         stage('check stack') {
           agent {
