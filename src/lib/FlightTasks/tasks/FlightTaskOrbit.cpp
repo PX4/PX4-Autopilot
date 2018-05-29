@@ -59,10 +59,10 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 bool FlightTaskOrbit::setRadius(const float r)
 {
-	if (math::isInRange(r, radius_min, radius_max)) {
+	if (math::isInRange(r, _radius_min, _radius_max)) {
 		// radius is more important than velocity for safety
-		if (!checkAcceleration(r, _v, acceleration_max)) {
-			_v = sqrtf(acceleration_max * r);
+		if (!checkAcceleration(r, _v, _acceleration_max)) {
+			_v = sqrtf(_acceleration_max * r);
 		}
 
 		_r = r;
@@ -74,8 +74,8 @@ bool FlightTaskOrbit::setRadius(const float r)
 
 bool FlightTaskOrbit::setVelocity(const float v)
 {
-	if (fabs(v) < velocity_max &&
-	    checkAcceleration(_r, v, acceleration_max)) {
+	if (fabs(v) < _velocity_max &&
+	    checkAcceleration(_r, v, _acceleration_max)) {
 		_v = v;
 		return true;
 	}
@@ -91,7 +91,7 @@ bool FlightTaskOrbit::checkAcceleration(float r, float v, float a)
 bool FlightTaskOrbit::activate()
 {
 	bool ret = FlightTaskManual::activate();
-	_r = 1.f;
+	_r = _radius_min;
 	_v =  0.5f;
 	_z = _position(2);
 	_center = Vector2f(_position.data());
@@ -111,8 +111,8 @@ bool FlightTaskOrbit::activate()
 bool FlightTaskOrbit::update()
 {
 	// stick input adjusts parameters within a fixed time frame
-	const float r = _r + _sticks_expo(0) * _deltatime * (radius_max / 8.f);
-	const float v = _v - _sticks_expo(1) * _deltatime * (velocity_max / 4.f);
+	const float r = _r + _sticks_expo(0) * _deltatime * (_radius_max / 8.f);
+	const float v = _v - _sticks_expo(1) * _deltatime * (_velocity_max / 4.f);
 	_z += _sticks_expo(2) * _deltatime;
 
 	setRadius(r);
