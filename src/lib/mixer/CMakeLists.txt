@@ -43,6 +43,7 @@ set(geometry_files
 	quad_s250aq.toml
 	quad_y.toml
 	quad_x_pusher.toml
+	hamr.toml
 	hex_x.toml
 	hex_plus.toml
 	hex_cox.toml

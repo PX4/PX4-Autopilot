@@ -104,6 +104,15 @@ quad_s250aq = [
     [  139,  CW, 0.67],
 ]
 
+hamr = [
+    [  90, CW],
+    [ -90, CCW],
+    [ -30, CW],
+    [ 150, CCW],
+    [  30, CCW],
+    [-150, CW],
+]
+
 hex_x = [
     [  90, CW],
     [ -90, CCW],
@@ -214,12 +223,12 @@ dodeca_bottom_cox = [
 ]
 
 tables = [quad_x, quad_h, quad_plus, quad_v, quad_wide, quad_s250aq, quad_deadcat,
-          hex_x, hex_plus, hex_cox, hex_t,
+          hamr, hex_x, hex_plus, hex_cox, hex_t,
           octa_x, octa_plus, octa_cox, octa_cox_wide,
           twin_engine, tri_y,
           dodeca_top_cox, dodeca_bottom_cox]
 keys   = ["4x", "4h", "4+", "4v", "4w", "4s", "4dc",
-          "6x", "6+", "6c", "6t",
+          "hamr", "6x", "6+", "6c", "6t",
           "8x", "8+", "8c", "8cw",
           "2-", "3y",
           "6m", "6a"]

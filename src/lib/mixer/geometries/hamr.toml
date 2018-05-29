@@ -1,0 +1,40 @@
+# AAC HAMR configuration
+
+[info]
+key = "hamr"
+description = "AAC HAMR Configuration"
+
+[rotor_default]
+axis      = [0.0, 0.0, -1.0]
+Ct        = 1.0
+Cm        = 0.07
+
+[[rotors]]
+name      = "front_left"
+position  = [0.4581,-0.5886, 0.0]
+direction = "CW"
+
+[[rotors]]
+name      = "front_right"
+position  = [0.4581, 0.5886, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rear_left_outer"
+position  = [-0.1570, -1.3118, 0.0]
+direction = "CW"
+
+[[rotors]]
+name      = "rear_left_inner"
+position  = [-0.3011, -0.4953, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rear_right_inner"
+position  = [-0.3011, 0.4953, 0.0]
+direction = "CW"
+
+[[rotors]]
+name      = "rear_right_outer"
+position  = [-0.1570, 1.3118, 0.0]
+direction = "CCW"
