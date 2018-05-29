@@ -81,9 +81,8 @@ protected:
 
 private:
 	float _r = 0.f; /**< radius with which to orbit the target */
-	float _v = 0.f; /**< linear velocity for orbiting in m/s */
-	float _z = 0.f; /**< local z coordinate in meters */
-	matrix::Vector2f _center;
+	float _v = 0.f; /**< tangential velocity for orbiting in m/s */
+	matrix::Vector2f _center; /**< local frame coordinates of the center point */
 
 	// TODO: create/use parameters for limits
 	const float _radius_min = 1.f;
