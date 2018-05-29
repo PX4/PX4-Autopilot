@@ -48,7 +48,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/debug_key_value.h>
