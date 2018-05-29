@@ -86,8 +86,8 @@ private:
 	matrix::Vector2f _center;
 
 	// TODO: create/use parameters for limits
-	const float radius_min = 1.f;
-	const float radius_max = 20.f;
-	const float velocity_max = 10.f;
-	const float acceleration_max = 2.f;
+	const float _radius_min = 1.f;
+	const float _radius_max = 20.f;
+	const float _velocity_max = 10.f;
+	const float _acceleration_max = 2.f;
 };
