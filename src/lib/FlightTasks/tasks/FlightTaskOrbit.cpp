@@ -51,7 +51,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	const float &v = command.param4; // commanded velocity
 
 	if (setRadius(r) && setVelocity(v)) {
-		return FlightTaskManual::applyCommandParameters(command);
+		return FlightTaskManualAltitudeSmooth::applyCommandParameters(command);
 	}
 
 	return false;
@@ -90,10 +90,9 @@ bool FlightTaskOrbit::checkAcceleration(float r, float v, float a)
 
 bool FlightTaskOrbit::activate()
 {
-	bool ret = FlightTaskManual::activate();
+	bool ret = FlightTaskManualAltitudeSmooth::activate();
 	_r = _radius_min;
 	_v =  0.5f;
-	_z = _position(2);
 	_center = Vector2f(_position.data());
 	_center(0) -= _r;
 
@@ -110,15 +109,15 @@ bool FlightTaskOrbit::activate()
 
 bool FlightTaskOrbit::update()
 {
+	// update altitude
+	FlightTaskManualAltitudeSmooth::update();
+
 	// stick input adjusts parameters within a fixed time frame
 	const float r = _r + _sticks_expo(0) * _deltatime * (_radius_max / 8.f);
 	const float v = _v - _sticks_expo(1) * _deltatime * (_velocity_max / 4.f);
-	_z += _sticks_expo(2) * _deltatime;
 
 	setRadius(r);
 	setVelocity(v);
-
-	_position_setpoint = Vector3f(NAN, NAN, _z);
 
 	// xy velocity to go around in a circle
 	Vector2f center_to_position = Vector2f(_position.data()) - _center;
@@ -129,7 +128,8 @@ bool FlightTaskOrbit::update()
 	// xy velocity adjustment to stay on the radius distance
 	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
 
-	_velocity_setpoint = Vector3f(velocity_xy(0), velocity_xy(1), 0.f);
+	_velocity_setpoint(0) = velocity_xy(0);
+	_velocity_setpoint(1) = velocity_xy(1);
 
 	// make vehicle front always point towards the center
 	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
