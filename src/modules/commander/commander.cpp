@@ -2741,13 +2741,14 @@ Commander::run()
 		arm_auth_update(now, params_updated || param_init_forced);
 
 		// Handle shutdown request from emergency battery action
-		if(dangerous_battery_level_requests_poweroff){
+		if(!armed.armed && dangerous_battery_level_requests_poweroff){
 			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
 			usleep(200000);
 			int ret_val = px4_shutdown_request(false, false);
 
 			if (ret_val) {
 				mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+				dangerous_battery_level_requests_poweroff = false;
 
 			} else {
 				while (1) { usleep(1); }
