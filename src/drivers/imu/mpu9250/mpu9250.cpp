@@ -128,8 +128,7 @@ const uint16_t MPU9250::_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTE
 											ICMREG_20948_ACCEL_SMPLRT_DIV_1,
 											ICMREG_20948_ACCEL_SMPLRT_DIV_2,
 											ICMREG_20948_ACCEL_CONFIG,
-											ICMREG_20948_ACCEL_CONFIG_2,
-											ICMREG_20948_BANK_SEL
+											ICMREG_20948_ACCEL_CONFIG_2
 									   };
 
 
@@ -143,7 +142,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_mag(new MPU9250_mag(this, mag_interface, path_mag)),
 	_whoami(0),
 	_device_type(device_type),
-	_selected_bank(255),	// invalid/improbable bank value, will be set on first read/write
+	_selected_bank(0xFFFF),	// invalid/improbable bank value, will be set on first read/write
 #if defined(USE_I2C)
 	_work {},
 	_use_hrt(false),
@@ -187,6 +186,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_accel_int(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE),
 	_gyro_int(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
+	_checked_registers(nullptr),
 	_checked_next(0),
 	_num_checked_registers(0),
 	_last_temperature(0),
@@ -307,21 +307,18 @@ MPU9250::init()
 		return ret;
 	}
 
-	// No gyro and accel on ICM20948 for now
-	if(_device_type != MPU_DEVICE_TYPE_ICM20948) {
-		/* allocate basic report buffers */
-		_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
-		ret = -ENOMEM;
+	/* allocate basic report buffers */
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	ret = -ENOMEM;
 
-		if (_accel_reports == nullptr) {
-			return ret;
-		}
+	if (_accel_reports == nullptr) {
+		return ret;
+	}
 
-		_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
-		if (_gyro_reports == nullptr) {
-			return ret;
-		}
+	if (_gyro_reports == nullptr) {
+		return ret;
 	}
 
 	if (reset_mpu() != OK) {
@@ -391,7 +388,7 @@ MPU9250::init()
 #endif /* USE_I2C */
 
 	/* do CDev init for the mag device node, keep it optional */
-	if (_whoami == MPU_WHOAMI_9250) {
+	if ( _whoami == MPU_WHOAMI_9250 || _device_type == MPU_DEVICE_TYPE_ICM20948 ) {
 		ret = _mag->init();
 	}
 
@@ -402,7 +399,7 @@ MPU9250::init()
 	}
 
 
-	if (_whoami == MPU_WHOAMI_9250) {
+	if (_whoami == MPU_WHOAMI_9250 || _device_type == MPU_DEVICE_TYPE_ICM20948) {
 		ret = _mag->ak8963_reset();
 	}
 
@@ -466,7 +463,7 @@ int MPU9250::reset()
 
 	ret = reset_mpu();
 
-	if (ret == OK && _whoami == MPU_WHOAMI_9250) {
+	if (ret == OK && ( _whoami == MPU_WHOAMI_9250 || _device_type == MPU_DEVICE_TYPE_ICM20948 ) ) {
 		ret = _mag->ak8963_reset();
 	}
 
@@ -488,8 +485,10 @@ int MPU9250::reset_mpu()
 		break;
 	case MPU_DEVICE_TYPE_ICM20948:
 		write_reg(ICMREG_20948_PWR_MGMT_1, BIT_H_RESET);
+		up_udelay(500);  // ICM20948 needs a bit of time here, else register settings will be garbled.
 		write_checked_reg(ICMREG_20948_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
-		//write_checked_reg(ICMREG_20948_PWR_MGMT_1, BIT_PWR_MGMT_2_GYRACC_ENABLE);
+		up_udelay(200);
+		write_checked_reg(ICMREG_20948_PWR_MGMT_2, 0);
 		break;
 	}
 
@@ -518,6 +517,7 @@ int MPU9250::reset_mpu()
 		break;
 	case MPU_DEVICE_TYPE_ICM20948:
 		modify_checked_reg(ICMREG_20948_GYRO_CONFIG_1, ICM_BITS_GYRO_FS_SEL_MASK, ICM_BITS_GYRO_FS_SEL_2000DPS);
+		break;
 	}
 
 
@@ -551,8 +551,8 @@ int MPU9250::reset_mpu()
 
 	write_checked_reg(MPU_OR_ICM(MPUREG_INT_PIN_CFG, ICMREG_20948_INT_PIN_CFG) , BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
 
-	write_checked_reg( 	MPU_OR_ICM(MPUREG_ACCEL_CONFIG2, ICMREG_20948_ACCEL_CONFIG_2),
-						MPU_OR_ICM(BITS_ACCEL_CONFIG2_41HZ, ICM_BITS_DEC3_CFG_32));
+	write_checked_reg(  MPU_OR_ICM(MPUREG_ACCEL_CONFIG2, ICMREG_20948_ACCEL_CONFIG_2),
+                        MPU_OR_ICM(BITS_ACCEL_CONFIG2_41HZ, ICM_BITS_DEC3_CFG_32));
 
 	uint8_t retries = 3;
 	bool all_ok = false;
@@ -563,7 +563,7 @@ int MPU9250::reset_mpu()
 		all_ok = true;
 		uint8_t reg;
 
-		for (uint8_t i = 0; i < MPU_OR_ICM(MPU9250_NUM_CHECKED_REGISTERS, ICM20948_NUM_CHECKED_REGISTERS); i++) {
+		for (uint8_t i = 0; i < _num_checked_registers; i++) {
 			if ((reg = read_reg(_checked_registers[i])) != _checked_values[i]) {
 				write_reg(_checked_registers[i], _checked_values[i]);
 				PX4_ERR("Reg %d is:%d s/b:%d Tries:%d", _checked_registers[i], reg, _checked_values[i], retries);
@@ -591,6 +591,8 @@ MPU9250::probe()
 		case MPU_WHOAMI_6500:
 			_num_checked_registers = MPU9250_NUM_CHECKED_REGISTERS;
 			_checked_registers = _mpu9250_checked_registers;
+			memset(_checked_values, 0, sizeof(_mpu9250_checked_registers));
+			memset(_checked_bad, 0, sizeof(_mpu9250_checked_registers));
 			ret = OK;
 		}
 		break;
@@ -600,13 +602,13 @@ MPU9250::probe()
 		if (_whoami == ICM_WHOAMI_20948) {
 			_num_checked_registers = ICM20948_NUM_CHECKED_REGISTERS;
 			_checked_registers = _icm20948_checked_registers;
+			memset(_checked_values, 0, sizeof(_icm20948_checked_registers));
+			memset(_checked_bad, 0, sizeof(_icm20948_checked_registers));
 			ret = OK;
 		}
 		break;
 	}
 
-	memset(_checked_values, 0, _num_checked_registers);
-	memset(_checked_bad, 0, _num_checked_registers);
 	_checked_values[0] = _whoami;
 	_checked_bad[0] = _whoami;
 
@@ -1179,12 +1181,32 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 int
 MPU9250::select_register_bank(uint8_t bank) {
 	uint8_t ret;
-	if (bank != _selected_bank ) {
-		ret = _interface->write(MPU9250_SET_SPEED(ICMREG_20948_BANK_SEL, MPU9250_HIGH_BUS_SPEED), &bank, 1);
+	//if (bank != _selected_bank ) {
+	uint8_t buf;
+	uint8_t count=0;
+
+
+	ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
+	if (ret != OK) {
+		return ret;
+	}
+	up_udelay(100);
+	_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
+
+	while(bank != buf) {
+		ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
 		if (ret != OK) {
 			return ret;
 		}
 		_selected_bank=bank;
+
+		count++;
+		PX4_WARN("BANK retries: %d", count);
+
+
+		up_udelay(20);
+		_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
+
 	}
 	return PX4_OK;
 }
@@ -1225,6 +1247,8 @@ void
 MPU9250::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
+
+	//PX4_WARN("Bank %d, Reg %d - %d", REG_BANK(reg)>>4, reg & 0x00FF, value);
 
 	if(_device_type == MPU_DEVICE_TYPE_ICM20948) {
 		select_register_bank(REG_BANK(reg));
@@ -1455,10 +1479,10 @@ MPU9250::check_registers(void)
 		_register_wait = 20;
 	}
 
-	_checked_next = (_checked_next + 1) % MPU9250_NUM_CHECKED_REGISTERS;
+	_checked_next = (_checked_next + 1) % _num_checked_registers;
 }
 
-bool MPU9250::check_null_data(uint32_t *data, uint8_t size)
+bool MPU9250::check_null_data(uint16_t *data, uint8_t size)
 {
 	while (size--) {
 		if (*data++) {
@@ -1510,6 +1534,7 @@ MPU9250::measure()
 	}
 
 	struct MPUReport mpu_report;
+	struct ICMReport icm_report;
 
 	struct Report {
 		int16_t		accel_x;
@@ -1527,16 +1552,27 @@ MPU9250::measure()
 	/*
 	 * Fetch the full set of measurements from the MPU9250 in one pass.
 	 */
-	if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
-				   (uint8_t *)&mpu_report,
-				   sizeof(mpu_report))) {
-		perf_end(_sample_perf);
-		return;
+
+	if(_device_type == MPU_DEVICE_TYPE_MPU9250) {
+		if (OK != _interface->read( MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
+					   (uint8_t *)&mpu_report,
+					   sizeof(mpu_report))) {
+			perf_end(_sample_perf);
+			return;
+		}
+	}
+	else {
+		if (OK != _interface->read( MPU9250_SET_SPEED(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED ),
+					   (uint8_t *)&icm_report,
+					   sizeof(icm_report))) {
+			perf_end(_sample_perf);
+			return;
+		}
 	}
 
 	check_registers();
 
-	if (check_duplicate(&mpu_report.accel_x[0])) {
+	if (check_duplicate(MPU_OR_ICM(&mpu_report.accel_x[0],&icm_report.accel_x[0]))) {
 		return;
 	}
 
@@ -1556,15 +1592,36 @@ MPU9250::measure()
 	/*
 	 * Convert from big to little endian
 	 */
-	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
-	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
-	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
-	report.temp    = int16_t_from_bytes(mpu_report.temp);
-	report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
-	report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
-	report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
+	if(_device_type==MPU_DEVICE_TYPE_MPU9250) {
+		report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
+		report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
+		report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+		report.temp    = int16_t_from_bytes(mpu_report.temp);
+		report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
+		report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
+		report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
+	}
+	else { // ICM20948
+		report.accel_x = int16_t_from_bytes(icm_report.accel_x);
+		report.accel_y = int16_t_from_bytes(icm_report.accel_y);
+		report.accel_z = int16_t_from_bytes(icm_report.accel_z);
+		report.temp    = int16_t_from_bytes(icm_report.temp);
+		report.gyro_x  = int16_t_from_bytes(icm_report.gyro_x);
+		report.gyro_y  = int16_t_from_bytes(icm_report.gyro_y);
+		report.gyro_z  = int16_t_from_bytes(icm_report.gyro_z);
+	}
 
-	if (check_null_data((uint32_t *)&report, sizeof(report) / 4)) {
+
+
+//	PX4_INFO("HIER:");
+//	PX4_INFO("Gyro: %d %d %d", report.gyro_x, report.gyro_y,report.gyro_z);
+//	PX4_INFO("Accel: %d %d %d", report.accel_x, report.accel_y, report.accel_z);
+//	PX4_INFO("Temp: %d", report.temp);
+//	PX4_INFO("Gyro: %f %f %f", (double)grb.x, (double)grb.y, (double)grb.z);
+//	PX4_INFO("Accel: %f %f %f", (double)arb.x, (double)arb.y, (double)arb.z);
+//	PX4_INFO("Temp: %f", (double)arb.temperature);
+
+	if (check_null_data((uint16_t *)&report, sizeof(report) / 2)) {
 		return;
 	}
 
@@ -1596,7 +1653,7 @@ MPU9250::measure()
 	 * Report buffers.
 	 */
 	accel_report		arb;
-	gyro_report		grb;
+	gyro_report			grb;
 
 	/*
 	 * Adjust and scale results to m/s^2.
@@ -1686,7 +1743,7 @@ MPU9250::measure()
 	matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
 	matrix::Vector3f gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
+//	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
 	grb.x_integral = gval_integrated(0);
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
@@ -1701,16 +1758,19 @@ MPU9250::measure()
 	grb.device_id = _gyro->_device_id.devid;
 
 	_accel_reports->force(&arb);
-	_gyro_reports->force(&grb);
+//	_gyro_reports->force(&grb);
+
+	last_grb = grb;
+	last_arb = arb;
 
 	/* notify anyone waiting for data */
 	if (accel_notify) {
 		poll_notify(POLLIN);
 	}
-
-	if (gyro_notify) {
-		_gyro->parent_poll_notify();
-	}
+//
+//	if (gyro_notify) {
+//		_gyro->parent_poll_notify();
+//	}
 
 	if (accel_notify && !(_pub_blocked)) {
 		/* log the time of this report */
@@ -1719,10 +1779,10 @@ MPU9250::measure()
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}
 
-	if (gyro_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
-	}
+//	if (gyro_notify && !(_pub_blocked)) {
+//		/* publish it */
+//		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+//	}
 
 	/* stop measuring */
 	perf_end(_sample_perf);
@@ -1731,6 +1791,7 @@ MPU9250::measure()
 void
 MPU9250::print_info()
 {
+	::printf("Device type:%d\n", _device_type);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
@@ -1739,23 +1800,26 @@ MPU9250::print_info()
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
+
+	measure();
+
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
 	_mag->_mag_reports->print_info("mag queue");
 	::printf("checked_next: %u\n", _checked_next);
 
-	for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
+	for (uint8_t i = 0; i < _num_checked_registers; i++) {
 		uint8_t v = read_reg(_checked_registers[i], MPU9250_HIGH_BUS_SPEED);
 
 		if (v != _checked_values[i]) {
-			::printf("reg %02x:%02x should be %02x\n",
+			::printf("reg %04x:%02x should be %02x\n",
 				 (unsigned)_checked_registers[i],
 				 (unsigned)v,
 				 (unsigned)_checked_values[i]);
 		}
 
 		if (v != _checked_bad[i]) {
-			::printf("reg %02x:%02x was bad %02x\n",
+			::printf("reg %04x:%02x was bad %02x\n",
 				 (unsigned)_checked_registers[i],
 				 (unsigned)v,
 				 (unsigned)_checked_bad[i]);
@@ -1767,6 +1831,15 @@ MPU9250::print_info()
 	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
 	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
 	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
+
+//	::printf("Accel: %f %f %f\n",(double)last_arb.x, (double)last_arb.y, (double)last_arb.z);
+//	::printf("Gyro: %f %f %f\n",(double)last_grb.x, (double)last_grb.y, (double)last_grb.z);
+//	::printf("Mag: %f %f %f\n",(double)_mag->last_mrb.x_raw, (double)_mag->last_mrb.y_raw, (double)_mag->last_mrb.z_raw);
+
+	print_message(_mag->last_mrb);
+	print_message(last_arb);
+	print_message(last_grb);
+
 }
 
 void

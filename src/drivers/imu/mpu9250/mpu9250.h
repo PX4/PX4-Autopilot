@@ -147,7 +147,7 @@ enum MPU_DEVICE_TYPE {
 #define BITS_DLPF_CFG_20HZ		0x04
 #define BITS_DLPF_CFG_10HZ		0x05
 #define BITS_DLPF_CFG_5HZ		0x06
-#define BITS_DLPF_CFG_3600HZ	0x07
+#define BITS_DLPF_CFG_3600HZ		0x07
 #define BITS_DLPF_CFG_MASK		0x07
 
 #define BITS_ACCEL_CONFIG2_41HZ		0x03
@@ -224,27 +224,34 @@ enum MPU_DEVICE_TYPE {
 #define BANK3	0x0300
 
 #define BANK_REG_MASK	0x0300
-#define REG_BANK(r) 			((r) & BANK_REG_MASK)
+#define REG_BANK(r) 			(((r) & BANK_REG_MASK)>>4)
 #define REG_ADDRESS(r)			((r) & ~BANK_REG_MASK)
 
 #define ICMREG_20948_BANK_SEL 0x7F
 
-#define	ICMREG_20948_WHOAMI				(0x00 | BANK0)
-#define ICMREG_20948_USER_CTRL			(0x03 | BANK0)
-#define ICMREG_20948_PWR_MGMT_1			(0x06 | BANK0)
-#define ICMREG_20948_PWR_MGMT_2			(0x07 | BANK0)
-#define ICMREG_20948_INT_PIN_CFG		(0x0F | BANK0)
-#define ICMREG_20948_INT_ENABLE			(0x10 | BANK0)
-#define ICMREG_20948_INT_ENABLE_1		(0x11 | BANK0)
-#define ICMREG_20948_INT_ENABLE_2		(0x12 | BANK0)
-#define ICMREG_20948_INT_ENABLE_3		(0x13 | BANK0)
-#define ICMREG_20948_GYRO_SMPLRT_DIV	(0x00 | BANK2)
-#define ICMREG_20948_GYRO_CONFIG_1		(0x01 | BANK2)
-#define ICMREG_20948_GYRO_CONFIG_2		(0x02 | BANK2)
-#define ICMREG_20948_ACCEL_SMPLRT_DIV_1	(0x10 | BANK2)
-#define ICMREG_20948_ACCEL_SMPLRT_DIV_2	(0x11 | BANK2)
-#define ICMREG_20948_ACCEL_CONFIG		(0x14 | BANK2)
-#define ICMREG_20948_ACCEL_CONFIG_2		(0x15 | BANK2)
+#define	ICMREG_20948_WHOAMI					(0x00 | BANK0)
+#define ICMREG_20948_USER_CTRL				(0x03 | BANK0)
+#define ICMREG_20948_PWR_MGMT_1				(0x06 | BANK0)
+#define ICMREG_20948_PWR_MGMT_2				(0x07 | BANK0)
+#define ICMREG_20948_INT_PIN_CFG			(0x0F | BANK0)
+#define ICMREG_20948_INT_ENABLE				(0x10 | BANK0)
+#define ICMREG_20948_INT_ENABLE_1			(0x11 | BANK0)
+#define ICMREG_20948_ACCEL_XOUT_H			(0x2D | BANK0)
+#define ICMREG_20948_INT_ENABLE_2			(0x12 | BANK0)
+#define ICMREG_20948_INT_ENABLE_3			(0x13 | BANK0)
+#define ICMREG_20948_EXT_SLV_SENS_DATA_00	(0x3B | BANK0)
+#define ICMREG_20948_GYRO_SMPLRT_DIV		(0x00 | BANK2)
+#define ICMREG_20948_GYRO_CONFIG_1			(0x01 | BANK2)
+#define ICMREG_20948_GYRO_CONFIG_2			(0x02 | BANK2)
+#define ICMREG_20948_ACCEL_SMPLRT_DIV_1		(0x10 | BANK2)
+#define ICMREG_20948_ACCEL_SMPLRT_DIV_2		(0x11 | BANK2)
+#define ICMREG_20948_ACCEL_CONFIG			(0x14 | BANK2)
+#define ICMREG_20948_ACCEL_CONFIG_2			(0x15 | BANK2)
+#define ICMREG_20948_I2C_MST_CTRL			(0x01 | BANK3)
+#define ICMREG_20948_I2C_SLV0_ADDR			(0x03 | BANK3)
+#define ICMREG_20948_I2C_SLV0_REG			(0x04 | BANK3)
+#define ICMREG_20948_I2C_SLV0_CTRL			(0x05 | BANK3)
+#define ICMREG_20948_I2C_SLV0_DO			(0x06 | BANK3)
 
 
 
@@ -294,9 +301,30 @@ enum MPU_DEVICE_TYPE {
 #define ICM_BITS_DEC3_CFG_32				0x11
 #define ICM_BITS_DEC3_CFG_MASK				0x11
 
+#define ICM_BITS_I2C_MST_CLOCK_370KHZ    	0x00
+#define ICM_BITS_I2C_MST_CLOCK_400HZ    	0x07	// recommended by datasheet for 400kHz target clock
+
 
 
 #define MPU_OR_ICM(m,i)					((_device_type==MPU_DEVICE_TYPE_MPU9250) ? m : i)
+
+
+#pragma pack(push, 1)
+/**
+ * Report conversation within the mpu, including command byte and
+ * interrupt status.
+ */
+struct ICMReport {
+	uint8_t		accel_x[2];
+	uint8_t		accel_y[2];
+	uint8_t		accel_z[2];
+	uint8_t		gyro_x[2];
+	uint8_t		gyro_y[2];
+	uint8_t		gyro_z[2];
+	uint8_t		temp[2];
+	struct ak8963_regs mag;
+};
+#pragma pack(pop)
 
 
 
@@ -332,11 +360,12 @@ struct MPUReport {
  */
 #define MPU9250_LOW_BUS_SPEED				0
 #define MPU9250_HIGH_BUS_SPEED				0x8000
+#define MPU9250_REG_MASK					0x00FF
 #  define MPU9250_IS_HIGH_SPEED(r) 			((r) & MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_REG(r) 					((r) &~MPU9250_HIGH_BUS_SPEED)
+#  define MPU9250_REG(r) 					((r) & MPU9250_REG_MASK)
 #  define MPU9250_SET_SPEED(r, s) 			((r)|(s))
 #  define MPU9250_HIGH_SPEED_OP(r) 			MPU9250_SET_SPEED((r), MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_LOW_SPEED_OP(r)			MPU9250_REG((r))
+#  define MPU9250_LOW_SPEED_OP(r)			((r) &~MPU9250_HIGH_BUS_SPEED)
 
 /* interface factories */
 extern device::Device *MPU9250_SPI_interface(int bus, int device_type, bool external_bus);
@@ -375,6 +404,9 @@ public:
 	// deliberately cause a sensor error
 	void 			test_error();
 
+	accel_report	last_arb;
+	gyro_report		last_grb;
+
 protected:
 	Device			*_interface;
 
@@ -391,7 +423,7 @@ private:
 	MPU9250_mag     *_mag;
 	uint8_t			_whoami;	/** whoami result */
 	int 			_device_type;
-	uint8_t			_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
+	uint16_t		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
 
 #if defined(USE_I2C)
 	/*
@@ -459,7 +491,7 @@ private:
 
 #define MPU9250_NUM_CHECKED_REGISTERS 11
 	static const uint16_t	_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
-#define ICM20948_NUM_CHECKED_REGISTERS 16
+#define ICM20948_NUM_CHECKED_REGISTERS 15
 	static const uint16_t	_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS];
 
 	const uint16_t*			_checked_registers;
@@ -473,7 +505,7 @@ private:
 	// last temperature reading for print_info()
 	float			_last_temperature;
 
-	bool check_null_data(uint32_t *data, uint8_t size);
+	bool check_null_data(uint16_t *data, uint8_t size);
 	bool check_duplicate(uint8_t *accel_data);
 	// keep last accel reading for duplicate detection
 	uint8_t			_last_accel_data[6];
