@@ -740,7 +740,8 @@ MulticopterPositionControl::start_flight_task()
 
 
 	// manual stabilized control
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL || task_failure) {
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
+	    ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB || task_failure) {
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Stabilized);
 
 		if (error != 0) {
