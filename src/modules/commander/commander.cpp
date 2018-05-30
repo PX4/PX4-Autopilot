@@ -1308,6 +1308,7 @@ Commander::run()
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
 	bool emergency_battery_voltage_actions_done = false;
+	bool dangerous_battery_level_requests_poweroff = false;
 
 	bool status_changed = true;
 	bool param_init_forced = true;
@@ -1967,17 +1968,9 @@ Commander::run()
 					emergency_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
-						usleep(200000);
-						int ret_val = px4_shutdown_request(false, false);
-
-						if (ret_val) {
-							mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
-
-						} else {
-							while (1) { usleep(1); }
-						}
-
+						// Request shutdown at the end of the cycle. This allows
+						// the vehicle state to be published after emergency landing
+						dangerous_battery_level_requests_poweroff = true;
 					} else {
 						if (low_bat_action == 2 || low_bat_action == 3) {
 							if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state)) {
@@ -2746,6 +2739,20 @@ Commander::run()
 		}
 
 		arm_auth_update(now, params_updated || param_init_forced);
+
+		// Handle shutdown request from emergency battery action
+		if(dangerous_battery_level_requests_poweroff){
+			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
+			usleep(200000);
+			int ret_val = px4_shutdown_request(false, false);
+
+			if (ret_val) {
+				mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+
+			} else {
+				while (1) { usleep(1); }
+			}
+		}
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}
