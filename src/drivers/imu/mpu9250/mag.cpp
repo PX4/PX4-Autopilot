@@ -608,7 +608,7 @@ MPU9250_mag::ak8963_setup(void)
 		retries--;
 		PX4_ERR("AK8963: bad id %d retries %d", id, retries);
 		_parent->modify_reg(AK_MPU_OR_ICM(MPUREG_USER_CTRL, ICMREG_20948_USER_CTRL), 0, BIT_I2C_MST_RST);
-		up_udelay(100);
+		usleep(100);
 	} while (retries > 0);
 
 	/* No sensitivity adjustments available for AK09916/ICM20948 */
@@ -621,7 +621,7 @@ MPU9250_mag::ak8963_setup(void)
 				PX4_ERR("AK8963: failed to read adjustment data. Retries %d", retries);
 
 				_parent->modify_reg(AK_MPU_OR_ICM(MPUREG_USER_CTRL, ICMREG_20948_USER_CTRL), 0, BIT_I2C_MST_RST);
-				up_udelay(100);
+				usleep(100);
 				ak8963_setup_master_i2c();
 				write_reg(AK_MPU_OR_ICM(AK8963REG_CNTL2, AK09916REG_CNTL3), AK8963_RESET);
 			}

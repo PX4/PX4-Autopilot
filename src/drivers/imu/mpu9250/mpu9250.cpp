@@ -485,9 +485,9 @@ int MPU9250::reset_mpu()
 		break;
 	case MPU_DEVICE_TYPE_ICM20948:
 		write_reg(ICMREG_20948_PWR_MGMT_1, BIT_H_RESET);
-		up_udelay(500);  // ICM20948 needs a bit of time here, else register settings will be garbled.
+		usleep(500);  // ICM20948 needs a bit of time here, else register settings will be garbled.
 		write_checked_reg(ICMREG_20948_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
-		up_udelay(200);
+		usleep(200);
 		write_checked_reg(ICMREG_20948_PWR_MGMT_2, 0);
 		break;
 	}
@@ -1190,7 +1190,7 @@ MPU9250::select_register_bank(uint8_t bank) {
 	if (ret != OK) {
 		return ret;
 	}
-	up_udelay(100);
+	usleep(100);
 	_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
 
 	while(bank != buf) {
@@ -1204,7 +1204,7 @@ MPU9250::select_register_bank(uint8_t bank) {
 		PX4_WARN("BANK retries: %d", count);
 
 
-		up_udelay(20);
+		usleep(20);
 		_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
 
 	}
