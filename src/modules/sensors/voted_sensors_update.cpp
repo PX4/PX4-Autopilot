@@ -895,7 +895,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 
 bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_name, const uint64_t type)
 {
-	if (sensor.last_failover_count != sensor.voter.failover_count()) {
+	if (sensor.last_failover_count != sensor.voter.failover_count() && !_hil_enabled) {
 
 		uint32_t flags = sensor.voter.failover_state();
 		int failover_index = sensor.voter.failover_index();
