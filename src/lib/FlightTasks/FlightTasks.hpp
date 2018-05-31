@@ -76,7 +76,7 @@ enum class FlightTaskIndex : int {
 class FlightTasks
 {
 public:
-	FlightTasks() = default;
+	FlightTasks();
 
 	~FlightTasks()
 	{
