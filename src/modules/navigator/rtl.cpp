@@ -141,6 +141,10 @@ RTL::set_rtl_item()
 	// compute the return altitude
 	float return_alt = max(home.alt + _param_return_alt.get(), gpos.alt);
 
+	// compute the fw descend altitude
+	float descend_alt = max(home.alt + _param_return_alt.get(), home.alt + 10.0f);
+
+
 	// we are close to home, limit climb to min
 	if (home_dist < _param_rtl_min_dist.get()) {
 		return_alt = home.alt + _param_descend_alt.get();
@@ -202,6 +206,26 @@ RTL::set_rtl_item()
 			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 			break;
 		}
+
+	case RTL_STATE_DESCEND_FW: {
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.lat = home.lat;
+			_mission_item.lon = home.lon;
+			_mission_item.altitude = descend_alt;
+			_mission_item.altitude_is_relative = false;
+
+			_mission_item.time_inside = 0.0f;
+			_mission_item.autocontinue = true;
+			_mission_item.origin = ORIGIN_ONBOARD;
+
+			/* disable previous setpoint to prevent drift */
+			pos_sp_triplet->previous.valid = false;
+
+			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: FW descend to %d m (%d m above home)",
+						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - home.alt));
+			break;
+		}
+
 
 	case RTL_STATE_DESCEND: {
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -276,7 +300,7 @@ RTL::set_rtl_item()
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: land at home");
+			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at home");
 			break;
 		}
 
@@ -314,6 +338,17 @@ RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
+
+		if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing) {
+			_rtl_state = RTL_STATE_DESCEND_FW;
+
+		} else {
+			_rtl_state = RTL_STATE_DESCEND;
+		}
+
+		break;
+
+	case RTL_STATE_DESCEND_FW:
 		_rtl_state = RTL_STATE_DESCEND;
 
 		if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing) {
