@@ -312,6 +312,8 @@ add_subdirectory(msg EXCLUDE_FROM_ALL)
 
 px4_generate_airframes_xml(BOARD ${BOARD})
 
+add_subdirectory(src/lib/Robotics_Cape_Installer)
+
 #=============================================================================
 # DriverFramework
 #

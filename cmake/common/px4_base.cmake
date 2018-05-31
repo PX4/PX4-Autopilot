@@ -333,30 +333,58 @@ function(px4_add_common_flags)
 		REQUIRED ${inout_vars} BOARD
 		ARGN ${ARGN})
 
-	set(warnings
-		-Wall
-		-Warray-bounds
-		-Wdisabled-optimization
-		-Werror
-		-Wextra
-		-Wfatal-errors
-		-Wfloat-equal
-		-Wformat-security
-		-Winit-self
-		-Wlogical-op
-		-Wmissing-declarations
-		-Wmissing-field-initializers
-		#-Wmissing-include-dirs # TODO: fix and enable
-		-Wpointer-arith
-		-Wshadow
-		-Wuninitialized
-		-Wunknown-pragmas
-		-Wunused-variable
-
-		-Wno-implicit-fallthrough # set appropriate level and update
-
-		-Wno-unused-parameter
-		)
+if(CONFIG MATCHES "^posix_bbblue_")
+        #Gradually apply px4 warnings to robotics cape library later
+		set(warnings
+			-Wall
+			-Warray-bounds
+			-Wdisabled-optimization
+			-Werror
+			-Wextra
+			-Wfatal-errors
+			-Wfloat-equal
+			-Wformat-security
+			-Winit-self
+			-Wlogical-op
+			#-Wmissing-declarations
+			-Wmissing-field-initializers
+			#-Wmissing-include-dirs # TODO: fix and enable
+			#-Wpointer-arith
+			-Wshadow
+			-Wuninitialized
+			-Wunknown-pragmas
+			-Wno-unused-variable
+	
+			-Wno-implicit-fallthrough # set appropriate level and update
+	
+			-Wno-unused-parameter
+			)
+	else()
+		set(warnings
+			-Wall
+			-Warray-bounds
+			-Wdisabled-optimization
+			-Werror
+			-Wextra
+			-Wfatal-errors
+			-Wfloat-equal
+			-Wformat-security
+			-Winit-self
+			-Wlogical-op
+			-Wmissing-declarations
+			-Wmissing-field-initializers
+			#-Wmissing-include-dirs # TODO: fix and enable
+			-Wpointer-arith
+			-Wshadow
+			-Wuninitialized
+			-Wunknown-pragmas
+			-Wunused-variable
+	
+			-Wno-implicit-fallthrough # set appropriate level and update
+	
+			-Wno-unused-parameter
+			)
+	endif()
 
 	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
@@ -372,11 +400,20 @@ function(px4_add_common_flags)
 			)
 		endif()
 	else()
-		list(APPEND warnings
-			-Wunused-but-set-variable
-			-Wformat=1
-			-Wdouble-promotion
-		)
+	    if(CONFIG MATCHES "^posix_bbblue_")
+	        #fix robotics cape library later
+			list(APPEND warnings
+				-Wunused-but-set-variable
+				-Wformat=1
+				#-Wdouble-promotion
+			)
+		else()
+			list(APPEND warnings
+				-Wunused-but-set-variable
+				-Wformat=1
+				-Wdouble-promotion
+			)
+		endif()
 	endif()
 
 	set(_optimization_flags
@@ -390,12 +427,22 @@ function(px4_add_common_flags)
 		-fdata-sections
 		)
 
-	set(c_warnings
-		-Wbad-function-cast
-		-Wstrict-prototypes
-		-Wmissing-prototypes
-		-Wnested-externs
-		)
+    if(CONFIG MATCHES "^posix_bbblue_")
+        #fix robotics cape library later    
+        set(c_warnings
+            -Wbad-function-cast
+            #-Wstrict-prototypes
+            #-Wmissing-prototypes
+            -Wnested-externs
+            )
+	else()
+        set(c_warnings
+            -Wbad-function-cast
+            -Wstrict-prototypes
+            -Wmissing-prototypes
+            -Wnested-externs
+            )
+    endif()
 
 	set(c_compile_flags
 		-g
