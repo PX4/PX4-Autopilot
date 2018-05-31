@@ -52,7 +52,6 @@ list(APPEND nuttx_libs
 	nuttx_apps
 	nuttx_arch
 	nuttx_binfmt
-	nuttx_binfmt
 	nuttx_c
 	nuttx_configs
 	nuttx_cxx
@@ -120,8 +119,8 @@ set(fw_file ${PX4_BINARY_DIR}/${FW_NAME})
 string(REPLACE ".elf" ".px4" fw_file ${fw_file})
 string(REPLACE "nuttx_" "" fw_file ${fw_file})
 
-add_custom_command(OUTPUT ${BOARD}.bin
-	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${BOARD}.bin
+add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${BOARD}.bin
+	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${BOARD}.bin
 	DEPENDS ${FW_NAME}
 	)
 
@@ -136,8 +135,8 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			--git_identity ${PX4_SOURCE_DIR}
 			--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-			--image ${BOARD}.bin > ${fw_file}
-		DEPENDS ${BOARD}.bin parameters_xml airframes_xml
+			--image ${PX4_BINARY_DIR}/${BOARD}.bin > ${fw_file}
+		DEPENDS ${PX4_BINARY_DIR}/${BOARD}.bin parameters_xml airframes_xml
 		COMMENT "Creating ${fw_file}"
 		)
 
