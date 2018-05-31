@@ -9,7 +9,7 @@ bool FlightTasks::update()
 
 	if (isAnyTaskActive()) {
 		_subscription_array.update();
-		return _current_task->updateInitialize() && _current_task->update();
+		return _current_task.task->updateInitialize() && _current_task.task->update();
 	}
 
 	return false;
@@ -18,7 +18,7 @@ bool FlightTasks::update()
 const vehicle_local_position_setpoint_s FlightTasks::getPositionSetpoint()
 {
 	if (isAnyTaskActive()) {
-		return _current_task->getPositionSetpoint();
+		return _current_task.task->getPositionSetpoint();
 
 	} else {
 		return FlightTask::empty_setpoint;
@@ -28,96 +28,115 @@ const vehicle_local_position_setpoint_s FlightTasks::getPositionSetpoint()
 const vehicle_constraints_s FlightTasks::getConstraints()
 {
 	if (isAnyTaskActive()) {
-		return _current_task->getConstraints();
+		return _current_task.task->getConstraints();
 
 	} else {
 		return FlightTask::empty_constraints;
 	}
 }
 
-int FlightTasks::switchTask(FlightTaskIndex new_task_index)
+int FlightTasks::_initTask(FlightTaskIndex task_index)
 {
-	/* switch to the running task, nothing to do */
-	if (new_task_index == _current_task_index) {
-		return 0;
+
+	// disable the old task if there is any
+	if (_current_task.task) {
+		_current_task.task->~FlightTask();
+		_current_task.task = nullptr;
+		_current_task.index = FlightTaskIndex::None;
 	}
 
-	/* disable the old task if there is any */
-	if (_current_task) {
-		_current_task->~FlightTask();
-		_current_task = nullptr;
-		_current_task_index = FlightTaskIndex::None;
-	}
-
-	switch (new_task_index) {
+	switch (task_index) {
 	case FlightTaskIndex::None:
-		/* disable tasks is a success */
-		return 0;
+		// already disabled task
+		break;
 
 	case FlightTaskIndex::Stabilized:
-		_current_task = new (&_task_union.stabilized) FlightTaskManualStabilized();
+		_current_task.task = new (&_task_union.stabilized) FlightTaskManualStabilized();
 		break;
 
 	case FlightTaskIndex::Altitude:
-		_current_task = new (&_task_union.altitude) FlightTaskManualAltitude();
+		_current_task.task = new (&_task_union.altitude) FlightTaskManualAltitude();
 		break;
 
 	case FlightTaskIndex::AltitudeSmooth:
-		_current_task = new (&_task_union.altitude_smooth) FlightTaskManualAltitudeSmooth();
+		_current_task.task = new (&_task_union.altitude_smooth) FlightTaskManualAltitudeSmooth();
 		break;
 
 	case FlightTaskIndex::Position:
-		_current_task = new (&_task_union.position) FlightTaskManualPosition();
+		_current_task.task = new (&_task_union.position) FlightTaskManualPosition();
 		break;
 
 	case FlightTaskIndex::PositionSmooth:
-		_current_task = new (&_task_union.position_smooth) FlightTaskManualPositionSmooth();
+		_current_task.task =
+			new (&_task_union.position_smooth) FlightTaskManualPositionSmooth();
 		break;
 
 	case FlightTaskIndex::Orbit:
-		_current_task = new (&_task_union.orbit) FlightTaskOrbit();
+		_current_task.task = new (&_task_union.orbit) FlightTaskOrbit();
 		break;
 
 	case FlightTaskIndex::Sport:
-		_current_task = new (&_task_union.sport) FlightTaskSport();
+		_current_task.task = new (&_task_union.sport) FlightTaskSport();
 		break;
 
 	case FlightTaskIndex::AutoLine:
-		_current_task = new (&_task_union.autoLine) FlightTaskAutoLine();
+		_current_task.task = new (&_task_union.autoLine) FlightTaskAutoLine();
 		break;
 
 	case FlightTaskIndex::AutoFollowMe:
-		_current_task = new (&_task_union.autoFollowMe) FlightTaskAutoFollowMe();
+		_current_task.task =
+			new (&_task_union.autoFollowMe) FlightTaskAutoFollowMe();
 		break;
 
 	case FlightTaskIndex::Offboard:
-		_current_task = new (&_task_union.offboard) FlightTaskOffboard();
+		_current_task.task = new (&_task_union.offboard) FlightTaskOffboard();
 		break;
 
 	default:
-		/* invalid task */
+		// invalid task
+		return 1;
+	}
+
+	// task construction succeeded
+	_current_task.index = task_index;
+	return 0;
+}
+
+int FlightTasks::switchTask(FlightTaskIndex new_task_index)
+{
+	// switch to the running task, nothing to do
+	if (new_task_index == _current_task.index) {
+		return 0;
+	}
+
+	if (_initTask(new_task_index)) {
+		// invalid task
 		return -1;
 	}
 
+	if (!_current_task.task) {
+		// no task running
+		return 0;
+	}
+
 	/* subscription failed */
-	if (!_current_task->initializeSubscriptions(_subscription_array)) {
-		_current_task->~FlightTask();
-		_current_task = nullptr;
-		_current_task_index = FlightTaskIndex::None;
+	if (!_current_task.task->initializeSubscriptions(_subscription_array)) {
+		_current_task.task->~FlightTask();
+		_current_task.task = nullptr;
+		_current_task.index = FlightTaskIndex::None;
 		return -2;
 	}
 
 	_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 	/* activation failed */
-	if (!_current_task->updateInitialize() || !_current_task->activate()) {
-		_current_task->~FlightTask();
-		_current_task = nullptr;
-		_current_task_index = FlightTaskIndex::None;
+	if (!_current_task.task->updateInitialize() || !_current_task.task->activate()) {
+		_current_task.task->~FlightTask();
+		_current_task.task = nullptr;
+		_current_task.index = FlightTaskIndex::None;
 		return -3;
 	}
 
-	_current_task_index = new_task_index;
 	return 0;
 }
 
@@ -135,8 +154,8 @@ int FlightTasks::switchTask(int new_task_index)
 
 void FlightTasks::handleParameterUpdate()
 {
-	if (_current_task) {
-		_current_task->handleParameterUpdate();
+	if (_current_task.task) {
+		_current_task.task->handleParameterUpdate();
 	}
 }
 
@@ -185,7 +204,7 @@ void FlightTasks::_updateCommand()
 //		cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 //
 //		/* if the task is running apply parameters to it and see if it rejects */
-//		if (isAnyTaskActive() && !_current_task->applyCommandParameters(command)) {
+//		if (isAnyTaskActive() && !_current_task.task->applyCommandParameters(command)) {
 //			cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 //
 //			/* if we just switched and parameters are not accepted, go to failsafe */
