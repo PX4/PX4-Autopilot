@@ -260,6 +260,17 @@ MPU9250::init()
 	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
 #endif
 
+	/*
+	 * If the MPU is using I2C we should reduce the sample rate to 200Hz and
+	 * make the integration autoreset faster so that we integrate just one
+	 * sample since the sampling rate is already low.
+	*/
+	if (is_i2c()) {
+		_sample_rate = 200;
+		_accel_int.set_autoreset_interval(1000000 / 1000);
+		_gyro_int.set_autoreset_interval(1000000 / 1000);
+	}
+
 	int ret = probe();
 
 	if (ret != OK) {

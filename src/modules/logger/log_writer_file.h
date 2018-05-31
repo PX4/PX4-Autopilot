@@ -113,6 +113,8 @@ public:
 		return _need_reliable_transfer;
 	}
 
+	pthread_t thread_id() const { return _thread; }
+
 private:
 	static void *run_helper(void *);
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,7 @@
 #pragma once
 
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 class Integrator
 {
@@ -86,6 +87,7 @@ public:
 	 */
 	matrix::Vector3f	get(bool reset, uint64_t &integral_dt);
 
+
 	/**
 	 * Get the current integral and reset the integrator if needed. Additionally give the
 	 * integral over the samples differentiated by the integration time (mean filtered values).
@@ -96,6 +98,17 @@ public:
 	 * @return		the integral since the last read-reset
 	 */
 	matrix::Vector3f	get_and_filtered(bool reset, uint64_t &integral_dt, matrix::Vector3f &filtered_val);
+
+
+	/**
+	 * Set auto reset interval during runtime. This won't reset the integrator.
+	 *
+	 * @param auto_reset_interval	    	New reset time interval for the integrator.
+	 */
+	void set_autoreset_interval(uint64_t auto_reset_interval)
+	{
+		_auto_reset_interval = auto_reset_interval;
+	}
 
 private:
 	uint64_t _auto_reset_interval;			/**< the interval after which the content will be published

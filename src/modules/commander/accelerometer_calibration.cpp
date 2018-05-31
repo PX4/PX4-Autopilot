@@ -272,19 +272,19 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	int32_t board_rotation_int;
 	param_get(board_rotation_h, &(board_rotation_int));
 	enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
-	math::Matrix<3, 3> board_rotation;
-	get_rot_matrix(board_rotation_id, &board_rotation);
-	math::Matrix<3, 3> board_rotation_t = board_rotation.transposed();
+	matrix::Dcmf board_rotation = get_rot_matrix(board_rotation_id);
+
+	matrix::Dcmf board_rotation_t = board_rotation.transpose();
 
 	bool tc_locked[3] = {false}; // true when the thermal parameter instance has already been adjusted by the calibrator
 
 	for (unsigned uorb_index = 0; uorb_index < active_sensors; uorb_index++) {
 
 		/* handle individual sensors, one by one */
-		math::Vector<3> accel_offs_vec(accel_offs[uorb_index]);
-		math::Vector<3> accel_offs_rotated = board_rotation_t * accel_offs_vec;
-		math::Matrix<3, 3> accel_T_mat(accel_T[uorb_index]);
-		math::Matrix<3, 3> accel_T_rotated = board_rotation_t * accel_T_mat * board_rotation;
+		matrix::Vector3f accel_offs_vec(accel_offs[uorb_index]);
+		matrix::Vector3f accel_offs_rotated = board_rotation_t * accel_offs_vec;
+		matrix::Matrix3f accel_T_mat(accel_T[uorb_index]);
+		matrix::Matrix3f accel_T_rotated = board_rotation_t * accel_T_mat * board_rotation;
 
 		accel_scale.x_offset = accel_offs_rotated(0);
 		accel_scale.x_scale = accel_T_rotated(0, 0);
@@ -579,19 +579,15 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 	param_get(board_offset_y, &board_offset[1]);
 	param_get(board_offset_z, &board_offset[2]);
 
-	math::Matrix<3, 3> board_rotation_offset;
-	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * board_offset[0],
+	matrix::Dcmf board_rotation_offset = matrix::Eulerf(
+			M_DEG_TO_RAD_F * board_offset[0],
 			M_DEG_TO_RAD_F * board_offset[1],
 			M_DEG_TO_RAD_F * board_offset[2]);
 
 	int32_t board_rotation_int;
 	param_get(board_rotation_h, &(board_rotation_int));
-	enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
-	math::Matrix<3, 3> board_rotation;
-	get_rot_matrix(board_rotation_id, &board_rotation);
 
-	/* combine board rotation with offset rotation */
-	board_rotation = board_rotation_offset * board_rotation;
+	matrix::Dcmf board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)board_rotation_int);
 
 	px4_pollfd_struct_t fds[max_accel_sens];
 
@@ -668,9 +664,9 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 
 	// rotate sensor measurements from sensor to body frame using board rotation matrix
 	for (unsigned i = 0; i < max_accel_sens; i++) {
-		math::Vector<3> accel_sum_vec(&accel_sum[i][0]);
+		matrix::Vector3f accel_sum_vec(&accel_sum[i][0]);
 		accel_sum_vec = board_rotation * accel_sum_vec;
-		memcpy(&accel_sum[i][0], &accel_sum_vec.data[0], sizeof(accel_sum[i]));
+		memcpy(&accel_sum[i][0], accel_sum_vec.data(), sizeof(accel_sum[i]));
 	}
 
 	for (unsigned s = 0; s < max_accel_sens; s++) {

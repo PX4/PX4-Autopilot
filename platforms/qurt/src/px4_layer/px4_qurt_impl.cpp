@@ -166,3 +166,8 @@ int fputc(int c, FILE *stream)
 {
 	return c;
 }
+
+int putchar(int character)
+{
+	return character;
+}

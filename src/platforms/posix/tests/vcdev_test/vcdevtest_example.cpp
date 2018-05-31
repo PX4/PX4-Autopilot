@@ -94,7 +94,7 @@ class PrivData
 {
 public:
 	PrivData() : _read_offset(0) {}
-	~PrivData() {}
+	~PrivData() = default;
 
 	size_t _read_offset;
 };
@@ -107,7 +107,7 @@ public:
 		_is_open_for_write(false),
 		_write_offset(0) {}
 
-	~VCDevNode() {}
+	~VCDevNode() = default;
 
 	virtual int open(device::file_t *handlep);
 	virtual int close(device::file_t *handlep);

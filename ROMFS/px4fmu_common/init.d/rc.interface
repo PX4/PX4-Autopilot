@@ -120,7 +120,12 @@ then
 	fi
 fi
 
-if ver hwcmp MINDPX_V2 CRAZYFLIE AEROFC_V1 PX4FMU_V4 NXPHLITE_V3
+if ver hwcmp MINDPX_V2 CRAZYFLIE AEROFC_V1 PX4FMU_V4 NXPHLITE_V3 OMNIBUS_F4SD
+then
+	set MIXER_AUX none
+fi
+
+if [ $USE_IO == no ]
 then
 	set MIXER_AUX none
 fi

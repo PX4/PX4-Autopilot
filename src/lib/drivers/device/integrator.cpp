@@ -54,13 +54,9 @@ Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
 	_last_delta_alpha(0.0f, 0.0f, 0.0f),
 	_coning_comp_on(coning_compensation)
 {
-
 }
 
-Integrator::~Integrator()
-{
-
-}
+Integrator::~Integrator() = default;
 
 bool
 Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &integral, uint64_t &integral_dt)

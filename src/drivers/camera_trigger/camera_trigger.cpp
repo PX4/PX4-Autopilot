@@ -49,6 +49,7 @@
 #include <stdbool.h>
 #include <poll.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <px4_workqueue.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>

@@ -13,6 +13,12 @@ set +e
 #
 # NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
+# UART mapping on OMNIBUSF4SD:
+#
+# USART1		/dev/ttyS0		SerialRX
+# USART4		/dev/ttyS1		TELEM1
+# USART6		/dev/ttyS2		GPS
+#
 # UART mapping on FMUv2/3/4:
 #
 # UART1			/dev/ttyS0		IO debug (except v4, there ttyS0 is the wifi)
@@ -229,6 +235,11 @@ then
 		set MAVLINK_COMPANION_DEVICE /dev/ttyS4
 	fi
 
+	if ver hwcmp OMNIBUS_F4SD
+	then
+		set MAVLINK_COMPANION_DEVICE /dev/ttyS1
+	fi
+
 	#
 	# Set USE_IO flag
 	#
@@ -281,8 +292,8 @@ then
 	#
 	if [ $AUTOCNF == yes ]
 	then
-		# Disable safety switch by default on Pixracer
-		if ver hwcmp PX4FMU_V4
+		# Disable safety switch by default on Pixracer and OmnibusF4SD
+		if ver hwcmp PX4FMU_V4 OMNIBUS_F4SD
 		then
 			param set CBRK_IO_SAFETY 22027
 		fi
@@ -293,65 +304,73 @@ then
 			param set SYS_FMU_TASK 1
 		fi
 
+		if ver hwcmp OMNIBUS_F4SD
+		then
+			param set SYS_FMU_TASK 1
+			param set SYS_HAS_MAG 0
+			# use the Q attitude estimator, it works w/o mag or GPS
+			param set SYS_MC_EST_GROUP 1
+			param set ATT_ACC_COMP 0
+			param set ATT_W_ACC 0.4000
+			param set ATT_W_GYRO_BIAS 0.0000
+		fi
+
 		param set SYS_AUTOCONFIG 0
 	fi
 	unset AUTOCNF
 
 	set IO_PRESENT no
 
-	if [ $USE_IO == yes ]
+	#
+	# Check if PX4IO present and update firmware if needed
+	#
+	if [ -f /etc/extras/px4io-v2.bin ]
 	then
-		#
-		# Check if PX4IO present and update firmware if needed
-		#
-		if [ -f /etc/extras/px4io-v2.bin ]
+		set IO_FILE /etc/extras/px4io-v2.bin
+
+		if px4io checkcrc ${IO_FILE}
 		then
-			set IO_FILE /etc/extras/px4io-v2.bin
+			set IO_PRESENT yes
+		else
+			tone_alarm MLL32CP8MB
 
-			if px4io checkcrc ${IO_FILE}
+			if px4io start
 			then
-				set IO_PRESENT yes
-			else
-				tone_alarm MLL32CP8MB
-
-				if px4io start
+				# try to safe px4 io so motor outputs dont go crazy
+				if px4io safety_on
 				then
-					# try to safe px4 io so motor outputs dont go crazy
-					if px4io safety_on
-					then
-						# success! no-op
-					else
-						# px4io did not respond to the safety command
-						px4io stop
-					fi
-				fi
-
-				if px4io forceupdate 14662 ${IO_FILE}
-				then
-					usleep 10000
-					if px4io checkcrc ${IO_FILE}
-					then
-						echo "PX4IO CRC OK after updating" >> $LOG_FILE
-						tone_alarm MLL8CDE
-
-						set IO_PRESENT yes
-					else
-						echo "PX4IO update failed" >> $LOG_FILE
-						tone_alarm ${TUNE_ERR}
-					fi
+					# success! no-op
 				else
-					echo "PX4IO update failed" >> $LOG_FILE
-					tune_control play -m ${TUNE_ERR}
+					# px4io did not respond to the safety command
+					px4io stop
 				fi
 			fi
-		fi
-		unset IO_FILE
 
-		if [ $IO_PRESENT == no ]
-		then
-			echo "PX4IO not found" >> $LOG_FILE
-			tune_control play -m ${TUNE_ERR}
+			if px4io forceupdate 14662 ${IO_FILE}
+			then
+				usleep 10000
+				if px4io checkcrc ${IO_FILE}
+				then
+					echo "PX4IO CRC OK after updating" >> $LOG_FILE
+					tone_alarm MLL8CDE
+
+					set IO_PRESENT yes
+				else
+					echo "PX4IO update failed" >> $LOG_FILE
+					tone_alarm ${TUNE_ERR}
+				fi
+			else
+				echo "PX4IO update failed" >> $LOG_FILE
+				tune_control play -m ${TUNE_ERR}
+			fi
 		fi
+	fi
+	unset IO_FILE
+
+	if [ $USE_IO == yes -a $IO_PRESENT == no ]
+	then
+		echo "PX4IO not found" >> $LOG_FILE
+		tune_control play -m ${TUNE_ERR}
 	fi
 
 	#
@@ -412,7 +431,6 @@ then
 		sh /etc/init.d/rc.sensors
 		commander start
 	fi
-
 	send_event start
 	load_mon start
 
@@ -573,12 +591,12 @@ then
 			fi
 		fi
 
-		if ver hwcmp CRAZYFLIE
+		if ver hwcmp CRAZYFLIE OMNIBUS_F4SD
 		then
 			# Avoid using either of the two available serials
 			set MAVLINK_F none
 		fi
-	fi
+fi
 
 	if [ "x$MAVLINK_F" == xnone ]
 	then
@@ -676,6 +694,10 @@ then
 	then
 		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -m minimal -r 1000
 	fi
+	if param compare SYS_COMPANION 6460800
+	then
+		micrortps_client start -t UART -d /dev/ttyS2 -b 460800
+	fi
 	if param compare SYS_COMPANION 1921600
 	then
 		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -r 20000
@@ -707,7 +729,7 @@ then
 		fi
 	fi
 
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5
+	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5 OMNIBUS_F4SD
 	then
 		# Check for flow sensor - as it is a background task, launch it last
 		px4flow start &

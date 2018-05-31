@@ -63,7 +63,7 @@ class LED : public VirtDevObj
 {
 public:
 	LED();
-	virtual ~LED();
+	virtual ~LED() = default;
 
 	virtual int		init();
 	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
@@ -77,10 +77,6 @@ LED::LED() :
 {
 	// force immediate init/device registration
 	init();
-}
-
-LED::~LED()
-{
 }
 
 int

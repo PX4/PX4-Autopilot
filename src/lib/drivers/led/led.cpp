@@ -72,9 +72,7 @@ LED::LED() : CDev("led", LED0_DEVICE_PATH)
 	init();
 }
 
-LED::~LED()
-{
-}
+LED::~LED() = default;
 
 int
 LED::init()

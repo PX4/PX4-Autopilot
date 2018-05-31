@@ -584,8 +584,12 @@ struct bmp280_bus_option {
 #if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
 	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, true, NULL },
 #endif
-#ifdef PX4_SPIDEV_BARO
+#if defined(PX4_SPIDEV_BARO)
+#  if defined(PX4_SPIDEV_BARO_BUS)
+	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPIDEV_BARO_BUS, PX4_SPIDEV_BARO, false, NULL },
+#  else
 	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false, NULL },
+#  endif
 #endif
 #ifdef PX4_I2C_OBDEV_BMP280
 	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP280, false, NULL },
