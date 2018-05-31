@@ -44,7 +44,7 @@
 #include "board_config.h"
 
 // initialize roboticscape library similar to the deprecated rc_initialize()
-int rc_init()
+int rc_init(void)
 {
 #ifdef __RC_V0_3
 	return rc_initialize();
@@ -121,7 +121,7 @@ int rc_init()
 }
 
 
-void rc_cleaning()
+void rc_cleaning(void)
 {
 #ifdef __RC_V0_3
 	rc_cleanup();  return ;
