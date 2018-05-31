@@ -32,6 +32,9 @@
 ############################################################################
 
 include_directories(../../../../lib/DriverFramework/drivers)
+include_directories(../../../../lib/Robotics_Cape_Installer/library/include)
+
+add_definitions(-DRC_AUTOPILOT_EXT)
 
 px4_add_module(
 	MODULE platforms__posix__drivers__df_bmp280_wrapper
