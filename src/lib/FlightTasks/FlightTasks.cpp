@@ -3,6 +3,18 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
+FlightTasks::FlightTasks()
+{
+	// initialize all flight-tasks
+	// currently this is required to get all parameters read
+	for (int i = 0; i < static_cast<int>(FlightTaskIndex::Count); i++) {
+		_initTask(static_cast<FlightTaskIndex>(i));
+	}
+
+	// disable all tasks
+	_initTask(FlightTaskIndex::None);
+}
+
 bool FlightTasks::update()
 {
 	_updateCommand();
