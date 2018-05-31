@@ -80,8 +80,8 @@ public:
 
 	~FlightTasks()
 	{
-		if (_current_task) {
-			_current_task->~FlightTask();
+		if (_current_task.task) {
+			_current_task.task->~FlightTask();
 		}
 	}
 
@@ -107,7 +107,7 @@ public:
 	 * Switch to the next task in the available list (for testing)
 	 * @return true on success, false on error
 	 */
-	int switchTask() { return switchTask(static_cast<int>(_current_task_index) + 1); }
+	int switchTask() { return switchTask(static_cast<int>(_current_task.index) + 1); }
 
 	/**
 	 * Switch to a specific task (for normal usage)
@@ -121,13 +121,13 @@ public:
 	 * Get the number of the active task
 	 * @return number of active task, -1 if there is none
 	 */
-	int getActiveTask() const { return static_cast<int>(_current_task_index); }
+	int getActiveTask() const { return static_cast<int>(_current_task.index); }
 
 	/**
 	 * Check if any task is active
 	 * @return true if a task is active, false if not
 	 */
-	bool isAnyTaskActive() const { return _current_task; }
+	bool isAnyTaskActive() const { return _current_task.task; }
 
 	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
@@ -161,8 +161,11 @@ private:
 		FlightTaskOffboard offboard;
 	} _task_union; /**< storage for the currently active task */
 
-	FlightTask *_current_task = nullptr;
-	FlightTaskIndex _current_task_index = FlightTaskIndex::None;
+	struct flight_task_t {
+		FlightTask *task;
+		FlightTaskIndex index;
+	};
+	flight_task_t _current_task = {nullptr, FlightTaskIndex::None};
 
 	SubscriptionArray _subscription_array;
 
@@ -185,6 +188,8 @@ private:
 	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
 	 */
 	void _updateCommand();
+
+	int _initTask(FlightTaskIndex task_index);
 //	int _sub_vehicle_command = -1; /**< topic handle on which commands are received */
 //	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
 };
