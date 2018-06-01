@@ -513,7 +513,11 @@ MulticopterPositionControl::task_main()
 		setDt(dt);
 
 		if (_control_mode.flag_armed) {
+			// as soon vehicle is armed, start flighttask
 			start_flight_task();
+			// arm hysteresis prevents vehicle to takeoff
+			// before propeller reached idle speed.
+			_arm_hysteresis.set_state_and_update(true);
 
 		} else {
 			// disable flighttask
@@ -530,6 +534,7 @@ MulticopterPositionControl::task_main()
 
 			// update task
 			if (!_flight_tasks.update()) {
+				// FAILSAFE
 				// Task was not able to update correctly. Do Failsafe.
 				setpoint.x = setpoint.y = setpoint.z = NAN;
 				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
@@ -556,28 +561,25 @@ MulticopterPositionControl::task_main()
 			// check if all local states are valid and map accordingly
 			check_vehicle_states(setpoint.vz);
 
-			// We can only run the control if we're already in-air, have a takeoff setpoint, and are not
-			// in pure manual and vehicle is armed for some time. Otherwise just stay idle.
-			_arm_hysteresis.set_state_and_update(_control_mode.flag_armed);
-
 			// we can only do a smooth takeoff if a valid velocity or position is available and are
 			// armed long enough
 			if (_arm_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
 				check_for_smooth_takeoff(setpoint.z, setpoint.vz, constraints);
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
+			}
 
-				if (_in_smooth_takeoff) {
-					constraints.speed_up = _takeoff_speed;
-					// during smooth takeoff we disable yaw command
-					setpoint.yaw = setpoint.yawspeed = NAN;
-					// don't control position in xy
-					setpoint.x = setpoint.y = NAN;
-					setpoint.vx = setpoint.vy = 0.0f;
-				}
+			if (_in_smooth_takeoff) {
+				// during smooth takeoff, constrain speed to takeoff speed
+				constraints.speed_up = _takeoff_speed;
+				// disable yaw command
+				setpoint.yaw = setpoint.yawspeed = NAN;
+				// don't control position in xy
+				setpoint.x = setpoint.y = NAN;
+				setpoint.vx = setpoint.vy = 0.0f;
 			}
 
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
-				// Keep throttle low
+				// Keep throttle low when landed and NOT in smooth takeoff
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				setpoint.x = setpoint.y = setpoint.z = NAN;
 				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
@@ -600,7 +602,7 @@ MulticopterPositionControl::task_main()
 			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
 
 			// Adjust thrust setpoint based on landdetector only if the
-			// vehicle is NOT in pure Manual mode.
+			// vehicle is NOT in pure Manual mode and NOT in smooth takeoff
 			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {limit_thrust_during_landing(thr_sp);}
 
 			// Fill local position, velocity and thrust setpoint.
