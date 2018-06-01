@@ -619,4 +619,4 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
  * @value 2 Sport position control
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_POS_MODE, 0);
+PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
