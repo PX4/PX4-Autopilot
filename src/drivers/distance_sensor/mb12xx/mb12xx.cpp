@@ -879,23 +879,25 @@ info()
 int
 mb12xx_main(int argc, char *argv[])
 {
-	// check for optional arguments
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
-
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
 			break;
 
 		default:
 			PX4_WARN("Unknown option!");
+			return -1;
 		}
+	}
+
+	if (myoptind >= argc) {
+		goto out_error;
 	}
 
 	/*
@@ -929,10 +931,11 @@ mb12xx_main(int argc, char *argv[])
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
 		mb12xx::info();
 	}
 
+out_error:
 	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
 	return PX4_ERROR;
 }
