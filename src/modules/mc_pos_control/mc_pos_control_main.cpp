@@ -842,39 +842,41 @@ MulticopterPositionControl::reset_alt_sp()
 void
 MulticopterPositionControl::limit_altitude()
 {
-	// TODO : This limit calculationshould be moved to updateConstraints in FlightTask
-	// Calculate altitude limit
-	float altitude_limit = INFINITY;
+	// TODO : This limit calculation should be moved to updateConstraints in FlightTask
 
+	// Calculate vertical position limit
+	float poz_z_min_limit;
 	if (_terrain_follow) {
-		altitude_limit = fmaxf(-_local_pos.hagl_max, -_vehicle_land_detected.alt_max);
+		poz_z_min_limit = fmaxf(-_local_pos.hagl_max, -_vehicle_land_detected.alt_max);
 
 		//printf("terrain follow alt limit : %f\n", altitude_limit);
 
 	} else {
-		altitude_limit = fmaxf(-_local_pos.hagl_max + _pos(2) + _local_pos.dist_bottom,
+		poz_z_min_limit = fmaxf(-_local_pos.hagl_max + _pos(2) + _local_pos.dist_bottom,
 				       -_vehicle_land_detected.alt_max + _home_pos.z);
 
 		//printf("altitude follow alt limit : %f\n", altitude_limit);
 	}
 
-	// Don't allow the height setpoint to exceed the limits
-	if (_pos_sp(2) < altitude_limit) {
-		_pos_sp(2) = altitude_limit;
+	// Don't allow the z position setpoint to exceed the limit
+	if (_pos_sp(2) < poz_z_min_limit) {
+		_pos_sp(2) = poz_z_min_limit;
 	}
 
-	// We want to fly upwards. Check that vehicle does not exceed altitude
+	// We want to fly upwards. Check that vehicle does not exceed altitude limit
 	if (!_run_alt_control && _vel_sp(2) <= 0.0f) {
 
-		// time to reach zero velocity
-		float delta_t = -_vel(2) / _acceleration_z_max_down.get();
+		// predict future position based on current position, velocity, max acceleration downwards and time to reach zero velocity
+		float pos_z_next = _pos(2);
+		if (_vel(2) < 0.0f) {
+			// allow for stopping distance only when approaching the altitude limit from below
+			// TODO better calculation that allows for delay in braking
+			pos_z_next -= 0.5f * _vel(2) * _vel(2) / _acceleration_z_max_down.get();
+		}
 
-		// predict next position based on current position, velocity, max acceleration downwards and time to reach zero velocity
-		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f * _acceleration_z_max_down.get() * delta_t *delta_t;
-
-		if (pos_z_next < altitude_limit) {
+		if (pos_z_next < poz_z_min_limit) {
 			// prevent the vehicle from exceeding maximum altitude by switching back to altitude control with maximum altitude as setpoint
-			_pos_sp(2) = altitude_limit;
+			_pos_sp(2) = poz_z_min_limit;
 			_run_alt_control = true;
 		}
 	}
