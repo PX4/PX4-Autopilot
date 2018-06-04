@@ -46,6 +46,7 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
+#include <px4_getopt.h>
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
@@ -357,38 +358,48 @@ ets_airspeed_main(int argc, char *argv[])
 {
 	int i2c_bus = PX4_I2C_BUS_DEFAULT;
 
-	int i;
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
 
-	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
-			if (argc > i + 1) {
-				i2c_bus = atoi(argv[i + 1]);
-			}
+	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'b':
+			i2c_bus = atoi(myoptarg);
+			break;
+
+		default:
+			ets_airspeed_usage();
+			return 0;
 		}
+	}
+
+	if (myoptind >= argc) {
+		ets_airspeed_usage();
+		return -1;
 	}
 
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(argv[myoptind], "start")) {
 		return ets_airspeed::start(i2c_bus);
 	}
 
 	/*
 	 * Stop the driver
 	 */
-	if (!strcmp(argv[1], "stop")) {
+	if (!strcmp(argv[myoptind], "stop")) {
 		return ets_airspeed::stop();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset")) {
+	if (!strcmp(argv[myoptind], "reset")) {
 		return ets_airspeed::reset();
 	}
 
 	ets_airspeed_usage();
-
-	return PX4_OK;
+	return 0;
 }
