@@ -70,11 +70,7 @@
 
 #include "shmem.h"
 
-#ifdef __PX4_QURT
-static const char *param_default_file = "/dev/fs/params";
-#else
-static const char *param_default_file = "/usr/share/data/adsp/params";
-#endif
+static const char *param_default_file = DEFAULT_PARAM_FILE;	// see px4_defines.h
 static char *param_user_file = NULL;
 
 #define debug(fmt, args...)		do { } while(0)

@@ -69,7 +69,11 @@ static uint8_t *_BulkTransferBuffer = 0;
 unsigned char *adsp_changed_index = 0;
 
 // The DSP timer can be read from this file.
+#ifdef __PX4_POSIX_EXCELSIOR
+#define DSP_TIMER_FILE "/sys/kernel/boot_slpi/qdsp_qtimer"
+#else
 #define DSP_TIMER_FILE "/sys/kernel/boot_adsp/qdsp_qtimer"
+#endif
 
 /**
  * Helper function to get timer difference between time on DSP and appsproc side.
