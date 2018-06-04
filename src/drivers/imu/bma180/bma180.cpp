@@ -890,9 +890,12 @@ info()
 int
 bma180_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		goto out_error;
+	}
+
 	/*
 	 * Start/load the driver.
-
 	 */
 	if (!strcmp(argv[1], "start")) {
 		bma180::start();
@@ -919,5 +922,6 @@ bma180_main(int argc, char *argv[])
 		bma180::info();
 	}
 
+out_error:
 	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
 }
