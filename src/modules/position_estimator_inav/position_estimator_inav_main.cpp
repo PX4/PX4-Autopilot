@@ -134,6 +134,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
+		return -1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
