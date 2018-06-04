@@ -26,7 +26,7 @@ param set MAV_TYPE 13
 param set MC_PITCH_P 6
 param set MC_PITCHRATE_P 0.1
 param set MC_ROLL_P 6
-param set MC_ROLLRATE_P 0.1
+param set MC_ROLLRATE_P 0.05
 param set MIS_TAKEOFF_ALT 2.5
 param set MPC_HOLD_MAX_Z 2.0
 param set MPC_XY_VEL_I 0.2
