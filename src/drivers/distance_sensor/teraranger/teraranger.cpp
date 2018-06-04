@@ -950,12 +950,16 @@ teraranger_main(int argc, char *argv[])
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting sensor orientation to %d", (int)rotation);
 			break;
 
 		default:
 			PX4_WARN("Unknown option!");
+			return -1;
 		}
+	}
+
+	if (myoptind >= argc) {
+		goto out_error;
 	}
 
 	/*
@@ -989,10 +993,11 @@ teraranger_main(int argc, char *argv[])
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[1], "status")) {
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
 		teraranger::info();
 	}
 
+out_error:
 	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
-	return PX4_ERROR;
+	return -1;
 }
