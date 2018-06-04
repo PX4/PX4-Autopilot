@@ -50,7 +50,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 #include <px4_log.h>
 
 #include <nuttx/arch.h>
@@ -849,11 +849,12 @@ usage()
 int
 bmp280_main(int argc, char *argv[])
 {
-	enum BMP280_BUS busid = BMP280_BUS_ALL;
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+	enum BMP280_BUS busid = BMP280_BUS_ALL;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XISs")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISs", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = BMP280_BUS_I2C_EXTERNAL;
@@ -861,8 +862,6 @@ bmp280_main(int argc, char *argv[])
 
 		case 'I':
 			busid = BMP280_BUS_I2C_INTERNAL;
-			//PX4_ERR("not supported yet");
-			//exit(1);
 			break;
 
 		case 'S':
@@ -875,11 +874,16 @@ bmp280_main(int argc, char *argv[])
 
 		default:
 			bmp280::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		bmp280::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
@@ -910,5 +914,5 @@ bmp280_main(int argc, char *argv[])
 	}
 
 	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
-	exit(1);
+	return -1;
 }
