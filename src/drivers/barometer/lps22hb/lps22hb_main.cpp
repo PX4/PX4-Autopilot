@@ -33,6 +33,8 @@
 
 #include "LPS22HB.hpp"
 
+#include <px4_getopt.h>
+
 #include <cstring>
 
 extern "C" __EXPORT int lps22hb_main(int argc, char *argv[]);
@@ -234,10 +236,13 @@ usage()
 int
 lps22hb_main(int argc, char *argv[])
 {
-	enum LPS22HB_BUS busid = LPS22HB_BUS_ALL;
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
 
-	while ((ch = getopt(argc, argv, "XIS:")) != EOF) {
+	enum LPS22HB_BUS busid = LPS22HB_BUS_ALL;
+
+	while ((ch = px4_getopt(argc, argv, "XIS:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 
@@ -256,11 +261,16 @@ lps22hb_main(int argc, char *argv[])
 
 		default:
 			lps22hb::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		lps22hb::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
