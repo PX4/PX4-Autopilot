@@ -236,18 +236,18 @@ function(px4_os_add_flags)
 		else()
 			set(HEXAGON_ARM_SYSROOT $ENV{HEXAGON_ARM_SYSROOT})
 		endif()
-		
-		set(excelsior_flags --sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096 -mfloat-abi=softfp -mfpu=neon -mthumb-interwork)
+
+		set(excelsior_flags --sysroot=${HEXAGON_ARM_SYSROOT})
 
 		# Add the toolchain specific flags
 		list(APPEND added_c_flags ${excelsior_flags})
 		list(APPEND added_cxx_flags ${excelsior_flags})
 
 		list(APPEND added_exe_linker_flags
-			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/usr/lib
-			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/lib
-			${excelsior_flags}
-			)
+			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib/arm-linux-gnueabihf
+			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib/arm-linux-gnueabihf
+			--sysroot=${HEXAGON_ARM_SYSROOT}
+		)
 
 	elseif ("${BOARD}" STREQUAL "rpi")
 		set(RPI_COMPILE_FLAGS -mcpu=cortex-a53 -mfpu=neon -mfloat-abi=hard)
