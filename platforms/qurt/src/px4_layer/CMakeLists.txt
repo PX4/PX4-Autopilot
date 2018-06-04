@@ -34,7 +34,7 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 include(hexagon_sdk)
 
-include_directories(${HEXAGON_8074_INCLUDES})
+include_directories(${HEXAGON_SDK_INCLUDES})
 
 set(QURT_LAYER_SRCS
 	px4_qurt_impl.cpp
