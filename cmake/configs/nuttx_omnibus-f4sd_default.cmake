@@ -29,7 +29,7 @@ set(config_module_list
 	#
 	# System commands
 	#
-	systemcmds/bl_update
+	#systemcmds/bl_update
 	systemcmds/config
 	systemcmds/esc_calib
 	systemcmds/hardfault_log
@@ -80,15 +80,15 @@ set(config_module_list
 	modules/ekf2
 	modules/landing_target_estimator
 	modules/local_position_estimator
-	modules/wind_estimator
+	#modules/wind_estimator
 
 	#
 	# Vehicle Control
 	#
 	modules/fw_att_control
 	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
+	#modules/gnd_att_control
+	#modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
