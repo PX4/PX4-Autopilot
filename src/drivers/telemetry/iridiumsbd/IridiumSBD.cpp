@@ -1076,6 +1076,10 @@ int	IridiumSBD::close_last(struct file *filep)
 
 int iridiumsbd_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		goto out_error;
+	}
+
 	if (!strcmp(argv[1], "start")) {
 		return IridiumSBD::start(argc, argv);
 
@@ -1091,6 +1095,7 @@ int iridiumsbd_main(int argc, char *argv[])
 		return OK;
 	}
 
+out_error:
 	PX4_INFO("usage: iridiumsbd {start|stop|status|test} [-d uart_device]");
 
 	return PX4_ERROR;
