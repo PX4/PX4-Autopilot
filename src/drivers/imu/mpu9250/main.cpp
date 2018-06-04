@@ -51,7 +51,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -479,13 +479,14 @@ usage()
 int
 mpu9250_main(int argc, char *argv[])
 {
-	enum MPU9250_BUS busid = MPU9250_BUS_ALL;
+	int myoptind = 1;
 	int ch;
-	bool external = false;
+	const char *myoptarg = nullptr;
+
+	enum MPU9250_BUS busid = MPU9250_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XISstR:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISstR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MPU9250_BUS_I2C_EXTERNAL;
@@ -508,22 +509,25 @@ mpu9250_main(int argc, char *argv[])
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
 			mpu9250::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	external = (busid == MPU9250_BUS_I2C_EXTERNAL || busid == MPU9250_BUS_SPI_EXTERNAL);
+	if (myoptind >= argc) {
+		mpu9250::usage();
+		return -1;
+	}
 
-	const char *verb = argv[optind];
+	bool external = busid == MPU9250_BUS_I2C_EXTERNAL || busid == MPU9250_BUS_SPI_EXTERNAL;
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
-
 	 */
 	if (!strcmp(verb, "start")) {
 		mpu9250::start(busid, rotation, external);
@@ -566,5 +570,5 @@ mpu9250_main(int argc, char *argv[])
 	}
 
 	mpu9250::usage();
-	exit(1);
+	return 0;
 }

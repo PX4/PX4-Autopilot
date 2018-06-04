@@ -57,7 +57,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
