@@ -49,11 +49,21 @@ else()
 			modules__muorb__adsp
 		)
 
+	set(CONFIG_FILE "")
+	set(ADSP_DIR "")
+	if ("${BOARD}" STREQUAL "eagle")
+		set(CONFIG_FILE ${PX4_SOURCE_DIR}/posix-configs/${BOARD}/flight/px4.config)
+		set(ADSP_DIR "/usr/share/data/adsp")
+	elseif("${BOARD}" STREQUAL "excelsior")
+		set(CONFIG_FILE ${PX4_SOURCE_DIR}/posix-configs/${BOARD}/px4.config)
+		set(ADSP_DIR "/usr/lib/rfsa/adsp")
+	endif()
+
 	add_custom_target(upload
 		COMMAND
 			${PX4_SOURCE_DIR}/Tools/adb_upload.sh
-				${CMAKE_CURRENT_BINARY_DIR}/libpx4.so ${CMAKE_CURRENT_BINARY_DIR}/libpx4muorb_skel.so ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config
-				/usr/share/data/adsp
+				${CMAKE_CURRENT_BINARY_DIR}/libpx4.so ${CMAKE_CURRENT_BINARY_DIR}/libpx4muorb_skel.so ${CONFIG_FILE}
+				${ADSP_DIR}
 		DEPENDS px4 px4muorb_skel
 		COMMENT "uploading px4"
 		USES_TERMINAL

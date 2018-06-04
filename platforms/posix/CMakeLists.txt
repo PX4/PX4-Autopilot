@@ -15,11 +15,21 @@ if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
+	set(HOME_DIR "")
+	set(CONFIG_FILE "")
+	if ("${BOARD}" STREQUAL "eagle")
+		set(HOME_DIR "/home/linaro")
+		set(CONFIG_FILE ${PX4_SOURCE_DIR}/posix-configs/${BOARD}/flight/mainapp.config)
+	elseif("${BOARD}" STREQUAL "excelsior")
+		set(HOME_DIR "/home/root")
+		set(CONFIG_FILE ${PX4_SOURCE_DIR}/posix-configs/${BOARD}/mainapp.config)
+	endif()
+
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
 		APP_NAME px4
 		IDL_NAME px4muorb
-		APPS_DEST "/home/linaro"
+		APPS_DEST ${HOME_DIR}
 		SOURCES
 			px4muorb_stub.c
 			src/main.cpp
@@ -34,7 +44,7 @@ if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 		)
 
 	add_custom_target(upload
-		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload.sh $<TARGET_FILE:px4> ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config /home/linaro
+		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload.sh $<TARGET_FILE:px4> ${CONFIG_FILE} ${HOME_DIR}
 		DEPENDS px4
 		COMMENT "uploading px4"
 		USES_TERMINAL
