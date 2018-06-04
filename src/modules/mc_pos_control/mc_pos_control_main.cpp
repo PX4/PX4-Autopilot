@@ -848,28 +848,14 @@ MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp
 void
 MulticopterPositionControl::publish_attitude()
 {
-	// publish attitude setpoint
-	// Do not publish if
-	// - offboard is enabled but position/velocity/accel control is disabled,
-	// in this case the attitude setpoint is published by the mavlink app.
-	// - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
-	// attitude setpoints for the transition).
-	// - if not armed
-	//
-	if (_arm_hysteresis.get_state() &&
-	    (!(_control_mode.flag_control_offboard_enabled &&
-	       !(_control_mode.flag_control_position_enabled ||
-		 _control_mode.flag_control_velocity_enabled ||
-		 _control_mode.flag_control_acceleration_enabled)))) {
 
-		_att_sp.timestamp = hrt_absolute_time();
+	_att_sp.timestamp = hrt_absolute_time();
 
-		if (_att_sp_pub != nullptr) {
-			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+	if (_att_sp_pub != nullptr) {
+		orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
-		} else if (_attitude_setpoint_id) {
-			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-		}
+	} else if (_attitude_setpoint_id) {
+		_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 	}
 }
 
