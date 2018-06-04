@@ -38,6 +38,7 @@
  */
 
 #include "lis3mdl_main.h"
+#include <px4_getopt.h>
 
 /**
  * Driver 'main' command.
@@ -295,16 +296,18 @@ lis3mdl::usage()
 int
 lis3mdl_main(int argc, char *argv[])
 {
-	int index = 0;
-	bool calibrate = false;
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
 
+	bool calibrate = false;
 	enum LIS3MDL_BUS bus_id = LIS3MDL_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 
-	while ((index = getopt(argc, argv, "XISR:CT")) != EOF) {
-		switch (index) {
+	while ((ch = px4_getopt(argc, argv, "XISR:CT", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_LIS)
 
@@ -331,10 +334,15 @@ lis3mdl_main(int argc, char *argv[])
 		}
 	}
 
-	const char *arg = argv[optind];
+	if (myoptind >= argc) {
+		lis3mdl::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	// Start/load the driver
-	if (!strcmp(arg, "start")) {
+	if (!strcmp(verb, "start")) {
 
 		if (lis3mdl::start(bus_id, rotation)) {
 			if (calibrate) {
@@ -354,28 +362,28 @@ lis3mdl_main(int argc, char *argv[])
 	}
 
 	// Stop the driver
-	if (!strcmp(arg, "stop")) {
+	if (!strcmp(verb, "stop")) {
 		return lis3mdl::stop();
 	}
 
 	// Test the driver/device
-	if (!strcmp(arg, "test")) {
+	if (!strcmp(verb, "test")) {
 		return lis3mdl::test(bus_id);
 	}
 
 	// Reset the driver
-	if (!strcmp(arg, "reset")) {
+	if (!strcmp(verb, "reset")) {
 		return lis3mdl::reset(bus_id);
 	}
 
 	// Print driver information
-	if (!strcmp(arg, "info") ||
-	    !strcmp(arg, "status")) {
+	if (!strcmp(verb, "info") ||
+	    !strcmp(verb, "status")) {
 		return lis3mdl::info(bus_id);
 	}
 
 	// Autocalibrate the scaling
-	if (!strcmp(arg, "calibrate")) {
+	if (!strcmp(verb, "calibrate")) {
 		if (lis3mdl::calibrate(bus_id) == 0) {
 			PX4_INFO("calibration successful");
 			return 0;
