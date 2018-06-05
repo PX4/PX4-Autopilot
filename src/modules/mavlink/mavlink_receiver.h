@@ -190,6 +190,8 @@ private:
 
 	void send_flight_information();
 
+	void send_storage_information(int storage_id);
+
 	Mavlink	*_mavlink;
 
 	MavlinkMissionManager		*_mission_manager;
