@@ -245,8 +245,10 @@ void Standard::update_transition_state()
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_airspeed_trans_blend_margin > 0.0f &&
+		    _airspeed->indicated_airspeed_m_s > 0.0f &&
 		    _airspeed->indicated_airspeed_m_s >= _params->airspeed_blend &&
 		    time_since_trans_start > _params->front_trans_time_min) {
+
 			mc_weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params->airspeed_blend) /
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
