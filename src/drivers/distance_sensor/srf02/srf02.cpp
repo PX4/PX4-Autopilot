@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
@@ -90,7 +90,6 @@
 #define SRF02_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
 #define TICKS_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
 
-
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -120,9 +119,9 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	ringbuffer::RingBuffer	*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
-	int					_measure_ticks;
+	int				_measure_ticks;
 	bool				_collect_phase;
 	int				_class_instance;
 	int				_orb_class_instance;
@@ -883,23 +882,25 @@ info()
 int
 srf02_main(int argc, char *argv[])
 {
-	// check for optional arguments
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
-
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
 			break;
 
 		default:
 			PX4_WARN("Unknown option!");
+			return -1;
 		}
+	}
+
+	if (myoptind >= argc) {
+		goto out_error;
 	}
 
 	/*
@@ -937,6 +938,7 @@ srf02_main(int argc, char *argv[])
 		srf02::info();
 	}
 
+out_error:
 	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
 	return PX4_ERROR;
 }

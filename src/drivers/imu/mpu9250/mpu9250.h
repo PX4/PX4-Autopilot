@@ -33,7 +33,7 @@
 
 #include <stdint.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/conversions.h>
 
 #include <nuttx/wqueue.h>
@@ -183,9 +183,9 @@ enum MPU_DEVICE_TYPE {
 #define BIT_I2C_SLV2_DLY_EN         0x04
 #define BIT_I2C_SLV3_DLY_EN         0x08
 
-#define MPU_WHOAMI_9250			0x71
-#define MPU_WHOAMI_6500			0x70
-#define ICM_WHOAMI_20948        0xEA
+#define MPU_WHOAMI_9250             0x71
+#define MPU_WHOAMI_6500             0x70
+#define ICM_WHOAMI_20948            0xEA
 
 #define MPU9250_ACCEL_DEFAULT_RATE	1000
 #define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
@@ -195,7 +195,7 @@ enum MPU_DEVICE_TYPE {
 #define MPU9250_GYRO_MAX_OUTPUT_RATE			MPU9250_ACCEL_MAX_OUTPUT_RATE
 #define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
 
-#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	41
+#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	92
 
 #define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
 
@@ -368,14 +368,11 @@ struct MPUReport {
 #  define MPU9250_LOW_SPEED_OP(r)			((r) &~MPU9250_HIGH_BUS_SPEED)
 
 /* interface factories */
-extern device::Device *MPU9250_SPI_interface(int bus, int device_type, bool external_bus);
-extern device::Device *MPU9250_I2C_interface(int bus, int device_type, bool external_bus);
+extern device::Device *MPU9250_SPI_interface(int bus, int device_type, uint32_t cs, bool external_bus);
+extern device::Device *MPU9250_I2C_interface(int bus, int device_type, uint32_t address, bool external_bus);
 extern int MPU9250_probe(device::Device *dev, int device_type);
 
-typedef device::Device *(*MPU9250_constructor)(int, int, bool);
-
-
-
+typedef device::Device *(*MPU9250_constructor)(int, int, uint32_t, bool);
 
 class MPU9250_mag;
 class MPU9250_gyro;
@@ -465,7 +462,6 @@ private:
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
-	perf_counter_t		_controller_latency_perf;
 
 	uint8_t			_register_wait;
 	uint64_t		_reset_wait;
@@ -485,6 +481,7 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
+
 #ifndef MAX
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 #endif

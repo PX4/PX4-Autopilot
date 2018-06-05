@@ -38,6 +38,4 @@ px4_add_module(
 		wqueue_start_posix.cpp
 		wqueue_test.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

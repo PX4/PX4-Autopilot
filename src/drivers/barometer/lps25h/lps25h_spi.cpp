@@ -63,7 +63,6 @@
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
 #define DIR_WRITE			(0<<7)
-#define ADDR_INCREMENT			(1<<6)
 
 #define HMC_MAX_SEND_LEN		4
 #define HMC_MAX_RCV_LEN			8
@@ -170,7 +169,7 @@ LPS25H_SPI::read(unsigned address, void *data, unsigned count)
 		return -EIO;
 	}
 
-	buf[0] = address | DIR_READ | ADDR_INCREMENT;
+	buf[0] = address | DIR_READ;
 
 	int ret = transfer(&buf[0], &buf[0], count + 1);
 	memcpy(data, &buf[1], count);

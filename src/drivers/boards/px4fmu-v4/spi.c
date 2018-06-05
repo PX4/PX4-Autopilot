@@ -121,6 +121,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool s
 	case PX4_SPIDEV_ICM_20602:
 	case PX4_SPIDEV_ICM_20608:
 	case PX4_SPIDEV_BMI055_ACC:
+	case PX4_SPIDEV_MPU2:
 		/* Making sure the other peripherals are not selected */
 		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, 1);
 		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, !selected);
@@ -236,6 +237,4 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI1_SCK);
 	stm32_configgpio(GPIO_SPI1_MISO);
 	stm32_configgpio(GPIO_SPI1_MOSI);
-
-
 }

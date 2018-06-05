@@ -163,9 +163,9 @@ void InputMavlinkROI::_read_control_data_from_position_setpoint_sub()
 {
 	position_setpoint_triplet_s position_setpoint_triplet;
 	orb_copy(ORB_ID(position_setpoint_triplet), _position_setpoint_triplet_sub, &position_setpoint_triplet);
-	_control_data.type_data.lonlat.lon = position_setpoint_triplet.next.lon;
-	_control_data.type_data.lonlat.lat = position_setpoint_triplet.next.lat;
-	_control_data.type_data.lonlat.altitude = position_setpoint_triplet.next.alt;
+	_control_data.type_data.lonlat.lon = position_setpoint_triplet.current.lon;
+	_control_data.type_data.lonlat.lat = position_setpoint_triplet.current.lat;
+	_control_data.type_data.lonlat.altitude = position_setpoint_triplet.current.alt;
 }
 
 void InputMavlinkROI::print_status()

@@ -41,9 +41,11 @@
 #include <errno.h>
 
 #include <cmath>	// NAN
+#include <cstring>
 
 #include <lib/mathlib/mathlib.h>
 #include <drivers/device/device.h>
+#include <perf/perf_counter.h>
 #include <px4_module_params.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -72,11 +74,10 @@
 #  define DEVICE_ARGUMENT_MAX_LENGTH 32
 #endif
 
-#if !defined(PWM_DEFAULT_UPDATE_RATE)
-#  define PWM_DEFAULT_UPDATE_RATE 400
+// uorb update rate for control groups in miliseconds
+#if !defined(TAP_ESC_CTRL_UORB_UPDATE_INTERVAL)
+#  define TAP_ESC_CTRL_UORB_UPDATE_INTERVAL 2  // [ms] min: 2, max: 100
 #endif
-
-#define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
 
 /*
  * This driver connects to TAP ESCs via serial.
@@ -119,6 +120,8 @@ private:
 	actuator_outputs_s      _outputs = {};
 	actuator_armed_s	_armed = {};
 
+	perf_counter_t	_perf_control_latency;
+
 	int			_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	actuator_controls_s 	_controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	orb_id_t		_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -154,6 +157,7 @@ const uint8_t TAP_ESC::_device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	ModuleParams(nullptr),
+	_perf_control_latency(perf_alloc(PC_ELAPSED, "tap_esc control latency")),
 	_channels_count(channels_count)
 {
 	strncpy(_device, device, sizeof(_device));
@@ -197,6 +201,8 @@ TAP_ESC::~TAP_ESC()
 	tap_esc_common::deinitialise_uart(_uart_fd);
 
 	DEVICE_LOG("stopping");
+
+	perf_free(_perf_control_latency);
 }
 
 /** @see ModuleBase */
@@ -365,8 +371,7 @@ void TAP_ESC::subscribe()
 
 void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 {
-	uint16_t rpm[TAP_ESC_MAX_MOTOR_NUM];
-	memset(rpm, 0, sizeof(rpm));
+	uint16_t rpm[TAP_ESC_MAX_MOTOR_NUM] = {};
 
 	for (uint8_t i = 0; i < motor_cnt; i++) {
 		rpm[i] = pwm[i];
@@ -390,7 +395,7 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 
 	int ret = tap_esc_common::send_packet(_uart_fd, packet, _responding_esc);
 
-	if (++_responding_esc == _channels_count) {
+	if (++_responding_esc >= _channels_count) {
 		_responding_esc = 0;
 	}
 
@@ -406,22 +411,10 @@ void TAP_ESC::cycle()
 		_groups_subscribed = _groups_required;
 
 		/* Set uorb update rate */
-		int update_rate_in_ms = int(1000 / PWM_DEFAULT_UPDATE_RATE);
-
-		if (update_rate_in_ms < 2) {
-			/* reject faster than 500 Hz updates */
-			update_rate_in_ms = 2;
-
-		} else if (update_rate_in_ms > 100) {
-			/* reject slower than 10 Hz updates */
-			update_rate_in_ms = 100;
-		}
-
-		DEVICE_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
-
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] >= 0) {
-				orb_set_interval(_control_subs[i], update_rate_in_ms);
+				orb_set_interval(_control_subs[i], TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
+				DEVICE_DEBUG("New actuator update interval: %ums", TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
 			}
 		}
 	}
@@ -461,7 +454,6 @@ void TAP_ESC::cycle()
 			/* do mixing */
 			num_outputs = _mixers->mix(&_outputs.output[0], num_outputs);
 			_outputs.noutputs = num_outputs;
-			_outputs.timestamp = hrt_absolute_time();
 
 			/* publish mixer status */
 			multirotor_motor_limits_s multirotor_motor_limits = {};
@@ -560,6 +552,8 @@ void TAP_ESC::cycle()
 			motor_out[i] = RPMSTOPPED;
 		}
 
+		_outputs.timestamp = hrt_absolute_time();
+
 		send_esc_outputs(motor_out, num_outputs);
 		tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
@@ -584,6 +578,17 @@ void TAP_ESC::cycle()
 
 		/* and publish for anyone that cares to see */
 		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
+
+		// use first valid timestamp_sample for latency tracking
+		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+			if (required && (timestamp_sample > 0)) {
+				perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
+				break;
+			}
+		}
 
 	}
 

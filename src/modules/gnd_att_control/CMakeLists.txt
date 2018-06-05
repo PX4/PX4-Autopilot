@@ -37,7 +37,4 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		GroundRoverAttitudeControl.cpp
-	DEPENDS
-		git_ecl
-		ecl
 	)

@@ -93,7 +93,6 @@
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/time_offset.h>
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/camera_trigger.h>
@@ -103,8 +102,8 @@
 #include <uORB/topics/task_stack_info.h>
 
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <systemlib/printload.h>
 #include <systemlib/mavlink_log.h>
 #include <version/version.h>
@@ -567,7 +566,9 @@ int open_perf_file(const char* str)
 
 	if (log_name_timestamp && time_ok) {
 		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &tt);
-		snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+		if (snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name)) {
+			return -1;
+		}
 
 	} else {
 		unsigned file_number = 1; // start with file log001
@@ -576,7 +577,9 @@ int open_perf_file(const char* str)
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.txt */
 			snprintf(log_file_name, sizeof(log_file_name), "perf%03u.txt", file_number);
-			snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+			if (snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name) >= sizeof(log_file_path)) {
+				return -1;
+			}
 
 			if (!file_exist(log_file_path)) {
 				break;
@@ -866,8 +869,9 @@ int write_version(int fd)
 	};
 
 	/* fill version message and write it */
-	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git));
-	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch));
+	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git)-1);
+	log_msg_VER.body.fw_git[sizeof(log_msg_VER.body.fw_git)-1] = '\0';
+	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch)-1);
 	log_msg_VER.body.arch[sizeof(log_msg_VER.body.arch) - 1] = '\0';
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
@@ -1185,7 +1189,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct satellite_info_s sat_info;
 		struct wind_estimate_s wind_estimate;
 		struct vtol_vehicle_status_s vtol_status;
-		struct time_offset_s time_offset;
 		struct rate_ctrl_status_s rate_ctrl_status;
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
@@ -2070,13 +2073,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_WIND.cov_x = buf.wind_estimate.variance_north;
 				log_msg.body.log_WIND.cov_y = buf.wind_estimate.variance_east;
 				LOGBUFFER_WRITE_AND_COUNT(WIND);
-			}
-
-			/* --- TIMESYNC OFFSET --- */
-			if (copy_if_updated(ORB_ID(time_offset), &subs.tsync_sub, &buf.time_offset)) {
-				log_msg.msg_type = LOG_TSYN_MSG;
-				log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
-				LOGBUFFER_WRITE_AND_COUNT(TSYN);
 			}
 
 			/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */

@@ -48,9 +48,7 @@ LidarLite::LidarLite() :
 {
 }
 
-LidarLite::~LidarLite()
-{
-}
+LidarLite::~LidarLite() = default;
 
 void LidarLite::set_minimum_distance(const float min)
 {

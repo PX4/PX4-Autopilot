@@ -42,6 +42,7 @@
 #include <systemlib/err.h>
 #include <unit_test.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 extern "C" __EXPORT int mc_pos_control_tests_main(int argc, char *argv[]);
 
@@ -58,22 +59,14 @@ public:
 class McPosControlTests : public UnitTest
 {
 public:
-	McPosControlTests();
-	virtual ~McPosControlTests();
+	McPosControlTests() = default;
+	virtual ~McPosControlTests() = default;
 
 	virtual bool run_tests();
 
 private:
 	bool cross_sphere_line_test();
 };
-
-McPosControlTests::McPosControlTests()
-{
-}
-
-McPosControlTests::~McPosControlTests()
-{
-}
 
 bool McPosControlTests::cross_sphere_line_test()
 {

@@ -71,9 +71,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
@@ -208,7 +208,6 @@ private:
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
-	perf_counter_t		_controller_latency_perf;
 
 	uint8_t			_register_wait;
 	uint64_t		_reset_wait;
@@ -510,7 +509,6 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6k_good_trans")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6k_reset")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu6k_duplicates")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -815,9 +813,6 @@ int MPU6000::reset()
 	_set_sample_rate(_sample_rate);
 	usleep(1000);
 
-	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
-	// was 90 Hz, but this ruins quality and does not improve the
-	// system response
 	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
 
 	if (is_icm_device()) {
@@ -1409,19 +1404,12 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
-					_set_dlpf_filter(cutoff_freq_hz);
-
-					if (is_icm_device()) {
-						_set_icm_acc_dlpf_filter(cutoff_freq_hz);
-					}
 
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
-
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
@@ -2086,8 +2074,6 @@ MPU6000::measure()
 	}
 
 	if (accel_notify && !(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}
@@ -2604,14 +2590,16 @@ usage()
 int
 mpu6000_main(int argc, char *argv[])
 {
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
 	enum MPU6000_BUS busid = MPU6000_BUS_ALL;
 	int device_type = MPU_DEVICE_TYPE_MPU6000;
-	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 	int accel_range = MPU6000_ACCEL_DEFAULT_RANGE_G;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "T:XISsZzR:a:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "T:XISsZzR:a:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MPU6000_BUS_I2C_EXTERNAL;
@@ -2638,28 +2626,32 @@ mpu6000_main(int argc, char *argv[])
 			break;
 
 		case 'T':
-			device_type = atoi(optarg);
+			device_type = atoi(myoptarg);
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
-			accel_range = atoi(optarg);
+			accel_range = atoi(myoptarg);
 			break;
 
 		default:
 			mpu6000::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		mpu6000::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
-
 	 */
 	if (!strcmp(verb, "start")) {
 		mpu6000::start(busid, rotation, accel_range, device_type);
@@ -2706,5 +2698,5 @@ mpu6000_main(int argc, char *argv[])
 	}
 
 	mpu6000::usage();
-	exit(1);
+	return -1;
 }

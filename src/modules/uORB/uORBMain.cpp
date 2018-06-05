@@ -105,7 +105,7 @@ uorb_main(int argc, char *argv[])
 		}
 
 		/* create the driver */
-		g_dev = uORB::Manager::get_instance()->get_device_master(uORB::PUBSUB);
+		g_dev = uORB::Manager::get_instance()->get_device_master();
 
 		if (g_dev == nullptr) {
 			return -errno;

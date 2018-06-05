@@ -298,8 +298,8 @@ public:
 
 private:
 	// Private constructor, uORB::Manager takes care of its creation
-	DeviceMaster(Flavor f);
-	virtual ~DeviceMaster();
+	DeviceMaster();
+	virtual ~DeviceMaster() = default;
 
 	struct DeviceNodeStatisticsData {
 		DeviceNode *node;
@@ -321,8 +321,6 @@ private:
 	 * @return node if exists, nullptr otherwise
 	 */
 	uORB::DeviceNode *getDeviceNodeLocked(const char *node_name);
-
-	const Flavor _flavor;
 
 #ifdef __PX4_NUTTX
 	ORBMap _node_map;

@@ -57,6 +57,7 @@
 #include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
 #include <nuttx/analog/adc.h>
+#include <nuttx/spi/spi.h>
 
 #include "board_config.h"
 #include <stm32_uart.h>
@@ -71,7 +72,7 @@
 #include <systemlib/err.h>
 #include <systemlib/hardfault_log.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -132,6 +133,10 @@ stm32_boardinitialize(void)
 	/* configure LEDs */
 
 	board_autoled_initialize();
+
+	/* configure SPI interfaces */
+
+	stm32_spiinitialize();
 
 	stm32_usbinitialize();
 }
@@ -326,6 +331,15 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_BLUE);
 	led_off(LED_TX);
 	led_off(LED_RX);
+
+#ifdef CONFIG_SPI
+	int ret = stm32_spi_bus_initialize();
+
+	if (ret != OK) {
+		return ret;
+	}
+
+#endif
 
 	return OK;
 }

@@ -50,8 +50,9 @@
 #include <drivers/drv_mixer.h>
 #include <lib/mixer/mixer.h>
 #include <lib/mixer/mixer_load.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <perf/perf_counter.h>
 
 #include "common.h"
 #include "navio_sysfs.h"
@@ -76,6 +77,8 @@ int     _armed_sub = -1;
 // publications
 orb_advert_t    _outputs_pub = nullptr;
 orb_advert_t    _rc_pub = nullptr;
+
+perf_counter_t	_perf_control_latency = nullptr;
 
 // topic structures
 actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -212,6 +215,8 @@ void task_main(int argc, char *argv[])
 {
 	_is_running = true;
 
+	_perf_control_latency = perf_alloc(PC_ELAPSED, "linux_pwm_out control latency");
+
 	// Set up mixer
 	if (initialize_mixer(_mixer_filename) < 0) {
 		PX4_ERR("Mixer initialization failed.");
@@ -240,6 +245,7 @@ void task_main(int argc, char *argv[])
 	}
 
 	_mixer_group->groups_required(_groups_required);
+
 	// subscribe and set up polling
 	subscribe();
 
@@ -321,7 +327,6 @@ void task_main(int argc, char *argv[])
 		}
 
 		if (_mixer_group != nullptr) {
-			_outputs.timestamp = hrt_absolute_time();
 			/* do mixing */
 			_outputs.noutputs = _mixer_group->mix(_outputs.output, actuator_outputs_s::NUM_ACTUATOR_OUTPUTS);
 
@@ -379,11 +384,24 @@ void task_main(int argc, char *argv[])
 				pwm_out->send_output_pwm(pwm, _outputs.noutputs);
 			}
 
+			_outputs.timestamp = hrt_absolute_time();
+
 			if (_outputs_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
 			} else {
 				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
+			}
+
+			// use first valid timestamp_sample for latency tracking
+			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+				const bool required = _groups_required & (1 << i);
+				const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+				if (required && (timestamp_sample > 0)) {
+					perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
+					break;
+				}
 			}
 
 		} else {
@@ -423,6 +441,8 @@ void task_main(int argc, char *argv[])
 	if (params_sub != -1) {
 		orb_unsubscribe(params_sub);
 	}
+
+	perf_free(_perf_control_latency);
 
 	_is_running = false;
 

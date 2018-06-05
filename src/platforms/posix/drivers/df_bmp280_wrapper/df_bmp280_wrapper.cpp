@@ -51,7 +51,7 @@
 #include <px4_getopt.h>
 #include <errno.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_baro.h>
@@ -150,7 +150,7 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 {
 	perf_begin(_baro_sample_perf);
 
-	baro_report baro_report;
+	baro_report baro_report = {};
 	baro_report.timestamp = hrt_absolute_time();
 
 	baro_report.pressure = data.pressure_pa / 100.0f; // to mbar

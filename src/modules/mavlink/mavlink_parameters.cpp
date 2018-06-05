@@ -431,6 +431,9 @@ MavlinkParametersManager::send_uavcan()
 		mavlink_param_value_t msg;
 		msg.param_count = value.param_count;
 		msg.param_index = value.param_index;
+#if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+#endif
 		/*
 		 * coverity[buffer_size_warning : FALSE]
 		 *
@@ -439,6 +442,9 @@ MavlinkParametersManager::send_uavcan()
 		 * when copying it.
 		 */
 		strncpy(msg.param_id, value.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+#if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic pop
+#endif
 
 		if (value.param_type == MAV_PARAM_TYPE_REAL32) {
 			msg.param_type = MAVLINK_TYPE_FLOAT;
@@ -547,6 +553,9 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	msg.param_count = param_count_used();
 	msg.param_index = param_get_used_index(param);
 
+#if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+#endif
 	/*
 	 * coverity[buffer_size_warning : FALSE]
 	 *
@@ -555,6 +564,9 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	 * when copying it.
 	 */
 	strncpy(msg.param_id, param_name(param), MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+#if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic pop
+#endif
 
 	/* query parameter type */
 	param_type_t type = param_type(param);

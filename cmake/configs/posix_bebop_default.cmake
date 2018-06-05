@@ -12,7 +12,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/linux_sbus
 	modules/sensors
 	platforms/posix/drivers/df_ms5607_wrapper
@@ -56,9 +55,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
 	modules/land_detector
 	modules/navigator
@@ -68,19 +64,6 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/mathlib
-	lib/mixer
-	lib/terrain_estimation
-	lib/version
-	lib/FlightTasks
 )
 
 set(config_df_driver_list

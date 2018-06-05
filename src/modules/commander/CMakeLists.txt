@@ -52,6 +52,7 @@ px4_add_module(
 		PreflightCheck.cpp
 		arm_auth.cpp
 	DEPENDS
-		platforms__common
+		df_driver_framework
+		git_ecl
+		ecl_geo
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -61,7 +61,7 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <lib/ecl/geo/geo.h>
@@ -158,7 +158,7 @@ private:
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 };
 
 namespace bottle_drop
@@ -868,10 +868,11 @@ BottleDrop::answer_command(struct vehicle_command_s *cmd, unsigned result)
 	}
 }
 
-void
+int
 BottleDrop::task_main_trampoline(int argc, char *argv[])
 {
 	bottle_drop::g_bottle_drop->task_main();
+	return 0;
 }
 
 static void usage()

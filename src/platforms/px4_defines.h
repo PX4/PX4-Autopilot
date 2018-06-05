@@ -94,7 +94,7 @@
 #define PX4_MAIN_FUNCTION(_prefix) int _prefix##_task_main(int argc, char *argv[])
 
 /* Parameter handle datatype */
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 typedef param_t px4_param_t;
 
 /* Get value of parameter by name */

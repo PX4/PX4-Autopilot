@@ -61,10 +61,10 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/pid/pid.h>
 #include <lib/ecl/geo/geo.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <matrix/math.hpp>
 

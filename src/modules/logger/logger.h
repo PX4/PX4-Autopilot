@@ -39,7 +39,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
 #include <version/version.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/printload.h>
 #include <px4_module.h>
 
@@ -160,6 +160,12 @@ public:
 	void set_arm_override(bool override) { _arm_override = override; }
 
 private:
+
+	enum class PrintLoadReason {
+		Preflight,
+		Postflight,
+		Watchdog
+	};
 
 	/**
 	 * Write an ADD_LOGGED_MSG to the log for a all current subscriptions and instances
@@ -297,12 +303,12 @@ private:
 	/**
 	 * initialize the output for the process load, so that ~1 second later it will be written to the log
 	 */
-	void initialize_load_output();
+	void initialize_load_output(PrintLoadReason reason);
 
 	/**
 	 * write the process load, which was previously initialized with initialize_load_output()
 	 */
-	void write_load_output(bool preflight);
+	void write_load_output();
 
 
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
@@ -344,6 +350,7 @@ private:
 											will be stopped after load printing */
 	print_load_s					_load{}; ///< process load data
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
+	PrintLoadReason					_print_load_reason;
 
 	// control
 	param_t						_sdlog_profile_handle{PARAM_INVALID};

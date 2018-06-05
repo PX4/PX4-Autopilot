@@ -53,8 +53,8 @@
 #include <arpa/inet.h>
 #include <drivers/device/device.h>
 #endif
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <pthread.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/device/ringbuffer.h>
@@ -480,6 +480,21 @@ public:
 
 	bool ftp_enabled() const { return _ftp_on; }
 
+	struct ping_statistics_s {
+		uint64_t last_ping_time;
+		uint32_t last_ping_seq;
+		uint32_t dropped_packets;
+		float last_rtt;
+		float mean_rtt;
+		float max_rtt;
+		float min_rtt;
+	};
+
+	/**
+	 * Get the ping statistics of this MAVLink link
+	 */
+	struct ping_statistics_s &get_ping_statistics() { return _ping_stats; }
+
 protected:
 	Mavlink			*next;
 
@@ -581,6 +596,8 @@ private:
 	unsigned short _remote_port;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
+
+	struct ping_statistics_s	_ping_stats;		///< ping statistics
 
 	struct mavlink_message_buffer {
 		int write_ptr;

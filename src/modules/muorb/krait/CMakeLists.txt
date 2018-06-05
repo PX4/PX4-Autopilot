@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 include(hexagon_sdk)
 
 px4_add_module(
@@ -43,7 +42,4 @@ px4_add_module(
 		uORBKraitFastRpcChannel.cpp
 		px4muorb_KraitRpcWrapper.cpp
 		muorb_main.cpp
-	DEPENDS
-		platforms__common
-		generate_px4muorb_stubs
 	)

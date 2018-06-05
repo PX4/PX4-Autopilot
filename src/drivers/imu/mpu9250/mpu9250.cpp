@@ -57,9 +57,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
@@ -174,7 +173,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_good_transfers(perf_alloc(PC_COUNT, "mpu9250_good_trans")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu9250_dupe")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
 	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -288,6 +286,17 @@ MPU9250::init()
 	unsigned dummy;
 	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
 #endif
+
+	/*
+	 * If the MPU is using I2C we should reduce the sample rate to 200Hz and
+	 * make the integration autoreset faster so that we integrate just one
+	 * sample since the sampling rate is already low.
+	*/
+	if (is_i2c()) {
+		_sample_rate = 200;
+		_accel_int.set_autoreset_interval(1000000 / 1000);
+		_gyro_int.set_autoreset_interval(1000000 / 1000);
+	}
 
 	int ret = probe();
 
@@ -494,7 +503,7 @@ int MPU9250::reset_mpu()
 
 
 
-	usleep(1000);
+//	usleep(1000);
 
 	// Enable I2C bus or Disable I2C bus (recommended on data sheet)
 
@@ -505,9 +514,6 @@ int MPU9250::reset_mpu()
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
 
-	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
-	// was 90 Hz, but this ruins quality and does not improve the
-	// system response
 	_set_dlpf_filter(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ);
 
 	// Gyro scale 2000 deg/s ()
@@ -1013,14 +1019,12 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
-					_set_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
@@ -1181,16 +1185,14 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 int
 MPU9250::select_register_bank(uint8_t bank) {
 	uint8_t ret;
-	//if (bank != _selected_bank ) {
 	uint8_t buf;
 	uint8_t count=0;
-
 
 	ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
 	if (ret != OK) {
 		return ret;
 	}
-	usleep(100);
+
 	_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
 
 	while(bank != buf) {
@@ -1201,12 +1203,9 @@ MPU9250::select_register_bank(uint8_t bank) {
 		_selected_bank=bank;
 
 		count++;
-		PX4_WARN("BANK retries: %d", count);
+//		PX4_WARN("BANK retries: %d", count);
 
-
-		usleep(20);
 		_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
-
 	}
 	return PX4_OK;
 }
@@ -1773,8 +1772,6 @@ MPU9250::measure()
 //	}
 
 	if (accel_notify && !(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}

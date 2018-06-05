@@ -38,14 +38,13 @@ px4_add_module(
 	MODULE modules__fw_pos_control_l1
 	MAIN fw_pos_control_l1
 	STACK_MAIN 1200
-	INCLUDES
-		${PX4_SOURCE_DIR}/src/lib/ecl
 	SRCS
 		FixedwingPositionControl.cpp
 		Landingslope.cpp
 	DEPENDS
 		git_ecl
-		ecl
+		ecl_l1
+		ecl_tecs
 		launchdetection
 		runway_takeoff
 	)

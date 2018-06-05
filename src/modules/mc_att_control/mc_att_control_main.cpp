@@ -100,8 +100,6 @@ To reduce control latency, the module directly polls on the gyro topic published
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-
 	_lp_filters_d{
 	{initial_update_rate_hz, 50.f},
 	{initial_update_rate_hz, 50.f},
@@ -424,7 +422,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	 * because it's the rotation axis for body yaw and multiply it by the rate and gain. */
 	Vector3f yaw_feedforward_rate = q.inversed().dcm_z();
 	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _yaw_ff.get();
-	yaw_feedforward_rate(2) *= yaw_w;
 	_rates_sp += yaw_feedforward_rate;
 
 
@@ -705,9 +702,9 @@ MulticopterAttitudeControl::run()
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
 					Vector3f man_rate_sp(
-							math::superexpo(_manual_control_sp.y, _acro_expo.get(), _acro_superexpo.get()),
-							math::superexpo(-_manual_control_sp.x, _acro_expo.get(), _acro_superexpo.get()),
-							math::superexpo(_manual_control_sp.r, _acro_expo.get(), _acro_superexpo.get()));
+							math::superexpo(_manual_control_sp.y, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
+							math::superexpo(-_manual_control_sp.x, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
+							math::superexpo(_manual_control_sp.r, _acro_expo_y.get(), _acro_superexpo_y.get()));
 					_rates_sp = man_rate_sp.emult(_acro_rate_max);
 					_thrust_sp = _manual_control_sp.z;
 
@@ -758,7 +755,6 @@ MulticopterAttitudeControl::run()
 					if (_actuators_0_pub != nullptr) {
 
 						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-						perf_end(_controller_latency_perf);
 
 					} else if (_actuators_id) {
 						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
@@ -800,7 +796,6 @@ MulticopterAttitudeControl::run()
 						if (_actuators_0_pub != nullptr) {
 
 							orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-							perf_end(_controller_latency_perf);
 
 						} else if (_actuators_id) {
 							_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);

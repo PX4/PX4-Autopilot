@@ -46,7 +46,7 @@
 
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include "drivers/drv_iridiumsbd.h"
 
@@ -211,6 +211,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	CDev::init();
 
 	pthread_mutex_init(&_tx_buf_mutex, NULL);
+	pthread_mutex_init(&_rx_buf_mutex, NULL);
 
 	int arg_i = 3;
 	int arg_uart_name = 0;
@@ -303,8 +304,10 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 		if (_new_state != _state) {
 			VERBOSE_INFO("SWITCHING STATE FROM %s TO %s", satcom_state_string[_state], satcom_state_string[_new_state]);
 			_state = _new_state;
+			publish_iridium_status();
 
 		} else {
+			publish_iridium_status();
 			usleep(100000);	// 100ms
 		}
 	}
@@ -348,14 +351,17 @@ void IridiumSBD::standby_loop(void)
 			if (_rx_session_pending && !_tx_session_pending) {
 				if (clear_mo_buffer()) {
 					start_sbd_session();
+					return;
 				}
 
 			} else {
 				start_sbd_session();
+				return;
 			}
 
 		} else {
 			start_csq();
+			return;
 		}
 	}
 
@@ -363,11 +369,13 @@ void IridiumSBD::standby_loop(void)
 	if (((hrt_absolute_time() - _last_signal_check) > SATCOM_SIGNAL_REFRESH_DELAY)
 	    && (_new_state == SATCOM_STATE_STANDBY)) {
 		start_csq();
+		return;
 	}
 
 	// only read the MT buffer if the higher layer (mavlink app) read the previous message
-	if (_rx_read_pending && (_rx_msg_read_idx == _rx_msg_end_idx)) {
+	if (_rx_read_pending && (_rx_msg_read_idx == _rx_msg_end_idx) && (_new_state == SATCOM_STATE_STANDBY)) {
 		read_rx_buf();
+		return;
 	}
 }
 
@@ -399,8 +407,6 @@ void IridiumSBD::csq_loop(void)
 	VERBOSE_INFO("SIGNAL QUALITY: %d", _signal_quality);
 
 	_new_state = SATCOM_STATE_STANDBY;
-
-	publish_telemetry_status();
 }
 
 void IridiumSBD::sbdsession_loop(void)
@@ -415,7 +421,6 @@ void IridiumSBD::sbdsession_loop(void)
 			PX4_WARN("SBD SESSION: TIMEOUT!");
 			++_failed_sbd_sessions;
 			_new_state = SATCOM_STATE_STANDBY;
-			publish_telemetry_status();
 			pthread_mutex_unlock(&_tx_buf_mutex);
 		}
 
@@ -427,7 +432,6 @@ void IridiumSBD::sbdsession_loop(void)
 
 		++_failed_sbd_sessions;
 		_new_state = SATCOM_STATE_STANDBY;
-		publish_telemetry_status();
 		pthread_mutex_unlock(&_tx_buf_mutex);
 		return;
 	}
@@ -438,7 +442,6 @@ void IridiumSBD::sbdsession_loop(void)
 
 		_new_state = SATCOM_STATE_STANDBY;
 		++_failed_sbd_sessions;
-		publish_telemetry_status();
 		pthread_mutex_unlock(&_tx_buf_mutex);
 		return;
 	}
@@ -470,10 +473,18 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: SUCCESS (%d)", mo_status);
 
 		_ring_pending = false;
-		_rx_session_pending = false;
 		_tx_session_pending = false;
 		_last_read_time = hrt_absolute_time();
 		_last_heartbeat = _last_read_time;
+		++_successful_sbd_sessions;
+
+		if (mt_queued > 0) {
+			_rx_session_pending = true;
+
+		} else {
+			_rx_session_pending = false;
+
+		}
 
 		if (mt_len > 0) {
 			_rx_read_pending = true;
@@ -489,6 +500,7 @@ void IridiumSBD::sbdsession_loop(void)
 
 		// after a successful session reset the tx buffer
 		_tx_buf_write_idx = 0;
+		++_successful_sbd_sessions;
 
 		_tx_session_pending = false;
 		break;
@@ -505,7 +517,6 @@ void IridiumSBD::sbdsession_loop(void)
 		VERBOSE_INFO("SBD SESSION: FAILED (%d)", mo_status);
 	}
 
-	publish_telemetry_status();
 	_new_state = SATCOM_STATE_STANDBY;
 	pthread_mutex_unlock(&_tx_buf_mutex);
 }
@@ -655,7 +666,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	// check if there is enough space to write the message
 	if (SATCOM_TX_BUF_LEN - _tx_buf_write_idx - _packet_length < 0) {
 		_tx_buf_write_idx = 0;
-		publish_telemetry_status();
+		++_num_tx_buf_reset;
 	}
 
 	// keep track of the remaining packet length and if the full message is written
@@ -673,8 +684,6 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	_last_write_time = hrt_absolute_time();
 	_tx_buf_write_pending = true;
 
-	publish_telemetry_status();
-
 	pthread_mutex_unlock(&_tx_buf_mutex);
 
 	return buflen;
@@ -682,6 +691,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 
 ssize_t IridiumSBD::read(struct file *filp, char *buffer, size_t buflen)
 {
+	pthread_mutex_lock(&_rx_buf_mutex);
 	VERBOSE_INFO("READ: LEN %d, RX: %d RX END: %d", buflen, _rx_msg_read_idx, _rx_msg_end_idx);
 
 	if (_rx_msg_read_idx < _rx_msg_end_idx) {
@@ -695,9 +705,11 @@ ssize_t IridiumSBD::read(struct file *filp, char *buffer, size_t buflen)
 
 		_rx_msg_read_idx += bytes_to_copy;
 
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return bytes_to_copy;
 
 	} else {
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return -EAGAIN;
 	}
 }
@@ -770,10 +782,15 @@ void IridiumSBD::read_rx_buf(void)
 		return;
 	}
 
+	pthread_mutex_lock(&_rx_buf_mutex);
+
+
 	write_at("AT+SBDRB");
 
 	if (read_at_msg() != SATCOM_RESULT_OK) {
 		VERBOSE_INFO("READ SBD: MODEM NOT RESPONDING!");
+		_rx_msg_read_idx = _rx_msg_end_idx;
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return;
 	}
 
@@ -781,7 +798,9 @@ void IridiumSBD::read_rx_buf(void)
 
 	// rx_buf contains 2 byte length, data, 2 byte checksum and /r/n delimiter
 	if (data_len != _rx_msg_end_idx - 6) {
-		VERBOSE_INFO("READ SBD: WRONG DATA LENGTH");
+		PX4_ERR("READ SBD: WRONG DATA LENGTH");
+		_rx_msg_read_idx = _rx_msg_end_idx;
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return;
 	}
 
@@ -792,7 +811,9 @@ void IridiumSBD::read_rx_buf(void)
 	}
 
 	if ((checksum / 256 != _rx_msg_buf[_rx_msg_end_idx - 4]) || ((checksum & 255) != _rx_msg_buf[_rx_msg_end_idx - 3])) {
-		VERBOSE_INFO("READ SBD: WRONG DATA CHECKSUM");
+		PX4_ERR("READ SBD: WRONG DATA CHECKSUM");
+		_rx_msg_read_idx = _rx_msg_end_idx;
+		pthread_mutex_unlock(&_rx_buf_mutex);
 		return;
 	}
 
@@ -800,6 +821,7 @@ void IridiumSBD::read_rx_buf(void)
 	_rx_msg_end_idx -= 4;	// ignore the checksum and delimiter
 	_rx_read_pending = false;
 
+	pthread_mutex_unlock(&_rx_buf_mutex);
 	VERBOSE_INFO("READ SBD: SUCCESS, LEN: %d", data_len);
 }
 
@@ -952,26 +974,92 @@ pollevent_t IridiumSBD::poll_state(struct file *filp)
 	return pollstate;
 }
 
-void IridiumSBD::publish_telemetry_status()
+void IridiumSBD::publish_iridium_status()
 {
-	// publish telemetry status for logger
-	struct telemetry_status_s tstatus = {};
+	bool need_to_publish = false;
 
-	tstatus.timestamp = hrt_absolute_time();
-	tstatus.telem_time = tstatus.timestamp;
-	tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
-	tstatus.rssi = _signal_quality;
-	tstatus.txbuf = ceil(100.0f * (float)_tx_buf_write_idx / SATCOM_TX_BUF_LEN);
-	tstatus.heartbeat_time = _last_heartbeat;
-	tstatus.rxerrors = _failed_sbd_sessions;
-
-	if (_telemetry_status_pub == nullptr) {
-		int multi_instance;
-		_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_LOW);
-
-	} else {
-		orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+	if (_status.last_heartbeat != _last_heartbeat) {
+		need_to_publish = true;
+		_status.last_heartbeat = _last_heartbeat;
 	}
+
+	if (_status.tx_buf_write_index != _tx_buf_write_idx) {
+		need_to_publish = true;
+		_status.tx_buf_write_index = _tx_buf_write_idx;
+	}
+
+	if (_status.rx_buf_read_index != _rx_msg_read_idx) {
+		need_to_publish = true;
+		_status.rx_buf_read_index = _rx_msg_read_idx;
+	}
+
+	if (_status.rx_buf_end_index != _rx_msg_end_idx) {
+		need_to_publish = true;
+		_status.rx_buf_end_index = _rx_msg_end_idx;
+	}
+
+	if (_status.failed_sbd_sessions != _failed_sbd_sessions) {
+		need_to_publish = true;
+		_status.failed_sbd_sessions = _failed_sbd_sessions;
+	}
+
+	if (_status.successful_sbd_sessions != _successful_sbd_sessions) {
+		need_to_publish = true;
+		_status.successful_sbd_sessions = _successful_sbd_sessions;
+	}
+
+	if (_status.num_tx_buf_reset != _num_tx_buf_reset) {
+		need_to_publish = true;
+		_status.num_tx_buf_reset = _num_tx_buf_reset;
+	}
+
+	if (_status.signal_quality != _signal_quality) {
+		need_to_publish = true;
+		_status.signal_quality = _signal_quality;
+	}
+
+	if (_status.state != _state) {
+		need_to_publish = true;
+		_status.state = _state;
+	}
+
+	if (_status.ring_pending != _ring_pending) {
+		need_to_publish = true;
+		_status.ring_pending = _ring_pending;
+	}
+
+	if (_status.tx_buf_write_pending != _tx_buf_write_pending) {
+		need_to_publish = true;
+		_status.tx_buf_write_pending = _tx_buf_write_pending;
+	}
+
+	if (_status.tx_session_pending != _tx_session_pending) {
+		need_to_publish = true;
+		_status.tx_session_pending = _tx_session_pending;
+	}
+
+	if (_status.rx_read_pending != _rx_read_pending) {
+		need_to_publish = true;
+		_status.rx_read_pending = _rx_read_pending;
+	}
+
+	if (_status.rx_session_pending != _rx_session_pending) {
+		need_to_publish = true;
+		_status.rx_session_pending = _rx_session_pending;
+	}
+
+	_status.timestamp = hrt_absolute_time();
+
+	// publish the status if it changed
+	if (need_to_publish) {
+		if (_iridiumsbd_status_pub == nullptr) {
+			_iridiumsbd_status_pub = orb_advertise(ORB_ID(iridiumsbd_status), &_status);
+
+		} else {
+			orb_publish(ORB_ID(iridiumsbd_status), _iridiumsbd_status_pub, &_status);
+		}
+	}
+
 }
 
 int	IridiumSBD::open_first(struct file *filep)
@@ -988,6 +1076,10 @@ int	IridiumSBD::close_last(struct file *filep)
 
 int iridiumsbd_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		goto out_error;
+	}
+
 	if (!strcmp(argv[1], "start")) {
 		return IridiumSBD::start(argc, argv);
 
@@ -1003,6 +1095,7 @@ int iridiumsbd_main(int argc, char *argv[])
 		return OK;
 	}
 
+out_error:
 	PX4_INFO("usage: iridiumsbd {start|stop|status|test} [-d uart_device]");
 
 	return PX4_ERROR;

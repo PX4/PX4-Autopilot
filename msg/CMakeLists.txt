@@ -62,6 +62,7 @@ set(msg_files
 	gps_inject_data.msg
 	home_position.msg
 	input_rc.msg
+	iridiumsbd_status.msg
 	irlock_report.msg
 	landing_target_innovations.msg
 	landing_target_pose.msg
@@ -77,6 +78,7 @@ set(msg_files
 	offboard_control_mode.msg
 	optical_flow.msg
 	parameter_update.msg
+	ping.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
@@ -103,7 +105,7 @@ set(msg_files
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
-	time_offset.msg
+	timesync_status.msg
 	transponder_report.msg
 	tune_control.msg
 	uavcan_parameter_request.msg
@@ -196,5 +198,5 @@ add_custom_command(OUTPUT ${uorb_sources}
 	VERBATIM
 	)
 
-px4_add_library(uorb_msgs ${uorb_sources})
-add_dependencies(uorb_msgs uorb_headers)
+add_library(uorb_msgs ${uorb_sources})
+add_dependencies(uorb_msgs prebuild_targets uorb_headers)

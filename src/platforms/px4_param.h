@@ -41,7 +41,7 @@
 
 #include "px4_param_macros.h"
 
-#include <px4_parameters_public.h>
+#include <parameters/px4_parameters_public.h>
 
 /**
  * get the parameter handle from a parameter enum

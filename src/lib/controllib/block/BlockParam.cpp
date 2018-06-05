@@ -51,7 +51,8 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 	char fullname[blockNameLengthMax];
 
 	if (parent == nullptr) {
-		strncpy(fullname, name, blockNameLengthMax);
+		strncpy(fullname, name, blockNameLengthMax - 1);
+		fullname[sizeof(fullname) - 1] = '\0';
 
 	} else {
 		char parentName[blockNameLengthMax];
@@ -63,7 +64,9 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 			fullname[sizeof(fullname) - 1] = '\0';
 
 		} else if (parent_prefix) {
-			snprintf(fullname, blockNameLengthMax, "%s_%s", parentName, name);
+			if (snprintf(fullname, blockNameLengthMax, "%s_%s", parentName, name) >= blockNameLengthMax) {
+				PX4_ERR("param too long: %s", name);
+			}
 
 		} else {
 			strncpy(fullname, name, blockNameLengthMax);

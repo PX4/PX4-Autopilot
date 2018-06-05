@@ -8,8 +8,11 @@ then
 	# Default parameters for FW
 	#
 	param set COM_POS_FS_DELAY 5
-	param set COM_POS_FS_PROB 1
+	param set COM_POS_FS_EPH 25
+	param set COM_POS_FS_EPV 50
 	param set COM_POS_FS_GAIN 0
+	param set COM_POS_FS_PROB 1
+	param set COM_VEL_FS_EVH 5
 
 	param set EKF2_ARSP_THR 8.0
 	param set EKF2_FUSE_BETA 1

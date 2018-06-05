@@ -41,51 +41,51 @@
 
 #pragma once
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/rc_channels.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/optical_flow.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls.h>
+
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/collision_report.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/debug_vect.h>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/time_offset.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
-#include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/gps_inject_data.h>
-#include <uORB/topics/collision_report.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/ping.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/rc_channels.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/transponder_report.h>
+#include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 
-#include "mavlink_mission.h"
-#include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
-
-#define PX4_EPOCH_SECS 1234567890ULL
+#include "mavlink_mission.h"
+#include "mavlink_parameters.h"
+#include "mavlink_timesync.h"
 
 class Mavlink;
 
@@ -143,8 +143,6 @@ private:
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_ping(mavlink_message_t *msg);
-	void handle_message_system_time(mavlink_message_t *msg);
-	void handle_message_timesync(mavlink_message_t *msg);
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
@@ -179,17 +177,6 @@ private:
 	void get_message_interval(int msgId);
 
 	/**
-	 * Convert remote timestamp to local hrt time (usec)
-	 * Use timesync if available, monotonic boot time otherwise
-	 */
-	uint64_t sync_stamp(uint64_t usec);
-
-	/**
-	 * Exponential moving average filter to smooth time offset
-	 */
-	void smooth_time_offset(int64_t offset_ns);
-
-	/**
 	 * Decode a switch position from a bitfield
 	 */
 	switch_pos_t decode_switch_pos(uint16_t buttons, unsigned sw);
@@ -209,6 +196,7 @@ private:
 	MavlinkParametersManager	_parameters_manager;
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
+	MavlinkTimesync		_mavlink_timesync;
 
 	mavlink_status_t _status; ///< receiver status, used for mavlink_parse_char()
 	struct vehicle_local_position_s _hil_local_pos;
@@ -238,11 +226,11 @@ private:
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _vision_attitude_pub;
 	orb_advert_t _telemetry_status_pub;
+	orb_advert_t _ping_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _obstacle_distance_pub;
 	orb_advert_t _land_detector_pub;
-	orb_advert_t _time_offset_pub;
 	orb_advert_t _follow_target_pub;
 	orb_advert_t _landing_target_pose_pub;
 	orb_advert_t _transponder_report_pub;
@@ -262,8 +250,6 @@ private:
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
 	struct offboard_control_mode_s _offboard_control_mode;
-	double _time_offset_avg_alpha;
-	int64_t _time_offset;
 	int	_orb_class_instance;
 
 	static constexpr unsigned MOM_SWITCH_COUNT = 8;

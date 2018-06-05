@@ -479,27 +479,27 @@ GroundRoverPositionControl::task_main()
 	_control_task = -1;
 }
 
-void
+int
 GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	gnd_control::g_control = new GroundRoverPositionControl();
 
 	if (gnd_control::g_control == nullptr) {
 		warnx("OUT OF MEM");
-		return;
+		return -1;
 	}
 
 	/* only returns on exit */
 	gnd_control::g_control->task_main();
 	delete gnd_control::g_control;
 	gnd_control::g_control = nullptr;
+	return 0;
 }
 
 int
 GroundRoverPositionControl::start()
 {
 	ASSERT(_control_task == -1);
-	warn("Starting by marco");
 
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("gnd_pos_ctrl",
@@ -508,7 +508,6 @@ GroundRoverPositionControl::start()
 					   1700,
 					   (px4_main_t)&GroundRoverPositionControl::task_main_trampoline,
 					   nullptr);
-	warn("done");
 
 	if (_control_task < 0) {
 		warn("task start failed");

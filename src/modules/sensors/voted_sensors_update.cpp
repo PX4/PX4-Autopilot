@@ -831,7 +831,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 			_baro_device_id[uorb_index] = baro_report.device_id;
 
 			got_update = true;
-			matrix::Vector3f vect(baro_report.pressure, 0.f, 0.f);
+			matrix::Vector3f vect(baro_report.pressure, baro_report.temperature, 0.f);
 
 			_last_airdata[uorb_index].timestamp = baro_report.timestamp;
 			_last_airdata[uorb_index].baro_temp_celcius = baro_report.temperature;

@@ -37,5 +37,4 @@ px4_add_module(
 	SRCS
 		batt_smbus.cpp
 	DEPENDS
-		platforms__common
 	)

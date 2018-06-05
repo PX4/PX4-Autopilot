@@ -74,7 +74,6 @@ tone_alarm start
 gyrosim start
 accelsim start
 barosim start
-adcsim start
 commander start
 sensors start
 ekf_att_pos_estimator start

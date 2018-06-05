@@ -5,14 +5,13 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
-	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/imu/mpu9250
 	drivers/barometer/lps25h
 	drivers/gps
+	drivers/distance_sensor/vl53lxx
+	drivers/pmw3901
 	modules/sensors
 
 	#
@@ -32,6 +31,8 @@ set(config_module_list
 	systemcmds/dumpfile
 	systemcmds/ver
 	systemcmds/hardfault_log
+	systemcmds/topic_listener
+	systemcmds/sd_bench
 
 	#
 	# General system control
@@ -71,24 +72,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/terrain_estimation
-	lib/version
-	lib/FlightTasks
 
 	#
 	# OBC challenge

@@ -51,7 +51,7 @@
 #include <up_internal.h>
 #include <up_arch.h>
 #include <stm32.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 //#define DEBUG
 #include "px4io.h"

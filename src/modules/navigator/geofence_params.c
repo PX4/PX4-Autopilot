@@ -56,9 +56,9 @@
  * @max 4
  * @value 0 None
  * @value 1 Warning
- * @value 2 Loiter
- * @value 3 Return to Land
- * @value 4 Flight terminate
+ * @value 2 Hold mode
+ * @value 3 Return mode
+ * @value 4 Terminate
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ACTION, 1);

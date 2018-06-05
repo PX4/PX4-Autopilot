@@ -56,7 +56,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <vector>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <drivers/device/ringbuffer.h>
 #include <stdio.h>
@@ -122,7 +122,7 @@ private:
 	unsigned 	_tail;
 	uint8_t 	_buf[BUF_LEN];
 
-	static void task_main_trampoline(int argc, char *argv[]);
+	static int task_main_trampoline(int argc, char *argv[]);
 	void task_main();
 
 	bool read_and_parse(uint8_t *buf, int len, float *range);
@@ -299,10 +299,11 @@ Radar::init()
 	return ret;
 }
 
-void
+int
 Radar::task_main_trampoline(int argc, char *argv[])
 {
 	radar::g_dev->task_main();
+	return 0;
 }
 
 int

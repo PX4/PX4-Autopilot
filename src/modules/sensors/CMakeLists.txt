@@ -46,6 +46,9 @@ px4_add_module(
 		temperature_compensation.cpp
 
 	DEPENDS
-		platforms__common
+		battery
+		conversion
+		drivers__device
+		git_ecl
+		ecl_validation
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

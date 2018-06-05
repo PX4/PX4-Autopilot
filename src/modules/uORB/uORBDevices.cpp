@@ -142,13 +142,11 @@ uORB::DeviceNode::open(device::file_t *filp)
 	if (FILE_FLAGS(filp) == PX4_F_RDONLY) {
 
 		/* allocate subscriber data */
-		SubscriberData *sd = new SubscriberData;
+		SubscriberData *sd = new SubscriberData{};
 
 		if (nullptr == sd) {
 			return -ENOMEM;
 		}
-
-		memset(sd, 0, sizeof(*sd));
 
 		/* default to no pending update */
 		sd->generation = _generation;
@@ -429,13 +427,13 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	/* check if the device handle is initialized */
 	if ((devnode == nullptr) || (meta == nullptr)) {
 		errno = EFAULT;
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* check if the orb meta data matches the publication */
 	if (devnode->_meta != meta) {
 		errno = EINVAL;
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* call the devnode write method with no file pointer */
@@ -443,12 +441,12 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 
 	if (ret < 0) {
 		errno = -ret;
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	if (ret != (int)meta->o_size) {
 		errno = EIO;
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/*
@@ -458,9 +456,8 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 
 	if (ch != nullptr) {
 		if (ch->send_message(meta->o_name, meta->o_size, (uint8_t *)data) != 0) {
-			warnx("[uORB::DeviceNode::publish(%d)]: Error Sending [%s] topic data over comm_channel",
-			      __LINE__, meta->o_name);
-			return ERROR;
+			PX4_ERR("Error Sending [%s] topic data over comm_channel", meta->o_name);
+			return PX4_ERROR;
 		}
 	}
 
@@ -778,7 +775,7 @@ int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
 
 	//queue size is limited to 255 for the single reason that we use uint8 to store it
 	if (_data || _queue_size > queue_size || queue_size > 255) {
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	_queue_size = queue_size;
@@ -815,36 +812,29 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 	int16_t ret = -1;
 
 	if (length != (int32_t)(_meta->o_size)) {
-		warnx("[uORB::DeviceNode::process_received_message(%d)]Error:[%s] Received DataLength[%d] != ExpectedLen[%d]",
-		      __LINE__, _meta->o_name, (int)length, (int)_meta->o_size);
-		return ERROR;
+		PX4_ERR("Received DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
+		return PX4_ERROR;
 	}
 
 	/* call the devnode write method with no file pointer */
 	ret = write(nullptr, (const char *)data, _meta->o_size);
 
 	if (ret < 0) {
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	if (ret != (int)_meta->o_size) {
 		errno = EIO;
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-uORB::DeviceMaster::DeviceMaster(Flavor f) :
-	CDev((f == PUBSUB) ? "obj_master" : "param_master",
-	     (f == PUBSUB) ? TOPIC_MASTER_DEVICE_PATH : PARAM_MASTER_DEVICE_PATH),
-	_flavor(f)
+uORB::DeviceMaster::DeviceMaster() :
+	CDev("obj_master", TOPIC_MASTER_DEVICE_PATH)
 {
 	_last_statistics_output = hrt_absolute_time();
-}
-
-uORB::DeviceMaster::~DeviceMaster()
-{
 }
 
 int
@@ -856,19 +846,16 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case ORBIOCADVERTISE: {
 			const struct orb_advertdata *adv = (const struct orb_advertdata *)arg;
 			const struct orb_metadata *meta = adv->meta;
-			const char *objname;
-			const char *devpath;
 			char nodepath[orb_maxpath];
-			uORB::DeviceNode *node;
 
 			/* construct a path to the node - this also checks the node name */
-			ret = uORB::Utils::node_mkpath(nodepath, _flavor, meta, adv->instance);
+			ret = uORB::Utils::node_mkpath(nodepath, meta, adv->instance);
 
 			if (ret != PX4_OK) {
 				return ret;
 			}
 
-			ret = ERROR;
+			ret = PX4_ERROR;
 
 			/* try for topic groups */
 			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
@@ -895,17 +882,17 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					*(adv->instance) = group_tries;
 				}
 
-				objname = meta->o_name; //no need for a copy, meta->o_name will never be freed or changed
+				const char *objname = meta->o_name; //no need for a copy, meta->o_name will never be freed or changed
 
 				/* driver wants a permanent copy of the path, so make one here */
-				devpath = strdup(nodepath);
+				const char *devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
 					return -ENOMEM;
 				}
 
 				/* construct the new node */
-				node = new uORB::DeviceNode(meta, objname, devpath, adv->priority);
+				uORB::DeviceNode *node = new uORB::DeviceNode(meta, objname, devpath, adv->priority);
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {

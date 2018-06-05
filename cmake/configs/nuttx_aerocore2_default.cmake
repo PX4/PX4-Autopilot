@@ -13,18 +13,14 @@ set(config_module_list
 	#drivers/magnetometer
 	#drivers/telemetry
 
-	drivers/device
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/imu/lsm303d
 	drivers/imu/l3gd20
 	drivers/gps
 	drivers/pwm_out_sim
-	drivers/airspeed
 	modules/sensors
 	#drivers/pwm_input
 	#drivers/camera_trigger
@@ -100,26 +96,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
-	lib/FlightTasks
 
 	#
 	# OBC challenge

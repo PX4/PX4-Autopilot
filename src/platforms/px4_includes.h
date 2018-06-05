@@ -52,7 +52,7 @@
 #include <uORB/uORB.h>
 
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/systemlib.h>
 
 #elif defined(__PX4_POSIX) && !defined(__PX4_QURT)
@@ -66,7 +66,7 @@
 #define ASSERT(x) assert(x)
 
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/systemlib.h>
 
 #elif defined(__PX4_QURT)
@@ -80,7 +80,7 @@
 #define ASSERT(x) assert(x)
 
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/systemlib.h>
 
 #else

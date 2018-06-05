@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include "mixer.h"
 
 #include <cfloat>
+#include <cstring>
 
 #include <mathlib/mathlib.h>
 
@@ -76,7 +77,9 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
 	_outputs_prev(new float[_rotor_count])
 {
-	memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
+	for (unsigned i = 0; i < _rotor_count; ++i) {
+		_outputs_prev[i] = _idle_speed;
+	}
 }
 
 MultirotorMixer::~MultirotorMixer()

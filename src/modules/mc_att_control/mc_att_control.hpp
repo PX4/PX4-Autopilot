@@ -34,7 +34,7 @@
 #include <lib/mixer/mixer.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <matrix/matrix/math.hpp>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_module.h>
@@ -164,7 +164,6 @@ private:
 	MultirotorMixer::saturation_status _saturation_status{};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_controller_latency_perf;
 
 	math::LowPassFilter2p _lp_filters_d[3];                      /**< low-pass filters for D-term (roll, pitch & yaw) */
 	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
@@ -220,8 +219,10 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _acro_roll_max,
 		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _acro_pitch_max,
 		(ParamFloat<px4::params::MC_ACRO_Y_MAX>) _acro_yaw_max,
-		(ParamFloat<px4::params::MC_ACRO_EXPO>) _acro_expo,				/**< function parameter for expo stick curve shape */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _acro_superexpo,			/**< function parameter for superexpo stick curve shape */
+		(ParamFloat<px4::params::MC_ACRO_EXPO>) _acro_expo_rp,				/**< expo stick curve shape (roll & pitch) */
+		(ParamFloat<px4::params::MC_ACRO_EXPO_Y>) _acro_expo_y,				/**< expo stick curve shape (yaw) */
+		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _acro_superexpo_rp,			/**< superexpo stick curve shape (roll & pitch) */
+		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _acro_superexpo_y,			/**< superexpo stick curve shape (yaw) */
 
 		(ParamFloat<px4::params::MC_RATT_TH>) _rattitude_thres,
 

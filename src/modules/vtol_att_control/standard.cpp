@@ -70,9 +70,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
 }
 
-Standard::~Standard()
-{
-}
+Standard::~Standard() = default;
 
 void
 Standard::parameters_update()
@@ -370,7 +368,7 @@ void Standard::update_mc_state()
 
 		// rotate the vector into a new frame which is rotated in z by the desired heading
 		// with respect to the earh frame.
-		float yaw_error = _wrap_pi(euler_sp(2) - euler(2));
+		float yaw_error = matrix::wrap_pi(euler_sp(2) - euler(2));
 		matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
 		tilt_new = R_yaw_correction * tilt_new;
 
@@ -398,7 +396,8 @@ void Standard::update_fw_state()
 void Standard::fill_actuator_outputs()
 {
 	// multirotor controls
-	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
+	_actuators_out_0->timestamp = hrt_absolute_time();
+	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 
 	// roll
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
@@ -415,7 +414,8 @@ void Standard::fill_actuator_outputs()
 
 
 	// fixed wing controls
-	_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
+	_actuators_out_1->timestamp = hrt_absolute_time();
+	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
 	if (_vtol_schedule.flight_mode != MC_MODE) {
 		// roll

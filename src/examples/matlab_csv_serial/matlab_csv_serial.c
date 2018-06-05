@@ -58,7 +58,7 @@
 #include <uORB/uORB.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <poll.h>

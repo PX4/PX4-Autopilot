@@ -174,10 +174,11 @@ GroundRoverAttitudeControl::battery_status_poll()
 	}
 }
 
-void
+int
 GroundRoverAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	att_gnd_control::g_control->task_main();
+	return 0;
 }
 
 void

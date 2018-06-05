@@ -34,7 +34,8 @@
 #include "PWMSim.hpp"
 
 PWMSim::PWMSim() :
-	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH)
+	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
+	_perf_control_latency(perf_alloc(PC_ELAPSED, "pwm_out_sim control latency"))
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_pwm_min[i] = PWM_SIM_PWM_MIN_MAGIC;
@@ -54,6 +55,11 @@ PWMSim::PWMSim() :
 
 	// default to MODE_16PWM
 	set_mode(MODE_16PWM);
+}
+
+PWMSim::~PWMSim()
+{
+	perf_free(_perf_control_latency);
 }
 
 int
@@ -232,7 +238,6 @@ PWMSim::run()
 			/* do mixing */
 			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
 			_actuator_outputs.noutputs = num_outputs;
-			_actuator_outputs.timestamp = hrt_absolute_time();
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = 0; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
@@ -284,7 +289,19 @@ PWMSim::run()
 			}
 
 			/* and publish for anyone that cares to see */
+			_actuator_outputs.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_actuator_outputs);
+
+			// use first valid timestamp_sample for latency tracking
+			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+				const bool required = _groups_required & (1 << i);
+				const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+				if (required && (timestamp_sample > 0)) {
+					perf_set_elapsed(_perf_control_latency, _actuator_outputs.timestamp - timestamp_sample);
+					break;
+				}
+			}
 		}
 
 		/* how about an arming update? */

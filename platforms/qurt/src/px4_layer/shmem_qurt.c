@@ -41,7 +41,7 @@
 #include <sys/stat.h>
 #include <atomic_ops.h>
 
-#include "systemlib/param/param.h"
+#include <parameters/param.h>
 
 #include <shmem.h>
 #include <drivers/drv_hrt.h>

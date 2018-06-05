@@ -59,8 +59,8 @@
 #include <systemlib/board_serial.h>
 #include <systemlib/circuit_breaker.h>
 #include <lib/mixer/mixer.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
@@ -210,6 +210,11 @@ private:
 		"ST24"
 	};
 
+	enum class MotorOrdering : int32_t {
+		PX4 = 0,
+		Betaflight = 1
+	};
+
 	hrt_abstime _rc_scan_begin = 0;
 	bool _rc_scan_locked = false;
 	bool _report_lock = true;
@@ -273,11 +278,12 @@ private:
 	orb_advert_t		_to_safety;
 	orb_advert_t      _to_mixer_status; 	///< mixer status flags
 
-	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
-	float _thr_mdl_fac;	// thrust to pwm modelling factor
-	bool _airmode; 		// multicopter air-mode
+	float _mot_t_max;	///< maximum rise time for motor (slew rate limiting)
+	float _thr_mdl_fac;	///< thrust to pwm modelling factor
+	bool _airmode; 		///< multicopter air-mode
+	MotorOrdering _motor_ordering;
 
-	perf_counter_t	_ctl_latency;
+	perf_counter_t	_perf_control_latency;
 
 	static bool	arm_nothrottle()
 	{
@@ -334,6 +340,12 @@ private:
 	void rc_io_invert(bool invert);
 	void safety_check_button(void);
 	void flash_safety_button(void);
+
+	/**
+	 * Reorder PWM outputs according to _motor_ordering
+	 * @param values PWM values to reorder
+	 */
+	inline void reorder_outputs(uint16_t values[MAX_ACTUATORS]);
 };
 
 #if defined(BOARD_HAS_FMU_GPIO)
@@ -387,7 +399,8 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_mot_t_max(0.0f),
 	_thr_mdl_fac(0.0f),
 	_airmode(false),
-	_ctl_latency(perf_alloc(PC_ELAPSED, "ctl_lat"))
+	_motor_ordering(MotorOrdering::PX4),
+	_perf_control_latency(perf_alloc(PC_ELAPSED, "fmu control latency"))
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -465,7 +478,7 @@ PX4FMU::~PX4FMU()
 	/* clean up the alternate device node */
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
-	perf_free(_ctl_latency);
+	perf_free(_perf_control_latency);
 }
 
 int
@@ -1144,7 +1157,9 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 
 void PX4FMU::rc_io_invert(bool invert)
 {
+#ifdef INVERT_RC_INPUT
 	INVERT_RC_INPUT(invert);
+#endif
 }
 #endif
 
@@ -1238,8 +1253,6 @@ PX4FMU::cycle()
 			//			PX4_WARN("no PWM: failsafe");
 
 		} else {
-			perf_begin(_ctl_latency);
-
 			if (_mixers != nullptr) {
 				/* get controls for required topics */
 				unsigned poll_id = 0;
@@ -1324,6 +1337,9 @@ PX4FMU::cycle()
 					}
 				}
 
+				/* apply _motor_ordering */
+				reorder_outputs(pwm_limited);
+
 				/* output to the servos */
 				if (_pwm_initialized) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
@@ -1358,13 +1374,21 @@ PX4FMU::cycle()
 					motor_limits.timestamp = hrt_absolute_time();
 					motor_limits.saturation_status = saturation_status.value;
 
-					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance,
-							 ORB_PRIO_DEFAULT);
+					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance, ORB_PRIO_DEFAULT);
 				}
 
 				_mixers->set_airmode(_airmode);
 
-				perf_end(_ctl_latency);
+				// use first valid timestamp_sample for latency tracking
+				for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+					const bool required = _groups_required & (1 << i);
+					const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+					if (required && (timestamp_sample > 0)) {
+						perf_set_elapsed(_perf_control_latency, actuator_outputs.timestamp - timestamp_sample);
+						break;
+					}
+				}
 			}
 		}
 
@@ -1796,6 +1820,13 @@ void PX4FMU::update_params()
 		param_get(param_handle, &val);
 		_airmode = val > 0;
 		PX4_DEBUG("%s: %d", "MC_AIRMODE", _airmode);
+	}
+
+	// motor ordering
+	param_handle = param_find("MOT_ORDERING");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, (int32_t *)&_motor_ordering);
 	}
 }
 
@@ -2594,7 +2625,7 @@ ssize_t
 PX4FMU::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	uint16_t values[len];
+	uint16_t values[MAX_ACTUATORS];
 
 #if BOARD_HAS_PWM == 0
 	return 0;
@@ -2605,16 +2636,54 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 		count = BOARD_HAS_PWM;
 	}
 
+	if (count > MAX_ACTUATORS) {
+		count = MAX_ACTUATORS;
+	}
+
 	// allow for misaligned values
 	memcpy(values, buffer, count * 2);
 
-	for (uint8_t i = 0; i < count; i++) {
+	for (unsigned i = count; i < _num_outputs; ++i) {
+		values[i] = PWM_IGNORE_THIS_CHANNEL;
+	}
+
+	reorder_outputs(values);
+
+	for (unsigned i = 0; i < _num_outputs; i++) {
 		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
 			up_pwm_servo_set(i, values[i]);
 		}
 	}
 
 	return count * 2;
+}
+
+void
+PX4FMU::reorder_outputs(uint16_t values[MAX_ACTUATORS])
+{
+	if (MAX_ACTUATORS < 4) {
+		return;
+	}
+
+	if (_motor_ordering == MotorOrdering::Betaflight) {
+		/*
+		 * Betaflight default motor ordering:
+		 * 4     2
+		 *    ^
+		 * 3     1
+		 */
+		const uint16_t pwm_tmp[4] = {values[0], values[1], values[2], values[3] };
+		values[0] = pwm_tmp[3];
+		values[1] = pwm_tmp[0];
+		values[2] = pwm_tmp[1];
+		values[3] = pwm_tmp[2];
+	}
+
+	/* else: PX4, no need to reorder
+	 * 3     1
+	 *    ^
+	 * 2     4
+	 */
 }
 
 void

@@ -42,7 +42,7 @@ endif()
 add_executable(${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 add_dependencies(${FW_NAME} git_nuttx nuttx_build)
 
-get_property(module_libraries GLOBAL PROPERTY PX4_LIBRARIES)
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 # build NuttX
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
@@ -51,7 +51,6 @@ set(nuttx_libs)
 list(APPEND nuttx_libs
 	nuttx_apps
 	nuttx_arch
-	nuttx_binfmt
 	nuttx_binfmt
 	nuttx_c
 	nuttx_configs
@@ -76,24 +75,43 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
 
-target_link_libraries(${FW_NAME}
+target_link_libraries(nuttx_arch
+	INTERFACE
+		drivers_board
+		drivers_arch
+		drivers_boards_common
+		drivers_boards_common_arch
+)
+
+target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
+target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
+
+target_link_libraries(${FW_NAME} PRIVATE
+
+	-nodefaultlibs
+	-nostdlib
+
+	-fno-exceptions
+	-fno-rtti
 
 	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
 	-Wl,-Map=${CONFIG}.map
-	-Wl,--warn-common,--gc-sections
+	-Wl,--warn-common
+	-Wl,--gc-sections
 
 	-Wl,--start-group
-		${module_libraries}
-		${nuttx_libs}
+	${nuttx_libs}
 	-Wl,--end-group
 
 	m
-	gcc
 	)
+
+target_link_libraries(${FW_NAME} PRIVATE ${module_libraries})
+target_link_libraries(${FW_NAME} PRIVATE modules__uORB)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
-	target_link_libraries(${FW_NAME} romfs)
+	target_link_libraries(${FW_NAME} PRIVATE romfs)
 endif()
 
 # create px4 file (combined firmware and metadata)
@@ -101,8 +119,8 @@ set(fw_file ${PX4_BINARY_DIR}/${FW_NAME})
 string(REPLACE ".elf" ".px4" fw_file ${fw_file})
 string(REPLACE "nuttx_" "" fw_file ${fw_file})
 
-add_custom_command(OUTPUT ${BOARD}.bin
-	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${BOARD}.bin
+add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${BOARD}.bin
+	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${BOARD}.bin
 	DEPENDS ${FW_NAME}
 	)
 
@@ -117,8 +135,8 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			--git_identity ${PX4_SOURCE_DIR}
 			--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-			--image ${BOARD}.bin > ${fw_file}
-		DEPENDS ${BOARD}.bin parameters_xml airframes_xml
+			--image ${PX4_BINARY_DIR}/${BOARD}.bin > ${fw_file}
+		DEPENDS ${PX4_BINARY_DIR}/${BOARD}.bin parameters_xml airframes_xml
 		COMMENT "Creating ${fw_file}"
 		)
 
@@ -148,6 +166,10 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
 			list(APPEND serial_ports
 				/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
+				)
+		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
+			list(APPEND serial_ports
+				/dev/ttyS*
 				)
 		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
 			foreach(port RANGE 32 0)
@@ -198,6 +220,47 @@ add_custom_target(stack_check
 	VERBATIM
 	)
 
+find_program(BLOATY_PROGRAM bloaty)
+if (BLOATY_PROGRAM)
+	# bloaty symbols
+	add_custom_target(bloaty_symbols
+		COMMAND ${BLOATY_PROGRAM} -d symbols -C full -n 50 -s vm $<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		USES_TERMINAL
+		)
+
+	# bloaty compilation units
+	add_custom_target(bloaty_compileunits
+		COMMAND ${BLOATY_PROGRAM} -d compileunits -C full -n 50 -s vm $<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		USES_TERMINAL
+		)
+
+	# bloaty templates
+	add_custom_target(bloaty_templates
+		COMMAND ${BLOATY_PROGRAM} -d shortsymbols,fullsymbols -n 50 $<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		USES_TERMINAL
+		)
+
+	# bloaty inlines
+	add_custom_target(bloaty_inlines
+		COMMAND ${BLOATY_PROGRAM} -d inlines -C full -n 50 $<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		USES_TERMINAL
+		)
+
+	# bloaty compare with last master build
+	add_custom_target(bloaty_compare_master
+		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${FW_NAME} -O master_${FW_NAME}
+		COMMAND ${BLOATY_PROGRAM} -d symbols -n 50 -C full -s vm $<TARGET_FILE:${FW_NAME}> -- master_${FW_NAME}
+		DEPENDS ${FW_NAME}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		VERBATIM
+		USES_TERMINAL
+		)
+endif()
+
 # debugger helpers
 configure_file(gdbinit.in .gdbinit)
 
@@ -212,4 +275,3 @@ add_custom_target(profile
 	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh
 	USES_TERMINAL
 	)
-

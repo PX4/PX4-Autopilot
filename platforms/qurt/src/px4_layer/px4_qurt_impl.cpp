@@ -48,7 +48,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <semaphore.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include "hrt_work.h"
 #include "px4_log.h"
 
@@ -165,4 +165,9 @@ int fprintf(FILE *stream, const char *format, ...)
 int fputc(int c, FILE *stream)
 {
 	return c;
+}
+
+int putchar(int character)
+{
+	return character;
 }

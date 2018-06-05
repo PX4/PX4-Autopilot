@@ -27,7 +27,7 @@ add_definitions(
 )
 
 px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
-	BIN ${PX4_BINARY_DIR}/platforms/nuttx/esc35-v1.bin
+	BIN ${PX4_BINARY_DIR}/esc35-v1.bin
 	HWNAME ${uavcanblid_name}
 	HW_MAJOR ${uavcanblid_hw_version_major}
 	HW_MINOR ${uavcanblid_hw_version_minor}
@@ -39,9 +39,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/boards
-	drivers/device
-	drivers/led
 	drivers/stm32
 
 	#
@@ -63,12 +60,4 @@ set(config_module_list
 	modules/uavcanesc/commands/dc
 	modules/uavcanesc/commands/rpm
 	modules/uavcanesc/commands/stat
-
-	#
-	# Library modules
-	#
-	lib/version
-	modules/systemlib
-	modules/systemlib/param
-	modules/uORB
 )

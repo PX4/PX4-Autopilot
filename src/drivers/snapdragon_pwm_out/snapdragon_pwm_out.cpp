@@ -51,7 +51,8 @@
 #include <lib/mixer/mixer.h>
 #include <lib/mixer/mixer_load.h>
 #include <lib/mixer/mixer_multirotor_normalized.generated.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_pwm.h>
 
@@ -113,6 +114,7 @@ int32_t _pwm_max;
 
 MultirotorMixer *_mixer = nullptr;
 
+perf_counter_t	_perf_control_latency = nullptr;
 
 /*
  * forward declaration
@@ -338,8 +340,6 @@ void send_outputs_pwm(const uint16_t *pwm)
 	}
 }
 
-
-
 void task_main(int argc, char *argv[])
 {
 	if (pwm_initialize(_device) < 0) {
@@ -367,6 +367,8 @@ void task_main(int argc, char *argv[])
 
 	// set max min pwm
 	pwm_limit_init(&_pwm_limit);
+
+	_perf_control_latency = perf_alloc(PC_ELAPSED, "snapdragon_pwm_out control latency");
 
 	_is_running = true;
 
@@ -421,8 +423,6 @@ void task_main(int argc, char *argv[])
 			continue;
 		}
 
-		_outputs.timestamp = hrt_absolute_time();
-
 		/* do  mixing for virtual control group */
 		_outputs.noutputs = _mixer->mix(_outputs.output, _outputs.NUM_ACTUATOR_OUTPUTS);
 
@@ -453,11 +453,24 @@ void task_main(int argc, char *argv[])
 			send_outputs_pwm(pwm);
 		}
 
+		_outputs.timestamp = hrt_absolute_time();
+
 		if (_outputs_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
 		} else {
 			_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
+		}
+
+		// use first valid timestamp_sample for latency tracking
+		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+			if (required && (timestamp_sample > 0)) {
+				perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
+				break;
+			}
 		}
 
 		/* check for parameter updates */
@@ -481,8 +494,10 @@ void task_main(int argc, char *argv[])
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(params_sub);
-	_is_running = false;
 
+	perf_free(_perf_control_latency);
+
+	_is_running = false;
 }
 
 void task_main_trampoline(int argc, char *argv[])

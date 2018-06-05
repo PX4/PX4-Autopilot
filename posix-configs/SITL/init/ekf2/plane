@@ -19,9 +19,12 @@ param set CAL_MAG0_ID 196616
 param set CAL_MAG0_XOFF 0.01
 
 param set COM_POS_FS_DELAY 5
+param set COM_POS_FS_EPH 25
+param set COM_POS_FS_EPV 50
 param set COM_POS_FS_GAIN 0
 param set COM_POS_FS_PROB 1
 param set COM_RC_IN_MODE 1
+param set COM_VEL_FS_EVH 5
 
 param set EKF2_AID_MASK 1
 param set EKF2_ANGERR_INIT 0.01
@@ -70,7 +73,6 @@ tone_alarm start
 gyrosim start
 accelsim start
 barosim start
-adcsim start
 gpssim start
 measairspeedsim start
 pwm_out_sim start

@@ -37,6 +37,7 @@
  */
 
 #include "bmm150.hpp"
+#include <px4_getopt.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int bmm150_main(int argc, char *argv[]); }
@@ -1128,28 +1129,34 @@ BMM150::print_registers()
 int
 bmm150_main(int argc, char *argv[])
 {
-	bool external_bus = false;
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+	bool external_bus = false;
 	enum Rotation rotation = ROTATION_NONE;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
 			bmm150::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		bmm150::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
@@ -1189,5 +1196,5 @@ bmm150_main(int argc, char *argv[])
 
 
 	bmm150::usage();
-	exit(1);
+	return -1;
 }

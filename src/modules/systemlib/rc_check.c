@@ -46,7 +46,7 @@
 
 #include <systemlib/err.h>
 #include <systemlib/rc_check.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
 
