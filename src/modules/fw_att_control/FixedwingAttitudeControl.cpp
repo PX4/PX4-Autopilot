@@ -565,6 +565,7 @@ void FixedwingAttitudeControl::run()
 
 				/* if airspeed is non-finite or not valid or if we are asked not to control it, we assume the normal average speed */
 				const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
+							    && (_airspeed_sub.get().indicated_airspeed_m_s > 0.0f)
 							    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1e6);
 
 				if (!_parameters.airspeed_disabled && airspeed_valid) {

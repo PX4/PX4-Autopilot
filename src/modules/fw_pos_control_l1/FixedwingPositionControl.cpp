@@ -372,16 +372,21 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 void
 FixedwingPositionControl::airspeed_poll()
 {
-	if (!_parameters.airspeed_disabled && _sub_airspeed.updated()) {
-		_sub_airspeed.update();
-		_airspeed_valid = PX4_ISFINITE(_sub_airspeed.get().indicated_airspeed_m_s)
-				  && PX4_ISFINITE(_sub_airspeed.get().true_airspeed_m_s);
-		_airspeed_last_received = hrt_absolute_time();
-		_airspeed = _sub_airspeed.get().indicated_airspeed_m_s;
+	if (!_parameters.airspeed_disabled && _sub_airspeed.update()) {
 
-		if (_sub_airspeed.get().indicated_airspeed_m_s > 0.0f
-		    && _sub_airspeed.get().true_airspeed_m_s > _sub_airspeed.get().indicated_airspeed_m_s) {
-			_eas2tas = max(_sub_airspeed.get().true_airspeed_m_s / _sub_airspeed.get().indicated_airspeed_m_s, 1.0f);
+		const airspeed_s &airspeed = _sub_airspeed.get();
+
+		_airspeed_valid = PX4_ISFINITE(airspeed.indicated_airspeed_m_s)
+				  && PX4_ISFINITE(airspeed.true_airspeed_m_s)
+				  && (airspeed.indicated_airspeed_m_s > 0.0f);
+
+		_airspeed_last_received = hrt_absolute_time();
+		_airspeed = airspeed.indicated_airspeed_m_s;
+
+		if (_airspeed_valid
+		    && airspeed.true_airspeed_m_s > airspeed.indicated_airspeed_m_s) {
+
+			_eas2tas = max(airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s, 1.0f);
 
 		} else {
 			_eas2tas = 1.0f;
