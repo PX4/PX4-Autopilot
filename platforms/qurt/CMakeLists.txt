@@ -16,8 +16,8 @@ px4_qurt_generate_builtin_commands(
 )
 
 # Build px4 shared library that is run on the DSP
-add_library(px4 SHARED ${PX4_BINARY_DIR}/apps.cpp px4muorb_stub.c)
-target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})
+add_library(px4 SHARED ${PX4_BINARY_DIR}/apps.cpp)
+target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs} m modules__muorb__adsp)
 target_include_directories(px4 PRIVATE ${FASTRPC_DSP_INCLUDES})
 target_compile_options(px4 PRIVATE -Wno-missing-prototypes)
 
@@ -28,8 +28,8 @@ FASTRPC_STUB_GEN(${PX4_SOURCE_DIR}/src/modules/muorb/px4muorb.idl)
 add_library(px4muorb_skel SHARED px4muorb_skel.c)
 target_include_directories(px4muorb_skel PRIVATE ${FASTRPC_DSP_INCLUDES})
 target_compile_options(px4muorb_skel PRIVATE -Wno-missing-prototypes)
-add_dependencies(px4muorb_skel generate_px4muorb_stubs)
-target_link_libraries(px4muorb_skel ${CMAKE_CURRENT_BINARY_DIR}/libpx4.so)
+add_dependencies(px4muorb_skel generate_px4muorb_stubs px4)
+target_link_libraries(px4muorb_skel "${CMAKE_CURRENT_BINARY_DIR}/libpx4.so")
 
 # upload helper
 if ("${BOARD}" STREQUAL "eagle")
