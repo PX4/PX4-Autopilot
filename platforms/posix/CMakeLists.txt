@@ -56,11 +56,18 @@ elseif ("${BOARD}" STREQUAL "sitl")
 
 elseif (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 
-	set(APPS_TARGET_PATH /home/linaro)
+	if ("${BOARD}" STREQUAL "eagle")
+		set(APPS_TARGET_PATH "/home/linaro")
+		set(CONFIG_FILE ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config)
+	elseif("${BOARD}" STREQUAL "excelsior")
+		set(APPS_TARGET_PATH "/home/root")
+		set(CONFIG_FILE ${PX4_SOURCE_DIR}/posix-configs/excelsior/mainapp.config)
+	endif()
+
 	add_custom_target(upload
 		COMMAND adb wait-for-device
 		COMMAND adb push $<TARGET_FILE:px4> ${APPS_TARGET_PATH}
-		COMMAND adb push ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config ${APPS_TARGET_PATH}
+		COMMAND adb push ${CONFIG_FILE} ${APPS_TARGET_PATH}
 		COMMAND adb shell sync
 		DEPENDS px4
 		COMMENT "uploading px4"

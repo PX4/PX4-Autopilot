@@ -32,12 +32,19 @@ add_dependencies(px4muorb_skel generate_px4muorb_stubs)
 target_link_libraries(px4muorb_skel ${CMAKE_CURRENT_BINARY_DIR}/libpx4.so)
 
 # upload helper
-set(DSPLIB_TARGET_PATH "/usr/share/data/adsp/")
+if ("${BOARD}" STREQUAL "eagle")
+	set(CONFIG_FILE ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config)
+	set(DSPLIB_TARGET_PATH "/usr/share/data/adsp")
+elseif("${BOARD}" STREQUAL "excelsior")
+	set(CONFIG_FILE ${PX4_SOURCE_DIR}/posix-configs/excelsior/px4.config)
+	set(DSPLIB_TARGET_PATH "/usr/lib/rfsa/adsp")
+endif()
+
 add_custom_target(upload
 	COMMAND adb wait-for-device
 	COMMAND adb push $<TARGET_FILE:px4> ${DSPLIB_TARGET_PATH}
 	COMMAND adb push $<TARGET_FILE:px4muorb_skel> ${DSPLIB_TARGET_PATH}
-	COMMAND adb push ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config ${DSPLIB_TARGET_PATH}
+	COMMAND adb push ${CONFIG_FILE} ${DSPLIB_TARGET_PATH}
 	COMMAND adb shell sync
 	DEPENDS px4 px4muorb_skel
 	COMMENT "uploading px4"
