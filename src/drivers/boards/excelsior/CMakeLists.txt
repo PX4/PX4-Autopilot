@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,31 +31,4 @@
 #
 ############################################################################
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
-include(hexagon_sdk)
-
-include_directories(${HEXAGON_SDK_INCLUDES})
-
-set(QURT_LAYER_SRCS
-	px4_qurt_impl.cpp
-	px4_qurt_tasks.cpp
-	lib_crc32.c
-	../../../posix/src/px4_layer/drv_hrt.c
-	qurt_stubs.c
-	main.cpp
-	shmem_qurt.c
-	)
-
-if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
-	list(APPEND QURT_LAYER_SRCS
-		../stubs/stubs_posix.c
-		../stubs/stubs_qurt.c
-		)
-endif()
-
-add_library(px4_layer
-	${QURT_LAYER_SRCS}
-	${CONFIG_SRC}
-)
-target_link_libraries(px4_layer PRIVATE work_queue)
-add_dependencies(px4_layer uorb_msgs) # dataman requires mission
+px4_add_library(drivers_board ${CMAKE_CURRENT_LIST_DIR}/../eagle/sitl_led.c)

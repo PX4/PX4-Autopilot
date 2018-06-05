@@ -179,6 +179,7 @@ using ::isfinite;
 #  define PX4_ROOTFSDIR ""
 #  define PX4_TICKS_PER_SEC 1000L
 #  define SIOCDEVPRIVATE 999999
+#  define DEFAULT_PARAM_FILE "/dev/fs/params"
 
 // HEXAGON's isfinite() is erroneously defined as a macro even for C++,
 // using std::isfinite (using ::isfinite) which is a function, but which
@@ -194,8 +195,12 @@ __BEGIN_DECLS
 extern long PX4_TICKS_PER_SEC;
 __END_DECLS
 
-#  if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
+#  if defined(__PX4_POSIX_EAGLE)
 #    define PX4_ROOTFSDIR "/home/linaro"
+#	 define DEFAULT_PARAM_FILE "/usr/share/data/adsp/params"
+#  elif defined(__PX4_POSIX_EXCELSIOR)
+# 	 define PX4_ROOTFSDIR "/home/root"
+#	 define DEFAULT_PARAM_FILE "/usr/lib/rfsa/adsp/params"
 #  elif defined(__PX4_POSIX_BEBOP)
 #    define PX4_ROOTFSDIR "/data/ftp/internal_000"
 #  else
