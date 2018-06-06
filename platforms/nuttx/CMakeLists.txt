@@ -183,6 +183,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}
 			DEPENDS ${fw_file}
 			COMMENT "uploading px4"
+			VERBATIM
 			USES_TERMINAL
 			)
 	endif()
