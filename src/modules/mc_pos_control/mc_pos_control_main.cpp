@@ -846,6 +846,7 @@ MulticopterPositionControl::limit_altitude()
 
 	// Calculate vertical position limit
 	float poz_z_min_limit;
+
 	if (_terrain_follow) {
 		poz_z_min_limit = fmaxf(-_local_pos.hagl_max, -_vehicle_land_detected.alt_max);
 
@@ -853,7 +854,7 @@ MulticopterPositionControl::limit_altitude()
 
 	} else {
 		poz_z_min_limit = fmaxf(-_local_pos.hagl_max + _pos(2) + _local_pos.dist_bottom,
-				       -_vehicle_land_detected.alt_max + _home_pos.z);
+					-_vehicle_land_detected.alt_max + _home_pos.z);
 
 		//printf("altitude follow alt limit : %f\n", altitude_limit);
 	}
@@ -868,6 +869,7 @@ MulticopterPositionControl::limit_altitude()
 
 		// predict future position based on current position, velocity, max acceleration downwards and time to reach zero velocity
 		float pos_z_next = _pos(2);
+
 		if (_vel(2) < 0.0f) {
 			// allow for stopping distance only when approaching the altitude limit from below
 			// TODO better calculation that allows for delay in braking
