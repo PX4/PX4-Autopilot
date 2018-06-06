@@ -83,6 +83,10 @@
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu9250_gyro_ext"
 #define MPU_DEVICE_PATH_MAG_EXT 	"/dev/mpu9250_mag_ext"
 
+#define MPU_DEVICE_PATH_ICM_ACCEL_EXT  "/dev/mpu9250_icm_accel_ext"
+#define MPU_DEVICE_PATH_ICM_GYRO_EXT   "/dev/mpu9250_icm_gyro_ext"
+#define MPU_DEVICE_PATH_ICM_MAG_EXT    "/dev/mpu9250_icm_mag_ext"
+
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
 
@@ -109,6 +113,7 @@ namespace mpu9250
 
 struct mpu9250_bus_option {
 	enum MPU9250_BUS busid;
+	MPU_DEVICE_TYPE device_type;
 	const char *accelpath;
 	const char *gyropath;
 	const char *magpath;
@@ -119,21 +124,24 @@ struct mpu9250_bus_option {
 	MPU9250	*dev;
 } bus_options[] = {
 #if defined (USE_I2C)
-#  if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, false, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_MPU9250, NULL },
+#  if defined(PX4_I2C_BUS_ONBOARD) && defined(PX4_I2C_OBDEV_MPU9250)
+	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_TYPE_MPU9250, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, false, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_MPU9250, NULL },
 #  endif
 #  if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_MPU9250, NULL },
+#  if defined(PX4_I2C_OBDEV_MPU9250)
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU9250, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_MPU9250, NULL },
+#  endif
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_ICM20948, MPU_DEVICE_PATH_ICM_ACCEL_EXT, MPU_DEVICE_PATH_ICM_GYRO_EXT, MPU_DEVICE_PATH_ICM_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_ICM20948_1, NULL },
 #  endif
 #endif
 #ifdef PX4_SPIDEV_MPU
-	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU, NULL },
+	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_TYPE_MPU9250, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU, NULL },
 #endif
 #ifdef PX4_SPIDEV_MPU2
 	{ MPU9250_BUS_SPI_INTERNAL2, MPU_DEVICE_PATH_ACCEL_1, MPU_DEVICE_PATH_GYRO_1, MPU_DEVICE_PATH_MAG_1, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU2, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
-	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, NULL },
+	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_TYPE_MPU9250, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, NULL },
 #endif
 };
 
@@ -179,7 +187,7 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
 		return false;
 	}
 
-	device::Device *interface = bus.interface_constructor(bus.busnum, bus.address, external);
+	device::Device *interface = bus.interface_constructor(bus.busnum, bus.device_type, bus.address, external);
 
 	if (interface == nullptr) {
 		warnx("no device on bus %u", (unsigned)bus.busid);
@@ -204,7 +212,7 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
 
 #endif
 
-	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation);
+	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation, bus.device_type);
 
 	if (bus.dev == nullptr) {
 		delete interface;
@@ -528,6 +536,7 @@ mpu9250_main(int argc, char *argv[])
 
 	/*
 	 * Start/load the driver.
+
 	 */
 	if (!strcmp(verb, "start")) {
 		mpu9250::start(busid, rotation, external);
