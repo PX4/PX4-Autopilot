@@ -4,13 +4,19 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
+#ifdef __linux__
 #include <malloc.h>
 
+#else
+#include <stdlib.h>
+#endif
 
 TEST(HeapBasedPoolAllocator, Basic)
 {
+#ifdef __linux__
     std::cout << ">>> HEAP BEFORE:" << std::endl;
     malloc_stats();
+#endif
 
     uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize> al(0xEEEE);
 
@@ -61,8 +67,10 @@ TEST(HeapBasedPoolAllocator, Basic)
     ASSERT_EQ(0, al.getNumReservedBlocks());
     ASSERT_EQ(0, al.getNumAllocatedBlocks());
 
+#ifdef __linux__
     std::cout << ">>> HEAP AFTER:" << std::endl;
     malloc_stats();
+#endif
 }
 
 
@@ -115,9 +123,11 @@ std::mutex RaiiSynchronizer::mutex;
 
 TEST(HeapBasedPoolAllocator, Concurrency)
 {
+#ifdef __linux__
     std::cout << ">>> HEAP BEFORE:" << std::endl;
     malloc_stats();
 
+#endif
     uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, RaiiSynchronizer> al(1000);
 
     ASSERT_EQ(1000, al.getBlockCapacity());
@@ -167,13 +177,17 @@ TEST(HeapBasedPoolAllocator, Concurrency)
     std::cout << "Allocated: " << al.getNumAllocatedBlocks() << std::endl;
     std::cout << "Reserved:  " << al.getNumReservedBlocks() << std::endl;
 
+#ifdef __linux__
     std::cout << ">>> HEAP BEFORE SHRINK:" << std::endl;
     malloc_stats();
 
+#endif
     al.shrink();
 
+#ifdef __linux__
     std::cout << ">>> HEAP AFTER SHRINK:" << std::endl;
     malloc_stats();
+#endif
 }
 
 #endif

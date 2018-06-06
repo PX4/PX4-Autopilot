@@ -17,6 +17,9 @@ __pycache__
 .pydevproject
 .gdbinit
 
+# vsstudio code
+.vscode
+
 # libuavcan DSDL compiler default output directory
 dsdlc_generated
 
