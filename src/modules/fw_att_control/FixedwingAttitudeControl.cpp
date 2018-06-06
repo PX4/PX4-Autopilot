@@ -261,14 +261,10 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 void
 FixedwingAttitudeControl::vehicle_manual_poll()
 {
-	bool manual_updated;
-
-	/* get pilots inputs */
-	orb_check(_manual_sub, &manual_updated);
-
 	// only update manual if in a manual mode
-	if (_vcontrol_mode.flag_control_manual_enabled && manual_updated) {
+	if (_vcontrol_mode.flag_control_manual_enabled) {
 
+		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
 		if (orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual) == PX4_OK) {
 
 			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
