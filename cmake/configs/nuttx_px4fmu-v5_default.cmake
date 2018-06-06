@@ -31,7 +31,8 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/px4io
 	drivers/rgbled
-	drivers/rgbled_pwm
+	# Enable the line below to put the three leds into PWM RGB mode
+	#drivers/rgbled_pwm
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
