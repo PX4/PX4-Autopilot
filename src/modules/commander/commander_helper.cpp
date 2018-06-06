@@ -288,6 +288,9 @@ int led_init()
 		return PX4_ERROR;
 	}
 
+	/* the green LED is only available on FMUv5 */
+	(void)h_leds.ioctl(LED_ON, LED_GREEN);
+
 	/* the blue LED is only available on AeroCore but not FMUv2 */
 	(void)h_leds.ioctl(LED_ON, LED_BLUE);
 
