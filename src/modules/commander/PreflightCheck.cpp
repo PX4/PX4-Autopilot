@@ -747,7 +747,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 
 		bool mag_fail_reported = false;
 
-		/* check all sensors, but fail only for mandatory ones */
+		/* check all sensors individually, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_mag_count; i++) {
 			bool required = (i < max_mandatory_mag_count) && sys_has_mag == 1;
 			int device_id = -1;
@@ -771,7 +771,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 			failed = true;
 		}
 
-		/* fail if mag sensors are inconsistent */
+		/* mag consistency checks (need to be performed after the individual checks) */
 		if (!magConsistencyCheck(mavlink_log_pub, status, (reportFailures && !failed))) {
 			failed = true;
 		}
@@ -785,7 +785,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 
 		bool accel_fail_reported = false;
 
-		/* check all sensors, but fail only for mandatory ones */
+		/* check all sensors individually, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_accel_count; i++) {
 			bool required = (i < max_mandatory_accel_count);
 			int device_id = -1;
@@ -818,7 +818,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 
 		bool gyro_fail_reported = false;
 
-		/* check all sensors, but fail only for mandatory ones */
+		/* check all sensors individually, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
 			bool required = (i < max_mandatory_gyro_count);
 			int device_id = -1;
@@ -880,6 +880,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	}
 
 	/* ---- IMU CONSISTENCY ---- */
+	// To be performed after the individual sensor checks have completed
 	if (checkSensors) {
 		if (!imuConsistencyCheck(mavlink_log_pub, status, (reportFailures && !failed))) {
 			failed = true;
