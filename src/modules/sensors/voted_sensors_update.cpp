@@ -945,6 +945,7 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 						if (type == subsystem_info_s::SUBSYSTEM_TYPE_MAG) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
 					}
 
+					_info.timestamp = hrt_absolute_time();
 					_info.present = true;
 					_info.enabled = true;
 					_info.ok = false;
