@@ -170,7 +170,7 @@ ADIS16477::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	accel_report arp = {};
+	sensor_accel_s arp = {};
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp, &_accel_orb_class_instance, ORB_PRIO_MAX);
@@ -179,7 +179,7 @@ ADIS16477::init()
 		PX4_ERR("ADVERT FAIL");
 	}
 
-	gyro_report grp = {};
+	sensor_gyro_s grp = {};
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp, &_gyro->_gyro_orb_class_instance, ORB_PRIO_MAX);
 
 	if (_gyro->_gyro_topic == nullptr) {
@@ -383,7 +383,7 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
-			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
+			calibration_accel_s *s = (calibration_accel_s *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
 
 			if (sum > 2.0f && sum < 4.0f) {
@@ -397,7 +397,7 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((calibration_accel_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -432,12 +432,12 @@ ADIS16477::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
+		memcpy(&_gyro_scale, (calibration_gyro_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
+		memcpy((calibration_gyro_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCSRANGE:
@@ -578,7 +578,7 @@ ADIS16477::measure()
 bool
 ADIS16477::publish_accel(const ADISReport &report)
 {
-	accel_report arb = {};
+	sensor_accel_s arb = {};
 	arb.timestamp = hrt_absolute_time();
 	arb.device_id = _device_id.devid;
 	arb.error_count = perf_event_count(_bad_transfers);
@@ -626,7 +626,7 @@ ADIS16477::publish_accel(const ADISReport &report)
 bool
 ADIS16477::publish_gyro(const ADISReport &report)
 {
-	gyro_report grb = {};
+	sensor_gyro_s grb = {};
 	grb.timestamp = hrt_absolute_time();
 	grb.device_id = _gyro->_device_id.devid;
 	grb.error_count = perf_event_count(_bad_transfers);

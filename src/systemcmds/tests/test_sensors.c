@@ -59,6 +59,8 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 
 static int accel(int argc, char *argv[], const char *path);
 static int gyro(int argc, char *argv[], const char *path);
@@ -90,7 +92,7 @@ accel(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct accel_report buf;
+	struct sensor_accel_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);
@@ -140,7 +142,7 @@ gyro(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct gyro_report buf;
+	struct sensor_gyro_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);

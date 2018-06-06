@@ -36,6 +36,10 @@
 #include <drivers/drv_mag.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00
@@ -282,7 +286,7 @@ private:
 
 	ringbuffer::RingBuffer	*_accel_reports;
 
-	struct accel_calibration_s	_accel_scale;
+	calibration_accel_s	_accel_scale;
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
@@ -291,7 +295,7 @@ private:
 
 	ringbuffer::RingBuffer	*_gyro_reports;
 
-	struct gyro_calibration_s	_gyro_scale;
+	calibration_gyro_s	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 

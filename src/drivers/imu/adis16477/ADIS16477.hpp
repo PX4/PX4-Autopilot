@@ -50,6 +50,11 @@
 #include <perf/perf_counter.h>
 #include <ecl/geo/geo.h>
 
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
+
 #define ADIS16477_GYRO_DEFAULT_RATE					250
 #define ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ	30
 
@@ -85,16 +90,16 @@ private:
 
 	uint16_t			_product{0};	/** product code */
 
-	struct hrt_call		_call {};
+	struct hrt_call			_call {};
 	unsigned			_call_interval{0};
 
-	struct gyro_calibration_s	_gyro_scale {};
+	calibration_gyro_s		_gyro_scale {};
 
 	// gyro 0.025 °/sec/LSB
 	float				_gyro_range_scale{0.025f};
 	float				_gyro_range_rad_s{math::radians(500.0f)};
 
-	struct accel_calibration_s	_accel_scale {};
+	calibration_accel_s		_accel_scale {};
 
 	// accel 1.25 mg/LSB
 	float				_accel_range_scale{1.25f * CONSTANTS_ONE_G / 1000.0f};

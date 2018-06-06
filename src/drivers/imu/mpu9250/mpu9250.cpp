@@ -288,14 +288,14 @@ MPU9250::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 	ret = -ENOMEM;
 
 	if (_accel_reports == nullptr) {
 		return ret;
 	}
 
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		return ret;
@@ -394,7 +394,7 @@ MPU9250::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -407,7 +407,7 @@ MPU9250::init()
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
+	sensor_gyro_s grp;
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
@@ -626,7 +626,7 @@ MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 ssize_t
 MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -647,7 +647,7 @@ MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -660,7 +660,7 @@ MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -692,7 +692,7 @@ MPU9250::test_error()
 ssize_t
 MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(gyro_report);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -713,7 +713,7 @@ MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
-	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
+	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -726,7 +726,7 @@ MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(gyro_report));
+	return (transferred * sizeof(sensor_gyro_s));
 }
 
 int
@@ -843,7 +843,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
-			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
+			calibration_accel_s *s = (calibration_accel_s *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
 
 			if (sum > 2.0f && sum < 4.0f) {
@@ -857,7 +857,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((calibration_accel_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -910,12 +910,12 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
+		memcpy(&_gyro_scale, (calibration_gyro_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
+		memcpy((calibration_gyro_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCSRANGE:
@@ -1313,8 +1313,8 @@ MPU9250::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report		arb;
-	gyro_report		grb;
+	sensor_accel_s		arb;
+	sensor_gyro_s		grb;
 
 	/*
 	 * Adjust and scale results to m/s^2.
@@ -1479,6 +1479,9 @@ MPU9250::print_info()
 	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
 	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
 	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
+
+	print_message(_gyro_scale);
+	print_message(_accel_scale);
 }
 
 void

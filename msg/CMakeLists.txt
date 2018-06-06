@@ -40,6 +40,8 @@ set(msg_files
 	airspeed.msg
 	att_pos_mocap.msg
 	battery_status.msg
+	calibration_accel.msg
+	calibration_gyro.msg
 	camera_capture.msg
 	camera_trigger.msg
 	collision_report.msg

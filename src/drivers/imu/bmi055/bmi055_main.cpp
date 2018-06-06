@@ -225,8 +225,8 @@ test(bool external_bus, enum sensor_type sensor)
 {
 	const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
-	accel_report a_report;
-	gyro_report g_report;
+	sensor_accel_s a_report;
+	sensor_gyro_s g_report;
 	ssize_t sz;
 
 	if (sensor == BMI055_ACCEL) {

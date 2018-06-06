@@ -45,6 +45,8 @@
 #include <pthread.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_local_position.h>
 
 #include <limits>
@@ -1008,7 +1010,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 	*/
 	/* gyro */
 	{
-		struct gyro_report gyro = {};
+		sensor_gyro_s gyro = {};
 
 		gyro.timestamp = timestamp;
 		gyro.x_raw = imu->xgyro * 1000.0f;
@@ -1026,7 +1028,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 	/* accelerometer */
 	{
-		struct accel_report accel = {};
+		sensor_accel_s accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = imu->xacc / (CONSTANTS_ONE_G / 1000.0f);

@@ -61,6 +61,8 @@
 #include <lib/conversion/rotation.h>
 
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 
 #include <mpu6050/MPU6050.hpp>
 #include <DevMgr.hpp>
@@ -488,8 +490,8 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 
 	perf_begin(_publish_perf);
 
-	accel_report accel_report = {};
-	gyro_report gyro_report = {};
+	sensor_accel_s accel_report = {};
+	sensor_gyro_s gyro_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 

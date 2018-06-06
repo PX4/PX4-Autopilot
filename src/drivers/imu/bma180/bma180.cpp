@@ -66,6 +66,10 @@
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/device/ringbuffer.h>
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 
 #define ACCEL_DEVICE_PATH	"/dev/bma180"
 
@@ -147,7 +151,7 @@ private:
 
 	ringbuffer::RingBuffer		*_reports;
 
-	struct accel_calibration_s	_accel_scale;
+	calibration_accel_s	_accel_scale;
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
@@ -278,7 +282,7 @@ BMA180::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -325,7 +329,7 @@ BMA180::init()
 	measure();
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		struct accel_report arp;
+		sensor_accel_s arp;
 		_reports->get(&arp);
 
 		/* measurement will have generated a report, publish */
@@ -352,8 +356,8 @@ BMA180::probe()
 ssize_t
 BMA180::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct accel_report);
-	struct accel_report *arp = reinterpret_cast<struct accel_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_accel_s);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -484,12 +488,12 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_accel_scale, (struct accel_calibration_s *) arg, sizeof(_accel_scale));
+		memcpy(&_accel_scale, (calibration_accel_s *) arg, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((calibration_accel_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -681,7 +685,7 @@ BMA180::measure()
 // 	} raw_report;
 // #pragma pack(pop)
 
-	struct accel_report report;
+	sensor_accel_s report;
 
 	/* start the performance counter */
 	perf_begin(_sample_perf);
@@ -816,7 +820,7 @@ void
 test()
 {
 	int fd = -1;
-	struct accel_report a_report;
+	sensor_accel_s a_report;
 	ssize_t sz;
 
 	/* get the driver */

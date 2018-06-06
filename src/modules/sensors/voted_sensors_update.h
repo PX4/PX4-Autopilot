@@ -52,7 +52,11 @@
 #include <lib/ecl/validation/data_validator.h>
 #include <lib/ecl/validation/data_validator_group.h>
 
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_selection.h>
@@ -216,7 +220,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_gyro_calibration(DriverFramework::DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id);
+	bool apply_gyro_calibration(DriverFramework::DevHandle &h, const calibration_gyro_s *gcal, const int device_id);
 
 	/**
 	 * Apply a accel calibration.
@@ -226,8 +230,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_accel_calibration(DriverFramework::DevHandle &h, const struct accel_calibration_s *acal,
-				     const int device_id);
+	bool apply_accel_calibration(DriverFramework::DevHandle &h, const calibration_accel_s *acal, const int device_id);
 
 	/**
 	 * Apply a mag calibration.
@@ -237,7 +240,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_mag_calibration(DriverFramework::DevHandle &h, const struct mag_calibration_s *mcal, const int device_id);
+	bool apply_mag_calibration(DriverFramework::DevHandle &h, const mag_calibration_s *mcal, const int device_id);
 
 	SensorData _gyro;
 	SensorData _accel;

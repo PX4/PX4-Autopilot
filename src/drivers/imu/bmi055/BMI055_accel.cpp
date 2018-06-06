@@ -116,7 +116,7 @@ BMI055_accel::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		goto out;
@@ -139,7 +139,7 @@ BMI055_accel::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -262,7 +262,7 @@ BMI055_accel::accel_set_sample_rate(float frequency)
 ssize_t
 BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -281,7 +281,7 @@ BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -294,7 +294,7 @@ BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -426,7 +426,7 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
-			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
+			calibration_accel_s *s = (calibration_accel_s *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
 
 			if (sum > 2.0f && sum < 4.0f) {
@@ -440,7 +440,7 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((calibration_accel_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -691,7 +691,7 @@ BMI055_accel::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report arb;
+	sensor_accel_s        arb;
 
 	arb.timestamp = hrt_absolute_time();
 

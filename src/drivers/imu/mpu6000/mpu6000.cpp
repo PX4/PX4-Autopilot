@@ -93,6 +93,10 @@
 #include <drivers/drv_gyro.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 
 #include "mpu6000.h"
 
@@ -186,7 +190,7 @@ private:
 
 	ringbuffer::RingBuffer	*_accel_reports;
 
-	struct accel_calibration_s	_accel_scale;
+	calibration_accel_s	_accel_scale;
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
@@ -195,7 +199,7 @@ private:
 
 	ringbuffer::RingBuffer	*_gyro_reports;
 
-	struct gyro_calibration_s	_gyro_scale;
+	calibration_gyro_s	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 
@@ -638,13 +642,13 @@ MPU6000::init()
 
 	ret = -ENOMEM;
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		return ret;
 	}
 
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		return ret;
@@ -714,7 +718,7 @@ MPU6000::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -726,7 +730,7 @@ MPU6000::init()
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
+	sensor_gyro_s grp;
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
@@ -1012,7 +1016,7 @@ MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
 ssize_t
 MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -1031,7 +1035,7 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -1044,7 +1048,7 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -1230,7 +1234,7 @@ MPU6000::test_error()
 ssize_t
 MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(gyro_report);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -1249,7 +1253,7 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* copy reports out of our buffer to the caller */
-	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
+	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -1262,7 +1266,7 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(gyro_report));
+	return (transferred * sizeof(sensor_gyro_s));
 }
 
 int
@@ -1383,7 +1387,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
-			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
+			calibration_accel_s *s = (calibration_accel_s *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
 
 			if (sum > 2.0f && sum < 4.0f) {
@@ -1397,7 +1401,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((calibration_accel_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -1453,12 +1457,12 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
+		memcpy(&_gyro_scale, (calibration_gyro_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
+		memcpy((calibration_gyro_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCSRANGE:
@@ -1853,8 +1857,8 @@ MPU6000::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report	arb;
-	gyro_report		grb;
+	sensor_accel_s		arb;
+	sensor_gyro_s		grb;
 
 	/*
 	 * Adjust and scale results to m/s^2.
@@ -2010,10 +2014,12 @@ MPU6000::print_info()
 	}
 
 	::printf("temperature: %.1f\n", (double)_last_temperature);
-	float accel_cut = _accel_filter_x.get_cutoff_freq();
-	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
-	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
-	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
+	::printf("accel cutoff set to %10.2f Hz\n", double(_accel_filter_x.get_cutoff_freq()));
+	::printf("gyro cutoff set to %10.2f Hz\n", double(_gyro_filter_x.get_cutoff_freq()));
+
+	print_message(_accel_scale);
+	print_message(_gyro_scale);
+
 }
 
 void
@@ -2313,8 +2319,8 @@ void
 test(enum MPU6000_BUS busid)
 {
 	struct mpu6000_bus_option &bus = find_bus(busid);
-	accel_report a_report;
-	gyro_report g_report;
+	sensor_accel_s a_report;
+	sensor_gyro_s g_report;
 	ssize_t sz;
 
 	/* get the driver */

@@ -75,6 +75,8 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 #include <platforms/px4_getopt.h>
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/sensor_accel.h>
 
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) & 0x7f)
@@ -199,7 +201,7 @@ private:
 	ringbuffer::RingBuffer	*_accel_reports;
 	ringbuffer::RingBuffer		*_mag_reports;
 
-	struct accel_calibration_s	_accel_scale;
+	calibration_accel_s	_accel_scale;
 	unsigned		_accel_range_m_s2;
 	float			_accel_range_scale;
 	unsigned		_accel_samplerate;
@@ -559,7 +561,7 @@ FXOS8701CQ::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		return PX4_ERROR;
@@ -614,7 +616,7 @@ FXOS8701CQ::init()
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -685,8 +687,8 @@ FXOS8701CQ::probe()
 ssize_t
 FXOS8701CQ::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct accel_report);
-	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_accel_s);
+	sensor_accel_s *arb = reinterpret_cast<sensor_accel_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -859,7 +861,7 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
-			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
+			calibration_accel_s *s = (calibration_accel_s *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
 
 			if (sum > 2.0f && sum < 4.0f) {
@@ -881,7 +883,7 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((calibration_accel_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	default:
@@ -1286,7 +1288,7 @@ FXOS8701CQ::measure()
 	} raw_accel_mag_report;
 #pragma pack(pop)
 
-	accel_report accel_report;
+	sensor_accel_s accel_report;
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
@@ -1730,7 +1732,7 @@ test()
 {
 	int rv = 1;
 	int fd_accel = -1;
-	struct accel_report accel_report;
+	sensor_accel_s accel_report;
 	ssize_t sz;
 	int ret;
 	int fd_mag = -1;

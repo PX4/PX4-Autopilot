@@ -59,6 +59,10 @@
 #include <drivers/drv_device.h>
 
 #include <parameters/param.h>
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 
 __EXPORT int config_main(int argc, char *argv[]);
 

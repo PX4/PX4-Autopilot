@@ -45,6 +45,8 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_config.h>
 #include <systemlib/conversions.h>
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/sensor_accel.h>
 
 #define BMI055_DEVICE_PATH_ACCEL	"/dev/bmi055_accel"
 #define BMI055_DEVICE_PATH_ACCEL_EXT	"/dev/bmi055_accel_ext"
@@ -183,7 +185,7 @@ private:
 
 	ringbuffer::RingBuffer  *_accel_reports;
 
-	struct accel_calibration_s  _accel_scale;
+	calibration_accel_s  _accel_scale;
 	float           _accel_range_scale;
 	float           _accel_range_m_s2;
 

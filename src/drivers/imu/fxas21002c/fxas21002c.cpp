@@ -73,6 +73,8 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 #include <platforms/px4_getopt.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_gyro.h>
 
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) | (1 << 7))
@@ -258,7 +260,7 @@ private:
 
 	ringbuffer::RingBuffer *_reports;
 
-	struct gyro_calibration_s _gyro_scale;
+	calibration_gyro_s _gyro_scale;
 	float _gyro_range_scale;
 	float _gyro_range_rad_s;
 	orb_advert_t _gyro_topic;
@@ -529,7 +531,7 @@ FXAS21002C::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_reports == nullptr) {
 		return PX4_ERROR;
@@ -543,7 +545,7 @@ FXAS21002C::init()
 	_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
+	sensor_gyro_s grp;
 	_reports->get(&grp);
 
 	/* measurement will have generated a report, publish */
@@ -610,8 +612,8 @@ FXAS21002C::probe()
 ssize_t
 FXAS21002C::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct gyro_report);
-	struct gyro_report *gbuf = reinterpret_cast<struct gyro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
+	sensor_gyro_s *gbuf = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -1066,7 +1068,7 @@ FXAS21002C::measure()
 	} raw_gyro_report;
 #pragma pack(pop)
 
-	struct gyro_report gyro_report;
+	sensor_gyro_s gyro_report;
 
 	/* start the performance counter */
 	perf_begin(_sample_perf);
@@ -1334,7 +1336,7 @@ void
 test()
 {
 	int fd_gyro = -1;
-	struct gyro_report g_report;
+	sensor_gyro_s g_report;
 	ssize_t sz;
 
 	/* get the driver */

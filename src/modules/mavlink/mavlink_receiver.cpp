@@ -90,6 +90,8 @@
 #include <commander/px4_custom_mode.h>
 
 #include <uORB/topics/radio_status.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 #include "mavlink_bridge_header.h"
@@ -1975,7 +1977,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* gyro */
 	{
-		struct gyro_report gyro = {};
+		sensor_gyro_s gyro = {};
 
 		gyro.timestamp = timestamp;
 		gyro.x_raw = imu.xgyro * 1000.0f;
@@ -1996,7 +1998,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* accelerometer */
 	{
-		struct accel_report accel = {};
+		sensor_accel_s accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = imu.xacc / (CONSTANTS_ONE_G / 1000.0f);
@@ -2396,7 +2398,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* accelerometer */
 	{
-		struct accel_report accel = {};
+		sensor_accel_s accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = hil_state.xacc / CONSTANTS_ONE_G * 1e3f;

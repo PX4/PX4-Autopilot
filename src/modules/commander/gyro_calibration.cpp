@@ -58,7 +58,8 @@
 #include <drivers/drv_gyro.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
-#include <systemlib/err.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_gyro.h>
 
 static const char *sensor_name = "gyro";
 
@@ -70,8 +71,8 @@ typedef struct  {
 	int32_t			device_id[max_gyros];
 	int			gyro_sensor_sub[max_gyros];
 	int			sensor_correction_sub;
-	struct gyro_calibration_s	gyro_scale[max_gyros];
-	struct gyro_report	gyro_report_0;
+	calibration_gyro_s	gyro_scale[max_gyros];
+	sensor_gyro_s		gyro_report_0;
 } gyro_worker_data_t;
 
 static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
@@ -79,7 +80,7 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 	gyro_worker_data_t*	worker_data = (gyro_worker_data_t*)(data);
 	unsigned		calibration_counter[max_gyros] = { 0 }, slow_count = 0;
 	const unsigned		calibration_count = 5000;
-	struct gyro_report	gyro_report;
+	sensor_gyro_s		gyro_report;
 	unsigned		poll_errcount = 0;
 
 	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
@@ -214,7 +215,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 
-	struct gyro_calibration_s gyro_scale_zero;
+	calibration_gyro_s gyro_scale_zero;
 	gyro_scale_zero.x_offset = 0.0f;
 	gyro_scale_zero.x_scale = 1.0f;
 	gyro_scale_zero.y_offset = 0.0f;
@@ -307,7 +308,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		for(unsigned i = 0; i < orb_gyro_count && !found_cur_gyro; i++) {
 			worker_data.gyro_sensor_sub[cur_gyro] = orb_subscribe_multi(ORB_ID(sensor_gyro), i);
 
-			struct gyro_report report;
+			sensor_gyro_s report;
 			orb_copy(ORB_ID(sensor_gyro), worker_data.gyro_sensor_sub[cur_gyro], &report);
 
 #ifdef __PX4_NUTTX

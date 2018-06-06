@@ -39,6 +39,9 @@
 #include <drivers/device/CDev.hpp>
 #include <drivers/drv_gyro.h>
 
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_gyro.h>
+
 /**
  * Helper class implementing the gyro driver node.
  */

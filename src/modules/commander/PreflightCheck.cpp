@@ -59,6 +59,10 @@
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/calibration_accel.h>
+#include <uORB/topics/calibration_gyro.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/subsystem_info.h>
 
 #include "PreflightCheck.h"
@@ -274,7 +278,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 	if (dynamic) {
 		/* check measurement result range */
-		struct accel_report acc;
+		sensor_accel_s acc;
 		ret = h.read(&acc, sizeof(acc));
 
 		if (ret == sizeof(acc)) {
