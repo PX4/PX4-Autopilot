@@ -864,28 +864,12 @@ MulticopterPositionControl::limit_altitude()
 		_pos_sp(2) = poz_z_min_limit;
 	}
 
-	// We want to fly upwards. Check that vehicle does not exceed altitude limit
-	if (!_run_alt_control && _vel_sp(2) <= 0.0f) {
+	// limit the velocity setpoint to not exceed a value that will allow controlled
+	// deceleration to a stop at the height limit
+	float vel_z_sp_altctl = (poz_z_min_limit - _pos(2)) * _pos_p(2);
+	vel_z_sp_altctl = fminf(vel_z_sp_altctl, _vel_max_down.get());
+	_vel_sp(2) = fmaxf(_vel_sp(2), vel_z_sp_altctl);
 
-		// estimate demanded thrust from altitude control loop with setpoint at limit
-		// excluding the integrator and other thrust correction terms
-		float vel_z_sp_altctl = (poz_z_min_limit - _pos(2)) * _pos_p(2);
-		float vel_z_err_altctl = vel_z_sp_altctl - _vel(2);
-		float thrust_altctl = vel_z_err_altctl * _vel_p(2) + _vel_err_d(2) * _vel_d(2);
-
-		// estimate demanded velocity from velocity control loop
-		// excluding the integrator and any other thrust correction terms
-		float vel_z_err_velctl = _vel_sp(2) - _vel(2);
-		float thrust_velctl = vel_z_err_velctl * _vel_p(2) + _vel_err_d(2) * _vel_d(2);
-
-		// if the altitude control about the setpoint is demanding a more positive velocity
-		// then switch to altitude control
-		if (thrust_altctl > thrust_velctl) {
-			// prevent the vehicle from exceeding maximum altitude by limiting the
-			_pos_sp(2) = poz_z_min_limit;
-			_run_alt_control = true;
-		}
-	}
 }
 
 bool
