@@ -176,7 +176,7 @@ MPU9250_mag::measure()
 	uint8_t ret;
 	union raw_data_t {
 	struct ak8963_regs ak8963_data;
-	struct ak09916_regs ak099196_data;
+	struct ak09916_regs ak09916_data;
 	} raw_data;
 
 	if(_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
@@ -187,7 +187,7 @@ MPU9250_mag::measure()
 	}
 
 	if(ret == OK) {
-		if(_parent->_device_type==MPU_DEVICE_TYPE_ICM20948) raw_data.ak8963_data.st2 = raw_data.ak099196_data.st2;
+		if(_parent->_device_type==MPU_DEVICE_TYPE_ICM20948) raw_data.ak8963_data.st2 = raw_data.ak09916_data.st2;
 		_measure(raw_data.ak8963_data);
 	}
 }

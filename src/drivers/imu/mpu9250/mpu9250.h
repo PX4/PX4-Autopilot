@@ -55,8 +55,9 @@
 
 /* List of supported device types */
 enum MPU_DEVICE_TYPE {
-	MPU_DEVICE_TYPE_MPU9250	= 9250,
-	MPU_DEVICE_TYPE_ICM20948 = 20948
+    MPU_DEVICE_TYPE_MPU9250	= 9250,
+    MPU_DEVICE_TYPE_MPU6500 = 6500,
+    MPU_DEVICE_TYPE_ICM20948 = 20948
 };
 
 
@@ -420,7 +421,7 @@ private:
 	MPU9250_mag     *_mag;
 	uint8_t			_whoami;	/** whoami result */
 	int 			_device_type;
-	uint16_t		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
+	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
 
 #if defined(USE_I2C)
 	/*

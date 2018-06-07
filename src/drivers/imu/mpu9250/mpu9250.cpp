@@ -141,7 +141,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_mag(new MPU9250_mag(this, mag_interface, path_mag)),
 	_whoami(0),
 	_device_type(device_type),
-	_selected_bank(0xFFFF),	// invalid/improbable bank value, will be set on first read/write
+	_selected_bank(0xFF),	// invalid/improbable bank value, will be set on first read/write
 #if defined(USE_I2C)
 	_work {},
 	_use_hrt(false),
@@ -388,35 +388,33 @@ MPU9250::init()
 		return ret;
 	}
 
+	/* Magnetometer setup */
+    if ( _device_type == MPU_DEVICE_TYPE_MPU9250 || _device_type == MPU_DEVICE_TYPE_ICM20948 ) {
+
 #ifdef USE_I2C
 
-	if (!_mag->is_passthrough() && _mag->_interface->init() != PX4_OK) {
-		PX4_ERR("failed to setup ak8963 interface");
-	}
+		usleep(100);
+		if (!_mag->is_passthrough() && _mag->_interface->init() != PX4_OK) {
+			PX4_ERR("failed to setup ak8963 interface");
+		}
 
 #endif /* USE_I2C */
 
-	/* do CDev init for the mag device node, keep it optional */
-	if ( _whoami == MPU_WHOAMI_9250 || _device_type == MPU_DEVICE_TYPE_ICM20948 ) {
+		/* do CDev init for the mag device node */
 		ret = _mag->init();
-	}
 
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("mag init failed");
-		return ret;
-	}
+		/* if probe/setup failed, bail now */
+		if (ret != OK) {
+			DEVICE_DEBUG("mag init failed");
+			return ret;
+		}
 
-
-	if (_whoami == MPU_WHOAMI_9250 || _device_type == MPU_DEVICE_TYPE_ICM20948) {
 		ret = _mag->ak8963_reset();
+		if (ret != OK) {
+			DEVICE_DEBUG("mag reset failed");
+			return ret;
+		}
 	}
-
-	if (ret != OK) {
-		DEVICE_DEBUG("mag reset failed");
-		return ret;
-	}
-
 
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
@@ -472,7 +470,7 @@ int MPU9250::reset()
 
 	ret = reset_mpu();
 
-	if (ret == OK && ( _whoami == MPU_WHOAMI_9250 || _device_type == MPU_DEVICE_TYPE_ICM20948 ) ) {
+	if (ret == OK && ( _device_type == MPU_DEVICE_TYPE_MPU9250 || _device_type == MPU_DEVICE_TYPE_ICM20948 ) ) {
 		ret = _mag->ak8963_reset();
 	}
 
@@ -486,6 +484,8 @@ int MPU9250::reset()
 
 int MPU9250::reset_mpu()
 {
+    uint8_t retries;
+
 	switch(_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
 		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
@@ -494,16 +494,16 @@ int MPU9250::reset_mpu()
 		break;
 	case MPU_DEVICE_TYPE_ICM20948:
 		write_reg(ICMREG_20948_PWR_MGMT_1, BIT_H_RESET);
-		usleep(500);  // ICM20948 needs a bit of time here, else register settings will be garbled.
+		/*
+		 * ICM20948 needs a bit of time here, else register settings will be garbled.
+		 */
+	    usleep(200);
+
 		write_checked_reg(ICMREG_20948_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
-		usleep(200);
+        usleep(200);
 		write_checked_reg(ICMREG_20948_PWR_MGMT_2, 0);
 		break;
 	}
-
-
-
-//	usleep(1000);
 
 	// Enable I2C bus or Disable I2C bus (recommended on data sheet)
 
@@ -560,7 +560,7 @@ int MPU9250::reset_mpu()
 	write_checked_reg(  MPU_OR_ICM(MPUREG_ACCEL_CONFIG2, ICMREG_20948_ACCEL_CONFIG_2),
                         MPU_OR_ICM(BITS_ACCEL_CONFIG2_41HZ, ICM_BITS_DEC3_CFG_32));
 
-	uint8_t retries = 3;
+	retries = 3;
 	bool all_ok = false;
 
 	while (!all_ok && retries--) {
@@ -591,25 +591,34 @@ MPU9250::probe()
 	case MPU_DEVICE_TYPE_MPU9250:
 		_whoami = read_reg(MPUREG_WHOAMI);
 
-		// verify product revision
-		switch (_whoami) {
-		case MPU_WHOAMI_9250:
-		case MPU_WHOAMI_6500:
+		if (_whoami == MPU_WHOAMI_9250 ) {
 			_num_checked_registers = MPU9250_NUM_CHECKED_REGISTERS;
 			_checked_registers = _mpu9250_checked_registers;
-			memset(_checked_values, 0, sizeof(_mpu9250_checked_registers));
-			memset(_checked_bad, 0, sizeof(_mpu9250_checked_registers));
+			memset(_checked_values, 0, MPU9250_NUM_CHECKED_REGISTERS);
+			memset(_checked_bad, 0, MPU9250_NUM_CHECKED_REGISTERS);
 			ret = OK;
 		}
 		break;
+
+    case MPU_DEVICE_TYPE_MPU6500:
+        _whoami = read_reg(MPUREG_WHOAMI);
+
+        if (_whoami == MPU_WHOAMI_6500 ) {
+            _num_checked_registers = MPU9250_NUM_CHECKED_REGISTERS;
+            _checked_registers = _mpu9250_checked_registers;
+            memset(_checked_values, 0, MPU9250_NUM_CHECKED_REGISTERS);
+            memset(_checked_bad, 0, MPU9250_NUM_CHECKED_REGISTERS);
+            ret = OK;
+        }
+        break;
 
 	case MPU_DEVICE_TYPE_ICM20948:
 		_whoami = read_reg(ICMREG_20948_WHOAMI);
 		if (_whoami == ICM_WHOAMI_20948) {
 			_num_checked_registers = ICM20948_NUM_CHECKED_REGISTERS;
 			_checked_registers = _icm20948_checked_registers;
-			memset(_checked_values, 0, sizeof(_icm20948_checked_registers));
-			memset(_checked_bad, 0, sizeof(_icm20948_checked_registers));
+			memset(_checked_values, 0, ICM20948_NUM_CHECKED_REGISTERS);
+			memset(_checked_bad, 0, ICM20948_NUM_CHECKED_REGISTERS);
 			ret = OK;
 		}
 		break;
@@ -1186,28 +1195,44 @@ int
 MPU9250::select_register_bank(uint8_t bank) {
 	uint8_t ret;
 	uint8_t buf;
-	uint8_t count=0;
+	uint8_t retries=3;
 
-	ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
-	if (ret != OK) {
-		return ret;
+	if(_selected_bank != bank) {
+	    ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
+        if (ret != OK) {
+            return ret;
+        }
 	}
 
-	_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
+    /*
+     * Making sure the right register bank is selected (even if it should be). Observed some
+     * unexpected changes to this, don't risk writing to the wrong register bank.
+     */
+    _interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
 
-	while(bank != buf) {
-		ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
-		if (ret != OK) {
-			return ret;
-		}
-		_selected_bank=bank;
+    while(bank != buf && retries >0) {
+        //PX4_WARN("user bank: expected %d got %d",bank,buf);
+        ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
+        if (ret != OK) {
+            return ret;
+        }
 
-		count++;
-//		PX4_WARN("BANK retries: %d", count);
+        retries--;
+        //PX4_WARN("BANK retries: %d", 4-retries);
 
-		_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
-	}
-	return PX4_OK;
+        _interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
+    }
+
+
+    _selected_bank=bank;
+
+    if(bank != buf) {
+        //PX4_WARN("SELECT FAILED %d %d %d %d",retries,_selected_bank,bank,buf);
+        return PX4_ERROR;
+    }
+    else {
+        return PX4_OK;
+    }
 }
 
 uint8_t
@@ -1456,8 +1481,15 @@ MPU9250::check_registers(void)
 		if (_register_wait == 0 || _checked_next == 0) {
 			// if the product_id is wrong then reset the
 			// sensor completely
-			write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-			write_reg(MPUREG_PWR_MGMT_2, MPU_CLK_SEL_AUTO);
+
+		    if(_device_type == MPU_DEVICE_TYPE_ICM20948) {
+		        // reset_mpu();
+		    }
+		    else {
+			    write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+			    write_reg(MPUREG_PWR_MGMT_2, MPU_CLK_SEL_AUTO);
+		    }
+
 			// after doing a reset we need to wait a long
 			// time before we do any other register writes
 			// or we will end up with the mpu9250 in a
@@ -1583,7 +1615,7 @@ MPU9250::measure()
 #ifdef USE_I2C
 
 	} else {
-		_mag->measure();
+		//_mag->measure();
 	}
 
 #endif
