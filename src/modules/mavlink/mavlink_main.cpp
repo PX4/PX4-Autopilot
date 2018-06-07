@@ -44,6 +44,7 @@
 #include <px4_defines.h>
 #include <px4_getopt.h>
 #include <px4_module.h>
+#include <px4_cli.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1865,7 +1866,10 @@ Mavlink::task_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:fwxz", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
-			_baudrate = strtoul(myoptarg, nullptr, 10);
+			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
+				PX4_ERR("baudrate parsing failed");
+				err_flag = true;
+			}
 
 			if (_baudrate < 9600 || _baudrate > 3000000) {
 				PX4_ERR("invalid baud rate '%s'", myoptarg);
@@ -1875,9 +1879,12 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 'r':
-			_datarate = strtoul(myoptarg, nullptr, 10);
+			if (px4_get_parameter_value(myoptarg, _datarate) != 0) {
+				PX4_ERR("datarate parsing failed");
+				err_flag = true;
+			}
 
-			if (_datarate < 10 || _datarate > MAX_DATA_RATE) {
+			if (_datarate > MAX_DATA_RATE) {
 				PX4_ERR("invalid data rate '%s'", myoptarg);
 				err_flag = true;
 			}
@@ -1949,35 +1956,54 @@ Mavlink::task_main(int argc, char *argv[])
 //			mavlink_link_termination_allowed = true;
 //			break;
 
-		case 'm':
-			if (strcmp(myoptarg, "custom") == 0) {
-				_mode = MAVLINK_MODE_CUSTOM;
+		case 'm': {
 
-			} else if (strcmp(myoptarg, "camera") == 0) {
-				// left in here for compatibility
-				_mode = MAVLINK_MODE_ONBOARD;
+				int mode;
 
-			} else if (strcmp(myoptarg, "onboard") == 0) {
-				_mode = MAVLINK_MODE_ONBOARD;
+				if (px4_get_parameter_value(myoptarg, mode) == 0) {
+					if (mode >= 0 && mode < (int)MAVLINK_MODE_COUNT) {
+						_mode = (MAVLINK_MODE)mode;
 
-			} else if (strcmp(myoptarg, "osd") == 0) {
-				_mode = MAVLINK_MODE_OSD;
+					} else {
+						PX4_ERR("invalid mode");
+						err_flag = true;
+					}
 
-			} else if (strcmp(myoptarg, "magic") == 0) {
-				_mode = MAVLINK_MODE_MAGIC;
+				} else {
+					if (strcmp(myoptarg, "custom") == 0) {
+						_mode = MAVLINK_MODE_CUSTOM;
 
-			} else if (strcmp(myoptarg, "config") == 0) {
-				_mode = MAVLINK_MODE_CONFIG;
+					} else if (strcmp(myoptarg, "camera") == 0) {
+						// left in here for compatibility
+						_mode = MAVLINK_MODE_ONBOARD;
 
-			} else if (strcmp(myoptarg, "iridium") == 0) {
-				_mode = MAVLINK_MODE_IRIDIUM;
-				set_telemetry_status_type(telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM);
+					} else if (strcmp(myoptarg, "onboard") == 0) {
+						_mode = MAVLINK_MODE_ONBOARD;
 
-			} else if (strcmp(myoptarg, "minimal") == 0) {
-				_mode = MAVLINK_MODE_MINIMAL;
+					} else if (strcmp(myoptarg, "osd") == 0) {
+						_mode = MAVLINK_MODE_OSD;
+
+					} else if (strcmp(myoptarg, "magic") == 0) {
+						_mode = MAVLINK_MODE_MAGIC;
+
+					} else if (strcmp(myoptarg, "config") == 0) {
+						_mode = MAVLINK_MODE_CONFIG;
+
+					} else if (strcmp(myoptarg, "iridium") == 0) {
+						_mode = MAVLINK_MODE_IRIDIUM;
+						set_telemetry_status_type(telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM);
+
+					} else if (strcmp(myoptarg, "minimal") == 0) {
+						_mode = MAVLINK_MODE_MINIMAL;
+
+					} else {
+						PX4_ERR("invalid mode");
+						err_flag = true;
+					}
+				}
+
+				break;
 			}
-
-			break;
 
 		case 'f':
 			_forwarding_on = true;
@@ -2934,7 +2960,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_NAME("mavlink", "communication");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start a new instance");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS1", "<file:dev>", "Select Serial Device", true);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 57600, 9600, 3000000, "Baudrate", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 57600, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 10, 10000000, "Maximum sending data rate in B/s (if 0, use baudrate / 20)", true);
 #ifdef __PX4_POSIX
 	PRINT_MODULE_USAGE_PARAM_INT('u', 14556, 0, 65536, "Select UDP Network Port (local)", true);
