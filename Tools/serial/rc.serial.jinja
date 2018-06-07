@@ -1,0 +1,86 @@
+{# jinja template to generate the serial autostart script. #}
+
+# serial autostart script generated with generate_serial_config.py
+
+
+# set dual gps args
+set DUAL_GPS_ARGS ""
+set SER_TAG {{ serial_devices[0].tag }}
+set SER_DEV {{ serial_devices[0].device }}
+while [ ${SER_TAG} != exit ]
+do
+	if param compare SER_${SER_TAG}_CONFIG {{ secondary_gps_value }}
+	then
+		set DUAL_GPS_ARGS "-e ${SER_DEV}"
+		echo "Starting Secondary GPS on ${SER_DEV} (${SER_TAG})"
+	fi
+
+	# loop iteration
+	{# need to iterate in reversed order -#}
+	{% set last = serial_devices|last -%}
+    if [ ${SER_TAG} == {{ last.tag }} ]
+    then
+        set SER_TAG exit
+    fi
+	{% for serial_device in serial_devices | reverse -%}
+	{% if not loop.first -%}
+	{% set next = loop.previtem -%}
+    if [ ${SER_TAG} == {{ serial_device.tag }} ]
+    then
+        set SER_TAG {{ next.tag }}
+        set SER_DEV {{ next.device }}
+    fi
+	{% endif -%}
+	{% endfor %}
+done
+
+# start the devices on the configured ports
+set SER_TAG {{ serial_devices[0].tag }}
+set SER_DEV {{ serial_devices[0].device }}
+while [ ${SER_TAG} != exit ]
+do
+	# Access all params so that they're sent to a GCS upon param loading
+	param touch SER_${SER_TAG}_BAUD SER_${SER_TAG}_MAV_MDE SER_${SER_TAG}_MAV_R SER_${SER_TAG}_MAV_FWD
+
+    # initialize params
+    set MAV_ARGS "-b p:SER_${SER_TAG}_BAUD -m p:SER_${SER_TAG}_MAV_MDE -r p:SER_${SER_TAG}_MAV_R"
+    if param compare SER_${SER_TAG}_MAV_FWD 1
+    then
+        set MAV_ARGS "${MAV_ARGS} -f"
+    fi
+
+    # start commands
+	{% for command in commands -%}
+	{% if command.command | length > 0 -%}
+    if param compare SER_${SER_TAG}_CONFIG {{ command.value }}
+    then
+		{# the echo can be disabled if too verbose... -#}
+		echo "Starting {{ command.label }} on ${SER_DEV} (${SER_TAG})"
+        {{ command.command }}
+    fi
+	{% endif -%}
+	{% endfor %}
+
+	# loop iteration
+	{# need to iterate in reversed order -#}
+	{% set last = serial_devices|last -%}
+    if [ ${SER_TAG} == {{ last.tag }} ]
+    then
+        set SER_TAG exit
+    fi
+	{% for serial_device in serial_devices | reverse -%}
+	{% if not loop.first -%}
+	{% set next = loop.previtem -%}
+    if [ ${SER_TAG} == {{ serial_device.tag }} ]
+    then
+        set SER_TAG {{ next.tag }}
+        set SER_DEV {{ next.device }}
+    fi
+	{% endif -%}
+	{% endfor %}
+done
+
+unset DUAL_GPS_ARGS
+unset SER_TAG
+unset SER_DEV
+unset MAV_ARGS
