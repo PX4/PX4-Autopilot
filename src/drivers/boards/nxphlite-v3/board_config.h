@@ -88,8 +88,6 @@ __BEGIN_DECLS
  * UART4   /dev/tty4      ---         P10      UART (Bluetooth)
  */
 
-#define GPS_DEFAULT_UART_PORT  "/dev/ttyS3"      /* UART2 */
-
 /* High-resolution timer */
 #define HRT_TIMER              1  /* TPM1 timer for the HRT */
 #define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */

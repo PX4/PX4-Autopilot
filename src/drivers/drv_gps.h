@@ -47,10 +47,6 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#ifndef GPS_DEFAULT_UART_PORT
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
-#endif
-
 typedef enum {
 	GPS_DRIVER_MODE_NONE = 0,
 	GPS_DRIVER_MODE_UBX,
