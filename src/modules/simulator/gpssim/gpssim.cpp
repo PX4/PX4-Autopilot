@@ -86,7 +86,7 @@ public:
 class GPSSIM : public VirtDevObj
 {
 public:
-	GPSSIM(const char *uart_path, bool fake_gps, bool enable_sat_info,
+	GPSSIM(bool fake_gps, bool enable_sat_info,
 	       int fix_type, int num_sat, int noise_multiplier);
 	virtual ~GPSSIM();
 
@@ -163,7 +163,7 @@ GPSSIM	*g_dev = nullptr;
 }
 
 
-GPSSIM::GPSSIM(const char *uart_path, bool fake_gps, bool enable_sat_info,
+GPSSIM::GPSSIM(bool fake_gps, bool enable_sat_info,
 	       int fix_type, int num_sat, int noise_multiplier) :
 	VirtDevObj("gps", GPSSIM_DEVICE_PATH, nullptr, 1e6 / 10),
 	_task_should_exit(false),
@@ -391,7 +391,7 @@ namespace gpssim
 
 GPSSIM	*g_dev = nullptr;
 
-void	start(const char *uart_path, bool fake_gps, bool enable_sat_info,
+void	start(bool fake_gps, bool enable_sat_info,
 	      int fix_type, int num_sat, int noise_multiplier);
 void	stop();
 void	test();
@@ -403,12 +403,12 @@ void	usage(const char *reason);
  * Start the driver.
  */
 void
-start(const char *uart_path, bool fake_gps, bool enable_sat_info, int fix_type, int num_sat, int noise_multiplier)
+start(bool fake_gps, bool enable_sat_info, int fix_type, int num_sat, int noise_multiplier)
 {
 	DevHandle h;
 
 	/* create the driver */
-	g_dev = new GPSSIM(uart_path, fake_gps, enable_sat_info, fix_type, num_sat, noise_multiplier);
+	g_dev = new GPSSIM(fake_gps, enable_sat_info, fix_type, num_sat, noise_multiplier);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -512,7 +512,6 @@ int
 gpssim_main(int argc, char *argv[])
 {
 	// set to default
-	const char *device_name = GPS_DEFAULT_UART_PORT;
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 	int fix_type = -1;
@@ -524,13 +523,8 @@ gpssim_main(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:fst:n:m:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "fst:n:m:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'd':
-			device_name = myoptarg;
-			PX4_INFO("Using device %s", device_name);
-			break;
-
 		case 'f':
 			fake_gps = true;
 			PX4_INFO("Using fake GPS");
@@ -575,7 +569,7 @@ gpssim_main(int argc, char *argv[])
 			return 0;
 		}
 
-		gpssim::start(device_name, fake_gps, enable_sat_info, fix_type, num_sat, noise_multiplier);
+		gpssim::start(fake_gps, enable_sat_info, fix_type, num_sat, noise_multiplier);
 		return 0;
 	}
 
