@@ -934,15 +934,20 @@ info()
 int
 sf0x_main(int argc, char *argv[])
 {
-	int ch;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	const char *device_path = SF0X_DEFAULT_PORT;
+	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
+			break;
+
+		case 'd':
+			device_path = myoptarg;
 			break;
 
 		default:
@@ -959,12 +964,7 @@ sf0x_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		if (argc > myoptind + 1) {
-			return sf0x::start(argv[myoptind + 1], rotation);
-
-		} else {
-			return sf0x::start(SF0X_DEFAULT_PORT, rotation);
-		}
+		return sf0x::start(device_path, rotation);
 	}
 
 	/*
