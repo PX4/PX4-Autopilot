@@ -475,6 +475,7 @@ add_custom_target(metadata_airframes
 
 add_custom_target(metadata_parameters
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py --all-ports --params-file ${PX4_SOURCE_DIR}/src/generated_serial_params.c
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
 		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d`
 		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
