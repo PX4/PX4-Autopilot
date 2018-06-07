@@ -20,7 +20,6 @@ set(config_module_list
 	#drivers/camera_trigger
 	#drivers/frsky_telemetry
 	drivers/gps
-	#drivers/hott
 	#drivers/iridiumsbd
 	#drivers/irlock
 	drivers/imu/l3gd20
