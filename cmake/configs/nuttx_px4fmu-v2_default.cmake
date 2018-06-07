@@ -31,7 +31,6 @@ set(config_module_list
 	#drivers/distance_sensor/ulanding
 	#drivers/frsky_telemetry
 	drivers/gps
-	#drivers/hott
 	#drivers/imu/adis16448
 	#drivers/imu/bmi160
 	drivers/imu/l3gd20
