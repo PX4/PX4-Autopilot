@@ -528,8 +528,6 @@
 #define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
 #define RC_SERIAL_PORT_IS_SWAPED           0 /* Board wired with RC's TX is on cpu RX */
 
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS0" /* UART1 on FMUv5 */
-
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  2
 #define INPUT_CAP1_CHANNEL     /* T4C1 */ 1

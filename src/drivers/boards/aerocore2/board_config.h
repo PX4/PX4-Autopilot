@@ -62,9 +62,6 @@
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS	1
 
-/* GPS */
-#define GPS_DEFAULT_UART_PORT	"/dev/ttyS0"
-
 /* Power muxes */
 /* LOW=battery HIGH=USB */
 #define GPIO_POWER_MUX_SENSE	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
