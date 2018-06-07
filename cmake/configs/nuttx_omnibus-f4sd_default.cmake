@@ -1,6 +1,11 @@
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
+# user-configurable UART ports
+set(board_serial_ports
+	TEL2:/dev/ttyS1
+	URT6:/dev/ttyS2)
+
 set(config_module_list
 	#
 	# Board support modules

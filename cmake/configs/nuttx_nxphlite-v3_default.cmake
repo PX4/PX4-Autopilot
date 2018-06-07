@@ -5,6 +5,11 @@ set(UAVCAN_PLATFORM kinetis CACHE STRING "uavcan platform")
 set(UAVCAN_TIMER 1)
 set(config_uavcan_num_ifaces 2)
 
+# user-configurable UART ports
+set(board_serial_ports
+	GPS1:/dev/ttyS3
+	TEL1:/dev/ttyS4)
+
 set(config_module_list
 	#
 	# Board support modules
