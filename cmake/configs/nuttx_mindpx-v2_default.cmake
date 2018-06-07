@@ -17,7 +17,6 @@ set(config_module_list
 	drivers/blinkm
 	drivers/camera_trigger
 	drivers/gps
-	#drivers/hott
 	drivers/imu/l3gd20
 	drivers/imu/lsm303d
 	#drivers/mkblctrl
