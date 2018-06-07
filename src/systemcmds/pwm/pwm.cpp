@@ -44,6 +44,7 @@
 #include <px4_defines.h>
 #include <px4_log.h>
 #include <px4_module.h>
+#include <px4_cli.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,49 +154,6 @@ $ pwm test -c 13 -p 1200
 
 }
 
-static unsigned
-get_parameter_value(const char *option, const char *paramDescription)
-{
-	unsigned result_value = 0;
-
-	/* check if this is a param name */
-	if (strncmp("p:", option, 2) == 0) {
-
-		char paramName[32];
-		strncpy(paramName, option + 2, 17);
-		/* user wants to use a param name */
-		param_t parm = param_find(paramName);
-
-		if (parm != PARAM_INVALID) {
-			int32_t pwm_parm;
-			int gret = param_get(parm, &pwm_parm);
-
-			if (gret == 0) {
-				result_value = pwm_parm;
-
-			} else {
-				PX4_ERR("PARAM '%s' LOAD FAIL", paramDescription);
-				return gret;
-			}
-
-		} else {
-			PX4_ERR("PARAM '%s' NAME NOT FOUND", paramName);
-			return 1;
-		}
-
-	} else {
-		char *ep;
-		result_value = strtoul(option, &ep, 0);
-
-		if (*ep != '\0') {
-			PX4_ERR("BAD '%s'", paramDescription);
-			return 1;
-		}
-	}
-
-	return result_value;
-}
-
 int
 pwm_main(int argc, char *argv[])
 {
@@ -288,11 +246,17 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		case 'p':
-			pwm_value = get_parameter_value(myoptarg, "PWM Value");
+			if (px4_get_parameter_value(myoptarg, pwm_value) != 0) {
+				PX4_ERR("CLI argument parsing for PWM value failed");
+				return 1;
+			}
 			break;
 
 		case 'r':
-			alt_rate = get_parameter_value(myoptarg, "PWM Rate");
+			if (px4_get_parameter_value(myoptarg, alt_rate) != 0) {
+				PX4_ERR("CLI argument parsing for PWM rate failed");
+				return 1;
+			}
 			break;
 
 		default:
