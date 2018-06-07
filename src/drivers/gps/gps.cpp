@@ -1004,7 +1004,7 @@ GPS *GPS::instantiate(int argc, char *argv[])
 
 GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 {
-	const char *device_name = GPS_DEFAULT_UART_PORT;
+	const char *device_name = "/dev/ttyS3";
 	const char *device_name_secondary = nullptr;
 	bool fake_gps = false;
 	bool enable_sat_info = false;
