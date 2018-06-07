@@ -73,7 +73,7 @@ add_subdirectory(${romfs_src_dir})
 # copy all romfs files, process airframes, prune comments
 get_property(romfs_cmake_files GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
 get_property(romfs_copy_files GLOBAL PROPERTY PX4_ROMFS_FILES)
-add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}/init.d/rc.autostart
+add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}/init.d/rc.serial ${romfs_gen_root_dir}/init.d/rc.autostart
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
 	# TODO: we should only copy the files in ${romfs_copy_files}
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${romfs_src_dir} ${romfs_gen_root_dir}
@@ -83,6 +83,9 @@ add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
 		--board ${BOARD}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		--rc-file ${romfs_temp_dir}/init.d/rc.serial
+		--serial-ports ${board_serial_ports} #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		--folder ${romfs_gen_root_dir} --board ${BOARD}
 	DEPENDS
@@ -90,6 +93,7 @@ add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	COMMENT "ROMFS: copying, generating airframes, pruning"
 	)
 
