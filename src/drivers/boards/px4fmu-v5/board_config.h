@@ -522,8 +522,6 @@
 
 #define RC_UXART_BASE        STM32_USART6_BASE /* NOT FMUv5 test HW ONLY*/
 
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS0" /* UART1 on FMUv5 */
-
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER          		  2
 #define INPUT_CAP1_CHANNEL     /* T4C1 */ 1
