@@ -68,11 +68,31 @@ endif()
 
 list(REMOVE_DUPLICATES module_list)
 
+if (NOT DEFINED board_serial_ports)
+	message( FATAL_ERROR "board_serial_ports not defined. You need to set \
+the UART ports in ${CONFIG}.cmake. If the board has no configurable UARTs, add \
+'set(board_serial_ports none)'.")
+elseif("${board_serial_ports}" STREQUAL "none")
+	set(board_serial_ports "")
+endif()
+
+set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
+set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
+add_custom_command(OUTPUT ${generated_serial_params_file}
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		--params-file ${generated_serial_params_file}
+		--serial-ports ${board_serial_ports} #--verbose
+	DEPENDS
+		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+	COMMENT "Generating serial_params.c"
+)
+
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
 file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c)
 add_custom_command(OUTPUT ${parameters_xml}
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
-		--src-path ${module_list}
+		--src-path ${module_list} ${generated_params_dir}
 		--xml ${parameters_xml}
 		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
@@ -80,6 +100,7 @@ add_custom_command(OUTPUT ${parameters_xml}
 		#--verbose
 	DEPENDS
 		${param_src_files}
+		${generated_params_dir}/serial_params.c
 		parameters_injected.xml
 		px4params/srcparser.py
 		px4params/srcscanner.py
