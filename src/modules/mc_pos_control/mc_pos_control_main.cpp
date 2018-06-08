@@ -638,9 +638,16 @@ MulticopterPositionControl::task_main()
 			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
 			publish_local_pos_sp();
 
+			// publish attitude setpoint
+			// Note: this requires review. The reason for not sending
+			// an attitude setpoint is because for none-flighttask modes
+			// the attitude septoint should come from another source, otherwise
+			// they might conflict with each other such as in offboard attitude control.
+			publish_attitude();
+
 		} else {
 
-			// no flighttask is active: stay idle
+			// no flighttask is active: set attitude setpoint to idle
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _local_pos.yaw;
 			_att_sp.yaw_sp_move_rate = 0.0f;
@@ -652,8 +659,6 @@ MulticopterPositionControl::task_main()
 			_att_sp.q_d_valid = true;
 			_att_sp.thrust = 0.0f;
 		}
-
-		publish_attitude();
 	}
 
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
