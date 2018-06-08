@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1022,7 +1022,7 @@ PX4FMU::task_spawn(int argc, char *argv[])
 		_task_id = px4_task_spawn_cmd("fmu",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-					      1310,
+					      1340,
 					      (px4_main_t)&run_trampoline,
 					      nullptr);
 
