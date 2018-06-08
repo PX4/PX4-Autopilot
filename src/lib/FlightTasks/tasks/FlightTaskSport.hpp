@@ -52,24 +52,13 @@ public:
 
 	virtual ~FlightTaskSport() = default;
 
-protected:
-	void _updateSetpoints() override
+	bool activate() override
 	{
-		FlightTaskManualPosition::_updateSetpoints(); // get all setpoints from position task
+		bool ret = FlightTaskManualPosition::activate();
 
-		/* Scale horizontal velocity setpoint by maximum allowed velocity. */
-		if (PX4_ISFINITE(_velocity_setpoint(0)) && Vector2f(&_velocity_setpoint(0)).length() > 0.0f) {
-			Vector2f vel_sp_xy = Vector2f(&_velocity_setpoint(0));
-			vel_sp_xy = vel_sp_xy.normalized() * _vel_xy_max.get() / _vel_xy_manual_max.get() * vel_sp_xy.length();
-			_velocity_setpoint(0) = vel_sp_xy(0);
-			_velocity_setpoint(1) = vel_sp_xy(1);
-		}
+		// default constraints already are the maximum allowed limits
+		_setDefaultConstraints();
+
+		return ret;
 	}
-
-private:
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
-					(ParamFloat<px4::params::MPC_XY_VEL_MAX>)
-					_vel_xy_max /**< maximal allowed horizontal speed, in sport mode full stick input*/
-				       )
-
 };

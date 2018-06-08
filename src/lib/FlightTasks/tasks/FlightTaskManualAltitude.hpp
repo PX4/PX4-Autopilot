@@ -45,19 +45,51 @@ class FlightTaskManualAltitude : public FlightTaskManualStabilized
 {
 public:
 	FlightTaskManualAltitude() = default;
-
 	virtual ~FlightTaskManualAltitude() = default;
+	bool activate() override;
+	bool updateInitialize() override;
 
 protected:
-	void _updateAltitudeLock(); /**< checks for position lock */
 	void _updateSetpoints() override; /**< updates all setpoints */
 	void _scaleSticks() override; /**< scales sticks to velocity in z */
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down, /**< maximum speed allowed to go up */
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up, /**< maximum speed allowed to go down */
-					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>)
-					_vel_hold_thr_z /**< velocity threshold to switch back into vertical position hold */
-				       )
+	/**
+	 *  Check and sets for position lock.
+	 *  If sticks are at center position, the vehicle
+	 *  will exit velocity control and enter position control.
+	 */
+	void _updateAltitudeLock();
 
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
+					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
+					(ParamFloat<px4::params::SENS_FLOW_MINRNG>) SENS_FLOW_MINRNG,
+					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE
+				       )
+private:
+	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
+
+	/**
+	 * Distance to ground during terrain following.
+	 * If user does not demand velocity change in D-direction and the vehcile
+	 * is in terrain-following mode, then height to ground will be locked to
+	 * _dist_to_ground_lock.
+	 */
+	float _dist_to_ground_lock = NAN;
+
+	/**
+	 * Terrain following.
+	 * During terrain following, the position setpoint is adjusted
+	 * such that the distance to ground is kept constant.
+	 * @param apply_brake is true if user wants to break
+	 * @param stopped is true if vehicle has stopped moving in D-direction
+	 */
+	void _terrain_following(bool apply_brake, bool stopped);
+
+	/**
+	 * Minimum Altitude during range sensor operation.
+	 * If a range sensor is used for altitude estimates, for
+	 * best operation a minimum altitude is required. The minimum
+	 * altitude is only enforced during altitude lock.
+	 */
+	void _respectMinAltitude();
 };

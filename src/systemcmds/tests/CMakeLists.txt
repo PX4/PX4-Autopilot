@@ -65,6 +65,7 @@ set(srcs
 	test_uart_send.c
 	test_versioning.cpp
 	test_smooth_z.cpp
+	test_controlmath.cpp
 	tests_main.c
 	)
 
@@ -90,7 +91,6 @@ px4_add_module(
 	SRCS
 		${srcs}
 	DEPENDS
-		modules__mc_pos_control__mc_pos_control_tests
 		git_ecl
 		ecl_geo_lookup # TODO: move this
 	)

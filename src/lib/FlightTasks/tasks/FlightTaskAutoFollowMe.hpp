@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,38 +32,19 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualPositionSmooth.cpp
+ * @file FlightTaskAutoFollowMe.hpp
+ *
+ * Flight task for autonomous, gps driven follow-me mode.
  */
 
-#include "FlightTaskManualPositionSmooth.hpp"
+#pragma once
 
-using namespace matrix;
+#include "FlightTaskAuto.hpp"
 
-FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth() :
-	_smoothingXY(this, matrix::Vector2f(&_velocity(0))),
-	_smoothingZ(this, _velocity(2), _sticks(2))
-{}
-
-void FlightTaskManualPositionSmooth::_updateSetpoints()
+class FlightTaskAutoFollowMe : public FlightTaskAuto
 {
-	/* Get yaw setpont, un-smoothed position setpoints.*/
-	FlightTaskManualPosition::_updateSetpoints();
-
-	/* Smooth velocity setpoint in xy.*/
-	matrix::Vector2f vel(&_velocity(0));
-	Vector2f vel_sp_xy = Vector2f(&_velocity_setpoint(0));
-	_smoothingXY.updateMaxVelocity(_constraints.speed_xy);
-	_smoothingXY.smoothVelocity(vel_sp_xy, vel, _yaw, _yawspeed_setpoint, _deltatime);
-	_velocity_setpoint(0) = vel_sp_xy(0);
-	_velocity_setpoint(1) = vel_sp_xy(1);
-
-	/* Check for altitude lock.*/
-	_updateXYlock();
-
-	/* Smooth velocity in z.*/
-	_smoothingZ.smoothVelFromSticks(_velocity_setpoint(2), _deltatime);
-
-	/* Check for altitude lock*/
-	_updateAltitudeLock();
-
-}
+public:
+	FlightTaskAutoFollowMe() = default;
+	virtual ~FlightTaskAutoFollowMe() = default;
+	bool update() override;
+};

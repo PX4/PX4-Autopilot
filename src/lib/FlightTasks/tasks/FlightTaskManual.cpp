@@ -80,13 +80,46 @@ bool FlightTaskManual::_evaluateSticks()
 		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _stick_dz.get());
 		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _stick_dz.get());
 		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _stick_dz.get());
+		_sticks_expo(3) = math::expo_deadzone(_sticks(3), _yaw_expo.get(), _stick_dz.get());
 
-		return true;
+		// Only switch the landing gear up if the user switched from gear down to gear up.
+		// If the user had the switch in the gear up position and took off ignore it
+		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+		int8_t gear_switch = _sub_manual_control_setpoint->get().gear_switch;
+
+		if (!_constraints.landing_gear) {
+			if (gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+				_applyGearSwitch(gear_switch);
+			}
+
+		} else {
+			_applyGearSwitch(gear_switch);
+		}
+
+		// valid stick inputs are required
+		const bool valid_sticks =  PX4_ISFINITE(_sticks(0))
+					   && PX4_ISFINITE(_sticks(1))
+					   && PX4_ISFINITE(_sticks(2))
+					   && PX4_ISFINITE(_sticks(3));
+
+		return valid_sticks;
 
 	} else {
 		/* Timeout: set all sticks to zero */
 		_sticks.zero();
 		_sticks_expo.zero();
+		_constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 		return false;
+	}
+}
+
+void FlightTaskManual::_applyGearSwitch(uint8_t gswitch)
+{
+	if (gswitch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+		_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+	}
+
+	if (gswitch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
 	}
 }

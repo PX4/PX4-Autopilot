@@ -47,16 +47,18 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
-
+#include <uORB/topics/vehicle_constraints.h>
 #include "../SubscriptionArray.hpp"
-
 
 class FlightTask : public ModuleParams
 {
 public:
 	FlightTask() :
 		ModuleParams(nullptr)
-	{ _resetSetpoints(); }
+	{
+		_resetSetpoints();
+		_constraints = empty_constraints;
+	}
 
 	virtual ~FlightTask() = default;
 
@@ -96,7 +98,24 @@ public:
 	 */
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
+	/**
+	 * Get vehicle constraints.
+	 * The constraints can vary with task.
+	 * @return constraints
+	 */
+	const vehicle_constraints_s getConstraints() {return _constraints;};
+
+	/**
+	 * Empty setpoint.
+	 * All setpoints are set to NAN.
+	 */
 	static const vehicle_local_position_setpoint_s empty_setpoint;
+
+	/**
+	 * Empty constraints.
+	 * All constraints are set to NAN.
+	 */
+	static const vehicle_constraints_s empty_constraints;
 
 	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
@@ -107,6 +126,24 @@ public:
 	}
 
 protected:
+
+	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
+
+	/**
+	 * Reset all setpoints to NAN
+	 */
+	void _resetSetpoints();
+
+	/*
+	 * Check and update local position
+	 */
+	bool _evaluateVehicleLocalPosition();
+
+	/**
+	 * Set constraints to default values
+	 */
+	virtual void  _setDefaultConstraints();
+
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
 	float _time = 0; /**< passed time in seconds since the task was activated */
@@ -120,22 +157,32 @@ protected:
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f;
 
-	/* Setpoints the position controller needs to execute
-	 * NAN values mean the state does not get controlled */
+	/**
+	 * Setpoints which the position controller has to execute.
+	 * Setpoints that are set to NAN are not controlled. Not all setpoints can be set at the same time.
+	 * If more than one type of setpoint is set, then order of control is a as follow: position, velocity,
+	 * acceleration, thrust. The exception is _position_setpoint together with _velocity_setpoint, where the
+	 * _velocity_setpoint is used as feedforward.
+	 * _acceleration_setpoint is currently not supported.
+	 */
 	matrix::Vector3f _position_setpoint;
 	matrix::Vector3f _velocity_setpoint;
 	matrix::Vector3f _acceleration_setpoint;
 	matrix::Vector3f _thrust_setpoint;
 	float _yaw_setpoint;
 	float _yawspeed_setpoint;
+	float _dist_to_bottom;
 
 	/**
-	 * Get the output data
+	 * Vehicle constraints.
+	 * The constraints can vary with tasks.
 	 */
-	void _resetSetpoints();
+	vehicle_constraints_s _constraints;
 
-private:
-	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-
-	bool _evaluateVehiclePosition();
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
+					(ParamFloat<px4::params::MPC_TILTMAX_AIR>) MPC_TILTMAX_AIR
+				       )
 };

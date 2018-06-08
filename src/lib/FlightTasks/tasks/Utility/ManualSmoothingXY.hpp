@@ -34,7 +34,15 @@
 /**
  * @file SmoothingXY.hpp
  *
- * This Class is used for smoothing the velocity setpoints in Z-direction.
+ * This Class is used for smoothing the velocity setpoint in XY-direction.
+ * The velocity setpoint is smoothed by applying a velocity change limit, which
+ * we call acceleration. Depending on the user intention, the acceleration limit
+ * will differ.
+ * In manual mode we consider four states with different acceleration handling:
+ * 1. user wants to stop
+ * 2. user wants to quickly change direction
+ * 3. user wants to accelerate
+ * 4. user wants to decelerate
  */
 
 #pragma once
@@ -49,6 +57,15 @@ public:
 	~ManualSmoothingXY() = default;
 
 	/**
+	 * Maximum velocity is required to detect user intention.
+	 * Maximum velocity depends on flight-task.
+	 * In order to deduce user intention from velocity, the maximum
+	 * allowed velocity has to be updated.
+	 * @param vel_max corresponds to vehicle constraint
+	 */
+	void updateMaxVelocity(const float &vel_max) {_vel_max = vel_max;};
+
+	/**
 	 * Smoothing of velocity setpoint horizontally based
 	 * on flight direction.
 	 * @param vel_sp: velocity setpoint in xy
@@ -57,19 +74,28 @@ public:
 	void smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel,  const float &yaw,
 			    const float &yawrate_sp, const float dt);
 
-	/* User intention: brake or acceleration */
+	/*
+	 * User intention.
+	 * - brake when user demands a brake
+	 * - acceleration when vehicle keeps speed or accelerates in the same direction
+	 * - deceleration when vehicle slows down in the same direction
+	 * - direction_change whne vehcile demands an abrupt direction change
+	 */
 	enum class Intention {
 		brake,
 		acceleration,
 		deceleration,
 		direction_change
 	};
-
-	/* Getter methods */
+	/**
+	 * Get user intention.
+	 * @see Intention
+	 */
 	Intention getIntention() { return _intention; }
 
-	/* Overwrite methods:
-	 * Needed if different parameter values than default required.
+	/**
+	 *  Overwrite methods:
+	 *  Needed if different parameter values than default required.
 	 */
 	void overwriteHoverAcceleration(float acc) { _acc_hover.set(acc); }
 	void overwriteMaxAcceleration(float acc) { _acc_xy_max.set(acc); }
@@ -78,35 +104,72 @@ public:
 	void overwriteJerkMin(float jerk) { _jerk_min.set(jerk); }
 
 private:
+	/**
+	 * Sets velocity change limits (=acceleration).
+	 * Depending on the user intention, the acceleration differs.
+	 * @param vel_sp is desired velocity setpoint before slewrate.
+	 * @param vel is current velocity in horizontal direction
+	 * @param yaw is vehicle yaw
+	 * @param yawrate_sp is desired yawspeed
+	 * @param dt is delta-time
+	 */
 	void _updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
 				 const float &yawrate_sp, const float dt);
+
+	/**
+	 * Gets user intention.
+	 * The intention is deduced from desired velocity setpoint.
+	 * @param vel_sp is desired velocity setpoint before slewrate.
+	 * @param vel is vehicle velocity in xy-direction.
+	 * @param yaw is vehicle yaw
+	 * @param yawrate_sp is the desired yaw-speed
+	 */
 	Intention _getIntention(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
 				const float &yawrate_sp);
-	void _getStateAcceleration(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const Intention &intention,
+
+	/**
+	 * Set acceleration depending on Intention.
+	 * @param vel_sp is desired velocity septoint in xy-direction
+	 * @param vel is vehicle velociy in xy-direction
+	 * @param intention is the user intention during flight
+	 * @param dt is delta-time
+	 */
+	void _setStateAcceleration(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const Intention &intention,
 				   const float dt);
+
+	/**
+	 * Limits the velocity setpoint change.
+	 * @param vel_sp that gets limited based on acceleration and previous velocity setpoint
+	 * @param dt is delta-time
+	 */
 	void _velocitySlewRate(matrix::Vector2f &vel_sp, const float dt);
+
+	/**
+	 * Rotate vector from local frame into heading frame.
+	 * @param vec is an arbitrary vector in local frame
+	 * @param yaw is the vehicle heading
+	 */
 	matrix::Vector2f _getWorldToHeadingFrame(const matrix::Vector2f &vec, const float &yaw);
+
+	/**
+	 * Rotate vector from heading frame to local frame.
+	 * @param vec is an arbitrary vector in heading frame
+	 * @param yaw is the vehicle yaw
+	 */
 	matrix::Vector2f _getHeadingToWorldFrame(const matrix::Vector2f &vec, const float &yaw);
 
-	/* User intention: brake or acceleration */
-	Intention _intention{Intention::acceleration};
-
-	/* Acceleration that depends on vehicle state
-	 * _acc_max_down <= _acc_state_dependent <= _acc_max_up
-	 */
-	float _acc_state_dependent{0.0f};
-	float _jerk_state_dependent{0.0f};
-
-	/* Previous setpoints */
-	matrix::Vector2f _vel_sp_prev{}; // previous velocity setpoint
+	Intention _intention{Intention::acceleration}; /**< user intention */
+	float _acc_state_dependent; /**< velocity change limit that depends on Intention */
+	float _jerk_state_dependent; /**< acceleration change limit during brake */
+	float _vel_max{10.0f}; /**< maximum horizontal speed allowed */
+	matrix::Vector2f _vel_sp_prev; /**< previous velocity setpoint */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_hover, ///< acceleration in hover
-		(ParamFloat<px4::params::MPC_ACC_HOR>) _acc_xy_max, ///< acceleration in flight
-		(ParamFloat<px4::params::MPC_DEC_HOR_SLOW>) _dec_xy_min, ///< deceleration in flight
-		(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, ///< jerk min during brake
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max, ///< jerk max during brake
-		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _vel_manual ///< maximum velocity in manual controlled mode
+		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_hover, /**< acceleration in hover */
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _acc_xy_max, /**< acceleration in flight */
+		(ParamFloat<px4::params::MPC_DEC_HOR_SLOW>) _dec_xy_min, /**< deceleration in flight */
+		(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, /**< jerk min during brake */
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max, /**< jerk max during brake */
+		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _vel_manual /**< maximum velocity in manual controlled mode */
 	)
-
 };

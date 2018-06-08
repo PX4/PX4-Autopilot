@@ -544,6 +544,22 @@ PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
 
 /**
+ * Manual control stick yaw rotation exponential curve
+ *
+ * The higher the value the less sensitivity the stick has around zero
+ * while still reaching the maximum value with full stick deflection.
+ *
+ * 0 Purely linear input curve (default)
+ * 1 Purely cubic input curve
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.0f);
+
+/**
  * Altitude for 1. step of slow landing (descend)
  *
  * Below this altitude descending velocity gets limited
@@ -586,13 +602,21 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
 
 /**
- * Flag to test flight tasks instead of legacy functionality
- * Temporary Parameter during the transition to flight tasks
+ * Manual-Position control sub-mode.
+ *
+ * The supported sub-modes are:
+ * 0 Default position control where sticks map to position/velocity directly. Maximum speeds
+ * 	 is MPC_VEL_MANUAL.
+ * 1 Smooth position control where setpoints are adjusted based on acceleration limits
+ * 	 and jerk limits.
+ * 2 Sport mode that is the same Default position control but with velocity limits set to
+ * 	 the maximum allowed speeds (MPC_XY_VEL_MAX)
  *
  * @min 0
- * @max 1
- * @value 0 Legacy Functionality
- * @value 1 Test flight tasks
+ * @max 2
+ * @value 0 Default position control
+ * @value 1 Smooth position control
+ * @value 2 Sport position control
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_FLT_TSK, 0);
+PARAM_DEFINE_INT32(MPC_POS_MODE, 1);

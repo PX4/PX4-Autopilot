@@ -47,8 +47,11 @@
 #include "tasks/FlightTaskManualPosition.hpp"
 #include "tasks/FlightTaskManualPositionSmooth.hpp"
 #include "tasks/FlightTaskManualStabilized.hpp"
+#include "tasks/FlightTaskAutoLine.hpp"
+#include "tasks/FlightTaskAutoFollowMe.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 #include "tasks/FlightTaskSport.hpp"
+#include "tasks/FlightTaskOffboard.hpp"
 
 #include "SubscriptionArray.hpp"
 
@@ -63,6 +66,9 @@ enum class FlightTaskIndex : int {
 	PositionSmooth,
 	Orbit,
 	Sport,
+	AutoLine,
+	AutoFollowMe,
+	Offboard,
 
 	Count // number of tasks
 };
@@ -70,12 +76,12 @@ enum class FlightTaskIndex : int {
 class FlightTasks
 {
 public:
-	FlightTasks() = default;
+	FlightTasks();
 
 	~FlightTasks()
 	{
-		if (_current_task) {
-			_current_task->~FlightTask();
+		if (_current_task.task) {
+			_current_task.task->~FlightTask();
 		}
 	}
 
@@ -92,10 +98,16 @@ public:
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
 	/**
+	 * Get task dependent constraints
+	 * @return setpoint constraints that has to be respected by the position controller
+	 */
+	const vehicle_constraints_s getConstraints();
+
+	/**
 	 * Switch to the next task in the available list (for testing)
 	 * @return true on success, false on error
 	 */
-	int switchTask() { return switchTask(static_cast<int>(_current_task_index) + 1); }
+	int switchTask() { return switchTask(static_cast<int>(_current_task.index) + 1); }
 
 	/**
 	 * Switch to a specific task (for normal usage)
@@ -109,18 +121,23 @@ public:
 	 * Get the number of the active task
 	 * @return number of active task, -1 if there is none
 	 */
-	int getActiveTask() const { return static_cast<int>(_current_task_index); }
+	int getActiveTask() const { return static_cast<int>(_current_task.index); }
 
 	/**
 	 * Check if any task is active
 	 * @return true if a task is active, false if not
 	 */
-	bool isAnyTaskActive() const { return _current_task; }
+	bool isAnyTaskActive() const { return _current_task.task; }
 
 	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
 	 */
 	void handleParameterUpdate();
+
+	/**
+	 * Call this method to get the description of a task error.
+	 */
+	const char *errorToString(const int error);
 
 private:
 
@@ -139,17 +156,40 @@ private:
 		FlightTaskManualPositionSmooth position_smooth;
 		FlightTaskOrbit orbit;
 		FlightTaskSport sport;
+		FlightTaskAutoLine autoLine;
+		FlightTaskAutoFollowMe autoFollowMe;
+		FlightTaskOffboard offboard;
 	} _task_union; /**< storage for the currently active task */
 
-	FlightTask *_current_task = nullptr;
-	FlightTaskIndex _current_task_index = FlightTaskIndex::None;
+	struct flight_task_t {
+		FlightTask *task;
+		FlightTaskIndex index;
+	};
+	flight_task_t _current_task = {nullptr, FlightTaskIndex::None};
 
 	SubscriptionArray _subscription_array;
 
+	struct task_error_t {
+		int error;
+		const char *msg;
+	};
+
+	static const int _numError = 4;
+	/**
+	 * Map from Error int to user friendly string.
+	 */
+	task_error_t _taskError[_numError] = {
+		{0, "No Error"},
+		{-1, "Invalid Task "},
+		{-2, "Subscription Failed"},
+		{-3, "Activation Failed"}
+	};
 	/**
 	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
 	 */
 	void _updateCommand();
+
+	int _initTask(FlightTaskIndex task_index);
 //	int _sub_vehicle_command = -1; /**< topic handle on which commands are received */
 //	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
 };

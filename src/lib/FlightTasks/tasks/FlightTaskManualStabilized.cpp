@@ -37,20 +37,46 @@
 
 #include "FlightTaskManualStabilized.hpp"
 #include <mathlib/mathlib.h>
+#include <float.h>
 
 using namespace matrix;
+uint8_t FlightTaskManualStabilized::_heading_reset_counter = 0;
+
+bool FlightTaskManualStabilized::initializeSubscriptions(SubscriptionArray &subscription_array)
+{
+	if (!FlightTaskManual::initializeSubscriptions(subscription_array)) {
+		return false;
+	}
+
+	if (!subscription_array.get(ORB_ID(vehicle_attitude), _sub_attitude)) {
+		return false;
+	}
+
+	return true;
+}
 
 bool FlightTaskManualStabilized::activate()
 {
+	bool ret = FlightTaskManual::activate();
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
-	return FlightTaskManual::activate();
+	_yaw_setpoint = _yaw;
+	_yawspeed_setpoint = 0.0f;
+	_constraints.tilt = math::radians(_tilt_max_man.get());
+	return ret;
+}
+
+bool FlightTaskManualStabilized::updateInitialize()
+{
+	bool ret = FlightTaskManual::updateInitialize();
+	// need a valid yaw-state
+	return ret && PX4_ISFINITE(_yaw);
 }
 
 void FlightTaskManualStabilized::_scaleSticks()
 {
 	/* Scale sticks to yaw and thrust using
 	 * linear scale for yaw and piecewise linear map for thrust. */
-	_yawspeed_setpoint = _sticks(3) * math::radians(_yaw_rate_scaling.get());
+	_yawspeed_setpoint = _sticks_expo(3) * math::radians(_yaw_rate_scaling.get());
 	_throttle = _throttleCurve();
 }
 
@@ -59,13 +85,22 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 	/* Yaw-lock depends on stick input. If not locked,
 	 * yaw_sp is set to NAN.
 	 * TODO: add yawspeed to get threshold.*/
-	const bool stick_yaw_zero = fabsf(_sticks(3)) <= stickDeadzone();
-
-	if (stick_yaw_zero && !PX4_ISFINITE(_yaw_setpoint)) {
-		_yaw_setpoint = _yaw;
-
-	} else if (!stick_yaw_zero) {
+	if (fabsf(_yawspeed_setpoint) > FLT_EPSILON) {
+		// no fixed heading when rotating around yaw by stick
 		_yaw_setpoint = NAN;
+
+	} else {
+		// hold the current heading when no more rotation commanded
+		if (!PX4_ISFINITE(_yaw_setpoint)) {
+			_yaw_setpoint = _yaw;
+
+		} else {
+			// check reset counter and update yaw setpoint if necessary
+			if (_sub_attitude->get().quat_reset_counter != _heading_reset_counter) {
+				_yaw_setpoint += matrix::Eulerf(matrix::Quatf(_sub_attitude->get().delta_q_reset)).psi();
+				_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
+			}
+		}
 	}
 }
 
@@ -76,7 +111,7 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 	_rotateIntoHeadingFrame(sp);
 
 	/* Ensure that maximum tilt is in [0.001, Pi] */
-	float tilt_max = math::constrain(math::radians(_tilt_max_man.get()), 0.001f, M_PI_F);
+	float tilt_max = math::constrain(_constraints.tilt, 0.001f, M_PI_F);
 
 	const float x = sp(0) * tilt_max;
 	const float y = sp(1) * tilt_max;
@@ -122,7 +157,7 @@ float FlightTaskManualStabilized::_throttleCurve()
 	float throttle = -((_sticks(2) - 1.0f) * 0.5f);
 
 	if (throttle < 0.5f) {
-		return (_throttle_hover.get() - _throttle_min.get()) / 0.5f * throttle + _throttle_min.get();
+		return (_throttle_hover.get() - _throttle_min_stabilized.get()) / 0.5f * throttle + _throttle_min_stabilized.get();
 
 	} else {
 		return (_throttle_max.get() - _throttle_hover.get()) / 0.5f * (throttle - 1.0f) + _throttle_max.get();

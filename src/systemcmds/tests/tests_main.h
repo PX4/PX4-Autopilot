@@ -89,6 +89,7 @@ extern int	test_uart_send(int argc, char *argv[]);
 extern int	test_parameters(int argc, char *argv[]);
 extern int	test_versioning(int argc, char *argv[]);
 extern int  test_smooth_z(int argc, char *argv[]);
+extern int 	test_controlmath(int argc, char *argv[]);
 
 /* external */
 extern int commander_tests_main(int argc, char *argv[]);
@@ -97,8 +98,6 @@ extern int controllib_test_main(int argc, char *argv[]);
 extern int uorb_tests_main(int argc, char *argv[]);
 extern int rc_tests_main(int argc, char *argv[]);
 extern int sf0x_tests_main(int argc, char *argv[]);
-extern int mc_pos_control_tests_main(int argc, char *argv[]);
-extern int test_controlmath(int argc, char *argv[]);
 
 __END_DECLS
 

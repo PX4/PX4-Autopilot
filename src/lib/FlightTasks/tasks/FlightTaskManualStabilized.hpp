@@ -41,6 +41,7 @@
 #pragma once
 
 #include "FlightTaskManual.hpp"
+#include <uORB/topics/vehicle_attitude.h>
 
 class FlightTaskManualStabilized : public FlightTaskManual
 {
@@ -48,10 +49,11 @@ public:
 	FlightTaskManualStabilized() = default;
 
 	virtual ~FlightTaskManualStabilized() = default;
-
 	bool activate() override;
-
+	bool updateInitialize() override;
 	bool update() override;
+	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
+
 
 protected:
 	virtual void _updateSetpoints(); /**< updates all setpoints*/
@@ -59,6 +61,10 @@ protected:
 	void _rotateIntoHeadingFrame(matrix::Vector2f &vec); /**< rotates vector into local frame */
 
 private:
+	static uint8_t _heading_reset_counter; /**< estimator heading reset */
+
+	uORB::Subscription<vehicle_attitude_s> *_sub_attitude{nullptr};
+
 
 	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	void _updateThrustSetpoints(); /**< sets thrust setpoint */
@@ -69,7 +75,7 @@ private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManual,
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _yaw_rate_scaling, /**< scaling factor from stick to yaw rate */
 					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _tilt_max_man, /**< maximum tilt allowed for manual flight */
-					(ParamFloat<px4::params::MPC_THR_MIN>) _throttle_min, /**< minimum throttle that always has to be satisfied in flight*/
+					(ParamFloat<px4::params::MPC_MANTHR_MIN>) _throttle_min_stabilized, /**< minimum throttle for stabilized */
 					(ParamFloat<px4::params::MPC_THR_MAX>) _throttle_max, /**< maximum throttle that always has to be satisfied in flight*/
 					(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover /**< throttle value at which vehicle is at hover equilibrium */
 				       )

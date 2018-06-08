@@ -76,7 +76,7 @@ protected:
 	 * Call this whenever the module gets a parameter change notification. It will automatically
 	 * call updateParams() for all children, which then call updateParamsImpl().
 	 */
-	void updateParams()
+	virtual void updateParams()
 	{
 		ModuleParams *child = _children.getHead();
 

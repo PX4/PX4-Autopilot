@@ -41,6 +41,37 @@
 
 using namespace matrix;
 
+bool FlightTaskManualPosition::updateInitialize()
+{
+	bool ret = FlightTaskManualAltitude::updateInitialize();
+	// require valid position / velocity in xy
+	return ret && PX4_ISFINITE(_position(0))
+	       && PX4_ISFINITE(_position(1))
+	       && PX4_ISFINITE(_velocity(0))
+	       && PX4_ISFINITE(_velocity(1));
+}
+
+bool FlightTaskManualPosition::activate()
+{
+
+	// all requirements from altitude-mode still have to hold
+	bool ret = FlightTaskManualAltitude::activate();
+
+	// set task specific constraint
+	if (_constraints.speed_xy >= MPC_VEL_MANUAL.get()) {
+		_constraints.speed_xy = MPC_VEL_MANUAL.get();
+	}
+
+	_position_setpoint(0) = _position(0);
+	_position_setpoint(1) = _position(1);
+	_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
+	_velocity_scale = _constraints.speed_xy;
+
+	// for position-controlled mode, we need a valid position and velocity state
+	// in NE-direction
+	return ret;
+}
+
 void FlightTaskManualPosition::_scaleSticks()
 {
 	/* Use same scaling as for FlightTaskManualAltitude */
@@ -55,8 +86,29 @@ void FlightTaskManualPosition::_scaleSticks()
 		stick_xy = stick_xy.normalized() * mag;
 	}
 
-	/* Scale to velocity.*/
-	Vector2f vel_sp_xy = stick_xy * _vel_xy_manual_max.get();
+	// scale the stick inputs
+	if (_sub_vehicle_local_position->get().vxy_max > 0.001f) {
+		// estimator provides vehicle specific max
+
+		// use the minimum of the estimator and user specified limit
+		_velocity_scale = fminf(_constraints.speed_xy, _sub_vehicle_local_position->get().vxy_max);
+		// Allow for a minimum of 0.3 m/s for repositioning
+		_velocity_scale = fmaxf(_velocity_scale, 0.3f);
+
+	} else if (stick_xy.length() > 0.5f) {
+		// raise the limit at a constant rate up to the user specified value
+
+		if (_velocity_scale < _constraints.speed_xy) {
+			_velocity_scale += _deltatime * MPC_ACC_HOR_FLOW.get();
+
+		} else {
+			_velocity_scale = _constraints.speed_xy;
+
+		}
+	}
+
+	// scale velocity to its maximum limits
+	Vector2f vel_sp_xy = stick_xy * _velocity_scale;
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
@@ -69,13 +121,23 @@ void FlightTaskManualPosition::_updateXYlock()
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
 	const bool apply_brake = Vector2f(&_velocity_setpoint(0)).length() < FLT_EPSILON;
-	const bool stopped = (_vel_hold_thr_xy.get() < FLT_EPSILON || vel_xy_norm < _vel_hold_thr_xy.get());
+	const bool stopped = (MPC_HOLD_MAX_XY.get() < FLT_EPSILON || vel_xy_norm < MPC_HOLD_MAX_XY.get());
 
 	if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(0))) {
 		_position_setpoint(0) = _position(0);
 		_position_setpoint(1) = _position(1);
 
-	} else if (!apply_brake) {
+	} else if (PX4_ISFINITE(_position_setpoint(0)) && apply_brake) {
+		// Position is locked but check if a reset event has happened.
+		// We will shift the setpoints.
+		if (_sub_vehicle_local_position->get().xy_reset_counter
+		    != _reset_counter) {
+			_position_setpoint(0) = _position(0);
+			_position_setpoint(1) = _position(1);
+			_reset_counter = _sub_vehicle_local_position->get().xy_reset_counter;
+		}
+
+	} else {
 		/* don't lock*/
 		_position_setpoint(0) = NAN;
 		_position_setpoint(1) = NAN;

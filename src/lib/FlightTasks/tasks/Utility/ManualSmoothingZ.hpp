@@ -35,13 +35,18 @@
  * @file SmoothingZ.hpp
  *
  * This Class is used for smoothing the velocity setpoints in Z-direction.
+ * In manual altitude control apply acceleration limit based on stick input.
  */
 
 #pragma once
 
 #include <px4_module_params.h>
 
-/* User intention: brake or acceleration */
+/**
+ * User-intention.
+ * - brake: vehicle should stop
+ * - acceleration: vehicle should move up or down
+ */
 enum class ManualIntentionZ {
 	brake,
 	acceleration,
@@ -54,21 +59,27 @@ public:
 	~ManualSmoothingZ() = default;
 
 	/**
-	 * Smooths velocity setpoint based
-	 * on flight direction.
+	 * Smooth velocity setpoint based on flight direction.
 	 * @param vel_sp[2] array: vel_sp[0] = current velocity set-point;
 	 * 					 	   vel_sp[1] = previous velocity set-point
-	 * 		  vel_sp will contain smoothed current previous set-point.
+	 * 		  vel_sp will contain smoothed current / previous set-point.
 	 * @param dt: time delta in seconds
 	 */
 	void smoothVelFromSticks(float &vel_sp, const float dt);
 
-
-	/* Getter methods */
+	/**
+	 * Get max accleration.
+	 */
 	float getMaxAcceleration() { return _max_acceleration; }
+
+	/**
+	 * Get user intention.
+	 * @see ManualIntentionZ
+	 */
 	ManualIntentionZ getIntention() { return _intention; }
 
-	/* Overwrite methods:
+	/*
+	 * Overwrite methods:
 	 * Needed if different parameter values than default required.
 	 */
 	void overwriteAccelerationUp(float acc_max_up) { _acc_max_up.set(acc_max_up); }
@@ -76,25 +87,43 @@ public:
 	void overwriteJerkMax(float jerk_max)  {_jerk_max.set(jerk_max); }
 
 private:
+	/**
+	 * Add delay to velocity setpoint change.
+	 * This method is used to smooth the velocity setpoint change.
+	 * @param vel_sp current velocity setpoint
+	 * @param dt delta-time
+	 */
 	void velocitySlewRate(float &vel_sp, const float dt);
+
+	/**
+	 * Computes the velocity setpoint change limit.
+	 * This method computes the limit with which the velocity setpoint change
+	 * is limited.
+	 * @see velocitySlewRate
+	 * @param vel_sp current velocity setpoint
+	 * @param dt delta-time
+	 */
 	void updateAcceleration(float &vel_sp, const float dt);
+
+	/**
+	 * Set maximum acceleration.
+	 * The maximum acceleration depends on the desired direction (up vs down).
+	 * @see _max_acceleration
+	 */
 	void setMaxAcceleration();
 
-	/* User intention: brake or acceleration */
+	/**
+	 * User intention
+	 * @see ManualIntentionZ
+	 */
 	ManualIntentionZ _intention{ManualIntentionZ::acceleration};
 
-	/* Dependency injection: vehicle velocity in z-direction;
-	 * stick input in z-direction
-	 */
-	const float &_vel;
-	const float &_stick;
+	const float &_vel; /**< vehicle velocity (dependency injection) */
+	const float &_stick; /**< stick input (dependency injection) */
 
-	/* Acceleration that depends on vehicle state
-	 * _acc_max_down <= _acc_state_dependent <= _acc_max_up
-	 */
-	float _acc_state_dependent{0.0f};
-	float _vel_sp_prev;
-	float _max_acceleration{0.f};
+	float _acc_state_dependent; /**< acceleration that depends on _intention */
+	float _max_acceleration; /**< can be up or down maximum acceleration */
+	float _vel_sp_prev; /**< previous velocity setpoint */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acc_max_up,
