@@ -50,6 +50,7 @@ set(config_module_list
 	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/motor_ramp
+	systemcmds/motor_test
 	systemcmds/mtd
 	systemcmds/nshterm
 	systemcmds/param
@@ -93,9 +94,10 @@ set(config_module_list
 	#
 	modules/attitude_estimator_q
 	modules/ekf2
-	modules/local_position_estimator
 	modules/landing_target_estimator
+	modules/local_position_estimator
 	modules/position_estimator_inav
+	modules/wind_estimator
 
 	#
 	# Vehicle Control
