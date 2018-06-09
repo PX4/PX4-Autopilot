@@ -8,7 +8,15 @@ int main()
     TEST(fabs(wrap_pi(4.0) - (4.0 - 2*M_PI)) < 1e-5);
     TEST(fabs(wrap_pi(-4.0) - (-4.0 + 2*M_PI)) < 1e-5);
     TEST(fabs(wrap_pi(3.0) - (3.0)) < 1e-3);
+    TEST(!is_finite(wrap_pi(1000.0f)));
+    TEST(!is_finite(wrap_pi(-1000.0f)));
     wrap_pi(NAN);
+
+    TEST(fabs(wrap_2pi(-4.0) - (-4.0 + 2*M_PI)) < 1e-5);
+    TEST(fabs(wrap_2pi(3.0) - (3.0)) < 1e-3);
+    TEST(!is_finite(wrap_2pi(1000.0f)));
+    TEST(!is_finite(wrap_2pi(-1000.0f)));
+    wrap_2pi(NAN);
 
     Vector3f a(1, 2, 3);
     Vector3f b(4, 5, 6);
