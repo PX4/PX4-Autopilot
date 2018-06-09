@@ -2271,9 +2271,9 @@ Commander::run()
 				}
 
 				stick_off_counter++;
-				/* do not reset the counter when holding the arm button longer than needed */
 
 			} else if (!(arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) {
+				/* do not reset the counter when holding the arm button longer than needed */
 				stick_off_counter = 0;
 			}
 
