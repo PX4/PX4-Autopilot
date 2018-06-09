@@ -2237,14 +2237,17 @@ Commander::run()
 			status.rc_signal_lost = false;
 
 			const bool in_armed_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			const bool arm_switch_or_button_mapped = sp_man.arm_switch != manual_control_setpoint_s::SWITCH_POS_NONE;
 			const bool arm_button_pressed = arm_switch_is_button == 1
 							&& sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
 
 			/* DISARM
 			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
 			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
-			 * do it only for rotary wings in manual mode or fixed wing if landed */
-			const bool stick_in_lower_left = sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f;
+			 * do it only for rotary wings in manual mode or fixed wing if landed.
+			 * Disable stick-disarming if arming switch or button is mapped */
+			const bool stick_in_lower_left = sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f
+					&& !arm_switch_or_button_mapped;
 			const bool arm_switch_to_disarm_transition =  arm_switch_is_button == 0 &&
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF;
@@ -2276,14 +2279,17 @@ Commander::run()
 
 			/* ARM
 			 * check if left stick is in lower right position or arm button is pushed or arm switch has transition from disarm to arm
-			 * and we're in MANUAL mode */
-			const bool stick_in_lower_right = (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f);
+			 * and we're in MANUAL mode.
+			 * Disable stick-arming if arming switch or button is mapped */
+			const bool stick_in_lower_right = sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f
+					&& !arm_switch_or_button_mapped;
 			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
 			 * for example for accidential in-air disarming */
 			const bool in_arming_grace_period = last_disarmed_timestamp != 0 && hrt_elapsed_time(&last_disarmed_timestamp) < 5_s;
 			const bool arm_switch_to_arm_transition = arm_switch_is_button == 0 &&
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF &&
-					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+					(sp_man.z < 0.1f || in_arming_grace_period);
 
 			if (!in_armed_state &&
 			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
