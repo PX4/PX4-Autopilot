@@ -54,6 +54,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
+using matrix::wrap_pi;
+
 MissionBlock::MissionBlock(Navigator *navigator) :
 	NavigatorMode(navigator)
 {
@@ -326,7 +328,8 @@ MissionBlock::is_mission_item_reached()
 			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
 					    _navigator->get_global_position()->vel_e,
 					    _navigator->get_global_position()->vel_n);
-			float yaw_err = _wrap_pi(_mission_item.yaw - cog);
+
+			float yaw_err = wrap_pi(_mission_item.yaw - cog);
 
 			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
 			if (fabsf(yaw_err) < math::radians(_navigator->get_yaw_threshold())

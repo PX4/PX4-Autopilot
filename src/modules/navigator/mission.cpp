@@ -60,6 +60,8 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
+using matrix::wrap_pi;
+
 Mission::Mission(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
@@ -1245,7 +1247,7 @@ Mission::heading_sp_update()
 
 				/* always keep the back of the rotary wing pointing towards home */
 				if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
-					_mission_item.yaw = _wrap_pi(yaw + M_PI_F);
+					_mission_item.yaw = wrap_pi(yaw + M_PI_F);
 					pos_sp_triplet->current.yaw = _mission_item.yaw;
 
 				} else if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT

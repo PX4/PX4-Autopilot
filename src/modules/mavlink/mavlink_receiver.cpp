@@ -98,6 +98,8 @@
 #include "mavlink_main.h"
 #include "mavlink_command_sender.h"
 
+using matrix::wrap_2pi;
+
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
 	_mission_manager(nullptr),
@@ -2066,7 +2068,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
 	hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
 	hil_gps.vel_ned_valid = true;
-	hil_gps.cog_rad = _wrap_pi(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
+	hil_gps.cog_rad = ((gps.cog == 65535) ? NAN : wrap_2pi(math::radians(gps.cog * 1e-2f)));
 
 	hil_gps.fix_type = gps.fix_type;
 	hil_gps.satellites_used = gps.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?

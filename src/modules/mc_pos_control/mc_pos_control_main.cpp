@@ -1563,8 +1563,8 @@ MulticopterPositionControl::control_offboard()
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 
 		} else if (_pos_sp_triplet.current.yawspeed_valid) {
-			float yaw_target = _wrap_pi(_att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * _dt);
-			float yaw_offs = _wrap_pi(yaw_target - _yaw);
+			float yaw_target = wrap_pi(_att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * _dt);
+			float yaw_offs = wrap_pi(yaw_target - _yaw);
 			const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
 			const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
 
@@ -1800,7 +1800,7 @@ void MulticopterPositionControl::control_auto()
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
 
-		float yaw_diff = _wrap_pi(_att_sp.yaw_body - _yaw);
+		float yaw_diff = wrap_pi(_att_sp.yaw_body - _yaw);
 
 		/* only follow previous-current-line for specific triplet type */
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
@@ -2767,8 +2767,8 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
-		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
-		float yaw_offs = _wrap_pi(yaw_target - _yaw);
+		float yaw_target = wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
+		float yaw_offs = wrap_pi(yaw_target - _yaw);
 
 		// If the yaw offset became too big for the system to track stop
 		// shifting it, only allow if it would make the offset smaller again.
@@ -2856,7 +2856,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 			// - look at the roll and pitch angles: they should stay pretty much the same as when not yawing
 
 			// calculate our current yaw error
-			float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
+			float yaw_error = wrap_pi(_att_sp.yaw_body - _yaw);
 
 			// compute the vector obtained by rotating a z unit vector by the rotation
 			// given by the roll and pitch commands of the user
