@@ -2,7 +2,7 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.11)
 
 project(uavcan C CXX)
 
@@ -66,6 +66,42 @@ include_directories(
 #
 # DSDL definitions
 install(DIRECTORY dsdl DESTINATION share/uavcan)
+
+#
+# Googletest
+#
+if( CMAKE_BUILD_TYPE STREQUAL "Debug" )
+    # (Taken from googletest/README.md documentation)
+    # GTest executables
+    # Download and unpack googletest at configure time
+    configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+        RESULT_VARIABLE result
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download )
+    if(result)
+        message(WARNING "CMake step for googletest failed: ${result}")
+    else()
+        execute_process(COMMAND ${CMAKE_COMMAND} --build .
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download )
+        if(result)
+            message(WARNING "Build step for googletest failed: ${result}")
+        else()
+
+            # Prevent overriding the parent project's compiler/linker
+            # settings on Windows
+            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+            # Add googletest directly to our build. This defines
+            # the gtest and gtest_main targets.
+            add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+                            ${CMAKE_BINARY_DIR}/googletest-build
+                            EXCLUDE_FROM_ALL)
+
+            set(GTEST_FOUND ON)
+        endif()
+    endif()
+endif()
 
 #
 # Subdirectories

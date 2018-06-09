@@ -25,8 +25,7 @@ before_install:
     - sudo apt-get update -qq
     - if [ "$CXX" = "g++" ]; then sudo apt-get install --force-yes -qq g++-4.8; fi
     - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-    - sudo apt-get install --force-yes libgtest-dev gcc-arm-none-eabi
-    - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
+    - sudo apt-get install --force-yes gcc-arm-none-eabi
 before_script: "mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DCONTINUOUS_INTEGRATION_BUILD=1"
 script:
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "native" ]; then make ; fi

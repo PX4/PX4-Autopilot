@@ -89,7 +89,6 @@ install(CODE "execute_process(COMMAND ${PYTHON} setup.py install --record instal
 #
 function(add_libuavcan_test name library flags) # Adds GTest executable and creates target to execute it every build
     find_package(Threads REQUIRED)
-    include_directories(${GTEST_INCLUDE_DIRS})
 
     file(GLOB_RECURSE TEST_CXX_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "test/*.cpp")
     add_executable(${name} ${TEST_CXX_FILES})
@@ -99,9 +98,11 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
         set_target_properties(${name} PROPERTIES COMPILE_FLAGS ${flags})
     endif ()
 
-    target_link_libraries(${name} ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    target_link_libraries(${name} gmock_main)
     target_link_libraries(${name} ${library})
-    target_link_libraries(${name} rt)
+    if (${UAVCAN_PLATFORM} STREQUAL "linux")
+        target_link_libraries(${name} rt)
+    endif()
 
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
@@ -145,10 +146,8 @@ if (DEBUG_BUILD)
     set_target_properties(uavcan_optim PROPERTIES COMPILE_FLAGS ${optim_flags})
     add_dependencies(uavcan_optim libuavcan_dsdlc)
 
-    # GTest executables
-    find_package(GTest)
     if (GTEST_FOUND)
-        message(STATUS "GTest found, tests will be built and run [${GTEST_INCLUDE_DIRS}] [${GTEST_BOTH_LIBRARIES}]")
+        message(STATUS "GTest found, tests will be built and run.")
         add_libuavcan_test(libuavcan_test       uavcan       "")                 # Default
         add_libuavcan_test(libuavcan_test_cpp03 uavcan_cpp03 "${cpp03_flags}")   # C++03
         add_libuavcan_test(libuavcan_test_optim uavcan_optim "${optim_flags}")   # Max optimization
