@@ -4057,7 +4057,9 @@ bool Commander::preflight_check(bool report)
 	bool success = Preflight::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
 			hrt_elapsed_time(&commander_boot_timestamp));
 
-	status_flags.condition_system_sensors_initialized = success;
+	if (success) {
+		status_flags.condition_system_sensors_initialized = true;
+	}
 
 	return success;
 }
