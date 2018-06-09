@@ -40,6 +40,7 @@
 #include "mavlink_high_latency2.h"
 
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <commander/px4_custom_mode.h>
 
@@ -58,6 +59,8 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/uORB.h>
+
+using matrix::wrap_2pi;
 
 MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_actuator_sub_0(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
@@ -238,7 +241,7 @@ bool MavlinkStreamHighLatency2::write_attitude_sp(mavlink_high_latency2_t *msg)
 	const bool updated = _attitude_sp_sub->update(&_attitude_sp_time, &attitude_sp);
 
 	if (_attitude_sp_time > 0) {
-		msg->target_heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
+		msg->target_heading = static_cast<uint8_t>(math::degrees(wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
 	}
 
 	return updated;
@@ -330,7 +333,7 @@ bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *m
 
 		msg->altitude = altitude;
 
-		msg->heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(global_pos.yaw)) * 0.5f);
+		msg->heading = static_cast<uint8_t>(math::degrees(wrap_2pi(global_pos.yaw)) * 0.5f);
 	}
 
 	return updated;
@@ -451,7 +454,7 @@ bool MavlinkStreamHighLatency2::write_wind_estimate(mavlink_high_latency2_t *msg
 
 	if (_wind_time > 0) {
 		msg->wind_heading = static_cast<uint8_t>(
-					    math::degrees(_wrap_2pi(atan2f(wind.windspeed_east, wind.windspeed_north))) * 0.5f);
+					    math::degrees(wrap_2pi(atan2f(wind.windspeed_east, wind.windspeed_north))) * 0.5f);
 	}
 
 	return updated;

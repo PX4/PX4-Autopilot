@@ -56,6 +56,8 @@
 
 #include "navigator.h"
 
+using matrix::wrap_pi;
+
 constexpr float FollowTarget::_follow_position_matricies[4][9];
 
 FollowTarget::FollowTarget(Navigator *navigator) :
@@ -200,7 +202,7 @@ void FollowTarget::on_active()
 						_current_target_motion.lat,
 						_current_target_motion.lon);
 
-				_yaw_rate = _wrap_pi((_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0f));
+				_yaw_rate = wrap_pi((_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0f));
 
 			} else {
 				_yaw_angle = _yaw_rate = NAN;
