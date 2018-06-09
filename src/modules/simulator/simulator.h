@@ -354,6 +354,7 @@ private:
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
 	int publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink);
+	int publish_odom_topic(mavlink_odometry_t *odom);
 	int publish_distance_topic(mavlink_distance_sensor_t *dist);
 
 #ifndef __PX4_QURT

@@ -394,6 +394,12 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		publish_ev_topic(&ev);
 		break;
 
+	case MAVLINK_MSG_ID_ODOMETRY:
+		mavlink_odometry_t odom;
+		mavlink_msg_odometry_decode(msg, &odom);
+		publish_odom_topic(&odom);
+		break;
+
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
 		mavlink_distance_sensor_t dist;
 		mavlink_msg_distance_sensor_decode(msg, &dist);
@@ -1140,6 +1146,44 @@ int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
 	int inst = 0;
 	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &inst, ORB_PRIO_HIGH);
 	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &inst, ORB_PRIO_HIGH);
+
+	return OK;
+}
+
+int Simulator::publish_odom_topic(mavlink_odometry_t *odom)
+{
+	uint64_t timestamp = hrt_absolute_time();
+
+	struct vehicle_local_position_s odom_position = {};
+
+	odom_position.timestamp = timestamp;
+	odom_position.x = odom->x;
+	odom_position.y = odom->y;
+	odom_position.z = odom->z;
+
+	odom_position.vx = odom->vx;
+	odom_position.vy = odom->vy;
+	odom_position.vz = odom->vz;
+
+	odom_position.xy_valid = true;
+	odom_position.z_valid = true;
+	odom_position.v_xy_valid = true;
+	odom_position.v_z_valid = true;
+
+	struct vehicle_attitude_s odom_attitude = {};
+
+	odom_attitude.timestamp = timestamp;
+
+	matrix::Quatf q(odom->q);
+	q.copyTo(odom_attitude.q);
+
+	odom_attitude.rollspeed = odom->rollspeed;
+	odom_attitude.pitchspeed = odom->pitchspeed;
+	odom_attitude.rollspeed = odom->rollspeed;
+
+	int inst = 0;
+	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &odom_position, &inst, ORB_PRIO_HIGH);
+	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &odom_attitude, &inst, ORB_PRIO_HIGH);
 
 	return OK;
 }
