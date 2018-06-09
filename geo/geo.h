@@ -301,8 +301,3 @@ float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float a
 float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now,
 		float x_next, float y_next, float z_next,
 		float *dist_xy, float *dist_z);
-
-float _wrap_180(float bearing);
-float _wrap_360(float bearing);
-float _wrap_pi(float bearing);
-float _wrap_2pi(float bearing);

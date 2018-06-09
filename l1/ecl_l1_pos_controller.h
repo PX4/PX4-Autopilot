@@ -76,7 +76,7 @@ public:
 	 *
 	 * @return bearing angle (-pi..pi, in NED frame)
 	 */
-	float nav_bearing() { return _wrap_pi(_nav_bearing); }
+	float nav_bearing() { return matrix::wrap_pi(_nav_bearing); }
 
 	/**
 	 * Get lateral acceleration demand.
