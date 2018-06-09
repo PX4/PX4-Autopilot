@@ -137,8 +137,9 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 
 		/* re-run the pre-flight check as long as sensors are failing */
 		if (!status_flags->condition_system_sensors_initialized
-		    && ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
-		    && !hil_enabled) {
+			&& fRunPreArmChecks
+			&& ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
+			&& !hil_enabled) {
 
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
