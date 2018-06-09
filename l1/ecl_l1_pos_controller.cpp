@@ -43,6 +43,7 @@
 #include "ecl_l1_pos_controller.h"
 
 using matrix::Vector2f;
+using matrix::wrap_pi;
 
 float ECL_L1_Pos_Controller::nav_roll()
 {
@@ -292,9 +293,9 @@ void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float cur
 	 * (and no crosstrack correction occurs),
 	 * target and navigation bearing become the same
 	 */
-	_target_bearing = _nav_bearing = _wrap_pi(navigation_heading);
-	float eta = _target_bearing - _wrap_pi(current_heading);
-	eta = _wrap_pi(eta);
+	_target_bearing = _nav_bearing = wrap_pi(navigation_heading);
+
+	float eta = wrap_pi(_target_bearing - wrap_pi(current_heading));
 
 	/* consequently the bearing error is exactly eta: */
 	_bearing_error = eta;
