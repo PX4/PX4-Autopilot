@@ -47,6 +47,8 @@
 #include <mathlib/mathlib.h>
 #include <uORB/topics/vehicle_local_position.h>
 
+#include <limits>
+
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
 
 #define SEND_INTERVAL 	20
@@ -524,18 +526,16 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_lpos.ref_lon = _hil_ref_lon;
 			hil_lpos.ref_alt = _hil_ref_alt;
 			hil_lpos.ref_timestamp = _hil_ref_timestamp;
-			hil_lpos.vxy_max = 0.0f;
-			hil_lpos.vz_max = 0.0f;
-			hil_lpos.hagl_min = 0.0f;
-			hil_lpos.hagl_max = 0.0f;
+			hil_lpos.vxy_max = std::numeric_limits<float>::infinity();
+			hil_lpos.vz_max = std::numeric_limits<float>::infinity();
+			hil_lpos.hagl_min = std::numeric_limits<float>::infinity();
+			hil_lpos.hagl_max = std::numeric_limits<float>::infinity();
 
 			// always publish ground truth attitude message
 			int hil_lpos_multi;
 			orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
 					 ORB_PRIO_HIGH);
 		}
-
-
 
 		break;
 	}
