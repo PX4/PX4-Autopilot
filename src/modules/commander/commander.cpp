@@ -1286,6 +1286,7 @@ Commander::run()
 	memset(&armed, 0, sizeof(armed));
 	/* armed topic */
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+	hrt_abstime last_disarmed_timestamp = 0;
 
 	/* vehicle control mode topic */
 	memset(&control_mode, 0, sizeof(control_mode));
@@ -2277,6 +2278,9 @@ Commander::run()
 			 * check if left stick is in lower right position or arm button is pushed or arm switch has transition from disarm to arm
 			 * and we're in MANUAL mode */
 			const bool stick_in_lower_right = (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f);
+			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
+			 * for example for accidential in-air disarming */
+			const bool in_arming_grace_period = last_disarmed_timestamp != 0 && hrt_elapsed_time(&last_disarmed_timestamp) < 5_s;
 			const bool arm_switch_to_arm_transition = arm_switch_is_button == 0 &&
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF &&
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
@@ -2306,7 +2310,7 @@ Commander::run()
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
-										     true /* fRunPreArmChecks */,
+										     !in_arming_grace_period /* fRunPreArmChecks */,
 										     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 						if (arming_ret != TRANSITION_CHANGED) {
@@ -2586,6 +2590,7 @@ Commander::run()
 				++flight_uuid;
 				// no need for param notification: the only user is mavlink which reads the param upon request
 				param_set_no_notification(_param_flight_uuid, &flight_uuid);
+				last_disarmed_timestamp = hrt_absolute_time();
 			}
 		}
 
