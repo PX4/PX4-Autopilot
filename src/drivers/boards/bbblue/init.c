@@ -63,7 +63,6 @@ int rc_init()
 	// start state as Uninitialized
 	rc_set_state(UNINITIALIZED);
 
-
 	// initialize pinmux
 	/*
 	if (rc_pinmux_set_default()) {
