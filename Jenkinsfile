@@ -95,7 +95,7 @@ pipeline {
               reportName: 'Code Coverage'
             ]
             withCredentials([string(credentialsId: 'ECL_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
-              sh 'curl -s https://codecov.io/bash | bash -s'
+              sh 'curl -s https://codecov.io/bash | bash -s - -F ecl_tests'
             }
             sh 'ccache -s'
             sh 'make distclean'
