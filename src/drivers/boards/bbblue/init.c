@@ -64,12 +64,32 @@ int rc_init()
 	rc_set_state(UNINITIALIZED);
 
 
-	// initialize pinmux  -- not needed in RC 0.4.4
-	//if (rc_pinmux_set_default()) {
-	//	PX4_ERR("rc_init failed to run rc_pinmux_set_default()");
-	//	return -1;
-	//}
+	// initialize pinmux
+	/*
+	if (rc_pinmux_set_default()) {
+		PX4_ERR("rc_init failed to run rc_pinmux_set_default()");
+		return -1;
+	}
 	// rc_pinmux_set_default() includes: rc_pinmux_set(DSM_HEADER_PIN, PINMUX_UART);
+	 */
+
+	/*
+	// Due to device tree issue, rc_pinmux_set_default() currently does not work correctly
+	// with kernel 4.14, use a simplified version for now
+	//
+	// shared pins
+	int ret = 0;
+	ret |= rc_pinmux_set(DSM_HEADER_PIN, PINMUX_UART);
+	ret |= rc_pinmux_set(GPS_HEADER_PIN_3, PINMUX_UART);
+	ret |= rc_pinmux_set(GPS_HEADER_PIN_4, PINMUX_UART);
+	ret |= rc_pinmux_set(UART1_HEADER_PIN_3, PINMUX_UART);
+	ret |= rc_pinmux_set(UART1_HEADER_PIN_4, PINMUX_UART);
+
+	if (ret != 0) {
+		PX4_ERR("rc_init failed to set default pinmux");
+		return -1;
+	}
+    */
 
 	// no direct equivalent of configure_gpio_pins()
 

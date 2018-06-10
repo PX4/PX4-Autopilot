@@ -335,8 +335,10 @@ int main(int argc, char **argv)
 	string data_path;
 	string node_name;
 
+	bool skippingOutputRedirect = false;
+
 	// parse arguments
-	while (index < argc) {
+	while (index < argc && !skippingOutputRedirect) {
 		//cout << "arg: " << index << " : " << argv[index] << endl;
 
 		if (argv[index][0] == '-') {
@@ -365,6 +367,9 @@ int main(int argc, char **argv)
 				node_name = name_arg.substr(8);
 				cout << "node name: " << node_name << endl;
 			}
+
+		} else if (strchr(argv[index], '>')) {
+			skippingOutputRedirect = true;
 
 		} else {
 			//cout << "positional argument" << endl;
