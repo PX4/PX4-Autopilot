@@ -710,9 +710,10 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     # 5 - true if the Z magnetometer observation has been rejected
     # 6 - true if the yaw observation has been rejected
     # 7 - true if the airspeed observation has been rejected
-    # 8 - true if the height above ground observation has been rejected
-    # 9 - true if the X optical flow observation has been rejected
-    # 10 - true if the Y optical flow observation has been rejected
+    # 8 - true if synthetic sideslip observation has been rejected
+    # 9 - true if the height above ground observation has been rejected
+    # 10 - true if the X optical flow observation has been rejected
+    # 11 - true if the Y optical flow observation has been rejected
     vel_innov_fail = ((2 ** 0 & estimator_status['innovation_check_flags']) > 0) * 1
     posh_innov_fail = ((2 ** 1 & estimator_status['innovation_check_flags']) > 0) * 1
     posv_innov_fail = ((2 ** 2 & estimator_status['innovation_check_flags']) > 0) * 1
@@ -721,14 +722,15 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     magz_innov_fail = ((2 ** 5 & estimator_status['innovation_check_flags']) > 0) * 1
     yaw_innov_fail = ((2 ** 6 & estimator_status['innovation_check_flags']) > 0) * 1
     tas_innov_fail = ((2 ** 7 & estimator_status['innovation_check_flags']) > 0) * 1
-    hagl_innov_fail = ((2 ** 8 & estimator_status['innovation_check_flags']) > 0) * 1
-    ofx_innov_fail = ((2 ** 9 & estimator_status['innovation_check_flags']) > 0) * 1
-    ofy_innov_fail = ((2 ** 10 & estimator_status['innovation_check_flags']) > 0) * 1
+    sli_innov_fail = ((2 ** 8 & estimator_status['innovation_check_flags']) > 0) * 1
+    hagl_innov_fail = ((2 ** 9 & estimator_status['innovation_check_flags']) > 0) * 1
+    ofx_innov_fail = ((2 ** 10 & estimator_status['innovation_check_flags']) > 0) * 1
+    ofy_innov_fail = ((2 ** 11 & estimator_status['innovation_check_flags']) > 0) * 1
 
     if plot:
         # plot innovation_check_flags summary
         plt.figure(11, figsize=(20, 13))
-        plt.subplot(5, 1, 1)
+        plt.subplot(6, 1, 1)
         plt.title('EKF Innovation Test Fails')
         plt.plot(status_time, vel_innov_fail, 'b', label='vel NED')
         plt.plot(status_time, posh_innov_fail, 'r', label='pos NE')
@@ -736,14 +738,14 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylabel('failed')
         plt.legend(loc='upper left')
         plt.grid()
-        plt.subplot(5, 1, 2)
+        plt.subplot(6, 1, 2)
         plt.plot(status_time, posv_innov_fail, 'b', label='hgt absolute')
         plt.plot(status_time, hagl_innov_fail, 'r', label='hgt above ground')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('failed')
         plt.legend(loc='upper left')
         plt.grid()
-        plt.subplot(5, 1, 3)
+        plt.subplot(6, 1, 3)
         plt.plot(status_time, magx_innov_fail, 'b', label='mag_x')
         plt.plot(status_time, magy_innov_fail, 'r', label='mag_y')
         plt.plot(status_time, magz_innov_fail, 'g', label='mag_z')
@@ -752,13 +754,19 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylim(-0.1, 1.1)
         plt.ylabel('failed')
         plt.grid()
-        plt.subplot(5, 1, 4)
+        plt.subplot(6, 1, 4)
         plt.plot(status_time, tas_innov_fail, 'b', label='airspeed')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('failed')
         plt.legend(loc='upper left')
         plt.grid()
-        plt.subplot(5, 1, 5)
+        plt.subplot(6, 1, 5)
+        plt.plot(status_time, sli_innov_fail, 'b', label='sideslip')
+        plt.ylim(-0.1, 1.1)
+        plt.ylabel('failed')
+        plt.legend(loc='upper left')
+        plt.grid()
+        plt.subplot(6, 1, 6)
         plt.plot(status_time, ofx_innov_fail, 'b', label='flow X')
         plt.plot(status_time, ofy_innov_fail, 'r', label='flow Y')
         plt.ylim(-0.1, 1.1)
@@ -770,26 +778,29 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.close(11)
         # gps_check_fail_flags summary
         plt.figure(12, figsize=(20, 13))
-        # 0 : minimum required sat count fail
-        # 1 : minimum required GDoP fail
-        # 2 : maximum allowed horizontal position error fail
-        # 3 : maximum allowed vertical position error fail
-        # 4 : maximum allowed speed error fail
-        # 5 : maximum allowed horizontal position drift fail
-        # 6 : maximum allowed vertical position drift fail
-        # 7 : maximum allowed horizontal speed fail
-        # 8 : maximum allowed vertical velocity discrepancy fail
-        nsat_fail = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        gdop_fail = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        herr_fail = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        verr_fail = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        serr_fail = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        hdrift_fail = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        vdrift_fail = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        hspd_fail = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        veld_diff_fail = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        # 0 : insufficient fix type (no 3D solution)
+        # 1 : minimum required sat count fail
+        # 2 : minimum required GDoP fail
+        # 3 : maximum allowed horizontal position error fail
+        # 4 : maximum allowed vertical position error fail
+        # 5 : maximum allowed speed error fail
+        # 6 : maximum allowed horizontal position drift fail
+        # 7 : maximum allowed vertical position drift fail
+        # 8 : maximum allowed horizontal speed fail
+        # 9 : maximum allowed vertical velocity discrepancy fail
+        gfix_fail = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        nsat_fail = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        gdop_fail = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        herr_fail = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        verr_fail = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        serr_fail = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        hdrift_fail = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        vdrift_fail = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        hspd_fail = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        veld_diff_fail = ((2 ** 9 & estimator_status['gps_check_fail_flags']) > 0) * 1
         plt.subplot(2, 1, 1)
         plt.title('GPS Direct Output Check Failures')
+        plt.plot(status_time, gfix_fail, 'k', label='fix type')
         plt.plot(status_time, nsat_fail, 'b', label='N sats')
         plt.plot(status_time, gdop_fail, 'r', label='GDOP')
         plt.plot(status_time, herr_fail, 'g', label='horiz pos error')
