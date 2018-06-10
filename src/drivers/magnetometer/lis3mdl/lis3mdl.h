@@ -40,7 +40,6 @@
 #pragma once
 
 #include <float.h>
-#include <getopt.h>
 
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>

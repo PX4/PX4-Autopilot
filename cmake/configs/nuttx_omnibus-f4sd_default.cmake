@@ -18,19 +18,12 @@ set(config_module_list
 	#drivers/blinkm
 	#drivers/camera_trigger
 	drivers/gps
-	#drivers/irlock
-	#drivers/mkblctrl
-	#drivers/oreoled
-	#drivers/pca9685
-	#drivers/pwm_input
 	drivers/px4flow
 	drivers/px4fmu
 	drivers/rgbled
 	drivers/stm32
-	#drivers/stm32/adc
+	drivers/stm32/adc
 	#drivers/stm32/tone_alarm
-	#drivers/tap_esc
-	#drivers/vmount
 	modules/sensors
 
 	#
@@ -38,8 +31,7 @@ set(config_module_list
 	#
 	systemcmds/bl_update
 	systemcmds/config
-	#systemcmds/dumpfile
-	#systemcmds/esc_calib
+	systemcmds/esc_calib
 	systemcmds/hardfault_log
 	systemcmds/led_control
 	systemcmds/mixer
@@ -50,7 +42,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/reboot
-	#systemcmds/sd_bench
+	systemcmds/sd_bench
 	systemcmds/top
 	systemcmds/topic_listener
 	systemcmds/tune_control
@@ -80,7 +72,6 @@ set(config_module_list
 	modules/load_mon
 	modules/mavlink
 	modules/navigator
-	#modules/uavcan
 
 	#
 	# Estimation modules
@@ -89,7 +80,6 @@ set(config_module_list
 	modules/ekf2
 	modules/landing_target_estimator
 	modules/local_position_estimator
-	#modules/position_estimator_inav
 	modules/wind_estimator
 
 	#
@@ -107,7 +97,6 @@ set(config_module_list
 	# Logging
 	#
 	modules/logger
-	modules/sdlog2
 
 	#
 	# Library modules

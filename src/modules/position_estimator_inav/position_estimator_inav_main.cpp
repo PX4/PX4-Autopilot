@@ -134,6 +134,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
+		return -1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -1374,8 +1375,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			// TODO provide calculated values for these
 			local_pos.evh = 0.0f;
 			local_pos.evv = 0.0f;
-			local_pos.vxy_max = 0.0f;
-			local_pos.limit_hagl = false;
+			local_pos.vxy_max = INFINITY;
+			local_pos.vz_max = INFINITY;
+			local_pos.hagl_min = INFINITY;
+			local_pos.hagl_max = INFINITY;
 
 			// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
 			local_pos.z_deriv = z_est[1];

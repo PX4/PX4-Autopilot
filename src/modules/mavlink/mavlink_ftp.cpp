@@ -49,13 +49,7 @@
 constexpr const char MavlinkFTP::_root_dir[];
 
 MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
-	_session_info{},
-	_utRcvMsgFunc{},
-	_worker_data{},
-	_mavlink(mavlink),
-	_work_buffer1{nullptr},
-	_work_buffer2{nullptr},
-	_last_work_buffer_access{0}
+	_mavlink(mavlink)
 {
 	// initialize session
 	_session_info.fd = -1;
@@ -70,7 +64,6 @@ MavlinkFTP::~MavlinkFTP()
 	if (_work_buffer2) {
 		delete[] _work_buffer2;
 	}
-
 }
 
 unsigned

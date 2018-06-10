@@ -910,6 +910,7 @@ IST8310::collect()
 	new_report.timestamp = hrt_absolute_time();
 	new_report.is_external = sensor_is_external;
 	new_report.error_count = perf_event_count(_comms_errors);
+	new_report.range_ga = 1.6f; // constant for this sensor for x and y
 	new_report.scaling = _range_scale;
 	new_report.device_id = _device_id.devid;
 
@@ -1274,13 +1275,10 @@ struct ist8310_bus_option {
 } bus_options[] = {
 	{ IST8310_BUS_I2C_EXTERNAL, "/dev/ist8310_ext", PX4_I2C_BUS_EXPANSION, NULL },
 #ifdef PX4_I2C_BUS_EXPANSION1
-	{ IST8310_BUS_I2C_EXTERNAL1, "/dev/ist8311_int", PX4_I2C_BUS_EXPANSION1, NULL },
+	{ IST8310_BUS_I2C_EXTERNAL1, "/dev/ist8311_ext1", PX4_I2C_BUS_EXPANSION1, NULL },
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION2
-	{ IST8310_BUS_I2C_EXTERNAL2, "/dev/ist8312_int", PX4_I2C_BUS_EXPANSION2, NULL },
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION3
-	{ IST8310_BUS_I2C_EXTERNAL3, "/dev/ist8313_int", PX4_I2C_BUS_EXPANSION3, NULL },
+	{ IST8310_BUS_I2C_EXTERNAL2, "/dev/ist8312_ext2", PX4_I2C_BUS_EXPANSION2, NULL },
 #endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ IST8310_BUS_I2C_INTERNAL, "/dev/ist8310_int", PX4_I2C_BUS_ONBOARD, NULL },

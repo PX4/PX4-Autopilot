@@ -58,6 +58,7 @@ public:
 		_list = new item_t[num_items];
 		_list_len = num_items;
 	}
+
 	~TimestampedList()
 	{
 		delete[] _list;

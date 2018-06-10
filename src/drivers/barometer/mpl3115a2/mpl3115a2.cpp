@@ -714,6 +714,12 @@ struct mpl3115a2_bus_option {
 #ifdef PX4_I2C_BUS_EXPANSION
 	{ MPL3115A2_BUS_I2C_EXTERNAL, "/dev/mpl3115a2_ext", &MPL3115A2_i2c_interface, PX4_I2C_BUS_EXPANSION, NULL },
 #endif
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ MPL3115A2_BUS_I2C_EXTERNAL, "/dev/mpl3115a2_ext1", &MPL3115A2_i2c_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ MPL3115A2_BUS_I2C_EXTERNAL, "/dev/mpl3115a2_ext2", &MPL3115A2_i2c_interface, PX4_I2C_BUS_EXPANSION2, NULL },
+#endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 

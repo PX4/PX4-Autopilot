@@ -185,12 +185,10 @@ stm32_boardinitialize(void)
 	board_autoled_initialize();
 
 
-	//TODO: ADCs
-	///* configure ADC pins */
-	//stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	//stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	//stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	//stm32_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
+	/* configure ADC pins */
+	stm32_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN11);	/* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN0);	/* RSSI analog in */
 
 	// TODO: power peripherals
 	///* configure power supply control/sense pins */

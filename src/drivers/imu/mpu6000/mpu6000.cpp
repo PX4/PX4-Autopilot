@@ -71,7 +71,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -2221,12 +2221,18 @@ struct mpu6000_bus_option {
 	MPU6000	*dev;
 } bus_options[] = {
 #if defined (USE_I2C)
-#  if defined(PX4_I2C_BUS_ONBOARD)
+#	if defined(PX4_I2C_BUS_ONBOARD)
 	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
-#  endif
-#  if defined(PX4_I2C_BUS_EXPANSION)
+#	endif
+#	if defined(PX4_I2C_BUS_EXPANSION)
 	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
-#  endif
+#	endif
+#	if defined(PX4_I2C_BUS_EXPANSION1)
+	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL_EXT1, MPU_DEVICE_PATH_GYRO_EXT1, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION1,  true, NULL },
+#	endif
+#	if defined(PX4_I2C_BUS_EXPANSION2)
+	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL_EXT2, MPU_DEVICE_PATH_GYRO_EXT2, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION2,  true, NULL },
+#	endif
 #endif
 #ifdef PX4_SPIDEV_MPU
 	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
@@ -2590,14 +2596,16 @@ usage()
 int
 mpu6000_main(int argc, char *argv[])
 {
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
 	enum MPU6000_BUS busid = MPU6000_BUS_ALL;
 	int device_type = MPU_DEVICE_TYPE_MPU6000;
-	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 	int accel_range = MPU6000_ACCEL_DEFAULT_RANGE_G;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "T:XISsZzR:a:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "T:XISsZzR:a:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MPU6000_BUS_I2C_EXTERNAL;
@@ -2624,28 +2632,32 @@ mpu6000_main(int argc, char *argv[])
 			break;
 
 		case 'T':
-			device_type = atoi(optarg);
+			device_type = atoi(myoptarg);
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
-			accel_range = atoi(optarg);
+			accel_range = atoi(myoptarg);
 			break;
 
 		default:
 			mpu6000::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		mpu6000::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
-
 	 */
 	if (!strcmp(verb, "start")) {
 		mpu6000::start(busid, rotation, accel_range, device_type);
@@ -2692,5 +2704,5 @@ mpu6000_main(int argc, char *argv[])
 	}
 
 	mpu6000::usage();
-	exit(1);
+	return -1;
 }

@@ -466,7 +466,7 @@ if ("${CMAKE_SYSTEM}" MATCHES "Linux")
 	if (EXISTS ${DPKG_PROGRAM})
 		list (APPEND CPACK_GENERATOR "DEB")
 	endif()
-else()	
+else()
 	set(CPACK_GENERATOR "ZIP")
 endif()
 

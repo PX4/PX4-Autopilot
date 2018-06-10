@@ -33,6 +33,8 @@
 
 #include "LPS22HB.hpp"
 
+#include <px4_getopt.h>
+
 #include <cstring>
 
 extern "C" __EXPORT int lps22hb_main(int argc, char *argv[]);
@@ -58,6 +60,12 @@ struct lps22hb_bus_option {
 	LPS22HB	*dev;
 } bus_options[] = {
 	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext1", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext2", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION2, NULL },
+#endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ LPS22HB_BUS_I2C_INTERNAL, "/dev/lps22hb_int", &LPS22HB_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #endif
@@ -234,10 +242,13 @@ usage()
 int
 lps22hb_main(int argc, char *argv[])
 {
-	enum LPS22HB_BUS busid = LPS22HB_BUS_ALL;
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
 
-	while ((ch = getopt(argc, argv, "XIS:")) != EOF) {
+	enum LPS22HB_BUS busid = LPS22HB_BUS_ALL;
+
+	while ((ch = px4_getopt(argc, argv, "XIS:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 
@@ -256,11 +267,16 @@ lps22hb_main(int argc, char *argv[])
 
 		default:
 			lps22hb::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		lps22hb::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.

@@ -316,14 +316,12 @@ public:
 
 	int			get_instance_id();
 
-#ifndef __PX4_QURT
 	/**
 	 * Enable / disable hardware flow control.
 	 *
 	 * @param enabled	True if hardware flow control should be enabled
 	 */
 	int			enable_flow_control(enum FLOW_CONTROL_MODE enabled);
-#endif
 
 	mavlink_channel_t	get_channel();
 
@@ -542,9 +540,9 @@ private:
 
 	bool			_forwarding_on;
 	bool			_ftp_on;
-#ifndef __PX4_QURT
+
 	int			_uart_fd;
-#endif
+
 	int			_baudrate;
 	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
 	int			_datarate_events;	///< data rate for params, waypoints, text messages
@@ -631,9 +629,7 @@ private:
 
 	void			mavlink_update_system();
 
-#ifndef __PX4_QURT
 	int			mavlink_open_uart(int baudrate, const char *uart_name, bool force_flow_control);
-#endif
 
 	static int		interval_from_rate(float rate);
 

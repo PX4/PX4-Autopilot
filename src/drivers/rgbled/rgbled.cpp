@@ -388,8 +388,8 @@ RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 	ret = transfer(nullptr, 0, &result[0], 2);
 
 	if (ret == OK) {
-		on = result[0] & SETTING_ENABLE;
-		powersave = !(result[0] & SETTING_NOT_POWERSAVE);
+		on = ((result[0] >> 4) & SETTING_ENABLE);
+		powersave = !((result[0] >> 4) & SETTING_NOT_POWERSAVE);
 		/* XXX check, looks wrong */
 		r = (result[0] & 0x0f) << 4;
 		g = (result[1] & 0xf0);

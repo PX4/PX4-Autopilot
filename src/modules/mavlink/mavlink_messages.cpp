@@ -405,9 +405,6 @@ protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	~MavlinkStreamStatustext() = default;
-
-
 	bool send(const hrt_abstime t)
 	{
 		if (!_mavlink->get_logbuffer()->empty() && _mavlink->is_connected()) {
@@ -2349,6 +2346,8 @@ protected:
 		if (_act_sub->update(&_act_time, &act)) {
 			mavlink_servo_output_raw_t msg = {};
 
+			static_assert(sizeof(act.output) / sizeof(act.output[0]) >= 16, "mavlink message requires at least 16 outputs");
+
 			msg.time_usec = act.timestamp;
 			msg.port = N;
 			msg.servo1_raw = act.output[0];
@@ -2359,6 +2358,14 @@ protected:
 			msg.servo6_raw = act.output[5];
 			msg.servo7_raw = act.output[6];
 			msg.servo8_raw = act.output[7];
+			msg.servo9_raw = act.output[8];
+			msg.servo10_raw = act.output[9];
+			msg.servo11_raw = act.output[10];
+			msg.servo12_raw = act.output[11];
+			msg.servo13_raw = act.output[12];
+			msg.servo14_raw = act.output[13];
+			msg.servo15_raw = act.output[14];
+			msg.servo16_raw = act.output[15];
 
 			mavlink_msg_servo_output_raw_send_struct(_mavlink->get_channel(), &msg);
 
@@ -2845,7 +2852,8 @@ protected:
 				memcpy(&msg.q[0], &att_sp.q_d[0], sizeof(msg.q));
 
 			} else {
-				mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
+				matrix::Quatf q = matrix::Eulerf(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body);
+				memcpy(&msg.q[0], q.data(), sizeof(msg.q));
 			}
 
 			msg.body_roll_rate = att_rates_sp.roll;

@@ -65,7 +65,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/subsystem_info.h>
 
 #include <simulator/simulator.h>
 
@@ -76,12 +75,10 @@ AirspeedSim::AirspeedSim(int bus, int address, unsigned conversion_interval, con
 	_reports(nullptr),
 	_retries(0),
 	_sensor_ok(false),
-	_last_published_sensor_ok(true), /* initialize differently to force publication */
 	_measure_ticks(0),
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
 	_airspeed_pub(nullptr),
-	_subsys_pub(nullptr),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "airspeed_read")),
@@ -361,37 +358,11 @@ AirspeedSim::stop()
 }
 
 void
-AirspeedSim::update_status()
-{
-	if (_sensor_ok != _last_published_sensor_ok) {
-		/* notify about state change */
-		struct subsystem_info_s info = {};
-		info.present = true;
-		info.enabled = true;
-		info.ok = _sensor_ok;
-		info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE;
-
-		if (_subsys_pub != nullptr) {
-			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
-
-		} else {
-			_subsys_pub = orb_advertise(ORB_ID(subsystem_info), &info);
-		}
-
-		_last_published_sensor_ok = _sensor_ok;
-	}
-}
-
-void
 AirspeedSim::cycle_trampoline(void *arg)
 {
 	AirspeedSim *dev = (AirspeedSim *)arg;
 
 	dev->cycle();
-	// XXX we do not know if this is
-	// really helping - do not update the
-	// subsys state right now
-	//dev->update_status();
 }
 
 void

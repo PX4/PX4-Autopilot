@@ -73,7 +73,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/pwm_input.h>
-#include <uORB/topics/subsystem_info.h>
 
 #include <drivers/drv_device.h>
 #include <drivers/device/device.h>
@@ -267,6 +266,7 @@ static void pwmin_start();
 static void pwmin_info(void);
 static void pwmin_test(void);
 static void pwmin_reset(void);
+static void pwmin_usage(void);
 
 static PWMIN *g_dev;
 
@@ -647,12 +647,21 @@ static void pwmin_info(void)
 	exit(0);
 }
 
+static void pwmin_usage()
+{
+	PX4_ERR("unrecognized command, try 'start', 'info', 'reset' or 'test'");
+}
 
 /*
  * driver entry point
  */
 int pwm_input_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		pwmin_usage();
+		return -1;
+	}
+
 	const char *verb = argv[1];
 
 	/*
@@ -683,6 +692,6 @@ int pwm_input_main(int argc, char *argv[])
 		pwmin_reset();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'info', 'reset' or 'test'");
-	return 0;
+	pwmin_usage();
+	return -1;
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_rate_limiter.h
- * Message rate limiter definition.
+ * @file health_flag_helper.h
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Contains helper functions to efficiently set the system health flags from commander and preflight check.
+ *
+ * @author Philipp Oettershagen (philipp.oettershagen@mavt.ethz.ch)
  */
 
-#ifndef MAVLINK_RATE_LIMITER_H_
-#define MAVLINK_RATE_LIMITER_H_
+#pragma once
 
-#include <drivers/drv_hrt.h>
+#include <px4_log.h>
+#include <uORB/topics/vehicle_status.h>
 
-
-class MavlinkRateLimiter
-{
-private:
-	hrt_abstime _last_sent{0};
-	hrt_abstime _interval{1000000};
-
-public:
-	MavlinkRateLimiter() = default;
-	MavlinkRateLimiter(unsigned int interval) : _interval(interval) {};
-
-	~MavlinkRateLimiter() = default;
-
-	void set_interval(unsigned int interval) { _interval = interval; }
-
-	bool check(const hrt_abstime &t);
-};
-
-
-#endif /* MAVLINK_RATE_LIMITER_H_ */
+void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status);
+void set_health_flags_present_healthy(uint64_t subsystem_type, bool present, bool healthy, vehicle_status_s &status);
+void set_health_flags_healthy(uint64_t subsystem_type, bool healthy, vehicle_status_s &status);

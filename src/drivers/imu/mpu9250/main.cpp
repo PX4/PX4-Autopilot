@@ -51,7 +51,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -82,6 +82,14 @@
 #define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu9250_accel_ext"
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu9250_gyro_ext"
 #define MPU_DEVICE_PATH_MAG_EXT 	"/dev/mpu9250_mag_ext"
+
+#define MPU_DEVICE_PATH_ACCEL_EXT1	"/dev/mpu9250_accel_ext1"
+#define MPU_DEVICE_PATH_GYRO_EXT1	"/dev/mpu9250_gyro_ext1"
+#define MPU_DEVICE_PATH_MAG_EXT1 	"/dev/mpu9250_mag_ext1"
+
+#define MPU_DEVICE_PATH_ACCEL_EXT2	"/dev/mpu9250_accel_ext2"
+#define MPU_DEVICE_PATH_GYRO_EXT2	"/dev/mpu9250_gyro_ext2"
+#define MPU_DEVICE_PATH_MAG_EXT2	"/dev/mpu9250_mag_ext2"
 
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
@@ -124,6 +132,12 @@ struct mpu9250_bus_option {
 #  endif
 #  if defined(PX4_I2C_BUS_EXPANSION)
 	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_MPU9250, NULL },
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION1)
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT1, MPU_DEVICE_PATH_GYRO_EXT1, MPU_DEVICE_PATH_MAG_EXT1, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION1, PX4_I2C_OBDEV_MPU9250, NULL },
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION2)
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT2, MPU_DEVICE_PATH_GYRO_EXT2, MPU_DEVICE_PATH_MAG_EXT2, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION2, PX4_I2C_OBDEV_MPU9250, NULL },
 #  endif
 #endif
 #ifdef PX4_SPIDEV_MPU
@@ -479,13 +493,14 @@ usage()
 int
 mpu9250_main(int argc, char *argv[])
 {
-	enum MPU9250_BUS busid = MPU9250_BUS_ALL;
+	int myoptind = 1;
 	int ch;
-	bool external = false;
+	const char *myoptarg = nullptr;
+
+	enum MPU9250_BUS busid = MPU9250_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XISstR:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISstR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MPU9250_BUS_I2C_EXTERNAL;
@@ -508,22 +523,25 @@ mpu9250_main(int argc, char *argv[])
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
 			mpu9250::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	external = (busid == MPU9250_BUS_I2C_EXTERNAL || busid == MPU9250_BUS_SPI_EXTERNAL);
+	if (myoptind >= argc) {
+		mpu9250::usage();
+		return -1;
+	}
 
-	const char *verb = argv[optind];
+	bool external = busid == MPU9250_BUS_I2C_EXTERNAL || busid == MPU9250_BUS_SPI_EXTERNAL;
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
-
 	 */
 	if (!strcmp(verb, "start")) {
 		mpu9250::start(busid, rotation, external);
@@ -566,5 +584,5 @@ mpu9250_main(int argc, char *argv[])
 	}
 
 	mpu9250::usage();
-	exit(1);
+	return 0;
 }

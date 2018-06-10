@@ -50,7 +50,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -870,6 +869,12 @@ struct ms5611_bus_option {
 #ifdef PX4_I2C_BUS_EXPANSION
 	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION, NULL },
 #endif
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext1", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext2", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION2, NULL },
+#endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
@@ -1198,8 +1203,13 @@ ms5611_main(int argc, char *argv[])
 
 		default:
 			ms5611::usage();
-			exit(0);
+			return 0;
 		}
+	}
+
+	if (myoptind >= argc) {
+		ms5611::usage();
+		return -1;
 	}
 
 	const char *verb = argv[myoptind];
@@ -1232,5 +1242,6 @@ ms5611_main(int argc, char *argv[])
 		ms5611::info();
 	}
 
-	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	return -1;
 }

@@ -48,7 +48,6 @@
 #include <uORB/uORB.h>
 
 #include <float.h>
-#include <getopt.h>
 
 static constexpr uint8_t WHO_AM_I = 0x0F;
 static constexpr uint8_t LPS22HB_ID_WHO_AM_I = 0xB1;

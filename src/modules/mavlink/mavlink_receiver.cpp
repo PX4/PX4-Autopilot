@@ -71,6 +71,14 @@
 #include <stdlib.h>
 #include <poll.h>
 
+#include <sys/stat.h>
+#ifdef __PX4_DARWIN
+#include <sys/param.h>
+#include <sys/mount.h>
+#else
+#include <sys/statfs.h>
+#endif
+
 #include <mathlib/mathlib.h>
 
 #include <conversion/rotation.h>
@@ -439,6 +447,46 @@ MavlinkReceiver::send_flight_information()
 }
 
 void
+MavlinkReceiver::send_storage_information(int storage_id)
+{
+	mavlink_storage_information_t storage_info{};
+	const char *microsd_dir = PX4_ROOTFSDIR"/fs/microsd";
+
+	if (storage_id == 0 || storage_id == 1) { // request is for all or the first storage
+		storage_info.storage_id = 1;
+
+		struct statfs statfs_buf;
+		uint64_t total_bytes = 0;
+		uint64_t avail_bytes = 0;
+
+		if (statfs(microsd_dir, &statfs_buf) == 0) {
+			total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
+			avail_bytes = (uint64_t)statfs_buf.f_bavail * statfs_buf.f_bsize;
+		}
+
+		if (total_bytes == 0) { // on NuttX we get 0 total bytes if no SD card is inserted
+			storage_info.storage_count = 0;
+			storage_info.status = 0; // not available
+
+		} else {
+			storage_info.storage_count = 1;
+			storage_info.status = 2; // available & formatted
+			storage_info.total_capacity = total_bytes / 1024. / 1024.;
+			storage_info.available_capacity = avail_bytes / 1024. / 1024.;
+			storage_info.used_capacity = (total_bytes - avail_bytes) / 1024. / 1024.;
+		}
+
+	} else {
+		// only one storage supported
+		storage_info.storage_id = storage_id;
+		storage_info.storage_count = 1;
+	}
+
+	storage_info.time_boot_ms = hrt_absolute_time() / 1000;
+	mavlink_msg_storage_information_send_struct(_mavlink->get_channel(), &storage_info);
+}
+
+void
 MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 {
 	/* command */
@@ -532,6 +580,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
 		send_flight_information();
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
+		if ((int)(cmd_mavlink.param2 + 0.5f) == 1) {
+			send_storage_information(cmd_mavlink.param1 + 0.5f);
+		}
 
 	} else {
 
@@ -1287,10 +1340,15 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					att_sp.timestamp = hrt_absolute_time();
 
 					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
-						mavlink_quaternion_to_euler(set_attitude_target.q, &att_sp.roll_body, &att_sp.pitch_body, &att_sp.yaw_body);
-						att_sp.yaw_sp_move_rate = 0.0;
-						memcpy(att_sp.q_d, set_attitude_target.q, sizeof(att_sp.q_d));
+						matrix::Quatf q(set_attitude_target.q);
+						q.copyTo(att_sp.q_d);
 						att_sp.q_d_valid = true;
+
+						matrix::Eulerf euler{q};
+						att_sp.roll_body = euler.phi();
+						att_sp.pitch_body = euler.theta();
+						att_sp.yaw_body = euler.psi();
+						att_sp.yaw_sp_move_rate = 0.0f;
 					}
 
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
@@ -2259,8 +2317,10 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		_hil_local_pos.yaw = euler.psi();
 		_hil_local_pos.xy_global = true;
 		_hil_local_pos.z_global = true;
-		_hil_local_pos.vxy_max = 0.0f;
-		_hil_local_pos.limit_hagl = false;
+		_hil_local_pos.vxy_max = INFINITY;
+		_hil_local_pos.vz_max = INFINITY;
+		_hil_local_pos.hagl_min = INFINITY;
+		_hil_local_pos.hagl_max = INFINITY;
 
 		if (_local_pos_pub == nullptr) {
 			_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_hil_local_pos);

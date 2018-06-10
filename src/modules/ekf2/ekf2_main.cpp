@@ -322,7 +322,6 @@ private:
 		(ParamExtInt<px4::params::EKF2_OF_QMIN>) _flow_qual_min,	///< minimum acceptable quality integer from  the flow sensor
 		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
 		_flow_innov_gate,	///< optical flow fusion innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_OF_RMAX>) _flow_rate_max,	///< maximum valid optical flow rate (rad/sec)
 
 		// sensor positions in body frame
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _imu_pos_x,		///< X position of IMU in body frame (m)
@@ -470,7 +469,6 @@ Ekf2::Ekf2():
 	_flow_noise_qual_min(_params->flow_noise_qual_min),
 	_flow_qual_min(_params->flow_qual_min),
 	_flow_innov_gate(_params->flow_innov_gate),
-	_flow_rate_max(_params->flow_rate_max),
 	_imu_pos_x(_params->imu_pos_body(0)),
 	_imu_pos_y(_params->imu_pos_body(1)),
 	_imu_pos_z(_params->imu_pos_body(2)),
@@ -903,6 +901,10 @@ void Ekf2::run()
 					_ekf.setOpticalFlowData(optical_flow.timestamp, &flow);
 				}
 
+				// Save sensor limits reported by the optical flow sensor
+				_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
+							     optical_flow.max_ground_distance);
+
 				ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
 						(int64_t)ekf2_timestamps.timestamp / 100);
 			}
@@ -930,6 +932,9 @@ void Ekf2::run()
 					}
 
 					_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance);
+
+					// Save sensor limits reported by the rangefinder
+					_ekf.set_rangefinder_limits(range_finder.min_distance, range_finder.max_distance);
 
 					ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)range_finder.timestamp / 100 -
 							(int64_t)ekf2_timestamps.timestamp / 100);
@@ -1127,11 +1132,23 @@ void Ekf2::run()
 			_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
 
 			// get control limit information
-			_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.limit_hagl);
+			_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
 
-			// convert NaN to zero
+			// convert NaN to INFINITY
 			if (!PX4_ISFINITE(lpos.vxy_max)) {
-				lpos.vxy_max = 0.0f;
+				lpos.vxy_max = INFINITY;
+			}
+
+			if (!PX4_ISFINITE(lpos.vz_max)) {
+				lpos.vz_max = INFINITY;
+			}
+
+			if (!PX4_ISFINITE(lpos.hagl_min)) {
+				lpos.hagl_min = INFINITY;
+			}
+
+			if (!PX4_ISFINITE(lpos.hagl_max)) {
+				lpos.hagl_max = INFINITY;
 			}
 
 			// publish vehicle local position data
