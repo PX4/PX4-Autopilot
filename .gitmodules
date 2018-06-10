@@ -58,3 +58,6 @@
 	path = cmake/configs/uavcan_board_ident
 	url = https://github.com/PX4/uavcan_board_ident.git
 	branch = master
+[submodule "src/lib/Robotics_Cape_Installer"]
+	path = src/lib/Robotics_Cape_Installer
+	url = https://github.com/StrawsonDesign/Robotics_Cape_Installer
