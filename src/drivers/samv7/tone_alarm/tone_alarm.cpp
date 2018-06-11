@@ -116,7 +116,7 @@
 #include <sam_tc.h>
 
 #include <systemlib/err.h>
-#include <systemlib/circuit_breaker.h>
+#include <circuit_breaker/circuit_breaker.h>
 
 /* Check that tone alarm and HRT timers are different */
 #if defined(TONE_ALARM_CHANNEL)  && defined(HRT_TIMER_CHANNEL)

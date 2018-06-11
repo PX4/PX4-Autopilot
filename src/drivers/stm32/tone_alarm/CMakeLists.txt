@@ -37,5 +37,6 @@ px4_add_module(
 	SRCS
 		tone_alarm.cpp
 	DEPENDS
+		circuit_breaker
 		tunes
 	)

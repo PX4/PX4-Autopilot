@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,33 +31,4 @@
 #
 ############################################################################
 
-set(SRCS
-	airspeed.cpp
-	conversions.c
-	cpuload.c
-	crc.c
-	hysteresis/hysteresis.cpp
-	mavlink_log.c
-	otp.c
-	pid/pid.c
-	pwm_limit/pwm_limit.c
-	)
-
-if(${OS} STREQUAL "nuttx")
-	list(APPEND SRCS
-		print_load_nuttx.c
-		)
-else()
-	list(APPEND SRCS
-		print_load_posix.c
-		)
-endif()
-
-# TODO: find a better way to do this
-if (NOT "${CONFIG}" MATCHES "px4io")
-	px4_add_library(systemlib ${SRCS})
-	target_compile_options(systemlib PRIVATE -Wno-sign-compare)
-else()
-	add_library(systemlib ${PX4_SOURCE_DIR}/src/platforms/empty.c)
-	add_dependencies(systemlib prebuild_targets)
-endif()
+px4_add_library(circuit_breaker circuit_breaker.cpp)

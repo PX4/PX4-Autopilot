@@ -38,5 +38,6 @@ px4_add_module(
 	SRCS
 		fmu.cpp
 	DEPENDS
+		circuit_breaker
 		rc
 	)

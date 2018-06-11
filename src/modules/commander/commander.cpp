@@ -73,7 +73,7 @@
 #include <px4_shutdown.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
-#include <systemlib/circuit_breaker.h>
+#include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/err.h>
 #include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/mavlink_log.h>
