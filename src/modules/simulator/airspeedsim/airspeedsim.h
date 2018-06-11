@@ -57,7 +57,6 @@
 #include <px4_workqueue.h>
 #include <arch/board/board.h>
 
-#include <systemlib/airspeed.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>

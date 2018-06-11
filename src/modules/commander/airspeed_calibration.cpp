@@ -55,7 +55,6 @@
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
-#include <systemlib/airspeed.h>
 
 static const char *sensor_name = "airspeed";
 

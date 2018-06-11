@@ -46,6 +46,7 @@ px4_add_module(
 		temperature_compensation.cpp
 
 	DEPENDS
+		airspeed
 		battery
 		conversion
 		drivers__device
