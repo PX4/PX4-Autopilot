@@ -56,7 +56,6 @@
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_module.h>
-#include <systemlib/board_serial.h>
 #include <systemlib/circuit_breaker.h>
 #include <lib/mixer/mixer.h>
 #include <parameters/param.h>
