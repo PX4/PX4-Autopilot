@@ -47,12 +47,7 @@ set(SRCS
 
 if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
-		err.c
 		printload.c
-		)
-elseif ("${CONFIG_SHMEM}" STREQUAL "1")
-	list(APPEND SRCS
-		print_load_posix.c
 		)
 else()
 	list(APPEND SRCS
