@@ -78,8 +78,6 @@
 #include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
-#include <systemlib/rc_check.h>
-#include <systemlib/state_table.h>
 
 #include <cmath>
 #include <cfloat>
