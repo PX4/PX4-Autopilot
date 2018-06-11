@@ -51,7 +51,7 @@
 #include <lib/mixer/mixer.h>
 #include <lib/mixer/mixer_load.h>
 #include <parameters/param.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 #include <perf/perf_counter.h>
 
 #include "common.h"

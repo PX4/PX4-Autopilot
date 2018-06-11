@@ -60,7 +60,7 @@
 #include <lib/mixer/mixer.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>

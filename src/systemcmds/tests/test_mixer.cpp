@@ -42,8 +42,8 @@
 #include <string.h>
 
 #include <px4_config.h>
-#include <lib/mixer/mixer.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <mixer/mixer.h>
+#include <pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <px4iofirmware/mixer.h>

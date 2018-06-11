@@ -93,4 +93,5 @@ px4_add_module(
 		modules__mc_pos_control__mc_pos_control_tests
 		git_ecl
 		ecl_geo_lookup # TODO: move this
+		pwm_limit
 	)

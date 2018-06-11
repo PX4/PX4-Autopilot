@@ -40,5 +40,6 @@ px4_add_module(
 		linux_pwm_out.cpp
 		ocpoc_mmap.cpp
 	DEPENDS
+		pwm_limit
 	)
 
