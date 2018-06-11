@@ -33,7 +33,6 @@
 
 set(SRCS
 	airspeed.cpp
-	board_serial.c
 	circuit_breaker.cpp
 	conversions.c
 	cpuload.c
