@@ -39,7 +39,6 @@ set(SRCS
 	hysteresis/hysteresis.cpp
 	mavlink_log.c
 	otp.c
-	pid/pid.c
 	)
 
 if(${OS} STREQUAL "nuttx")
