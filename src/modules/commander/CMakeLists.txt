@@ -54,6 +54,7 @@ px4_add_module(
 		rc_check.cpp
 		state_machine_helper.cpp
 	DEPENDS
+		circuit_breaker
 		df_driver_framework
 		git_ecl
 		ecl_geo

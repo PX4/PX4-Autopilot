@@ -54,7 +54,7 @@
 #include <parameters/param.h>
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
-#include <systemlib/circuit_breaker.h>
+
 // internal libraries
 #include <lib/mathlib/mathlib.h>
 #include <matrix/math.hpp>

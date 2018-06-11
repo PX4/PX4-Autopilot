@@ -59,7 +59,7 @@
 #define CBRK_USB_CHK_KEY	197848
 #define CBRK_VELPOSERR_KEY	201607
 
-#include <stdbool.h>
+#include <stdint.h>
 
 __BEGIN_DECLS
 
