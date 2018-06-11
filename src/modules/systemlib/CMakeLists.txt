@@ -32,7 +32,6 @@
 ############################################################################
 
 set(SRCS
-	airspeed.cpp
 	conversions.c
 	cpuload.c
 	crc.c

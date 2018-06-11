@@ -43,7 +43,6 @@
 #define AIRSPEED_H_
 
 #include "math.h"
-#include "conversions.h"
 
 __BEGIN_DECLS
 
