@@ -304,8 +304,8 @@ void gpio_led_cycle(FAR void *arg)
 	/* select pattern for current vehiclestatus */
 	int pattern = 0;
 
-	if (priv->vehicle_status.arming_state == ARMING_STATE_ARMED) {
-		if (priv->battery_status.warning == BATTERY_WARNING_NONE
+	if (priv->vehicle_status.arming_state == VEHICLE_STATUS_ARMING_STATE_ARMED) {
+		if (priv->battery_status.warning == BATTERY_STATUS_BATTERY_WARNING_NONE
 		    && !priv->vehicle_status.failsafe) {
 			pattern = 0x3f;	// ****** solid (armed)
 
@@ -313,10 +313,10 @@ void gpio_led_cycle(FAR void *arg)
 			pattern = 0x3e;	// *****_ slow blink (armed, battery low or failsafe)
 		}
 
-	} else if (priv->vehicle_status.arming_state == ARMING_STATE_STANDBY) {
+	} else if (priv->vehicle_status.arming_state == VEHICLE_STATUS_ARMING_STATE_STANDBY) {
 		pattern = 0x38;	// ***___ slow blink (disarmed, ready)
 
-	} else if (priv->vehicle_status.arming_state == ARMING_STATE_STANDBY_ERROR) {
+	} else if (priv->vehicle_status.arming_state == VEHICLE_STATUS_ARMING_STATE_STANDBY_ERROR) {
 		pattern = 0x28;	// *_*___ slow double blink (disarmed, error)
 
 	}
