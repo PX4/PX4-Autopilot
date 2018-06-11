@@ -454,7 +454,7 @@ function(px4_add_common_flags)
 
 	set(visibility_flags
 		-fvisibility=hidden
-		-include visibility.h
+		-include ${PX4_SOURCE_DIR}/src/include/visibility.h
 		)
 
 	set(added_c_flags

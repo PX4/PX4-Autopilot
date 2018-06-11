@@ -61,7 +61,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include <ctime>
 #include <pthread.h>
 
-#include <microcdr/microCdr.h>
+#include <microcdr/microcdr.h>
 #include <px4_time.h>
 #include <uORB/uORB.h>
 
@@ -95,7 +95,7 @@ void* send(void* /*unused*/)
     header_length=transport_node->get_header_length();
     initStaticAlignedBuffer(&data_buffer[header_length], BUFFER_SIZE-header_length, &microBufferWriter);
     // microCDR structs for managing the microBuffer
-    struct microCDR microCDRWriter;
+    struct MicroBuffer microCDRWriter;
     initMicroCDR(&microCDRWriter, &microBufferWriter);
 
     struct timespec begin;
@@ -171,7 +171,7 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
     struct microBuffer microBufferReader;
     initDeserializedAlignedBuffer(data_buffer, BUFFER_SIZE, &microBufferReader);
     // microCDR structs for managing the microBuffer
-    struct microCDR microCDRReader;
+    struct MicroBuffer microCDRReader;
     initMicroCDR(&microCDRReader, &microBufferReader);
 @[end if]@
 

@@ -24,18 +24,18 @@ type_map = {
 }
 
 type_serialize_map = {
-    'int8': 'SignedChar',
-    'int16': 'Short',
-    'int32': 'Int',
-    'int64': 'Long',
-    'uint8': 'UnsignedChar',
-    'uint16': 'UnsignedShort',
-    'uint32': 'UnsignedInt',
-    'uint64': 'UnsignedLong',
-    'float32': 'Float',
-    'float64': 'Double',
-    'bool': 'Bool',
-    'char': 'Char',
+    'int8': 'char',
+    'int16': 'int16_t',
+    'int32': 'int32_t',
+    'int64': 'int64_t',
+    'uint8': 'uint8_t',
+    'uint16': 'uint16_t',
+    'uint32': 'uint32_t',
+    'uint64': 'uint64_t',
+    'float32': 'float',
+    'float64': 'double',
+    'bool': 'bool',
+    'char': 'char',
 }
 
 type_idl_map = {
