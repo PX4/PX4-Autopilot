@@ -380,4 +380,3 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 
 	print_load_buffer(t, data.buffer, sizeof(data.buffer), print_load_callback, &data, print_state);
 }
-
