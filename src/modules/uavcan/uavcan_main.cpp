@@ -51,7 +51,6 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <lib/mixer/mixer.h>
-#include <systemlib/board_serial.h>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>

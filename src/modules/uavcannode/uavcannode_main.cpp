@@ -47,7 +47,6 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <lib/mixer/mixer.h>
-#include <systemlib/board_serial.h>
 #include <version/version.h>
 __BEGIN_DECLS
 #include <nuttx/board.h>
