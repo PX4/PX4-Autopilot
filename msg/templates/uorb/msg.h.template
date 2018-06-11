@@ -57,6 +57,7 @@ import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 uorb_struct = '%s_s'%spec.short_name
+uorb_struct_upper = spec.short_name.upper()
 topic_name = spec.short_name
 }@
 
@@ -83,7 +84,7 @@ for field in spec.parsed_fields():
 @# Constants c style
 #ifndef __cplusplus
 @[for constant in spec.constants]@
-#define @(constant.name) @(int(constant.val))
+#define @(uorb_struct_upper)_@(constant.name) @(int(constant.val))
 @[end for]
 #endif
 
