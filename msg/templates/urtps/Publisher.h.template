@@ -48,7 +48,7 @@ topic = spec.short_name
  *
  ****************************************************************************/
 
-/*! 
+/*!
  * @@file @(topic)_Publisher.h
  * This header file contains the declaration of the publisher functions.
  *
@@ -65,8 +65,9 @@ topic = spec.short_name
 #include "@(topic)_PubSubTypes.h"
 
 using namespace eprosima::fastrtps;
+using namespace eprosima::fastrtps::rtps;
 
-class @(topic)_Publisher 
+class @(topic)_Publisher
 {
 public:
     @(topic)_Publisher();
@@ -77,13 +78,13 @@ public:
 private:
     Participant *mp_participant;
     Publisher *mp_publisher;
-    
+
     class PubListener : public PublisherListener
     {
     public:
         PubListener() : n_matched(0){};
         ~PubListener(){};
-        void onPublicationMatched(Publisher* pub,MatchingInfo& info);
+        void onPublicationMatched(Publisher* pub, MatchingInfo& info);
         int n_matched;
     } m_listener;
     @(topic)_PubSubType myType;
