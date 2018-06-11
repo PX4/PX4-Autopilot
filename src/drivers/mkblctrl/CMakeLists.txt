@@ -38,5 +38,6 @@ px4_add_module(
 		mkblctrl.cpp
 		mkblctrl_params.c
 	DEPENDS
+		mixer
 	)
 

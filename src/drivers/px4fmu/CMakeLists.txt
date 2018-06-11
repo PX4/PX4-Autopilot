@@ -39,5 +39,7 @@ px4_add_module(
 		fmu.cpp
 	DEPENDS
 		circuit_breaker
+		mixer
 		rc
+		pwm_limit
 	)

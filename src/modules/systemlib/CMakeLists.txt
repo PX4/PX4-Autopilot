@@ -40,7 +40,6 @@ set(SRCS
 	mavlink_log.c
 	otp.c
 	pid/pid.c
-	pwm_limit/pwm_limit.c
 	)
 
 if(${OS} STREQUAL "nuttx")

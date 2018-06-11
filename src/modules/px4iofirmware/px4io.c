@@ -55,7 +55,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <perf/perf_counter.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 
 #include <stm32_uart.h>
 
