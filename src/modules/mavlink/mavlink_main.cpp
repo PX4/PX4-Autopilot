@@ -68,7 +68,6 @@
 #include <parameters/param.h>
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
 #include <lib/ecl/geo/geo.h>
 #include <dataman/dataman.h>

@@ -70,7 +70,6 @@
 #include <lib/mixer/mixer.h>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>

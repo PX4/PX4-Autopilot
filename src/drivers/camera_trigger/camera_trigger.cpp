@@ -51,7 +51,6 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <px4_workqueue.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
