@@ -115,9 +115,12 @@ if (config_romfs_root)
 endif()
 
 # create px4 file (combined firmware and metadata)
+# for historical reasons we name the final output binary without nuttx_
+set(fw_name_short)
+string(REPLACE "nuttx_" "" fw_name_short ${FW_NAME})
+
 set(fw_file ${PX4_BINARY_DIR}/${FW_NAME})
 string(REPLACE ".elf" ".px4" fw_file ${fw_file})
-string(REPLACE "nuttx_" "" fw_file ${fw_file})
 
 add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${BOARD}.bin
 	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${BOARD}.bin
@@ -135,7 +138,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			--git_identity ${PX4_SOURCE_DIR}
 			--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-			--image ${PX4_BINARY_DIR}/${BOARD}.bin > ${fw_file}
+			--image ${PX4_BINARY_DIR}/${BOARD}.bin > ${fw_name_short}
 		DEPENDS ${PX4_BINARY_DIR}/${BOARD}.bin parameters_xml airframes_xml
 		COMMENT "Creating ${fw_file}"
 		)
