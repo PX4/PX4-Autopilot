@@ -49,10 +49,11 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+
+#include <mixer/mixer.h>
+#include <pwm_limit/pwm_limit.h>
 #include <rc/sbus.h>
 
-#include <systemlib/pwm_limit/pwm_limit.h>
-#include <lib/mixer/mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
 #include "mixer.h"
