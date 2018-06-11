@@ -43,7 +43,6 @@
 
 #include <drivers/device/i2c.h>
 
-#include <systemlib/airspeed.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>

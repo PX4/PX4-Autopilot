@@ -41,7 +41,6 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_config.h>
 #include <sys/types.h>
-#include <systemlib/airspeed.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/uORB.h>

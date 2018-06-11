@@ -79,16 +79,15 @@
 #include <sys/statfs.h>
 #endif
 
+#include <airspeed/airspeed.h>
+#include <ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
-
 #include <conversion/rotation.h>
-
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <systemlib/airspeed.h>
+
 #include <commander/px4_custom_mode.h>
-#include <lib/ecl/geo/geo.h>
 
 #include <uORB/topics/vehicle_command_ack.h>
 

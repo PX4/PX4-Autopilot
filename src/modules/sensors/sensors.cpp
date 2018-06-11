@@ -68,7 +68,7 @@
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_px4flow.h>
 
-#include <systemlib/airspeed.h>
+#include <airspeed/airspeed.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
