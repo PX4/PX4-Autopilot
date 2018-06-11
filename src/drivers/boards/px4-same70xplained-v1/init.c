@@ -80,7 +80,6 @@
 
 #include <systemlib/hardfault_log.h>
 
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 
 /****************************************************************************

@@ -55,7 +55,6 @@
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <systemlib/pid/pid.h>
-#include <systemlib/systemlib.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>

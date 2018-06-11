@@ -45,7 +45,6 @@
 #include <pthread.h>
 
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 
 #include "drivers/drv_iridiumsbd.h"

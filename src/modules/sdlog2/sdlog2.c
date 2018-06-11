@@ -101,7 +101,6 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
 
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <systemlib/printload.h>

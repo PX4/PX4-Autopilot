@@ -70,7 +70,6 @@
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <drivers/drv_gps.h>

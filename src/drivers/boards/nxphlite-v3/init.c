@@ -80,7 +80,6 @@
 #include <systemlib/hardfault_log.h>
 #endif
 
-#include <systemlib/systemlib.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

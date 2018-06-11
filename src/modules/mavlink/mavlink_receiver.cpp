@@ -84,7 +84,6 @@
 #include <conversion/rotation.h>
 
 #include <parameters/param.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <systemlib/airspeed.h>

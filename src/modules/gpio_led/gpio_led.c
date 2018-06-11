@@ -49,7 +49,6 @@
 #include <px4_log.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>

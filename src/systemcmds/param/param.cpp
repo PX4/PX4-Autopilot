@@ -57,7 +57,6 @@
 
 #include <arch/board/board.h>
 
-#include "systemlib/systemlib.h"
 #include <parameters/param.h>
 #include "systemlib/err.h"
 

@@ -50,7 +50,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <drivers/drv_hrt.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 
 #include "LandingTargetEstimator.h"

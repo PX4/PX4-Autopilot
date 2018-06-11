@@ -43,7 +43,6 @@
 #include <px4_log.h>
 #include <px4_module.h>
 #include <px4_shutdown.h>
-#include <systemlib/systemlib.h>
 #include <string.h>
 
 __EXPORT int reboot_main(int argc, char *argv[]);

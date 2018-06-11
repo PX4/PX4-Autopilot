@@ -55,7 +55,6 @@
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
-#include <systemlib/systemlib.h>
 
 #include "../comms.h"
 #include "../messages.h"
