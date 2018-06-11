@@ -47,7 +47,7 @@ set(SRCS
 
 if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
-		printload.c
+		print_load_nuttx.c
 		)
 else()
 	list(APPEND SRCS
