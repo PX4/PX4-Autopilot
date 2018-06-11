@@ -32,7 +32,6 @@
  *
  ****************************************************************************/
 
-#include <systemlib/systemlib.h>
 #include "indication_controller.hpp"
 #include <uavcan/equipment/indication/LightsCommand.hpp>
 #include "led.hpp"

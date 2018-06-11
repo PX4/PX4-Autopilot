@@ -61,7 +61,6 @@
 
 #include <arch/board/board.h>
 
-#include "systemlib/systemlib.h"
 #include "systemlib/err.h"
 #include <parameters/param.h>
 #include "drivers/drv_pwm_output.h"

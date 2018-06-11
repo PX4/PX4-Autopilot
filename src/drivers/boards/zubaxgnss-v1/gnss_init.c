@@ -71,7 +71,6 @@
 #include <systemlib/cpuload.h>
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-#include <systemlib/systemlib.h>
 #endif
 
 #include "board_config.h"

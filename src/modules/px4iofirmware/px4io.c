@@ -56,7 +56,6 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
-#include <systemlib/systemlib.h>
 
 #include <stm32_uart.h>
 
