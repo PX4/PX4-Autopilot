@@ -43,7 +43,6 @@ set(SRCS
 	otp.c
 	pid/pid.c
 	pwm_limit/pwm_limit.c
-	rc_check.c
 	)
 
 if(${OS} STREQUAL "nuttx")
