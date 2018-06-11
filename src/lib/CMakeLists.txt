@@ -35,6 +35,7 @@ px4_add_git_submodule(TARGET git_ecl PATH "ecl")
 px4_add_git_submodule(TARGET git_matrix PATH "matrix")
 
 add_subdirectory(battery)
+add_subdirectory(circuit_breaker)
 add_subdirectory(controllib)
 add_subdirectory(conversion)
 add_subdirectory(drivers)

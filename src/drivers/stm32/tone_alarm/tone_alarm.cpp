@@ -109,7 +109,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/err.h>
-#include <systemlib/circuit_breaker.h>
+#include <circuit_breaker/circuit_breaker.h>
 
 #include <px4_workqueue.h>
 
