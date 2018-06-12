@@ -43,7 +43,7 @@
 # define UAVCAN_STM32_IRQ_PROLOGUE()    CH_IRQ_PROLOGUE()
 # define UAVCAN_STM32_IRQ_EPILOGUE()    CH_IRQ_EPILOGUE()
 #elif UAVCAN_STM32_NUTTX
-# define UAVCAN_STM32_IRQ_HANDLER(id)  int id(int irq, FAR void* context)
+# define UAVCAN_STM32_IRQ_HANDLER(id)  int id(int irq, FAR void* context, FAR void *arg)
 # define UAVCAN_STM32_IRQ_PROLOGUE()
 # define UAVCAN_STM32_IRQ_EPILOGUE()    return 0;
 #else

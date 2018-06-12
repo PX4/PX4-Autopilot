@@ -50,9 +50,9 @@
 # endif
 extern "C"
 {
-static int can1_irq(const int irq, void*);
+static int can1_irq(const int irq, void*, void*);
 #if UAVCAN_STM32_NUM_IFACES > 1
-static int can2_irq(const int irq, void*);
+static int can2_irq(const int irq, void*, void*);
 #endif
 }
 #endif
@@ -1010,7 +1010,7 @@ void CanDriver::initOnce()
 #if UAVCAN_STM32_NUTTX
 # define IRQ_ATTACH(irq, handler)                          \
     {                                                      \
-        const int res = irq_attach(irq, handler);          \
+        const int res = irq_attach(irq, handler, NULL);    \
         (void)res;                                         \
         assert(res >= 0);                                  \
         up_enable_irq(irq);                                \
@@ -1119,7 +1119,7 @@ extern "C"
 
 #if UAVCAN_STM32_NUTTX
 
-static int can1_irq(const int irq, void*)
+static int can1_irq(const int irq, void*, void*)
 {
     if (irq == STM32_IRQ_CAN1TX)
     {
@@ -1142,7 +1142,7 @@ static int can1_irq(const int irq, void*)
 
 # if UAVCAN_STM32_NUM_IFACES > 1
 
-static int can2_irq(const int irq, void*)
+static int can2_irq(const int irq, void*, void*)
 {
     if (irq == STM32_IRQ_CAN2TX)
     {
