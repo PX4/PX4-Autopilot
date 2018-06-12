@@ -64,7 +64,6 @@ pipeline {
             builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
           }
 
-          builds["sitl"] = createBuildNode(docker_base, 'posix_sitl_default')
           builds["sitl_rtps"] = createBuildNode(docker_base, 'posix_sitl_rtps')
           builds["sitl (GCC 7)"] = createBuildNode(docker_arch, 'posix_sitl_default')
 
@@ -678,11 +677,14 @@ pipeline {
       }
     }
 
+    // TODO: actually upload artifacts to S3
     stage('S3 Upload') {
       agent {
         docker { image 'px4io/px4-dev-base:2018-03-30' }
       }
-
+      options {
+            skipDefaultCheckout()
+      }
       when {
         anyOf {
           branch 'master'
@@ -690,7 +692,6 @@ pipeline {
           branch 'stable'
         }
       }
-
       steps {
         sh 'echo "uploading to S3"'
       }
