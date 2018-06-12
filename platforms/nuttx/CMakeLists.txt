@@ -119,7 +119,7 @@ endif()
 set(fw_name_short)
 string(REPLACE "nuttx_" "" fw_name_short ${FW_NAME})
 
-set(fw_file ${PX4_BINARY_DIR}/${FW_NAME})
+set(fw_file ${PX4_BINARY_DIR}/${fw_name_short})
 string(REPLACE ".elf" ".px4" fw_file ${fw_file})
 
 add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${BOARD}.bin
@@ -138,7 +138,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			--git_identity ${PX4_SOURCE_DIR}
 			--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-			--image ${PX4_BINARY_DIR}/${BOARD}.bin > ${fw_name_short}
+			--image ${PX4_BINARY_DIR}/${BOARD}.bin > ${fw_file}
 		DEPENDS ${PX4_BINARY_DIR}/${BOARD}.bin parameters_xml airframes_xml
 		COMMENT "Creating ${fw_file}"
 		)
