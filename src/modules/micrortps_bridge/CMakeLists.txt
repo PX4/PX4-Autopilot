@@ -61,6 +61,7 @@ endif()
 
 if (GENERATE_RTPS_BRIDGE)
 
+	#option(CHECK_ENDIANNESS OFF)
 	add_subdirectory(micrortps_client)
 
 	###############################################################################
@@ -132,10 +133,10 @@ if (GENERATE_RTPS_BRIDGE)
 	add_dependencies(uorb_msgs_microcdr
 		uorb_headers_microcdr_gen
 		git_micro_cdr
-		lib__micro-CDR
+		microcdr
 	)
 
-	target_link_libraries(uorb_msgs_microcdr PRIVATE lib__micro-CDR)
+	target_link_libraries(uorb_msgs_microcdr PRIVATE microcdr)
 
 	# microCDR
 	target_include_directories(uorb_msgs_microcdr
