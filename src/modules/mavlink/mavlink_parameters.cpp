@@ -422,7 +422,8 @@ MavlinkParametersManager::send_uavcan()
 		orb_copy(ORB_ID(uavcan_parameter_value), _uavcan_parameter_value_sub, &value);
 
 		// Check if we received a matching parameter, drop it from the list and request the next
-		if (value.param_index == _uavcan_open_request_list->req.param_index
+		if (_uavcan_open_request_list != nullptr
+		    && value.param_index == _uavcan_open_request_list->req.param_index
 		    && value.node_id == _uavcan_open_request_list->req.node_id) {
 			dequeue_uavcan_request();
 			request_next_uavcan_parameter();
