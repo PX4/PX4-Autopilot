@@ -180,6 +180,7 @@ public:
 	void setRangeData(uint64_t time_usec, float data);
 
 	// set optical flow data
+	// if optical flow sensor gyro delta angles are not available, set gyroXYZ vector fields to NaN and the EKF will use its internal delta angle data instead
 	void setOpticalFlowData(uint64_t time_usec, flow_message *flow);
 
 	// set external vision position and attitude data
