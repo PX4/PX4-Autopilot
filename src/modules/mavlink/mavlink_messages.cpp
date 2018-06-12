@@ -74,7 +74,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/trajectory_waypoint.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
@@ -3095,13 +3095,13 @@ private:
 
 protected:
 	explicit MavlinkStreamTrajectory(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_traj_wp_avoidance_sub(_mavlink->add_orb_subscription(ORB_ID(trajectory_waypoint_desired))),
+		_traj_wp_avoidance_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_trajectory_waypoint_desired))),
 		_traj_wp_avoidance_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		struct trajectory_waypoint_s traj_wp_avoidance_desired;
+		struct vehicle_trajectory_waypoint_s traj_wp_avoidance_desired;
 
 		if (_traj_wp_avoidance_sub->update(&_traj_wp_avoidance_time, &traj_wp_avoidance_desired)) {
 			mavlink_trajectory_t msg = {};
@@ -3109,13 +3109,55 @@ protected:
 			msg.time_usec = traj_wp_avoidance_desired.timestamp;
 			msg.type = traj_wp_avoidance_desired.type;
 
-			memcpy(msg.point_1, traj_wp_avoidance_desired.point_0, sizeof(msg.point_1));
-			memcpy(msg.point_2, traj_wp_avoidance_desired.point_1, sizeof(msg.point_2));
-			memcpy(msg.point_3, traj_wp_avoidance_desired.point_2, sizeof(msg.point_3));
-			memcpy(msg.point_4, traj_wp_avoidance_desired.point_3, sizeof(msg.point_4));
-			memcpy(msg.point_5, traj_wp_avoidance_desired.point_4, sizeof(msg.point_5));
+			for (int i = 0; i < 3; ++i) {
+				msg.point_1[i] = traj_wp_avoidance_desired.waypoints[0].position[i];
+				msg.point_1[3 + i] = traj_wp_avoidance_desired.waypoints[0].velocity[i];
+				msg.point_1[6 + i] = traj_wp_avoidance_desired.waypoints[0].acceleration[i];
+			}
 
-			memcpy(msg.point_valid, traj_wp_avoidance_desired.point_valid, sizeof(msg.point_valid));
+			msg.point_1[9] = traj_wp_avoidance_desired.waypoints[0].yaw;
+			msg.point_1[10] = traj_wp_avoidance_desired.waypoints[0].yaw_speed;
+			msg.point_valid[0] = traj_wp_avoidance_desired.waypoints[0].point_valid;
+
+			for (int i = 0; i < 3; ++i) {
+				msg.point_2[i] = traj_wp_avoidance_desired.waypoints[1].position[i];
+				msg.point_2[3 + i] = traj_wp_avoidance_desired.waypoints[1].velocity[i];
+				msg.point_2[6 + i] = traj_wp_avoidance_desired.waypoints[1].acceleration[i];
+			}
+
+			msg.point_2[9] = traj_wp_avoidance_desired.waypoints[1].yaw;
+			msg.point_2[10] = traj_wp_avoidance_desired.waypoints[1].yaw_speed;
+			msg.point_valid[1] = traj_wp_avoidance_desired.waypoints[1].point_valid;
+
+			for (int i = 0; i < 3; ++i) {
+				msg.point_3[i] = traj_wp_avoidance_desired.waypoints[2].position[i];
+				msg.point_3[3 + i] = traj_wp_avoidance_desired.waypoints[2].velocity[i];
+				msg.point_3[6 + i] = traj_wp_avoidance_desired.waypoints[2].acceleration[i];
+			}
+
+			msg.point_3[9] = traj_wp_avoidance_desired.waypoints[2].yaw;
+			msg.point_3[10] = traj_wp_avoidance_desired.waypoints[2].yaw_speed;
+			msg.point_valid[2] = traj_wp_avoidance_desired.waypoints[2].point_valid;
+
+			for (int i = 0; i < 3; ++i) {
+				msg.point_4[i] = traj_wp_avoidance_desired.waypoints[3].position[i];
+				msg.point_4[3 + i] = traj_wp_avoidance_desired.waypoints[3].velocity[i];
+				msg.point_4[6 + i] = traj_wp_avoidance_desired.waypoints[3].acceleration[i];
+			}
+
+			msg.point_4[9] = traj_wp_avoidance_desired.waypoints[3].yaw;
+			msg.point_4[10] = traj_wp_avoidance_desired.waypoints[3].yaw_speed;
+			msg.point_valid[3] = traj_wp_avoidance_desired.waypoints[3].point_valid;
+
+			for (int i = 0; i < 3; ++i) {
+				msg.point_5[i] = traj_wp_avoidance_desired.waypoints[4].position[i];
+				msg.point_5[3 + i] = traj_wp_avoidance_desired.waypoints[4].velocity[i];
+				msg.point_5[6 + i] = traj_wp_avoidance_desired.waypoints[4].acceleration[i];
+			}
+
+			msg.point_5[9] = traj_wp_avoidance_desired.waypoints[4].yaw;
+			msg.point_5[10] = traj_wp_avoidance_desired.waypoints[4].yaw_speed;
+			msg.point_valid[4] = traj_wp_avoidance_desired.waypoints[4].point_valid;
 
 			mavlink_msg_trajectory_send_struct(_mavlink->get_channel(), &msg);
 
