@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_levels,
-                plot=False, output_plot_filename=None):
+                plot=False, output_plot_filename=None, late_start_early_ending=True):
 
     if plot:
         # create summary plots
@@ -502,6 +502,11 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     using_evpos = ((2 ** 12 & estimator_status['control_mode_flags']) > 0) * 1
     using_evyaw = ((2 ** 13 & estimator_status['control_mode_flags']) > 0) * 1
     using_evhgt = ((2 ** 14 & estimator_status['control_mode_flags']) > 0) * 1
+
+    # define flags for starting and finishing in air
+    b_starts_in_air = False
+    b_finishes_in_air = False
+
     # calculate in-air transition time
     if (np.amin(airborne) < 0.5) and (np.amax(airborne) > 0.5):
         in_air_transtion_time_arg = np.argmax(np.diff(airborne))
@@ -509,6 +514,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     elif (np.amax(airborne) > 0.5):
         in_air_transition_time = np.amin(status_time)
         print('log starts while in-air at ' + str(round(in_air_transition_time, 1)) + ' sec')
+        b_starts_in_air = True
     else:
         in_air_transition_time = float('NaN')
         print('always on ground')
@@ -519,6 +525,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     elif (np.amax(airborne) > 0.5):
         on_ground_transition_time = np.amax(status_time)
         print('log finishes while in-air at ' + str(round(on_ground_transition_time, 1)) + ' sec')
+        b_finishes_in_air = True
     else:
         on_ground_transition_time = float('NaN')
         print('always on ground')
@@ -1008,22 +1015,27 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.close("all")
 
     # Do some automated analysis of the status data
-    # find a late/early index range from 5 sec after in_air_transtion_time to 5 sec before on-ground transition time for mag and optical flow checks to avoid false positives
-    # this can be used to prevent false positives for sensors adversely affected by close proximity to the ground
-    late_start_index = np.amin(np.where(status_time > (in_air_transition_time + 5.0)))
-    early_end_index = np.amax(np.where(status_time < (on_ground_transition_time - 5.0)))
-    num_valid_values_trimmed = (early_end_index - late_start_index + 1)
     # normal index range is defined by the flight duration
     start_index = np.amin(np.where(status_time > in_air_transition_time))
-    end_index = np.amax(np.where(status_time < on_ground_transition_time))
+    end_index = np.amax(np.where(status_time <= on_ground_transition_time))
     num_valid_values = (end_index - start_index + 1)
+    # find a late/early index range from 5 sec after in_air_transtion_time to 5 sec before on-ground transition time for mag and optical flow checks to avoid false positives
+    # this can be used to prevent false positives for sensors adversely affected by close proximity to the ground
+    # don't do this if the log starts or finishes in air or if it is shut off by flag
+    late_start_index = np.amin(np.where(status_time > (in_air_transition_time + 5.0)))\
+        if (late_start_early_ending and not b_starts_in_air) else start_index
+    early_end_index = np.amax(np.where(status_time <= (on_ground_transition_time - 5.0))) \
+        if (late_start_early_ending and not b_finishes_in_air) else end_index
+    num_valid_values_trimmed = (early_end_index - late_start_index + 1)
     # also find the start and finish indexes for the innovation data
-    innov_late_start_index = np.amin(np.where(innov_time > (in_air_transition_time + 5.0)))
-    innov_early_end_index = np.amax(np.where(innov_time < (on_ground_transition_time - 5.0)))
-    innov_num_valid_values_trimmed = (innov_early_end_index - innov_late_start_index + 1)
     innov_start_index = np.amin(np.where(innov_time > in_air_transition_time))
-    innov_end_index = np.amax(np.where(innov_time < on_ground_transition_time))
+    innov_end_index = np.amax(np.where(innov_time <= on_ground_transition_time))
     innov_num_valid_values = (innov_end_index - innov_start_index + 1)
+    innov_late_start_index = np.amin(np.where(innov_time > (in_air_transition_time + 5.0))) \
+        if (late_start_early_ending and not b_starts_in_air) else innov_start_index
+    innov_early_end_index = np.amax(np.where(innov_time <= (on_ground_transition_time - 5.0))) \
+        if (late_start_early_ending and not b_finishes_in_air) else innov_end_index
+    innov_num_valid_values_trimmed = (innov_early_end_index - innov_late_start_index + 1)
     # define dictionary of test results and descriptions
     test_results = {
         'master_status': ['Pass',
@@ -1044,6 +1056,12 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                               'Airspeed sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
         'imu_sensor_status': ['Pass',
                               'IMU sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
+        'imu_vibration_check': ['Pass',
+                              'IMU vibration check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
+        'imu_bias_check': ['Pass',
+                              'IMU bias check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
+        'imu_output_predictor_check': ['Pass',
+                              'IMU output predictor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
         'flow_sensor_status': ['Pass',
                                'Optical Flow sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
         'filter_fault_status': ['Pass',
@@ -1291,16 +1309,19 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
             (test_results.get('imu_hfdvel_peak')[0] > check_levels.get('imu_hfdvel_peak_warn')) or
             (test_results.get('imu_hfdvel_mean')[0] > check_levels.get('imu_hfdvel_mean_warn'))):
         test_results['master_status'][0] = 'Warning'
-        test_results['imu_sensor_status'][0] = 'Warning - Vibration'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_vibration_check'][0] = 'Warning'
     if ((test_results.get('imu_dang_bias_median')[0] > check_levels.get('imu_dang_bias_median_warn')) or
             (test_results.get('imu_dvel_bias_median')[0] > check_levels.get('imu_dvel_bias_median_warn'))):
         test_results['master_status'][0] = 'Warning'
-        test_results['imu_sensor_status'][0] = 'Warning - Bias'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_bias_check'][0] = 'Warning'
     if ((test_results.get('output_obs_ang_err_median')[0] > check_levels.get('obs_ang_err_median_warn')) or
             (test_results.get('output_obs_vel_err_median')[0] > check_levels.get('obs_vel_err_median_warn')) or
             (test_results.get('output_obs_pos_err_median')[0] > check_levels.get('obs_pos_err_median_warn'))):
         test_results['master_status'][0] = 'Warning'
-        test_results['imu_sensor_status'][0] = 'Warning - Output Predictor'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_output_predictor_check'][0] = 'Warning'
     # check for failures
     if ((test_results.get('magx_fail_percentage')[0] > check_levels.get('mag_fail_pct')) or
             (test_results.get('magy_fail_percentage')[0] > check_levels.get('mag_fail_pct')) or
