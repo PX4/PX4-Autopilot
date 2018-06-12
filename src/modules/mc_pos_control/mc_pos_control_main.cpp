@@ -3310,8 +3310,7 @@ MulticopterPositionControl::task_main()
 				 * point_2 contains _pos_sp_triplet.next if valid */
 
 				update_avoidance_waypoint_desired(vehicle_trajectory_waypoint_s::POINT_0, _pos, _vel_sp_desired, matrix::Vector3f(NAN,
-								  NAN,
-								  NAN), _yaw, NAN);
+								  NAN, NAN), _yaw, NAN);
 
 				if (_pos_sp_triplet.current.valid) {
 					update_avoidance_waypoint_desired(vehicle_trajectory_waypoint_s::POINT_1, _curr_pos_sp, matrix::Vector3f(NAN, NAN, NAN),
