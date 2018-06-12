@@ -2323,8 +2323,8 @@ MulticopterPositionControl::wrap_yaw_speed(float yaw_speed)
 	const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
 	const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
 
-	float yaw_target = _wrap_pi(_att_sp.yaw_body + yaw_speed * _dt);
-	float yaw_offs = _wrap_pi(yaw_target - _yaw);
+	float yaw_target = wrap_pi(_att_sp.yaw_body + yaw_speed * _dt);
+	float yaw_offs = wrap_pi(yaw_target - _yaw);
 
 	// If the yaw offset became too big for the system to track stop
 	// shifting it, only allow if it would make the offset smaller again.
