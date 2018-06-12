@@ -355,6 +355,7 @@ private:
 	uint64_t _time_bad_motion_us{0};	///< last system time that on-ground motion exceeded limits (uSec)
 	uint64_t _time_good_motion_us{0};	///< last system time that on-ground motion was within limits (uSec)
 	bool _inhibit_flow_use{false};	///< true when use of optical flow and range finder is being inhibited
+	Vector2f _flowRadXYcomp;	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
 
 	float _mag_declination{0.0f};	///< magnetic declination used by reset and fusion functions (rad)
 
@@ -486,8 +487,9 @@ private:
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
 
-	// calculate optical flow bias errors
-	void calcOptFlowBias();
+	// calculate optical flow body angular rate compensation
+	// returns false if bias corrected body rate data is unavailable
+	bool calcOptFlowBodyRateComp();
 
 	// initialise the terrain vertical position estimator
 	// return true if the initialisation is successful

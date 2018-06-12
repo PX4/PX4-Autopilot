@@ -405,20 +405,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate is produced by a RH rotation of the image about the sensor axis.
 			// copy the optical and gyro measured delta angles
 			optflow_sample_new.gyroXYZ = - flow->gyrodata;
-
-			if (flow_quality_good) {
-				optflow_sample_new.flowRadXY = - flow->flowdata;
-
-			} else {
-				// when on the ground with poor flow quality, assume zero ground relative velocity
-				optflow_sample_new.flowRadXY(0) = - flow->gyrodata(0);
-				optflow_sample_new.flowRadXY(1) = - flow->gyrodata(1);
-
-			}
-
-			// compensate for body motion to give a LOS rate
-			optflow_sample_new.flowRadXYcomp(0) = optflow_sample_new.flowRadXY(0) - optflow_sample_new.gyroXYZ(0);
-			optflow_sample_new.flowRadXYcomp(1) = optflow_sample_new.flowRadXY(1) - optflow_sample_new.gyroXYZ(1);
+			optflow_sample_new.flowRadXY = - flow->flowdata;
 
 			// convert integration interval to seconds
 			optflow_sample_new.dt = delta_time;

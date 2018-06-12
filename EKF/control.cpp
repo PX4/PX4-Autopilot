@@ -455,16 +455,28 @@ void Ekf::controlOpticalFlowFusion()
 			}
 		}
 
-		// fuse the data if the terrain/distance to bottom is valid but use a more relaxed check to enable it to survive bad range finder data
-		if (_control_status.flags.opt_flow && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)10e6)) {
-			// Update optical flow bias estimates
-			calcOptFlowBias();
+		// Only fuse optical flow if valid body rate compensation data is available
+		if (calcOptFlowBodyRateComp()) {
 
-			// Fuse optical flow LOS rate observations into the main filter
-			fuseOptFlow();
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
+			bool flow_quality_good = (_flow_sample_delayed.quality >= _params.flow_qual_min);
 
+			if (!flow_quality_good && !_control_status.flags.in_air) {
+				// when on the ground with poor flow quality, assume zero ground relative velocity and LOS rate
+				_flowRadXYcomp.zero();
+
+			} else {
+				// compensate for body motion to give a LOS rate
+				_flowRadXYcomp(0) = _flow_sample_delayed.flowRadXY(0) - _flow_sample_delayed.gyroXYZ(0);
+				_flowRadXYcomp(1) = _flow_sample_delayed.flowRadXY(1) - _flow_sample_delayed.gyroXYZ(1);
+			}
+
+
+			// Fuse optical flow LOS rate observations into the main filter if height above ground has been updated recently but use a relaxed time criteria to enable it to coast through bad range finder data
+			if (_control_status.flags.opt_flow && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)10e6)) {
+				fuseOptFlow();
+				_last_known_posNE(0) = _state.pos(0);
+				_last_known_posNE(1) = _state.pos(1);
+			}
 		}
 	}
 
