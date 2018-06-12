@@ -1,38 +1,11 @@
-# Waypoints Trajectory description. See also Mavlink TRAJECTORY msg
-# The topic trajectory_waypoint_desired is used to send the user desired waypoints from the position controller to the companion computer / avoidance module.
-# The topic trajectory_waypoint is used to send the adjusted waypoints from the companion computer / avoidance module to the position controller.
+# Waypoint Trajectory description. See also Mavlink TRAJECTORY msg
+# The topic trajectory_waypoint describe each waypoint defined in vehicle_trajectory_waypoint
 
-uint8 POINT_0 = 0
-uint8 POINT_1 = 1
-uint8 POINT_2 = 2
-uint8 POINT_3 = 3
-uint8 POINT_4 = 4
 
-uint8 X = 0
-uint8 Y = 1
-uint8 Z = 2
-uint8 VX = 3
-uint8 VY = 4
-uint8 VZ = 5
-uint8 AX = 6
-uint8 AY = 7
-uint8 AZ = 8
-uint8 YAW = 9
-uint8 YAW_SPEED = 10
+float32[3] position
+float32[3] velocity
+float32[3] acceleration
+float32 yaw
+float32 yaw_speed
 
-uint8 POINT_SIZE = 11
-uint8 NUMBER_POINTS = 5
-
-uint8 MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS = 0
-
-uint8 type # Type from MAV_TRAJECTORY_REPRESENTATION enum.
-
-float32[11] point_0    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
-float32[11] point_1    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
-float32[11] point_2    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
-float32[11] point_3    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
-float32[11] point_4    # MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS, index 0-2 position wp, index 3-5 velocity wp, index 6-8 acceleration wp, index 9 yaw, index 10 yaw speed
-
-bool[5] point_valid   # States if respective point is valid
-
-# TOPICS trajectory_waypoint trajectory_waypoint_desired
+bool point_valid
