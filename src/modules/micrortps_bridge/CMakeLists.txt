@@ -136,12 +136,13 @@ if (GENERATE_RTPS_BRIDGE)
 		microcdr
 	)
 
-	target_link_libraries(uorb_msgs_microcdr PRIVATE microcdr)
-
 	# microCDR
 	target_include_directories(uorb_msgs_microcdr
 		PUBLIC
 			${CMAKE_CURRENT_SOURCE_DIR}/micro-CDR/include
+			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include
 			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include/microcdr
 	)
+
+	target_link_libraries(uorb_msgs_microcdr PRIVATE microcdr)
 endif()

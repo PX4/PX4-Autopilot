@@ -70,5 +70,5 @@ topic_name = spec.short_name
 
 struct MicroBuffer;
 
-void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length, struct MicroBuffer *microCDRWriter);
-void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input, struct MicroBuffer *microCDRReader);
+void serialize_@(topic_name)(MicroBuffer *microCDRWriter, const struct @(uorb_struct) *input, char *output, uint32_t *length);
+void deserialize_@(topic_name)(MicroBuffer *microCDRReader, struct @(uorb_struct) *output, const char *input);

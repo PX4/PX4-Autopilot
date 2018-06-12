@@ -92,7 +92,7 @@ bool @(topic)_Publisher::init()
     PublisherAttributes Wparam;
     Wparam.topic.topicKind = NO_KEY;
     Wparam.topic.topicDataType = myType.getName();  //This type MUST be registered
-    Wparam.topic.topicName = "@(topic)";
+    Wparam.topic.topicName = "@(topic)_PubSubTopic";
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, (PublisherListener*) &m_listener);
     if(mp_publisher == nullptr)
         return false;
@@ -100,7 +100,7 @@ bool @(topic)_Publisher::init()
     return true;
 }
 
-void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub,MatchingInfo& info)
+void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, MatchingInfo& info)
 {
     if (info.status == MATCHED_MATCHING)
     {
