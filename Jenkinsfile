@@ -44,7 +44,7 @@ pipeline {
                     sh "make nuttx_px4fmu-v3_rtps"
                     sh "make sizes"
                     sh "ccache -s"
-                    archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
+                    archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
                     sh "make distclean"
                   }
                 }
@@ -55,7 +55,7 @@ pipeline {
           // nuttx default targets that are archived and uploaded to s3
           for (def option in ["px4fmu-v4", "px4fmu-v4pro", "px4fmu-v5", "aerofc-v1", "aerocore2", "auav-x21", "crazyflie", "mindpx-v2", "nxphlite-v3", "tap-v1", "omnibus-f4sd"]) {
             def node_name = "${option}"
-            builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
+            builds[node_name] = createBuildNodeArchive(docker_nuttx, "${node_name}_default")
           }
 
           // other nuttx default targets
@@ -713,7 +713,27 @@ def createBuildNode(String docker_repo, String target) {
           sh('make ' + target)
           sh('ccache -s')
           sh('make sizes')
-          archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf, build/**/*.bin', fingerprint: true, onlyIfSuccessful: true)
+          sh('make distclean')
+        }
+      }
+    }
+  }
+}
+
+def createBuildNodeArchive(String docker_repo, String target) {
+  return {
+    node {
+      docker.image(docker_repo).inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+        stage(target) {
+          sh('export')
+          checkout scm
+          sh('make distclean')
+          sh('git fetch --tags')
+          sh('ccache -z')
+          sh('make ' + target)
+          sh('ccache -s')
+          sh('make sizes')
+          archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/**/*.px4, build/**/*.elf, build/**/*.bin', fingerprint: true, onlyIfSuccessful: true)
           sh('make distclean')
         }
       }
@@ -735,7 +755,6 @@ def createBuildNodeDockerLogin(String docker_repo, String docker_credentials, St
             sh('make ' + target)
             sh('ccache -s')
             sh('make sizes')
-            archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf, build/**/*.bin', fingerprint: true, onlyIfSuccessful: true)
             sh('make distclean')
           }
         }
