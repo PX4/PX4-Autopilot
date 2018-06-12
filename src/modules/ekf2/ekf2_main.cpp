@@ -1397,18 +1397,20 @@ void Ekf2::run()
 
 					float yaw_test_limit;
 
-					if (doing_ne_aiding) {
-						// use a smaller tolerance when doing NE inertial frame aiding
+					if (doing_ne_aiding && vehicle_status.is_rotary_wing) {
+						// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
+						// vehicle which cannot use GPS course to realign heading in flight
 						yaw_test_limit = _nav_yaw_innov_test_lim;
 
 					} else {
-						// use a larger tolerance when not doing NE inertial frame aiding
+						// use a larger tolerance when not doing NE inertial frame aiding or
+						// if a fixed wing vehicle which can realign heading using GPS course
 						yaw_test_limit = _yaw_innov_test_lim;
 					}
 
-					// filter the yaw innovations using a decaying envelope filter to prevent innovation sign changes due to angle wrapping allowinging large innvoations to pass checks after filtering.
-					_yaw_innov_magnitude_lpf = fmaxf(beta * _yaw_innov_magnitude_lpf,
-									 fminf(fabsf(innovations.heading_innov), 2.0f * yaw_test_limit));
+					// filter the yaw innovations
+					_yaw_innov_magnitude_lpf = beta * _yaw_innov_magnitude_lpf + alpha * constrain(innovations.heading_innov,
+								   -2.0f * yaw_test_limit, 2.0f * yaw_test_limit);
 
 					_hgt_innov_lpf = beta * _hgt_innov_lpf + alpha * constrain(innovations.vel_pos_innov[5], -_hgt_innov_spike_lim,
 							 _hgt_innov_spike_lim);
