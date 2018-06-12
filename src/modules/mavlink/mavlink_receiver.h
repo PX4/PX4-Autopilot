@@ -68,7 +68,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/trajectory_bezier.h>
-#include <uORB/topics/trajectory_waypoint.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
