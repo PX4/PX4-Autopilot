@@ -128,6 +128,7 @@ set(msg_files
 	vehicle_magnetometer.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
+	vehicle_trajectory_waypoint.msg
 	vehicle_status.msg
 	vehicle_status_flags.msg
 	vtol_vehicle_status.msg
