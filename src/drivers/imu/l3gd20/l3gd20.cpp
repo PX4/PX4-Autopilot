@@ -41,6 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -55,7 +56,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -1350,28 +1350,34 @@ usage()
 int
 l3gd20_main(int argc, char *argv[])
 {
-	bool external_bus = false;
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+	bool external_bus = false;
 	enum Rotation rotation = ROTATION_NONE;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
 			l3gd20::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		l3gd20::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
@@ -1416,5 +1422,6 @@ l3gd20_main(int argc, char *argv[])
 		l3gd20::test_error();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
+	PX4_ERR("unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
+	return -1;
 }
