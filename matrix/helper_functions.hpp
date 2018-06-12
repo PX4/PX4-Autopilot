@@ -6,8 +6,6 @@
 #include <px4_defines.h>
 #endif
 
-#include <limits>
-
 namespace matrix
 {
 
@@ -35,7 +33,7 @@ Type wrap_pi(Type x)
         x -= Type(2 * M_PI);
 
         if (c++ > 100) {
-            return std::numeric_limits<Type>::quiet_NaN();
+            return INFINITY;
         }
     }
 
@@ -45,7 +43,7 @@ Type wrap_pi(Type x)
         x += Type(2 * M_PI);
 
         if (c++ > 100) {
-            return std::numeric_limits<Type>::quiet_NaN();
+            return INFINITY;
         }
     }
 
@@ -65,7 +63,7 @@ Type wrap_2pi(Type x)
         x -= Type(2 * M_PI);
 
         if (c++ > 100) {
-            return std::numeric_limits<Type>::quiet_NaN();
+            return INFINITY;
         }
     }
 
@@ -75,7 +73,7 @@ Type wrap_2pi(Type x)
         x += Type(2 * M_PI);
 
         if (c++ > 100) {
-            return std::numeric_limits<Type>::quiet_NaN();
+            return INFINITY;
         }
     }
 
