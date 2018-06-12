@@ -155,7 +155,11 @@ void
 Mission::on_activation()
 {
 	if (_mission_waypoints_changed) {
-		_current_offboard_mission_index = index_closest_mission_item();
+		// do not set the closest mission item in the normal mission mode
+		if (_mission_execution_mode != mission_result_s::MISSION_EXECUTION_MODE_NORMAL) {
+			_current_offboard_mission_index = index_closest_mission_item();
+		}
+
 		_mission_waypoints_changed = false;
 	}
 
@@ -199,7 +203,11 @@ Mission::on_active()
 	/* reset mission items if needed */
 	if (offboard_updated || _mission_waypoints_changed || _execution_mode_changed) {
 		if (_mission_waypoints_changed) {
-			_current_offboard_mission_index = index_closest_mission_item();
+			// do not set the closest mission item in the normal mission mode
+			if (_mission_execution_mode != mission_result_s::MISSION_EXECUTION_MODE_NORMAL) {
+				_current_offboard_mission_index = index_closest_mission_item();
+			}
+
 			_mission_waypoints_changed = false;
 		}
 
