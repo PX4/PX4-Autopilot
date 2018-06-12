@@ -139,7 +139,6 @@ struct airspeedSample {
 struct flowSample {
 	uint8_t  quality;	///< quality indicator between 0 and 255
 	Vector2f flowRadXY;	///< measured delta angle of the image about the X and Y body axes (rad), RH rotaton is positive
-	Vector2f flowRadXYcomp;	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
 	Vector3f gyroXYZ;	///< measured delta angle of the inertial frame about the body axes obtained from rate gyro measurements (rad), RH rotation is positive
 	float    dt;		///< amount of integration time (sec)
 	uint64_t time_us;	///< timestamp of the integration period mid-point (uSec)

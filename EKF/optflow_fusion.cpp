@@ -93,8 +93,8 @@ void Ekf::fuseOptFlow()
 	// correct for gyro bias errors in the data used to do the motion compensation
 	// Note the sign convention used: A positive LOS rate is a RH rotaton of the scene about that axis.
 	Vector2f opt_flow_rate;
-	opt_flow_rate(0) = _flow_sample_delayed.flowRadXYcomp(0) / _flow_sample_delayed.dt + _flow_gyro_bias(0);
-	opt_flow_rate(1) = _flow_sample_delayed.flowRadXYcomp(1) / _flow_sample_delayed.dt + _flow_gyro_bias(1);
+	opt_flow_rate(0) = _flowRadXYcomp(0) / _flow_sample_delayed.dt + _flow_gyro_bias(0);
+	opt_flow_rate(1) = _flowRadXYcomp(1) / _flow_sample_delayed.dt + _flow_gyro_bias(1);
 
 	if (opt_flow_rate.norm() < _flow_max_rate) {
 		_flow_innov[0] =  vel_body(1) / range - opt_flow_rate(0); // flow around the X axis
@@ -527,39 +527,51 @@ void Ekf::get_drag_innov_var(float drag_innov_var[2])
 	memcpy(drag_innov_var, _drag_innov_var, sizeof(_drag_innov_var));
 }
 
-// calculate optical flow gyro bias errors
-void Ekf::calcOptFlowBias()
+// calculate optical flow body angular rate compensation
+// returns false if bias corrected body rate data is unavailable
+bool Ekf::calcOptFlowBodyRateComp()
 {
 	// reset the accumulators if the time interval is too large
 	if (_delta_time_of > 1.0f) {
 		_imu_del_ang_of.setZero();
 		_delta_time_of = 0.0f;
-		return;
+		return false;
 	}
 
-	// if accumulation time differences are not excessive and accumulation time is adequate
-	// compare the optical flow and and navigation rate data and calculate a bias error
-	if ((fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.1f) && (_delta_time_of > FLT_EPSILON)) {
-		// calculate a reference angular rate
-		Vector3f reference_body_rate;
-		reference_body_rate = _imu_del_ang_of * (1.0f / _delta_time_of);
+	bool use_flow_sensor_gyro =  ISFINITE(_flow_sample_delayed.gyroXYZ(0)) && ISFINITE(_flow_sample_delayed.gyroXYZ(1)) && ISFINITE(_flow_sample_delayed.gyroXYZ(2));
 
-		// calculate the optical flow sensor measured body rate
-		Vector3f of_body_rate;
-		of_body_rate = _flow_sample_delayed.gyroXYZ * (1.0f / _flow_sample_delayed.dt);
+	if (use_flow_sensor_gyro) {
 
-		// calculate the bias estimate using  a combined LPF and spike filter
-		_flow_gyro_bias(0) = 0.99f * _flow_gyro_bias(0) + 0.01f * math::constrain((of_body_rate(0) - reference_body_rate(0)),
-				     -0.1f, 0.1f);
-		_flow_gyro_bias(1) = 0.99f * _flow_gyro_bias(1) + 0.01f * math::constrain((of_body_rate(1) - reference_body_rate(1)),
-				     -0.1f, 0.1f);
-		_flow_gyro_bias(2) = 0.99f * _flow_gyro_bias(2) + 0.01f * math::constrain((of_body_rate(2) - reference_body_rate(2)),
-				     -0.1f, 0.1f);
+		// if accumulation time differences are not excessive and accumulation time is adequate
+		// compare the optical flow and and navigation rate data and calculate a bias error
+		if ((fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.1f) && (_delta_time_of > FLT_EPSILON)) {
+			// calculate a reference angular rate
+			Vector3f reference_body_rate;
+			reference_body_rate = _imu_del_ang_of * (1.0f / _delta_time_of);
+
+			// calculate the optical flow sensor measured body rate
+			Vector3f of_body_rate;
+			of_body_rate = _flow_sample_delayed.gyroXYZ * (1.0f / _flow_sample_delayed.dt);
+
+			// calculate the bias estimate using  a combined LPF and spike filter
+			_flow_gyro_bias(0) = 0.99f * _flow_gyro_bias(0) + 0.01f * math::constrain((of_body_rate(0) - reference_body_rate(0)),
+					     -0.1f, 0.1f);
+			_flow_gyro_bias(1) = 0.99f * _flow_gyro_bias(1) + 0.01f * math::constrain((of_body_rate(1) - reference_body_rate(1)),
+					     -0.1f, 0.1f);
+			_flow_gyro_bias(2) = 0.99f * _flow_gyro_bias(2) + 0.01f * math::constrain((of_body_rate(2) - reference_body_rate(2)),
+					     -0.1f, 0.1f);
+		}
+
+	} else {
+		// Use the EKF gyro data if optical flow sensor gyro data is not available
+		_flow_sample_delayed.gyroXYZ = _imu_del_ang_of;
+		_flow_gyro_bias.zero();
 	}
 
 	// reset the accumulators
 	_imu_del_ang_of.setZero();
 	_delta_time_of = 0.0f;
+	return true;
 }
 
 // calculate the measurement variance for the optical flow sensor (rad/sec)^2
