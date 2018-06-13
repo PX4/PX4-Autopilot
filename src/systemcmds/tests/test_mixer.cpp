@@ -199,6 +199,7 @@ bool MixerTest::loadAllTest()
 
 				if (snprintf(buf, PATH_MAX, "%s/%s", MIXER_ONBOARD_PATH, result->d_name) >= PATH_MAX) {
 					PX4_ERR("mixer path too long %s", result->d_name);
+					closedir(dp);
 					return false;
 				}
 
@@ -206,6 +207,7 @@ bool MixerTest::loadAllTest()
 
 				if (!ret) {
 					PX4_ERR("Error testing mixer %s", buf);
+					closedir(dp);
 					return false;
 				}
 			}
