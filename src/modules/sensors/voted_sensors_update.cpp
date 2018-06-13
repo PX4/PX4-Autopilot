@@ -54,6 +54,8 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_en
 	: _parameters(parameters), _hil_enabled(hil_enabled)
 {
 	memset(&_last_sensor_data, 0, sizeof(_last_sensor_data));
+	memset(&_last_magnetometer, 0, sizeof(_last_magnetometer));
+	memset(&_last_airdata, 0, sizeof(_last_airdata));
 	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
 	memset(&_accel_diff, 0, sizeof(_accel_diff));
 	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
