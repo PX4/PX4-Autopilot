@@ -632,4 +632,3 @@ function(px4_find_python_module module)
 		#message(FATAL_ERROR "python module not found, exiting")
 	#endif()
 endfunction(px4_find_python_module)
-
