@@ -564,7 +564,8 @@ bool Ekf::calcOptFlowBodyRateComp()
 
 	} else {
 		// Use the EKF gyro data if optical flow sensor gyro data is not available
-		_flow_sample_delayed.gyroXYZ = _imu_del_ang_of;
+		// for clarification of the sign see definition of flowSample and imuSample in common.h
+		_flow_sample_delayed.gyroXYZ = - _imu_del_ang_of;
 		_flow_gyro_bias.zero();
 	}
 
