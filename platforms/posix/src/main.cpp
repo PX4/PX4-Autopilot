@@ -638,7 +638,7 @@ int main(int argc, char **argv)
 
 			default:	// any other input
 				if (c > 3) {
-					add_string += c;
+					add_string += (char)c;
 
 				} else {
 					update_prompt = false;
