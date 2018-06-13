@@ -249,6 +249,7 @@ int serial_number();
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
 	_enabled(false),
+	_last_report{},
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),
