@@ -307,7 +307,7 @@ enum MPU_DEVICE_TYPE {
 
 
 
-#define MPU_OR_ICM(m,i)					((_device_type==MPU_DEVICE_TYPE_MPU9250) ? m : i)
+#define MPU_OR_ICM(m,i)					((_device_type==MPU_DEVICE_TYPE_ICM20948) ? i : m)
 
 
 #pragma pack(push, 1)

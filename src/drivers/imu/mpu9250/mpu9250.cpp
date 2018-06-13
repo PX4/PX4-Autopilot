@@ -488,6 +488,7 @@ int MPU9250::reset_mpu()
 
 	switch(_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
+    case MPU_DEVICE_TYPE_MPU6500:
 		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
 		write_checked_reg(MPUREG_PWR_MGMT_2, 0);
@@ -497,10 +498,10 @@ int MPU9250::reset_mpu()
 		/*
 		 * ICM20948 needs a bit of time here, else register settings will be garbled.
 		 */
-	    usleep(200);
+	    up_udelay(200);
 
 		write_checked_reg(ICMREG_20948_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
-        usleep(200);
+        up_udelay(200);
 		write_checked_reg(ICMREG_20948_PWR_MGMT_2, 0);
 		break;
 	}
@@ -519,6 +520,7 @@ int MPU9250::reset_mpu()
 	// Gyro scale 2000 deg/s ()
 	switch(_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
+    case MPU_DEVICE_TYPE_MPU6500:
 		write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
 		break;
 	case MPU_DEVICE_TYPE_ICM20948:
@@ -650,6 +652,7 @@ MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 
 	switch(_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
+    case MPU_DEVICE_TYPE_MPU6500:
 		div = 1000 / desired_sample_rate_hz;
 		break;
 	case MPU_DEVICE_TYPE_ICM20948:
@@ -663,6 +666,7 @@ MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 
 	switch(_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
+    case MPU_DEVICE_TYPE_MPU6500:
 		write_checked_reg(MPUREG_SMPLRT_DIV, div - 1);
 		_sample_rate = 1000 / div;
 		break;
@@ -687,6 +691,7 @@ MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 
 	switch(_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
+    case MPU_DEVICE_TYPE_MPU6500:
 		/*
 		   choose next highest filter frequency available
 		 */
@@ -1349,6 +1354,7 @@ MPU9250::set_accel_range(unsigned max_g_in)
 
 	switch(_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
+    case MPU_DEVICE_TYPE_MPU6500:
 		write_checked_reg( MPUREG_ACCEL_CONFIG, afs_sel << 3);
 		break;
 	case MPU_DEVICE_TYPE_ICM20948:
@@ -1584,7 +1590,7 @@ MPU9250::measure()
 	 * Fetch the full set of measurements from the MPU9250 in one pass.
 	 */
 
-	if(_device_type == MPU_DEVICE_TYPE_MPU9250) {
+	if(_device_type == MPU_DEVICE_TYPE_MPU9250 || _device_type == MPU_DEVICE_TYPE_MPU6500) {
 		if (OK != _interface->read( MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
 					   (uint8_t *)&mpu_report,
 					   sizeof(mpu_report))) {
@@ -1623,23 +1629,23 @@ MPU9250::measure()
 	/*
 	 * Convert from big to little endian
 	 */
-	if(_device_type==MPU_DEVICE_TYPE_MPU9250) {
-		report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
-		report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
-		report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
-		report.temp    = int16_t_from_bytes(mpu_report.temp);
-		report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
-		report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
-		report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
+	if(_device_type==MPU_DEVICE_TYPE_ICM20948) {
+        report.accel_x = int16_t_from_bytes(icm_report.accel_x);
+        report.accel_y = int16_t_from_bytes(icm_report.accel_y);
+        report.accel_z = int16_t_from_bytes(icm_report.accel_z);
+        report.temp    = int16_t_from_bytes(icm_report.temp);
+        report.gyro_x  = int16_t_from_bytes(icm_report.gyro_x);
+        report.gyro_y  = int16_t_from_bytes(icm_report.gyro_y);
+        report.gyro_z  = int16_t_from_bytes(icm_report.gyro_z);
 	}
-	else { // ICM20948
-		report.accel_x = int16_t_from_bytes(icm_report.accel_x);
-		report.accel_y = int16_t_from_bytes(icm_report.accel_y);
-		report.accel_z = int16_t_from_bytes(icm_report.accel_z);
-		report.temp    = int16_t_from_bytes(icm_report.temp);
-		report.gyro_x  = int16_t_from_bytes(icm_report.gyro_x);
-		report.gyro_y  = int16_t_from_bytes(icm_report.gyro_y);
-		report.gyro_z  = int16_t_from_bytes(icm_report.gyro_z);
+	else { // MPU9250/MPU6500
+        report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
+        report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
+        report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+        report.temp    = int16_t_from_bytes(mpu_report.temp);
+        report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
+        report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
+        report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
 	}
 
 

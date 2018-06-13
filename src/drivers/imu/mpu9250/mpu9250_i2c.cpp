@@ -160,6 +160,10 @@ MPU9250_I2C::probe()
 		reg_whoami = MPUREG_WHOAMI;
 		expected = MPU_WHOAMI_9250;
 		break;
+    case MPU_DEVICE_TYPE_MPU6500:
+        reg_whoami = MPUREG_WHOAMI;
+        expected = MPU_WHOAMI_6500;
+        break;
 	case MPU_DEVICE_TYPE_ICM20948:
 		reg_whoami = ICMREG_20948_WHOAMI;
 		expected = ICM_WHOAMI_20948;
