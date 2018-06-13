@@ -141,7 +141,7 @@ struct flowSample {
 	Vector2f flowRadXY;	///< measured delta angle of the image about the X and Y body axes (rad), RH rotaton is positive
 	Vector3f gyroXYZ;	///< measured delta angle of the inertial frame about the body axes obtained from rate gyro measurements (rad), RH rotation is positive
 	float    dt;		///< amount of integration time (sec)
-	uint64_t time_us;	///< timestamp of the integration period mid-point (uSec)
+	uint64_t time_us;	///< timestamp of the integration period leading edge (uSec)
 };
 
 struct extVisionSample {

@@ -113,8 +113,13 @@ void Ekf::controlFusionModes()
 
 	checkForStuckRange();
 
-	_flow_data_ready = _flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
-			   && (_R_to_earth(2, 2) > 0.7071f);
+	// We don't fuse flow data immediately becasue we have to wait for the mid integration point to fall behind the fusion time horizon.
+	// This means we stop looking for new data until the old data has been fused.
+	if (!_flow_data_ready) {
+		_flow_data_ready = _flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
+				   && (_R_to_earth(2, 2) > 0.7071f);
+	}
+
 	_ev_data_ready = _ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed);
 	_tas_data_ready = _airspeed_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed);
 
@@ -358,7 +363,11 @@ void Ekf::controlOpticalFlowFusion()
 		_time_good_motion_us = _imu_sample_delayed.time_us;
 	}
 
-	// New optical flow data has fallen behind the fusion time horizon and is ready to be fused
+	// Accumulate autopilot gyro data across the same time interval as the flow sensor
+	_imu_del_ang_of += _imu_sample_delayed.delta_ang - _state.gyro_bias;
+	_delta_time_of += _imu_sample_delayed.delta_ang_dt;
+
+	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
 	if (_flow_data_ready) {
 		// Inhibit flow use if motion is un-suitable or we have good quality GPS
 		// Apply hysteresis to prevent rapid mode switching
@@ -403,10 +412,6 @@ void Ekf::controlOpticalFlowFusion()
 
 			}
 		}
-
-		// Accumulate autopilot gyro data across the same time interval as the flow sensor
-		_imu_del_ang_of += _imu_sample_delayed.delta_ang - _state.gyro_bias;
-		_delta_time_of += _imu_sample_delayed.delta_ang_dt;
 
 		// optical flow fusion mode selection logic
 		if ((_params.fusion_mode & MASK_USE_OF) // optical flow has been selected by the user
@@ -463,23 +468,29 @@ void Ekf::controlOpticalFlowFusion()
 			if (!flow_quality_good && !_control_status.flags.in_air) {
 				// when on the ground with poor flow quality, assume zero ground relative velocity and LOS rate
 				_flowRadXYcomp.zero();
-
 			} else {
 				// compensate for body motion to give a LOS rate
 				_flowRadXYcomp(0) = _flow_sample_delayed.flowRadXY(0) - _flow_sample_delayed.gyroXYZ(0);
 				_flowRadXYcomp(1) = _flow_sample_delayed.flowRadXY(1) - _flow_sample_delayed.gyroXYZ(1);
 			}
-
-
-			// Fuse optical flow LOS rate observations into the main filter if height above ground has been updated recently but use a relaxed time criteria to enable it to coast through bad range finder data
-			if (_control_status.flags.opt_flow && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)10e6)) {
-				fuseOptFlow();
-				_last_known_posNE(0) = _state.pos(0);
-				_last_known_posNE(1) = _state.pos(1);
-			}
+		} else {
+			// don't use this flow data and wait for the next data to arrive
+			_flow_data_ready = false;
 		}
 	}
 
+	// Wait until the midpoint of the flow sample has fallen behind the fusion time horizon
+	if (_flow_data_ready && (_imu_sample_delayed.time_us > _flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
+		// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
+		// but use a relaxed time criteria to enable it to coast through bad range finder data
+		if (_control_status.flags.opt_flow && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)10e6)) {
+			fuseOptFlow();
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+		}
+
+		_flow_data_ready = false;
+	}
 }
 
 void Ekf::controlGpsFusion()

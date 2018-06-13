@@ -282,7 +282,7 @@ private:
 	bool _mag_data_ready{false};	///< true when new magnetometer data has fallen behind the fusion time horizon and is available to be fused
 	bool _baro_data_ready{false};	///< true when new baro height data has fallen behind the fusion time horizon and is available to be fused
 	bool _range_data_ready{false};	///< true when new range finder data has fallen behind the fusion time horizon and is available to be fused
-	bool _flow_data_ready{false};	///< true when new optical flow data has fallen behind the fusion time horizon and is available to be fused
+	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
 	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 
