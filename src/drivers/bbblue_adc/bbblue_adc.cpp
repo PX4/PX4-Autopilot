@@ -52,7 +52,7 @@
 
 #ifdef __DF_BBBLUE
 #include <roboticscape.h>
-#include "../boards/bbblue/board_config.h"
+#include <board_config.h>
 #endif  // __DF_BBBLUE
 
 #define ADC_BASE_DEV_PATH "/dev/null"

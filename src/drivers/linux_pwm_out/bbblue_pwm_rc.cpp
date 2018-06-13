@@ -39,7 +39,7 @@
 
 #ifdef __DF_BBBLUE
 #include <roboticscape.h>
-#include "../boards/bbblue/board_config.h"
+#include <board_config.h>
 #endif  // __DF_BBBLUE
 
 using namespace linux_pwm_out;
