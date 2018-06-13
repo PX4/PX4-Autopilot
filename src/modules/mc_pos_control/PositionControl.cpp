@@ -71,7 +71,7 @@ PositionControl::PositionControl()
 	_setParams();
 };
 
-void PositionControl::updateState(const struct vehicle_local_position_s state, const Vector3f &vel_dot)
+void PositionControl::updateState(const vehicle_local_position_s &state, const Vector3f &vel_dot)
 {
 	_pos = Vector3f(&state.x);
 	_vel = Vector3f(&state.vx);
@@ -79,7 +79,7 @@ void PositionControl::updateState(const struct vehicle_local_position_s state, c
 	_vel_dot = vel_dot;
 }
 
-void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s setpoint)
+void PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
 	_pos_sp = Vector3f(&setpoint.x);
 	_vel_sp = Vector3f(&setpoint.vx);
