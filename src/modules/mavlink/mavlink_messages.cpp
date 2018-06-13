@@ -291,7 +291,7 @@ void get_mavlink_mode_state(const struct vehicle_status_s *const status, uint8_t
 	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 		*mavlink_state = MAV_STATE_STANDBY;
 
-	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_REBOOT) {
+	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_SHUTDOWN) {
 		*mavlink_state = MAV_STATE_POWEROFF;
 
 	} else {
