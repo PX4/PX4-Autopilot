@@ -140,6 +140,33 @@ pipeline {
     stage('Test') {
       parallel {
 
+        stage('catkin') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros:2018-07-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+                    echo $0;
+                    mkdir -p catkin_ws
+                    cd catkin_ws
+                    cd ls -l
+                    source /opt/ros/kinetic/setup.bash;
+                    catkin init;
+                    source devel/setup.bash;
+                    catkin build;
+            '''
+            sh 'rm -rf catkin_ws'
+          }
+          options {
+            checkoutToSubdirectory('catkin_ws/src/Firmware')
+          }
+        }
+
         stage('Style Check') {
           agent {
             docker { image 'px4io/px4-dev-base:2018-07-19' }
