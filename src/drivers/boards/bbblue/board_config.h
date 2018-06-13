@@ -39,6 +39,9 @@
 
 #pragma once
 
+#ifndef BOARD_CONFIG_H
+#define BOARD_CONFIG_H
+
 #define BOARD_OVERRIDE_UUID "BBBLUEID    " // must be of length 12 (PX4_CPU_UUID_BYTE_LENGTH)
 #define BOARD_OVERRIDE_MFGUID BOARD_OVERRIDE_UUID
 
@@ -69,8 +72,8 @@
 extern "C" {
 #endif
 
-int  rc_init();
-void rc_cleaning();
+int  rc_init(void);
+void rc_cleaning(void);
 
 #ifdef __cplusplus
 }
@@ -113,3 +116,5 @@ int rc_bmp_read(rc_bmp_data_t* data);
 #endif
 
 #endif
+
+#endif // BOARD_CONFIG_H
