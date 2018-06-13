@@ -106,6 +106,8 @@
 #define DRV_BARO_DEVTYPE_LPS22HB	0x58
 #define DRV_ACC_DEVTYPE_ADIS16477	0x59
 #define DRV_GYR_DEVTYPE_ADIS16477	0x60
+#define DRV_ACC_DEVTYPE_AMOV_IMU        0x61
+#define DRV_GYR_DEVTYPE_AMOV_IMU        0x62
 
 /*
  * ioctl() definitions
