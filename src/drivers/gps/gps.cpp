@@ -787,17 +787,6 @@ GPS::run()
 				case GPS_DRIVER_MODE_ASHTECH:
 					_mode = GPS_DRIVER_MODE_UBX;
 					usleep(500000); // tried all possible drivers. Wait a bit before next round
-
-					//FIXME: reopen the uart to work around an issue where the gps is not detected
-					// sometimes on startup on the mRo X2.1 board (see https://github.com/PX4/Firmware/issues/9461)
-					close(_serial_fd);
-					_serial_fd = ::open(_port, O_RDWR | O_NOCTTY);
-
-					if (_serial_fd < 0) {
-						PX4_ERR("failed to reopen the UART (%i)", errno);
-						request_stop();
-					}
-
 					break;
 
 				default:
