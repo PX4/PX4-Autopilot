@@ -221,6 +221,9 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
 
 	if (bus.dev == nullptr) {
 		delete interface;
+		if(mag_interface != nullptr) {
+		    delete mag_interface;
+		}
 		return false;
 	}
 
