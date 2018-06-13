@@ -549,7 +549,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		} else if (status->mission_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-		} else if (data_link_loss_act_configured && status->data_link_lost) {
+		} else if (data_link_loss_act_configured && status->data_link_lost && is_armed) {
 			/* datalink loss enabled:
 			 * check for datalink lost: this should always trigger RTGS */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
@@ -558,7 +558,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 						vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS);
 
 		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
-			   && mission_finished) {
+			   && mission_finished && is_armed) {
 			/* datalink loss DISABLED:
 			 * check if both, RC and datalink are lost during the mission
 			 * or all links are lost after the mission finishes in air: this should always trigger RCRECOVER */
@@ -582,14 +582,14 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
-		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
+		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			/* also go into failsafe if just datalink is lost, and we're actually in air */
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act,
 						vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS);
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-		} else if (rc_lost && !data_link_loss_act_configured) {
+		} else if (rc_lost && !data_link_loss_act_configured && is_armed) {
 			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
