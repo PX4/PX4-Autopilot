@@ -533,11 +533,15 @@ int main(int argc, char **argv)
 
 		while (!_ExitFlag) {
 
-			char c = getchar();
+			int c = getchar();
 			string add_string; // string to add at current cursor position
 			bool update_prompt = true;
 
 			switch (c) {
+			case EOF:
+				_ExitFlag = true;
+				break;
+
 			case 127:	// backslash
 				if (mystr.length() - cursor_position > 0) {
 					mystr.erase(mystr.length() - cursor_position - 1, 1);
