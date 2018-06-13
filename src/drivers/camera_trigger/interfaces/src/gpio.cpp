@@ -22,8 +22,11 @@ CameraInterfaceGPIO::~CameraInterfaceGPIO()
 void CameraInterfaceGPIO::setup()
 {
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
-		px4_arch_configgpio(_gpios[_pins[i]]);
-		px4_arch_gpiowrite(_gpios[_pins[i]], !_polarity);
+		// Pin range is ranges from 1 to 6
+		if (_pins[i] > 0 && _pins[i] < (int)arraySize(_gpios)) {
+			px4_arch_configgpio(_gpios[_pins[i]]);
+			px4_arch_gpiowrite(_gpios[_pins[i]], !_polarity);
+		}
 	}
 }
 
