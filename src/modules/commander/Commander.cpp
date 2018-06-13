@@ -525,7 +525,7 @@ void print_status()
 
 bool shutdown_if_allowed()
 {
-	return TRANSITION_DENIED != arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_REBOOT,
+	return TRANSITION_DENIED != arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			&armed, false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags, arm_requirements,
 			hrt_elapsed_time(&commander_boot_timestamp));
 }
