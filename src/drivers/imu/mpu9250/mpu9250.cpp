@@ -1621,7 +1621,7 @@ MPU9250::measure()
 #ifdef USE_I2C
 
 	} else {
-		//_mag->measure();
+		_mag->measure();
 	}
 
 #endif
@@ -1647,16 +1647,6 @@ MPU9250::measure()
         report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
         report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
 	}
-
-
-
-//	PX4_INFO("HIER:");
-//	PX4_INFO("Gyro: %d %d %d", report.gyro_x, report.gyro_y,report.gyro_z);
-//	PX4_INFO("Accel: %d %d %d", report.accel_x, report.accel_y, report.accel_z);
-//	PX4_INFO("Temp: %d", report.temp);
-//	PX4_INFO("Gyro: %f %f %f", (double)grb.x, (double)grb.y, (double)grb.z);
-//	PX4_INFO("Accel: %f %f %f", (double)arb.x, (double)arb.y, (double)arb.z);
-//	PX4_INFO("Temp: %f", (double)arb.temperature);
 
 	if (check_null_data((uint16_t *)&report, sizeof(report) / 2)) {
 		return;

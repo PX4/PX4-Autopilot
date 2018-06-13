@@ -195,7 +195,7 @@ MPU9250_mag::measure()
 void
 MPU9250_mag::_measure(struct ak8963_regs data)
 {
-	bool mag_notify = true;
+//	bool mag_notify = true;
 
 	if (check_duplicate((uint8_t *)&data.x) && !(data.st1 & 0x02)) {
 		perf_count(_mag_duplicates);
@@ -246,17 +246,17 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 
 	last_mrb = mrb;
 
-	_mag_reports->force(&mrb);
+//	_mag_reports->force(&mrb);
 
 	/* notify anyone waiting for data */
-	if (mag_notify) {
-		poll_notify(POLLIN);
-	}
+//	if (mag_notify) {
+//		poll_notify(POLLIN);
+//	}
 
-	if (mag_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _mag_topic, &mrb);
-	}
+//	if (mag_notify && !(_pub_blocked)) {
+//		/* publish it */
+//		orb_publish(ORB_ID(sensor_mag), _mag_topic, &mrb);
+//	}
 }
 
 ssize_t
