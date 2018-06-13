@@ -417,9 +417,14 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* calculate angular rates setpoint */
 	_rates_sp = eq.emult(attitude_gain);
 
-	/* Feed forward the yaw setpoint rate. We need to apply the yaw rate in the body frame.
-	 * We infer the body z axis by taking the last column of R.transposed (== q.inversed)
-	 * because it's the rotation axis for body yaw and multiply it by the rate and gain. */
+	/* Feed forward the yaw setpoint rate.
+	 * The yaw_feedforward_rate is a commanded rotation around the world z-axis,
+	 * but we need to apply it in the body frame (because _rates_sp is expressed in the body frame).
+	 * Therefore we infer the world z-axis (expressed in the body frame) by taking the last column of R.transposed (== q.inversed)
+	 * and multiply it by the yaw setpoint rate (yaw_sp_move_rate) and gain (_yaw_ff).
+	 * This yields a vector representing the commanded rotatation around the world z-axis expressed in the body frame
+	 * such that it can be added to the rates setpoint.
+	 */
 	Vector3f yaw_feedforward_rate = q.inversed().dcm_z();
 	yaw_feedforward_rate *= _v_att_sp.yaw_sp_move_rate * _yaw_ff.get();
 	_rates_sp += yaw_feedforward_rate;

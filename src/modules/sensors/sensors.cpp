@@ -582,7 +582,7 @@ void
 Sensors::run()
 {
 	if (!_hil_enabled) {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && BOARD_NUMBER_BRICKS > 0
 		adc_init();
 #endif
 	}

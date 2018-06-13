@@ -700,7 +700,7 @@ void	info();
 void
 start(uint8_t rotation)
 {
-	int fd;
+	int fd = -1;
 
 	if (g_dev != nullptr) {
 		errx(1, "already started");
@@ -728,9 +728,14 @@ start(uint8_t rotation)
 		goto fail;
 	}
 
+	close(fd);
 	exit(0);
 
 fail:
+
+	if (fd >= 0) {
+		close(fd);
+	}
 
 	if (g_dev != nullptr) {
 		delete g_dev;
