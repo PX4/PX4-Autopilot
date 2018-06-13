@@ -147,12 +147,12 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 	int max_index = -1;
 	DataValidator *best = nullptr;
 
-	unsigned i = 0;
+	int i = 0;
 
 	while (next != nullptr) {
 		float confidence = next->confidence(timestamp);
 
-		if (static_cast<int>(i) == pre_check_best) {
+		if (i == pre_check_best) {
 			pre_check_prio = next->priority();
 			pre_check_confidence = confidence;
 		}
@@ -186,10 +186,14 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 		/* check whether the switch was a failsafe or preferring a higher priority sensor */
 		if (pre_check_prio != -1 && pre_check_prio < max_priority &&
 		    fabsf(pre_check_confidence - max_confidence) < 0.1f) {
+
 			/* this is not a failover */
 			true_failsafe = false;
+
 			/* reset error flags, this is likely a hotplug sensor coming online late */
-			best->reset_state();
+			if (best != nullptr) {
+				best->reset_state();
+			}
 		}
 
 		/* if we're no initialized, initialize the bookkeeping but do not count a failsafe */
