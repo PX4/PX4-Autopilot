@@ -43,13 +43,7 @@
 #include <ecl.h>
 #include <cfloat>
 
-DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
-	_first(nullptr),
-	_last(nullptr),
-	_curr_best(-1),
-	_prev_best(-1),
-	_first_failover_time(0),
-	_toggle_count(0)
+DataValidatorGroup::DataValidatorGroup(unsigned siblings)
 {
 	DataValidator *next = nullptr;
 	DataValidator *prev = nullptr;
@@ -123,7 +117,7 @@ DataValidatorGroup::set_equal_value_threshold(uint32_t threshold)
 
 
 void
-DataValidatorGroup::put(unsigned index, uint64_t timestamp, float val[3], uint64_t error_count, int priority)
+DataValidatorGroup::put(unsigned index, uint64_t timestamp, const float val[3], uint64_t error_count, int priority)
 {
 	DataValidator *next = _first;
 	unsigned i = 0;
@@ -303,12 +297,6 @@ DataValidatorGroup::print()
 		next = next->sibling();
 		i++;
 	}
-}
-
-unsigned
-DataValidatorGroup::failover_count()
-{
-	return _toggle_count;
 }
 
 int
