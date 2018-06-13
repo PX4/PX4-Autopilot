@@ -3867,9 +3867,9 @@ void Commander::battery_status_check()
 			}
 
 			// Handle shutdown request from emergency battery action
-			if (!armed.armed && (battery.warning != _battery_warning)) {
+			if (battery.warning != _battery_warning) {
 
-				if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+				if ((battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
 					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
 					px4_usleep(200000);
 
