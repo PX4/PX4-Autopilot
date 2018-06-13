@@ -67,6 +67,9 @@
 #include <lib/ecl/geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
+
+using matrix::wrap_pi;
 
 
 /**
@@ -526,7 +529,7 @@ BottleDrop::task_main()
 				float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
 							   flight_vector_e.lon);
 
-				approach_error = _wrap_pi(ground_direction - approach_direction);
+				approach_error = wrap_pi(ground_direction - approach_direction);
 
 				if (counter % 90 == 0) {
 					mavlink_log_info(&_mavlink_log_pub, "drop distance %u, heading error %u", (unsigned)distance_real,

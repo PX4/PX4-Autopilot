@@ -134,7 +134,7 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
  * @value 1921600 ESP8266 (921600 baud, 8N1)
  *
  * @min 0
- * @max 1921600
+ * @max 6460800
  * @reboot_required true
  * @group System
  */

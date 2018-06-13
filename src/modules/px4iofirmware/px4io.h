@@ -50,7 +50,7 @@
 
 #include "protocol.h"
 
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 
 /*
  hotfix: we are critically short of memory in px4io and this is the

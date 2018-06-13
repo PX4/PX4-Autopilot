@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,24 +31,25 @@
  *
  ****************************************************************************/
 
-/**
- * @file rc_check.h
+/*
+ * @file circuit_breaker.c
  *
- * RC calibration check
+ * Circuit breaker parameters.
+ * Analog to real aviation circuit breakers these parameters
+ * allow to disable subsystems. They are not supported as standard
+ * operation procedure and are only provided for development purposes.
+ * To ensure they are not activated accidentally, the associated
+ * parameter needs to set to the key (magic).
  */
-#include <stdbool.h>
-#include <uORB/uORB.h>
 
-#pragma once
+#include "circuit_breaker.h"
 
-__BEGIN_DECLS
+#include <stdint.h>
+#include <px4_defines.h>
 
-/**
- * Check the RC calibration
- *
- * @return			0 / OK if RC calibration is ok, index + 1 of the first
- *				channel that failed else (so 1 == first channel failed)
- */
-__EXPORT int	rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL);
+bool circuit_breaker_enabled(const char *breaker, int32_t magic)
+{
+	int32_t val = -1;
 
-__END_DECLS
+	return (PX4_PARAM_GET_BYNAME(breaker, &val) == 0) && (val == magic);
+}

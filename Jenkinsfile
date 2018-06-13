@@ -44,7 +44,7 @@ pipeline {
                     sh "make nuttx_px4fmu-v3_rtps"
                     sh "make sizes"
                     sh "ccache -s"
-                    archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
+                    archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
                     sh "make distclean"
                   }
                 }
@@ -55,7 +55,7 @@ pipeline {
           // nuttx default targets that are archived and uploaded to s3
           for (def option in ["px4fmu-v4", "px4fmu-v4pro", "px4fmu-v5", "aerofc-v1", "aerocore2", "auav-x21", "crazyflie", "mindpx-v2", "nxphlite-v3", "tap-v1", "omnibus-f4sd"]) {
             def node_name = "${option}"
-            builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
+            builds[node_name] = createBuildNodeArchive(docker_nuttx, "${node_name}_default")
           }
 
           // other nuttx default targets
@@ -64,7 +64,6 @@ pipeline {
             builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
           }
 
-          builds["sitl"] = createBuildNode(docker_base, 'posix_sitl_default')
           builds["sitl_rtps"] = createBuildNode(docker_base, 'posix_sitl_rtps')
           builds["sitl (GCC 7)"] = createBuildNode(docker_arch, 'posix_sitl_default')
 
@@ -339,7 +338,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -371,7 +370,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tailsitter'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -403,7 +402,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tiltrotor'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -414,6 +413,7 @@ pipeline {
               archiveArtifacts '.ros/**/*.csv'
             }
             failure {
+              sh 'ls -a'
               archiveArtifacts '.ros/**/*.ulg'
               archiveArtifacts '.ros/**/rosunit-*.xml'
               archiveArtifacts '.ros/**/rostest-*.log'
@@ -435,7 +435,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -446,6 +446,7 @@ pipeline {
               archiveArtifacts '.ros/**/*.csv'
             }
             failure {
+              sh 'ls -a'
               archiveArtifacts '.ros/**/*.ulg'
               archiveArtifacts '.ros/**/rosunit-*.xml'
               archiveArtifacts '.ros/**/rostest-*.log'
@@ -467,7 +468,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -478,6 +479,7 @@ pipeline {
               archiveArtifacts '.ros/**/*.csv'
             }
             failure {
+              sh 'ls -a'
               archiveArtifacts '.ros/**/*.ulg'
               archiveArtifacts '.ros/**/rosunit-*.xml'
               archiveArtifacts '.ros/**/rostest-*.log'
@@ -499,7 +501,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -510,6 +512,7 @@ pipeline {
               archiveArtifacts '.ros/**/*.csv'
             }
             failure {
+              sh 'ls -a'
               archiveArtifacts '.ros/**/*.ulg'
               archiveArtifacts '.ros/**/rosunit-*.xml'
               archiveArtifacts '.ros/**/rostest-*.log'
@@ -531,7 +534,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box vehicle:=iris'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -542,6 +545,7 @@ pipeline {
               archiveArtifacts '.ros/**/*.csv'
             }
             failure {
+              sh 'ls -a'
               archiveArtifacts '.ros/**/*.ulg'
               archiveArtifacts '.ros/**/rosunit-*.xml'
               archiveArtifacts '.ros/**/rostest-*.log'
@@ -563,7 +567,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -574,6 +578,7 @@ pipeline {
               archiveArtifacts '.ros/**/*.csv'
             }
             failure {
+              sh 'ls -a'
               archiveArtifacts '.ros/**/*.ulg'
               archiveArtifacts '.ros/**/rosunit-*.xml'
               archiveArtifacts '.ros/**/rostest-*.log'
@@ -592,7 +597,7 @@ pipeline {
             sh 'export'
             sh 'rm -rf build; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
-            sh 'tar -xjpf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
+            sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
@@ -603,6 +608,7 @@ pipeline {
               archiveArtifacts '.ros/**/*.csv'
             }
             failure {
+              sh 'ls -a'
               archiveArtifacts '.ros/**/*.ulg'
               archiveArtifacts '.ros/**/rosunit-*.xml'
               archiveArtifacts '.ros/**/rostest-*.log'
@@ -671,11 +677,14 @@ pipeline {
       }
     }
 
+    // TODO: actually upload artifacts to S3
     stage('S3 Upload') {
       agent {
         docker { image 'px4io/px4-dev-base:2018-03-30' }
       }
-
+      options {
+            skipDefaultCheckout()
+      }
       when {
         anyOf {
           branch 'master'
@@ -683,7 +692,6 @@ pipeline {
           branch 'stable'
         }
       }
-
       steps {
         sh 'echo "uploading to S3"'
       }
@@ -713,7 +721,27 @@ def createBuildNode(String docker_repo, String target) {
           sh('make ' + target)
           sh('ccache -s')
           sh('make sizes')
-          archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf, build/**/*.bin', fingerprint: true, onlyIfSuccessful: true)
+          sh('make distclean')
+        }
+      }
+    }
+  }
+}
+
+def createBuildNodeArchive(String docker_repo, String target) {
+  return {
+    node {
+      docker.image(docker_repo).inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+        stage(target) {
+          sh('export')
+          checkout scm
+          sh('make distclean')
+          sh('git fetch --tags')
+          sh('ccache -z')
+          sh('make ' + target)
+          sh('ccache -s')
+          sh('make sizes')
+          archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/**/*.px4, build/**/*.elf, build/**/*.bin', fingerprint: true, onlyIfSuccessful: true)
           sh('make distclean')
         }
       }
@@ -735,7 +763,6 @@ def createBuildNodeDockerLogin(String docker_repo, String docker_credentials, St
             sh('make ' + target)
             sh('ccache -s')
             sh('make sizes')
-            archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/**/*.px4, build/**/*.elf, build/**/*.bin', fingerprint: true, onlyIfSuccessful: true)
             sh('make distclean')
           }
         }

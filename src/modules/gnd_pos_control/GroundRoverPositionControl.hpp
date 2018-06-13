@@ -53,7 +53,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <perf/perf_counter.h>
-#include <systemlib/pid/pid.h>
+#include <pid/pid.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/manual_control_setpoint.h>

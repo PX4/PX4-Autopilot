@@ -48,7 +48,7 @@ topic = spec.short_name
  *
  ****************************************************************************/
 
-/*! 
+/*!
  * @@file @(topic)_Subscriber.cpp
  * This file contains the implementation of the subscriber functions.
  *
@@ -72,26 +72,26 @@ topic = spec.short_name
 bool @(topic)_Subscriber::init()
 {
     // Create RTPSParticipant
-    
+
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0; //MUST BE THE SAME AS IN THE PUBLISHER
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
-    PParam.rtps.setName("Participant_subscriber"); //You can put the name you want
+    PParam.rtps.setName("@(topic)_subscriber"); //You can put the name you want
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant == nullptr)
             return false;
-    
+
     //Register the type
-    
-    Domain::registerType(mp_participant,(TopicDataType*) &myType);
-            
+
+    Domain::registerType(mp_participant, (TopicDataType*) &myType);
+
     // Create Subscriber
-            
+
     SubscriberAttributes Rparam;
     Rparam.topic.topicKind = NO_KEY;
     Rparam.topic.topicDataType = myType.getName(); //Must be registered before the creation of the subscriber
-    Rparam.topic.topicName = "@(topic)_PubSubTopic";
-    mp_subscriber = Domain::createSubscriber(mp_participant,Rparam,(SubscriberListener*)&m_listener);
+    Rparam.topic.topicName = "@(topic)";
+    mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, (SubscriberListener*) &m_listener);
     if(mp_subscriber == nullptr)
         return false;
     return true;

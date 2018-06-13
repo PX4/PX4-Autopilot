@@ -51,7 +51,6 @@
 
 #include <arch/board/board.h>
 
-#include "systemlib/systemlib.h"
 #include <nuttx/progmem.h>
 
 

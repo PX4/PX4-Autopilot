@@ -48,7 +48,7 @@ topic = spec.short_name
  *
  ****************************************************************************/
 
-/*! 
+/*!
  * @@file @(topic)_Subscriber.h
  * This header file contains the declaration of the subscriber functions.
  *
@@ -65,8 +65,9 @@ topic = spec.short_name
 #include "@(topic)_PubSubTypes.h"
 
 using namespace eprosima::fastrtps;
+using namespace eprosima::fastrtps::rtps;
 
-class @(topic)_Subscriber 
+class @(topic)_Subscriber
 {
 public:
     @(topic)_Subscriber();
@@ -78,13 +79,13 @@ public:
 private:
     Participant *mp_participant;
     Subscriber *mp_subscriber;
-    
+
     class SubListener : public SubscriberListener
     {
     public:
-        SubListener() : n_matched(0),n_msg(0){};
+        SubListener() : n_matched(0), n_msg(0){};
         ~SubListener(){};
-        void onSubscriptionMatched(Subscriber* sub,MatchingInfo& info);
+        void onSubscriptionMatched(Subscriber* sub, MatchingInfo& info);
         void onNewDataMessage(Subscriber* sub);
         SampleInfo_t m_info;
         int n_matched;

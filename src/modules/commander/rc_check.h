@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file board_serial.h
- * Read off the board serial
+ * @file rc_check.h
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author David "Buzz" Bussenschutt <davidbuzz@gmail.com>
- *
+ * RC calibration check
  */
+#include <uORB/uORB.h>
 
-#include <px4_config.h>
-#include <string.h>
-#include "board_serial.h"
+#pragma once
 
-int get_board_serial(uuid_byte_t serialid)
-{
-#if defined(BOARD_OVERRIDE_UUID)
-	memcpy(serialid, BOARD_OVERRIDE_UUID, PX4_CPU_UUID_BYTE_LENGTH);
-#else
-	board_get_uuid(serialid);
-#endif
-	return 0;
-}
+/**
+ * Check the RC calibration
+ *
+ * @return			0 / OK if RC calibration is ok, index + 1 of the first
+ *				channel that failed else (so 1 == first channel failed)
+ */
+int	rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL);

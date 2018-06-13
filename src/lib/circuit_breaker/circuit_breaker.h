@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,12 +31,40 @@
  *
  ****************************************************************************/
 
-/**
- * @file systemlib.h
- * Definition of commonly used low-level system-call like functions.
+/*
+ * @file circuit_breaker.h
+ *
+ * Circuit breaker functionality.
  */
 
-#ifndef SYSTEMLIB_H_
-#define SYSTEMLIB_H_
+#ifndef CIRCUIT_BREAKER_H_
+#define CIRCUIT_BREAKER_H_
 
-#endif /* SYSTEMLIB_H_ */
+/* SAFETY WARNING  --  SAFETY WARNING  --  SAFETY WARNING
+ *
+ * OBEY THE DOCUMENTATION FOR ALL CIRCUIT BREAKERS HERE,
+ * ENSURE TO READ CAREFULLY ALL SAFETY WARNINGS.
+ * http://pixhawk.org/dev/circuit_breakers
+ *
+ * CIRCUIT BREAKERS ARE NOT PART OF THE STANDARD OPERATION PROCEDURE
+ * AND MAY DISABLE CHECKS THAT ARE VITAL FOR SAFE FLIGHT.
+ */
+#define CBRK_SUPPLY_CHK_KEY	894281
+#define CBRK_RATE_CTRL_KEY	140253
+#define CBRK_IO_SAFETY_KEY	22027
+#define CBRK_AIRSPD_CHK_KEY	162128
+#define CBRK_FLIGHTTERM_KEY	121212
+#define CBRK_ENGINEFAIL_KEY	284953
+#define CBRK_GPSFAIL_KEY	240024
+#define CBRK_USB_CHK_KEY	197848
+#define CBRK_VELPOSERR_KEY	201607
+
+#include <stdint.h>
+
+__BEGIN_DECLS
+
+extern "C" __EXPORT bool circuit_breaker_enabled(const char *breaker, int32_t magic);
+
+__END_DECLS
+
+#endif /* CIRCUIT_BREAKER_H_ */

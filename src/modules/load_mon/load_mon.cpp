@@ -51,7 +51,6 @@
 
 #include <drivers/drv_hrt.h>
 
-#include <systemlib/systemlib.h>
 #include <systemlib/cpuload.h>
 #include <perf/perf_counter.h>
 

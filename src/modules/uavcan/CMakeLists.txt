@@ -82,6 +82,8 @@ px4_add_module(
 		sensors/baro.cpp
 
 	DEPENDS
+		mixer
+
 		git_uavcan
 
 		# within libuavcan

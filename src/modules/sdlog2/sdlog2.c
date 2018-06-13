@@ -101,7 +101,6 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
 
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <systemlib/printload.h>
@@ -385,7 +384,7 @@ int sdlog2_main(int argc, char *argv[])
 		struct vehicle_command_s cmd;
 
 		memset(&cmd, 0, sizeof(cmd));
-		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.command = VEHICLE_COMMAND_VEHICLE_CMD_PREFLIGHT_STORAGE;
 		cmd.param1 = -1;
 		cmd.param2 = -1;
 		cmd.param3 = 1;
@@ -398,7 +397,7 @@ int sdlog2_main(int argc, char *argv[])
 		struct vehicle_command_s cmd;
 
 		memset(&cmd, 0, sizeof(cmd));
-		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.command = VEHICLE_COMMAND_VEHICLE_CMD_PREFLIGHT_STORAGE;
 		cmd.param1 = -1;
 		cmd.param2 = -1;
 		cmd.param3 = 2;
@@ -2223,7 +2222,7 @@ void handle_command(struct vehicle_command_s *cmd)
 	/* request to set different system mode */
 	switch (cmd->command) {
 
-	case VEHICLE_CMD_PREFLIGHT_STORAGE:
+	case VEHICLE_COMMAND_VEHICLE_CMD_PREFLIGHT_STORAGE:
 		param = (int)(cmd->param3 + 0.5f);
 
 		if (param == 1)	{
@@ -2246,7 +2245,7 @@ void handle_command(struct vehicle_command_s *cmd)
 void handle_status(struct vehicle_status_s *status)
 {
 	// TODO use flag from actuator_armed here?
-	bool armed = status->arming_state == ARMING_STATE_ARMED;
+	bool armed = status->arming_state == VEHICLE_STATUS_ARMING_STATE_ARMED;
 
 	if (armed != flag_system_armed) {
 		flag_system_armed = armed;

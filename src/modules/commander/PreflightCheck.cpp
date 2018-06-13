@@ -42,18 +42,8 @@
 
 #include <px4_config.h>
 #include <px4_posix.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
 
-#include <systemlib/err.h>
 #include <parameters/param.h>
-#include <systemlib/rc_check.h>
 #include <systemlib/mavlink_log.h>
 
 #include <drivers/drv_hrt.h>
@@ -73,6 +63,7 @@
 
 #include "PreflightCheck.h"
 #include "health_flag_helper.h"
+#include "rc_check.h"
 
 #include "DevMgr.hpp"
 

@@ -53,7 +53,6 @@
 
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <systemlib/systemlib.h>
 
 #elif defined(__PX4_POSIX) && !defined(__PX4_QURT)
 /*
@@ -67,7 +66,6 @@
 
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <systemlib/systemlib.h>
 
 #elif defined(__PX4_QURT)
 /*
@@ -81,7 +79,6 @@
 
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <systemlib/systemlib.h>
 
 #else
 #error "No target platform defined"

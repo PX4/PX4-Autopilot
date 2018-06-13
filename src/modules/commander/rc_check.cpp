@@ -37,6 +37,8 @@
  * RC calibration check
  */
 
+#include "rc_check.h"
+
 #include <px4_config.h>
 #include <px4_time.h>
 
@@ -45,7 +47,7 @@
 #include <fcntl.h>
 
 #include <systemlib/err.h>
-#include <systemlib/rc_check.h>
+
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
@@ -54,7 +56,6 @@
 
 int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL)
 {
-
 	char nbuf[20];
 	param_t _parameter_handles_min, _parameter_handles_trim, _parameter_handles_max,
 		_parameter_handles_rev, _parameter_handles_dz;
@@ -63,7 +64,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 
 	const char *rc_map_mandatory[] = {	/*"RC_MAP_MODE_SW",*/
 		/* needs discussion if this should be mandatory "RC_MAP_POSCTL_SW"*/
-		0 /* end marker */
+		nullptr /* end marker */
 	};
 
 	unsigned j = 0;
@@ -93,7 +94,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 
 
 	/* first check channel mappings */
-	while (rc_map_mandatory[j] != 0) {
+	while (rc_map_mandatory[j] != nullptr) {
 
 		param_t map_parm = param_find(rc_map_mandatory[j]);
 
@@ -110,7 +111,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 		int32_t mapping;
 		param_get(map_parm, &mapping);
 
-		if (mapping > RC_INPUT_MAX_CHANNELS) {
+		if (mapping > input_rc_s::RC_INPUT_MAX_CHANNELS) {
 			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: %s >= NUMBER OF CHANNELS.", rc_map_mandatory[j]); }
 
 			/* give system time to flush error message in case there are more */
@@ -132,7 +133,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 	unsigned total_fail_count = 0;
 	unsigned channels_failed = 0;
 
-	for (unsigned i = 0; i < RC_INPUT_MAX_CHANNELS; i++) {
+	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
 		/* should the channel be enabled? */
 		uint8_t count = 0;
 
