@@ -3,8 +3,6 @@
  */
 
 #if __GNUC__
-// We need auto_ptr for compatibility reasons
-# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 # pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
@@ -238,7 +236,7 @@ TEST(TransferBufferManager, Basic)
     static const int POOL_BLOCKS = 100;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
-    std::auto_ptr<TransferBufferManager> mgr(new TransferBufferManager(MGR_MAX_BUFFER_SIZE, pool));
+    std::unique_ptr<TransferBufferManager> mgr(new TransferBufferManager(MGR_MAX_BUFFER_SIZE, pool));
 
     // Empty
     ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TransferTypeMessageBroadcast)));

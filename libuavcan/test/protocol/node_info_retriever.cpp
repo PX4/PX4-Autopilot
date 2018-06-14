@@ -3,8 +3,6 @@
  */
 
 #if __GNUC__
-// We need auto_ptr for compatibility reasons
-# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 # pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
@@ -27,7 +25,7 @@ static void publishNodeStatus(PairableCanDriver& can, uavcan::NodeID node_id,
 
 struct NodeInfoListener : public uavcan::INodeInfoListener
 {
-    std::auto_ptr<uavcan::protocol::GetNodeInfo::Response> last_node_info;
+    std::unique_ptr<uavcan::protocol::GetNodeInfo::Response> last_node_info;
     uavcan::NodeID last_node_id;
     unsigned status_message_cnt;
     unsigned status_change_cnt;
@@ -82,7 +80,7 @@ TEST(NodeInfoRetriever, Basic)
     std::cout << "sizeof(uavcan::ServiceClient<uavcan::protocol::GetNodeInfo>): "
         << sizeof(uavcan::ServiceClient<uavcan::protocol::GetNodeInfo>) << std::endl;
 
-    std::auto_ptr<uavcan::NodeStatusProvider> provider(new uavcan::NodeStatusProvider(nodes.b));
+    std::unique_ptr<uavcan::NodeStatusProvider> provider(new uavcan::NodeStatusProvider(nodes.b));
 
     NodeInfoListener listener;
 
