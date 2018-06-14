@@ -84,7 +84,7 @@ TEST(Dispatcher, Reception)
         makeDataType(uavcan::DataTypeKindService, 1)
     };
 
-    typedef std::auto_ptr<TestListener> TestListenerPtr;
+    typedef std::unique_ptr<TestListener> TestListenerPtr;
     static const int MaxBufSize = 512;
     static const int NumSubscribers = 6;
     TestListenerPtr subscribers[NumSubscribers] =

@@ -3,8 +3,6 @@
  */
 
 #if __GNUC__
-// We need auto_ptr for compatibility reasons
-# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 # pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
@@ -57,8 +55,8 @@ TEST(dynamic_node_id_server_RaftCore, Basic)
 
     InterlinkedTestNodesWithSysClock nodes;
 
-    std::auto_ptr<RaftCore> raft_a(new RaftCore(nodes.a, storage_a, tracer_a, commit_handler_a));
-    std::auto_ptr<RaftCore> raft_b(new RaftCore(nodes.b, storage_b, tracer_b, commit_handler_b));
+    std::unique_ptr<RaftCore> raft_a(new RaftCore(nodes.a, storage_a, tracer_a, commit_handler_a));
+    std::unique_ptr<RaftCore> raft_b(new RaftCore(nodes.b, storage_b, tracer_b, commit_handler_b));
 
     /*
      * Initialization
