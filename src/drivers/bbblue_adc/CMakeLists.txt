@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,21 +30,30 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if ("${BOARD}" STREQUAL "bbblue")  
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+endif()
+
 include_directories(../../lib/Robotics_Cape_Installer/library/include)
 
 add_definitions(-DRC_AUTOPILOT_EXT)
 
 px4_add_module(
-	MODULE drivers__linux_pwm_out
-	MAIN linux_pwm_out
+	MODULE drivers__bbblue_adc
+	MAIN bbblue_adc
 	COMPILE_FLAGS
 	SRCS
-		PCA9685.cpp
-		navio_sysfs.cpp
-		linux_pwm_out.cpp
-		ocpoc_mmap.cpp
-		bbblue_pwm_rc.cpp
+		bbblue_adc.cpp
+		
+		# Previous board specific code is now precluded from build after
+		# the following was added to Frimware/CMakeLists.txt:
+		#
+		# 		add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
+		#
+		# so include bbblue board specific code here:
+		../boards/bbblue/init.c
 	DEPENDS
-		pwm_limit
+		platforms__common
 	)
-
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
