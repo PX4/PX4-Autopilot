@@ -22,8 +22,8 @@ CameraInterfaceGPIO::~CameraInterfaceGPIO()
 void CameraInterfaceGPIO::setup()
 {
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
-		// Pin range is ranges from 1 to 6
-		if (_pins[i] > 0 && _pins[i] < (int)arraySize(_gpios)) {
+		// Pin range is from 0 to 5
+		if (_pins[i] >= 0 && _pins[i] < (int)arraySize(_gpios)) {
 			px4_arch_configgpio(_gpios[_pins[i]]);
 			px4_arch_gpiowrite(_gpios[_pins[i]], !_polarity);
 		}
@@ -34,7 +34,7 @@ void CameraInterfaceGPIO::trigger(bool enable)
 {
 	if (enable) {
 		for (unsigned i = 0; i < arraySize(_pins); i++) {
-			if (_pins[i] >= 0) {
+			if (_pins[i] >= 0 && _pins[i] < (int)arraySize(_gpios)) {
 				// ACTIVE_LOW == 1
 				px4_arch_gpiowrite(_gpios[_pins[i]], _polarity);
 			}
@@ -42,7 +42,7 @@ void CameraInterfaceGPIO::trigger(bool enable)
 
 	} else {
 		for (unsigned i = 0; i < arraySize(_pins); i++) {
-			if (_pins[i] >= 0) {
+			if (_pins[i] >= 0 && _pins[i] < (int)arraySize(_gpios)) {
 				// ACTIVE_LOW == 1
 				px4_arch_gpiowrite(_gpios[_pins[i]], !_polarity);
 			}
