@@ -15,6 +15,7 @@ set(config_module_list
 	#drivers/bst
 	drivers/camera_trigger
 	drivers/device
+	driver/dw1000
 	#drivers/ets_airspeed
 	drivers/frsky_telemetry
 	drivers/gps
