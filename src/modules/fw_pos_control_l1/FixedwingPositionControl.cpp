@@ -1478,20 +1478,21 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 		if (!_land_noreturn_vertical) {
 			// just started with the flaring phase
-			_att_sp.pitch_body = 0.0f;
+			_flare_pitch_sp = 0.0f;
 			_flare_height = _global_pos.alt - terrain_alt;
 			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring");
 			_land_noreturn_vertical = true;
 
 		} else {
 			if (_global_pos.vel_d > 0.1f) {
-				_att_sp.pitch_body = radians(_parameters.land_flare_pitch_min_deg) *
-						     constrain((_flare_height - (_global_pos.alt - terrain_alt)) / _flare_height, 0.0f, 1.0f);
+				_flare_pitch_sp = radians(_parameters.land_flare_pitch_min_deg) *
+						  constrain((_flare_height - (_global_pos.alt - terrain_alt)) / _flare_height, 0.0f, 1.0f);
 			}
 
-			// otherwise continue using previous _att_sp.pitch_body
+			// otherwise continue using previous _flare_pitch_sp
 		}
 
+		_att_sp.pitch_body = _flare_pitch_sp;
 		_flare_curve_alt_rel_last = flare_curve_alt_rel;
 
 	} else {
