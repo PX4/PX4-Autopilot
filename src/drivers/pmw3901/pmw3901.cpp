@@ -147,6 +147,9 @@ private:
 	int _flow_sum_x = 0;
 	int _flow_sum_y = 0;
 	uint64_t _flow_dt_sum_usec = 0;
+	float _sensor_min_range = 0.0f;
+	float _sensor_max_range = 0.0f;
+	float _sensor_max_flow_rate = 0.0f;
 
 
 	/**
@@ -340,6 +343,34 @@ int
 PMW3901::init()
 {
 	int ret = PX4_ERROR;
+
+	/* get operational limits of the sensor */
+	param_t hmin = param_find("SENS_FLOW_MINHGT");
+
+	if (hmin != PARAM_INVALID) {
+		float val = 0.7;
+		param_get(hmin, &val);
+
+		_sensor_min_range = val;
+	}
+
+	param_t hmax = param_find("SENS_FLOW_MAXHGT");
+
+	if (hmax != PARAM_INVALID) {
+		float val = 3.0;
+		param_get(hmax, &val);
+
+		_sensor_max_range = val;
+	}
+
+	param_t ratemax = param_find("SENS_FLOW_MAXR");
+
+	if (ratemax != PARAM_INVALID) {
+		float val = 2.5;
+		param_get(ratemax, &val);
+
+		_sensor_max_flow_rate = val;
+	}
 
 	/* For devices competing with NuttX SPI drivers on a bus (Crazyflie SD Card expansion board) */
 	SPI::set_lockmode(LOCK_THREADS);
@@ -598,6 +629,10 @@ PMW3901::collect()
 	_flow_dt_sum_usec = 0;
 	_flow_sum_x = 0;
 	_flow_sum_y = 0;
+
+	report.max_flow_rate = _sensor_max_flow_rate;
+	report.min_ground_distance = _sensor_min_range;
+	report.max_ground_distance = _sensor_max_range;
 
 	if (_optical_flow_pub == nullptr) {
 
