@@ -211,6 +211,7 @@ private:
 	hrt_abstime _time_last_t_alt{0};			///< time at which we had last valid terrain alt */
 
 	float _flare_height{0.0f};				///< estimated height to ground at which flare started */
+	float _flare_pitch_sp{0.0f};			///< Current forced (i.e. not determined using TECS) flare pitch setpoint */
 	float _flare_curve_alt_rel_last{0.0f};
 	float _target_bearing{0.0f};				///< estimated height to ground at which flare started */
 
