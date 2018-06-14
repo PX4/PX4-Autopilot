@@ -2250,7 +2250,7 @@ Mavlink::task_main(int argc, char *argv[])
 				if (_transmitting_enabled &&
 				    !status.high_latency_data_link_active &&
 				    !_transmitting_enabled_commanded &&
-				    (_last_write_success_time > 0u)) { // a first message is written
+				    (_first_heartbeat_sent)) {
 					_transmitting_enabled = false;
 					mavlink_and_console_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s", _device_name);
 
@@ -2425,6 +2425,19 @@ Mavlink::task_main(int argc, char *argv[])
 		MavlinkStream *stream;
 		LL_FOREACH(_streams, stream) {
 			stream->update(t);
+
+			if (!_first_heartbeat_sent) {
+				if (_mode == MAVLINK_MODE_IRIDIUM) {
+					if (stream->get_id() == MAVLINK_MSG_ID_HIGH_LATENCY2) {
+						_first_heartbeat_sent = stream->first_message_sent();
+					}
+
+				} else {
+					if (stream->get_id() == MAVLINK_MSG_ID_HEARTBEAT) {
+						_first_heartbeat_sent = stream->first_message_sent();
+					}
+				}
+			}
 		}
 
 		/* pass messages from other UARTs */

@@ -103,7 +103,9 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_temperature(SimpleAnalyzer::AVERAGE),
 	_throttle(SimpleAnalyzer::AVERAGE),
 	_windspeed(SimpleAnalyzer::AVERAGE)
-{}
+{
+	reset_last_sent();
+}
 
 bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 {
