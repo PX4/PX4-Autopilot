@@ -580,8 +580,9 @@ PMW3901::collect()
 
 	report.timestamp = timestamp;
 
-	report.pixel_flow_x_integral = static_cast<float>(delta_x);
-	report.pixel_flow_y_integral = static_cast<float>(delta_y);
+	// the output of the sensor follows the opposite convention than the one defined in the optical_flow_message
+	report.pixel_flow_x_integral = -static_cast<float>(delta_x);
+	report.pixel_flow_y_integral = -static_cast<float>(delta_y);
 
 	report.frame_count_since_last_readout = 4;				//microseconds
 	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
