@@ -1061,9 +1061,8 @@ test()
 {
 	struct distance_sensor_s report;
 	ssize_t sz;
-	int fd = -1;
 
-	fd = open(VL53LXX_DEVICE_PATH, O_RDONLY);
+	int fd = open(VL53LXX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "%s open failed (try 'vl53lxx start' if the driver is not running)", VL53LXX_DEVICE_PATH);
