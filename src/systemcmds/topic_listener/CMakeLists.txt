@@ -30,9 +30,106 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(msg_files
+actuator_armed.msg
+actuator_controls.msg
+actuator_direct.msg
+actuator_outputs.msg
+adc_report.msg
+airspeed.msg
+att_pos_mocap.msg
+battery_status.msg
+camera_capture.msg
+camera_trigger.msg
+collision_report.msg
+commander_state.msg
+cpuload.msg
+debug_key_value.msg
+debug_value.msg
+debug_vect.msg
+differential_pressure.msg
+distance_sensor.msg
+ekf2_innovations.msg
+ekf2_timestamps.msg
+esc_report.msg
+esc_status.msg
+estimator_status.msg
+follow_target.msg
+fw_pos_ctrl_status.msg
+geofence_result.msg
+gps_dump.msg
+gps_inject_data.msg
+home_position.msg
+input_rc.msg
+irlock_report.msg
+landing_target_innovations.msg
+landing_target_pose.msg
+led_control.msg
+log_message.msg
+lps_mindtag.msg
+manual_control_setpoint.msg
+mavlink_log.msg
+mission.msg
+mission_result.msg
+mount_orientation.msg
+multirotor_motor_limits.msg
+obstacle_distance.msg
+offboard_control_mode.msg
+optical_flow.msg
+parameter_update.msg
+position_setpoint.msg
+position_setpoint_triplet.msg
+power_button_state.msg
+pwm_input.msg
+qshell_req.msg
+rate_ctrl_status.msg
+rc_channels.msg
+rc_parameter_map.msg
+safety.msg
+satellite_info.msg
+sensor_accel.msg
+sensor_baro.msg
+sensor_bias.msg
+sensor_combined.msg
+sensor_correction.msg
+sensor_gyro.msg
+sensor_mag.msg
+sensor_preflight.msg
+sensor_selection.msg
+servorail_status.msg
+subsystem_info.msg
+system_power.msg
+task_stack_info.msg
+tecs_status.msg
+telemetry_status.msg
+test_motor.msg
+time_offset.msg
+transponder_report.msg
+tune_control.msg
+ulog_stream.msg
+ulog_stream_ack.msg
+vehicle_attitude.msg
+vehicle_attitude_setpoint.msg
+vehicle_control_mode.msg
+vehicle_global_position.msg
+vehicle_gps_position.msg
+vehicle_land_detected.msg
+vehicle_local_position.msg
+vehicle_local_position_setpoint.msg
+vehicle_rates_setpoint.msg
+vehicle_roi.msg
+vehicle_status.msg
+vehicle_status_flags.msg
+vtol_vehicle_status.msg
+wind_estimate.msg
+vehicle_command.msg
+vehicle_command_ack.msg
+uavcan_parameter_request.msg
+uavcan_parameter_value.msg
+)
 
 add_custom_command(OUTPUT topic_listener.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${PX4_SOURCE_DIR} ${EXTERNAL_MODULES_LOCATION} > topic_listener.cpp
+                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${PX4_SOURCE_DIR} ${msg_files} > topic_listener.cpp
                 DEPENDS generate_listener.py uorb_msgs
                 )
 
@@ -51,6 +148,7 @@ px4_add_module(
 	SRCS
 		topic_listener.cpp
 	DEPENDS
+		platforms__common
 		generate_topic_listener
 	)
-
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
