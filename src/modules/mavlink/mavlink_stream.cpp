@@ -66,6 +66,10 @@ MavlinkStream::update(const hrt_abstime &t)
 		// on the link scheduling
 		if (send(t)) {
 			_last_sent = hrt_absolute_time();
+
+			if (!_first_message_sent) {
+				_first_message_sent = true;
+			}
 		}
 
 		return 0;
@@ -103,6 +107,11 @@ MavlinkStream::update(const hrt_abstime &t)
 		// long time not sending anything, sending multiple messages in a short time is avoided.
 		if (send(t)) {
 			_last_sent = ((interval > 0) && ((int64_t)(1.5f * interval) > dt)) ? _last_sent + interval : t;
+
+			if (!_first_message_sent) {
+				_first_message_sent = true;
+			}
+
 			return 0;
 
 		} else {
